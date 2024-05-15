@@ -195,6 +195,38 @@ impl From<ProvidedRepository> for GithubProvidedRepository {
     }
 }
 
+impl From<IntegrationAccessToken> for GithubRepositoryProvider {
+    fn from(value: IntegrationAccessToken) -> Self {
+        Self {
+            id: value.id,
+            display_name: value.display_name,
+            status: value.status.into(),
+            access_token: Some(value.access_token),
+        }
+    }
+}
+
+impl From<IntegrationAccessToken> for GitlabRepositoryProvider {
+    fn from(value: IntegrationAccessToken) -> Self {
+        Self {
+            id: value.id,
+            display_name: value.display_name,
+            status: value.status.into(),
+            access_token: Some(value.access_token),
+        }
+    }
+}
+
+impl From<IntegrationStatus> for RepositoryProviderStatus {
+    fn from(value: IntegrationStatus) -> Self {
+        match value {
+            IntegrationStatus::Ready => Self::Ready,
+            IntegrationStatus::Pending => Self::Pending,
+            IntegrationStatus::Failed => Self::Failed,
+        }
+    }
+}
+
 impl From<ProvidedRepository> for GitlabProvidedRepository {
     fn from(value: ProvidedRepository) -> Self {
         Self {

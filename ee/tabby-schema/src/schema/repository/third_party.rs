@@ -1,9 +1,11 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use juniper::ID;
+use juniper::{GraphQLObject, ID};
 
-use crate::{integration::IntegrationKind, schema::Result};
+use crate::{integration::IntegrationKind, juniper::relay::NodeType, schema::Result, Context};
 
+#[derive(GraphQLObject)]
+#[graphql(context = Context)]
 pub struct ProvidedRepository {
     pub id: ID,
     pub integration_id: ID,
@@ -13,6 +15,22 @@ pub struct ProvidedRepository {
     pub vendor_id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+impl NodeType for ProvidedRepository {
+    type Cursor = String;
+
+    fn cursor(&self) -> Self::Cursor {
+        self.id.to_string()
+    }
+
+    fn connection_type_name() -> &'static str {
+        "ProvidedRepositoryConnection"
+    }
+
+    fn edge_type_name() -> &'static str {
+        "ProvidedRepositoryEdge"
+    }
 }
 
 #[async_trait]
