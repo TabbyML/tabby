@@ -184,7 +184,6 @@ CREATE TABLE integration_access_tokens(
 CREATE TABLE provided_repositories(
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   integration_access_token_id INTEGER NOT NULL,
-  kind TEXT NOT NULL,
   vendor_id TEXT NOT NULL,
   name TEXT NOT NULL,
   git_url TEXT NOT NULL,
