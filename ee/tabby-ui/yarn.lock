@@ -1846,6 +1846,18 @@
     tslib "^2.5.0"
     webcrypto-core "^1.7.7"
 
+"@quilted/events@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@quilted/events/-/events-2.0.0.tgz#7470ec92e94be1e4628e97f1a1e7726c15cf4e2f"
+  integrity sha512-0Q5w7jgHPj3nD8sTh1o7oa7LFxATK+dH0i4p8Y6BgKBLDOkr9/m01IDUXsbZdZ98XvxQaVkxBF/HUNAFfg/KfA==
+
+"@quilted/threads@^2.1.2":
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/@quilted/threads/-/threads-2.1.2.tgz#3c91d557e24cfe1edda1cd512dc0b85c3b9cf6e7"
+  integrity sha512-jkeh2K+Lbj9MkNXKsLab7Zu+kS16XcoGqBUOFXQNQerfJxMWSpVBliS4tG4chgte0YS6Ot4+fFRf19147gI0aQ==
+  dependencies:
+    "@quilted/events" "^2.0.0"
+
 "@radix-ui/number@1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@radix-ui/number/-/number-1.0.1.tgz#644161a3557f46ed38a042acf4a770e826021674"
@@ -2436,11 +2448,6 @@
   integrity sha512-fyrgCaedtvMg9NK3en0pnOYJdtfwxUcNolezkNPUsoX57X8oQk+NkqcvzHXD2uKNij6GXmWU9NDru2IWjrO4BQ==
   dependencies:
     "@babel/runtime" "^7.13.10"
-
-"@remote-ui/rpc@^1.4.5":
-  version "1.4.5"
-  resolved "https://registry.yarnpkg.com/@remote-ui/rpc/-/rpc-1.4.5.tgz#20328970c314374d96fdaae1cf93aca4b47fefee"
-  integrity sha512-Cr+06niG/vmE4A9YsmaKngRuuVSWKMY42NMwtZfy+gctRWGu6Wj9BWuMJg5CEp+JTkRBPToqT5rqnrg1G/Wvow==
 
 "@repeaterjs/repeater@^3.0.4":
   version "3.0.5"
@@ -8032,9 +8039,9 @@ tabbable@^6.2.0:
   integrity sha512-Cat63mxsVJlzYvN51JmVXIgNoUokrIaT2zLclCXjRd8boZ0004U4KCs/sToJ75C6sdlByWxpYnb5Boif1VSFew==
 
 tabby-chat-panel@../../clients/tabby-chat-panel:
-  version "0.0.0"
+  version "0.0.0-dev.3"
   dependencies:
-    "@remote-ui/rpc" "^1.4.5"
+    "@quilted/threads" "^2.1.2"
     react "^18.3.1"
 
 tailwind-merge@^1.12.0:
