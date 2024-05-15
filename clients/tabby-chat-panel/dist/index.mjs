@@ -1,14 +1,15 @@
-import { createEndpoint } from '@remote-ui/rpc';
+import { createThreadFromIframe, createThreadFromInsideIframe } from '@quilted/threads';
 
-function createClient(endpoint) {
-  return createEndpoint(endpoint);
+function createClient(target) {
+  return createThreadFromIframe(target);
 }
-function createServer(endpoint, api) {
-  const server = createEndpoint(endpoint);
-  server.expose({
-    init: api.init
+function createServer(api) {
+  return createThreadFromInsideIframe({
+    expose: {
+      init: api.init,
+      sendMessage: api.sendMessage
+    }
   });
-  return server;
 }
 
 export { createClient, createServer };

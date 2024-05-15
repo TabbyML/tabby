@@ -1,16 +1,17 @@
 'use strict';
 
-const rpc = require('@remote-ui/rpc');
+const threads = require('@quilted/threads');
 
-function createClient(endpoint) {
-  return rpc.createEndpoint(endpoint);
+function createClient(target) {
+  return threads.createThreadFromIframe(target);
 }
-function createServer(endpoint, api) {
-  const server = rpc.createEndpoint(endpoint);
-  server.expose({
-    init: api.init
+function createServer(api) {
+  return threads.createThreadFromInsideIframe({
+    expose: {
+      init: api.init,
+      sendMessage: api.sendMessage
+    }
   });
-  return server;
 }
 
 exports.createClient = createClient;
