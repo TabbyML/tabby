@@ -19,6 +19,7 @@ serde_json.workspace = true
 async-trait.workspace = true
 thiserror.workspace = true
 url.workspace = true
+derive_builder.workspace = true
 
 [dev-dependencies]
 temp_testdir = { workspace = true }

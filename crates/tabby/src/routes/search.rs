@@ -12,7 +12,7 @@ use tracing::{instrument, warn};
 use utoipa::IntoParams;
 
 #[derive(Deserialize, IntoParams)]
-pub struct SearchQuery {
+pub struct CodeSearchQuery {
     #[param(default = "get")]
     q: String,
 
@@ -25,12 +25,12 @@ pub struct SearchQuery {
 
 #[utoipa::path(
     get,
-    params(SearchQuery),
+    params(CodeSearchQuery),
     path = "/v1beta/search",
     operation_id = "search",
     tag = "v1beta",
     responses(
-        (status = 200, description = "Success" , body = SearchResponse, content_type = "application/json"),
+        (status = 200, description = "Success" , body = CodeSearchResponse, content_type = "application/json"),
         (status = 501, description = "When code search is not enabled, the endpoint will returns 501 Not Implemented"),
     ),
     security(
@@ -40,7 +40,7 @@ pub struct SearchQuery {
 #[instrument(skip(state, query))]
 pub async fn search(
     State(state): State<Arc<dyn CodeSearch>>,
-    query: Query<SearchQuery>,
+    query: Query<CodeSearchQuery>,
 ) -> Result<Json<CodeSearchResponse>, StatusCode> {
     match state
         .search(
