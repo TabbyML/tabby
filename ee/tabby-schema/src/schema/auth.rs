@@ -294,7 +294,7 @@ pub struct UpdateUserNameInput {
     #[validate(regex(
         code = "username",
         path = "crate::schema::constants::USERNAME_REGEX",
-        message = "Invalid username, only alphanumeric characters, _ and - are allowed"
+        message = "Invalid username, only alphabet and space character are allowed, and it must start and end with alphabet"
     ))]
     pub name: String,
 }
