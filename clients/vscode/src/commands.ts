@@ -11,7 +11,10 @@ import {
   commands,
 } from "vscode";
 import os from "os";
+import path from "path";
 import { strict as assert } from "assert";
+import { gitApi } from "./gitApi";
+import type { Repository } from "./types/git";
 import { agent } from "./agent";
 import { notifications } from "./notifications";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
@@ -335,6 +338,93 @@ const explainCodeBlock: Command = {
   },
 };
 
+const generateCommitMessage: Command = {
+  command: "tabby.experimental.chat.generateCommitMessage",
+  callback: async () => {
+    const repos = gitApi?.repositories ?? [];
+    if (repos.length < 1) {
+      window.showInformationMessage("No Git repositories found.");
+      return;
+    }
+    // Select repo
+    let selectedRepo: Repository | undefined = undefined;
+    if (repos.length == 1) {
+      selectedRepo = repos[0];
+    } else {
+      const selected = await window.showQuickPick(
+        repos
+          .map((repo) => {
+            const repoRoot = repo.rootUri.fsPath;
+            return {
+              label: path.basename(repoRoot),
+              detail: repoRoot,
+              iconPath: new ThemeIcon("repo"),
+              picked: repo.ui.selected,
+              alwaysShow: true,
+              value: repo,
+            };
+          })
+          .sort((a, b) => {
+            if (a.detail.startsWith(b.detail)) {
+              return 1;
+            } else if (b.detail.startsWith(a.detail)) {
+              return -1;
+            } else {
+              return a.label.localeCompare(b.label);
+            }
+          }),
+        { placeHolder: "Select a Git repository" },
+      );
+      selectedRepo = selected?.value;
+    }
+    if (!selectedRepo) {
+      return;
+    }
+    const repo = selectedRepo;
+    // Get the diff
+    let diff = (await repo.diff(true)).trim();
+    if (diff.length < 1) {
+      // if cached diff is empty, use uncached instead
+      diff = (await repo.diff(false)).trim();
+    }
+    if (diff.length < 1) {
+      // uncached diff is still empty, return
+      return;
+    }
+    // Focus on scm view
+    commands.executeCommand("workbench.view.scm");
+    window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "Generating commit message...",
+        cancellable: true,
+      },
+      async (_, token) => {
+        const abortController = new AbortController();
+        token.onCancellationRequested(() => {
+          abortController.abort();
+        });
+        const signal = abortController.signal;
+        // Split diffs and sort by priority (modified timestamp) ascending
+        const diffsWithPriority = await Promise.all(
+          diff.split(/\n(?=diff)/).map(async (item) => {
+            let priority = Number.MAX_SAFE_INTEGER;
+            const filepath = /diff --git a\/.* b\/(.*)$/gm.exec(item)?.[1];
+            if (filepath) {
+              const uri = Uri.joinPath(repo.rootUri, filepath);
+              priority = (await workspace.fs.stat(uri)).mtime;
+            }
+            return { diff: item, priority };
+          }),
+        );
+        const diffs = diffsWithPriority.sort((a, b) => a.priority - b.priority).map((item) => item.diff);
+        const message = await agent().generateCommitMessage(diffs, { signal });
+        repo.inputBox.value = message;
+      },
+    );
+  },
+};
+
 export const tabbyCommands = (
   context: ExtensionContext,
   completionProvider: TabbyCompletionProvider,
@@ -359,4 +449,5 @@ export const tabbyCommands = (
     muteNotifications(context, statusBarItem),
     resetMutedNotifications(context, statusBarItem),
     explainCodeBlock,
+    generateCommitMessage,
   ].map((command) => commands.registerCommand(command.command, command.callback, command.thisArg));

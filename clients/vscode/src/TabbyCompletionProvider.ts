@@ -12,13 +12,12 @@ import {
   NotebookRange,
   Uri,
   commands,
-  extensions,
   window,
   workspace,
 } from "vscode";
 import { EventEmitter } from "events";
 import { CompletionRequest, CompletionResponse, LogEventRequest } from "tabby-agent";
-import { API as GitAPI } from "./types/git";
+import { gitApi } from "./gitApi";
 import { getLogger } from "./logger";
 import { agent } from "./agent";
 import { RecentlyChangedCodeSearch } from "./RecentlyChangedCodeSearch";
@@ -37,7 +36,6 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
   private onGoingRequestAbortController: AbortController | null = null;
   private loading: boolean = false;
   private displayedCompletion: DisplayedCompletion | null = null;
-  private gitApi: GitAPI | null = null;
 
   recentlyChangedCodeSearch: RecentlyChangedCodeSearch | null = null;
 
@@ -49,12 +47,6 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         this.updateConfiguration();
       }
     });
-
-    const gitExt = extensions.getExtension("vscode.git");
-    if (gitExt && gitExt.isActive) {
-      this.gitApi = gitExt.exports.getAPI(1); // version: 1
-    }
-
     this.logger.info("Created completion provider.");
   }
 
@@ -308,7 +300,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
 
   private getGitContext(uri: Uri): CompletionRequest["git"] | undefined {
     this.logger.debug("Fetching git context...");
-    const repo = this.gitApi?.getRepository(uri);
+    const repo = gitApi?.getRepository(uri);
     if (!repo) {
       this.logger.debug("No git repo available.");
       return undefined;

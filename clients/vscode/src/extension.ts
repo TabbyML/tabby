@@ -45,7 +45,7 @@ export async function activate(context: ExtensionContext) {
     if (agent.getStatus() === "ready") {
       const healthState = agent.getServerHealthState();
       const isChatEnabled = Boolean(healthState?.chat_model);
-      commands.executeCommand("setContext", "tabby.chatModeEnabled", isChatEnabled);
+      commands.executeCommand("setContext", "tabby.chatEnabled", isChatEnabled);
     }
   };
   agent.on("statusChanged", () => {
@@ -56,7 +56,9 @@ export async function activate(context: ExtensionContext) {
   const updateIsExplainCodeEnabledContextVariable = () => {
     const experimental = workspace.getConfiguration("tabby").get<Record<string, any>>("experimental", {});
     const isExplainCodeEnabled = experimental["chat.explainCodeBlock"] || false;
-    commands.executeCommand("setContext", "tabby.explainCodeSettingEnabled", isExplainCodeEnabled);
+    commands.executeCommand("setContext", "tabby.explainCodeBlockEnabled", isExplainCodeEnabled);
+    const isGenerateCommitMessageEnabled = experimental["chat.generateCommitMessage"] || false;
+    commands.executeCommand("setContext", "tabby.generateCommitMessageEnabled", isGenerateCommitMessageEnabled);
   };
   workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration("tabby.experimental")) {

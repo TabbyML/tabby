@@ -62,6 +62,12 @@ export type AgentConfig = {
     limitScope: any;
     calculateReplaceRange: any;
   };
+  experimentalChat: {
+    generateCommitMessage: {
+      maxDiffLength: number;
+      promptTemplate: string;
+    };
+  };
   logs: {
     // Controls the level of the logger written to the `~/.tabby-client/agent/logs/`
     level: "silent" | "error" | "info" | "debug" | "trace";
@@ -132,6 +138,13 @@ export const defaultAgentConfig: AgentConfig = {
   postprocess: {
     limitScope: {},
     calculateReplaceRange: {},
+  },
+  experimentalChat: {
+    generateCommitMessage: {
+      maxDiffLength: 3600,
+      promptTemplate:
+        "Generate a commit message based on the given diff. \nYou should only reply with the commit message, and the commit message should be in the following format: \n`<type>(<scope>): <description>` \nexamples: \n * feat(chat): add support for chat. \n * fix(ui): fix homepage links. \nThe diff is: \n\n```diff \n{{diff}} \n``` \n",
+    },
   },
   logs: {
     level: "silent",

@@ -244,3 +244,37 @@ export function errorToString(error: Error & { cause?: Error }) {
   }
   return message;
 }
+
+import type { components as TabbyApiComponents } from "./types/tabbyApi";
+export async function* readChatStream(response: Response): AsyncGenerator<string> {
+  const streamReader = response.body?.getReader();
+  const textDecoder = new TextDecoder("utf8");
+  let streamClosed = false;
+  while (streamReader && !streamClosed) {
+    const { done, value } = await streamReader.read();
+    if (value) {
+      const raw = textDecoder.decode(Buffer.from(value));
+      const header = "data: ";
+      if (raw.startsWith(header)) {
+        const data = JSON.parse(raw.slice(header.length)) as TabbyApiComponents["schemas"]["ChatCompletionChunk"];
+        streamClosed ||= !!data.choices[0]?.finish_reason;
+        const delta = data.choices[0]?.delta.content;
+        if (typeof delta === "string") {
+          yield delta;
+        }
+      }
+    }
+    streamClosed ||= done;
+  }
+}
+
+export async function parseChatResponse(response: Response, signal?: AbortSignal): Promise<string> {
+  const tokens: string[] = [];
+  for await (const token of readChatStream(response)) {
+    if (signal?.aborted) {
+      break;
+    }
+    tokens.push(token);
+  }
+  return tokens.join("");
+}

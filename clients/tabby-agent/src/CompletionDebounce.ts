@@ -63,14 +63,15 @@ export class CompletionDebounce {
   private async sleep(delay: number, options?: AbortSignalOption): Promise<void> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(resolve, Math.min(delay, 0x7fffffff));
-      if (options?.signal) {
-        if (options.signal.aborted) {
+      const signal = options?.signal;
+      if (signal) {
+        if (signal.aborted) {
           clearTimeout(timer);
-          reject(options.signal.reason);
+          reject(signal.reason);
         } else {
-          options.signal.addEventListener("abort", () => {
+          signal.addEventListener("abort", () => {
             clearTimeout(timer);
-            reject(options.signal.reason);
+            reject(signal.reason);
           });
         }
       }

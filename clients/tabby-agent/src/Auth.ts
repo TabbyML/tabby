@@ -137,7 +137,7 @@ export class Auth extends EventEmitter {
   async requestAuthUrl(options?: AbortSignalOption): Promise<{ authUrl: string; code: string }> {
     try {
       await this.reset();
-      if (options?.signal.aborted) {
+      if (options?.signal?.aborted) {
         throw options.signal.reason;
       }
       this.logger.debug("Requesting device token...");
