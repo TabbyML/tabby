@@ -4,3 +4,4 @@ pub mod completion;
 pub mod event;
 pub mod health;
 pub mod model;
+pub mod doc;
