@@ -168,6 +168,9 @@ mod tests {
         assert!(is_empty(&docs[1], index.doc.field_body));
 
         assert_eq!("0", get_text(&docs[1], index.doc.field_chunk_id));
-        assert_eq!("embedding_zero_0", get_text(&docs[1], index.doc.field_chunk_embedding_token));
+        assert_eq!(
+            "embedding_zero_0",
+            get_text(&docs[1], index.doc.field_chunk_embedding_token)
+        );
     }
 }
