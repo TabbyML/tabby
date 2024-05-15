@@ -7,7 +7,6 @@ use futures::{Stream, StreamExt};
 use readable_readability::Readability;
 use tokio::io::AsyncBufReadExt;
 use tracing::{debug, warn};
-use tracing_subscriber::field::debug;
 use url::Url;
 
 use self::types::{CrawledDocument, KatanaRequestResponse};
