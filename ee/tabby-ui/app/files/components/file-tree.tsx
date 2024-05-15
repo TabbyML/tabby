@@ -21,7 +21,11 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 
 import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
-import { resolveFileNameFromPath, resolveRepositoryInfoFromPath } from './utils'
+import {
+  encodeURIComponentIgnoringSlash,
+  resolveFileNameFromPath,
+  resolveRepositoryInfoFromPath
+} from './utils'
 
 type TFileTreeNode = {
   name: string
@@ -241,7 +245,9 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   const { data, isLoading }: SWRResponse<ResolveEntriesResponse> =
     useSWRImmutable(
       shouldFetchChildren
-        ? `/repositories/${activeRepoIdentity}/resolve/${basename}`
+        ? encodeURIComponentIgnoringSlash(
+            `/repositories/${activeRepoIdentity}/resolve/${basename}`
+          )
         : null,
       fetcher,
       {

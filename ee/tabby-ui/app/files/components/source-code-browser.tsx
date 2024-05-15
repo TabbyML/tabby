@@ -35,6 +35,7 @@ import { FileTreePanel } from './file-tree-panel'
 import { RawFileView } from './raw-file-view'
 import { TextFileView } from './text-file-view'
 import {
+  encodeURIComponentIgnoringSlash,
   fetchEntriesFromPath,
   getDirectoriesFromBasename,
   repositoryList2Map,
@@ -267,7 +268,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       contentLength?: number
     }>(
       isFileSelected
-        ? `/repositories/${activeRepoIdentity}/resolve/${activeBasename}`
+        ? encodeURIComponentIgnoringSlash(
+            `/repositories/${activeRepoIdentity}/resolve/${activeBasename}`
+          )
         : null,
       (url: string) =>
         fetcher(url, {
@@ -301,7 +304,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     isLoading: fetchingSubTree
   }: SWRResponse<ResolveEntriesResponse> = useSWRImmutable(
     shouldFetchSubDir
-      ? `/repositories/${activeRepoIdentity}/resolve/${activeBasename}`
+      ? encodeURIComponentIgnoringSlash(
+          `/repositories/${activeRepoIdentity}/resolve/${activeBasename}`
+        )
       : null,
     fetcher
   )
