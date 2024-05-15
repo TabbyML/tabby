@@ -1,9 +1,11 @@
-use std::{collections::HashSet, sync::Arc};
+use std::sync::Arc;
 
+use async_stream::stream;
+use futures::{Stream, StreamExt};
 use tabby_common::{index::DocSearchSchema, path};
 use tabby_inference::Embedding;
-use tantivy::{doc, IndexWriter, Term};
-use text_splitter::{Characters, TextSplitter};
+use tantivy::{doc, IndexWriter, TantivyDocument, Term};
+use text_splitter::TextSplitter;
 use tracing::warn;
 
 use crate::tantivy_utils::open_or_create_index;
@@ -19,7 +21,6 @@ pub struct DocIndex {
     embedding: Arc<dyn Embedding>,
     doc: DocSearchSchema,
     writer: IndexWriter,
-    splitter: TextSplitter<Characters>,
 }
 
 const CHUNK_SIZE: usize = 2048;
@@ -36,7 +37,6 @@ impl DocIndex {
             embedding,
             doc,
             writer,
-            splitter: TextSplitter::default().with_trim_chunks(true),
         }
     }
 
@@ -45,24 +45,21 @@ impl DocIndex {
         self.writer
             .delete_term(Term::from_field_text(self.doc.field_id, &document.id));
 
-        let Some(embedding_tokens) = self.compute_embedding_tokens(&document.body).await else {
-            warn!(
-                "Failed to compute embedding tokens for document '{}'",
-                document.id
-            );
-            return;
-        };
+        // Add the chunks
+        self.iter_chunks(document.id.clone(), document.body.clone())
+            .await
+            .for_each(|doc| async {
+                self.writer.add_document(doc).expect("Failed to add chunk");
+            })
+            .await;
 
-        let mut doc = doc! {
+        // Add the document
+        let doc = doc! {
             self.doc.field_id => document.id,
             self.doc.field_title => document.title,
             self.doc.field_link => document.link,
             self.doc.field_body => document.body,
         };
-
-        for token in embedding_tokens {
-            doc.add_text(self.doc.field_embedding_token, token);
-        }
 
         // Add the document
         self.writer
@@ -72,25 +69,34 @@ impl DocIndex {
 
     /// This function splits the document into chunks and computes the embedding for each chunk. It then converts the embeddings
     /// into binarized tokens by thresholding on zero.
-    ///
-    /// The current implementation deduplicates tokens at the document level, but this may require further consideration in the future.
-    async fn compute_embedding_tokens(&self, content: &str) -> Option<Vec<String>> {
-        let mut tokens = HashSet::new();
-        for chunk in self.splitter.chunks(content, CHUNK_SIZE) {
-            let embedding = match self.embedding.embed(chunk).await {
-                Ok(embedding) => embedding,
-                Err(e) => {
-                    warn!("Failed to embed document: {}", e);
-                    return None;
-                }
-            };
+    async fn iter_chunks(
+        &self,
+        id: String,
+        content: String,
+    ) -> impl Stream<Item = TantivyDocument> {
+        let splitter = TextSplitter::default().with_trim_chunks(true);
+        let embedding = self.embedding.clone();
 
-            for token in DocSearchSchema::binarize_embedding(embedding.iter()) {
-                tokens.insert(token);
+        let field_chunk_id = self.doc.field_chunk_id;
+        let field_chunk_embedding_token = self.doc.field_chunk_embedding_token;
+        stream! {
+            for (chunk_id, chunk) in splitter.chunks(&content, CHUNK_SIZE).enumerate() {
+                let mut doc = doc! {
+                    field_chunk_id => chunk_id.to_string()
+                };
+
+                let Ok(embedding) = embedding.embed(chunk).await else {
+                    warn!("Failed to embed chunk {} of document '{}'", chunk_id, id);
+                    continue;
+                };
+
+                for token in DocSearchSchema::binarize_embedding(embedding.iter()) {
+                    doc.add_text(field_chunk_embedding_token, token);
+                }
+
+                yield doc;
             }
         }
-
-        Some(tokens.into_iter().collect())
     }
 
     pub fn delete(&mut self, id: &str) {
