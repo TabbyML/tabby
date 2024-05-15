@@ -136,7 +136,6 @@ impl TryFrom<ProvidedRepositoryDAO> for ProvidedRepository {
         Ok(Self {
             integration_id: value.integration_access_token_id.as_id(),
             active: value.active,
-            kind: IntegrationKind::from_enum_str(&value.kind)?,
             display_name: value.name,
             git_url: value.git_url,
             vendor_id: value.vendor_id,

@@ -83,7 +83,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
 
             for repository in repositories {
                 let url = format_authenticated_url(
-                    &repository.kind,
+                    &integration.kind,
                     &repository.git_url,
                     &integration.access_token,
                 )?;

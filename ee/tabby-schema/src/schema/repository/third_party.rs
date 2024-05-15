@@ -7,7 +7,6 @@ use crate::{integration::IntegrationKind, schema::Result};
 pub struct ProvidedRepository {
     pub integration_id: ID,
     pub active: bool,
-    pub kind: IntegrationKind,
     pub display_name: String,
     pub git_url: String,
     pub vendor_id: String,
