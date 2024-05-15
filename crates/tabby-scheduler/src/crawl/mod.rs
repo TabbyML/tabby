@@ -95,3 +95,39 @@ async fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
 pub async fn crawl_pipeline(start_url: &str) -> impl Stream<Item = CrawledDocument> {
     crawl_url(start_url).await.filter_map(to_document)
 }
+
+#[cfg(test)]
+mod tests {
+
+    use tracing_test::traced_test;
+
+    use super::*;
+
+    #[tokio::test]
+    #[traced_test]
+    async fn test_to_document() {
+        let headers = [("content_type".into(), "text/html".into())]
+            .iter()
+            .cloned()
+            .collect();
+        let data = KatanaRequestResponse {
+            timestamp: "2021-09-01T00:00:00Z".to_owned(),
+            request: types::KatanaRequest {
+                endpoint: "https://example.com".to_owned(),
+                method: "GET".to_owned(),
+                raw: "GET / HTTP/1.1\nHost: example.com\n".to_owned(),
+            },
+            response: types::KatanaResponse {
+                status_code: 200,
+                headers,
+                body: "<p>Hello, World!</p>".to_owned(),
+                technologies: Default::default(),
+                raw: "HTTP/1.1 200 OK\nContent-Type: text/html\n".to_owned(),
+            },
+        };
+
+        let doc = to_document(data).await.unwrap();
+        assert_eq!(doc.url, "https://example.com");
+        assert_eq!(doc.markdown, "Hello, World!");
+    }
+}
