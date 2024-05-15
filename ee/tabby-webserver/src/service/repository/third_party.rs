@@ -94,8 +94,15 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         Ok(urls)
     }
 
-    async fn sync_repositories(&self, _kind: IntegrationKind) -> Result<()> {
-        todo!("Loop over integrations and call refresh_repositories_for_provider");
+    async fn sync_repositories(&self, kind: IntegrationKind) -> Result<()> {
+        let integrations = self
+            .integration
+            .list_integrations(None, Some(kind), None, None, None, None)
+            .await?;
+
+        for integration in integrations {
+            refresh_repositories_for_provider(self, &*self.integration, integration.id).await?;
+        }
         Ok(())
     }
 
@@ -130,8 +137,8 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
 }
 
 async fn refresh_repositories_for_provider(
-    repository: Arc<dyn ThirdPartyRepositoryService>,
-    integration: Arc<dyn IntegrationService>,
+    repository: &dyn ThirdPartyRepositoryService,
+    integration: &dyn IntegrationService,
     provider_id: ID,
 ) -> Result<()> {
     let provider = integration.get_integration(provider_id.clone()).await?;
