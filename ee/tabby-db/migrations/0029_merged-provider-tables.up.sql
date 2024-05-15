@@ -2,7 +2,7 @@ CREATE TABLE integration_access_tokens(
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     kind TEXT NOT NULL,
     display_name TEXT NOT NULL,
-    access_token TEXT,
+    access_token TEXT NOT NULL,
     error TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
     updated_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now'))
@@ -20,3 +20,9 @@ CREATE TABLE provided_repositories(
     FOREIGN KEY (integration_access_token_id) REFERENCES integration_access_tokens(id) ON DELETE CASCADE,
     CONSTRAINT idx_unique_provider_id_vendor_id UNIQUE (integration_access_token_id, vendor_id)
 );
+
+INSERT INTO integration_access_tokens(kind, display_name, access_token)
+    SELECT 'github', display_name, access_token FROM github_repository_provider;
+
+INSERT INTO integration_access_tokens(kind, display_name, access_token)
+    SELECT 'gitlab', display_name, access_token FROM gitlab_repository_provider;

@@ -10,7 +10,7 @@ pub struct IntegrationAccessTokenDAO {
     pub kind: String,
     pub error: Option<String>,
     pub display_name: String,
-    pub access_token: Option<String>,
+    pub access_token: String,
     pub created_at: DateTimeUtc,
     pub updated_at: DateTimeUtc,
 }
@@ -69,7 +69,7 @@ impl DbConn {
         access_token: Option<String>,
     ) -> Result<()> {
         let access_token = match access_token {
-            Some(access_token) => Some(access_token),
+            Some(access_token) => access_token,
             None => self.get_integration_access_token(id).await?.access_token,
         };
 
