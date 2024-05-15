@@ -11,11 +11,11 @@ import { useChatStore } from '@/lib/stores/chat-store'
 import { getChatById } from '@/lib/stores/utils'
 import { Context as ChatContext, QuestionAnswerPair } from '@/lib/types/chat'
 import { truncateText } from '@/lib/utils'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Chat, ChatRef } from '@/components/chat/chat'
+import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 
 import { ChatSessions } from './chat-sessions'
 
@@ -129,7 +129,8 @@ export default function Chats() {
     <div className="grid flex-1 overflow-hidden lg:grid-cols-[280px_1fr]">
       <ChatSessions
         className="hidden w-[280px] border-r lg:block"
-        style={style} />
+        style={style}
+      />
       <LoadingWrapper
         delay={0}
         loading={!_hasHydrated || !activeChatId}

@@ -25,7 +25,7 @@ import { ClearChatsButton } from './clear-chats-button'
 import { EditChatTitleDialog } from './edit-chat-title-dialog'
 
 interface ChatSessionsProps {
-  className?: string,
+  className?: string
   style?: Record<string, string>
 }
 
@@ -52,7 +52,10 @@ export const ChatSessions = ({ className, style }: ChatSessionsProps) => {
   return (
     <>
       <div className={className}>
-        <div className="flex w-[279px] flex-col gap-2 transition-all" style={style}>
+        <div
+          className="flex w-[279px] flex-col gap-2 transition-all"
+          style={style}
+        >
           <div className="shrink-0 pb-0 pl-3 pt-2">
             <Button
               className="h-12 w-full justify-start"
