@@ -281,11 +281,7 @@ pub struct PasswordChangeInput {
 
 #[derive(Validate)]
 pub struct UpdateUserNameInput {
-    #[validate(length(
-        min = 2,
-        code = "name",
-        message = "Name must be at least 2 characters"
-    ))]
+    #[validate(length(min = 2, code = "name", message = "Name must be at least 2 characters"))]
     #[validate(length(
         max = 20,
         code = "name",
