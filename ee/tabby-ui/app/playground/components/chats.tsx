@@ -1,56 +1,40 @@
 'use client'
 
 import React from 'react'
-import type { Message } from 'ai'
 
+import { useDebounceCallback } from '@/lib/hooks/use-debounce'
+import { usePatchFetch } from '@/lib/hooks/use-patch-fetch'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useStore } from '@/lib/hooks/use-store'
-import { addChat } from '@/lib/stores/chat-actions'
+import { addChat, updateMessages } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { getChatById } from '@/lib/stores/utils'
-import { nanoid, truncateText } from '@/lib/utils'
-import { Chat, ChatRef } from '@/components/chat'
+import { Context as ChatContext, QuestionAnswerPair } from '@/lib/types/chat'
+import { truncateText } from '@/lib/utils'
+import { Chat, ChatRef } from '@/components/chat/chat'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
 import { ChatSessions } from './chat-sessions'
 
-const emptyMessages: Message[] = []
+const emptyQaParise: QuestionAnswerPair[] = []
 
 export default function Chats() {
+  usePatchFetch()
   const { searchParams, updateSearchParams } = useRouterStuff()
   const initialMessage = searchParams.get('initialMessage')?.toString()
   const shouldConsumeInitialMessage = React.useRef(!!initialMessage)
   const chatRef = React.useRef<ChatRef>(null)
 
   const _hasHydrated = useStore(useChatStore, state => state._hasHydrated)
-  const chats = useStore(useChatStore, state => state.chats)
+
   const activeChatId = useStore(useChatStore, state => state.activeChatId)
-  const chat = getChatById(chats, activeChatId)
+  const storedChatList = useStore(useChatStore, state => state.chats)
+  const storedChat = getChatById(storedChatList, activeChatId)
 
-  React.useEffect(() => {
-    if (!shouldConsumeInitialMessage.current) return
-    if (!chatRef.current?.append) return
-
-    if (activeChatId && initialMessage) {
-      // request initialMessage
-      chatRef.current
-        .append({
-          role: 'user',
-          content: initialMessage
-        })
-        .then(() => {
-          // Remove the initialMessage params after the request is completed.
-          updateSearchParams({
-            del: 'initialMessage'
-          })
-        })
-      // store as a new chat
-      addChat(activeChatId, truncateText(initialMessage))
-
-      shouldConsumeInitialMessage.current = false
-    }
-  }, [chatRef.current?.append])
+  const initialMessages = React.useMemo(() => {
+    return storedChat?.messages?.filter(o => !!o.user)
+  }, [activeChatId])
 
   React.useEffect(() => {
     const onMessage = async (event: MessageEvent) => {
@@ -60,11 +44,9 @@ export default function Chats() {
       if (!chatRef.current || chatRef.current.isLoading) return
 
       const { data } = event
-      if (data.action === 'append') {
-        chatRef.current.append({
-          id: nanoid(),
-          role: 'user',
-          content: data.payload
+      if (data.action === 'sendUserChat') {
+        chatRef.current.sendUserChat({
+          ...data.payload
         })
         return
       }
@@ -79,7 +61,64 @@ export default function Chats() {
     return () => {
       window.removeEventListener('message', onMessage)
     }
-  }, [chatRef.current])
+  }, [])
+
+  const persistChat = useDebounceCallback(
+    (chatId: string, messages: QuestionAnswerPair[]) => {
+      if (!storedChat && messages?.length) {
+        debugger
+        addChat(activeChatId, truncateText(messages?.[0]?.user?.message))
+      } else if (storedChat) {
+        updateMessages(chatId, messages)
+      }
+    },
+    1000
+  )
+
+  const onThreadUpdates = (messages: QuestionAnswerPair[]) => {
+    if (activeChatId) {
+      persistChat.run(activeChatId, messages)
+    }
+  }
+
+  const onNavigateToContext = (context: ChatContext) => {
+    // todo check if is embed
+    if (!context.filePath || !context.link) return
+    const isInIframe = window.self !== window.top
+    if (isInIframe) {
+      window.top?.postMessage({
+        action: 'navigateToContext',
+        path: context.filePath,
+        line: context.range.start
+      })
+    } else {
+      window.open(context.link)
+    }
+  }
+
+  const onChatLoaded = () => {
+    if (!shouldConsumeInitialMessage.current) return
+    if (!chatRef.current?.sendUserChat) return
+    if (activeChatId && initialMessage) {
+      // request initialMessage
+      chatRef.current
+        .sendUserChat({
+          message: initialMessage
+        })
+        .then(() => {
+          // Remove the initialMessage params after the request is completed.
+          updateSearchParams({
+            del: 'initialMessage'
+          })
+        })
+
+      shouldConsumeInitialMessage.current = false
+    }
+  }
+
+  React.useEffect(() => {
+    return () => persistChat.flush()
+  }, [])
 
   return (
     <div className="grid flex-1 overflow-hidden lg:grid-cols-[280px_1fr]">
@@ -94,10 +133,13 @@ export default function Chats() {
         }
       >
         <Chat
-          id={activeChatId}
+          chatId={activeChatId as string}
           key={activeChatId}
-          initialMessages={chat?.messages ?? emptyMessages}
+          initialMessages={initialMessages ?? emptyQaParise}
           ref={chatRef}
+          onThreadUpdates={onThreadUpdates}
+          onNavigateToContext={onNavigateToContext}
+          onLoaded={onChatLoaded}
         />
       </LoadingWrapper>
     </div>

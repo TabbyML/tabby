@@ -17,7 +17,6 @@ import {
   setSelectedLines
 } from './line-menu-extension/line-menu-extension'
 import { SourceCodeBrowserContext } from './source-code-browser'
-import { resolveRepositoryInfoFromPath } from './utils'
 
 import './line-menu-extension/line-menu.css'
 
@@ -47,11 +46,6 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const { isChatEnabled, activePath } = React.useContext(
     SourceCodeBrowserContext
   )
-  const filePath = React.useMemo(() => {
-    const { repositoryName, basename } =
-      resolveRepositoryInfoFromPath(activePath)
-    return `${repositoryName}/${basename}`
-  }, [activePath])
 
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
@@ -91,7 +85,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
       isChatEnabled &&
       activePath
     ) {
-      result.push(ActionBarWidgetExtension({ language, path: filePath }))
+      result.push(ActionBarWidgetExtension({ language, path: activePath }))
     }
     if (value && tags) {
       result.push(
@@ -127,7 +121,6 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   }, [value, line])
 
   React.useEffect(() => {
-    if (initialized.current) return
     if (line && editorView && value) {
       try {
         initialized.current = true
