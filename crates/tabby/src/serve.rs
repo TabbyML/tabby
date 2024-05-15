@@ -21,10 +21,10 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::{
     routes::{self, run_app},
     services::{
-        chat,
-        chat::create_chat_service,
+        chat::{self, create_chat_service},
         code::create_code_search,
         completion::{self, create_completion_service},
+        embedding,
         event::create_event_logger,
         health,
         model::download_model_if_needed,
@@ -85,6 +85,9 @@ pub struct ServeArgs {
     /// Model id for `/chat/completions` API endpoints.
     #[clap(long)]
     chat_model: Option<String>,
+
+    #[clap(long, hide = true)]
+    embedding_model: Option<String>,
 
     #[clap(long, default_value = "0.0.0.0")]
     host: IpAddr,
@@ -180,6 +183,10 @@ async fn load_model(args: &ServeArgs) {
             download_model_if_needed(chat_model).await
         }
     }
+
+    if let Some(embedding_model) = &args.embedding_model {
+        download_model_if_needed(embedding_model).await
+    }
 }
 
 async fn api_router(
@@ -214,6 +221,12 @@ async fn api_router(
             )
             .await,
         ))
+    } else {
+        None
+    };
+
+    let _embedding_state = if let Some(embedding_model) = &args.embedding_model {
+        Some(embedding::create(embedding_model, &args.device).await)
     } else {
         None
     };
