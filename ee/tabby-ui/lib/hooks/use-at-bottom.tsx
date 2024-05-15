@@ -12,7 +12,7 @@ export function useAtBottom(offset = 0) {
             document.body.offsetHeight - offset
         )
       },
-      300,
+      100,
       { leading: true }
     )
 
