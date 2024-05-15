@@ -14,10 +14,9 @@ use tabby_schema::{integration::IntegrationService, repository::RepositoryServic
 use crate::{
     path::db_file,
     routes,
-    service::integration,
     service::{
         background_job, background_job::BackgroundJobEvent, create_service_locator,
-        event_logger::create_event_logger, repository,
+        event_logger::create_event_logger, integration, repository,
     },
 };
 
