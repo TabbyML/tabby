@@ -23,7 +23,6 @@ pub struct CodeSearchResponse {
 pub struct CodeSearchHit {
     pub score: f32,
     pub doc: CodeSearchDocument,
-    pub id: u32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Builder, ToSchema)]

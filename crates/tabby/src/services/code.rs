@@ -73,12 +73,10 @@ impl CodeSearchImpl {
         &self,
         score: f32,
         doc: CodeSearchDocument,
-        doc_address: DocAddress,
     ) -> CodeSearchHit {
         CodeSearchHit {
             score,
             doc,
-            id: doc_address.doc_id,
         }
     }
 
@@ -96,7 +94,7 @@ impl CodeSearchImpl {
                 .iter()
                 .map(|(score, doc_address)| {
                     let doc = searcher.doc(*doc_address).unwrap();
-                    self.create_hit(*score, doc, *doc_address)
+                    self.create_hit(*score, doc)
                 })
                 .collect()
         };
