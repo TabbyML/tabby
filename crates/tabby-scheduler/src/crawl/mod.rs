@@ -6,7 +6,7 @@ use async_stream::stream;
 use futures::{Stream, StreamExt};
 use readable_readability::Readability;
 use tokio::io::AsyncBufReadExt;
-use tracing::{warn};
+use tracing::warn;
 use url::Url;
 
 use self::types::{CrawledDocument, KatanaRequestResponse};
@@ -98,7 +98,6 @@ pub async fn crawl_pipeline(start_url: &str) -> impl Stream<Item = CrawledDocume
 
 #[cfg(test)]
 mod tests {
-    
 
     use tracing_test::traced_test;
 
