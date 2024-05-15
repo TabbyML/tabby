@@ -6,7 +6,7 @@ use async_stream::stream;
 use futures::{Stream, StreamExt};
 use readable_readability::Readability;
 use tokio::io::AsyncBufReadExt;
-use tracing::{debug, warn};
+use tracing::{warn};
 use url::Url;
 
 use self::types::{CrawledDocument, KatanaRequestResponse};
@@ -98,7 +98,7 @@ pub async fn crawl_pipeline(start_url: &str) -> impl Stream<Item = CrawledDocume
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    
 
     use tracing_test::traced_test;
 
@@ -107,7 +107,7 @@ mod tests {
     #[tokio::test]
     #[traced_test]
     async fn test_to_document() {
-        let headers = vec![("content_type".into(), "text/html".into())]
+        let headers = [("content_type".into(), "text/html".into())]
             .iter()
             .cloned()
             .collect();
