@@ -7,6 +7,7 @@ import { IconRefresh, IconStop, IconTrash } from '@/components/ui/icons'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { PromptForm, PromptFormRef } from '@/components/chat/prompt-form'
 import { FooterText } from '@/components/footer'
+import { ChatContext } from './chat'
 
 export interface ChatPanelProps
   extends Pick<
@@ -38,6 +39,7 @@ export function ChatPanel({
   setMessages
 }: ChatPanelProps) {
   const promptFormRef = React.useRef<PromptFormRef>(null)
+  const { container } = React.useContext(ChatContext)
   React.useEffect(() => {
     promptFormRef?.current?.focus()
   }, [id])
@@ -54,7 +56,7 @@ export function ChatPanel({
         className
       )}
     >
-      <ButtonScrollToBottom />
+      <ButtonScrollToBottom container={container} />
       <div className="mx-auto sm:max-w-2xl sm:px-4">
         <div className="flex h-10 items-center justify-center gap-2">
           {isLoading ? (

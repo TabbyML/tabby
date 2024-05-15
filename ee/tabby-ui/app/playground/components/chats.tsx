@@ -27,6 +27,7 @@ export default function Chats() {
   const initialMessage = searchParams.get('initialMessage')?.toString()
   const shouldConsumeInitialMessage = React.useRef(!!initialMessage)
   const chatRef = React.useRef<ChatRef>(null)
+  const chatContainerRef = React.useRef<HTMLDivElement>(null)
   const [isShowDemoBanner] = useShowDemoBanner()
 
   const _hasHydrated = useStore(useChatStore, state => state._hasHydrated)
@@ -140,16 +141,19 @@ export default function Chats() {
           </div>
         }
       >
-        <ScrollArea className="transition-all" style={style}>
-          <Chat
-            chatId={activeChatId as string}
-            key={activeChatId}
-            initialMessages={initialMessages ?? emptyQaParise}
-            ref={chatRef}
-            onThreadUpdates={onThreadUpdates}
-            onNavigateToContext={onNavigateToContext}
-            onLoaded={onChatLoaded}
-          />
+        <ScrollArea className="transition-all" style={style} ref={chatContainerRef}>
+          <div>
+            <Chat
+              chatId={activeChatId as string}
+              key={activeChatId}
+              initialMessages={initialMessages ?? emptyQaParise}
+              ref={chatRef}
+              container={chatContainerRef?.current?.children[1] as HTMLDivElement || undefined}
+              onThreadUpdates={onThreadUpdates}
+              onNavigateToContext={onNavigateToContext}
+              onLoaded={onChatLoaded}
+            />
+          </div>
         </ScrollArea>
       </LoadingWrapper>
     </div>

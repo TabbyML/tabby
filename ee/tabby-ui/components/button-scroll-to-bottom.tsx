@@ -7,8 +7,10 @@ import { cn } from '@/lib/utils'
 import { Button, type ButtonProps } from '@/components/ui/button'
 import { IconArrowDown } from '@/components/ui/icons'
 
-export function ButtonScrollToBottom({ className, ...props }: ButtonProps) {
-  const isAtBottom = useAtBottom()
+export function ButtonScrollToBottom({ className, container, ...props }: ButtonProps & {
+  container?: HTMLDivElement
+}) {
+  const isAtBottom = useAtBottom(0, container)
 
   return (
     <Button
