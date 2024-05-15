@@ -3,13 +3,13 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, GithubProvidedRepositoryDAO, GithubRepositoryProviderDAO,
-    GitlabProvidedRepositoryDAO, GitlabRepositoryProviderDAO, InvitationDAO, JobRunDAO,
-    OAuthCredentialDAO, ProvidedRepositoryDAO, RepositoryDAO, ServerSettingDAO, UserDAO,
-    UserEventDAO,
+    GitlabProvidedRepositoryDAO, GitlabRepositoryProviderDAO, IntegrationAccessTokenDAO,
+    InvitationDAO, JobRunDAO, OAuthCredentialDAO, ProvidedRepositoryDAO, RepositoryDAO,
+    ServerSettingDAO, UserDAO, UserEventDAO,
 };
 
 use crate::{
-    integration::IntegrationKind,
+    integration::{IntegrationAccessToken, IntegrationKind, IntegrationStatus},
     repository::ProvidedRepository,
     schema::{
         auth::{self, OAuthCredential, OAuthProvider},
@@ -141,6 +141,28 @@ impl TryFrom<ProvidedRepositoryDAO> for ProvidedRepository {
             vendor_id: value.vendor_id,
             created_at: *value.created_at,
             updated_at: *value.updated_at,
+        })
+    }
+}
+
+impl TryFrom<IntegrationAccessTokenDAO> for IntegrationAccessToken {
+    type Error = anyhow::Error;
+    fn try_from(value: IntegrationAccessTokenDAO) -> anyhow::Result<Self> {
+        let status = if *value.created_at == *value.updated_at {
+            IntegrationStatus::Pending
+        } else if value.error.is_some() {
+            IntegrationStatus::Failed
+        } else {
+            IntegrationStatus::Ready
+        };
+        Ok(Self {
+            id: value.id.as_id(),
+            kind: IntegrationKind::from_enum_str(&value.kind)?,
+            display_name: value.display_name,
+            access_token: value.access_token,
+            created_at: *value.created_at,
+            updated_at: *value.updated_at,
+            status,
         })
     }
 }

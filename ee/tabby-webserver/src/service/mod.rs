@@ -3,6 +3,7 @@ mod auth;
 pub mod background_job;
 mod email;
 pub mod event_logger;
+mod integration;
 mod job;
 mod license;
 mod proxy;

@@ -37,7 +37,12 @@ pub trait IntegrationService: Send + Sync {
     ) -> Result<ID>;
 
     async fn delete_integration(&self, id: ID) -> Result<()>;
-    async fn update_integration(&self, id: ID, display_name: String, access_token: Option<String>);
+    async fn update_integration(
+        &self,
+        id: ID,
+        display_name: String,
+        access_token: Option<String>,
+    ) -> Result<()>;
     async fn list_integrations(
         &self,
         ids: Option<Vec<ID>>,

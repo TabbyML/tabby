@@ -18,9 +18,9 @@ pub struct IntegrationAccessTokenDAO {
 impl DbConn {
     pub async fn create_integration_access_token(
         &self,
-        kind: &str,
-        name: &str,
-        access_token: &str,
+        kind: String,
+        name: String,
+        access_token: String,
     ) -> Result<i64> {
         let res = query!(
             "INSERT INTO integration_access_tokens(kind, display_name, access_token) VALUES (?, ?, ?);",
