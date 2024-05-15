@@ -28,11 +28,7 @@ pub fn garbage_collection(cache: &mut CacheStore) {
     remove_staled_documents(cache, code, &index);
 }
 
-fn add_changed_documents(
-    cache: &mut CacheStore,
-    repository: &RepositoryConfig,
-    index: &Index,
-) {
+fn add_changed_documents(cache: &mut CacheStore, repository: &RepositoryConfig, index: &Index) {
     // Initialize the search index writer with an initial arena size of 150 MB.
     let mut writer = index
         .writer(150_000_000)
