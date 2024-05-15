@@ -283,18 +283,18 @@ pub struct PasswordChangeInput {
 pub struct UpdateUserNameInput {
     #[validate(length(
         min = 2,
-        code = "username",
-        message = "Username must be at least 2 characters"
+        code = "name",
+        message = "Name must be at least 2 characters"
     ))]
     #[validate(length(
         max = 20,
-        code = "username",
-        message = "Username must be at most 20 characters"
+        code = "name",
+        message = "Name must be at most 20 characters"
     ))]
     #[validate(regex(
-        code = "username",
+        code = "name",
         path = "crate::schema::constants::USERNAME_REGEX",
-        message = "Invalid username, only alphabet and space character are allowed, and it must start and end with alphabet"
+        message = "Invalid name, only alphabet and space character are allowed, and it must start and end with alphabet"
     ))]
     pub name: String,
 }
