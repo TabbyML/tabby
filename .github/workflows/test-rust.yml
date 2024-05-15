@@ -112,6 +112,8 @@ jobs:
       - run: sudo bash ./ci/prepare_build_environment.sh
 
       - name: Generate code coverage
+        env:
+          CI_COVERAGE: 1
         run: cargo llvm-cov --bin tabby --lib --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
