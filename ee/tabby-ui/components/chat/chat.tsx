@@ -25,7 +25,7 @@ type ChatContextValue = {
     userMessageId: string,
     action: MessageActionType
   ) => void
-  onNavigateToContext?: (context: Context) => void,
+  onNavigateToContext?: (context: Context) => void
   container?: HTMLDivElement
 }
 
@@ -80,7 +80,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   initialMessages?: QuestionAnswerPair[]
   onLoaded?: () => void
   onThreadUpdates: (messages: QuestionAnswerPair[]) => void
-  onNavigateToContext: (context: Context) => void,
+  onNavigateToContext: (context: Context) => void
   container?: HTMLDivElement
 }
 

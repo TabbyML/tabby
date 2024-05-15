@@ -141,14 +141,21 @@ export default function Chats() {
           </div>
         }
       >
-        <ScrollArea className="transition-all" style={style} ref={chatContainerRef}>
+        <ScrollArea
+          className="transition-all"
+          style={style}
+          ref={chatContainerRef}
+        >
           <div>
             <Chat
               chatId={activeChatId as string}
               key={activeChatId}
               initialMessages={initialMessages ?? emptyQaParise}
               ref={chatRef}
-              container={chatContainerRef?.current?.children[1] as HTMLDivElement || undefined}
+              container={
+                (chatContainerRef?.current?.children[1] as HTMLDivElement) ||
+                undefined
+              }
               onThreadUpdates={onThreadUpdates}
               onNavigateToContext={onNavigateToContext}
               onLoaded={onChatLoaded}

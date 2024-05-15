@@ -3,8 +3,9 @@
 import * as React from 'react'
 import { useInView } from 'react-intersection-observer'
 
-import { ChatContext } from './chat'
 import { useAtBottom } from '@/lib/hooks/use-at-bottom'
+
+import { ChatContext } from './chat'
 
 interface ChatScrollAnchorProps {
   trackVisibility?: boolean
@@ -13,7 +14,7 @@ interface ChatScrollAnchorProps {
 export function ChatScrollAnchor({ trackVisibility }: ChatScrollAnchorProps) {
   const { container } = React.useContext(ChatContext)
   const isAtBottom = useAtBottom(0, container)
-  
+
   const { ref, entry, inView } = useInView({
     trackVisibility,
     delay: 100,

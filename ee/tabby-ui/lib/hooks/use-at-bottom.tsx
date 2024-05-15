@@ -30,13 +30,18 @@ export function useAtBottom(offset = 0, container?: HTMLDivElement) {
 
   React.useEffect(() => {
     if (!container) return
-    
+
     const handleScroll = () => {
-      const { scrollTop, clientHeight, scrollHeight } = container;
-      console.log('scrollTop', scrollTop, 'clientHeight', clientHeight, 'scrollHeight', scrollHeight)
-      setIsAtBottom(
-        scrollTop + clientHeight >= scrollHeight
+      const { scrollTop, clientHeight, scrollHeight } = container
+      console.log(
+        'scrollTop',
+        scrollTop,
+        'clientHeight',
+        clientHeight,
+        'scrollHeight',
+        scrollHeight
       )
+      setIsAtBottom(scrollTop + clientHeight >= scrollHeight)
     }
 
     container.addEventListener('scroll', handleScroll, { passive: true })

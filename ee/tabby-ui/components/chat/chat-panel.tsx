@@ -7,6 +7,7 @@ import { IconRefresh, IconStop, IconTrash } from '@/components/ui/icons'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { PromptForm, PromptFormRef } from '@/components/chat/prompt-form'
 import { FooterText } from '@/components/footer'
+
 import { ChatContext } from './chat'
 
 export interface ChatPanelProps
