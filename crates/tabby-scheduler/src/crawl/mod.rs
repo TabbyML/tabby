@@ -36,11 +36,13 @@ async fn crawl_url(start_url: &str) -> impl Stream<Item = KatanaRequestResponse>
 
     stream! {
         while let Ok(Some(line)) = stdout.next_line().await {
-            let Ok(data) = serde_json::from_str::<KatanaRequestResponse>(&line) else {
-                warn!("Failed to parse katana output, skipping...");
-                continue;
+            let data = match serde_json::from_str::<KatanaRequestResponse>(&line) {
+                Ok(data) => data,
+                Err(err) => {
+                    warn!("Failed to parse katana output: {:?}, skipping...", err);
+                    continue;
+                }
             };
-
 
             yield data;
         }
