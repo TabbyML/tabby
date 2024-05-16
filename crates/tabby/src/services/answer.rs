@@ -121,10 +121,7 @@ Remember, based on the original question and related contexts, suggest three suc
         })
         .await;
 
-        content
-            .lines()
-            .map(remove_bullet_prefix)
-            .collect()
+        content.lines().map(remove_bullet_prefix).collect()
     }
 
     async fn generate_prompt(&self, snippets: &[&str], question: &str) -> String {
