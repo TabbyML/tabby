@@ -1,6 +1,7 @@
 use tantivy::{
     schema::{
-        document::{DeserializeError, DocumentDeserialize, ReferenceValue, ReferenceValueLeaf}, OwnedValue, Value,
+        document::{DeserializeError, DocumentDeserialize, ReferenceValue, ReferenceValueLeaf},
+        OwnedValue, Value,
     },
     Document,
 };
