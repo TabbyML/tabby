@@ -19,7 +19,6 @@ pub struct SourceDocument {
 
 pub struct DocIndex {
     embedding: Arc<dyn Embedding>,
-    doc: DocSearchSchema,
     writer: IndexWriter,
 }
 
@@ -27,23 +26,21 @@ const CHUNK_SIZE: usize = 2048;
 
 impl DocIndex {
     pub fn new(embedding: Arc<dyn Embedding>) -> Self {
-        let doc = DocSearchSchema::default();
+        let doc = DocSearchSchema::instance();
         let index = open_or_create_index(&doc.schema, &path::doc_index_dir());
         let writer = index
             .writer(150_000_000)
             .expect("Failed to create index writer");
 
-        Self {
-            embedding,
-            doc,
-            writer,
-        }
+        Self { embedding, writer }
     }
 
     pub async fn add(&mut self, document: SourceDocument) {
+        let doc = DocSearchSchema::instance();
+
         // Delete the document if it already exists
         self.writer
-            .delete_term(Term::from_field_text(self.doc.field_id, &document.id));
+            .delete_term(Term::from_field_text(doc.field_id, &document.id));
 
         self.iter_docs(document)
             .await
@@ -56,14 +53,15 @@ impl DocIndex {
     }
 
     async fn iter_docs(&self, document: SourceDocument) -> impl Stream<Item = TantivyDocument> {
+        let doc = DocSearchSchema::instance();
+
         let id = document.id.clone();
         let content = document.body.clone();
 
         let doc = doc! {
-            self.doc.field_id => document.id,
-            self.doc.field_title => document.title,
-            self.doc.field_link => document.link,
-            self.doc.field_body => document.body,
+            doc.field_id => document.id,
+            doc.field_title => document.title,
+            doc.field_link => document.link,
         };
 
         futures::stream::once(async { doc }).chain(self.iter_chunks(id, content).await)
@@ -79,23 +77,22 @@ impl DocIndex {
         let splitter = TextSplitter::default().with_trim_chunks(true);
         let embedding = self.embedding.clone();
 
-        let field_id = self.doc.field_id;
-        let field_chunk_id = self.doc.field_chunk_id;
-        let field_chunk_embedding_token = self.doc.field_chunk_embedding_token;
         stream! {
-            for (chunk_id, chunk) in splitter.chunks(&content, CHUNK_SIZE).enumerate() {
+            let schema = DocSearchSchema::instance();
+            for (chunk_id, chunk_text) in splitter.chunks(&content, CHUNK_SIZE).enumerate() {
                 let mut doc = doc! {
-                    field_id => id.clone(),
-                    field_chunk_id => chunk_id.to_string()
+                    schema.field_id => id.clone(),
+                    schema.field_chunk_id => chunk_id.to_string(),
+                    schema.field_chunk_text => chunk_text.to_owned(),
                 };
 
-                let Ok(embedding) = embedding.embed(chunk).await else {
+                let Ok(embedding) = embedding.embed(chunk_text).await else {
                     warn!("Failed to embed chunk {} of document '{}'", chunk_id, id);
                     continue;
                 };
 
                 for token in DocSearchSchema::binarize_embedding(embedding.iter()) {
-                    doc.add_text(field_chunk_embedding_token, token);
+                    doc.add_text(schema.field_chunk_embedding_token, token);
                 }
 
                 yield doc;
@@ -104,8 +101,10 @@ impl DocIndex {
     }
 
     pub fn delete(&mut self, id: &str) {
-        self.writer
-            .delete_term(Term::from_field_text(self.doc.field_id, id));
+        self.writer.delete_term(Term::from_field_text(
+            DocSearchSchema::instance().field_id,
+            id,
+        ));
     }
 
     pub fn commit(mut self) {
@@ -156,21 +155,23 @@ mod tests {
         let docs = index.iter_docs(document).await.collect::<Vec<_>>().await;
         assert_eq!(2, docs.len());
 
+        let schema = DocSearchSchema::instance();
+
         // Check document
-        assert_eq!("test", get_text(&docs[0], index.doc.field_id));
-        assert!(is_empty(&docs[0], index.doc.field_chunk_id));
-        assert!(is_empty(&docs[0], index.doc.field_chunk_embedding_token));
+        assert_eq!("test", get_text(&docs[0], schema.field_id));
+        assert!(is_empty(&docs[0], schema.field_chunk_id));
+        assert!(is_empty(&docs[0], schema.field_chunk_text));
+        assert!(is_empty(&docs[0], schema.field_chunk_embedding_token));
 
         // Check chunks.
-        assert_eq!("test", get_text(&docs[1], index.doc.field_id));
-        assert!(is_empty(&docs[1], index.doc.field_title));
-        assert!(is_empty(&docs[1], index.doc.field_link));
-        assert!(is_empty(&docs[1], index.doc.field_body));
+        assert_eq!("test", get_text(&docs[1], schema.field_id));
+        assert!(is_empty(&docs[1], schema.field_title));
+        assert!(is_empty(&docs[1], schema.field_link));
 
-        assert_eq!("0", get_text(&docs[1], index.doc.field_chunk_id));
+        assert_eq!("0", get_text(&docs[1], schema.field_chunk_id));
         assert_eq!(
             "embedding_zero_0",
-            get_text(&docs[1], index.doc.field_chunk_embedding_token)
+            get_text(&docs[1], schema.field_chunk_embedding_token)
         );
     }
 }

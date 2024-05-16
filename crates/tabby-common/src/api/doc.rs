@@ -5,7 +5,6 @@ use utoipa::ToSchema;
 
 #[derive(Default, Serialize, Deserialize, Debug, ToSchema)]
 pub struct DocSearchResponse {
-    pub num_hits: usize,
     pub hits: Vec<DocSearchHit>,
 }
 
@@ -13,7 +12,6 @@ pub struct DocSearchResponse {
 pub struct DocSearchHit {
     pub score: f32,
     pub doc: DocSearchDocument,
-    pub id: u32,
 }
 
 #[derive(Serialize, Deserialize, Debug, ToSchema)]

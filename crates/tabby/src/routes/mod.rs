@@ -83,6 +83,7 @@ impl Header for MaybeUser {
 
 mod chat;
 mod completions;
+mod docsearch;
 mod events;
 mod health;
 mod search;
