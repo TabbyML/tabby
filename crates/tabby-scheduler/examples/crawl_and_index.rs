@@ -1,9 +1,8 @@
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 use async_stream::stream;
-use async_trait::async_trait;
 use futures::StreamExt;
-use tabby_inference::Embedding;
+use llama_cpp_server::LlamaCppServer;
 use tabby_scheduler::{crawl::crawl_pipeline, DocIndex, SourceDocument};
 use tracing::debug;
 
@@ -13,7 +12,9 @@ async fn main() {
         .with_env_filter("tabby=debug,crawl_and_index=debug")
         .init();
 
-    let mut doc_index = DocIndex::new(Arc::new(FakeEmbedding));
+    let model_path = env::var("MODEL_PATH").expect("MODEL_PATH is not set");
+
+    let mut doc_index = DocIndex::new(Arc::new(LlamaCppServer::new(false, true, &model_path, 1)));
     let mut cnt = 0;
     stream! {
         for await doc in crawl_pipeline("https://tabby.tabbyml.com/").await {
@@ -41,16 +42,4 @@ async fn main() {
     }
     .collect::<()>()
     .await;
-}
-
-struct FakeEmbedding;
-
-#[async_trait]
-impl Embedding for FakeEmbedding {
-    async fn embed(&self, _: &str) -> anyhow::Result<Vec<f32>> {
-        let mut embedding = vec![0.0; 512];
-        embedding[3] = 1.0;
-        embedding[128] = 1.0;
-        Ok(embedding)
-    }
 }

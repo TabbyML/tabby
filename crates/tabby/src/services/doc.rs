@@ -14,7 +14,8 @@ use tantivy::{
     Index, IndexReader, TantivyDocument,
 };
 use tokio::{sync::Mutex, time::sleep};
-use tracing::debug;
+use tracing::{debug, warn};
+
 
 struct DocSearchImpl {
     reader: IndexReader,
@@ -74,7 +75,13 @@ impl DocSearch for DocSearchImpl {
                 let chunk_text = get_text(&chunk, schema.field_chunk_text);
 
                 let doc_query = schema.doc_query(doc_id);
-                let top_docs = searcher.search(&doc_query, &TopDocs::with_limit(1)).ok()?;
+                let top_docs = match searcher.search(&doc_query, &TopDocs::with_limit(1)) {
+                    Err(err) => {
+                        warn!("Failed to search doc `{}`: `{}`", doc_id, err);
+                        return None;
+                    }
+                    Ok(top_docs) => top_docs,
+                };
                 let (_, doc_address) = top_docs.first()?;
                 let doc: TantivyDocument = searcher.doc(*doc_address).ok()?;
                 let title = get_text(&doc, schema.field_title);

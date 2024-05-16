@@ -1,4 +1,4 @@
-use std::{net::TcpListener, process::Stdio, sync::Arc};
+use std::{env, net::TcpListener, process::Stdio, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -7,6 +7,7 @@ use serde_json::json;
 use tabby_inference::{CompletionOptions, CompletionStream, Embedding};
 use tokio::task::JoinHandle;
 use tracing::warn;
+use which::which;
 
 pub struct LlamaCppServer {
     port: u16,
@@ -30,7 +31,12 @@ impl Embedding for LlamaCppServer {
 }
 
 impl LlamaCppServer {
-    pub fn new(use_gpu: bool, model_path: &str, parallelism: u8) -> Self {
+    pub fn new(
+        use_gpu: bool,
+        is_embedding: bool,
+        model_path: &str,
+        parallelism: u8,
+    ) -> LlamaCppServer {
         let Some(binary_name) = find_binary_name() else {
             panic!("Failed to locate llama-server binary, please make sure you have llama-server binary locates in the same directory as the current executable.");
         };
@@ -57,6 +63,10 @@ impl LlamaCppServer {
                     .arg("-np")
                     .arg(parallelism.to_string())
                     .arg("--log-disable")
+                    .arg("--ctx-size")
+                    .arg(env::var("LLAMA_CPP_N_CONTEXT_SIZE").unwrap_or("4096".into()))
+                    .arg("--batch-size")
+                    .arg(env::var("LLAMA_CPP_N_BATCH_SIZE").unwrap_or("512".into()))
                     .kill_on_drop(true)
                     .stderr(Stdio::null())
                     .stdout(Stdio::null());
@@ -69,6 +79,10 @@ impl LlamaCppServer {
                     let num_gpu_layers =
                         std::env::var("LLAMA_CPP_N_GPU_LAYERS").unwrap_or("9999".into());
                     command.arg("-ngl").arg(&num_gpu_layers);
+                }
+
+                if is_embedding {
+                    command.arg("--embedding");
                 }
 
                 let mut process = command.spawn().unwrap_or_else(|e| {
@@ -122,6 +136,9 @@ fn find_binary_name() -> Option<String> {
         .parent()
         .expect("Failed to get parent directory");
     let binary_name = "llama-server".to_owned();
+    let binary_from_path = which("llama-server")
+        .ok()
+        .map(|path| path.display().to_string());
     std::fs::read_dir(binary_dir)
         .expect("Failed to read directory")
         .filter_map(|entry| entry.ok())
@@ -133,6 +150,7 @@ fn find_binary_name() -> Option<String> {
         })
         .map(|entry| entry.path().display().to_string())
         .next()
+        .or(binary_from_path)
 }
 
 fn make_completion(port: u16) -> Arc<dyn CompletionStream> {

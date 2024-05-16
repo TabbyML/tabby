@@ -6,7 +6,7 @@ use tabby_common::{index::DocSearchSchema, path};
 use tabby_inference::Embedding;
 use tantivy::{doc, IndexWriter, TantivyDocument, Term};
 use text_splitter::TextSplitter;
-use tracing::warn;
+use tracing::{warn};
 
 use crate::tantivy_utils::open_or_create_index;
 

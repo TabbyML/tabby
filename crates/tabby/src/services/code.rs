@@ -16,7 +16,6 @@ use tantivy::{
     collector::{Count, TopDocs},
     query::{BooleanQuery, QueryParser},
     query_grammar::Occur,
-    schema::Value,
     Index, IndexReader,
 };
 use tokio::{sync::Mutex, time::sleep};

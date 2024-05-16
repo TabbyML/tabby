@@ -1,13 +1,6 @@
 use std::sync::Arc;
 
-
-
-
-
-use tabby_inference::{Embedding};
-
-
-
+use tabby_inference::Embedding;
 
 use super::model;
 use crate::Device;
