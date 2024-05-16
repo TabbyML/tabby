@@ -1,6 +1,6 @@
 use lazy_static::lazy_static;
 use tantivy::{
-    query::{TermQuery, TermSetQuery},
+    query::{BooleanQuery, TermQuery},
     schema::{Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, STRING},
     tokenizer::{RegexTokenizer, RemoveLongFilter, TextAnalyzer},
     Index, Term,
@@ -76,11 +76,12 @@ impl CodeSearchSchema {
         ))
     }
 
-    pub fn body_query(&self, tokens: &[String]) -> Box<TermSetQuery> {
-        Box::new(TermSetQuery::new(
+    pub fn body_query(&self, tokens: &[String]) -> Box<BooleanQuery> {
+        Box::new(BooleanQuery::new_multiterms_query(
             tokens
                 .iter()
-                .map(|x| Term::from_field_text(self.field_body, x)),
+                .map(|x| Term::from_field_text(self.field_body, x))
+                .collect(),
         ))
     }
 
