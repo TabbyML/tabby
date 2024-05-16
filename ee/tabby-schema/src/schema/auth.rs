@@ -175,6 +175,7 @@ impl JWTPayload {
 pub struct User {
     pub id: juniper::ID,
     pub email: String,
+    pub name: String,
     pub is_admin: bool,
     pub is_owner: bool,
     pub auth_token: String,
@@ -276,6 +277,22 @@ pub struct PasswordChangeInput {
         other = "new_password1"
     ))]
     pub new_password2: String,
+}
+
+#[derive(Validate)]
+pub struct UpdateUserNameInput {
+    #[validate(length(min = 2, code = "name", message = "Name must be at least 2 characters"))]
+    #[validate(length(
+        max = 20,
+        code = "name",
+        message = "Name must be at most 20 characters"
+    ))]
+    #[validate(regex(
+        code = "name",
+        path = "crate::schema::constants::USERNAME_REGEX",
+        message = "Invalid name, name may contain numbers or special characters which are not supported"
+    ))]
+    pub name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, GraphQLObject)]
@@ -406,6 +423,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn update_user_role(&self, id: &ID, is_admin: bool) -> Result<()>;
     async fn update_user_avatar(&self, id: &ID, avatar: Option<Box<[u8]>>) -> Result<()>;
     async fn get_user_avatar(&self, id: &ID) -> Result<Option<Box<[u8]>>>;
+    async fn update_user_name(&self, id: &ID, name: String) -> Result<()>;
 }
 
 fn validate_password(value: &str) -> Result<(), validator::ValidationError> {

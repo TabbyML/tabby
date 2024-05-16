@@ -219,6 +219,15 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(self.db.get_user_avatar(id.as_rowid()?).await?)
     }
 
+    async fn update_user_name(&self, id: &ID, name: String) -> Result<()> {
+        if is_demo_mode() {
+            bail!("Changing profile data is disabled in demo mode");
+        }
+        let id = id.as_rowid()?;
+        self.db.update_user_name(id, name).await?;
+        Ok(())
+    }
+
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse> {
         let Some(user) = self.db.get_user_by_email(&email).await? else {
             bail!("Invalid email address or password");

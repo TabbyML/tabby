@@ -24,6 +24,7 @@ CREATE TABLE users(
   active BOOLEAN NOT NULL DEFAULT 1,
   password_encrypted VARCHAR(128),
   avatar BLOB DEFAULT NULL,
+  name VARCHAR(255),
   CONSTRAINT `idx_email` UNIQUE(`email`)
   CONSTRAINT `idx_auth_token` UNIQUE(`auth_token`)
 );
