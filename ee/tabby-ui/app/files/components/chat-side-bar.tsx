@@ -1,6 +1,9 @@
 import React from 'react'
+import type { ChatMessage } from 'tabby-chat-panel'
+import { useClient } from 'tabby-chat-panel/react'
 
 import { useStore } from '@/lib/hooks/use-store'
+import { useMe } from '@/lib/hooks/use-me'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { UserMessage } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -17,11 +20,13 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   className,
   ...props
 }) => {
+  const [{ data }] = useMe()
   const { pendingEvent, setPendingEvent } = React.useContext(
     SourceCodeBrowserContext
   )
   const activeChatId = useStore(useChatStore, state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
+  const client = useClient(iframeRef)
 
   const getPrompt = ({ action }: QuickActionEventPayload) => {
     let builtInPrompt = ''
@@ -69,11 +74,41 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     }
   }, [pendingEvent, iframeRef.current?.contentWindow])
 
+  React.useEffect(() => {
+    if (iframeRef?.current && data) {
+      client?.init({
+        fetcherOptions: {
+          authorization: data.me.authToken
+        }
+      })
+    }
+  }, [iframeRef?.current, client, data])
+
+  React.useEffect(() => {
+    if (pendingEvent && client) {
+      const { lineFrom, lineTo, code, path } = pendingEvent
+      client.sendMessage({
+        message: getPrompt(pendingEvent),
+        selectContext: {
+          kind: 'file',
+          content: code,
+          range: {
+            start: lineFrom,
+            end: lineTo
+          },
+          filePath: path,
+        }
+      })
+    }
+    setPendingEvent(undefined)
+  }, [pendingEvent, client])
+
+  if (!data?.me) return <></>
   return (
     <div className={cn('flex h-full flex-col', className)} {...props}>
       <Header />
       <iframe
-        src={`/playground`}
+        src={`/chat`}
         className="w-full flex-1 border-0"
         key={activeChatId}
         ref={iframeRef}

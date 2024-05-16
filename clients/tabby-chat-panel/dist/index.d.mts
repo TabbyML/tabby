@@ -2,12 +2,13 @@ import * as _quilted_threads from '@quilted/threads';
 
 interface LineRange {
     start: number;
-    end?: number;
+    end: number;
 }
 interface FileContext {
     kind: 'file';
     range: LineRange;
     filepath: string;
+    content?: string;
 }
 type Context = FileContext;
 interface FetcherOptions {
@@ -25,7 +26,7 @@ interface ChatMessage {
     selectContext?: Context;
     relevantContext?: Array<Context>;
 }
-declare function createClient(target: HTMLIFrameElement): _quilted_threads.Thread<Record<string, never>>;
+declare function createClient(target: HTMLIFrameElement): Api;
 declare function createServer(api: Api): _quilted_threads.Thread<Record<string, never>>;
 
 export { type Api, type ChatMessage, type Context, type FetcherOptions, type FileContext, type InitRequest, type LineRange, createClient, createServer };

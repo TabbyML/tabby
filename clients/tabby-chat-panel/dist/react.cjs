@@ -6,18 +6,22 @@ require('@quilted/threads');
 
 function useClient(iframeRef) {
   return react.useMemo(() => {
-    if (iframeRef.current)
+    if (iframeRef.current) {
       return index.createClient(iframeRef.current);
+    }
   }, [iframeRef.current]);
 }
 function useServer(api) {
   const [isInIframe, setIsInIframe] = react.useState(false);
+  let isCreated = false;
   react.useEffect(() => {
     setIsInIframe(window.self !== window.top);
   }, []);
   return react.useMemo(() => {
-    if (isInIframe)
+    if (isInIframe && !isCreated) {
+      isCreated = true;
       return index.createServer(api);
+    }
   }, [isInIframe]);
 }
 

@@ -9,6 +9,7 @@ export interface FileContext {
   kind: 'file'
   range: LineRange
   filepath: string
+  content?: string
 }
 
 export type Context = FileContext
@@ -33,7 +34,7 @@ export interface ChatMessage {
 }
 
 export function createClient(target: HTMLIFrameElement) {
-  return createThreadFromIframe(target)
+  return createThreadFromIframe(target) as Api
 }
 
 export function createServer(api: Api) {
