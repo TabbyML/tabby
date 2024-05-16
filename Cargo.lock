@@ -5251,6 +5251,7 @@ dependencies = [
  "chrono",
  "clap",
  "color-eyre",
+ "derive_builder 0.12.0",
  "futures",
  "http-api-bindings",
  "hyper 1.3.1",

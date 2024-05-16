@@ -233,7 +233,7 @@ async fn api_router(
 
     let answer_state = if let Some(chat) = &chat_state {
         if let Some(doc) = &docsearch_state {
-            Some(Arc::new(services::answer::create(chat.clone(), code.clone(), doc.clone())))
+            Some(Arc::new(services::answer::create(chat.clone(), doc.clone())))
         } else {
             None
         }
