@@ -8,7 +8,7 @@ fn main() {
         return;
     }
 
-    let mut config = Config::new("../llama-cpp-bindings/llama.cpp");
+    let mut config = Config::new("./llama.cpp");
     config.profile("Release");
     config.define("LLAMA_NATIVE", "OFF");
     config.define("INS_ENB", "ON");

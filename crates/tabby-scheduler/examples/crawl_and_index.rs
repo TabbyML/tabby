@@ -1,8 +1,8 @@
-use std::{env, sync::Arc};
+use std::env;
 
 use async_stream::stream;
 use futures::StreamExt;
-use llama_cpp_server::LlamaCppServer;
+use llama_cpp_server::create_embedding;
 use tabby_scheduler::{crawl::crawl_pipeline, DocIndex, SourceDocument};
 use tracing::debug;
 
@@ -14,7 +14,7 @@ async fn main() {
 
     let model_path = env::var("MODEL_PATH").expect("MODEL_PATH is not set");
 
-    let mut doc_index = DocIndex::new(Arc::new(LlamaCppServer::new(false, true, &model_path, 1)));
+    let mut doc_index = DocIndex::new(create_embedding(false, &model_path, 1).await);
     let mut cnt = 0;
     stream! {
         for await doc in crawl_pipeline("https://tabby.tabbyml.com/").await {
