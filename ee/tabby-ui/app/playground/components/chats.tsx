@@ -172,7 +172,6 @@ export default function Chats() {
                     }
                   })) as typeof fetch
               }
-              // api="/v1/chat/completion"
             />
           </div>
         </ScrollArea>
