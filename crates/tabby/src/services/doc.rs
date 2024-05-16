@@ -16,7 +16,6 @@ use tantivy::{
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{debug, warn};
 
-
 struct DocSearchImpl {
     reader: IndexReader,
     embedding: Arc<dyn Embedding>,
