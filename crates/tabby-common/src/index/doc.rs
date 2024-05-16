@@ -1,9 +1,13 @@
+use std::borrow::Cow;
+
 use lazy_static::lazy_static;
 use tantivy::{
-    query::{TermQuery, TermSetQuery},
-    schema::{Field, Schema, STORED, STRING},
+    query::{BooleanQuery, ExistsQuery, Occur, TermQuery},
+    schema::{Field, Schema, FAST, STORED, STRING},
     Term,
 };
+
+use super::new_multiterms_const_query;
 
 pub struct DocSearchSchema {
     pub schema: Schema,
@@ -22,6 +26,8 @@ pub struct DocSearchSchema {
     pub field_chunk_embedding_token: Field,
 }
 
+const FIELD_CHUNK_ID: &str = "chunk_id";
+
 impl DocSearchSchema {
     pub fn instance() -> &'static Self {
         &DOC_SEARCH_SCHEMA
@@ -34,7 +40,7 @@ impl DocSearchSchema {
         let field_title = builder.add_text_field("title", STORED);
         let field_link = builder.add_text_field("link", STORED);
 
-        let field_chunk_id = builder.add_text_field("chunk_id", STRING | STORED);
+        let field_chunk_id = builder.add_text_field(FIELD_CHUNK_ID, STRING | FAST | STORED);
         let field_chunk_text = builder.add_text_field("chunk_text", STORED);
         let field_chunk_embedding_token = builder.add_text_field("chunk_embedding_token", STRING);
 
@@ -67,17 +73,28 @@ impl DocSearchSchema {
     pub fn embedding_tokens_query<'a>(
         &self,
         embedding: impl Iterator<Item = &'a f32> + 'a,
-    ) -> TermSetQuery {
-        let embedding_tokens = DocSearchSchema::binarize_embedding(embedding)
-            .map(|x| Term::from_field_text(self.field_chunk_embedding_token, &x));
-        TermSetQuery::new(embedding_tokens)
+    ) -> BooleanQuery {
+        let iter = DocSearchSchema::binarize_embedding(embedding).map(Cow::Owned);
+
+        new_multiterms_const_query(self.field_chunk_embedding_token, iter)
     }
 
-    pub fn doc_query(&self, doc_id: &str) -> TermQuery {
-        TermQuery::new(
+    /// Build a query to find the document with the given `doc_id`.
+    pub fn doc_query(&self, doc_id: &str) -> BooleanQuery {
+        let doc_id_query = TermQuery::new(
             Term::from_field_text(self.field_id, doc_id),
             tantivy::schema::IndexRecordOption::Basic,
-        )
+        );
+
+        BooleanQuery::new(vec![
+            // Must match the doc id
+            (Occur::Must, Box::new(doc_id_query)),
+            // Exclude chunk documents
+            (
+                Occur::MustNot,
+                Box::new(ExistsQuery::new_exists_query(FIELD_CHUNK_ID.into())),
+            ),
+        ])
     }
 }
 
