@@ -1,6 +1,5 @@
 use std::{
     path::{Path, PathBuf},
-    process::Command,
     str::FromStr,
 };
 
@@ -15,16 +14,8 @@ use super::intelligence::{CodeIntelligence, SourceCode};
 const SOURCE_FILE_BUCKET_KEY: &str = "source_files";
 const INDEX_BUCKET_KEY: &str = "indexed_files";
 
-fn cmd_stdout(cmd: &str, args: &[&str]) -> Result<String> {
-    Ok(
-        String::from_utf8(Command::new(cmd).args(args).output()?.stdout)?
-            .trim()
-            .to_string(),
-    )
-}
-
 fn get_git_hash(path: &Path) -> Result<String> {
-    cmd_stdout("git", &["hash-object", &path.display().to_string()])
+    Ok(git2::Oid::hash_file(git2::ObjectType::Blob, path)?.to_string())
 }
 
 #[derive(Deserialize, Serialize, Debug)]

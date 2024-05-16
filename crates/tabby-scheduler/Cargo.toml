@@ -37,6 +37,7 @@ readable-readability = "0.4.0"
 url.workspace = true
 voca_rs = "1.15.2"
 tabby-inference = { path = "../tabby-inference" }
+git2.workspace = true
 
 [dev-dependencies]
 temp_testdir = { workspace = true }
