@@ -26,6 +26,7 @@ type ChatContextValue = {
     action: MessageActionType
   ) => void
   onNavigateToContext?: (context: Context) => void
+  container?: HTMLDivElement
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -80,6 +81,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   onLoaded?: () => void
   onThreadUpdates: (messages: QuestionAnswerPair[]) => void
   onNavigateToContext: (context: Context) => void
+  container?: HTMLDivElement
 }
 
 function ChatRenderer(
@@ -91,7 +93,8 @@ function ChatRenderer(
     api,
     onLoaded,
     onThreadUpdates,
-    onNavigateToContext
+    onNavigateToContext,
+    container
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -258,7 +261,8 @@ function ChatRenderer(
       value={{
         isLoading: useChatHelpers.isLoading,
         onNavigateToContext,
-        handleMessageAction
+        handleMessageAction,
+        container
       }}
     >
       <div className="flex justify-center overflow-x-hidden">

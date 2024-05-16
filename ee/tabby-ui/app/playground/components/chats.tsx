@@ -11,7 +11,9 @@ import { useChatStore } from '@/lib/stores/chat-store'
 import { getChatById } from '@/lib/stores/utils'
 import { Context as ChatContext, QuestionAnswerPair } from '@/lib/types/chat'
 import { truncateText } from '@/lib/utils'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Chat, ChatRef } from '@/components/chat/chat'
+import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
@@ -25,6 +27,8 @@ export default function Chats() {
   const initialMessage = searchParams.get('initialMessage')?.toString()
   const shouldConsumeInitialMessage = React.useRef(!!initialMessage)
   const chatRef = React.useRef<ChatRef>(null)
+  const chatContainerRef = React.useRef<HTMLDivElement>(null)
+  const [isShowDemoBanner] = useShowDemoBanner()
 
   const _hasHydrated = useStore(useChatStore, state => state._hasHydrated)
 
@@ -66,7 +70,6 @@ export default function Chats() {
   const persistChat = useDebounceCallback(
     (chatId: string, messages: QuestionAnswerPair[]) => {
       if (!storedChat && messages?.length) {
-        debugger
         addChat(activeChatId, truncateText(messages?.[0]?.user?.message))
       } else if (storedChat) {
         updateMessages(chatId, messages)
@@ -120,9 +123,15 @@ export default function Chats() {
     return () => persistChat.flush()
   }, [])
 
+  const style = isShowDemoBanner
+    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
+    : { height: '100vh' }
   return (
     <div className="grid flex-1 overflow-hidden lg:grid-cols-[280px_1fr]">
-      <ChatSessions className="hidden w-[280px] border-r lg:block" />
+      <ChatSessions
+        className="hidden w-[280px] border-r lg:block"
+        style={style}
+      />
       <LoadingWrapper
         delay={0}
         loading={!_hasHydrated || !activeChatId}
@@ -132,15 +141,27 @@ export default function Chats() {
           </div>
         }
       >
-        <Chat
-          chatId={activeChatId as string}
-          key={activeChatId}
-          initialMessages={initialMessages ?? emptyQaParise}
-          ref={chatRef}
-          onThreadUpdates={onThreadUpdates}
-          onNavigateToContext={onNavigateToContext}
-          onLoaded={onChatLoaded}
-        />
+        <ScrollArea
+          className="transition-all"
+          style={style}
+          ref={chatContainerRef}
+        >
+          <div>
+            <Chat
+              chatId={activeChatId as string}
+              key={activeChatId}
+              initialMessages={initialMessages ?? emptyQaParise}
+              ref={chatRef}
+              container={
+                (chatContainerRef?.current?.children[1] as HTMLDivElement) ||
+                undefined
+              }
+              onThreadUpdates={onThreadUpdates}
+              onNavigateToContext={onNavigateToContext}
+              onLoaded={onChatLoaded}
+            />
+          </div>
+        </ScrollArea>
       </LoadingWrapper>
     </div>
   )
