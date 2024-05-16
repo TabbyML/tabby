@@ -38,7 +38,7 @@ pub fn create(
         git: Arc::new(git::create(db.clone(), background.clone())),
         github: Arc::new(github::create(db.clone(), background.clone())),
         gitlab: Arc::new(gitlab::create(db.clone(), background.clone())),
-        third_party: Arc::new(third_party::create(db, integration)),
+        third_party: Arc::new(third_party::create(db, integration, background.clone())),
     })
 }
 
@@ -54,16 +54,7 @@ impl RepositoryAccess for RepositoryServiceImpl {
             .collect();
 
         repos.extend(
-            self.github
-                .list_active_git_urls()
-                .await
-                .unwrap_or_default()
-                .into_iter()
-                .map(RepositoryConfig::new),
-        );
-
-        repos.extend(
-            self.gitlab
+            self.third_party
                 .list_active_git_urls()
                 .await
                 .unwrap_or_default()
@@ -149,6 +140,8 @@ impl RepositoryService for RepositoryServiceImpl {
 #[cfg(test)]
 mod tests {
     use tabby_db::DbConn;
+    use tokio::sync::mpsc::WeakUnboundedSender;
+    use tracing::instrument::WithSubscriber;
 
     use super::*;
 
@@ -160,7 +153,8 @@ mod tests {
     #[tokio::test]
     async fn test_list_repositories() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let integration = Arc::new(crate::service::integration::create(db.clone()));
+        let (background, _) = tokio::sync::mpsc::unbounded_channel();
+        let integration = Arc::new(crate::service::integration::create(db.clone(), background));
         let service = create(db.clone(), integration, create_fake());
         service
             .git()

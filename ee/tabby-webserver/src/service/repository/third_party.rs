@@ -4,29 +4,37 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use fetch::fetch_all_repos;
 use juniper::ID;
+use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
 use tabby_schema::{
     integration::{IntegrationKind, IntegrationService},
     repository::{ProvidedRepository, ThirdPartyRepositoryService},
     AsRowid, DbEnum, Result,
 };
+use tokio::sync::mpsc::UnboundedSender;
 use tracing::{debug, error};
 use url::Url;
 
-use crate::service::graphql_pagination_to_filter;
+use crate::{service::background_job::BackgroundJobEvent, service::graphql_pagination_to_filter};
 
 mod fetch;
 
 struct ThirdPartyRepositoryServiceImpl {
     db: DbConn,
     integration: Arc<dyn IntegrationService>,
+    background_job: UnboundedSender<BackgroundJobEvent>,
 }
 
 pub fn create(
     db: DbConn,
     integration: Arc<dyn IntegrationService>,
+    background_job: UnboundedSender<BackgroundJobEvent>,
 ) -> impl ThirdPartyRepositoryService {
-    ThirdPartyRepositoryServiceImpl { db, integration }
+    ThirdPartyRepositoryServiceImpl {
+        db,
+        integration,
+        background_job,
+    }
 }
 
 #[async_trait]
@@ -60,10 +68,34 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             .collect::<Result<_, _>>()?)
     }
 
+    async fn get_repository(&self, id: ID) -> Result<ProvidedRepository> {
+        let repo = self.db.get_provided_repository(id.as_rowid()?).await?;
+        Ok(repo.try_into()?)
+    }
+
     async fn update_repository_active(&self, id: ID, active: bool) -> Result<()> {
         self.db
             .update_provided_repository_active(id.as_rowid()?, active)
             .await?;
+
+        if active {
+            let repo = self.get_repository(id).await?;
+            let integration = self
+                .integration
+                .get_integration(repo.integration_id.clone())
+                .await?;
+            let git_url = format_authenticated_url(
+                &integration.kind,
+                &repo.git_url,
+                &integration.access_token,
+            )?;
+            let _ = self
+                .background_job
+                .send(BackgroundJobEvent::Scheduler(RepositoryConfig::new(
+                    git_url,
+                )));
+        }
+
         Ok(())
     }
 
@@ -101,15 +133,8 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         Ok(urls)
     }
 
-    async fn sync_repositories(&self, kind: IntegrationKind) -> Result<()> {
-        let integrations = self
-            .integration
-            .list_integrations(None, Some(kind), None, None, None, None)
-            .await?;
-
-        for integration in integrations {
-            refresh_repositories_for_provider(self, &*self.integration, integration.id).await?;
-        }
+    async fn sync_repositories(&self, integration_id: ID) -> Result<()> {
+        refresh_repositories_for_provider(self, &*self.integration, integration_id).await?;
         Ok(())
     }
 

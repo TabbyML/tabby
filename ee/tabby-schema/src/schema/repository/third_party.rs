@@ -45,6 +45,7 @@ pub trait ThirdPartyRepositoryService: Send + Sync {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<ProvidedRepository>>;
+    async fn get_repository(&self, id: ID) -> Result<ProvidedRepository>;
 
     async fn update_repository_active(&self, id: ID, active: bool) -> Result<()>;
     async fn upsert_repository(
@@ -55,7 +56,7 @@ pub trait ThirdPartyRepositoryService: Send + Sync {
         git_url: String,
     ) -> Result<()>;
     async fn list_active_git_urls(&self) -> Result<Vec<String>>;
-    async fn sync_repositories(&self, kind: IntegrationKind) -> Result<()>;
+    async fn sync_repositories(&self, integration_id: ID) -> Result<()>;
     async fn delete_outdated_repositories(
         &self,
         integration_id: ID,

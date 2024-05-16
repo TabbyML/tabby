@@ -61,7 +61,7 @@ impl DbConn {
 
     pub async fn list_provided_repositories(
         &self,
-        provider_ids: Vec<i64>,
+        integration_ids: Vec<i64>,
         kind: Option<String>,
         active: Option<bool>,
         limit: Option<usize>,
@@ -70,13 +70,15 @@ impl DbConn {
     ) -> Result<Vec<ProvidedRepositoryDAO>> {
         let mut conditions = vec![];
 
-        let provider_ids = provider_ids
+        let integration_ids = integration_ids
             .into_iter()
             .map(|id| id.to_string())
             .collect::<Vec<_>>()
             .join(", ");
-        if !provider_ids.is_empty() {
-            conditions.push(format!("access_token_provider_id IN ({provider_ids})"));
+        if !integration_ids.is_empty() {
+            conditions.push(format!(
+                "integration_access_token_id IN ({integration_ids})"
+            ));
         }
 
         let active_filter = active.map(|active| format!("active = {active}"));
@@ -91,14 +93,14 @@ impl DbConn {
             ProvidedRepositoryDAO,
             "provided_repositories JOIN integration_access_tokens ON integration_access_token_id = integration_access_tokens.id",
             [
-                "provided_repositories.id" as "id",
+                "id",
                 "vendor_id",
                 "name",
                 "git_url",
                 "active",
                 "integration_access_token_id",
-                "provided_repositories.created_at" as "created_at: DateTimeUtc",
-                "provided_repositories.updated_at" as "updated_at: DateTimeUtc"
+                "created_at",
+                "updated_at"
             ],
             limit,
             skip_id,

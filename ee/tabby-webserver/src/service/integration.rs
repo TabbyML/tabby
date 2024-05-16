@@ -5,15 +5,22 @@ use tabby_schema::{
     integration::{IntegrationAccessToken, IntegrationKind, IntegrationService},
     AsID, AsRowid, DbEnum, Result,
 };
+use tokio::sync::mpsc::UnboundedSender;
+
+use crate::service::background_job::BackgroundJobEvent;
 
 use super::graphql_pagination_to_filter;
 
 struct IntegrationServiceImpl {
     db: DbConn,
+    background_job: UnboundedSender<BackgroundJobEvent>,
 }
 
-pub fn create(db: DbConn) -> impl IntegrationService {
-    IntegrationServiceImpl { db }
+pub fn create(
+    db: DbConn,
+    background_job: UnboundedSender<BackgroundJobEvent>,
+) -> impl IntegrationService {
+    IntegrationServiceImpl { db, background_job }
 }
 
 #[async_trait]
@@ -32,7 +39,11 @@ impl IntegrationService for IntegrationServiceImpl {
                 access_token,
             )
             .await?;
-        Ok(id.as_id())
+        let id = id.as_id();
+        let _ = self
+            .background_job
+            .send(BackgroundJobEvent::SyncThirdPartyRepositories(id.clone()));
+        Ok(id)
     }
 
     async fn delete_integration(&self, id: ID) -> Result<()> {

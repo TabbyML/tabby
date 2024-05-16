@@ -38,10 +38,17 @@ impl Webserver {
 
         let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<BackgroundJobEvent>();
 
-        let integration = Arc::new(integration::create(db.clone()));
+        let integration = Arc::new(integration::create(db.clone(), sender.clone()));
         let repository = repository::create(db.clone(), integration.clone(), sender);
 
-        background_job::start(db.clone(), repository.clone().access(), receiver).await;
+        background_job::start(
+            db.clone(),
+            repository.clone().access(),
+            repository.third_party(),
+            integration.clone(),
+            receiver,
+        )
+        .await;
 
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
