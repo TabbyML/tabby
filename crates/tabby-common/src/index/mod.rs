@@ -13,6 +13,7 @@ use tantivy::{
 
 fn new_multiterms_const_query<'a>(
     field: Field,
+    embedding_dims: usize,
     terms: impl Iterator<Item = Cow<'a, str>> + 'a,
 ) -> BooleanQuery {
     let subqueries: Vec<Box<dyn Query>> = terms
@@ -22,7 +23,8 @@ fn new_multiterms_const_query<'a>(
                 IndexRecordOption::Basic,
             ));
 
-            let boxed: Box<dyn Query> = Box::new(ConstScoreQuery::new(term_query, 1.0));
+            let score = 1.0 / embedding_dims as f32;
+            let boxed: Box<dyn Query> = Box::new(ConstScoreQuery::new(term_query, score));
 
             boxed
         })
@@ -72,6 +74,7 @@ mod tests {
         {
             let query = new_multiterms_const_query(
                 field1,
+                4,
                 vec!["value1", "value3"].into_iter().map(Cow::Borrowed),
             );
 
@@ -79,12 +82,13 @@ mod tests {
             eprintln!("explain {:?}", query.explain(&searcher, top_docs[0].1)?);
 
             assert_eq!(top_docs.len(), 1, "Expected 1 document");
-            assert_eq!(top_docs[0].0, 2.0);
+            assert_eq!(top_docs[0].0, 0.5);
         }
 
         {
             let query = new_multiterms_const_query(
                 field1,
+                4,
                 vec!["value1", "value2", "value3"]
                     .into_iter()
                     .map(Cow::Borrowed),
@@ -93,7 +97,7 @@ mod tests {
             let top_docs = searcher.search(&query, &TopDocs::with_limit(1))?;
 
             assert_eq!(top_docs.len(), 1, "Expected 1 document");
-            assert_eq!(top_docs[0].0, 3.0);
+            assert_eq!(top_docs[0].0, 0.75);
         }
 
         Ok(())
