@@ -10,11 +10,13 @@ import { IconArrowDown } from '@/components/ui/icons'
 export function ButtonScrollToBottom({
   className,
   container,
+  offset,
   ...props
 }: ButtonProps & {
-  container?: HTMLDivElement
+  container?: HTMLDivElement,
+  offset?: number
 }) {
-  const isAtBottom = useAtBottom(0, container)
+  const isAtBottom = useAtBottom(offset || 0, container)
 
   const onButtonClick = () => {
     if (container) {
