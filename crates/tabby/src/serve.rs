@@ -21,14 +21,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::{
     routes::{self, run_app},
     services::{
-        self,
-        chat::{self, create_chat_service},
-        code::create_code_search,
-        completion::{self, create_completion_service},
-        embedding,
-        event::create_event_logger,
-        health,
-        model::download_model_if_needed,
+        self, answer, chat::{self, create_chat_service}, code::create_code_search, completion::{self, create_completion_service}, embedding, event::create_event_logger, health, model::download_model_if_needed
     },
     Device,
 };
@@ -50,7 +43,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "/", description = "Server"),
     ),
-    paths(routes::log_event, routes::completions, routes::chat_completions, routes::health, routes::search, routes::docsearch, routes::setting),
+    paths(routes::log_event, routes::completions, routes::chat_completions, routes::health, routes::search, routes::docsearch, routes::answer, routes::setting),
     components(schemas(
         api::event::LogEventRequest,
         completion::CompletionRequest,
@@ -74,6 +67,8 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         api::doc::DocSearchResponse,
         api::doc::DocSearchHit,
         api::doc::DocSearchDocument,
+        answer::AnswerRequest,
+        answer::AnswerResponseChunk,
         api::server_setting::ServerSetting
     )),
     modifiers(&SecurityAddon),
@@ -236,6 +231,16 @@ async fn api_router(
         None
     };
 
+    let answer_state = if let Some(chat) = &chat_state {
+        if let Some(doc) = &docsearch_state {
+            Some(Arc::new(services::answer::create(chat.clone(), code.clone(), doc.clone())))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     let mut routers = vec![];
 
     let health_state = Arc::new(health::HealthState::new(
@@ -334,6 +339,22 @@ async fn api_router(
             Router::new().route(
                 "/v1beta/docsearch",
                 routing::get(StatusCode::NOT_IMPLEMENTED),
+            )
+        });
+    }
+
+    if let Some(answer_state) = answer_state {
+        routers.push({
+            Router::new().route(
+                "/v1beta/answer",
+                routing::post(routes::answer).with_state(answer_state),
+            )
+        });
+    } else {
+        routers.push({
+            Router::new().route(
+                "/v1beta/answer",
+                routing::post(StatusCode::NOT_IMPLEMENTED),
             )
         });
     }
