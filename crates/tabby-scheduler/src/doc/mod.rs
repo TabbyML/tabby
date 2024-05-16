@@ -27,7 +27,7 @@ const CHUNK_SIZE: usize = 2048;
 impl DocIndex {
     pub fn new(embedding: Arc<dyn Embedding>) -> Self {
         let doc = DocSearchSchema::instance();
-        let index = open_or_create_index(&doc.schema, &path::doc_index_dir());
+        let (_, index) = open_or_create_index(&doc.schema, &path::doc_index_dir());
         let writer = index
             .writer(150_000_000)
             .expect("Failed to create index writer");

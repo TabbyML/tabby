@@ -77,9 +77,9 @@ mod tantivy_utils {
     use tantivy::{directory::MmapDirectory, schema::Schema, Index};
     use tracing::{debug, warn};
 
-    pub fn open_or_create_index(code: &Schema, path: &Path) -> Index {
-        let index = match open_or_create_index_impl(code, path) {
-            Ok(index) => index,
+    pub fn open_or_create_index(code: &Schema, path: &Path) -> (bool, Index) {
+        let (recreated, index) = match open_or_create_index_impl(code, path) {
+            Ok(index) => (false, index),
             Err(err) => {
                 warn!(
                     "Failed to open index repositories: {}, removing index directory '{}'...",
@@ -89,11 +89,14 @@ mod tantivy_utils {
                 fs::remove_dir_all(path).expect("Failed to remove index directory");
 
                 debug!("Reopening index repositories...");
-                open_or_create_index_impl(code, path).expect("Failed to open index")
+                (
+                    true,
+                    open_or_create_index_impl(code, path).expect("Failed to open index"),
+                )
             }
         };
         register_tokenizers(&index);
-        index
+        (recreated, index)
     }
 
     fn open_or_create_index_impl(code: &Schema, path: &Path) -> tantivy::Result<Index> {

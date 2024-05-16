@@ -23,6 +23,7 @@ pub struct CodeSearchSchema {
     pub field_file_id: Field,
     pub field_language: Field,
     pub field_body: Field,
+    pub field_start_line: Field,
 }
 
 impl CodeSearchSchema {
@@ -41,6 +42,7 @@ impl CodeSearchSchema {
         let field_source_file_key = builder.add_text_field("file_id", STRING | STORED);
         let field_language = builder.add_text_field("language", STRING | STORED);
         let field_body = builder.add_text_field("body", code_options);
+        let field_start_line = builder.add_u64_field("start_line", STORED);
         let schema = builder.build();
 
         Self {
@@ -50,6 +52,7 @@ impl CodeSearchSchema {
             field_file_id: field_source_file_key,
             field_language,
             field_body,
+            field_start_line,
         }
     }
 
