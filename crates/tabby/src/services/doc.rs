@@ -13,7 +13,7 @@ use tantivy::{
     schema::{self, Value},
     Index, IndexReader, TantivyDocument,
 };
-use tokio::{sync::Mutex, time::sleep};
+use tokio::{sync::RwLock, time::sleep};
 use tracing::{debug, warn};
 
 struct DocSearchImpl {
@@ -57,8 +57,9 @@ impl DocSearch for DocSearchImpl {
         offset: usize,
     ) -> Result<DocSearchResponse, DocSearchError> {
         let schema = index::DocSearchSchema::instance();
+        let embedding = self.embedding.embed(q).await?;
         let embedding_tokens_query =
-            schema.embedding_tokens_query(self.embedding.embed(q).await?.iter());
+            schema.embedding_tokens_query(embedding.len(), embedding.iter());
 
         let searcher = self.reader.searcher();
         let top_chunks = searcher.search(
@@ -106,7 +107,7 @@ fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
 }
 
 struct DocSearchService {
-    search: Arc<Mutex<Option<DocSearchImpl>>>,
+    search: Arc<RwLock<Option<DocSearchImpl>>>,
     loader: tokio::task::JoinHandle<()>,
 }
 
@@ -120,11 +121,11 @@ impl Drop for DocSearchService {
 
 impl DocSearchService {
     fn new(embedding: Arc<dyn Embedding>) -> Self {
-        let search = Arc::new(Mutex::new(None));
+        let search = Arc::new(RwLock::new(None));
         let cloned_search = search.clone();
         let loader = tokio::spawn(async move {
             let doc = DocSearchImpl::load_async(embedding).await;
-            *cloned_search.lock().await = Some(doc);
+            *cloned_search.write().await = Some(doc);
         });
 
         Self {
@@ -142,7 +143,7 @@ impl DocSearch for DocSearchService {
         limit: usize,
         offset: usize,
     ) -> Result<DocSearchResponse, DocSearchError> {
-        if let Some(imp) = self.search.lock().await.as_ref() {
+        if let Some(imp) = self.search.read().await.as_ref() {
             imp.search(q, limit, offset).await
         } else {
             Err(DocSearchError::NotReady)

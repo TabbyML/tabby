@@ -14,7 +14,7 @@ pub struct DocSearchHit {
     pub doc: DocSearchDocument,
 }
 
-#[derive(Serialize, Deserialize, Debug, ToSchema)]
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
 pub struct DocSearchDocument {
     pub title: String,
     pub link: String,

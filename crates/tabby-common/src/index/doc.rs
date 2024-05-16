@@ -72,11 +72,12 @@ impl DocSearchSchema {
 
     pub fn embedding_tokens_query<'a>(
         &self,
+        embedding_dims: usize,
         embedding: impl Iterator<Item = &'a f32> + 'a,
     ) -> BooleanQuery {
         let iter = DocSearchSchema::binarize_embedding(embedding).map(Cow::Owned);
 
-        new_multiterms_const_query(self.field_chunk_embedding_token, iter)
+        new_multiterms_const_query(self.field_chunk_embedding_token, embedding_dims, iter)
     }
 
     /// Build a query to find the document with the given `doc_id`.

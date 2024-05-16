@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_stream::stream;
+use derive_builder::Builder;
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 use tabby_common::api::{
@@ -15,7 +16,7 @@ use uuid::Uuid;
 use super::model;
 use crate::Device;
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Builder, Debug)]
 #[schema(example=json!({
     "messages": [
         Message { role: "user".to_owned(), content: "What is tail recursion?".to_owned()},
@@ -25,7 +26,11 @@ use crate::Device;
 }))]
 pub struct ChatCompletionRequest {
     messages: Vec<Message>,
+
+    #[builder(default = "None")]
     temperature: Option<f32>,
+
+    #[builder(default = "None")]
     seed: Option<u64>,
 }
 
@@ -36,7 +41,7 @@ pub struct ChatCompletionChunk {
     system_fingerprint: String,
     object: &'static str,
     model: &'static str,
-    choices: [ChatCompletionChoice; 1],
+    pub choices: [ChatCompletionChoice; 1],
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
@@ -46,12 +51,12 @@ pub struct ChatCompletionChoice {
     logprobs: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     finish_reason: Option<String>,
-    delta: ChatCompletionDelta,
+    pub delta: ChatCompletionDelta,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 pub struct ChatCompletionDelta {
-    content: String,
+    pub content: String,
 }
 
 impl ChatCompletionChunk {
