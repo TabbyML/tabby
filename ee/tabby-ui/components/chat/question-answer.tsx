@@ -124,8 +124,14 @@ interface AssistantMessageCardProps {
 function AssistantMessageCard(props: AssistantMessageCardProps) {
   const { handleMessageAction, isLoading: isGenerating } =
     React.useContext(ChatContext)
-  const { message, selectContext, relevantContext, isLoading, userMessageId } =
-    props
+  const {
+    message,
+    selectContext,
+    relevantContext,
+    isLoading,
+    userMessageId,
+    ...rest
+  } = props
 
   const contexts = React.useMemo(() => {
     return compact([selectContext, ...(relevantContext ?? [])])
@@ -134,7 +140,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   return (
     <div
       className={cn('group relative mb-4 flex items-start md:-ml-12')}
-      {...props}
+      {...rest}
     >
       <div className="shrink-0 select-none rounded-full border bg-background shadow">
         <IconTabby className="h-8 w-8" />
@@ -146,9 +152,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
         ) : (
           <>
             <MessageMarkdown message={message.message} />
-            {!!message.error && (
-              <div className="font-italic">{message.error}</div>
-            )}
+            {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>
         )}
         <ChatMessageActionsWrapper>
@@ -217,6 +221,38 @@ function MessageMarkdown({ message }: { message: string }) {
       }}
     >
       {message}
+    </MemoizedReactMarkdown>
+  )
+}
+
+function ErrorMessageBlock({ error = 'Fail to fetch' }: { error?: string }) {
+  const errorMessage = React.useMemo(() => {
+    let jsonString = JSON.stringify(
+      {
+        error: true,
+        message: error
+      },
+      null,
+      2
+    )
+    const markdownJson = '```\n' + jsonString + '\n```'
+    return markdownJson
+  }, [error])
+  return (
+    <MemoizedReactMarkdown
+      className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0 text-sm"
+      remarkPlugins={[remarkGfm, remarkMath]}
+      components={{
+        code({ node, inline, className, children, ...props }) {
+          return (
+            <div {...props} className={cn(className, 'p-2 bg-zinc-950')}>
+              {children}
+            </div>
+          )
+        }
+      }}
+    >
+      {errorMessage}
     </MemoizedReactMarkdown>
   )
 }

@@ -229,10 +229,7 @@ function ChatRenderer(
               ...lastQaPairs.assistant,
               id: lastQaPairs.assistant?.id || nanoid(),
               message: lastQaPairs.assistant?.message ?? '',
-              error:
-                error?.message === '401'
-                  ? 'Unauthorized'
-                  : 'Oops! Something went wrong'
+              error: error?.message === '401' ? 'Unauthorized' : 'Fail to fetch'
             }
           }
         ]
