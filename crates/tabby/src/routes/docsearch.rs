@@ -31,7 +31,7 @@ pub struct DocSearchQuery {
     tag = "v1beta",
     responses(
         (status = 200, description = "Success" , body = DocSearchResponse, content_type = "application/json"),
-        (status = 501, description = "When code search is not enabled, the endpoint will returns 501 Not Implemented"),
+        (status = 501, description = "When doc search is not enabled, the endpoint will returns 501 Not Implemented"),
     ),
     security(
         ("token" = [])

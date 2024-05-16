@@ -17,7 +17,10 @@ use tantivy::{
     query::QueryParser,
     Index, IndexReader,
 };
-use tokio::{sync::Mutex, time::sleep};
+use tokio::{
+    sync::{Mutex, RwLock},
+    time::sleep,
+};
 use tracing::debug;
 
 struct CodeSearchImpl {
@@ -147,12 +150,12 @@ fn closest_match<'a>(
 }
 
 struct CodeSearchService {
-    search: Arc<Mutex<Option<CodeSearchImpl>>>,
+    search: Arc<RwLock<Option<CodeSearchImpl>>>,
 }
 
 impl CodeSearchService {
     pub fn new(repository_access: Arc<dyn RepositoryAccess>) -> Self {
-        let search = Arc::new(Mutex::new(None));
+        let search = Arc::new(RwLock::new(None));
 
         let ret = Self {
             search: search.clone(),
@@ -160,7 +163,7 @@ impl CodeSearchService {
 
         tokio::spawn(async move {
             let code = CodeSearchImpl::load_async(repository_access).await;
-            *search.lock().await = Some(code);
+            *search.write().await = Some(code);
         });
 
         ret
@@ -179,7 +182,7 @@ impl CodeSearch for CodeSearchService {
         limit: usize,
         offset: usize,
     ) -> Result<CodeSearchResponse, CodeSearchError> {
-        if let Some(imp) = self.search.lock().await.as_ref() {
+        if let Some(imp) = self.search.read().await.as_ref() {
             imp.search(q, limit, offset).await
         } else {
             Err(CodeSearchError::NotReady)
@@ -194,7 +197,7 @@ impl CodeSearch for CodeSearchService {
         limit: usize,
         offset: usize,
     ) -> Result<CodeSearchResponse, CodeSearchError> {
-        if let Some(imp) = self.search.lock().await.as_ref() {
+        if let Some(imp) = self.search.read().await.as_ref() {
             imp.search_in_language(git_url, language, tokens, limit, offset)
                 .await
         } else {
