@@ -1,6 +1,5 @@
 use std::{
     path::{Path, PathBuf},
-    process::Command,
     str::FromStr,
 };
 
