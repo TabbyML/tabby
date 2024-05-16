@@ -1,6 +1,6 @@
 use lazy_static::lazy_static;
 use tantivy::{
-    query::{TermQuery, TermSetQuery},
+    query::{BooleanQuery, ConstScoreQuery, Query, TermQuery},
     schema::{Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, STRING},
     tokenizer::{RegexTokenizer, RemoveLongFilter, TextAnalyzer},
     Index, Term,
@@ -63,32 +63,58 @@ lazy_static! {
 }
 
 impl CodeSearchSchema {
-    pub fn language_query(&self, language: &str) -> Box<TermQuery> {
+    fn language_query(&self, language: &str) -> Box<TermQuery> {
         let language = match language {
             "javascript" | "typescript" | "javascriptreact" | "typescriptreact" => {
                 "javascript-typescript"
             }
             _ => language,
         };
+
         Box::new(TermQuery::new(
             Term::from_field_text(self.field_language, language),
             IndexRecordOption::Basic,
         ))
     }
 
-    pub fn body_query(&self, tokens: &[String]) -> Box<TermSetQuery> {
-        Box::new(TermSetQuery::new(
+    fn body_query(&self, tokens: &[String]) -> Box<dyn Query> {
+        Box::new(BooleanQuery::new_multiterms_query(
             tokens
                 .iter()
-                .map(|x| Term::from_field_text(self.field_body, x)),
+                .map(|x| Term::from_field_text(self.field_body, x))
+                .collect(),
         ))
     }
 
-    pub fn git_url_query(&self, git_url: &str) -> Box<TermQuery> {
+    fn git_url_query(&self, git_url: &str) -> Box<TermQuery> {
         Box::new(TermQuery::new(
             Term::from_field_text(self.field_git_url, git_url),
             IndexRecordOption::Basic,
         ))
+    }
+
+    pub fn code_search_query(
+        &self,
+        git_url: &str,
+        language: &str,
+        tokens: &[String],
+    ) -> BooleanQuery {
+        let language_query = self.language_query(language);
+        let body_query = self.body_query(tokens);
+        let git_url_query = self.git_url_query(git_url);
+
+        // language / git_url field shouldn't contribute to the score, mark them to 0.0.
+        BooleanQuery::new(vec![
+            (
+                tantivy::query::Occur::Must,
+                Box::new(ConstScoreQuery::new(language_query, 0.0)),
+            ),
+            (tantivy::query::Occur::Must, body_query),
+            (
+                tantivy::query::Occur::Must,
+                Box::new(ConstScoreQuery::new(git_url_query, 0.0)),
+            ),
+        ])
     }
 }
 
