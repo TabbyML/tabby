@@ -1,9 +1,8 @@
 import React from 'react'
-import type { ChatMessage } from 'tabby-chat-panel'
 import { useClient } from 'tabby-chat-panel/react'
 
-import { useStore } from '@/lib/hooks/use-store'
 import { useMe } from '@/lib/hooks/use-me'
+import { useStore } from '@/lib/hooks/use-store'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { UserMessage } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -96,7 +95,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
             start: lineFrom,
             end: lineTo
           },
-          filePath: path,
+          filePath: path
         }
       })
     }

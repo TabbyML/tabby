@@ -1,5 +1,3 @@
-import type { ChatMessage } from 'tabby-chat-panel'
-
 interface LineRange {
   start: number
   end: number
