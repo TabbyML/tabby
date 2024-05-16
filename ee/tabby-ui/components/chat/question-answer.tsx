@@ -144,7 +144,12 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
         {isLoading && !message?.message ? (
           <MessagePendingIndicator />
         ) : (
-          <MessageMarkdown message={message.message} />
+          <>
+            <MessageMarkdown message={message.message} />
+            {!!message.error && (
+              <div className="font-italic">{message.error}</div>
+            )}
+          </>
         )}
         <ChatMessageActionsWrapper>
           {!isGenerating && (

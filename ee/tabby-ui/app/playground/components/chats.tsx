@@ -3,12 +3,12 @@
 import React from 'react'
 
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
-import { usePatchFetch } from '@/lib/hooks/use-patch-fetch'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useStore } from '@/lib/hooks/use-store'
 import { addChat, updateMessages } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { getChatById } from '@/lib/stores/utils'
+import fetcher from '@/lib/tabby/fetcher'
 import { Context as ChatContext, QuestionAnswerPair } from '@/lib/types/chat'
 import { truncateText } from '@/lib/utils'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -22,7 +22,6 @@ import { ChatSessions } from './chat-sessions'
 const emptyQaParise: QuestionAnswerPair[] = []
 
 export default function Chats() {
-  usePatchFetch()
   const { searchParams, updateSearchParams } = useRouterStuff()
   const initialMessage = searchParams.get('initialMessage')?.toString()
   const shouldConsumeInitialMessage = React.useRef(!!initialMessage)
@@ -159,6 +158,21 @@ export default function Chats() {
               onThreadUpdates={onThreadUpdates}
               onNavigateToContext={onNavigateToContext}
               onLoaded={onChatLoaded}
+              fetcher={
+                ((url: string, init?: RequestInit) =>
+                  fetcher(url, {
+                    ...init,
+                    responseFormatter(response) {
+                      return response
+                    },
+                    errorHandler(response) {
+                      throw new Error(
+                        response ? String(response.status) : 'Fail to fetch'
+                      )
+                    }
+                  })) as typeof fetch
+              }
+              // api="/v1/chat/completion"
             />
           </div>
         </ScrollArea>

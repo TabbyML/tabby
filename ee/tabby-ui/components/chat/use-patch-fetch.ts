@@ -1,45 +1,39 @@
-import { useEffect } from 'react'
-import {
-  Message,
-  OpenAIStream,
-  OpenAIStreamCallbacks,
-  StreamingTextResponse
-} from 'ai'
+import React from 'react'
+import { Message, OpenAIStream, StreamingTextResponse } from 'ai'
 
-import fetcher from '../tabby/fetcher'
+interface PatchFetchOptions {
+  api: string
+  fetcher?: typeof fetch
+}
 
-interface PatchFetchOptions extends OpenAIStreamCallbacks {}
-
-export function usePatchFetch(options?: PatchFetchOptions) {
-  useEffect(() => {
+export function usePatchFetch({ api, fetcher }: PatchFetchOptions) {
+  React.useEffect(() => {
     if (!window._originFetch) {
       window._originFetch = window.fetch
     }
 
-    const fetch = window._originFetch
+    const fetch = fetcher || window._originFetch
 
     window.fetch = async function (url, requestInit) {
       if (url !== '/api/chat') {
-        return fetch(url, requestInit)
+        return window._originFetch!(url, requestInit)
       }
 
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json'
-      }
-
-      const res = await fetcher(`/v1/chat/completions`, {
+      return fetch(api, {
         ...requestInit,
         body: mergeMessagesByRole(requestInit?.body),
         method: 'POST',
-        headers,
-        customFetch: fetch,
-        responseFormatter(response) {
-          const stream = OpenAIStream(response, options)
-          return new StreamingTextResponse(stream)
+        headers: {
+          'Content-Type': 'application/json',
+          ...requestInit?.headers
         }
+      }).then(response => {
+        if (!response?.ok) {
+          throw new Error(String(response.status))
+        }
+        const stream = OpenAIStream(response)
+        return new StreamingTextResponse(stream)
       })
-
-      return res
     }
 
     return () => {
@@ -51,7 +45,7 @@ export function usePatchFetch(options?: PatchFetchOptions) {
   }, [])
 }
 
-function mergeMessagesByRole(body: BodyInit | null | undefined) {
+export function mergeMessagesByRole(body: BodyInit | null | undefined) {
   if (typeof body !== 'string') return body
   try {
     const bodyObject = JSON.parse(body)
