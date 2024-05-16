@@ -116,21 +116,12 @@ async fn create_ggml_engine(
     model_path: &str,
     parallelism: u8,
 ) -> Arc<dyn CompletionStream> {
-    let server = llama_cpp_server::LlamaCppServer::new(
-        device != &Device::Cpu,
-        false,
-        model_path,
-        parallelism,
-    );
-    server.start().await;
-    Arc::new(server)
+    llama_cpp_server::create_completion(device != &Device::Cpu, model_path, parallelism).await
 }
 
 async fn create_ggml_embedding_engine(model_path: &str) -> Arc<dyn Embedding> {
     // By default, embedding always use CPU device with 1 parallelism.
-    let server = llama_cpp_server::LlamaCppServer::new(false, true, model_path, 1);
-    server.start().await;
-    Arc::new(server)
+    llama_cpp_server::create_embedding(false, model_path, 1).await
 }
 
 pub async fn download_model_if_needed(model: &str) {
