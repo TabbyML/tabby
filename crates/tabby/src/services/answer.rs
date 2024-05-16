@@ -123,7 +123,7 @@ Remember, based on the original question and related contexts, suggest three suc
 
         content
             .lines()
-            .map(|line| remove_bullet_prefix(line))
+            .map(remove_bullet_prefix)
             .collect()
     }
 
