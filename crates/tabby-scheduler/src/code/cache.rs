@@ -90,6 +90,12 @@ impl CacheStore {
         (key, indexed)
     }
 
+    pub fn clear_indexed(&self) {
+        self.index_bucket()
+            .clear()
+            .expect("Failed to clear indexed files bucket");
+    }
+
     pub fn apply_indexed(&self, batch: Batch<String, String>) {
         self.index_bucket()
             .batch(batch)

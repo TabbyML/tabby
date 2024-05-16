@@ -10,22 +10,30 @@ use super::{
     cache::CacheStore,
     intelligence::{CodeIntelligence, SourceCode},
 };
-use crate::tantivy_utils::open_or_create_index;
+use crate::tantivy_utils;
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 
 pub fn index_repository(cache: &mut CacheStore, repository: &RepositoryConfig) {
-    let code = CodeSearchSchema::instance();
-    let index = open_or_create_index(&code.schema, &path::index_dir());
+    let index = open_or_create_index(cache);
     add_changed_documents(cache, repository, &index);
 }
 
 pub fn garbage_collection(cache: &mut CacheStore) {
+    let index = open_or_create_index(cache);
+    remove_staled_documents(cache, &index);
+}
+
+fn open_or_create_index(cache: &mut CacheStore) -> Index {
     let code = CodeSearchSchema::instance();
-    let index = open_or_create_index(&code.schema, &path::index_dir());
-    remove_staled_documents(cache, code, &index);
+    let (recreated, index) = tantivy_utils::open_or_create_index(&code.schema, &path::index_dir());
+    if recreated {
+        warn!("Index directory was recreated, clearing indexed files cache");
+        cache.clear_indexed();
+    }
+    index
 }
 
 fn add_changed_documents(cache: &mut CacheStore, repository: &RepositoryConfig, index: &Index) {
@@ -94,7 +102,9 @@ fn add_changed_documents(cache: &mut CacheStore, repository: &RepositoryConfig, 
     cache.apply_indexed(indexed_files_batch);
 }
 
-fn remove_staled_documents(cache: &mut CacheStore, code: &CodeSearchSchema, index: &Index) {
+fn remove_staled_documents(cache: &mut CacheStore, index: &Index) {
+    let code = CodeSearchSchema::instance();
+
     // Create a new writer to commit deletion of removed indexed files
     let mut writer: IndexWriter<CodeSearchDocument> = index
         .writer(150_000_000)

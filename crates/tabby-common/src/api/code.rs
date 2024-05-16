@@ -1,13 +1,9 @@
-
-
 use async_trait::async_trait;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use tantivy::{
     schema::{
-        document::{
-            DeserializeError, DocumentDeserialize, ReferenceValue, ReferenceValueLeaf,
-        },
+        document::{DeserializeError, DocumentDeserialize, ReferenceValue, ReferenceValueLeaf},
         OwnedValue, Value,
     },
     Document,
@@ -111,7 +107,7 @@ impl<'a> Iterator for CodeSearchDocumentFieldValueIter<'a> {
             4 => Some((schema.field_file_id, RefValue::Str(&self.doc.file_id))),
             5 => Some((
                 schema.field_start_line,
-                RefValue::I64(self.doc.start_line as i64),
+                RefValue::Usize(self.doc.start_line),
             )),
             _ => None,
         };
@@ -127,7 +123,7 @@ impl<'a> Iterator for CodeSearchDocumentFieldValueIter<'a> {
 #[derive(Clone, Debug)]
 pub enum RefValue<'a> {
     Str(&'a str),
-    I64(i64),
+    Usize(usize),
 }
 impl<'a> Value<'a> for RefValue<'a> {
     type ArrayIter = std::iter::Empty<Self>;
@@ -136,7 +132,7 @@ impl<'a> Value<'a> for RefValue<'a> {
     fn as_value(&self) -> tantivy::schema::document::ReferenceValue<'a, Self> {
         match self {
             RefValue::Str(s) => ReferenceValue::Leaf(ReferenceValueLeaf::Str(s)),
-            RefValue::I64(i) => ReferenceValue::Leaf(ReferenceValueLeaf::I64(*i)),
+            RefValue::Usize(i) => ReferenceValue::Leaf(ReferenceValueLeaf::U64(*i as u64)),
         }
     }
 }
@@ -178,7 +174,7 @@ trait TryDeserialize<T> {
 impl TryDeserialize<usize> for &OwnedValue {
     fn try_deserialize(self) -> Result<usize, DeserializeError> {
         match self {
-            OwnedValue::I64(i) => Ok(*i as usize),
+            OwnedValue::U64(i) => Ok(*i as usize),
             _ => Err(DeserializeError::Custom(
                 "Field type doesn't match".to_string(),
             )),

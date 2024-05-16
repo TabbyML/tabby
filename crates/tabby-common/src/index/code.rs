@@ -1,7 +1,9 @@
 use lazy_static::lazy_static;
 use tantivy::{
     query::{BooleanQuery, ConstScoreQuery, Query, TermQuery},
-    schema::{Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, STRING},
+    schema::{
+        Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, STRING,
+    },
     tokenizer::{RegexTokenizer, RemoveLongFilter, TextAnalyzer},
     Index, Term,
 };
