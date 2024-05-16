@@ -5456,6 +5456,7 @@ dependencies = [
  "async-stream",
  "async-trait",
  "futures",
+ "git2",
  "ignore",
  "kv",
  "lazy_static",

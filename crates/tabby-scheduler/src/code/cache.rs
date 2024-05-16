@@ -24,7 +24,10 @@ fn cmd_stdout(cmd: &str, args: &[&str]) -> Result<String> {
 }
 
 fn get_git_hash(path: &Path) -> Result<String> {
-    cmd_stdout("git", &["hash-object", &path.display().to_string()])
+    let sha256 = git2::Oid::hash_file(git2::ObjectType::Any, path).expect("Failed to hash file");
+    let cmd_output = cmd_stdout("git", &["hash-object", &path.display().to_string()]).expect("Failed to get git hash");
+    assert_eq!(cmd_output, sha256.to_string());
+    Ok(cmd_output)
 }
 
 #[derive(Deserialize, Serialize, Debug)]
