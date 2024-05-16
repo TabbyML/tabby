@@ -12,7 +12,7 @@ use tabby_db::DbConn;
 use tabby_schema::{integration::IntegrationService, repository::ThirdPartyRepositoryService};
 use tracing::debug;
 
-use super::{helper::BasicJob, helper::CronJob};
+use super::helper::{BasicJob, CronJob};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ThirdPartyRepositorySyncJob {

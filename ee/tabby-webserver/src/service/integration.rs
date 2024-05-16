@@ -7,9 +7,8 @@ use tabby_schema::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::service::background_job::BackgroundJobEvent;
-
 use super::graphql_pagination_to_filter;
+use crate::service::background_job::BackgroundJobEvent;
 
 struct IntegrationServiceImpl {
     db: DbConn,

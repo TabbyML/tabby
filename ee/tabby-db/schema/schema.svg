@@ -392,6 +392,10 @@
 <text text-anchor="start" x="395" y="-1751.3" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="409.5,-1744.5 409.5,-1765.5 563.5,-1765.5 563.5,-1744.5 409.5,-1744.5"/>
 <text text-anchor="start" x="463.5" y="-1751.3" font-family="Times,serif" font-size="14.00">avatar</text>
+<polygon fill="none" stroke="black" points="385.5,-1723.5 385.5,-1744.5 409.5,-1744.5 409.5,-1723.5 385.5,-1723.5"/>
+<text text-anchor="start" x="395" y="-1730.3" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="409.5,-1723.5 409.5,-1744.5 563.5,-1744.5 563.5,-1723.5 409.5,-1723.5"/>
+<text text-anchor="start" x="466.5" y="-1730.3" font-family="Times,serif" font-size="14.00">name</text>
 </g>
 <!-- password_reset&#45;&gt;users -->
 <g id="edge6" class="edge">
