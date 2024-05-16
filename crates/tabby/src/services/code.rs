@@ -114,10 +114,6 @@ impl CodeSearch for CodeSearchImpl {
         limit: usize,
         offset: usize,
     ) -> Result<CodeSearchResponse, CodeSearchError> {
-        let schema = index::CodeSearchSchema::instance();
-        let language_query = schema.language_query(language);
-        let body_query = schema.body_query(tokens);
-
         let mut cache = self.repo_cache.lock().await;
 
         let repos = cache
@@ -131,13 +127,8 @@ impl CodeSearch for CodeSearchImpl {
             return Ok(CodeSearchResponse::default());
         };
 
-        let git_url_query = schema.git_url_query(git_url);
-
-        let query = BooleanQuery::new(vec![
-            (Occur::Must, language_query),
-            (Occur::Must, body_query),
-            (Occur::Must, git_url_query),
-        ]);
+        let schema = index::CodeSearchSchema::instance();
+        let query = schema.code_search_query(git_url, language, tokens);
         self.search_with_query(&query, limit, offset).await
     }
 }
