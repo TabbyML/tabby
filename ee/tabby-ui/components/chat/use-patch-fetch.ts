@@ -45,7 +45,7 @@ export function usePatchFetch({ api, fetcher }: PatchFetchOptions) {
   }, [api])
 }
 
-export function mergeMessagesByRole(body: BodyInit | null | undefined) {
+function mergeMessagesByRole(body: BodyInit | null | undefined) {
   if (typeof body !== 'string') return body
   try {
     const bodyObject = JSON.parse(body)
