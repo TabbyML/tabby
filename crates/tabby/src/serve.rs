@@ -21,7 +21,14 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::{
     routes::{self, run_app},
     services::{
-        self, answer, chat::{self, create_chat_service}, code::create_code_search, completion::{self, create_completion_service}, embedding, event::create_event_logger, health, model::download_model_if_needed
+        self, answer,
+        chat::{self, create_chat_service},
+        code::create_code_search,
+        completion::{self, create_completion_service},
+        embedding,
+        event::create_event_logger,
+        health,
+        model::download_model_if_needed,
     },
     Device,
 };
@@ -232,11 +239,9 @@ async fn api_router(
     };
 
     let answer_state = if let Some(chat) = &chat_state {
-        if let Some(doc) = &docsearch_state {
-            Some(Arc::new(services::answer::create(chat.clone(), doc.clone())))
-        } else {
-            None
-        }
+        docsearch_state
+            .as_ref()
+            .map(|doc| Arc::new(services::answer::create(chat.clone(), doc.clone())))
     } else {
         None
     };
@@ -352,10 +357,7 @@ async fn api_router(
         });
     } else {
         routers.push({
-            Router::new().route(
-                "/v1beta/answer",
-                routing::post(StatusCode::NOT_IMPLEMENTED),
-            )
+            Router::new().route("/v1beta/answer", routing::post(StatusCode::NOT_IMPLEMENTED))
         });
     }
 

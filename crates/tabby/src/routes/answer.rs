@@ -7,20 +7,11 @@ use axum::{
     Json,
 };
 use axum_extra::TypedHeader;
-use hyper::StatusCode;
-use serde::{Deserialize, Serialize};
-use tabby_common::api::{chat, code::CodeSearch, doc::DocSearch};
-use tabby_inference::ChatCompletionStream;
-use tracing::{instrument, warn};
-use utoipa::IntoParams;
 use futures::{Stream, StreamExt};
-
-use crate::services::{
-    answer::{AnswerRequest, AnswerResponseChunk, AnswerService},
-    chat::ChatService,
-};
+use tracing::instrument;
 
 use super::MaybeUser;
+use crate::services::answer::{AnswerRequest, AnswerService};
 
 #[utoipa::path(
     post,

@@ -1,44 +1,33 @@
 use std::sync::Arc;
 
-use anyhow::{Context, Result};
 use async_stream::stream;
-use axum::{
-    extract::{Query, State},
-    Json,
-};
-use futures::{stream::BoxStream, AsyncReadExt, FutureExt};
-use hyper::StatusCode;
+use futures::{stream::BoxStream, StreamExt};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use tabby_common::api::{
-    chat,
-    code::{CodeSearch, CodeSearchDocument},
+    chat::Message,
     doc::{DocSearch, DocSearchDocument},
 };
-use tabby_inference::ChatCompletionStream;
-use tracing::{debug, instrument, warn};
-use utoipa::{IntoParams, ToSchema};
+use tracing::warn;
+use utoipa::ToSchema;
 
 use crate::services::chat::{ChatCompletionRequestBuilder, ChatService};
-
-use super::chat::ChatCompletionRequest;
 
 #[derive(Deserialize, ToSchema)]
 #[schema(example=json!({
     "messages": [
-        chat::Message { role: "user".to_owned(), content: "What is tail recursion?".to_owned()},
+        Message { role: "user".to_owned(), content: "What is tail recursion?".to_owned()},
     ]
 }))]
 pub struct AnswerRequest {
-    messages: Vec<chat::Message>,
+    messages: Vec<Message>,
 }
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AnswerResponseChunk {
-    RelevantDoc(DocSearchDocument),
-    RelevantQuestion(String),
-    AnswerChunk(String),
+    RelevantDocuments(Vec<DocSearchDocument>),
+    RelevantQuestions(Vec<String>),
+    AnswerDelta(String),
 }
 pub struct AnswerService {
     chat: Arc<ChatService>,
@@ -56,7 +45,7 @@ impl AnswerService {
     ) -> BoxStream<'a, AnswerResponseChunk> {
         let s = stream! {
             // 1. Collect sources given query, for now we only use the last message
-            let query: &mut chat::Message = match req.messages.last_mut() {
+            let query: &mut Message = match req.messages.last_mut() {
                 Some(query) => query,
                 None => {
                     warn!("No query found in the request");
@@ -66,7 +55,7 @@ impl AnswerService {
 
             // 2. Generate relevant docs from the query
             // For now we only collect from DocSearch.
-            let docs = match self.doc.search(&query.content, 20, 0).await {
+            let serp = match self.doc.search(&query.content, 20, 0).await {
                 Ok(docs) => docs,
                 Err(err) => {
                     warn!("Failed to search docs: {:?}", err);
@@ -74,18 +63,14 @@ impl AnswerService {
                 }
             };
 
-            for hit in &docs.hits {
-                yield AnswerResponseChunk::RelevantDoc(hit.doc.clone());
-            }
+            yield AnswerResponseChunk::RelevantDocuments(serp.hits.iter().map(|hit| hit.doc.clone()).collect());
 
             // 3. Generate relevant answers from the query
-            let snippets = docs.hits.iter().map(|hit| hit.doc.snippet.as_str()).collect::<Vec<_>>();
-            for await question in self.generate_relevant_questions(&snippets, &query.content).await {
-                yield AnswerResponseChunk::RelevantQuestion(question);
-            }
+            let snippets = serp.hits.iter().map(|hit| hit.doc.snippet.as_str()).collect::<Vec<_>>();
+            yield AnswerResponseChunk::RelevantQuestions(self.generate_relevant_questions(&snippets, &query.content).await);
 
             // 4. Generate override prompt from the query
-            (*query).content = self.generate_prompt(&snippets, &query.content).await;
+            query.content = self.generate_prompt(&snippets, &query.content).await;
 
             // 5. Generate answer from the query
             let s = self.chat.clone().generate(ChatCompletionRequestBuilder::default()
@@ -95,18 +80,14 @@ impl AnswerService {
                 .await;
 
             for await chunk in s {
-                yield AnswerResponseChunk::AnswerChunk(chunk.choices[0].delta.content.clone());
+                yield AnswerResponseChunk::AnswerDelta(chunk.choices[0].delta.content.clone());
             }
         };
 
         Box::pin(s)
     }
 
-    async fn generate_relevant_questions(
-        &self,
-        snippets: &[&str],
-        question: &str,
-    ) -> BoxStream<String> {
+    async fn generate_relevant_questions(&self, snippets: &[&str], question: &str) -> Vec<String> {
         let context = snippets.join("\n");
         let prompt = format!(
             r#"
@@ -123,7 +104,7 @@ Remember, based on the original question and related contexts, suggest three suc
         );
 
         let request = ChatCompletionRequestBuilder::default()
-            .messages(vec![chat::Message {
+            .messages(vec![Message {
                 role: "user".to_owned(),
                 content: prompt,
             }])
@@ -133,25 +114,20 @@ Remember, based on the original question and related contexts, suggest three suc
         let chat = self.chat.clone();
         let s = chat.generate(request).await;
 
-        let s = stream! {
-            let mut content = String::default();
-            for await chunk in s {
-                content += &chunk.choices[0].delta.content;
-            }
+        let mut content = String::default();
+        s.for_each(|chunk| {
+            content += &chunk.choices[0].delta.content;
+            futures::future::ready(())
+        })
+        .await;
 
-            for line in content.lines() {
-                yield remove_bullet_prefix(line).to_owned();
-            }
-        };
-
-        Box::pin(s)
+        content
+            .lines()
+            .map(|line| remove_bullet_prefix(line))
+            .collect()
     }
 
-    async fn generate_prompt(
-        &self,
-        snippets: &[&str],
-        question: &str,
-    ) -> String {
+    async fn generate_prompt(&self, snippets: &[&str], question: &str) -> String {
         let citations: Vec<String> = snippets
             .iter()
             .enumerate()
@@ -185,9 +161,6 @@ fn remove_bullet_prefix(s: &str) -> String {
         .to_owned()
 }
 
-pub fn create(
-    chat: Arc<ChatService>,
-    doc: Arc<dyn DocSearch>,
-) -> AnswerService {
+pub fn create(chat: Arc<ChatService>, doc: Arc<dyn DocSearch>) -> AnswerService {
     AnswerService::new(chat, doc)
 }

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_stream::stream;
+use derive_builder::Builder;
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 use tabby_common::api::{
@@ -11,7 +12,6 @@ use tabby_inference::{ChatCompletionOptionsBuilder, ChatCompletionStream};
 use tracing::warn;
 use utoipa::ToSchema;
 use uuid::Uuid;
-use derive_builder::Builder;
 
 use super::model;
 use crate::Device;
