@@ -21,6 +21,7 @@ tracing.workspace = true
 async-trait.workspace = true
 tokio = { workspace = true, features = ["process"] }
 anyhow.workspace = true
+which = "6"
 
 [build-dependencies]
 cmake = "0.1"

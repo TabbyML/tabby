@@ -21,10 +21,11 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::{
     routes::{self, run_app},
     services::{
-        chat,
-        chat::create_chat_service,
+        self,
+        chat::{self, create_chat_service},
         code::create_code_search,
         completion::{self, create_completion_service},
+        embedding,
         event::create_event_logger,
         health,
         model::download_model_if_needed,
@@ -49,7 +50,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "/", description = "Server"),
     ),
-    paths(routes::log_event, routes::completions, routes::chat_completions, routes::health, routes::search, routes::setting),
+    paths(routes::log_event, routes::completions, routes::chat_completions, routes::health, routes::search, routes::docsearch, routes::setting),
     components(schemas(
         api::event::LogEventRequest,
         completion::CompletionRequest,
@@ -70,6 +71,9 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         api::code::CodeSearchResponse,
         api::code::CodeSearchHit,
         api::code::CodeSearchDocument,
+        api::doc::DocSearchResponse,
+        api::doc::DocSearchHit,
+        api::doc::DocSearchDocument,
         api::server_setting::ServerSetting
     )),
     modifiers(&SecurityAddon),
@@ -85,6 +89,9 @@ pub struct ServeArgs {
     /// Model id for `/chat/completions` API endpoints.
     #[clap(long)]
     chat_model: Option<String>,
+
+    #[clap(long, hide = true)]
+    embedding_model: Option<String>,
 
     #[clap(long, default_value = "0.0.0.0")]
     host: IpAddr,
@@ -180,6 +187,10 @@ async fn load_model(args: &ServeArgs) {
             download_model_if_needed(chat_model).await
         }
     }
+
+    if let Some(embedding_model) = &args.embedding_model {
+        download_model_if_needed(embedding_model).await
+    }
 }
 
 async fn api_router(
@@ -214,6 +225,13 @@ async fn api_router(
             )
             .await,
         ))
+    } else {
+        None
+    };
+
+    let docsearch_state = if let Some(embedding_model) = &args.embedding_model {
+        let embedding = embedding::create(embedding_model, &args.device).await;
+        Some(Arc::new(services::doc::create(embedding)))
     } else {
         None
     };
@@ -303,6 +321,22 @@ async fn api_router(
             routing::get(routes::search).with_state(code),
         )
     });
+
+    if let Some(docsearch_state) = docsearch_state {
+        routers.push({
+            Router::new().route(
+                "/v1beta/docsearch",
+                routing::get(routes::docsearch).with_state(docsearch_state),
+            )
+        });
+    } else {
+        routers.push({
+            Router::new().route(
+                "/v1beta/docsearch",
+                routing::get(StatusCode::NOT_IMPLEMENTED),
+            )
+        });
+    }
 
     let server_setting_router =
         Router::new().route("/v1beta/server_setting", routing::get(routes::setting));

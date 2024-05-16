@@ -5,7 +5,7 @@ use std::{fs, path::PathBuf, sync::Arc};
 use serde::Deserialize;
 use tabby_common::registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH};
 use tabby_download::download_model;
-use tabby_inference::{ChatCompletionStream, CodeGeneration, CompletionStream};
+use tabby_inference::{ChatCompletionStream, CodeGeneration, CompletionStream, Embedding};
 use tracing::info;
 
 use crate::{fatal, Device};
@@ -27,6 +27,23 @@ pub async fn load_chat_completion(
     };
 
     Arc::new(chat::make_chat_completion(engine, chat_template))
+}
+
+pub async fn load_embedding(model_id: &str, device: &Device) -> Arc<dyn Embedding> {
+    if device == &Device::ExperimentalHttp {
+        return http_api_bindings::create_embedding(model_id);
+    }
+
+    if fs::metadata(model_id).is_ok() {
+        let path = PathBuf::from(model_id);
+        let model_path = path.join(GGML_MODEL_RELATIVE_PATH);
+        create_ggml_embedding_engine(model_path.display().to_string().as_str()).await
+    } else {
+        let (registry, name) = parse_model_id(model_id);
+        let registry = ModelRegistry::new(registry).await;
+        let model_path = registry.get_model_path(name).display().to_string();
+        create_ggml_embedding_engine(&model_path).await
+    }
 }
 
 pub async fn load_code_generation(
@@ -99,8 +116,19 @@ async fn create_ggml_engine(
     model_path: &str,
     parallelism: u8,
 ) -> Arc<dyn CompletionStream> {
-    let server =
-        llama_cpp_server::LlamaCppServer::new(device != &Device::Cpu, model_path, parallelism);
+    let server = llama_cpp_server::LlamaCppServer::new(
+        device != &Device::Cpu,
+        false,
+        model_path,
+        parallelism,
+    );
+    server.start().await;
+    Arc::new(server)
+}
+
+async fn create_ggml_embedding_engine(model_path: &str) -> Arc<dyn Embedding> {
+    // By default, embedding always use CPU device with 1 parallelism.
+    let server = llama_cpp_server::LlamaCppServer::new(false, true, model_path, 1);
     server.start().await;
     Arc::new(server)
 }

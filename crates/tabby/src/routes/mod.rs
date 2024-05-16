@@ -91,6 +91,7 @@ mod server_setting;
 
 pub use chat::*;
 pub use completions::*;
+pub use docsearch::*;
 pub use events::*;
 pub use health::*;
 pub use search::*;
