@@ -6,14 +6,14 @@ members = [
     "crates/tabby-scheduler",
     "crates/tabby-download",
     "crates/tabby-inference",
-    "crates/llama-cpp-bindings",
+    "crates/llama-cpp-server",
     "crates/http-api-bindings",
     "crates/aim-downloader",
     "ee/tabby-webserver",
     "ee/tabby-db",
     "ee/tabby-db-macros",
     "ee/tabby-search",
-    "ee/tabby-schema", "crates/llama-cpp-server",
+    "ee/tabby-schema",
 ]
 
 [workspace.package]
