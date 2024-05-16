@@ -15,19 +15,8 @@ use super::intelligence::{CodeIntelligence, SourceCode};
 const SOURCE_FILE_BUCKET_KEY: &str = "source_files";
 const INDEX_BUCKET_KEY: &str = "indexed_files";
 
-fn cmd_stdout(cmd: &str, args: &[&str]) -> Result<String> {
-    Ok(
-        String::from_utf8(Command::new(cmd).args(args).output()?.stdout)?
-            .trim()
-            .to_string(),
-    )
-}
-
 fn get_git_hash(path: &Path) -> Result<String> {
-    let sha256 = git2::Oid::hash_file(git2::ObjectType::Any, path).expect("Failed to hash file");
-    let cmd_output = cmd_stdout("git", &["hash-object", &path.display().to_string()]).expect("Failed to get git hash");
-    assert_eq!(cmd_output, sha256.to_string());
-    Ok(cmd_output)
+    Ok(git2::Oid::hash_file(git2::ObjectType::Blob, path)?.to_string())
 }
 
 #[derive(Deserialize, Serialize, Debug)]

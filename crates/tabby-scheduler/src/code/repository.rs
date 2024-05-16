@@ -70,7 +70,7 @@ fn get_last_repository_sync_time(path: &Path) -> std::time::SystemTime {
         touch(&filepath);
     }
 
-    fs::metadata(get_last_repository_sync_filepath(&filepath))
+    fs::metadata(&filepath)
         .expect("Failed to read metadata")
         .modified()
         .expect("Failed to read modified")
