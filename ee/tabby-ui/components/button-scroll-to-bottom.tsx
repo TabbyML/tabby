@@ -13,7 +13,7 @@ export function ButtonScrollToBottom({
   offset,
   ...props
 }: ButtonProps & {
-  container?: HTMLDivElement,
+  container?: HTMLDivElement
   offset?: number
 }) {
   const isAtBottom = useAtBottom(offset || 0, container)
