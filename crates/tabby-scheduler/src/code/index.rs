@@ -66,7 +66,7 @@ fn add_changed_documents(cache: &mut CacheStore, repository: &RepositoryConfig, 
             }
         };
 
-        for body in intelligence.chunks(&text) {
+        for (start_line, body) in intelligence.chunks(&text) {
             writer
                 .add_document(CodeSearchDocument {
                     filepath: source_file.filepath.clone(),
@@ -74,6 +74,7 @@ fn add_changed_documents(cache: &mut CacheStore, repository: &RepositoryConfig, 
                     language: source_file.language.clone(),
                     file_id: file_id.clone(),
                     body: body.to_owned(),
+                    start_line,
                 })
                 .expect("Failed to add document");
         }
