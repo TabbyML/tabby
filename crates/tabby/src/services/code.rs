@@ -14,8 +14,7 @@ use tabby_common::{
 };
 use tantivy::{
     collector::{Count, TopDocs},
-    query::{BooleanQuery, QueryParser},
-    query_grammar::Occur,
+    query::{QueryParser},
     Index, IndexReader,
 };
 use tokio::{sync::Mutex, time::sleep};
