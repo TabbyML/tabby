@@ -13,10 +13,7 @@ use tantivy::{
     schema::{self, Value},
     Index, IndexReader, TantivyDocument,
 };
-use tokio::{
-    sync::{Mutex, RwLock},
-    time::sleep,
-};
+use tokio::{sync::RwLock, time::sleep};
 use tracing::{debug, warn};
 
 struct DocSearchImpl {

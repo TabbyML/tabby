@@ -1,5 +1,3 @@
-use std::env;
-
 use async_stream::stream;
 use futures::StreamExt;
 use llama_cpp_server::create_embedding;
