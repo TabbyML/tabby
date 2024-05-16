@@ -16,6 +16,20 @@ export function ButtonScrollToBottom({
 }) {
   const isAtBottom = useAtBottom(0, container)
 
+  const onButtonClick = () => {
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
+      })
+    } else {
+      window.scrollTo({
+        top: document.body.offsetHeight,
+        behavior: 'smooth'
+      })
+    }
+  }
+
   return (
     <Button
       variant="outline"
@@ -25,12 +39,7 @@ export function ButtonScrollToBottom({
         isAtBottom ? 'opacity-0' : 'opacity-100',
         className
       )}
-      onClick={() =>
-        window.scrollTo({
-          top: document.body.offsetHeight,
-          behavior: 'smooth'
-        })
-      }
+      onClick={onButtonClick}
       {...props}
     >
       <IconArrowDown />
