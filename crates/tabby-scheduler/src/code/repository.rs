@@ -9,7 +9,6 @@ use tracing::{debug, warn};
 
 trait RepositoryExt {
     fn sync(&self);
-    fn last_sync(&self) -> PathBuf;
 }
 
 impl RepositoryExt for RepositoryConfig {
@@ -48,13 +47,6 @@ impl RepositoryExt for RepositoryConfig {
             debug!("Repository `{}` is up to date", dir.display());
             touch(&get_last_repository_sync_filepath(&self.dir()));
         }
-    }
-
-    fn last_sync(&self) -> PathBuf {
-        self.dir()
-            .join(".git")
-            .join("tabby")
-            .join("last_repository_sync")
     }
 }
 
