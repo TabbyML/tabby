@@ -1,4 +1,31 @@
+## 1.6.0
+
+**pre-release**
+
+### Features
+
+- Added support for multiple choices in inline completion.
+- Introduced an experimental feature to generate commit messages.
+
+### Fixes & Improvements
+
+- Improved logging in the VSCode Output channel.
+
+## 1.5.4
+
+### Fixes
+
+- Fixed settings title on the VSCode settings page.
+
+## 1.5.3
+
+**stable**
+
+Stable release for 1.5.2.
+
 ## 1.5.2
+
+**pre-release**
 
 ### Fixes
 
