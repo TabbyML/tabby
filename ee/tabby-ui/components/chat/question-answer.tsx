@@ -240,12 +240,12 @@ function ErrorMessageBlock({ error = 'Fail to fetch' }: { error?: string }) {
   }, [error])
   return (
     <MemoizedReactMarkdown
-      className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0 text-sm"
+      className="prose break-words text-sm dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
       remarkPlugins={[remarkGfm, remarkMath]}
       components={{
         code({ node, inline, className, children, ...props }) {
           return (
-            <div {...props} className={cn(className, 'p-2 bg-zinc-950')}>
+            <div {...props} className={cn(className, 'bg-zinc-950 p-2')}>
               {children}
             </div>
           )
