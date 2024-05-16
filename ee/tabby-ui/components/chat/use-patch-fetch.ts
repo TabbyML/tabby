@@ -42,7 +42,7 @@ export function usePatchFetch({ api, fetcher }: PatchFetchOptions) {
         window._originFetch = undefined
       }
     }
-  }, [])
+  }, [api])
 }
 
 export function mergeMessagesByRole(body: BodyInit | null | undefined) {

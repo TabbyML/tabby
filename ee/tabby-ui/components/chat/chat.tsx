@@ -192,27 +192,30 @@ function ChatRenderer(
   }
 
   React.useEffect(() => {
-    if (!isLoading || !qaPairs?.length) return
+    if (!isLoading || !qaPairs?.length || !messages?.length) return
 
-    const loadingMessage = messages[messages.length - 1]
-    if (loadingMessage?.role === 'assistant') {
+    const lastQaPairs = qaPairs[qaPairs.length - 1]
+    const lastMessage = messages[messages.length - 1]
+    const isAssistantMessageStreaming =
+      lastMessage?.role === 'assistant' &&
+      messages[messages.length - 2]?.id === lastQaPairs.user.id
+    if (isAssistantMessageStreaming) {
       setQaPairs(prev => {
         const assisatntMessage = prev[prev.length - 1].assistant
         const nextAssistantMessage: AssistantMessage = {
           ...assisatntMessage,
-          id: assisatntMessage?.id || loadingMessage.id,
-          message: loadingMessage.content,
+          id: assisatntMessage?.id || lastMessage.id,
+          message: lastMessage.content,
           error: undefined
         }
         // merge assistantMessage
-        const newQaPairs = [...prev]
-        const loadingQaPairs = newQaPairs[qaPairs.length - 1]
-
-        newQaPairs[qaPairs.length - 1] = {
-          ...loadingQaPairs,
-          assistant: nextAssistantMessage
-        }
-        return newQaPairs
+        return [
+          ...prev.slice(0, prev.length - 1),
+          {
+            ...lastQaPairs,
+            assistant: nextAssistantMessage
+          }
+        ]
       })
     }
   }, [messages, isLoading])
@@ -250,7 +253,8 @@ function ChatRenderer(
         // For placeholder, and it also conveniently handles streaming responses and displays reference context.
         assistant: {
           id: nanoid(),
-          message: ''
+          message: '',
+          error: undefined
         }
       }
     ])
