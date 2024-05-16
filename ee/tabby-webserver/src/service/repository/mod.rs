@@ -140,8 +140,6 @@ impl RepositoryService for RepositoryServiceImpl {
 #[cfg(test)]
 mod tests {
     use tabby_db::DbConn;
-    use tokio::sync::mpsc::WeakUnboundedSender;
-    use tracing::instrument::WithSubscriber;
 
     use super::*;
 

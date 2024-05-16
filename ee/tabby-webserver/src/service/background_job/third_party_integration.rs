@@ -8,15 +8,11 @@ use apalis::{
 use chrono::{DateTime, Utc};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
-use strum::IntoEnumIterator;
 use tabby_db::DbConn;
-use tabby_schema::{
-    integration::{IntegrationKind, IntegrationService},
-    repository::ThirdPartyRepositoryService,
-};
+use tabby_schema::{integration::IntegrationService, repository::ThirdPartyRepositoryService};
 use tracing::debug;
 
-use super::{helper::BasicJob, helper::CronJob, scheduler::SchedulerJob};
+use super::{helper::BasicJob, helper::CronJob};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ThirdPartyRepositorySyncJob {
