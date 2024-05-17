@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 
 use anyhow::{bail, Context};
 use axum::{
@@ -34,7 +34,7 @@ fn resolve<'a>(
     match object.kind() {
         Some(git2::ObjectType::Blob) => {
             let filter = repository.get_attr(
-                &relpath,
+                relpath,
                 "filter",
                 AttrCheckFlags::INDEX_ONLY | AttrCheckFlags::NO_SYSTEM,
             )?;
@@ -46,7 +46,7 @@ fn resolve<'a>(
                     blob.clone(),
                 ))
             } else {
-                let mime = mime_guess::from_path(&relpath).first_or_octet_stream();
+                let mime = mime_guess::from_path(relpath).first_or_octet_stream();
                 Ok(Resolve::File(mime, blob.clone()))
             }
         }
