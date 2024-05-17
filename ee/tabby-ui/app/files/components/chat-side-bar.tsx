@@ -3,6 +3,7 @@ import type { Context } from 'tabby-chat-panel'
 import { useClient } from 'tabby-chat-panel/react'
 
 import { useMe } from '@/lib/hooks/use-me'
+import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useStore } from '@/lib/hooks/use-store'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { UserMessage } from '@/lib/types'
@@ -20,6 +21,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   className,
   ...props
 }) => {
+  const { updateSearchParams } = useRouterStuff()
   const [{ data }] = useMe()
   const { pendingEvent, setPendingEvent } = React.useContext(
     SourceCodeBrowserContext
@@ -28,7 +30,15 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
   const client = useClient(iframeRef, {
     navigate: (context: Context) => {
-      console.log('todo: ', context)
+      if (context?.filepath) {
+        updateSearchParams({
+          set: {
+            path: context.filepath,
+            line: String(context.range.start ?? '')
+          },
+          del: 'plain'
+        })
+      }
     }
   })
 
@@ -55,7 +65,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     const contentWindow = iframeRef.current?.contentWindow
 
     if (pendingEvent) {
-      const { lineFrom, lineTo, language, code, path } = pendingEvent
+      const { lineFrom, lineTo, code, path } = pendingEvent
       contentWindow?.postMessage({
         action: 'sendUserChat',
         payload: {
