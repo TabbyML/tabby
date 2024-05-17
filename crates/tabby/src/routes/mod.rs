@@ -84,17 +84,13 @@ impl Header for MaybeUser {
 mod answer;
 mod chat;
 mod completions;
-mod docsearch;
 mod events;
 mod health;
-mod search;
 mod server_setting;
 
 pub use answer::*;
 pub use chat::*;
 pub use completions::*;
-pub use docsearch::*;
 pub use events::*;
 pub use health::*;
-pub use search::*;
 pub use server_setting::*;

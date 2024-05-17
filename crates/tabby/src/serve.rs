@@ -49,7 +49,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "/", description = "Server"),
     ),
-    paths(routes::log_event, routes::completions, routes::chat_completions, routes::health, routes::search, routes::docsearch, routes::answer, routes::setting),
+    paths(routes::log_event, routes::completions, routes::chat_completions, routes::health, routes::answer, routes::setting),
     components(schemas(
         api::event::LogEventRequest,
         completion::CompletionRequest,
@@ -67,11 +67,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,
-        api::code::CodeSearchResponse,
-        api::code::CodeSearchHit,
         api::code::CodeSearchDocument,
-        api::doc::DocSearchResponse,
-        api::doc::DocSearchHit,
         api::doc::DocSearchDocument,
         answer::AnswerRequest,
         answer::AnswerResponseChunk,
@@ -299,29 +295,6 @@ async fn api_router(
             Router::new().route(
                 "/v1beta/chat/completions",
                 routing::post(StatusCode::NOT_IMPLEMENTED),
-            )
-        });
-    }
-
-    routers.push({
-        Router::new().route(
-            "/v1beta/search",
-            routing::get(routes::search).with_state(code),
-        )
-    });
-
-    if let Some(docsearch_state) = docsearch_state {
-        routers.push({
-            Router::new().route(
-                "/v1beta/docsearch",
-                routing::get(routes::docsearch).with_state(docsearch_state),
-            )
-        });
-    } else {
-        routers.push({
-            Router::new().route(
-                "/v1beta/docsearch",
-                routing::get(StatusCode::NOT_IMPLEMENTED),
             )
         });
     }
