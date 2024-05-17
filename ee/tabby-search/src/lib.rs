@@ -29,6 +29,17 @@ impl GitReadOnly {
         let repository = git2::Repository::open(root).map_err(|_| StatusCode::NOT_FOUND)?;
         serve_git::serve(&repository, commit, path)
     }
+
+    pub fn list_references(root: &Path) -> anyhow::Result<Vec<String>> {
+        let repository = git2::Repository::open(root)?;
+        let mut refs = Vec::new();
+        for reference in repository.references()? {
+            let reference = reference?;
+            let name = reference.name().unwrap();
+            refs.push(name.to_string());
+        }
+        Ok(refs)
+    }
 }
 
 #[cfg(test)]
@@ -64,5 +75,20 @@ mod testutils {
 
             Self { tempdir }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_list_refs() {
+        let root = testutils::TempGitRepository::default();
+        let refs = GitReadOnly::list_references(root.repository().workdir().unwrap()).unwrap();
+        assert_eq!(refs.len(), 3);
+        assert_eq!(refs[0], "refs/heads/main");
+        assert_eq!(refs[1], "refs/remotes/origin/HEAD");
+        assert_eq!(refs[3], "refs/remotes/origin/main");
     }
 }
