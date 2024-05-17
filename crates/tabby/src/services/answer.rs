@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 use tabby_common::{
     api::{
         chat::Message,
-        code::{CodeSearch, CodeSearchDocument},
-        doc::{DocSearch, DocSearchDocument},
+        code::{CodeSearch, CodeSearchDocument, CodeSearchError},
+        doc::{DocSearch, DocSearchDocument, DocSearchError},
     },
     index::CodeSearchSchema,
 };
@@ -136,7 +136,11 @@ impl AnswerService {
         {
             Ok(resp) => resp.hits.into_iter().map(|hit| hit.doc).collect(),
             Err(err) => {
-                warn!("Failed to search code: {:?}", err);
+                if let CodeSearchError::NotReady = err {
+                    warn!("Failed to search code: {:?}", err);
+                } else {
+                    debug!("Code search is not ready yet");
+                }
                 vec![]
             }
         }
@@ -147,7 +151,11 @@ impl AnswerService {
         let mut hits = match self.doc.search(query, 5, 0).await {
             Ok(docs) => docs.hits,
             Err(err) => {
-                warn!("Failed to search tantivy docs: {:?}", err);
+                if let DocSearchError::NotReady = err {
+                    debug!("Doc search is not ready yet");
+                } else {
+                    warn!("Failed to search doc: {:?}", err);
+                }
                 vec![]
             }
         };
