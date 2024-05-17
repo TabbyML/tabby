@@ -23,6 +23,7 @@ pub struct IntegrationAccessToken {
     pub display_name: String,
     pub access_token: String,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub synced_at: DateTime<Utc>,
     pub status: IntegrationStatus,
 }

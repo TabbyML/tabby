@@ -12,6 +12,7 @@ pub struct IntegrationAccessTokenDAO {
     pub display_name: String,
     pub access_token: String,
     pub created_at: DateTimeUtc,
+    pub updated_at: DateTimeUtc,
     pub synced_at: DateTimeUtc,
 }
 
@@ -42,8 +43,9 @@ impl DbConn {
                 error,
                 display_name,
                 access_token,
-                created_at AS "created_at: DateTimeUtc",
-                synced_at AS "synced_at: DateTimeUtc"
+                updated_at,
+                created_at,
+                synced_at
             FROM integration_access_tokens WHERE id = ?;"#,
             id
         )
@@ -79,7 +81,7 @@ impl DbConn {
         };
 
         let res = query!(
-            "UPDATE integration_access_tokens SET display_name = ?, access_token=? WHERE id = ? AND kind = ?;",
+            "UPDATE integration_access_tokens SET display_name = ?, access_token = ?, updated_at = DATETIME('now') WHERE id = ? AND kind = ?;",
             display_name,
             access_token,
             id,
@@ -146,8 +148,9 @@ impl DbConn {
                 "error",
                 "display_name",
                 "access_token",
-                "created_at" as "created_at: DateTimeUtc",
-                "synced_at" as "synced_at: DateTimeUtc"
+                "created_at",
+                "updated_at",
+                "synced_at"
             ],
             limit,
             skip_id,

@@ -5,6 +5,7 @@ CREATE TABLE integration_access_tokens(
     access_token TEXT NOT NULL,
     error TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
+    updated_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
     synced_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now'))
 );
 
