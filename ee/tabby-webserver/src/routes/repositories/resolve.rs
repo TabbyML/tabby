@@ -4,7 +4,7 @@ use anyhow::Result;
 use axum::{body::Body, response::Response};
 use hyper::StatusCode;
 use juniper::ID;
-use serde::{Deserialize};
+use serde::Deserialize;
 use tabby_schema::repository::{RepositoryKind, RepositoryService};
 use tabby_search::ServeGit;
 use tracing::warn;

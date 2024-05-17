@@ -4,7 +4,7 @@ use anyhow::{bail, Context};
 use axum::{
     body::Body,
     http::{header, StatusCode},
-    response::{IntoResponse, Response},
+    response::{Response},
 };
 use git2::Blob;
 use serde::Serialize;
@@ -131,10 +131,10 @@ pub struct DirEntry {
 
 #[cfg(test)]
 mod tests {
-    use crate::testutils::TempGitRepository;
     use assert_matches::assert_matches;
 
     use super::*;
+    use crate::testutils::TempGitRepository;
 
     #[test]
     fn test_resolve() {
@@ -155,6 +155,9 @@ mod tests {
 
         assert_matches!(serve_git.serve(None, None), Ok(_));
         assert_matches!(serve_git.serve(None, Some("README.md")), Ok(_));
-        assert_matches!(serve_git.serve(None, Some("NotExists")), Err(StatusCode::NOT_FOUND));
+        assert_matches!(
+            serve_git.serve(None, Some("NotExists")),
+            Err(StatusCode::NOT_FOUND)
+        );
     }
 }
