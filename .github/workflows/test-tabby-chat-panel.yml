@@ -5,7 +5,7 @@ on:
     branches: [ main ]
     paths:
       - '.github/workflows/test-tabby-ui.yml'
-      - 'ee/tabby-ui/**'
+      - 'clients/taby-chat-panel/**'
 
 concurrency:
   group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
@@ -26,15 +26,12 @@ jobs:
           cache: yarn
           cache-dependency-path: 'yarn.lock'
       - name: Install dependencies
-        working-directory: ./ee/tabby-ui
+        working-directory: ./clients/tabby-chat-panel
         run: yarn install
-      - name: Format
-        working-directory: ./ee/tabby-ui
-        run: yarn format:check
-      - name: Lint
-        working-directory: ./ee/tabby-ui
+      - name: Lint 
+        working-directory: ./clients/tabby-chat-panel
         run: yarn lint
       - name: Test build
-        working-directory: ./ee/tabby-ui
+        working-directory: ./clients/tabby-chat-panel
         run: yarn build
       
