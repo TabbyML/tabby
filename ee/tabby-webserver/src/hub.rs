@@ -55,12 +55,8 @@ fn build_client_request(addr: &str, token: &str, request: ConnectHubRequest) -> 
 #[derive(Clone)]
 pub struct WorkerClient(HubClient);
 
-pub async fn create_worker_client(
-    addr: &str,
-    token: &str,
-    request: RegisterWorkerRequest,
-) -> WorkerClient {
-    let request = build_client_request(addr, token, ConnectHubRequest::Worker(request));
+pub async fn create_worker_client(addr: &str, token: &str) -> WorkerClient {
+    let request = build_client_request(addr, token, ConnectHubRequest);
     let (socket, _) = connect_async(request).await.unwrap();
     WorkerClient(HubClient::new(Default::default(), WebSocketTransport::from(socket)).spawn())
 }
@@ -118,38 +114,7 @@ impl CodeSearch for WorkerClient {
 }
 
 #[derive(Serialize, Deserialize)]
-pub enum ConnectHubRequest {
-    Worker(RegisterWorkerRequest),
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct RegisterWorkerRequest {
-    pub kind: WorkerKind,
-    pub name: String,
-    pub device: String,
-    pub arch: String,
-    pub cpu_info: String,
-    pub cpu_count: i32,
-    pub cuda_devices: Vec<String>,
-    pub port: u16,
-}
-
-impl RegisterWorkerRequest {
-    pub fn create_worker(self, addr: IpAddr) -> Worker {
-        let port = self.port;
-        let addr = format!("http://{addr}:{port}");
-        Worker {
-            name: self.name,
-            kind: self.kind,
-            addr,
-            device: self.device,
-            arch: self.arch,
-            cpu_info: self.cpu_info,
-            cpu_count: self.cpu_count,
-            cuda_devices: self.cuda_devices,
-        }
-    }
-}
+pub struct ConnectHubRequest;
 
 pub static CLIENT_REQUEST_HEADER: HeaderName = HeaderName::from_static("x-tabby-client-request");
 

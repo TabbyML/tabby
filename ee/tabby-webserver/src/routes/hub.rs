@@ -62,47 +62,22 @@ pub(crate) async fn ws_handler(
 async fn handle_socket(
     state: Arc<HubState>,
     socket: WebSocket,
-    addr: IpAddr,
-    req: ConnectHubRequest,
+    _addr: IpAddr,
+    _req: ConnectHubRequest,
 ) {
     let transport = WebSocketTransport::from(socket);
     let server = BaseChannel::with_defaults(transport);
-    let addr = match req {
-        ConnectHubRequest::Worker(worker) => {
-            let worker = worker.create_worker(addr);
-            let addr = worker.addr.clone();
-            match state.locator.worker().register(worker).await {
-                Ok(_) => Some(addr),
-                Err(err) => {
-                    warn!("Failed to register worker: {}", err);
-                    return;
-                }
-            }
-        }
-    };
-    let imp = Arc::new(HubImpl::new(state.locator.clone(), addr));
+    let imp = Arc::new(HubImpl::new(state.locator.clone()));
     tokio::spawn(server.execute(imp.serve())).await.unwrap()
 }
 
 struct HubImpl {
     ctx: Arc<dyn ServiceLocator>,
-    worker_addr: Option<String>,
 }
 
 impl HubImpl {
-    fn new(ctx: Arc<dyn ServiceLocator>, worker_addr: Option<String>) -> Self {
-        Self { ctx, worker_addr }
-    }
-}
-
-impl Drop for HubImpl {
-    fn drop(&mut self) {
-        let ctx = self.ctx.clone();
-        if let Some(worker_addr) = self.worker_addr.clone() {
-            tokio::spawn(async move {
-                ctx.worker().unregister(worker_addr.as_str()).await;
-            });
-        }
+    fn new(ctx: Arc<dyn ServiceLocator>) -> Self {
+        Self { ctx }
     }
 }
 

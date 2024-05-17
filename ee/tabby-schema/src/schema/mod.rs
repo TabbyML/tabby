@@ -25,7 +25,7 @@ use juniper::{
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use tracing::error;
 use validator::{Validate, ValidationErrors};
-use worker::{Worker, WorkerService};
+use worker::{WorkerService};
 
 use self::{
     analytic::{AnalyticService, CompletionStats, DiskUsageStats},
@@ -146,12 +146,6 @@ pub struct Query;
 
 #[graphql_object(context = Context)]
 impl Query {
-    async fn workers(ctx: &Context) -> Result<Vec<Worker>> {
-        check_admin(ctx).await?;
-        let workers = ctx.locator.worker().list().await;
-        Ok(workers)
-    }
-
     async fn registration_token(ctx: &Context) -> Result<String> {
         check_admin(ctx).await?;
         ctx.locator.worker().read_registration_token().await
