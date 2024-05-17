@@ -29,6 +29,7 @@ export type UserMessageWithOptionalId = Omit<UserMessage, 'id'> & {
 export interface AssistantMessage {
   id: string
   message: string
+  error?: string
 }
 
 export interface QuestionAnswerPair {

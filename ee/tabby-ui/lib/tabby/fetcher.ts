@@ -19,7 +19,6 @@ export default async function authEnhancedFetch(
   options?: FetcherOptions
 ): Promise<any> {
   const currentFetcher = options?.customFetch ?? window.fetch
-
   if (willAuthError(url)) {
     return tokenManager.refreshToken(doRefreshToken).then(res => {
       return requestWithAuth(url, options)

@@ -1,7 +1,7 @@
 import React from 'react'
-import { useChat, type Message, type UseChatHelpers } from 'ai/react'
+import { Message } from 'ai'
+import { useChat, type UseChatHelpers } from 'ai/react'
 import { findIndex, omit } from 'lodash-es'
-import { toast } from 'sonner'
 
 import {
   AssistantMessage,
@@ -18,6 +18,7 @@ import { ChatPanel } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
+import { usePatchFetch } from './use-patch-fetch'
 
 type ChatContextValue = {
   isLoading: boolean
@@ -64,7 +65,7 @@ function userMessageToMessage(userMessage: UserMessage): Message {
 function fileContextToMessageContent(context: FileContext | undefined): string {
   if (!context) return ''
   const { content, language } = context
-  return `\n${'```'}${language ?? ''} is_reference=1 \n${content}\n${'```'}\n`
+  return `\n${'```'}${language ?? ''} is_reference=1\n ${content} \n${'```'}\n`
 }
 
 export interface ChatRef extends Omit<UseChatHelpers, 'append' | 'messages'> {
@@ -76,6 +77,7 @@ export interface ChatRef extends Omit<UseChatHelpers, 'append' | 'messages'> {
 interface ChatProps extends React.ComponentProps<'div'> {
   chatId: string
   api?: string
+  fetcher?: typeof fetch
   headers?: Record<string, string> | Headers
   initialMessages?: QuestionAnswerPair[]
   onLoaded?: () => void
@@ -90,14 +92,16 @@ function ChatRenderer(
     chatId,
     initialMessages,
     headers,
-    api,
+    api = '/v1/chat/completions',
     onLoaded,
     onThreadUpdates,
     onNavigateToContext,
-    container
+    container,
+    fetcher
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
+  usePatchFetch({ api, fetcher })
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
   const loaded = React.useRef(false)
   const transformedInitialMessages = React.useMemo(() => {
@@ -107,20 +111,22 @@ function ChatRenderer(
   const useChatHelpers = useChat({
     initialMessages: transformedInitialMessages,
     id: chatId,
-    api,
     headers,
     body: {
       id: chatId
-    },
-    onResponse(response) {
-      if (response.status === 401) {
-        toast.error(response.statusText)
-      }
     }
   })
 
-  const { messages, append, stop, isLoading, input, setInput, setMessages } =
-    useChatHelpers
+  const {
+    messages,
+    append,
+    stop,
+    isLoading,
+    input,
+    setInput,
+    setMessages,
+    error
+  } = useChatHelpers
 
   const onDeleteMessage = async (userMessageId: string) => {
     // Stop generating first.
@@ -144,7 +150,9 @@ function ChatRenderer(
             ...qaPair.assistant,
             id: qaPair.assistant?.id || nanoid(),
             // clear assistant message
-            message: ''
+            message: '',
+            // clear error
+            error: undefined
           }
         }
       ]
@@ -184,28 +192,53 @@ function ChatRenderer(
   }
 
   React.useEffect(() => {
-    if (!isLoading || !qaPairs?.length) return
+    if (!isLoading || !qaPairs?.length || !messages?.length) return
 
-    const loadingMessage = messages[messages.length - 1]
-    if (loadingMessage?.role === 'assistant') {
-      const assisatntMessage = qaPairs[qaPairs.length - 1].assistant
-      const nextAssistantMessage: AssistantMessage = {
-        ...assisatntMessage,
-        id: assisatntMessage?.id || loadingMessage.id,
-        message: loadingMessage.content
-      }
-
-      // merge assistantMessage
-      const newQaPairs = [...qaPairs]
-      const loadingQaPairs = newQaPairs[qaPairs.length - 1]
-
-      newQaPairs[qaPairs.length - 1] = {
-        ...loadingQaPairs,
-        assistant: nextAssistantMessage
-      }
-      setQaPairs(newQaPairs)
+    const lastQaPairs = qaPairs[qaPairs.length - 1]
+    const lastMessage = messages[messages.length - 1]
+    const isAssistantMessageStreaming =
+      lastMessage?.role === 'assistant' &&
+      messages[messages.length - 2]?.id === lastQaPairs.user.id
+    if (isAssistantMessageStreaming) {
+      setQaPairs(prev => {
+        const assisatntMessage = prev[prev.length - 1].assistant
+        const nextAssistantMessage: AssistantMessage = {
+          ...assisatntMessage,
+          id: assisatntMessage?.id || lastMessage.id,
+          message: lastMessage.content,
+          error: undefined
+        }
+        // merge assistantMessage
+        return [
+          ...prev.slice(0, prev.length - 1),
+          {
+            ...lastQaPairs,
+            assistant: nextAssistantMessage
+          }
+        ]
+      })
     }
   }, [messages, isLoading])
+
+  React.useEffect(() => {
+    if (error && qaPairs?.length) {
+      setQaPairs(prev => {
+        let lastQaPairs = prev[prev.length - 1]
+        return [
+          ...prev.slice(0, prev.length - 1),
+          {
+            ...lastQaPairs,
+            assistant: {
+              ...lastQaPairs.assistant,
+              id: lastQaPairs.assistant?.id || nanoid(),
+              message: lastQaPairs.assistant?.message ?? '',
+              error: error?.message === '401' ? 'Unauthorized' : 'Fail to fetch'
+            }
+          }
+        ]
+      })
+    }
+  }, [error])
 
   const sendUserChat = (userMessage: UserMessageWithOptionalId) => {
     // If no id is provided, set a fallback id.
@@ -220,7 +253,8 @@ function ChatRenderer(
         // For placeholder, and it also conveniently handles streaming responses and displays reference context.
         assistant: {
           id: nanoid(),
-          message: ''
+          message: '',
+          error: undefined
         }
       }
     ])
