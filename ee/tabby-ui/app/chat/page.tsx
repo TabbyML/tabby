@@ -12,7 +12,7 @@ export default function ChatPage() {
   const [fetcherOptions, setFetcherOptions] = useState<FetcherOptions | null>(
     null
   )
-  const [activeChatId, setActiveChatId] = useState("")
+  const [activeChatId, setActiveChatId] = useState('')
   const chatRef = useRef<ChatRef>(null)
   let messageQueueBeforeInit: ChatMessage[] = []
 
