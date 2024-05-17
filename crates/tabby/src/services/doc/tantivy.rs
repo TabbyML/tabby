@@ -106,7 +106,7 @@ fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
     doc.get_first(field).unwrap().as_str().unwrap()
 }
 
-struct DocSearchService {
+pub struct DocSearchService {
     search: Arc<RwLock<Option<DocSearchImpl>>>,
     loader: tokio::task::JoinHandle<()>,
 }
@@ -120,7 +120,7 @@ impl Drop for DocSearchService {
 }
 
 impl DocSearchService {
-    fn new(embedding: Arc<dyn Embedding>) -> Self {
+    pub fn new(embedding: Arc<dyn Embedding>) -> Self {
         let search = Arc::new(RwLock::new(None));
         let cloned_search = search.clone();
         let loader = tokio::spawn(async move {
@@ -149,8 +149,4 @@ impl DocSearch for DocSearchService {
             Err(DocSearchError::NotReady)
         }
     }
-}
-
-pub fn create(embedding: Arc<dyn Embedding>) -> impl DocSearch {
-    DocSearchService::new(embedding)
 }
