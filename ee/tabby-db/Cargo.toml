@@ -21,5 +21,5 @@ uuid.workspace = true
 cached = { workspace = true, features = ["async"]}
 
 [dev-dependencies]
-assert_matches = "1.5.0"
+assert_matches.workspace = true
 tokio = { workspace = true, features = ["macros", "process"] }

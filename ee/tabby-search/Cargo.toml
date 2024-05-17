@@ -9,4 +9,11 @@ homepage.workspace = true
 anyhow.workspace = true
 git2.workspace = true
 nucleo.workspace = true
+serde.workspace = true
 temp_testdir.workspace = true
+axum.workspace = true
+serde_json.workspace = true
+mime_guess.workspace = true
+
+[dev-dependencies]
+assert_matches.workspace = true
