@@ -1,6 +1,8 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use tabby_common::api::doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse};
+use tabby_common::api::doc::{
+    DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse,
+};
 
 #[derive(Debug, Serialize)]
 struct SerperRequest {
@@ -28,7 +30,10 @@ pub struct SerperService {
 impl SerperService {
     pub fn new(api_key: &str) -> Self {
         let mut headers = reqwest::header::HeaderMap::new();
-        headers.insert("X-API-KEY", api_key.parse().expect("Failed to parse Serper API key"));
+        headers.insert(
+            "X-API-KEY",
+            api_key.parse().expect("Failed to parse Serper API key"),
+        );
         Self {
             client: reqwest::Client::builder()
                 .default_headers(headers)
@@ -47,7 +52,11 @@ impl DocSearch for SerperService {
         offset: usize,
     ) -> Result<DocSearchResponse, DocSearchError> {
         let page = offset / limit;
-        let request = SerperRequest { q: q.to_string(), num: limit, page };
+        let request = SerperRequest {
+            q: q.to_string(),
+            num: limit,
+            page,
+        };
         let response = self
             .client
             .post("https://google.serper.dev/search")

@@ -7,7 +7,6 @@ use tabby_common::api::{
     chat::Message,
     doc::{DocSearch, DocSearchDocument},
 };
-use tower_http::services;
 use tracing::{debug, warn};
 use utoipa::ToSchema;
 
