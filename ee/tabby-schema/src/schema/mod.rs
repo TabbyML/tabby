@@ -25,7 +25,7 @@ use juniper::{
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use tracing::error;
 use validator::{Validate, ValidationErrors};
-use worker::{WorkerService};
+use worker::WorkerService;
 
 use self::{
     analytic::{AnalyticService, CompletionStats, DiskUsageStats},

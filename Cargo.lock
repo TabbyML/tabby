@@ -5487,7 +5487,6 @@ dependencies = [
  "tower",
  "tower-http",
  "tracing",
- "unicase",
  "url",
  "urlencoding",
  "uuid",

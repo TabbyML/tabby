@@ -1,4 +1,4 @@
-use std::net::IpAddr;
+
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -9,8 +9,6 @@ use tabby_common::api::{
     code::{CodeSearch, CodeSearchError, CodeSearchResponse},
     event::{EventLogger, LogEntry},
 };
-use tabby_schema::worker::Worker;
-pub use tabby_schema::worker::WorkerKind;
 use tokio_tungstenite::connect_async;
 
 use crate::axum::websocket::WebSocketTransport;

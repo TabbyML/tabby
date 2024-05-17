@@ -5,11 +5,9 @@ mod email;
 pub mod event_logger;
 mod job;
 mod license;
-mod proxy;
 pub mod repository;
 mod setting;
 mod user_event;
-mod worker;
 
 use std::{net::SocketAddr, sync::Arc};
 
@@ -21,10 +19,7 @@ use axum::{
     response::IntoResponse,
 };
 use hyper::{HeaderMap, Uri};
-use hyper_util::{
-    client::legacy::{connect::HttpConnector, Client},
-    rt,
-};
+
 use juniper::ID;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
@@ -41,16 +36,15 @@ use tabby_schema::{
     repository::RepositoryService,
     setting::SettingService,
     user_event::UserEventService,
-    worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
+    worker::WorkerService,
     AsID, AsRowid, CoreError, Result, ServiceLocator,
 };
-use tracing::{info, warn};
+
 
 use self::{
     analytic::new_analytic_service, email::new_email_service, license::new_license_service,
 };
 struct ServerContext {
-    client: Client<HttpConnector, Body>,
     db_conn: DbConn,
     mail: Arc<dyn EmailService>,
     auth: Arc<dyn AuthenticationService>,
@@ -89,7 +83,6 @@ impl ServerContext {
         let job = Arc::new(job::create(db_conn.clone()).await);
         let setting = Arc::new(setting::create(db_conn.clone()));
         Self {
-            client: Client::builder(rt::TokioExecutor::new()).build(HttpConnector::new()),
             mail: mail.clone(),
             auth: Arc::new(auth::create(
                 db_conn.clone(),
@@ -181,7 +174,7 @@ impl WorkerService for ServerContext {
             );
         }
 
-        let remote_addr = request
+        let _remote_addr = request
             .extensions()
             .get::<axum::extract::ConnectInfo<SocketAddr>>()
             .map(|ci| ci.0)
