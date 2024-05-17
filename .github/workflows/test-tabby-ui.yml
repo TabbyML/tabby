@@ -38,10 +38,13 @@ jobs:
       - name: Test build
         working-directory: ./ee/tabby-ui
         run: yarn build
-      - name: Lint for the chat panel 
+      - name: Install dependencies for chat panel
+        working-directory: ./clients/tabby-chat-panel
+        run: yarn install
+      - name: Lint for chat panel 
         working-directory: ./clients/tabby-chat-panel
         run: yarn lint
-      - name: Test build for the chat panel
+      - name: Test build for chat panel
         working-directory: ./clients/tabby-chat-panel
         run: yarn build
       

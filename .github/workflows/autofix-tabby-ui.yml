@@ -44,7 +44,11 @@ jobs:
         working-directory: ./ee/tabby-ui
         run: yarn format:write
 
-      - name: Lint fix for the chat panel
+      - name: Install dependencies for chat panel
+        working-directory: ./clients/tabby-chat-panel
+        run: yarn install
+
+      - name: Lint fix for chat panel
         working-directory: ./clients/tabby-chat-panel
         run: yarn fix
 
