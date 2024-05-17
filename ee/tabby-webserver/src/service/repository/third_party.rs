@@ -8,7 +8,7 @@ use strum::IntoEnumIterator;
 use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
 use tabby_schema::{
-    integration::{IntegrationAccessToken, IntegrationKind, IntegrationService},
+    integration::{Integration, IntegrationKind, IntegrationService},
     repository::{ProvidedRepository, Repository, ThirdPartyRepositoryService},
     AsRowid, DbEnum, Result,
 };
@@ -216,7 +216,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
 async fn refresh_repositories_for_provider(
     repository: &dyn ThirdPartyRepositoryService,
     integration: &dyn IntegrationService,
-    provider: IntegrationAccessToken,
+    provider: Integration,
     repos: Vec<RepositoryInfo>,
 ) -> Result<()> {
     let start = Utc::now();
