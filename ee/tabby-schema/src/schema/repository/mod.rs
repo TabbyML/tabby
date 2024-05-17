@@ -18,7 +18,7 @@ use crate::{juniper::relay::NodeType, Context};
 
 #[derive(GraphQLObject, Debug)]
 pub struct FileEntrySearchResult {
-    pub r#type: String,
+    pub r#type: &'static str,
     pub path: String,
 
     /// matched indices for fuzzy search query.
