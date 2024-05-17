@@ -26,7 +26,7 @@ pub struct AnswerRequest {
     messages: Vec<Message>,
 
     #[serde(default)]
-    code_query: Option<CodeQuery>,
+    code_query: Option<AnswerCodeQuery>,
 
     #[serde(default)]
     doc_query: bool,
@@ -36,7 +36,7 @@ pub struct AnswerRequest {
 }
 
 #[derive(Deserialize, ToSchema)]
-pub struct CodeQuery {
+pub struct AnswerCodeQuery {
     git_url: String,
     language: String,
     content: String,
@@ -139,7 +139,7 @@ impl AnswerService {
         Box::pin(s)
     }
 
-    async fn collect_relevant_code(&self, query: &CodeQuery) -> Vec<CodeSearchDocument> {
+    async fn collect_relevant_code(&self, query: &AnswerCodeQuery) -> Vec<CodeSearchDocument> {
         let tokens = CodeSearchSchema::tokenize_body(&query.content);
         match self
             .code
