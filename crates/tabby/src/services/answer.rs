@@ -7,7 +7,8 @@ use tabby_common::api::{
     chat::Message,
     doc::{DocSearch, DocSearchDocument},
 };
-use tracing::warn;
+use tower_http::services;
+use tracing::{debug, warn};
 use utoipa::ToSchema;
 
 use crate::services::chat::{ChatCompletionRequestBuilder, ChatService};
@@ -32,11 +33,26 @@ pub enum AnswerResponseChunk {
 pub struct AnswerService {
     chat: Arc<ChatService>,
     doc: Arc<dyn DocSearch>,
+    serper: Option<Box<dyn DocSearch>>,
 }
 
 impl AnswerService {
     fn new(chat: Arc<ChatService>, doc: Arc<dyn DocSearch>) -> Self {
-        Self { chat, doc }
+        if let Ok(api_key) = std::env::var("SERPER_API_KEY") {
+            debug!("Serper API key found, enabling serper...");
+            let serper = Box::new(super::doc::create_serper(api_key.as_str()));
+            Self {
+                chat,
+                doc,
+                serper: Some(serper),
+            }
+        } else {
+            Self {
+                chat,
+                doc,
+                serper: None,
+            }
+        }
     }
 
     pub async fn answer<'a>(
@@ -55,18 +71,30 @@ impl AnswerService {
 
             // 2. Generate relevant docs from the query
             // For now we only collect from DocSearch.
-            let serp = match self.doc.search(&query.content, 20, 0).await {
-                Ok(docs) => docs,
+            let mut hits = match self.doc.search(&query.content, 5, 0).await {
+                Ok(docs) => docs.hits,
                 Err(err) => {
-                    warn!("Failed to search docs: {:?}", err);
-                    return;
+                    warn!("Failed to search tantivy docs: {:?}", err);
+                    vec![]
                 }
             };
 
-            yield AnswerResponseChunk::RelevantDocuments(serp.hits.iter().map(|hit| hit.doc.clone()).collect());
+            // If serper is available, we also collect from serper
+            if let Some(serper) = self.serper.as_ref() {
+                let serper_hits = match serper.search(&query.content, 5, 0).await {
+                    Ok(docs) => docs.hits,
+                    Err(err) => {
+                        warn!("Failed to search serper: {:?}", err);
+                        vec![]
+                    }
+                };
+                hits.extend(serper_hits);
+            }
+
+            yield AnswerResponseChunk::RelevantDocuments(hits.iter().map(|hit| hit.doc.clone()).collect());
 
             // 3. Generate relevant answers from the query
-            let snippets = serp.hits.iter().map(|hit| hit.doc.snippet.as_str()).collect::<Vec<_>>();
+            let snippets = hits.iter().map(|hit| hit.doc.snippet.as_str()).collect::<Vec<_>>();
             yield AnswerResponseChunk::RelevantQuestions(self.generate_relevant_questions(&snippets, &query.content).await);
 
             // 4. Generate override prompt from the query

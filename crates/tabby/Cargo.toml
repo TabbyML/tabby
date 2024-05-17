@@ -59,6 +59,7 @@ cached = { workspace = true, features = ["async"] }
 parse-git-url = "0.5.1"
 color-eyre = { version = "0.6.3" }
 derive_builder.workspace = true
+reqwest.workspace = true
 
 [dependencies.openssl]
 optional = true
