@@ -149,21 +149,29 @@ pub enum ModelConfig {
 
 #[derive(Serialize, Deserialize, Builder, Clone)]
 pub struct HttpModelConfig {
-    pub api_endpoint: String,
+    /// The kind of model, we have three group of models:
+    /// 1. Completion API [CompletionStream](tabby_inference::CompletionStream)
+    ///   - llama.cpp/completion: llama.cpp `/completion` API.
+    /// 2. Chat API: [ChatCompletionStream](tabby_inference::ChatCompletionStream)
+    ///   - openai-chat: OpenAI /v1/chat/completions API.
+    /// 3. Embedding API [Embedding](tabby_inference::Embedding)
+    ///   - llama.cpp/embedding: llama.cpp `/embedding` API.
     pub kind: String,
+
+    pub api_endpoint: String,
 
     #[builder(default)]
     pub api_key: Option<String>,
 
-    /// Used by chat http endpoint to select model.
+    /// Used by Chat API.
     #[builder(default)]
     pub model_name: Option<String>,
 
-    /// Used by completion http endpoint to construct FIM prompt.
+    /// Used by Completion API to construct a completion model.
     #[builder(default)]
     pub prompt_template: Option<String>,
 
-    /// Used by completion http endpoint to construct Chat prompt.
+    /// Used by Completion API to construct a chat model.
     #[builder(default)]
     pub chat_template: Option<String>,
 }
