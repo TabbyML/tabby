@@ -33,8 +33,8 @@ export interface ChatMessage {
   relevantContext?: Array<Context>
 }
 
-export function createClient(target: HTMLIFrameElement) {
-  return createThreadFromIframe(target) as Api
+export function createClient(target: HTMLIFrameElement): Api {
+  return createThreadFromIframe(target)
 }
 
 export function createServer(api: Api) {

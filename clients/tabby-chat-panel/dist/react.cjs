@@ -13,15 +13,15 @@ function useClient(iframeRef) {
 }
 function useServer(api) {
   const [isInIframe, setIsInIframe] = react.useState(false);
-  let isCreated = false;
+  const serverRef = react.useRef(null);
   react.useEffect(() => {
-    setIsInIframe(window.self !== window.top);
+    const isInIframe2 = window.self !== window.top;
+    if (isInIframe2 && !serverRef.current)
+      serverRef.current = index.createServer(api);
+    setIsInIframe(isInIframe2);
   }, []);
   return react.useMemo(() => {
-    if (isInIframe && !isCreated) {
-      isCreated = true;
-      return index.createServer(api);
-    }
+    return serverRef.current;
   }, [isInIframe]);
 }
 
