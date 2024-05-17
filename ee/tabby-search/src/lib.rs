@@ -6,7 +6,7 @@ pub use serve_git::ServeGit;
 
 #[cfg(test)]
 mod testutils {
-    use std::process::Command;
+    use std::process::{Command, Stdio};
 
     use temp_testdir::TempDir;
 
@@ -29,6 +29,8 @@ mod testutils {
                 .arg("clone")
                 .args(["--depth", "1"])
                 .arg("https://github.com/TabbyML/interview-questions")
+                .stderr(Stdio::null())
+                .stdout(Stdio::null())
                 .status()
                 .unwrap();
 

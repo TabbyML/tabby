@@ -137,15 +137,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_serve_git() {
+    fn test_resolve() {
         let root = TempGitRepository::default();
         let serve_git = ServeGit::new(&root.path()).unwrap();
+
         assert_matches!(serve_git.resolve(None, None), Ok(Resolve::Dir(_)));
         assert_matches!(
             serve_git.resolve(None, Some("README.md")),
             Ok(Resolve::File(_, _))
         );
+    }
 
+    #[test]
+    fn test_serve() {
+        let root = TempGitRepository::default();
+        let serve_git = ServeGit::new(&root.path()).unwrap();
+
+        assert_matches!(serve_git.serve(None, None), Ok(_));
         assert_matches!(serve_git.serve(None, Some("README.md")), Ok(_));
+        assert_matches!(serve_git.serve(None, Some("NotExists")), Err(StatusCode::NOT_FOUND));
     }
 }
