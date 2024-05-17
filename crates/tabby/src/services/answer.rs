@@ -99,7 +99,7 @@ impl AnswerService {
 
             // 2. Collect relevant docs if needed.
             let relevant_docs = if req.doc_query {
-                self.collect_relevant_docs(&query.content).await;
+                self.collect_relevant_docs(&query.content).await
             } else {
                 vec![]
             };
