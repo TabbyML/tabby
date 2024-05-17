@@ -138,7 +138,7 @@ impl HTTPSHandler {
             .and_then(|r| r.error_for_status())
             .map_err(|e| DownloadError::HttpError {
                 name: input.into(),
-                code: e.status().unwrap_or_default().to_string(),
+                code: e.to_string(),
             })?;
 
         let total_size = downloaded + res.content_length().unwrap_or(0);
