@@ -104,3 +104,87 @@ impl IntegrationService for IntegrationServiceImpl {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{sync::Arc, time::Duration};
+
+    use tabby_schema::integration::IntegrationStatus;
+
+    use super::*;
+
+    fn create_fake() -> UnboundedSender<BackgroundJobEvent> {
+        let (sender, _) = tokio::sync::mpsc::unbounded_channel();
+        sender
+    }
+
+    #[tokio::test]
+    async fn test_integration_crud() {
+        let background = create_fake();
+        let db = DbConn::new_in_memory().await.unwrap();
+        let integration = Arc::new(create(db, background));
+
+        let id = integration
+            .create_integration(IntegrationKind::Gitlab, "id".into(), "secret".into())
+            .await
+            .unwrap();
+
+        // Test listing gitlab providers
+        let providers = integration
+            .list_integrations(None, Some(IntegrationKind::Gitlab), None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(providers.len(), 1);
+        assert_eq!(providers[0].access_token, "secret");
+
+        // Test updating gitlab provider
+        integration
+            .update_integration(id.clone(), IntegrationKind::Gitlab, "id2".into(), None)
+            .await
+            .unwrap();
+
+        let provider = integration.get_integration(id.clone()).await.unwrap();
+        assert_eq!(provider.display_name, "id2");
+        assert_eq!(provider.status, IntegrationStatus::Pending);
+
+        // Test updating error status for gitlab provider
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        integration
+            .update_integration_error(id.clone(), Some("error".into()))
+            .await
+            .unwrap();
+
+        let provider = integration.get_integration(id.clone()).await.unwrap();
+        assert_eq!(provider.status, IntegrationStatus::Failed);
+
+        // Test successful status (no error)
+        integration
+            .update_integration_error(id.clone(), None)
+            .await
+            .unwrap();
+
+        let provider = integration.get_integration(id.clone()).await.unwrap();
+        assert_eq!(provider.status, IntegrationStatus::Ready);
+
+        // Deleting using github integration kind should fail since this is a gitlab integration
+        assert!(integration
+            .delete_integration(id.clone(), IntegrationKind::Github)
+            .await
+            .is_err());
+
+        // Test successful deletion
+        integration
+            .delete_integration(id.clone(), IntegrationKind::Gitlab)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            0,
+            integration
+                .list_integrations(None, None, None, None, None, None)
+                .await
+                .unwrap()
+                .len()
+        );
+    }
+}

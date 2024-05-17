@@ -11,6 +11,7 @@ pub enum IntegrationKind {
     Gitlab,
 }
 
+#[derive(PartialEq, Eq, Debug)]
 pub enum IntegrationStatus {
     Ready,
     Pending,
