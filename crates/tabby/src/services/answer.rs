@@ -30,6 +30,9 @@ pub struct AnswerRequest {
 
     #[serde(default)]
     doc_query: bool,
+
+    #[serde(default)]
+    generate_relevant_questions: bool,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -109,9 +112,11 @@ impl AnswerService {
             }
 
             if !relevant_code.is_empty() || !relevant_docs.is_empty() {
-                // 3. Generate relevant questions from the query
-                let relevant_questions = self.generate_relevant_questions(&relevant_code, &relevant_docs, &query.content).await;
-                yield AnswerResponseChunk::RelevantQuestions(relevant_questions);
+                if req.generate_relevant_questions {
+                    // 3. Generate relevant questions from the query
+                    let relevant_questions = self.generate_relevant_questions(&relevant_code, &relevant_docs, &query.content).await;
+                    yield AnswerResponseChunk::RelevantQuestions(relevant_questions);
+                }
 
 
                 // 4. Generate override prompt from the query
