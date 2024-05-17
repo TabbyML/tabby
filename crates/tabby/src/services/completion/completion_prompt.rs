@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
-use lazy_static::lazy_static;
-use regex::Regex;
 use strfmt::strfmt;
 use tabby_common::{
     api::code::{CodeSearch, CodeSearchError},
+    index::CodeSearchSchema,
     languages::get_language,
 };
 use textdistance::Algorithm;
@@ -184,7 +183,7 @@ async fn collect_snippets(
     text: &str,
 ) -> Vec<Snippet> {
     let mut ret = Vec::new();
-    let mut tokens = tokenize_text(text);
+    let mut tokens = CodeSearchSchema::tokenize_body(text);
 
     let serp = match code
         .search_in_language(git_url, language, &tokens, MAX_SNIPPETS_TO_FETCH, 0)
@@ -212,7 +211,7 @@ async fn collect_snippets(
     let mut count_characters = 0;
     for hit in serp.hits {
         let body = hit.doc.body;
-        let mut body_tokens = tokenize_text(&body);
+        let mut body_tokens = CodeSearchSchema::tokenize_body(&body);
 
         if count_characters + body.len() > max_snippets_chars {
             break;
@@ -246,18 +245,6 @@ async fn collect_snippets(
     }
 
     ret
-}
-
-lazy_static! {
-    static ref TOKENIZER: Regex = Regex::new(r"[^\w]").unwrap();
-}
-
-fn tokenize_text(text: &str) -> Vec<String> {
-    TOKENIZER
-        .split(text)
-        .map(|x| x.to_owned())
-        .filter(|x| !x.is_empty())
-        .collect()
 }
 
 #[cfg(test)]
@@ -455,38 +442,6 @@ def this_is_prefix():\n";
         assert_eq!(
             build_prefix("python", prefix, &snippets),
             expected_built_prefix
-        );
-    }
-
-    /// Empty strings tokens are not participating rag search and therefore could be removed.
-    #[test]
-    fn test_tokenized_text_filter() {
-        let prefix = r#"public static String getFileExtension(String fullName) {
-        String fileName = (new File(fullName)).getName();
-        int dotIndex = fileName.lastIndexOf('.');
-         }"#;
-
-        // with filter
-        assert_eq!(
-            tokenize_text(prefix),
-            [
-                "public",
-                "static",
-                "String",
-                "getFileExtension",
-                "String",
-                "fullName",
-                "String",
-                "fileName",
-                "new",
-                "File",
-                "fullName",
-                "getName",
-                "int",
-                "dotIndex",
-                "fileName",
-                "lastIndexOf",
-            ]
         );
     }
 

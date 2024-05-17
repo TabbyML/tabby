@@ -218,9 +218,13 @@ async fn api_router(
     };
 
     let answer_state = if let Some(chat) = &chat_state {
-        docsearch_state
-            .as_ref()
-            .map(|doc| Arc::new(services::answer::create(chat.clone(), doc.clone())))
+        docsearch_state.as_ref().map(|doc| {
+            Arc::new(services::answer::create(
+                chat.clone(),
+                code.clone(),
+                doc.clone(),
+            ))
+        })
     } else {
         None
     };

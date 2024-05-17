@@ -3,9 +3,13 @@ use std::sync::Arc;
 use async_stream::stream;
 use futures::{stream::BoxStream, StreamExt};
 use serde::{Deserialize, Serialize};
-use tabby_common::api::{
-    chat::Message,
-    doc::{DocSearch, DocSearchDocument},
+use tabby_common::{
+    api::{
+        chat::Message,
+        code::{CodeSearch, CodeSearchDocument},
+        doc::{DocSearch, DocSearchDocument},
+    },
+    index::CodeSearchSchema,
 };
 use tracing::{debug, warn};
 use utoipa::ToSchema;
@@ -16,41 +20,51 @@ use crate::services::chat::{ChatCompletionRequestBuilder, ChatService};
 #[schema(example=json!({
     "messages": [
         Message { role: "user".to_owned(), content: "What is tail recursion?".to_owned()},
-    ]
+    ],
 }))]
 pub struct AnswerRequest {
     messages: Vec<Message>,
+
+    #[serde(default)]
+    code_query: Option<CodeQuery>,
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct CodeQuery {
+    git_url: String,
+    language: String,
+    content: String,
 }
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AnswerResponseChunk {
+    RelevantCode(Vec<CodeSearchDocument>),
     RelevantDocuments(Vec<DocSearchDocument>),
     RelevantQuestions(Vec<String>),
     AnswerDelta(String),
 }
 pub struct AnswerService {
     chat: Arc<ChatService>,
+    code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
     serper: Option<Box<dyn DocSearch>>,
 }
 
 impl AnswerService {
-    fn new(chat: Arc<ChatService>, doc: Arc<dyn DocSearch>) -> Self {
-        if let Ok(api_key) = std::env::var("SERPER_API_KEY") {
-            debug!("Serper API key found, enabling serper...");
-            let serper = Box::new(super::doc::create_serper(api_key.as_str()));
-            Self {
-                chat,
-                doc,
-                serper: Some(serper),
-            }
-        } else {
-            Self {
-                chat,
-                doc,
-                serper: None,
-            }
+    fn new(chat: Arc<ChatService>, code: Arc<dyn CodeSearch>, doc: Arc<dyn DocSearch>) -> Self {
+        let serper: Option<Box<dyn DocSearch>> =
+            if let Ok(api_key) = std::env::var("SERPER_API_KEY") {
+                debug!("Serper API key found, enabling serper...");
+                Some(Box::new(super::doc::create_serper(api_key.as_str())))
+            } else {
+                None
+            };
+        Self {
+            chat,
+            code,
+            doc,
+            serper,
         }
     }
 
@@ -59,7 +73,7 @@ impl AnswerService {
         mut req: AnswerRequest,
     ) -> BoxStream<'a, AnswerResponseChunk> {
         let s = stream! {
-            // 1. Collect sources given query, for now we only use the last message
+            // 0. Collect sources given query, for now we only use the last message
             let query: &mut Message = match req.messages.last_mut() {
                 Some(query) => query,
                 None => {
@@ -68,36 +82,35 @@ impl AnswerService {
                 }
             };
 
-            // 2. Generate relevant docs from the query
-            // For now we only collect from DocSearch.
-            let mut hits = match self.doc.search(&query.content, 5, 0).await {
-                Ok(docs) => docs.hits,
-                Err(err) => {
-                    warn!("Failed to search tantivy docs: {:?}", err);
-                    vec![]
-                }
+            // 1. Collect relevant code if needed.
+            let relevant_code = if let Some(code_query)  = req.code_query  {
+                self.collect_relevant_code(&code_query).await
+            } else {
+                vec![]
             };
 
-            // If serper is available, we also collect from serper
-            if let Some(serper) = self.serper.as_ref() {
-                let serper_hits = match serper.search(&query.content, 5, 0).await {
-                    Ok(docs) => docs.hits,
-                    Err(err) => {
-                        warn!("Failed to search serper: {:?}", err);
-                        vec![]
-                    }
-                };
-                hits.extend(serper_hits);
+            if !relevant_code.is_empty() {
+                yield AnswerResponseChunk::RelevantCode(relevant_code.clone());
             }
 
-            yield AnswerResponseChunk::RelevantDocuments(hits.iter().map(|hit| hit.doc.clone()).collect());
 
-            // 3. Generate relevant answers from the query
-            let snippets = hits.iter().map(|hit| hit.doc.snippet.as_str()).collect::<Vec<_>>();
-            yield AnswerResponseChunk::RelevantQuestions(self.generate_relevant_questions(&snippets, &query.content).await);
+            // 2. Collect relevant docs if needed.
+            let relevant_docs = self.collect_relevant_docs(&query.content).await;
 
-            // 4. Generate override prompt from the query
-            query.content = self.generate_prompt(&snippets, &query.content).await;
+            if !relevant_docs.is_empty() {
+                yield AnswerResponseChunk::RelevantDocuments(relevant_docs.clone());
+            }
+
+            if !relevant_code.is_empty() || !relevant_docs.is_empty() {
+                // 3. Generate relevant questions from the query
+                let relevant_questions = self.generate_relevant_questions(&relevant_code, &relevant_docs, &query.content).await;
+                yield AnswerResponseChunk::RelevantQuestions(relevant_questions);
+
+
+                // 4. Generate override prompt from the query
+                query.content = self.generate_prompt(&relevant_code, &relevant_docs, &query.content).await;
+            }
+
 
             // 5. Generate answer from the query
             let s = self.chat.clone().generate(ChatCompletionRequestBuilder::default()
@@ -114,8 +127,64 @@ impl AnswerService {
         Box::pin(s)
     }
 
-    async fn generate_relevant_questions(&self, snippets: &[&str], question: &str) -> Vec<String> {
-        let context = snippets.join("\n");
+    async fn collect_relevant_code(&self, query: &CodeQuery) -> Vec<CodeSearchDocument> {
+        let tokens = CodeSearchSchema::tokenize_body(&query.content);
+        match self
+            .code
+            .search_in_language(&query.git_url, &query.language, &tokens, 5, 0)
+            .await
+        {
+            Ok(resp) => resp.hits.into_iter().map(|hit| hit.doc).collect(),
+            Err(err) => {
+                warn!("Failed to search code: {:?}", err);
+                vec![]
+            }
+        }
+    }
+
+    async fn collect_relevant_docs(&self, query: &str) -> Vec<DocSearchDocument> {
+        // 1. Collect relevant docs from the tantivy doc search.
+        let mut hits = match self.doc.search(query, 5, 0).await {
+            Ok(docs) => docs.hits,
+            Err(err) => {
+                warn!("Failed to search tantivy docs: {:?}", err);
+                vec![]
+            }
+        };
+
+        // 2. If serper is available, we also collect from serper
+        if let Some(serper) = self.serper.as_ref() {
+            let serper_hits = match serper.search(query, 5, 0).await {
+                Ok(docs) => docs.hits,
+                Err(err) => {
+                    warn!("Failed to search serper: {:?}", err);
+                    vec![]
+                }
+            };
+            hits.extend(serper_hits);
+        }
+
+        hits.into_iter().map(|hit| hit.doc).collect()
+    }
+
+    async fn generate_relevant_questions(
+        &self,
+        relevant_code: &[CodeSearchDocument],
+        relevant_docs: &[DocSearchDocument],
+        question: &str,
+    ) -> Vec<String> {
+        let snippets: Vec<String> = relevant_code
+            .iter()
+            .map(|doc| {
+                format!(
+                    "```{} title=\"{}\" \n{}```",
+                    doc.language, doc.filepath, doc.body
+                )
+            })
+            .chain(relevant_docs.iter().map(|doc| doc.snippet.to_owned()))
+            .collect();
+
+        let context: String = snippets.join("\n\n");
         let prompt = format!(
             r#"
 You are a helpful assistant that helps the user to ask related questions, based on user's original question and the related contexts. Please identify worthwhile topics that can be follow-ups, and write questions no longer than 20 words each. Please make sure that specifics, like events, names, locations, are included in follow up questions so they can be asked standalone. For example, if the original question asks about "the Manhattan project", in the follow up question, do not just say "the project", but use the full name "the Manhattan project". Your related questions must be in the same language as the original question.
@@ -151,12 +220,29 @@ Remember, based on the original question and related contexts, suggest three suc
         content.lines().map(remove_bullet_prefix).collect()
     }
 
-    async fn generate_prompt(&self, snippets: &[&str], question: &str) -> String {
+    async fn generate_prompt(
+        &self,
+        relevant_code: &[CodeSearchDocument],
+        relevant_docs: &[DocSearchDocument],
+        question: &str,
+    ) -> String {
+        let snippets: Vec<String> = relevant_code
+            .iter()
+            .map(|doc| {
+                format!(
+                    "```{} title=\"{}\" \n{}```",
+                    doc.language, doc.filepath, doc.body
+                )
+            })
+            .chain(relevant_docs.iter().map(|doc| doc.snippet.to_owned()))
+            .collect();
+
         let citations: Vec<String> = snippets
             .iter()
             .enumerate()
-            .map(|(i, snippet)| format!("[[citation:{}]] {}", i, *snippet))
+            .map(|(i, snippet)| format!("[[citation:{}]]\n{}", i + 1, *snippet))
             .collect();
+
         let context = citations.join("\n\n");
 
         format!(
@@ -185,6 +271,10 @@ fn remove_bullet_prefix(s: &str) -> String {
         .to_owned()
 }
 
-pub fn create(chat: Arc<ChatService>, doc: Arc<dyn DocSearch>) -> AnswerService {
-    AnswerService::new(chat, doc)
+pub fn create(
+    chat: Arc<ChatService>,
+    code: Arc<dyn CodeSearch>,
+    doc: Arc<dyn DocSearch>,
+) -> AnswerService {
+    AnswerService::new(chat, code, doc)
 }
