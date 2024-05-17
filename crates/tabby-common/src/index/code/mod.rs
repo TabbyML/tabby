@@ -1,6 +1,7 @@
 mod document;
 
 use lazy_static::lazy_static;
+use regex::Regex;
 use tantivy::{
     query::{BooleanQuery, ConstScoreQuery, Query, TermQuery},
     schema::{Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, STRING},
@@ -65,6 +66,7 @@ impl CodeSearchSchema {
 
 lazy_static! {
     static ref CODE_SEARCH_SCHEMA: CodeSearchSchema = CodeSearchSchema::new();
+    static ref BODY_TOKENIZER: Regex = Regex::new(r"[^\w]").unwrap();
 }
 
 impl CodeSearchSchema {
@@ -96,6 +98,14 @@ impl CodeSearchSchema {
             Term::from_field_text(self.field_git_url, git_url),
             IndexRecordOption::Basic,
         ))
+    }
+
+    pub fn tokenize_body(text: &str) -> Vec<String> {
+        BODY_TOKENIZER
+            .split(text)
+            .filter(|x| !x.is_empty())
+            .map(|x| x.to_owned())
+            .collect()
     }
 
     pub fn code_search_query(
@@ -135,5 +145,37 @@ mod tests {
         assert_eq!(lhs.term(), schema.language_query("typescript").term());
         assert_eq!(lhs.term(), schema.language_query("typescriptreact").term());
         assert_eq!(lhs.term(), schema.language_query("javascriptreact").term());
+    }
+
+    /// Empty strings tokens are not participating rag search and therefore could be removed.
+    #[test]
+    fn test_tokenized_text_filter() {
+        let prefix = r#"public static String getFileExtension(String fullName) {
+        String fileName = (new File(fullName)).getName();
+        int dotIndex = fileName.lastIndexOf('.');
+         }"#;
+
+        // with filter
+        assert_eq!(
+            CodeSearchSchema::tokenize_body(prefix),
+            [
+                "public",
+                "static",
+                "String",
+                "getFileExtension",
+                "String",
+                "fullName",
+                "String",
+                "fileName",
+                "new",
+                "File",
+                "fullName",
+                "getName",
+                "int",
+                "dotIndex",
+                "fileName",
+                "lastIndexOf",
+            ]
+        );
     }
 }

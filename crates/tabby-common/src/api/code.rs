@@ -16,7 +16,7 @@ pub struct CodeSearchHit {
     pub doc: CodeSearchDocument,
 }
 
-#[derive(Serialize, Deserialize, Debug, Builder, ToSchema)]
+#[derive(Serialize, Deserialize, Debug, Builder, Clone, ToSchema)]
 pub struct CodeSearchDocument {
     /// Unique identifier for the file in the repository, stringified SourceFileKey.
     ///

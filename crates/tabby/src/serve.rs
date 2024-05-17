@@ -75,6 +75,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         api::doc::DocSearchDocument,
         answer::AnswerRequest,
         answer::AnswerResponseChunk,
+        answer::AnswerCodeQuery,
         api::server_setting::ServerSetting
     )),
     modifiers(&SecurityAddon),
@@ -218,9 +219,13 @@ async fn api_router(
     };
 
     let answer_state = if let Some(chat) = &chat_state {
-        docsearch_state
-            .as_ref()
-            .map(|doc| Arc::new(services::answer::create(chat.clone(), doc.clone())))
+        docsearch_state.as_ref().map(|doc| {
+            Arc::new(services::answer::create(
+                chat.clone(),
+                code.clone(),
+                doc.clone(),
+            ))
+        })
     } else {
         None
     };
@@ -303,27 +308,22 @@ async fn api_router(
         });
     }
 
-    routers.push({
-        Router::new().route(
-            "/v1beta/search",
-            routing::get(routes::search).with_state(code),
-        )
-    });
+    if cfg!(not(feature = "prod")) {
+        routers.push({
+            Router::new().route(
+                "/v1beta/search",
+                routing::get(routes::search).with_state(code),
+            )
+        });
 
-    if let Some(docsearch_state) = docsearch_state {
-        routers.push({
-            Router::new().route(
-                "/v1beta/docsearch",
-                routing::get(routes::docsearch).with_state(docsearch_state),
-            )
-        });
-    } else {
-        routers.push({
-            Router::new().route(
-                "/v1beta/docsearch",
-                routing::get(StatusCode::NOT_IMPLEMENTED),
-            )
-        });
+        if let Some(docsearch_state) = docsearch_state {
+            routers.push({
+                Router::new().route(
+                    "/v1beta/docsearch",
+                    routing::get(routes::docsearch).with_state(docsearch_state),
+                )
+            });
+        }
     }
 
     if let Some(answer_state) = answer_state {
