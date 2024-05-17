@@ -1,6 +1,4 @@
-use std::{
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use git2::TreeWalkResult;
 
@@ -91,7 +89,7 @@ pub fn bytes2path(b: &[u8]) -> &Path {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{testutils::TempGitRepository};
+    use crate::testutils::TempGitRepository;
 
     #[test]
     fn it_search() {
