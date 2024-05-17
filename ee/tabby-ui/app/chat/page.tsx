@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import type { ChatMessage, FetcherOptions } from 'tabby-chat-panel'
+import type { ChatMessage, Context, FetcherOptions } from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
 
 import { nanoid } from '@/lib/utils'
@@ -39,6 +39,15 @@ export default function ChatPage() {
     }
   })
 
+  const onNavigateToContext = (context: Context) => {
+    if (window.top !== window.self) {
+      window.top?.postMessage({
+        action: 'onNavigateToContext',
+        context
+      })
+    }
+  }
+
   if (!isInit || !fetcherOptions) return <></>
   const headers = {
     Authorization: `Bearer ${fetcherOptions.authorization}`
@@ -50,7 +59,7 @@ export default function ChatPage() {
       ref={chatRef}
       headers={headers}
       onThreadUpdates={() => {}}
-      onNavigateToContext={() => {}}
+      onNavigateToContext={onNavigateToContext}
     />
   )
 }
