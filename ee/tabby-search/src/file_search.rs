@@ -1,5 +1,4 @@
 use std::{
-    collections::HashSet,
     path::{Path, PathBuf},
 };
 
@@ -92,7 +91,7 @@ pub fn bytes2path(b: &[u8]) -> &Path {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{testutils::TempGitRepository, GitFileSearch};
+    use crate::{testutils::TempGitRepository};
 
     #[test]
     fn it_search() {
