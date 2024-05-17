@@ -1,38 +1,33 @@
 mod file_search;
 mod serve_git;
 
+use std::path::Path;
+
 use axum::{
     body::Body,
     http::{Response, StatusCode},
 };
 use file_search::GitFileSearch;
 
-pub struct GitReadOnly {
-    repository: git2::Repository,
-}
+pub struct GitReadOnly {}
 
 impl GitReadOnly {
-    pub fn new(path: &std::path::Path) -> anyhow::Result<Self> {
-        Ok(Self {
-            repository: git2::Repository::open(path)?,
-        })
-    }
-
-    pub fn search_files(
-        &self,
+    pub async fn search_files(
+        root: &Path,
         commit: Option<&str>,
         pattern: &str,
         limit: usize,
     ) -> anyhow::Result<Vec<GitFileSearch>> {
-        file_search::search(&self.repository, commit, pattern, limit)
+        file_search::search(git2::Repository::open(root)?, commit, pattern, limit).await
     }
 
     pub fn serve_file(
-        &self,
+        root: &Path,
         commit: Option<&str>,
         path: Option<&str>,
     ) -> std::result::Result<Response<Body>, StatusCode> {
-        serve_git::serve(&self.repository, commit, path)
+        let repository = git2::Repository::open(root).map_err(|_| StatusCode::NOT_FOUND)?;
+        serve_git::serve(&repository, commit, path)
     }
 }
 

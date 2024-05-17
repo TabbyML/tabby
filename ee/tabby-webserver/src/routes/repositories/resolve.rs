@@ -7,7 +7,6 @@ use juniper::ID;
 use serde::Deserialize;
 use tabby_schema::repository::{RepositoryKind, RepositoryService};
 use tabby_search::GitReadOnly;
-use tracing::warn;
 
 #[derive(Deserialize, Debug)]
 pub struct ResolveParams {
@@ -39,11 +38,6 @@ impl ResolveState {
             return Err(StatusCode::NOT_FOUND);
         };
 
-        let serve = GitReadOnly::new(&root).map_err(|e| {
-            warn!("Failed to open repository: {:?}", e);
-            StatusCode::NOT_FOUND
-        })?;
-
-        serve.serve_file(None, params.path.as_deref())
+        GitReadOnly::serve_file(&root, None, params.path.as_deref())
     }
 }

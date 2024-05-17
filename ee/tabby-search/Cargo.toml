@@ -14,6 +14,9 @@ temp_testdir.workspace = true
 axum.workspace = true
 serde_json.workspace = true
 mime_guess.workspace = true
+futures.workspace = true
+async-stream.workspace = true
+tokio.workspace = true
 
 [dev-dependencies]
 assert_matches.workspace = true
