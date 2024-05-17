@@ -101,7 +101,7 @@ impl CodeSearchSchema {
     }
 
     pub fn tokenize_body(text: &str) -> Vec<String> {
-        BODY_TOKENIZER.split(text).map(|x| x.to_owned()).collect()
+        BODY_TOKENIZER.split(text).filter(|x| !x.is_empty()).map(|x| x.to_owned()).collect()
     }
 
     pub fn code_search_query(
