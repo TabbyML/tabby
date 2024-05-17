@@ -1,4 +1,4 @@
-name: Test Tabby UI
+name: Test Tabby Chat Panel
 
 on:
   pull_request:
