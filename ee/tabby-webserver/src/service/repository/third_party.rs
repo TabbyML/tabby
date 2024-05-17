@@ -101,7 +101,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             let repo = self.get_repository(id).await?;
             let integration = self
                 .integration
-                .get_integration(repo.integration_access_token_id.clone())
+                .get_integration(repo.integration_id.clone())
                 .await?;
             let git_url = format_authenticated_url(
                 &integration.kind,

@@ -5,7 +5,7 @@ use tabby_db_macros::query_paged_as;
 use crate::{DateTimeUtc, DbConn};
 
 #[derive(FromRow)]
-pub struct IntegrationAccessTokenDAO {
+pub struct IntegrationDAO {
     pub id: i64,
     pub kind: String,
     pub error: Option<String>,
@@ -17,14 +17,14 @@ pub struct IntegrationAccessTokenDAO {
 }
 
 impl DbConn {
-    pub async fn create_integration_access_token(
+    pub async fn create_integration(
         &self,
         kind: String,
         name: String,
         access_token: String,
     ) -> Result<i64> {
         let res = query!(
-            "INSERT INTO integration_access_tokens(kind, display_name, access_token) VALUES (?, ?, ?);",
+            "INSERT INTO integrations(kind, display_name, access_token) VALUES (?, ?, ?);",
             kind,
             name,
             access_token
@@ -34,9 +34,9 @@ impl DbConn {
         Ok(res.last_insert_rowid())
     }
 
-    pub async fn get_integration_access_token(&self, id: i64) -> Result<IntegrationAccessTokenDAO> {
+    pub async fn get_integration(&self, id: i64) -> Result<IntegrationDAO> {
         let provider = query_as!(
-            IntegrationAccessTokenDAO,
+            IntegrationDAO,
             r#"SELECT
                 id,
                 kind,
@@ -46,7 +46,7 @@ impl DbConn {
                 updated_at,
                 created_at,
                 synced_at
-            FROM integration_access_tokens WHERE id = ?;"#,
+            FROM integrations WHERE id = ?;"#,
             id
         )
         .fetch_one(&self.pool)
@@ -54,9 +54,9 @@ impl DbConn {
         Ok(provider)
     }
 
-    pub async fn delete_integration_access_token(&self, id: i64, kind: &str) -> Result<()> {
+    pub async fn delete_integration(&self, id: i64, kind: &str) -> Result<()> {
         let res = query!(
-            "DELETE FROM integration_access_tokens WHERE id = ? AND kind = ?;",
+            "DELETE FROM integrations WHERE id = ? AND kind = ?;",
             id,
             kind
         )
@@ -68,7 +68,7 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_integration_access_token(
+    pub async fn update_integration(
         &self,
         id: i64,
         kind: &str,
@@ -77,11 +77,11 @@ impl DbConn {
     ) -> Result<()> {
         let access_token = match access_token {
             Some(access_token) => access_token,
-            None => self.get_integration_access_token(id).await?.access_token,
+            None => self.get_integration(id).await?.access_token,
         };
 
         let res = query!(
-            "UPDATE integration_access_tokens SET display_name = ?, access_token = ?, updated_at = DATETIME('now') WHERE id = ? AND kind = ?;",
+            "UPDATE integrations SET display_name = ?, access_token = ?, updated_at = DATETIME('now') WHERE id = ? AND kind = ?;",
             display_name,
             access_token,
             id,
@@ -99,13 +99,9 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_integration_access_token_error(
-        &self,
-        id: i64,
-        error: Option<String>,
-    ) -> Result<()> {
+    pub async fn update_integration_error(&self, id: i64, error: Option<String>) -> Result<()> {
         query!(
-            "UPDATE integration_access_tokens SET synced_at = DATETIME('now'), error = ? WHERE id = ?",
+            "UPDATE integrations SET synced_at = DATETIME('now'), error = ? WHERE id = ?",
             error,
             id
         )
@@ -114,14 +110,14 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn list_integration_access_tokens(
+    pub async fn list_integrations(
         &self,
         ids: Vec<i64>,
         kind: Option<String>,
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
-    ) -> Result<Vec<IntegrationAccessTokenDAO>> {
+    ) -> Result<Vec<IntegrationDAO>> {
         let mut conditions = vec![];
 
         let id_condition = (!ids.is_empty()).then(|| {
@@ -140,8 +136,8 @@ impl DbConn {
         let condition = (!conditions.is_empty()).then(|| conditions.join(" AND "));
 
         let providers = query_paged_as!(
-            IntegrationAccessTokenDAO,
-            "integration_access_tokens",
+            IntegrationDAO,
+            "integrations",
             [
                 "id",
                 "kind",

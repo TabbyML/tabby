@@ -8,7 +8,7 @@ use crate::{DateTimeUtc, DbConn};
 pub struct ProvidedRepositoryDAO {
     pub id: i64,
     pub vendor_id: String,
-    pub integration_access_token_id: i64,
+    pub integration_id: i64,
     pub name: String,
     pub git_url: String,
     pub active: bool,
@@ -19,15 +19,15 @@ pub struct ProvidedRepositoryDAO {
 impl DbConn {
     pub async fn upsert_provided_repository(
         &self,
-        integration_access_token_id: i64,
+        integration_id: i64,
         vendor_id: String,
         name: String,
         git_url: String,
     ) -> Result<i64> {
         let res = query!(
-            "INSERT INTO provided_repositories (integration_access_token_id, vendor_id, name, git_url) VALUES ($1, $2, $3, $4)
-                ON CONFLICT(integration_access_token_id, vendor_id) DO UPDATE SET name = $3, git_url = $4, updated_at = DATETIME('now')",
-            integration_access_token_id,
+            "INSERT INTO provided_repositories (integration_id, vendor_id, name, git_url) VALUES ($1, $2, $3, $4)
+                ON CONFLICT(integration_id, vendor_id) DO UPDATE SET name = $3, git_url = $4, updated_at = DATETIME('now')",
+            integration_id,
             vendor_id,
             name,
             git_url
@@ -37,21 +37,23 @@ impl DbConn {
 
     pub async fn delete_outdated_provided_repositories(
         &self,
-        integration_access_token_id: i64,
+        integration_id: i64,
         cutoff_timestamp: DateTimeUtc,
     ) -> Result<usize> {
         let res = query!(
-            "DELETE FROM provided_repositories WHERE integration_access_token_id = ? AND updated_at < ?;",
-            integration_access_token_id,
+            "DELETE FROM provided_repositories WHERE integration_id = ? AND updated_at < ?;",
+            integration_id,
             cutoff_timestamp
-        ).execute(&self.pool).await?;
+        )
+        .execute(&self.pool)
+        .await?;
         Ok(res.rows_affected() as usize)
     }
 
     pub async fn get_provided_repository(&self, id: i64) -> Result<ProvidedRepositoryDAO> {
         let repo = query_as!(
             ProvidedRepositoryDAO,
-            "SELECT id, vendor_id, name, git_url, active, integration_access_token_id, created_at, updated_at FROM provided_repositories WHERE id = ?",
+            "SELECT id, vendor_id, name, git_url, active, integration_id, created_at, updated_at FROM provided_repositories WHERE id = ?",
             id
         )
         .fetch_one(&self.pool)
@@ -76,9 +78,7 @@ impl DbConn {
             .collect::<Vec<_>>()
             .join(", ");
         if !integration_ids.is_empty() {
-            conditions.push(format!(
-                "integration_access_token_id IN ({integration_ids})"
-            ));
+            conditions.push(format!("integration_id IN ({integration_ids})"));
         }
 
         let active_filter = active.map(|active| format!("active = {active}"));
@@ -91,14 +91,14 @@ impl DbConn {
 
         let repos = query_paged_as!(
             ProvidedRepositoryDAO,
-            "provided_repositories JOIN integration_access_tokens ON integration_access_token_id = integration_access_tokens.id",
+            "provided_repositories JOIN integrations ON integration_id = integrations.id",
             [
                 "id",
                 "vendor_id",
                 "name",
                 "git_url",
                 "active",
-                "integration_access_token_id",
+                "integration_id",
                 "created_at",
                 "updated_at"
             ],
