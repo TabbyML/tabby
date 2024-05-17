@@ -9,6 +9,8 @@ use axum::{
 use git2::Blob;
 use serde::Serialize;
 
+const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
+
 pub struct ServeGit {
     repository: git2::Repository,
 }
@@ -84,7 +86,10 @@ impl ServeGit {
             Resolve::Dir(entries) => {
                 let json = serde_json::to_string(&ListDir { entries })
                     .expect("failed to serialize response");
-                Response::new(Body::from(json))
+                Response::builder()
+                    .header(header::CONTENT_TYPE, DIRECTORY_MIME_TYPE)
+                    .body(Body::from(json))
+                    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             }
             Resolve::File(path, blob) => {
                 let body = Body::from(blob.content().to_owned());
@@ -92,7 +97,7 @@ impl ServeGit {
                 Response::builder()
                     .header(header::CONTENT_TYPE, mime.as_ref())
                     .body(body)
-                    .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
+                    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             }
         };
 
@@ -136,6 +141,9 @@ mod tests {
         let root = TempGitRepository::default();
         let serve_git = ServeGit::new(&root.path()).unwrap();
         assert_matches!(serve_git.resolve(None, None), Ok(Resolve::Dir(_)));
-        assert_matches!(serve_git.resolve(None, Some("README.md")), Ok(Resolve::File(_, _)));
+        assert_matches!(
+            serve_git.resolve(None, Some("README.md")),
+            Ok(Resolve::File(_, _))
+        );
     }
 }
