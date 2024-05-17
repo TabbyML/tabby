@@ -2066,12 +2066,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "http-range-header"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ce4ef31cda248bbdb6e6820603b82dfcd9e833db65a43e997a0ccec777d11fe"
-
-[[package]]
 name = "httparse"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5436,8 +5430,13 @@ name = "tabby-search"
 version = "0.12.0-dev.0"
 dependencies = [
  "anyhow",
+ "assert_matches",
+ "axum",
  "git2",
+ "mime_guess",
  "nucleo",
+ "serde",
+ "serde_json",
  "temp_testdir",
 ]
 
@@ -5485,7 +5484,6 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "tower",
- "tower-http",
  "tracing",
  "url",
  "urlencoding",
@@ -6015,15 +6013,9 @@ dependencies = [
  "http 1.1.0",
  "http-body 1.0.0",
  "http-body-util",
- "http-range-header",
- "httpdate",
  "iri-string",
- "mime",
- "mime_guess",
- "percent-encoding",
  "pin-project-lite",
  "tokio",
- "tokio-util",
  "tower",
  "tower-layer",
  "tower-service",
