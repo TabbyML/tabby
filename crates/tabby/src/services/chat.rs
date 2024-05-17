@@ -4,9 +4,12 @@ use async_stream::stream;
 use derive_builder::Builder;
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
-use tabby_common::api::{
-    chat::Message,
-    event::{Event, EventLogger},
+use tabby_common::{
+    api::{
+        chat::Message,
+        event::{Event, EventLogger},
+    },
+    config::ModelConfig,
 };
 use tabby_inference::{ChatCompletionOptionsBuilder, ChatCompletionStream};
 use tracing::warn;
@@ -14,7 +17,6 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use super::model;
-use crate::Device;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Builder, Debug)]
 #[schema(example=json!({
@@ -156,13 +158,8 @@ fn convert_messages(input: &[Message]) -> Vec<tabby_common::api::event::Message>
         .collect()
 }
 
-pub async fn create_chat_service(
-    logger: Arc<dyn EventLogger>,
-    model: &str,
-    device: &Device,
-    parallelism: u8,
-) -> ChatService {
-    let engine = model::load_chat_completion(model, device, parallelism).await;
+pub async fn create_chat_service(logger: Arc<dyn EventLogger>, chat: &ModelConfig) -> ChatService {
+    let engine = model::load_chat_completion(chat).await;
 
     ChatService::new(engine, logger)
 }

@@ -15,7 +15,7 @@ async fn main() {
     let registry = ModelRegistry::new(registry).await;
     let model_path = registry.get_model_path(name).display().to_string();
 
-    let mut doc_index = DocIndex::new(create_embedding(false, &model_path, 1).await);
+    let mut doc_index = DocIndex::new(create_embedding(0, &model_path, 1).await);
     let mut cnt = 0;
     stream! {
         for await doc in crawl_pipeline("https://tabby.tabbyml.com/").await {

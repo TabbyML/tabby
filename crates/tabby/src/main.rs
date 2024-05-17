@@ -11,7 +11,7 @@ mod worker;
 use std::os::unix::fs::PermissionsExt;
 
 use clap::{Parser, Subcommand};
-use tabby_common::config::{Config, ConfigRepositoryAccess};
+use tabby_common::config::{Config, ConfigRepositoryAccess, LocalModelConfig, ModelConfig};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
@@ -72,10 +72,6 @@ pub enum Device {
 
     #[strum(serialize = "vulkan")]
     Vulkan,
-
-    #[strum(serialize = "experimental_http")]
-    #[clap(hide = true)]
-    ExperimentalHttp,
 }
 
 #[tokio::main]
@@ -103,11 +99,16 @@ async fn main() {
         }
         #[cfg(feature = "ee")]
         Commands::WorkerCompletion(ref args) => {
-            worker::main(tabby_webserver::public::WorkerKind::Completion, args).await
+            worker::main(
+                &config,
+                tabby_webserver::public::WorkerKind::Completion,
+                args,
+            )
+            .await
         }
         #[cfg(feature = "ee")]
         Commands::WorkerChat(ref args) => {
-            worker::main(tabby_webserver::public::WorkerKind::Chat, args).await
+            worker::main(&config, tabby_webserver::public::WorkerKind::Chat, args).await
         }
     }
 }
@@ -157,4 +158,21 @@ fn init_logging() {
         .with(layers)
         .with(env_filter)
         .init();
+}
+
+fn to_local_config(model: &str, parallelism: u8, device: &Device) -> ModelConfig {
+    let num_gpu_layers = if *device != Device::Cpu {
+        std::env::var("LLAMA_CPP_N_GPU_LAYERS")
+            .map(|s| s.parse::<u16>().ok())
+            .ok()
+            .flatten()
+            .unwrap_or(9999)
+    } else {
+        9999
+    };
+    ModelConfig::Local(LocalModelConfig {
+        model_id: model.to_owned(),
+        parallelism,
+        num_gpu_layers,
+    })
 }

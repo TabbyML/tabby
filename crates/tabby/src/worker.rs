@@ -2,7 +2,10 @@ use std::{env::consts::ARCH, net::IpAddr, sync::Arc};
 
 use axum::{routing, Router};
 use clap::Args;
-use tabby_common::api::{code::CodeSearch, event::EventLogger};
+use tabby_common::{
+    api::{code::CodeSearch, event::EventLogger},
+    config::Config,
+};
 use tabby_webserver::public::{RegisterWorkerRequest, WorkerClient, WorkerKind};
 use tracing::info;
 
@@ -14,7 +17,7 @@ use crate::{
         health::{read_cpu_info, read_cuda_devices},
         model::download_model_if_needed,
     },
-    Device,
+    to_local_config, Device,
 };
 
 #[derive(Args)]
@@ -47,9 +50,18 @@ pub struct WorkerArgs {
     parallelism: u8,
 }
 
-async fn make_chat_route(logger: Arc<dyn EventLogger>, args: &WorkerArgs) -> Router {
-    let chat_state =
-        Arc::new(create_chat_service(logger, &args.model, &args.device, args.parallelism).await);
+async fn make_chat_route(logger: Arc<dyn EventLogger>, config: &Config) -> Router {
+    let chat_state = Arc::new(
+        create_chat_service(
+            logger,
+            config
+                .model
+                .chat
+                .as_ref()
+                .expect("Chat model config is missing"),
+        )
+        .await,
+    );
 
     Router::new()
         .route(
@@ -65,10 +77,19 @@ async fn make_chat_route(logger: Arc<dyn EventLogger>, args: &WorkerArgs) -> Rou
 async fn make_completion_route(
     code: Arc<dyn CodeSearch>,
     logger: Arc<dyn EventLogger>,
-    args: &WorkerArgs,
+    config: &Config,
 ) -> Router {
     let completion_state = Arc::new(
-        create_completion_service(code, logger, &args.model, &args.device, args.parallelism).await,
+        create_completion_service(
+            code,
+            logger,
+            config
+                .model
+                .completion
+                .as_ref()
+                .expect("Completion model config is missing"),
+        )
+        .await,
     );
 
     Router::new().route(
@@ -77,8 +98,9 @@ async fn make_completion_route(
     )
 }
 
-pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
+pub async fn main(config: &Config, kind: WorkerKind, args: &WorkerArgs) {
     download_model_if_needed(&args.model).await;
+    let config = merge_args(config, args, &kind);
 
     info!("Starting worker, this might take a few minutes...");
 
@@ -87,8 +109,8 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
     let logger = code.clone();
 
     let app = match kind {
-        WorkerKind::Completion => make_completion_route(code, logger, args).await,
-        WorkerKind::Chat => make_chat_route(logger.clone(), args).await,
+        WorkerKind::Completion => make_completion_route(code, logger, &config).await,
+        WorkerKind::Chat => make_chat_route(logger.clone(), &config).await,
     };
 
     run_app(app, None, args.host, args.port).await
@@ -121,4 +143,16 @@ impl WorkerContext {
             .await,
         }
     }
+}
+
+fn merge_args(config: &Config, args: &WorkerArgs, kind: &WorkerKind) -> Config {
+    let mut config = (*config).clone();
+    let override_config = Some(to_local_config(&args.model, args.parallelism, &args.device));
+
+    match kind {
+        WorkerKind::Chat => config.model.chat = override_config,
+        WorkerKind::Completion => config.model.completion = override_config,
+    }
+
+    config
 }

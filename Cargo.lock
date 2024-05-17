@@ -2682,7 +2682,7 @@ dependencies = [
  "http-api-bindings",
  "omnicopy_to_output",
  "reqwest 0.12.4",
- "serde_json",
+ "tabby-common",
  "tabby-inference",
  "tokio",
  "tracing",
