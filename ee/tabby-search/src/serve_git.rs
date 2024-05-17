@@ -4,7 +4,7 @@ use anyhow::{bail, Context};
 use axum::{
     body::Body,
     http::{header, StatusCode},
-    response::{Response},
+    response::Response,
 };
 use git2::Blob;
 use serde::Serialize;
