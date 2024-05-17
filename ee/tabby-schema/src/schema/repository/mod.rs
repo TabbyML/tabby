@@ -13,9 +13,8 @@ use serde::Deserialize;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 pub use third_party::{ProvidedRepository, ThirdPartyRepositoryService};
 
-use crate::{juniper::relay::NodeType, Context};
-
 use super::Result;
+use crate::{juniper::relay::NodeType, Context};
 
 #[derive(GraphQLObject, Debug)]
 pub struct FileEntrySearchResult {

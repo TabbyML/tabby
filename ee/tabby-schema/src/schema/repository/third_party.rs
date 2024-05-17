@@ -2,9 +2,8 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLObject, ID};
 
-use crate::{integration::IntegrationKind, juniper::relay::NodeType, schema::Result, Context};
-
 use super::Repository;
+use crate::{integration::IntegrationKind, juniper::relay::NodeType, schema::Result, Context};
 
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
