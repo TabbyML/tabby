@@ -4,11 +4,12 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use fetch::fetch_all_repos;
 use juniper::ID;
+use strum::IntoEnumIterator;
 use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
 use tabby_schema::{
     integration::{IntegrationKind, IntegrationService},
-    repository::{ProvidedRepository, ThirdPartyRepositoryService},
+    repository::{ProvidedRepository, Repository, ThirdPartyRepositoryService},
     AsRowid, DbEnum, Result,
 };
 use tokio::sync::mpsc::UnboundedSender;
@@ -66,6 +67,24 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             .into_iter()
             .map(ProvidedRepository::try_from)
             .collect::<Result<_, _>>()?)
+    }
+
+    async fn repository_list(&self) -> Result<Vec<Repository>> {
+        let mut repos = vec![];
+        for kind in IntegrationKind::iter() {
+            let repos_for_kind = self
+                .list_repositories(None, None, Some(true), None, None, None, None)
+                .await?;
+
+            repos.extend(repos_for_kind.into_iter().map(|repo| Repository {
+                id: repo.id,
+                name: repo.display_name,
+                kind: kind.clone().into(),
+                dir: RepositoryConfig::new(repo.git_url).dir(),
+            }));
+        }
+
+        Ok(repos)
     }
 
     async fn get_repository(&self, id: ID) -> Result<ProvidedRepository> {

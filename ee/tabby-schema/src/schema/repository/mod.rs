@@ -1,22 +1,19 @@
 mod types;
+use std::{path::PathBuf, sync::Arc};
+
 pub use types::*;
 
 mod git;
 pub use git::{CreateGitRepositoryInput, GitRepository, GitRepositoryService};
 
-mod github;
-pub use github::{GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryService};
-
-mod gitlab;
-use std::{path::PathBuf, sync::Arc};
-
 mod third_party;
 use async_trait::async_trait;
-pub use gitlab::{GitlabProvidedRepository, GitlabRepositoryProvider, GitlabRepositoryService};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 use serde::Deserialize;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 pub use third_party::{ProvidedRepository, ThirdPartyRepositoryService};
+
+use crate::{juniper::relay::NodeType, Context};
 
 use super::Result;
 
@@ -58,6 +55,60 @@ impl From<GitRepository> for Repository {
     }
 }
 
+#[derive(GraphQLObject, Debug)]
+#[graphql(context = Context)]
+pub struct GithubProvidedRepository {
+    pub id: ID,
+    pub vendor_id: String,
+    pub github_repository_provider_id: ID,
+    pub name: String,
+    pub git_url: String,
+    pub active: bool,
+}
+
+impl NodeType for GithubProvidedRepository {
+    type Cursor = String;
+
+    fn cursor(&self) -> Self::Cursor {
+        self.id.to_string()
+    }
+
+    fn connection_type_name() -> &'static str {
+        "GithubProvidedRepositoryConnection"
+    }
+
+    fn edge_type_name() -> &'static str {
+        "GithubProvidedRepositoryEdge"
+    }
+}
+
+#[derive(GraphQLObject, Debug)]
+#[graphql(context = Context)]
+pub struct GitlabProvidedRepository {
+    pub id: ID,
+    pub vendor_id: String,
+    pub gitlab_repository_provider_id: ID,
+    pub name: String,
+    pub git_url: String,
+    pub active: bool,
+}
+
+impl NodeType for GitlabProvidedRepository {
+    type Cursor = String;
+
+    fn cursor(&self) -> Self::Cursor {
+        self.id.to_string()
+    }
+
+    fn connection_type_name() -> &'static str {
+        "GitlabProvidedRepositoryConnection"
+    }
+
+    fn edge_type_name() -> &'static str {
+        "GitlabProvidedRepositoryEdge"
+    }
+}
+
 impl From<GithubProvidedRepository> for Repository {
     fn from(value: GithubProvidedRepository) -> Self {
         Self {
@@ -80,6 +131,62 @@ impl From<GitlabProvidedRepository> for Repository {
     }
 }
 
+#[derive(GraphQLObject, Debug, PartialEq)]
+#[graphql(context = Context)]
+pub struct GitlabRepositoryProvider {
+    pub id: ID,
+    pub display_name: String,
+
+    pub status: RepositoryProviderStatus,
+
+    #[graphql(skip)]
+    pub access_token: Option<String>,
+}
+
+impl NodeType for GitlabRepositoryProvider {
+    type Cursor = String;
+
+    fn cursor(&self) -> Self::Cursor {
+        self.id.to_string()
+    }
+
+    fn connection_type_name() -> &'static str {
+        "GitlabRepositoryProviderConnection"
+    }
+
+    fn edge_type_name() -> &'static str {
+        "GitlabRepositoryProviderEdge"
+    }
+}
+
+#[derive(GraphQLObject, Debug, PartialEq)]
+#[graphql(context = Context)]
+pub struct GithubRepositoryProvider {
+    pub id: ID,
+    pub display_name: String,
+
+    pub status: RepositoryProviderStatus,
+
+    #[graphql(skip)]
+    pub access_token: Option<String>,
+}
+
+impl NodeType for GithubRepositoryProvider {
+    type Cursor = String;
+
+    fn cursor(&self) -> Self::Cursor {
+        self.id.to_string()
+    }
+
+    fn connection_type_name() -> &'static str {
+        "GithubRepositoryProviderConnection"
+    }
+
+    fn edge_type_name() -> &'static str {
+        "GithubRepositoryProviderEdge"
+    }
+}
+
 #[async_trait]
 pub trait RepositoryProvider {
     async fn repository_list(&self) -> Result<Vec<Repository>>;
@@ -99,8 +206,6 @@ pub trait RepositoryService: Send + Sync + RepositoryAccess {
     ) -> Result<Vec<FileEntrySearchResult>>;
 
     fn git(&self) -> Arc<dyn GitRepositoryService>;
-    fn github(&self) -> Arc<dyn GithubRepositoryService>;
-    fn gitlab(&self) -> Arc<dyn GitlabRepositoryService>;
     fn third_party(&self) -> Arc<dyn ThirdPartyRepositoryService>;
     fn access(self: Arc<Self>) -> Arc<dyn RepositoryAccess>;
 }

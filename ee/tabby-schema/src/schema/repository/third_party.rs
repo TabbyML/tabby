@@ -4,6 +4,8 @@ use juniper::{GraphQLObject, ID};
 
 use crate::{integration::IntegrationKind, juniper::relay::NodeType, schema::Result, Context};
 
+use super::Repository;
+
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
 pub struct ProvidedRepository {
@@ -45,6 +47,9 @@ pub trait ThirdPartyRepositoryService: Send + Sync {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<ProvidedRepository>>;
+
+    async fn repository_list(&self) -> Result<Vec<Repository>>;
+
     async fn get_repository(&self, id: ID) -> Result<ProvidedRepository>;
 
     async fn update_repository_active(&self, id: ID, active: bool) -> Result<()>;

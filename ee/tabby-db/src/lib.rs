@@ -10,8 +10,6 @@ use cache::Cache;
 use cached::TimedSizedCache;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 pub use email_setting::EmailSettingDAO;
-pub use github_repository_provider::{GithubProvidedRepositoryDAO, GithubRepositoryProviderDAO};
-pub use gitlab_repository_provider::{GitlabProvidedRepositoryDAO, GitlabRepositoryProviderDAO};
 pub use integration_access_tokens::IntegrationAccessTokenDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
@@ -30,8 +28,6 @@ pub use users::UserDAO;
 
 pub mod cache;
 mod email_setting;
-mod github_repository_provider;
-mod gitlab_repository_provider;
 mod integration_access_tokens;
 mod invitations;
 mod job_runs;

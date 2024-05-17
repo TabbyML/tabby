@@ -1,6 +1,4 @@
 mod db;
-mod github;
-mod gitlab;
 mod helper;
 mod scheduler;
 mod third_party_integration;
@@ -17,22 +15,17 @@ use tabby_db::DbConn;
 use tabby_schema::{integration::IntegrationService, repository::ThirdPartyRepositoryService};
 
 use self::{
-    db::DbMaintainanceJob, github::SyncGithubJob, gitlab::SyncGitlabJob, scheduler::SchedulerJob,
-    third_party_integration::SyncIntegrationJob,
+    db::DbMaintainanceJob, scheduler::SchedulerJob, third_party_integration::SyncIntegrationJob,
 };
 use crate::path::job_db_file;
 
 pub enum BackgroundJobEvent {
     Scheduler(RepositoryConfig),
-    SyncGithub(i64),
-    SyncGitlab(i64),
     SyncThirdPartyRepositories(ID),
 }
 
 struct BackgroundJobImpl {
     scheduler: SqliteStorage<SchedulerJob>,
-    gitlab: SqliteStorage<SyncGitlabJob>,
-    github: SqliteStorage<SyncGithubJob>,
     third_party_repository: SqliteStorage<SyncIntegrationJob>,
 }
 
@@ -55,8 +48,6 @@ pub async fn start(
     let monitor = DbMaintainanceJob::register(monitor, db.clone());
     let (scheduler, monitor) =
         SchedulerJob::register(monitor, pool.clone(), db.clone(), repository_access);
-    let (gitlab, monitor) = SyncGitlabJob::register(monitor, pool.clone(), db.clone());
-    let (github, monitor) = SyncGithubJob::register(monitor, pool.clone(), db.clone());
     let (third_party_repository, monitor) = SyncIntegrationJob::register(
         monitor,
         pool.clone(),
@@ -72,8 +63,6 @@ pub async fn start(
     tokio::spawn(async move {
         let mut background_job = BackgroundJobImpl {
             scheduler,
-            gitlab,
-            github,
             third_party_repository,
         };
 
@@ -100,43 +89,12 @@ impl BackgroundJobImpl {
             .expect("Unable to push job");
     }
 
-    async fn trigger_sync_github(&self, provider_id: i64) {
-        self.github
-            .clone()
-            .push(SyncGithubJob::new(provider_id))
-            .await
-            .expect("unable to push job");
-    }
-
-    async fn trigger_sync_gitlab(&self, provider_id: i64) {
-        self.gitlab
-            .clone()
-            .push(SyncGitlabJob::new(provider_id))
-            .await
-            .expect("unable to push job");
-    }
-
     async fn on_event_publish(&mut self, event: BackgroundJobEvent) {
         match event {
             BackgroundJobEvent::Scheduler(repository) => self.trigger_scheduler(repository).await,
-            BackgroundJobEvent::SyncGithub(provider_id) => {
-                self.trigger_sync_github(provider_id).await
-            }
-            BackgroundJobEvent::SyncGitlab(provider_id) => {
-                self.trigger_sync_gitlab(provider_id).await
-            }
             BackgroundJobEvent::SyncThirdPartyRepositories(integration_id) => {
                 self.trigger_sync_integration(integration_id).await
             }
-        }
-    }
-}
-
-macro_rules! ceprintln {
-    ($ctx:expr, $($params:tt)+) => {
-        {
-            tracing::debug!($($params)+);
-            $ctx.r#internal_eprintln(format!($($params)+)).await;
         }
     }
 }
@@ -150,5 +108,4 @@ macro_rules! cprintln {
     }
 }
 
-use ceprintln;
 use cprintln;

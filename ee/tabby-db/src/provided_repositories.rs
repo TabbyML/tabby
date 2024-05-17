@@ -138,7 +138,8 @@ mod tests {
     #[tokio::test]
     async fn test_list_provided_repositories() {
         let db = DbConn::new_in_memory().await.unwrap();
-        db.list_github_provided_repositories(vec![], None, None, None, false)
+        // Ensure query does not break on the join
+        db.list_provided_repositories(vec![], Some("github".into()), None, None, None, false)
             .await
             .unwrap();
     }
