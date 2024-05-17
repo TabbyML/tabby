@@ -11,7 +11,7 @@ function useClient(iframeRef, api) {
       clientRef.current = index.createClient(iframeRef.current, api);
     }
   }, [iframeRef.current]);
-  return react.useMemo(() => clientRef.current, [clientRef.current]);
+  return clientRef.current;
 }
 function useServer(api) {
   const serverRef = react.useRef(null);
@@ -20,7 +20,7 @@ function useServer(api) {
     if (isInIframe && !serverRef.current)
       serverRef.current = index.createServer(api);
   }, []);
-  return react.useMemo(() => serverRef.current, [serverRef.current]);
+  return serverRef.current;
 }
 
 exports.useClient = useClient;

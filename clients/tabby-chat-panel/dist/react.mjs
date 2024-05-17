@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect } from 'react';
 import { createClient, createServer } from './index.mjs';
 import '@quilted/threads';
 
@@ -9,7 +9,7 @@ function useClient(iframeRef, api) {
       clientRef.current = createClient(iframeRef.current, api);
     }
   }, [iframeRef.current]);
-  return useMemo(() => clientRef.current, [clientRef.current]);
+  return clientRef.current;
 }
 function useServer(api) {
   const serverRef = useRef(null);
@@ -18,7 +18,7 @@ function useServer(api) {
     if (isInIframe && !serverRef.current)
       serverRef.current = createServer(api);
   }, []);
-  return useMemo(() => serverRef.current, [serverRef.current]);
+  return serverRef.current;
 }
 
 export { useClient, useServer };

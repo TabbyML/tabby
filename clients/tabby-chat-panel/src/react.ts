@@ -1,5 +1,5 @@
 import type { RefObject } from 'react'
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 
 import type { ServerApi, ClientApi } from './index'
 import { createClient, createServer } from './index'
@@ -13,7 +13,7 @@ function useClient(iframeRef: RefObject<HTMLIFrameElement>, api: ClientApi) {
     }
   }, [iframeRef.current])
 
-  return useMemo(() => clientRef.current, [clientRef.current])
+  return clientRef.current
 }
 
 function useServer(api: ServerApi) {
@@ -24,7 +24,7 @@ function useServer(api: ServerApi) {
     if (isInIframe && !serverRef.current) serverRef.current = createServer(api)
   }, [])
 
-  return useMemo(() => serverRef.current, [serverRef.current])
+  return serverRef.current
 }
 
 export {
