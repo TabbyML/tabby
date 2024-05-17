@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/autofix-tabby-ui.yml'
       - 'ee/tabby-ui/**'
+      - 'clients/taby-chat-panel/**'
 
 permissions:
   contents: read
@@ -42,5 +43,9 @@ jobs:
       - name: Format
         working-directory: ./ee/tabby-ui
         run: yarn format:write
+
+      - name: Lint fix for the chat panel
+        working-directory: ./clients/taby-chat-panel
+        run: yarn fix
 
       - uses: autofix-ci/action@d3e591514b99d0fca6779455ff8338516663f7cc

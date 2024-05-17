@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/test-tabby-ui.yml'
       - 'ee/tabby-ui/**'
-      - 'ee/tabby-webserver/graphql/**'
+      - 'clients/taby-chat-panel/**'
 
 concurrency:
   group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
@@ -37,5 +37,11 @@ jobs:
         run: yarn lint
       - name: Test build
         working-directory: ./ee/tabby-ui
+        run: yarn build
+      - name: Lint for the chat panel 
+        working-directory: ./clients/taby-chat-panel
+        run: yarn lint
+      - name: Test build for the chat panel
+        working-directory: ./clients/taby-chat-panel
         run: yarn build
       
