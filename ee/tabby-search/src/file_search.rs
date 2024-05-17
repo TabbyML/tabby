@@ -90,7 +90,6 @@ pub async fn search(
                 yield (score, GitFileSearch::new(r#type, basepath, indices));
             }
         }
-
     }
     // Ensure there's at least 1000 entries with scores > 0 for quality.
     .take(1000)
