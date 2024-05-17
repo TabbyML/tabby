@@ -86,7 +86,7 @@ export default function Chats() {
 
   const onNavigateToContext = (context: ChatContext) => {
     if (!context.filepath) return
-    
+
     const url = `/files?path=${encodeURIComponent(context.filepath)}&line=${
       context.range.start ?? ''
     }`
