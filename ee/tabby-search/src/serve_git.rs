@@ -11,15 +11,13 @@ use serde::Serialize;
 
 const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
 
-pub struct ServeGit {
-    repository: git2::Repository,
+pub struct ServeGit<'a> {
+    repository: &'a git2::Repository,
 }
 
-impl ServeGit {
-    pub fn new(path: &Path) -> anyhow::Result<Self> {
-        Ok(Self {
-            repository: git2::Repository::open(path)?,
-        })
+impl<'a> ServeGit<'a> {
+    pub fn new(repository: &'a git2::Repository) -> Self {
+        Self { repository }
     }
 
     fn resolve(&self, commit: Option<&str>, relpath_str: Option<&str>) -> anyhow::Result<Resolve> {
@@ -139,7 +137,8 @@ mod tests {
     #[test]
     fn test_resolve() {
         let root = TempGitRepository::default();
-        let serve_git = ServeGit::new(&root.path()).unwrap();
+        let repo = root.repository();
+        let serve_git = ServeGit::new(&repo);
 
         assert_matches!(serve_git.resolve(None, None), Ok(Resolve::Dir(_)));
         assert_matches!(
@@ -151,7 +150,8 @@ mod tests {
     #[test]
     fn test_serve() {
         let root = TempGitRepository::default();
-        let serve_git = ServeGit::new(&root.path()).unwrap();
+        let repo = root.repository();
+        let serve_git = ServeGit::new(&repo);
 
         assert_matches!(serve_git.serve(None, None), Ok(_));
         assert_matches!(serve_git.serve(None, Some("README.md")), Ok(_));

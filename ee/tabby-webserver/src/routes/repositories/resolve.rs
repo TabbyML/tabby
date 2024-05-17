@@ -6,7 +6,7 @@ use hyper::StatusCode;
 use juniper::ID;
 use serde::Deserialize;
 use tabby_schema::repository::{RepositoryKind, RepositoryService};
-use tabby_search::ServeGit;
+use tabby_search::GitReadOnly;
 use tracing::warn;
 
 #[derive(Deserialize, Debug)]
@@ -39,11 +39,11 @@ impl ResolveState {
             return Err(StatusCode::NOT_FOUND);
         };
 
-        let serve = ServeGit::new(&root).map_err(|e| {
+        let serve = GitReadOnly::new(&root).map_err(|e| {
             warn!("Failed to open repository: {:?}", e);
             StatusCode::NOT_FOUND
         })?;
 
-        serve.serve(None, params.path.as_deref())
+        serve.serve_file(None, params.path.as_deref())
     }
 }

@@ -122,8 +122,9 @@ impl RepositoryService for RepositoryServiceImpl {
         let dir = self.resolve_repository(kind, id).await?.dir;
 
         let pattern = pattern.to_owned();
+        let git = tabby_search::GitReadOnly::new(&dir)?;
         let matching = tokio::task::spawn_blocking(move || async move {
-            tabby_search::FileSearch::search(&dir, &pattern, top_n).map(|x| {
+            git.search_files(None, &pattern, top_n).map(|x| {
                 x.into_iter()
                     .map(|f| FileEntrySearchResult {
                         r#type: f.r#type,
