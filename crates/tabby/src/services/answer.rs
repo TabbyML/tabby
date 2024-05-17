@@ -197,7 +197,7 @@ impl AnswerService {
             .iter()
             .map(|doc| {
                 format!(
-                    "```{} title=\"{}\" \n{}```",
+                    "```{} title=\"{}\"\n{}\n```",
                     doc.language, doc.filepath, doc.body
                 )
             })
@@ -250,7 +250,7 @@ Remember, based on the original question and related contexts, suggest three suc
             .iter()
             .map(|doc| {
                 format!(
-                    "```{} title=\"{}\" \n{}```",
+                    "```{} title=\"{}\"\n{}\n```",
                     doc.language, doc.filepath, doc.body
                 )
             })
