@@ -144,7 +144,7 @@ pub struct ModelConfigGroup {
 #[serde(rename_all = "snake_case")]
 pub enum ModelConfig {
     Http(HttpModelConfig),
-    Llama(LlamaModelConfig),
+    LlamaCpp(LlamaCppModelConfig),
 }
 
 #[derive(Serialize, Deserialize, Builder, Clone)]
@@ -169,22 +169,18 @@ pub struct HttpModelConfig {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct LlamaModelConfig {
+pub struct LlamaCppModelConfig {
     pub model_id: String,
 
     #[serde(default = "default_parallelism")]
     pub parallelism: u8,
 
-    #[serde(default = "default_num_gpu_layers")]
+    #[serde(default)]
     pub num_gpu_layers: u16,
 }
 
 fn default_parallelism() -> u8 {
     1
-}
-
-fn default_num_gpu_layers() -> u16 {
-    9999
 }
 
 #[async_trait]

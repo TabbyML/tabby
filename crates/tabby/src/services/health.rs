@@ -59,7 +59,7 @@ fn to_model_name(model: &Option<ModelConfig>) -> Option<String> {
     if let Some(model) = model {
         match model {
             ModelConfig::Http(_http) => Some("Remote".to_owned()),
-            ModelConfig::Llama(llama) => Some(llama.model_id.clone()),
+            ModelConfig::LlamaCpp(llama) => Some(llama.model_id.clone()),
         }
     } else {
         None

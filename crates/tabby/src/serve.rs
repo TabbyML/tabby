@@ -175,15 +175,15 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 }
 
 async fn load_model(config: &Config) {
-    if let Some(ModelConfig::Llama(ref model)) = config.model.completion {
+    if let Some(ModelConfig::LlamaCpp(ref model)) = config.model.completion {
         download_model_if_needed(&model.model_id).await;
     }
 
-    if let Some(ModelConfig::Llama(ref model)) = config.model.chat {
+    if let Some(ModelConfig::LlamaCpp(ref model)) = config.model.chat {
         download_model_if_needed(&model.model_id).await;
     }
 
-    if let Some(ModelConfig::Llama(ref model)) = config.model.embedding {
+    if let Some(ModelConfig::LlamaCpp(ref model)) = config.model.embedding {
         download_model_if_needed(&model.model_id).await;
     }
 }

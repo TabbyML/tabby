@@ -17,7 +17,7 @@ pub async fn load_chat_completion(chat: &ModelConfig) -> Arc<dyn ChatCompletionS
     match chat {
         ModelConfig::Http(http) => http_api_bindings::create_chat(http),
 
-        ModelConfig::Llama(_) => {
+        ModelConfig::LlamaCpp(_) => {
             let (engine, PromptInfo { chat_template, .. }) = load_completion(chat).await;
 
             let Some(chat_template) = chat_template else {
@@ -32,7 +32,7 @@ pub async fn load_chat_completion(chat: &ModelConfig) -> Arc<dyn ChatCompletionS
 pub async fn load_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {
     match config {
         ModelConfig::Http(http) => http_api_bindings::create_embedding(http),
-        ModelConfig::Llama(llama) => {
+        ModelConfig::LlamaCpp(llama) => {
             if fs::metadata(&llama.model_id).is_ok() {
                 let path = PathBuf::from(&llama.model_id);
                 let model_path = path.join(GGML_MODEL_RELATIVE_PATH);
@@ -70,7 +70,7 @@ async fn load_completion(model: &ModelConfig) -> (Arc<dyn CompletionStream>, Pro
                 },
             )
         }
-        ModelConfig::Llama(llama) => {
+        ModelConfig::LlamaCpp(llama) => {
             if fs::metadata(&llama.model_id).is_ok() {
                 let path = PathBuf::from(&llama.model_id);
                 let model_path = path.join(GGML_MODEL_RELATIVE_PATH);
