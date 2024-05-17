@@ -46,7 +46,6 @@ http-api-bindings = { path = "../http-api-bindings" }
 async-stream = { workspace = true }
 minijinja = { version = "1.0.8", features = ["loader"] }
 textdistance = "1.0.2"
-regex.workspace = true
 llama-cpp-server = { path = "../llama-cpp-server" }
 futures.workspace = true
 async-trait.workspace = true

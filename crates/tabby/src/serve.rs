@@ -71,6 +71,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         api::doc::DocSearchDocument,
         answer::AnswerRequest,
         answer::AnswerResponseChunk,
+        answer::AnswerCodeQuery,
         api::server_setting::ServerSetting
     )),
     modifiers(&SecurityAddon),
@@ -214,9 +215,13 @@ async fn api_router(
     };
 
     let answer_state = if let Some(chat) = &chat_state {
-        docsearch_state
-            .as_ref()
-            .map(|doc| Arc::new(services::answer::create(chat.clone(), doc.clone())))
+        docsearch_state.as_ref().map(|doc| {
+            Arc::new(services::answer::create(
+                chat.clone(),
+                code.clone(),
+                doc.clone(),
+            ))
+        })
     } else {
         None
     };
