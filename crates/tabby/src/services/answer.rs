@@ -27,6 +27,9 @@ pub struct AnswerRequest {
 
     #[serde(default)]
     code_query: Option<CodeQuery>,
+
+    #[serde(default)]
+    doc_query: bool,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -95,7 +98,11 @@ impl AnswerService {
 
 
             // 2. Collect relevant docs if needed.
-            let relevant_docs = self.collect_relevant_docs(&query.content).await;
+            let relevant_docs = if req.doc_query {
+                self.collect_relevant_docs(&query.content).await;
+            } else {
+                vec![]
+            };
 
             if !relevant_docs.is_empty() {
                 yield AnswerResponseChunk::RelevantDocuments(relevant_docs.clone());
