@@ -3,12 +3,10 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use utoipa::ToSchema;
 
-#[derive(Default, Serialize, Deserialize, Debug, ToSchema)]
 pub struct DocSearchResponse {
     pub hits: Vec<DocSearchHit>,
 }
 
-#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct DocSearchHit {
     pub score: f32,
     pub doc: DocSearchDocument,

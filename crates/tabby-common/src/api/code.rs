@@ -4,13 +4,13 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use utoipa::ToSchema;
 
-#[derive(Default, Serialize, Deserialize, Debug, ToSchema)]
+#[derive(Default, Serialize, Deserialize, Debug)]
 pub struct CodeSearchResponse {
     pub num_hits: usize,
     pub hits: Vec<CodeSearchHit>,
 }
 
-#[derive(Serialize, Deserialize, Debug, ToSchema)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CodeSearchHit {
     pub score: f32,
     pub doc: CodeSearchDocument,
