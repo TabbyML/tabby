@@ -4,6 +4,14 @@
 
 ### Fixes and improvements
 
+## [v4.3.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v4.3.0) (2024-05-17)
+
+### New features
+* Support phi-3 (8k and 128k) (#1700 and #1680)
+
+### Fixes and improvements
+* Fix regression Flash Attention (#1695)
+
 ## [v4.2.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v4.2.1) (2024-04-24)
 
 Note: Because of the increasing of package's size (> 100 MB), the release v4.2.0 was pushed unsuccessfully.
