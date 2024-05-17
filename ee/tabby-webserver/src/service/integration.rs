@@ -32,11 +32,7 @@ impl IntegrationService for IntegrationServiceImpl {
     ) -> Result<ID> {
         let id = self
             .db
-            .create_integration_access_token(
-                kind.as_enum_str().to_string(),
-                display_name,
-                access_token,
-            )
+            .create_integration(kind.as_enum_str().to_string(), display_name, access_token)
             .await?;
         let id = id.as_id();
         let _ = self
@@ -47,7 +43,7 @@ impl IntegrationService for IntegrationServiceImpl {
 
     async fn delete_integration(&self, id: ID, kind: IntegrationKind) -> Result<()> {
         self.db
-            .delete_integration_access_token(id.as_rowid()?, kind.as_enum_str())
+            .delete_integration(id.as_rowid()?, kind.as_enum_str())
             .await?;
         Ok(())
     }
@@ -60,7 +56,7 @@ impl IntegrationService for IntegrationServiceImpl {
         access_token: Option<String>,
     ) -> Result<()> {
         self.db
-            .update_integration_access_token(
+            .update_integration(
                 id.as_rowid()?,
                 kind.as_enum_str(),
                 display_name,
@@ -88,7 +84,7 @@ impl IntegrationService for IntegrationServiceImpl {
         let kind = kind.map(|kind| kind.as_enum_str().to_string());
         let integrations = self
             .db
-            .list_integration_access_tokens(ids, kind, limit, skip_id, backwards)
+            .list_integrations(ids, kind, limit, skip_id, backwards)
             .await?;
 
         Ok(integrations
@@ -98,16 +94,12 @@ impl IntegrationService for IntegrationServiceImpl {
     }
 
     async fn get_integration(&self, id: ID) -> Result<IntegrationAccessToken> {
-        Ok(self
-            .db
-            .get_integration_access_token(id.as_rowid()?)
-            .await?
-            .try_into()?)
+        Ok(self.db.get_integration(id.as_rowid()?).await?.try_into()?)
     }
 
     async fn update_integration_error(&self, id: ID, error: Option<String>) -> Result<()> {
         self.db
-            .update_integration_access_token_error(id.as_rowid()?, error)
+            .update_integration_error(id.as_rowid()?, error)
             .await?;
         Ok(())
     }

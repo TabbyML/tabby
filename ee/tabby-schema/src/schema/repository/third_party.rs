@@ -9,7 +9,7 @@ use crate::{integration::IntegrationKind, juniper::relay::NodeType, schema::Resu
 #[graphql(context = Context)]
 pub struct ProvidedRepository {
     pub id: ID,
-    pub integration_access_token_id: ID,
+    pub integration_id: ID,
     pub active: bool,
     pub display_name: String,
     pub git_url: String,

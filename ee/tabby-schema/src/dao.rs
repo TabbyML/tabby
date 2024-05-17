@@ -133,7 +133,7 @@ impl TryFrom<ProvidedRepositoryDAO> for ProvidedRepository {
     fn try_from(value: ProvidedRepositoryDAO) -> Result<Self, Self::Error> {
         Ok(Self {
             id: value.id.as_id(),
-            integration_access_token_id: value.integration_access_token_id.as_id(),
+            integration_id: value.integration_id.as_id(),
             active: value.active,
             display_name: value.name,
             git_url: value.git_url,
@@ -172,7 +172,7 @@ impl From<ProvidedRepository> for GithubProvidedRepository {
         Self {
             id: value.id,
             vendor_id: value.vendor_id,
-            github_repository_provider_id: value.integration_access_token_id,
+            github_repository_provider_id: value.integration_id,
             name: value.display_name,
             git_url: value.git_url,
             active: value.active,
@@ -217,7 +217,7 @@ impl From<ProvidedRepository> for GitlabProvidedRepository {
         Self {
             id: value.id,
             vendor_id: value.vendor_id,
-            gitlab_repository_provider_id: value.integration_access_token_id,
+            gitlab_repository_provider_id: value.integration_id,
             name: value.display_name,
             git_url: value.git_url,
             active: value.active,

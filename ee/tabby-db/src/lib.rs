@@ -10,7 +10,7 @@ use cache::Cache;
 use cached::TimedSizedCache;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 pub use email_setting::EmailSettingDAO;
-pub use integration_access_tokens::IntegrationAccessTokenDAO;
+pub use integrations::IntegrationAccessTokenDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use oauth_credential::OAuthCredentialDAO;
@@ -28,7 +28,7 @@ pub use users::UserDAO;
 
 pub mod cache;
 mod email_setting;
-mod integration_access_tokens;
+mod integrations;
 mod invitations;
 mod job_runs;
 mod oauth_credential;
