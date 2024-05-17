@@ -1,9 +1,10 @@
-use super::RepositoryInfo;
 use gitlab::{
     api::{projects::Projects, ApiError, AsyncQuery, Pagination},
     GitlabBuilder,
 };
 use serde::Deserialize;
+
+use super::RepositoryInfo;
 
 #[derive(Deserialize)]
 pub struct GitlabRepository {
