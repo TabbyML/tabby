@@ -67,11 +67,6 @@ enum RepositoryProviderStatus {
   FAILED
 }
 
-enum WorkerKind {
-  COMPLETION
-  CHAT
-}
-
 input CreateRepositoryProviderInput {
   displayName: String!
   accessToken: String!
@@ -370,7 +365,6 @@ type PageInfo {
 }
 
 type Query {
-  workers: [Worker!]!
   registrationToken: String!
   me: User!
   users(after: String, before: String, first: Int, last: Int): UserConnection!
@@ -481,15 +475,4 @@ type UserEventConnection {
 type UserEventEdge {
   node: UserEvent!
   cursor: String!
-}
-
-type Worker {
-  kind: WorkerKind!
-  name: String!
-  addr: String!
-  device: String!
-  arch: String!
-  cpuInfo: String!
-  cpuCount: Int!
-  cudaDevices: [String!]!
 }

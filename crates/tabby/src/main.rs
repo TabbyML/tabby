@@ -4,9 +4,6 @@ mod services;
 mod download;
 mod serve;
 
-#[cfg(feature = "ee")]
-mod worker;
-
 #[cfg(target_family = "unix")]
 use std::os::unix::fs::PermissionsExt;
 
@@ -37,16 +34,6 @@ pub enum Commands {
 
     /// Run scheduler progress for cron jobs integrating external code repositories.
     Scheduler(SchedulerArgs),
-
-    /// Run completion model as worker
-    #[cfg(feature = "ee")]
-    #[clap(name = "worker::completion", hide = true)]
-    WorkerCompletion(worker::WorkerArgs),
-
-    /// Run chat model as worker
-    #[cfg(feature = "ee")]
-    #[clap(name = "worker::chat", hide = true)]
-    WorkerChat(worker::WorkerArgs),
 }
 
 #[derive(clap::Args)]
@@ -96,19 +83,6 @@ async fn main() {
         Commands::Download(ref args) => download::main(args).await,
         Commands::Scheduler(SchedulerArgs { now, .. }) => {
             tabby_scheduler::scheduler(now, ConfigRepositoryAccess).await
-        }
-        #[cfg(feature = "ee")]
-        Commands::WorkerCompletion(ref args) => {
-            worker::main(
-                &config,
-                tabby_webserver::public::WorkerKind::Completion,
-                args,
-            )
-            .await
-        }
-        #[cfg(feature = "ee")]
-        Commands::WorkerChat(ref args) => {
-            worker::main(&config, tabby_webserver::public::WorkerKind::Chat, args).await
         }
     }
 }
