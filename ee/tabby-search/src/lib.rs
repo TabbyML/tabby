@@ -6,7 +6,6 @@ use axum::{
     http::{Response, StatusCode},
 };
 use file_search::GitFileSearch;
-use serve_git::ServeGit;
 
 pub struct GitReadOnly {
     repository: git2::Repository,
@@ -25,7 +24,7 @@ impl GitReadOnly {
         pattern: &str,
         limit: usize,
     ) -> anyhow::Result<Vec<GitFileSearch>> {
-        GitFileSearch::search(&self.repository, commit, pattern, limit)
+        file_search::search(&self.repository, commit, pattern, limit)
     }
 
     pub fn serve_file(
@@ -33,7 +32,7 @@ impl GitReadOnly {
         commit: Option<&str>,
         path: Option<&str>,
     ) -> std::result::Result<Response<Body>, StatusCode> {
-        ServeGit::new(&self.repository).serve(commit, path)
+        serve_git::serve(&self.repository, commit, path)
     }
 }
 
