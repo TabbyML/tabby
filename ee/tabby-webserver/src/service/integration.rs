@@ -107,8 +107,9 @@ impl IntegrationService for IntegrationServiceImpl {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::sync::Arc;
+
+    use super::*;
 
     fn create_fake() -> UnboundedSender<BackgroundJobEvent> {
         let (sender, _) = tokio::sync::mpsc::unbounded_channel();
