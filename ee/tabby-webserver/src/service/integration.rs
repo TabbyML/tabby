@@ -107,7 +107,9 @@ impl IntegrationService for IntegrationServiceImpl {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
+    use std::{sync::Arc, time::Duration};
+
+    use tabby_schema::integration::IntegrationStatus;
 
     use super::*;
 
@@ -134,6 +136,35 @@ mod tests {
             .unwrap();
         assert_eq!(providers.len(), 1);
         assert_eq!(providers[0].access_token, "secret");
+
+        // Test updating gitlab provider
+        integration
+            .update_integration(id.clone(), IntegrationKind::Gitlab, "id2".into(), None)
+            .await
+            .unwrap();
+
+        let provider = integration.get_integration(id.clone()).await.unwrap();
+        assert_eq!(provider.display_name, "id2");
+        assert_eq!(provider.status, IntegrationStatus::Pending);
+
+        // Test updating error status for gitlab provider
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        integration
+            .update_integration_error(id.clone(), Some("error".into()))
+            .await
+            .unwrap();
+
+        let provider = integration.get_integration(id.clone()).await.unwrap();
+        assert_eq!(provider.status, IntegrationStatus::Failed);
+
+        // Test successful status (no error)
+        integration
+            .update_integration_error(id.clone(), None)
+            .await
+            .unwrap();
+
+        let provider = integration.get_integration(id.clone()).await.unwrap();
+        assert_eq!(provider.status, IntegrationStatus::Ready);
 
         // Deleting using github integration kind should fail since this is a gitlab integration
         assert!(integration
