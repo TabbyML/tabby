@@ -145,5 +145,7 @@ mod tests {
             serve_git.resolve(None, Some("README.md")),
             Ok(Resolve::File(_, _))
         );
+
+        assert_matches!(serve_git.serve(None, Some("README.md")), Ok(_));
     }
 }
