@@ -22,11 +22,13 @@ import { usePatchFetch } from './use-patch-fetch'
 
 type ChatContextValue = {
   isLoading: boolean
+  qaPairs: QuestionAnswerPair[]
   handleMessageAction: (
     userMessageId: string,
     action: MessageActionType
   ) => void
   onNavigateToContext?: (context: Context) => void
+  onClearMessages: () => void
   container?: HTMLDivElement
 }
 
@@ -175,6 +177,12 @@ function ChatRenderer(
     stop()
   }
 
+  const onClearMessages = () => {
+    stop()
+    setMessages([])
+    setQaPairs([])
+  }
+
   const handleMessageAction = (
     userMessageId: string,
     actionType: 'delete' | 'regenerate'
@@ -294,8 +302,10 @@ function ChatRenderer(
     <ChatContext.Provider
       value={{
         isLoading: useChatHelpers.isLoading,
+        qaPairs,
         onNavigateToContext,
         handleMessageAction,
+        onClearMessages,
         container
       }}
     >
@@ -313,14 +323,10 @@ function ChatRenderer(
             onSubmit={handleSubmit}
             className="fixed inset-x-0 bottom-0 lg:ml-[280px]"
             id={chatId}
-            isLoading={isLoading}
             stop={onStop}
-            append={append}
             reload={onReload}
-            messages={messages}
             input={input}
             setInput={setInput}
-            setMessages={setMessages}
           />
         </div>
       </div>

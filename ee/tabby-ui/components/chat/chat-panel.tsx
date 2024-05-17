@@ -11,44 +11,28 @@ import { FooterText } from '@/components/footer'
 import { ChatContext } from './chat'
 
 export interface ChatPanelProps
-  extends Pick<
-    UseChatHelpers,
-    | 'append'
-    | 'isLoading'
-    | 'reload'
-    | 'messages'
-    | 'stop'
-    | 'input'
-    | 'setInput'
-    | 'setMessages'
-  > {
+  extends Pick<UseChatHelpers, 'stop' | 'input' | 'setInput'> {
   id?: string
   className?: string
   onSubmit: (content: string) => Promise<any>
+  reload: () => void
 }
 
 export function ChatPanel({
   id,
-  isLoading,
   stop,
   reload,
   input,
   setInput,
-  messages,
   className,
-  onSubmit,
-  setMessages
+  onSubmit
 }: ChatPanelProps) {
   const promptFormRef = React.useRef<PromptFormRef>(null)
-  const { container } = React.useContext(ChatContext)
+  const { container, onClearMessages, qaPairs, isLoading } =
+    React.useContext(ChatContext)
   React.useEffect(() => {
     promptFormRef?.current?.focus()
   }, [id])
-
-  const onClearContext = () => {
-    stop()
-    setMessages([])
-  }
 
   return (
     <div
@@ -70,7 +54,7 @@ export function ChatPanel({
               Stop generating
             </Button>
           ) : (
-            messages?.length > 0 && (
+            qaPairs?.length > 0 && (
               <Button
                 variant="outline"
                 onClick={() => reload()}
@@ -81,10 +65,10 @@ export function ChatPanel({
               </Button>
             )
           )}
-          {messages?.length > 0 && (
+          {qaPairs?.length > 0 && (
             <Button
               variant="outline"
-              onClick={() => onClearContext()}
+              onClick={onClearMessages}
               className="bg-background lg:hidden"
             >
               <IconTrash className="mr-2" />
