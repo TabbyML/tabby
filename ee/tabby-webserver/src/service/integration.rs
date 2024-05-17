@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
-    integration::{IntegrationAccessToken, IntegrationKind, IntegrationService},
+    integration::{Integration, IntegrationKind, IntegrationService},
     AsID, AsRowid, DbEnum, Result,
 };
 use tokio::sync::mpsc::UnboundedSender;
@@ -74,7 +74,7 @@ impl IntegrationService for IntegrationServiceImpl {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<IntegrationAccessToken>> {
+    ) -> Result<Vec<Integration>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let ids = ids
             .unwrap_or_default()
@@ -89,11 +89,11 @@ impl IntegrationService for IntegrationServiceImpl {
 
         Ok(integrations
             .into_iter()
-            .map(IntegrationAccessToken::try_from)
+            .map(Integration::try_from)
             .collect::<Result<_, _>>()?)
     }
 
-    async fn get_integration(&self, id: ID) -> Result<IntegrationAccessToken> {
+    async fn get_integration(&self, id: ID) -> Result<Integration> {
         Ok(self.db.get_integration(id.as_rowid()?).await?.try_into()?)
     }
 

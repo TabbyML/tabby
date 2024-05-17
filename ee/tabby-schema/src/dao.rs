@@ -2,12 +2,12 @@ use anyhow::bail;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, IntegrationAccessTokenDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
+    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
     ProvidedRepositoryDAO, RepositoryDAO, ServerSettingDAO, UserDAO, UserEventDAO,
 };
 
 use crate::{
-    integration::{IntegrationAccessToken, IntegrationKind, IntegrationStatus},
+    integration::{Integration, IntegrationKind, IntegrationStatus},
     repository::{ProvidedRepository, RepositoryKind},
     schema::{
         auth::{self, OAuthCredential, OAuthProvider},
@@ -144,9 +144,9 @@ impl TryFrom<ProvidedRepositoryDAO> for ProvidedRepository {
     }
 }
 
-impl TryFrom<IntegrationAccessTokenDAO> for IntegrationAccessToken {
+impl TryFrom<IntegrationDAO> for Integration {
     type Error = anyhow::Error;
-    fn try_from(value: IntegrationAccessTokenDAO) -> anyhow::Result<Self> {
+    fn try_from(value: IntegrationDAO) -> anyhow::Result<Self> {
         let status = if *value.synced_at <= *value.updated_at {
             IntegrationStatus::Pending
         } else if value.error.is_some() {
@@ -180,8 +180,8 @@ impl From<ProvidedRepository> for GithubProvidedRepository {
     }
 }
 
-impl From<IntegrationAccessToken> for GithubRepositoryProvider {
-    fn from(value: IntegrationAccessToken) -> Self {
+impl From<Integration> for GithubRepositoryProvider {
+    fn from(value: Integration) -> Self {
         Self {
             id: value.id,
             display_name: value.display_name,
@@ -191,8 +191,8 @@ impl From<IntegrationAccessToken> for GithubRepositoryProvider {
     }
 }
 
-impl From<IntegrationAccessToken> for GitlabRepositoryProvider {
-    fn from(value: IntegrationAccessToken) -> Self {
+impl From<Integration> for GitlabRepositoryProvider {
+    fn from(value: Integration) -> Self {
         Self {
             id: value.id,
             display_name: value.display_name,

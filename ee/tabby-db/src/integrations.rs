@@ -5,7 +5,7 @@ use tabby_db_macros::query_paged_as;
 use crate::{DateTimeUtc, DbConn};
 
 #[derive(FromRow)]
-pub struct IntegrationAccessTokenDAO {
+pub struct IntegrationDAO {
     pub id: i64,
     pub kind: String,
     pub error: Option<String>,
@@ -34,9 +34,9 @@ impl DbConn {
         Ok(res.last_insert_rowid())
     }
 
-    pub async fn get_integration(&self, id: i64) -> Result<IntegrationAccessTokenDAO> {
+    pub async fn get_integration(&self, id: i64) -> Result<IntegrationDAO> {
         let provider = query_as!(
-            IntegrationAccessTokenDAO,
+            IntegrationDAO,
             r#"SELECT
                 id,
                 kind,
@@ -117,7 +117,7 @@ impl DbConn {
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
-    ) -> Result<Vec<IntegrationAccessTokenDAO>> {
+    ) -> Result<Vec<IntegrationDAO>> {
         let mut conditions = vec![];
 
         let id_condition = (!ids.is_empty()).then(|| {
@@ -136,7 +136,7 @@ impl DbConn {
         let condition = (!conditions.is_empty()).then(|| conditions.join(" AND "));
 
         let providers = query_paged_as!(
-            IntegrationAccessTokenDAO,
+            IntegrationDAO,
             "integrations",
             [
                 "id",
