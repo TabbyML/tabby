@@ -16,9 +16,8 @@ use tokio::sync::mpsc::UnboundedSender;
 use tracing::{debug, error};
 use url::Url;
 
-use crate::service::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
-
 use self::fetch::RepositoryInfo;
+use crate::service::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
 
 mod fetch;
 
