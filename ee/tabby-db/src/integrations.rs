@@ -13,7 +13,7 @@ pub struct IntegrationDAO {
     pub access_token: String,
     pub created_at: DateTimeUtc,
     pub updated_at: DateTimeUtc,
-    pub synced_at: DateTimeUtc,
+    pub synced: bool,
 }
 
 impl DbConn {
@@ -45,7 +45,7 @@ impl DbConn {
                 access_token,
                 updated_at,
                 created_at,
-                synced_at
+                synced
             FROM integrations WHERE id = ?;"#,
             id
         )
@@ -81,7 +81,7 @@ impl DbConn {
         };
 
         let res = query!(
-            "UPDATE integrations SET display_name = ?, access_token = ?, updated_at = DATETIME('now') WHERE id = ? AND kind = ?;",
+            "UPDATE integrations SET display_name = ?, access_token = ?, updated_at = DATETIME('now'), synced = false WHERE id = ? AND kind = ?;",
             display_name,
             access_token,
             id,
@@ -101,7 +101,7 @@ impl DbConn {
 
     pub async fn update_integration_error(&self, id: i64, error: Option<String>) -> Result<()> {
         query!(
-            "UPDATE integrations SET synced_at = DATETIME('now'), error = ? WHERE id = ?",
+            "UPDATE integrations SET synced = true, error = ? WHERE id = ?",
             error,
             id
         )
@@ -146,7 +146,7 @@ impl DbConn {
                 "access_token",
                 "created_at",
                 "updated_at",
-                "synced_at"
+                "synced"
             ],
             limit,
             skip_id,

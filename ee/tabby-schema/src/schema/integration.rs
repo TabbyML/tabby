@@ -25,7 +25,6 @@ pub struct Integration {
     pub access_token: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub synced_at: DateTime<Utc>,
     pub status: IntegrationStatus,
 }
 

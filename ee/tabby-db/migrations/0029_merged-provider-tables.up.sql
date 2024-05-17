@@ -6,7 +6,7 @@ CREATE TABLE integrations(
     error TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
     updated_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
-    synced_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now'))
+    synced BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE provided_repositories(

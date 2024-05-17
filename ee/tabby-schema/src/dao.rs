@@ -147,7 +147,7 @@ impl TryFrom<ProvidedRepositoryDAO> for ProvidedRepository {
 impl TryFrom<IntegrationDAO> for Integration {
     type Error = anyhow::Error;
     fn try_from(value: IntegrationDAO) -> anyhow::Result<Self> {
-        let status = if *value.synced_at <= *value.updated_at {
+        let status = if value.synced {
             IntegrationStatus::Pending
         } else if value.error.is_some() {
             IntegrationStatus::Failed
@@ -160,7 +160,6 @@ impl TryFrom<IntegrationDAO> for Integration {
             display_name: value.display_name,
             access_token: value.access_token,
             created_at: *value.created_at,
-            synced_at: *value.synced_at,
             updated_at: *value.updated_at,
             status,
         })
