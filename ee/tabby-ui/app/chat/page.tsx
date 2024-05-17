@@ -12,8 +12,8 @@ export default function ChatPage() {
   const [fetcherOptions, setFetcherOptions] = useState<FetcherOptions | null>(
     null
   )
+  const [activeChatId, setActiveChatId] = useState("")
   const chatRef = useRef<ChatRef>(null)
-  const activeChatId = nanoid()
   let messageQueueBeforeInit: ChatMessage[] = []
 
   const sendMessage = (message: ChatMessage) => {
@@ -27,6 +27,7 @@ export default function ChatPage() {
   useServer({
     init: request => {
       if (chatRef.current) return
+      setActiveChatId(nanoid())
       setIsInit(true)
       setFetcherOptions(request.fetcherOptions)
 
