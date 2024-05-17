@@ -8,7 +8,7 @@ use strum::IntoEnumIterator;
 use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
 use tabby_schema::{
-    integration::{IntegrationKind, IntegrationService},
+    integration::{IntegrationAccessToken, IntegrationKind, IntegrationService},
     repository::{ProvidedRepository, Repository, ThirdPartyRepositoryService},
     AsRowid, DbEnum, Result,
 };
@@ -17,6 +17,8 @@ use tracing::{debug, error};
 use url::Url;
 
 use crate::service::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
+
+use self::fetch::RepositoryInfo;
 
 mod fetch;
 
@@ -153,7 +155,31 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
     }
 
     async fn sync_repositories(&self, integration_id: ID) -> Result<()> {
-        refresh_repositories_for_provider(self, &*self.integration, integration_id).await?;
+        let provider = self.integration.get_integration(integration_id).await?;
+        debug!(
+            "Refreshing repositories for provider: {}",
+            provider.display_name
+        );
+
+        let repos = match fetch_all_repos(provider.kind.clone(), &provider.access_token).await {
+            Ok(repos) => repos,
+            Err((e, true)) => {
+                self.integration
+                    .update_integration_error(provider.id.clone(), Some("".into()))
+                    .await?;
+                error!(
+                    "Credentials for integration {} are expired or invalid",
+                    provider.display_name
+                );
+                return Err(e.into());
+            }
+            Err((e, false)) => {
+                error!("Failed to fetch repositories from github: {e}");
+                return Err(e.into());
+            }
+        };
+
+        refresh_repositories_for_provider(self, &*self.integration, provider, repos).await?;
         Ok(())
     }
 
@@ -190,47 +216,26 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
 async fn refresh_repositories_for_provider(
     repository: &dyn ThirdPartyRepositoryService,
     integration: &dyn IntegrationService,
-    provider_id: ID,
+    provider: IntegrationAccessToken,
+    repos: Vec<RepositoryInfo>,
 ) -> Result<()> {
-    let provider = integration.get_integration(provider_id.clone()).await?;
-    debug!(
-        "Refreshing repositories for provider: {}",
-        provider.display_name
-    );
-
     let start = Utc::now();
-    let repos = match fetch_all_repos(provider.kind.clone(), &provider.access_token).await {
-        Ok(repos) => repos,
-        Err((e, true)) => {
-            integration
-                .update_integration_error(provider.id.clone(), Some("".into()))
-                .await?;
-            error!(
-                "Credentials for integration {} are expired or invalid",
-                provider.display_name
-            );
-            return Err(e.into());
-        }
-        Err((e, false)) => {
-            error!("Failed to fetch repositories from github: {e}");
-            return Err(e.into());
-        }
-    };
+
     for repo in repos {
         debug!("importing: {}", repo.name);
 
         let id = repo.vendor_id;
 
         repository
-            .upsert_repository(provider_id.clone(), id, repo.name, repo.git_url)
+            .upsert_repository(provider.id.clone(), id, repo.name, repo.git_url)
             .await?;
     }
 
     integration
-        .update_integration_error(provider_id.clone(), None)
+        .update_integration_error(provider.id.clone(), None)
         .await?;
     let num_removed = repository
-        .delete_outdated_repositories(provider_id, start)
+        .delete_outdated_repositories(provider.id, start)
         .await?;
     debug!("Removed {} outdated repositories", num_removed);
     Ok(())
@@ -256,6 +261,8 @@ fn format_authenticated_url(
 
 #[cfg(test)]
 mod tests {
+
+    use std::time::Duration;
 
     use super::*;
 
@@ -454,6 +461,66 @@ mod tests {
         assert_eq!(
             git_urls,
             ["https://oauth2:token2@gitlab.com/TabbyML/tabby".to_string()]
+        );
+    }
+
+    #[tokio::test]
+    async fn test_refresh_repositories_for_provider() {
+        let (repository, integration) = create_fake().await;
+
+        let provider_id = integration
+            .create_integration(IntegrationKind::Github, "gh".into(), "token".into())
+            .await
+            .unwrap();
+
+        repository
+            .upsert_repository(
+                provider_id.clone(),
+                "vendor_id".into(),
+                "abc/def".into(),
+                "https://github.com/abc/def".into(),
+            )
+            .await
+            .unwrap();
+
+        repository
+            .upsert_repository(
+                provider_id.clone(),
+                "vendor_id2".into(),
+                "repo2".into(),
+                "https://github.com/TabbyML/tabby".into(),
+            )
+            .await
+            .unwrap();
+
+        tokio::time::sleep(Duration::from_secs(1)).await;
+
+        let mut new_repos = vec![];
+        new_repos.push(RepositoryInfo {
+            name: "TabbyML/tabby2".into(),
+            git_url: "https://github.com/TabbyML/tabby".into(),
+            vendor_id: "vendor_id2".into(),
+        });
+
+        new_repos.push(RepositoryInfo {
+            name: "TabbyML/newrepo".into(),
+            git_url: "https://github.com/TabbyML/newrepo".into(),
+            vendor_id: "vendor_id3".into(),
+        });
+
+        let provider = integration.get_integration(provider_id).await.unwrap();
+        refresh_repositories_for_provider(&*repository, &*integration, provider, new_repos)
+            .await
+            .unwrap();
+
+        let repos = repository
+            .list_repositories(None, None, None, None, None, None, None)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            repos.iter().map(|r| &r.display_name).collect::<Vec<_>>(),
+            vec!["TabbyML/tabby2", "TabbyML/newrepo"]
         );
     }
 }
