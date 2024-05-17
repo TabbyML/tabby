@@ -104,3 +104,55 @@ impl IntegrationService for IntegrationServiceImpl {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Arc;
+
+    fn create_fake() -> UnboundedSender<BackgroundJobEvent> {
+        let (sender, _) = tokio::sync::mpsc::unbounded_channel();
+        sender
+    }
+
+    #[tokio::test]
+    async fn test_integration_crud() {
+        let background = create_fake();
+        let db = DbConn::new_in_memory().await.unwrap();
+        let integration = Arc::new(create(db, background));
+
+        let id = integration
+            .create_integration(IntegrationKind::Gitlab, "id".into(), "secret".into())
+            .await
+            .unwrap();
+
+        // Test listing gitlab providers
+        let providers = integration
+            .list_integrations(None, Some(IntegrationKind::Gitlab), None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(providers.len(), 1);
+        assert_eq!(providers[0].access_token, "secret");
+
+        // Deleting using github integration kind should fail since this is a gitlab integration
+        assert!(integration
+            .delete_integration(id.clone(), IntegrationKind::Github)
+            .await
+            .is_err());
+
+        // Test successful deletion
+        integration
+            .delete_integration(id.clone(), IntegrationKind::Gitlab)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            0,
+            integration
+                .list_integrations(None, None, None, None, None, None)
+                .await
+                .unwrap()
+                .len()
+        );
+    }
+}
