@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { Context as ChatContext } from 'tabby-chat-panel'
 
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
@@ -9,7 +10,7 @@ import { addChat, updateMessages } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { getChatById } from '@/lib/stores/utils'
 import fetcher from '@/lib/tabby/fetcher'
-import { Context as ChatContext, QuestionAnswerPair } from '@/lib/types/chat'
+import { QuestionAnswerPair } from '@/lib/types/chat'
 import { truncateText } from '@/lib/utils'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Chat, ChatRef } from '@/components/chat/chat'
@@ -84,18 +85,23 @@ export default function Chats() {
   }
 
   const onNavigateToContext = (context: ChatContext) => {
-    // todo check if is embed
-    if (!context.filePath || !context.link) return
-    const isInIframe = window.self !== window.top
-    if (isInIframe) {
-      window.top?.postMessage({
-        action: 'navigateToContext',
-        path: context.filePath,
-        line: context.range.start
-      })
-    } else {
-      window.open(context.link)
-    }
+    if (!context.filepath) return
+
+    // const isInIframe = window.self !== window.top
+    // if embed
+    // if (isInIframe) {
+    //   window.top?.postMessage({
+    //     action: 'navigateToContext',
+    //     path: context.filepath,
+    //     line: context.range.start
+    //   })
+    // } else {
+    //   window.open(context.link)
+    // }
+    const url = `/files?path=${encodeURIComponent(context.filepath)}&line=${
+      context.range.start ?? ''
+    }`
+    window.open(url)
   }
 
   const onChatLoaded = () => {
