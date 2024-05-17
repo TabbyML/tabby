@@ -58,5 +58,5 @@ pub trait IntegrationService: Send + Sync {
     ) -> Result<Vec<Integration>>;
 
     async fn get_integration(&self, id: ID) -> Result<Integration>;
-    async fn update_integration_error(&self, id: ID, error: Option<String>) -> Result<()>;
+    async fn update_integration_sync_status(&self, id: ID, error: Option<String>) -> Result<()>;
 }
