@@ -10,17 +10,18 @@ pub struct IntegrationAccessTokenDAO {
     pub kind: String,
     pub error: Option<String>,
     pub display_name: String,
-    pub access_token: Option<String>,
+    pub access_token: String,
     pub created_at: DateTimeUtc,
     pub updated_at: DateTimeUtc,
+    pub synced_at: DateTimeUtc,
 }
 
 impl DbConn {
     pub async fn create_integration_access_token(
         &self,
-        kind: &str,
-        name: &str,
-        access_token: &str,
+        kind: String,
+        name: String,
+        access_token: String,
     ) -> Result<i64> {
         let res = query!(
             "INSERT INTO integration_access_tokens(kind, display_name, access_token) VALUES (?, ?, ?);",
@@ -42,8 +43,9 @@ impl DbConn {
                 error,
                 display_name,
                 access_token,
-                created_at AS "created_at: DateTimeUtc",
-                updated_at AS "updated_at: DateTimeUtc"
+                updated_at,
+                created_at,
+                synced_at
             FROM integration_access_tokens WHERE id = ?;"#,
             id
         )
@@ -52,10 +54,14 @@ impl DbConn {
         Ok(provider)
     }
 
-    pub async fn delete_integration_access_token(&self, id: i64) -> Result<()> {
-        let res = query!("DELETE FROM integration_access_tokens WHERE id = ?;", id)
-            .execute(&self.pool)
-            .await?;
+    pub async fn delete_integration_access_token(&self, id: i64, kind: &str) -> Result<()> {
+        let res = query!(
+            "DELETE FROM integration_access_tokens WHERE id = ? AND kind = ?;",
+            id,
+            kind
+        )
+        .execute(&self.pool)
+        .await?;
         if res.rows_affected() != 1 {
             return Err(anyhow!("No integration access token to delete"));
         }
@@ -65,19 +71,21 @@ impl DbConn {
     pub async fn update_integration_access_token(
         &self,
         id: i64,
+        kind: &str,
         display_name: String,
         access_token: Option<String>,
     ) -> Result<()> {
         let access_token = match access_token {
-            Some(access_token) => Some(access_token),
+            Some(access_token) => access_token,
             None => self.get_integration_access_token(id).await?.access_token,
         };
 
         let res = query!(
-            "UPDATE integration_access_tokens SET display_name = ?, access_token=? WHERE id = ?;",
+            "UPDATE integration_access_tokens SET display_name = ?, access_token = ?, updated_at = DATETIME('now') WHERE id = ? AND kind = ?;",
             display_name,
             access_token,
-            id
+            id,
+            kind
         )
         .execute(&self.pool)
         .await?;
@@ -97,7 +105,7 @@ impl DbConn {
         error: Option<String>,
     ) -> Result<()> {
         query!(
-            "UPDATE integration_access_tokens SET updated_at = DATETIME('now'), error = ? WHERE id = ?",
+            "UPDATE integration_access_tokens SET synced_at = DATETIME('now'), error = ? WHERE id = ?",
             error,
             id
         )
@@ -126,7 +134,7 @@ impl DbConn {
         });
         conditions.extend(id_condition);
 
-        let kind_condition = kind.map(|kind| format!("kind = {kind}"));
+        let kind_condition = kind.map(|kind| format!("kind = '{kind}'"));
         conditions.extend(kind_condition);
 
         let condition = (!conditions.is_empty()).then(|| conditions.join(" AND "));
@@ -140,8 +148,9 @@ impl DbConn {
                 "error",
                 "display_name",
                 "access_token",
-                "created_at" as "created_at: DateTimeUtc",
-                "updated_at" as "updated_at: DateTimeUtc"
+                "created_at",
+                "updated_at",
+                "synced_at"
             ],
             limit,
             skip_id,

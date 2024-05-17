@@ -2,6 +2,7 @@ pub mod analytic;
 pub mod auth;
 pub mod constants;
 pub mod email;
+pub mod integration;
 pub mod job;
 pub mod license;
 pub mod repository;
@@ -34,6 +35,7 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
+    integration::{IntegrationKind, IntegrationService},
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
     repository::{FileEntrySearchResult, Repository, RepositoryKind, RepositoryService},
@@ -54,6 +56,7 @@ pub trait ServiceLocator: Send + Sync {
     fn logger(&self) -> Arc<dyn EventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
     fn repository(&self) -> Arc<dyn RepositoryService>;
+    fn integration(&self) -> Arc<dyn IntegrationService>;
     fn email(&self) -> Arc<dyn EmailService>;
     fn setting(&self) -> Arc<dyn SettingService>;
     fn license(&self) -> Arc<dyn LicenseService>;
@@ -217,11 +220,19 @@ impl Query {
             first,
             last,
             |after, before, first, last| async move {
-                ctx.locator
-                    .repository()
-                    .github()
-                    .list_providers(ids.unwrap_or_default(), after, before, first, last)
-                    .await
+                let providers = ctx
+                    .locator
+                    .integration()
+                    .list_integrations(
+                        ids,
+                        Some(IntegrationKind::Github),
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
+                    .await?;
+                Ok(providers.into_iter().map(From::from).collect())
             },
         )
         .await
@@ -243,11 +254,21 @@ impl Query {
             first,
             last,
             |after, before, first, last| async move {
-                ctx.locator
+                let repositories = ctx
+                    .locator
                     .repository()
-                    .github()
-                    .list_repositories(provider_ids, active, after, before, first, last)
-                    .await
+                    .third_party()
+                    .list_repositories(
+                        Some(provider_ids),
+                        Some(IntegrationKind::Github),
+                        active,
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
+                    .await?;
+                Ok(repositories.into_iter().map(From::from).collect())
             },
         )
         .await
@@ -268,11 +289,19 @@ impl Query {
             first,
             last,
             |after, before, first, last| async move {
-                ctx.locator
-                    .repository()
-                    .gitlab()
-                    .list_providers(ids.unwrap_or_default(), after, before, first, last)
-                    .await
+                let integrations = ctx
+                    .locator
+                    .integration()
+                    .list_integrations(
+                        ids,
+                        Some(IntegrationKind::Gitlab),
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
+                    .await?;
+                Ok(integrations.into_iter().map(From::from).collect())
             },
         )
         .await
@@ -294,11 +323,21 @@ impl Query {
             first,
             last,
             |after, before, first, last| async move {
-                ctx.locator
+                let repositories = ctx
+                    .locator
                     .repository()
-                    .gitlab()
-                    .list_repositories(provider_ids, active, after, before, first, last)
-                    .await
+                    .third_party()
+                    .list_repositories(
+                        Some(provider_ids),
+                        Some(IntegrationKind::Gitlab),
+                        active,
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
+                    .await?;
+                Ok(repositories.into_iter().map(From::from).collect())
             },
         )
         .await
@@ -777,9 +816,12 @@ impl Mutation {
         input.validate()?;
         let id = ctx
             .locator
-            .repository()
-            .github()
-            .create_provider(input.display_name, input.access_token)
+            .integration()
+            .create_integration(
+                IntegrationKind::Github,
+                input.display_name,
+                input.access_token,
+            )
             .await?;
         Ok(id)
     }
@@ -787,9 +829,8 @@ impl Mutation {
     async fn delete_github_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator
-            .repository()
-            .github()
-            .delete_provider(id)
+            .integration()
+            .delete_integration(id, IntegrationKind::Github)
             .await?;
         Ok(true)
     }
@@ -801,9 +842,13 @@ impl Mutation {
         check_admin(ctx).await?;
         input.validate()?;
         ctx.locator
-            .repository()
-            .github()
-            .update_provider(input.id, input.display_name, input.access_token)
+            .integration()
+            .update_integration(
+                input.id,
+                IntegrationKind::Github,
+                input.display_name,
+                input.access_token,
+            )
             .await?;
         Ok(true)
     }
@@ -815,7 +860,7 @@ impl Mutation {
     ) -> Result<bool> {
         ctx.locator
             .repository()
-            .github()
+            .third_party()
             .update_repository_active(id, active)
             .await?;
         Ok(true)
@@ -829,9 +874,12 @@ impl Mutation {
         input.validate()?;
         let id = ctx
             .locator
-            .repository()
-            .gitlab()
-            .create_provider(input.display_name, input.access_token)
+            .integration()
+            .create_integration(
+                IntegrationKind::Gitlab,
+                input.display_name,
+                input.access_token,
+            )
             .await?;
         Ok(id)
     }
@@ -839,9 +887,8 @@ impl Mutation {
     async fn delete_gitlab_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator
-            .repository()
-            .gitlab()
-            .delete_provider(id)
+            .integration()
+            .delete_integration(id, IntegrationKind::Gitlab)
             .await?;
         Ok(true)
     }
@@ -853,9 +900,13 @@ impl Mutation {
         check_admin(ctx).await?;
         input.validate()?;
         ctx.locator
-            .repository()
-            .gitlab()
-            .update_provider(input.id, input.display_name, input.access_token)
+            .integration()
+            .update_integration(
+                input.id,
+                IntegrationKind::Gitlab,
+                input.display_name,
+                input.access_token,
+            )
             .await?;
         Ok(true)
     }
@@ -867,7 +918,7 @@ impl Mutation {
     ) -> Result<bool> {
         ctx.locator
             .repository()
-            .gitlab()
+            .third_party()
             .update_repository_active(id, active)
             .await?;
         Ok(true)

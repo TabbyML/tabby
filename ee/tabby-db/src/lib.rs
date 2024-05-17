@@ -12,9 +12,11 @@ use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 pub use email_setting::EmailSettingDAO;
 pub use github_repository_provider::{GithubProvidedRepositoryDAO, GithubRepositoryProviderDAO};
 pub use gitlab_repository_provider::{GitlabProvidedRepositoryDAO, GitlabRepositoryProviderDAO};
+pub use integration_access_tokens::IntegrationAccessTokenDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use oauth_credential::OAuthCredentialDAO;
+pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
 use sqlx::{

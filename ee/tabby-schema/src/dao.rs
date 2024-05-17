@@ -3,21 +3,26 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, GithubProvidedRepositoryDAO, GithubRepositoryProviderDAO,
-    GitlabProvidedRepositoryDAO, GitlabRepositoryProviderDAO, InvitationDAO, JobRunDAO,
-    OAuthCredentialDAO, RepositoryDAO, ServerSettingDAO, UserDAO, UserEventDAO,
+    GitlabProvidedRepositoryDAO, GitlabRepositoryProviderDAO, IntegrationAccessTokenDAO,
+    InvitationDAO, JobRunDAO, OAuthCredentialDAO, ProvidedRepositoryDAO, RepositoryDAO,
+    ServerSettingDAO, UserDAO, UserEventDAO,
 };
 
-use crate::schema::{
-    auth::{self, OAuthCredential, OAuthProvider},
-    email::{AuthMethod, EmailSetting, Encryption},
-    job,
-    repository::{
-        GitRepository, GithubProvidedRepository, GithubRepositoryProvider,
-        GitlabProvidedRepository, GitlabRepositoryProvider, RepositoryProviderStatus,
+use crate::{
+    integration::{IntegrationAccessToken, IntegrationKind, IntegrationStatus},
+    repository::ProvidedRepository,
+    schema::{
+        auth::{self, OAuthCredential, OAuthProvider},
+        email::{AuthMethod, EmailSetting, Encryption},
+        job,
+        repository::{
+            GitRepository, GithubProvidedRepository, GithubRepositoryProvider,
+            GitlabProvidedRepository, GitlabRepositoryProvider, RepositoryProviderStatus,
+        },
+        setting::{NetworkSetting, SecuritySetting},
+        user_event::{EventKind, UserEvent},
+        CoreError,
     },
-    setting::{NetworkSetting, SecuritySetting},
-    user_event::{EventKind, UserEvent},
-    CoreError,
 };
 
 impl From<InvitationDAO> for auth::Invitation {
@@ -125,6 +130,45 @@ impl From<ServerSettingDAO> for NetworkSetting {
     }
 }
 
+impl TryFrom<ProvidedRepositoryDAO> for ProvidedRepository {
+    type Error = anyhow::Error;
+    fn try_from(value: ProvidedRepositoryDAO) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: value.id.as_id(),
+            integration_access_token_id: value.integration_access_token_id.as_id(),
+            active: value.active,
+            display_name: value.name,
+            git_url: value.git_url,
+            vendor_id: value.vendor_id,
+            created_at: *value.created_at,
+            updated_at: *value.updated_at,
+        })
+    }
+}
+
+impl TryFrom<IntegrationAccessTokenDAO> for IntegrationAccessToken {
+    type Error = anyhow::Error;
+    fn try_from(value: IntegrationAccessTokenDAO) -> anyhow::Result<Self> {
+        let status = if *value.synced_at <= *value.updated_at {
+            IntegrationStatus::Pending
+        } else if value.error.is_some() {
+            IntegrationStatus::Failed
+        } else {
+            IntegrationStatus::Ready
+        };
+        Ok(Self {
+            id: value.id.as_id(),
+            kind: IntegrationKind::from_enum_str(&value.kind)?,
+            display_name: value.display_name,
+            access_token: value.access_token,
+            created_at: *value.created_at,
+            synced_at: *value.synced_at,
+            updated_at: *value.updated_at,
+            status,
+        })
+    }
+}
+
 impl From<GithubRepositoryProviderDAO> for GithubRepositoryProvider {
     fn from(value: GithubRepositoryProviderDAO) -> Self {
         Self {
@@ -135,6 +179,64 @@ impl From<GithubRepositoryProviderDAO> for GithubRepositoryProvider {
                 value.synced_at.is_some(),
             ),
             access_token: value.access_token,
+        }
+    }
+}
+
+impl From<ProvidedRepository> for GithubProvidedRepository {
+    fn from(value: ProvidedRepository) -> Self {
+        Self {
+            id: value.id,
+            vendor_id: value.vendor_id,
+            github_repository_provider_id: value.integration_access_token_id,
+            name: value.display_name,
+            git_url: value.git_url,
+            active: value.active,
+        }
+    }
+}
+
+impl From<IntegrationAccessToken> for GithubRepositoryProvider {
+    fn from(value: IntegrationAccessToken) -> Self {
+        Self {
+            id: value.id,
+            display_name: value.display_name,
+            status: value.status.into(),
+            access_token: Some(value.access_token),
+        }
+    }
+}
+
+impl From<IntegrationAccessToken> for GitlabRepositoryProvider {
+    fn from(value: IntegrationAccessToken) -> Self {
+        Self {
+            id: value.id,
+            display_name: value.display_name,
+            status: value.status.into(),
+            access_token: Some(value.access_token),
+        }
+    }
+}
+
+impl From<IntegrationStatus> for RepositoryProviderStatus {
+    fn from(value: IntegrationStatus) -> Self {
+        match value {
+            IntegrationStatus::Ready => Self::Ready,
+            IntegrationStatus::Pending => Self::Pending,
+            IntegrationStatus::Failed => Self::Failed,
+        }
+    }
+}
+
+impl From<ProvidedRepository> for GitlabProvidedRepository {
+    fn from(value: ProvidedRepository) -> Self {
+        Self {
+            id: value.id,
+            vendor_id: value.vendor_id,
+            gitlab_repository_provider_id: value.integration_access_token_id,
+            name: value.display_name,
+            git_url: value.git_url,
+            active: value.active,
         }
     }
 }
@@ -251,6 +353,23 @@ impl DbEnum for EventKind {
             "view" => Ok(EventKind::View),
             "dismiss" => Ok(EventKind::Dismiss),
             _ => bail!("{s} is not a valid value for EventKind"),
+        }
+    }
+}
+
+impl DbEnum for IntegrationKind {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            IntegrationKind::Github => "github",
+            IntegrationKind::Gitlab => "gitlab",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "github" => Ok(IntegrationKind::Github),
+            "gitlab" => Ok(IntegrationKind::Gitlab),
+            _ => bail!("{s} is not a valid value for ProviderKind"),
         }
     }
 }

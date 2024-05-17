@@ -61,7 +61,7 @@ impl DbConn {
 
     pub async fn list_provided_repositories(
         &self,
-        provider_ids: Vec<i64>,
+        integration_ids: Vec<i64>,
         kind: Option<String>,
         active: Option<bool>,
         limit: Option<usize>,
@@ -70,26 +70,28 @@ impl DbConn {
     ) -> Result<Vec<ProvidedRepositoryDAO>> {
         let mut conditions = vec![];
 
-        let provider_ids = provider_ids
+        let integration_ids = integration_ids
             .into_iter()
             .map(|id| id.to_string())
             .collect::<Vec<_>>()
             .join(", ");
-        if !provider_ids.is_empty() {
-            conditions.push(format!("access_token_provider_id IN ({provider_ids})"));
+        if !integration_ids.is_empty() {
+            conditions.push(format!(
+                "integration_access_token_id IN ({integration_ids})"
+            ));
         }
 
         let active_filter = active.map(|active| format!("active = {active}"));
         conditions.extend(active_filter);
 
-        let kind_filter = kind.map(|kind| format!("kind = {kind}"));
+        let kind_filter = kind.map(|kind| format!("kind = '{kind}'"));
         conditions.extend(kind_filter);
 
         let condition = (!conditions.is_empty()).then(|| conditions.join(" AND "));
 
         let repos = query_paged_as!(
             ProvidedRepositoryDAO,
-            "provided_repositories",
+            "provided_repositories JOIN integration_access_tokens ON integration_access_token_id = integration_access_tokens.id",
             [
                 "id",
                 "vendor_id",
@@ -97,8 +99,8 @@ impl DbConn {
                 "git_url",
                 "active",
                 "integration_access_token_id",
-                "created_at" as "created_at: DateTimeUtc",
-                "updated_at" as "updated_at: DateTimeUtc"
+                "created_at",
+                "updated_at"
             ],
             limit,
             skip_id,
@@ -126,5 +128,18 @@ impl DbConn {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::DbConn;
+
+    #[tokio::test]
+    async fn test_list_provided_repositories() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        db.list_github_provided_repositories(vec![], None, None, None, false)
+            .await
+            .unwrap();
     }
 }

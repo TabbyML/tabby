@@ -10,11 +10,13 @@ pub use github::{GithubProvidedRepository, GithubRepositoryProvider, GithubRepos
 mod gitlab;
 use std::{path::PathBuf, sync::Arc};
 
+mod third_party;
 use async_trait::async_trait;
 pub use gitlab::{GitlabProvidedRepository, GitlabRepositoryProvider, GitlabRepositoryService};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 use serde::Deserialize;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
+pub use third_party::{ProvidedRepository, ThirdPartyRepositoryService};
 
 use super::Result;
 
@@ -99,5 +101,6 @@ pub trait RepositoryService: Send + Sync + RepositoryAccess {
     fn git(&self) -> Arc<dyn GitRepositoryService>;
     fn github(&self) -> Arc<dyn GithubRepositoryService>;
     fn gitlab(&self) -> Arc<dyn GitlabRepositoryService>;
+    fn third_party(&self) -> Arc<dyn ThirdPartyRepositoryService>;
     fn access(self: Arc<Self>) -> Arc<dyn RepositoryAccess>;
 }

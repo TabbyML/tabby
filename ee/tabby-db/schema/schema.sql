@@ -176,10 +176,11 @@ CREATE TABLE integration_access_tokens(
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   kind TEXT NOT NULL,
   display_name TEXT NOT NULL,
-  access_token TEXT,
+  access_token TEXT NOT NULL,
   error TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
-  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now'))
+  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  synced_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now'))
 );
 CREATE TABLE provided_repositories(
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,

@@ -3,6 +3,7 @@ mod auth;
 pub mod background_job;
 mod email;
 pub mod event_logger;
+pub mod integration;
 mod job;
 mod license;
 pub mod repository;
@@ -29,6 +30,7 @@ use tabby_schema::{
     analytic::AnalyticService,
     auth::AuthenticationService,
     email::EmailService,
+    integration::IntegrationService,
     is_demo_mode,
     job::JobService,
     license::{IsLicenseValid, LicenseService},
@@ -48,6 +50,7 @@ struct ServerContext {
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
     repository: Arc<dyn RepositoryService>,
+    integration: Arc<dyn IntegrationService>,
     user_event: Arc<dyn UserEventService>,
     job: Arc<dyn JobService>,
 
@@ -64,6 +67,7 @@ impl ServerContext {
         logger: Arc<dyn EventLogger>,
         code: Arc<dyn CodeSearch>,
         repository: Arc<dyn RepositoryService>,
+        integration: Arc<dyn IntegrationService>,
         db_conn: DbConn,
         is_chat_enabled_locally: bool,
     ) -> Self {
@@ -90,6 +94,7 @@ impl ServerContext {
             )),
             license,
             repository,
+            integration,
             user_event,
             job,
             logger,
@@ -238,17 +243,22 @@ impl ServiceLocator for ArcServerContext {
     fn user_event(&self) -> Arc<dyn UserEventService> {
         self.0.user_event.clone()
     }
+
+    fn integration(&self) -> Arc<dyn IntegrationService> {
+        self.0.integration.clone()
+    }
 }
 
 pub async fn create_service_locator(
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
     repository: Arc<dyn RepositoryService>,
+    integration: Arc<dyn IntegrationService>,
     db: DbConn,
     is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(ArcServerContext::new(
-        ServerContext::new(logger, code, repository, db, is_chat_enabled).await,
+        ServerContext::new(logger, code, repository, integration, db, is_chat_enabled).await,
     ))
 }
 
