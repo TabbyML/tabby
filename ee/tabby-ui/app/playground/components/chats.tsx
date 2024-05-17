@@ -86,18 +86,7 @@ export default function Chats() {
 
   const onNavigateToContext = (context: ChatContext) => {
     if (!context.filepath) return
-
-    // const isInIframe = window.self !== window.top
-    // if embed
-    // if (isInIframe) {
-    //   window.top?.postMessage({
-    //     action: 'navigateToContext',
-    //     path: context.filepath,
-    //     line: context.range.start
-    //   })
-    // } else {
-    //   window.open(context.link)
-    // }
+    
     const url = `/files?path=${encodeURIComponent(context.filepath)}&line=${
       context.range.start ?? ''
     }`
