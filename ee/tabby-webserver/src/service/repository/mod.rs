@@ -15,6 +15,7 @@ use tabby_schema::{
     },
     Result,
 };
+use tabby_search::GitReadOnly;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::service::background_job::BackgroundJobEvent;
@@ -122,9 +123,9 @@ impl RepositoryService for RepositoryServiceImpl {
         let dir = self.resolve_repository(kind, id).await?.dir;
 
         let pattern = pattern.to_owned();
-        let git = tabby_search::GitReadOnly::new(&dir)?;
-        let matching = tokio::task::spawn_blocking(move || async move {
-            git.search_files(None, &pattern, top_n).map(|x| {
+        let matching = GitReadOnly::search_files(&dir, None, &pattern, top_n)
+            .await
+            .map(|x| {
                 x.into_iter()
                     .map(|f| FileEntrySearchResult {
                         r#type: f.r#type,
@@ -133,10 +134,7 @@ impl RepositoryService for RepositoryServiceImpl {
                     })
                     .collect()
             })
-        })
-        .await
-        .map_err(anyhow::Error::from)?
-        .await?;
+            .map_err(anyhow::Error::from)?;
 
         Ok(matching)
     }

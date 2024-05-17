@@ -5431,13 +5431,16 @@ version = "0.12.0-dev.0"
 dependencies = [
  "anyhow",
  "assert_matches",
+ "async-stream",
  "axum",
+ "futures",
  "git2",
  "mime_guess",
  "nucleo",
  "serde",
  "serde_json",
  "temp_testdir",
+ "tokio",
 ]
 
 [[package]]
