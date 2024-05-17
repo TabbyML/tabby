@@ -144,7 +144,7 @@ pub struct ModelConfigGroup {
 #[serde(rename_all = "snake_case")]
 pub enum ModelConfig {
     Http(HttpModelConfig),
-    LlamaCpp(LlamaCppModelConfig),
+    Local(LocalModelConfig),
 }
 
 #[derive(Serialize, Deserialize, Builder, Clone)]
@@ -169,7 +169,7 @@ pub struct HttpModelConfig {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct LlamaCppModelConfig {
+pub struct LocalModelConfig {
     pub model_id: String,
 
     #[serde(default = "default_parallelism")]
