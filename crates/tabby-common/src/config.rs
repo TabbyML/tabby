@@ -2,6 +2,7 @@ use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -9,13 +10,16 @@ use crate::{
     terminal::{HeaderFormat, InfoMessage},
 };
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 pub struct Config {
     #[serde(default)]
     pub repositories: Vec<RepositoryConfig>,
 
     #[serde(default)]
     pub server: ServerConfig,
+
+    #[serde(default)]
+    pub model: ModelConfigGroup,
 }
 
 impl Config {
@@ -115,7 +119,7 @@ fn sanitize_name(s: &str) -> String {
     sanitized.into_iter().collect()
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ServerConfig {
     /// The timeout in seconds for the /v1/completion api.
     pub completion_timeout: u64,
@@ -127,6 +131,60 @@ impl Default for ServerConfig {
             completion_timeout: 30,
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
+pub struct ModelConfigGroup {
+    pub completion: Option<ModelConfig>,
+    pub chat: Option<ModelConfig>,
+    pub embedding: Option<ModelConfig>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum ModelConfig {
+    Http(HttpModelConfig),
+    Llama(LlamaModelConfig),
+}
+
+#[derive(Serialize, Deserialize, Builder, Clone)]
+pub struct HttpModelConfig {
+    pub api_endpoint: String,
+    pub kind: String,
+
+    #[builder(default)]
+    pub api_key: Option<String>,
+
+    /// Used by chat http endpoint to select model.
+    #[builder(default)]
+    pub model_name: Option<String>,
+
+    /// Used by completion http endpoint to construct FIM prompt.
+    #[builder(default)]
+    pub prompt_template: Option<String>,
+
+    /// Used by completion http endpoint to construct Chat prompt.
+    #[builder(default)]
+    pub chat_template: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct LlamaModelConfig {
+    pub model_id: String,
+
+    #[serde(default = "default_parallelism")]
+    pub parallelism: u8,
+
+    #[serde(default = "default_num_gpu_layers")]
+    pub num_gpu_layers: u16,
+}
+
+fn default_parallelism() -> u8 {
+    1
+}
+
+fn default_num_gpu_layers() -> u16 {
+    9999
 }
 
 #[async_trait]

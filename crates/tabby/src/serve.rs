@@ -4,9 +4,8 @@ use axum::{routing, Router};
 use clap::Args;
 use hyper::StatusCode;
 use tabby_common::{
-    api,
-    api::{code::CodeSearch, event::EventLogger},
-    config::{Config, ConfigRepositoryAccess, RepositoryAccess},
+    api::{self, code::CodeSearch, event::EventLogger},
+    config::{Config, ConfigRepositoryAccess, ModelConfig, RepositoryAccess},
     usage,
 };
 use tokio::time::sleep;
@@ -30,7 +29,7 @@ use crate::{
         health,
         model::download_model_if_needed,
     },
-    Device,
+    to_local_config, Device,
 };
 
 #[derive(OpenApi)]
@@ -92,9 +91,6 @@ pub struct ServeArgs {
     #[clap(long)]
     chat_model: Option<String>,
 
-    #[clap(long, hide = true)]
-    embedding_model: Option<String>,
-
     #[clap(long, default_value = "0.0.0.0")]
     host: IpAddr,
 
@@ -125,7 +121,9 @@ pub struct ServeArgs {
 }
 
 pub async fn main(config: &Config, args: &ServeArgs) {
-    load_model(args).await;
+    let config = merge_args(config, args);
+
+    load_model(&config).await;
 
     debug!("Starting server, this might take a few minutes...");
 
@@ -160,7 +158,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     }
 
     let code = Arc::new(create_code_search(repository_access));
-    let mut api = api_router(args, config, logger.clone(), code.clone(), webserver).await;
+    let mut api = api_router(args, &config, logger.clone(), code.clone(), webserver).await;
     let mut ui = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .fallback(|| async { axum::response::Redirect::temporary("/swagger-ui") });
@@ -172,26 +170,21 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         ui = new_ui;
     };
 
-    start_heartbeat(args, webserver);
+    start_heartbeat(args, &config, webserver);
     run_app(api, Some(ui), args.host, args.port).await
 }
 
-async fn load_model(args: &ServeArgs) {
-    if args.device != Device::ExperimentalHttp {
-        if let Some(model) = &args.model {
-            download_model_if_needed(model).await;
-        }
+async fn load_model(config: &Config) {
+    if let Some(ModelConfig::Llama(ref model)) = config.model.completion {
+        download_model_if_needed(&model.model_id).await;
     }
 
-    let chat_device = args.chat_device.as_ref().unwrap_or(&args.device);
-    if chat_device != &Device::ExperimentalHttp {
-        if let Some(chat_model) = &args.chat_model {
-            download_model_if_needed(chat_model).await
-        }
+    if let Some(ModelConfig::Llama(ref model)) = config.model.chat {
+        download_model_if_needed(&model.model_id).await;
     }
 
-    if let Some(embedding_model) = &args.embedding_model {
-        download_model_if_needed(embedding_model).await
+    if let Some(ModelConfig::Llama(ref model)) = config.model.embedding {
+        download_model_if_needed(&model.model_id).await;
     }
 }
 
@@ -202,37 +195,23 @@ async fn api_router(
     code: Arc<dyn CodeSearch>,
     webserver: Option<bool>,
 ) -> Router {
-    let completion_state = if let Some(model) = &args.model {
+    let model = &config.model;
+    let completion_state = if let Some(completion) = &model.completion {
         Some(Arc::new(
-            create_completion_service(
-                code.clone(),
-                logger.clone(),
-                model,
-                &args.device,
-                args.parallelism,
-            )
-            .await,
+            create_completion_service(code.clone(), logger.clone(), completion).await,
         ))
     } else {
         None
     };
 
-    let chat_state = if let Some(chat_model) = &args.chat_model {
-        Some(Arc::new(
-            create_chat_service(
-                logger.clone(),
-                chat_model,
-                args.chat_device.as_ref().unwrap_or(&args.device),
-                args.parallelism,
-            )
-            .await,
-        ))
+    let chat_state = if let Some(chat) = &model.chat {
+        Some(Arc::new(create_chat_service(logger.clone(), chat).await))
     } else {
         None
     };
 
-    let docsearch_state = if let Some(embedding_model) = &args.embedding_model {
-        let embedding = embedding::create(embedding_model, &args.device).await;
+    let docsearch_state = if let Some(embedding) = &model.embedding {
+        let embedding = embedding::create(embedding).await;
         Some(Arc::new(services::doc::create(embedding)))
     } else {
         None
@@ -249,9 +228,8 @@ async fn api_router(
     let mut routers = vec![];
 
     let health_state = Arc::new(health::HealthState::new(
-        args.model.as_deref(),
+        model,
         &args.device,
-        args.chat_model.as_deref(),
         args.chat_model
             .as_deref()
             .map(|_| args.chat_device.as_ref().unwrap_or(&args.device)),
@@ -379,16 +357,15 @@ async fn api_router(
     root
 }
 
-fn start_heartbeat(args: &ServeArgs, webserver: Option<bool>) {
-    let state = health::HealthState::new(
-        args.model.as_deref(),
+fn start_heartbeat(args: &ServeArgs, config: &Config, webserver: Option<bool>) {
+    let state = Arc::new(health::HealthState::new(
+        &config.model,
         &args.device,
-        args.chat_model.as_deref(),
         args.chat_model
             .as_deref()
             .map(|_| args.chat_device.as_ref().unwrap_or(&args.device)),
         webserver,
-    );
+    ));
     tokio::spawn(async move {
         loop {
             usage::capture("ServeHealth", &state).await;
@@ -413,4 +390,21 @@ impl Modify for SecurityAddon {
             )
         }
     }
+}
+
+fn merge_args(config: &Config, args: &ServeArgs) -> Config {
+    let mut config = (*config).clone();
+    if let Some(model) = &args.model {
+        config.model.completion = Some(to_local_config(model, args.parallelism, &args.device));
+    };
+
+    if let Some(chat_model) = &args.chat_model {
+        config.model.chat = Some(to_local_config(
+            chat_model,
+            args.parallelism,
+            args.chat_device.as_ref().unwrap_or(&args.device),
+        ));
+    }
+
+    config
 }

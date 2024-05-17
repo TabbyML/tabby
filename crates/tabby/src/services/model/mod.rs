@@ -3,98 +3,101 @@ mod chat;
 use std::{fs, path::PathBuf, sync::Arc};
 
 use serde::Deserialize;
-use tabby_common::registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH};
+use tabby_common::{
+    config::ModelConfig,
+    registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH},
+};
 use tabby_download::download_model;
 use tabby_inference::{ChatCompletionStream, CodeGeneration, CompletionStream, Embedding};
 use tracing::info;
 
-use crate::{fatal, Device};
+use crate::fatal;
 
-pub async fn load_chat_completion(
-    model_id: &str,
-    device: &Device,
-    parallelism: u8,
-) -> Arc<dyn ChatCompletionStream> {
-    if device == &Device::ExperimentalHttp {
-        return http_api_bindings::create_chat(model_id);
-    }
+pub async fn load_chat_completion(chat: &ModelConfig) -> Arc<dyn ChatCompletionStream> {
+    match chat {
+        ModelConfig::Http(http) => http_api_bindings::create_chat(http),
 
-    let (engine, PromptInfo { chat_template, .. }) =
-        load_completion(model_id, device, parallelism).await;
+        ModelConfig::Llama(_) => {
+            let (engine, PromptInfo { chat_template, .. }) = load_completion(chat).await;
 
-    let Some(chat_template) = chat_template else {
-        fatal!("Chat model requires specifying prompt template");
-    };
+            let Some(chat_template) = chat_template else {
+                fatal!("Chat model requires specifying prompt template");
+            };
 
-    Arc::new(chat::make_chat_completion(engine, chat_template))
-}
-
-pub async fn load_embedding(model_id: &str, device: &Device) -> Arc<dyn Embedding> {
-    if device == &Device::ExperimentalHttp {
-        return http_api_bindings::create_embedding(model_id);
-    }
-
-    if fs::metadata(model_id).is_ok() {
-        let path = PathBuf::from(model_id);
-        let model_path = path.join(GGML_MODEL_RELATIVE_PATH);
-        create_ggml_embedding_engine(model_path.display().to_string().as_str()).await
-    } else {
-        let (registry, name) = parse_model_id(model_id);
-        let registry = ModelRegistry::new(registry).await;
-        let model_path = registry.get_model_path(name).display().to_string();
-        create_ggml_embedding_engine(&model_path).await
+            Arc::new(chat::make_chat_completion(engine, chat_template))
+        }
     }
 }
 
-pub async fn load_code_generation(
-    model_id: &str,
-    device: &Device,
-    parallelism: u8,
-) -> (Arc<CodeGeneration>, PromptInfo) {
-    let (engine, prompt_info) = load_completion(model_id, device, parallelism).await;
+pub async fn load_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {
+    match config {
+        ModelConfig::Http(http) => http_api_bindings::create_embedding(http),
+        ModelConfig::Llama(llama) => {
+            if fs::metadata(&llama.model_id).is_ok() {
+                let path = PathBuf::from(&llama.model_id);
+                let model_path = path.join(GGML_MODEL_RELATIVE_PATH);
+                create_ggml_embedding_engine(
+                    model_path.display().to_string().as_str(),
+                    llama.parallelism,
+                    llama.num_gpu_layers,
+                )
+                .await
+            } else {
+                let (registry, name) = parse_model_id(&llama.model_id);
+                let registry = ModelRegistry::new(registry).await;
+                let model_path = registry.get_model_path(name).display().to_string();
+                create_ggml_embedding_engine(&model_path, llama.parallelism, llama.num_gpu_layers)
+                    .await
+            }
+        }
+    }
+}
+
+pub async fn load_code_generation(model: &ModelConfig) -> (Arc<CodeGeneration>, PromptInfo) {
+    let (engine, prompt_info) = load_completion(model).await;
     (Arc::new(CodeGeneration::new(engine)), prompt_info)
 }
 
-async fn load_completion(
-    model_id: &str,
-    device: &Device,
-    parallelism: u8,
-) -> (Arc<dyn CompletionStream>, PromptInfo) {
-    if device == &Device::ExperimentalHttp {
-        let (engine, prompt_template, chat_template) = http_api_bindings::create(model_id);
-        return (
-            engine,
-            PromptInfo {
-                prompt_template,
-                chat_template,
-            },
-        );
-    }
-
-    if fs::metadata(model_id).is_ok() {
-        let path = PathBuf::from(model_id);
-        let model_path = path.join(GGML_MODEL_RELATIVE_PATH);
-        let engine = create_ggml_engine(
-            device,
-            model_path.display().to_string().as_str(),
-            parallelism,
-        )
-        .await;
-        let engine_info = PromptInfo::read(path.join("tabby.json"));
-        (engine, engine_info)
-    } else {
-        let (registry, name) = parse_model_id(model_id);
-        let registry = ModelRegistry::new(registry).await;
-        let model_path = registry.get_model_path(name).display().to_string();
-        let model_info = registry.get_model_info(name);
-        let engine = create_ggml_engine(device, &model_path, parallelism).await;
-        (
-            engine,
-            PromptInfo {
-                prompt_template: model_info.prompt_template.clone(),
-                chat_template: model_info.chat_template.clone(),
-            },
-        )
+async fn load_completion(model: &ModelConfig) -> (Arc<dyn CompletionStream>, PromptInfo) {
+    match model {
+        ModelConfig::Http(http) => {
+            let engine = http_api_bindings::create(http);
+            (
+                engine,
+                PromptInfo {
+                    prompt_template: http.prompt_template.clone(),
+                    chat_template: http.chat_template.clone(),
+                },
+            )
+        }
+        ModelConfig::Llama(llama) => {
+            if fs::metadata(&llama.model_id).is_ok() {
+                let path = PathBuf::from(&llama.model_id);
+                let model_path = path.join(GGML_MODEL_RELATIVE_PATH);
+                let engine = create_ggml_engine(
+                    llama.num_gpu_layers,
+                    model_path.display().to_string().as_str(),
+                    llama.parallelism,
+                )
+                .await;
+                let engine_info = PromptInfo::read(path.join("tabby.json"));
+                (engine, engine_info)
+            } else {
+                let (registry, name) = parse_model_id(&llama.model_id);
+                let registry = ModelRegistry::new(registry).await;
+                let model_path = registry.get_model_path(name).display().to_string();
+                let model_info = registry.get_model_info(name);
+                let engine =
+                    create_ggml_engine(llama.num_gpu_layers, &model_path, llama.parallelism).await;
+                (
+                    engine,
+                    PromptInfo {
+                        prompt_template: model_info.prompt_template.clone(),
+                        chat_template: model_info.chat_template.clone(),
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -112,16 +115,20 @@ impl PromptInfo {
 }
 
 async fn create_ggml_engine(
-    device: &Device,
+    num_gpu_layers: u16,
     model_path: &str,
     parallelism: u8,
 ) -> Arc<dyn CompletionStream> {
-    llama_cpp_server::create_completion(device != &Device::Cpu, model_path, parallelism).await
+    llama_cpp_server::create_completion(num_gpu_layers, model_path, parallelism).await
 }
 
-async fn create_ggml_embedding_engine(model_path: &str) -> Arc<dyn Embedding> {
+async fn create_ggml_embedding_engine(
+    model_path: &str,
+    parallelism: u8,
+    num_gpu_layers: u16,
+) -> Arc<dyn Embedding> {
     // By default, embedding always use CPU device with 1 parallelism.
-    llama_cpp_server::create_embedding(false, model_path, 1).await
+    llama_cpp_server::create_embedding(num_gpu_layers, model_path, parallelism).await
 }
 
 pub async fn download_model_if_needed(model: &str) {

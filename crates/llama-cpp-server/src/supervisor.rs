@@ -13,7 +13,7 @@ pub struct LlamaCppSupervisor {
 
 impl LlamaCppSupervisor {
     pub fn new(
-        use_gpu: bool,
+        num_gpu_layers: u16,
         embedding: bool,
         model_path: &str,
         parallelism: u8,
@@ -56,10 +56,8 @@ impl LlamaCppSupervisor {
                     command.arg("-t").arg(n_threads);
                 }
 
-                if use_gpu {
-                    let num_gpu_layers =
-                        std::env::var("LLAMA_CPP_N_GPU_LAYERS").unwrap_or("9999".into());
-                    command.arg("-ngl").arg(&num_gpu_layers);
+                if num_gpu_layers > 0 {
+                    command.arg("-ngl").arg(num_gpu_layers.to_string());
                 }
 
                 if embedding {

@@ -5,8 +5,8 @@ use std::sync::Arc;
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
-use serde_json::json;
 use supervisor::LlamaCppSupervisor;
+use tabby_common::config::HttpModelConfigBuilder;
 use tabby_inference::{CompletionOptions, CompletionStream, Embedding};
 
 fn api_endpoint(port: u16) -> String {
@@ -20,18 +20,19 @@ struct EmbeddingServer {
 }
 
 impl EmbeddingServer {
-    async fn new(use_gpu: bool, model_path: &str, parallelism: u8) -> EmbeddingServer {
-        let server = LlamaCppSupervisor::new(use_gpu, true, model_path, parallelism);
+    async fn new(num_gpu_layers: u16, model_path: &str, parallelism: u8) -> EmbeddingServer {
+        let server = LlamaCppSupervisor::new(num_gpu_layers, true, model_path, parallelism);
         server.start().await;
 
-        let model_spec: String = serde_json::to_string(&json!({
-            "kind": "llama",
-            "api_endpoint": api_endpoint(server.port()),
-        }))
-        .expect("Failed to serialize model spec");
+        let config = HttpModelConfigBuilder::default()
+            .api_endpoint(api_endpoint(server.port()))
+            .kind("llama.cpp/embedding".to_string())
+            .build()
+            .expect("Failed to create HttpModelConfig");
+
         Self {
             server,
-            embedding: http_api_bindings::create_embedding(&model_spec),
+            embedding: http_api_bindings::create_embedding(&config),
         }
     }
 }
@@ -50,14 +51,14 @@ struct CompletionServer {
 }
 
 impl CompletionServer {
-    async fn new(use_gpu: bool, model_path: &str, parallelism: u8) -> Self {
-        let server = LlamaCppSupervisor::new(use_gpu, false, model_path, parallelism);
-        let model_spec: String = serde_json::to_string(&json!({
-            "kind": "llama",
-            "api_endpoint": api_endpoint(server.port()),
-        }))
-        .expect("Failed to serialize model spec");
-        let (completion, _, _) = http_api_bindings::create(&model_spec);
+    async fn new(num_gpu_layers: u16, model_path: &str, parallelism: u8) -> Self {
+        let server = LlamaCppSupervisor::new(num_gpu_layers, false, model_path, parallelism);
+        let config = HttpModelConfigBuilder::default()
+            .api_endpoint(api_endpoint(server.port()))
+            .kind("llama.cpp/completion".to_string())
+            .build()
+            .expect("Failed to create HttpModelConfig");
+        let completion = http_api_bindings::create(&config);
         Self { server, completion }
     }
 }
@@ -70,17 +71,17 @@ impl CompletionStream for CompletionServer {
 }
 
 pub async fn create_embedding(
-    use_gpu: bool,
+    num_gpu_layers: u16,
     model_path: &str,
     parallelism: u8,
 ) -> Arc<dyn Embedding> {
-    Arc::new(EmbeddingServer::new(use_gpu, model_path, parallelism).await)
+    Arc::new(EmbeddingServer::new(num_gpu_layers, model_path, parallelism).await)
 }
 
 pub async fn create_completion(
-    use_gpu: bool,
+    num_gpu_layers: u16,
     model_path: &str,
     parallelism: u8,
 ) -> Arc<dyn CompletionStream> {
-    Arc::new(CompletionServer::new(use_gpu, model_path, parallelism).await)
+    Arc::new(CompletionServer::new(num_gpu_layers, model_path, parallelism).await)
 }
