@@ -97,6 +97,8 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         rotary_scaling_type: Optional[attention_spec.RotaryScalingType] = None,
         rotary_scaling_factor: float = 1,
         rotary_base: float = 10000,
+        original_max_position_embeddings: int = 0,
+        max_position_embeddings: int = 0,
         parallel_residual: bool = False,
         shared_layer_norm: bool = False,
         multi_query_attention: bool = False,
@@ -135,6 +137,9 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
           rotary_scaling_type: Type of RoPE scaling.
           rotary_scaling_factor: Factor used in the RoPE scaling.
           rotary_base: The base period of the rotary embeddings.
+          original_max_position_embeddings: The original max position embeddings
+            for Su rope embeddings
+          max_position_embeddings: The max position embeddings for Su rope embeddings
           parallel_residual: Use parallel residual connections in each layer block, as used
             by the GPT-J and GPT-NeoX models.
           shared_layer_norm: When using parallel residual, share the input and post
@@ -199,6 +204,8 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
                 rotary_scaling_type=rotary_scaling_type,
                 rotary_scaling_factor=rotary_scaling_factor,
                 rotary_base=rotary_base,
+                original_max_position_embeddings=original_max_position_embeddings,
+                max_position_embeddings=max_position_embeddings,
                 parallel_residual=parallel_residual,
                 shared_layer_norm=shared_layer_norm,
                 num_heads_kv=num_heads_kv,
@@ -251,6 +258,8 @@ class TransformerDecoderLayerSpec(model_spec.LayerSpec):
         rotary_scaling_type=None,
         rotary_scaling_factor=1,
         rotary_base=10000,
+        original_max_position_embeddings=0,
+        max_position_embeddings=0,
         parallel_residual=False,
         shared_layer_norm=False,
         num_heads_kv=None,
@@ -267,6 +276,8 @@ class TransformerDecoderLayerSpec(model_spec.LayerSpec):
             rotary_scaling_type=rotary_scaling_type,
             rotary_scaling_factor=rotary_scaling_factor,
             rotary_base=rotary_base,
+            original_max_position_embeddings=original_max_position_embeddings,
+            max_position_embeddings=max_position_embeddings,
             num_heads_kv=num_heads_kv,
             head_dim=head_dim,
             sliding_window=sliding_window,
@@ -499,6 +510,8 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
         rotary_scaling_type: Optional[attention_spec.RotaryScalingType] = None,
         rotary_scaling_factor: float = 1,
         rotary_base: float = 10000,
+        original_max_position_embeddings: int = 0,
+        max_position_embeddings: int = 0,
         parallel_residual: bool = False,
         shared_layer_norm: bool = False,
         multi_query_attention: bool = False,
@@ -531,6 +544,9 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
           rotary_scaling_type: Type of RoPE scaling.
           rotary_scaling_factor: Factor used in the RoPE scaling.
           rotary_base: The base period of the rotary embeddings.
+          original_max_position_embeddings: The original max position embeddings
+            for Su rope embeddings
+          max_position_embeddings: The max position embeddings for Su rope embeddings
           parallel_residual: Use parallel residual connections in each layer block, as used
             by the GPT-J and GPT-NeoX models.
           shared_layer_norm: When using parallel residual, share the input and post
@@ -559,6 +575,8 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
             rotary_scaling_type=rotary_scaling_type,
             rotary_scaling_factor=rotary_scaling_factor,
             rotary_base=rotary_base,
+            original_max_position_embeddings=original_max_position_embeddings,
+            max_position_embeddings=max_position_embeddings,
             parallel_residual=parallel_residual,
             shared_layer_norm=shared_layer_norm,
             multi_query_attention=multi_query_attention,

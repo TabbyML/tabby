@@ -35,6 +35,8 @@ ACCEPTED_MODEL_TYPES = (
     "float32",
 )
 
+SKIP_CREATING_ALIAS = ("rotary_scaling_long_factor", "rotary_scaling_short_factor")
+
 
 def _join_scope(scope, name):
     if not scope:
@@ -175,9 +177,13 @@ class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
                     break
                 # Because variables can be transformed on load (e.g. transposed),
                 # we use an element-wise equality check.
-                if not value.is_scalar() and value.equal(other_value):
+                scope, attr_name = _parent_scope(name)
+                if (
+                    not value.is_scalar()
+                    and value.equal(other_value)
+                    and attr_name not in SKIP_CREATING_ALIAS
+                ):
                     # Replace variable value by the alias name.
-                    scope, attr_name = _parent_scope(name)
                     spec = index_spec(self, scope)
                     setattr(spec, attr_name, other_name)
                     break
