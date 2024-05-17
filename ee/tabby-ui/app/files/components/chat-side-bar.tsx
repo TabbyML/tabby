@@ -61,11 +61,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
               start: lineFrom,
               end: lineTo
             },
-            language,
-            filePath: path,
-            link: `/files?path=${encodeURIComponent(path ?? '')}&line=${
-              lineFrom ?? ''
-            }`
+            filepath: path
           }
         } as UserMessage
       })
@@ -93,9 +89,9 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
           content: code,
           range: {
             start: lineFrom,
-            end: lineTo
+            end: lineTo ?? lineFrom
           },
-          filePath: path
+          filepath: path
         }
       })
     }

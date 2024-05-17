@@ -7,8 +7,8 @@ type QuickActionEventPayload = {
   action: CodeBrowserQuickAction
   code: string
   language?: string
-  path?: string
-  lineFrom?: number
+  path: string
+  lineFrom: number
   lineTo?: number
 }
 

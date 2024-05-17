@@ -7,10 +7,10 @@ import tabbyLogo from '@/assets/tabby.png'
 import { compact, isNil } from 'lodash-es'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
+import type { Context } from 'tabby-chat-panel'
 
 import {
   AssistantMessage,
-  Context,
   QuestionAnswerPair,
   UserMessage
 } from '@/lib/types/chat'
@@ -316,8 +316,10 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
         <AccordionContent className="space-y-2">
           {contexts?.map(item => {
             const isMultiLine =
-              !isNil(item.range?.start) && item.range.start < item.range.end
-            const pathSegments = item.filePath.split('/')
+              !isNil(item.range?.start) &&
+              !isNil(item.range?.end) &&
+              item.range.start < item.range.end
+            const pathSegments = item.filepath.split('/')
             const fileName = pathSegments[pathSegments.length - 1]
             const path = pathSegments
               .slice(0, pathSegments.length - 1)
@@ -325,7 +327,7 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
             return (
               <div
                 className="cursor-pointer rounded-md border p-2 hover:bg-accent"
-                key={item.filePath}
+                key={item.filepath}
                 onClick={e => onNavigateToContext?.(item)}
               >
                 <div className="flex items-center gap-1 overflow-x-auto">
