@@ -19,7 +19,6 @@ use axum::{
     response::IntoResponse,
 };
 use hyper::{HeaderMap, Uri};
-
 use juniper::ID;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
@@ -39,7 +38,6 @@ use tabby_schema::{
     worker::WorkerService,
     AsID, AsRowid, CoreError, Result, ServiceLocator,
 };
-
 
 use self::{
     analytic::new_analytic_service, email::new_email_service, license::new_license_service,
