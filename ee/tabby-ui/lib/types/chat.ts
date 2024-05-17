@@ -1,25 +1,7 @@
-interface LineRange {
-  start: number
-  end: number
-}
+import type { ChatMessage } from 'tabby-chat-panel'
 
-export interface FileContext {
-  kind: 'file'
-  range: LineRange
-  filePath: string
-  link: string
-  language?: string
-  // FIXME(jueliang): add code snippet here for client side mock
-  content: string
-}
-
-export type Context = FileContext
-
-export interface UserMessage {
+export interface UserMessage extends ChatMessage {
   id: string
-  message: string
-  selectContext?: Context
-  relevantContext?: Array<Context>
 }
 
 export type UserMessageWithOptionalId = Omit<UserMessage, 'id'> & {

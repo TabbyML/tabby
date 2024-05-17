@@ -1,8 +1,7 @@
-import * as _quilted_threads from '@quilted/threads';
 import { RefObject } from 'react';
-import { Api } from './index.cjs';
+import { ClientApi, ServerApi } from './index.cjs';
 
-declare function useClient(iframeRef: RefObject<HTMLIFrameElement>): _quilted_threads.Thread<Record<string, never>> | undefined;
-declare function useServer(api: Api): _quilted_threads.Thread<Record<string, never>> | undefined;
+declare function useClient(iframeRef: RefObject<HTMLIFrameElement>, api: ClientApi): ServerApi | null;
+declare function useServer(api: ServerApi): ClientApi | null;
 
 export { useClient, useServer };

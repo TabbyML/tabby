@@ -1,5 +1,9 @@
 import React from 'react'
+import type { Context } from 'tabby-chat-panel'
+import { useClient } from 'tabby-chat-panel/react'
 
+import { useMe } from '@/lib/hooks/use-me'
+import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useStore } from '@/lib/hooks/use-store'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { UserMessage } from '@/lib/types'
@@ -17,11 +21,26 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   className,
   ...props
 }) => {
+  const { updateSearchParams } = useRouterStuff()
+  const [{ data }] = useMe()
   const { pendingEvent, setPendingEvent } = React.useContext(
     SourceCodeBrowserContext
   )
   const activeChatId = useStore(useChatStore, state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
+  const client = useClient(iframeRef, {
+    navigate: (context: Context) => {
+      if (context?.filepath) {
+        updateSearchParams({
+          set: {
+            path: context.filepath,
+            line: String(context.range.start ?? '')
+          },
+          del: 'plain'
+        })
+      }
+    }
+  })
 
   const getPrompt = ({ action }: QuickActionEventPayload) => {
     let builtInPrompt = ''
@@ -46,7 +65,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     const contentWindow = iframeRef.current?.contentWindow
 
     if (pendingEvent) {
-      const { lineFrom, lineTo, language, code, path } = pendingEvent
+      const { lineFrom, lineTo, code, path } = pendingEvent
       contentWindow?.postMessage({
         action: 'sendUserChat',
         payload: {
@@ -57,11 +76,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
               start: lineFrom,
               end: lineTo
             },
-            language,
-            filePath: path,
-            link: `/files?path=${encodeURIComponent(path ?? '')}&line=${
-              lineFrom ?? ''
-            }`
+            filepath: path
           }
         } as UserMessage
       })
@@ -69,11 +84,41 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     }
   }, [pendingEvent, iframeRef.current?.contentWindow])
 
+  React.useEffect(() => {
+    if (iframeRef?.current && data) {
+      client?.init({
+        fetcherOptions: {
+          authorization: data.me.authToken
+        }
+      })
+    }
+  }, [iframeRef?.current, client, data])
+
+  React.useEffect(() => {
+    if (pendingEvent && client) {
+      const { lineFrom, lineTo, code, path } = pendingEvent
+      client.sendMessage({
+        message: getPrompt(pendingEvent),
+        selectContext: {
+          kind: 'file',
+          content: code,
+          range: {
+            start: lineFrom,
+            end: lineTo ?? lineFrom
+          },
+          filepath: path
+        }
+      })
+    }
+    setPendingEvent(undefined)
+  }, [pendingEvent, client])
+
+  if (!data?.me) return <></>
   return (
     <div className={cn('flex h-full flex-col', className)} {...props}>
       <Header />
       <iframe
-        src={`/playground`}
+        src={`/chat`}
         className="w-full flex-1 border-0"
         key={activeChatId}
         ref={iframeRef}

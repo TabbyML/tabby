@@ -9,6 +9,7 @@ export interface FileContext {
   kind: 'file'
   range: LineRange
   filepath: string
+  content?: string
 }
 
 export type Context = FileContext
@@ -21,9 +22,14 @@ export interface InitRequest {
   fetcherOptions: FetcherOptions
 }
 
-export interface Api {
+export interface ServerApi {
   init: (request: InitRequest) => void
   sendMessage: (message: ChatMessage) => void
+  
+}
+
+export interface ClientApi {
+  navigate: (context: Context) => void
 }
 
 export interface ChatMessage {
@@ -32,11 +38,15 @@ export interface ChatMessage {
   relevantContext?: Array<Context>
 }
 
-export function createClient(target: HTMLIFrameElement) {
-  return createThreadFromIframe(target)
+export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerApi {
+  return createThreadFromIframe(target, {
+    expose: {
+      navigate: api.navigate
+    }
+  })
 }
 
-export function createServer(api: Api) {
+export function createServer(api: ServerApi): ClientApi {
   return createThreadFromInsideIframe({
     expose: {
       init: api.init,

@@ -2,11 +2,11 @@ import React from 'react'
 import { Message } from 'ai'
 import { useChat, type UseChatHelpers } from 'ai/react'
 import { findIndex, omit } from 'lodash-es'
+import type { Context, FileContext } from 'tabby-chat-panel'
 
+import { filename2prism } from '@/lib/language-utils'
 import {
   AssistantMessage,
-  Context,
-  FileContext,
   MessageActionType,
   QuestionAnswerPair,
   UserMessage,
@@ -65,9 +65,12 @@ function userMessageToMessage(userMessage: UserMessage): Message {
 }
 
 function fileContextToMessageContent(context: FileContext | undefined): string {
-  if (!context) return ''
-  const { content, language } = context
-  return `\n${'```'}${language ?? ''} is_reference=1\n ${content} \n${'```'}\n`
+  if (!context || !context.content) return ''
+  const { content, filepath } = context
+  const language = filename2prism(filepath)?.[0]
+  return `\n${'```'}${language ?? ''} is_reference=1\n ${
+    content ?? ''
+  } \n${'```'}\n`
 }
 
 export interface ChatRef extends Omit<UseChatHelpers, 'append' | 'messages'> {
