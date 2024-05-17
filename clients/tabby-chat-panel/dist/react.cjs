@@ -4,25 +4,23 @@ const react = require('react');
 const index = require('./index.cjs');
 require('@quilted/threads');
 
-function useClient(iframeRef) {
-  return react.useMemo(() => {
-    if (iframeRef.current) {
-      return index.createClient(iframeRef.current);
+function useClient(iframeRef, api) {
+  const clientRef = react.useRef(null);
+  react.useEffect(() => {
+    if (iframeRef.current && !clientRef.current) {
+      clientRef.current = index.createClient(iframeRef.current, api);
     }
   }, [iframeRef.current]);
+  return react.useMemo(() => clientRef.current, [clientRef.current]);
 }
 function useServer(api) {
-  const [isInIframe, setIsInIframe] = react.useState(false);
   const serverRef = react.useRef(null);
   react.useEffect(() => {
-    const isInIframe2 = window.self !== window.top;
-    if (isInIframe2 && !serverRef.current)
+    const isInIframe = window.self !== window.top;
+    if (isInIframe && !serverRef.current)
       serverRef.current = index.createServer(api);
-    setIsInIframe(isInIframe2);
   }, []);
-  return react.useMemo(() => {
-    return serverRef.current;
-  }, [isInIframe]);
+  return react.useMemo(() => serverRef.current, [serverRef.current]);
 }
 
 exports.useClient = useClient;

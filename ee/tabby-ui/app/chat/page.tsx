@@ -24,7 +24,7 @@ export default function ChatPage() {
     }
   }
 
-  useServer({
+  const server = useServer({
     init: request => {
       if (chatRef.current) return
       setActiveChatId(nanoid())
@@ -40,12 +40,7 @@ export default function ChatPage() {
   })
 
   const onNavigateToContext = (context: Context) => {
-    if (window.top !== window.self) {
-      window.top?.postMessage({
-        action: 'onNavigateToContext',
-        context
-      })
-    }
+    server?.navigate(context)
   }
 
   if (!isInit || !fetcherOptions) return <></>

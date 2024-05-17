@@ -1,33 +1,30 @@
 import type { RefObject } from 'react'
 import { useEffect, useMemo, useState, useRef } from 'react'
-import { Thread } from '@quilted/threads'
 
-import type { Api } from './index'
+import type { ServerApi, ClientApi } from './index'
 import { createClient, createServer } from './index'
 
-function useClient(iframeRef: RefObject<HTMLIFrameElement>) {
-  return useMemo(() => {
-    if (iframeRef.current) {
-      return createClient(iframeRef.current)
+function useClient(iframeRef: RefObject<HTMLIFrameElement>, api: ClientApi) {
+  const clientRef = useRef<ServerApi | null>(null)
+
+  useEffect(() => {
+    if (iframeRef.current && !clientRef.current) {
+      clientRef.current = createClient(iframeRef.current, api)
     }
   }, [iframeRef.current])
+
+  return useMemo(() => clientRef.current, [clientRef.current])
 }
 
-function useServer(api: Api) {
-  const [isInIframe, setIsInIframe] = useState(false)
-  const serverRef = useRef<Thread<Record<string, never>> | null>(null)
+function useServer(api: ServerApi) {
+  const serverRef = useRef<ClientApi | null>(null)
 
   useEffect(() => {
     const isInIframe = window.self !== window.top
-    if (isInIframe && !serverRef.current) {
-      serverRef.current = createServer(api)
-    }
-    setIsInIframe(isInIframe)
+    if (isInIframe && !serverRef.current) serverRef.current = createServer(api)
   }, [])
 
-  return useMemo(() => {
-    return serverRef.current
-  }, [isInIframe])
+  return useMemo(() => serverRef.current, [serverRef.current])
 }
 
 export {

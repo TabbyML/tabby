@@ -1,4 +1,5 @@
 import React from 'react'
+import type { Context } from 'tabby-chat-panel'
 import { useClient } from 'tabby-chat-panel/react'
 
 import { useMe } from '@/lib/hooks/use-me'
@@ -25,7 +26,11 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   )
   const activeChatId = useStore(useChatStore, state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
-  const client = useClient(iframeRef)
+  const client = useClient(iframeRef, {
+    navigate: (context: Context) => {
+      console.log('todo: ', context)
+    }
+  })
 
   const getPrompt = ({ action }: QuickActionEventPayload) => {
     let builtInPrompt = ''

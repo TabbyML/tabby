@@ -1,7 +1,11 @@
 import { createThreadFromIframe, createThreadFromInsideIframe } from '@quilted/threads';
 
-function createClient(target) {
-  return createThreadFromIframe(target);
+function createClient(target, api) {
+  return createThreadFromIframe(target, {
+    expose: {
+      navigate: api.navigate
+    }
+  });
 }
 function createServer(api) {
   return createThreadFromInsideIframe({

@@ -1,5 +1,3 @@
-import * as _quilted_threads from '@quilted/threads';
-
 interface LineRange {
     start: number;
     end: number;
@@ -17,16 +15,19 @@ interface FetcherOptions {
 interface InitRequest {
     fetcherOptions: FetcherOptions;
 }
-interface Api {
+interface ServerApi {
     init: (request: InitRequest) => void;
     sendMessage: (message: ChatMessage) => void;
+}
+interface ClientApi {
+    navigate: (context: Context) => void;
 }
 interface ChatMessage {
     message: string;
     selectContext?: Context;
     relevantContext?: Array<Context>;
 }
-declare function createClient(target: HTMLIFrameElement): Api;
-declare function createServer(api: Api): _quilted_threads.Thread<Record<string, never>>;
+declare function createClient(target: HTMLIFrameElement, api: ClientApi): ServerApi;
+declare function createServer(api: ServerApi): ClientApi;
 
-export { type Api, type ChatMessage, type Context, type FetcherOptions, type FileContext, type InitRequest, type LineRange, createClient, createServer };
+export { type ChatMessage, type ClientApi, type Context, type FetcherOptions, type FileContext, type InitRequest, type LineRange, type ServerApi, createClient, createServer };
