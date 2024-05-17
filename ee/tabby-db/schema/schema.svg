@@ -237,7 +237,7 @@
 <polygon fill="none" stroke="black" points="411.5,-759.5 411.5,-780.5 435.5,-780.5 435.5,-759.5 411.5,-759.5"/>
 <text text-anchor="start" x="421" y="-766.3" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="435.5,-759.5 435.5,-780.5 538.5,-780.5 538.5,-759.5 435.5,-759.5"/>
-<text text-anchor="start" x="451.5" y="-766.3" font-family="Times,serif" font-size="14.00">synced_at</text>
+<text text-anchor="start" x="462" y="-766.3" font-family="Times,serif" font-size="14.00">synced</text>
 </g>
 <!-- invitations -->
 <g id="node8" class="node">
