@@ -34,16 +34,6 @@ impl JobLogger {
         }
     }
 
-    pub async fn r#internal_eprintln(&self, stderr: String) {
-        let stderr = stderr + "\n";
-        match self.db.update_job_stderr(self.id, stderr).await {
-            Ok(_) => (),
-            Err(_) => {
-                warn!("Failed to write stderr to job `{}`", self.id);
-            }
-        }
-    }
-
     async fn complete(&mut self, exit_code: i32) {
         match self.db.update_job_status(self.id, exit_code).await {
             Ok(_) => (),

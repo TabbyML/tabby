@@ -2,15 +2,13 @@ use anyhow::bail;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, GithubProvidedRepositoryDAO, GithubRepositoryProviderDAO,
-    GitlabProvidedRepositoryDAO, GitlabRepositoryProviderDAO, IntegrationAccessTokenDAO,
-    InvitationDAO, JobRunDAO, OAuthCredentialDAO, ProvidedRepositoryDAO, RepositoryDAO,
-    ServerSettingDAO, UserDAO, UserEventDAO,
+    EmailSettingDAO, IntegrationAccessTokenDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
+    ProvidedRepositoryDAO, RepositoryDAO, ServerSettingDAO, UserDAO, UserEventDAO,
 };
 
 use crate::{
     integration::{IntegrationAccessToken, IntegrationKind, IntegrationStatus},
-    repository::ProvidedRepository,
+    repository::{ProvidedRepository, RepositoryKind},
     schema::{
         auth::{self, OAuthCredential, OAuthProvider},
         email::{AuthMethod, EmailSetting, Encryption},
@@ -169,20 +167,6 @@ impl TryFrom<IntegrationAccessTokenDAO> for IntegrationAccessToken {
     }
 }
 
-impl From<GithubRepositoryProviderDAO> for GithubRepositoryProvider {
-    fn from(value: GithubRepositoryProviderDAO) -> Self {
-        Self {
-            display_name: value.display_name,
-            id: value.id.as_id(),
-            status: RepositoryProviderStatus::new(
-                value.access_token.is_some(),
-                value.synced_at.is_some(),
-            ),
-            access_token: value.access_token,
-        }
-    }
-}
-
 impl From<ProvidedRepository> for GithubProvidedRepository {
     fn from(value: ProvidedRepository) -> Self {
         Self {
@@ -236,46 +220,6 @@ impl From<ProvidedRepository> for GitlabProvidedRepository {
             gitlab_repository_provider_id: value.integration_access_token_id,
             name: value.display_name,
             git_url: value.git_url,
-            active: value.active,
-        }
-    }
-}
-
-impl From<GithubProvidedRepositoryDAO> for GithubProvidedRepository {
-    fn from(value: GithubProvidedRepositoryDAO) -> Self {
-        Self {
-            id: value.id.as_id(),
-            github_repository_provider_id: value.github_repository_provider_id.as_id(),
-            name: value.name,
-            git_url: value.git_url,
-            vendor_id: value.vendor_id,
-            active: value.active,
-        }
-    }
-}
-
-impl From<GitlabRepositoryProviderDAO> for GitlabRepositoryProvider {
-    fn from(value: GitlabRepositoryProviderDAO) -> Self {
-        Self {
-            display_name: value.display_name,
-            id: value.id.as_id(),
-            status: RepositoryProviderStatus::new(
-                value.access_token.is_some(),
-                value.synced_at.is_some(),
-            ),
-            access_token: value.access_token,
-        }
-    }
-}
-
-impl From<GitlabProvidedRepositoryDAO> for GitlabProvidedRepository {
-    fn from(value: GitlabProvidedRepositoryDAO) -> Self {
-        Self {
-            id: value.id.as_id(),
-            gitlab_repository_provider_id: value.gitlab_repository_provider_id.as_id(),
-            name: value.name,
-            git_url: value.git_url,
-            vendor_id: value.vendor_id,
             active: value.active,
         }
     }
@@ -370,6 +314,15 @@ impl DbEnum for IntegrationKind {
             "github" => Ok(IntegrationKind::Github),
             "gitlab" => Ok(IntegrationKind::Gitlab),
             _ => bail!("{s} is not a valid value for ProviderKind"),
+        }
+    }
+}
+
+impl From<IntegrationKind> for RepositoryKind {
+    fn from(value: IntegrationKind) -> Self {
+        match value {
+            IntegrationKind::Github => RepositoryKind::Github,
+            IntegrationKind::Gitlab => RepositoryKind::Gitlab,
         }
     }
 }
