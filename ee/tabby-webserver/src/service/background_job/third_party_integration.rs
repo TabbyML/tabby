@@ -15,19 +15,19 @@ use tracing::debug;
 use super::helper::{BasicJob, CronJob};
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct ThirdPartyRepositorySyncJob {
+pub struct SyncIntegrationJob {
     integration_id: ID,
 }
 
-impl Job for ThirdPartyRepositorySyncJob {
+impl Job for SyncIntegrationJob {
     const NAME: &'static str = "third_party_repository_sync";
 }
 
-impl CronJob for ThirdPartyRepositorySyncJob {
+impl CronJob for SyncIntegrationJob {
     const SCHEDULE: &'static str = "@hourly";
 }
 
-impl ThirdPartyRepositorySyncJob {
+impl SyncIntegrationJob {
     pub fn new(integration_id: ID) -> Self {
         Self { integration_id }
     }
@@ -44,7 +44,7 @@ impl ThirdPartyRepositorySyncJob {
 
     async fn cron(
         _now: DateTime<Utc>,
-        storage: Data<SqliteStorage<ThirdPartyRepositorySyncJob>>,
+        storage: Data<SqliteStorage<SyncIntegrationJob>>,
         integration_service: Data<Arc<dyn IntegrationService>>,
     ) -> tabby_schema::Result<()> {
         debug!("Syncing all third-party repositories");
@@ -55,7 +55,7 @@ impl ThirdPartyRepositorySyncJob {
             .await?
         {
             storage
-                .push(ThirdPartyRepositorySyncJob::new(integration.id))
+                .push(SyncIntegrationJob::new(integration.id))
                 .await
                 .expect("Unable to push job");
         }
@@ -68,10 +68,7 @@ impl ThirdPartyRepositorySyncJob {
         db: DbConn,
         repository_service: Arc<dyn ThirdPartyRepositoryService>,
         integration_service: Arc<dyn IntegrationService>,
-    ) -> (
-        SqliteStorage<ThirdPartyRepositorySyncJob>,
-        Monitor<TokioExecutor>,
-    ) {
+    ) -> (SqliteStorage<SyncIntegrationJob>, Monitor<TokioExecutor>) {
         let storage = SqliteStorage::new(pool);
         let monitor = monitor
             .register(
@@ -83,7 +80,7 @@ impl ThirdPartyRepositorySyncJob {
                 Self::cron_worker(db)
                     .data(integration_service)
                     .data(storage.clone())
-                    .build_fn(ThirdPartyRepositorySyncJob::cron),
+                    .build_fn(SyncIntegrationJob::cron),
             );
         (storage, monitor)
     }

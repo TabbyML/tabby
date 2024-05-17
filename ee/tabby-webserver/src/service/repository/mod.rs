@@ -151,7 +151,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_repositories() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let (background, _) = tokio::sync::mpsc::unbounded_channel();
+        let background = create_fake();
         let integration = Arc::new(crate::service::integration::create(db.clone(), background));
         let service = create(db.clone(), integration, create_fake());
         service

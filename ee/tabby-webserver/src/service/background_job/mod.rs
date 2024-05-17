@@ -18,7 +18,7 @@ use tabby_schema::{integration::IntegrationService, repository::ThirdPartyReposi
 
 use self::{
     db::DbMaintainanceJob, github::SyncGithubJob, gitlab::SyncGitlabJob, scheduler::SchedulerJob,
-    third_party_integration::ThirdPartyRepositorySyncJob,
+    third_party_integration::SyncIntegrationJob,
 };
 use crate::path::job_db_file;
 
@@ -33,7 +33,7 @@ struct BackgroundJobImpl {
     scheduler: SqliteStorage<SchedulerJob>,
     gitlab: SqliteStorage<SyncGitlabJob>,
     github: SqliteStorage<SyncGithubJob>,
-    third_party_repository: SqliteStorage<ThirdPartyRepositorySyncJob>,
+    third_party_repository: SqliteStorage<SyncIntegrationJob>,
 }
 
 pub async fn start(
@@ -57,7 +57,7 @@ pub async fn start(
         SchedulerJob::register(monitor, pool.clone(), db.clone(), repository_access);
     let (gitlab, monitor) = SyncGitlabJob::register(monitor, pool.clone(), db.clone());
     let (github, monitor) = SyncGithubJob::register(monitor, pool.clone(), db.clone());
-    let (third_party_repository, monitor) = ThirdPartyRepositorySyncJob::register(
+    let (third_party_repository, monitor) = SyncIntegrationJob::register(
         monitor,
         pool.clone(),
         db.clone(),
@@ -95,7 +95,7 @@ impl BackgroundJobImpl {
     async fn trigger_sync_integration(&self, provider_id: ID) {
         self.third_party_repository
             .clone()
-            .push(ThirdPartyRepositorySyncJob::new(provider_id))
+            .push(SyncIntegrationJob::new(provider_id))
             .await
             .expect("Unable to push job");
     }

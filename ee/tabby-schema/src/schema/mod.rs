@@ -246,7 +246,7 @@ impl Query {
 
     async fn github_repositories(
         ctx: &Context,
-        provider_ids: Option<Vec<ID>>,
+        provider_ids: Vec<ID>,
         active: Option<bool>,
         after: Option<String>,
         before: Option<String>,
@@ -265,7 +265,7 @@ impl Query {
                     .repository()
                     .third_party()
                     .list_repositories(
-                        provider_ids,
+                        Some(provider_ids),
                         Some(IntegrationKind::Github),
                         active,
                         after,
@@ -315,7 +315,7 @@ impl Query {
 
     async fn gitlab_repositories(
         ctx: &Context,
-        provider_ids: Option<Vec<ID>>,
+        provider_ids: Vec<ID>,
         active: Option<bool>,
         after: Option<String>,
         before: Option<String>,
@@ -334,7 +334,7 @@ impl Query {
                     .repository()
                     .third_party()
                     .list_repositories(
-                        provider_ids,
+                        Some(provider_ids),
                         Some(IntegrationKind::Gitlab),
                         active,
                         after,
@@ -834,7 +834,10 @@ impl Mutation {
 
     async fn delete_github_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.integration().delete_integration(id).await?;
+        ctx.locator
+            .integration()
+            .delete_integration(id, IntegrationKind::Github)
+            .await?;
         Ok(true)
     }
 
@@ -846,7 +849,12 @@ impl Mutation {
         input.validate()?;
         ctx.locator
             .integration()
-            .update_integration(input.id, input.display_name, input.access_token)
+            .update_integration(
+                input.id,
+                IntegrationKind::Github,
+                input.display_name,
+                input.access_token,
+            )
             .await?;
         Ok(true)
     }
@@ -884,7 +892,10 @@ impl Mutation {
 
     async fn delete_gitlab_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.integration().delete_integration(id).await?;
+        ctx.locator
+            .integration()
+            .delete_integration(id, IntegrationKind::Gitlab)
+            .await?;
         Ok(true)
     }
 
@@ -896,7 +907,12 @@ impl Mutation {
         input.validate()?;
         ctx.locator
             .integration()
-            .update_integration(input.id, input.display_name, input.access_token)
+            .update_integration(
+                input.id,
+                IntegrationKind::Gitlab,
+                input.display_name,
+                input.access_token,
+            )
             .await?;
         Ok(true)
     }

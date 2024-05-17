@@ -23,7 +23,7 @@ pub struct IntegrationAccessToken {
     pub display_name: String,
     pub access_token: String,
     pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub synced_at: DateTime<Utc>,
     pub status: IntegrationStatus,
 }
 
@@ -36,13 +36,16 @@ pub trait IntegrationService: Send + Sync {
         access_token: String,
     ) -> Result<ID>;
 
-    async fn delete_integration(&self, id: ID) -> Result<()>;
+    async fn delete_integration(&self, id: ID, kind: IntegrationKind) -> Result<()>;
+
     async fn update_integration(
         &self,
         id: ID,
+        kind: IntegrationKind,
         display_name: String,
         access_token: Option<String>,
     ) -> Result<()>;
+
     async fn list_integrations(
         &self,
         ids: Option<Vec<ID>>,
@@ -52,6 +55,7 @@ pub trait IntegrationService: Send + Sync {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<IntegrationAccessToken>>;
+
     async fn get_integration(&self, id: ID) -> Result<IntegrationAccessToken>;
     async fn update_integration_error(&self, id: ID, error: Option<String>) -> Result<()>;
 }

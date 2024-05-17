@@ -12,7 +12,7 @@ pub struct IntegrationAccessTokenDAO {
     pub display_name: String,
     pub access_token: String,
     pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub synced_at: DateTimeUtc,
 }
 
 impl DbConn {
@@ -43,7 +43,7 @@ impl DbConn {
                 display_name,
                 access_token,
                 created_at AS "created_at: DateTimeUtc",
-                updated_at AS "updated_at: DateTimeUtc"
+                synced_at AS "synced_at: DateTimeUtc"
             FROM integration_access_tokens WHERE id = ?;"#,
             id
         )
@@ -52,10 +52,14 @@ impl DbConn {
         Ok(provider)
     }
 
-    pub async fn delete_integration_access_token(&self, id: i64) -> Result<()> {
-        let res = query!("DELETE FROM integration_access_tokens WHERE id = ?;", id)
-            .execute(&self.pool)
-            .await?;
+    pub async fn delete_integration_access_token(&self, id: i64, kind: &str) -> Result<()> {
+        let res = query!(
+            "DELETE FROM integration_access_tokens WHERE id = ? AND kind = ?;",
+            id,
+            kind
+        )
+        .execute(&self.pool)
+        .await?;
         if res.rows_affected() != 1 {
             return Err(anyhow!("No integration access token to delete"));
         }
@@ -65,6 +69,7 @@ impl DbConn {
     pub async fn update_integration_access_token(
         &self,
         id: i64,
+        kind: &str,
         display_name: String,
         access_token: Option<String>,
     ) -> Result<()> {
@@ -74,10 +79,11 @@ impl DbConn {
         };
 
         let res = query!(
-            "UPDATE integration_access_tokens SET display_name = ?, access_token=? WHERE id = ?;",
+            "UPDATE integration_access_tokens SET display_name = ?, access_token=? WHERE id = ? AND kind = ?;",
             display_name,
             access_token,
-            id
+            id,
+            kind
         )
         .execute(&self.pool)
         .await?;
@@ -97,7 +103,7 @@ impl DbConn {
         error: Option<String>,
     ) -> Result<()> {
         query!(
-            "UPDATE integration_access_tokens SET updated_at = DATETIME('now'), error = ? WHERE id = ?",
+            "UPDATE integration_access_tokens SET synced_at = DATETIME('now'), error = ? WHERE id = ?",
             error,
             id
         )
@@ -141,7 +147,7 @@ impl DbConn {
                 "display_name",
                 "access_token",
                 "created_at" as "created_at: DateTimeUtc",
-                "updated_at" as "updated_at: DateTimeUtc"
+                "synced_at" as "synced_at: DateTimeUtc"
             ],
             limit,
             skip_id,

@@ -45,9 +45,9 @@ impl IntegrationService for IntegrationServiceImpl {
         Ok(id)
     }
 
-    async fn delete_integration(&self, id: ID) -> Result<()> {
+    async fn delete_integration(&self, id: ID, kind: IntegrationKind) -> Result<()> {
         self.db
-            .delete_integration_access_token(id.as_rowid()?)
+            .delete_integration_access_token(id.as_rowid()?, kind.as_enum_str())
             .await?;
         Ok(())
     }
@@ -55,11 +55,17 @@ impl IntegrationService for IntegrationServiceImpl {
     async fn update_integration(
         &self,
         id: ID,
+        kind: IntegrationKind,
         display_name: String,
         access_token: Option<String>,
     ) -> Result<()> {
         self.db
-            .update_integration_access_token(id.as_rowid()?, display_name, access_token)
+            .update_integration_access_token(
+                id.as_rowid()?,
+                kind.as_enum_str(),
+                display_name,
+                access_token,
+            )
             .await?;
         Ok(())
     }

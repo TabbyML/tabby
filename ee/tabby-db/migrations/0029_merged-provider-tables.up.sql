@@ -5,7 +5,7 @@ CREATE TABLE integration_access_tokens(
     access_token TEXT NOT NULL,
     error TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
-    updated_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now'))
+    synced_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now'))
 );
 
 CREATE TABLE provided_repositories(
@@ -22,7 +22,7 @@ CREATE TABLE provided_repositories(
 );
 
 INSERT INTO integration_access_tokens(kind, display_name, access_token)
-    SELECT 'github', display_name, access_token FROM github_repository_provider;
+    SELECT 'github', display_name, access_token FROM github_repository_provider WHERE access_token IS NOT NULL;
 
 INSERT INTO integration_access_tokens(kind, display_name, access_token)
-    SELECT 'gitlab', display_name, access_token FROM gitlab_repository_provider;
+    SELECT 'gitlab', display_name, access_token FROM gitlab_repository_provider WHERE access_token IS NOT NULL;

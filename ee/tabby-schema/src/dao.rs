@@ -135,7 +135,7 @@ impl TryFrom<ProvidedRepositoryDAO> for ProvidedRepository {
     fn try_from(value: ProvidedRepositoryDAO) -> Result<Self, Self::Error> {
         Ok(Self {
             id: value.id.as_id(),
-            integration_id: value.integration_access_token_id.as_id(),
+            integration_access_token_id: value.integration_access_token_id.as_id(),
             active: value.active,
             display_name: value.name,
             git_url: value.git_url,
@@ -149,7 +149,7 @@ impl TryFrom<ProvidedRepositoryDAO> for ProvidedRepository {
 impl TryFrom<IntegrationAccessTokenDAO> for IntegrationAccessToken {
     type Error = anyhow::Error;
     fn try_from(value: IntegrationAccessTokenDAO) -> anyhow::Result<Self> {
-        let status = if *value.created_at == *value.updated_at {
+        let status = if *value.created_at == *value.synced_at {
             IntegrationStatus::Pending
         } else if value.error.is_some() {
             IntegrationStatus::Failed
@@ -162,7 +162,7 @@ impl TryFrom<IntegrationAccessTokenDAO> for IntegrationAccessToken {
             display_name: value.display_name,
             access_token: value.access_token,
             created_at: *value.created_at,
-            updated_at: *value.updated_at,
+            synced_at: *value.synced_at,
             status,
         })
     }
@@ -187,7 +187,7 @@ impl From<ProvidedRepository> for GithubProvidedRepository {
         Self {
             id: value.id,
             vendor_id: value.vendor_id,
-            github_repository_provider_id: value.integration_id,
+            github_repository_provider_id: value.integration_access_token_id,
             name: value.display_name,
             git_url: value.git_url,
             active: value.active,
@@ -232,7 +232,7 @@ impl From<ProvidedRepository> for GitlabProvidedRepository {
         Self {
             id: value.id,
             vendor_id: value.vendor_id,
-            gitlab_repository_provider_id: value.integration_id,
+            gitlab_repository_provider_id: value.integration_access_token_id,
             name: value.display_name,
             git_url: value.git_url,
             active: value.active,
