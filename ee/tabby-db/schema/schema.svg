@@ -233,7 +233,11 @@
 <polygon fill="none" stroke="black" points="367.5,-780.5 367.5,-801.5 434.5,-801.5 434.5,-780.5 367.5,-780.5"/>
 <text text-anchor="start" x="398.5" y="-787.3" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="434.5,-780.5 434.5,-801.5 581.5,-801.5 581.5,-780.5 434.5,-780.5"/>
-<text text-anchor="start" x="472.5" y="-787.3" font-family="Times,serif" font-size="14.00">synced_at</text>
+<text text-anchor="start" x="468" y="-787.3" font-family="Times,serif" font-size="14.00">updated_at</text>
+<polygon fill="none" stroke="black" points="367.5,-759.5 367.5,-780.5 434.5,-780.5 434.5,-759.5 367.5,-759.5"/>
+<text text-anchor="start" x="398.5" y="-766.3" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="434.5,-759.5 434.5,-780.5 581.5,-780.5 581.5,-759.5 434.5,-759.5"/>
+<text text-anchor="start" x="472.5" y="-766.3" font-family="Times,serif" font-size="14.00">synced_at</text>
 </g>
 <!-- invitations -->
 <g id="node8" class="node">
