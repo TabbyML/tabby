@@ -1,10 +1,11 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use async_stream::stream;
 use futures::{Stream, StreamExt};
 use git2::TreeWalkResult;
 
 use super::rev_to_commit;
+use crate::bytes2path;
 
 pub struct GitFileSearch {
     pub r#type: &'static str,
@@ -101,17 +102,6 @@ pub async fn search(
         .collect();
 
     Ok(entries)
-}
-
-#[cfg(unix)]
-pub fn bytes2path(b: &[u8]) -> &Path {
-    use std::os::unix::prelude::*;
-    Path::new(std::ffi::OsStr::from_bytes(b))
-}
-#[cfg(windows)]
-pub fn bytes2path(b: &[u8]) -> &Path {
-    use std::str;
-    Path::new(str::from_utf8(b).unwrap())
 }
 
 #[cfg(test)]
