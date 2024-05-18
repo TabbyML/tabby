@@ -10,7 +10,7 @@ pub mod repository;
 mod setting;
 mod user_event;
 
-use std::{sync::Arc};
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use axum::{
