@@ -47,7 +47,6 @@ impl SchedulerJob {
                 repository.canonical_git_url()
             );
             code.refresh(&repository);
-            code.garbage_collection();
         })
         .await
         .context("Job execution failed")?;
@@ -63,6 +62,9 @@ impl SchedulerJob {
             .list_repositories()
             .await
             .context("Must be able to retrieve repositories for sync")?;
+
+        let mut code = CodeIndex::default();
+        code.garbage_collection(&repositories);
 
         let mut storage = (*storage).clone();
 

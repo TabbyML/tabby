@@ -67,7 +67,7 @@ fn scheduler_pipeline(repositories: &[RepositoryConfig]) {
         code.refresh(repository);
     }
 
-    code.garbage_collection();
+    code.garbage_collection(repositories);
 }
 
 mod tantivy_utils {
