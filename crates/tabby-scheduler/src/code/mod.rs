@@ -1,5 +1,5 @@
 use tabby_common::config::RepositoryConfig;
-use tracing::{info};
+use tracing::info;
 
 ///  Module for creating code search index.
 mod cache;
