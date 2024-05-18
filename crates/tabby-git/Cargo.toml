@@ -1,5 +1,5 @@
 [package]
-name = "tabby-search"
+name = "tabby-git"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

@@ -15,7 +15,6 @@ use tabby_schema::{
     },
     Result,
 };
-use tabby_search::GitReadOnly;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::service::background_job::BackgroundJobEvent;
@@ -125,7 +124,7 @@ impl RepositoryService for RepositoryServiceImpl {
         let dir = self.resolve_repository(kind, id).await?.dir;
 
         let pattern = pattern.to_owned();
-        let matching = GitReadOnly::search_files(&dir, None, &pattern, top_n)
+        let matching = tabby_git::search_files(&dir, None, &pattern, top_n)
             .await
             .map(|x| {
                 x.into_iter()
@@ -144,7 +143,7 @@ impl RepositoryService for RepositoryServiceImpl {
 
 fn list_refs(git_url: &str) -> Vec<String> {
     let dir = RepositoryConfig::new(git_url.to_owned()).dir();
-    GitReadOnly::list_refs(&dir).unwrap_or_default()
+    tabby_git::list_refs(&dir).unwrap_or_default()
 }
 
 #[cfg(test)]

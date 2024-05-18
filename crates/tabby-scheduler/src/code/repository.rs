@@ -32,7 +32,6 @@ impl RepositoryExt for RepositoryConfig {
                 .expect("Failed to read status");
 
             if let Some(code) = status.code() {
-                finished = code == 0;
                 if code != 0 {
                     warn!(
                         "Failed to clone `{}`. Please check your repository configuration.",
