@@ -3,16 +3,18 @@ resolver = "1"
 members = [
     "crates/tabby",
     "crates/tabby-common",
-    "crates/tabby-scheduler",
     "crates/tabby-download",
+    "crates/tabby-git",
     "crates/tabby-inference",
-    "crates/llama-cpp-server",
-    "crates/http-api-bindings",
+    "crates/tabby-scheduler",
+
     "crates/aim-downloader",
+    "crates/http-api-bindings",
+    "crates/llama-cpp-server",
+
     "ee/tabby-webserver",
     "ee/tabby-db",
     "ee/tabby-db-macros",
-    "ee/tabby-search",
     "ee/tabby-schema",
 ]
 

@@ -6,7 +6,6 @@ use hyper::StatusCode;
 use juniper::ID;
 use serde::Deserialize;
 use tabby_schema::repository::{RepositoryKind, RepositoryService};
-use tabby_search::GitReadOnly;
 
 #[derive(Deserialize, Debug)]
 pub struct ResolveParams {
@@ -39,6 +38,6 @@ impl ResolveState {
             return Err(StatusCode::NOT_FOUND);
         };
 
-        GitReadOnly::serve_file(&root, params.rev.as_deref(), params.path.as_deref())
+        tabby_git::serve_file(&root, params.rev.as_deref(), params.path.as_deref())
     }
 }

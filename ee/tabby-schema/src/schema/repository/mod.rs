@@ -48,7 +48,7 @@ pub struct Repository {
 impl From<GitRepository> for Repository {
     fn from(value: GitRepository) -> Self {
         let dir = RepositoryConfig::new(value.git_url).dir();
-        let refs = tabby_search::GitReadOnly::list_refs(&dir).unwrap_or_default();
+        let refs = tabby_git::list_refs(&dir).unwrap_or_default();
         Self {
             id: value.id,
             name: value.name,
@@ -116,7 +116,7 @@ impl NodeType for GitlabProvidedRepository {
 impl From<GithubProvidedRepository> for Repository {
     fn from(value: GithubProvidedRepository) -> Self {
         let dir = RepositoryConfig::new(value.git_url).dir();
-        let refs = tabby_search::GitReadOnly::list_refs(&dir).unwrap_or_default();
+        let refs = tabby_git::list_refs(&dir).unwrap_or_default();
         Self {
             id: value.id,
             name: value.name,
@@ -130,7 +130,7 @@ impl From<GithubProvidedRepository> for Repository {
 impl From<GitlabProvidedRepository> for Repository {
     fn from(value: GitlabProvidedRepository) -> Self {
         let dir = RepositoryConfig::new(value.git_url).dir();
-        let refs = tabby_search::GitReadOnly::list_refs(&dir).unwrap_or_default();
+        let refs = tabby_git::list_refs(&dir).unwrap_or_default();
         Self {
             id: value.id,
             name: value.name,
