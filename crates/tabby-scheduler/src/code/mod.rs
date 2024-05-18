@@ -1,5 +1,5 @@
 use tabby_common::config::RepositoryConfig;
-use tracing::{info, warn};
+use tracing::info;
 
 ///  Module for creating code search index.
 mod cache;
@@ -31,13 +31,5 @@ impl CodeIndex {
         cache.garbage_collection_for_source_files();
         index::garbage_collection(&mut cache);
         repository::garbage_collection(repositories);
-    }
-}
-
-impl Drop for CodeIndex {
-    fn drop(&mut self) {
-        if self.is_dirty {
-            warn!("Garbage collection was expected to be invoked at least once but was not.")
-        }
     }
 }
