@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use anyhow::{bail, Context};
 use axum::{
@@ -6,7 +6,8 @@ use axum::{
     http::{header, StatusCode},
     response::Response,
 };
-use git2::Blob;
+use git2::{AttrCheckFlags, Blob};
+use mime_guess::Mime;
 use serde::Serialize;
 
 const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
@@ -20,21 +21,35 @@ fn resolve<'a>(
         let reference = repo.revparse_single(rev)?;
         reference.peel_to_commit()?
     } else {
-        repo.head()?.peel_to_commit()?
+        repository.head()?.peel_to_commit()?
     };
     let tree = commit.tree()?;
 
     let relpath = Path::new(relpath_str.unwrap_or(""));
     let object = if relpath_str.is_some() {
-        tree.get_path(relpath)?.to_object(repo)?
+        tree.get_path(relpath)?.to_object(repository)?
     } else {
         tree.as_object().clone()
     };
 
     match object.kind() {
         Some(git2::ObjectType::Blob) => {
+            let filter = repository.get_attr(
+                relpath,
+                "filter",
+                AttrCheckFlags::INDEX_ONLY | AttrCheckFlags::NO_SYSTEM,
+            )?;
+
             let blob = object.as_blob().context("failed to resolve blob")?;
-            Ok(Resolve::File(relpath.to_owned(), blob.clone()))
+            if filter == Some("lfs") {
+                Ok(Resolve::File(
+                    "text/plain".parse().expect("failed to parse mime"),
+                    blob.clone(),
+                ))
+            } else {
+                let mime = mime_guess::from_path(relpath).first_or_octet_stream();
+                Ok(Resolve::File(mime, blob.clone()))
+            }
         }
         Some(git2::ObjectType::Tree) => Ok(Resolve::Dir(
             object
@@ -84,9 +99,8 @@ pub fn serve(
                 .body(Body::from(json))
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         }
-        Resolve::File(path, blob) => {
+        Resolve::File(mime, blob) => {
             let body = Body::from(blob.content().to_owned());
-            let mime = mime_guess::from_path(path).first_or_octet_stream();
             Response::builder()
                 .header(header::CONTENT_TYPE, mime.as_ref())
                 .body(body)
@@ -100,7 +114,7 @@ pub fn serve(
 #[derive(Debug)]
 pub enum Resolve<'a> {
     Dir(Vec<DirEntry>),
-    File(PathBuf, Blob<'a>),
+    File(Mime, Blob<'a>),
 }
 
 #[derive(Serialize)]
