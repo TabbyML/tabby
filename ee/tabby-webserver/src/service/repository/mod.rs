@@ -10,7 +10,8 @@ use tabby_db::DbConn;
 use tabby_schema::{
     integration::IntegrationService,
     repository::{
-        FileEntrySearchResult, GitRepositoryService, ProvidedRepository, Repository, RepositoryKind, RepositoryService, ThirdPartyRepositoryService
+        FileEntrySearchResult, GitRepositoryService, Repository,
+        RepositoryKind, RepositoryService, ThirdPartyRepositoryService,
     },
     Result,
 };

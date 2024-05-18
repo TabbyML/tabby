@@ -122,7 +122,7 @@ impl From<GithubProvidedRepository> for Repository {
             name: value.name,
             kind: RepositoryKind::Github,
             dir,
-            refs: refs,
+            refs,
         }
     }
 }
@@ -136,7 +136,7 @@ impl From<GitlabProvidedRepository> for Repository {
             name: value.name,
             kind: RepositoryKind::Gitlab,
             dir,
-            refs: refs,
+            refs,
         }
     }
 }

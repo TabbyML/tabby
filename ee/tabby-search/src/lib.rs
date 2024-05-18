@@ -33,7 +33,8 @@ impl GitReadOnly {
     pub fn list_refs(root: &Path) -> anyhow::Result<Vec<String>> {
         let repository = git2::Repository::open(root)?;
         let refs = repository.references()?;
-        Ok(refs.filter_map(|r| r.ok())
+        Ok(refs
+            .filter_map(|r| r.ok())
             .map(|r| r.name().unwrap().to_string())
             // Filter out remote refs
             .filter(|r| !r.starts_with("refs/remotes/"))
