@@ -16,7 +16,7 @@ pub use third_party::{ProvidedRepository, ThirdPartyRepositoryService};
 use super::Result;
 use crate::{juniper::relay::NodeType, Context};
 
-#[derive(GraphQLObject, Debug)]
+#[derive(GraphQLObject)]
 pub struct FileEntrySearchResult {
     pub r#type: &'static str,
     pub path: String,
