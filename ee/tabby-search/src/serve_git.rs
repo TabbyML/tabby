@@ -13,12 +13,12 @@ use serde::Serialize;
 const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
 
 fn resolve<'a>(
-    repo: &'a git2::Repository,
+    repository: &'a git2::Repository,
     rev: Option<&str>,
     relpath_str: Option<&str>,
 ) -> anyhow::Result<Resolve<'a>> {
     let commit = if let Some(rev) = rev {
-        let reference = repo.revparse_single(rev)?;
+        let reference = repository.revparse_single(rev)?;
         reference.peel_to_commit()?
     } else {
         repository.head()?.peel_to_commit()?
