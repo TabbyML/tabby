@@ -41,15 +41,19 @@ pub struct Repository {
 
     #[graphql(skip)]
     pub dir: PathBuf,
+
+    pub revs: Vec<String>,
 }
 
 impl From<GitRepository> for Repository {
     fn from(value: GitRepository) -> Self {
+        let revs = tabby_search::GitReadOnly::(&value.dir).unwrap_or_default();
         Self {
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Git,
             dir: RepositoryConfig::new(value.git_url).dir(),
+            revs
         }
     }
 }

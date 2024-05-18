@@ -24,11 +24,12 @@ impl GitFileSearch {
 
 fn walk(
     repository: git2::Repository,
-    commit: Option<&str>,
+    rev: Option<&str>,
     tx: tokio::sync::mpsc::Sender<(bool, PathBuf)>,
 ) -> anyhow::Result<()> {
-    let commit = if let Some(commit) = commit {
-        repository.find_commit(git2::Oid::from_str(commit)?)?
+    let commit = if let Some(rev) = rev {
+        let reference = repository.revparse_single(rev)?;
+        reference.peel_to_commit()?
     } else {
         repository.head()?.peel_to_commit()?
     };
@@ -49,12 +50,12 @@ fn walk(
 
 async fn walk_stream(
     repository: git2::Repository,
-    commit: Option<&str>,
+    rev: Option<&str>,
 ) -> impl Stream<Item = (bool, PathBuf)> {
     let (tx, mut rx) = tokio::sync::mpsc::channel(1);
 
-    let commit = commit.map(|s| s.to_owned());
-    let task = tokio::task::spawn_blocking(move || walk(repository, commit.as_deref(), tx));
+    let rev = rev.map(|s| s.to_owned());
+    let task = tokio::task::spawn_blocking(move || walk(repository, rev.as_deref(), tx));
 
     stream! {
         while let Some(value) = rx.recv().await {
@@ -67,7 +68,7 @@ async fn walk_stream(
 
 pub async fn search(
     repository: git2::Repository,
-    commit: Option<&str>,
+    rev: Option<&str>,
     pattern: &str,
     limit: usize,
 ) -> anyhow::Result<Vec<GitFileSearch>> {
@@ -80,7 +81,7 @@ pub async fn search(
             nucleo::pattern::AtomKind::Fuzzy,
         );
 
-        for await (is_file, basepath) in walk_stream(repository, commit).await {
+        for await (is_file, basepath) in walk_stream(repository, rev).await {
             let r#type = if is_file { "file" } else { "dir" };
             let basepath = basepath.display().to_string();
             let haystack: nucleo::Utf32String = basepath.clone().into();
