@@ -33,11 +33,3 @@ impl CodeIndex {
         repository::garbage_collection(repositories);
     }
 }
-
-impl Drop for CodeIndex {
-    fn drop(&mut self) {
-        if self.is_dirty {
-            warn!("Garbage collection was expected to be invoked at least once but was not.")
-        }
-    }
-}
