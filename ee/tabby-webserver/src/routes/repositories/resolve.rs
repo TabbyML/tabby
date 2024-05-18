@@ -12,6 +12,7 @@ use tabby_search::GitReadOnly;
 pub struct ResolveParams {
     pub kind: RepositoryKind,
     pub id: ID,
+    rev: Option<String>,
     path: Option<String>,
 }
 
@@ -38,6 +39,6 @@ impl ResolveState {
             return Err(StatusCode::NOT_FOUND);
         };
 
-        GitReadOnly::serve_file(&root, None, params.path.as_deref())
+        GitReadOnly::serve_file(&root, params.rev.as_deref(), params.path.as_deref())
     }
 }

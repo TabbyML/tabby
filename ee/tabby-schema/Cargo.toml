@@ -21,6 +21,7 @@ serde.workspace = true
 strum.workspace = true
 tabby-db = { path = "../../ee/tabby-db" }
 tabby-common = { path = "../../crates/tabby-common" }
+tabby-search= { path = "../tabby-search" }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["fs", "process"] }
 tracing.workspace = true

@@ -14,11 +14,12 @@ const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
 
 fn resolve<'a>(
     repository: &'a git2::Repository,
-    commit: Option<&str>,
+    rev: Option<&str>,
     relpath_str: Option<&str>,
 ) -> anyhow::Result<Resolve<'a>> {
-    let commit = if let Some(commit) = commit {
-        repository.find_commit(git2::Oid::from_str(commit)?)?
+    let commit = if let Some(rev) = rev {
+        let reference = repository.revparse_single(rev)?;
+        reference.peel_to_commit()?
     } else {
         repository.head()?.peel_to_commit()?
     };
@@ -79,10 +80,10 @@ fn resolve<'a>(
 
 pub fn serve(
     repository: &git2::Repository,
-    commit: Option<&str>,
+    rev: Option<&str>,
     relpath: Option<&str>,
 ) -> std::result::Result<Response<Body>, StatusCode> {
-    let resolve = match resolve(repository, commit, relpath) {
+    let resolve = match resolve(repository, rev, relpath) {
         Ok(resolve) => resolve,
         Err(_) => {
             return Err(StatusCode::NOT_FOUND);

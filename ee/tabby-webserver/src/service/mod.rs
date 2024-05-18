@@ -10,7 +10,7 @@ pub mod repository;
 mod setting;
 mod user_event;
 
-use std::{net::SocketAddr, sync::Arc};
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use axum::{
@@ -176,12 +176,6 @@ impl WorkerService for ServerContext {
                 HeaderValue::from_str(&user).expect("User must be valid header"),
             );
         }
-
-        let _remote_addr = request
-            .extensions()
-            .get::<axum::extract::ConnectInfo<SocketAddr>>()
-            .map(|ci| ci.0)
-            .expect("Unable to extract remote addr");
 
         next.run(request).await
     }

@@ -93,6 +93,7 @@ impl RepositoryService for RepositoryServiceImpl {
                         id: repo.id,
                         name: repo.display_name,
                         kind: RepositoryKind::Github,
+                        refs: list_refs(&repo.git_url),
                         dir: RepositoryConfig::new(repo.git_url).dir(),
                     })
             }
@@ -104,6 +105,7 @@ impl RepositoryService for RepositoryServiceImpl {
                         id: repo.id,
                         name: repo.display_name,
                         kind: RepositoryKind::Gitlab,
+                        refs: list_refs(&repo.git_url),
                         dir: RepositoryConfig::new(repo.git_url).dir(),
                     })
             }
@@ -138,6 +140,11 @@ impl RepositoryService for RepositoryServiceImpl {
 
         Ok(matching)
     }
+}
+
+fn list_refs(git_url: &str) -> Vec<String> {
+    let dir = RepositoryConfig::new(git_url.to_owned()).dir();
+    GitReadOnly::list_refs(&dir).unwrap_or_default()
 }
 
 #[cfg(test)]

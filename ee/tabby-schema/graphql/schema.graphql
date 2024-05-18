@@ -407,6 +407,7 @@ type Repository {
   id: ID!
   name: String!
   kind: RepositoryKind!
+  refs: [String!]!
 }
 
 type RepositoryConnection {
