@@ -10,6 +10,8 @@ use git2::{AttrCheckFlags, Blob};
 use mime_guess::Mime;
 use serde::Serialize;
 
+use super::rev_to_commit;
+
 const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
 
 fn resolve<'a>(
@@ -17,12 +19,7 @@ fn resolve<'a>(
     rev: Option<&str>,
     relpath_str: Option<&str>,
 ) -> anyhow::Result<Resolve<'a>> {
-    let commit = if let Some(rev) = rev {
-        let reference = repository.revparse_single(rev)?;
-        reference.peel_to_commit()?
-    } else {
-        repository.head()?.peel_to_commit()?
-    };
+    let commit = rev_to_commit(repository, rev)?;
     let tree = commit.tree()?;
 
     let relpath = Path::new(relpath_str.unwrap_or(""));

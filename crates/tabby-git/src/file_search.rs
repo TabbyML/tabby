@@ -4,6 +4,8 @@ use async_stream::stream;
 use futures::{Stream, StreamExt};
 use git2::TreeWalkResult;
 
+use super::rev_to_commit;
+
 pub struct GitFileSearch {
     pub r#type: &'static str,
     pub path: String,
@@ -27,13 +29,7 @@ fn walk(
     rev: Option<&str>,
     tx: tokio::sync::mpsc::Sender<(bool, PathBuf)>,
 ) -> anyhow::Result<()> {
-    let commit = if let Some(rev) = rev {
-        let reference = repository.revparse_single(rev)?;
-        reference.peel_to_commit()?
-    } else {
-        repository.head()?.peel_to_commit()?
-    };
-
+    let commit = rev_to_commit(&repository, rev)?;
     let tree = commit.tree()?;
 
     tree.walk(git2::TreeWalkMode::PreOrder, |path, entry| {

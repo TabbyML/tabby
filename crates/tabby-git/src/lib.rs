@@ -1,4 +1,5 @@
 mod file_search;
+mod grep;
 mod serve_git;
 
 use std::path::Path;
@@ -36,6 +37,17 @@ pub fn list_refs(root: &Path) -> anyhow::Result<Vec<String>> {
         // Filter out remote refs
         .filter(|r| !r.starts_with("refs/remotes/"))
         .collect())
+}
+
+fn rev_to_commit<'a>(
+    repository: &'a git2::Repository,
+    rev: Option<&str>,
+) -> anyhow::Result<git2::Commit<'a>> {
+    let commit = match rev {
+        Some(rev) => repository.revparse_single(rev)?.peel_to_commit()?,
+        None => repository.head()?.peel_to_commit()?,
+    };
+    Ok(commit)
 }
 
 #[cfg(test)]
