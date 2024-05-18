@@ -177,12 +177,6 @@ impl WorkerService for ServerContext {
             );
         }
 
-        let _remote_addr = request
-            .extensions()
-            .get::<axum::extract::ConnectInfo<SocketAddr>>()
-            .map(|ci| ci.0)
-            .expect("Unable to extract remote addr");
-
         next.run(request).await
     }
 

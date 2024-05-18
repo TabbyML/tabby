@@ -33,7 +33,7 @@ pub enum RepositoryKind {
     Gitlab,
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Debug)]
 pub struct Repository {
     pub id: ID,
     pub name: String,
@@ -42,18 +42,19 @@ pub struct Repository {
     #[graphql(skip)]
     pub dir: PathBuf,
 
-    pub revs: Vec<String>,
+    pub refs: Vec<String>,
 }
 
 impl From<GitRepository> for Repository {
     fn from(value: GitRepository) -> Self {
-        let revs = tabby_search::GitReadOnly::(&value.dir).unwrap_or_default();
+        let dir = RepositoryConfig::new(value.git_url).dir();
+        let refs = tabby_search::GitReadOnly::list_refs(&dir).unwrap_or_default();
         Self {
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Git,
-            dir: RepositoryConfig::new(value.git_url).dir(),
-            revs
+            dir,
+            refs,
         }
     }
 }
@@ -114,22 +115,28 @@ impl NodeType for GitlabProvidedRepository {
 
 impl From<GithubProvidedRepository> for Repository {
     fn from(value: GithubProvidedRepository) -> Self {
+        let dir = RepositoryConfig::new(value.git_url).dir();
+        let refs = tabby_search::GitReadOnly::list_refs(&dir).unwrap_or_default();
         Self {
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Github,
-            dir: RepositoryConfig::new(value.git_url).dir(),
+            dir,
+            refs: refs,
         }
     }
 }
 
 impl From<GitlabProvidedRepository> for Repository {
     fn from(value: GitlabProvidedRepository) -> Self {
+        let dir = RepositoryConfig::new(value.git_url).dir();
+        let refs = tabby_search::GitReadOnly::list_refs(&dir).unwrap_or_default();
         Self {
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Gitlab,
-            dir: RepositoryConfig::new(value.git_url).dir(),
+            dir,
+            refs: refs,
         }
     }
 }

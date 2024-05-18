@@ -19,6 +19,8 @@ use url::Url;
 use self::fetch::RepositoryInfo;
 use crate::service::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
 
+use super::list_refs;
+
 mod fetch;
 
 struct ThirdPartyRepositoryServiceImpl {
@@ -81,6 +83,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
                 id: repo.id,
                 name: repo.display_name,
                 kind: kind.clone().into(),
+                refs: list_refs(&repo.git_url),
                 dir: RepositoryConfig::new(repo.git_url).dir(),
             }));
         }
