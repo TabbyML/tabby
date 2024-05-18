@@ -25,11 +25,12 @@ impl CodeIndex {
         index::index_repository(&mut cache, repository);
     }
 
-    pub fn garbage_collection(&mut self) {
+    pub fn garbage_collection(&mut self, repositories: &[RepositoryConfig]) {
         self.is_dirty = false;
         let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
         cache.garbage_collection_for_source_files();
         index::garbage_collection(&mut cache);
+        repository::garbage_collection(repositories);
     }
 }
 
