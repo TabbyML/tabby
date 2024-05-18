@@ -1,12 +1,12 @@
 use std::{
     collections::HashSet,
     fs::{self},
-    path::{Path},
+    path::Path,
     process::Command,
 };
 
 use tabby_common::{config::RepositoryConfig, path::repositories_dir};
-use tracing::{warn};
+use tracing::warn;
 
 trait RepositoryExt {
     fn sync(&self);
