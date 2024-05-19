@@ -195,8 +195,7 @@ mod tests {
             .await;
         assert_eq!(files.len(), 0);
 
-        let query = GrepQuery::builder()
-            .build();
+        let query = GrepQuery::builder().build();
         assert!(grep(root.repository(), None, &query).is_err());
     }
 }
