@@ -115,6 +115,7 @@ impl RepositoryService for RepositoryServiceImpl {
         &self,
         kind: &RepositoryKind,
         id: &ID,
+        rev: Option<&str>,
         pattern: &str,
         top_n: usize,
     ) -> Result<Vec<FileEntrySearchResult>> {
@@ -124,7 +125,7 @@ impl RepositoryService for RepositoryServiceImpl {
         let dir = self.resolve_repository(kind, id).await?.dir;
 
         let pattern = pattern.to_owned();
-        let matching = tabby_git::search_files(&dir, None, &pattern, top_n)
+        let matching = tabby_git::search_files(&dir, rev, &pattern, top_n)
             .await
             .map(|x| {
                 x.into_iter()

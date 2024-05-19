@@ -416,12 +416,13 @@ impl Query {
         ctx: &Context,
         kind: RepositoryKind,
         id: ID,
+        rev: Option<String>,
         pattern: String,
     ) -> Result<Vec<FileEntrySearchResult>> {
         check_claims(ctx)?;
         ctx.locator
             .repository()
-            .search_files(&kind, &id, &pattern, 40)
+            .search_files(&kind, &id, rev.as_deref(), &pattern, 40)
             .await
     }
 

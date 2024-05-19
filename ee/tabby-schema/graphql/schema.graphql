@@ -181,6 +181,7 @@ type GitRepository {
   id: ID!
   name: String!
   gitUrl: String!
+  refs: [String!]!
 }
 
 type GithubProvidedRepository {
@@ -190,6 +191,7 @@ type GithubProvidedRepository {
   name: String!
   gitUrl: String!
   active: Boolean!
+  refs: [String!]!
 }
 
 type GithubProvidedRepositoryConnection {
@@ -225,6 +227,7 @@ type GitlabProvidedRepository {
   name: String!
   gitUrl: String!
   active: Boolean!
+  refs: [String!]!
 }
 
 type GitlabProvidedRepositoryConnection {
@@ -379,7 +382,7 @@ type Query {
   networkSetting: NetworkSetting!
   securitySetting: SecuritySetting!
   gitRepositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
-  repositorySearch(kind: RepositoryKind!, id: ID!, pattern: String!): [FileEntrySearchResult!]!
+  repositorySearch(kind: RepositoryKind!, id: ID!, rev: String, pattern: String!): [FileEntrySearchResult!]!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
   serverInfo: ServerInfo!

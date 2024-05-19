@@ -207,6 +207,7 @@ pub trait RepositoryService: Send + Sync + RepositoryAccess {
         &self,
         kind: &RepositoryKind,
         id: &ID,
+        rev: Option<&str>,
         pattern: &str,
         top_n: usize,
     ) -> Result<Vec<FileEntrySearchResult>>;

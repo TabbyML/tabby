@@ -15,11 +15,11 @@ pub use grep::{
 
 pub async fn search_files(
     root: &Path,
-    commit: Option<&str>,
+    rev: Option<&str>,
     pattern: &str,
     limit: usize,
 ) -> anyhow::Result<Vec<GitFileSearch>> {
-    file_search::search(git2::Repository::open(root)?, commit, pattern, limit).await
+    file_search::search(git2::Repository::open(root)?, rev, pattern, limit).await
 }
 
 pub fn serve_file(
