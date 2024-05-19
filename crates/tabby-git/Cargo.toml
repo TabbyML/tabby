@@ -17,6 +17,11 @@ mime_guess.workspace = true
 futures.workspace = true
 async-stream.workspace = true
 tokio.workspace = true
+tracing.workspace = true
+ignore.workspace = true
+grep = "0.3.1"
+base64-serde = "0.7"
+base64 = "0.22"
 
 [dev-dependencies]
 assert_matches.workspace = true

@@ -1,6 +1,7 @@
 mod file_search;
 mod serve_git;
 
+mod grep;
 use std::path::Path;
 
 use axum::{
@@ -8,6 +9,9 @@ use axum::{
     http::{Response, StatusCode},
 };
 use file_search::GitFileSearch;
+pub use grep::{
+    grep, GrepFile, GrepLine, GrepQuery, GrepQueryBuilder, GrepSubMatch, GrepTextOrBase64,
+};
 
 pub async fn search_files(
     root: &Path,
@@ -36,6 +40,28 @@ pub fn list_refs(root: &Path) -> anyhow::Result<Vec<String>> {
         // Filter out remote refs
         .filter(|r| !r.starts_with("refs/remotes/"))
         .collect())
+}
+
+fn rev_to_commit<'a>(
+    repository: &'a git2::Repository,
+    rev: Option<&str>,
+) -> anyhow::Result<git2::Commit<'a>> {
+    let commit = match rev {
+        Some(rev) => repository.revparse_single(rev)?.peel_to_commit()?,
+        None => repository.head()?.peel_to_commit()?,
+    };
+    Ok(commit)
+}
+
+#[cfg(unix)]
+pub fn bytes2path(b: &[u8]) -> &Path {
+    use std::os::unix::prelude::*;
+    Path::new(std::ffi::OsStr::from_bytes(b))
+}
+#[cfg(windows)]
+pub fn bytes2path(b: &[u8]) -> &Path {
+    use std::str;
+    Path::new(str::from_utf8(b).unwrap())
 }
 
 #[cfg(test)]
