@@ -3,7 +3,7 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
-    ProvidedRepositoryDAO, RepositoryDAO, ServerSettingDAO, UserDAO, UserEventDAO,
+    ServerSettingDAO, UserDAO, UserEventDAO,
 };
 
 use crate::{
@@ -14,8 +14,8 @@ use crate::{
         email::{AuthMethod, EmailSetting, Encryption},
         job,
         repository::{
-            GitRepository, GithubProvidedRepository, GithubRepositoryProvider,
-            GitlabProvidedRepository, GitlabRepositoryProvider, RepositoryProviderStatus,
+            GithubProvidedRepository, GithubRepositoryProvider, GitlabProvidedRepository,
+            GitlabRepositoryProvider, RepositoryProviderStatus,
         },
         setting::{NetworkSetting, SecuritySetting},
         user_event::{EventKind, UserEvent},
@@ -80,16 +80,6 @@ impl TryFrom<OAuthCredentialDAO> for OAuthCredential {
     }
 }
 
-impl From<RepositoryDAO> for GitRepository {
-    fn from(value: RepositoryDAO) -> Self {
-        GitRepository {
-            id: value.id.as_id(),
-            name: value.name,
-            git_url: value.git_url,
-        }
-    }
-}
-
 impl TryFrom<EmailSettingDAO> for EmailSetting {
     type Error = anyhow::Error;
 
@@ -128,22 +118,6 @@ impl From<ServerSettingDAO> for NetworkSetting {
     }
 }
 
-impl TryFrom<ProvidedRepositoryDAO> for ProvidedRepository {
-    type Error = anyhow::Error;
-    fn try_from(value: ProvidedRepositoryDAO) -> Result<Self, Self::Error> {
-        Ok(Self {
-            id: value.id.as_id(),
-            integration_id: value.integration_id.as_id(),
-            active: value.active,
-            display_name: value.name,
-            git_url: value.git_url,
-            vendor_id: value.vendor_id,
-            created_at: *value.created_at,
-            updated_at: *value.updated_at,
-        })
-    }
-}
-
 impl TryFrom<IntegrationDAO> for Integration {
     type Error = anyhow::Error;
     fn try_from(value: IntegrationDAO) -> anyhow::Result<Self> {
@@ -176,6 +150,7 @@ impl From<ProvidedRepository> for GithubProvidedRepository {
             name: value.display_name,
             git_url: value.git_url,
             active: value.active,
+            refs: value.refs,
         }
     }
 }
@@ -221,6 +196,7 @@ impl From<ProvidedRepository> for GitlabProvidedRepository {
             name: value.display_name,
             git_url: value.git_url,
             active: value.active,
+            refs: value.refs,
         }
     }
 }

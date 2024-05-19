@@ -16,6 +16,7 @@ pub struct ProvidedRepository {
     pub vendor_id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub refs: Vec<String>,
 }
 
 impl NodeType for ProvidedRepository {

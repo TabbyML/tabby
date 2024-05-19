@@ -5541,7 +5541,6 @@ dependencies = [
  "strum",
  "tabby-common",
  "tabby-db",
- "tabby-git",
  "thiserror",
  "tokio",
  "tracing",

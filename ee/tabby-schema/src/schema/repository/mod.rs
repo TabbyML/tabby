@@ -47,14 +47,12 @@ pub struct Repository {
 
 impl From<GitRepository> for Repository {
     fn from(value: GitRepository) -> Self {
-        let dir = RepositoryConfig::new(value.git_url).dir();
-        let refs = tabby_git::list_refs(&dir).unwrap_or_default();
         Self {
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Git,
-            dir,
-            refs,
+            dir: RepositoryConfig::new(value.git_url).dir(),
+            refs: value.refs,
         }
     }
 }
@@ -68,6 +66,7 @@ pub struct GithubProvidedRepository {
     pub name: String,
     pub git_url: String,
     pub active: bool,
+    pub refs: Vec<String>,
 }
 
 impl NodeType for GithubProvidedRepository {
@@ -95,6 +94,7 @@ pub struct GitlabProvidedRepository {
     pub name: String,
     pub git_url: String,
     pub active: bool,
+    pub refs: Vec<String>,
 }
 
 impl NodeType for GitlabProvidedRepository {
@@ -115,28 +115,24 @@ impl NodeType for GitlabProvidedRepository {
 
 impl From<GithubProvidedRepository> for Repository {
     fn from(value: GithubProvidedRepository) -> Self {
-        let dir = RepositoryConfig::new(value.git_url).dir();
-        let refs = tabby_git::list_refs(&dir).unwrap_or_default();
         Self {
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Github,
-            dir,
-            refs,
+            dir: RepositoryConfig::new(value.git_url).dir(),
+            refs: value.refs,
         }
     }
 }
 
 impl From<GitlabProvidedRepository> for Repository {
     fn from(value: GitlabProvidedRepository) -> Self {
-        let dir = RepositoryConfig::new(value.git_url).dir();
-        let refs = tabby_git::list_refs(&dir).unwrap_or_default();
         Self {
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Gitlab,
-            dir,
-            refs,
+            dir: RepositoryConfig::new(value.git_url).dir(),
+            refs: value.refs,
         }
     }
 }
