@@ -1,13 +1,11 @@
-
-
 use anyhow::bail;
 use grep::{
     regex::RegexMatcher,
     searcher::{BinaryDetection, SearcherBuilder},
 };
-use ignore::types::{TypesBuilder};
+use ignore::types::TypesBuilder;
 
-use super::{searcher::GrepSearcher};
+use super::searcher::GrepSearcher;
 
 #[derive(Default, Clone)]
 pub struct GrepQuery {

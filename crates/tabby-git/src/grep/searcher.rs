@@ -1,11 +1,7 @@
 use std::path::Path;
 
-
-use grep::{
-    matcher::Matcher,
-    regex::RegexMatcher,
-};
-use ignore::types::{Types};
+use grep::{matcher::Matcher, regex::RegexMatcher};
+use ignore::types::Types;
 
 use super::output::GrepOutput;
 
