@@ -103,6 +103,7 @@ def app():
             "8000",
             "--device",
             "cuda",
+            "--no-webserver",
         ]
     )
 
