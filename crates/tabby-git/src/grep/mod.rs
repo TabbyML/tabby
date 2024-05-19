@@ -183,5 +183,20 @@ mod tests {
             .collect()
             .await;
         assert_eq!(files.len(), 9);
+
+        let query = GrepQuery::builder()
+            .pattern("non_exist_pattern")
+            .negative_file_pattern("non_exist_pattern")
+            .negative_pattern("ideas")
+            .build();
+        let files: Vec<_> = grep(root.repository(), None, &query)
+            .unwrap()
+            .collect()
+            .await;
+        assert_eq!(files.len(), 0);
+
+        let query = GrepQuery::builder()
+            .build();
+        assert!(grep(root.repository(), None, &query).is_err());
     }
 }

@@ -47,10 +47,6 @@ impl GrepOutput {
         &self.path
     }
 
-    pub fn has_matched_lines(&self) -> bool {
-        !self.lines.is_empty()
-    }
-
     pub fn sink<'output, 'a>(
         &'output mut self,
         matcher: &'a RegexMatcher,
