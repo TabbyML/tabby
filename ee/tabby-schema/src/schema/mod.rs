@@ -38,7 +38,7 @@ use self::{
     integration::{IntegrationKind, IntegrationService},
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
-    repository::{FileEntrySearchResult, Repository, RepositoryKind, RepositoryService},
+    repository::{FileEntrySearchResult, GrepFile, Repository, RepositoryKind, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
@@ -412,6 +412,7 @@ impl Query {
         .await
     }
 
+    /// Search files that matches the pattern in the repository.
     async fn repository_search(
         ctx: &Context,
         kind: RepositoryKind,
@@ -423,6 +424,32 @@ impl Query {
         ctx.locator
             .repository()
             .search_files(&kind, &id, rev.as_deref(), &pattern, 40)
+            .await
+    }
+
+    /// File content search with a grep-like experience.
+    /// 
+    /// Syntax:
+    /// 
+    /// 1. Unprefixed text will be treated as a regex pattern for file content search.
+    /// 2. 'f:' to search by file name with a regex pattern.
+    /// 3. 'lang:' to search by file language.
+    /// 4. All tokens can be negated by prefixing them with '-'.
+    /// 
+    /// Examples:
+    /// * `f:schema -lang:rust fn`
+    /// * `func_name lang:go`
+    async fn repository_grep(
+        ctx: &Context,
+        kind: RepositoryKind,
+        id: ID,
+        rev: Option<String>,
+        query: String,
+    ) -> Result<Vec<GrepFile>> {
+        check_claims(ctx)?;
+        ctx.locator
+            .repository()
+            .grep(&kind, &id, rev.as_deref(), &query, 40)
             .await
     }
 

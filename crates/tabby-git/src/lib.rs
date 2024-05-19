@@ -9,9 +9,8 @@ use axum::{
     http::{Response, StatusCode},
 };
 use file_search::GitFileSearch;
-pub use grep::{
-    grep, GrepFile, GrepLine, GrepQuery, GrepQueryBuilder, GrepSubMatch, GrepTextOrBase64,
-};
+use futures::Stream;
+pub use grep::{GrepFile, GrepLine, GrepSubMatch, GrepTextOrBase64};
 
 pub async fn search_files(
     root: &Path,
@@ -20,6 +19,16 @@ pub async fn search_files(
     limit: usize,
 ) -> anyhow::Result<Vec<GitFileSearch>> {
     file_search::search(git2::Repository::open(root)?, rev, pattern, limit).await
+}
+
+pub async fn grep(
+    root: &Path,
+    rev: Option<&str>,
+    query: &str,
+) -> anyhow::Result<impl Stream<Item = GrepFile>> {
+    let repository = git2::Repository::open(root)?;
+    let query: grep::GrepQuery = query.parse()?;
+    grep::grep(repository, rev, &query)
 }
 
 pub fn serve_file(

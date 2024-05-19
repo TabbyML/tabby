@@ -256,6 +256,32 @@ type GitlabRepositoryProviderEdge {
   cursor: String!
 }
 
+type GrepFile {
+  path: String!
+  lines: [GrepLine!]!
+}
+
+type GrepLine {
+  "Content of the line."
+  line: GrepTextOrBase64!
+  "Byte offset in the file to the start of the line."
+  byteOffset: Int!
+  "Line number in the file, starting from 1."
+  lineNumber: Int!
+  "The matches in the line."
+  subMatches: [GrepSubMatch!]!
+}
+
+type GrepSubMatch {
+  bytesStart: Int!
+  bytesEnd: Int!
+}
+
+type GrepTextOrBase64 {
+  text: String
+  base64: String
+}
+
 type Invitation {
   id: ID!
   email: String!
@@ -382,7 +408,23 @@ type Query {
   networkSetting: NetworkSetting!
   securitySetting: SecuritySetting!
   gitRepositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
+  "Search files that matches the pattern in the repository."
   repositorySearch(kind: RepositoryKind!, id: ID!, rev: String, pattern: String!): [FileEntrySearchResult!]!
+  """
+    File content search with a grep-like experience.
+
+    Syntax:
+
+    1. Unprefixed text will be treated as a regex pattern for file content search.
+    2. 'f:' to search by file name with a glob pattern.
+    3. 'lang:' to search by file language.
+    4. All tokens can be negated by prefixing them with '-'.
+
+    Examples:
+    * `f:*.rs -lang:rust fn main`
+    * `func_name lang:go`
+  """
+  repositoryGrep(kind: RepositoryKind!, id: ID!, rev: String, query: String!): [GrepFile!]!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
   serverInfo: ServerInfo!

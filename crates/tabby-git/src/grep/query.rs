@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use anyhow::bail;
 use grep::{
     regex::RegexMatcher,
@@ -99,6 +101,31 @@ impl GrepQuery {
     }
 }
 
+impl FromStr for GrepQuery {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut builder = GrepQueryBuilder::default();
+        for part in s.split_whitespace() {
+            if part.starts_with('-') {
+                builder = match part {
+                    _ if part.starts_with("-lang:") => builder.negative_file_type(&part[6..]),
+                    _ if part.starts_with("-f:") => builder.negative_file_pattern(&part[3..]),
+                    _ => builder.negative_pattern(&part[1..]),
+                };
+            } else {
+                builder = match part {
+                    _ if part.starts_with("lang:") => builder.file_type(&part[5..]),
+                    _ if part.starts_with("f:") => builder.file_pattern(&part[2..]),
+                    _ => builder.pattern(part),
+                };
+            }
+        }
+
+        Ok(builder.build())
+    }
+}
+
 #[derive(Default)]
 pub struct GrepQueryBuilder {
     query: GrepQuery,
@@ -137,5 +164,19 @@ impl GrepQueryBuilder {
 
     pub fn build(self) -> GrepQuery {
         self.query
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_query() {
+        let query: GrepQuery = "lang:rust -f:*.rs foo bar -baz".parse().unwrap();
+        assert_eq!(query.patterns, vec!["foo", "bar"]);
+        assert_eq!(query.negative_patterns, vec!["baz"]);
+        assert_eq!(query.negative_file_patterns, vec!["*.rs"]);
+        assert_eq!(query.file_types, vec!["rust"]);
     }
 }

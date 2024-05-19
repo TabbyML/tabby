@@ -4,6 +4,7 @@ mod third_party;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use futures::StreamExt;
 use juniper::ID;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tabby_db::DbConn;
@@ -139,6 +140,60 @@ impl RepositoryService for RepositoryServiceImpl {
             .map_err(anyhow::Error::from)?;
 
         Ok(matching)
+    }
+
+    async fn grep(
+        &self,
+        kind: &RepositoryKind,
+        id: &ID,
+        rev: Option<&str>,
+        query: &str,
+        top_n: usize,
+    ) -> Result<Vec<tabby_schema::repository::GrepFile>> {
+        if query.trim().is_empty() {
+            return Ok(vec![]);
+        }
+
+        let dir = self.resolve_repository(kind, id).await?.dir;
+
+        let ret = tabby_git::grep(&dir, rev, query)
+            .await?
+            .map(to_grep_file)
+            .take(top_n)
+            .collect::<Vec<_>>()
+            .await;
+
+        Ok(ret)
+    }
+}
+
+fn to_grep_file(file: tabby_git::GrepFile) -> tabby_schema::repository::GrepFile {
+    tabby_schema::repository::GrepFile {
+        path: file.path.display().to_string(),
+        lines: file.lines.into_iter().map(to_grep_line).collect(),
+    }
+}
+
+fn to_grep_line(line: tabby_git::GrepLine) -> tabby_schema::repository::GrepLine {
+    tabby_schema::repository::GrepLine {
+        line: match line.line {
+            tabby_git::GrepTextOrBase64::Text(text) => {
+                tabby_schema::repository::GrepTextOrBase64::Text(text)
+            }
+            tabby_git::GrepTextOrBase64::Base64(bytes) => {
+                tabby_schema::repository::GrepTextOrBase64::Base64(bytes)
+            }
+        },
+        byte_offset: line.byte_offset as i32,
+        line_number: line.line_number as i32,
+        sub_matches: line.sub_matches.into_iter().map(to_sub_match).collect(),
+    }
+}
+
+fn to_sub_match(m: tabby_git::GrepSubMatch) -> tabby_schema::repository::GrepSubMatch {
+    tabby_schema::repository::GrepSubMatch {
+        bytes_start: m.bytes_start as i32,
+        bytes_end: m.bytes_end as i32,
     }
 }
 
