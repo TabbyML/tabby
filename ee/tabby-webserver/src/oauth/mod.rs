@@ -14,7 +14,9 @@ use self::gitlab::GitlabClient;
 
 #[async_trait]
 pub trait OAuthClient: Send + Sync {
-    async fn fetch_user_email(&self, code: String) -> Result<String>;
+    async fn exchange_code_for_token(&self, code: String) -> Result<String>;
+    async fn fetch_user_email(&self, access_token: &str) -> Result<String>;
+    async fn fetch_user_full_name(&self, access_token: &str) -> Result<String>;
     async fn get_authorization_url(&self) -> Result<String>;
 }
 

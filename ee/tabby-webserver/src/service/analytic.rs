@@ -139,7 +139,7 @@ mod tests {
     async fn test_daily_stats_in_past_year() {
         let db = DbConn::new_in_memory().await.unwrap();
         let user_id = db
-            .create_user("test@example.com".into(), Some("pass".into()), true)
+            .create_user("test@example.com".into(), Some("pass".into()), true, None)
             .await
             .unwrap();
 
@@ -158,7 +158,7 @@ mod tests {
             .unwrap();
 
         let user_id2 = db
-            .create_user("test2@example.com".into(), Some("pass".into()), false)
+            .create_user("test2@example.com".into(), Some("pass".into()), false, None)
             .await
             .unwrap();
 
@@ -212,7 +212,7 @@ mod tests {
     async fn test_daily_stats() {
         let db = DbConn::new_in_memory().await.unwrap();
         let user_id = db
-            .create_user("test@example.com".into(), Some("pass".into()), true)
+            .create_user("test@example.com".into(), Some("pass".into()), true, None)
             .await
             .unwrap();
 
@@ -256,7 +256,7 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
 
         let user_id = db
-            .create_user("test@example.com".into(), Some("pass".into()), true)
+            .create_user("test@example.com".into(), Some("pass".into()), true, None)
             .await
             .unwrap();
 
@@ -303,7 +303,7 @@ mod tests {
         let service = new_analytic_service(db.clone());
 
         let id = db
-            .create_user("testuser".into(), None, false)
+            .create_user("testuser".into(), None, false, None)
             .await
             .unwrap();
 
