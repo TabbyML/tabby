@@ -185,12 +185,16 @@ pub struct LocalModelConfig {
     #[serde(default = "default_parallelism")]
     pub parallelism: u8,
 
-    #[serde(default)]
+    #[serde(default = "default_num_gpu_layers")]
     pub num_gpu_layers: u16,
 }
 
 fn default_parallelism() -> u8 {
     1
+}
+
+fn default_num_gpu_layers() -> u16 {
+    9999
 }
 
 #[async_trait]
