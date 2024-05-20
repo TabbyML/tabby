@@ -70,6 +70,39 @@ fn scheduler_pipeline(repositories: &[RepositoryConfig]) {
     code.garbage_collection(repositories);
 }
 
+fn doc_index_pipeline(config: &tabby_common::config::Config) {
+    let Some(index_config) = &config.experimental.doc_index else {
+        return;
+    };
+
+    let Some(embedding_config) = &config.model.embedding else {
+        return;
+    };
+
+    let mut doc_index = DocIndex::new();
+    for url in &config.start_urls {
+        let mut cnt = 0;
+        for doc in crawl::crawl_pipeline(url).await {
+            cnt += 1;
+            if cnt >= 5 {
+                break;
+            }
+
+            let id = cnt.to_string();
+            let source_doc = SourceDocument {
+                id,
+                title: doc.metadata.title.unwrap_or_default(),
+                link: doc.url,
+                body: doc.markdown,
+            };
+
+            doc_index.add(source_doc).await;
+        }
+
+        doc_index.commit();
+    }
+}
+
 mod tantivy_utils {
     use std::{fs, path::Path};
 

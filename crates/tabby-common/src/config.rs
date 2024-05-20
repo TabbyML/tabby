@@ -20,6 +20,9 @@ pub struct Config {
 
     #[serde(default)]
     pub model: ModelConfigGroup,
+
+    #[serde(default)]
+    pub experimental: ExperimentalConfig,
 }
 
 impl Config {
@@ -195,6 +198,16 @@ fn default_parallelism() -> u8 {
 
 fn default_num_gpu_layers() -> u16 {
     9999
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
+pub struct ExperimentalConfig {
+    pub doc_index: Option<DocIndexConfig>,
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
+pub struct DocIndexConfig{
+    pub start_urls: Vec<String>,
 }
 
 #[async_trait]
