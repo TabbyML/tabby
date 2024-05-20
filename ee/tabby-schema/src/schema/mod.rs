@@ -849,6 +849,7 @@ impl Mutation {
                 IntegrationKind::Github,
                 input.display_name,
                 input.access_token,
+                input.url_base,
             )
             .await?;
         Ok(id)
@@ -907,6 +908,7 @@ impl Mutation {
                 IntegrationKind::Gitlab,
                 input.display_name,
                 input.access_token,
+                input.url_base,
             )
             .await?;
         Ok(id)

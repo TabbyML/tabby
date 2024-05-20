@@ -4,8 +4,10 @@ use super::RepositoryInfo;
 
 pub async fn fetch_all_github_repos(
     access_token: &str,
+    base_url: &str,
 ) -> Result<Vec<RepositoryInfo>, octocrab::Error> {
     let octocrab = Octocrab::builder()
+        .base_uri(base_url)?
         .user_access_token(access_token.to_string())
         .build()?;
 

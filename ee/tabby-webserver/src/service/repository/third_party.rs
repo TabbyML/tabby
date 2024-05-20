@@ -165,7 +165,13 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             provider.display_name
         );
 
-        let repos = match fetch_all_repos(provider.kind.clone(), &provider.access_token).await {
+        let repos = match fetch_all_repos(
+            provider.kind.clone(),
+            &provider.access_token,
+            &provider.url_base,
+        )
+        .await
+        {
             Ok(repos) => repos,
             Err((e, true)) => {
                 self.integration
@@ -305,6 +311,7 @@ mod tests {
                 IntegrationKind::Github,
                 "test_id1".into(),
                 "test_secret".into(),
+                None,
             )
             .await
             .unwrap();
@@ -314,6 +321,7 @@ mod tests {
                 IntegrationKind::Github,
                 "test_id2".into(),
                 "test_secret".into(),
+                None,
             )
             .await
             .unwrap();
@@ -402,7 +410,12 @@ mod tests {
         let (repository, integration) = create_fake().await;
 
         let provider_id = integration
-            .create_integration(IntegrationKind::Github, "provider1".into(), "token".into())
+            .create_integration(
+                IntegrationKind::Github,
+                "provider1".into(),
+                "token".into(),
+                None,
+            )
             .await
             .unwrap();
 
@@ -442,7 +455,12 @@ mod tests {
 
         // Test gitlab urls are formatted properly
         let provider_id2 = integration
-            .create_integration(IntegrationKind::Gitlab, "provider2".into(), "token2".into())
+            .create_integration(
+                IntegrationKind::Gitlab,
+                "provider2".into(),
+                "token2".into(),
+                None,
+            )
             .await
             .unwrap();
 
@@ -488,7 +506,7 @@ mod tests {
         let (repository, integration) = create_fake().await;
 
         let provider_id = integration
-            .create_integration(IntegrationKind::Github, "gh".into(), "token".into())
+            .create_integration(IntegrationKind::Github, "gh".into(), "token".into(), None)
             .await
             .unwrap();
 

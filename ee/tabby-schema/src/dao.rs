@@ -133,6 +133,7 @@ impl TryFrom<IntegrationDAO> for Integration {
             kind: IntegrationKind::from_enum_str(&value.kind)?,
             display_name: value.display_name,
             access_token: value.access_token,
+            url_base: value.url_base,
             created_at: *value.created_at,
             updated_at: *value.updated_at,
             status,

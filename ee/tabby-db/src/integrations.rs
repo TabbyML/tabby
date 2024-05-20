@@ -11,6 +11,7 @@ pub struct IntegrationDAO {
     pub error: Option<String>,
     pub display_name: String,
     pub access_token: String,
+    pub url_base: String,
     pub created_at: DateTimeUtc,
     pub updated_at: DateTimeUtc,
     pub synced: bool,
@@ -22,12 +23,14 @@ impl DbConn {
         kind: String,
         name: String,
         access_token: String,
+        url_base: String,
     ) -> Result<i64> {
         let res = query!(
-            "INSERT INTO integrations(kind, display_name, access_token) VALUES (?, ?, ?);",
+            "INSERT INTO integrations(kind, display_name, access_token, url_base) VALUES (?, ?, ?, ?);",
             kind,
             name,
-            access_token
+            access_token,
+            url_base
         )
         .execute(&self.pool)
         .await?;
@@ -43,6 +46,7 @@ impl DbConn {
                 error,
                 display_name,
                 access_token,
+                url_base,
                 updated_at,
                 created_at,
                 synced
@@ -144,6 +148,7 @@ impl DbConn {
                 "error",
                 "display_name",
                 "access_token",
+                "url_base",
                 "created_at",
                 "updated_at",
                 "synced"

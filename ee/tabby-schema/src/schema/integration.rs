@@ -11,6 +11,15 @@ pub enum IntegrationKind {
     Gitlab,
 }
 
+impl IntegrationKind {
+    pub fn default_url_base(&self) -> &'static str {
+        match self {
+            IntegrationKind::Github => "https://api.github.com",
+            IntegrationKind::Gitlab => "https://gitlab.com",
+        }
+    }
+}
+
 #[derive(PartialEq, Eq, Debug)]
 pub enum IntegrationStatus {
     Ready,
@@ -23,6 +32,7 @@ pub struct Integration {
     pub kind: IntegrationKind,
     pub display_name: String,
     pub access_token: String,
+    pub url_base: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub status: IntegrationStatus,
@@ -35,6 +45,7 @@ pub trait IntegrationService: Send + Sync {
         kind: IntegrationKind,
         display_name: String,
         access_token: String,
+        url_base: Option<String>,
     ) -> Result<ID>;
 
     async fn delete_integration(&self, id: ID, kind: IntegrationKind) -> Result<()>;

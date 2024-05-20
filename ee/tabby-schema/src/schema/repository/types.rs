@@ -11,6 +11,8 @@ pub struct CreateRepositoryProviderInput {
     pub display_name: String,
     #[validate(length(code = "accessToken", min = 10, message = "Invalid access token"))]
     pub access_token: String,
+    #[validate(url(code = "url_base"))]
+    pub url_base: Option<String>,
 }
 
 #[derive(GraphQLInputObject, Validate)]

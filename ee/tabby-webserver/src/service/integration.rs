@@ -29,10 +29,16 @@ impl IntegrationService for IntegrationServiceImpl {
         kind: IntegrationKind,
         display_name: String,
         access_token: String,
+        url_base: Option<String>,
     ) -> Result<ID> {
         let id = self
             .db
-            .create_integration(kind.as_enum_str().to_string(), display_name, access_token)
+            .create_integration(
+                kind.as_enum_str().to_string(),
+                display_name,
+                access_token,
+                url_base.unwrap_or_else(|| kind.default_url_base().to_string()),
+            )
             .await?;
         let id = id.as_id();
         let _ = self
@@ -125,7 +131,7 @@ mod tests {
         let integration = Arc::new(create(db, background));
 
         let id = integration
-            .create_integration(IntegrationKind::Gitlab, "id".into(), "secret".into())
+            .create_integration(IntegrationKind::Gitlab, "id".into(), "secret".into(), None)
             .await
             .unwrap();
 
