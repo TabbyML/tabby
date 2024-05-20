@@ -2,17 +2,14 @@ use std::sync::Arc;
 
 use strfmt::strfmt;
 use tabby_common::{
-    api::code::{CodeSearch, CodeSearchError},
-    index::CodeSearchSchema,
+    api::code::{CodeSearch, CodeSearchError, CodeSearchQuery},
     languages::get_language,
 };
-use textdistance::Algorithm;
 use tracing::warn;
 
 use super::{Segments, Snippet};
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;
-static MAX_SIMILARITY_THRESHOLD: f32 = 0.9;
 
 pub struct PromptBuilder {
     prompt_template: Option<String>,
@@ -63,6 +60,7 @@ impl PromptBuilder {
             max_snippets_chars_in_prompt,
             code.as_ref(),
             git_url,
+            segments.filepath.as_deref(),
             language,
             &segments.prefix,
         )
@@ -179,14 +177,21 @@ async fn collect_snippets(
     max_snippets_chars: usize,
     code: &dyn CodeSearch,
     git_url: &str,
+    filepath: Option<&str>,
     language: &str,
-    text: &str,
+    content: &str,
 ) -> Vec<Snippet> {
+    let query = CodeSearchQuery {
+        git_url: git_url.to_owned(),
+        filepath: filepath.map(|x| x.to_owned()),
+        language: language.to_owned(),
+        content: content.to_owned(),
+    };
+
     let mut ret = Vec::new();
-    let mut tokens = CodeSearchSchema::tokenize_body(text);
 
     let serp = match code
-        .search_in_language(git_url, language, &tokens, MAX_SNIPPETS_TO_FETCH, 0)
+        .search_in_language(query, MAX_SNIPPETS_TO_FETCH, 0)
         .await
     {
         Ok(serp) => serp,
@@ -211,30 +216,10 @@ async fn collect_snippets(
     let mut count_characters = 0;
     for hit in serp.hits {
         let body = hit.doc.body;
-        let mut body_tokens = CodeSearchSchema::tokenize_body(&body);
 
         if count_characters + body.len() > max_snippets_chars {
             break;
         }
-
-        let similarity = if body_tokens.len() > tokens.len() {
-            0.0
-        } else {
-            let distance = textdistance::LCSSeq::default()
-                .for_iter(tokens.iter(), body_tokens.iter())
-                .val() as f32;
-            distance / body_tokens.len() as f32
-        };
-
-        if similarity > MAX_SIMILARITY_THRESHOLD {
-            // Exclude snippets presents in context window.
-            continue;
-        }
-
-        // Prepend body tokens and update tokens, so future similarity calculation will consider
-        // added snippets.
-        body_tokens.append(&mut tokens);
-        tokens.append(&mut body_tokens);
 
         count_characters += body.len();
         ret.push(Snippet {

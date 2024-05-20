@@ -10,10 +10,9 @@ use axum::{
     response::IntoResponse,
 };
 use axum_extra::TypedHeader;
-use tabby_common::api::{code::CodeSearchResponse, event::LogEntry};
+use tabby_common::api::event::LogEntry;
 use tabby_schema::ServiceLocator;
 use tarpc::server::{BaseChannel, Channel};
-use tracing::warn;
 
 use crate::{
     axum::{extract::AuthBearer, websocket::WebSocketTransport},
@@ -85,44 +84,5 @@ impl HubImpl {
 impl Hub for Arc<HubImpl> {
     async fn write_log(self, _context: tarpc::context::Context, x: LogEntry) {
         self.ctx.logger().write(x)
-    }
-
-    async fn search(
-        self,
-        _context: tarpc::context::Context,
-        q: String,
-        limit: usize,
-        offset: usize,
-    ) -> CodeSearchResponse {
-        match self.ctx.code().search(&q, limit, offset).await {
-            Ok(serp) => serp,
-            Err(err) => {
-                warn!("Failed to search: {}", err);
-                CodeSearchResponse::default()
-            }
-        }
-    }
-
-    async fn search_in_language(
-        self,
-        _context: tarpc::context::Context,
-        git_url: String,
-        language: String,
-        tokens: Vec<String>,
-        limit: usize,
-        offset: usize,
-    ) -> CodeSearchResponse {
-        match self
-            .ctx
-            .code()
-            .search_in_language(&git_url, &language, &tokens, limit, offset)
-            .await
-        {
-            Ok(serp) => serp,
-            Err(err) => {
-                warn!("Failed to search: {}", err);
-                CodeSearchResponse::default()
-            }
-        }
     }
 }
