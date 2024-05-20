@@ -122,6 +122,7 @@ impl CodeSearchSchema {
         let body_query = self.body_query(&CodeSearchSchema::tokenize_body(&query.content));
         let git_url_query = self.git_url_query(&query.git_url);
 
+        // language / git_url / filepath field shouldn't contribute to the score, mark them to 0.0.
         let mut subqueries: Vec<(Occur, Box<dyn Query>)> = vec![
             (
                 Occur::Must,
@@ -141,7 +142,6 @@ impl CodeSearchSchema {
             ))
         }
 
-        // language / git_url field shouldn't contribute to the score, mark them to 0.0.
         BooleanQuery::new(subqueries)
     }
 }
