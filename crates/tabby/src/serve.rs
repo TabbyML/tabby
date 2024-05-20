@@ -4,7 +4,7 @@ use axum::{routing, Router};
 use clap::Args;
 use hyper::StatusCode;
 use tabby_common::{
-    api::{self, code::CodeSearch, event::EventLogger},
+    api::{self, code::CodeSearch, doc::DocSearch, event::EventLogger},
     config::{Config, ConfigRepositoryAccess, ModelConfig, RepositoryAccess},
     usage,
 };
@@ -207,24 +207,20 @@ async fn api_router(
         None
     };
 
-    let docsearch_state = if let Some(embedding) = &model.embedding {
+    let docsearch_state: Option<Arc<dyn DocSearch>> = if let Some(embedding) = &model.embedding {
         let embedding = embedding::create(embedding).await;
         Some(Arc::new(services::doc::create(embedding)))
     } else {
         None
     };
 
-    let answer_state = if let Some(chat) = &chat_state {
-        docsearch_state.as_ref().map(|doc| {
-            Arc::new(services::answer::create(
-                chat.clone(),
-                code.clone(),
-                doc.clone(),
-            ))
-        })
-    } else {
-        None
-    };
+    let answer_state = chat_state.as_ref().map(|chat| {
+        Arc::new(services::answer::create(
+            chat.clone(),
+            code.clone(),
+            docsearch_state.clone(),
+        ))
+    });
 
     let mut routers = vec![];
 
