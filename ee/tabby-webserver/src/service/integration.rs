@@ -37,7 +37,7 @@ impl IntegrationService for IntegrationServiceImpl {
                 kind.as_enum_str().to_string(),
                 display_name,
                 access_token,
-                url_base.unwrap_or_else(|| kind.default_url_base().to_string()),
+                url_base,
             )
             .await?;
         let id = id.as_id();
@@ -60,6 +60,7 @@ impl IntegrationService for IntegrationServiceImpl {
         kind: IntegrationKind,
         display_name: String,
         access_token: Option<String>,
+        api_base: Option<String>,
     ) -> Result<()> {
         self.db
             .update_integration(
@@ -67,6 +68,7 @@ impl IntegrationService for IntegrationServiceImpl {
                 kind.as_enum_str(),
                 display_name,
                 access_token,
+                api_base,
             )
             .await?;
         Ok(())
@@ -145,7 +147,13 @@ mod tests {
 
         // Test updating gitlab provider
         integration
-            .update_integration(id.clone(), IntegrationKind::Gitlab, "id2".into(), None)
+            .update_integration(
+                id.clone(),
+                IntegrationKind::Gitlab,
+                "id2".into(),
+                None,
+                None,
+            )
             .await
             .unwrap();
 

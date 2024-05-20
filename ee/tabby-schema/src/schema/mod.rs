@@ -258,7 +258,7 @@ impl Query {
                     .locator
                     .repository()
                     .third_party()
-                    .list_repositories(
+                    .list_repositories_with_filter(
                         Some(provider_ids),
                         Some(IntegrationKind::Github),
                         active,
@@ -327,7 +327,7 @@ impl Query {
                     .locator
                     .repository()
                     .third_party()
-                    .list_repositories(
+                    .list_repositories_with_filter(
                         Some(provider_ids),
                         Some(IntegrationKind::Gitlab),
                         active,
@@ -849,7 +849,26 @@ impl Mutation {
                 IntegrationKind::Github,
                 input.display_name,
                 input.access_token,
-                input.url_base,
+                None,
+            )
+            .await?;
+        Ok(id)
+    }
+
+    async fn create_self_hosted_github_repository_provider(
+        ctx: &Context,
+        input: repository::CreateSelfHostedRepositoryProviderInput,
+    ) -> Result<ID> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        let id = ctx
+            .locator
+            .integration()
+            .create_integration(
+                IntegrationKind::Github,
+                input.display_name,
+                input.access_token,
+                input.api_base,
             )
             .await?;
         Ok(id)
@@ -877,6 +896,26 @@ impl Mutation {
                 IntegrationKind::Github,
                 input.display_name,
                 input.access_token,
+                None,
+            )
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_self_hosted_github_repository_provider(
+        ctx: &Context,
+        input: repository::UpdateSelfHostedRepositoryProviderInput,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        ctx.locator
+            .integration()
+            .update_integration(
+                input.id,
+                IntegrationKind::Github,
+                input.display_name,
+                input.access_token,
+                input.api_base,
             )
             .await?;
         Ok(true)
@@ -908,7 +947,26 @@ impl Mutation {
                 IntegrationKind::Gitlab,
                 input.display_name,
                 input.access_token,
-                input.url_base,
+                None,
+            )
+            .await?;
+        Ok(id)
+    }
+
+    async fn create_self_hosted_gitlab_repository_provider(
+        ctx: &Context,
+        input: repository::CreateSelfHostedRepositoryProviderInput,
+    ) -> Result<ID> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        let id = ctx
+            .locator
+            .integration()
+            .create_integration(
+                IntegrationKind::Gitlab,
+                input.display_name,
+                input.access_token,
+                input.api_base,
             )
             .await?;
         Ok(id)
@@ -919,6 +977,25 @@ impl Mutation {
         ctx.locator
             .integration()
             .delete_integration(id, IntegrationKind::Gitlab)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_self_hosted_gitlab_repository_provider(
+        ctx: &Context,
+        input: repository::UpdateSelfHostedRepositoryProviderInput,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        ctx.locator
+            .integration()
+            .update_integration(
+                input.id,
+                IntegrationKind::Gitlab,
+                input.display_name,
+                input.access_token,
+                input.api_base,
+            )
             .await?;
         Ok(true)
     }
@@ -936,6 +1013,7 @@ impl Mutation {
                 IntegrationKind::Gitlab,
                 input.display_name,
                 input.access_token,
+                None,
             )
             .await?;
         Ok(true)

@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use juniper::ID;
 use strum::EnumIter;
 
-use crate::Result;
+use crate::{repository::RepositoryKind, Result};
 
 #[derive(Clone, EnumIter)]
 pub enum IntegrationKind {
@@ -12,10 +12,10 @@ pub enum IntegrationKind {
 }
 
 impl IntegrationKind {
-    pub fn default_url_base(&self) -> &'static str {
+    pub fn default_url_base(&self) -> Result<&'static str> {
         match self {
-            IntegrationKind::Github => "https://api.github.com",
-            IntegrationKind::Gitlab => "https://gitlab.com",
+            IntegrationKind::Github => Ok("https://api.github.com"),
+            IntegrationKind::Gitlab => Ok("https://gitlab.com"),
         }
     }
 }
@@ -32,10 +32,21 @@ pub struct Integration {
     pub kind: IntegrationKind,
     pub display_name: String,
     pub access_token: String,
-    pub url_base: String,
+    pub api_base: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub status: IntegrationStatus,
+}
+
+impl Integration {
+    pub fn repository_kind(&self) -> RepositoryKind {
+        match self.kind {
+            IntegrationKind::Github if self.api_base.is_none() => RepositoryKind::Github,
+            IntegrationKind::Github => RepositoryKind::GithubSelfHosted,
+            IntegrationKind::Gitlab if self.api_base.is_none() => RepositoryKind::Gitlab,
+            IntegrationKind::Gitlab => RepositoryKind::GitlabSelfHosted,
+        }
+    }
 }
 
 #[async_trait]
@@ -56,6 +67,7 @@ pub trait IntegrationService: Send + Sync {
         kind: IntegrationKind,
         display_name: String,
         access_token: Option<String>,
+        api_base: Option<String>,
     ) -> Result<()>;
 
     async fn list_integrations(

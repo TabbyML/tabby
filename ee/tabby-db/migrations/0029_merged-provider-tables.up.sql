@@ -3,7 +3,7 @@ CREATE TABLE integrations(
     kind TEXT NOT NULL,
     display_name TEXT NOT NULL,
     access_token TEXT NOT NULL,
-    url_base TEXT NOT NULL,
+    api_base TEXT,
     error TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
     updated_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
