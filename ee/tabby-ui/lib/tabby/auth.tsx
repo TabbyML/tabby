@@ -244,6 +244,10 @@ const redirectWhitelist = [
   '/auth/reset-password'
 ]
 
+const publicPaths = [
+  '/chat'
+]
+
 function useAuthenticatedSession() {
   const isAdminInitialized = useIsAdminInitialized()
   const router = useRouter()
@@ -252,6 +256,7 @@ function useAuthenticatedSession() {
   const { data: session, status } = useSession()
 
   React.useEffect(() => {
+    if (publicPaths.includes(pathName)) return
     if (status === 'loading') return
     if (status === 'authenticated') return
     if (isAdminInitialized === undefined) return
