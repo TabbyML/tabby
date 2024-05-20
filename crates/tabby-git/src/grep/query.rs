@@ -138,7 +138,7 @@ impl GrepQueryBuilder {
     pub fn pattern<T: Into<String>>(mut self, pattern: T) -> Self {
         let pattern = pattern.into();
         if !pattern.is_empty() {
-            self.query.patterns.push(pattern.into());
+            self.query.patterns.push(pattern);
         }
         self
     }
@@ -146,7 +146,7 @@ impl GrepQueryBuilder {
     pub fn negative_pattern<T: Into<String>>(mut self, pattern: T) -> Self {
         let pattern = pattern.into();
         if !pattern.is_empty() {
-            self.query.negative_patterns.push(pattern.into());
+            self.query.negative_patterns.push(pattern);
         }
         self
     }
@@ -154,7 +154,7 @@ impl GrepQueryBuilder {
     pub fn file_pattern<T: Into<String>>(mut self, pattern: T) -> Self {
         let pattern = pattern.into();
         if !pattern.is_empty() {
-            self.query.file_patterns.push(pattern.into());
+            self.query.file_patterns.push(pattern);
         }
         self
     }
@@ -162,7 +162,7 @@ impl GrepQueryBuilder {
     pub fn negative_file_pattern<T: Into<String>>(mut self, pattern: T) -> Self {
         let pattern = pattern.into();
         if !pattern.is_empty() {
-            self.query.negative_file_patterns.push(pattern.into());
+            self.query.negative_file_patterns.push(pattern);
         }
         self
     }
