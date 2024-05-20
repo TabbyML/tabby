@@ -166,7 +166,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             Ok(repos) => repos,
             Err((e, true)) => {
                 self.integration
-                    .update_integration_error(provider.id.clone(), Some("".into()))
+                    .update_integration_sync_status(provider.id.clone(), Some("".into()))
                     .await?;
                 error!(
                     "Credentials for integration {} are expired or invalid",
@@ -233,7 +233,7 @@ async fn refresh_repositories_for_provider(
     }
 
     integration
-        .update_integration_error(provider.id.clone(), None)
+        .update_integration_sync_status(provider.id.clone(), None)
         .await?;
     let num_removed = repository
         .delete_outdated_repositories(provider.id, start)
