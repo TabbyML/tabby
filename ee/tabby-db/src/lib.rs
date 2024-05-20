@@ -113,6 +113,29 @@ impl DbConn {
         DbConn::init_db(pool).await
     }
 
+    #[cfg(any(test, feature = "testutils"))]
+    pub async fn new_blank() -> Result<Self> {
+        use std::str::FromStr;
+
+        use sqlx::sqlite::SqlitePoolOptions;
+
+        let options = SqliteConnectOptions::from_str("sqlite::memory:")?;
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(options)
+            .await?;
+        Ok(DbConn {
+            pool,
+            cache: Arc::new(DbCache {
+                active_user_count: Default::default(),
+                active_admin_count: Default::default(),
+                daily_stats_in_past_year: Arc::new(Mutex::new(
+                    TimedSizedCache::with_size_and_lifespan(20, 3600),
+                )),
+            }),
+        })
+    }
+
     pub async fn new(db_file: &Path) -> Result<Self> {
         tokio::fs::create_dir_all(db_file.parent().unwrap()).await?;
         let options = SqliteConnectOptions::new()

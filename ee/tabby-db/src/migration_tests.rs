@@ -1,13 +1,33 @@
-use sqlx::migrate;
+use std::ops::RangeBounds;
+
+use sqlx::{
+    migrate,
+    migrate::{Migration, MigrationType, Migrator},
+};
 
 use crate::DbConn;
 
-#[tokio::test]
-async fn test_repository_migration() {
-    let migrations = migrate!("./migrations");
-    let db = DbConn::new_in_memory().await.unwrap();
+fn migrations(
+    migrator: &Migrator,
+    range: impl RangeBounds<i64> + 'static,
+) -> impl Iterator<Item = &Migration> {
+    migrator.iter().filter(move |migration| {
+        range.contains(&migration.version)
+            && matches!(
+                migration.migration_type,
+                MigrationType::Simple | MigrationType::ReversibleUp
+            )
+    })
+}
 
-    migrations.undo(&db.pool, 28).await.unwrap();
+#[tokio::test]
+async fn test_repository_migration_0029() {
+    let migrator = migrate!("./migrations");
+    let db = DbConn::new_blank().await.unwrap();
+
+    for migration in migrations(&migrator, ..29) {
+        sqlx::query(&migration.sql).execute(&db.pool).await.unwrap();
+    }
 
     sqlx::query("INSERT INTO github_repository_provider(display_name, access_token) VALUES ('github', 'gh-faketoken');")
             .execute(&db.pool)
@@ -31,7 +51,8 @@ async fn test_repository_migration() {
             .await
             .unwrap();
 
-    migrations.run(&db.pool).await.unwrap();
+    let migration = migrations(&migrator, 29..=29).next().unwrap();
+    sqlx::query(&migration.sql).execute(&db.pool).await.unwrap();
 
     let repos = db
         .list_provided_repositories(vec![], None, None, None, None, false)
