@@ -59,6 +59,8 @@ enum RepositoryKind {
   GIT
   GITHUB
   GITLAB
+  GITHUB_SELF_HOSTED
+  GITLAB_SELF_HOSTED
 }
 
 enum RepositoryProviderStatus {
@@ -70,7 +72,12 @@ enum RepositoryProviderStatus {
 input CreateRepositoryProviderInput {
   displayName: String!
   accessToken: String!
-  urlBase: String
+}
+
+input CreateSelfHostedRepositoryProviderInput {
+  displayName: String!
+  accessToken: String!
+  apiBase: String
 }
 
 input EmailSettingInput {
@@ -122,6 +129,13 @@ input UpdateRepositoryProviderInput {
   id: ID!
   displayName: String!
   accessToken: String
+}
+
+input UpdateSelfHostedRepositoryProviderInput {
+  id: ID!
+  displayName: String!
+  accessToken: String
+  apiBase: String
 }
 
 """
@@ -367,11 +381,15 @@ type Mutation {
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
   createGithubRepositoryProvider(input: CreateRepositoryProviderInput!): ID!
+  createSelfHostedGithubRepositoryProvider(input: CreateSelfHostedRepositoryProviderInput!): ID!
   deleteGithubRepositoryProvider(id: ID!): Boolean!
   updateGithubRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean!
+  updateSelfHostedGithubRepositoryProvider(input: UpdateSelfHostedRepositoryProviderInput!): Boolean!
   updateGithubProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
   createGitlabRepositoryProvider(input: CreateRepositoryProviderInput!): ID!
+  createSelfHostedGitlabRepositoryProvider(input: CreateSelfHostedRepositoryProviderInput!): ID!
   deleteGitlabRepositoryProvider(id: ID!): Boolean!
+  updateSelfHostedGitlabRepositoryProvider(input: UpdateSelfHostedRepositoryProviderInput!): Boolean!
   updateGitlabRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean!
   updateGitlabProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
 }

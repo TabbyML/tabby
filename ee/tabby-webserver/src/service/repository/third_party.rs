@@ -160,7 +160,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         };
 
         let repos =
-            match fetch_all_repos(provider.kind.clone(), &provider.access_token, &api_base).await {
+            match fetch_all_repos(provider.kind.clone(), &provider.access_token, api_base).await {
                 Ok(repos) => repos,
                 Err((e, true)) => {
                     self.integration

@@ -225,7 +225,7 @@
 <polygon fill="none" stroke="black" points="411.5,-844.5 411.5,-865.5 435.5,-865.5 435.5,-844.5 411.5,-844.5"/>
 <text text-anchor="start" x="421" y="-851.3" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="435.5,-844.5 435.5,-865.5 538.5,-865.5 538.5,-844.5 435.5,-844.5"/>
-<text text-anchor="start" x="456.5" y="-851.3" font-family="Times,serif" font-size="14.00">url_base</text>
+<text text-anchor="start" x="456" y="-851.3" font-family="Times,serif" font-size="14.00">api_base</text>
 <polygon fill="none" stroke="black" points="411.5,-823.5 411.5,-844.5 435.5,-844.5 435.5,-823.5 411.5,-823.5"/>
 <text text-anchor="start" x="421" y="-830.3" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="435.5,-823.5 435.5,-844.5 538.5,-844.5 538.5,-823.5 435.5,-823.5"/>
