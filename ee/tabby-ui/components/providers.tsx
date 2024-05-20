@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { usePathname } from 'next/navigation'
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
 import { ThemeProviderProps } from 'next-themes/dist/types'
 import { Provider as UrqlProvider } from 'urql'
@@ -32,6 +33,13 @@ export function Providers({ children, ...props }: ThemeProviderProps) {
 }
 
 function EnsureSignin() {
+  const pathname = usePathname()
+  const excludePath = ['/chat']
+
+  if (excludePath.includes(pathname)) {
+    return <></>
+  }
+
   useAuthenticatedSession()
   return <></>
 }
