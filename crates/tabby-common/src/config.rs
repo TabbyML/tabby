@@ -202,11 +202,11 @@ fn default_num_gpu_layers() -> u16 {
 
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct ExperimentalConfig {
-    pub doc_index: Option<DocIndexConfig>,
+    pub doc: Option<DocIndexConfig>,
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
-pub struct DocIndexConfig{
+pub struct DocIndexConfig {
     pub start_urls: Vec<String>,
 }
 
