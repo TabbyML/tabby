@@ -214,15 +214,11 @@ async fn api_router(
         None
     };
 
-    let answer_state = if let Some(chat) = &chat_state {
-        Some(Arc::new(services::answer::create(
+    let answer_state = chat_state.as_ref().map(|chat| Arc::new(services::answer::create(
             chat.clone(),
             code.clone(),
             docsearch_state.clone(),
-        )))
-    } else {
-        None
-    };
+        )));
 
     let mut routers = vec![];
 
