@@ -12,7 +12,7 @@ pub struct GrepSearcher {
     pattern_matcher: Option<RegexMatcher>,
     negative_pattern_matcher: Option<RegexMatcher>,
 
-    file_pattern_matcher: Option<RegexMatcher>,
+    file_pattern_matcher: Vec<RegexMatcher>,
     negative_file_pattern_matcher: Option<RegexMatcher>,
 
     file_type_matcher: Option<Types>,
@@ -31,7 +31,7 @@ impl GrepSearcher {
         require_content_match: bool,
         pattern_matcher: Option<RegexMatcher>,
         negative_pattern_matcher: Option<RegexMatcher>,
-        file_pattern_matcher: Option<RegexMatcher>,
+        file_pattern_matcher: Vec<RegexMatcher>,
         negative_file_pattern_matcher: Option<RegexMatcher>,
         file_type_matcher: Option<Types>,
         searcher: grep::searcher::Searcher,
@@ -71,11 +71,12 @@ impl GrepSearcher {
             };
         };
 
-        if let Some(ref matcher) = self.file_pattern_matcher {
+        for matcher in &self.file_pattern_matcher {
             if matcher.is_match(&path_bytes)? {
                 matched = GrepFileMatch::Matched;
             } else {
                 matched = GrepFileMatch::NotMatched;
+                break;
             }
         }
 

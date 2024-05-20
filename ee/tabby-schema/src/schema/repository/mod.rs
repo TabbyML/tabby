@@ -8,7 +8,8 @@ pub use git::{CreateGitRepositoryInput, GitRepository, GitRepositoryService};
 
 mod third_party;
 use async_trait::async_trait;
-use juniper::{GraphQLEnum, GraphQLObject, ID};
+use base64::{engine::general_purpose::STANDARD, Engine};
+use juniper::{graphql_object, GraphQLEnum, GraphQLObject, ID};
 use serde::Deserialize;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 pub use third_party::{ProvidedRepository, ThirdPartyRepositoryService};
@@ -47,14 +48,12 @@ pub struct Repository {
 
 impl From<GitRepository> for Repository {
     fn from(value: GitRepository) -> Self {
-        let dir = RepositoryConfig::new(value.git_url).dir();
-        let refs = tabby_git::list_refs(&dir).unwrap_or_default();
         Self {
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Git,
-            dir,
-            refs,
+            dir: RepositoryConfig::new(value.git_url).dir(),
+            refs: value.refs,
         }
     }
 }
@@ -68,6 +67,7 @@ pub struct GithubProvidedRepository {
     pub name: String,
     pub git_url: String,
     pub active: bool,
+    pub refs: Vec<String>,
 }
 
 impl NodeType for GithubProvidedRepository {
@@ -95,6 +95,7 @@ pub struct GitlabProvidedRepository {
     pub name: String,
     pub git_url: String,
     pub active: bool,
+    pub refs: Vec<String>,
 }
 
 impl NodeType for GitlabProvidedRepository {
@@ -115,28 +116,24 @@ impl NodeType for GitlabProvidedRepository {
 
 impl From<GithubProvidedRepository> for Repository {
     fn from(value: GithubProvidedRepository) -> Self {
-        let dir = RepositoryConfig::new(value.git_url).dir();
-        let refs = tabby_git::list_refs(&dir).unwrap_or_default();
         Self {
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Github,
-            dir,
-            refs,
+            dir: RepositoryConfig::new(value.git_url).dir(),
+            refs: value.refs,
         }
     }
 }
 
 impl From<GitlabProvidedRepository> for Repository {
     fn from(value: GitlabProvidedRepository) -> Self {
-        let dir = RepositoryConfig::new(value.git_url).dir();
-        let refs = tabby_git::list_refs(&dir).unwrap_or_default();
         Self {
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Gitlab,
-            dir,
-            refs,
+            dir: RepositoryConfig::new(value.git_url).dir(),
+            refs: value.refs,
         }
     }
 }
@@ -197,6 +194,56 @@ impl NodeType for GithubRepositoryProvider {
     }
 }
 
+#[derive(GraphQLObject)]
+pub struct GrepFile {
+    pub path: String,
+    pub lines: Vec<GrepLine>,
+}
+
+#[derive(GraphQLObject)]
+pub struct GrepLine {
+    /// Content of the line.
+    pub line: GrepTextOrBase64,
+
+    /// Byte offset in the file to the start of the line.
+    pub byte_offset: i32,
+
+    /// Line number in the file, starting from 1.
+    pub line_number: i32,
+
+    /// The matches in the line.
+    pub sub_matches: Vec<GrepSubMatch>,
+}
+
+pub enum GrepTextOrBase64 {
+    Text(String),
+    Base64(Vec<u8>),
+}
+
+#[graphql_object]
+impl GrepTextOrBase64 {
+    fn text(&self) -> Option<&str> {
+        match self {
+            GrepTextOrBase64::Text(text) => Some(text),
+            _ => None,
+        }
+    }
+
+    fn base64(&self) -> Option<String> {
+        match self {
+            GrepTextOrBase64::Base64(bytes) => Some(STANDARD.encode(bytes)),
+            _ => None,
+        }
+    }
+}
+
+#[derive(GraphQLObject)]
+pub struct GrepSubMatch {
+    // Byte offsets in the line
+    pub bytes_start: i32,
+    pub bytes_end: i32,
+}
+
 #[async_trait]
 pub trait RepositoryProvider {
     async fn repository_list(&self) -> Result<Vec<Repository>>;
@@ -211,9 +258,19 @@ pub trait RepositoryService: Send + Sync + RepositoryAccess {
         &self,
         kind: &RepositoryKind,
         id: &ID,
+        rev: Option<&str>,
         pattern: &str,
         top_n: usize,
     ) -> Result<Vec<FileEntrySearchResult>>;
+
+    async fn grep(
+        &self,
+        kind: &RepositoryKind,
+        id: &ID,
+        rev: Option<&str>,
+        query: &str,
+        top_n: usize,
+    ) -> Result<Vec<GrepFile>>;
 
     fn git(&self) -> Arc<dyn GitRepositoryService>;
     fn third_party(&self) -> Arc<dyn ThirdPartyRepositoryService>;

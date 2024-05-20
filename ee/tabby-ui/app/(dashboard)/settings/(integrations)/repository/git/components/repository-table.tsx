@@ -6,10 +6,7 @@ import { useClient, useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
-import {
-  GitRepositoriesQueryVariables,
-  RepositoryEdge
-} from '@/lib/gql/generates/graphql'
+import { GitRepositoriesQueryVariables } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { listRepositories } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
@@ -98,8 +95,8 @@ export default function RepositoryTable() {
     )
   }
 
-  const handleDeleteRepository = (node: RepositoryEdge['node']) => {
-    deleteRepository({ id: node.id }).then(res => {
+  const handleDeleteRepository = (id: string) => {
+    deleteRepository({ id }).then(res => {
       if (res?.error) {
         toast.error(res.error.message)
         return
@@ -142,7 +139,7 @@ export default function RepositoryTable() {
                         <Button
                           size="icon"
                           variant="hover-destructive"
-                          onClick={() => handleDeleteRepository(x.node)}
+                          onClick={() => handleDeleteRepository(x.node.id)}
                         >
                           <IconTrash />
                         </Button>

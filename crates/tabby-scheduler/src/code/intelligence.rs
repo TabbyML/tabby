@@ -179,7 +179,7 @@ mod tests {
     }
 
     fn get_repository_config() -> RepositoryConfig {
-        RepositoryConfig::new("https://github.com/TabbyML/tabby".into())
+        RepositoryConfig::new("https://github.com/TabbyML/tabby")
     }
 
     fn get_rust_source_file() -> PathBuf {

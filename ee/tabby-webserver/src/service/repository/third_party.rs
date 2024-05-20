@@ -6,11 +6,11 @@ use fetch::fetch_all_repos;
 use juniper::ID;
 use strum::IntoEnumIterator;
 use tabby_common::config::RepositoryConfig;
-use tabby_db::DbConn;
+use tabby_db::{DbConn, ProvidedRepositoryDAO};
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
     repository::{ProvidedRepository, Repository, ThirdPartyRepositoryService},
-    AsRowid, DbEnum, Result,
+    AsID, AsRowid, DbEnum, Result,
 };
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::{debug, error};
@@ -67,8 +67,8 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             .list_provided_repositories(integration_ids, kind, active, limit, skip_id, backwards)
             .await?
             .into_iter()
-            .map(ProvidedRepository::try_from)
-            .collect::<Result<_, _>>()?)
+            .map(to_provided_repository)
+            .collect())
     }
 
     async fn repository_list(&self) -> Result<Vec<Repository>> {
@@ -92,7 +92,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
 
     async fn get_repository(&self, id: ID) -> Result<ProvidedRepository> {
         let repo = self.db.get_provided_repository(id.as_rowid()?).await?;
-        Ok(repo.try_into()?)
+        Ok(to_provided_repository(repo))
     }
 
     async fn update_repository_active(&self, id: ID, active: bool) -> Result<()> {
@@ -258,6 +258,21 @@ fn format_authenticated_url(
         }
     }
     Ok(url.to_string())
+}
+
+fn to_provided_repository(value: ProvidedRepositoryDAO) -> ProvidedRepository {
+    ProvidedRepository {
+        id: value.id.as_id(),
+        integration_id: value.integration_id.as_id(),
+        active: value.active,
+        display_name: value.name,
+        vendor_id: value.vendor_id,
+        created_at: *value.created_at,
+        updated_at: *value.updated_at,
+        refs: tabby_git::list_refs(&RepositoryConfig::new(&value.git_url).dir())
+            .unwrap_or_default(),
+        git_url: value.git_url,
+    }
 }
 
 #[cfg(test)]

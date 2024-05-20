@@ -6,27 +6,19 @@ use std::path::PathBuf;
 
 use anyhow::Context;
 use async_stream::stream;
-use base64::engine::general_purpose::STANDARD;
-use base64_serde::base64_serde_type;
 use futures::Stream;
 use git2::TreeWalkResult;
-pub use query::{GrepQuery, GrepQueryBuilder};
-use serde::Serialize;
-use tracing::warn;
-
-base64_serde_type!(Base64Standard, STANDARD);
-
+pub use query::GrepQuery;
 use searcher::GrepSearcher;
+use tracing::warn;
 
 use super::{bytes2path, rev_to_commit};
 
-#[derive(Serialize)]
 pub struct GrepFile {
     pub path: PathBuf,
     pub lines: Vec<GrepLine>,
 }
 
-#[derive(Serialize)]
 pub struct GrepLine {
     /// Content of the line.
     pub line: GrepTextOrBase64,
@@ -41,14 +33,11 @@ pub struct GrepLine {
     pub sub_matches: Vec<GrepSubMatch>,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "snake_case")]
 pub enum GrepTextOrBase64 {
     Text(String),
-    Base64(#[serde(with = "Base64Standard")] Vec<u8>),
+    Base64(Vec<u8>),
 }
 
-#[derive(Serialize)]
 pub struct GrepSubMatch {
     // Byte offsets in the line
     pub bytes_start: usize,
@@ -152,6 +141,18 @@ mod tests {
 
         let query = GrepQuery::builder()
             .file_type("markdown")
+            .file_pattern("llm_evaluation")
+            .build();
+        let files: Vec<_> = grep(root.repository(), None, &query)
+            .unwrap()
+            .collect()
+            .await;
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].path, PathBuf::from("203_llm_evaluation/README.md"));
+
+        // File patterns are AND-ed.
+        let query = GrepQuery::builder()
+            .file_pattern(".md")
             .file_pattern("llm_evaluation")
             .build();
         let files: Vec<_> = grep(root.repository(), None, &query)

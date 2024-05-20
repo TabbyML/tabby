@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use anyhow::bail;
 use grep::{
     regex::RegexMatcher,
@@ -20,6 +22,7 @@ pub struct GrepQuery {
 }
 
 impl GrepQuery {
+    #[cfg(test)]
     pub fn builder() -> GrepQueryBuilder {
         GrepQueryBuilder::default()
     }
@@ -40,11 +43,13 @@ impl GrepQuery {
         };
 
         let file_pattern_matcher = if self.file_patterns.is_empty() {
-            None
+            vec![]
         } else {
-            Some(RegexMatcher::new_line_matcher(
-                &self.file_patterns.join("|"),
-            )?)
+            let mut matcher = vec![];
+            for p in &self.file_patterns {
+                matcher.push(RegexMatcher::new_line_matcher(p)?);
+            }
+            matcher
         };
 
         let negative_file_pattern_matcher = if self.negative_file_patterns.is_empty() {
@@ -57,7 +62,7 @@ impl GrepQuery {
 
         if pattern_matcher.is_none()
             && negative_pattern_matcher.is_none()
-            && file_pattern_matcher.is_none()
+            && file_pattern_matcher.is_empty()
             && negative_file_pattern_matcher.is_none()
         {
             bail!("No patterns specified")
@@ -99,6 +104,31 @@ impl GrepQuery {
     }
 }
 
+impl FromStr for GrepQuery {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut builder = GrepQueryBuilder::default();
+        for part in s.split_whitespace() {
+            if part.starts_with('-') {
+                builder = match part {
+                    _ if part.starts_with("-lang:") => builder.negative_file_type(&part[6..]),
+                    _ if part.starts_with("-f:") => builder.negative_file_pattern(&part[3..]),
+                    _ => builder.negative_pattern(&part[1..]),
+                };
+            } else {
+                builder = match part {
+                    _ if part.starts_with("lang:") => builder.file_type(&part[5..]),
+                    _ if part.starts_with("f:") => builder.file_pattern(&part[2..]),
+                    _ => builder.pattern(part),
+                };
+            }
+        }
+
+        Ok(builder.build())
+    }
+}
+
 #[derive(Default)]
 pub struct GrepQueryBuilder {
     query: GrepQuery,
@@ -106,22 +136,34 @@ pub struct GrepQueryBuilder {
 
 impl GrepQueryBuilder {
     pub fn pattern<T: Into<String>>(mut self, pattern: T) -> Self {
-        self.query.patterns.push(pattern.into());
+        let pattern = pattern.into();
+        if !pattern.is_empty() {
+            self.query.patterns.push(pattern);
+        }
         self
     }
 
     pub fn negative_pattern<T: Into<String>>(mut self, pattern: T) -> Self {
-        self.query.negative_patterns.push(pattern.into());
+        let pattern = pattern.into();
+        if !pattern.is_empty() {
+            self.query.negative_patterns.push(pattern);
+        }
         self
     }
 
     pub fn file_pattern<T: Into<String>>(mut self, pattern: T) -> Self {
-        self.query.file_patterns.push(pattern.into());
+        let pattern = pattern.into();
+        if !pattern.is_empty() {
+            self.query.file_patterns.push(pattern);
+        }
         self
     }
 
     pub fn negative_file_pattern<T: Into<String>>(mut self, pattern: T) -> Self {
-        self.query.negative_file_patterns.push(pattern.into());
+        let pattern = pattern.into();
+        if !pattern.is_empty() {
+            self.query.negative_file_patterns.push(pattern);
+        }
         self
     }
 
@@ -137,5 +179,19 @@ impl GrepQueryBuilder {
 
     pub fn build(self) -> GrepQuery {
         self.query
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_query() {
+        let query: GrepQuery = "lang:rust -f:*.rs foo bar -baz".parse().unwrap();
+        assert_eq!(query.patterns, vec!["foo", "bar"]);
+        assert_eq!(query.negative_patterns, vec!["baz"]);
+        assert_eq!(query.negative_file_patterns, vec!["*.rs"]);
+        assert_eq!(query.file_types, vec!["rust"]);
     }
 }

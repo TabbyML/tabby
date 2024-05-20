@@ -181,6 +181,7 @@ type GitRepository {
   id: ID!
   name: String!
   gitUrl: String!
+  refs: [String!]!
 }
 
 type GithubProvidedRepository {
@@ -190,6 +191,7 @@ type GithubProvidedRepository {
   name: String!
   gitUrl: String!
   active: Boolean!
+  refs: [String!]!
 }
 
 type GithubProvidedRepositoryConnection {
@@ -225,6 +227,7 @@ type GitlabProvidedRepository {
   name: String!
   gitUrl: String!
   active: Boolean!
+  refs: [String!]!
 }
 
 type GitlabProvidedRepositoryConnection {
@@ -251,6 +254,32 @@ type GitlabRepositoryProviderConnection {
 type GitlabRepositoryProviderEdge {
   node: GitlabRepositoryProvider!
   cursor: String!
+}
+
+type GrepFile {
+  path: String!
+  lines: [GrepLine!]!
+}
+
+type GrepLine {
+  "Content of the line."
+  line: GrepTextOrBase64!
+  "Byte offset in the file to the start of the line."
+  byteOffset: Int!
+  "Line number in the file, starting from 1."
+  lineNumber: Int!
+  "The matches in the line."
+  subMatches: [GrepSubMatch!]!
+}
+
+type GrepSubMatch {
+  bytesStart: Int!
+  bytesEnd: Int!
+}
+
+type GrepTextOrBase64 {
+  text: String
+  base64: String
 }
 
 type Invitation {
@@ -379,7 +408,23 @@ type Query {
   networkSetting: NetworkSetting!
   securitySetting: SecuritySetting!
   gitRepositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
-  repositorySearch(kind: RepositoryKind!, id: ID!, pattern: String!): [FileEntrySearchResult!]!
+  "Search files that matches the pattern in the repository."
+  repositorySearch(kind: RepositoryKind!, id: ID!, rev: String, pattern: String!): [FileEntrySearchResult!]!
+  """
+    File content search with a grep-like experience.
+
+    Syntax:
+
+    1. Unprefixed text will be treated as a regex pattern for file content search.
+    2. 'f:' to search by file name with a regex pattern.
+    3. 'lang:' to search by file language.
+    4. All tokens can be negated by prefixing them with '-'.
+
+    Examples:
+    * `f:schema -lang:rust fn`
+    * `func_name lang:go`
+  """
+  repositoryGrep(kind: RepositoryKind!, id: ID!, rev: String, query: String!): [GrepFile!]!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
   serverInfo: ServerInfo!

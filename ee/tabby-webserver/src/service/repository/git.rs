@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_common::config::RepositoryConfig;
-use tabby_db::DbConn;
+use tabby_db::{DbConn, RepositoryDAO};
 use tabby_schema::{
     repository::{GitRepository, GitRepositoryService, Repository, RepositoryProvider},
     AsID, AsRowid, Result,
@@ -36,7 +36,7 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
             .db
             .list_repositories_with_filter(limit, skip_id, backwards)
             .await?;
-        Ok(repositories.into_iter().map(Into::into).collect())
+        Ok(repositories.into_iter().map(to_git_repository).collect())
     }
 
     async fn create(&self, name: String, git_url: String) -> Result<ID> {
@@ -82,8 +82,18 @@ impl RepositoryProvider for GitRepositoryServiceImpl {
     }
 
     async fn get_repository(&self, id: &ID) -> Result<Repository> {
-        let git_repo: GitRepository = self.db.get_repository(id.as_rowid()?).await?.into();
+        let dao = self.db.get_repository(id.as_rowid()?).await?;
+        let git_repo = to_git_repository(dao);
         Ok(git_repo.into())
+    }
+}
+
+fn to_git_repository(repo: RepositoryDAO) -> GitRepository {
+    GitRepository {
+        id: repo.id.as_id(),
+        name: repo.name,
+        refs: tabby_git::list_refs(&RepositoryConfig::new(&repo.git_url).dir()).unwrap_or_default(),
+        git_url: repo.git_url,
     }
 }
 

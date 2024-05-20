@@ -74,8 +74,10 @@ pub struct RepositoryConfig {
 }
 
 impl RepositoryConfig {
-    pub fn new(git_url: String) -> Self {
-        Self { git_url }
+    pub fn new<T: Into<String>>(git_url: T) -> Self {
+        Self {
+            git_url: git_url.into(),
+        }
     }
 
     pub fn canonical_git_url(&self) -> String {
