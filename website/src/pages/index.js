@@ -24,7 +24,7 @@ function HomepageHeader() {
           </Link>
           <Link
             className="button button--ghost button--lg flex flex-col items-center hover:opacity-80 font-medium"
-            to="/docs/welcome">
+            to="/docs/quick-start/installation/docker">
             Tutorial - 5min ⏱️
             <div className='w-full h-[2px] bg-green-200 rounded-sm'></div>
           </Link>

@@ -22,10 +22,12 @@ Once logged in, you will be redirected to the homepage. It contains basic inform
 
 ![Homepage](homepage.png)
 
-## (Optional) Advanced Configuration
+## (Optional) Invite your team members
 
-Tabby offers an enhanced experience with a full-featured UI interface and many enterprise-facing features. To access the admin UI, click on **Settings** in the left sidebar.
+Tabby offers an enhanced experience with a full-featured UI interface and many enterprise-facing features. You can invite your team members to join your instance and collaborate on your projects.
 
-![Admin UI](admin-ui.png)
+To invite team members, click on **Settings** in the Homepage then select **Members** from the side bar.
+
+![Invite user](invite-user.png)
 
 For more information on how to configure the instance, please refer to the [Administration](/docs/administration/upgrade) documentation.
