@@ -210,7 +210,7 @@ export default {
           },
           {
             to: '/docs/administration/usage-collection',
-            from: '/docs/configurations'
+            from: '/docs/configuration'
           },
           {
             to: '/docs/welcome',
