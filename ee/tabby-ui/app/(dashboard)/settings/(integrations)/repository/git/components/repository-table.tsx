@@ -6,9 +6,7 @@ import { useClient, useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
-import {
-  GitRepositoriesQueryVariables
-} from '@/lib/gql/generates/graphql'
+import { GitRepositoriesQueryVariables } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { listRepositories } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
