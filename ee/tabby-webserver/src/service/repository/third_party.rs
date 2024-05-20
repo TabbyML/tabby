@@ -211,7 +211,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             .await?)
     }
 
-    async fn list_repository_configs(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
+    async fn list_repository_configs(&self) -> Result<Vec<RepositoryConfig>> {
         let mut urls = vec![];
 
         let integrations = self

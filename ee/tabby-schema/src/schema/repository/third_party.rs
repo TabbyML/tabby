@@ -65,5 +65,5 @@ pub trait ThirdPartyRepositoryService: Send + Sync + RepositoryProvider {
         integration_id: ID,
         before: DateTime<Utc>,
     ) -> Result<usize>;
-    async fn list_repository_configs(&self) -> anyhow::Result<Vec<RepositoryConfig>>;
+    async fn list_repository_configs(&self) -> Result<Vec<RepositoryConfig>>;
 }
