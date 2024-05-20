@@ -3,13 +3,10 @@ use std::sync::Arc;
 use async_stream::stream;
 use futures::{stream::BoxStream, StreamExt};
 use serde::{Deserialize, Serialize};
-use tabby_common::{
-    api::{
-        chat::Message,
-        code::{CodeSearch, CodeSearchDocument, CodeSearchError},
-        doc::{DocSearch, DocSearchDocument, DocSearchError},
-    },
-    index::CodeSearchSchema,
+use tabby_common::api::{
+    chat::Message,
+    code::{CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchQuery},
+    doc::{DocSearch, DocSearchDocument, DocSearchError},
 };
 use tracing::{debug, warn};
 use utoipa::ToSchema;
@@ -26,20 +23,13 @@ pub struct AnswerRequest {
     messages: Vec<Message>,
 
     #[serde(default)]
-    code_query: Option<AnswerCodeQuery>,
+    code_query: Option<CodeSearchQuery>,
 
     #[serde(default)]
     doc_query: bool,
 
     #[serde(default)]
     generate_relevant_questions: bool,
-}
-
-#[derive(Deserialize, ToSchema)]
-pub struct AnswerCodeQuery {
-    git_url: String,
-    language: String,
-    content: String,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -94,7 +84,7 @@ impl AnswerService {
 
             // 1. Collect relevant code if needed.
             let relevant_code = if let Some(code_query)  = req.code_query  {
-                self.collect_relevant_code(&code_query).await
+                self.collect_relevant_code(code_query).await
             } else {
                 vec![]
             };
@@ -143,13 +133,8 @@ impl AnswerService {
         Box::pin(s)
     }
 
-    async fn collect_relevant_code(&self, query: &AnswerCodeQuery) -> Vec<CodeSearchDocument> {
-        let tokens = CodeSearchSchema::tokenize_body(&query.content);
-        match self
-            .code
-            .search_in_language(&query.git_url, &query.language, &tokens, 5, 0)
-            .await
-        {
+    async fn collect_relevant_code(&self, query: CodeSearchQuery) -> Vec<CodeSearchDocument> {
+        match self.code.search_in_language(query, 5, 0).await {
             Ok(resp) => resp.hits.into_iter().map(|hit| hit.doc).collect(),
             Err(err) => {
                 if let CodeSearchError::NotReady = err {

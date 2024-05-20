@@ -88,7 +88,7 @@ pub enum CoreError {
     #[error("Invalid input parameters")]
     InvalidInput(#[from] ValidationErrors),
 
-    #[error("Email is not configured")]
+    #[error("SMTP is not configured")]
     EmailNotConfigured,
 
     #[error("{0}")]

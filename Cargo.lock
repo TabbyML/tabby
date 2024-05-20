@@ -5361,7 +5361,6 @@ dependencies = [
  "tabby-scheduler",
  "tabby-webserver",
  "tantivy",
- "textdistance",
  "thiserror",
  "tokio",
  "tower-http",
@@ -5814,12 +5813,6 @@ dependencies = [
  "regex",
  "unicode-segmentation",
 ]
-
-[[package]]
-name = "textdistance"
-version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d321c8576c2b47e43953e9cce236550d4cd6af0a6ce518fe084340082ca6037b"
 
 [[package]]
 name = "thin-slice"

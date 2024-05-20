@@ -5,7 +5,7 @@ If you encounter any problem or have any suggestion, please [open an issue](http
 
 ## Table of Contents
 
-- [Tabby Plugin for Vim and NeoVim](#tabby-plugin-for-vim-and-neovim)
+- Tabby Plugin for Vim and NeoVim
   - [Table of Contents](#table-of-contents)
   - [Requirements](#requirements)
   - [Installation](#installation)

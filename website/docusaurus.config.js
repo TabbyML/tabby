@@ -78,6 +78,11 @@ export default {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       image: 'img/tabby-social-card.png',
+      docs: {
+        sidebar: {
+          autoCollapseCategories: true
+        },
+      },
       navbar: {
         logo: {
           alt: 'Tabby',
@@ -110,7 +115,7 @@ export default {
             items: [
               {
                 label: 'Docs',
-                to: '/docs/getting-started',
+                to: '/docs/welcome',
               },
               {
                 label: 'Playground',
@@ -196,14 +201,46 @@ export default {
             from: '/blog/running-tabby-as-a-language-server'
           },
           {
-            to: '/docs/installation/docker',
+            to: '/docs/quick-start/installation/docker',
             from: '/docs/self-hosting/docker'
           },
           {
             to: '/docs/extensions/installation/vscode',
             from: '/docs/extensions/vscode'
           },
-        ]
+          {
+            to: '/docs/administration/usage-collection',
+            from: '/docs/configuration'
+          },
+          {
+            to: '/docs/welcome',
+            from: '/docs/getting-started'
+          },
+          {
+            to: '/docs/extensions/installation/vscode',
+            from: '/docs/extensions'
+          },
+          {
+            to: '/docs/extensions/installation/vscode',
+            from: '/docs/extensions/installation'
+          },
+          {
+            to: '/docs/quick-start/installation/docker',
+            from: '/docs/installation'
+          },
+          {
+            to: '/docs/administration/upgrade',
+            from: '/docs/administration'
+          }
+        ],
+        createRedirects(existingPath) {
+          // Create redirection from /docs/installation/* to /docs/quick-start/installation/*
+          if (existingPath.startsWith("/docs/quick-start/installation")) {
+            return [
+              existingPath.replace("/docs/quick-start/installation", "/docs/installation"),
+            ]
+          }
+        }
       },
     ],
   ],

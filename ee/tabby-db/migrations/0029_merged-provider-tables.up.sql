@@ -28,3 +28,18 @@ INSERT INTO integrations(kind, display_name, access_token)
 
 INSERT INTO integrations(kind, display_name, access_token)
     SELECT 'gitlab', display_name, access_token FROM gitlab_repository_provider WHERE access_token IS NOT NULL;
+
+INSERT INTO provided_repositories(integration_id, vendor_id, name, git_url, active)
+    SELECT integrations.id, vendor_id, github_provided_repositories.name, git_url, active FROM github_provided_repositories
+    JOIN github_repository_provider ON github_repository_provider_id = github_repository_provider.id
+    JOIN integrations ON kind = 'github' AND github_repository_provider.access_token = integrations.access_token;
+
+INSERT INTO provided_repositories(integration_id, vendor_id, name, git_url, active)
+    SELECT integrations.id, vendor_id, gitlab_provided_repositories.name, git_url, active FROM gitlab_provided_repositories
+    JOIN gitlab_repository_provider ON gitlab_repository_provider_id = gitlab_repository_provider.id
+    JOIN integrations ON kind = 'gitlab' AND gitlab_repository_provider.access_token = integrations.access_token;
+
+DROP TABLE github_provided_repositories;
+DROP TABLE gitlab_provided_repositories;
+DROP TABLE github_repository_provider;
+DROP TABLE gitlab_repository_provider;

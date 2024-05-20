@@ -3,11 +3,13 @@ mod document;
 use lazy_static::lazy_static;
 use regex::Regex;
 use tantivy::{
-    query::{BooleanQuery, ConstScoreQuery, Query, TermQuery},
+    query::{BooleanQuery, ConstScoreQuery, Occur, Query, TermQuery},
     schema::{Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, STRING},
     tokenizer::{RegexTokenizer, RemoveLongFilter, TextAnalyzer},
     Index, Term,
 };
+
+use crate::api::code::CodeSearchQuery;
 
 static CODE_TOKENIZER: &str = "code";
 
@@ -100,7 +102,14 @@ impl CodeSearchSchema {
         ))
     }
 
-    pub fn tokenize_body(text: &str) -> Vec<String> {
+    fn filepath_query(&self, filepath: &str) -> Box<TermQuery> {
+        Box::new(TermQuery::new(
+            Term::from_field_text(self.field_filepath, filepath),
+            IndexRecordOption::Basic,
+        ))
+    }
+
+    fn tokenize_body(text: &str) -> Vec<String> {
         BODY_TOKENIZER
             .split(text)
             .filter(|x| !x.is_empty())
@@ -108,28 +117,33 @@ impl CodeSearchSchema {
             .collect()
     }
 
-    pub fn code_search_query(
-        &self,
-        git_url: &str,
-        language: &str,
-        tokens: &[String],
-    ) -> BooleanQuery {
-        let language_query = self.language_query(language);
-        let body_query = self.body_query(tokens);
-        let git_url_query = self.git_url_query(git_url);
+    pub fn code_search_query(&self, query: &CodeSearchQuery) -> BooleanQuery {
+        let language_query = self.language_query(&query.language);
+        let body_query = self.body_query(&CodeSearchSchema::tokenize_body(&query.content));
+        let git_url_query = self.git_url_query(&query.git_url);
 
-        // language / git_url field shouldn't contribute to the score, mark them to 0.0.
-        BooleanQuery::new(vec![
+        // language / git_url / filepath field shouldn't contribute to the score, mark them to 0.0.
+        let mut subqueries: Vec<(Occur, Box<dyn Query>)> = vec![
             (
-                tantivy::query::Occur::Must,
+                Occur::Must,
                 Box::new(ConstScoreQuery::new(language_query, 0.0)),
             ),
-            (tantivy::query::Occur::Must, body_query),
+            (Occur::Must, body_query),
             (
-                tantivy::query::Occur::Must,
+                Occur::Must,
                 Box::new(ConstScoreQuery::new(git_url_query, 0.0)),
             ),
-        ])
+        ];
+
+        // When filepath presents, we exlucde the file from the search.
+        if let Some(filepath) = &query.filepath {
+            subqueries.push((
+                Occur::MustNot,
+                Box::new(ConstScoreQuery::new(self.filepath_query(filepath), 0.0)),
+            ))
+        }
+
+        BooleanQuery::new(subqueries)
     }
 }
 

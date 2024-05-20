@@ -46,20 +46,19 @@ pub enum CodeSearchError {
     Other(#[from] anyhow::Error),
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct CodeSearchQuery {
+    pub git_url: String,
+    pub filepath: Option<String>,
+    pub language: String,
+    pub content: String,
+}
+
 #[async_trait]
 pub trait CodeSearch: Send + Sync {
-    async fn search(
-        &self,
-        q: &str,
-        limit: usize,
-        offset: usize,
-    ) -> Result<CodeSearchResponse, CodeSearchError>;
-
     async fn search_in_language(
         &self,
-        git_url: &str,
-        language: &str,
-        tokens: &[String],
+        query: CodeSearchQuery,
         limit: usize,
         offset: usize,
     ) -> Result<CodeSearchResponse, CodeSearchError>;
