@@ -32,13 +32,3 @@ pub enum RepositoryProviderStatus {
     Pending,
     Failed,
 }
-
-impl RepositoryProviderStatus {
-    pub fn new(access_token_set: bool, synced_at_set: bool) -> Self {
-        match (access_token_set, synced_at_set) {
-            (true, true) => RepositoryProviderStatus::Ready,
-            (true, false) => RepositoryProviderStatus::Pending,
-            _ => RepositoryProviderStatus::Failed,
-        }
-    }
-}
