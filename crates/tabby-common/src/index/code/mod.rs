@@ -135,6 +135,7 @@ impl CodeSearchSchema {
             ),
         ];
 
+        // When filepath presents, we exlucde the file from the search.
         if let Some(filepath) = &query.filepath {
             subqueries.push((
                 Occur::MustNot,
