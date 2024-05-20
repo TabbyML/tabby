@@ -11,8 +11,8 @@ use tabby_db::DbConn;
 use tabby_schema::{
     integration::IntegrationService,
     repository::{
-        FileEntrySearchResult, GitRepositoryService, Repository, RepositoryKind, RepositoryService,
-        ThirdPartyRepositoryService,
+        FileEntrySearchResult, GitRepositoryService, ProvidedRepository, Repository,
+        RepositoryKind, RepositoryService, ThirdPartyRepositoryService,
     },
     Result,
 };
@@ -85,30 +85,16 @@ impl RepositoryService for RepositoryServiceImpl {
     async fn resolve_repository(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository> {
         match kind {
             RepositoryKind::Git => self.git().get_repository(id).await,
-            RepositoryKind::Github => {
-                self.third_party()
-                    .get_repository(id.clone())
-                    .await
-                    .map(|repo| Repository {
-                        id: repo.id,
-                        name: repo.display_name,
-                        kind: RepositoryKind::Github,
-                        refs: list_refs(&repo.git_url),
-                        dir: RepositoryConfig::new(repo.git_url).dir(),
-                    })
-            }
-            RepositoryKind::Gitlab => {
-                self.third_party()
-                    .get_repository(id.clone())
-                    .await
-                    .map(|repo| Repository {
-                        id: repo.id,
-                        name: repo.display_name,
-                        kind: RepositoryKind::Gitlab,
-                        refs: list_refs(&repo.git_url),
-                        dir: RepositoryConfig::new(repo.git_url).dir(),
-                    })
-            }
+            RepositoryKind::Github => self
+                .third_party()
+                .get_repository(id.clone())
+                .await
+                .map(|repo| to_repository(*kind, repo)),
+            RepositoryKind::Gitlab => self
+                .third_party()
+                .get_repository(id.clone())
+                .await
+                .map(|repo| to_repository(*kind, repo)),
         }
     }
 
@@ -200,6 +186,18 @@ fn to_sub_match(m: tabby_git::GrepSubMatch) -> tabby_schema::repository::GrepSub
 fn list_refs(git_url: &str) -> Vec<String> {
     let dir = RepositoryConfig::new(git_url.to_owned()).dir();
     tabby_git::list_refs(&dir).unwrap_or_default()
+}
+
+fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
+    let config = RepositoryConfig::new(&repo.git_url);
+    Repository {
+        id: repo.id,
+        name: repo.display_name,
+        kind,
+        dir: config.dir(),
+        git_url: config.canonical_git_url(),
+        refs: list_refs(&repo.git_url),
+    }
 }
 
 #[cfg(test)]

@@ -9,7 +9,7 @@ use tabby_common::config::RepositoryConfig;
 use tabby_db::{DbConn, ProvidedRepositoryDAO};
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
-    repository::{ProvidedRepository, Repository, ThirdPartyRepositoryService},
+    repository::{ProvidedRepository, Repository, RepositoryKind, ThirdPartyRepositoryService},
     AsID, AsRowid, DbEnum, Result,
 };
 use tokio::sync::mpsc::UnboundedSender;
@@ -17,7 +17,7 @@ use tracing::{debug, error};
 use url::Url;
 
 use self::fetch::RepositoryInfo;
-use super::list_refs;
+use super::to_repository;
 use crate::service::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
 
 mod fetch;
@@ -78,13 +78,16 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
                 .list_repositories(None, None, Some(true), None, None, None, None)
                 .await?;
 
-            repos.extend(repos_for_kind.into_iter().map(|repo| Repository {
-                id: repo.id,
-                name: repo.display_name,
-                kind: kind.clone().into(),
-                refs: list_refs(&repo.git_url),
-                dir: RepositoryConfig::new(repo.git_url).dir(),
-            }));
+            let repository_kind = match kind {
+                IntegrationKind::Github => RepositoryKind::Github,
+                IntegrationKind::Gitlab => RepositoryKind::Gitlab,
+            };
+
+            repos.extend(
+                repos_for_kind
+                    .into_iter()
+                    .map(|repo| to_repository(repository_kind, repo)),
+            );
         }
 
         Ok(repos)

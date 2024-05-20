@@ -26,7 +26,7 @@ pub struct FileEntrySearchResult {
     pub indices: Vec<i32>,
 }
 
-#[derive(GraphQLEnum, Debug, Deserialize)]
+#[derive(GraphQLEnum, Debug, Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum RepositoryKind {
     Git,
@@ -43,16 +43,19 @@ pub struct Repository {
     #[graphql(skip)]
     pub dir: PathBuf,
 
+    pub git_url: String,
     pub refs: Vec<String>,
 }
 
 impl From<GitRepository> for Repository {
     fn from(value: GitRepository) -> Self {
+        let config = RepositoryConfig::new(value.git_url);
         Self {
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Git,
-            dir: RepositoryConfig::new(value.git_url).dir(),
+            dir: config.dir(),
+            git_url: config.canonical_git_url(),
             refs: value.refs,
         }
     }
@@ -116,11 +119,13 @@ impl NodeType for GitlabProvidedRepository {
 
 impl From<GithubProvidedRepository> for Repository {
     fn from(value: GithubProvidedRepository) -> Self {
+        let config = RepositoryConfig::new(value.git_url);
         Self {
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Github,
-            dir: RepositoryConfig::new(value.git_url).dir(),
+            dir: config.dir(),
+            git_url: config.canonical_git_url(),
             refs: value.refs,
         }
     }
@@ -128,11 +133,13 @@ impl From<GithubProvidedRepository> for Repository {
 
 impl From<GitlabProvidedRepository> for Repository {
     fn from(value: GitlabProvidedRepository) -> Self {
+        let config = RepositoryConfig::new(value.git_url);
         Self {
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Gitlab,
-            dir: RepositoryConfig::new(value.git_url).dir(),
+            dir: config.dir(),
+            git_url: config.canonical_git_url(),
             refs: value.refs,
         }
     }
