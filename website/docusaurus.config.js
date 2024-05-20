@@ -203,6 +203,10 @@ export default {
             to: '/docs/extensions/installation/vscode',
             from: '/docs/extensions/vscode'
           },
+          {
+            to: '/docs/administration',
+            from: '/docs/configurations'
+          }
         ]
       },
     ],
