@@ -25,7 +25,7 @@ Let’s firstly take a look at what steps are needed to deploy a Tabby instance 
 
 **Step 3:** After space is built, you will be able to send requests to the APIs.
 
-That's it! With the hosted APIs, now you can connect Tabby's [IDE extensions](/docs/getting-started) to the API endpoint. Next, we will deep dive into each step with screenshots!!
+That's it! With the hosted APIs, now you can connect Tabby's [IDE extensions](/docs/extensions/installation/vscode) to the API endpoint. Next, we will deep dive into each step with screenshots!!
 **Everything will be done in the Hugging Face UI. No local setup is needed.**
 
 :::tip

@@ -159,5 +159,5 @@ We are incredibly enthusiastic about the potential for enhancing the quality and
 ## Give it a try
 To use this repository context feature:
 
-1. Installing [tabby](/docs/installation/).
+1. Installing [tabby](/docs/quick-start/installation/docker).
 2. Navigate to the [Repository Context](/docs/administration/context) page and follow the instructions to set it up.

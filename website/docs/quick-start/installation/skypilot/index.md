@@ -35,7 +35,7 @@ Finally, we define the command line that actually initiates the container job:
 run: |
   docker run --gpus all -p 8080:8080 -v ~/.tabby:/data \
     tabbyml/tabby \
-    serve --model TabbyML/StarCoder-1B --device cuda --no-webserver
+    serve --model TabbyML/StarCoder-1B --device cuda
 ```
 
 ## Launch the service

@@ -60,7 +60,6 @@ def app():
             "cuda",
             "--parallelism",
             "4",
-            "--no-webserver",
         ]
     )
 
