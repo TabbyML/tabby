@@ -78,6 +78,11 @@ export default {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       image: 'img/tabby-social-card.png',
+      docs: {
+        sidebar: {
+          autoCollapseCategories: true
+        },
+      },
       navbar: {
         logo: {
           alt: 'Tabby',
@@ -222,6 +227,10 @@ export default {
           {
             to: '/docs/quick-start/installation/docker',
             from: '/docs/installation'
+          },
+          {
+            to: '/docs/administration/upgrade',
+            from: '/docs/administration'
           }
         ],
         createRedirects(existingPath) {

@@ -1,0 +1,31 @@
+---
+sidebar_label: Step 2 - Register Account
+sidebar_position: 2
+---
+
+import SetupAdmin from './setup-admin.png';
+import Homepage from './homepage.png';
+
+# Registering Accounts
+
+After deploying Tabby, you will need to register an account to access the instance.
+
+## Creating an Admin Account
+
+The first registered account after deployment will be the admin account and will be granted the **owner** role.
+
+<img src={SetupAdmin} width={600} alt="Setup Admin" />
+
+## Entering Homepage
+
+Once logged in, you will be redirected to the homepage. It contains basic information about your account. More importantly, you will find the credentials you need to connect your IDE/Editor extensions to Tabby.
+
+![Homepage](homepage.png)
+
+## (Optional) Advanced Configuration
+
+Tabby offers an enhanced experience with a full-featured UI interface and many enterprise-facing features. To access the admin UI, click on **Settings** in the left sidebar.
+
+![Admin UI](admin-ui.png)
+
+For more information on how to configure the instance, please refer to the [Administration](/docs/administration/Upgrade) documentation.
