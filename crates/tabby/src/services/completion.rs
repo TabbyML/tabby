@@ -147,6 +147,7 @@ impl From<Segments> for api::event::Segments {
             declarations: val
                 .declarations
                 .map(|x| x.into_iter().map(Into::into).collect()),
+            filepath: val.filepath,
         }
     }
 }
