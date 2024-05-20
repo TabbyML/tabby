@@ -68,10 +68,10 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         health::HealthState,
         health::Version,
         api::code::CodeSearchDocument,
+        api::code::CodeSearchQuery,
         api::doc::DocSearchDocument,
         answer::AnswerRequest,
         answer::AnswerResponseChunk,
-        answer::AnswerCodeQuery,
         api::server_setting::ServerSetting
     )),
     modifiers(&SecurityAddon),

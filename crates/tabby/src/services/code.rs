@@ -6,7 +6,8 @@ use cached::{CachedAsync, TimedCache};
 use parse_git_url::GitUrl;
 use tabby_common::{
     api::code::{
-        CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchResponse,
+        CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchQuery,
+        CodeSearchResponse,
     },
     config::{RepositoryAccess, RepositoryConfig},
     index::{self, register_tokenizers},
@@ -14,7 +15,6 @@ use tabby_common::{
 };
 use tantivy::{
     collector::{Count, TopDocs},
-    query::QueryParser,
     Index, IndexReader,
 };
 use tokio::{
@@ -25,7 +25,6 @@ use tracing::debug;
 
 struct CodeSearchImpl {
     reader: IndexReader,
-    query_parser: QueryParser,
 
     repository_access: Arc<dyn RepositoryAccess>,
     repo_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
@@ -33,15 +32,9 @@ struct CodeSearchImpl {
 
 impl CodeSearchImpl {
     fn load(repository_access: Arc<dyn RepositoryAccess>) -> Result<Self> {
-        let code_schema = index::CodeSearchSchema::instance();
         let index = Index::open_in_dir(path::index_dir())?;
         register_tokenizers(&index);
 
-        let query_parser = QueryParser::new(
-            code_schema.schema.clone(),
-            vec![code_schema.field_body],
-            index.tokenizers().clone(),
-        );
         let reader = index
             .reader_builder()
             .reload_policy(tantivy::ReloadPolicy::OnCommitWithDelay)
@@ -49,7 +42,6 @@ impl CodeSearchImpl {
         Ok(Self {
             repository_access,
             reader,
-            query_parser,
             repo_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
         })
     }
@@ -98,21 +90,9 @@ impl CodeSearchImpl {
 
 #[async_trait]
 impl CodeSearch for CodeSearchImpl {
-    async fn search(
-        &self,
-        q: &str,
-        limit: usize,
-        offset: usize,
-    ) -> Result<CodeSearchResponse, CodeSearchError> {
-        let query = self.query_parser.parse_query(q)?;
-        self.search_with_query(&query, limit, offset).await
-    }
-
     async fn search_in_language(
         &self,
-        git_url: &str,
-        language: &str,
-        tokens: &[String],
+        mut query: CodeSearchQuery,
         limit: usize,
         offset: usize,
     ) -> Result<CodeSearchResponse, CodeSearchError> {
@@ -125,12 +105,14 @@ impl CodeSearch for CodeSearchImpl {
             })
             .await?;
 
-        let Some(git_url) = closest_match(git_url, repos.iter()) else {
+        let Some(git_url) = closest_match(&query.git_url, repos.iter()) else {
             return Ok(CodeSearchResponse::default());
         };
 
+        query.git_url = git_url.to_owned();
+
         let schema = index::CodeSearchSchema::instance();
-        let query = schema.code_search_query(git_url, language, tokens);
+        let query = schema.code_search_query(&query);
         self.search_with_query(&query, limit, offset).await
     }
 }
@@ -176,30 +158,14 @@ pub fn create_code_search(repository_access: Arc<dyn RepositoryAccess>) -> impl 
 
 #[async_trait]
 impl CodeSearch for CodeSearchService {
-    async fn search(
-        &self,
-        q: &str,
-        limit: usize,
-        offset: usize,
-    ) -> Result<CodeSearchResponse, CodeSearchError> {
-        if let Some(imp) = self.search.read().await.as_ref() {
-            imp.search(q, limit, offset).await
-        } else {
-            Err(CodeSearchError::NotReady)
-        }
-    }
-
     async fn search_in_language(
         &self,
-        git_url: &str,
-        language: &str,
-        tokens: &[String],
+        query: CodeSearchQuery,
         limit: usize,
         offset: usize,
     ) -> Result<CodeSearchResponse, CodeSearchError> {
         if let Some(imp) = self.search.read().await.as_ref() {
-            imp.search_in_language(git_url, language, tokens, limit, offset)
-                .await
+            imp.search_in_language(query, limit, offset).await
         } else {
             Err(CodeSearchError::NotReady)
         }
