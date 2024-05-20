@@ -196,7 +196,7 @@ export default {
             from: '/blog/running-tabby-as-a-language-server'
           },
           {
-            to: '/docs/installation/docker',
+            to: '/docs/quick-start/installation/docker',
             from: '/docs/self-hosting/docker'
           },
           {
@@ -220,10 +220,18 @@ export default {
             from: '/docs/extensions/installation'
           },
           {
-            to: '/docs/installation/docker',
+            to: '/docs/quick-start/installation/docker',
             from: '/docs/installation'
           }
-        ]
+        ],
+        createRedirects(existingPath) {
+          // Create redirection from /docs/installation/* to /docs/quick-start/installation/*
+          if (existingPath.startsWith("/docs/quick-start/installation")) {
+            return [
+              existingPath.replace("/docs/quick-start/installation", "/docs/installation"),
+            ]
+          }
+        }
       },
     ],
   ],
