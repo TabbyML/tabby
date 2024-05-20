@@ -162,7 +162,7 @@ fn create_authorization_url(client_id: &str, redirect_uri: &str) -> Result<Strin
         ("client_id", client_id),
         ("redirect_uri", redirect_uri),
         ("response_type", "code"),
-        ("scope", "https://www.googleapis.com/auth/userinfo.email"),
+        ("scope", "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"),
         ("access_type", "offline"),
     ];
     for (k, v) in params {
