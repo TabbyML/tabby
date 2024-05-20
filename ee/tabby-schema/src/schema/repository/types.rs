@@ -11,7 +11,7 @@ pub struct CreateRepositoryProviderInput {
     pub display_name: String,
     #[validate(length(code = "accessToken", min = 10, message = "Invalid access token"))]
     pub access_token: String,
-    #[validate(url(code = "url_base"))]
+    #[validate(url(code = "url_base", message = "Invalid URL base"))]
     pub url_base: Option<String>,
 }
 
