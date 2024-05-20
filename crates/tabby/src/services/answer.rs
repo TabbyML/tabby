@@ -53,12 +53,16 @@ pub enum AnswerResponseChunk {
 pub struct AnswerService {
     chat: Arc<ChatService>,
     code: Arc<dyn CodeSearch>,
-    doc: Arc<dyn DocSearch>,
+    doc: Option<Arc<dyn DocSearch>>,
     serper: Option<Box<dyn DocSearch>>,
 }
 
 impl AnswerService {
-    fn new(chat: Arc<ChatService>, code: Arc<dyn CodeSearch>, doc: Arc<dyn DocSearch>) -> Self {
+    fn new(
+        chat: Arc<ChatService>,
+        code: Arc<dyn CodeSearch>,
+        doc: Option<Arc<dyn DocSearch>>,
+    ) -> Self {
         let serper: Option<Box<dyn DocSearch>> =
             if let Ok(api_key) = std::env::var("SERPER_API_KEY") {
                 debug!("Serper API key found, enabling serper...");
@@ -160,17 +164,21 @@ impl AnswerService {
 
     async fn collect_relevant_docs(&self, query: &str) -> Vec<DocSearchDocument> {
         // 1. Collect relevant docs from the tantivy doc search.
-        let mut hits = match self.doc.search(query, 5, 0).await {
-            Ok(docs) => docs.hits,
-            Err(err) => {
-                if let DocSearchError::NotReady = err {
-                    debug!("Doc search is not ready yet");
-                } else {
-                    warn!("Failed to search doc: {:?}", err);
+        let mut hits = vec![];
+        if let Some(doc) = self.doc.as_ref() {
+             let doc_hits = match doc.search(query, 5, 0).await {
+                Ok(docs) => docs.hits,
+                Err(err) => {
+                    if let DocSearchError::NotReady = err {
+                        debug!("Doc search is not ready yet");
+                    } else {
+                        warn!("Failed to search doc: {:?}", err);
+                    }
+                    vec![]
                 }
-                vec![]
-            }
-        };
+            };
+            hits.extend(doc_hits);
+        }
 
         // 2. If serper is available, we also collect from serper
         if let Some(serper) = self.serper.as_ref() {
@@ -294,7 +302,7 @@ fn remove_bullet_prefix(s: &str) -> String {
 pub fn create(
     chat: Arc<ChatService>,
     code: Arc<dyn CodeSearch>,
-    doc: Arc<dyn DocSearch>,
+    doc: Option<Arc<dyn DocSearch>>,
 ) -> AnswerService {
     AnswerService::new(chat, code, doc)
 }
