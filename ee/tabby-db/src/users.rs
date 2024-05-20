@@ -62,8 +62,14 @@ impl DbConn {
         invitation_id: i64,
         name: Option<String>,
     ) -> Result<i64> {
-        self.create_user_impl(email, password_encrypted, is_admin, Some(invitation_id), name)
-            .await
+        self.create_user_impl(
+            email,
+            password_encrypted,
+            is_admin,
+            Some(invitation_id),
+            name,
+        )
+        .await
     }
 
     async fn create_user_impl(
@@ -295,7 +301,12 @@ mod tests {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         let id = conn
-            .create_user("use1@example.com".into(), Some("123456".into()), false, Some("name1".into()))
+            .create_user(
+                "use1@example.com".into(),
+                Some("123456".into()),
+                false,
+                Some("name1".into()),
+            )
             .await
             .unwrap();
         let user = conn.get_user(id).await.unwrap().unwrap();
@@ -447,7 +458,12 @@ mod tests {
         );
 
         let id1 = conn
-            .create_user("use1@example.com".into(), Some("123456".into()), false, None)
+            .create_user(
+                "use1@example.com".into(),
+                Some("123456".into()),
+                false,
+                None,
+            )
             .await
             .unwrap();
 
@@ -516,19 +532,39 @@ mod tests {
         );
 
         let id2 = conn
-            .create_user("use2@example.com".into(), Some("123456".into()), false, None)
+            .create_user(
+                "use2@example.com".into(),
+                Some("123456".into()),
+                false,
+                None,
+            )
             .await
             .unwrap();
         let id3 = conn
-            .create_user("use3@example.com".into(), Some("123456".into()), false, None)
+            .create_user(
+                "use3@example.com".into(),
+                Some("123456".into()),
+                false,
+                None,
+            )
             .await
             .unwrap();
         let id4 = conn
-            .create_user("use4@example.com".into(), Some("123456".into()), false, None)
+            .create_user(
+                "use4@example.com".into(),
+                Some("123456".into()),
+                false,
+                None,
+            )
             .await
             .unwrap();
         let id5 = conn
-            .create_user("use5@example.com".into(), Some("123456".into()), false, None)
+            .create_user(
+                "use5@example.com".into(),
+                Some("123456".into()),
+                false,
+                None,
+            )
             .await
             .unwrap();
 

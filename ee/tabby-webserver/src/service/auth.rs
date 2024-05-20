@@ -430,7 +430,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .await
             .context("Failed to read license info")?;
         let user_id =
-            get_or_create_oauth_user(&license, &self.db, &self.setting, &self.mail, &email, &name).await?;
+            get_or_create_oauth_user(&license, &self.db, &self.setting, &self.mail, &email, &name)
+                .await?;
 
         let refresh_token = self.db.create_refresh_token(user_id).await?;
 
@@ -1362,7 +1363,12 @@ mod tests {
         let (service, _mail) = test_authentication_service_with_mail().await;
         let id = service
             .db
-            .create_user("test@example.com".into(), password_hash("pass").ok(), true, None)
+            .create_user(
+                "test@example.com".into(),
+                password_hash("pass").ok(),
+                true,
+                None,
+            )
             .await
             .unwrap();
 
@@ -1390,7 +1396,12 @@ mod tests {
 
         let id = service
             .db
-            .create_user("test@example.com".into(), password_hash("pass").ok(), true, None)
+            .create_user(
+                "test@example.com".into(),
+                password_hash("pass").ok(),
+                true,
+                None,
+            )
             .await
             .unwrap();
 
