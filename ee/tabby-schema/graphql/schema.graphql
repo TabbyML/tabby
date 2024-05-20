@@ -416,12 +416,12 @@ type Query {
     Syntax:
 
     1. Unprefixed text will be treated as a regex pattern for file content search.
-    2. 'f:' to search by file name with a glob pattern.
+    2. 'f:' to search by file name with a regex pattern.
     3. 'lang:' to search by file language.
     4. All tokens can be negated by prefixing them with '-'.
 
     Examples:
-    * `f:*.rs -lang:rust fn main`
+    * `f:schema -lang:rust fn`
     * `func_name lang:go`
   """
   repositoryGrep(kind: RepositoryKind!, id: ID!, rev: String, query: String!): [GrepFile!]!
