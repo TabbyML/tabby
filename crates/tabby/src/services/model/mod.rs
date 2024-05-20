@@ -30,27 +30,7 @@ pub async fn load_chat_completion(chat: &ModelConfig) -> Arc<dyn ChatCompletionS
 }
 
 pub async fn load_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {
-    match config {
-        ModelConfig::Http(http) => http_api_bindings::create_embedding(http),
-        ModelConfig::Local(llama) => {
-            if fs::metadata(&llama.model_id).is_ok() {
-                let path = PathBuf::from(&llama.model_id);
-                let model_path = path.join(GGML_MODEL_RELATIVE_PATH);
-                create_ggml_embedding_engine(
-                    model_path.display().to_string().as_str(),
-                    llama.parallelism,
-                    llama.num_gpu_layers,
-                )
-                .await
-            } else {
-                let (registry, name) = parse_model_id(&llama.model_id);
-                let registry = ModelRegistry::new(registry).await;
-                let model_path = registry.get_model_path(name).display().to_string();
-                create_ggml_embedding_engine(&model_path, llama.parallelism, llama.num_gpu_layers)
-                    .await
-            }
-        }
-    }
+    llama_cpp_server::create_embedding(config).await
 }
 
 pub async fn load_code_generation(model: &ModelConfig) -> (Arc<CodeGeneration>, PromptInfo) {
@@ -120,15 +100,6 @@ async fn create_ggml_engine(
     parallelism: u8,
 ) -> Arc<dyn CompletionStream> {
     llama_cpp_server::create_completion(num_gpu_layers, model_path, parallelism).await
-}
-
-async fn create_ggml_embedding_engine(
-    model_path: &str,
-    parallelism: u8,
-    num_gpu_layers: u16,
-) -> Arc<dyn Embedding> {
-    // By default, embedding always use CPU device with 1 parallelism.
-    llama_cpp_server::create_embedding(num_gpu_layers, model_path, parallelism).await
 }
 
 pub async fn download_model_if_needed(model: &str) {

@@ -1,12 +1,15 @@
 mod supervisor;
 
-use std::sync::Arc;
+use std::{fs, path::PathBuf, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use supervisor::LlamaCppSupervisor;
-use tabby_common::config::HttpModelConfigBuilder;
+use tabby_common::{
+    config::{HttpModelConfigBuilder, ModelConfig},
+    registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH},
+};
 use tabby_inference::{CompletionOptions, CompletionStream, Embedding};
 
 fn api_endpoint(port: u16) -> String {
@@ -70,18 +73,38 @@ impl CompletionStream for CompletionServer {
     }
 }
 
-pub async fn create_embedding(
-    num_gpu_layers: u16,
-    model_path: &str,
-    parallelism: u8,
-) -> Arc<dyn Embedding> {
-    Arc::new(EmbeddingServer::new(num_gpu_layers, model_path, parallelism).await)
-}
-
 pub async fn create_completion(
     num_gpu_layers: u16,
     model_path: &str,
     parallelism: u8,
 ) -> Arc<dyn CompletionStream> {
     Arc::new(CompletionServer::new(num_gpu_layers, model_path, parallelism).await)
+}
+
+pub async fn create_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {
+    match config {
+        ModelConfig::Http(http) => http_api_bindings::create_embedding(http),
+        ModelConfig::Local(llama) => {
+            if fs::metadata(&llama.model_id).is_ok() {
+                let path = PathBuf::from(&llama.model_id);
+                let model_path = path.join(GGML_MODEL_RELATIVE_PATH);
+                Arc::new(
+                    EmbeddingServer::new(
+                        llama.num_gpu_layers,
+                        model_path.display().to_string().as_str(),
+                        llama.parallelism,
+                    )
+                    .await,
+                )
+            } else {
+                let (registry, name) = parse_model_id(&llama.model_id);
+                let registry = ModelRegistry::new(registry).await;
+                let model_path = registry.get_model_path(name).display().to_string();
+                Arc::new(
+                    EmbeddingServer::new(llama.num_gpu_layers, &model_path, llama.parallelism)
+                        .await,
+                )
+            }
+        }
+    }
 }
