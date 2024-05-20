@@ -511,18 +511,18 @@ mod tests {
 
         tokio::time::sleep(Duration::from_secs(1)).await;
 
-        let mut new_repos = vec![];
-        new_repos.push(RepositoryInfo {
-            name: "TabbyML/tabby2".into(),
-            git_url: "https://github.com/TabbyML/tabby".into(),
-            vendor_id: "vendor_id2".into(),
-        });
-
-        new_repos.push(RepositoryInfo {
-            name: "TabbyML/newrepo".into(),
-            git_url: "https://github.com/TabbyML/newrepo".into(),
-            vendor_id: "vendor_id3".into(),
-        });
+        let new_repos = vec![
+            RepositoryInfo {
+                name: "TabbyML/tabby2".into(),
+                git_url: "https://github.com/TabbyML/tabby".into(),
+                vendor_id: "vendor_id2".into(),
+            },
+            RepositoryInfo {
+                name: "TabbyML/newrepo".into(),
+                git_url: "https://github.com/TabbyML/newrepo".into(),
+                vendor_id: "vendor_id3".into(),
+            },
+        ];
 
         let provider = integration.get_integration(provider_id).await.unwrap();
         refresh_repositories_for_provider(&*repository, &*integration, provider, new_repos)
