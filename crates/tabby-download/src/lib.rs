@@ -58,7 +58,7 @@ async fn download_model_impl(
         .urls
         .iter()
         .flatten()
-        .find(|x| select_by_download_host(*x))
+        .find(|x| select_by_download_host(x))
     else {
         return Err(anyhow!("No valid url for model <{}>", model_info.name));
     };
