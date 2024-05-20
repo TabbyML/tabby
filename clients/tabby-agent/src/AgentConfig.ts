@@ -66,6 +66,7 @@ export type AgentConfig = {
     generateCommitMessage: {
       maxDiffLength: number;
       promptTemplate: string;
+      responseMatcher: string;
     };
   };
   logs: {
@@ -143,7 +144,8 @@ export const defaultAgentConfig: AgentConfig = {
     generateCommitMessage: {
       maxDiffLength: 3600,
       promptTemplate:
-        "Generate a commit message based on the given diff. \nYou should only reply with the commit message, and the commit message should be in the following format: \n`<type>(<scope>): <description>` \nexamples: \n * feat(chat): add support for chat. \n * fix(ui): fix homepage links. \nThe diff is: \n\n```diff \n{{diff}} \n``` \n",
+        "Generate a commit message based on the given diff. \nYou should only reply with the commit message, and the commit message should be in the following format: <type>(<scope>): <description> \nexamples: \n * feat(chat): add support for chat. \n * fix(ui): fix homepage links. \nThe diff is: \n\n```diff \n{{diff}} \n``` \n",
+      responseMatcher: /(?<=^\s*(the commit message.*:\s+)|(`{3}|["'`])\s*)[^"'`\s].*(?=\s*\2\s*$)/gi.toString(),
     },
   },
   logs: {

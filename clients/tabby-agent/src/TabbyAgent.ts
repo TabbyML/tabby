@@ -29,8 +29,9 @@ import {
   isCanceledError,
   isUnauthorizedError,
   errorToString,
-  parseChatResponse,
+  stringToRegExp,
 } from "./utils";
+import { parseChatResponse } from "./stream";
 import { Auth } from "./Auth";
 import { AgentConfig, PartialAgentConfig, defaultAgentConfig } from "./AgentConfig";
 import { configFile } from "./configFile";
@@ -789,7 +790,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     }
 
     // select diffs from the list to generate a prompt under the prompt size limit
-    const { maxDiffLength, promptTemplate } = this.config.experimentalChat.generateCommitMessage;
+    const { maxDiffLength, promptTemplate, responseMatcher } = this.config.experimentalChat.generateCommitMessage;
     let splitDiffs: string[];
     if (typeof diff === "string") {
       splitDiffs = diff.split(/\n(?=diff)/);
@@ -843,12 +844,18 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }
       const responseMessage = await parseChatResponse(response.response, requestOptions.signal);
       this.logger.trace(`Chat response message: [${requestId}]`, { responseMessage });
-      return responseMessage.trim();
+      const matcherReg = stringToRegExp(responseMatcher);
+      const match = matcherReg.exec(responseMessage);
+      const commitMessage = (match ? match[0] : responseMessage).trim();
+      this.logger.trace(`Extracted commit message:`, { commitMessage });
+      return commitMessage;
     } catch (error) {
       if (error instanceof HttpError && error.status == 404 && !options?.useBetaVersion) {
         return await this.generateCommitMessage(diff, { ...options, useBetaVersion: true });
       }
-      if (isUnauthorizedError(error)) {
+      if (isCanceledError(error)) {
+        this.logger.debug(`Chat request canceled. [${requestId}]`);
+      } else if (isUnauthorizedError(error)) {
         this.logger.debug(`Chat request failed due to unauthorized. [${requestId}]`);
       } else {
         this.logger.error(`Chat request failed. [${requestId}]`, error);
