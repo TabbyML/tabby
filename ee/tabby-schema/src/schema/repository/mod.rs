@@ -10,7 +10,7 @@ mod third_party;
 use async_trait::async_trait;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use juniper::{graphql_object, GraphQLEnum, GraphQLObject, ID};
-use serde::{Deserialize};
+use serde::Deserialize;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 pub use third_party::{ProvidedRepository, ThirdPartyRepositoryService};
 

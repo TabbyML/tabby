@@ -8,9 +8,8 @@ use anyhow::Context;
 use async_stream::stream;
 use futures::Stream;
 use git2::TreeWalkResult;
-pub use query::{GrepQuery};
+pub use query::GrepQuery;
 use searcher::GrepSearcher;
-
 use tracing::warn;
 
 use super::{bytes2path, rev_to_commit};
@@ -142,6 +141,18 @@ mod tests {
 
         let query = GrepQuery::builder()
             .file_type("markdown")
+            .file_pattern("llm_evaluation")
+            .build();
+        let files: Vec<_> = grep(root.repository(), None, &query)
+            .unwrap()
+            .collect()
+            .await;
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].path, PathBuf::from("203_llm_evaluation/README.md"));
+
+        // File patterns are AND-ed.
+        let query = GrepQuery::builder()
+            .file_pattern(".md")
             .file_pattern("llm_evaluation")
             .build();
         let files: Vec<_> = grep(root.repository(), None, &query)

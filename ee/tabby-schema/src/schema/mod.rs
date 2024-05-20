@@ -428,14 +428,14 @@ impl Query {
     }
 
     /// File content search with a grep-like experience.
-    /// 
+    ///
     /// Syntax:
-    /// 
+    ///
     /// 1. Unprefixed text will be treated as a regex pattern for file content search.
     /// 2. 'f:' to search by file name with a regex pattern.
     /// 3. 'lang:' to search by file language.
     /// 4. All tokens can be negated by prefixing them with '-'.
-    /// 
+    ///
     /// Examples:
     /// * `f:schema -lang:rust fn`
     /// * `func_name lang:go`

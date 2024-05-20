@@ -22,6 +22,7 @@ pub struct GrepQuery {
 }
 
 impl GrepQuery {
+    #[cfg(test)]
     pub fn builder() -> GrepQueryBuilder {
         GrepQueryBuilder::default()
     }
@@ -42,11 +43,13 @@ impl GrepQuery {
         };
 
         let file_pattern_matcher = if self.file_patterns.is_empty() {
-            None
+            vec![]
         } else {
-            Some(RegexMatcher::new_line_matcher(
-                &self.file_patterns.join("|"),
-            )?)
+            let mut matcher = vec![];
+            for p in &self.file_patterns {
+                matcher.push(RegexMatcher::new_line_matcher(p)?);
+            }
+            matcher
         };
 
         let negative_file_pattern_matcher = if self.negative_file_patterns.is_empty() {
@@ -59,7 +62,7 @@ impl GrepQuery {
 
         if pattern_matcher.is_none()
             && negative_pattern_matcher.is_none()
-            && file_pattern_matcher.is_none()
+            && file_pattern_matcher.is_empty()
             && negative_file_pattern_matcher.is_none()
         {
             bail!("No patterns specified")
@@ -133,22 +136,34 @@ pub struct GrepQueryBuilder {
 
 impl GrepQueryBuilder {
     pub fn pattern<T: Into<String>>(mut self, pattern: T) -> Self {
-        self.query.patterns.push(pattern.into());
+        let pattern = pattern.into();
+        if !pattern.is_empty() {
+            self.query.patterns.push(pattern.into());
+        }
         self
     }
 
     pub fn negative_pattern<T: Into<String>>(mut self, pattern: T) -> Self {
-        self.query.negative_patterns.push(pattern.into());
+        let pattern = pattern.into();
+        if !pattern.is_empty() {
+            self.query.negative_patterns.push(pattern.into());
+        }
         self
     }
 
     pub fn file_pattern<T: Into<String>>(mut self, pattern: T) -> Self {
-        self.query.file_patterns.push(pattern.into());
+        let pattern = pattern.into();
+        if !pattern.is_empty() {
+            self.query.file_patterns.push(pattern.into());
+        }
         self
     }
 
     pub fn negative_file_pattern<T: Into<String>>(mut self, pattern: T) -> Self {
-        self.query.negative_file_patterns.push(pattern.into());
+        let pattern = pattern.into();
+        if !pattern.is_empty() {
+            self.query.negative_file_patterns.push(pattern.into());
+        }
         self
     }
 
