@@ -31,6 +31,8 @@ mod email_setting;
 mod integrations;
 mod invitations;
 mod job_runs;
+#[cfg(test)]
+mod migration_tests;
 mod oauth_credential;
 mod password_reset;
 mod provided_repositories;
