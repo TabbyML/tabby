@@ -11,7 +11,8 @@ use tabby_db::DbConn;
 use tabby_schema::{
     integration::IntegrationService,
     repository::{
-        FileEntrySearchResult, GitRepositoryService, ProvidedRepository, Repository, RepositoryKind, RepositoryService, ThirdPartyRepositoryService
+        FileEntrySearchResult, GitRepositoryService, ProvidedRepository, Repository,
+        RepositoryKind, RepositoryService, ThirdPartyRepositoryService,
     },
     Result,
 };
@@ -84,18 +85,16 @@ impl RepositoryService for RepositoryServiceImpl {
     async fn resolve_repository(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository> {
         match kind {
             RepositoryKind::Git => self.git().get_repository(id).await,
-            RepositoryKind::Github => {
-                self.third_party()
-                    .get_repository(id.clone())
-                    .await
-                    .map(|repo| to_repository(*kind, repo))
-            }
-            RepositoryKind::Gitlab => {
-                self.third_party()
-                    .get_repository(id.clone())
-                    .await
-                    .map(|repo| to_repository(*kind, repo))
-            }
+            RepositoryKind::Github => self
+                .third_party()
+                .get_repository(id.clone())
+                .await
+                .map(|repo| to_repository(*kind, repo)),
+            RepositoryKind::Gitlab => self
+                .third_party()
+                .get_repository(id.clone())
+                .await
+                .map(|repo| to_repository(*kind, repo)),
         }
     }
 

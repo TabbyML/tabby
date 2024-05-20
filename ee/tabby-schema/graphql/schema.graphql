@@ -452,6 +452,7 @@ type Repository {
   id: ID!
   name: String!
   kind: RepositoryKind!
+  gitUrl: String!
   refs: [String!]!
 }
 

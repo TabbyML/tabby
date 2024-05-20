@@ -17,7 +17,7 @@ use tracing::{debug, error};
 use url::Url;
 
 use self::fetch::RepositoryInfo;
-use super::{list_refs, to_repository};
+use super::{to_repository};
 use crate::service::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
 
 mod fetch;
