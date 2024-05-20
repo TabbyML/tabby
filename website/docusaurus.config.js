@@ -110,7 +110,7 @@ export default {
             items: [
               {
                 label: 'Docs',
-                to: '/docs/getting-started',
+                to: '/docs/welcome',
               },
               {
                 label: 'Playground',
@@ -206,6 +206,10 @@ export default {
           {
             to: '/docs/administration',
             from: '/docs/configurations'
+          },
+          {
+            to: '/docs/welcome',
+            from: '/docs/getting-started'
           }
         ]
       },
