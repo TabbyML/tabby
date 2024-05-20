@@ -210,6 +210,18 @@ export default {
           {
             to: '/docs/welcome',
             from: '/docs/getting-started'
+          },
+          {
+            to: '/docs/extensions/installation/vscode',
+            from: '/docs/extensions'
+          },
+          {
+            to: '/docs/extensions/installation/vscode',
+            from: '/docs/extensions/installation'
+          },
+          {
+            to: '/docs/installation/docker',
+            from: '/docs/installation'
           }
         ]
       },
