@@ -147,12 +147,12 @@ impl TryFrom<ProvidedRepositoryDAO> for ProvidedRepository {
 impl TryFrom<IntegrationDAO> for Integration {
     type Error = anyhow::Error;
     fn try_from(value: IntegrationDAO) -> anyhow::Result<Self> {
-        let status = if value.synced {
-            IntegrationStatus::Pending
+        let status = if value.synced && value.error.is_none() {
+            IntegrationStatus::Ready
         } else if value.error.is_some() {
             IntegrationStatus::Failed
         } else {
-            IntegrationStatus::Ready
+            IntegrationStatus::Pending
         };
         Ok(Self {
             id: value.id.as_id(),
