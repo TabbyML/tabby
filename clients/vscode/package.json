@@ -277,6 +277,6 @@
   "dependencies": {
     "@orama/orama": "^2.0.15",
     "@xstate/fsm": "^2.0.1",
-    "tabby-agent": "1.6.0"
+    "tabby-agent": "1.7.0-dev"
   }
 }
