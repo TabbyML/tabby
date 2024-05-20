@@ -186,11 +186,11 @@ mod tests {
         assert_eq!(repos[0].name, "tabby-gh");
         assert_eq!(repos[0].integration_id, 1);
         assert_eq!(repos[0].git_url, "https://github.com/TabbyML/tabby");
-        assert_eq!(repos[0].active, true);
+        assert!(repos[0].active);
 
         assert_eq!(repos[1].name, "tabby-gl");
         assert_eq!(repos[1].integration_id, 2);
         assert_eq!(repos[1].git_url, "https://gitlab.com/TabbyML/tabby");
-        assert_eq!(repos[1].active, false);
+        assert!(!repos[1].active);
     }
 }
