@@ -37,3 +37,8 @@ INSERT INTO provided_repositories(integration_id, vendor_id, name, git_url, acti
     SELECT integrations.id, vendor_id, gitlab_provided_repositories.name, git_url, active FROM gitlab_provided_repositories
     JOIN gitlab_repository_provider ON gitlab_repository_provider_id = gitlab_repository_provider.id
     JOIN integrations ON kind = 'gitlab' AND gitlab_repository_provider.access_token = integrations.access_token;
+
+DROP TABLE github_provided_repositories;
+DROP TABLE gitlab_provided_repositories;
+DROP TABLE github_repository_provider;
+DROP TABLE gitlab_repository_provider;
