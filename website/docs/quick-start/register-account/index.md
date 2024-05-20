@@ -28,4 +28,4 @@ Tabby offers an enhanced experience with a full-featured UI interface and many e
 
 ![Admin UI](admin-ui.png)
 
-For more information on how to configure the instance, please refer to the [Administration](/docs/administration/Upgrade) documentation.
+For more information on how to configure the instance, please refer to the [Administration](/docs/administration/upgrade) documentation.

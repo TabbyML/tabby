@@ -209,7 +209,7 @@ export default {
             from: '/docs/extensions/vscode'
           },
           {
-            to: '/docs/administration',
+            to: '/docs/administration/usage-collection',
             from: '/docs/configurations'
           },
           {
