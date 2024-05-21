@@ -1852,9 +1852,9 @@
   integrity sha512-0Q5w7jgHPj3nD8sTh1o7oa7LFxATK+dH0i4p8Y6BgKBLDOkr9/m01IDUXsbZdZ98XvxQaVkxBF/HUNAFfg/KfA==
 
 "@quilted/threads@^2.1.2":
-  version "2.1.2"
-  resolved "https://registry.yarnpkg.com/@quilted/threads/-/threads-2.1.2.tgz#3c91d557e24cfe1edda1cd512dc0b85c3b9cf6e7"
-  integrity sha512-jkeh2K+Lbj9MkNXKsLab7Zu+kS16XcoGqBUOFXQNQerfJxMWSpVBliS4tG4chgte0YS6Ot4+fFRf19147gI0aQ==
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@quilted/threads/-/threads-2.2.0.tgz#87448e2bff7fa46d33759811d0766ac89171a32d"
+  integrity sha512-1STcdYtWyVrRs2hfA0CYFvtjl2LA8uVJrJGwsYDbuC2WNyjvRrqgB6IHVuzt3rhapXLeo2AjIfM9V2wVcdhByQ==
   dependencies:
     "@quilted/events" "^2.0.0"
 
@@ -7298,13 +7298,6 @@ react@^18.2.0:
   dependencies:
     loose-envify "^1.1.0"
 
-react@^18.3.1:
-  version "18.3.1"
-  resolved "https://registry.yarnpkg.com/react/-/react-18.3.1.tgz#49ab892009c53933625bd16b2533fc754cab2891"
-  integrity sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ==
-  dependencies:
-    loose-envify "^1.1.0"
-
 read-cache@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/read-cache/-/read-cache-1.0.0.tgz#e664ef31161166c9751cdbe8dbcf86b5fb58f774"
@@ -8042,7 +8035,6 @@ tabby-chat-panel@../../clients/tabby-chat-panel:
   version "0.0.0-dev.3"
   dependencies:
     "@quilted/threads" "^2.1.2"
-    react "^18.3.1"
 
 tailwind-merge@^1.12.0:
   version "1.14.0"
