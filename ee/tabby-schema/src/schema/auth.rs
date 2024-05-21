@@ -326,6 +326,7 @@ impl relay::NodeType for Invitation {
 pub enum OAuthProvider {
     Github,
     Google,
+    Gitlab,
 }
 
 #[derive(GraphQLObject)]

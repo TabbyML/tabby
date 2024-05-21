@@ -459,6 +459,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let url = match provider {
             OAuthProvider::Github => external_url + "/oauth/callback/github",
             OAuthProvider::Google => external_url + "/oauth/callback/google",
+            OAuthProvider::Gitlab => external_url + "/oauth/callback/gitlab",
         };
         Ok(url)
     }
