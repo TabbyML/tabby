@@ -1,3 +1,12 @@
+## 1.6.1
+
+**pre-release**
+
+### Fixes & Improvements
+
+- Fixed a bug causing the chat stream parsing to fail.
+- Improved the message extraction when generating commit messages.
+
 ## 1.6.0
 
 **pre-release**
