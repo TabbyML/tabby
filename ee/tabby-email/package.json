@@ -3,9 +3,8 @@
   "version": "0.0.19",
   "private": true,
   "scripts": {
-    "build": "email build",
-    "dev": "email dev",
-    "export": "email export"
+    "build": "email build && email export",
+    "dev": "email dev"
   },
   "devDependencies": {
     "react-email": "2.1.3",
