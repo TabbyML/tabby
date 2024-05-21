@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use juniper::ID;
 use strum::EnumIter;
 
-use crate::{bail, Result};
+use crate::Result;
 
 #[derive(Clone, EnumIter)]
 pub enum IntegrationKind {
@@ -32,16 +32,18 @@ pub struct Integration {
 }
 
 impl Integration {
-    pub fn default_api_base(&self) -> Result<&'static str> {
+    pub fn api_base(&self) -> Result<&str> {
         match &self.kind {
             IntegrationKind::Github => Ok("https://api.github.com"),
             IntegrationKind::Gitlab => Ok("https://gitlab.com"),
-            IntegrationKind::GithubSelfHosted => {
-                bail!("Self-hosted github requires a user-specified API base URL")
-            }
-            IntegrationKind::GitlabSelfHosted => {
-                bail!("Self-hosted gitlab requires a user-specified API base URL")
-            }
+            IntegrationKind::GithubSelfHosted => Ok(self
+                .api_base
+                .as_deref()
+                .expect("Self-hosted github always has a specified api_base")),
+            IntegrationKind::GitlabSelfHosted => Ok(self
+                .api_base
+                .as_deref()
+                .expect("Self-hosted gitlab always has a specified api_base")),
         }
     }
 }

@@ -148,7 +148,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
 
         let api_base = match &provider.api_base {
             Some(api_base) => api_base,
-            None => provider.default_api_base()?,
+            None => provider.api_base()?,
         };
 
         let repos =
