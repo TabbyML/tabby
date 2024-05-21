@@ -109,7 +109,7 @@ impl CodeSearchSchema {
         ))
     }
 
-    pub fn tokenize_body(text: &str) -> Vec<String> {
+    fn tokenize_body(text: &str) -> Vec<String> {
         BODY_TOKENIZER
             .split(text)
             .filter(|x| !x.is_empty())
