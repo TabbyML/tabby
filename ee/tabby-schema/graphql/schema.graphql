@@ -381,17 +381,21 @@ type Mutation {
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
   createGithubRepositoryProvider(input: CreateRepositoryProviderInput!): ID!
-  createSelfHostedGithubRepositoryProvider(input: CreateSelfHostedRepositoryProviderInput!): ID!
+  createGithubSelfHostedRepositoryProvider(input: CreateSelfHostedRepositoryProviderInput!): ID!
   deleteGithubRepositoryProvider(id: ID!): Boolean!
+  deleteGithubSelfHostedRepositoryProvider(id: ID!): Boolean!
   updateGithubRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean!
-  updateSelfHostedGithubRepositoryProvider(input: UpdateSelfHostedRepositoryProviderInput!): Boolean!
+  updateGithubSelfHostedRepositoryProvider(input: UpdateSelfHostedRepositoryProviderInput!): Boolean!
   updateGithubProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
+  updateGithubSelfHostedProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
   createGitlabRepositoryProvider(input: CreateRepositoryProviderInput!): ID!
-  createSelfHostedGitlabRepositoryProvider(input: CreateSelfHostedRepositoryProviderInput!): ID!
+  createGitlabSelfHostedRepositoryProvider(input: CreateSelfHostedRepositoryProviderInput!): ID!
   deleteGitlabRepositoryProvider(id: ID!): Boolean!
-  updateSelfHostedGitlabRepositoryProvider(input: UpdateSelfHostedRepositoryProviderInput!): Boolean!
+  deleteGitlabSelfHostedRepositoryProvider(id: ID!): Boolean!
+  updateGitlabSelfHostedRepositoryProvider(input: UpdateSelfHostedRepositoryProviderInput!): Boolean!
   updateGitlabRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean!
   updateGitlabProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
+  updateGitlabSelfHostedProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
 }
 
 type NetworkSetting {
@@ -419,7 +423,11 @@ type Query {
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   githubRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GithubRepositoryProviderConnection!
   githubRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
+  githubSelfHostedRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
+  gitlabSelfHostedRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
   gitlabRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
+  gitlabSelfHostedRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
+  githubSelfHostedRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
   gitlabRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GitlabProvidedRepositoryConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
