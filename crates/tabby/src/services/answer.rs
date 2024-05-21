@@ -126,7 +126,7 @@ impl AnswerService {
             // 5. Generate answer from the query
             let s = self.chat.clone().generate(ChatCompletionRequestBuilder::default()
                 .messages(req.messages.clone())
-                .presence_penalty(PRESENCE_PENALTY)
+                .presence_penalty(Some(PRESENCE_PENALTY))
                 .build()
                 .expect("Failed to create ChatCompletionRequest"))
                 .await;
