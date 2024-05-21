@@ -70,7 +70,7 @@ impl GitlabClient {
             ("client_id", &credential.client_id),
             ("client_secret", &credential.client_secret),
             ("code", &code),
-            ("grant_type", &"authorization_code"),
+            ("grant_type", "authorization_code"),
             ("redirect_uri", &redirect_uri),
         ];
         let resp = self
@@ -142,7 +142,7 @@ fn create_authorization_url(client_id: &str, redirect_uri: &str) -> Result<Strin
         ("client_id", client_id),
         ("response_type", "code"),
         ("scope", "api"),
-        ("redirect_uri", &redirect_uri),
+        ("redirect_uri", redirect_uri),
     ];
     for (k, v) in params {
         url.query_pairs_mut().append_pair(k, v);
