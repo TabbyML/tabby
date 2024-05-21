@@ -4,3 +4,5 @@ packages:
   - clients/vim
   - clients/intellij
   - clients/example-vscode-lsp
+  - clients/tabby-chat-panel
+  - ee/tabby-ui
