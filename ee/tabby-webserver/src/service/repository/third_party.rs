@@ -146,29 +146,29 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             provider.display_name
         );
 
-        let api_base = match &provider.api_base {
-            Some(api_base) => api_base,
-            None => provider.api_base()?,
+        let repos = match fetch_all_repos(
+            provider.kind.clone(),
+            &provider.access_token,
+            provider.api_base(),
+        )
+        .await
+        {
+            Ok(repos) => repos,
+            Err((e, true)) => {
+                self.integration
+                    .update_integration_sync_status(provider.id.clone(), Some(e.to_string()))
+                    .await?;
+                error!(
+                    "Credentials for integration {} are expired or invalid",
+                    provider.display_name
+                );
+                return Err(e.into());
+            }
+            Err((e, false)) => {
+                error!("Failed to fetch repositories from github: {e}");
+                return Err(e.into());
+            }
         };
-
-        let repos =
-            match fetch_all_repos(provider.kind.clone(), &provider.access_token, api_base).await {
-                Ok(repos) => repos,
-                Err((e, true)) => {
-                    self.integration
-                        .update_integration_sync_status(provider.id.clone(), Some(e.to_string()))
-                        .await?;
-                    error!(
-                        "Credentials for integration {} are expired or invalid",
-                        provider.display_name
-                    );
-                    return Err(e.into());
-                }
-                Err((e, false)) => {
-                    error!("Failed to fetch repositories from github: {e}");
-                    return Err(e.into());
-                }
-            };
 
         refresh_repositories_for_provider(self, &*self.integration, provider, repos).await?;
         Ok(())

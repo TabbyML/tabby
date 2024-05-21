@@ -32,18 +32,18 @@ pub struct Integration {
 }
 
 impl Integration {
-    pub fn api_base(&self) -> Result<&str> {
+    pub fn api_base(&self) -> &str {
         match &self.kind {
-            IntegrationKind::Github => Ok("https://api.github.com"),
-            IntegrationKind::Gitlab => Ok("https://gitlab.com"),
-            IntegrationKind::GithubSelfHosted => Ok(self
+            IntegrationKind::Github => "https://api.github.com",
+            IntegrationKind::Gitlab => "https://gitlab.com",
+            IntegrationKind::GithubSelfHosted => self
                 .api_base
                 .as_deref()
-                .expect("Self-hosted github always has a specified api_base")),
-            IntegrationKind::GitlabSelfHosted => Ok(self
+                .expect("Self-hosted github always has a specified api_base"),
+            IntegrationKind::GitlabSelfHosted => self
                 .api_base
                 .as_deref()
-                .expect("Self-hosted gitlab always has a specified api_base")),
+                .expect("Self-hosted gitlab always has a specified api_base"),
         }
     }
 }
