@@ -94,7 +94,7 @@ fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
 
     Some(CrawledDocument::new(
         data.request.endpoint,
-        md,
+        md.trim().to_owned(),
         metadata.into(),
     ))
 }
