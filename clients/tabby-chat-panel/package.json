@@ -41,17 +41,21 @@
     "start": "tsx src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:vscode": "esbuild src/vscode.tsx --bundle --minify --outfile=../vscode/webview/index.js --loader:.js=jsx",
+    "dev:vscode": "esbuild src/vscode.tsx --bundle --outfile=../vscode/webview/index.js --loader:.js=jsx --watch"
   },
   "dependencies": {
     "@quilted/threads": "^2.1.2",
-    "react": "18.2.0"
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^2.16.0",
     "@antfu/ni": "^0.21.12",
     "@types/node": "^20.12.7",
     "@types/react": "18.2.23",
+    "@types/react-dom": "18.2.23",
     "bumpp": "^9.4.0",
     "eslint": "^9.1.1",
     "eslint-formatter-mo": "^1.2.0",
