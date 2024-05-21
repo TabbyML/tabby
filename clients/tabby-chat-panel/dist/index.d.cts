@@ -6,7 +6,7 @@ interface FileContext {
     kind: 'file';
     range: LineRange;
     filepath: string;
-    content?: string;
+    content: string;
 }
 type Context = FileContext;
 interface FetcherOptions {

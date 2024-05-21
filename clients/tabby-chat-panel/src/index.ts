@@ -9,7 +9,7 @@ export interface FileContext {
   kind: 'file'
   range: LineRange
   filepath: string
-  content?: string
+  content: string
 }
 
 export type Context = FileContext
