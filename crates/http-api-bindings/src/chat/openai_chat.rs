@@ -52,6 +52,7 @@ impl ChatCompletionStream for OpenAIChatEngine {
             .max_tokens(options.max_decoding_tokens as u16)
             .model(&self.model_name)
             .temperature(options.sampling_temperature)
+            .presence_penalty(options.presence_penalty)
             .stream(true)
             .messages(
                 serde_json::from_value::<Vec<ChatCompletionRequestMessage>>(serde_json::to_value(
