@@ -4,10 +4,10 @@ fix:
 	cargo clippy --fix --allow-dirty --allow-staged
 
 fix-ui:
-	cd ee/tabby-ui && yarn format:write && yarn lint:fix
+	pnpm lint:fix
 
 update-ui:
-	cd ee/tabby-ui && yarn build
+	cd ee/tabby-ui && pnpm build
 	rm -rf ee/tabby-webserver/ui && cp -R ee/tabby-ui/out ee/tabby-webserver/ui
 
 update-db-schema:
@@ -17,7 +17,7 @@ update-db-schema:
 	rm schema.dot
 
 update-email-templates:
-	cd ee/tabby-email && yarn export
+	cd ee/tabby-email && pnpm export
 	rm -rf ee/tabby-webserver/email_templates && cp -R ee/tabby-email/out ee/tabby-webserver/email_templates
 
 caddy:

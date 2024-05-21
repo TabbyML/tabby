@@ -1,0 +1,14 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "pipeline": {
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", ".react-email/**", "!.react-email/.next/cache/**"]
+    },
+    "lint": {},
+    "lint:fix": {},
+    "test": {}
+  }
+}

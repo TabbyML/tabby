@@ -220,8 +220,9 @@ function getHelpMessageForCompletionResponseTimeIssue() {
 
 function showInformationWhenSlowCompletionResponseTime(modal: boolean = false) {
   if (modal) {
-    const stats = agent().getIssueDetail<SlowCompletionResponseTimeIssue>({ name: "slowCompletionResponseTime" })
-      ?.completionResponseStats;
+    const stats = agent().getIssueDetail<SlowCompletionResponseTimeIssue>({
+      name: "slowCompletionResponseTime",
+    })?.completionResponseStats;
     let statsMessage = "";
     if (stats && stats["responses"] && stats["averageResponseTime"]) {
       statsMessage = `The average response time of recent ${stats["responses"]} completion requests is ${Number(
@@ -269,8 +270,9 @@ function showInformationWhenSlowCompletionResponseTime(modal: boolean = false) {
 
 function showInformationWhenHighCompletionTimeoutRate(modal: boolean = false) {
   if (modal) {
-    const stats = agent().getIssueDetail<HighCompletionTimeoutRateIssue>({ name: "highCompletionTimeoutRate" })
-      ?.completionResponseStats;
+    const stats = agent().getIssueDetail<HighCompletionTimeoutRateIssue>({
+      name: "highCompletionTimeoutRate",
+    })?.completionResponseStats;
     let statsMessage = "";
     if (stats && stats["total"] && stats["timeouts"]) {
       statsMessage = `${stats["timeouts"]} of ${stats["total"]} completion requests timed out.\n\n`;

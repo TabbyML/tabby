@@ -35,8 +35,8 @@
     "dev": "tsup --watch --no-minify --no-treeshake",
     "build": "tsc --noEmit && tsup",
     "test": "mocha",
-    "lint": "eslint --fix --ext .ts ./src && prettier --write .",
-    "lint:check": "eslint --ext .ts ./src && prettier --check ."
+    "lint": "eslint --ext .ts ./src && prettier --check .",
+    "lint:fix": "eslint --fix --ext .ts ./src && prettier --write ."
   },
   "devDependencies": {
     "@types/chai": "^4.3.5",
@@ -48,6 +48,7 @@
     "@types/mocha": "^10.0.1",
     "@types/node": "18.x",
     "@types/object-hash": "^3.0.0",
+    "@types/semver": "^7.5.8",
     "@types/uuid": "^9.0.0",
     "@types/win-ca": "^3.5.4",
     "@typescript-eslint/eslint-plugin": "^6.13.1",
@@ -67,6 +68,7 @@
     "typescript": "^5.3.2"
   },
   "dependencies": {
+    "axios": "^1.7.2",
     "chokidar": "^3.5.3",
     "deep-equal": "^2.2.1",
     "deepmerge-ts": "^5.1.0",
@@ -74,6 +76,7 @@
     "eventsource-parser": "^1.1.2",
     "fast-levenshtein": "^3.0.0",
     "file-stream-rotator": "^1.0.0",
+    "form-data": "^4.0.0",
     "fs-extra": "^11.1.1",
     "jwt-decode": "^3.1.2",
     "lru-cache": "^9.1.1",

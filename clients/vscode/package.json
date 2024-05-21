@@ -244,16 +244,15 @@
     ]
   },
   "scripts": {
-    "prebuild": "cd ../tabby-agent && yarn build",
     "build": "tsc --noEmit && tsup --minify --treeshake smallest",
     "watch": "tsup --sourcemap --watch ./ --ignore-watch ./dist --ignore-watch ./.vscode-test-web --watch ../tabby-agent/dist",
-    "dev": "code --extensionDevelopmentPath=$PWD --disable-extensions && yarn watch",
-    "dev:browser": "vscode-test-web --extensionDevelopmentPath=$PWD --browserType=chromium --port=3000 && yarn watch",
-    "lint": "eslint --fix --ext .ts ./src && prettier --write .",
-    "lint:check": "eslint --ext .ts ./src && prettier --check .",
-    "vscode:prepackage": "yarn build",
+    "dev": "code --extensionDevelopmentPath=$PWD --disable-extensions && turbo watch",
+    "dev:browser": "vscode-test-web --extensionDevelopmentPath=$PWD --browserType=chromium --port=3000 && turbo watch",
+    "lint": "eslint --ext .ts ./src && prettier --check .",
+    "lint:fix": "eslint --fix --ext .ts ./src && prettier --write .",
+    "vscode:prepackage": "turbo build",
     "vscode:package": "vsce package --no-dependencies",
-    "vscode:prepublish": "yarn build",
+    "vscode:prepublish": "turbo build",
     "vscode:publish": "vsce publish --no-dependencies"
   },
   "devDependencies": {
@@ -277,6 +276,6 @@
   "dependencies": {
     "@orama/orama": "^2.0.15",
     "@xstate/fsm": "^2.0.1",
-    "tabby-agent": "1.7.0-dev"
+    "tabby-agent": "workspace:*"
   }
 }
