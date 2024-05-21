@@ -244,7 +244,11 @@ Remember, based on the original question and related contexts, suggest three suc
         content.lines().map(remove_bullet_prefix).collect()
     }
 
-    async fn override_query_with_code_query(&self, query: &mut Message, code_query: &CodeSearchQuery) {
+    async fn override_query_with_code_query(
+        &self,
+        query: &mut Message,
+        code_query: &CodeSearchQuery,
+    ) {
         query.content = format!(
             "{}\n\n```{}\n{}\n```",
             query.content, code_query.language, code_query.content
