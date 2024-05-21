@@ -29,10 +29,16 @@ impl IntegrationService for IntegrationServiceImpl {
         kind: IntegrationKind,
         display_name: String,
         access_token: String,
+        api_base: Option<String>,
     ) -> Result<ID> {
         let id = self
             .db
-            .create_integration(kind.as_enum_str().to_string(), display_name, access_token)
+            .create_integration(
+                kind.as_enum_str().to_string(),
+                display_name,
+                access_token,
+                api_base,
+            )
             .await?;
         let id = id.as_id();
         let _ = self
@@ -54,6 +60,7 @@ impl IntegrationService for IntegrationServiceImpl {
         kind: IntegrationKind,
         display_name: String,
         access_token: Option<String>,
+        api_base: Option<String>,
     ) -> Result<()> {
         self.db
             .update_integration(
@@ -61,6 +68,7 @@ impl IntegrationService for IntegrationServiceImpl {
                 kind.as_enum_str(),
                 display_name,
                 access_token,
+                api_base,
             )
             .await?;
         Ok(())
@@ -125,7 +133,7 @@ mod tests {
         let integration = Arc::new(create(db, background));
 
         let id = integration
-            .create_integration(IntegrationKind::Gitlab, "id".into(), "secret".into())
+            .create_integration(IntegrationKind::Gitlab, "id".into(), "secret".into(), None)
             .await
             .unwrap();
 
@@ -139,7 +147,13 @@ mod tests {
 
         // Test updating gitlab provider
         integration
-            .update_integration(id.clone(), IntegrationKind::Gitlab, "id2".into(), None)
+            .update_integration(
+                id.clone(),
+                IntegrationKind::Gitlab,
+                "id2".into(),
+                None,
+                None,
+            )
             .await
             .unwrap();
 

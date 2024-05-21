@@ -32,6 +32,8 @@ pub enum RepositoryKind {
     Git,
     Github,
     Gitlab,
+    GithubSelfHosted,
+    GitlabSelfHosted,
 }
 
 #[derive(GraphQLObject, Debug)]

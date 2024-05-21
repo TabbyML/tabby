@@ -49,11 +49,9 @@ impl RepositoryAccess for RepositoryServiceImpl {
 
         repos.extend(
             self.third_party
-                .list_active_git_urls()
+                .list_repository_configs()
                 .await
-                .unwrap_or_default()
-                .into_iter()
-                .map(RepositoryConfig::new),
+                .unwrap_or_default(),
         );
 
         Ok(repos)
@@ -85,14 +83,12 @@ impl RepositoryService for RepositoryServiceImpl {
     async fn resolve_repository(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository> {
         match kind {
             RepositoryKind::Git => self.git().get_repository(id).await,
-            RepositoryKind::Github => self
+            RepositoryKind::Github
+            | RepositoryKind::Gitlab
+            | RepositoryKind::GithubSelfHosted
+            | RepositoryKind::GitlabSelfHosted => self
                 .third_party()
-                .get_repository(id.clone())
-                .await
-                .map(|repo| to_repository(*kind, repo)),
-            RepositoryKind::Gitlab => self
-                .third_party()
-                .get_repository(id.clone())
+                .get_provided_repository(id.clone())
                 .await
                 .map(|repo| to_repository(*kind, repo)),
         }

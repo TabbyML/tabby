@@ -9,7 +9,7 @@ use tabby_common::config::RepositoryConfig;
 use tabby_db::{DbConn, ProvidedRepositoryDAO};
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
-    repository::{ProvidedRepository, Repository, RepositoryKind, ThirdPartyRepositoryService},
+    repository::{ProvidedRepository, Repository, RepositoryProvider, ThirdPartyRepositoryService},
     AsID, AsRowid, DbEnum, Result,
 };
 use tokio::sync::mpsc::UnboundedSender;
@@ -41,8 +41,45 @@ pub fn create(
 }
 
 #[async_trait]
+impl RepositoryProvider for ThirdPartyRepositoryServiceImpl {
+    async fn repository_list(&self) -> Result<Vec<Repository>> {
+        let mut repos = vec![];
+        for kind in IntegrationKind::iter() {
+            let repos_for_kind = ThirdPartyRepositoryService::list_repositories_with_filter(
+                self,
+                None,
+                None,
+                Some(true),
+                None,
+                None,
+                None,
+                None,
+            )
+            .await?;
+
+            repos.extend(
+                repos_for_kind
+                    .into_iter()
+                    .map(|repo| to_repository(kind.clone().into(), repo)),
+            );
+        }
+
+        Ok(repos)
+    }
+
+    async fn get_repository(&self, id: &ID) -> Result<Repository> {
+        let repo = self.get_provided_repository(id.clone()).await?;
+        let provider = self
+            .integration
+            .get_integration(repo.integration_id.clone())
+            .await?;
+        Ok(to_repository(provider.kind.into(), repo))
+    }
+}
+
+#[async_trait]
 impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
-    async fn list_repositories(
+    async fn list_repositories_with_filter(
         &self,
         integration_ids: Option<Vec<ID>>,
         kind: Option<IntegrationKind>,
@@ -71,29 +108,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             .collect())
     }
 
-    async fn repository_list(&self) -> Result<Vec<Repository>> {
-        let mut repos = vec![];
-        for kind in IntegrationKind::iter() {
-            let repos_for_kind = self
-                .list_repositories(None, None, Some(true), None, None, None, None)
-                .await?;
-
-            let repository_kind = match kind {
-                IntegrationKind::Github => RepositoryKind::Github,
-                IntegrationKind::Gitlab => RepositoryKind::Gitlab,
-            };
-
-            repos.extend(
-                repos_for_kind
-                    .into_iter()
-                    .map(|repo| to_repository(repository_kind, repo)),
-            );
-        }
-
-        Ok(repos)
-    }
-
-    async fn get_repository(&self, id: ID) -> Result<ProvidedRepository> {
+    async fn get_provided_repository(&self, id: ID) -> Result<ProvidedRepository> {
         let repo = self.db.get_provided_repository(id.as_rowid()?).await?;
         Ok(to_provided_repository(repo))
     }
@@ -104,7 +119,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             .await?;
 
         if active {
-            let repo = self.get_repository(id).await?;
+            let repo = ThirdPartyRepositoryService::get_provided_repository(self, id).await?;
             let integration = self
                 .integration
                 .get_integration(repo.integration_id.clone())
@@ -124,40 +139,6 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         Ok(())
     }
 
-    async fn list_active_git_urls(&self) -> Result<Vec<String>> {
-        let mut urls = vec![];
-
-        let integrations = self
-            .integration
-            .list_integrations(None, None, None, None, None, None)
-            .await?;
-
-        for integration in integrations {
-            let repositories = self
-                .list_repositories(
-                    Some(vec![integration.id.clone()]),
-                    None,
-                    Some(true),
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-                .await?;
-
-            for repository in repositories {
-                let url = format_authenticated_url(
-                    &integration.kind,
-                    &repository.git_url,
-                    &integration.access_token,
-                )?;
-                urls.push(url);
-            }
-        }
-
-        Ok(urls)
-    }
-
     async fn sync_repositories(&self, integration_id: ID) -> Result<()> {
         let provider = self.integration.get_integration(integration_id).await?;
         debug!(
@@ -165,7 +146,13 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             provider.display_name
         );
 
-        let repos = match fetch_all_repos(provider.kind.clone(), &provider.access_token).await {
+        let repos = match fetch_all_repos(
+            provider.kind.clone(),
+            &provider.access_token,
+            provider.api_base(),
+        )
+        .await
+        {
             Ok(repos) => repos,
             Err((e, true)) => {
                 self.integration
@@ -215,6 +202,40 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             .delete_outdated_provided_repositories(integration_id.as_rowid()?, before.into())
             .await?)
     }
+
+    async fn list_repository_configs(&self) -> Result<Vec<RepositoryConfig>> {
+        let mut urls = vec![];
+
+        let integrations = self
+            .integration
+            .list_integrations(None, None, None, None, None, None)
+            .await?;
+
+        for integration in integrations {
+            let repositories = ThirdPartyRepositoryService::list_repositories_with_filter(
+                self,
+                Some(vec![integration.id.clone()]),
+                None,
+                Some(true),
+                None,
+                None,
+                None,
+                None,
+            )
+            .await?;
+
+            for repository in repositories {
+                let url = format_authenticated_url(
+                    &integration.kind,
+                    &repository.git_url,
+                    &integration.access_token,
+                )?;
+                urls.push(RepositoryConfig::new(url));
+            }
+        }
+
+        Ok(urls)
+    }
 }
 
 async fn refresh_repositories_for_provider(
@@ -252,10 +273,10 @@ fn format_authenticated_url(
 ) -> Result<String> {
     let mut url = Url::parse(git_url).map_err(anyhow::Error::from)?;
     match kind {
-        IntegrationKind::Github => {
+        IntegrationKind::Github | IntegrationKind::GithubSelfHosted => {
             let _ = url.set_username(access_token);
         }
-        IntegrationKind::Gitlab => {
+        IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => {
             let _ = url.set_username("oauth2");
             let _ = url.set_password(Some(access_token));
         }
@@ -305,6 +326,7 @@ mod tests {
                 IntegrationKind::Github,
                 "test_id1".into(),
                 "test_secret".into(),
+                None,
             )
             .await
             .unwrap();
@@ -314,6 +336,7 @@ mod tests {
                 IntegrationKind::Github,
                 "test_id2".into(),
                 "test_secret".into(),
+                None,
             )
             .await
             .unwrap();
@@ -340,7 +363,7 @@ mod tests {
 
         // Test listing with no filter on providers
         let repos = repository
-            .list_repositories(None, None, None, None, None, None, None)
+            .list_repositories_with_filter(None, None, None, None, None, None, None)
             .await
             .unwrap();
 
@@ -350,7 +373,7 @@ mod tests {
 
         // Test listing with a filter on providers
         let repos = repository
-            .list_repositories(
+            .list_repositories_with_filter(
                 Some(vec![provider_id1]),
                 Some(IntegrationKind::Github),
                 None,
@@ -367,14 +390,14 @@ mod tests {
 
         // Test listing with a filter on active status
         let repos = repository
-            .list_repositories(None, None, Some(true), None, None, None, None)
+            .list_repositories_with_filter(None, None, Some(true), None, None, None, None)
             .await
             .unwrap();
 
         assert_eq!(0, repos.len());
 
         let repos = repository
-            .list_repositories(None, None, Some(false), None, None, None, None)
+            .list_repositories_with_filter(None, None, Some(false), None, None, None, None)
             .await
             .unwrap();
 
@@ -389,7 +412,7 @@ mod tests {
             .unwrap();
 
         let repos = repository
-            .list_repositories(None, None, Some(true), None, None, None, None)
+            .list_repositories_with_filter(None, None, Some(true), None, None, None, None)
             .await
             .unwrap();
 
@@ -402,7 +425,12 @@ mod tests {
         let (repository, integration) = create_fake().await;
 
         let provider_id = integration
-            .create_integration(IntegrationKind::Github, "provider1".into(), "token".into())
+            .create_integration(
+                IntegrationKind::Github,
+                "provider1".into(),
+                "token".into(),
+                None,
+            )
             .await
             .unwrap();
 
@@ -417,7 +445,7 @@ mod tests {
             .unwrap();
 
         let repo_id = repository
-            .list_repositories(None, None, None, None, None, None, None)
+            .list_repositories_with_filter(None, None, None, None, None, None, None)
             .await
             .unwrap()[0]
             .id
@@ -429,7 +457,14 @@ mod tests {
             .unwrap();
 
         // Test github urls are formatted correctly
-        let git_urls = repository.list_active_git_urls().await.unwrap();
+        let git_urls: Vec<_> = repository
+            .list_repository_configs()
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|repo| repo.git_url)
+            .collect();
+
         assert_eq!(
             git_urls,
             ["https://token@github.com/TabbyML/tabby".to_string()]
@@ -442,7 +477,12 @@ mod tests {
 
         // Test gitlab urls are formatted properly
         let provider_id2 = integration
-            .create_integration(IntegrationKind::Gitlab, "provider2".into(), "token2".into())
+            .create_integration(
+                IntegrationKind::Gitlab,
+                "provider2".into(),
+                "token2".into(),
+                None,
+            )
             .await
             .unwrap();
 
@@ -457,7 +497,7 @@ mod tests {
             .unwrap();
 
         let repo_id = repository
-            .list_repositories(
+            .list_repositories_with_filter(
                 None,
                 Some(IntegrationKind::Gitlab),
                 None,
@@ -476,7 +516,14 @@ mod tests {
             .await
             .unwrap();
 
-        let git_urls = repository.list_active_git_urls().await.unwrap();
+        let git_urls: Vec<_> = repository
+            .list_repository_configs()
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|repo| repo.git_url)
+            .collect();
+
         assert_eq!(
             git_urls,
             ["https://oauth2:token2@gitlab.com/TabbyML/tabby".to_string()]
@@ -488,7 +535,7 @@ mod tests {
         let (repository, integration) = create_fake().await;
 
         let provider_id = integration
-            .create_integration(IntegrationKind::Github, "gh".into(), "token".into())
+            .create_integration(IntegrationKind::Github, "gh".into(), "token".into(), None)
             .await
             .unwrap();
 
@@ -533,7 +580,7 @@ mod tests {
             .unwrap();
 
         let repos = repository
-            .list_repositories(None, None, None, None, None, None, None)
+            .list_repositories_with_filter(None, None, None, None, None, None, None)
             .await
             .unwrap();
 

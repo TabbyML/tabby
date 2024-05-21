@@ -11,6 +11,7 @@ pub struct IntegrationDAO {
     pub error: Option<String>,
     pub display_name: String,
     pub access_token: String,
+    pub api_base: Option<String>,
     pub created_at: DateTimeUtc,
     pub updated_at: DateTimeUtc,
     pub synced: bool,
@@ -22,12 +23,14 @@ impl DbConn {
         kind: String,
         name: String,
         access_token: String,
+        api_base: Option<String>,
     ) -> Result<i64> {
         let res = query!(
-            "INSERT INTO integrations(kind, display_name, access_token) VALUES (?, ?, ?);",
+            "INSERT INTO integrations(kind, display_name, access_token, api_base) VALUES (?, ?, ?, ?);",
             kind,
             name,
-            access_token
+            access_token,
+            api_base
         )
         .execute(&self.pool)
         .await?;
@@ -43,6 +46,7 @@ impl DbConn {
                 error,
                 display_name,
                 access_token,
+                api_base,
                 updated_at,
                 created_at,
                 synced
@@ -74,6 +78,7 @@ impl DbConn {
         kind: &str,
         display_name: String,
         access_token: Option<String>,
+        api_base: Option<String>,
     ) -> Result<()> {
         let access_token = match access_token {
             Some(access_token) => access_token,
@@ -81,9 +86,10 @@ impl DbConn {
         };
 
         let res = query!(
-            "UPDATE integrations SET display_name = ?, access_token = ?, updated_at = DATETIME('now'), synced = false WHERE id = ? AND kind = ?;",
+            "UPDATE integrations SET display_name = ?, access_token = ?, api_base = ?, updated_at = DATETIME('now'), synced = false WHERE id = ? AND kind = ?;",
             display_name,
             access_token,
+            api_base,
             id,
             kind
         )
@@ -144,6 +150,7 @@ impl DbConn {
                 "error",
                 "display_name",
                 "access_token",
+                "api_base",
                 "created_at",
                 "updated_at",
                 "synced"

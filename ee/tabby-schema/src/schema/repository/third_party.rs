@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLObject, ID};
+use tabby_common::config::RepositoryConfig;
 
-use super::Repository;
+use super::RepositoryProvider;
 use crate::{integration::IntegrationKind, juniper::relay::NodeType, schema::Result, Context};
 
 #[derive(GraphQLObject)]
@@ -36,8 +37,8 @@ impl NodeType for ProvidedRepository {
 }
 
 #[async_trait]
-pub trait ThirdPartyRepositoryService: Send + Sync {
-    async fn list_repositories(
+pub trait ThirdPartyRepositoryService: Send + Sync + RepositoryProvider {
+    async fn list_repositories_with_filter(
         &self,
         integration_ids: Option<Vec<ID>>,
         kind: Option<IntegrationKind>,
@@ -48,9 +49,7 @@ pub trait ThirdPartyRepositoryService: Send + Sync {
         last: Option<usize>,
     ) -> Result<Vec<ProvidedRepository>>;
 
-    async fn repository_list(&self) -> Result<Vec<Repository>>;
-
-    async fn get_repository(&self, id: ID) -> Result<ProvidedRepository>;
+    async fn get_provided_repository(&self, id: ID) -> Result<ProvidedRepository>;
 
     async fn update_repository_active(&self, id: ID, active: bool) -> Result<()>;
     async fn upsert_repository(
@@ -60,11 +59,11 @@ pub trait ThirdPartyRepositoryService: Send + Sync {
         display_name: String,
         git_url: String,
     ) -> Result<()>;
-    async fn list_active_git_urls(&self) -> Result<Vec<String>>;
     async fn sync_repositories(&self, integration_id: ID) -> Result<()>;
     async fn delete_outdated_repositories(
         &self,
         integration_id: ID,
         before: DateTime<Utc>,
     ) -> Result<usize>;
+    async fn list_repository_configs(&self) -> Result<Vec<RepositoryConfig>>;
 }

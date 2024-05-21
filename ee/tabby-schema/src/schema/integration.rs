@@ -9,6 +9,8 @@ use crate::Result;
 pub enum IntegrationKind {
     Github,
     Gitlab,
+    GithubSelfHosted,
+    GitlabSelfHosted,
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -23,9 +25,27 @@ pub struct Integration {
     pub kind: IntegrationKind,
     pub display_name: String,
     pub access_token: String,
+    pub api_base: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub status: IntegrationStatus,
+}
+
+impl Integration {
+    pub fn api_base(&self) -> &str {
+        match &self.kind {
+            IntegrationKind::Github => "https://api.github.com",
+            IntegrationKind::Gitlab => "https://gitlab.com",
+            IntegrationKind::GithubSelfHosted => self
+                .api_base
+                .as_deref()
+                .expect("Self-hosted github always has a specified api_base"),
+            IntegrationKind::GitlabSelfHosted => self
+                .api_base
+                .as_deref()
+                .expect("Self-hosted gitlab always has a specified api_base"),
+        }
+    }
 }
 
 #[async_trait]
@@ -35,6 +55,7 @@ pub trait IntegrationService: Send + Sync {
         kind: IntegrationKind,
         display_name: String,
         access_token: String,
+        api_base: Option<String>,
     ) -> Result<ID>;
 
     async fn delete_integration(&self, id: ID, kind: IntegrationKind) -> Result<()>;
@@ -45,6 +66,7 @@ pub trait IntegrationService: Send + Sync {
         kind: IntegrationKind,
         display_name: String,
         access_token: Option<String>,
+        api_base: Option<String>,
     ) -> Result<()>;
 
     async fn list_integrations(

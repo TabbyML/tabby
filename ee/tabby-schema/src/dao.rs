@@ -133,10 +133,22 @@ impl TryFrom<IntegrationDAO> for Integration {
             kind: IntegrationKind::from_enum_str(&value.kind)?,
             display_name: value.display_name,
             access_token: value.access_token,
+            api_base: value.api_base,
             created_at: *value.created_at,
             updated_at: *value.updated_at,
             status,
         })
+    }
+}
+
+impl From<IntegrationKind> for RepositoryKind {
+    fn from(value: IntegrationKind) -> Self {
+        match value {
+            IntegrationKind::Github => RepositoryKind::Github,
+            IntegrationKind::Gitlab => RepositoryKind::Gitlab,
+            IntegrationKind::GithubSelfHosted => RepositoryKind::GithubSelfHosted,
+            IntegrationKind::GitlabSelfHosted => RepositoryKind::GitlabSelfHosted,
+        }
     }
 }
 
@@ -281,6 +293,8 @@ impl DbEnum for IntegrationKind {
         match self {
             IntegrationKind::Github => "github",
             IntegrationKind::Gitlab => "gitlab",
+            IntegrationKind::GithubSelfHosted => "github_self_hosted",
+            IntegrationKind::GitlabSelfHosted => "gitlab_self_hosted",
         }
     }
 
@@ -288,16 +302,9 @@ impl DbEnum for IntegrationKind {
         match s {
             "github" => Ok(IntegrationKind::Github),
             "gitlab" => Ok(IntegrationKind::Gitlab),
+            "github_self_hosted" => Ok(IntegrationKind::GithubSelfHosted),
+            "gitlab_self_hosted" => Ok(IntegrationKind::GitlabSelfHosted),
             _ => bail!("{s} is not a valid value for ProviderKind"),
-        }
-    }
-}
-
-impl From<IntegrationKind> for RepositoryKind {
-    fn from(value: IntegrationKind) -> Self {
-        match value {
-            IntegrationKind::Github => RepositoryKind::Github,
-            IntegrationKind::Gitlab => RepositoryKind::Gitlab,
         }
     }
 }

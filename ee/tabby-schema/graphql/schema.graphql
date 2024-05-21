@@ -60,6 +60,8 @@ enum RepositoryKind {
   GIT
   GITHUB
   GITLAB
+  GITHUB_SELF_HOSTED
+  GITLAB_SELF_HOSTED
 }
 
 enum RepositoryProviderStatus {
@@ -71,6 +73,12 @@ enum RepositoryProviderStatus {
 input CreateRepositoryProviderInput {
   displayName: String!
   accessToken: String!
+}
+
+input CreateSelfHostedRepositoryProviderInput {
+  displayName: String!
+  accessToken: String!
+  apiBase: String
 }
 
 input EmailSettingInput {
@@ -122,6 +130,13 @@ input UpdateRepositoryProviderInput {
   id: ID!
   displayName: String!
   accessToken: String
+}
+
+input UpdateSelfHostedRepositoryProviderInput {
+  id: ID!
+  displayName: String!
+  accessToken: String
+  apiBase: String
 }
 
 """
@@ -367,13 +382,21 @@ type Mutation {
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
   createGithubRepositoryProvider(input: CreateRepositoryProviderInput!): ID!
+  createGithubSelfHostedRepositoryProvider(input: CreateSelfHostedRepositoryProviderInput!): ID!
   deleteGithubRepositoryProvider(id: ID!): Boolean!
+  deleteGithubSelfHostedRepositoryProvider(id: ID!): Boolean!
   updateGithubRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean!
+  updateGithubSelfHostedRepositoryProvider(input: UpdateSelfHostedRepositoryProviderInput!): Boolean!
   updateGithubProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
+  updateGithubSelfHostedProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
   createGitlabRepositoryProvider(input: CreateRepositoryProviderInput!): ID!
+  createGitlabSelfHostedRepositoryProvider(input: CreateSelfHostedRepositoryProviderInput!): ID!
   deleteGitlabRepositoryProvider(id: ID!): Boolean!
+  deleteGitlabSelfHostedRepositoryProvider(id: ID!): Boolean!
+  updateGitlabSelfHostedRepositoryProvider(input: UpdateSelfHostedRepositoryProviderInput!): Boolean!
   updateGitlabRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean!
   updateGitlabProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
+  updateGitlabSelfHostedProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
 }
 
 type NetworkSetting {
@@ -401,7 +424,11 @@ type Query {
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   githubRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GithubRepositoryProviderConnection!
   githubRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
+  githubSelfHostedRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
+  gitlabSelfHostedRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
   gitlabRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
+  gitlabSelfHostedRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
+  githubSelfHostedRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
   gitlabRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GitlabProvidedRepositoryConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
