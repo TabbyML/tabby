@@ -169,7 +169,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             Ok(repos) => repos,
             Err((e, true)) => {
                 self.integration
-                    .update_integration_sync_status(provider.id.clone(), Some("".into()))
+                    .update_integration_sync_status(provider.id.clone(), Some(e.to_string()))
                     .await?;
                 error!(
                     "Credentials for integration {} are expired or invalid",
