@@ -5,7 +5,7 @@
       "dependsOn": [
         "^build"
       ],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", ".react-email/**", "!.react-email/.next/cache/**"]
     },
     "lint": {},
     "lint:fix": {},
