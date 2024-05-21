@@ -4,8 +4,9 @@ on:
   pull_request:
     branches: ["main" ]
     paths:
-      - '.github/workflows/autofix-tabby-chat-panel.yml'
-      - 'clients/taby-chat-panel/**'
+      - '.github/workflows/autofix-pnpm.yml'
+      - 'clients/**'
+      - 'ee/tabby-ui/**'
 
 permissions:
   contents: read
@@ -28,15 +29,21 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18.x'
-          cache: yarn
-          cache-dependency-path: 'yarn.lock'
+          cache: pnpm
+          cache-dependency-path: 'pnpm-lock.yaml'
 
       - name: Install dependencies
-        working-directory: ./clients/tabby-chat-panel
-        run: yarn install
+        working-directory: ./ee/tabby-ui
+        run: pnpm install
 
-      - name: Lint fix
-        working-directory: ./clients/tabby-chat-panel
-        run: yarn fix
+      - name: Lint
+        working-directory: ./ee/tabby-ui
+        run: pnpm lint
 
-      - uses: autofix-ci/action@d3e591514b99d0fca6779455ff8338516663f7cc
+      - name: Test
+        working-directory: ./ee/tabby-ui
+        run: pnpm test
+
+      - name: Build
+        working-directory: ./ee/tabby-ui
+        run: pnpm build
