@@ -1,5 +1,6 @@
 {
   "private": true,
+  "packageManager": "pnpm@9.1.2",
   "scripts": {
     "build": "turbo build",
     "lint": "turbo lint",
