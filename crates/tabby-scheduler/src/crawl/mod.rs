@@ -5,7 +5,7 @@ use std::process::Stdio;
 use async_stream::stream;
 use futures::{Stream, StreamExt};
 use readable_readability::Readability;
-use tokio::{io::AsyncBufReadExt};
+use tokio::io::AsyncBufReadExt;
 use tracing::{debug, warn};
 use url::Url;
 
