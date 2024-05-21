@@ -29,7 +29,7 @@ impl IntegrationService for IntegrationServiceImpl {
         kind: IntegrationKind,
         display_name: String,
         access_token: String,
-        url_base: Option<String>,
+        api_base: Option<String>,
     ) -> Result<ID> {
         let id = self
             .db
@@ -37,7 +37,7 @@ impl IntegrationService for IntegrationServiceImpl {
                 kind.as_enum_str().to_string(),
                 display_name,
                 access_token,
-                url_base,
+                api_base,
             )
             .await?;
         let id = id.as_id();

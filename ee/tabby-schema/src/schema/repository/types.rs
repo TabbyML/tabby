@@ -23,7 +23,7 @@ pub struct CreateSelfHostedRepositoryProviderInput {
     pub display_name: String,
     #[validate(length(code = "accessToken", min = 10, message = "Invalid access token"))]
     pub access_token: String,
-    #[validate(url(code = "url_base", message = "Invalid URL base"))]
+    #[validate(url(code = "apiBase", message = "Invalid URL base"))]
     pub api_base: Option<String>,
 }
 
@@ -51,7 +51,7 @@ pub struct UpdateSelfHostedRepositoryProviderInput {
     pub display_name: String,
     #[validate(length(code = "accessToken", min = 10, message = "Invalid access token"))]
     pub access_token: Option<String>,
-    #[validate(url(code = "url_base", message = "Invalid URL base"))]
+    #[validate(url(code = "apiBase", message = "Invalid URL base"))]
     pub api_base: Option<String>,
 }
 

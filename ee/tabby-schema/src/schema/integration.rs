@@ -13,21 +13,6 @@ pub enum IntegrationKind {
     GitlabSelfHosted,
 }
 
-impl IntegrationKind {
-    pub fn default_url_base(&self) -> Result<&'static str> {
-        match self {
-            IntegrationKind::Github => Ok("https://api.github.com"),
-            IntegrationKind::Gitlab => Ok("https://gitlab.com"),
-            IntegrationKind::GithubSelfHosted => {
-                bail!("Self-hosted github requires a user-specified API base URL")
-            }
-            IntegrationKind::GitlabSelfHosted => {
-                bail!("Self-hosted gitlab requires a user-specified API base URL")
-            }
-        }
-    }
-}
-
 #[derive(PartialEq, Eq, Debug)]
 pub enum IntegrationStatus {
     Ready,
@@ -46,6 +31,21 @@ pub struct Integration {
     pub status: IntegrationStatus,
 }
 
+impl Integration {
+    pub fn default_api_base(&self) -> Result<&'static str> {
+        match &self.kind {
+            IntegrationKind::Github => Ok("https://api.github.com"),
+            IntegrationKind::Gitlab => Ok("https://gitlab.com"),
+            IntegrationKind::GithubSelfHosted => {
+                bail!("Self-hosted github requires a user-specified API base URL")
+            }
+            IntegrationKind::GitlabSelfHosted => {
+                bail!("Self-hosted gitlab requires a user-specified API base URL")
+            }
+        }
+    }
+}
+
 #[async_trait]
 pub trait IntegrationService: Send + Sync {
     async fn create_integration(
@@ -53,7 +53,7 @@ pub trait IntegrationService: Send + Sync {
         kind: IntegrationKind,
         display_name: String,
         access_token: String,
-        url_base: Option<String>,
+        api_base: Option<String>,
     ) -> Result<ID>;
 
     async fn delete_integration(&self, id: ID, kind: IntegrationKind) -> Result<()>;

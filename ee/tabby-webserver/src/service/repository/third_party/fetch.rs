@@ -15,11 +15,11 @@ pub struct RepositoryInfo {
 pub async fn fetch_all_repos(
     kind: IntegrationKind,
     access_token: &str,
-    url_base: &str,
+    api_base: &str,
 ) -> Result<Vec<RepositoryInfo>, (anyhow::Error, bool)> {
     match kind {
         IntegrationKind::Github | IntegrationKind::GithubSelfHosted => {
-            match fetch_all_github_repos(access_token, url_base).await {
+            match fetch_all_github_repos(access_token, api_base).await {
                 Ok(repos) => Ok(repos),
                 Err(octocrab::Error::GitHub {
                     source: source @ GitHubError { .. },
@@ -29,7 +29,7 @@ pub async fn fetch_all_repos(
             }
         }
         IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => {
-            match fetch_all_gitlab_repos(access_token, url_base).await {
+            match fetch_all_gitlab_repos(access_token, api_base).await {
                 Ok(repos) => Ok(repos),
                 Err(e) => {
                     let client_error = e.is_client_error();
