@@ -23,10 +23,13 @@ importers:
         version: 1.89.0
       esbuild-plugin-copy:
         specifier: ^2.1.1
-        version: 2.1.1(esbuild@0.20.2)
+        version: 2.1.1(esbuild@0.19.12)
       tabby-agent:
         specifier: 1.5.0
         version: 1.5.0
+      tsup:
+        specifier: ^7.1.0
+        version: 7.3.0(postcss@8.4.38)(ts-node@10.9.2(typescript@5.4.5))(typescript@5.4.5)
 
   clients/intellij:
     devDependencies:
@@ -1240,9 +1243,6 @@ packages:
 
   '@codemirror/language-data@6.3.1':
     resolution: {integrity: sha512-p6jhJmvhGe1TG1EGNhwH7nFWWFSTJ8NDKnB2fVx5g3t+PpO0+63R7GJNxjS0TmmH3cdMxZbzejsik+rlEh1EyQ==}
-
-  '@codemirror/language@6.10.0':
-    resolution: {integrity: sha512-2vaNn9aPGCRFKWcHPFksctzJ8yS5p7YoaT+jHpc0UGKzNuAIx4qy6R5wiqbP+heEEdyaABA582mNqSHzSoYdmg==}
 
   '@codemirror/language@6.10.1':
     resolution: {integrity: sha512-5GrXzrhq6k+gL5fjkAwt90nYDmjlzTIJV8THnxNFtNKWotMIlzzN+CpqxqwXOECnUdOndmSeWntVrVcv5axWRQ==}
@@ -9998,21 +9998,12 @@ snapshots:
       '@codemirror/lang-vue': 0.1.3
       '@codemirror/lang-wast': 6.0.2
       '@codemirror/lang-xml': 6.0.2(@codemirror/view@6.23.0)
-      '@codemirror/language': 6.10.0
+      '@codemirror/language': 6.10.1
       '@codemirror/legacy-modes': 6.3.3
     transitivePeerDependencies:
       - '@codemirror/state'
       - '@codemirror/view'
       - '@lezer/common'
-
-  '@codemirror/language@6.10.0':
-    dependencies:
-      '@codemirror/state': 6.4.0
-      '@codemirror/view': 6.23.0
-      '@lezer/common': 1.2.0
-      '@lezer/highlight': 1.2.0
-      '@lezer/lr': 1.3.14
-      style-mod: 4.1.0
 
   '@codemirror/language@6.10.1':
     dependencies:
@@ -10025,7 +10016,7 @@ snapshots:
 
   '@codemirror/legacy-modes@6.3.3':
     dependencies:
-      '@codemirror/language': 6.10.0
+      '@codemirror/language': 6.10.1
 
   '@codemirror/lint@6.4.2':
     dependencies:
@@ -14089,14 +14080,6 @@ snapshots:
       fs-extra: 10.1.0
       globby: 11.1.0
 
-  esbuild-plugin-copy@2.1.1(esbuild@0.20.2):
-    dependencies:
-      chalk: 4.1.2
-      chokidar: 3.6.0
-      esbuild: 0.20.2
-      fs-extra: 10.1.0
-      globby: 11.1.0
-
   esbuild-plugin-polyfill-node@0.3.0(esbuild@0.19.12):
     dependencies:
       '@jspm/core': 2.0.1
@@ -17314,6 +17297,14 @@ snapshots:
       postcss: 8.4.38
       ts-node: 10.9.2(@types/node@18.19.33)(typescript@5.4.5)
 
+  postcss-load-config@4.0.2(postcss@8.4.38)(ts-node@10.9.2(typescript@5.4.5)):
+    dependencies:
+      lilconfig: 3.1.1
+      yaml: 2.4.2
+    optionalDependencies:
+      postcss: 8.4.38
+      ts-node: 10.9.2(@types/node@18.19.33)(typescript@5.4.5)
+
   postcss-merge-longhand@7.0.0(postcss@8.4.38):
     dependencies:
       postcss: 8.4.38
@@ -18815,6 +18806,29 @@ snapshots:
       globby: 11.1.0
       joycon: 3.1.1
       postcss-load-config: 4.0.2(postcss@8.4.38)(ts-node@10.9.2(@types/node@18.19.33)(typescript@5.4.5))
+      resolve-from: 5.0.0
+      rollup: 4.17.2
+      source-map: 0.8.0-beta.0
+      sucrase: 3.35.0
+      tree-kill: 1.2.2
+    optionalDependencies:
+      postcss: 8.4.38
+      typescript: 5.4.5
+    transitivePeerDependencies:
+      - supports-color
+      - ts-node
+
+  tsup@7.3.0(postcss@8.4.38)(ts-node@10.9.2(typescript@5.4.5))(typescript@5.4.5):
+    dependencies:
+      bundle-require: 4.1.0(esbuild@0.19.12)
+      cac: 6.7.14
+      chokidar: 3.6.0
+      debug: 4.3.4(supports-color@8.1.1)
+      esbuild: 0.19.12
+      execa: 5.1.1
+      globby: 11.1.0
+      joycon: 3.1.1
+      postcss-load-config: 4.0.2(postcss@8.4.38)(ts-node@10.9.2(typescript@5.4.5))
       resolve-from: 5.0.0
       rollup: 4.17.2
       source-map: 0.8.0-beta.0
