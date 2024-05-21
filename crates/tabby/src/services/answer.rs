@@ -47,6 +47,10 @@ pub struct AnswerService {
     serper: Option<Box<dyn DocSearch>>,
 }
 
+// FIXME(meng): make this configurable.
+const RELEVANT_CODE_THRESHOLD: f32 = 5.5;
+const PRESENCE_PENALTY: f32 = 0.5;
+
 impl AnswerService {
     fn new(
         chat: Arc<ChatService>,
@@ -84,6 +88,7 @@ impl AnswerService {
 
             // 1. Collect relevant code if needed.
             let relevant_code = if let Some(code_query)  = req.code_query  {
+                self.override_query_with_code_query(query, &code_query).await;
                 self.collect_relevant_code(code_query).await
             } else {
                 vec![]
@@ -121,6 +126,7 @@ impl AnswerService {
             // 5. Generate answer from the query
             let s = self.chat.clone().generate(ChatCompletionRequestBuilder::default()
                 .messages(req.messages.clone())
+                .presence_penalty(Some(PRESENCE_PENALTY))
                 .build()
                 .expect("Failed to create ChatCompletionRequest"))
                 .await;
@@ -134,17 +140,22 @@ impl AnswerService {
     }
 
     async fn collect_relevant_code(&self, query: CodeSearchQuery) -> Vec<CodeSearchDocument> {
-        match self.code.search_in_language(query, 5, 0).await {
-            Ok(resp) => resp.hits.into_iter().map(|hit| hit.doc).collect(),
+        let hits = match self.code.search_in_language(query, 5, 0).await {
+            Ok(docs) => docs.hits,
             Err(err) => {
                 if let CodeSearchError::NotReady = err {
-                    warn!("Failed to search code: {:?}", err);
-                } else {
                     debug!("Code search is not ready yet");
+                } else {
+                    warn!("Failed to search code: {:?}", err);
                 }
                 vec![]
             }
-        }
+        };
+
+        hits.into_iter()
+            .filter(|hit| hit.score > RELEVANT_CODE_THRESHOLD)
+            .map(|hit| hit.doc)
+            .collect()
     }
 
     async fn collect_relevant_docs(&self, query: &str) -> Vec<DocSearchDocument> {
@@ -233,6 +244,17 @@ Remember, based on the original question and related contexts, suggest three suc
         content.lines().map(remove_bullet_prefix).collect()
     }
 
+    async fn override_query_with_code_query(
+        &self,
+        query: &mut Message,
+        code_query: &CodeSearchQuery,
+    ) {
+        query.content = format!(
+            "{}\n\n```{}\n{}\n```",
+            query.content, code_query.language, code_query.content
+        )
+    }
+
     async fn generate_prompt(
         &self,
         relevant_code: &[CodeSearchDocument],
@@ -271,6 +293,7 @@ Here are the set of contexts:
 {context}
 
 Remember, don't blindly repeat the contexts verbatim. When possible, give code snippet to demonstrate the answer. And here is the user question:
+
 {question}
 "#
         )

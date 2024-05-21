@@ -106,6 +106,7 @@ export default function JobRow({ name }: { name: string }) {
   const lastSuccessAt = lastFinishedJob
     ? moment(lastFinishedJob.node.finishedAt).format('YYYY-MM-DD HH:mm')
     : null
+
   return (
     <LoadingWrapper
       loading={fetching}
@@ -144,7 +145,7 @@ export default function JobRow({ name }: { name: string }) {
                       .asMilliseconds(),
                     {
                       units: ['d', 'h', 'm', 's'],
-                      round: true,
+                      round: false,
                       largest: 1,
                       spacer: '',
                       language: 'shortEn'

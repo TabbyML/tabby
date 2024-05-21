@@ -86,9 +86,12 @@ impl DocIndex {
                     schema.field_chunk_text => chunk_text.to_owned(),
                 };
 
-                let Ok(embedding) = embedding.embed(chunk_text).await else {
-                    warn!("Failed to embed chunk {} of document '{}'", chunk_id, id);
-                    continue;
+                let embedding = match embedding.embed(chunk_text).await {
+                    Ok(embedding) => embedding,
+                    Err(err) => {
+                        warn!("Failed to embed chunk {} of document '{}': {}", chunk_id, id, err);
+                        continue;
+                    }
                 };
 
                 for token in DocSearchSchema::binarize_embedding(embedding.iter()) {

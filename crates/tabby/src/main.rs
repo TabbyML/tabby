@@ -82,7 +82,7 @@ async fn main() {
         Commands::Serve(ref args) => serve::main(&config, args).await,
         Commands::Download(ref args) => download::main(args).await,
         Commands::Scheduler(SchedulerArgs { now, .. }) => {
-            tabby_scheduler::scheduler(now, ConfigRepositoryAccess).await
+            tabby_scheduler::scheduler(now, &config, ConfigRepositoryAccess).await
         }
     }
 }

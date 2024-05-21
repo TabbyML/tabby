@@ -14,6 +14,9 @@ pub struct ChatCompletionOptions {
 
     #[builder(default = "1920")]
     pub max_decoding_tokens: i32,
+
+    #[builder(default = "0.0")]
+    pub presence_penalty: f32,
 }
 
 #[async_trait]

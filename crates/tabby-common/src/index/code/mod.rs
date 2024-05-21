@@ -3,7 +3,7 @@ mod document;
 use lazy_static::lazy_static;
 use regex::Regex;
 use tantivy::{
-    query::{BooleanQuery, ConstScoreQuery, Occur, Query, TermQuery},
+    query::{BooleanQuery, BoostQuery, ConstScoreQuery, Occur, Query, TermQuery},
     schema::{Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, STRING},
     tokenizer::{RegexTokenizer, RemoveLongFilter, TextAnalyzer},
     Index, Term,
@@ -119,8 +119,13 @@ impl CodeSearchSchema {
 
     pub fn code_search_query(&self, query: &CodeSearchQuery) -> BooleanQuery {
         let language_query = self.language_query(&query.language);
-        let body_query = self.body_query(&CodeSearchSchema::tokenize_body(&query.content));
         let git_url_query = self.git_url_query(&query.git_url);
+
+        // Create body query with a scoring normalized by the number of tokens.
+        let body_tokens = CodeSearchSchema::tokenize_body(&query.content);
+        let body_query = self.body_query(&body_tokens);
+        let normalized_score_body_query =
+            BoostQuery::new(body_query, 1.0 / body_tokens.len() as f32);
 
         // language / git_url / filepath field shouldn't contribute to the score, mark them to 0.0.
         let mut subqueries: Vec<(Occur, Box<dyn Query>)> = vec![
@@ -128,7 +133,7 @@ impl CodeSearchSchema {
                 Occur::Must,
                 Box::new(ConstScoreQuery::new(language_query, 0.0)),
             ),
-            (Occur::Must, body_query),
+            (Occur::Must, Box::new(normalized_score_body_query)),
             (
                 Occur::Must,
                 Box::new(ConstScoreQuery::new(git_url_query, 0.0)),
