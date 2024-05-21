@@ -33,8 +33,8 @@
   "scripts": {
     "build": "unbuild",
     "dev": "unbuild --stub",
-    "fix": "eslint . -f mo --fix",
     "lint": "eslint . -f mo",
+    "lint:fix": "eslint . -f mo --fix",
     "prepack": "nr build",
     "preview": "node --watch bin/index.js",
     "release": "bumpp && npm publish",

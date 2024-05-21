@@ -25,7 +25,7 @@ export interface InitRequest {
 export interface ServerApi {
   init: (request: InitRequest) => void
   sendMessage: (message: ChatMessage) => void
-  
+
 }
 
 export interface ClientApi {
@@ -41,8 +41,8 @@ export interface ChatMessage {
 export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerApi {
   return createThreadFromIframe(target, {
     expose: {
-      navigate: api.navigate
-    }
+      navigate: api.navigate,
+    },
   })
 }
 

@@ -1,7 +1,9 @@
 {
   "private": true,
   "scripts": {
-    "build": "turbo build"
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "lint:fix": "turbo lint:fix"
   },
   "engines": {
     "node": ">=18"
