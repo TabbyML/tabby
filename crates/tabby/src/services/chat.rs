@@ -35,8 +35,8 @@ pub struct ChatCompletionRequest {
     #[builder(default = "None")]
     seed: Option<u64>,
 
-    #[builder(default = "0.0")]
-    presence_penalty: f32,
+    #[builder(default = "None")]
+    presence_penalty: Option<f32>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -106,8 +106,10 @@ impl ChatService {
             request.seed.inspect(|x| {
                 builder.seed(*x);
             });
+            request.presence_penalty.inspect(|x| {
+                builder.presence_penalty(*x);
+            });
             builder
-                .presence_penalty(request.presence_penalty)
                 .build()
                 .expect("Failed to create ChatCompletionOptions")
         };
