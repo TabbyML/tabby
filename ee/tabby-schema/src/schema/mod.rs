@@ -274,6 +274,78 @@ impl Query {
         .await
     }
 
+    async fn github_self_hosted_repositories(
+        ctx: &Context,
+        provider_ids: Vec<ID>,
+        active: Option<bool>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<repository::GithubProvidedRepository>> {
+        check_admin(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                let repositories = ctx
+                    .locator
+                    .repository()
+                    .third_party()
+                    .list_repositories_with_filter(
+                        Some(provider_ids),
+                        Some(IntegrationKind::GithubSelfHosted),
+                        active,
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
+                    .await?;
+                Ok(repositories.into_iter().map(From::from).collect())
+            },
+        )
+        .await
+    }
+
+    async fn gitlab_self_hosted_repositories(
+        ctx: &Context,
+        provider_ids: Vec<ID>,
+        active: Option<bool>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<repository::GithubProvidedRepository>> {
+        check_admin(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                let repositories = ctx
+                    .locator
+                    .repository()
+                    .third_party()
+                    .list_repositories_with_filter(
+                        Some(provider_ids),
+                        Some(IntegrationKind::GitlabSelfHosted),
+                        active,
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
+                    .await?;
+                Ok(repositories.into_iter().map(From::from).collect())
+            },
+        )
+        .await
+    }
+
     async fn gitlab_repository_providers(
         ctx: &Context,
         ids: Option<Vec<ID>>,
@@ -295,6 +367,72 @@ impl Query {
                     .list_integrations(
                         ids,
                         Some(IntegrationKind::Gitlab),
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
+                    .await?;
+                Ok(integrations.into_iter().map(From::from).collect())
+            },
+        )
+        .await
+    }
+
+    async fn gitlab_self_hosted_repository_providers(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<repository::GitlabRepositoryProvider>> {
+        check_admin(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                let integrations = ctx
+                    .locator
+                    .integration()
+                    .list_integrations(
+                        ids,
+                        Some(IntegrationKind::GitlabSelfHosted),
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
+                    .await?;
+                Ok(integrations.into_iter().map(From::from).collect())
+            },
+        )
+        .await
+    }
+
+    async fn github_self_hosted_repository_providers(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<repository::GitlabRepositoryProvider>> {
+        check_admin(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                let integrations = ctx
+                    .locator
+                    .integration()
+                    .list_integrations(
+                        ids,
+                        Some(IntegrationKind::GithubSelfHosted),
                         after,
                         before,
                         first,
@@ -855,7 +993,7 @@ impl Mutation {
         Ok(id)
     }
 
-    async fn create_self_hosted_github_repository_provider(
+    async fn create_github_self_hosted_repository_provider(
         ctx: &Context,
         input: repository::CreateSelfHostedRepositoryProviderInput,
     ) -> Result<ID> {
@@ -883,6 +1021,15 @@ impl Mutation {
         Ok(true)
     }
 
+    async fn delete_github_self_hosted_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .integration()
+            .delete_integration(id, IntegrationKind::GithubSelfHosted)
+            .await?;
+        Ok(true)
+    }
+
     async fn update_github_repository_provider(
         ctx: &Context,
         input: repository::UpdateRepositoryProviderInput,
@@ -902,7 +1049,7 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn update_self_hosted_github_repository_provider(
+    async fn update_github_self_hosted_repository_provider(
         ctx: &Context,
         input: repository::UpdateSelfHostedRepositoryProviderInput,
     ) -> Result<bool> {
@@ -934,6 +1081,19 @@ impl Mutation {
         Ok(true)
     }
 
+    async fn update_github_self_hosted_provided_repository_active(
+        ctx: &Context,
+        id: ID,
+        active: bool,
+    ) -> Result<bool> {
+        ctx.locator
+            .repository()
+            .third_party()
+            .update_repository_active(id, active)
+            .await?;
+        Ok(true)
+    }
+
     async fn create_gitlab_repository_provider(
         ctx: &Context,
         input: repository::CreateRepositoryProviderInput,
@@ -953,7 +1113,7 @@ impl Mutation {
         Ok(id)
     }
 
-    async fn create_self_hosted_gitlab_repository_provider(
+    async fn create_gitlab_self_hosted_repository_provider(
         ctx: &Context,
         input: repository::CreateSelfHostedRepositoryProviderInput,
     ) -> Result<ID> {
@@ -981,7 +1141,16 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn update_self_hosted_gitlab_repository_provider(
+    async fn delete_gitlab_self_hosted_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .integration()
+            .delete_integration(id, IntegrationKind::GitlabSelfHosted)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_gitlab_self_hosted_repository_provider(
         ctx: &Context,
         input: repository::UpdateSelfHostedRepositoryProviderInput,
     ) -> Result<bool> {
@@ -1020,6 +1189,19 @@ impl Mutation {
     }
 
     async fn update_gitlab_provided_repository_active(
+        ctx: &Context,
+        id: ID,
+        active: bool,
+    ) -> Result<bool> {
+        ctx.locator
+            .repository()
+            .third_party()
+            .update_repository_active(id, active)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_gitlab_self_hosted_provided_repository_active(
         ctx: &Context,
         id: ID,
         active: bool,
