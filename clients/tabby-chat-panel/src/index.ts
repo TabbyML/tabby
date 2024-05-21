@@ -10,6 +10,7 @@ export interface FileContext {
   range: LineRange
   filepath: string
   content: string
+  git_url: string
 }
 
 export type Context = FileContext

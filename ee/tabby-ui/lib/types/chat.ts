@@ -62,6 +62,7 @@ export type AnswerRequest = {
   messages: Array<Message>
   code_query?: {
     git_url: string
+    filepath: string
     language: string
     content: string
   }

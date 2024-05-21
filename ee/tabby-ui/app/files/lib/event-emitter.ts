@@ -10,6 +10,7 @@ type QuickActionEventPayload = {
   path: string
   lineFrom: number
   lineTo?: number
+  gitUrl: string
 }
 
 type LineMenuActionEventPayload = {

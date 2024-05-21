@@ -226,15 +226,17 @@ function ChatRenderer(
   ): AnswerRequest => {
     const userMessage = qaPairs[qaPairs.length - 1].user
     const selectContext = userMessage?.selectContext
-    const code_query: any | undefined = selectContext
+    const code_query: AnswerRequest['code_query'] | undefined = selectContext
       ? {
           content: selectContext.content ?? '',
+          filepath: selectContext.filepath,
           language: selectContext.filepath
-            ? filename2prism(selectContext.filepath)[0]
-            : '',
-          git_url: 'https://github.com/TabbyML/tabby'
+            ? filename2prism(selectContext.filepath)[0] || 'text'
+            : 'text',
+          git_url: selectContext?.git_url ?? '',
         }
       : undefined
+  
     return {
       messages: toMessages(qaPairs).slice(0, -1),
       code_query,

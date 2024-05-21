@@ -6,16 +6,18 @@ import { useMe } from '@/lib/hooks/use-me'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useStore } from '@/lib/hooks/use-store'
 import { useChatStore } from '@/lib/stores/chat-store'
-import { UserMessage } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconClose } from '@/components/ui/icons'
 
 import { QuickActionEventPayload } from '../lib/event-emitter'
 import { SourceCodeBrowserContext } from './source-code-browser'
+import { find } from 'lodash-es'
+import { resolveRepoSpecifierFromRepoInfo } from './utils'
+import { useLatest } from '@/lib/hooks/use-latest'
 
 interface ChatSideBarProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {}
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> { }
 
 export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   className,
@@ -23,23 +25,33 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
 }) => {
   const { updateSearchParams } = useRouterStuff()
   const [{ data }] = useMe()
-  const { pendingEvent, setPendingEvent } = React.useContext(
+  const { pendingEvent, setPendingEvent, repoMap } = React.useContext(
     SourceCodeBrowserContext
   )
   const activeChatId = useStore(useChatStore, state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
-  const client = useClient(iframeRef, {
-    navigate: (context: Context) => {
-      if (context?.filepath) {
+  const repoMapRef = useLatest(repoMap)
+
+  const onNavigate = (context: Context) => {
+    if (context?.filepath && context?.git_url) {
+      const repoMap = repoMapRef.current
+      const matchedRepositoryKey = find(Object.keys(repoMap), key => repoMap?.[key]?.gitUrl === context.git_url)
+      if (matchedRepositoryKey) {
+        const repository = repoMap[matchedRepositoryKey]
+        const repositorySpecifier = resolveRepoSpecifierFromRepoInfo(repository)
         updateSearchParams({
           set: {
-            path: context.filepath,
+            path: `${repositorySpecifier ?? ''}/${context.filepath}`,
             line: String(context.range.start ?? '')
           },
           del: 'plain'
         })
       }
     }
+  }
+
+  const client = useClient(iframeRef, {
+    navigate: onNavigate
   })
 
   const getPrompt = ({ action }: QuickActionEventPayload) => {
@@ -62,29 +74,6 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   }
 
   React.useEffect(() => {
-    const contentWindow = iframeRef.current?.contentWindow
-
-    if (pendingEvent) {
-      const { lineFrom, lineTo, code, path } = pendingEvent
-      contentWindow?.postMessage({
-        action: 'sendUserChat',
-        payload: {
-          message: getPrompt(pendingEvent),
-          selectContext: {
-            content: code,
-            range: {
-              start: lineFrom,
-              end: lineTo
-            },
-            filepath: path
-          }
-        } as UserMessage
-      })
-      setPendingEvent(undefined)
-    }
-  }, [pendingEvent, iframeRef.current?.contentWindow])
-
-  React.useEffect(() => {
     if (iframeRef?.current && data) {
       client?.init({
         fetcherOptions: {
@@ -96,7 +85,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
 
   React.useEffect(() => {
     if (pendingEvent && client) {
-      const { lineFrom, lineTo, code, path } = pendingEvent
+      const { lineFrom, lineTo, code, path, gitUrl } = pendingEvent
       client.sendMessage({
         message: getPrompt(pendingEvent),
         selectContext: {
@@ -106,7 +95,8 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
             start: lineFrom,
             end: lineTo ?? lineFrom
           },
-          filepath: path
+          filepath: path,
+          git_url: gitUrl
         }
       })
     }

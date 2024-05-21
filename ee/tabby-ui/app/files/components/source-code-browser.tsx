@@ -76,6 +76,7 @@ const repositoryListQuery = graphql(/* GraphQL */ `
       id
       name
       kind
+      gitUrl
     }
   }
 `)
@@ -259,6 +260,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     const isDir = activePath && fileMap?.[activePath]?.file?.kind === 'dir'
     return isDir && !fileMap?.[activePath]?.treeExpanded
   }, [activePath, fileMap, initialized])
+
+  console.log('isfileselect', isFileSelected)
 
   // fetch raw file
   const { data: rawFileResponse, isLoading: fetchingRawFile } =
