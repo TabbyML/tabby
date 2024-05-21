@@ -1,9 +1,8 @@
 import React from 'react'
-import { mergeWith } from 'lodash-es'
+import { type ParsedEvent, type ReconnectInterval } from 'eventsource-parser'
+import { EventSourceParserStream } from 'eventsource-parser/stream'
 
 import { AnswerRequest, AnswerResponse } from '@/lib/types'
-
-const NEWLINE = '\n'.charCodeAt(0)
 
 interface UseTabbyAnswerOptions {
   onError?: (err: Error) => void
@@ -31,15 +30,30 @@ export function useTabbyAnswer({
     }
   }
 
-  const mergeParsedData = (
-    data1: Partial<AnswerResponse>,
-    data2: Partial<AnswerResponse>
-  ): Partial<AnswerResponse> => {
-    return mergeWith({}, data1, data2, (obj, src) => {
-      if (typeof obj === 'string' && typeof src === 'string') {
-        return obj + src
+  const onUpdate = (event: ParsedEvent | ReconnectInterval) => {
+    if (event.type === 'event') {
+      if ('data' in event) {
+        const parsedChunk = JSON.parse(event.data)
+        if (parsedChunk) {
+          setAnswer(answer => mergeParsedAnswerData(answer, parsedChunk))
+        }
       }
-    })
+    }
+  }
+
+  const mergeParsedAnswerData = (
+    existingData: Partial<AnswerResponse> | undefined,
+    data: Partial<AnswerResponse>
+  ): Partial<AnswerResponse> => {
+    if (!existingData) return data
+
+    return {
+      ...existingData,
+      // merge answer_delta
+      answer_delta: `${existingData?.answer_delta ?? ''}${
+        data?.answer_delta ?? ''
+      }`
+    }
   }
 
   const triggerRequest = async (data: AnswerRequest) => {
@@ -72,18 +86,20 @@ export function useTabbyAnswer({
         throw new Error('The response body is empty')
       }
 
-      for await (const line of readDataStream(response.body.getReader(), {
-        isAborted: () => abortController.signal.aborted
-      })) {
-        if (line.startsWith('data: ')) {
-          const jsonData = line.replace('data: ', '')
-          const parsedData = JSON.parse(jsonData)
-          setAnswer(answer => mergeParsedData(answer ?? {}, parsedData))
-        }
+      const eventStream = response.body
+        .pipeThrough(new TextDecoderStream())
+        .pipeThrough(new EventSourceParserStream())
+        .getReader()
+
+      while (true) {
+        const { done, value } = await eventStream.read()
+        if (done) break
+
+        onUpdate(value)
       }
     } catch (err) {
       // Ignore abort errors as they are expected.
-      if ((err as any).name === 'AbortError') {
+      if ((err as any)?.name === 'AbortError') {
         abortControllerRef.current = null
         return null
       }
@@ -105,70 +121,5 @@ export function useTabbyAnswer({
     setError,
     triggerRequest,
     stop
-  }
-}
-
-function concatChunks(chunks: Uint8Array[], totalLength: number) {
-  const concatenatedChunks = new Uint8Array(totalLength)
-
-  let offset = 0
-  for (const chunk of chunks) {
-    concatenatedChunks.set(chunk, offset)
-    offset += chunk.length
-  }
-  chunks.length = 0
-
-  return concatenatedChunks
-}
-
-async function* readDataStream(
-  reader: ReadableStreamDefaultReader<Uint8Array>,
-  {
-    isAborted
-  }: {
-    isAborted?: () => boolean
-  } = {}
-): AsyncGenerator<string> {
-  const decoder = new TextDecoder()
-  const chunks: Uint8Array[] = []
-  let totalLength = 0
-
-  while (true) {
-    const { value, done } = await reader.read()
-
-    if (done) {
-      break
-    }
-
-    if (value) {
-      chunks.push(value)
-      totalLength += value.length
-      if (value[value.length - 1] !== NEWLINE) {
-        // if the last character is not a newline, we have not read the whole JSON value
-        continue
-      }
-    }
-
-    if (chunks.length === 0) {
-      break // we have reached the end of the stream
-    }
-
-    const concatenatedChunks = concatChunks(chunks, totalLength)
-    totalLength = 0
-
-    const streamParts = decoder
-      .decode(concatenatedChunks, { stream: true })
-      .split('\n')
-      .filter(line => line !== '') // splitting leaves an empty string at the end
-
-    for (const streamPart of streamParts) {
-      yield streamPart
-    }
-
-    // The request has been aborted, stop reading the stream.
-    if (isAborted?.()) {
-      reader.cancel()
-      break
-    }
   }
 }

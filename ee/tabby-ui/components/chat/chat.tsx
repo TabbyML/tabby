@@ -233,10 +233,10 @@ function ChatRenderer(
           language: selectContext.filepath
             ? filename2prism(selectContext.filepath)[0] || 'text'
             : 'text',
-          git_url: selectContext?.git_url ?? '',
+          git_url: selectContext?.git_url ?? ''
         }
       : undefined
-  
+
     return {
       messages: toMessages(qaPairs).slice(0, -1),
       code_query,

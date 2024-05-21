@@ -1,7 +1,9 @@
 import React from 'react'
+import { find } from 'lodash-es'
 import type { Context } from 'tabby-chat-panel'
 import { useClient } from 'tabby-chat-panel/react'
 
+import { useLatest } from '@/lib/hooks/use-latest'
 import { useMe } from '@/lib/hooks/use-me'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useStore } from '@/lib/hooks/use-store'
@@ -12,12 +14,10 @@ import { IconClose } from '@/components/ui/icons'
 
 import { QuickActionEventPayload } from '../lib/event-emitter'
 import { SourceCodeBrowserContext } from './source-code-browser'
-import { find } from 'lodash-es'
 import { resolveRepoSpecifierFromRepoInfo } from './utils'
-import { useLatest } from '@/lib/hooks/use-latest'
 
 interface ChatSideBarProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> { }
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {}
 
 export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   className,
@@ -35,7 +35,10 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   const onNavigate = (context: Context) => {
     if (context?.filepath && context?.git_url) {
       const repoMap = repoMapRef.current
-      const matchedRepositoryKey = find(Object.keys(repoMap), key => repoMap?.[key]?.gitUrl === context.git_url)
+      const matchedRepositoryKey = find(
+        Object.keys(repoMap),
+        key => repoMap?.[key]?.gitUrl === context.git_url
+      )
       if (matchedRepositoryKey) {
         const repository = repoMap[matchedRepositoryKey]
         const repositorySpecifier = resolveRepoSpecifierFromRepoInfo(repository)

@@ -48,7 +48,9 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
     SourceCodeBrowserContext
   )
   const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
-  const gitUrl = repositorySpecifier ? fileMap[repositorySpecifier]?.repository?.gitUrl ?? '' : ''
+  const gitUrl = repositorySpecifier
+    ? fileMap[repositorySpecifier]?.repository?.gitUrl ?? ''
+    : ''
 
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
@@ -88,7 +90,9 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
       isChatEnabled &&
       activePath
     ) {
-      result.push(ActionBarWidgetExtension({ language, path: activePath, gitUrl }))
+      result.push(
+        ActionBarWidgetExtension({ language, path: activePath, gitUrl })
+      )
     }
     if (value && tags) {
       result.push(

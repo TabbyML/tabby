@@ -261,8 +261,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     return isDir && !fileMap?.[activePath]?.treeExpanded
   }, [activePath, fileMap, initialized])
 
-  console.log('isfileselect', isFileSelected)
-
   // fetch raw file
   const { data: rawFileResponse, isLoading: fetchingRawFile } =
     useSWRImmutable<{

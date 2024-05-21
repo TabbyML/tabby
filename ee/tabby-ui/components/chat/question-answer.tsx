@@ -145,7 +145,6 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   } = props
 
   const contexts: Array<Context> = React.useMemo(() => {
-
     return (
       message?.relevant_code?.map(code => {
         const start_line = code?.start_line ?? 0
