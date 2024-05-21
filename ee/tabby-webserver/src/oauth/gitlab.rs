@@ -128,16 +128,18 @@ impl OAuthClient for GitlabClient {
 
     async fn get_authorization_url(&self) -> Result<String> {
         let credentials = self.read_credential().await?;
-        create_authorization_url(&credentials.client_id)
+        let redirect_uri = self.auth.oauth_callback_url(OAuthProvider::Gitlab).await?;
+        create_authorization_url(&credentials.client_id, &redirect_uri)
     }
 }
 
-fn create_authorization_url(client_id: &str) -> Result<String> {
-    let mut url = reqwest::Url::parse("https://gitlab.com/login/oauth/authorize")?;
+fn create_authorization_url(client_id: &str, redirect_uri: &str) -> Result<String> {
+    let mut url = reqwest::Url::parse("https://gitlab.com/oauth/authorize")?;
     let params = vec![
         ("client_id", client_id),
         ("response_type", "code"),
-        ("scope", "read:user user:email"),
+        ("scope", "api"),
+        ("redirect_uri", &redirect_uri),
     ];
     for (k, v) in params {
         url.query_pairs_mut().append_pair(k, v);
@@ -151,7 +153,9 @@ mod tests {
 
     #[test]
     fn test_create_authorization_url() {
-        let url = create_authorization_url("client_id").unwrap();
-        assert_eq!(url, "https://gitlab.com/login/oauth/authorize?client_id=client_id&response_type=code&scope=read%3Auser+user%3Aemail");
+        let url =
+            create_authorization_url("client_id", "http://localhost:8080/oauth/callback/gitlab")
+                .unwrap();
+        assert_eq!(url, "https://gitlab.com/oauth/authorize?client_id=client_id&response_type=code&scope=api&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Foauth%2Fcallback%2Fgitlab");
     }
 }
