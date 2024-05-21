@@ -42,8 +42,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "build:vscode": "yarn && esbuild src/vscode.tsx --bundle --minify --outfile=../vscode/webview/index.js --loader:.js=jsx",
-    "dev:vscode": "esbuild src/vscode.tsx --bundle --outfile=../vscode/webview/index.js --loader:.js=jsx --watch"
+    "build:vscode": "yarn && esbuild src/vscode.tsx --bundle --minify --outfile=../vscode/chat-panel/index.js --loader:.js=jsx",
+    "dev:vscode": "esbuild src/vscode.tsx --bundle --outfile=../vscode/chat-panel/index.js --loader:.js=jsx --watch"
   },
   "dependencies": {
     "@quilted/threads": "^2.1.2",

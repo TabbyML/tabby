@@ -5,4 +5,4 @@ generated
 .vscode-test/
 .vscode-test-web/
 *.vsix
-webview/
+chat-panel/
