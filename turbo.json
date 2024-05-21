@@ -3,6 +3,7 @@
     "pipeline": {
       "build": {},
       "lint": {},
-      "lint:fix": {}
+      "lint:fix": {},
+      "test": {}
     }
   }

@@ -39,8 +39,8 @@
     "preview": "node --watch bin/index.js",
     "release": "bumpp && npm publish",
     "start": "tsx src/index.ts",
-    "test": "vitest",
-    "test:once": "vitest run",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
