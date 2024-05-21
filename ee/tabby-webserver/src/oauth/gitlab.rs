@@ -123,6 +123,9 @@ impl OAuthClient for GitlabClient {
             .await?;
 
         let email = resp.json::<GitlabUserEmail>().await?;
+        if let Some(error) = email.error {
+            bail!("{error}");
+        }
         Ok(email.email)
     }
 
