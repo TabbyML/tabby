@@ -10,6 +10,7 @@ on:
       - 'crates/**'
       - 'ee/**'
       - '!ee/tabby-ui/**'
+      - '!ee/tabby-email/**'
 
 permissions:
   contents: read
