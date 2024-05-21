@@ -1,10 +1,9 @@
-use anyhow::anyhow;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::ID;
 use strum::EnumIter;
 
-use crate::Result;
+use crate::{bail, Result};
 
 #[derive(Clone, EnumIter)]
 pub enum IntegrationKind {
@@ -20,10 +19,10 @@ impl IntegrationKind {
             IntegrationKind::Github => Ok("https://api.github.com"),
             IntegrationKind::Gitlab => Ok("https://gitlab.com"),
             IntegrationKind::GithubSelfHosted => {
-                Err(anyhow!("Self-hosted github requires a user-specified API base URL").into())
+                bail!("Self-hosted github requires a user-specified API base URL")
             }
             IntegrationKind::GitlabSelfHosted => {
-                Err(anyhow!("Self-hosted gitlab requires a user-specified API base URL").into())
+                bail!("Self-hosted gitlab requires a user-specified API base URL")
             }
         }
     }
