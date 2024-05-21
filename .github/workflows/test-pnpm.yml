@@ -1,4 +1,4 @@
-name: autofix.ci
+name: Test Pnpm
 
 on:
   pull_request:
