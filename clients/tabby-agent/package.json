@@ -67,6 +67,7 @@
     "typescript": "^5.3.2"
   },
   "dependencies": {
+    "axios": "^1.7.2",
     "chokidar": "^3.5.3",
     "deep-equal": "^2.2.1",
     "deepmerge-ts": "^5.1.0",
@@ -74,6 +75,7 @@
     "eventsource-parser": "^1.1.2",
     "fast-levenshtein": "^3.0.0",
     "file-stream-rotator": "^1.0.0",
+    "form-data": "^4.0.0",
     "fs-extra": "^11.1.1",
     "jwt-decode": "^3.1.2",
     "lru-cache": "^9.1.1",
