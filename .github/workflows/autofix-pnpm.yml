@@ -52,7 +52,6 @@ jobs:
         run: pnpm install
 
       - name: Fix lint
-        working-directory: ./ee/tabby-ui
         run: pnpm lint:fix
 
       - uses: autofix-ci/action@d3e591514b99d0fca6779455ff8338516663f7cc
