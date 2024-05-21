@@ -42,7 +42,13 @@ impl Embedding for LlamaCppEngine {
             request = request.bearer_auth(api_key);
         }
 
-        let response = request.send().await?.json::<EmbeddingResponse>().await?;
+        let response = request.send().await?;
+        if response.status().is_server_error() {
+            let error = response.text().await?;
+            return Err(anyhow::anyhow!("Error from server: {}", error));
+        }
+
+        let response = response.json::<EmbeddingResponse>().await?;
         Ok(response.embedding)
     }
 }

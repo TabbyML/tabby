@@ -1,4 +1,8 @@
-use std::{env, net::TcpListener, process::Stdio};
+use std::{
+    env::{self, var},
+    net::TcpListener,
+    process::Stdio,
+};
 
 use tokio::task::JoinHandle;
 use tracing::warn;
@@ -39,6 +43,7 @@ impl LlamaCppSupervisor {
                 command
                     .arg("-m")
                     .arg(&model_path)
+                    .arg("--cont-batching")
                     .arg("--port")
                     .arg(port.to_string())
                     .arg("-np")
@@ -46,8 +51,6 @@ impl LlamaCppSupervisor {
                     .arg("--log-disable")
                     .arg("--ctx-size")
                     .arg(env::var("LLAMA_CPP_N_CONTEXT_SIZE").unwrap_or("4096".into()))
-                    .arg("--batch-size")
-                    .arg(env::var("LLAMA_CPP_N_BATCH_SIZE").unwrap_or("512".into()))
                     .kill_on_drop(true)
                     .stderr(Stdio::null())
                     .stdout(Stdio::null());
@@ -61,7 +64,10 @@ impl LlamaCppSupervisor {
                 }
 
                 if embedding {
-                    command.arg("--embedding");
+                    command
+                        .arg("--embedding")
+                        .arg("--ubatch-size")
+                        .arg(var("LLAMA_CPP_EMBEDDING_N_UBATCH_SIZE").unwrap_or("4096".into()));
                 }
 
                 let mut process = command.spawn().unwrap_or_else(|e| {

@@ -6,7 +6,7 @@ use async_stream::stream;
 use futures::{Stream, StreamExt};
 use readable_readability::Readability;
 use tokio::io::AsyncBufReadExt;
-use tracing::warn;
+use tracing::{debug, warn};
 use url::Url;
 
 use self::types::{CrawledDocument, KatanaRequestResponse};
@@ -21,7 +21,7 @@ async fn crawl_url(start_url: &str) -> impl Stream<Item = KatanaRequestResponse>
         .arg("-depth")
         .arg("9999")
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::inherit())
         .spawn()
         .expect("Failed to start katana, please check whether the binary is in your $PATH");
 
@@ -30,7 +30,9 @@ async fn crawl_url(start_url: &str) -> impl Stream<Item = KatanaRequestResponse>
 
     tokio::spawn(async move {
         if let Some(exit_code) = child.wait().await.ok().and_then(|s| s.code()) {
-            warn!("Katana exited with code {}", exit_code);
+            if exit_code != 0 {
+                warn!("Katana exited with code {}", exit_code);
+            }
         }
     });
 
@@ -44,27 +46,33 @@ async fn crawl_url(start_url: &str) -> impl Stream<Item = KatanaRequestResponse>
                 }
             };
 
+            // Skip if the status code is not 200
+            if data.response.status_code != 200 {
+                continue;
+            }
+
+            // Skip if the content type is not text/html
+            if !data
+                .response
+                .headers
+                .get("content_type")
+                .is_some_and(|ct| ct.starts_with("text/html"))
+            {
+                continue;
+            }
+
+            // Skip if the content is larger than 1M.
+            if data.response.raw.len() > 1_000_000 {
+                debug!("Skipping {} as the content is larger than 1M", data.request.endpoint);
+                continue;
+            }
+
             yield data;
         }
     }
 }
 
-async fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
-    // Skip if the status code is not 200
-    if data.response.status_code != 200 {
-        return None;
-    }
-
-    // Skip if the content type is not text/html
-    if !data
-        .response
-        .headers
-        .get("content_type")
-        .is_some_and(|ct| ct.starts_with("text/html"))
-    {
-        return None;
-    }
-
+fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
     // Cleanup the HTML with Readability
     let (html, metadata) = {
         let (node, metadata) = Readability::new()
@@ -79,9 +87,6 @@ async fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
     // Convert the HTML to Markdown
     let md = mdka::from_html(&html);
 
-    // Remove any HTML tags that might have been left behind
-    let md = voca_rs::strip::strip_tags(&md).trim().to_owned();
-
     // Skip if the document is empty
     if md.is_empty() {
         return None;
@@ -89,13 +94,15 @@ async fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
 
     Some(CrawledDocument::new(
         data.request.endpoint,
-        md,
+        md.trim().to_owned(),
         metadata.into(),
     ))
 }
 
 pub async fn crawl_pipeline(start_url: &str) -> impl Stream<Item = CrawledDocument> {
-    crawl_url(start_url).await.filter_map(to_document)
+    crawl_url(start_url)
+        .await
+        .filter_map(move |data| async move { to_document(data) })
 }
 
 #[cfg(test)]
@@ -128,7 +135,7 @@ mod tests {
             },
         };
 
-        let doc = to_document(data).await.unwrap();
+        let doc = to_document(data).unwrap();
         assert_eq!(doc.url, "https://example.com");
         assert_eq!(doc.markdown, "Hello, World!");
     }

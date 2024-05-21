@@ -4,29 +4,40 @@
 pub mod crawl;
 
 mod code;
+use async_stream::stream;
 pub use code::CodeIndex;
+use crawl::crawl_pipeline;
+use futures::StreamExt;
 
 mod doc;
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 pub use doc::{DocIndex, SourceDocument};
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tokio_cron_scheduler::{Job, JobScheduler};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
-pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
+pub async fn scheduler<T: RepositoryAccess + 'static>(
+    now: bool,
+    config: &tabby_common::config::Config,
+    access: T,
+) {
     if now {
         let repositories = access
             .list_repositories()
             .await
             .expect("Must be able to retrieve repositories for sync");
-        scheduler_pipeline(&repositories);
+        scheduler_pipeline(&repositories).await;
+        if env::var("TABBY_SCHEDULER_EXPERIMENTAL_DOC_INDEX").is_ok() {
+            doc_index_pipeline(config).await;
+        }
     } else {
         let access = Arc::new(access);
         let scheduler = JobScheduler::new()
             .await
             .expect("Failed to create scheduler");
         let scheduler_mutex = Arc::new(tokio::sync::Mutex::new(()));
+        let _config = config.clone();
 
         // Every 10 minutes
         scheduler
@@ -45,7 +56,7 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
                             .await
                             .expect("Must be able to retrieve repositories for sync");
 
-                        scheduler_pipeline(&repositories);
+                        scheduler_pipeline(&repositories).await;
                     })
                 })
                 .expect("Failed to create job"),
@@ -61,13 +72,48 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
     }
 }
 
-fn scheduler_pipeline(repositories: &[RepositoryConfig]) {
+async fn scheduler_pipeline(repositories: &[RepositoryConfig]) {
     let mut code = CodeIndex::default();
     for repository in repositories {
         code.refresh(repository);
     }
 
     code.garbage_collection(repositories);
+}
+
+async fn doc_index_pipeline(config: &tabby_common::config::Config) {
+    let Some(index_config) = &config.experimental.doc else {
+        return;
+    };
+
+    let Some(embedding_config) = &config.model.embedding else {
+        return;
+    };
+
+    debug!("Starting doc index pipeline...");
+    let embedding = llama_cpp_server::create_embedding(embedding_config).await;
+    for url in &index_config.start_urls {
+        let embedding = embedding.clone();
+        stream! {
+            let mut num_docs = 0;
+            let mut doc_index = DocIndex::new(embedding);
+            for await doc in crawl_pipeline(url).await {
+                let source_doc = SourceDocument {
+                    id: doc.url.clone(),
+                    title: doc.metadata.title.unwrap_or_default(),
+                    link: doc.url,
+                    body: doc.markdown,
+                };
+
+                num_docs += 1;
+                doc_index.add(source_doc).await;
+            }
+            info!("Crawled {} documents from '{}'", num_docs, url);
+            doc_index.commit();
+        }
+        .collect::<Vec<_>>()
+        .await;
+    }
 }
 
 mod tantivy_utils {
