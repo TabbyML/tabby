@@ -1,4 +1,5 @@
 mod github;
+mod gitlab;
 mod google;
 
 use std::sync::Arc;
@@ -8,6 +9,8 @@ use async_trait::async_trait;
 use github::GithubClient;
 use google::GoogleClient;
 use tabby_schema::auth::{AuthenticationService, OAuthProvider};
+
+use self::gitlab::GitlabClient;
 
 #[async_trait]
 pub trait OAuthClient: Send + Sync {
@@ -20,6 +23,7 @@ pub fn new_oauth_client(
     auth: Arc<dyn AuthenticationService>,
 ) -> Arc<dyn OAuthClient> {
     match provider {
+        OAuthProvider::Gitlab => Arc::new(GitlabClient::new(auth)),
         OAuthProvider::Google => Arc::new(GoogleClient::new(auth)),
         OAuthProvider::Github => Arc::new(GithubClient::new(auth)),
     }

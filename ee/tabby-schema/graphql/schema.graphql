@@ -53,6 +53,7 @@ enum LicenseType {
 enum OAuthProvider {
   GITHUB
   GOOGLE
+  GITLAB
 }
 
 enum RepositoryKind {
