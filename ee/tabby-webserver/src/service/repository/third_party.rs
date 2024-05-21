@@ -9,10 +9,7 @@ use tabby_common::config::RepositoryConfig;
 use tabby_db::{DbConn, ProvidedRepositoryDAO};
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
-    repository::{
-        ProvidedRepository, Repository, RepositoryKind, RepositoryProvider,
-        ThirdPartyRepositoryService,
-    },
+    repository::{ProvidedRepository, Repository, RepositoryProvider, ThirdPartyRepositoryService},
     AsID, AsRowid, DbEnum, Result,
 };
 use tokio::sync::mpsc::UnboundedSender;
@@ -60,15 +57,10 @@ impl RepositoryProvider for ThirdPartyRepositoryServiceImpl {
             )
             .await?;
 
-            let repository_kind = match kind {
-                IntegrationKind::Github => RepositoryKind::Github,
-                IntegrationKind::Gitlab => RepositoryKind::Gitlab,
-            };
-
             repos.extend(
                 repos_for_kind
                     .into_iter()
-                    .map(|repo| to_repository(repository_kind, repo)),
+                    .map(|repo| to_repository(kind.clone().into(), repo)),
             );
         }
 
@@ -81,7 +73,7 @@ impl RepositoryProvider for ThirdPartyRepositoryServiceImpl {
             .integration
             .get_integration(repo.integration_id.clone())
             .await?;
-        Ok(to_repository(provider.repository_kind(), repo))
+        Ok(to_repository(provider.kind.into(), repo))
     }
 }
 
@@ -281,10 +273,10 @@ fn format_authenticated_url(
 ) -> Result<String> {
     let mut url = Url::parse(git_url).map_err(anyhow::Error::from)?;
     match kind {
-        IntegrationKind::Github => {
+        IntegrationKind::Github | IntegrationKind::GithubSelfHosted => {
             let _ = url.set_username(access_token);
         }
-        IntegrationKind::Gitlab => {
+        IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => {
             let _ = url.set_username("oauth2");
             let _ = url.set_password(Some(access_token));
         }

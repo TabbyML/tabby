@@ -1,14 +1,17 @@
+use anyhow::anyhow;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::ID;
 use strum::EnumIter;
 
-use crate::{repository::RepositoryKind, Result};
+use crate::Result;
 
 #[derive(Clone, EnumIter)]
 pub enum IntegrationKind {
     Github,
     Gitlab,
+    GithubSelfHosted,
+    GitlabSelfHosted,
 }
 
 impl IntegrationKind {
@@ -16,6 +19,12 @@ impl IntegrationKind {
         match self {
             IntegrationKind::Github => Ok("https://api.github.com"),
             IntegrationKind::Gitlab => Ok("https://gitlab.com"),
+            IntegrationKind::GithubSelfHosted => {
+                Err(anyhow!("Self-hosted github requires a user-specified API base URL").into())
+            }
+            IntegrationKind::GitlabSelfHosted => {
+                Err(anyhow!("Self-hosted gitlab requires a user-specified API base URL").into())
+            }
         }
     }
 }
@@ -36,17 +45,6 @@ pub struct Integration {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub status: IntegrationStatus,
-}
-
-impl Integration {
-    pub fn repository_kind(&self) -> RepositoryKind {
-        match self.kind {
-            IntegrationKind::Github if self.api_base.is_none() => RepositoryKind::Github,
-            IntegrationKind::Github => RepositoryKind::GithubSelfHosted,
-            IntegrationKind::Gitlab if self.api_base.is_none() => RepositoryKind::Gitlab,
-            IntegrationKind::Gitlab => RepositoryKind::GitlabSelfHosted,
-        }
-    }
 }
 
 #[async_trait]
