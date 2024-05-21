@@ -43,7 +43,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cp target/release/tabby /opt/tabby/bin/
 
 # For compatibility with the legacy cpu build.
-RUN cp target/release/tabby /opt/tabby/bin/tabby-cpu
+RUN cp /opt/tabby/bin/tabby /opt/tabby/bin/tabby-cpu
 
 FROM ${BASE_ROCM_RUN_CONTAINER} AS runtime
 
