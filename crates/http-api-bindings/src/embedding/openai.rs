@@ -34,7 +34,7 @@ impl Embedding for OpenAIEmbeddingEngine {
             dimensions: None
         };
         let resp = self.client.embeddings().create(request).await?;
-        let data = resp.data.first().context("Failed to get embedding")?;
+        let data = resp.data.into_iter().next().context("Failed to get embedding")?;
         Ok(data.embedding)
     }
 }
