@@ -168,7 +168,7 @@ pub struct HttpModelConfig {
     #[builder(default)]
     pub api_key: Option<String>,
 
-    /// Used by Chat API.
+    /// Used by OpenAI style API for model name.
     #[builder(default)]
     pub model_name: Option<String>,
 
