@@ -48,16 +48,10 @@ impl CodeSearchImpl {
 
     async fn load_async(repository_access: Arc<dyn RepositoryAccess>) -> CodeSearchImpl {
         loop {
-            match CodeSearchImpl::load(repository_access.clone()) {
-                Ok(code) => {
-                    debug!("Index is ready, enabling code search...");
-                    return code;
-                }
-                Err(err) => {
-                    debug!("Source code index is not ready `{}`", err);
-                }
-            };
-
+            if let Ok(doc) = Self::load(repository_access.clone()) {
+                debug!("Index is ready, enabling code search...");
+                return doc;
+            }
             sleep(Duration::from_secs(60)).await;
         }
     }

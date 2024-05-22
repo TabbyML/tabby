@@ -1,25 +1,16 @@
 mod document;
+mod tokenizer;
 
 use lazy_static::lazy_static;
-use regex::Regex;
 use tantivy::{
     query::{BooleanQuery, BoostQuery, ConstScoreQuery, Occur, Query, TermQuery},
     schema::{Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, STRING},
-    tokenizer::{RegexTokenizer, RemoveLongFilter, TextAnalyzer},
-    Index, Term,
+    Term,
 };
+pub use tokenizer::register_tokenizers;
 
+use self::tokenizer::tokenize_code;
 use crate::api::code::CodeSearchQuery;
-
-static CODE_TOKENIZER: &str = "code";
-
-pub fn register_tokenizers(index: &Index) {
-    let code_tokenizer = TextAnalyzer::builder(RegexTokenizer::new(r"(?:\w+)").unwrap())
-        .filter(RemoveLongFilter::limit(64))
-        .build();
-
-    index.tokenizers().register(CODE_TOKENIZER, code_tokenizer);
-}
 
 pub struct CodeSearchSchema {
     pub schema: Schema,
@@ -36,8 +27,8 @@ impl CodeSearchSchema {
         let mut builder = Schema::builder();
 
         let code_indexing_options = TextFieldIndexing::default()
-            .set_tokenizer(CODE_TOKENIZER)
-            .set_index_option(tantivy::schema::IndexRecordOption::WithFreqs);
+            .set_tokenizer(tokenizer::CODE_TOKENIZER)
+            .set_index_option(tantivy::schema::IndexRecordOption::Basic);
         let code_options = TextOptions::default()
             .set_indexing_options(code_indexing_options)
             .set_stored();
@@ -68,7 +59,6 @@ impl CodeSearchSchema {
 
 lazy_static! {
     static ref CODE_SEARCH_SCHEMA: CodeSearchSchema = CodeSearchSchema::new();
-    static ref BODY_TOKENIZER: Regex = Regex::new(r"[^\w]").unwrap();
 }
 
 impl CodeSearchSchema {
@@ -109,20 +99,12 @@ impl CodeSearchSchema {
         ))
     }
 
-    fn tokenize_body(text: &str) -> Vec<String> {
-        BODY_TOKENIZER
-            .split(text)
-            .filter(|x| !x.is_empty())
-            .map(|x| x.to_owned())
-            .collect()
-    }
-
     pub fn code_search_query(&self, query: &CodeSearchQuery) -> BooleanQuery {
         let language_query = self.language_query(&query.language);
         let git_url_query = self.git_url_query(&query.git_url);
 
         // Create body query with a scoring normalized by the number of tokens.
-        let body_tokens = CodeSearchSchema::tokenize_body(&query.content);
+        let body_tokens = tokenize_code(&query.content);
         let body_query = self.body_query(&body_tokens);
         let normalized_score_body_query =
             BoostQuery::new(body_query, 1.0 / body_tokens.len() as f32);
@@ -164,37 +146,5 @@ mod tests {
         assert_eq!(lhs.term(), schema.language_query("typescript").term());
         assert_eq!(lhs.term(), schema.language_query("typescriptreact").term());
         assert_eq!(lhs.term(), schema.language_query("javascriptreact").term());
-    }
-
-    /// Empty strings tokens are not participating rag search and therefore could be removed.
-    #[test]
-    fn test_tokenized_text_filter() {
-        let prefix = r#"public static String getFileExtension(String fullName) {
-        String fileName = (new File(fullName)).getName();
-        int dotIndex = fileName.lastIndexOf('.');
-         }"#;
-
-        // with filter
-        assert_eq!(
-            CodeSearchSchema::tokenize_body(prefix),
-            [
-                "public",
-                "static",
-                "String",
-                "getFileExtension",
-                "String",
-                "fullName",
-                "String",
-                "fileName",
-                "new",
-                "File",
-                "fullName",
-                "getName",
-                "int",
-                "dotIndex",
-                "fileName",
-                "lastIndexOf",
-            ]
-        );
     }
 }

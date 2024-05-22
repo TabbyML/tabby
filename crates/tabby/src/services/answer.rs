@@ -48,7 +48,7 @@ pub struct AnswerService {
 }
 
 // FIXME(meng): make this configurable.
-const RELEVANT_CODE_THRESHOLD: f32 = 5.5;
+const RELEVANT_CODE_THRESHOLD: f32 = 4.4;
 const PRESENCE_PENALTY: f32 = 0.5;
 
 impl AnswerService {
@@ -153,6 +153,12 @@ impl AnswerService {
         };
 
         hits.into_iter()
+            .inspect(|hit| {
+                debug!(
+                    "Code search hit: {:?}, score {:?}",
+                    hit.doc.filepath, hit.score
+                )
+            })
             .filter(|hit| hit.score > RELEVANT_CODE_THRESHOLD)
             .map(|hit| hit.doc)
             .collect()
