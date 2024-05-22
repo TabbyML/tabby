@@ -1,5 +1,8 @@
 use anyhow::Context;
-use async_openai::{config::OpenAIConfig, types::{CreateEmbeddingRequest, EmbeddingInput}};
+use async_openai::{
+    config::OpenAIConfig,
+    types::{CreateEmbeddingRequest, EmbeddingInput},
+};
 use async_trait::async_trait;
 use tabby_inference::Embedding;
 
@@ -31,10 +34,14 @@ impl Embedding for OpenAIEmbeddingEngine {
             input: EmbeddingInput::String(prompt.to_owned()),
             encoding_format: None,
             user: None,
-            dimensions: None
+            dimensions: None,
         };
         let resp = self.client.embeddings().create(request).await?;
-        let data = resp.data.into_iter().next().context("Failed to get embedding")?;
+        let data = resp
+            .data
+            .into_iter()
+            .next()
+            .context("Failed to get embedding")?;
         Ok(data.embedding)
     }
 }
