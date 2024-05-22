@@ -23,5 +23,13 @@ export const PROVIDER_METAS: Array<{
       domain: 'google.com',
       displayName: 'Google'
     }
+  },
+  {
+    name: 'gitlab',
+    enum: OAuthProvider.Gitlab,
+    meta: {
+      domain: 'gitlab.com',
+      displayName: 'GitLab'
+    }
   }
 ]

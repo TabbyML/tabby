@@ -34,7 +34,12 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form'
-import { IconSpinner } from '@/components/ui/icons'
+import {
+  IconGitHub,
+  IconGitLab,
+  IconGoogle,
+  IconSpinner
+} from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -157,6 +162,12 @@ export default function OAuthCredentialForm({
     variables: { provider: providerValue }
   })
 
+  const accessTokenPlaceholder = React.useMemo(() => {
+    if (!isNew) return new Array(36).fill('*').join('')
+
+    return 'e.g. e363c08d7e9ca4e66e723a53f38a21f6a54c1b83'
+  }, [isNew])
+
   return (
     <Form {...form}>
       <div className={cn('grid gap-2', className)} {...props}>
@@ -181,7 +192,7 @@ export default function OAuthCredentialForm({
                 <FormLabel>Provider</FormLabel>
                 <FormControl>
                   <RadioGroup
-                    className="flex gap-6"
+                    className="flex gap-8"
                     orientation="horizontal"
                     onValueChange={onChange}
                     {...rest}
@@ -192,7 +203,11 @@ export default function OAuthCredentialForm({
                         id="r_github"
                         disabled={!isNew}
                       />
-                      <Label className="cursor-pointer" htmlFor="r_github">
+                      <Label
+                        className="flex cursor-pointer items-center gap-2"
+                        htmlFor="r_github"
+                      >
+                        <IconGitHub className="h-5 w-5" />
                         GitHub
                       </Label>
                     </div>
@@ -202,8 +217,26 @@ export default function OAuthCredentialForm({
                         id="r_google"
                         disabled={!isNew}
                       />
-                      <Label className="cursor-pointer" htmlFor="r_google">
+                      <Label
+                        className="flex cursor-pointer items-center gap-2"
+                        htmlFor="r_google"
+                      >
+                        <IconGoogle className="h-5 w-5" />
                         Google
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem
+                        value={OAuthProvider.Gitlab}
+                        id="r_gitlab"
+                        disabled={!isNew}
+                      />
+                      <Label
+                        className="flex cursor-pointer items-center gap-2"
+                        htmlFor="r_gitlab"
+                      >
+                        <IconGitLab className="h-5 w-5" />
+                        GitLab
                       </Label>
                     </div>
                   </RadioGroup>
@@ -265,19 +298,19 @@ export default function OAuthCredentialForm({
             name="clientSecret"
             render={({ field }) => (
               <FormItem>
-                <FormLabel required>Client Secret</FormLabel>
+                <FormLabel required={isNew}>Client Secret</FormLabel>
                 <FormControl>
                   <Input
-                    {...field}
-                    placeholder={
-                      isNew
-                        ? 'e.g. e363c08d7e9ca4e66e723a53f38a21f6a54c1b83'
-                        : '*****'
-                    }
+                    className={cn({
+                      'placeholder:translate-y-[10%] !placeholder-foreground':
+                        !isNew
+                    })}
+                    placeholder={accessTokenPlaceholder}
                     autoCapitalize="none"
                     autoComplete="off"
                     autoCorrect="off"
                     type="password"
+                    {...field}
                   />
                 </FormControl>
                 <FormMessage />
