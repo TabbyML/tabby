@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use lazy_static::lazy_static;
 use tantivy::{
     query::{BooleanQuery, ExistsQuery, Occur, TermQuery},
-    schema::{Field, Schema, FAST, STORED, STRING},
+    schema::{Field, Schema, FAST, INDEXED, STORED, STRING},
     Term,
 };
 
@@ -12,8 +12,11 @@ use super::new_multiterms_const_query;
 pub struct DocSearchSchema {
     pub schema: Schema,
 
-    // === Fields for document ===
+    // === Fields for both document and chunk ===
     pub field_id: Field,
+    pub field_updated_at: Field,
+
+    // === Fields for document ===
     pub field_title: Field,
     pub field_link: Field,
 
@@ -39,6 +42,7 @@ impl DocSearchSchema {
         let field_id = builder.add_text_field("id", STRING | STORED);
         let field_title = builder.add_text_field("title", STORED);
         let field_link = builder.add_text_field("link", STORED);
+        let field_indexed_at = builder.add_date_field("indexed_at", INDEXED);
 
         let field_chunk_id = builder.add_text_field(FIELD_CHUNK_ID, STRING | FAST | STORED);
         let field_chunk_text = builder.add_text_field("chunk_text", STORED);
@@ -51,6 +55,7 @@ impl DocSearchSchema {
             field_id,
             field_title,
             field_link,
+            field_updated_at: field_indexed_at,
 
             field_chunk_id,
             field_chunk_text,

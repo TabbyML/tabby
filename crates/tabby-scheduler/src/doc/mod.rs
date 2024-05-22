@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time};
 
 use async_stream::stream;
 use futures::{Stream, StreamExt};
@@ -54,6 +54,8 @@ impl DocIndex {
 
     async fn iter_docs(&self, document: SourceDocument) -> impl Stream<Item = TantivyDocument> {
         let doc = DocSearchSchema::instance();
+        let now = tantivy::time::OffsetDateTime::now_utc();
+        let updated_at = tantivy::DateTime::from_utc(now);
 
         let id = document.id.clone();
         let content = document.body.clone();
@@ -62,9 +64,10 @@ impl DocIndex {
             doc.field_id => document.id,
             doc.field_title => document.title,
             doc.field_link => document.link,
+            doc.field_updated_at => updated_at,
         };
 
-        futures::stream::once(async { doc }).chain(self.iter_chunks(id, content).await)
+        futures::stream::once(async { doc }).chain(self.iter_chunks(id, content, updated_at).await)
     }
 
     /// This function splits the document into chunks and computes the embedding for each chunk. It then converts the embeddings
@@ -73,6 +76,7 @@ impl DocIndex {
         &self,
         id: String,
         content: String,
+        updated_at: tantivy::DateTime,
     ) -> impl Stream<Item = TantivyDocument> {
         let splitter = TextSplitter::default().with_trim_chunks(true);
         let embedding = self.embedding.clone();
@@ -82,6 +86,7 @@ impl DocIndex {
             for (chunk_id, chunk_text) in splitter.chunks(&content, CHUNK_SIZE).enumerate() {
                 let mut doc = doc! {
                     schema.field_id => id.clone(),
+                    schema.field_updated_at => updated_at,
                     schema.field_chunk_id => chunk_id.to_string(),
                     schema.field_chunk_text => chunk_text.to_owned(),
                 };
