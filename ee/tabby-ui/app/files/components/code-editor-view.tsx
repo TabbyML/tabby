@@ -47,7 +47,8 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const { isChatEnabled, activePath, fileMap } = React.useContext(
     SourceCodeBrowserContext
   )
-  const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
+  const { repositorySpecifier, basename } =
+    resolveRepositoryInfoFromPath(activePath)
   const gitUrl = repositorySpecifier
     ? fileMap[repositorySpecifier]?.repository?.gitUrl ?? ''
     : ''
@@ -88,10 +89,11 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
     if (
       EXP_enable_code_browser_quick_action_bar.value &&
       isChatEnabled &&
-      activePath
+      activePath &&
+      basename
     ) {
       result.push(
-        ActionBarWidgetExtension({ language, path: activePath, gitUrl })
+        ActionBarWidgetExtension({ language, path: basename, gitUrl })
       )
     }
     if (value && tags) {
