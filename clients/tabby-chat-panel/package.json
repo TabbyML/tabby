@@ -31,7 +31,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "unbuild",
+    "build": "unbuild && pnpm build:vscode",
     "dev": "unbuild --stub",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -57,6 +57,7 @@
     "@types/react": "18.2.23",
     "@types/react-dom": "18.2.23",
     "bumpp": "^9.4.0",
+    "esbuild": "^0.21.3",
     "eslint": "^9.1.1",
     "eslint-formatter-mo": "^1.2.0",
     "lint-staged": "^15.2.2",
