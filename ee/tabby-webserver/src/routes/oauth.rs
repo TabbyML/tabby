@@ -8,6 +8,7 @@ use axum::{
     routing, Json, Router,
 };
 use serde::Deserialize;
+use strum::IntoEnumIterator;
 use tabby_schema::auth::{AuthenticationService, OAuthError, OAuthProvider, OAuthResponse};
 use tracing::error;
 
@@ -54,14 +55,9 @@ async fn has_provider(auth: &Arc<dyn AuthenticationService>, x: &OAuthProvider) 
 }
 
 async fn providers_handler(state: State<OAuthState>) -> Json<Vec<OAuthProvider>> {
-    let candidates = vec![
-        OAuthProvider::Google,
-        OAuthProvider::Github,
-        OAuthProvider::Gitlab,
-    ];
     let mut providers = vec![];
 
-    for x in candidates {
+    for x in OAuthProvider::iter() {
         if has_provider(&state, &x).await {
             providers.push(x);
         }

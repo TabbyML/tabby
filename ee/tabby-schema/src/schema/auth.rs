@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, ID};
 use serde::{Deserialize, Serialize};
+use strum::EnumIter;
 use thiserror::Error;
 use tokio::task::JoinHandle;
 use tracing::error;
@@ -321,7 +322,7 @@ impl relay::NodeType for Invitation {
     }
 }
 
-#[derive(GraphQLEnum, Clone, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(GraphQLEnum, Clone, Serialize, Deserialize, PartialEq, Debug, EnumIter)]
 #[serde(rename_all = "lowercase")]
 pub enum OAuthProvider {
     Github,
