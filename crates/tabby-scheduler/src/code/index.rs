@@ -130,3 +130,39 @@ fn is_valid_file(file: &SourceCode) -> bool {
     file.max_line_length <= MAX_LINE_LENGTH_THRESHOLD
         && file.avg_line_length <= AVG_LINE_LENGTH_THRESHOLD
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_code_splitter() {
+        let intelligence = CodeIntelligence::default();
+        let chunks = intelligence
+            .chunks(
+                r#"
+                fn main() {
+                    let x = 4;
+                    println!("{}", x + 4);
+                }
+
+                fn do_something_else() -> i32 {
+                    let x = 4;
+                    let y = x - 2;
+                    let z = x + y;
+                    z
+                }
+
+                struct MyType {
+                    a: String,
+                    b: i32,
+                    name: Option<String>,
+                }
+            "#,
+                "rust",
+            )
+            .map(|(_, chunk)| chunk)
+            .collect::<Vec<_>>();
+        assert_eq!(chunks, [""]);
+    }
+}
