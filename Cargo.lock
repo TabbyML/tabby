@@ -5375,7 +5375,6 @@ dependencies = [
  "derive_builder 0.12.0",
  "home",
  "lazy_static",
- "regex",
  "reqwest 0.12.4",
  "serde",
  "serde_json",

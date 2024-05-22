@@ -33,15 +33,10 @@ impl DocSearchImpl {
 
     async fn load_async(embedding: Arc<dyn Embedding>) -> DocSearchImpl {
         loop {
-            match Self::load(embedding.clone()) {
-                Ok(doc) => {
-                    debug!("Index is ready, enabling doc search...");
-                    return doc;
-                }
-                Err(err) => {
-                    debug!("Doc index is not ready `{}`", err);
-                }
-            };
+            if let Ok(doc) = Self::load(embedding.clone()) {
+                debug!("Index is ready, enabling doc search...");
+                return doc;
+            }
 
             sleep(Duration::from_secs(60)).await;
         }
