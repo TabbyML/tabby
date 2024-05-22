@@ -944,7 +944,7 @@ mod tests {
             &setting,
             &service.mail,
             "test@example.com",
-            ""
+            "",
         )
         .await;
         assert_matches!(res, Err(OAuthError::UserDisabled));
@@ -984,7 +984,11 @@ mod tests {
         .await;
         assert_matches!(res, Err(OAuthError::UserNotInvited));
 
-        service.db.create_invitation("example@gmail.com".into()).await.unwrap();
+        service
+            .db
+            .create_invitation("example@gmail.com".into())
+            .await
+            .unwrap();
 
         let res = get_or_create_oauth_user(
             &license,
