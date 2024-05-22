@@ -138,31 +138,15 @@ mod tests {
     #[test]
     fn test_code_splitter() {
         let intelligence = CodeIntelligence::default();
-        let chunks = intelligence
-            .chunks(
-                r#"
-                fn main() {
-                    let x = 4;
-                    println!("{}", x + 4);
-                }
-
-                fn do_something_else() -> i32 {
-                    let x = 4;
-                    let y = x - 2;
-                    let z = x + y;
-                    z
-                }
-
-                struct MyType {
-                    a: String,
-                    b: i32,
-                    name: Option<String>,
-                }
-            "#,
-                "rust",
-            )
+        let file_contents = include_str!("../../../http-api-bindings/src/chat/openai_chat.rs");
+        let rust_chunks = intelligence
+            .chunks(file_contents, "rust")
             .map(|(_, chunk)| chunk)
             .collect::<Vec<_>>();
-        assert_eq!(chunks, [""]);
+        let text_chunks = intelligence
+            .chunks(file_contents, "unknown")
+            .map(|(_, chunk)| chunk)
+            .collect::<Vec<_>>();
+        assert_eq!(rust_chunks, text_chunks);
     }
 }
