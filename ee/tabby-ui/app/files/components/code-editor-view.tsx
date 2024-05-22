@@ -26,6 +26,7 @@ import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 
 import { emitter, LineMenuActionEventPayload } from '../lib/event-emitter'
+import { resolveRepositoryInfoFromPath } from './utils'
 
 interface CodeEditorViewProps {
   value: string
@@ -43,9 +44,14 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const line = searchParams.get('line')?.toString()
   const [editorView, setEditorView] = React.useState<EditorView | null>(null)
 
-  const { isChatEnabled, activePath } = React.useContext(
+  const { isChatEnabled, activePath, fileMap } = React.useContext(
     SourceCodeBrowserContext
   )
+  const { repositorySpecifier, basename } =
+    resolveRepositoryInfoFromPath(activePath)
+  const gitUrl = repositorySpecifier
+    ? fileMap[repositorySpecifier]?.repository?.gitUrl ?? ''
+    : ''
 
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
@@ -83,9 +89,12 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
     if (
       EXP_enable_code_browser_quick_action_bar.value &&
       isChatEnabled &&
-      activePath
+      activePath &&
+      basename
     ) {
-      result.push(ActionBarWidgetExtension({ language, path: activePath }))
+      result.push(
+        ActionBarWidgetExtension({ language, path: basename, gitUrl })
+      )
     }
     if (value && tags) {
       result.push(

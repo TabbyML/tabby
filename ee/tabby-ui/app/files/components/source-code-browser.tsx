@@ -76,6 +76,7 @@ const repositoryListQuery = graphql(/* GraphQL */ `
       id
       name
       kind
+      gitUrl
     }
   }
 `)

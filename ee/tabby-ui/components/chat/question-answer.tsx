@@ -4,11 +4,12 @@
 import React from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
-import { compact, isNil } from 'lodash-es'
+import { isNil } from 'lodash-es'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import type { Context } from 'tabby-chat-panel'
 
+import { filename2prism } from '@/lib/language-utils'
 import {
   AssistantMessage,
   QuestionAnswerPair,
@@ -88,6 +89,15 @@ function QuestionAnswerItem({ message, isLoading }: QuestionAnswerItemProps) {
 function UserMessageCard(props: { message: UserMessage }) {
   const { message } = props
   const { handleMessageAction } = React.useContext(ChatContext)
+  const selectContext = message.selectContext
+  const selectCodeSnippet = React.useMemo(() => {
+    if (!selectContext?.content) return ''
+    const language = selectContext?.filepath
+      ? filename2prism(selectContext?.filepath)[0] ?? ''
+      : ''
+    return `\n${'```'}${language}\n${selectContext?.content ?? ''}\n${'```'}\n`
+  }, [selectContext])
+
   return (
     <div
       className={cn('group relative mb-4 flex items-start md:-ml-12')}
@@ -98,6 +108,7 @@ function UserMessageCard(props: { message: UserMessage }) {
       </div>
       <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
         <MessageMarkdown message={message.message} />
+        {!!selectCodeSnippet && <MessageMarkdown message={selectCodeSnippet} />}
         <ChatMessageActionsWrapper>
           <Button
             variant="ghost"
@@ -133,9 +144,26 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     ...rest
   } = props
 
-  const contexts = React.useMemo(() => {
-    return compact([selectContext, ...(relevantContext ?? [])])
-  }, [selectContext, relevantContext])
+  const contexts: Array<Context> = React.useMemo(() => {
+    return (
+      message?.relevant_code?.map(code => {
+        const start_line = code?.start_line ?? 0
+        const lineCount = code.body.split('\n').length
+        const end_line = start_line + lineCount - 1
+
+        return {
+          kind: 'file',
+          range: {
+            start: start_line,
+            end: end_line
+          },
+          filepath: code.filepath,
+          content: code.body,
+          git_url: code.git_url
+        }
+      }) ?? []
+    )
+  }, [message?.relevant_code])
 
   return (
     <div
@@ -309,12 +337,12 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
     >
       <AccordionItem value="references" className="my-0 border-0">
         <AccordionTrigger className="my-0 py-2">
-          <span className="mr-2">{`Used ${contexts.length} reference${
+          <span className="mr-2">{`Read ${contexts.length} file${
             isMultipleReferences ? 's' : ''
           }`}</span>
         </AccordionTrigger>
         <AccordionContent className="space-y-2">
-          {contexts?.map(item => {
+          {contexts?.map((item, index) => {
             const isMultiLine =
               !isNil(item.range?.start) &&
               !isNil(item.range?.end) &&
@@ -327,7 +355,7 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
             return (
               <div
                 className="cursor-pointer rounded-md border p-2 hover:bg-accent"
-                key={item.filepath}
+                key={index}
                 onClick={e => onNavigateToContext?.(item)}
               >
                 <div className="flex items-center gap-1 overflow-x-auto">

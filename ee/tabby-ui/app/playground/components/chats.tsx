@@ -120,6 +120,7 @@ export default function Chats() {
   const style = isShowDemoBanner
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
+
   return (
     <div className="grid flex-1 overflow-hidden lg:grid-cols-[280px_1fr]">
       <ChatSessions

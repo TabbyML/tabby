@@ -11,6 +11,7 @@ let delayTimer: number
 interface Options {
   language?: string
   path: string
+  gitUrl: string
 }
 
 function ActionBarWidgetExtension(options: Options): Extension {
@@ -69,6 +70,7 @@ function createActionBarWidget(state: EditorState, options: Options): Tooltip {
             lineFrom={lineFrom.number}
             lineTo={lineTo.number}
             path={options?.path}
+            gitUrl={options?.gitUrl}
           />
         )
       }, 1000)
