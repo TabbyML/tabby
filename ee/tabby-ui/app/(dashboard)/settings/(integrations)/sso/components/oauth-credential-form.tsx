@@ -162,6 +162,12 @@ export default function OAuthCredentialForm({
     variables: { provider: providerValue }
   })
 
+  const accessTokenPlaceholder = React.useMemo(() => {
+    if (!isNew) return new Array(36).fill('*').join('')
+
+    return 'e.g. e363c08d7e9ca4e66e723a53f38a21f6a54c1b83'
+  }, [isNew])
+
   return (
     <Form {...form}>
       <div className={cn('grid gap-2', className)} {...props}>
@@ -292,19 +298,19 @@ export default function OAuthCredentialForm({
             name="clientSecret"
             render={({ field }) => (
               <FormItem>
-                <FormLabel required>Client Secret</FormLabel>
+                <FormLabel required={isNew}>Client Secret</FormLabel>
                 <FormControl>
                   <Input
-                    {...field}
-                    placeholder={
-                      isNew
-                        ? 'e.g. e363c08d7e9ca4e66e723a53f38a21f6a54c1b83'
-                        : '*****'
-                    }
+                    className={cn({
+                      'placeholder:translate-y-[10%] !placeholder-foreground':
+                        !isNew
+                    })}
+                    placeholder={accessTokenPlaceholder}
                     autoCapitalize="none"
                     autoComplete="off"
                     autoCorrect="off"
                     type="password"
+                    {...field}
                   />
                 </FormControl>
                 <FormMessage />
