@@ -938,7 +938,7 @@ mod tests {
         service.db.update_user_active(id, false).await.unwrap();
         let setting = service.setting;
 
-        assert!(get_or_create_oauth_user(
+        let res = get_or_create_oauth_user(
             &license,
             &service.db,
             &setting,
@@ -946,8 +946,8 @@ mod tests {
             "test@example.com",
             ""
         )
-        .await
-        .is_err());
+        .await;
+        assert_matches!(res, Err(OAuthError::UserDisabled));
 
         service
             .db
@@ -955,22 +955,25 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(get_or_create_oauth_user(
+        let res = get_or_create_oauth_user(
             &license,
             &service.db,
             &setting,
             &service.mail,
             "example@example.com",
-            "",
+            "Example User",
         )
-        .await
-        .is_ok());
+        .await;
+        assert_matches!(res, Ok(2));
+
+        let user = service.db.get_user(2).await.unwrap().unwrap();
+        assert_eq!(user.email, "example@example.com");
+        assert_eq!(user.name, Some("Example User".into()));
 
         tokio::time::sleep(Duration::milliseconds(50).to_std().unwrap()).await;
-
         assert_eq!(mail.list_mail().await[0].subject, "Welcome to Tabby!");
 
-        assert!(get_or_create_oauth_user(
+        let res = get_or_create_oauth_user(
             &license,
             &service.db,
             &setting,
@@ -978,8 +981,25 @@ mod tests {
             "example@gmail.com",
             "",
         )
-        .await
-        .is_err());
+        .await;
+        assert_matches!(res, Err(OAuthError::UserNotInvited));
+
+        service.db.create_invitation("example@gmail.com".into()).await.unwrap();
+
+        let res = get_or_create_oauth_user(
+            &license,
+            &service.db,
+            &setting,
+            &service.mail,
+            "example@gmail.com",
+            "User 3 by Invitation",
+        )
+        .await;
+        assert_matches!(res, Ok(3));
+
+        let user = service.db.get_user(3).await.unwrap().unwrap();
+        assert_eq!(user.email, "example@gmail.com");
+        assert_eq!(user.name, Some("User 3 by Invitation".into()));
     }
 
     #[tokio::test]

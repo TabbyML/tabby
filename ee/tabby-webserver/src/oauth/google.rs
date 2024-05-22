@@ -178,6 +178,10 @@ mod tests {
     #[test]
     fn test_create_authorization_url() {
         let url = create_authorization_url("client_id", "localhost").unwrap();
-        assert_eq!(url, "https://accounts.google.com/o/oauth2/v2/auth?client_id=client_id&redirect_uri=localhost&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&access_type=offline");
+        assert_eq!(url, "https://accounts.google.com/o/oauth2/v2/auth?client_id=client_id\
+        &redirect_uri=localhost\
+        &response_type=code\
+        &scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile\
+        &access_type=offline");
     }
 }
