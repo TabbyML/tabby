@@ -30,8 +30,8 @@ function ChatPanel() {
     if (iframeRef?.current && token) {
       client?.init({
         fetcherOptions: {
-          authorization: token,
-        },
+          authorization: token
+        }
       })
     }
   }, [iframeRef?.current, client, token])
