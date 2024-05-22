@@ -8,7 +8,12 @@ import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useAllowSelfSignup } from '@/lib/hooks/use-server-info'
 import { useSession, useSignIn } from '@/lib/tabby/auth'
 import fetcher from '@/lib/tabby/fetcher'
-import { IconGitLab, IconGithub, IconGoogle, IconSpinner } from '@/components/ui/icons'
+import {
+  IconGitLab,
+  IconGithub,
+  IconGoogle,
+  IconSpinner
+} from '@/components/ui/icons'
 
 import UserSignInForm from './user-signin-form'
 
