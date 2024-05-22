@@ -19,6 +19,7 @@ import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
 import { useTabbyAnswer } from './use-tabby-answer'
+import { useLatest } from '@/lib/hooks/use-latest'
 
 type ChatContextValue = {
   isLoading: boolean
@@ -271,29 +272,37 @@ function ChatRenderer(
     }
   }
 
-  const sendUserChat = (userMessage: UserMessageWithOptionalId) => {
-    // If no id is provided, set a fallback id.
-    const newUserMessage = {
-      ...userMessage,
-      id: userMessage.id ?? nanoid()
-    }
+  const handleSendUserChat = useLatest(
+    async (userMessage: UserMessageWithOptionalId) => {
+      if (isLoading) return
 
-    const nextQaPairs = [
-      ...qaPairs,
-      {
-        user: newUserMessage,
-        // For placeholder, and it also conveniently handles streaming responses and displays reference context.
-        assistant: {
-          id: nanoid(),
-          message: '',
-          error: undefined
-        }
+      // If no id is provided, set a fallback id.
+      const newUserMessage = {
+        ...userMessage,
+        id: userMessage.id ?? nanoid()
       }
-    ]
 
-    setQaPairs(nextQaPairs)
+      const nextQaPairs = [
+        ...qaPairs,
+        {
+          user: newUserMessage,
+          // For placeholder, and it also conveniently handles streaming responses and displays reference context.
+          assistant: {
+            id: nanoid(),
+            message: '',
+            error: undefined
+          }
+        }
+      ]
 
-    return triggerRequest(generateRequestPayloadFromQaPairs(nextQaPairs))
+      setQaPairs(nextQaPairs)
+
+      return triggerRequest(generateRequestPayloadFromQaPairs(nextQaPairs))
+    }
+  )
+
+  const sendUserChat = async (userMessage: UserMessageWithOptionalId) => {
+    return handleSendUserChat.current?.(userMessage)
   }
 
   const handleSubmit = async (value: string) => {
