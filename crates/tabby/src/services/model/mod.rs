@@ -15,7 +15,7 @@ use crate::fatal;
 
 pub async fn load_chat_completion(chat: &ModelConfig) -> Arc<dyn ChatCompletionStream> {
     match chat {
-        ModelConfig::Http(http) => http_api_bindings::create_chat(http),
+        ModelConfig::Http(http) => http_api_bindings::create_chat(http).await,
 
         ModelConfig::Local(_) => {
             let (engine, PromptInfo { chat_template, .. }) = load_completion(chat).await;
@@ -41,7 +41,7 @@ pub async fn load_code_generation(model: &ModelConfig) -> (Arc<CodeGeneration>, 
 async fn load_completion(model: &ModelConfig) -> (Arc<dyn CompletionStream>, PromptInfo) {
     match model {
         ModelConfig::Http(http) => {
-            let engine = http_api_bindings::create(http);
+            let engine = http_api_bindings::create(http).await;
             (
                 engine,
                 PromptInfo {

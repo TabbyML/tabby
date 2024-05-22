@@ -35,7 +35,7 @@ impl EmbeddingServer {
 
         Self {
             server,
-            embedding: http_api_bindings::create_embedding(&config),
+            embedding: http_api_bindings::create_embedding(&config).await,
         }
     }
 }
@@ -61,7 +61,7 @@ impl CompletionServer {
             .kind("llama.cpp/completion".to_string())
             .build()
             .expect("Failed to create HttpModelConfig");
-        let completion = http_api_bindings::create(&config);
+        let completion = http_api_bindings::create(&config).await;
         Self { server, completion }
     }
 }
@@ -83,7 +83,7 @@ pub async fn create_completion(
 
 pub async fn create_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {
     match config {
-        ModelConfig::Http(http) => http_api_bindings::create_embedding(http),
+        ModelConfig::Http(http) => http_api_bindings::create_embedding(http).await,
         ModelConfig::Local(llama) => {
             if fs::metadata(&llama.model_id).is_ok() {
                 let path = PathBuf::from(&llama.model_id);
