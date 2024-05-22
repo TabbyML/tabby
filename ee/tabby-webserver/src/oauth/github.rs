@@ -35,6 +35,12 @@ struct GithubUserEmail {
     visibility: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct GithubUser {
+    name: String,
+}
+
 pub struct GithubClient {
     client: reqwest::Client,
     auth: Arc<dyn AuthenticationService>,
@@ -87,7 +93,7 @@ impl GithubClient {
 
 #[async_trait]
 impl OAuthClient for GithubClient {
-    async fn fetch_user_email(&self, code: String) -> Result<String> {
+    async fn exchange_code_for_token(&self, code: String) -> Result<String> {
         let credentials = self.read_credential().await?;
         let token_resp = self.exchange_access_token(code, credentials).await?;
         if !token_resp.error.is_empty() {
@@ -97,6 +103,10 @@ impl OAuthClient for GithubClient {
             );
         }
 
+        Ok(token_resp.access_token)
+    }
+
+    async fn fetch_user_email(&self, access_token: &str) -> Result<String> {
         let resp = self
             .client
             .get("https://api.github.com/user/emails")
@@ -104,7 +114,7 @@ impl OAuthClient for GithubClient {
             .header(reqwest::header::ACCEPT, "application/vnd.github+json")
             .header(
                 reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", token_resp.access_token),
+                format!("Bearer {}", access_token),
             )
             .header("X-GitHub-Api-Version", "2022-11-28")
             .send()
@@ -119,6 +129,25 @@ impl OAuthClient for GithubClient {
         }
 
         bail!("No primary email address found");
+    }
+
+    async fn fetch_user_full_name(&self, access_token: &str) -> Result<String> {
+        let resp = self
+            .client
+            .get("https://api.github.com/user")
+            .header(reqwest::header::USER_AGENT, "Tabby")
+            .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+            .header(
+                reqwest::header::AUTHORIZATION,
+                format!("Bearer {}", access_token),
+            )
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .send()
+            .await?;
+
+        let user: serde_json::Value = resp.json().await?;
+        let name = user["name"].as_str().unwrap_or_default();
+        Ok(name.to_string())
     }
 
     async fn get_authorization_url(&self) -> Result<String> {

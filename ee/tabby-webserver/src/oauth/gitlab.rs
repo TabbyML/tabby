@@ -36,6 +36,14 @@ struct GitlabUserEmail {
     error: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct GitlabUserName {
+    #[serde(default)]
+    name: String,
+    error: Option<String>,
+}
+
 pub struct GitlabClient {
     client: reqwest::Client,
     auth: Arc<dyn AuthenticationService>,
@@ -89,7 +97,7 @@ impl GitlabClient {
 
 #[async_trait]
 impl OAuthClient for GitlabClient {
-    async fn fetch_user_email(&self, code: String) -> Result<String> {
+    async fn exchange_code_for_token(&self, code: String) -> Result<String> {
         let credentials = self.read_credential().await?;
         let redirect_uri = self.auth.oauth_callback_url(OAuthProvider::Gitlab).await?;
         let token_resp = self
@@ -109,7 +117,10 @@ impl OAuthClient for GitlabClient {
         if token_resp.access_token.is_empty() {
             bail!("Empty access token from Gitlab OAuth");
         }
+        Ok(token_resp.access_token)
+    }
 
+    async fn fetch_user_email(&self, access_token: &str) -> Result<String> {
         let resp = self
             .client
             .get("https://gitlab.com/api/v4/user")
@@ -117,7 +128,7 @@ impl OAuthClient for GitlabClient {
             .header(reqwest::header::ACCEPT, "application/vnd.gitlab+json")
             .header(
                 reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", token_resp.access_token),
+                format!("Bearer {}", access_token),
             )
             .send()
             .await?;
@@ -127,6 +138,26 @@ impl OAuthClient for GitlabClient {
             bail!("{error}");
         }
         Ok(email.email)
+    }
+
+    async fn fetch_user_full_name(&self, access_token: &str) -> Result<String> {
+        let resp = self
+            .client
+            .get("https://gitlab.com/api/v4/user")
+            .header(reqwest::header::USER_AGENT, "Tabby")
+            .header(reqwest::header::ACCEPT, "application/vnd.gitlab+json")
+            .header(
+                reqwest::header::AUTHORIZATION,
+                format!("Bearer {}", access_token),
+            )
+            .send()
+            .await?;
+
+        let res = resp.json::<GitlabUserName>().await?;
+        if let Some(error) = res.error {
+            bail!("{error}");
+        }
+        Ok(res.name)
     }
 
     async fn get_authorization_url(&self) -> Result<String> {
