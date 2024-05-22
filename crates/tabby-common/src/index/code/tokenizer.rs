@@ -30,3 +30,40 @@ fn make_code_tokenizer() -> TextAnalyzer {
         .filter(RemoveLongFilter::limit(64))
         .build()
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::index::code::tokenizer::tokenize_code;
+
+    /// Empty strings tokens are not participating rag search and therefore could be removed.
+    #[test]
+    fn test_tokenize_code() {
+        let prefix = r#"public static String getFileExtension(String this_is_an_underscore_name) {
+        String fileName = (new File(this_is_an_underscore_name)).getName();
+        int dotIndex = fileName.lastIndexOf('.');
+         }"#;
+
+        // with filter
+        assert_eq!(
+            tokenize_code(prefix),
+            [
+                "public",
+                "static",
+                "String",
+                "getFileExtension",
+                "String",
+                "this_is_an_underscore_name",
+                "String",
+                "fileName",
+                "new",
+                "File",
+                "this_is_an_underscore_name",
+                "getName",
+                "int",
+                "dotIndex",
+                "fileName",
+                "lastIndexOf",
+            ]
+        );
+    }
+}

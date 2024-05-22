@@ -147,36 +147,4 @@ mod tests {
         assert_eq!(lhs.term(), schema.language_query("typescriptreact").term());
         assert_eq!(lhs.term(), schema.language_query("javascriptreact").term());
     }
-
-    /// Empty strings tokens are not participating rag search and therefore could be removed.
-    #[test]
-    fn test_tokenized_text_filter() {
-        let prefix = r#"public static String getFileExtension(String fullName) {
-        String fileName = (new File(fullName)).getName();
-        int dotIndex = fileName.lastIndexOf('.');
-         }"#;
-
-        // with filter
-        assert_eq!(
-            CodeSearchSchema::tokenize_body(prefix),
-            [
-                "public",
-                "static",
-                "String",
-                "getFileExtension",
-                "String",
-                "fullName",
-                "String",
-                "fileName",
-                "new",
-                "File",
-                "fullName",
-                "getName",
-                "int",
-                "dotIndex",
-                "fileName",
-                "lastIndexOf",
-            ]
-        );
-    }
 }
