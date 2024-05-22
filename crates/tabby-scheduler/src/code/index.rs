@@ -74,7 +74,7 @@ fn add_changed_documents(cache: &mut CacheStore, repository: &RepositoryConfig, 
             }
         };
 
-        for (start_line, body) in intelligence.chunks(&text) {
+        for (start_line, body) in intelligence.chunks(&text, &source_file.language) {
             writer
                 .add_document(CodeSearchDocument {
                     filepath: source_file.filepath.clone(),

@@ -74,12 +74,12 @@ impl DocIndex {
         id: String,
         content: String,
     ) -> impl Stream<Item = TantivyDocument> {
-        let splitter = TextSplitter::default().with_trim_chunks(true);
+        let splitter = TextSplitter::new(CHUNK_SIZE);
         let embedding = self.embedding.clone();
 
         stream! {
             let schema = DocSearchSchema::instance();
-            for (chunk_id, chunk_text) in splitter.chunks(&content, CHUNK_SIZE).enumerate() {
+            for (chunk_id, chunk_text) in splitter.chunks(&content).enumerate() {
                 let mut doc = doc! {
                     schema.field_id => id.clone(),
                     schema.field_chunk_id => chunk_id.to_string(),
