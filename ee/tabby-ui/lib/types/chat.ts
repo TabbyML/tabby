@@ -54,7 +54,7 @@ export type CodeSearchDocument = {
   body: string
   filepath: string
   git_url: string
-  language?: string
+  language: string
   start_line?: number
 }
 
