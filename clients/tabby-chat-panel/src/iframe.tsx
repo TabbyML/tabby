@@ -27,7 +27,15 @@ function ChatPanel() {
   }, [])
 
   React.useEffect(() => {
+    window.addEventListener('message', event => {
+      const { data } = event
+      console.log('webview listener data: ', data)
+    })
+  })
+
+  React.useEffect(() => {
     if (iframeRef?.current && token) {
+      console.log('token', token)
       client?.init({
         fetcherOptions: {
           authorization: token,

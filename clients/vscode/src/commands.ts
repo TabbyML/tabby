@@ -19,6 +19,7 @@ import { agent } from "./agent";
 import { notifications } from "./notifications";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
 import { TabbyStatusBarItem } from "./TabbyStatusBarItem";
+import { ChatViewProvider } from "./ChatViewProvider";
 
 const configTarget = ConfigurationTarget.Global;
 
@@ -319,23 +320,42 @@ const resetMutedNotifications = (context: ExtensionContext, statusBarItem: Tabby
   };
 };
 
-const explainCodeBlock: Command = {
-  command: "tabby.experimental.chat.explainCodeBlock",
-  callback: async () => {
-    const editor = window.activeTextEditor;
-    const configuration = agent().getConfig();
-    const serverHost = configuration.server.endpoint;
+const explainCodeBlock = (chatViewProvider: ChatViewProvider): Command => {
+  return {
+    command: "tabby.experimental.chat.explainCodeBlock",
+    callback: async () => {
+      const editor = window.activeTextEditor;
+      const configuration = agent().getConfig();
+      const serverHost = configuration.server.endpoint;
 
-    if (editor) {
-      const { languageId } = editor.document;
-      const language = languageId.startsWith("typescript") ? "typescript" : languageId;
-      const text = editor.document.getText(editor.selection);
-      const encodedText = encodeURIComponent("```" + `${language}\n${text}\n` + "```");
-      await env.openExternal(Uri.parse(`${serverHost}/playground?initialMessage=${encodedText}`));
-    } else {
-      window.showInformationMessage("No active editor");
+      if (editor) {
+        const text = editor.document.getText(editor.selection);
+
+        console.log(editor)
+
+        const configuration = workspace.getConfiguration("tabby");
+
+        commands.executeCommand("tabby.chatView.focus");
+        // chatViewProvider.postMessage({
+        //   command: 'explainThis',
+        //   data: {
+        //     message: "Explain the selected code:",
+        //     selectContext: {
+        //       kind: 'file',
+        //       content: text,
+        //       // range: {
+        //       //   start: lineFrom,
+        //       //   end: lineTo ?? lineFrom
+        //       // },
+        //       // filepath: path
+        //     }
+        //   }
+        // })
+      } else {
+        window.showInformationMessage("No active editor");
+      }
     }
-  },
+  }
 };
 
 const generateCommitMessage: Command = {
@@ -429,6 +449,7 @@ export const tabbyCommands = (
   context: ExtensionContext,
   completionProvider: TabbyCompletionProvider,
   statusBarItem: TabbyStatusBarItem,
+  chatViewProvider: ChatViewProvider
 ) =>
   [
     toggleInlineCompletionTriggerMode,
@@ -448,6 +469,6 @@ export const tabbyCommands = (
     openOnlineHelp,
     muteNotifications(context, statusBarItem),
     resetMutedNotifications(context, statusBarItem),
-    explainCodeBlock,
+    explainCodeBlock(chatViewProvider),
     generateCommitMessage,
   ].map((command) => commands.registerCommand(command.command, command.callback, command.thisArg));

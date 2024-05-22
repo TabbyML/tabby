@@ -1,4 +1,4 @@
-import { commands, Position, Range, SemanticTokens, SemanticTokensLegend, TextDocument } from "vscode";
+import { commands, Position, Range, SemanticTokens, SemanticTokensLegend, TextDocument, Webview, Uri } from "vscode";
 
 export type SemanticSymbolInfo = {
   position: Position;
@@ -132,4 +132,11 @@ export function extractNonReservedWordList(text: string): string {
   return [
     ...new Set(text.match(re)?.filter((symbol) => symbol.length > 2 && !reservedKeywords.includes(symbol))).values(),
   ].join(" ");
+}
+
+/**
+ * A helper function which will get the webview URI of a given file or resource.
+ */
+export function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
+  return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
 }
