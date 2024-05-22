@@ -1,7 +1,5 @@
 use tantivy::{
-    tokenizer::{
-        RegexTokenizer, RemoveLongFilter, TextAnalyzer, TokenStream, Tokenizer,
-    },
+    tokenizer::{RegexTokenizer, RemoveLongFilter, TextAnalyzer, TokenStream, Tokenizer},
     Index,
 };
 
