@@ -34,7 +34,12 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form'
-import { IconSpinner } from '@/components/ui/icons'
+import {
+  IconGitHub,
+  IconGitLab,
+  IconGoogle,
+  IconSpinner
+} from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -181,7 +186,7 @@ export default function OAuthCredentialForm({
                 <FormLabel>Provider</FormLabel>
                 <FormControl>
                   <RadioGroup
-                    className="flex gap-6"
+                    className="flex gap-8"
                     orientation="horizontal"
                     onValueChange={onChange}
                     {...rest}
@@ -192,7 +197,11 @@ export default function OAuthCredentialForm({
                         id="r_github"
                         disabled={!isNew}
                       />
-                      <Label className="cursor-pointer" htmlFor="r_github">
+                      <Label
+                        className="flex cursor-pointer items-center gap-2"
+                        htmlFor="r_github"
+                      >
+                        <IconGitHub className="h-5 w-5" />
                         GitHub
                       </Label>
                     </div>
@@ -202,7 +211,11 @@ export default function OAuthCredentialForm({
                         id="r_google"
                         disabled={!isNew}
                       />
-                      <Label className="cursor-pointer" htmlFor="r_google">
+                      <Label
+                        className="flex cursor-pointer items-center gap-2"
+                        htmlFor="r_google"
+                      >
+                        <IconGoogle className="h-5 w-5" />
                         Google
                       </Label>
                     </div>
@@ -212,7 +225,11 @@ export default function OAuthCredentialForm({
                         id="r_gitlab"
                         disabled={!isNew}
                       />
-                      <Label className="cursor-pointer" htmlFor="r_gitlab">
+                      <Label
+                        className="flex cursor-pointer items-center gap-2"
+                        htmlFor="r_gitlab"
+                      >
+                        <IconGitLab className="h-5 w-5" />
                         GitLab
                       </Label>
                     </div>
@@ -226,7 +243,7 @@ export default function OAuthCredentialForm({
           {oauthRedirectUrlData && (
             <FormItem className="mt-4">
               <div className="flex flex-col gap-2 rounded-lg border px-3 py-2">
-                <div className="text-sm text-muted-foreground">
+                <div className="text-muted-foreground text-sm">
                   Create your OAuth2 application with the following information
                 </div>
                 <div className="flex items-center justify-between">
