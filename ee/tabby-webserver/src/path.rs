@@ -7,11 +7,11 @@ pub fn tabby_ee_root() -> PathBuf {
 }
 
 pub fn db_file() -> PathBuf {
-    if cfg!(feature  =  "prod")  {
+    if cfg!(feature = "prod") {
         tabby_ee_root().join("db.sqlite")
-     } else {
+    } else {
         tabby_ee_root().join("dev-db.sqlite")
-     }
+    }
 }
 
 pub fn job_db_file() -> PathBuf {
