@@ -54,7 +54,11 @@ async fn has_provider(auth: &Arc<dyn AuthenticationService>, x: &OAuthProvider) 
 }
 
 async fn providers_handler(state: State<OAuthState>) -> Json<Vec<OAuthProvider>> {
-    let candidates = vec![OAuthProvider::Google, OAuthProvider::Github, OAuthProvider::Gitlab];
+    let candidates = vec![
+        OAuthProvider::Google,
+        OAuthProvider::Github,
+        OAuthProvider::Gitlab,
+    ];
     let mut providers = vec![];
 
     for x in candidates {
