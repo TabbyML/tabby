@@ -39,10 +39,18 @@ export const ChatContext = React.createContext<ChatContextValue>(
 function toMessages(qaPairs: QuestionAnswerPair[] | undefined): Message[] {
   if (!qaPairs?.length) return []
   let result: Message[] = []
-  for (let pair of qaPairs) {
+
+  const len = qaPairs.length
+  for (let i = 0; i < qaPairs.length; i++) {
+    const pair = qaPairs[i]
     let { user, assistant } = pair
     if (user) {
-      result.push(userMessageToMessage(user))
+      result.push(
+        userMessageToMessage(user, {
+          // if it's not the latest user prompt, the message should include the fileContext converted into a code block.
+          includeTransformedSelectContext: len > 1 && i !== len - 1
+        })
+      )
     }
     if (assistant) {
       result.push({
@@ -55,13 +63,31 @@ function toMessages(qaPairs: QuestionAnswerPair[] | undefined): Message[] {
   return result
 }
 
-function userMessageToMessage(userMessage: UserMessage): Message {
+function userMessageToMessage(
+  userMessage: UserMessage,
+  {
+    includeTransformedSelectContext
+  }: {
+    includeTransformedSelectContext?: boolean
+  }
+): Message {
   const { message, id } = userMessage
   return {
     id,
     role: 'user',
-    content: message
+    content: includeTransformedSelectContext
+      ? message + selectContextToMessageContent(userMessage.selectContext)
+      : message
   }
+}
+
+function selectContextToMessageContent(
+  context: UserMessage['selectContext']
+): string {
+  if (!context || !context.content) return ''
+  const { content, filepath } = context
+  const language = filename2prism(filepath)?.[0]
+  return `\n${'```'}${language ?? ''}\n${content ?? ''}\n${'```'}\n`
 }
 
 export interface ChatRef {
