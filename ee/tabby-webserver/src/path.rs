@@ -7,7 +7,7 @@ pub fn tabby_ee_root() -> PathBuf {
 }
 
 pub fn db_file() -> PathBuf {
-    if cfg!(feature  =  "prod-db")  {
+    if cfg!(feature  =  "prod")  {
         tabby_ee_root().join("db.sqlite")
      } else {
         tabby_ee_root().join("dev-db.sqlite")
@@ -15,7 +15,7 @@ pub fn db_file() -> PathBuf {
 }
 
 pub fn job_db_file() -> PathBuf {
-    if cfg!(feature = "prod-db") {
+    if cfg!(feature = "prod") {
         tabby_ee_root().join("job.sqlite")
     } else {
         tabby_ee_root().join("dev-job.sqlite")
