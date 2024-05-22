@@ -206,6 +206,16 @@ export default function OAuthCredentialForm({
                         Google
                       </Label>
                     </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem
+                        value={OAuthProvider.Gitlab}
+                        id="r_gitlab"
+                        disabled={!isNew}
+                      />
+                      <Label className="cursor-pointer" htmlFor="r_gitlab">
+                        GitLab
+                      </Label>
+                    </div>
                   </RadioGroup>
                 </FormControl>
                 <FormMessage />

@@ -41,11 +41,19 @@ const OAuthCredentialList = () => {
     query: oauthCredential,
     variables: { provider: OAuthProvider.Google }
   })
+  const [{ data: gitlabData, fetching: fetchingGitlab }] = useQuery({
+    query: oauthCredential,
+    variables: { provider: OAuthProvider.Gitlab }
+  })
 
-  const isLoading = fetchingGithub || fetchingGoogle
+  const isLoading = fetchingGithub || fetchingGoogle || fetchingGitlab
   const credentialList = React.useMemo(() => {
-    return compact([githubData?.oauthCredential, googleData?.oauthCredential])
-  }, [githubData, googleData])
+    return compact([
+      githubData?.oauthCredential,
+      googleData?.oauthCredential,
+      gitlabData?.oauthCredential
+    ])
+  }, [githubData, googleData, gitlabData])
 
   const router = useRouter()
   const createButton = (
@@ -100,7 +108,7 @@ const OAuthCredentialList = () => {
           )
         })}
       </div>
-      {credentialList.length < 2 && (
+      {credentialList.length < 3 && (
         <div className="mt-4 flex justify-end">{createButton}</div>
       )}
     </div>
@@ -144,4 +152,4 @@ const OauthCredentialCard = ({
   )
 }
 
-export { OAuthCredentialList as OauthCredentialList }
+export { OAuthCredentialList }
