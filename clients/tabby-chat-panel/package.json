@@ -33,8 +33,8 @@
   "scripts": {
     "build": "unbuild",
     "dev": "unbuild --stub",
-    "lint": "eslint . -f mo",
-    "lint:fix": "eslint . -f mo --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "prepack": "nr build",
     "preview": "node --watch bin/index.js",
     "release": "bumpp && npm publish",
@@ -42,8 +42,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "build:vscode": "yarn && esbuild src/vscode.tsx --bundle --minify --outfile=../vscode/chat-panel/index.js --loader:.js=jsx",
-    "dev:vscode": "esbuild src/vscode.tsx --bundle --outfile=../vscode/chat-panel/index.js --loader:.js=jsx --watch"
+    "build:vscode": "esbuild src/iframe.tsx --bundle --minify --outfile=../vscode/chat-panel/index.js --loader:.js=jsx",
+    "dev:vscode": "esbuild src/iframe.tsx --bundle --outfile=../vscode/chat-panel/index.js --loader:.js=jsx --watch"
   },
   "dependencies": {
     "@quilted/threads": "^2.1.2",
@@ -60,6 +60,7 @@
     "eslint": "^9.1.1",
     "eslint-formatter-mo": "^1.2.0",
     "lint-staged": "^15.2.2",
+    "prettier": "^3.2.5",
     "rimraf": "^5.0.5",
     "tsx": "^4.7.3",
     "typescript": "^5.4.5",

@@ -239,6 +239,9 @@ importers:
       lint-staged:
         specifier: ^15.2.2
         version: 15.2.4
+      prettier:
+        specifier: ^3.2.5
+        version: 3.2.5
       rimraf:
         specifier: ^5.0.5
         version: 5.0.7
