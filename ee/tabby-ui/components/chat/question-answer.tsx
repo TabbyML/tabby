@@ -337,7 +337,7 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
     >
       <AccordionItem value="references" className="my-0 border-0">
         <AccordionTrigger className="my-0 py-2">
-          <span className="mr-2">{`Read ${contexts.length} reference${
+          <span className="mr-2">{`Read ${contexts.length} file${
             isMultipleReferences ? 's' : ''
           }`}</span>
         </AccordionTrigger>
