@@ -110,6 +110,8 @@ impl AnswerService {
                 yield AnswerResponseChunk::RelevantDocuments(relevant_docs.clone());
             }
 
+            return;
+
             if !relevant_code.is_empty() || !relevant_docs.is_empty() {
                 if req.generate_relevant_questions {
                     // 3. Generate relevant questions from the query

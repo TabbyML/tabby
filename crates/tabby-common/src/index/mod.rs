@@ -4,24 +4,25 @@ use std::borrow::Cow;
 pub use code::{register_tokenizers, CodeSearchSchema};
 
 mod doc;
-pub use doc::DocSearchSchema;
+pub use doc::{webdoc, DocSearchSchema};
 use tantivy::{
     query::{BooleanQuery, ConstScoreQuery, Query, TermQuery},
     schema::{Field, IndexRecordOption},
     Term,
 };
 
-fn new_multiterms_const_query<'a>(
+fn new_multiterms_const_query_with_path<'a>(
     field: Field,
     embedding_dims: usize,
+    path: &str,
     terms: impl Iterator<Item = Cow<'a, str>> + 'a,
 ) -> BooleanQuery {
     let subqueries: Vec<Box<dyn Query>> = terms
-        .map(|term| {
-            let term_query: Box<dyn Query> = Box::new(TermQuery::new(
-                Term::from_field_text(field, term.as_ref()),
-                IndexRecordOption::Basic,
-            ));
+        .map(|text| {
+            let mut term = Term::from_field_json_path(field, path, false);
+            term.append_type_and_str(text.as_ref());
+            let term_query: Box<dyn Query> =
+                Box::new(TermQuery::new(term, IndexRecordOption::Basic));
 
             let score = 1.0 / embedding_dims as f32;
             let boxed: Box<dyn Query> = Box::new(ConstScoreQuery::new(term_query, score));
@@ -35,35 +36,42 @@ fn new_multiterms_const_query<'a>(
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
     use tantivy::{
         collector::TopDocs,
+        doc,
         query::Query,
         schema::{Schema, STRING},
-        Index, IndexWriter, TantivyDocument,
+        Index, IndexWriter,
     };
 
     use super::*;
 
+    const PATH: &str = "attr";
+
     #[test]
     fn test_new_multiterms_const_query() -> anyhow::Result<()> {
         let mut schema_builder = Schema::builder();
-        let field1 = schema_builder.add_text_field("field1", STRING);
+        let field1 = schema_builder.add_json_field("field1", STRING);
         let schema = schema_builder.build();
         let index = Index::create_in_ram(schema);
         {
             let mut index_writer: IndexWriter = index.writer(15_000_000)?;
 
             // doc1
-            let mut doc = TantivyDocument::new();
-            doc.add_text(field1, "value1");
-            doc.add_text(field1, "value2");
-            doc.add_text(field1, "value3");
+            let doc = doc!(
+                field1 => json!({
+                        PATH: vec!["value1", "value2", "value3"]
+                })
+            );
             index_writer.add_document(doc)?;
 
             // doc2
-            let mut doc = TantivyDocument::new();
-            doc.add_text(field1, "value2");
-            doc.add_text(field1, "value4");
+            let doc = doc!(
+                field1 => json!({
+                        PATH: vec!["value2", "value4"]
+                })
+            );
             index_writer.add_document(doc)?;
 
             index_writer.commit()?;
@@ -72,9 +80,10 @@ mod tests {
         let searcher = reader.searcher();
 
         {
-            let query = new_multiterms_const_query(
+            let query = new_multiterms_const_query_with_path(
                 field1,
                 4,
+                PATH,
                 vec!["value1", "value3"].into_iter().map(Cow::Borrowed),
             );
 
@@ -86,9 +95,10 @@ mod tests {
         }
 
         {
-            let query = new_multiterms_const_query(
+            let query = new_multiterms_const_query_with_path(
                 field1,
                 4,
+                PATH,
                 vec!["value1", "value2", "value3"]
                     .into_iter()
                     .map(Cow::Borrowed),

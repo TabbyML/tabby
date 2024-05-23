@@ -2,7 +2,12 @@ use std::sync::Arc;
 
 use async_stream::stream;
 use futures::{Stream, StreamExt};
-use tabby_common::{index::DocSearchSchema, path};
+use serde::Serialize;
+use serde_json::json;
+use tabby_common::{
+    index::{webdoc, DocSearchSchema},
+    path,
+};
 use tabby_inference::Embedding;
 use tantivy::{doc, IndexWriter, TantivyDocument, Term};
 use text_splitter::TextSplitter;
@@ -20,6 +25,11 @@ pub struct SourceDocument {
 pub struct DocIndex {
     embedding: Arc<dyn Embedding>,
     writer: IndexWriter,
+}
+
+#[derive(Serialize)]
+struct ChunkAttributes {
+    text: String,
 }
 
 const CHUNK_SIZE: usize = 2048;
@@ -62,8 +72,10 @@ impl DocIndex {
 
         let doc = doc! {
             doc.field_id => document.id,
-            doc.field_title => document.title,
-            doc.field_link => document.link,
+            doc.field_attributes => json!({
+                webdoc::fields::TITLE: document.title,
+                webdoc::fields::LINK: document.link,
+            }),
             doc.field_updated_at => updated_at,
         };
 
@@ -84,13 +96,6 @@ impl DocIndex {
         stream! {
             let schema = DocSearchSchema::instance();
             for (chunk_id, chunk_text) in splitter.chunks(&content, CHUNK_SIZE).enumerate() {
-                let mut doc = doc! {
-                    schema.field_id => id.clone(),
-                    schema.field_updated_at => updated_at,
-                    schema.field_chunk_id => chunk_id.to_string(),
-                    schema.field_chunk_text => chunk_text.to_owned(),
-                };
-
                 let embedding = match embedding.embed(chunk_text).await {
                     Ok(embedding) => embedding,
                     Err(err) => {
@@ -99,9 +104,21 @@ impl DocIndex {
                     }
                 };
 
+                let mut chunk_embedding_tokens = vec![];
                 for token in DocSearchSchema::binarize_embedding(embedding.iter()) {
-                    doc.add_text(schema.field_chunk_embedding_token, token);
+                    chunk_embedding_tokens.push(token);
                 }
+
+                let doc = doc! {
+                    schema.field_id => id.clone(),
+                    schema.field_updated_at => updated_at,
+                    schema.field_chunk_id => format!("{}-{}", id, chunk_id),
+                    schema.field_chunk_attributes => json!({
+                        // FIXME: tokenize chunk text
+                        webdoc::fields::CHUNK_TEXT: chunk_text,
+                        webdoc::fields::CHUNK_EMBEDDING: chunk_embedding_tokens,
+                    })
+                };
 
                 yield doc;
             }
@@ -125,8 +142,13 @@ impl DocIndex {
 
 #[cfg(test)]
 mod tests {
+    use core::panic;
+
     use async_trait::async_trait;
-    use tantivy::schema::Value;
+    use tantivy::schema::{
+        document::{CompactDocValue, ReferenceValue},
+        Field, Value,
+    };
 
     use super::*;
 
@@ -151,6 +173,18 @@ mod tests {
         doc.get_first(field).unwrap().as_str().unwrap().to_string()
     }
 
+    fn get_json_array_field<'a>(
+        doc: &'a TantivyDocument,
+        field: Field,
+        name: &str,
+    ) -> impl Iterator<Item = CompactDocValue<'a>> {
+        let ReferenceValue::Object(object) = doc.get_first(field).unwrap() else {
+            panic!("Field {:?} is not an array", field);
+        };
+        let pair = object.into_iter().find(|(key, _)| *key == name).unwrap();
+        pair.1.as_array().unwrap()
+    }
+
     #[tokio::test]
     async fn test_iter_docs() {
         let index = new_test_index();
@@ -168,18 +202,24 @@ mod tests {
         // Check document
         assert_eq!("test", get_text(&docs[0], schema.field_id));
         assert!(is_empty(&docs[0], schema.field_chunk_id));
-        assert!(is_empty(&docs[0], schema.field_chunk_text));
-        assert!(is_empty(&docs[0], schema.field_chunk_embedding_token));
+        assert!(is_empty(&docs[0], schema.field_chunk_attributes));
 
         // Check chunks.
         assert_eq!("test", get_text(&docs[1], schema.field_id));
-        assert!(is_empty(&docs[1], schema.field_title));
-        assert!(is_empty(&docs[1], schema.field_link));
+        assert!(is_empty(&docs[1], schema.field_attributes));
 
         assert_eq!("0", get_text(&docs[1], schema.field_chunk_id));
         assert_eq!(
             "embedding_zero_0",
-            get_text(&docs[1], schema.field_chunk_embedding_token)
+            get_json_array_field(
+                &docs[1],
+                schema.field_chunk_attributes,
+                webdoc::fields::CHUNK_EMBEDDING
+            )
+            .next()
+            .unwrap()
+            .as_str()
+            .unwrap()
         );
     }
 }

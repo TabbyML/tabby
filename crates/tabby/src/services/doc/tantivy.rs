@@ -4,13 +4,13 @@ use anyhow::Result;
 use async_trait::async_trait;
 use tabby_common::{
     api::doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse},
-    index::{self},
+    index::{self, webdoc},
     path,
 };
 use tabby_inference::Embedding;
 use tantivy::{
     collector::TopDocs,
-    schema::{self, Value},
+    schema::{self, document::ReferenceValue, Value},
     Index, IndexReader, TantivyDocument,
 };
 use tokio::{sync::RwLock, time::sleep};
@@ -67,7 +67,11 @@ impl DocSearch for DocSearchImpl {
             .filter_map(|(score, chunk_address)| {
                 let chunk: TantivyDocument = searcher.doc(*chunk_address).ok()?;
                 let doc_id = get_text(&chunk, schema.field_id);
-                let chunk_text = get_text(&chunk, schema.field_chunk_text);
+                let chunk_text = get_json_text_field(
+                    &chunk,
+                    schema.field_chunk_attributes,
+                    webdoc::fields::CHUNK_TEXT,
+                );
 
                 let doc_query = schema.doc_query(doc_id);
                 let top_docs = match searcher.search(&doc_query, &TopDocs::with_limit(1)) {
@@ -79,8 +83,9 @@ impl DocSearch for DocSearchImpl {
                 };
                 let (_, doc_address) = top_docs.first()?;
                 let doc: TantivyDocument = searcher.doc(*doc_address).ok()?;
-                let title = get_text(&doc, schema.field_title);
-                let link = get_text(&doc, schema.field_link);
+                let title =
+                    get_json_text_field(&doc, schema.field_attributes, webdoc::fields::TITLE);
+                let link = get_json_text_field(&doc, schema.field_attributes, webdoc::fields::LINK);
 
                 Some(DocSearchHit {
                     doc: DocSearchDocument {
@@ -99,6 +104,18 @@ impl DocSearch for DocSearchImpl {
 
 fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
     doc.get_first(field).unwrap().as_str().unwrap()
+}
+
+fn get_json_text_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name: &str) -> &'a str {
+    let ReferenceValue::Object(obj) = doc.get_first(field).unwrap() else {
+        panic!("Field {} is not an object", name);
+    };
+    obj.into_iter()
+        .find(|(k, _)| *k == name)
+        .unwrap()
+        .1
+        .as_str()
+        .unwrap()
 }
 
 pub struct DocSearchService {

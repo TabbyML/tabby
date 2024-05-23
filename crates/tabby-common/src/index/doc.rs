@@ -3,11 +3,25 @@ use std::borrow::Cow;
 use lazy_static::lazy_static;
 use tantivy::{
     query::{BooleanQuery, ExistsQuery, Occur, TermQuery},
-    schema::{Field, Schema, FAST, INDEXED, STORED, STRING},
+    schema::{Field, JsonObjectOptions, Schema, TextFieldIndexing, FAST, INDEXED, STORED, STRING},
+    tokenizer::Tokenizer,
     Term,
 };
 
-use super::new_multiterms_const_query;
+use super::new_multiterms_const_query_with_path;
+
+pub mod webdoc {
+    pub mod fields {
+        pub const TITLE: &str = "title";
+        pub const LINK: &str = "link";
+        pub const CHUNK_TEXT: &str = "chunk_text";
+
+        // Binarized embedding tokens with the following mapping:
+        // * [-1, 0] -> 0
+        // * (0, 1] -> 1
+        pub const CHUNK_EMBEDDING: &str = "chunk_embedding";
+    }
+}
 
 pub struct DocSearchSchema {
     pub schema: Schema,
@@ -17,16 +31,11 @@ pub struct DocSearchSchema {
     pub field_updated_at: Field,
 
     // === Fields for document ===
-    pub field_title: Field,
-    pub field_link: Field,
+    pub field_attributes: Field,
 
     // === Fields for chunk ===
     pub field_chunk_id: Field,
-    pub field_chunk_text: Field,
-    // Binarized embedding tokens with the following mapping:
-    // * [-1, 0] -> 0
-    // * (0, 1] -> 1
-    pub field_chunk_embedding_token: Field,
+    pub field_chunk_attributes: Field,
 }
 
 const FIELD_CHUNK_ID: &str = "chunk_id";
@@ -40,26 +49,33 @@ impl DocSearchSchema {
         let mut builder = Schema::builder();
 
         let field_id = builder.add_text_field("id", STRING | STORED);
-        let field_title = builder.add_text_field("title", STORED);
-        let field_link = builder.add_text_field("link", STORED);
-        let field_indexed_at = builder.add_date_field("indexed_at", INDEXED);
+        let field_updated_at = builder.add_date_field("updated_at", INDEXED);
+        let field_attributes = builder.add_text_field("attributes", STORED);
 
         let field_chunk_id = builder.add_text_field(FIELD_CHUNK_ID, STRING | FAST | STORED);
-        let field_chunk_text = builder.add_text_field("chunk_text", STORED);
-        let field_chunk_embedding_token = builder.add_text_field("chunk_embedding_token", STRING);
+        let field_chunk_attributes = builder.add_json_field(
+            "chunk_attributes",
+            JsonObjectOptions::default()
+                .set_stored()
+                .set_indexing_options(
+                    TextFieldIndexing::default()
+                        .set_tokenizer("raw")
+                        .set_fieldnorms(true)
+                        .set_index_option(tantivy::schema::IndexRecordOption::Basic)
+                        .set_fieldnorms(true),
+                ),
+        );
 
         let schema = builder.build();
 
         Self {
             schema,
             field_id,
-            field_title,
-            field_link,
-            field_updated_at: field_indexed_at,
+            field_updated_at,
+            field_attributes,
 
             field_chunk_id,
-            field_chunk_text,
-            field_chunk_embedding_token,
+            field_chunk_attributes,
         }
     }
 
@@ -82,7 +98,12 @@ impl DocSearchSchema {
     ) -> BooleanQuery {
         let iter = DocSearchSchema::binarize_embedding(embedding).map(Cow::Owned);
 
-        new_multiterms_const_query(self.field_chunk_embedding_token, embedding_dims, iter)
+        new_multiterms_const_query_with_path(
+            self.field_chunk_attributes,
+            embedding_dims,
+            webdoc::fields::CHUNK_EMBEDDING,
+            iter,
+        )
     }
 
     /// Build a query to find the document with the given `doc_id`.
