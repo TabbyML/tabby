@@ -3,14 +3,6 @@ use tantivy::{
     Index,
 };
 
-pub static CODE_TOKENIZER: &str = "code";
-
-pub fn register_tokenizers(index: &Index) {
-    index
-        .tokenizers()
-        .register(CODE_TOKENIZER, make_code_tokenizer());
-}
-
 pub fn tokenize_code(text: &str) -> Vec<String> {
     let mut code_tokenizer = make_code_tokenizer();
     let mut tokens = vec![];

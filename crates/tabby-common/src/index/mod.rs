@@ -1,7 +1,7 @@
 mod code;
 use std::borrow::Cow;
 
-pub use code::{register_tokenizers, CodeSearchSchema};
+pub use code::{CodeSearchSchema};
 
 mod doc;
 pub use doc::{webcode, webdoc, DocSearchSchema};

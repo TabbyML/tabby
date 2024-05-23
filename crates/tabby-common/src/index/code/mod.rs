@@ -1,68 +1,20 @@
-mod document;
 mod tokenizer;
 
+use crate::api::code::CodeSearchQuery;
 use lazy_static::lazy_static;
 use tantivy::{
     query::{BooleanQuery, BoostQuery, ConstScoreQuery, Occur, Query, TermQuery},
     schema::{Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, STRING},
     Term,
 };
-pub use tokenizer::register_tokenizers;
 
-use self::tokenizer::tokenize_code;
-use crate::api::code::CodeSearchQuery;
+use super::{webcode, DocSearchSchema};
 
-pub struct CodeSearchSchema {
-    pub schema: Schema,
-    pub field_git_url: Field,
-    pub field_filepath: Field,
-    pub field_file_id: Field,
-    pub field_language: Field,
-    pub field_body: Field,
-    pub field_start_line: Field,
-}
-
-impl CodeSearchSchema {
-    fn new() -> Self {
-        let mut builder = Schema::builder();
-
-        let code_indexing_options = TextFieldIndexing::default()
-            .set_tokenizer(tokenizer::CODE_TOKENIZER)
-            .set_index_option(tantivy::schema::IndexRecordOption::Basic);
-        let code_options = TextOptions::default()
-            .set_indexing_options(code_indexing_options)
-            .set_stored();
-
-        let field_git_url = builder.add_text_field("git_url", STRING | STORED);
-        let field_filepath = builder.add_text_field("filepath", STRING | STORED);
-        let field_source_file_key = builder.add_text_field("file_id", STRING | STORED);
-        let field_language = builder.add_text_field("language", STRING | STORED);
-        let field_body = builder.add_text_field("body", code_options);
-        let field_start_line = builder.add_u64_field("start_line", STORED);
-        let schema = builder.build();
-
-        Self {
-            schema,
-            field_git_url,
-            field_filepath,
-            field_file_id: field_source_file_key,
-            field_language,
-            field_body,
-            field_start_line,
-        }
-    }
-
-    pub fn instance() -> &'static Self {
-        &CODE_SEARCH_SCHEMA
-    }
-}
-
-lazy_static! {
-    static ref CODE_SEARCH_SCHEMA: CodeSearchSchema = CodeSearchSchema::new();
-}
+pub struct CodeSearchSchema;
 
 impl CodeSearchSchema {
     fn language_query(&self, language: &str) -> Box<TermQuery> {
+        let schema = DocSearchSchema::instance();
         let language = match language {
             "javascript" | "typescript" | "javascriptreact" | "typescriptreact" => {
                 "javascript-typescript"
@@ -70,33 +22,60 @@ impl CodeSearchSchema {
             _ => language,
         };
 
-        Box::new(TermQuery::new(
-            Term::from_field_text(self.field_language, language),
-            IndexRecordOption::Basic,
-        ))
+        let mut term = Term::from_field_json_path(
+            schema.field_chunk_attributes,
+            webcode::fields::CHUNK_LANGUAGE,
+            false,
+        );
+        term.append_type_and_str(language);
+        Box::new(TermQuery::new(term, IndexRecordOption::Basic))
     }
 
     fn body_query(&self, tokens: &[String]) -> Box<dyn Query> {
-        Box::new(BooleanQuery::new_multiterms_query(
-            tokens
-                .iter()
-                .map(|x| Term::from_field_text(self.field_body, x))
-                .collect(),
-        ))
+        let schema = DocSearchSchema::instance();
+        let subqueries: Vec<Box<dyn Query>> = tokens
+            .iter()
+            .map(|text| {
+                let mut term = Term::from_field_json_path(
+                    schema.field_chunk_attributes,
+                    webcode::fields::CHUNK_TOKENIZED_BODY,
+                    false,
+                );
+                term.append_type_and_str(text.as_ref());
+                let term_query: Box<dyn Query> =
+                    Box::new(TermQuery::new(term, IndexRecordOption::Basic));
+
+                term_query
+            })
+            .collect();
+
+        Box::new(BooleanQuery::union(subqueries))
     }
 
     fn git_url_query(&self, git_url: &str) -> Box<TermQuery> {
-        Box::new(TermQuery::new(
-            Term::from_field_text(self.field_git_url, git_url),
-            IndexRecordOption::Basic,
-        ))
+        let schema = DocSearchSchema::instance();
+        let mut term = Term::from_field_json_path(
+            schema.field_chunk_attributes,
+            webcode::fields::CHUNK_GIT_URL,
+            false,
+        );
+        term.append_type_and_str(git_url);
+        Box::new(TermQuery::new(term, IndexRecordOption::Basic))
     }
 
     fn filepath_query(&self, filepath: &str) -> Box<TermQuery> {
-        Box::new(TermQuery::new(
-            Term::from_field_text(self.field_filepath, filepath),
-            IndexRecordOption::Basic,
-        ))
+        let schema = DocSearchSchema::instance();
+        let mut term = Term::from_field_json_path(
+            schema.field_chunk_attributes,
+            webcode::fields::CHUNK_FILEPATH,
+            false,
+        );
+        term.append_type_and_str(filepath);
+        Box::new(TermQuery::new(term, IndexRecordOption::Basic))
+    }
+
+    pub fn tokenize_code(code: &str) -> Vec<String> {
+        tokenizer::tokenize_code(code)
     }
 
     pub fn code_search_query(&self, query: &CodeSearchQuery) -> BooleanQuery {
@@ -104,7 +83,7 @@ impl CodeSearchSchema {
         let git_url_query = self.git_url_query(&query.git_url);
 
         // Create body query with a scoring normalized by the number of tokens.
-        let body_tokens = tokenize_code(&query.content);
+        let body_tokens = Self::tokenize_code(&query.content);
         let body_query = self.body_query(&body_tokens);
         let normalized_score_body_query =
             BoostQuery::new(body_query, 1.0 / body_tokens.len() as f32);
@@ -140,7 +119,7 @@ mod tests {
 
     #[test]
     fn test_language_query() {
-        let schema = CodeSearchSchema::instance();
+        let schema = CodeSearchSchema;
         let lhs = schema.language_query("javascript-typescript");
         assert_eq!(lhs.term(), schema.language_query("javascript").term());
         assert_eq!(lhs.term(), schema.language_query("typescript").term());

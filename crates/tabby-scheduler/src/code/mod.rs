@@ -2,7 +2,10 @@ use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use serde_json::json;
-use tabby_common::{config::RepositoryConfig, index::webcode};
+use tabby_common::{
+    config::RepositoryConfig,
+    index::{webcode, CodeSearchSchema},
+};
 use tracing::{info, warn};
 
 use self::{cache::SourceFileKey, intelligence::SourceCode};
@@ -85,8 +88,8 @@ impl DocumentBuilder<SourceCode> for CodeBuilder {
                     webcode::fields::CHUNK_FILEPATH: source_file.filepath,
                     webcode::fields::CHUNK_GIT_URL: source_file.git_url,
                     webcode::fields::CHUNK_LANGUAGE: source_file.language,
-                    // FIXME: tokenize the body
-                    webcode::fields::CHUNK_BODY: body,
+                    webcode::fields::CHUNK_TOKENIZED_BODY:  CodeSearchSchema::tokenize_code(body),
+                    webcode::fields::CHUNK_BODY:  body,
                     webcode::fields::CHUNK_START_LINE: start_line,
                 });
             }

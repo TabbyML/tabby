@@ -122,7 +122,6 @@ async fn doc_index_pipeline(config: &tabby_common::config::Config) {
 mod tantivy_utils {
     use std::{fs, path::Path};
 
-    use tabby_common::index::register_tokenizers;
     use tantivy::{directory::MmapDirectory, schema::Schema, Index};
     use tracing::{debug, warn};
 
@@ -144,7 +143,6 @@ mod tantivy_utils {
                 )
             }
         };
-        register_tokenizers(&index);
         (recreated, index)
     }
 
