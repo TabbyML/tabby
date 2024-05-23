@@ -13,7 +13,7 @@ use tantivy::{
     Term,
 };
 
-pub struct DocSearchSchema {
+pub struct IndexSchema {
     pub schema: Schema,
 
     // === Fields for both document and chunk ===
@@ -32,9 +32,9 @@ pub struct DocSearchSchema {
 
 const FIELD_CHUNK_ID: &str = "chunk_id";
 
-impl DocSearchSchema {
+impl IndexSchema {
     pub fn instance() -> &'static Self {
-        &DOC_SEARCH_SCHEMA
+        &INDEX_SCHEMA
     }
 
     fn new() -> Self {
@@ -93,7 +93,7 @@ impl DocSearchSchema {
 }
 
 lazy_static! {
-    static ref DOC_SEARCH_SCHEMA: DocSearchSchema = DocSearchSchema::new();
+    static ref INDEX_SCHEMA: IndexSchema = IndexSchema::new();
 }
 
 pub fn binarize_embedding<'a>(
@@ -112,7 +112,7 @@ pub fn embedding_tokens_query<'a>(
     embedding_dims: usize,
     embedding: impl Iterator<Item = &'a f32> + 'a,
 ) -> BooleanQuery {
-    let schema = DocSearchSchema::instance();
+    let schema = IndexSchema::instance();
     let iter = binarize_embedding(embedding).map(Cow::Owned);
     new_multiterms_const_query(schema.field_chunk_tokens, embedding_dims, iter)
 }

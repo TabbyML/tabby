@@ -51,7 +51,7 @@ impl DocSearch for DocSearchImpl {
         limit: usize,
         offset: usize,
     ) -> Result<DocSearchResponse, DocSearchError> {
-        let schema = index::DocSearchSchema::instance();
+        let schema = index::IndexSchema::instance();
         let embedding = self.embedding.embed(q).await?;
         let embedding_tokens_query =
             index::embedding_tokens_query(embedding.len(), embedding.iter());

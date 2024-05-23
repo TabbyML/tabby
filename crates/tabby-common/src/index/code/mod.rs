@@ -6,7 +6,7 @@ use tantivy::{
 };
 pub use tokenizer::tokenize_code;
 
-use super::DocSearchSchema;
+use super::IndexSchema;
 use crate::api::code::CodeSearchQuery;
 
 pub mod fields {
@@ -18,7 +18,7 @@ pub mod fields {
 }
 
 fn language_query(language: &str) -> Box<TermQuery> {
-    let schema = DocSearchSchema::instance();
+    let schema = IndexSchema::instance();
     let language = match language {
         "javascript" | "typescript" | "javascriptreact" | "typescriptreact" => {
             "javascript-typescript"
@@ -33,7 +33,7 @@ fn language_query(language: &str) -> Box<TermQuery> {
 }
 
 fn body_query(tokens: &[String]) -> Box<dyn Query> {
-    let schema = DocSearchSchema::instance();
+    let schema = IndexSchema::instance();
     let subqueries: Vec<Box<dyn Query>> = tokens
         .iter()
         .map(|text| {
@@ -49,7 +49,7 @@ fn body_query(tokens: &[String]) -> Box<dyn Query> {
 }
 
 fn git_url_query(git_url: &str) -> Box<TermQuery> {
-    let schema = DocSearchSchema::instance();
+    let schema = IndexSchema::instance();
     let mut term =
         Term::from_field_json_path(schema.field_chunk_attributes, fields::CHUNK_GIT_URL, false);
     term.append_type_and_str(git_url);
@@ -57,7 +57,7 @@ fn git_url_query(git_url: &str) -> Box<TermQuery> {
 }
 
 fn filepath_query(filepath: &str) -> Box<TermQuery> {
-    let schema = DocSearchSchema::instance();
+    let schema = IndexSchema::instance();
     let mut term =
         Term::from_field_json_path(schema.field_chunk_attributes, fields::CHUNK_FILEPATH, false);
     term.append_type_and_str(filepath);

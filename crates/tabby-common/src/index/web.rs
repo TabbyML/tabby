@@ -6,7 +6,7 @@ use tantivy::{
     Term,
 };
 
-use super::DocSearchSchema;
+use super::IndexSchema;
 
 pub mod fields {
     pub const TITLE: &str = "title";
@@ -40,7 +40,7 @@ pub fn embedding_tokens_query<'a>(
     embedding_dims: usize,
     embedding: impl Iterator<Item = &'a f32> + 'a,
 ) -> BooleanQuery {
-    let schema = DocSearchSchema::instance();
+    let schema = IndexSchema::instance();
     let iter = binarize_embedding(embedding).map(Cow::Owned);
     new_multiterms_const_query(schema.field_chunk_tokens, embedding_dims, iter)
 }

@@ -10,7 +10,7 @@ use tabby_common::{
         CodeSearchResponse,
     },
     config::{RepositoryAccess, RepositoryConfig},
-    index::{code, DocSearchSchema},
+    index::{code, IndexSchema},
     path,
 };
 use tantivy::{
@@ -57,7 +57,7 @@ impl CodeSearchImpl {
     }
 
     fn create_hit(&self, score: f32, doc: TantivyDocument) -> CodeSearchHit {
-        let schema = DocSearchSchema::instance();
+        let schema = IndexSchema::instance();
         let doc = CodeSearchDocument {
             file_id: get_text(&doc, schema.field_id).to_owned(),
             body: get_json_text_field(

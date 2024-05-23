@@ -1,5 +1,5 @@
 use futures::{stream::BoxStream, Stream, StreamExt};
-use tabby_common::{index::DocSearchSchema, path};
+use tabby_common::{index::IndexSchema, path};
 use tantivy::{doc, IndexWriter, TantivyDocument, Term};
 
 use crate::tantivy_utils::open_or_create_index;
@@ -22,7 +22,7 @@ pub struct DocIndex<T> {
 
 impl<T> DocIndex<T> {
     pub fn new(builder: impl DocumentBuilder<T> + 'static) -> Self {
-        let doc = DocSearchSchema::instance();
+        let doc = IndexSchema::instance();
         let (_, index) = open_or_create_index(&doc.schema, &path::index_dir());
         let writer = index
             .writer(150_000_000)
@@ -47,7 +47,7 @@ impl<T> DocIndex<T> {
     }
 
     async fn iter_docs(&self, document: T) -> impl Stream<Item = TantivyDocument> + '_ {
-        let schema = DocSearchSchema::instance();
+        let schema = IndexSchema::instance();
         let id = self.builder.build_id(&document).await;
 
         // Delete the document if it already exists
@@ -72,7 +72,7 @@ impl<T> DocIndex<T> {
         updated_at: tantivy::DateTime,
         document: T,
     ) -> impl Stream<Item = TantivyDocument> + '_ {
-        let schema = DocSearchSchema::instance();
+        let schema = IndexSchema::instance();
         self.builder
             .build_chunk_attributes(&document)
             .await
@@ -95,7 +95,7 @@ impl<T> DocIndex<T> {
 
     pub fn delete(&self, id: &str) {
         self.writer.delete_term(Term::from_field_text(
-            DocSearchSchema::instance().field_id,
+            IndexSchema::instance().field_id,
             &self.builder.format_id(id),
         ));
     }
