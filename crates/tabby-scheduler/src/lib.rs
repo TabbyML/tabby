@@ -17,6 +17,8 @@ use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{debug, info, warn};
 
+use crate::doc::create_web_index;
+
 pub async fn scheduler<T: RepositoryAccess + 'static>(
     now: bool,
     config: &tabby_common::config::Config,
@@ -96,7 +98,7 @@ async fn doc_index_pipeline(config: &tabby_common::config::Config) {
         let embedding = embedding.clone();
         stream! {
             let mut num_docs = 0;
-            let mut doc_index = DocIndex::new(embedding);
+            let mut doc_index = create_web_index(embedding.clone());
             for await doc in crawl_pipeline(url).await {
                 let source_doc = SourceDocument {
                     id: doc.url.clone(),

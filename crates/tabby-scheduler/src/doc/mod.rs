@@ -1,19 +1,21 @@
+mod web;
+
 use std::sync::Arc;
 
-use async_stream::stream;
-use futures::{Stream, StreamExt};
-use serde::Serialize;
-use serde_json::json;
-use tabby_common::{
-    index::{webdoc, DocSearchSchema},
-    path,
-};
+use futures::{stream::BoxStream, Stream, StreamExt};
+use tabby_common::{index::DocSearchSchema, path};
 use tabby_inference::Embedding;
 use tantivy::{doc, IndexWriter, TantivyDocument, Term};
-use text_splitter::TextSplitter;
-use tracing::warn;
 
+use self::web::WebBuilder;
 use crate::tantivy_utils::open_or_create_index;
+
+#[async_trait::async_trait]
+trait DocumentBuilder<T> {
+    async fn build_id(&self, document: &T) -> String;
+    async fn build_attributes(&self, document: &T) -> serde_json::Value;
+    async fn build_chunk_attributes(&self, document: &T) -> BoxStream<serde_json::Value>;
+}
 
 pub struct SourceDocument {
     pub id: String,
@@ -22,36 +24,26 @@ pub struct SourceDocument {
     pub body: String,
 }
 
-pub struct DocIndex {
-    embedding: Arc<dyn Embedding>,
+pub struct DocIndex<T> {
+    builder: Box<dyn DocumentBuilder<T>>,
     writer: IndexWriter,
 }
 
-#[derive(Serialize)]
-struct ChunkAttributes {
-    text: String,
-}
-
-const CHUNK_SIZE: usize = 2048;
-
-impl DocIndex {
-    pub fn new(embedding: Arc<dyn Embedding>) -> Self {
+impl<T> DocIndex<T> {
+    fn new(builder: impl DocumentBuilder<T> + 'static) -> Self {
         let doc = DocSearchSchema::instance();
         let (_, index) = open_or_create_index(&doc.schema, &path::doc_index_dir());
         let writer = index
             .writer(150_000_000)
             .expect("Failed to create index writer");
 
-        Self { embedding, writer }
+        Self {
+            builder: Box::new(builder),
+            writer,
+        }
     }
 
-    pub async fn add(&mut self, document: SourceDocument) {
-        let doc = DocSearchSchema::instance();
-
-        // Delete the document if it already exists
-        self.writer
-            .delete_term(Term::from_field_text(doc.field_id, &document.id));
-
+    pub async fn add(&mut self, document: T) {
         self.iter_docs(document)
             .await
             .for_each(|doc| async {
@@ -62,67 +54,45 @@ impl DocIndex {
             .await;
     }
 
-    async fn iter_docs(&self, document: SourceDocument) -> impl Stream<Item = TantivyDocument> {
-        let doc = DocSearchSchema::instance();
+    async fn iter_docs(&self, document: T) -> impl Stream<Item = TantivyDocument> + '_ {
+        let schema = DocSearchSchema::instance();
+        let id = self.builder.build_id(&document).await;
+
+        // Delete the document if it already exists
+        self.writer
+            .delete_term(Term::from_field_text(schema.field_id, &id));
+
         let now = tantivy::time::OffsetDateTime::now_utc();
         let updated_at = tantivy::DateTime::from_utc(now);
 
-        let id = document.id.clone();
-        let content = document.body.clone();
-
         let doc = doc! {
-            doc.field_id => document.id,
-            doc.field_attributes => json!({
-                webdoc::fields::TITLE: document.title,
-                webdoc::fields::LINK: document.link,
-            }),
-            doc.field_updated_at => updated_at,
+            schema.field_id => id,
+            schema.field_attributes => self.builder.build_attributes(&document).await,
+            schema.field_updated_at => updated_at,
         };
 
-        futures::stream::once(async { doc }).chain(self.iter_chunks(id, content, updated_at).await)
+        futures::stream::once(async { doc }).chain(self.iter_chunks(id, updated_at, document).await)
     }
 
-    /// This function splits the document into chunks and computes the embedding for each chunk. It then converts the embeddings
-    /// into binarized tokens by thresholding on zero.
     async fn iter_chunks(
         &self,
         id: String,
-        content: String,
         updated_at: tantivy::DateTime,
-    ) -> impl Stream<Item = TantivyDocument> {
-        let splitter = TextSplitter::default().with_trim_chunks(true);
-        let embedding = self.embedding.clone();
-
-        stream! {
-            let schema = DocSearchSchema::instance();
-            for (chunk_id, chunk_text) in splitter.chunks(&content, CHUNK_SIZE).enumerate() {
-                let embedding = match embedding.embed(chunk_text).await {
-                    Ok(embedding) => embedding,
-                    Err(err) => {
-                        warn!("Failed to embed chunk {} of document '{}': {}", chunk_id, id, err);
-                        continue;
-                    }
-                };
-
-                let mut chunk_embedding_tokens = vec![];
-                for token in DocSearchSchema::binarize_embedding(embedding.iter()) {
-                    chunk_embedding_tokens.push(token);
-                }
-
-                let doc = doc! {
-                    schema.field_id => id.clone(),
+        document: T,
+    ) -> impl Stream<Item = TantivyDocument> + '_ {
+        let schema = DocSearchSchema::instance();
+        self.builder
+            .build_chunk_attributes(&document)
+            .await
+            .enumerate()
+            .map(move |(chunk_id, chunk_attributes)| {
+                doc! {
+                    schema.field_id => id,
                     schema.field_updated_at => updated_at,
                     schema.field_chunk_id => format!("{}-{}", id, chunk_id),
-                    schema.field_chunk_attributes => json!({
-                        // FIXME: tokenize chunk text
-                        webdoc::fields::CHUNK_TEXT: chunk_text,
-                        webdoc::fields::CHUNK_EMBEDDING: chunk_embedding_tokens,
-                    })
-                };
-
-                yield doc;
-            }
-        }
+                    schema.field_chunk_attributes => chunk_attributes,
+                }
+            })
     }
 
     pub fn delete(&mut self, id: &str) {
@@ -140,16 +110,23 @@ impl DocIndex {
     }
 }
 
+pub fn create_web_index(embedding: Arc<dyn Embedding>) -> DocIndex<SourceDocument> {
+    let builder = WebBuilder::new(embedding);
+    DocIndex::new(builder)
+}
+
 #[cfg(test)]
 mod tests {
     use core::panic;
 
     use async_trait::async_trait;
+    use tabby_common::index::webdoc;
     use tantivy::schema::{
         document::{CompactDocValue, ReferenceValue},
         Field, Value,
     };
 
+    use self::web::WebBuilder;
     use super::*;
 
     struct DummyEmbedding;
@@ -161,8 +138,8 @@ mod tests {
         }
     }
 
-    fn new_test_index() -> DocIndex {
-        DocIndex::new(Arc::new(DummyEmbedding))
+    fn new_test_index() -> DocIndex<SourceDocument> {
+        create_web_index(Arc::new(DummyEmbedding))
     }
 
     fn is_empty(doc: &TantivyDocument, field: tantivy::schema::Field) -> bool {
@@ -208,7 +185,7 @@ mod tests {
         assert_eq!("test", get_text(&docs[1], schema.field_id));
         assert!(is_empty(&docs[1], schema.field_attributes));
 
-        assert_eq!("0", get_text(&docs[1], schema.field_chunk_id));
+        assert_eq!("test-0", get_text(&docs[1], schema.field_chunk_id));
         assert_eq!(
             "embedding_zero_0",
             get_json_array_field(

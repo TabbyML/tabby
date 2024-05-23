@@ -4,7 +4,6 @@ use lazy_static::lazy_static;
 use tantivy::{
     query::{BooleanQuery, ExistsQuery, Occur, TermQuery},
     schema::{Field, JsonObjectOptions, Schema, TextFieldIndexing, FAST, INDEXED, STORED, STRING},
-    tokenizer::Tokenizer,
     Term,
 };
 
@@ -20,6 +19,16 @@ pub mod webdoc {
         // * [-1, 0] -> 0
         // * (0, 1] -> 1
         pub const CHUNK_EMBEDDING: &str = "chunk_embedding";
+    }
+}
+
+pub mod code {
+    pub mod fields {
+        pub const CHUNK_GIT_URL: &str = "chunk_git_url";
+        pub const CHUNK_FILEPATH: &str = "chunk_filepath";
+        pub const CHUNK_LANGUAGE: &str = "chunk_language";
+        pub const CHUNK_BODY: &str = "chunk_body";
+        pub const CHUNK_START_LINE: &str = "chunk_start_line";
     }
 }
 
