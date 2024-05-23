@@ -1,7 +1,7 @@
-import { ExtensionContext, WebviewViewProvider, WebviewView } from "vscode";
+import { ExtensionContext, WebviewViewProvider, WebviewView, workspace } from "vscode";
 import { ServerApi, ChatMessage } from 'tabby-chat-panel'
 
-import { createAgentInstance, disposeAgentInstance } from "./agent";
+import { createAgentInstance } from "./agent";
 import { createClient } from "./vscode";
 
 export class ChatViewProvider implements WebviewViewProvider {
@@ -37,6 +37,12 @@ export class ChatViewProvider implements WebviewViewProvider {
         })
       }
     });
+
+    workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("workbench.colorTheme")) {
+        this.webview?.webview.postMessage({ action: 'sync-theme' })
+      }
+    });
   }
 
   private async _getWebviewContent() {
@@ -68,9 +74,22 @@ export class ChatViewProvider implements WebviewViewProvider {
           <script defer>
             window.onload = function () {
               const chatIframe = document.getElementById("chat");
+
+              const syncTheme = () => {
+                const parentHtmlStyle = document.documentElement.getAttribute('style');
+                chatIframe.contentWindow.postMessage({ style: parentHtmlStyle }, "${server.endpoint}");
+            
+                const themeClass = document.body.className === 'vscode-dark' ? 'dark' : 'light' 
+                chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${server.endpoint}");
+              }
+
               window.addEventListener("message", (event) => {
-                console.log('window.addEventListener', event.data);
                 if (event.data) {
+                  if (event.data.action === 'sync-theme') {
+                    syncTheme();
+                    return;
+                  }
+
                   if (event.data.data) {
                     chatIframe.contentWindow.postMessage(event.data.data[0], "${server.endpoint}");
                   } else {
@@ -79,6 +98,8 @@ export class ChatViewProvider implements WebviewViewProvider {
                   }
                 }
               });
+
+              syncTheme();
             }
           </script>
           <script>
