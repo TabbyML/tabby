@@ -39,7 +39,6 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const tags: TCodeTag[] = React.useMemo(() => {
     return []
   }, [])
-  const initialized = React.useRef(false)
   const { copyToClipboard } = useCopyToClipboard({})
   const line = searchParams.get('line')?.toString()
   const [editorView, setEditorView] = React.useState<EditorView | null>(null)
@@ -132,11 +131,16 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   React.useEffect(() => {
     if (line && editorView && value) {
       try {
-        initialized.current = true
         const lineNumber = parseInt(line)
         const lineObject = editorView?.state?.doc?.line(lineNumber)
         if (lineObject) {
           setSelectedLines(editorView, lineObject.from)
+          editorView.dispatch({
+            effects: EditorView.scrollIntoView(lineObject.from, {
+              y: 'start',
+              yMargin: 120
+            })
+          })
         }
       } catch (e) {}
     }

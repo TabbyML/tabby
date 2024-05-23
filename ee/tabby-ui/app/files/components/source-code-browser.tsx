@@ -434,26 +434,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     }
   }, [chatSideBarVisible])
 
-  React.useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      if (event.origin !== window.origin || !event.data) return
-
-      const { data } = event
-      if (data.action === 'navigateToContext') {
-        updateSearchParams({
-          set: {
-            path: data.path,
-            line: data.line
-          }
-        })
-      }
-    }
-
-    window.addEventListener('message', onMessage)
-
-    return () => window.removeEventListener('message', onMessage)
-  }, [])
-
   return (
     <ResizablePanelGroup
       direction="horizontal"
