@@ -10,8 +10,14 @@ use tantivy::doc;
 use text_splitter::TextSplitter;
 use tracing::warn;
 
-use super::DocumentBuilder;
-use crate::SourceDocument;
+use crate::{DocIndex, DocumentBuilder};
+
+pub struct SourceDocument {
+    pub id: String,
+    pub title: String,
+    pub link: String,
+    pub body: String,
+}
 
 const CHUNK_SIZE: usize = 2048;
 
@@ -75,4 +81,9 @@ impl DocumentBuilder<SourceDocument> for WebBuilder {
 
         Box::pin(s)
     }
+}
+
+pub fn create_web_index(embedding: Arc<dyn Embedding>) -> DocIndex<SourceDocument> {
+    let builder = WebBuilder::new(embedding);
+    DocIndex::new(builder)
 }

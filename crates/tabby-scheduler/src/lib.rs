@@ -1,23 +1,24 @@
 //! Responsible for scheduling all of the background jobs for tabby.
 //! Includes syncing respositories and updating indices.
 
-pub mod crawl;
-
 mod code;
+pub mod crawl;
+mod index;
+
 use async_stream::stream;
 pub use code::CodeIndex;
 use crawl::crawl_pipeline;
-use futures::{stream::BoxStream, StreamExt};
+use futures::StreamExt;
+use index::{DocIndex, DocumentBuilder};
+use web::SourceDocument;
 
-mod doc;
+mod web;
 use std::{env, sync::Arc};
 
-pub use doc::{DocIndex, SourceDocument};
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{debug, info, warn};
-
-use crate::doc::create_web_index;
+use web::create_web_index;
 
 pub async fn scheduler<T: RepositoryAccess + 'static>(
     now: bool,
@@ -152,11 +153,4 @@ mod tantivy_utils {
         let directory = MmapDirectory::open(path).expect("Failed to open index directory");
         Index::open_or_create(directory, code.clone())
     }
-}
-
-#[async_trait::async_trait]
-trait DocumentBuilder<T>: Send + Sync {
-    async fn build_id(&self, document: &T) -> String;
-    async fn build_attributes(&self, document: &T) -> serde_json::Value;
-    async fn build_chunk_attributes(&self, document: &T) -> BoxStream<serde_json::Value>;
 }
