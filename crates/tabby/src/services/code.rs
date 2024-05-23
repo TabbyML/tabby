@@ -10,12 +10,13 @@ use tabby_common::{
         CodeSearchResponse,
     },
     config::{RepositoryAccess, RepositoryConfig},
-    index::{self, register_tokenizers},
+    index::{code, IndexSchema},
     path,
 };
 use tantivy::{
     collector::{Count, TopDocs},
-    Index, IndexReader,
+    schema::{self, document::ReferenceValue, Value},
+    Index, IndexReader, TantivyDocument,
 };
 use tokio::{
     sync::{Mutex, RwLock},
@@ -33,7 +34,6 @@ struct CodeSearchImpl {
 impl CodeSearchImpl {
     fn load(repository_access: Arc<dyn RepositoryAccess>) -> Result<Self> {
         let index = Index::open_in_dir(path::index_dir())?;
-        register_tokenizers(&index);
 
         let reader = index
             .reader_builder()
@@ -56,7 +56,40 @@ impl CodeSearchImpl {
         }
     }
 
-    fn create_hit(&self, score: f32, doc: CodeSearchDocument) -> CodeSearchHit {
+    fn create_hit(&self, score: f32, doc: TantivyDocument) -> CodeSearchHit {
+        let schema = IndexSchema::instance();
+        let doc = CodeSearchDocument {
+            file_id: get_text(&doc, schema.field_id).to_owned(),
+            body: get_json_text_field(
+                &doc,
+                schema.field_chunk_attributes,
+                code::fields::CHUNK_BODY,
+            )
+            .to_owned(),
+            filepath: get_json_text_field(
+                &doc,
+                schema.field_chunk_attributes,
+                code::fields::CHUNK_FILEPATH,
+            )
+            .to_owned(),
+            git_url: get_json_text_field(
+                &doc,
+                schema.field_chunk_attributes,
+                code::fields::CHUNK_GIT_URL,
+            )
+            .to_owned(),
+            language: get_json_text_field(
+                &doc,
+                schema.field_chunk_attributes,
+                code::fields::CHUNK_LANGUAGE,
+            )
+            .to_owned(),
+            start_line: get_json_number_field(
+                &doc,
+                schema.field_chunk_attributes,
+                code::fields::CHUNK_START_LINE,
+            ) as usize,
+        };
         CodeSearchHit { score, doc }
     }
 
@@ -73,13 +106,41 @@ impl CodeSearchImpl {
             top_docs
                 .iter()
                 .map(|(score, doc_address)| {
-                    let doc = searcher.doc(*doc_address).unwrap();
+                    let doc: TantivyDocument = searcher.doc(*doc_address).unwrap();
                     self.create_hit(*score, doc)
                 })
                 .collect()
         };
         Ok(CodeSearchResponse { num_hits, hits })
     }
+}
+
+fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
+    doc.get_first(field).unwrap().as_str().unwrap()
+}
+
+fn get_json_number_field(doc: &TantivyDocument, field: schema::Field, name: &str) -> i64 {
+    let ReferenceValue::Object(obj) = doc.get_first(field).unwrap() else {
+        panic!("Field {} is not an object", name);
+    };
+    obj.into_iter()
+        .find(|(k, _)| *k == name)
+        .unwrap()
+        .1
+        .as_i64()
+        .unwrap()
+}
+
+fn get_json_text_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name: &str) -> &'a str {
+    let ReferenceValue::Object(obj) = doc.get_first(field).unwrap() else {
+        panic!("Field {} is not an object", name);
+    };
+    obj.into_iter()
+        .find(|(k, _)| *k == name)
+        .unwrap()
+        .1
+        .as_str()
+        .unwrap()
 }
 
 #[async_trait]
@@ -105,8 +166,7 @@ impl CodeSearch for CodeSearchImpl {
 
         query.git_url = git_url.to_owned();
 
-        let schema = index::CodeSearchSchema::instance();
-        let query = schema.code_search_query(&query);
+        let query = code::code_search_query(&query);
         self.search_with_query(&query, limit, offset).await
     }
 }

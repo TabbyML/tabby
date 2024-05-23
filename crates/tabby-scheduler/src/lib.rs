@@ -1,18 +1,21 @@
 //! Responsible for scheduling all of the background jobs for tabby.
 //! Includes syncing respositories and updating indices.
 
-pub mod crawl;
-
 mod code;
+pub mod crawl;
+mod indexer;
+
 use async_stream::stream;
-pub use code::CodeIndex;
+pub use code::CodeIndexer;
 use crawl::crawl_pipeline;
+use doc::SourceDocument;
 use futures::StreamExt;
+use indexer::{IndexAttributeBuilder, Indexer};
 
 mod doc;
 use std::{env, sync::Arc};
 
-pub use doc::{DocIndex, SourceDocument};
+use doc::create_web_index;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{debug, info, warn};
@@ -73,9 +76,9 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(
 }
 
 async fn scheduler_pipeline(repositories: &[RepositoryConfig]) {
-    let mut code = CodeIndex::default();
+    let mut code = CodeIndexer::default();
     for repository in repositories {
-        code.refresh(repository);
+        code.refresh(repository).await;
     }
 
     code.garbage_collection(repositories);
@@ -96,7 +99,7 @@ async fn doc_index_pipeline(config: &tabby_common::config::Config) {
         let embedding = embedding.clone();
         stream! {
             let mut num_docs = 0;
-            let mut doc_index = DocIndex::new(embedding);
+            let doc_index = create_web_index(embedding.clone());
             for await doc in crawl_pipeline(url).await {
                 let source_doc = SourceDocument {
                     id: doc.url.clone(),
@@ -119,7 +122,6 @@ async fn doc_index_pipeline(config: &tabby_common::config::Config) {
 mod tantivy_utils {
     use std::{fs, path::Path};
 
-    use tabby_common::index::register_tokenizers;
     use tantivy::{directory::MmapDirectory, schema::Schema, Index};
     use tracing::{debug, warn};
 
@@ -141,7 +143,6 @@ mod tantivy_utils {
                 )
             }
         };
-        register_tokenizers(&index);
         (recreated, index)
     }
 
