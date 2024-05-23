@@ -10,7 +10,7 @@ use tantivy::doc;
 use text_splitter::TextSplitter;
 use tracing::warn;
 
-use crate::{DocIndex, DocumentBuilder};
+use crate::{Indexer, IndexAttributeBuilder};
 
 pub struct SourceDocument {
     pub id: String,
@@ -32,7 +32,7 @@ impl DocBuilder {
 }
 
 #[async_trait]
-impl DocumentBuilder<SourceDocument> for DocBuilder {
+impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
     fn format_id(&self, id: &str) -> String {
         format!("web:{id}")
     }
@@ -85,7 +85,7 @@ impl DocumentBuilder<SourceDocument> for DocBuilder {
     }
 }
 
-pub fn create_web_index(embedding: Arc<dyn Embedding>) -> DocIndex<SourceDocument> {
+pub fn create_web_index(embedding: Arc<dyn Embedding>) -> Indexer<SourceDocument> {
     let builder = DocBuilder::new(embedding);
-    DocIndex::new(builder)
+    Indexer::new(builder)
 }

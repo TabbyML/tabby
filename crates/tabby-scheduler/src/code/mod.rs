@@ -6,7 +6,7 @@ use tabby_common::{config::RepositoryConfig, index::code};
 use tracing::{info, warn};
 
 use self::{cache::SourceFileKey, intelligence::SourceCode};
-use crate::{code::intelligence::CodeIntelligence, DocIndex, DocumentBuilder};
+use crate::{code::intelligence::CodeIntelligence, Indexer, IndexAttributeBuilder};
 
 ///  Module for creating code search index.
 mod cache;
@@ -44,7 +44,7 @@ impl CodeIndex {
 struct CodeBuilder;
 
 #[async_trait]
-impl DocumentBuilder<SourceCode> for CodeBuilder {
+impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
     fn format_id(&self, id: &str) -> String {
         format!("code:{}", id)
     }
@@ -96,7 +96,7 @@ impl DocumentBuilder<SourceCode> for CodeBuilder {
     }
 }
 
-fn create_code_index() -> DocIndex<SourceCode> {
+fn create_code_index() -> Indexer<SourceCode> {
     let builder = CodeBuilder;
-    DocIndex::new(builder)
+    Indexer::new(builder)
 }

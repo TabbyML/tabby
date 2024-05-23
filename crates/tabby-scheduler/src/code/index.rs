@@ -4,7 +4,7 @@ use tabby_common::config::RepositoryConfig;
 use tracing::warn;
 
 use super::{cache::CacheStore, create_code_index, intelligence::SourceCode};
-use crate::DocIndex;
+use crate::Indexer;
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
@@ -25,7 +25,7 @@ pub fn garbage_collection(cache: &mut CacheStore) {
 async fn add_changed_documents(
     cache: &mut CacheStore,
     repository: &RepositoryConfig,
-    index: &DocIndex<SourceCode>,
+    index: &Indexer<SourceCode>,
 ) {
     let mut indexed_files_batch = Batch::new();
     for file in Walk::new(repository.dir()) {
@@ -57,7 +57,7 @@ async fn add_changed_documents(
     cache.apply_indexed(indexed_files_batch);
 }
 
-fn remove_staled_documents(cache: &mut CacheStore, index: &DocIndex<SourceCode>) {
+fn remove_staled_documents(cache: &mut CacheStore, index: &Indexer<SourceCode>) {
     // Create a new writer to commit deletion of removed indexed files
     let gc_commit = cache.prepare_garbage_collection_for_indexed_files(|key| {
         index.delete(key);

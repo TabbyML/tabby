@@ -5,7 +5,7 @@ use tantivy::{doc, IndexWriter, TantivyDocument, Term};
 use crate::tantivy_utils::open_or_create_index;
 
 #[async_trait::async_trait]
-pub trait DocumentBuilder<T>: Send + Sync {
+pub trait IndexAttributeBuilder<T>: Send + Sync {
     fn format_id(&self, id: &str) -> String;
     async fn build_id(&self, document: &T) -> String;
     async fn build_attributes(&self, document: &T) -> serde_json::Value;
@@ -15,13 +15,13 @@ pub trait DocumentBuilder<T>: Send + Sync {
     ) -> BoxStream<(Vec<String>, serde_json::Value)>;
 }
 
-pub struct DocIndex<T> {
-    builder: Box<dyn DocumentBuilder<T>>,
+pub struct Indexer<T> {
+    builder: Box<dyn IndexAttributeBuilder<T>>,
     writer: IndexWriter,
 }
 
-impl<T> DocIndex<T> {
-    pub fn new(builder: impl DocumentBuilder<T> + 'static) -> Self {
+impl<T> Indexer<T> {
+    pub fn new(builder: impl IndexAttributeBuilder<T> + 'static) -> Self {
         let doc = IndexSchema::instance();
         let (_, index) = open_or_create_index(&doc.schema, &path::index_dir());
         let writer = index
