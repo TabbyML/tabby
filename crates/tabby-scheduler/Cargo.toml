@@ -26,7 +26,7 @@ tree-sitter-solidity = { git = "https://github.com/JoranHonig/tree-sitter-solidi
 ignore.workspace = true
 tokio-cron-scheduler = { workspace = true }
 tokio = { workspace = true, features = ["process"] }
-text-splitter = { git = "https://github.com/boxbeam/text-splitter", rev = "9bee1cd", features = [ "code" ] }
+text-splitter = { git = "https://github.com/boxbeam/text-splitter", rev = "69a33f8", features = [ "code" ] }
 kv = { version = "0.24.0", features = ["json-value"] }
 serde.workspace = true
 serde_json.workspace = true

@@ -5766,7 +5766,7 @@ dependencies = [
 [[package]]
 name = "text-splitter"
 version = "0.13.1"
-source = "git+https://github.com/boxbeam/text-splitter?rev=9bee1cd#9bee1cd19d6c8be57c540b7692c27c336bfb10a8"
+source = "git+https://github.com/boxbeam/text-splitter?rev=69a33f8#69a33f8352095d6139d7a396ca4795261bec89ff"
 dependencies = [
  "ahash",
  "auto_enums",
