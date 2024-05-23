@@ -228,6 +228,23 @@ function ChatRenderer(
     })
   }, [answer, isLoading])
 
+  React.useLayoutEffect(() => {
+    // scroll to bottom when a request is sent
+    if (isLoading) {
+      if (container) {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: 'smooth'
+        })
+      } else {
+        window.scrollTo({
+          top: document.body.offsetHeight,
+          behavior: 'smooth'
+        })
+      }
+    }
+  }, [isLoading])
+
   React.useEffect(() => {
     if (error && qaPairs?.length) {
       setQaPairs(prev => {
