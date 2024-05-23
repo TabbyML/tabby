@@ -26,6 +26,7 @@ import {
   resolveFileNameFromPath,
   resolveRepositoryInfoFromPath
 } from './utils'
+import { useInView } from 'react-intersection-observer'
 
 type TFileTreeNode = {
   name: string
@@ -136,7 +137,22 @@ const GridArea: React.FC<{ level: number }> = ({ level }) => {
 }
 
 const ActiveViewBar = () => {
-  return <div className="absolute -left-2 h-8 w-1 rounded-md bg-primary" />
+  const { ref, entry, inView } = useInView({
+    trackVisibility: true,
+    delay: 500
+  })
+
+  React.useEffect(() => {
+    if (!!entry?.target && !inView) {
+      entry?.target?.scrollIntoView({
+        block: 'center'
+      })
+    }
+  }, [entry?.target])
+
+  return (
+    <div ref={ref} className="absolute -left-2 h-8 w-1 rounded-md bg-primary" />
+  )
 }
 
 /**
