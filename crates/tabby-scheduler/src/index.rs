@@ -19,7 +19,7 @@ pub struct DocIndex<T> {
 impl<T> DocIndex<T> {
     pub fn new(builder: impl DocumentBuilder<T> + 'static) -> Self {
         let doc = DocSearchSchema::instance();
-        let (_, index) = open_or_create_index(&doc.schema, &path::doc_index_dir());
+        let (_, index) = open_or_create_index(&doc.schema, &path::index_dir());
         let writer = index
             .writer(150_000_000)
             .expect("Failed to create index writer");

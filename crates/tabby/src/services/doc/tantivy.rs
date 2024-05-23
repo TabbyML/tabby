@@ -23,7 +23,7 @@ struct DocSearchImpl {
 
 impl DocSearchImpl {
     fn load(embedding: Arc<dyn Embedding>) -> Result<Self> {
-        let index = Index::open_in_dir(path::doc_index_dir())?;
+        let index = Index::open_in_dir(path::index_dir())?;
 
         Ok(Self {
             reader: index.reader_builder().try_into()?,
