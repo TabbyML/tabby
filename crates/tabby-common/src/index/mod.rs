@@ -1,5 +1,5 @@
 pub mod code;
-pub mod web;
+pub mod doc;
 
 use std::borrow::Cow;
 

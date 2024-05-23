@@ -4,7 +4,7 @@ use async_stream::stream;
 use async_trait::async_trait;
 use futures::{stream::BoxStream, StreamExt};
 use serde_json::json;
-use tabby_common::index::{self, web};
+use tabby_common::index::{self, doc};
 use tabby_inference::Embedding;
 use tantivy::doc;
 use text_splitter::TextSplitter;
@@ -43,8 +43,8 @@ impl DocumentBuilder<SourceDocument> for DocBuilder {
 
     async fn build_attributes(&self, document: &SourceDocument) -> serde_json::Value {
         json!({
-            web::fields::TITLE: document.title,
-            web::fields::LINK: document.link,
+            doc::fields::TITLE: document.title,
+            doc::fields::LINK: document.link,
         })
     }
 
@@ -74,7 +74,7 @@ impl DocumentBuilder<SourceDocument> for DocBuilder {
                 }
 
                 let chunk = json!({
-                        web::fields::CHUNK_TEXT: chunk_text,
+                        doc::fields::CHUNK_TEXT: chunk_text,
                 });
 
                 yield (chunk_embedding_tokens, chunk)

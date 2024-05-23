@@ -8,17 +8,17 @@ mod index;
 use async_stream::stream;
 pub use code::CodeIndex;
 use crawl::crawl_pipeline;
+use doc::SourceDocument;
 use futures::StreamExt;
 use index::{DocIndex, DocumentBuilder};
-use doc::SourceDocument;
 
 mod doc;
 use std::{env, sync::Arc};
 
+use doc::create_web_index;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{debug, info, warn};
-use doc::create_web_index;
 
 pub async fn scheduler<T: RepositoryAccess + 'static>(
     now: bool,
