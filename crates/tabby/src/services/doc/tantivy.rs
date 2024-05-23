@@ -4,7 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use tabby_common::{
     api::doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse},
-    index::{self, webdoc},
+    index::{self, web},
     path,
 };
 use tabby_inference::Embedding;
@@ -53,8 +53,7 @@ impl DocSearch for DocSearchImpl {
     ) -> Result<DocSearchResponse, DocSearchError> {
         let schema = index::DocSearchSchema::instance();
         let embedding = self.embedding.embed(q).await?;
-        let embedding_tokens_query =
-            schema.embedding_tokens_query(embedding.len(), embedding.iter());
+        let embedding_tokens_query = web::embedding_tokens_query(embedding.len(), embedding.iter());
 
         let searcher = self.reader.searcher();
         let top_chunks = searcher.search(
@@ -70,7 +69,7 @@ impl DocSearch for DocSearchImpl {
                 let chunk_text = get_json_text_field(
                     &chunk,
                     schema.field_chunk_attributes,
-                    webdoc::fields::CHUNK_TEXT,
+                    web::fields::CHUNK_TEXT,
                 );
 
                 let doc_query = schema.doc_query(doc_id);
@@ -83,9 +82,8 @@ impl DocSearch for DocSearchImpl {
                 };
                 let (_, doc_address) = top_docs.first()?;
                 let doc: TantivyDocument = searcher.doc(*doc_address).ok()?;
-                let title =
-                    get_json_text_field(&doc, schema.field_attributes, webdoc::fields::TITLE);
-                let link = get_json_text_field(&doc, schema.field_attributes, webdoc::fields::LINK);
+                let title = get_json_text_field(&doc, schema.field_attributes, web::fields::TITLE);
+                let link = get_json_text_field(&doc, schema.field_attributes, web::fields::LINK);
 
                 Some(DocSearchHit {
                     doc: DocSearchDocument {

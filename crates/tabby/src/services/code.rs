@@ -10,7 +10,7 @@ use tabby_common::{
         CodeSearchResponse,
     },
     config::{RepositoryAccess, RepositoryConfig},
-    index::{self, webcode, DocSearchSchema},
+    index::{code, DocSearchSchema},
     path,
 };
 use tantivy::{
@@ -63,31 +63,31 @@ impl CodeSearchImpl {
             body: get_json_text_field(
                 &doc,
                 schema.field_chunk_attributes,
-                webcode::fields::CHUNK_BODY,
+                code::fields::CHUNK_BODY,
             )
             .to_owned(),
             filepath: get_json_text_field(
                 &doc,
                 schema.field_chunk_attributes,
-                webcode::fields::CHUNK_FILEPATH,
+                code::fields::CHUNK_FILEPATH,
             )
             .to_owned(),
             git_url: get_json_text_field(
                 &doc,
                 schema.field_chunk_attributes,
-                webcode::fields::CHUNK_GIT_URL,
+                code::fields::CHUNK_GIT_URL,
             )
             .to_owned(),
             language: get_json_text_field(
                 &doc,
                 schema.field_chunk_attributes,
-                webcode::fields::CHUNK_LANGUAGE,
+                code::fields::CHUNK_LANGUAGE,
             )
             .to_owned(),
             start_line: get_json_number_field(
                 &doc,
                 schema.field_chunk_attributes,
-                webcode::fields::CHUNK_START_LINE,
+                code::fields::CHUNK_START_LINE,
             ) as usize,
         };
         CodeSearchHit { score, doc }
@@ -166,8 +166,7 @@ impl CodeSearch for CodeSearchImpl {
 
         query.git_url = git_url.to_owned();
 
-        let schema = index::CodeSearchSchema;
-        let query = schema.code_search_query(&query);
+        let query = code::code_search_query(&query);
         self.search_with_query(&query, limit, offset).await
     }
 }

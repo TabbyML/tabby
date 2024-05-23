@@ -2,10 +2,7 @@ use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use serde_json::json;
-use tabby_common::{
-    config::RepositoryConfig,
-    index::{webcode, CodeSearchSchema},
-};
+use tabby_common::{config::RepositoryConfig, index::code};
 use tracing::{info, warn};
 
 use self::{cache::SourceFileKey, intelligence::SourceCode};
@@ -84,13 +81,13 @@ impl DocumentBuilder<SourceCode> for CodeBuilder {
         let s = stream! {
             let intelligence = CodeIntelligence::default();
             for (start_line, body) in intelligence.chunks(&text) {
-                let tokens = CodeSearchSchema::tokenize_code(body);
+                let tokens = code::tokenize_code(body);
                 yield (tokens, json!({
-                    webcode::fields::CHUNK_FILEPATH: source_file.filepath,
-                    webcode::fields::CHUNK_GIT_URL: source_file.git_url,
-                    webcode::fields::CHUNK_LANGUAGE: source_file.language,
-                    webcode::fields::CHUNK_BODY:  body,
-                    webcode::fields::CHUNK_START_LINE: start_line,
+                    code::fields::CHUNK_FILEPATH: source_file.filepath,
+                    code::fields::CHUNK_GIT_URL: source_file.git_url,
+                    code::fields::CHUNK_LANGUAGE: source_file.language,
+                    code::fields::CHUNK_BODY:  body,
+                    code::fields::CHUNK_START_LINE: start_line,
                 }));
             }
         };
