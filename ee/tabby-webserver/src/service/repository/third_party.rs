@@ -658,4 +658,28 @@ mod tests {
         assert_eq!(repos[1].kind, RepositoryKind::GithubSelfHosted);
         assert_eq!(repos[1].git_url, "https://my.github.com/test/repo2");
     }
+
+    #[tokio::test]
+    async fn test_get_repository() {
+        let (repository, integration) = create_fake().await;
+        let provider_id = integration
+            .create_integration(IntegrationKind::Github, "gh".into(), "token".into(), None)
+            .await
+            .unwrap();
+
+        let repo_id = repository
+            .upsert_repository(
+                provider_id,
+                "vendor_id".into(),
+                "name".into(),
+                "https://github.com/TabbyML/tabby".into(),
+            )
+            .await
+            .unwrap();
+
+        let repo = repository.get_repository(&repo_id).await.unwrap();
+        assert_eq!(repo.kind, RepositoryKind::Github);
+        assert_eq!(repo.name, "name");
+        assert_eq!(repo.git_url, "https://github.com/TabbyML/tabby");
+    }
 }
