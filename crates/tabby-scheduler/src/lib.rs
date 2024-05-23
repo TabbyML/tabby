@@ -3,14 +3,14 @@
 
 mod code;
 pub mod crawl;
-mod index;
+mod indexer;
 
 use async_stream::stream;
 pub use code::CodeIndex;
 use crawl::crawl_pipeline;
 use doc::SourceDocument;
 use futures::StreamExt;
-use index::{IndexAttributeBuilder, Indexer};
+use indexer::{IndexAttributeBuilder, Indexer};
 
 mod doc;
 use std::{env, sync::Arc};
