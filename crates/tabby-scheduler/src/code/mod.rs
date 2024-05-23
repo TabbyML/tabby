@@ -17,11 +17,11 @@ mod repository;
 mod types;
 
 #[derive(Default)]
-pub struct CodeIndex {
+pub struct CodeIndexer {
     is_dirty: bool,
 }
 
-impl CodeIndex {
+impl CodeIndexer {
     pub async fn refresh(&mut self, repository: &RepositoryConfig) {
         self.is_dirty = true;
 

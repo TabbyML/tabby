@@ -6,7 +6,7 @@ pub mod crawl;
 mod indexer;
 
 use async_stream::stream;
-pub use code::CodeIndex;
+pub use code::CodeIndexer;
 use crawl::crawl_pipeline;
 use doc::SourceDocument;
 use futures::StreamExt;
@@ -76,7 +76,7 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(
 }
 
 async fn scheduler_pipeline(repositories: &[RepositoryConfig]) {
-    let mut code = CodeIndex::default();
+    let mut code = CodeIndexer::default();
     for repository in repositories {
         code.refresh(repository).await;
     }
