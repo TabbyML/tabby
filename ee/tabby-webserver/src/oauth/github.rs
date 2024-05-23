@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
 use tabby_schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
 
 use super::OAuthClient;
 use crate::bail;
-use anyhow::anyhow;
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
