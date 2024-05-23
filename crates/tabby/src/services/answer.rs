@@ -98,6 +98,7 @@ impl AnswerService {
                 yield AnswerResponseChunk::RelevantCode(relevant_code.clone());
             }
 
+            
             // 2. Collect relevant docs if needed.
             let relevant_docs = if req.doc_query {
                 self.collect_relevant_docs(&query.content).await
