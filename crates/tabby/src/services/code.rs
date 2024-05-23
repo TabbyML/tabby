@@ -64,7 +64,8 @@ impl CodeSearchImpl {
                 &doc,
                 schema.field_chunk_attributes,
                 webcode::fields::CHUNK_BODY,
-            ).to_owned(),
+            )
+            .to_owned(),
             filepath: get_json_text_field(
                 &doc,
                 schema.field_chunk_attributes,
@@ -118,7 +119,7 @@ fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
     doc.get_first(field).unwrap().as_str().unwrap()
 }
 
-fn get_json_number_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name: &str) -> i64 {
+fn get_json_number_field(doc: &TantivyDocument, field: schema::Field, name: &str) -> i64 {
     let ReferenceValue::Object(obj) = doc.get_first(field).unwrap() else {
         panic!("Field {} is not an object", name);
     };

@@ -1,7 +1,4 @@
-use tantivy::{
-    tokenizer::{RegexTokenizer, RemoveLongFilter, TextAnalyzer, TokenStream, Tokenizer},
-    Index,
-};
+use tantivy::tokenizer::{RegexTokenizer, RemoveLongFilter, TextAnalyzer, TokenStream, Tokenizer};
 
 pub fn tokenize_code(text: &str) -> Vec<String> {
     let mut code_tokenizer = make_code_tokenizer();

@@ -1,14 +1,13 @@
 mod tokenizer;
 
-use crate::api::code::CodeSearchQuery;
-use lazy_static::lazy_static;
 use tantivy::{
     query::{BooleanQuery, BoostQuery, ConstScoreQuery, Occur, Query, TermQuery},
-    schema::{Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, STRING},
+    schema::IndexRecordOption,
     Term,
 };
 
 use super::{webcode, DocSearchSchema};
+use crate::api::code::CodeSearchQuery;
 
 pub struct CodeSearchSchema;
 
