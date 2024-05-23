@@ -14,6 +14,16 @@ pub mod fields {
     pub const CHUNK_TEXT: &str = "chunk_text";
 }
 
+pub mod webcode {
+    pub mod fields {
+        pub const CHUNK_GIT_URL: &str = "chunk_git_url";
+        pub const CHUNK_FILEPATH: &str = "chunk_filepath";
+        pub const CHUNK_LANGUAGE: &str = "chunk_language";
+        pub const CHUNK_BODY: &str = "chunk_body";
+        pub const CHUNK_START_LINE: &str = "chunk_start_line";
+    }
+}
+
 pub fn binarize_embedding<'a>(
     embedding: impl Iterator<Item = &'a f32> + 'a,
 ) -> impl Iterator<Item = String> + 'a {
@@ -33,16 +43,6 @@ pub fn embedding_tokens_query<'a>(
     let schema = DocSearchSchema::instance();
     let iter = binarize_embedding(embedding).map(Cow::Owned);
     new_multiterms_const_query(schema.field_chunk_tokens, embedding_dims, iter)
-}
-
-pub mod webcode {
-    pub mod fields {
-        pub const CHUNK_GIT_URL: &str = "chunk_git_url";
-        pub const CHUNK_FILEPATH: &str = "chunk_filepath";
-        pub const CHUNK_LANGUAGE: &str = "chunk_language";
-        pub const CHUNK_BODY: &str = "chunk_body";
-        pub const CHUNK_START_LINE: &str = "chunk_start_line";
-    }
 }
 
 fn new_multiterms_const_query<'a>(

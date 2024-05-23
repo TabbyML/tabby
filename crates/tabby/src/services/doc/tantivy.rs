@@ -53,7 +53,8 @@ impl DocSearch for DocSearchImpl {
     ) -> Result<DocSearchResponse, DocSearchError> {
         let schema = index::DocSearchSchema::instance();
         let embedding = self.embedding.embed(q).await?;
-        let embedding_tokens_query = web::embedding_tokens_query(embedding.len(), embedding.iter());
+        let embedding_tokens_query =
+            index::embedding_tokens_query(embedding.len(), embedding.iter());
 
         let searcher = self.reader.searcher();
         let top_chunks = searcher.search(

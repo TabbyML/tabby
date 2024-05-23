@@ -4,7 +4,7 @@ use async_stream::stream;
 use async_trait::async_trait;
 use futures::{stream::BoxStream, StreamExt};
 use serde_json::json;
-use tabby_common::index::web;
+use tabby_common::index::{self, web};
 use tabby_inference::Embedding;
 use tantivy::doc;
 use text_splitter::TextSplitter;
@@ -69,7 +69,7 @@ impl DocumentBuilder<SourceDocument> for WebBuilder {
                 };
 
                 let mut chunk_embedding_tokens = vec![];
-                for token in web::binarize_embedding(embedding.iter()) {
+                for token in index::binarize_embedding(embedding.iter()) {
                     chunk_embedding_tokens.push(token);
                 }
 
