@@ -5,8 +5,8 @@ use serde_json::json;
 use tabby_common::{config::RepositoryConfig, index::code};
 use tracing::{info, warn};
 
-use self::{cache::SourceFileKey, intelligence::SourceCode};
-use crate::{code::intelligence::CodeIntelligence, Indexer, IndexAttributeBuilder};
+use self::intelligence::SourceCode;
+use crate::{code::intelligence::CodeIntelligence, IndexAttributeBuilder, Indexer};
 
 ///  Module for creating code search index.
 mod cache;
@@ -41,51 +41,53 @@ impl CodeIndex {
     }
 }
 
+struct KeyedSourceCode {
+    key: String,
+    code: SourceCode,
+}
+
 struct CodeBuilder;
 
 #[async_trait]
-impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
+impl IndexAttributeBuilder<KeyedSourceCode> for CodeBuilder {
     fn format_id(&self, id: &str) -> String {
         format!("code:{}", id)
     }
 
-    async fn build_id(&self, source_code: &SourceCode) -> String {
-        let path = source_code.absolute_path();
-        let id = SourceFileKey::try_from(path.as_path())
-            .expect("Failed to build ID from path")
-            .to_string();
-        self.format_id(&id)
+    async fn build_id(&self, source_code: &KeyedSourceCode) -> String {
+        self.format_id(&source_code.key)
     }
 
-    async fn build_attributes(&self, _source_code: &SourceCode) -> serde_json::Value {
+    async fn build_attributes(&self, _source_code: &KeyedSourceCode) -> serde_json::Value {
         json!({})
     }
 
     async fn build_chunk_attributes(
         &self,
-        source_file: &SourceCode,
+        source_code: &KeyedSourceCode,
     ) -> BoxStream<(Vec<String>, serde_json::Value)> {
-        let text = match source_file.read_content() {
+        let source_code = &source_code.code;
+        let text = match source_code.read_content() {
             Ok(content) => content,
             Err(e) => {
                 warn!(
                     "Failed to read content of '{}': {}",
-                    source_file.filepath, e
+                    source_code.filepath, e
                 );
 
                 return Box::pin(futures::stream::empty());
             }
         };
 
-        let source_file = source_file.clone();
+        let source_code = source_code.clone();
         let s = stream! {
             let intelligence = CodeIntelligence::default();
             for (start_line, body) in intelligence.chunks(&text) {
                 let tokens = code::tokenize_code(body);
                 yield (tokens, json!({
-                    code::fields::CHUNK_FILEPATH: source_file.filepath,
-                    code::fields::CHUNK_GIT_URL: source_file.git_url,
-                    code::fields::CHUNK_LANGUAGE: source_file.language,
+                    code::fields::CHUNK_FILEPATH: source_code.filepath,
+                    code::fields::CHUNK_GIT_URL: source_code.git_url,
+                    code::fields::CHUNK_LANGUAGE: source_code.language,
                     code::fields::CHUNK_BODY:  body,
                     code::fields::CHUNK_START_LINE: start_line,
                 }));
@@ -96,7 +98,7 @@ impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
     }
 }
 
-fn create_code_index() -> Indexer<SourceCode> {
+fn create_code_index() -> Indexer<KeyedSourceCode> {
     let builder = CodeBuilder;
     Indexer::new(builder)
 }

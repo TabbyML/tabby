@@ -19,7 +19,7 @@ fn get_git_hash(path: &Path) -> Result<String> {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct SourceFileKey {
+struct SourceFileKey {
     path: PathBuf,
     language: String,
     git_hash: String,

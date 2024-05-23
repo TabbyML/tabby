@@ -10,7 +10,7 @@ pub use code::CodeIndex;
 use crawl::crawl_pipeline;
 use doc::SourceDocument;
 use futures::StreamExt;
-use index::{Indexer, IndexAttributeBuilder};
+use index::{IndexAttributeBuilder, Indexer};
 
 mod doc;
 use std::{env, sync::Arc};

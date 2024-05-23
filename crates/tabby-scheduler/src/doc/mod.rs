@@ -10,7 +10,7 @@ use tantivy::doc;
 use text_splitter::TextSplitter;
 use tracing::warn;
 
-use crate::{Indexer, IndexAttributeBuilder};
+use crate::{IndexAttributeBuilder, Indexer};
 
 pub struct SourceDocument {
     pub id: String,

@@ -3,7 +3,7 @@ use kv::Batch;
 use tabby_common::config::RepositoryConfig;
 use tracing::warn;
 
-use super::{cache::CacheStore, create_code_index, intelligence::SourceCode};
+use super::{cache::CacheStore, create_code_index, intelligence::SourceCode, KeyedSourceCode};
 use crate::Indexer;
 
 // Magic numbers
@@ -25,7 +25,7 @@ pub fn garbage_collection(cache: &mut CacheStore) {
 async fn add_changed_documents(
     cache: &mut CacheStore,
     repository: &RepositoryConfig,
-    index: &Indexer<SourceCode>,
+    index: &Indexer<KeyedSourceCode>,
 ) {
     let mut indexed_files_batch = Batch::new();
     for file in Walk::new(repository.dir()) {
@@ -36,20 +36,25 @@ async fn add_changed_documents(
                 continue;
             }
         };
-        let Some(source_file) = cache.get_source_file(repository, file.path()) else {
+        let Some(code) = cache.get_source_file(repository, file.path()) else {
             continue;
         };
-        if !is_valid_file(&source_file) {
+        if !is_valid_file(&code) {
             continue;
         }
 
-        let (file_id, indexed) = cache.check_indexed(file.path());
+        let (key, indexed) = cache.check_indexed(file.path());
         if indexed {
             continue;
         }
-        index.add(source_file).await;
+        index
+            .add(KeyedSourceCode {
+                key: key.clone(),
+                code,
+            })
+            .await;
         indexed_files_batch
-            .set(&file_id, &String::new())
+            .set(&key, &String::new())
             .expect("Failed to mark file as indexed");
     }
 
@@ -57,7 +62,7 @@ async fn add_changed_documents(
     cache.apply_indexed(indexed_files_batch);
 }
 
-fn remove_staled_documents(cache: &mut CacheStore, index: &Indexer<SourceCode>) {
+fn remove_staled_documents(cache: &mut CacheStore, index: &Indexer<KeyedSourceCode>) {
     // Create a new writer to commit deletion of removed indexed files
     let gc_commit = cache.prepare_garbage_collection_for_indexed_files(|key| {
         index.delete(key);
