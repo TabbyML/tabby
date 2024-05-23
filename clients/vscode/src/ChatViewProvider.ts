@@ -1,10 +1,13 @@
-import { ExtensionContext, Disposable, Webview, WebviewPanel, window, Uri, ViewColumn, WebviewViewProvider, WebviewView, TextDocument } from "vscode";
-import { getUri } from "./utils";
+import { ExtensionContext, WebviewViewProvider, WebviewView } from "vscode";
+import { ServerApi, ChatMessage } from 'tabby-chat-panel'
 
 import { createAgentInstance, disposeAgentInstance } from "./agent";
+import { createClient } from "./vscode";
 
 export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
+  client?: ServerApi;
+  private pendingMessages: ChatMessage[] = [];
 
   constructor(private readonly context: ExtensionContext) {}
 
@@ -16,13 +19,29 @@ export class ChatViewProvider implements WebviewViewProvider {
       enableScripts: true,
       localResourceRoots: [extensionUri],
     };
-    webviewView.webview.html = await this._getWebviewContent(webviewView.webview, extensionUri);
+    webviewView.webview.html = await this._getWebviewContent();
+
+    this.client = createClient(webviewView, {
+      navigate: () => {
+        console.log('TODO')
+      }
+    })
+
+    webviewView.webview.onDidReceiveMessage(message => {
+      if (message.action === 'rendered') {
+        this.pendingMessages.forEach(message => this.client?.sendMessage(message))
+        this.client?.init({
+          fetcherOptions: {
+            authorization: "auth_fa450615a8cd4e77a35cd9fa61e5008f"
+          }
+        })
+      }
+    });
   }
 
-  private async _getWebviewContent(webview: Webview, extensionUri: Uri) {
+  private async _getWebviewContent() {
     const agent = await createAgentInstance(this.context);
     const { server } = agent.getConfig()
-    const scriptUri = getUri(webview, extensionUri, ['chat-panel', "index.js"]);
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -45,18 +64,15 @@ export class ChatViewProvider implements WebviewViewProvider {
           }
         </style>
         <body>
-          <script>window.endpoint="${server.endpoint}"</script>
-          <script>window.token="${server.token}"</script>
+          <script>const vscode = acquireVsCodeApi();</script>
           <script defer>
             window.onload = function () {
-              const vscode = acquireVsCodeApi();
               const chatIframe = document.getElementById("chat");
-            
               window.addEventListener("message", (event) => {
                 console.log('window.addEventListener', event.data);
                 if (event.data) {
                   if (event.data.data) {
-                    chatIframe.contentWindow.postMessage(event.data.data[0], "http://localhost:8080");
+                    chatIframe.contentWindow.postMessage(event.data.data[0], "${server.endpoint}");
                   } else {
                     console.log('data from iframe', event.data);
                     vscode.postMessage(event.data);
@@ -65,7 +81,15 @@ export class ChatViewProvider implements WebviewViewProvider {
               });
             }
           </script>
-          <iframe id="chat" src="http://localhost:8080/chat" />
+          <script>
+            function iframeLoaded () {
+              vscode.postMessage({ action: 'rendered' });
+            }
+          </script>
+          <iframe
+            id="chat"
+            src="${server.endpoint}/chat"
+            onload="iframeLoaded(this)" />
         </body>
       </html>
     `;
@@ -73,5 +97,13 @@ export class ChatViewProvider implements WebviewViewProvider {
 
   public getWebview () {
     return this.webview
+  }
+
+  public sendMessage (message: ChatMessage) {
+    if (!this.client) {
+      this.pendingMessages.push(message)
+    } else {
+      this.client.sendMessage(message)
+    }
   }
 }

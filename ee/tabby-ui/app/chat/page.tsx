@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { ChatMessage, Context, FetcherOptions } from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
 
 import { nanoid } from '@/lib/utils'
 import { Chat, ChatRef } from '@/components/chat/chat'
+import { QuestionAnswerPair } from '@/lib/types/chat'
 
 export default function ChatPage() {
   const [isInit, setIsInit] = useState(false)
@@ -13,23 +14,23 @@ export default function ChatPage() {
     null
   )
   const [activeChatId, setActiveChatId] = useState('')
+  const [initialMessages, setInitialMessages] = useState<QuestionAnswerPair[]>([])
   const chatRef = useRef<ChatRef>(null)
-  let messageQueueBeforeInit: ChatMessage[] = []
 
   const sendMessage = (message: ChatMessage) => {
     if (chatRef.current) {
       chatRef.current.sendUserChat(message)
     } else {
-      messageQueueBeforeInit.push(message)
+      const newInitialMessages = [...initialMessages]
+      newInitialMessages.push({
+        user: {
+          ...message,
+          id: nanoid()
+        }
+      })
+      setInitialMessages(newInitialMessages)
     }
   }
-
-  // useEffect(() => {
-  //   window.addEventListener('message', (e) => {
-  //     console.log('inside chat')
-  //     console.log(e.data)
-  //   })
-  // }, [])
 
   const server = useServer({
     init: request => {
@@ -37,9 +38,6 @@ export default function ChatPage() {
       setActiveChatId(nanoid())
       setIsInit(true)
       setFetcherOptions(request.fetcherOptions)
-
-      messageQueueBeforeInit.forEach(sendMessage)
-      messageQueueBeforeInit = []
     },
     sendMessage: (message: ChatMessage) => {
       return sendMessage(message)
@@ -60,6 +58,7 @@ export default function ChatPage() {
       key={activeChatId}
       ref={chatRef}
       headers={headers}
+      initialMessages={initialMessages}
       onThreadUpdates={() => {}}
       onNavigateToContext={onNavigateToContext}
     />

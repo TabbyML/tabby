@@ -20,7 +20,7 @@ import { notifications } from "./notifications";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
 import { TabbyStatusBarItem } from "./TabbyStatusBarItem";
 import { ChatViewProvider } from "./ChatViewProvider";
-import { createThreadFromWebview } from "./vscode";
+import { createClient } from "./vscode";
 
 const configTarget = ConfigurationTarget.Global;
 
@@ -331,45 +331,21 @@ const explainCodeBlock = (chatViewProvider: ChatViewProvider): Command => {
 
       if (editor) {
         const text = editor.document.getText(editor.selection);
-
-        console.log(editor)
-
         const configuration = workspace.getConfiguration("tabby");
-
         commands.executeCommand("tabby.chatView.focus");
-
-        const webview = chatViewProvider.webview
-        if (webview) {
-          const thread = createThreadFromWebview(webview, {
-            expose: {
-              navigate: (data) => {
-                console.log('open url')
-              }
-            }
-          })
-          thread.init({
-            fetcherOptions: {
-              authorization: "auth_fa450615a8cd4e77a35cd9fa61e5008f"
-            }
-          })
-
-          setTimeout(() => {
-            thread.sendMessage({
-              message: "Explain the selected code:",
-              selectContext: {
-                kind: 'file',
-                content: text,
-                range: {
-                  start: 1, // FIXME
-                  end:  2 // FIXME
-                },
-                filepath:  editor.document.fileName // FIXME
-              }
-            })
-          }, 1500)
-          
-        }
-        
+        chatViewProvider.sendMessage({
+          message: "Explain the selected code:",
+          selectContext: {
+            kind: 'file',
+            content: text,
+            range: {
+              start: 1, // FIXME
+              end:  2 // FIXME
+            },
+            filepath:  editor.document.fileName, // FIXME
+            git_url: 'https://github.com/tabbyML/tabby' // FIXME
+          }
+        })
       } else {
         window.showInformationMessage("No active editor");
       }

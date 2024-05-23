@@ -29,7 +29,7 @@ importers:
         version: 1.5.0
       tsup:
         specifier: ^7.1.0
-        version: 7.3.0(@swc/core@1.3.101)(postcss@8.4.38)(ts-node@10.9.2(@swc/core@1.3.101)(typescript@5.4.5))(typescript@5.4.5)
+        version: 7.3.0(@swc/core@1.3.101)(postcss@8.4.38)(ts-node@10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.4.5))(typescript@5.4.5)
 
   clients/intellij:
     devDependencies:
@@ -10275,7 +10275,7 @@ snapshots:
       '@babel/traverse': 7.24.5
       '@babel/types': 7.24.5
       convert-source-map: 2.0.0
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -10659,7 +10659,7 @@ snapshots:
       '@babel/helper-split-export-declaration': 7.24.5
       '@babel/parser': 7.24.5
       '@babel/types': 7.24.5
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -11204,7 +11204,7 @@ snapshots:
   '@eslint/eslintrc@3.1.0':
     dependencies:
       ajv: 6.12.6
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       espree: 10.0.1
       globals: 14.0.0
       ignore: 5.3.1
@@ -11692,7 +11692,7 @@ snapshots:
   '@humanwhocodes/config-array@0.13.0':
     dependencies:
       '@humanwhocodes/object-schema': 2.0.3
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       minimatch: 3.1.2
     transitivePeerDependencies:
       - supports-color
@@ -13631,7 +13631,7 @@ snapshots:
       '@typescript-eslint/types': 7.10.0
       '@typescript-eslint/typescript-estree': 7.10.0(typescript@5.4.5)
       '@typescript-eslint/visitor-keys': 7.10.0
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       eslint: 9.3.0
     optionalDependencies:
       typescript: 5.4.5
@@ -13686,7 +13686,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/typescript-estree': 7.10.0(typescript@5.4.5)
       '@typescript-eslint/utils': 7.10.0(eslint@9.3.0)(typescript@5.4.5)
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       eslint: 9.3.0
       ts-api-utils: 1.3.0(typescript@5.4.5)
     optionalDependencies:
@@ -13762,7 +13762,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 7.10.0
       '@typescript-eslint/visitor-keys': 7.10.0
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       globby: 11.1.0
       is-glob: 4.0.3
       minimatch: 9.0.4
@@ -13792,7 +13792,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 7.4.0
       '@typescript-eslint/visitor-keys': 7.4.0
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       globby: 11.1.0
       is-glob: 4.0.3
       minimatch: 9.0.3
@@ -15269,10 +15269,6 @@ snapshots:
     dependencies:
       ms: 2.1.3
 
-  debug@4.3.4:
-    dependencies:
-      ms: 2.1.2
-
   debug@4.3.4(supports-color@8.1.1):
     dependencies:
       ms: 2.1.2
@@ -15892,7 +15888,7 @@ snapshots:
   eslint-plugin-import-x@0.5.0(eslint@9.3.0)(typescript@5.4.5):
     dependencies:
       '@typescript-eslint/utils': 7.4.0(eslint@9.3.0)(typescript@5.4.5)
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       doctrine: 3.0.0
       eslint: 9.3.0
       eslint-import-resolver-node: 0.3.9
@@ -15936,7 +15932,7 @@ snapshots:
       '@es-joy/jsdoccomment': 0.43.0
       are-docs-informative: 0.0.2
       comment-parser: 1.4.1
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       escape-string-regexp: 4.0.0
       eslint: 9.3.0
       esquery: 1.5.0
@@ -16059,7 +16055,7 @@ snapshots:
 
   eslint-plugin-toml@0.11.0(eslint@9.3.0):
     dependencies:
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       eslint: 9.3.0
       eslint-compat-utils: 0.5.0(eslint@9.3.0)
       lodash: 4.17.21
@@ -16135,7 +16131,7 @@ snapshots:
 
   eslint-plugin-yml@1.14.0(eslint@9.3.0):
     dependencies:
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       eslint: 9.3.0
       eslint-compat-utils: 0.5.0(eslint@9.3.0)
       lodash: 4.17.21
@@ -16268,7 +16264,7 @@ snapshots:
       ajv: 6.12.6
       chalk: 4.1.2
       cross-spawn: 7.0.3
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       escape-string-regexp: 4.0.0
       eslint-scope: 8.0.1
       eslint-visitor-keys: 4.0.0
@@ -17647,7 +17643,7 @@ snapshots:
     dependencies:
       chalk: 5.3.0
       commander: 12.1.0
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       execa: 8.0.1
       lilconfig: 3.1.1
       listr2: 8.2.1
@@ -18190,7 +18186,7 @@ snapshots:
 
   micromark@2.11.4:
     dependencies:
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       parse-entities: 2.0.0
     transitivePeerDependencies:
       - supports-color
@@ -19026,23 +19022,7 @@ snapshots:
       postcss: 8.4.31
       ts-node: 10.9.2(@types/node@17.0.45)(typescript@5.2.2)
 
-  postcss-load-config@4.0.2(postcss@8.4.38)(ts-node@10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.3.3)):
-    dependencies:
-      lilconfig: 3.1.1
-      yaml: 2.4.2
-    optionalDependencies:
-      postcss: 8.4.38
-      ts-node: 10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.3.3)
-
   postcss-load-config@4.0.2(postcss@8.4.38)(ts-node@10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.4.5)):
-    dependencies:
-      lilconfig: 3.1.1
-      yaml: 2.4.2
-    optionalDependencies:
-      postcss: 8.4.38
-      ts-node: 10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.4.5)
-
-  postcss-load-config@4.0.2(postcss@8.4.38)(ts-node@10.9.2(@swc/core@1.3.101)(typescript@5.4.5)):
     dependencies:
       lilconfig: 3.1.1
       yaml: 2.4.2
@@ -19056,7 +19036,7 @@ snapshots:
       yaml: 2.4.2
     optionalDependencies:
       postcss: 8.4.38
-      ts-node: 10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.4.5)
+      ts-node: 10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.3.3)
 
   postcss-merge-longhand@7.0.0(postcss@8.4.38):
     dependencies:
@@ -20734,7 +20714,7 @@ snapshots:
       execa: 5.1.1
       globby: 11.1.0
       joycon: 3.1.1
-      postcss-load-config: 4.0.2(postcss@8.4.38)(ts-node@10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.3.3))
+      postcss-load-config: 4.0.2(postcss@8.4.38)(ts-node@10.9.2)
       resolve-from: 5.0.0
       rollup: 4.17.2
       source-map: 0.8.0-beta.0
@@ -20759,30 +20739,6 @@ snapshots:
       globby: 11.1.0
       joycon: 3.1.1
       postcss-load-config: 4.0.2(postcss@8.4.38)(ts-node@10.9.2(@swc/core@1.3.101)(@types/node@18.19.33)(typescript@5.4.5))
-      resolve-from: 5.0.0
-      rollup: 4.17.2
-      source-map: 0.8.0-beta.0
-      sucrase: 3.35.0
-      tree-kill: 1.2.2
-    optionalDependencies:
-      '@swc/core': 1.3.101(@swc/helpers@0.5.2)
-      postcss: 8.4.38
-      typescript: 5.4.5
-    transitivePeerDependencies:
-      - supports-color
-      - ts-node
-
-  tsup@7.3.0(@swc/core@1.3.101)(postcss@8.4.38)(ts-node@10.9.2(@swc/core@1.3.101)(typescript@5.4.5))(typescript@5.4.5):
-    dependencies:
-      bundle-require: 4.1.0(esbuild@0.19.12)
-      cac: 6.7.14
-      chokidar: 3.6.0
-      debug: 4.3.4(supports-color@8.1.1)
-      esbuild: 0.19.12
-      execa: 5.1.1
-      globby: 11.1.0
-      joycon: 3.1.1
-      postcss-load-config: 4.0.2(postcss@8.4.38)(ts-node@10.9.2(@swc/core@1.3.101)(typescript@5.4.5))
       resolve-from: 5.0.0
       rollup: 4.17.2
       source-map: 0.8.0-beta.0
@@ -21179,7 +21135,7 @@ snapshots:
   vite-node@1.6.0(@types/node@20.12.12)(terser@5.31.0):
     dependencies:
       cac: 6.7.14
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       pathe: 1.1.2
       picocolors: 1.0.1
       vite: 5.2.11(@types/node@20.12.12)(terser@5.31.0)
@@ -21212,7 +21168,7 @@ snapshots:
       '@vitest/utils': 1.6.0
       acorn-walk: 8.3.2
       chai: 4.4.1
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       execa: 8.0.1
       local-pkg: 0.5.0
       magic-string: 0.30.10
@@ -21261,7 +21217,7 @@ snapshots:
 
   vue-eslint-parser@9.4.2(eslint@9.3.0):
     dependencies:
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       eslint: 9.3.0
       eslint-scope: 7.2.2
       eslint-visitor-keys: 3.4.3
