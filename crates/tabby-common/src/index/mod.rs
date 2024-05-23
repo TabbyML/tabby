@@ -34,7 +34,7 @@ fn new_multiterms_const_query<'a>(
 
 #[cfg(test)]
 mod tests {
-    
+
     use tantivy::{
         collector::TopDocs,
         query::Query,
