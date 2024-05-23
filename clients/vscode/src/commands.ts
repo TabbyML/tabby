@@ -20,6 +20,7 @@ import { notifications } from "./notifications";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
 import { TabbyStatusBarItem } from "./TabbyStatusBarItem";
 import { ChatViewProvider } from "./ChatViewProvider";
+import { createThreadFromWebview } from "./vscode";
 
 const configTarget = ConfigurationTarget.Global;
 
@@ -336,21 +337,39 @@ const explainCodeBlock = (chatViewProvider: ChatViewProvider): Command => {
         const configuration = workspace.getConfiguration("tabby");
 
         commands.executeCommand("tabby.chatView.focus");
-        // chatViewProvider.postMessage({
-        //   command: 'explainThis',
-        //   data: {
-        //     message: "Explain the selected code:",
-        //     selectContext: {
-        //       kind: 'file',
-        //       content: text,
-        //       // range: {
-        //       //   start: lineFrom,
-        //       //   end: lineTo ?? lineFrom
-        //       // },
-        //       // filepath: path
-        //     }
-        //   }
-        // })
+
+        const webview = chatViewProvider.webview
+        if (webview) {
+          const thread = createThreadFromWebview(webview, {
+            expose: {
+              navigate: (data) => {
+                console.log('open url')
+              }
+            }
+          })
+          thread.init({
+            fetcherOptions: {
+              authorization: "auth_fa450615a8cd4e77a35cd9fa61e5008f"
+            }
+          })
+
+          setTimeout(() => {
+            thread.sendMessage({
+              message: "Explain the selected code:",
+              selectContext: {
+                kind: 'file',
+                content: text,
+                range: {
+                  start: 1, // FIXME
+                  end:  2 // FIXME
+                },
+                filepath:  editor.document.fileName // FIXME
+              }
+            })
+          }, 1500)
+          
+        }
+        
       } else {
         window.showInformationMessage("No active editor");
       }

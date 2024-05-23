@@ -203,7 +203,7 @@ importers:
   clients/tabby-chat-panel:
     dependencies:
       '@quilted/threads':
-        specifier: ^2.1.2
+        specifier: ^2.2.0
         version: 2.2.0
       react:
         specifier: 18.2.0
@@ -278,12 +278,18 @@ importers:
       '@orama/orama':
         specifier: ^2.0.15
         version: 2.0.18
+      '@quilted/threads':
+        specifier: ^2.2.0
+        version: 2.2.0
       '@xstate/fsm':
         specifier: ^2.0.1
         version: 2.1.0
       tabby-agent:
         specifier: workspace:*
         version: link:../tabby-agent
+      tabby-chat-panel:
+        specifier: workspace:*
+        version: link:../tabby-chat-panel
     devDependencies:
       '@types/mocha':
         specifier: ^10.0.1

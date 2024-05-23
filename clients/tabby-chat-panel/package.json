@@ -46,7 +46,7 @@
     "dev:vscode": "esbuild src/iframe.tsx --bundle --outfile=../vscode/chat-panel/index.js --loader:.js=jsx --watch"
   },
   "dependencies": {
-    "@quilted/threads": "^2.1.2",
+    "@quilted/threads": "^2.2.0",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChatMessage, Context, FetcherOptions } from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
 
@@ -23,6 +23,13 @@ export default function ChatPage() {
       messageQueueBeforeInit.push(message)
     }
   }
+
+  // useEffect(() => {
+  //   window.addEventListener('message', (e) => {
+  //     console.log('inside chat')
+  //     console.log(e.data)
+  //   })
+  // }, [])
 
   const server = useServer({
     init: request => {

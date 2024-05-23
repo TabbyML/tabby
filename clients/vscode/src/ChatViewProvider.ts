@@ -17,16 +17,6 @@ export class ChatViewProvider implements WebviewViewProvider {
       localResourceRoots: [extensionUri],
     };
     webviewView.webview.html = await this._getWebviewContent(webviewView.webview, extensionUri);
-    webviewView.webview.onDidReceiveMessage((data) => {
-      switch (data.command) {
-        case 'explainThis': {
-          const { text, language } = data;
-          console.log('text', text)
-          console.log('language', language)
-          return;
-        }
-      }
-    });
   }
 
   private async _getWebviewContent(webview: Webview, extensionUri: Uri) {
@@ -39,62 +29,49 @@ export class ChatViewProvider implements WebviewViewProvider {
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <title>Tabby</title>
+          <title>Tabby</title>     
         </head>
         <style>
           html, body, iframe {
             padding: 0;
             margin: 0;
             box-sizing: border-box;
+            overflow: hidden;
+          }
+          iframe {
             border-width: 0;
+            width: 100%;
+            height: 100vh;
           }
         </style>
         <body>
-          <div id="root" style="height: 100vh; overflow: hidden"></div>
           <script>window.endpoint="${server.endpoint}"</script>
           <script>window.token="${server.token}"</script>
-          <script type="module" src="${scriptUri}"></script>
+          <script defer>
+            window.onload = function () {
+              const vscode = acquireVsCodeApi();
+              const chatIframe = document.getElementById("chat");
+            
+              window.addEventListener("message", (event) => {
+                console.log('window.addEventListener', event.data);
+                if (event.data) {
+                  if (event.data.data) {
+                    chatIframe.contentWindow.postMessage(event.data.data[0], "http://localhost:8080");
+                  } else {
+                    console.log('data from iframe', event.data);
+                    vscode.postMessage(event.data);
+                  }
+                }
+              });
+            }
+          </script>
+          <iframe id="chat" src="http://localhost:8080/chat" />
         </body>
       </html>
     `;
   }
 
-  /**
-   * Sets up an event listener to listen for messages passed from the webview context and
-   * executes code based on the message that is recieved.
-   *
-   * @param webview A reference to the extension webview
-   * @param context A reference to the extension context
-   */
-  // private _setWebviewMessageListener(webview: Webview) {
-  //   webview.onDidReceiveMessage(
-  //     (message: any) => {
-  //       const command = message.command;
-  //       const text = message.text;
-
-  //       switch (command) {
-  //         case "hello":
-  //           // Code that should run in response to the hello message command
-  //           window.showInformationMessage(text);
-  //           return;
-  //         // Add more switch case statements here as more webview message commands
-  //         // are created within the webview context (i.e. inside media/main.js)
-  //       }
-  //     },
-  //     undefined,
-  //     this._disposables
-  //   );
-  // }
-
-  public revive(panel: WebviewView) {
-    this.webview = panel;
-  }
-
-  public postMessage (message: any) {
-    if (this.webview) {
-      console.log('this.webview exist')
-      console.log('this.webview?.webview.', this.webview?.webview)
-      this.webview?.webview.postMessage(message)
-    }
+  public getWebview () {
+    return this.webview
   }
 }
