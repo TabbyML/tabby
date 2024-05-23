@@ -21,18 +21,18 @@ pub struct SourceDocument {
 
 const CHUNK_SIZE: usize = 2048;
 
-pub struct WebBuilder {
+pub struct DocBuilder {
     embedding: Arc<dyn Embedding>,
 }
 
-impl WebBuilder {
+impl DocBuilder {
     pub fn new(embedding: Arc<dyn Embedding>) -> Self {
         Self { embedding }
     }
 }
 
 #[async_trait]
-impl DocumentBuilder<SourceDocument> for WebBuilder {
+impl DocumentBuilder<SourceDocument> for DocBuilder {
     fn format_id(&self, id: &str) -> String {
         format!("web:{id}")
     }
@@ -86,6 +86,6 @@ impl DocumentBuilder<SourceDocument> for WebBuilder {
 }
 
 pub fn create_web_index(embedding: Arc<dyn Embedding>) -> DocIndex<SourceDocument> {
-    let builder = WebBuilder::new(embedding);
+    let builder = DocBuilder::new(embedding);
     DocIndex::new(builder)
 }

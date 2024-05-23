@@ -10,15 +10,15 @@ pub use code::CodeIndex;
 use crawl::crawl_pipeline;
 use futures::StreamExt;
 use index::{DocIndex, DocumentBuilder};
-use web::SourceDocument;
+use doc::SourceDocument;
 
-mod web;
+mod doc;
 use std::{env, sync::Arc};
 
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{debug, info, warn};
-use web::create_web_index;
+use doc::create_web_index;
 
 pub async fn scheduler<T: RepositoryAccess + 'static>(
     now: bool,
