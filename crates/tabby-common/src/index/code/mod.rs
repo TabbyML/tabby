@@ -35,11 +35,7 @@ impl CodeSearchSchema {
         let subqueries: Vec<Box<dyn Query>> = tokens
             .iter()
             .map(|text| {
-                let mut term = Term::from_field_text(
-                    schema.field_chunk_tokens,
-                    &text
-                );
-                term.append_type_and_str(text.as_ref());
+                let term = Term::from_field_text(schema.field_chunk_tokens, text);
                 let term_query: Box<dyn Query> =
                     Box::new(TermQuery::new(term, IndexRecordOption::Basic));
 

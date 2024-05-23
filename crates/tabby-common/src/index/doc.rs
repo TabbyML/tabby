@@ -2,7 +2,9 @@ use std::borrow::Cow;
 
 use lazy_static::lazy_static;
 use tantivy::{
-    query::{BooleanQuery, ExistsQuery, Occur, TermQuery}, schema::{Field, JsonObjectOptions, Schema, TextFieldIndexing, FAST, INDEXED, STORED, STRING}, tokenizer::TokenizerManager, Term
+    query::{BooleanQuery, ExistsQuery, Occur, TermQuery},
+    schema::{Field, JsonObjectOptions, Schema, TextFieldIndexing, FAST, INDEXED, STORED, STRING},
+    Term,
 };
 
 use super::new_multiterms_const_query;
@@ -104,11 +106,7 @@ impl DocSearchSchema {
     ) -> BooleanQuery {
         let iter = DocSearchSchema::binarize_embedding(embedding).map(Cow::Owned);
 
-        new_multiterms_const_query(
-            self.field_chunk_tokens,
-            embedding_dims,
-            iter,
-        )
+        new_multiterms_const_query(self.field_chunk_tokens, embedding_dims, iter)
     }
 
     /// Build a query to find the document with the given `doc_id`.

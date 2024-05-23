@@ -74,10 +74,9 @@ impl DocumentBuilder<SourceDocument> for WebBuilder {
                 }
 
                 let chunk = json!({
-                        // FIXME: tokenize chunk text
                         webdoc::fields::CHUNK_TEXT: chunk_text,
                 });
-                
+
                 yield (chunk_embedding_tokens, chunk)
             }
         };

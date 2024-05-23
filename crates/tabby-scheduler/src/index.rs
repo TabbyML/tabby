@@ -9,7 +9,10 @@ pub trait DocumentBuilder<T>: Send + Sync {
     fn format_id(&self, id: &str) -> String;
     async fn build_id(&self, document: &T) -> String;
     async fn build_attributes(&self, document: &T) -> serde_json::Value;
-    async fn build_chunk_attributes(&self, document: &T) -> BoxStream<(Vec<String>, serde_json::Value)>;
+    async fn build_chunk_attributes(
+        &self,
+        document: &T,
+    ) -> BoxStream<(Vec<String>, serde_json::Value)>;
 }
 
 pub struct DocIndex<T> {

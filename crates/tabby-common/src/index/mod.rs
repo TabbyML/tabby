@@ -18,7 +18,7 @@ fn new_multiterms_const_query<'a>(
 ) -> BooleanQuery {
     let subqueries: Vec<Box<dyn Query>> = terms
         .map(|text| {
-            let mut term = Term::from_field_text(field, text.as_ref());
+            let term = Term::from_field_text(field, text.as_ref());
             let term_query: Box<dyn Query> =
                 Box::new(TermQuery::new(term, IndexRecordOption::Basic));
 
@@ -34,10 +34,9 @@ fn new_multiterms_const_query<'a>(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
+    
     use tantivy::{
         collector::TopDocs,
-        doc,
         query::Query,
         schema::{Schema, STRING},
         Index, IndexWriter, TantivyDocument,
