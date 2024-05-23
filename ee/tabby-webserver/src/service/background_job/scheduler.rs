@@ -46,7 +46,7 @@ impl SchedulerJob {
                 "Refreshing repository {}",
                 repository.canonical_git_url()
             );
-            code.refresh(&repository);
+            code.refresh(&repository).await;
         })
         .await
         .context("Job execution failed")?;

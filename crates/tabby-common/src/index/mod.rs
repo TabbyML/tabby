@@ -4,7 +4,7 @@ use std::borrow::Cow;
 pub use code::{register_tokenizers, CodeSearchSchema};
 
 mod doc;
-pub use doc::{webdoc, DocSearchSchema};
+pub use doc::{webcode, webdoc, DocSearchSchema};
 use tantivy::{
     query::{BooleanQuery, ConstScoreQuery, Query, TermQuery},
     schema::{Field, IndexRecordOption},

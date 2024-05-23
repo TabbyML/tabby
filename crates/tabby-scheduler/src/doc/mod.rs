@@ -2,20 +2,13 @@ mod web;
 
 use std::sync::Arc;
 
-use futures::{stream::BoxStream, Stream, StreamExt};
+use futures::{Stream, StreamExt};
 use tabby_common::{index::DocSearchSchema, path};
 use tabby_inference::Embedding;
 use tantivy::{doc, IndexWriter, TantivyDocument, Term};
 
 use self::web::WebBuilder;
-use crate::tantivy_utils::open_or_create_index;
-
-#[async_trait::async_trait]
-trait DocumentBuilder<T> {
-    async fn build_id(&self, document: &T) -> String;
-    async fn build_attributes(&self, document: &T) -> serde_json::Value;
-    async fn build_chunk_attributes(&self, document: &T) -> BoxStream<serde_json::Value>;
-}
+use crate::{tantivy_utils::open_or_create_index, DocumentBuilder};
 
 pub struct SourceDocument {
     pub id: String,
@@ -30,7 +23,7 @@ pub struct DocIndex<T> {
 }
 
 impl<T> DocIndex<T> {
-    fn new(builder: impl DocumentBuilder<T> + 'static) -> Self {
+    pub fn new(builder: impl DocumentBuilder<T> + 'static) -> Self {
         let doc = DocSearchSchema::instance();
         let (_, index) = open_or_create_index(&doc.schema, &path::doc_index_dir());
         let writer = index
@@ -43,13 +36,14 @@ impl<T> DocIndex<T> {
         }
     }
 
-    pub async fn add(&mut self, document: T) {
+    pub async fn add(&self, document: T) {
         self.iter_docs(document)
             .await
-            .for_each(|doc| async {
+            .for_each(|doc| {
                 self.writer
                     .add_document(doc)
                     .expect("Failed to add document");
+                async {}
             })
             .await;
     }
@@ -95,7 +89,7 @@ impl<T> DocIndex<T> {
             })
     }
 
-    pub fn delete(&mut self, id: &str) {
+    pub fn delete(&self, id: &str) {
         self.writer.delete_term(Term::from_field_text(
             DocSearchSchema::instance().field_id,
             id,
@@ -126,7 +120,6 @@ mod tests {
         Field, Value,
     };
 
-    use self::web::WebBuilder;
     use super::*;
 
     struct DummyEmbedding;

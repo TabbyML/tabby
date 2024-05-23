@@ -22,7 +22,7 @@ pub mod webdoc {
     }
 }
 
-pub mod code {
+pub mod webcode {
     pub mod fields {
         pub const CHUNK_GIT_URL: &str = "chunk_git_url";
         pub const CHUNK_FILEPATH: &str = "chunk_filepath";

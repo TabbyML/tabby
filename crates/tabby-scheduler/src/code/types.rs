@@ -1,4 +1,7 @@
-use std::{ops::Range, path::Path};
+use std::{
+    ops::Range,
+    path::{Path, PathBuf},
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -16,8 +19,12 @@ pub struct SourceCode {
 
 impl SourceCode {
     pub fn read_content(&self) -> std::io::Result<String> {
-        let path = Path::new(&self.basedir).join(&self.filepath);
+        let path = self.absolute_path();
         std::fs::read_to_string(path)
+    }
+
+    pub fn absolute_path(&self) -> PathBuf {
+        Path::new(&self.basedir).join(&self.filepath)
     }
 }
 

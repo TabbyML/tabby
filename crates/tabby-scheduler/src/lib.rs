@@ -7,7 +7,7 @@ mod code;
 use async_stream::stream;
 pub use code::CodeIndex;
 use crawl::crawl_pipeline;
-use futures::StreamExt;
+use futures::{stream::BoxStream, StreamExt};
 
 mod doc;
 use std::{env, sync::Arc};
@@ -77,7 +77,7 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(
 async fn scheduler_pipeline(repositories: &[RepositoryConfig]) {
     let mut code = CodeIndex::default();
     for repository in repositories {
-        code.refresh(repository);
+        code.refresh(repository).await;
     }
 
     code.garbage_collection(repositories);
@@ -98,7 +98,7 @@ async fn doc_index_pipeline(config: &tabby_common::config::Config) {
         let embedding = embedding.clone();
         stream! {
             let mut num_docs = 0;
-            let mut doc_index = create_web_index(embedding.clone());
+            let doc_index = create_web_index(embedding.clone());
             for await doc in crawl_pipeline(url).await {
                 let source_doc = SourceDocument {
                     id: doc.url.clone(),
@@ -152,4 +152,11 @@ mod tantivy_utils {
         let directory = MmapDirectory::open(path).expect("Failed to open index directory");
         Index::open_or_create(directory, code.clone())
     }
+}
+
+#[async_trait::async_trait]
+trait DocumentBuilder<T>: Send + Sync {
+    async fn build_id(&self, document: &T) -> String;
+    async fn build_attributes(&self, document: &T) -> serde_json::Value;
+    async fn build_chunk_attributes(&self, document: &T) -> BoxStream<serde_json::Value>;
 }
