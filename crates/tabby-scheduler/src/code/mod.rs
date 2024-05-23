@@ -45,11 +45,16 @@ struct CodeBuilder;
 
 #[async_trait]
 impl DocumentBuilder<SourceCode> for CodeBuilder {
+    fn format_id(&self, id: &str) -> String {
+        format!("code:{}", id)
+    }
+
     async fn build_id(&self, source_code: &SourceCode) -> String {
         let path = source_code.absolute_path();
-        SourceFileKey::try_from(path.as_path())
+        let id = SourceFileKey::try_from(path.as_path())
             .expect("Failed to build ID from path")
-            .to_string()
+            .to_string();
+        self.format_id(&id)
     }
 
     async fn build_attributes(&self, _source_code: &SourceCode) -> serde_json::Value {

@@ -6,6 +6,7 @@ use crate::tantivy_utils::open_or_create_index;
 
 #[async_trait::async_trait]
 pub trait DocumentBuilder<T>: Send + Sync {
+    fn format_id(&self, id: &str) -> String;
     async fn build_id(&self, document: &T) -> String;
     async fn build_attributes(&self, document: &T) -> serde_json::Value;
     async fn build_chunk_attributes(&self, document: &T) -> BoxStream<serde_json::Value>;
@@ -86,7 +87,7 @@ impl<T> DocIndex<T> {
     pub fn delete(&self, id: &str) {
         self.writer.delete_term(Term::from_field_text(
             DocSearchSchema::instance().field_id,
-            id,
+            &self.builder.format_id(id),
         ));
     }
 

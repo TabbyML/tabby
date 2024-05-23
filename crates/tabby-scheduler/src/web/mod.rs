@@ -33,8 +33,12 @@ impl WebBuilder {
 
 #[async_trait]
 impl DocumentBuilder<SourceDocument> for WebBuilder {
+    fn format_id(&self, id: &str) -> String {
+        format!("web:{id}")
+    }
+
     async fn build_id(&self, document: &SourceDocument) -> String {
-        document.id.clone()
+        self.format_id(&document.id)
     }
 
     async fn build_attributes(&self, document: &SourceDocument) -> serde_json::Value {
