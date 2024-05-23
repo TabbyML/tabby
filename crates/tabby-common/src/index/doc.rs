@@ -28,7 +28,7 @@ pub mod webcode {
         pub const CHUNK_FILEPATH: &str = "chunk_filepath";
         pub const CHUNK_LANGUAGE: &str = "chunk_language";
         pub const CHUNK_TOKENIZED_BODY: &str = "chunk_tokenized_body";
-        pub const CHUNK_BODY: &str = "CHUNK_BODY";
+        pub const CHUNK_BODY: &str = "chunk_body";
         pub const CHUNK_START_LINE: &str = "chunk_start_line";
     }
 }
