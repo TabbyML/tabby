@@ -9,7 +9,7 @@ pub trait DocumentBuilder<T>: Send + Sync {
     fn format_id(&self, id: &str) -> String;
     async fn build_id(&self, document: &T) -> String;
     async fn build_attributes(&self, document: &T) -> serde_json::Value;
-    async fn build_chunk_attributes(&self, document: &T) -> BoxStream<serde_json::Value>;
+    async fn build_chunk_attributes(&self, document: &T) -> BoxStream<(Vec<String>, serde_json::Value)>;
 }
 
 pub struct DocIndex<T> {
@@ -74,13 +74,19 @@ impl<T> DocIndex<T> {
             .build_chunk_attributes(&document)
             .await
             .enumerate()
-            .map(move |(chunk_id, chunk_attributes)| {
-                doc! {
+            .map(move |(chunk_id, (tokens, chunk_attributes))| {
+                let mut doc = doc! {
                     schema.field_id => id,
                     schema.field_updated_at => updated_at,
                     schema.field_chunk_id => format!("{}-{}", id, chunk_id),
                     schema.field_chunk_attributes => chunk_attributes,
+                };
+
+                for token in tokens {
+                    doc.add_text(schema.field_chunk_tokens, token);
                 }
+
+                doc
             })
     }
 

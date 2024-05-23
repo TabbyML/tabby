@@ -67,7 +67,7 @@ impl DocumentBuilder<SourceCode> for CodeBuilder {
     async fn build_chunk_attributes(
         &self,
         source_file: &SourceCode,
-    ) -> BoxStream<serde_json::Value> {
+    ) -> BoxStream<(Vec<String>, serde_json::Value)> {
         let text = match source_file.read_content() {
             Ok(content) => content,
             Err(e) => {
@@ -84,14 +84,14 @@ impl DocumentBuilder<SourceCode> for CodeBuilder {
         let s = stream! {
             let intelligence = CodeIntelligence::default();
             for (start_line, body) in intelligence.chunks(&text) {
-                yield json!({
+                let tokens = CodeSearchSchema::tokenize_code(body);
+                yield (tokens, json!({
                     webcode::fields::CHUNK_FILEPATH: source_file.filepath,
                     webcode::fields::CHUNK_GIT_URL: source_file.git_url,
                     webcode::fields::CHUNK_LANGUAGE: source_file.language,
-                    webcode::fields::CHUNK_TOKENIZED_BODY:  CodeSearchSchema::tokenize_code(body),
                     webcode::fields::CHUNK_BODY:  body,
                     webcode::fields::CHUNK_START_LINE: start_line,
-                });
+                }));
             }
         };
 

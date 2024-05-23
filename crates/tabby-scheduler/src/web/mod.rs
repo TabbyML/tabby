@@ -53,7 +53,7 @@ impl DocumentBuilder<SourceDocument> for WebBuilder {
     async fn build_chunk_attributes(
         &self,
         document: &SourceDocument,
-    ) -> BoxStream<serde_json::Value> {
+    ) -> BoxStream<(Vec<String>, serde_json::Value)> {
         let splitter = TextSplitter::default().with_trim_chunks(true);
         let embedding = self.embedding.clone();
         let content = document.body.clone();
@@ -76,10 +76,9 @@ impl DocumentBuilder<SourceDocument> for WebBuilder {
                 let chunk = json!({
                         // FIXME: tokenize chunk text
                         webdoc::fields::CHUNK_TEXT: chunk_text,
-                        webdoc::fields::CHUNK_EMBEDDING: chunk_embedding_tokens,
                 });
-
-                yield chunk
+                
+                yield (chunk_embedding_tokens, chunk)
             }
         };
 

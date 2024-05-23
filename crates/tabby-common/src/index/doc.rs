@@ -2,23 +2,16 @@ use std::borrow::Cow;
 
 use lazy_static::lazy_static;
 use tantivy::{
-    query::{BooleanQuery, ExistsQuery, Occur, TermQuery},
-    schema::{Field, JsonObjectOptions, Schema, TextFieldIndexing, FAST, INDEXED, STORED, STRING},
-    Term,
+    query::{BooleanQuery, ExistsQuery, Occur, TermQuery}, schema::{Field, JsonObjectOptions, Schema, TextFieldIndexing, FAST, INDEXED, STORED, STRING}, tokenizer::TokenizerManager, Term
 };
 
-use super::new_multiterms_const_query_with_path;
+use super::new_multiterms_const_query;
 
 pub mod webdoc {
     pub mod fields {
         pub const TITLE: &str = "title";
         pub const LINK: &str = "link";
         pub const CHUNK_TEXT: &str = "chunk_text";
-
-        // Binarized embedding tokens with the following mapping:
-        // * [-1, 0] -> 0
-        // * (0, 1] -> 1
-        pub const CHUNK_EMBEDDING: &str = "chunk_embedding";
     }
 }
 
@@ -27,7 +20,6 @@ pub mod webcode {
         pub const CHUNK_GIT_URL: &str = "chunk_git_url";
         pub const CHUNK_FILEPATH: &str = "chunk_filepath";
         pub const CHUNK_LANGUAGE: &str = "chunk_language";
-        pub const CHUNK_TOKENIZED_BODY: &str = "chunk_tokenized_body";
         pub const CHUNK_BODY: &str = "chunk_body";
         pub const CHUNK_START_LINE: &str = "chunk_start_line";
     }
@@ -46,6 +38,8 @@ pub struct DocSearchSchema {
     // === Fields for chunk ===
     pub field_chunk_id: Field,
     pub field_chunk_attributes: Field,
+
+    pub field_chunk_tokens: Field,
 }
 
 const FIELD_CHUNK_ID: &str = "chunk_id";
@@ -76,6 +70,7 @@ impl DocSearchSchema {
                 ),
         );
 
+        let field_chunk_tokens = builder.add_text_field("chunk_tokens", STRING);
         let schema = builder.build();
 
         Self {
@@ -86,6 +81,7 @@ impl DocSearchSchema {
 
             field_chunk_id,
             field_chunk_attributes,
+            field_chunk_tokens,
         }
     }
 
@@ -108,10 +104,9 @@ impl DocSearchSchema {
     ) -> BooleanQuery {
         let iter = DocSearchSchema::binarize_embedding(embedding).map(Cow::Owned);
 
-        new_multiterms_const_query_with_path(
-            self.field_chunk_attributes,
+        new_multiterms_const_query(
+            self.field_chunk_tokens,
             embedding_dims,
-            webdoc::fields::CHUNK_EMBEDDING,
             iter,
         )
     }
