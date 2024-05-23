@@ -13,12 +13,13 @@ interface ChatScrollAnchorProps {
 
 export function ChatScrollAnchor({ trackVisibility }: ChatScrollAnchorProps) {
   const { container } = React.useContext(ChatContext)
-  const isAtBottom = useAtBottom(0, container)
+  const isAtBottom = useAtBottom(150, container)
 
   const { ref, entry, inView } = useInView({
     trackVisibility,
     delay: 100,
-    rootMargin: '0px 0px -150px 0px'
+    rootMargin: '0px 0px -150px 0px',
+    root: container
   })
 
   React.useEffect(() => {
