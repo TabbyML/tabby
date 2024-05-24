@@ -15,7 +15,8 @@ export interface ChatPanelProps
   id?: string
   className?: string
   onSubmit: (content: string) => Promise<any>
-  reload: () => void
+  reload: () => void,
+  chatMaxWidthClass: string
 }
 
 export function ChatPanel({
@@ -25,7 +26,8 @@ export function ChatPanel({
   input,
   setInput,
   className,
-  onSubmit
+  onSubmit,
+  chatMaxWidthClass
 }: ChatPanelProps) {
   const promptFormRef = React.useRef<PromptFormRef>(null)
   const { container, onClearMessages, qaPairs, isLoading } =
@@ -33,13 +35,13 @@ export function ChatPanel({
   React.useEffect(() => {
     promptFormRef?.current?.focus()
   }, [id])
-
+  
   return (
     <div
       className={className}
     >
       <ButtonScrollToBottom container={container} />
-      <div className="mx-auto sm:max-w-3xl sm:px-4">
+      <div className={`mx-auto ${chatMaxWidthClass}`}>
         <div className="flex h-10 items-center justify-center gap-2">
           {isLoading ? (
             <Button

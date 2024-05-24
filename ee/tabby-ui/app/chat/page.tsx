@@ -3,8 +3,8 @@
 import { useRef, useState, useEffect } from 'react'
 import type { ChatMessage, Context, FetcherOptions } from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
+import { useSearchParams } from 'next/navigation';
 
-import { cn } from '@/lib/utils'
 import { nanoid } from '@/lib/utils'
 import { Chat, ChatRef } from '@/components/chat/chat'
 import { QuestionAnswerPair } from '@/lib/types/chat'
@@ -35,6 +35,8 @@ export default function ChatPage() {
   const [activeChatId, setActiveChatId] = useState('')
   const [initialMessages, setInitialMessages] = useState<QuestionAnswerPair[]>([])
   const chatRef = useRef<ChatRef>(null)
+  const searchParams = useSearchParams()
+  const maxWidth = searchParams.get('max-width') || undefined
 
   useEffect(() => {
     window.addEventListener('message', ({ data }) => {
@@ -98,16 +100,15 @@ export default function ChatPage() {
     Authorization: `Bearer ${fetcherOptions.authorization}`
   }
   return (
-    <div className="content">
-      <Chat
-        chatId={activeChatId}
-        key={activeChatId}
-        ref={chatRef}
-        headers={headers}
-        initialMessages={initialMessages}
-        onThreadUpdates={() => {}}
-        onNavigateToContext={onNavigateToContext}
-      />
-    </div>
+    <Chat
+      chatId={activeChatId}
+      key={activeChatId}
+      ref={chatRef}
+      headers={headers}
+      initialMessages={initialMessages}
+      onThreadUpdates={() => {}}
+      onNavigateToContext={onNavigateToContext}
+      maxWidth={maxWidth}
+    />
   )
 }

@@ -113,6 +113,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   container?: HTMLDivElement
   docQuery?: boolean
   generateRelevantQuestions?: boolean
+  maxWidth?: string
 }
 
 function ChatRenderer(
@@ -128,7 +129,8 @@ function ChatRenderer(
     container,
     fetcher,
     docQuery,
-    generateRelevantQuestions
+    generateRelevantQuestions,
+    maxWidth
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -360,8 +362,8 @@ function ChatRenderer(
     setInitialzed(true)
   }, [])
 
+  const chatMaxWidthClass = maxWidth ? `max-w-${maxWidth}` : 'max-w-2xl'
   if (!initialized) return <ListSkeleton />
-
   return (
     <ChatContext.Provider
       value={{
@@ -374,12 +376,12 @@ function ChatRenderer(
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
-        <div className="w-full max-w-3xl px-4">
+        <div className={`w-full px-4 ${chatMaxWidthClass}`}>
           <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
             {qaPairs?.length ? (
-              <QuestionAnswerList messages={qaPairs} />
+              <QuestionAnswerList messages={qaPairs} chatMaxWidthClass={chatMaxWidthClass} />
             ) : (
-              <EmptyScreen setInput={setInput} />
+              <EmptyScreen setInput={setInput} chatMaxWidthClass={chatMaxWidthClass} />
             )}
             <ChatScrollAnchor trackVisibility={isLoading} />
           </div>
@@ -391,6 +393,7 @@ function ChatRenderer(
             reload={onReload}
             input={input}
             setInput={setInput}
+            chatMaxWidthClass={chatMaxWidthClass}
           />
         </div>
       </div>

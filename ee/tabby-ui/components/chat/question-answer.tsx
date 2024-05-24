@@ -34,12 +34,13 @@ import { UserAvatar } from '../user-avatar'
 import { ChatContext } from './chat'
 
 interface QuestionAnswerListProps {
-  messages: QuestionAnswerPair[]
+  messages: QuestionAnswerPair[],
+  chatMaxWidthClass: string
 }
-function QuestionAnswerList({ messages }: QuestionAnswerListProps) {
+function QuestionAnswerList({ messages, chatMaxWidthClass }: QuestionAnswerListProps) {
   const { isLoading } = React.useContext(ChatContext)
   return (
-    <div className="relative mx-auto max-w-4xl px-4">
+    <div className={`relative mx-auto px-4 ${chatMaxWidthClass}`}>
       {messages?.map((message, index) => {
         const isLastItem = index === messages.length - 1
         return (

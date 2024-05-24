@@ -112,7 +112,7 @@ export class ChatViewProvider implements WebviewViewProvider {
           </script>
           <iframe
             id="chat"
-            src="${server.endpoint}/chat"
+            src="${server.endpoint}/chat?max-width=5xl"
             onload="iframeLoaded(this)" />
         </body>
       </html>
