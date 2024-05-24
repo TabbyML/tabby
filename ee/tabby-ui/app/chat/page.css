@@ -4,7 +4,7 @@ html {
   font-size: var(--vscode-font-size);
 }
 
-body {
+.vscode body {
   /* --background: var(--vscode-editor-background); */
   --foreground: var(--vscode-editor-foreground);
 
@@ -38,5 +38,9 @@ body {
   --ring: var(--vscode-focusBorder);
 
   --selection: var(--vscode-editor-selectionBackground); */
+}
+
+.vscode.light body {
+  --background: var(--vscode-editor-background);
 }
 

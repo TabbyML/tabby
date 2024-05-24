@@ -34,7 +34,8 @@ export default function RootLayout({ children }: RootLayoutProps) {
         className={cn(
           'font-sans antialiased',
           fontSans.variable,
-          fontMono.variable
+          fontMono.variable,
+          'bg-transparent'
         )}
       >
         <Providers attribute="class" defaultTheme="system" enableSystem>

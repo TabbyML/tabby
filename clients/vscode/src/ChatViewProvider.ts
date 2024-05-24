@@ -57,6 +57,9 @@ export class ChatViewProvider implements WebviewViewProvider {
           <title>Tabby</title>     
         </head>
         <style>
+          html, body {
+            background: transparent;
+          }
           html, body, iframe {
             padding: 0;
             margin: 0;
@@ -79,7 +82,8 @@ export class ChatViewProvider implements WebviewViewProvider {
                 const parentHtmlStyle = document.documentElement.getAttribute('style');
                 chatIframe.contentWindow.postMessage({ style: parentHtmlStyle }, "${server.endpoint}");
             
-                const themeClass = document.body.className === 'vscode-dark' ? 'dark' : 'light' 
+                let themeClass = document.body.className === 'vscode-dark' ? 'dark' : 'light'
+                themeClass += ' vscode'
                 chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${server.endpoint}");
               }
 
@@ -93,7 +97,6 @@ export class ChatViewProvider implements WebviewViewProvider {
                   if (event.data.data) {
                     chatIframe.contentWindow.postMessage(event.data.data[0], "${server.endpoint}");
                   } else {
-                    console.log('data from iframe', event.data);
                     vscode.postMessage(event.data);
                   }
                 }
@@ -115,7 +118,7 @@ export class ChatViewProvider implements WebviewViewProvider {
       </html>
     `;
   }
-
+  
   public getWebview () {
     return this.webview
   }
