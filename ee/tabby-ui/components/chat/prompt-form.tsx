@@ -223,7 +223,7 @@ function PromptFormRenderer(
                     rows={1}
                     placeholder="Ask a question."
                     spellCheck={false}
-                    className="min-h-[60px] w-full resize-none bg-transparent px-4 py-[1.3rem] focus-within:outline-none sm:text-sm"
+                    className="min-h-[60px] w-full resize-none bg-transparent px-4 py-[1.3rem] focus-within:outline-none"
                     value={input}
                     ref={inputRef}
                     onChange={e => {

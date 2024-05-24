@@ -343,12 +343,8 @@ const explainCodeBlock = (chatViewProvider: ChatViewProvider): Command => {
     command: "tabby.experimental.chat.explainCodeBlock",
     callback: async () => {
       const editor = window.activeTextEditor;
-      const configuration = agent().getConfig();
-      const serverHost = configuration.server.endpoint;
-
       if (editor) {
         const text = editor.document.getText(editor.selection);
-        const configuration = workspace.getConfiguration("tabby");
         const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath || "";
         
         commands.executeCommand("tabby.chatView.focus");
@@ -362,8 +358,8 @@ const explainCodeBlock = (chatViewProvider: ChatViewProvider): Command => {
               start: editor.selection.start.line + 1,
               end: editor.selection.end.line + 1
             },
-            filepath:  editor.document.fileName.replace(workspaceFolder, ''),
-            git_url: 'https://github.com/tabbyML/tabby' // FIXME
+            filepath: editor.document.fileName.replace(workspaceFolder, ''),
+            git_url: "https://github.com/tabbyML/tabby" // FIXME
           }
         })
       } else {
