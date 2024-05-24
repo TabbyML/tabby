@@ -48,7 +48,7 @@ impl RepositoryProvider for ThirdPartyRepositoryServiceImpl {
             let repos_for_kind = ThirdPartyRepositoryService::list_repositories_with_filter(
                 self,
                 None,
-                None,
+                Some(kind.clone()),
                 Some(true),
                 None,
                 None,
@@ -180,8 +180,9 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         vendor_id: String,
         display_name: String,
         git_url: String,
-    ) -> Result<()> {
-        self.db
+    ) -> Result<ID> {
+        let id = self
+            .db
             .upsert_provided_repository(
                 integration_id.as_rowid()?,
                 vendor_id,
@@ -189,7 +190,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
                 git_url,
             )
             .await?;
-        Ok(())
+        Ok(id.as_id())
     }
 
     async fn delete_outdated_repositories(
@@ -303,6 +304,8 @@ fn to_provided_repository(value: ProvidedRepositoryDAO) -> ProvidedRepository {
 mod tests {
 
     use std::time::Duration;
+
+    use tabby_schema::repository::RepositoryKind;
 
     use super::*;
 
@@ -588,5 +591,95 @@ mod tests {
             repos.iter().map(|r| &r.display_name).collect::<Vec<_>>(),
             vec!["TabbyML/tabby2", "TabbyML/newrepo"]
         );
+    }
+
+    #[tokio::test]
+    async fn test_repository_list() {
+        let (repository, integration) = create_fake().await;
+
+        let integration_id1 = integration
+            .create_integration(
+                IntegrationKind::Github,
+                "github".into(),
+                "token".into(),
+                None,
+            )
+            .await
+            .unwrap();
+
+        let integration_id2 = integration
+            .create_integration(
+                IntegrationKind::GithubSelfHosted,
+                "github-sh".into(),
+                "token".into(),
+                Some("https://my.github.com".into()),
+            )
+            .await
+            .unwrap();
+
+        let repo_id1 = repository
+            .upsert_repository(
+                integration_id1.clone(),
+                "id1".into(),
+                "repo1".into(),
+                "https://github.com/test/repo1".into(),
+            )
+            .await
+            .unwrap();
+
+        repository
+            .update_repository_active(repo_id1, true)
+            .await
+            .unwrap();
+
+        let repo_id2 = repository
+            .upsert_repository(
+                integration_id2.clone(),
+                "id2".into(),
+                "repo2".into(),
+                "https://my.github.com/test/repo2".into(),
+            )
+            .await
+            .unwrap();
+
+        repository
+            .update_repository_active(repo_id2, true)
+            .await
+            .unwrap();
+
+        let repos = repository.repository_list().await.unwrap();
+        assert_eq!(repos.len(), 2);
+
+        assert_eq!(repos[0].name, "repo1");
+        assert_eq!(repos[0].kind, RepositoryKind::Github);
+        assert_eq!(repos[0].git_url, "https://github.com/test/repo1");
+
+        assert_eq!(repos[1].name, "repo2");
+        assert_eq!(repos[1].kind, RepositoryKind::GithubSelfHosted);
+        assert_eq!(repos[1].git_url, "https://my.github.com/test/repo2");
+    }
+
+    #[tokio::test]
+    async fn test_get_repository() {
+        let (repository, integration) = create_fake().await;
+        let provider_id = integration
+            .create_integration(IntegrationKind::Github, "gh".into(), "token".into(), None)
+            .await
+            .unwrap();
+
+        let repo_id = repository
+            .upsert_repository(
+                provider_id,
+                "vendor_id".into(),
+                "name".into(),
+                "https://github.com/TabbyML/tabby".into(),
+            )
+            .await
+            .unwrap();
+
+        let repo = repository.get_repository(&repo_id).await.unwrap();
+        assert_eq!(repo.kind, RepositoryKind::Github);
+        assert_eq!(repo.name, "name");
+        assert_eq!(repo.git_url, "https://github.com/TabbyML/tabby");
     }
 }

@@ -26,7 +26,7 @@ pub struct FileEntrySearchResult {
     pub indices: Vec<i32>,
 }
 
-#[derive(GraphQLEnum, Debug, Deserialize, Clone, Copy)]
+#[derive(GraphQLEnum, Debug, Deserialize, Clone, Copy, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum RepositoryKind {
     Git,
