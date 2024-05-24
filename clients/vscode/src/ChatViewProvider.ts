@@ -34,6 +34,7 @@ export class ChatViewProvider implements WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage((message) => {
       if (message.action === "rendered") {
+        this.webview?.webview.postMessage({ action: "sync-theme" });
         this.pendingMessages.forEach((message) => this.client?.sendMessage(message));
         this.client?.init({
           fetcherOptions: {
@@ -105,8 +106,6 @@ export class ChatViewProvider implements WebviewViewProvider {
                   }
                 }
               });
-
-              syncTheme();
             }
           </script>
           <script>
