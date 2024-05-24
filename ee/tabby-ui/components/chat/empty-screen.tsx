@@ -34,7 +34,7 @@ export function EmptyScreen({
               onClick={() => setInput(message.message)}
             >
               <IconArrowRight className="mr-2 text-muted-foreground" />
-              {message.heading}
+              <p className="text-left">{message.heading}</p>
             </Button>
           ))}
         </div>
