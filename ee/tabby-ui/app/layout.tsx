@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { DemoBanner } from '@/components/demo-banner'
 import { Providers } from '@/components/providers'
 import { TailwindIndicator } from '@/components/tailwind-indicator'
+import Main from './components/main'
 
 export const metadata: Metadata = {
   title: {
@@ -32,17 +33,15 @@ export default function RootLayout({ children }: RootLayoutProps) {
       <head />
       <body
         className={cn(
-          'font-sans antialiased',
+          'font-sans antialiased bg-transparent',
           fontSans.variable,
-          fontMono.variable,
-          'bg-transparent'
+          fontMono.variable
         )}
       >
         <Providers attribute="class" defaultTheme="system" enableSystem>
-          <div className="flex min-h-screen flex-col">
-            <DemoBanner />
+          <Main>
             {children}
-          </div>
+          </Main>
           <Toaster richColors closeButton />
           <TailwindIndicator />
         </Providers>
