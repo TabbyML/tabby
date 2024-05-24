@@ -21,6 +21,7 @@ import { QuestionAnswerList } from './question-answer'
 import { useTabbyAnswer } from './use-tabby-answer'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
+import { ListSkeleton } from '../skeleton'
 
 type ChatContextValue = {
   isLoading: boolean
@@ -131,9 +132,10 @@ function ChatRenderer(
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
+  const [initialized, setInitialzed] = React.useState(false)
+  const isOnLoadExecuted = React.useRef(false)
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
   const [input, setInput] = React.useState<string>('')
-  const loaded = React.useRef(false)
 
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
     api,
@@ -334,7 +336,7 @@ function ChatRenderer(
   }
 
   React.useEffect(() => {
-    if (!loaded.current) return
+    if (!isOnLoadExecuted.current) return
     onThreadUpdates(qaPairs)
   }, [qaPairs])
 
@@ -351,11 +353,14 @@ function ChatRenderer(
   )
 
   React.useEffect(() => {
-    if (loaded?.current) return
+    if (isOnLoadExecuted.current) return
 
-    loaded.current = true
+    isOnLoadExecuted.current = true
     onLoaded?.()
+    setInitialzed(true)
   }, [])
+
+  if (!initialized) return <ListSkeleton />
 
   return (
     <ChatContext.Provider
