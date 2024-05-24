@@ -6,7 +6,6 @@ import '@/app/globals.css'
 
 import { fontMono, fontSans } from '@/lib/fonts'
 import { cn } from '@/lib/utils'
-import { DemoBanner } from '@/components/demo-banner'
 import { Providers } from '@/components/providers'
 import { TailwindIndicator } from '@/components/tailwind-indicator'
 import Main from './components/main'

@@ -321,6 +321,23 @@ const resetMutedNotifications = (context: ExtensionContext, statusBarItem: Tabby
   };
 };
 
+const alignIndent = (text: string) => {
+  const lines = text.split('\n');
+  const subsequentLines = lines.slice(1);
+
+  // Determine the minimum indent for subsequent lines
+  const minIndent = subsequentLines.reduce((min, line) => {
+    const match = line.match(/^(\s*)/);
+    const indent = match ? match[0].length : 0;
+    return line.trim() ? Math.min(min, indent) : min;
+  }, Infinity);
+
+  // Remove the minimum indent
+  const adjustedLines = lines.slice(1).map(line => line.slice(minIndent));
+
+  return [lines[0]?.trim(), ...adjustedLines].join('\n');
+}
+
 const explainCodeBlock = (chatViewProvider: ChatViewProvider): Command => {
   return {
     command: "tabby.experimental.chat.explainCodeBlock",
@@ -332,17 +349,20 @@ const explainCodeBlock = (chatViewProvider: ChatViewProvider): Command => {
       if (editor) {
         const text = editor.document.getText(editor.selection);
         const configuration = workspace.getConfiguration("tabby");
+        const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+        
         commands.executeCommand("tabby.chatView.focus");
+
         chatViewProvider.sendMessage({
           message: "Explain the selected code:",
           selectContext: {
             kind: 'file',
-            content: text,
+            content: alignIndent(text),
             range: {
-              start: 1, // FIXME
-              end:  2 // FIXME
+              start: editor.selection.start.line + 1,
+              end: editor.selection.end.line + 1
             },
-            filepath:  editor.document.fileName, // FIXME
+            filepath:  editor.document.fileName.replace(workspaceFolder, ''),
             git_url: 'https://github.com/tabbyML/tabby' // FIXME
           }
         })
