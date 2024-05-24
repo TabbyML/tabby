@@ -32,7 +32,7 @@ export default function ChatPage() {
     null
   )
   const [activeChatId, setActiveChatId] = useState('')
-  let pendingMessages: ChatMessage[] = [] // FIXME(wwayne): use init message props after Chat component update
+  const [pendingMessages, setPendingMessages] = useState<ChatMessage[]>([])
 
   const chatRef = useRef<ChatRef>(null)
   const searchParams = useSearchParams()
@@ -69,7 +69,9 @@ export default function ChatPage() {
     if (chatRef.current) {
       chatRef.current.sendUserChat(message)
     } else {
-      pendingMessages.push(message)
+      const newPendingMessages = [...pendingMessages]
+      newPendingMessages.push(message)
+      setPendingMessages(newPendingMessages)
     }
   }
 
@@ -79,16 +81,16 @@ export default function ChatPage() {
       setActiveChatId(nanoid())
       setIsInit(true)
       setFetcherOptions(request.fetcherOptions)
-
-      // FIXME(wwayne): This is no needed after Chat support initMessage
-      setTimeout(() => {
-        pendingMessages.forEach(sendMessage)
-      }, 1000)
     },
     sendMessage: (message: ChatMessage) => {
       return sendMessage(message)
     }
   })
+
+  const onChatLoaded = () => {
+    pendingMessages.forEach(sendMessage)
+    setPendingMessages([])
+  }
 
   const onNavigateToContext = (context: Context) => {
     server?.navigate(context)
@@ -106,6 +108,7 @@ export default function ChatPage() {
       headers={headers}
       onThreadUpdates={() => {}}
       onNavigateToContext={onNavigateToContext}
+      onLoaded={onChatLoaded}
       maxWidth={maxWidth}
     />
   )
