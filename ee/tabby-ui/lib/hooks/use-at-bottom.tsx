@@ -34,7 +34,7 @@ export function useAtBottom(offset = 0, container?: HTMLDivElement) {
     const handleScroll = throttle(
       () => {
         const { scrollTop, clientHeight, scrollHeight } = container
-        setIsAtBottom(scrollTop + clientHeight >= scrollHeight)
+        setIsAtBottom(scrollTop + clientHeight >= scrollHeight - offset)
       },
       100,
       { leading: true }

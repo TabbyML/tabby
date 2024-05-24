@@ -20,6 +20,7 @@ import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
 import { useTabbyAnswer } from './use-tabby-answer'
 import { useLatest } from '@/lib/hooks/use-latest'
+import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 
 type ChatContextValue = {
   isLoading: boolean
@@ -227,6 +228,27 @@ function ChatRenderer(
       ]
     })
   }, [answer, isLoading])
+
+  const scrollToBottom = useDebounceCallback(() => {
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
+      })
+    } else {
+      window.scrollTo({
+        top: document.body.offsetHeight,
+        behavior: 'smooth'
+      })
+    }
+  }, 100)
+
+  React.useLayoutEffect(() => {
+    // scroll to bottom when a request is sent
+    if (isLoading) {
+      scrollToBottom.run()
+    }
+  }, [isLoading])
 
   React.useEffect(() => {
     if (error && qaPairs?.length) {
