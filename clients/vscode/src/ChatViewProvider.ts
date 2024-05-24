@@ -30,7 +30,7 @@ export class ChatViewProvider implements WebviewViewProvider {
         }
       },
     });
-    
+
     webviewView.webview.onDidReceiveMessage((message) => {
       if (message.action === "rendered") {
         this.pendingMessages.forEach((message) => this.client?.sendMessage(message));
