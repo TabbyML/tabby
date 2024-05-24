@@ -7,7 +7,6 @@ import { useSearchParams } from 'next/navigation'
 
 import { nanoid } from '@/lib/utils'
 import { Chat, ChatRef } from '@/components/chat/chat'
-import { QuestionAnswerPair } from '@/lib/types/chat'
 import Color from 'color'
 
 import './page.css'
@@ -33,9 +32,8 @@ export default function ChatPage() {
     null
   )
   const [activeChatId, setActiveChatId] = useState('')
-  const [initialMessages, setInitialMessages] = useState<QuestionAnswerPair[]>(
-    []
-  )
+  let pendingMessages: ChatMessage[] = [] // FIXME(wwayne): use init message props after Chat component update
+
   const chatRef = useRef<ChatRef>(null)
   const searchParams = useSearchParams()
   const maxWidth = searchParams.get('max-width') || undefined
@@ -71,14 +69,7 @@ export default function ChatPage() {
     if (chatRef.current) {
       chatRef.current.sendUserChat(message)
     } else {
-      const newInitialMessages = [...initialMessages]
-      newInitialMessages.push({
-        user: {
-          ...message,
-          id: nanoid()
-        }
-      })
-      setInitialMessages(newInitialMessages)
+      pendingMessages.push(message)
     }
   }
 
@@ -88,6 +79,11 @@ export default function ChatPage() {
       setActiveChatId(nanoid())
       setIsInit(true)
       setFetcherOptions(request.fetcherOptions)
+
+      // FIXME(wwayne): This is no needed after Chat support initMessage
+      setTimeout(() => {
+        pendingMessages.forEach(sendMessage)
+      }, 1000)
     },
     sendMessage: (message: ChatMessage) => {
       return sendMessage(message)
@@ -108,7 +104,6 @@ export default function ChatPage() {
       key={activeChatId}
       ref={chatRef}
       headers={headers}
-      initialMessages={initialMessages}
       onThreadUpdates={() => {}}
       onNavigateToContext={onNavigateToContext}
       maxWidth={maxWidth}

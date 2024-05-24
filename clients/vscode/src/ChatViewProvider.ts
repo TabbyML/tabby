@@ -4,6 +4,7 @@ import { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import { agent } from "./agent";
 import { createClient } from "./chatPanel";
 
+// FIXME(wwayne): Example code has webview removed case, not sure when it would happen, need to double check
 export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
