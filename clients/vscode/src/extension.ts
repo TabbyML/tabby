@@ -8,7 +8,6 @@ import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
 import { TabbyStatusBarItem } from "./TabbyStatusBarItem";
 import { RecentlyChangedCodeSearch } from "./RecentlyChangedCodeSearch";
 import { ChatViewProvider } from "./ChatViewProvider";
-import { createClient } from "./vscode";
 
 const logger = getLogger();
 

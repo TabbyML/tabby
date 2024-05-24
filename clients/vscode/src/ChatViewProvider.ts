@@ -1,8 +1,8 @@
-import { ExtensionContext, WebviewViewProvider, WebviewView, workspace } from "vscode";
-import { ServerApi, ChatMessage } from 'tabby-chat-panel'
+import { ExtensionContext, WebviewViewProvider, WebviewView, workspace, Uri, env } from "vscode";
+import { ServerApi, ChatMessage, Context } from 'tabby-chat-panel'
 
 import { agent } from "./agent";
-import { createClient } from "./vscode";
+import { createClient } from "./chatPanel";
 
 export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
@@ -23,8 +23,11 @@ export class ChatViewProvider implements WebviewViewProvider {
     webviewView.webview.html = await this._getWebviewContent();
 
     this.client = createClient(webviewView, {
-      navigate: () => {
-        console.log('TODO')
+      navigate: async (context: Context) => {
+        if (context?.filepath && context?.git_url) {
+          const url = `${context.git_url}/${context.filepath}#L${context.range.start}-L${context.range.end}`
+          await env.openExternal(Uri.parse(url));
+        }
       }
     })
 

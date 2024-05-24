@@ -20,7 +20,7 @@ import { notifications } from "./notifications";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
 import { TabbyStatusBarItem } from "./TabbyStatusBarItem";
 import { ChatViewProvider } from "./ChatViewProvider";
-import { createClient } from "./vscode";
+import { createClient } from "./chatPanel";
 
 const configTarget = ConfigurationTarget.Global;
 
@@ -349,6 +349,7 @@ const explainCodeBlock = (chatViewProvider: ChatViewProvider): Command => {
         
         commands.executeCommand("tabby.chatView.focus");
 
+        const filePath = editor.document.fileName.replace(workspaceFolder, '')
         chatViewProvider.sendMessage({
           message: "Explain the selected code:",
           selectContext: {
@@ -358,7 +359,7 @@ const explainCodeBlock = (chatViewProvider: ChatViewProvider): Command => {
               start: editor.selection.start.line + 1,
               end: editor.selection.end.line + 1
             },
-            filepath: editor.document.fileName.replace(workspaceFolder, ''),
+            filepath: filePath.startsWith('/') ? filePath.substring(1) : filePath,
             git_url: "https://github.com/tabbyML/tabby" // FIXME
           }
         })
