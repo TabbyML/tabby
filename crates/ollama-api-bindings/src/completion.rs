@@ -3,11 +3,11 @@ use std::sync::Arc;
 use async_stream::stream;
 use async_trait::async_trait;
 use futures::{stream::BoxStream, StreamExt};
+use tracing::error;
 
-use ollama_rs::{
-    generation::{completion::request::GenerationRequest, options::GenerationOptions},
-    Ollama,
-};
+use ollama_rs::generation::completion::request::GenerationRequest;
+use ollama_rs::generation::options::GenerationOptions;
+use ollama_rs::Ollama;
 
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::{CompletionOptions, CompletionStream};
@@ -34,20 +34,26 @@ impl CompletionStream for OllamaCompletion {
             .options(ollama_options);
 
         // Why this function returns not Result?
-        let stream = self.connection.generate_stream(request).await.unwrap();
+        match self.connection.generate_stream(request).await {
+            Ok(stream) => {
+                let tabby_stream = stream! {
 
-        let tabby_stream = stream! {
+                    for await response in stream {
+                        let parts = response.unwrap();
+                        for part in parts {
+                            yield part.response
+                        }
+                    }
 
-            for await response in stream {
-                let parts = response.unwrap();
-                for part in parts {
-                    yield part.response
-                }
+                };
+
+                tabby_stream.boxed()
             }
-
-        };
-
-        tabby_stream.boxed()
+            Err(err) => {
+                error!("Failed to generate completion: {}", err);
+                futures::stream::empty().boxed()
+            }
+        }
     }
 }
 
