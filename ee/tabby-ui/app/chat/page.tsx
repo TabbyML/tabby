@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react'
 import type { ChatMessage, Context, FetcherOptions } from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
 
+import { cn } from '@/lib/utils'
 import { nanoid } from '@/lib/utils'
 import { Chat, ChatRef } from '@/components/chat/chat'
 import { QuestionAnswerPair } from '@/lib/types/chat'
@@ -97,14 +98,16 @@ export default function ChatPage() {
     Authorization: `Bearer ${fetcherOptions.authorization}`
   }
   return (
-    <Chat
-      chatId={activeChatId}
-      key={activeChatId}
-      ref={chatRef}
-      headers={headers}
-      initialMessages={initialMessages}
-      onThreadUpdates={() => {}}
-      onNavigateToContext={onNavigateToContext}
-    />
+    <div className="content">
+      <Chat
+        chatId={activeChatId}
+        key={activeChatId}
+        ref={chatRef}
+        headers={headers}
+        initialMessages={initialMessages}
+        onThreadUpdates={() => {}}
+        onNavigateToContext={onNavigateToContext}
+      />
+    </div>
   )
 }

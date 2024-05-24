@@ -39,7 +39,7 @@ interface QuestionAnswerListProps {
 function QuestionAnswerList({ messages }: QuestionAnswerListProps) {
   const { isLoading } = React.useContext(ChatContext)
   return (
-    <div className="relative mx-auto max-w-2xl px-4">
+    <div className="relative mx-auto max-w-4xl px-4">
       {messages?.map((message, index) => {
         const isLastItem = index === messages.length - 1
         return (
@@ -204,7 +204,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 function MessageMarkdown({ message }: { message: string }) {
   return (
     <MemoizedReactMarkdown
-      className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
+      className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0 max-w-none"
       remarkPlugins={[remarkGfm, remarkMath]}
       components={{
         p({ children }) {

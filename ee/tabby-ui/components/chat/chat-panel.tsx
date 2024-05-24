@@ -36,13 +36,10 @@ export function ChatPanel({
 
   return (
     <div
-      className={cn(
-        'bg-gradient-to-b from-transparent from-0% to-muted/25 to-100%',
-        className
-      )}
+      className={className}
     >
       <ButtonScrollToBottom container={container} />
-      <div className="mx-auto sm:max-w-2xl sm:px-4">
+      <div className="mx-auto sm:max-w-3xl sm:px-4">
         <div className="flex h-10 items-center justify-center gap-2">
           {isLoading ? (
             <Button

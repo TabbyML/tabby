@@ -1,7 +1,7 @@
 import { ExtensionContext, WebviewViewProvider, WebviewView, workspace } from "vscode";
 import { ServerApi, ChatMessage } from 'tabby-chat-panel'
 
-import { createAgentInstance } from "./agent";
+import { agent } from "./agent";
 import { createClient } from "./vscode";
 
 export class ChatViewProvider implements WebviewViewProvider {
@@ -14,6 +14,7 @@ export class ChatViewProvider implements WebviewViewProvider {
   public async resolveWebviewView(webviewView: WebviewView) {
     this.webview = webviewView;
     const extensionUri = this.context.extensionUri
+    const { server } = agent().getConfig()
 
     webviewView.webview.options = {
       enableScripts: true,
@@ -32,7 +33,7 @@ export class ChatViewProvider implements WebviewViewProvider {
         this.pendingMessages.forEach(message => this.client?.sendMessage(message))
         this.client?.init({
           fetcherOptions: {
-            authorization: "auth_fa450615a8cd4e77a35cd9fa61e5008f"
+            authorization: server.token
           }
         })
       }
@@ -46,8 +47,7 @@ export class ChatViewProvider implements WebviewViewProvider {
   }
 
   private async _getWebviewContent() {
-    const agent = await createAgentInstance(this.context);
-    const { server } = agent.getConfig()
+    const { server } = agent().getConfig()
     return `
       <!DOCTYPE html>
       <html lang="en">

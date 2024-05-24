@@ -374,7 +374,7 @@ function ChatRenderer(
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
-        <div className="w-full max-w-2xl px-4">
+        <div className="w-full max-w-3xl px-4">
           <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
             {qaPairs?.length ? (
               <QuestionAnswerList messages={qaPairs} />
@@ -385,7 +385,7 @@ function ChatRenderer(
           </div>
           <ChatPanel
             onSubmit={handleSubmit}
-            className="fixed inset-x-0 bottom-0 lg:ml-[280px]"
+            className="fixed inset-x-0 bottom-0"
             id={chatId}
             stop={onStop}
             reload={onReload}

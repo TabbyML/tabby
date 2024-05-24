@@ -5,7 +5,7 @@ html {
 }
 
 .vscode body {
-  /* --background: var(--vscode-editor-background); */
+  --background: var(--vscode-editor-background);
   --foreground: var(--vscode-editor-foreground);
 
   /* --muted: var(--vscode-descriptionForeground);
@@ -40,7 +40,6 @@ html {
   --selection: var(--vscode-editor-selectionBackground); */
 }
 
-.vscode.light body {
-  --background: var(--vscode-editor-background);
+.vscode ::-webkit-scrollbar {
+  display: none;
 }
-
