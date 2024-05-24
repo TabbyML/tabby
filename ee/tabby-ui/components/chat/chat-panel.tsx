@@ -1,7 +1,6 @@
 import React from 'react'
 import type { UseChatHelpers } from 'ai/react'
 
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconRefresh, IconStop, IconTrash } from '@/components/ui/icons'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
@@ -15,7 +14,7 @@ export interface ChatPanelProps
   id?: string
   className?: string
   onSubmit: (content: string) => Promise<any>
-  reload: () => void,
+  reload: () => void
   chatMaxWidthClass: string
 }
 
@@ -35,11 +34,9 @@ export function ChatPanel({
   React.useEffect(() => {
     promptFormRef?.current?.focus()
   }, [id])
-  
+
   return (
-    <div
-      className={className}
-    >
+    <div className={className}>
       <ButtonScrollToBottom container={container} />
       <div className={`mx-auto ${chatMaxWidthClass}`}>
         <div className="flex h-10 items-center justify-center gap-2">

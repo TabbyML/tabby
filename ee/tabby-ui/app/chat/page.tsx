@@ -3,12 +3,12 @@
 import { useRef, useState, useEffect } from 'react'
 import type { ChatMessage, Context, FetcherOptions } from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation'
 
 import { nanoid } from '@/lib/utils'
 import { Chat, ChatRef } from '@/components/chat/chat'
 import { QuestionAnswerPair } from '@/lib/types/chat'
-import Color from "color";
+import Color from 'color'
 
 import './page.css'
 
@@ -33,7 +33,9 @@ export default function ChatPage() {
     null
   )
   const [activeChatId, setActiveChatId] = useState('')
-  const [initialMessages, setInitialMessages] = useState<QuestionAnswerPair[]>([])
+  const [initialMessages, setInitialMessages] = useState<QuestionAnswerPair[]>(
+    []
+  )
   const chatRef = useRef<ChatRef>(null)
   const searchParams = useSearchParams()
   const maxWidth = searchParams.get('max-width') || undefined
@@ -48,7 +50,8 @@ export default function ChatPage() {
           .map((style: string) => {
             const [key, value] = style.split(':')
             const styleValue = value.trim()
-            const isColorValue = styleValue.startsWith('#') || styleValue.startsWith('rgb')
+            const isColorValue =
+              styleValue.startsWith('#') || styleValue.startsWith('rgb')
             if (!isColorValue) return `${key}: ${value}`
             const hslValue = convertToHSLColor(styleValue)
             return `${key}: ${hslValue}`
@@ -59,10 +62,10 @@ export default function ChatPage() {
 
       // Sync with edit theme
       if (data.themeClass) {
-        document.documentElement.className = data.themeClass;
+        document.documentElement.className = data.themeClass
       }
     })
-  }, []);
+  }, [])
 
   const sendMessage = (message: ChatMessage) => {
     if (chatRef.current) {

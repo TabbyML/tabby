@@ -379,9 +379,15 @@ function ChatRenderer(
         <div className={`w-full px-4 ${chatMaxWidthClass}`}>
           <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
             {qaPairs?.length ? (
-              <QuestionAnswerList messages={qaPairs} chatMaxWidthClass={chatMaxWidthClass} />
+              <QuestionAnswerList
+                messages={qaPairs}
+                chatMaxWidthClass={chatMaxWidthClass}
+              />
             ) : (
-              <EmptyScreen setInput={setInput} chatMaxWidthClass={chatMaxWidthClass} />
+              <EmptyScreen
+                setInput={setInput}
+                chatMaxWidthClass={chatMaxWidthClass}
+              />
             )}
             <ChatScrollAnchor trackVisibility={isLoading} />
           </div>

@@ -34,10 +34,13 @@ import { UserAvatar } from '../user-avatar'
 import { ChatContext } from './chat'
 
 interface QuestionAnswerListProps {
-  messages: QuestionAnswerPair[],
+  messages: QuestionAnswerPair[]
   chatMaxWidthClass: string
 }
-function QuestionAnswerList({ messages, chatMaxWidthClass }: QuestionAnswerListProps) {
+function QuestionAnswerList({
+  messages,
+  chatMaxWidthClass
+}: QuestionAnswerListProps) {
   const { isLoading } = React.useContext(ChatContext)
   return (
     <div className={`relative mx-auto px-4 ${chatMaxWidthClass}`}>
@@ -205,7 +208,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 function MessageMarkdown({ message }: { message: string }) {
   return (
     <MemoizedReactMarkdown
-      className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0 max-w-none"
+      className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
       remarkPlugins={[remarkGfm, remarkMath]}
       components={{
         p({ children }) {

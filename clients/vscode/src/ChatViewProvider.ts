@@ -1,5 +1,5 @@
 import { ExtensionContext, WebviewViewProvider, WebviewView, workspace, Uri, env } from "vscode";
-import { ServerApi, ChatMessage, Context } from 'tabby-chat-panel'
+import { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 
 import { agent } from "./agent";
 import { createClient } from "./chatPanel";
@@ -13,8 +13,8 @@ export class ChatViewProvider implements WebviewViewProvider {
 
   public async resolveWebviewView(webviewView: WebviewView) {
     this.webview = webviewView;
-    const extensionUri = this.context.extensionUri
-    const { server } = agent().getConfig()
+    const extensionUri = this.context.extensionUri;
+    const { server } = agent().getConfig();
 
     webviewView.webview.options = {
       enableScripts: true,
@@ -25,32 +25,32 @@ export class ChatViewProvider implements WebviewViewProvider {
     this.client = createClient(webviewView, {
       navigate: async (context: Context) => {
         if (context?.filepath && context?.git_url) {
-          const url = `${context.git_url}/${context.filepath}#L${context.range.start}-L${context.range.end}`
+          const url = `${context.git_url}/${context.filepath}#L${context.range.start}-L${context.range.end}`;
           await env.openExternal(Uri.parse(url));
         }
-      }
-    })
+      },
+    });
 
-    webviewView.webview.onDidReceiveMessage(message => {
-      if (message.action === 'rendered') {
-        this.pendingMessages.forEach(message => this.client?.sendMessage(message))
+    webviewView.webview.onDidReceiveMessage((message) => {
+      if (message.action === "rendered") {
+        this.pendingMessages.forEach((message) => this.client?.sendMessage(message));
         this.client?.init({
           fetcherOptions: {
-            authorization: server.token
-          }
-        })
+            authorization: server.token,
+          },
+        });
       }
     });
 
     workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("workbench.colorTheme")) {
-        this.webview?.webview.postMessage({ action: 'sync-theme' })
+        this.webview?.webview.postMessage({ action: "sync-theme" });
       }
     });
   }
 
   private async _getWebviewContent() {
-    const { server } = agent().getConfig()
+    const { server } = agent().getConfig();
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -121,16 +121,16 @@ export class ChatViewProvider implements WebviewViewProvider {
       </html>
     `;
   }
-  
-  public getWebview () {
-    return this.webview
+
+  public getWebview() {
+    return this.webview;
   }
 
-  public sendMessage (message: ChatMessage) {
+  public sendMessage(message: ChatMessage) {
     if (!this.client) {
-      this.pendingMessages.push(message)
+      this.pendingMessages.push(message);
     } else {
-      this.client.sendMessage(message)
+      this.client.sendMessage(message);
     }
   }
 }

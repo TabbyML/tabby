@@ -20,7 +20,6 @@ import { notifications } from "./notifications";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
 import { TabbyStatusBarItem } from "./TabbyStatusBarItem";
 import { ChatViewProvider } from "./ChatViewProvider";
-import { createClient } from "./chatPanel";
 
 const configTarget = ConfigurationTarget.Global;
 
@@ -322,7 +321,7 @@ const resetMutedNotifications = (context: ExtensionContext, statusBarItem: Tabby
 };
 
 const alignIndent = (text: string) => {
-  const lines = text.split('\n');
+  const lines = text.split("\n");
   const subsequentLines = lines.slice(1);
 
   // Determine the minimum indent for subsequent lines
@@ -333,10 +332,10 @@ const alignIndent = (text: string) => {
   }, Infinity);
 
   // Remove the minimum indent
-  const adjustedLines = lines.slice(1).map(line => line.slice(minIndent));
+  const adjustedLines = lines.slice(1).map((line) => line.slice(minIndent));
 
-  return [lines[0]?.trim(), ...adjustedLines].join('\n');
-}
+  return [lines[0]?.trim(), ...adjustedLines].join("\n");
+};
 
 const explainCodeBlock = (chatViewProvider: ChatViewProvider): Command => {
   return {
@@ -346,28 +345,28 @@ const explainCodeBlock = (chatViewProvider: ChatViewProvider): Command => {
       if (editor) {
         const text = editor.document.getText(editor.selection);
         const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath || "";
-        
+
         commands.executeCommand("tabby.chatView.focus");
 
-        const filePath = editor.document.fileName.replace(workspaceFolder, '')
+        const filePath = editor.document.fileName.replace(workspaceFolder, "");
         chatViewProvider.sendMessage({
           message: "Explain the selected code:",
           selectContext: {
-            kind: 'file',
+            kind: "file",
             content: alignIndent(text),
             range: {
               start: editor.selection.start.line + 1,
-              end: editor.selection.end.line + 1
+              end: editor.selection.end.line + 1,
             },
-            filepath: filePath.startsWith('/') ? filePath.substring(1) : filePath,
-            git_url: "https://github.com/tabbyML/tabby" // FIXME
-          }
-        })
+            filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
+            git_url: "https://github.com/tabbyML/tabby", // FIXME
+          },
+        });
       } else {
         window.showInformationMessage("No active editor");
       }
-    }
-  }
+    },
+  };
 };
 
 const generateCommitMessage: Command = {
@@ -461,7 +460,7 @@ export const tabbyCommands = (
   context: ExtensionContext,
   completionProvider: TabbyCompletionProvider,
   statusBarItem: TabbyStatusBarItem,
-  chatViewProvider: ChatViewProvider
+  chatViewProvider: ChatViewProvider,
 ) =>
   [
     toggleInlineCompletionTriggerMode,

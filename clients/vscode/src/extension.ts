@@ -43,13 +43,9 @@ export async function activate(context: ExtensionContext) {
   // Register chat panel
   const chatViewProvider = new ChatViewProvider(context);
   context.subscriptions.push(
-    window.registerWebviewViewProvider(
-      "tabby.chatView",
-      chatViewProvider,
-      {
-        webviewOptions: { retainContextWhenHidden: true }, // FIXME(wwayne): necessary?
-      },
-    )
+    window.registerWebviewViewProvider("tabby.chatView", chatViewProvider, {
+      webviewOptions: { retainContextWhenHidden: true }, // FIXME(wwayne): necessary?
+    }),
   );
 
   context.subscriptions.push(...tabbyCommands(context, completionProvider, statusBarItem, chatViewProvider));

@@ -32,15 +32,13 @@ export default function RootLayout({ children }: RootLayoutProps) {
       <head />
       <body
         className={cn(
-          'font-sans antialiased bg-transparent',
+          'bg-transparent font-sans antialiased',
           fontSans.variable,
           fontMono.variable
         )}
       >
         <Providers attribute="class" defaultTheme="system" enableSystem>
-          <Main>
-            {children}
-          </Main>
+          <Main>{children}</Main>
           <Toaster richColors closeButton />
           <TailwindIndicator />
         </Providers>
