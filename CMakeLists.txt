@@ -32,7 +32,12 @@ if(DEFINED ENV{INTELROOT})
 elseif(DEFINED ENV{ONEAPI_ROOT})
   set(INTEL_ROOT_DEFAULT $ENV{ONEAPI_ROOT}/..)
 elseif(DEFINED ENV{MKLROOT})
-  set(INTEL_ROOT_DEFAULT $ENV{MKLROOT}/..)
+  if(WIN32)
+    set(INTEL_ROOT_DEFAULT $ENV{MKLROOT}/..)
+  else()
+    # Other system like arch set env MKLROOT by default
+    set(INTEL_ROOT_DEFAULT $ENV{MKLROOT}/../../..)
+  endif()
 elseif(WIN32)
   set(ProgramFilesx86 "ProgramFiles(x86)")
   set(INTEL_ROOT_DEFAULT PATHS
