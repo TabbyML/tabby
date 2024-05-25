@@ -33,7 +33,7 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
         .expect("Failed to create connection to Ollama, URL invalid");
 
     let model = connection
-        .select_model_or_default(config.model_name.to_owned(), true)
+        .select_model_or_default(config.model_name.to_owned())
         .await
         .unwrap();
 

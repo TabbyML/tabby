@@ -8,6 +8,9 @@ use futures::StreamExt;
 use ollama_rs::Ollama;
 use tracing::{info, warn};
 
+/// Env variable for allowing pulling models with Ollama
+static ALLOW_PULL_ENV: &str = "TABBY_OLLAMA_ALLOW_PULL";
+
 #[async_trait]
 pub trait OllamaModelExt {
     /// Check if a model is available in remote Ollama instance
@@ -20,19 +23,15 @@ pub trait OllamaModelExt {
     /// - If model is specified, check if it is available in remote Ollama instance and returns its name
     /// - If model is not specified, get the first available model in remote Ollama instance and returns its name
     /// - If no model is available, returns error
-    /// - If model is specified and not available, returns error if `allow_pull=false` and tries to pull it otherwise
+    /// - If model is specified and not available, tries to pull it if a env `TABBY_OLLAMA_ALLOW_PULL` equal to `1`, `y`, or `yes`
+    ///   and returns error if the environment variable is not set or haves a wrong value
     ///
     /// # Parameters
     /// - `model`: model name
-    /// - `allow_pull`: if true, try to pull the model if it is not available
     ///
     /// # Returns
     /// - model name to use
-    async fn select_model_or_default(
-        &self,
-        model: Option<String>,
-        allow_pull: bool,
-    ) -> Result<String>;
+    async fn select_model_or_default(&self, model: Option<String>) -> Result<String>;
 
     /// Pull model and puts progress in tracing
     async fn pull_model_with_tracing(&self, model: &str) -> Result<()>;
@@ -54,11 +53,7 @@ impl OllamaModelExt for Ollama {
         Ok(models_available.first().map(|x| x.name.to_owned()))
     }
 
-    async fn select_model_or_default(
-        &self,
-        model: Option<String>,
-        allow_pull: bool,
-    ) -> Result<String> {
+    async fn select_model_or_default(&self, model: Option<String>) -> Result<String> {
         let model = match model {
             Some(ref model) => model.to_owned(),
             None => {
@@ -67,22 +62,29 @@ impl OllamaModelExt for Ollama {
                     .await?
                     .ok_or(anyhow!("Ollama instances does not have any models"))?;
 
-                warn!("No model name provided, using first available: {}", model);
+                warn!(
+                    "No model name is provided, using first available: {}",
+                    model
+                );
                 model
             }
         };
 
         let available = self.model_available(&model).await?;
 
+        let allow_pull = std::env::var_os(ALLOW_PULL_ENV)
+            .map(|x| x == "1" || x.to_ascii_lowercase() == "y" || x.to_ascii_lowercase() == "yes")
+            .unwrap_or(false);
+
         match (available, allow_pull) {
             (true, _) => Ok(model),
             (false, true) => {
-                info!("Model not available, pulling it");
+                info!("Model is not available, pulling it");
                 self.pull_model_with_tracing(model.as_str()).await?;
                 Ok(model)
             }
             (false, false) => {
-                bail!("Model not available, and pulling is disabled")
+                bail!("Model is not available, and pulling is disabled")
             }
         }
     }
