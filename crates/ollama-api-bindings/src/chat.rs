@@ -2,16 +2,15 @@ use std::sync::Arc;
 
 use anyhow::{bail, Result};
 use async_trait::async_trait;
-use futures::stream::BoxStream;
-use futures::StreamExt;
-
-use ollama_rs::generation::chat::request::ChatMessageRequest;
-use ollama_rs::generation::chat::{ChatMessage, MessageRole};
-use ollama_rs::generation::options::GenerationOptions;
-use ollama_rs::Ollama;
-
-use tabby_common::api::chat::Message;
-use tabby_common::config::HttpModelConfig;
+use futures::{stream::BoxStream, StreamExt};
+use ollama_rs::{
+    generation::{
+        chat::{request::ChatMessageRequest, ChatMessage, MessageRole},
+        options::GenerationOptions,
+    },
+    Ollama,
+};
+use tabby_common::{api::chat::Message, config::HttpModelConfig};
 use tabby_inference::{ChatCompletionOptions, ChatCompletionStream};
 
 use crate::model::OllamaModelExt;

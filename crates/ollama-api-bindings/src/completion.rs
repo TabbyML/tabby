@@ -3,14 +3,13 @@ use std::sync::Arc;
 use async_stream::stream;
 use async_trait::async_trait;
 use futures::{stream::BoxStream, StreamExt};
-use tracing::error;
-
-use ollama_rs::generation::completion::request::GenerationRequest;
-use ollama_rs::generation::options::GenerationOptions;
-use ollama_rs::Ollama;
-
+use ollama_rs::{
+    generation::{completion::request::GenerationRequest, options::GenerationOptions},
+    Ollama,
+};
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::{CompletionOptions, CompletionStream};
+use tracing::error;
 
 use crate::model::OllamaModelExt;
 
