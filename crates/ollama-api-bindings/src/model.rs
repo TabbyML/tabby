@@ -6,6 +6,7 @@ use anyhow::{anyhow, bail, Result};
 use async_trait::async_trait;
 use futures::StreamExt;
 use ollama_rs::Ollama;
+use tabby_common::config::HttpModelConfig;
 use tracing::{info, warn};
 
 /// Env variable for allowing pulling models with Ollama
@@ -21,17 +22,18 @@ pub trait OllamaModelExt {
 
     /// For input model specification:
     /// - If model is specified, check if it is available in remote Ollama instance and returns its name
-    /// - If model is not specified, get the first available model in remote Ollama instance and returns its name
+    /// - If model is not specified and prompt/chat templates are specified, returns a error because it is unsound
+    /// - If model is not specified and prompt/chat templates are not specified get the first available model in remote Ollama instance and returns its name
     /// - If no model is available, returns error
     /// - If model is specified and not available, tries to pull it if a env `TABBY_OLLAMA_ALLOW_PULL` equal to `1`, `y`, or `yes`
     ///   and returns error if the environment variable is not set or haves a wrong value
     ///
     /// # Parameters
-    /// - `model`: model name
+    /// - `config`: model config configuration
     ///
     /// # Returns
     /// - model name to use
-    async fn select_model_or_default(&self, model: Option<String>) -> Result<String>;
+    async fn select_model_or_default(&self, config: &HttpModelConfig) -> Result<String>;
 
     /// Pull model and puts progress in tracing
     async fn pull_model_with_tracing(&self, model: &str) -> Result<()>;
@@ -53,14 +55,21 @@ impl OllamaModelExt for Ollama {
         Ok(models_available.first().map(|x| x.name.to_owned()))
     }
 
-    async fn select_model_or_default(&self, model: Option<String>) -> Result<String> {
-        let model = match model {
+    async fn select_model_or_default(&self, config: &HttpModelConfig) -> Result<String> {
+        let prompt_or_chat_templates_set =
+            config.prompt_template.is_some() || config.chat_template.is_some();
+
+        let model = match config.model_name.to_owned() {
             Some(ref model) => model.to_owned(),
             None => {
                 let model = self
                     .get_first_available_model()
                     .await?
                     .ok_or(anyhow!("Ollama instances does not have any models"))?;
+
+                if prompt_or_chat_templates_set {
+                    bail!("No model name is provided but prompt or chat templates are set. Please set model name explicitly")
+                }
 
                 warn!(
                     "No model name is provided, using first available: {}",

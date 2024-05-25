@@ -32,10 +32,7 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
     let connection = Ollama::try_new(config.api_endpoint.to_owned())
         .expect("Failed to create connection to Ollama, URL invalid");
 
-    let model = connection
-        .select_model_or_default(config.model_name.to_owned())
-        .await
-        .unwrap();
+    let model = connection.select_model_or_default(config).await.unwrap();
 
     Arc::new(OllamaCompletion { connection, model })
 }
