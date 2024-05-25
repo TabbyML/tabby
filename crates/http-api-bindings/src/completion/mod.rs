@@ -12,7 +12,7 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
             let engine = LlamaCppEngine::create(&model.api_endpoint, model.api_key.clone());
             Arc::new(engine)
         }
-        "ollama" => ollama_api_bindings::create_completion(model).await,
+        "ollama/completion" => ollama_api_bindings::create_completion(model).await,
 
         unsupported_kind => panic!(
             "Unsupported model kind for http completion: {}",
