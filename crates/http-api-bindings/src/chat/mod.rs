@@ -13,7 +13,7 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn ChatCompletionStream> {
             model.model_name.as_deref().unwrap_or_default(),
             model.api_key.clone(),
         )),
-        "ollama" => ollama_api_bindings::create_chat(model).await,
+        "ollama/chat" => ollama_api_bindings::create_chat(model).await,
 
         unsupported_kind => panic!("Unsupported kind for http chat: {}", unsupported_kind),
     }
