@@ -24,7 +24,7 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
             );
             Arc::new(engine)
         }
-        "ollama" => ollama_api_bindings::create_embedding(config).await,
+        "ollama/embedding" => ollama_api_bindings::create_embedding(config).await,
 
         unsupported_kind => panic!(
             "Unsupported kind for http embedding model: {}",
