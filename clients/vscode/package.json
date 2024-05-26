@@ -7,7 +7,7 @@
   "repository": "https://github.com/TabbyML/tabby",
   "bugs": "https://github.com/TabbyML/tabby/issues",
   "license": "Apache-2.0",
-  "version": "1.6.0",
+  "version": "1.7.0-dev",
   "keywords": [
     "ai",
     "autocomplete",
@@ -32,7 +32,7 @@
     "onView:chatView"
   ],
   "main": "./dist/node/extension.js",
-  "browser": "./dist/web/extension.js",
+  "browser": "./dist/browser/extension.js",
   "contributes": {
     "commands": [
       {
@@ -265,9 +265,9 @@
   },
   "scripts": {
     "build": "tsc --noEmit && tsup --minify --treeshake smallest",
-    "watch": "tsup --sourcemap --watch ./ --ignore-watch ./dist --ignore-watch ./.vscode-test-web --watch ../tabby-agent/dist",
-    "dev": "code --extensionDevelopmentPath=$PWD --disable-extensions && turbo watch",
-    "dev:browser": "vscode-test-web --extensionDevelopmentPath=$PWD --browserType=chromium --port=3000 && turbo watch",
+    "watch": "tsc-watch --noEmit --onSuccess \"tsup --sourcemap\"",
+    "dev": "code --extensionDevelopmentPath=$PWD --disable-extensions && pnpm watch",
+    "dev:browser": "vscode-test-web --extensionDevelopmentPath=$PWD --browserType=chromium --port=3000 && pnpm watch",
     "lint": "eslint --ext .ts ./src && prettier --check .",
     "lint:fix": "eslint --fix --ext .ts ./src && prettier --write .",
     "vscode:prepackage": "turbo build",
@@ -289,15 +289,17 @@
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "eslint": "^8.55.0",
     "eslint-config-prettier": "^9.0.0",
+    "get-installed-path": "^4.0.8",
     "prettier": "^3.0.0",
-    "tsup": "^7.1.0",
+    "tsc-watch": "^6.2.0",
+    "tsup": "^8.0.2",
     "typescript": "^5.3.2"
   },
   "dependencies": {
-    "@orama/orama": "^2.0.15",
     "@quilted/threads": "^2.2.0",
-    "@xstate/fsm": "^2.0.1",
+    "dedent": "^0.7.0",
     "tabby-agent": "workspace:*",
-    "tabby-chat-panel": "workspace:*"
+    "tabby-chat-panel": "workspace:*",
+    "vscode-languageclient": "^9.0.1"
   }
 }
