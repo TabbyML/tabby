@@ -1,52 +1,33 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
 use tabby_common::{
     api::doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse},
     index::{self, doc},
-    path,
 };
 use tabby_inference::Embedding;
 use tantivy::{
     collector::TopDocs,
     schema::{self, document::ReferenceValue, Value},
-    Index, IndexReader, TantivyDocument,
+    IndexReader, TantivyDocument,
 };
-use tokio::{sync::RwLock, time::sleep};
-use tracing::{debug, warn};
+use tracing::warn;
+
+use crate::services::tantivy::IndexReaderProvider;
 
 struct DocSearchImpl {
-    reader: IndexReader,
     embedding: Arc<dyn Embedding>,
 }
 
 impl DocSearchImpl {
-    fn load(embedding: Arc<dyn Embedding>) -> Result<Self> {
-        let index = Index::open_in_dir(path::index_dir())?;
-
-        Ok(Self {
-            reader: index.reader_builder().try_into()?,
-            embedding,
-        })
+    fn new(embedding: Arc<dyn Embedding>) -> Self {
+        Self { embedding }
     }
 
-    async fn load_async(embedding: Arc<dyn Embedding>) -> DocSearchImpl {
-        loop {
-            if let Ok(doc) = Self::load(embedding.clone()) {
-                debug!("Index is ready, enabling doc search...");
-                return doc;
-            }
-
-            sleep(Duration::from_secs(60)).await;
-        }
-    }
-}
-
-#[async_trait]
-impl DocSearch for DocSearchImpl {
     async fn search(
         &self,
+        reader: &IndexReader,
         q: &str,
         limit: usize,
         offset: usize,
@@ -56,7 +37,7 @@ impl DocSearch for DocSearchImpl {
         let embedding_tokens_query =
             index::embedding_tokens_query(embedding.len(), embedding.iter());
 
-        let searcher = self.reader.searcher();
+        let searcher = reader.searcher();
         let top_chunks = searcher.search(
             &embedding_tokens_query,
             &TopDocs::with_limit(limit).and_offset(offset),
@@ -118,30 +99,15 @@ fn get_json_text_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name:
 }
 
 pub struct DocSearchService {
-    search: Arc<RwLock<Option<DocSearchImpl>>>,
-    loader: tokio::task::JoinHandle<()>,
-}
-
-impl Drop for DocSearchService {
-    fn drop(&mut self) {
-        if !self.loader.is_finished() {
-            self.loader.abort();
-        }
-    }
+    imp: DocSearchImpl,
+    provider: Arc<IndexReaderProvider>,
 }
 
 impl DocSearchService {
-    pub fn new(embedding: Arc<dyn Embedding>) -> Self {
-        let search = Arc::new(RwLock::new(None));
-        let cloned_search = search.clone();
-        let loader = tokio::spawn(async move {
-            let doc = DocSearchImpl::load_async(embedding).await;
-            *cloned_search.write().await = Some(doc);
-        });
-
+    pub fn new(embedding: Arc<dyn Embedding>, provider: Arc<IndexReaderProvider>) -> Self {
         Self {
-            search: search.clone(),
-            loader,
+            imp: DocSearchImpl::new(embedding),
+            provider,
         }
     }
 }
@@ -154,8 +120,8 @@ impl DocSearch for DocSearchService {
         limit: usize,
         offset: usize,
     ) -> Result<DocSearchResponse, DocSearchError> {
-        if let Some(imp) = self.search.read().await.as_ref() {
-            imp.search(q, limit, offset).await
+        if let Some(reader) = self.provider.reader().await.as_ref() {
+            self.imp.search(reader, q, limit, offset).await
         } else {
             Err(DocSearchError::NotReady)
         }

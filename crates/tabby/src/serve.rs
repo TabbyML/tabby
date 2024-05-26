@@ -28,6 +28,7 @@ use crate::{
         event::create_event_logger,
         health,
         model::download_model_if_needed,
+        tantivy::IndexReaderProvider,
     },
     to_local_config, Device,
 };
@@ -154,8 +155,21 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         repository_access = ws.repository_access();
     }
 
-    let code = Arc::new(create_code_search(repository_access));
-    let mut api = api_router(args, &config, logger.clone(), code.clone(), webserver).await;
+    let index_reader_provider = Arc::new(IndexReaderProvider::default());
+
+    let code = Arc::new(create_code_search(
+        repository_access,
+        index_reader_provider.clone(),
+    ));
+    let mut api = api_router(
+        args,
+        &config,
+        logger.clone(),
+        code.clone(),
+        index_reader_provider,
+        webserver,
+    )
+    .await;
     let mut ui = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .fallback(|| async { axum::response::Redirect::temporary("/swagger-ui") });
@@ -190,6 +204,7 @@ async fn api_router(
     config: &Config,
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
+    index_reader_provider: Arc<IndexReaderProvider>,
     webserver: Option<bool>,
 ) -> Router {
     let model = &config.model;
@@ -209,7 +224,10 @@ async fn api_router(
 
     let docsearch_state: Option<Arc<dyn DocSearch>> = if let Some(embedding) = &model.embedding {
         let embedding = embedding::create(embedding).await;
-        Some(Arc::new(services::doc::create(embedding)))
+        Some(Arc::new(services::doc::create(
+            embedding,
+            index_reader_provider,
+        )))
     } else {
         None
     };
