@@ -18,12 +18,13 @@ pub trait IndexAttributeBuilder<T>: Send + Sync {
 pub struct Indexer<T> {
     builder: Box<dyn IndexAttributeBuilder<T>>,
     writer: IndexWriter,
+    pub recreated: bool,
 }
 
 impl<T> Indexer<T> {
     pub fn new(builder: impl IndexAttributeBuilder<T> + 'static) -> Self {
         let doc = IndexSchema::instance();
-        let (_, index) = open_or_create_index(&doc.schema, &path::index_dir());
+        let (recreated, index) = open_or_create_index(&doc.schema, &path::index_dir());
         let writer = index
             .writer(150_000_000)
             .expect("Failed to create index writer");
@@ -31,6 +32,7 @@ impl<T> Indexer<T> {
         Self {
             builder: Box::new(builder),
             writer,
+            recreated,
         }
     }
 
