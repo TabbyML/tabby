@@ -212,14 +212,14 @@ pub struct DocIndexConfig {
 
 #[async_trait]
 pub trait ConfigAccess: Send + Sync {
-    async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>>;
+    async fn repositories(&self) -> Result<Vec<RepositoryConfig>>;
 }
 
 pub struct StaticConfigAccess;
 
 #[async_trait]
 impl ConfigAccess for StaticConfigAccess {
-    async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>> {
+    async fn repositories(&self) -> Result<Vec<RepositoryConfig>> {
         Ok(Config::load()?.repositories)
     }
 }

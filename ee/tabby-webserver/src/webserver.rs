@@ -6,7 +6,7 @@ use tabby_common::{
         code::CodeSearch,
         event::{ComposedLogger, EventLogger},
     },
-    config::ConfigAccess,
+    config::{ConfigAccess, RepositoryConfig},
 };
 use tabby_db::DbConn;
 use tabby_schema::{integration::IntegrationService, repository::RepositoryService};
@@ -27,8 +27,16 @@ pub struct Webserver {
     integration: Arc<dyn IntegrationService>,
 }
 
+#[async_trait::async_trait]
+impl ConfigAccess for Webserver {
+    async fn repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
+        let repos = self.repository.list_repositories().await?;
+        Ok(repos)
+    }
+}
+
 impl Webserver {
-    pub async fn new(logger1: impl EventLogger + 'static, _local_port: u16) -> Self {
+    pub async fn new(logger1: impl EventLogger + 'static) -> Arc<Self> {
         let db = DbConn::new(db_file().as_path())
             .await
             .expect("Must be able to initialize db");
@@ -41,31 +49,29 @@ impl Webserver {
         let integration = Arc::new(integration::create(db.clone(), sender.clone()));
         let repository = repository::create(db.clone(), integration.clone(), sender);
 
+        let logger2 = create_event_logger(db.clone());
+        let logger = Arc::new(ComposedLogger::new(logger1, logger2));
+        let ws = Arc::new(Webserver {
+            db: db.clone(),
+            logger,
+            repository: repository.clone(),
+            integration: integration.clone(),
+        });
+
         background_job::start(
             db.clone(),
-            repository.clone().access(),
+            ws.clone(),
             repository.third_party(),
             integration.clone(),
             receiver,
         )
         .await;
 
-        let logger2 = create_event_logger(db.clone());
-        let logger = Arc::new(ComposedLogger::new(logger1, logger2));
-        Webserver {
-            db,
-            logger,
-            repository,
-            integration,
-        }
+        ws
     }
 
     pub fn logger(&self) -> Arc<dyn EventLogger + 'static> {
         self.logger.clone()
-    }
-
-    pub fn repository_access(&self) -> Arc<dyn ConfigAccess> {
-        self.repository.clone().access()
     }
 
     pub async fn attach(

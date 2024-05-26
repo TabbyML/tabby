@@ -6,7 +6,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use futures::StreamExt;
 use juniper::ID;
-use tabby_common::config::{ConfigAccess, RepositoryConfig};
+use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
 use tabby_schema::{
     integration::IntegrationService,
@@ -37,8 +37,8 @@ pub fn create(
 }
 
 #[async_trait]
-impl ConfigAccess for RepositoryServiceImpl {
-    async fn list_repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
+impl RepositoryService for RepositoryServiceImpl {
+    async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>> {
         let mut repos: Vec<RepositoryConfig> = self
             .git
             .list(None, None, None, None)
@@ -56,20 +56,13 @@ impl ConfigAccess for RepositoryServiceImpl {
 
         Ok(repos)
     }
-}
 
-#[async_trait]
-impl RepositoryService for RepositoryServiceImpl {
     fn git(&self) -> Arc<dyn GitRepositoryService> {
         self.git.clone()
     }
 
     fn third_party(&self) -> Arc<dyn ThirdPartyRepositoryService> {
         self.third_party.clone()
-    }
-
-    fn access(self: Arc<Self>) -> Arc<dyn ConfigAccess> {
-        self.clone()
     }
 
     async fn repository_list(&self) -> Result<Vec<Repository>> {

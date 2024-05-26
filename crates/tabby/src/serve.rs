@@ -5,7 +5,7 @@ use clap::Args;
 use hyper::StatusCode;
 use tabby_common::{
     api::{self, code::CodeSearch, doc::DocSearch, event::EventLogger},
-    config::{Config, StaticConfigAccess, ModelConfig, ConfigAccess},
+    config::{Config, ConfigAccess, ModelConfig, StaticConfigAccess},
     usage,
 };
 use tokio::time::sleep;
@@ -141,24 +141,24 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     #[cfg(feature = "ee")]
     let ws = if !args.no_webserver {
-        Some(tabby_webserver::public::Webserver::new(create_event_logger(), args.port).await)
+        Some(tabby_webserver::public::Webserver::new(create_event_logger()).await)
     } else {
         None
     };
 
     let mut logger: Arc<dyn EventLogger> = Arc::new(create_event_logger());
-    let mut repository_access: Arc<dyn ConfigAccess> = Arc::new(StaticConfigAccess);
+    let mut config_access: Arc<dyn ConfigAccess> = Arc::new(StaticConfigAccess);
 
     #[cfg(feature = "ee")]
     if let Some(ws) = &ws {
         logger = ws.logger();
-        repository_access = ws.repository_access();
+        config_access = ws.clone();
     }
 
     let index_reader_provider = Arc::new(IndexReaderProvider::default());
 
     let code = Arc::new(create_code_search(
-        repository_access,
+        config_access,
         index_reader_provider.clone(),
     ));
     let mut api = api_router(

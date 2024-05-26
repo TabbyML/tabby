@@ -22,14 +22,14 @@ use tokio::sync::Mutex;
 use super::tantivy::IndexReaderProvider;
 
 struct CodeSearchImpl {
-    repository_access: Arc<dyn ConfigAccess>,
+    config_access: Arc<dyn ConfigAccess>,
     repo_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
 }
 
 impl CodeSearchImpl {
-    fn new(repository_access: Arc<dyn ConfigAccess>) -> Self {
+    fn new(config_access: Arc<dyn ConfigAccess>) -> Self {
         Self {
-            repository_access,
+            config_access,
             repo_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
         }
     }
@@ -104,7 +104,7 @@ impl CodeSearchImpl {
 
         let repos = cache
             .try_get_or_set_with((), || async {
-                let repos = self.repository_access.list_repositories().await?;
+                let repos = self.config_access.repositories().await?;
                 Ok::<_, anyhow::Error>(repos)
             })
             .await?;
@@ -168,22 +168,19 @@ struct CodeSearchService {
 }
 
 impl CodeSearchService {
-    pub fn new(
-        repository_access: Arc<dyn ConfigAccess>,
-        provider: Arc<IndexReaderProvider>,
-    ) -> Self {
+    pub fn new(config_access: Arc<dyn ConfigAccess>, provider: Arc<IndexReaderProvider>) -> Self {
         Self {
-            imp: CodeSearchImpl::new(repository_access),
+            imp: CodeSearchImpl::new(config_access),
             provider,
         }
     }
 }
 
 pub fn create_code_search(
-    repository_access: Arc<dyn ConfigAccess>,
+    config_access: Arc<dyn ConfigAccess>,
     provider: Arc<IndexReaderProvider>,
 ) -> impl CodeSearch {
-    CodeSearchService::new(repository_access, provider)
+    CodeSearchService::new(config_access, provider)
 }
 
 #[async_trait]

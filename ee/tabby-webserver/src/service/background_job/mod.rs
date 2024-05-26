@@ -31,7 +31,7 @@ struct BackgroundJobImpl {
 
 pub async fn start(
     db: DbConn,
-    repository_access: Arc<dyn ConfigAccess>,
+    config_access: Arc<dyn ConfigAccess>,
     third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
     integration_service: Arc<dyn IntegrationService>,
     mut receiver: tokio::sync::mpsc::UnboundedReceiver<BackgroundJobEvent>,
@@ -47,7 +47,7 @@ pub async fn start(
     let monitor = Monitor::new();
     let monitor = DbMaintainanceJob::register(monitor, db.clone());
     let (scheduler, monitor) =
-        SchedulerJob::register(monitor, pool.clone(), db.clone(), repository_access);
+        SchedulerJob::register(monitor, pool.clone(), db.clone(), config_access);
     let (third_party_repository, monitor) = SyncIntegrationJob::register(
         monitor,
         pool.clone(),
