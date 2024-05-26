@@ -16,37 +16,28 @@ mod doc;
 use std::{env, sync::Arc};
 
 use doc::create_web_index;
-use tabby_common::config::{RepositoryAccess, RepositoryConfig};
+use tabby_common::config::RepositoryConfig;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{debug, info, warn};
 
-pub async fn scheduler<T: RepositoryAccess + 'static>(
-    now: bool,
-    config: &tabby_common::config::Config,
-    access: T,
-) {
+pub async fn scheduler(now: bool, config: &tabby_common::config::Config) {
     if now {
-        let repositories = access
-            .list_repositories()
-            .await
-            .expect("Must be able to retrieve repositories for sync");
-        scheduler_pipeline(&repositories).await;
+        scheduler_pipeline(&config.repositories).await;
         if env::var("TABBY_SCHEDULER_EXPERIMENTAL_DOC_INDEX").is_ok() {
             doc_index_pipeline(config).await;
         }
     } else {
-        let access = Arc::new(access);
         let scheduler = JobScheduler::new()
             .await
             .expect("Failed to create scheduler");
         let scheduler_mutex = Arc::new(tokio::sync::Mutex::new(()));
-        let _config = config.clone();
+        let config = config.clone();
 
         // Every 10 minutes
         scheduler
             .add(
                 Job::new_async("0 1/10 * * * *", move |_, _| {
-                    let access = access.clone();
+                    let config = config.clone();
                     let scheduler_mutex = scheduler_mutex.clone();
                     Box::pin(async move {
                         let Ok(_guard) = scheduler_mutex.try_lock() else {
@@ -54,12 +45,7 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(
                             return;
                         };
 
-                        let repositories = access
-                            .list_repositories()
-                            .await
-                            .expect("Must be able to retrieve repositories for sync");
-
-                        scheduler_pipeline(&repositories).await;
+                        scheduler_pipeline(&config.repositories).await;
                     })
                 })
                 .expect("Failed to create job"),
