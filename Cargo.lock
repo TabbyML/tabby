@@ -2110,6 +2110,7 @@ dependencies = [
  "async-stream",
  "async-trait",
  "futures",
+ "ollama-api-bindings",
  "reqwest 0.12.4",
  "reqwest-eventsource",
  "serde",
@@ -3333,6 +3334,33 @@ dependencies = [
  "tower",
  "tower-http",
  "tracing",
+ "url",
+]
+
+[[package]]
+name = "ollama-api-bindings"
+version = "0.12.0-dev.0"
+dependencies = [
+ "anyhow",
+ "async-stream",
+ "async-trait",
+ "futures",
+ "ollama-rs",
+ "tabby-common",
+ "tabby-inference",
+ "tracing",
+]
+
+[[package]]
+name = "ollama-rs"
+version = "0.1.9"
+source = "git+https://github.com/pepperoni21/ollama-rs.git?rev=56e8157d98d4185bc171fe9468d3d09bc56e9dd3#56e8157d98d4185bc171fe9468d3d09bc56e9dd3"
+dependencies = [
+ "reqwest 0.12.4",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-stream",
  "url",
 ]
 
@@ -5989,9 +6017,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-stream"
-version = "0.1.14"
+version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "397c988d37662c7dda6d2208364a706264bf3d6138b11d436cbac0ad38832842"
+checksum = "267ac89e0bec6e691e5813911606935d77c476ff49024f98abcea3e7b15e37af"
 dependencies = [
  "futures-core",
  "pin-project-lite",

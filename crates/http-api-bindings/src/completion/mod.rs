@@ -6,11 +6,17 @@ use llama::LlamaCppEngine;
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::CompletionStream;
 
-pub fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
-    if model.kind == "llama.cpp/completion" {
-        let engine = LlamaCppEngine::create(&model.api_endpoint, model.api_key.clone());
-        Arc::new(engine)
-    } else {
-        panic!("Unsupported model kind: {}", model.kind);
+pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
+    match model.kind.as_str() {
+        "llama.cpp/completion" => {
+            let engine = LlamaCppEngine::create(&model.api_endpoint, model.api_key.clone());
+            Arc::new(engine)
+        }
+        "ollama/completion" => ollama_api_bindings::create_completion(model).await,
+
+        unsupported_kind => panic!(
+            "Unsupported model kind for http completion: {}",
+            unsupported_kind
+        ),
     }
 }
