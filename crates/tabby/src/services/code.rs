@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -11,48 +11,26 @@ use tabby_common::{
     },
     config::{RepositoryAccess, RepositoryConfig},
     index::{code, IndexSchema},
-    path,
 };
 use tantivy::{
     collector::{Count, TopDocs},
     schema::{self, document::ReferenceValue, Value},
-    Index, IndexReader, TantivyDocument,
+    IndexReader, TantivyDocument,
 };
-use tokio::{
-    sync::{Mutex, RwLock},
-    time::sleep,
-};
-use tracing::debug;
+use tokio::sync::Mutex;
+
+use super::tantivy::IndexReaderProvider;
 
 struct CodeSearchImpl {
-    reader: IndexReader,
-
     repository_access: Arc<dyn RepositoryAccess>,
     repo_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
 }
 
 impl CodeSearchImpl {
-    fn load(repository_access: Arc<dyn RepositoryAccess>) -> Result<Self> {
-        let index = Index::open_in_dir(path::index_dir())?;
-
-        let reader = index
-            .reader_builder()
-            .reload_policy(tantivy::ReloadPolicy::OnCommitWithDelay)
-            .try_into()?;
-        Ok(Self {
+    fn new(repository_access: Arc<dyn RepositoryAccess>) -> Self {
+        Self {
             repository_access,
-            reader,
             repo_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
-        })
-    }
-
-    async fn load_async(repository_access: Arc<dyn RepositoryAccess>) -> CodeSearchImpl {
-        loop {
-            if let Ok(doc) = Self::load(repository_access.clone()) {
-                debug!("Index is ready, enabling code search...");
-                return doc;
-            }
-            sleep(Duration::from_secs(60)).await;
         }
     }
 
@@ -95,11 +73,12 @@ impl CodeSearchImpl {
 
     async fn search_with_query(
         &self,
+        reader: &IndexReader,
         q: &dyn tantivy::query::Query,
         limit: usize,
         offset: usize,
     ) -> Result<CodeSearchResponse, CodeSearchError> {
-        let searcher = self.reader.searcher();
+        let searcher = reader.searcher();
         let (top_docs, num_hits) =
             { searcher.search(q, &(TopDocs::with_limit(limit).and_offset(offset), Count))? };
         let hits: Vec<CodeSearchHit> = {
@@ -112,6 +91,32 @@ impl CodeSearchImpl {
                 .collect()
         };
         Ok(CodeSearchResponse { num_hits, hits })
+    }
+
+    async fn search_in_language(
+        &self,
+        reader: &IndexReader,
+        mut query: CodeSearchQuery,
+        limit: usize,
+        offset: usize,
+    ) -> Result<CodeSearchResponse, CodeSearchError> {
+        let mut cache = self.repo_cache.lock().await;
+
+        let repos = cache
+            .try_get_or_set_with((), || async {
+                let repos = self.repository_access.list_repositories().await?;
+                Ok::<_, anyhow::Error>(repos)
+            })
+            .await?;
+
+        let Some(git_url) = closest_match(&query.git_url, repos.iter()) else {
+            return Ok(CodeSearchResponse::default());
+        };
+
+        query.git_url = git_url.to_owned();
+
+        let query = code::code_search_query(&query);
+        self.search_with_query(reader, &query, limit, offset).await
     }
 }
 
@@ -143,34 +148,6 @@ fn get_json_text_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name:
         .unwrap()
 }
 
-#[async_trait]
-impl CodeSearch for CodeSearchImpl {
-    async fn search_in_language(
-        &self,
-        mut query: CodeSearchQuery,
-        limit: usize,
-        offset: usize,
-    ) -> Result<CodeSearchResponse, CodeSearchError> {
-        let mut cache = self.repo_cache.lock().await;
-
-        let repos = cache
-            .try_get_or_set_with((), || async {
-                let repos = self.repository_access.list_repositories().await?;
-                Ok::<_, anyhow::Error>(repos)
-            })
-            .await?;
-
-        let Some(git_url) = closest_match(&query.git_url, repos.iter()) else {
-            return Ok(CodeSearchResponse::default());
-        };
-
-        query.git_url = git_url.to_owned();
-
-        let query = code::code_search_query(&query);
-        self.search_with_query(&query, limit, offset).await
-    }
-}
-
 fn closest_match<'a>(
     search_term: &'a str,
     search_input: impl IntoIterator<Item = &'a RepositoryConfig>,
@@ -186,28 +163,27 @@ fn closest_match<'a>(
 }
 
 struct CodeSearchService {
-    search: Arc<RwLock<Option<CodeSearchImpl>>>,
+    imp: CodeSearchImpl,
+    provider: Arc<IndexReaderProvider>,
 }
 
 impl CodeSearchService {
-    pub fn new(repository_access: Arc<dyn RepositoryAccess>) -> Self {
-        let search = Arc::new(RwLock::new(None));
-
-        let ret = Self {
-            search: search.clone(),
-        };
-
-        tokio::spawn(async move {
-            let code = CodeSearchImpl::load_async(repository_access).await;
-            *search.write().await = Some(code);
-        });
-
-        ret
+    pub fn new(
+        repository_access: Arc<dyn RepositoryAccess>,
+        provider: Arc<IndexReaderProvider>,
+    ) -> Self {
+        Self {
+            imp: CodeSearchImpl::new(repository_access),
+            provider,
+        }
     }
 }
 
-pub fn create_code_search(repository_access: Arc<dyn RepositoryAccess>) -> impl CodeSearch {
-    CodeSearchService::new(repository_access)
+pub fn create_code_search(
+    repository_access: Arc<dyn RepositoryAccess>,
+    provider: Arc<IndexReaderProvider>,
+) -> impl CodeSearch {
+    CodeSearchService::new(repository_access, provider)
 }
 
 #[async_trait]
@@ -218,8 +194,10 @@ impl CodeSearch for CodeSearchService {
         limit: usize,
         offset: usize,
     ) -> Result<CodeSearchResponse, CodeSearchError> {
-        if let Some(imp) = self.search.read().await.as_ref() {
-            imp.search_in_language(query, limit, offset).await
+        if let Some(reader) = self.provider.reader().await.as_ref() {
+            self.imp
+                .search_in_language(reader, query, limit, offset)
+                .await
         } else {
             Err(CodeSearchError::NotReady)
         }
