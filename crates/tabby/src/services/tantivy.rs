@@ -44,10 +44,7 @@ impl Default for IndexReaderProvider {
             *cloned_provider.write().await = Some(doc);
         });
 
-        Self {
-            provider,
-            loader,
-        }
+        Self { provider, loader }
     }
 }
 
