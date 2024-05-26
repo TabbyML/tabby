@@ -32,7 +32,7 @@ impl<T> Indexer<T> {
         Self {
             builder: Box::new(builder),
             writer,
-            recreated
+            recreated,
         }
     }
 
