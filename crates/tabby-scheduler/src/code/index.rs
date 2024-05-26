@@ -12,6 +12,9 @@ static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 
 pub async fn index_repository(cache: &mut CacheStore, repository: &RepositoryConfig) {
     let index = create_code_index();
+    if index.recreated {
+        cache.clear_indexed()
+    }
     add_changed_documents(cache, repository, &index).await;
     index.commit();
 }
