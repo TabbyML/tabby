@@ -37,15 +37,15 @@ impl IndexReaderProvider {
 
 impl Default for IndexReaderProvider {
     fn default() -> Self {
-        let search = Arc::new(RwLock::new(None));
-        let cloned_search = search.clone();
+        let provider = Arc::new(RwLock::new(None));
+        let cloned_provider = provider.clone();
         let loader = tokio::spawn(async move {
             let doc = Self::load_async().await;
-            *cloned_search.write().await = Some(doc);
+            *cloned_provider.write().await = Some(doc);
         });
 
         Self {
-            provider: search.clone(),
+            provider,
             loader,
         }
     }
