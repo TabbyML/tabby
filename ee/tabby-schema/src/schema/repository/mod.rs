@@ -11,7 +11,7 @@ use async_trait::async_trait;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use juniper::{graphql_object, GraphQLEnum, GraphQLObject, ID};
 use serde::Deserialize;
-use tabby_common::config::{RepositoryAccess, RepositoryConfig};
+use tabby_common::config::{ConfigAccess, RepositoryConfig};
 pub use third_party::{ProvidedRepository, ThirdPartyRepositoryService};
 
 use super::Result;
@@ -260,7 +260,7 @@ pub trait RepositoryProvider {
 }
 
 #[async_trait]
-pub trait RepositoryService: Send + Sync + RepositoryAccess {
+pub trait RepositoryService: Send + Sync + ConfigAccess {
     async fn repository_list(&self) -> Result<Vec<Repository>>;
     async fn resolve_repository(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository>;
     async fn search_files(
@@ -283,5 +283,5 @@ pub trait RepositoryService: Send + Sync + RepositoryAccess {
 
     fn git(&self) -> Arc<dyn GitRepositoryService>;
     fn third_party(&self) -> Arc<dyn ThirdPartyRepositoryService>;
-    fn access(self: Arc<Self>) -> Arc<dyn RepositoryAccess>;
+    fn access(self: Arc<Self>) -> Arc<dyn ConfigAccess>;
 }

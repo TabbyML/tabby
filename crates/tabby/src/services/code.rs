@@ -9,7 +9,7 @@ use tabby_common::{
         CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchQuery,
         CodeSearchResponse,
     },
-    config::{RepositoryAccess, RepositoryConfig},
+    config::{ConfigAccess, RepositoryConfig},
     index::{code, IndexSchema},
 };
 use tantivy::{
@@ -22,12 +22,12 @@ use tokio::sync::Mutex;
 use super::tantivy::IndexReaderProvider;
 
 struct CodeSearchImpl {
-    repository_access: Arc<dyn RepositoryAccess>,
+    repository_access: Arc<dyn ConfigAccess>,
     repo_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
 }
 
 impl CodeSearchImpl {
-    fn new(repository_access: Arc<dyn RepositoryAccess>) -> Self {
+    fn new(repository_access: Arc<dyn ConfigAccess>) -> Self {
         Self {
             repository_access,
             repo_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
@@ -169,7 +169,7 @@ struct CodeSearchService {
 
 impl CodeSearchService {
     pub fn new(
-        repository_access: Arc<dyn RepositoryAccess>,
+        repository_access: Arc<dyn ConfigAccess>,
         provider: Arc<IndexReaderProvider>,
     ) -> Self {
         Self {
@@ -180,7 +180,7 @@ impl CodeSearchService {
 }
 
 pub fn create_code_search(
-    repository_access: Arc<dyn RepositoryAccess>,
+    repository_access: Arc<dyn ConfigAccess>,
     provider: Arc<IndexReaderProvider>,
 ) -> impl CodeSearch {
     CodeSearchService::new(repository_access, provider)

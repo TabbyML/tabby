@@ -6,7 +6,7 @@ use tabby_common::{
         code::CodeSearch,
         event::{ComposedLogger, EventLogger},
     },
-    config::RepositoryAccess,
+    config::ConfigAccess,
 };
 use tabby_db::DbConn;
 use tabby_schema::{integration::IntegrationService, repository::RepositoryService};
@@ -64,7 +64,7 @@ impl Webserver {
         self.logger.clone()
     }
 
-    pub fn repository_access(&self) -> Arc<dyn RepositoryAccess> {
+    pub fn repository_access(&self) -> Arc<dyn ConfigAccess> {
         self.repository.clone().access()
     }
 

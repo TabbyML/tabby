@@ -5,7 +5,7 @@ use clap::Args;
 use hyper::StatusCode;
 use tabby_common::{
     api::{self, code::CodeSearch, doc::DocSearch, event::EventLogger},
-    config::{Config, ConfigRepositoryAccess, ModelConfig, RepositoryAccess},
+    config::{Config, StaticConfigAccess, ModelConfig, ConfigAccess},
     usage,
 };
 use tokio::time::sleep;
@@ -147,7 +147,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     };
 
     let mut logger: Arc<dyn EventLogger> = Arc::new(create_event_logger());
-    let mut repository_access: Arc<dyn RepositoryAccess> = Arc::new(ConfigRepositoryAccess);
+    let mut repository_access: Arc<dyn ConfigAccess> = Arc::new(StaticConfigAccess);
 
     #[cfg(feature = "ee")]
     if let Some(ws) = &ws {

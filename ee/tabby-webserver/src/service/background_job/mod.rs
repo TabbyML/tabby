@@ -10,7 +10,7 @@ use apalis::{
     sqlite::{SqlitePool, SqliteStorage},
 };
 use juniper::ID;
-use tabby_common::config::{RepositoryAccess, RepositoryConfig};
+use tabby_common::config::{ConfigAccess, RepositoryConfig};
 use tabby_db::DbConn;
 use tabby_schema::{integration::IntegrationService, repository::ThirdPartyRepositoryService};
 
@@ -31,7 +31,7 @@ struct BackgroundJobImpl {
 
 pub async fn start(
     db: DbConn,
-    repository_access: Arc<dyn RepositoryAccess>,
+    repository_access: Arc<dyn ConfigAccess>,
     third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
     integration_service: Arc<dyn IntegrationService>,
     mut receiver: tokio::sync::mpsc::UnboundedReceiver<BackgroundJobEvent>,

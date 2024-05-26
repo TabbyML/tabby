@@ -8,7 +8,7 @@ use apalis::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use tabby_common::config::{RepositoryAccess, RepositoryConfig};
+use tabby_common::config::{ConfigAccess, RepositoryConfig};
 use tabby_db::DbConn;
 use tabby_scheduler::CodeIndexer;
 
@@ -55,7 +55,7 @@ impl SchedulerJob {
 
     async fn cron(
         _now: DateTime<Utc>,
-        repository_access: Data<Arc<dyn RepositoryAccess>>,
+        repository_access: Data<Arc<dyn ConfigAccess>>,
         storage: Data<SqliteStorage<SchedulerJob>>,
     ) -> tabby_schema::Result<()> {
         let repositories = repository_access
@@ -81,7 +81,7 @@ impl SchedulerJob {
         monitor: Monitor<TokioExecutor>,
         pool: SqlitePool,
         db: DbConn,
-        repository_access: Arc<dyn RepositoryAccess>,
+        repository_access: Arc<dyn ConfigAccess>,
     ) -> (SqliteStorage<SchedulerJob>, Monitor<TokioExecutor>) {
         let storage = SqliteStorage::new(pool);
         let monitor = monitor
