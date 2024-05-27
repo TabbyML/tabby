@@ -159,6 +159,5 @@ We are incredibly enthusiastic about the potential for enhancing the quality and
 ## Give it a try
 To use this repository context feature:
 
-1. Installing [tabby](/docs/installation/).
-2. Navigate to the [Configuration](/docs/configuration#repository-context-for-code-completion) page and set up your `~/.tabby/config.toml`
-3. Finally, run `tabby scheduler` to build an index and unlock the full potential of this innovative feature! 🛠️
+1. Installing [tabby](/docs/quick-start/installation/docker).
+2. Navigate to the [Repository Context](/docs/administration/context) page and follow the instructions to set it up.

@@ -1,4 +1,4 @@
-import { MessageEndpoint, createEndpoint, fromIframe, fromInsideIframe } from '@remote-ui/rpc'
+import { createThreadFromIframe, createThreadFromInsideIframe } from '@quilted/threads'
 
 export interface LineRange {
   start: number
@@ -8,8 +8,9 @@ export interface LineRange {
 export interface FileContext {
   kind: 'file'
   range: LineRange
-  filename: string
-  link: string
+  filepath: string
+  content: string
+  git_url: string
 }
 
 export type Context = FileContext
@@ -19,24 +20,38 @@ export interface FetcherOptions {
 }
 
 export interface InitRequest {
-  message?: string
+  fetcherOptions: FetcherOptions
+}
+
+export interface ServerApi {
+  init: (request: InitRequest) => void
+  sendMessage: (message: ChatMessage) => void
+
+}
+
+export interface ClientApi {
+  navigate: (context: Context) => void
+}
+
+export interface ChatMessage {
+  message: string
   selectContext?: Context
   relevantContext?: Array<Context>
-  fetcherOptions?: FetcherOptions
 }
 
-export interface Api {
-  init: (request: InitRequest) => void
+export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerApi {
+  return createThreadFromIframe(target, {
+    expose: {
+      navigate: api.navigate,
+    },
+  })
 }
 
-export function createClient(endpoint: MessageEndpoint) {
-  return createEndpoint<Api>(endpoint)
-}
-
-export function createServer(endpoint: MessageEndpoint, api: Api) {
-    const server = createEndpoint(endpoint)
-    server.expose({
+export function createServer(api: ServerApi): ClientApi {
+  return createThreadFromInsideIframe({
+    expose: {
       init: api.init,
-    })
-    return server;
+      sendMessage: api.sendMessage,
+    },
+  })
 }

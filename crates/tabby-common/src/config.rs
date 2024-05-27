@@ -2,6 +2,7 @@ use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -9,13 +10,19 @@ use crate::{
     terminal::{HeaderFormat, InfoMessage},
 };
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 pub struct Config {
     #[serde(default)]
     pub repositories: Vec<RepositoryConfig>,
 
     #[serde(default)]
     pub server: ServerConfig,
+
+    #[serde(default)]
+    pub model: ModelConfigGroup,
+
+    #[serde(default)]
+    pub experimental: ExperimentalConfig,
 }
 
 impl Config {
@@ -70,8 +77,10 @@ pub struct RepositoryConfig {
 }
 
 impl RepositoryConfig {
-    pub fn new(git_url: String) -> Self {
-        Self { git_url }
+    pub fn new<T: Into<String>>(git_url: T) -> Self {
+        Self {
+            git_url: git_url.into(),
+        }
     }
 
     pub fn canonical_git_url(&self) -> String {
@@ -115,7 +124,7 @@ fn sanitize_name(s: &str) -> String {
     sanitized.into_iter().collect()
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ServerConfig {
     /// The timeout in seconds for the /v1/completion api.
     pub completion_timeout: u64,
@@ -127,6 +136,78 @@ impl Default for ServerConfig {
             completion_timeout: 30,
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
+pub struct ModelConfigGroup {
+    pub completion: Option<ModelConfig>,
+    pub chat: Option<ModelConfig>,
+    pub embedding: Option<ModelConfig>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum ModelConfig {
+    Http(HttpModelConfig),
+    Local(LocalModelConfig),
+}
+
+#[derive(Serialize, Deserialize, Builder, Clone)]
+pub struct HttpModelConfig {
+    /// The kind of model, we have three group of models:
+    /// 1. Completion API [CompletionStream](tabby_inference::CompletionStream)
+    ///   - llama.cpp/completion: llama.cpp `/completion` API.
+    /// 2. Chat API: [ChatCompletionStream](tabby_inference::ChatCompletionStream)
+    ///   - openai-chat: OpenAI /v1/chat/completions API.
+    /// 3. Embedding API [Embedding](tabby_inference::Embedding)
+    ///   - llama.cpp/embedding: llama.cpp `/embedding` API.
+    pub kind: String,
+
+    pub api_endpoint: String,
+
+    #[builder(default)]
+    pub api_key: Option<String>,
+
+    /// Used by OpenAI style API for model name.
+    #[builder(default)]
+    pub model_name: Option<String>,
+
+    /// Used by Completion API to construct a completion model.
+    #[builder(default)]
+    pub prompt_template: Option<String>,
+
+    /// Used by Completion API to construct a chat model.
+    #[builder(default)]
+    pub chat_template: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct LocalModelConfig {
+    pub model_id: String,
+
+    #[serde(default = "default_parallelism")]
+    pub parallelism: u8,
+
+    #[serde(default = "default_num_gpu_layers")]
+    pub num_gpu_layers: u16,
+}
+
+fn default_parallelism() -> u8 {
+    1
+}
+
+fn default_num_gpu_layers() -> u16 {
+    9999
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
+pub struct ExperimentalConfig {
+    pub doc: Option<DocIndexConfig>,
+}
+
+#[derive(Serialize, Deserialize, Default, Clone)]
+pub struct DocIndexConfig {
+    pub start_urls: Vec<String>,
 }
 
 #[async_trait]

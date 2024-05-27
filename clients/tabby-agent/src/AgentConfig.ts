@@ -49,13 +49,29 @@ export type AgentConfig = {
       mode: "adaptive" | "fixed";
       interval: number;
     };
+    solution: {
+      // The max number of unique choices to be fetched before stopping
+      maxItems: number;
+      // The max number of attempts to fetch choices before stopping
+      maxTries: number;
+      // The temperature for fetching the second and subsequent choices
+      temperature: number;
+    };
   };
   postprocess: {
     limitScope: any;
     calculateReplaceRange: any;
   };
+  experimentalChat: {
+    generateCommitMessage: {
+      maxDiffLength: number;
+      promptTemplate: string;
+      responseMatcher: string;
+    };
+  };
   logs: {
-    level: "debug" | "error" | "silent";
+    // Controls the level of the logger written to the `~/.tabby-client/agent/logs/`
+    level: "silent" | "error" | "info" | "debug" | "trace";
   };
   tls: {
     // `bundled`, `system`, or a string point to cert file
@@ -114,10 +130,23 @@ export const defaultAgentConfig: AgentConfig = {
       mode: "adaptive",
       interval: 250, // ms
     },
+    solution: {
+      maxItems: 3,
+      maxTries: 6,
+      temperature: 0.8,
+    },
   },
   postprocess: {
     limitScope: {},
     calculateReplaceRange: {},
+  },
+  experimentalChat: {
+    generateCommitMessage: {
+      maxDiffLength: 3600,
+      promptTemplate:
+        "Generate a commit message based on the given diff. \nYou should only reply with the commit message, and the commit message should be in the following format: <type>(<scope>): <description> \nexamples: \n * feat(chat): add support for chat. \n * fix(ui): fix homepage links. \nThe diff is: \n\n```diff \n{{diff}} \n``` \n",
+      responseMatcher: /(?<=^\s*(the commit message.*:\s+)|(`{3}|["'`])\s*)[^"'`\s].*(?=\s*\2\s*$)/gi.toString(),
+    },
   },
   logs: {
     level: "silent",

@@ -1,0 +1,38 @@
+import { Readable } from "node:stream";
+import type { ReadableStream as NodeReadableStream } from "node:stream/web";
+import { EventSourceParserStream, ParsedEvent } from "eventsource-parser/stream";
+import type { components as TabbyApiComponents } from "./types/tabbyApi";
+import { getLogger } from "./logger";
+
+const logger = getLogger("StreamParser");
+
+export function readChatStream(stream: ReadableStream, signal?: AbortSignal): Readable {
+  const eventStream = stream.pipeThrough(new TextDecoderStream()).pipeThrough(new EventSourceParserStream());
+  const readableStream = Readable.fromWeb(eventStream as NodeReadableStream<ParsedEvent>, { objectMode: true, signal });
+  return readableStream.map(
+    (event: ParsedEvent): string | undefined => {
+      try {
+        if (event.type === "event") {
+          const chunk = JSON.parse(event.data) as TabbyApiComponents["schemas"]["ChatCompletionChunk"];
+          const text = chunk.choices[0]?.delta.content;
+          if (typeof text === "string") {
+            return text;
+          }
+        }
+      } catch (error) {
+        logger.error("Failed to parse chat stream chunk.", error);
+        logger.trace("Parsing failed with event:", { event });
+      }
+      return undefined;
+    },
+    { signal },
+  );
+}
+
+export async function parseChatResponse(response: Response, signal?: AbortSignal): Promise<string> {
+  if (!response.body) {
+    return "";
+  }
+  const readableStream = readChatStream(response.body, signal);
+  return readableStream.reduce<string>((text, delta) => text + delta, "", { signal });
+}

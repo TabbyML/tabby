@@ -26,6 +26,7 @@ pub struct GitRepository {
     pub id: juniper::ID,
     pub name: String,
     pub git_url: String,
+    pub refs: Vec<String>,
 }
 
 impl NodeType for GitRepository {

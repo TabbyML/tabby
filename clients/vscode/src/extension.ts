@@ -1,17 +1,20 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import { ExtensionContext, commands, languages, workspace } from "vscode";
-import { logger } from "./logger";
+import { ExtensionContext, commands, languages, workspace, window } from "vscode";
+import { getLogger } from "./logger";
 import { createAgentInstance, disposeAgentInstance } from "./agent";
 import { tabbyCommands } from "./commands";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
 import { TabbyStatusBarItem } from "./TabbyStatusBarItem";
 import { RecentlyChangedCodeSearch } from "./RecentlyChangedCodeSearch";
+import { ChatViewProvider } from "./ChatViewProvider";
+
+const logger = getLogger();
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export async function activate(context: ExtensionContext) {
-  logger().info("Activating Tabby extension");
+  logger.info("Activating Tabby extension...");
   const agent = await createAgentInstance(context);
   const completionProvider = new TabbyCompletionProvider();
   context.subscriptions.push(languages.registerInlineCompletionItemProvider({ pattern: "**" }, completionProvider));
@@ -37,13 +40,21 @@ export async function activate(context: ExtensionContext) {
   const statusBarItem = new TabbyStatusBarItem(context, completionProvider);
   context.subscriptions.push(statusBarItem.register());
 
-  context.subscriptions.push(...tabbyCommands(context, completionProvider, statusBarItem));
+  // Register chat panel
+  const chatViewProvider = new ChatViewProvider(context);
+  context.subscriptions.push(
+    window.registerWebviewViewProvider("tabby.chatView", chatViewProvider, {
+      webviewOptions: { retainContextWhenHidden: true }, // FIXME(wwayne): necessary?
+    }),
+  );
+
+  context.subscriptions.push(...tabbyCommands(context, completionProvider, statusBarItem, chatViewProvider));
 
   const updateIsChatEnabledContextVariable = () => {
     if (agent.getStatus() === "ready") {
       const healthState = agent.getServerHealthState();
       const isChatEnabled = Boolean(healthState?.chat_model);
-      commands.executeCommand("setContext", "tabby.chatModeEnabled", isChatEnabled);
+      commands.executeCommand("setContext", "tabby.chatEnabled", isChatEnabled);
     }
   };
   agent.on("statusChanged", () => {
@@ -54,7 +65,9 @@ export async function activate(context: ExtensionContext) {
   const updateIsExplainCodeEnabledContextVariable = () => {
     const experimental = workspace.getConfiguration("tabby").get<Record<string, any>>("experimental", {});
     const isExplainCodeEnabled = experimental["chat.explainCodeBlock"] || false;
-    commands.executeCommand("setContext", "tabby.explainCodeSettingEnabled", isExplainCodeEnabled);
+    commands.executeCommand("setContext", "tabby.explainCodeBlockEnabled", isExplainCodeEnabled);
+    const isGenerateCommitMessageEnabled = experimental["chat.generateCommitMessage"] || false;
+    commands.executeCommand("setContext", "tabby.generateCommitMessageEnabled", isGenerateCommitMessageEnabled);
   };
   workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration("tabby.experimental")) {
@@ -62,10 +75,12 @@ export async function activate(context: ExtensionContext) {
     }
   });
   updateIsExplainCodeEnabledContextVariable();
+  logger.info("Tabby extension activated.");
 }
 
 // this method is called when your extension is deactivated
 export async function deactivate() {
-  logger().info("Deactivating Tabby extension");
+  logger.info("Deactivating Tabby extension...");
   await disposeAgentInstance();
+  logger.info("Tabby extension deactivated.");
 }

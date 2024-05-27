@@ -1,0 +1,7 @@
+.cm-selectedLine {
+  background-color: rgba(255, 0, 0, 0.2);
+}
+
+.cm-selectedLineGutter {
+  background-color: rgba(255, 0, 0, 0.2);
+}

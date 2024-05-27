@@ -19,6 +19,7 @@ interface ActionBarWidgetProps extends React.HTMLAttributes<HTMLDivElement> {
   path: string
   lineFrom: number
   lineTo: number
+  gitUrl: string
 }
 
 export const ActionBarWidget: React.FC<ActionBarWidgetProps> = ({
@@ -28,6 +29,7 @@ export const ActionBarWidget: React.FC<ActionBarWidgetProps> = ({
   path,
   lineFrom,
   lineTo,
+  gitUrl,
   ...props
 }) => {
   const handleAction = (action: CodeBrowserQuickAction) => {
@@ -37,7 +39,8 @@ export const ActionBarWidget: React.FC<ActionBarWidgetProps> = ({
       language,
       path,
       lineFrom,
-      lineTo
+      lineTo,
+      gitUrl
     })
   }
 

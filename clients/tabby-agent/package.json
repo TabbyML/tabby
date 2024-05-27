@@ -1,6 +1,6 @@
 {
   "name": "tabby-agent",
-  "version": "1.6.0-dev",
+  "version": "1.7.0-dev",
   "description": "Generic client agent for Tabby AI coding assistant IDE extensions.",
   "homepage": "https://tabby.tabbyml.com/",
   "repository": "https://github.com/TabbyML/tabby",
@@ -35,9 +35,8 @@
     "dev": "tsup --watch --no-minify --no-treeshake",
     "build": "tsc --noEmit && tsup",
     "test": "mocha",
-    "test:watch": "env TEST_LOG_DEBUG=1 mocha --watch",
-    "lint": "eslint --fix --ext .ts ./src && prettier --write .",
-    "lint:check": "eslint --ext .ts ./src && prettier --check ."
+    "lint": "eslint --ext .ts ./src && prettier --check .",
+    "lint:fix": "eslint --fix --ext .ts ./src && prettier --write ."
   },
   "devDependencies": {
     "@types/chai": "^4.3.5",
@@ -49,6 +48,7 @@
     "@types/mocha": "^10.0.1",
     "@types/node": "18.x",
     "@types/object-hash": "^3.0.0",
+    "@types/semver": "^7.5.8",
     "@types/uuid": "^9.0.0",
     "@types/win-ca": "^3.5.4",
     "@typescript-eslint/eslint-plugin": "^6.13.1",
@@ -68,12 +68,15 @@
     "typescript": "^5.3.2"
   },
   "dependencies": {
+    "axios": "^1.7.2",
     "chokidar": "^3.5.3",
     "deep-equal": "^2.2.1",
     "deepmerge-ts": "^5.1.0",
     "dot-prop": "^8.0.2",
+    "eventsource-parser": "^1.1.2",
     "fast-levenshtein": "^3.0.0",
     "file-stream-rotator": "^1.0.0",
+    "form-data": "^4.0.0",
     "fs-extra": "^11.1.1",
     "jwt-decode": "^3.1.2",
     "lru-cache": "^9.1.1",
@@ -81,8 +84,8 @@
     "object-hash": "^3.0.0",
     "openapi-fetch": "^0.7.6",
     "pino": "^8.14.1",
-    "stats-logscale": "^1.0.9",
     "semver": "^7.6.0",
+    "stats-logscale": "^1.0.9",
     "toml": "^3.0.0",
     "uuid": "^9.0.0",
     "vscode-languageserver": "^9.0.1",

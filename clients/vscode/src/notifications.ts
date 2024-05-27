@@ -4,7 +4,6 @@ import type {
   SlowCompletionResponseTimeIssue,
   ConnectionFailedIssue,
 } from "tabby-agent";
-import { logger } from "./logger";
 import { agent } from "./agent";
 
 function showInformationWhenInitializing() {
@@ -79,7 +78,6 @@ function showInformationWhenInlineSuggestDisabled() {
     .then((selection) => {
       switch (selection) {
         case "Enable":
-          logger().debug(`Set editor.inlineSuggest.enabled: true.`);
           workspace.getConfiguration("editor").update("inlineSuggest.enabled", true, ConfigurationTarget.Global, false);
           break;
         case "Settings":
@@ -222,8 +220,9 @@ function getHelpMessageForCompletionResponseTimeIssue() {
 
 function showInformationWhenSlowCompletionResponseTime(modal: boolean = false) {
   if (modal) {
-    const stats = agent().getIssueDetail<SlowCompletionResponseTimeIssue>({ name: "slowCompletionResponseTime" })
-      ?.completionResponseStats;
+    const stats = agent().getIssueDetail<SlowCompletionResponseTimeIssue>({
+      name: "slowCompletionResponseTime",
+    })?.completionResponseStats;
     let statsMessage = "";
     if (stats && stats["responses"] && stats["averageResponseTime"]) {
       statsMessage = `The average response time of recent ${stats["responses"]} completion requests is ${Number(
@@ -271,8 +270,9 @@ function showInformationWhenSlowCompletionResponseTime(modal: boolean = false) {
 
 function showInformationWhenHighCompletionTimeoutRate(modal: boolean = false) {
   if (modal) {
-    const stats = agent().getIssueDetail<HighCompletionTimeoutRateIssue>({ name: "highCompletionTimeoutRate" })
-      ?.completionResponseStats;
+    const stats = agent().getIssueDetail<HighCompletionTimeoutRateIssue>({
+      name: "highCompletionTimeoutRate",
+    })?.completionResponseStats;
     let statsMessage = "";
     if (stats && stats["total"] && stats["timeouts"]) {
       statsMessage = `${stats["timeouts"]} of ${stats["total"]} completion requests timed out.\n\n`;

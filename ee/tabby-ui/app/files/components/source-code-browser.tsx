@@ -23,6 +23,7 @@ import {
   ResizablePanelGroup
 } from '@/components/ui/resizable'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
+import { ListSkeleton } from '@/components/skeleton'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
 import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
@@ -34,6 +35,7 @@ import { FileTreePanel } from './file-tree-panel'
 import { RawFileView } from './raw-file-view'
 import { TextFileView } from './text-file-view'
 import {
+  encodeURIComponentIgnoringSlash,
   fetchEntriesFromPath,
   getDirectoriesFromBasename,
   repositoryList2Map,
@@ -74,6 +76,7 @@ const repositoryListQuery = graphql(/* GraphQL */ `
       id
       name
       kind
+      gitUrl
     }
   }
 `)
@@ -116,9 +119,9 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
 
   const setActivePath = (path: string | undefined, replace?: boolean) => {
     if (!path) {
-      updateSearchParams({ del: ['path', 'plain'], replace })
+      updateSearchParams({ del: ['path', 'plain', 'line'], replace })
     } else {
-      updateSearchParams({ set: { path }, del: 'plain', replace })
+      updateSearchParams({ set: { path }, del: ['plain', 'line'], replace })
     }
   }
 
@@ -224,11 +227,10 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     chatSideBarVisible,
     setChatSideBarVisible,
     setPendingEvent,
-    fileTreeData,
-    repoMap,
     setRepoMap,
     activeRepo
   } = React.useContext(SourceCodeBrowserContext)
+  const { updateSearchParams } = useRouterStuff()
 
   const initializing = React.useRef(false)
   const { setProgress } = useTopbarProgress()
@@ -260,13 +262,15 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [activePath, fileMap, initialized])
 
   // fetch raw file
-  const { data: rawFileResponse, isLoading: isRawFileLoading } =
+  const { data: rawFileResponse, isLoading: fetchingRawFile } =
     useSWRImmutable<{
       blob?: Blob
       contentLength?: number
     }>(
       isFileSelected
-        ? `/repositories/${activeRepoIdentity}/resolve/${activeBasename}`
+        ? encodeURIComponentIgnoringSlash(
+            `/repositories/${activeRepoIdentity}/resolve/${activeBasename}`
+          )
         : null,
       (url: string) =>
         fetcher(url, {
@@ -291,14 +295,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       }
     )
 
-  React.useEffect(() => {
-    if (isRawFileLoading) {
-      setProgress(true)
-    } else {
-      setProgress(false)
-    }
-  }, [isRawFileLoading])
-
   const fileBlob = rawFileResponse?.blob
   const contentLength = rawFileResponse?.contentLength
 
@@ -308,7 +304,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     isLoading: fetchingSubTree
   }: SWRResponse<ResolveEntriesResponse> = useSWRImmutable(
     shouldFetchSubDir
-      ? `/repositories/${activeRepoIdentity}/resolve/${activeBasename}`
+      ? encodeURIComponentIgnoringSlash(
+          `/repositories/${activeRepoIdentity}/resolve/${activeBasename}`
+        )
       : null,
     fetcher
   )
@@ -354,18 +352,35 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [activePath])
 
   React.useEffect(() => {
+    if (!initialized) return
+    if (fetchingSubTree || fetchingRawFile) {
+      setProgress(true)
+    } else if (!fetchingSubTree && !fetchingRawFile) {
+      setProgress(false)
+    }
+  }, [fetchingSubTree, fetchingRawFile])
+
+  React.useEffect(() => {
     const onFetchSubTree = () => {
-      if (subTree?.entries?.length && activePath) {
+      if (Array.isArray(subTree?.entries) && activePath) {
         const { repositorySpecifier } =
           resolveRepositoryInfoFromPath(activePath)
         let patchMap: TFileMap = {}
-        for (const entry of subTree.entries) {
-          const path = `${repositorySpecifier}/${entry.basename}`
-          patchMap[path] = {
-            file: entry,
-            name: resolveFileNameFromPath(path),
-            fullPath: path,
-            treeExpanded: false
+        if (fileMap?.[activePath]) {
+          patchMap[activePath] = {
+            ...fileMap[activePath],
+            treeExpanded: true
+          }
+        }
+        if (subTree?.entries?.length) {
+          for (const entry of subTree.entries) {
+            const path = `${repositorySpecifier}/${entry.basename}`
+            patchMap[path] = {
+              file: entry,
+              name: resolveFileNameFromPath(path),
+              fullPath: path,
+              treeExpanded: false
+            }
           }
         }
         updateFileMap(patchMap)
@@ -437,25 +452,29 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       <ResizablePanel defaultSize={80} minSize={30}>
         <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
           <FileDirectoryBreadcrumb className="py-4" />
-          <div>
-            {showDirectoryView && (
-              <DirectoryView
-                loading={fetchingSubTree}
-                initialized={initialized}
-                className={`rounded-lg border`}
-              />
-            )}
-            {showTextFileView && (
-              <TextFileView blob={fileBlob} contentLength={contentLength} />
-            )}
-            {showRawFileView && (
-              <RawFileView
-                blob={fileBlob}
-                isImage={fileViewType === 'image'}
-                contentLength={contentLength}
-              />
-            )}
-          </div>
+          {!initialized ? (
+            <ListSkeleton className="rounded-lg border p-4" />
+          ) : (
+            <div>
+              {showDirectoryView && (
+                <DirectoryView
+                  loading={fetchingSubTree}
+                  initialized={initialized}
+                  className={`rounded-lg border`}
+                />
+              )}
+              {showTextFileView && (
+                <TextFileView blob={fileBlob} contentLength={contentLength} />
+              )}
+              {showRawFileView && (
+                <RawFileView
+                  blob={fileBlob}
+                  isImage={fileViewType === 'image'}
+                  contentLength={contentLength}
+                />
+              )}
+            </div>
+          )}
         </div>
       </ResizablePanel>
       <>
@@ -471,6 +490,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           defaultSize={0}
           minSize={25}
           ref={chatSideBarPanelRef}
+          onCollapse={() => setChatSideBarVisible(false)}
         >
           <ChatSideBar />
         </ResizablePanel>

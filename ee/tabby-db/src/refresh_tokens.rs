@@ -111,7 +111,7 @@ mod tests {
     async fn test_create_refresh_token() {
         let conn = DbConn::new_in_memory().await.unwrap();
         let user_id = conn
-            .create_user("email@email".into(), None, true)
+            .create_user("email@email".into(), None, true, None)
             .await
             .unwrap();
         let token = conn.create_refresh_token(user_id).await.unwrap();
@@ -129,7 +129,7 @@ mod tests {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         let user_id = conn
-            .create_user("email@email".into(), None, true)
+            .create_user("email@email".into(), None, true, None)
             .await
             .unwrap();
         let old = conn.create_refresh_token(user_id).await.unwrap();

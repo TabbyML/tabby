@@ -36,6 +36,13 @@ struct GoogleUserEmail {
     error: Option<GoogleOAuthError>,
 }
 
+#[derive(Debug, Deserialize)]
+struct GoogleUserName {
+    #[serde(default)]
+    name: String,
+    error: Option<GoogleOAuthError>,
+}
+
 pub struct GoogleClient {
     client: reqwest::Client,
     auth: Arc<dyn AuthenticationService>,
@@ -91,7 +98,7 @@ impl GoogleClient {
 
 #[async_trait]
 impl OAuthClient for GoogleClient {
-    async fn fetch_user_email(&self, code: String) -> Result<String> {
+    async fn exchange_code_for_token(&self, code: String) -> Result<String> {
         let credential = self.read_credential().await?;
         let redirect_uri = self.auth.oauth_callback_url(OAuthProvider::Google).await?;
         let token_resp = self
@@ -101,12 +108,16 @@ impl OAuthClient for GoogleClient {
             bail!("Empty access token from Google OAuth");
         }
 
+        Ok(token_resp.access_token)
+    }
+
+    async fn fetch_user_email(&self, access_token: &str) -> Result<String> {
         let resp = self
             .client
             .get("https://www.googleapis.com/oauth2/v2/userinfo?alt=json&fields=email")
             .header(
                 reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", token_resp.access_token),
+                format!("Bearer {}", access_token),
             )
             .send()
             .await?
@@ -119,20 +130,58 @@ impl OAuthClient for GoogleClient {
         Ok(resp.email)
     }
 
+    async fn fetch_user_full_name(&self, access_token: &str) -> Result<String> {
+        let resp = self
+            .client
+            .get("https://www.googleapis.com/oauth2/v2/userinfo?alt=json&fields=name")
+            .header(
+                reqwest::header::AUTHORIZATION,
+                format!("Bearer {}", access_token),
+            )
+            .send()
+            .await?
+            .json::<GoogleUserName>()
+            .await?;
+
+        if let Some(err) = resp.error {
+            bail!(err.message);
+        }
+        Ok(resp.name)
+    }
+
     async fn get_authorization_url(&self) -> Result<String> {
         let credential = self.read_credential().await?;
         let redirect_uri = self.auth.oauth_callback_url(OAuthProvider::Google).await?;
-        let mut url = reqwest::Url::parse("https://accounts.google.com/o/oauth2/v2/auth")?;
-        let params = vec![
-            ("client_id", credential.client_id.as_str()),
-            ("redirect_uri", redirect_uri.as_str()),
-            ("response_type", "code"),
-            ("scope", "https://www.googleapis.com/auth/userinfo.email"),
-            ("access_type", "offline"),
-        ];
-        for (k, v) in params {
-            url.query_pairs_mut().append_pair(k, v);
-        }
-        Ok(url.to_string())
+        create_authorization_url(&credential.client_id, &redirect_uri)
+    }
+}
+
+fn create_authorization_url(client_id: &str, redirect_uri: &str) -> Result<String> {
+    let mut url = reqwest::Url::parse("https://accounts.google.com/o/oauth2/v2/auth")?;
+    let params = vec![
+        ("client_id", client_id),
+        ("redirect_uri", redirect_uri),
+        ("response_type", "code"),
+        ("scope", "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"),
+        ("access_type", "offline"),
+    ];
+    for (k, v) in params {
+        url.query_pairs_mut().append_pair(k, v);
+    }
+    Ok(url.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::create_authorization_url;
+
+    #[test]
+    fn test_create_authorization_url() {
+        let url = create_authorization_url("client_id", "localhost").unwrap();
+        assert_eq!(url, "https://accounts.google.com/o/oauth2/v2/auth?client_id=client_id\
+        &redirect_uri=localhost\
+        &response_type=code\
+        &scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile\
+        &access_type=offline");
     }
 }

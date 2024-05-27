@@ -10,11 +10,11 @@ use cache::Cache;
 use cached::TimedSizedCache;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 pub use email_setting::EmailSettingDAO;
-pub use github_repository_provider::{GithubProvidedRepositoryDAO, GithubRepositoryProviderDAO};
-pub use gitlab_repository_provider::{GitlabProvidedRepositoryDAO, GitlabRepositoryProviderDAO};
+pub use integrations::IntegrationDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use oauth_credential::OAuthCredentialDAO;
+pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
 use sqlx::{
@@ -28,12 +28,14 @@ pub use users::UserDAO;
 
 pub mod cache;
 mod email_setting;
-mod github_repository_provider;
-mod gitlab_repository_provider;
+mod integrations;
 mod invitations;
 mod job_runs;
+#[cfg(test)]
+mod migration_tests;
 mod oauth_credential;
 mod password_reset;
+mod provided_repositories;
 mod refresh_tokens;
 mod repositories;
 mod server_setting;
@@ -109,6 +111,29 @@ impl DbConn {
             .connect_with(options)
             .await?;
         DbConn::init_db(pool).await
+    }
+
+    #[cfg(any(test, feature = "testutils"))]
+    pub async fn new_blank() -> Result<Self> {
+        use std::str::FromStr;
+
+        use sqlx::sqlite::SqlitePoolOptions;
+
+        let options = SqliteConnectOptions::from_str("sqlite::memory:")?;
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(options)
+            .await?;
+        Ok(DbConn {
+            pool,
+            cache: Arc::new(DbCache {
+                active_user_count: Default::default(),
+                active_admin_count: Default::default(),
+                daily_stats_in_past_year: Arc::new(Mutex::new(
+                    TimedSizedCache::with_size_and_lifespan(20, 3600),
+                )),
+            }),
+        })
     }
 
     pub async fn new(db_file: &Path) -> Result<Self> {
@@ -446,7 +471,7 @@ pub mod testutils {
     pub async fn create_user(conn: &DbConn) -> i64 {
         let email: &str = "test@example.com";
         let password: &str = "123456789";
-        conn.create_user(email.to_string(), Some(password.to_string()), true)
+        conn.create_user(email.to_string(), Some(password.to_string()), true, None)
             .await
             .unwrap()
     }

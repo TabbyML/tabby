@@ -9,13 +9,14 @@ use tabby_common::{
     config::RepositoryAccess,
 };
 use tabby_db::DbConn;
-use tabby_schema::repository::RepositoryService;
+use tabby_schema::{integration::IntegrationService, repository::RepositoryService};
 
 use crate::{
     path::db_file,
     routes,
     service::{
-        background_job, create_service_locator, event_logger::create_event_logger, repository,
+        background_job, background_job::BackgroundJobEvent, create_service_locator,
+        event_logger::create_event_logger, integration, repository,
     },
 };
 
@@ -23,10 +24,11 @@ pub struct Webserver {
     db: DbConn,
     logger: Arc<dyn EventLogger>,
     repository: Arc<dyn RepositoryService>,
+    integration: Arc<dyn IntegrationService>,
 }
 
 impl Webserver {
-    pub async fn new(logger1: impl EventLogger + 'static, local_port: u16) -> Self {
+    pub async fn new(logger1: impl EventLogger + 'static, _local_port: u16) -> Self {
         let db = DbConn::new(db_file().as_path())
             .await
             .expect("Must be able to initialize db");
@@ -34,8 +36,19 @@ impl Webserver {
             .await
             .expect("Must be able to finalize stale job runs");
 
-        let background_job = background_job::create(db.clone(), local_port).await;
-        let repository = repository::create(db.clone(), background_job);
+        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<BackgroundJobEvent>();
+
+        let integration = Arc::new(integration::create(db.clone(), sender.clone()));
+        let repository = repository::create(db.clone(), integration.clone(), sender);
+
+        background_job::start(
+            db.clone(),
+            repository.clone().access(),
+            repository.third_party(),
+            integration.clone(),
+            receiver,
+        )
+        .await;
 
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
@@ -43,6 +56,7 @@ impl Webserver {
             db,
             logger,
             repository,
+            integration,
         }
     }
 
@@ -65,11 +79,12 @@ impl Webserver {
             self.logger(),
             code,
             self.repository.clone(),
+            self.integration.clone(),
             self.db.clone(),
             is_chat_enabled,
         )
         .await;
 
-        routes::create(ctx, self.repository_access(), api, ui)
+        routes::create(ctx, api, ui)
     }
 }

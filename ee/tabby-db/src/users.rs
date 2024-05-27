@@ -14,6 +14,7 @@ pub struct UserDAO {
 
     pub id: i64,
     pub email: String,
+    pub name: Option<String>,
     pub password_encrypted: Option<String>,
     pub is_admin: bool,
 
@@ -28,7 +29,7 @@ macro_rules! select {
     ($str:literal $(,)? $($val:expr),*) => {
         query_as!(
             UserDAO,
-            r#"SELECT id as "id!", email, password_encrypted, is_admin, created_at as "created_at!", updated_at as "updated_at!", auth_token, active FROM users WHERE "# + $str,
+            r#"SELECT id as "id!", email, name, password_encrypted, is_admin, created_at as "created_at!", updated_at as "updated_at!", auth_token, active FROM users WHERE "# + $str,
             $($val),*
         )
     }
@@ -47,8 +48,9 @@ impl DbConn {
         email: String,
         password_encrypted: Option<String>,
         is_admin: bool,
+        name: Option<String>,
     ) -> Result<i64> {
-        self.create_user_impl(email, password_encrypted, is_admin, None)
+        self.create_user_impl(email, password_encrypted, is_admin, None, name)
             .await
     }
 
@@ -58,9 +60,16 @@ impl DbConn {
         password_encrypted: Option<String>,
         is_admin: bool,
         invitation_id: i64,
+        name: Option<String>,
     ) -> Result<i64> {
-        self.create_user_impl(email, password_encrypted, is_admin, Some(invitation_id))
-            .await
+        self.create_user_impl(
+            email,
+            password_encrypted,
+            is_admin,
+            Some(invitation_id),
+            name,
+        )
+        .await
     }
 
     async fn create_user_impl(
@@ -69,6 +78,7 @@ impl DbConn {
         password_encrypted: Option<String>,
         is_admin: bool,
         invitation_id: Option<i64>,
+        name: Option<String>,
     ) -> Result<i64> {
         let mut transaction = self.pool.begin().await?;
         if let Some(invitation_id) = invitation_id {
@@ -77,8 +87,9 @@ impl DbConn {
                 .await?;
         }
         let token = generate_auth_token();
-        let res = query!("INSERT INTO users (email, password_encrypted, is_admin, auth_token) VALUES (?, ?, ?, ?)",
-            email, password_encrypted, is_admin, token)
+        let res = query!(
+            "INSERT INTO users (email, password_encrypted, is_admin, auth_token, name) VALUES (?, ?, ?, ?, ?)",
+            email, password_encrypted, is_admin, token, name)
             .execute(&mut *transaction).await;
         let res = res.unique_error("User already exists")?;
         transaction.commit().await?;
@@ -123,6 +134,7 @@ impl DbConn {
             [
                 "id"!,
                 "email",
+                "name",
                 "password_encrypted",
                 "is_admin",
                 "created_at"!,
@@ -256,6 +268,13 @@ impl DbConn {
             })
             .await
     }
+
+    pub async fn update_user_name(&self, id: i64, name: String) -> Result<()> {
+        query!("UPDATE users SET name = ? WHERE id = ?;", name, id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
 }
 
 fn generate_auth_token() -> String {
@@ -278,6 +297,24 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_create_user_with_name() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+
+        let id = conn
+            .create_user(
+                "use1@example.com".into(),
+                Some("123456".into()),
+                false,
+                Some("name1".into()),
+            )
+            .await
+            .unwrap();
+        let user = conn.get_user(id).await.unwrap().unwrap();
+        assert_eq!(user.id, 1);
+        assert_eq!(user.name, Some("name1".into()));
+    }
+
+    #[tokio::test]
     async fn test_set_active() {
         let conn = DbConn::new_in_memory().await.unwrap();
         let id = create_user(&conn).await;
@@ -290,6 +327,20 @@ mod tests {
 
         // Setting an already inactive user to inactive should error
         assert!(conn.update_user_active(id, false).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_user_name() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+        let id = create_user(&conn).await;
+
+        let user = conn.get_user(id).await.unwrap().unwrap();
+        assert_eq!(user.name, None);
+
+        conn.update_user_name(id, "test".into()).await.unwrap();
+
+        let user = conn.get_user(id).await.unwrap().unwrap();
+        assert_eq!(user.name, Some("test".into()));
     }
 
     #[tokio::test]
@@ -407,7 +458,12 @@ mod tests {
         );
 
         let id1 = conn
-            .create_user("use1@example.com".into(), Some("123456".into()), false)
+            .create_user(
+                "use1@example.com".into(),
+                Some("123456".into()),
+                false,
+                None,
+            )
             .await
             .unwrap();
 
@@ -476,19 +532,39 @@ mod tests {
         );
 
         let id2 = conn
-            .create_user("use2@example.com".into(), Some("123456".into()), false)
+            .create_user(
+                "use2@example.com".into(),
+                Some("123456".into()),
+                false,
+                None,
+            )
             .await
             .unwrap();
         let id3 = conn
-            .create_user("use3@example.com".into(), Some("123456".into()), false)
+            .create_user(
+                "use3@example.com".into(),
+                Some("123456".into()),
+                false,
+                None,
+            )
             .await
             .unwrap();
         let id4 = conn
-            .create_user("use4@example.com".into(), Some("123456".into()), false)
+            .create_user(
+                "use4@example.com".into(),
+                Some("123456".into()),
+                false,
+                None,
+            )
             .await
             .unwrap();
         let id5 = conn
-            .create_user("use5@example.com".into(), Some("123456".into()), false)
+            .create_user(
+                "use5@example.com".into(),
+                Some("123456".into()),
+                false,
+                None,
+            )
             .await
             .unwrap();
 
@@ -561,7 +637,7 @@ mod tests {
     async fn test_caching() {
         let db = DbConn::new_in_memory().await.unwrap();
 
-        db.create_user("example@example.com".into(), None, true)
+        db.create_user("example@example.com".into(), None, true, None)
             .await
             .unwrap();
 
@@ -569,7 +645,7 @@ mod tests {
         assert_eq!(db.count_active_admin_users().await.unwrap(), 1);
 
         let user2_id = db
-            .create_user("example2@example.com".into(), None, false)
+            .create_user("example2@example.com".into(), None, false, None)
             .await
             .unwrap();
         assert_eq!(db.count_active_users().await.unwrap(), 2);
@@ -580,7 +656,7 @@ mod tests {
         assert_eq!(db.count_active_admin_users().await.unwrap(), 1);
 
         let user3_id = db
-            .create_user("example3@example.com".into(), None, true)
+            .create_user("example3@example.com".into(), None, true, None)
             .await
             .unwrap();
         assert_eq!(db.count_active_users().await.unwrap(), 2);

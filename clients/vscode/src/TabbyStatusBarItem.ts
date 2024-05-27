@@ -1,7 +1,7 @@
 import { StatusBarAlignment, ThemeColor, ExtensionContext, window } from "vscode";
 import { createMachine, interpret } from "@xstate/fsm";
-import type { StatusChangedEvent, AuthRequiredEvent, IssuesUpdatedEvent } from "tabby-agent";
-import { logger } from "./logger";
+import type { StatusChangedEvent, AgentIssue } from "tabby-agent";
+import { getLogger } from "./logger";
 import { agent } from "./agent";
 import { notifications } from "./notifications";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
@@ -20,7 +20,7 @@ const backgroundColorNormal = new ThemeColor("statusBar.background");
 const backgroundColorWarning = new ThemeColor("statusBarItem.warningBackground");
 
 export class TabbyStatusBarItem {
-  private readonly logger = logger();
+  private readonly logger = getLogger();
   private item = window.createStatusBarItem(StatusBarAlignment.Right);
   private extensionContext: ExtensionContext;
   private completionProvider: TabbyCompletionProvider;
@@ -29,7 +29,7 @@ export class TabbyStatusBarItem {
     {
       target: "issuesExist",
       cond: () => {
-        let issues = agent().getIssues();
+        let issues: AgentIssue["name"][] = agent().getIssues();
         if (
           this.extensionContext.globalState
             .get<string[]>("notifications.muted", [])
@@ -146,17 +146,14 @@ export class TabbyStatusBarItem {
     });
 
     agent().on("statusChanged", (event: StatusChangedEvent) => {
-      this.logger.info("Tabby agent statusChanged", { event });
       this.fsmService.send(event.status);
     });
 
-    agent().on("authRequired", (event: AuthRequiredEvent) => {
-      this.logger.info("Tabby agent authRequired", { event });
+    agent().on("authRequired", () => {
       notifications.showInformationWhenUnauthorized();
     });
 
-    agent().on("issuesUpdated", (event: IssuesUpdatedEvent) => {
-      this.logger.info("Tabby agent issuesUpdated", { event });
+    agent().on("issuesUpdated", () => {
       const status = agent().getStatus();
       this.fsmService.send(status);
     });

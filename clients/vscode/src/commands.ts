@@ -11,12 +11,15 @@ import {
   commands,
 } from "vscode";
 import os from "os";
+import path from "path";
 import { strict as assert } from "assert";
-import { logger } from "./logger";
+import { gitApi } from "./gitApi";
+import type { Repository } from "./types/git";
 import { agent } from "./agent";
 import { notifications } from "./notifications";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
 import { TabbyStatusBarItem } from "./TabbyStatusBarItem";
+import { ChatViewProvider } from "./ChatViewProvider";
 
 const configTarget = ConfigurationTarget.Global;
 
@@ -66,7 +69,6 @@ const setApiEndpoint: Command = {
       })
       .then((url) => {
         if (url) {
-          logger().debug("Set Tabby Server URL: ", url);
           configuration.update("api.endpoint", url, configTarget, false);
         }
       });
@@ -89,11 +91,9 @@ const setApiToken = (context: ExtensionContext): Command => {
             return; // User canceled
           }
           if (token.length > 0) {
-            logger().debug("Set token: ", token);
             context.globalState.update("server.token", token);
             agent().updateConfig("server.token", token);
           } else {
-            logger().debug("Clear token.");
             context.globalState.update("server.token", undefined);
             agent().clearConfig("server.token");
           }
@@ -179,7 +179,6 @@ const openAuthPage: Command = {
           if (error.name === "AbortError") {
             return;
           }
-          logger().error("Error auth", { error });
           notifications.showInformationWhenAuthFailed();
         } finally {
           callbacks?.onAuthEnd?.();
@@ -321,22 +320,139 @@ const resetMutedNotifications = (context: ExtensionContext, statusBarItem: Tabby
   };
 };
 
-const explainCodeBlock: Command = {
-  command: "tabby.experimental.chat.explainCodeBlock",
-  callback: async () => {
-    const editor = window.activeTextEditor;
-    const configuration = agent().getConfig();
-    const serverHost = configuration.server.endpoint;
+const alignIndent = (text: string) => {
+  const lines = text.split("\n");
+  const subsequentLines = lines.slice(1);
 
-    if (editor) {
-      const { languageId } = editor.document;
-      const language = languageId.startsWith("typescript") ? "typescript" : languageId;
-      const text = editor.document.getText(editor.selection);
-      const encodedText = encodeURIComponent("```" + `${language}\n${text}\n` + "```");
-      await env.openExternal(Uri.parse(`${serverHost}/playground?initialMessage=${encodedText}`));
-    } else {
-      window.showInformationMessage("No active editor");
+  // Determine the minimum indent for subsequent lines
+  const minIndent = subsequentLines.reduce((min, line) => {
+    const match = line.match(/^(\s*)/);
+    const indent = match ? match[0].length : 0;
+    return line.trim() ? Math.min(min, indent) : min;
+  }, Infinity);
+
+  // Remove the minimum indent
+  const adjustedLines = lines.slice(1).map((line) => line.slice(minIndent));
+
+  return [lines[0]?.trim(), ...adjustedLines].join("\n");
+};
+
+const explainCodeBlock = (chatViewProvider: ChatViewProvider): Command => {
+  return {
+    command: "tabby.experimental.chat.explainCodeBlock",
+    callback: async () => {
+      const editor = window.activeTextEditor;
+      if (editor) {
+        const text = editor.document.getText(editor.selection);
+        const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+
+        commands.executeCommand("tabby.chatView.focus");
+
+        const filePath = editor.document.fileName.replace(workspaceFolder, "");
+        chatViewProvider.sendMessage({
+          message: "Explain the selected code:",
+          selectContext: {
+            kind: "file",
+            content: alignIndent(text),
+            range: {
+              start: editor.selection.start.line + 1,
+              end: editor.selection.end.line + 1,
+            },
+            filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
+            git_url: "https://github.com/tabbyML/tabby", // FIXME
+          },
+        });
+      } else {
+        window.showInformationMessage("No active editor");
+      }
+    },
+  };
+};
+
+const generateCommitMessage: Command = {
+  command: "tabby.experimental.chat.generateCommitMessage",
+  callback: async () => {
+    const repos = gitApi?.repositories ?? [];
+    if (repos.length < 1) {
+      window.showInformationMessage("No Git repositories found.");
+      return;
     }
+    // Select repo
+    let selectedRepo: Repository | undefined = undefined;
+    if (repos.length == 1) {
+      selectedRepo = repos[0];
+    } else {
+      const selected = await window.showQuickPick(
+        repos
+          .map((repo) => {
+            const repoRoot = repo.rootUri.fsPath;
+            return {
+              label: path.basename(repoRoot),
+              detail: repoRoot,
+              iconPath: new ThemeIcon("repo"),
+              picked: repo.ui.selected,
+              alwaysShow: true,
+              value: repo,
+            };
+          })
+          .sort((a, b) => {
+            if (a.detail.startsWith(b.detail)) {
+              return 1;
+            } else if (b.detail.startsWith(a.detail)) {
+              return -1;
+            } else {
+              return a.label.localeCompare(b.label);
+            }
+          }),
+        { placeHolder: "Select a Git repository" },
+      );
+      selectedRepo = selected?.value;
+    }
+    if (!selectedRepo) {
+      return;
+    }
+    const repo = selectedRepo;
+    // Get the diff
+    let diff = (await repo.diff(true)).trim();
+    if (diff.length < 1) {
+      // if cached diff is empty, use uncached instead
+      diff = (await repo.diff(false)).trim();
+    }
+    if (diff.length < 1) {
+      // uncached diff is still empty, return
+      return;
+    }
+    // Focus on scm view
+    commands.executeCommand("workbench.view.scm");
+    window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "Generating commit message...",
+        cancellable: true,
+      },
+      async (_, token) => {
+        const abortController = new AbortController();
+        token.onCancellationRequested(() => {
+          abortController.abort();
+        });
+        const signal = abortController.signal;
+        // Split diffs and sort by priority (modified timestamp) ascending
+        const diffsWithPriority = await Promise.all(
+          diff.split(/\n(?=diff)/).map(async (item) => {
+            let priority = Number.MAX_SAFE_INTEGER;
+            const filepath = /diff --git a\/.* b\/(.*)$/gm.exec(item)?.[1];
+            if (filepath) {
+              const uri = Uri.joinPath(repo.rootUri, filepath);
+              priority = (await workspace.fs.stat(uri)).mtime;
+            }
+            return { diff: item, priority };
+          }),
+        );
+        const diffs = diffsWithPriority.sort((a, b) => a.priority - b.priority).map((item) => item.diff);
+        const message = await agent().generateCommitMessage(diffs, { signal });
+        repo.inputBox.value = message;
+      },
+    );
   },
 };
 
@@ -344,6 +460,7 @@ export const tabbyCommands = (
   context: ExtensionContext,
   completionProvider: TabbyCompletionProvider,
   statusBarItem: TabbyStatusBarItem,
+  chatViewProvider: ChatViewProvider,
 ) =>
   [
     toggleInlineCompletionTriggerMode,
@@ -363,5 +480,6 @@ export const tabbyCommands = (
     openOnlineHelp,
     muteNotifications(context, statusBarItem),
     resetMutedNotifications(context, statusBarItem),
-    explainCodeBlock,
+    explainCodeBlock(chatViewProvider),
+    generateCommitMessage,
   ].map((command) => commands.registerCommand(command.command, command.callback, command.thisArg));

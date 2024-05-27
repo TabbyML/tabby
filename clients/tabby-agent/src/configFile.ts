@@ -8,7 +8,7 @@ import deepEqual from "deep-equal";
 import { getProperty, deleteProperty } from "dot-prop";
 import type { PartialAgentConfig } from "./AgentConfig";
 import { isBrowser } from "./env";
-import { logger } from "./logger";
+import { getLogger } from "./logger";
 
 const configTomlTemplate = `## Tabby agent configuration file
 
@@ -73,6 +73,14 @@ const typeCheckSchema: Record<string, string> = {
   "completion.debounce": "object",
   "completion.debounce.mode": "string",
   "completion.debounce.interval": "number",
+  "completion.solution": "object",
+  "completion.solution.maxItems": "number",
+  "completion.solution.maxTries": "number",
+  "completion.solution.temperature": "number",
+  experimentalChat: "object",
+  "experimentalChat.generateCommitMessage": "object",
+  "experimentalChat.generateCommitMessage.maxDiffLength": "number",
+  "experimentalChat.generateCommitMessage.promptTemplate": "string",
   logs: "object",
   "logs.level": "string",
   tls: "object",
@@ -93,7 +101,7 @@ function validateConfig(config: PartialAgentConfig): PartialAgentConfig {
 class ConfigFile extends EventEmitter {
   private data: PartialAgentConfig = {};
   private watcher?: chokidar.FSWatcher;
-  private logger = logger("ConfigFile");
+  private logger = getLogger("ConfigFile");
 
   constructor(private readonly filepath: string) {
     super();
@@ -117,7 +125,7 @@ class ConfigFile extends EventEmitter {
       if (error instanceof Error && "code" in error && error.code === "ENOENT") {
         await this.createTemplate();
       } else {
-        this.logger.error({ error }, "Failed to load config file");
+        this.logger.error("Failed to load config file.", error);
       }
     }
   }
@@ -141,7 +149,7 @@ class ConfigFile extends EventEmitter {
     try {
       await fs.outputFile(this.filepath, configTomlTemplate);
     } catch (error) {
-      this.logger.error({ error }, "Failed to create config template file");
+      this.logger.error("Failed to create config template file.", error);
     }
   }
 }

@@ -3,11 +3,14 @@
   "info": {
     "title": "Tabby Server",
     "description": "\n[![tabby stars](https://img.shields.io/github/stars/TabbyML/tabby)](https://github.com/TabbyML/tabby)\n[![Join Slack](https://shields.io/badge/Join-Tabby%20Slack-red?logo=slack)](https://links.tabbyml.com/join-slack)\n\nInstall following IDE / Editor extensions to get started with [Tabby](https://github.com/TabbyML/tabby).\n* [VSCode Extension](https://github.com/TabbyML/tabby/tree/main/clients/vscode) – Install from the [marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby), or [open-vsx.org](https://open-vsx.org/extension/TabbyML/vscode-tabby)\n* [VIM Extension](https://github.com/TabbyML/tabby/tree/main/clients/vim)\n* [IntelliJ Platform Plugin](https://github.com/TabbyML/tabby/tree/main/clients/intellij) – Install from the [marketplace](https://plugins.jetbrains.com/plugin/22379-tabby)\n",
+    "contact": {
+      "name": "TabbyML Team"
+    },
     "license": {
       "name": "Apache 2.0",
       "url": "https://github.com/TabbyML/tabby/blob/main/LICENSE"
     },
-    "version": "0.10.0"
+    "version": "0.11.0"
   },
   "servers": [
     {
@@ -16,6 +19,47 @@
     }
   ],
   "paths": {
+    "/v1/chat/completions": {
+      "post": {
+        "tags": [
+          "v1"
+        ],
+        "operationId": "chat_completions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatCompletionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatCompletionChunk"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "When chat model is not specified, the endpoint returns 405 Method Not Allowed"
+          },
+          "422": {
+            "description": "When the prompt is malformed, the endpoint returns 422 Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ]
+      }
+    },
     "/v1/completions": {
       "post": {
         "tags": [
@@ -211,16 +255,16 @@
         "example": {
           "messages": [
             {
-              "role": "user",
-              "content": "What is tail recursion?"
+              "content": "What is tail recursion?",
+              "role": "user"
             },
             {
-              "role": "assistant",
-              "content": "It's a kind of optimization in compiler?"
+              "content": "It's a kind of optimization in compiler?",
+              "role": "assistant"
             },
             {
-              "role": "user",
-              "content": "Could you share more details?"
+              "content": "Could you share more details?",
+              "role": "user"
             }
           ]
         }
@@ -304,13 +348,13 @@
           }
         },
         "example": {
-          "id": "string",
           "choices": [
             {
               "index": 0,
               "text": "string"
             }
-          ]
+          ],
+          "id": "string"
         }
       },
       "Declaration": {
@@ -350,6 +394,10 @@
             "type": "string",
             "nullable": true
           },
+          "chat_device": {
+            "type": "string",
+            "nullable": true
+          },
           "device": {
             "type": "string"
           },
@@ -371,6 +419,10 @@
           },
           "version": {
             "$ref": "#/components/schemas/Version"
+          },
+          "webserver": {
+            "type": "boolean",
+            "nullable": true
           }
         }
       },
@@ -402,9 +454,7 @@
           "body",
           "filepath",
           "git_url",
-          "kind",
-          "language",
-          "name"
+          "language"
         ],
         "properties": {
           "body": {
@@ -416,13 +466,7 @@
           "git_url": {
             "type": "string"
           },
-          "kind": {
-            "type": "string"
-          },
           "language": {
-            "type": "string"
-          },
-          "name": {
             "type": "string"
           }
         }

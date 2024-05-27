@@ -1,6 +1,4 @@
-import { Message } from 'ai'
-
-import type { Chat } from '@/lib/types'
+import type { Chat, QuestionAnswerPair } from '@/lib/types'
 import { nanoid } from '@/lib/utils'
 
 import { useChatStore } from './chat-store'
@@ -49,7 +47,7 @@ export const clearChats = () => {
   }))
 }
 
-export const updateMessages = (id: string, messages: Message[]) => {
+export const updateMessages = (id: string, messages: QuestionAnswerPair[]) => {
   set(state => ({
     chats: state.chats?.map(chat => {
       if (chat.id === id) {

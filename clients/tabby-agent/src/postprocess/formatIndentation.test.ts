@@ -1,55 +1,49 @@
-import { expect } from "chai";
-import { documentContext, inline } from "./testUtils";
+import { documentContext, inline, assertFilterResult } from "./testUtils";
 import { formatIndentation } from "./formatIndentation";
 
 describe("postprocess", () => {
   describe("formatIndentation", () => {
-    it("should format indentation if first line of completion is over indented.", () => {
-      const context = {
-        ...documentContext`
+    const filter = formatIndentation();
+    it("should format indentation if first line of completion is over indented.", async () => {
+      const context = documentContext`
         function clamp(n: number, max: number, min: number): number {
           ║
         }
-        `,
-        indentation: "  ",
-        language: "typescript",
-      };
+      `;
+      context.indentation = "  ";
+      context.language = "typescript";
       const completion = inline`
           ├  return Math.max(Math.min(n, max), min);┤
       `;
       const expected = inline`
           ├return Math.max(Math.min(n, max), min);┤
       `;
-      expect(formatIndentation()(completion, context)).to.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should format indentation if first line of completion is wrongly indented.", () => {
-      const context = {
-        ...documentContext`
+    it("should format indentation if first line of completion is wrongly indented.", async () => {
+      const context = documentContext`
         function clamp(n: number, max: number, min: number): number {
         ║
         }
-        `,
-        indentation: "    ",
-        language: "typescript",
-      };
+      `;
+      context.indentation = "    ";
+      context.language = "typescript";
       const completion = inline`
         ├  return Math.max(Math.min(n, max), min);┤
       `;
       const expected = inline`
         ├    return Math.max(Math.min(n, max), min);┤
       `;
-      expect(formatIndentation()(completion, context)).to.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should format indentation if completion lines is over indented.", () => {
-      const context = {
-        ...documentContext`
+    it("should format indentation if completion lines is over indented.", async () => {
+      const context = documentContext`
         def findMax(arr):║
-        `,
-        indentation: "  ",
-        language: "python",
-      };
+      `;
+      context.indentation = "  ";
+      context.language = "python";
       const completion = inline`
                          ├
             max = arr[0]
@@ -68,17 +62,15 @@ describe("postprocess", () => {
           return max
         }┤
       `;
-      expect(formatIndentation()(completion, context)).to.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should format indentation if completion lines is wrongly indented.", () => {
-      const context = {
-        ...documentContext`
+    it("should format indentation if completion lines is wrongly indented.", async () => {
+      const context = documentContext`
         def findMax(arr):║
-        `,
-        indentation: "    ",
-        language: "python",
-      };
+      `;
+      context.indentation = "    ";
+      context.language = "python";
       const completion = inline`
                          ├
           max = arr[0]
@@ -97,17 +89,15 @@ describe("postprocess", () => {
             return max
         }┤
       `;
-      expect(formatIndentation()(completion, context)).to.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should keep it unchanged if it no indentation specified.", () => {
-      const context = {
-        ...documentContext`
+    it("should keep it unchanged if it no indentation specified.", async () => {
+      const context = documentContext`
         def findMax(arr):║
-        `,
-        indentation: undefined,
-        language: "python",
-      };
+      `;
+      context.indentation = undefined;
+      context.language = "python";
       const completion = inline`
                           ├
             max = arr[0]
@@ -117,20 +107,19 @@ describe("postprocess", () => {
             return max
         }┤
       `;
-      expect(formatIndentation()(completion, context)).to.eq(completion);
+      const expected = completion;
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should keep it unchanged if there is indentation in the context.", () => {
-      const context = {
-        ...documentContext`
+    it("should keep it unchanged if there is indentation in the context.", async () => {
+      const context = documentContext`
         def hello():
             return "world"
 
         def findMax(arr):║
-        `,
-        indentation: "\t",
-        language: "python",
-      };
+      `;
+      context.indentation = "\t";
+      context.language = "python";
       const completion = inline`
                           ├
             max = arr[0]
@@ -140,17 +129,16 @@ describe("postprocess", () => {
             return max
         }┤
       `;
-      expect(formatIndentation()(completion, context)).to.eq(completion);
+      const expected = completion;
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should keep it unchanged if it is well indented.", () => {
-      const context = {
-        ...documentContext`
+    it("should keep it unchanged if it is well indented.", async () => {
+      const context = documentContext`
         def findMax(arr):║
-        `,
-        indentation: "    ",
-        language: "python",
-      };
+      `;
+      context.indentation = "    ";
+      context.language = "python";
       const completion = inline`
                           ├
             max = arr[0]
@@ -160,7 +148,8 @@ describe("postprocess", () => {
             return max
         }┤
       `;
-      expect(formatIndentation()(completion, context)).to.eq(completion);
+      const expected = completion;
+      await assertFilterResult(filter, context, completion, expected);
     });
   });
 });

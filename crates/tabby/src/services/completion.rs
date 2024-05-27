@@ -4,11 +4,12 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use tabby_common::{
-    api,
     api::{
+        self,
         code::CodeSearch,
         event::{Event, EventLogger},
     },
+    config::ModelConfig,
     languages::get_language,
 };
 use tabby_inference::{CodeGeneration, CodeGenerationOptions, CodeGenerationOptionsBuilder};
@@ -16,7 +17,6 @@ use thiserror::Error;
 use utoipa::ToSchema;
 
 use super::model;
-use crate::Device;
 
 #[derive(Error, Debug)]
 pub enum CompletionError {
@@ -147,6 +147,7 @@ impl From<Segments> for api::event::Segments {
             declarations: val
                 .declarations
                 .map(|x| x.into_iter().map(Into::into).collect()),
+            filepath: val.filepath,
         }
     }
 }
@@ -342,16 +343,14 @@ impl CompletionService {
 pub async fn create_completion_service(
     code: Arc<dyn CodeSearch>,
     logger: Arc<dyn EventLogger>,
-    model: &str,
-    device: &Device,
-    parallelism: u8,
+    model: &ModelConfig,
 ) -> CompletionService {
     let (
         engine,
         model::PromptInfo {
             prompt_template, ..
         },
-    ) = model::load_code_generation(model, device, parallelism).await;
+    ) = model::load_code_generation(model).await;
 
     CompletionService::new(engine.clone(), code, logger, prompt_template)
 }

@@ -233,10 +233,22 @@ export function isCanceledError(error: any) {
   return error instanceof Error && error.name === "AbortError";
 }
 
+export function isUnauthorizedError(error: any) {
+  return error instanceof HttpError && [401, 403].includes(error.status);
+}
+
 export function errorToString(error: Error & { cause?: Error }) {
   let message = error.message || error.toString();
   if (error.cause) {
     message += "\nCaused by: " + errorToString(error.cause);
   }
   return message;
+}
+
+export function stringToRegExp(str: string): RegExp {
+  const parts = /\/(.*)\/(.*)/.exec(str);
+  if (parts && parts[1] && parts[2]) {
+    return new RegExp(parts[1], parts[2]);
+  }
+  return new RegExp(str);
 }

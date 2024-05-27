@@ -1,37 +1,41 @@
 mod db;
-mod github;
-mod gitlab;
 mod helper;
 mod scheduler;
+mod third_party_integration;
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use apalis::{
     prelude::{Monitor, Storage},
     sqlite::{SqlitePool, SqliteStorage},
 };
-use async_trait::async_trait;
+use juniper::ID;
+use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tabby_db::DbConn;
+use tabby_schema::{integration::IntegrationService, repository::ThirdPartyRepositoryService};
 
 use self::{
-    db::DbMaintainanceJob, github::SyncGithubJob, gitlab::SyncGitlabJob, scheduler::SchedulerJob,
+    db::DbMaintainanceJob, scheduler::SchedulerJob, third_party_integration::SyncIntegrationJob,
 };
 use crate::path::job_db_file;
 
-#[async_trait]
-pub trait BackgroundJob: Send + Sync {
-    async fn trigger_scheduler(&self);
-    async fn trigger_sync_github(&self, provider_id: i64);
-    async fn trigger_sync_gitlab(&self, provider_id: i64);
+pub enum BackgroundJobEvent {
+    Scheduler(RepositoryConfig),
+    SyncThirdPartyRepositories(ID),
 }
 
 struct BackgroundJobImpl {
     scheduler: SqliteStorage<SchedulerJob>,
-    gitlab: SqliteStorage<SyncGitlabJob>,
-    github: SqliteStorage<SyncGithubJob>,
+    third_party_repository: SqliteStorage<SyncIntegrationJob>,
 }
 
-pub async fn create(db: DbConn, local_port: u16) -> Arc<dyn BackgroundJob> {
+pub async fn start(
+    db: DbConn,
+    repository_access: Arc<dyn RepositoryAccess>,
+    third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
+    integration_service: Arc<dyn IntegrationService>,
+    mut receiver: tokio::sync::mpsc::UnboundedReceiver<BackgroundJobEvent>,
+) {
     let path = format!("sqlite://{}?mode=rwc", job_db_file().display());
     let pool = SqlitePool::connect(&path)
         .await
@@ -40,70 +44,64 @@ pub async fn create(db: DbConn, local_port: u16) -> Arc<dyn BackgroundJob> {
         .await
         .expect("unable to run migrations for sqlite");
 
+    let config = apalis_sql::Config::default().poll_interval(Duration::from_secs(5));
     let monitor = Monitor::new();
     let monitor = DbMaintainanceJob::register(monitor, db.clone());
-    let (scheduler, monitor) =
-        SchedulerJob::register(monitor, pool.clone(), db.clone(), local_port);
-    let (gitlab, monitor) = SyncGitlabJob::register(monitor, pool.clone(), db.clone());
-    let (github, monitor) = SyncGithubJob::register(monitor, pool.clone(), db.clone());
+    let (scheduler, monitor) = SchedulerJob::register(
+        monitor,
+        pool.clone(),
+        db.clone(),
+        config.clone(),
+        repository_access,
+    );
+    let (third_party_repository, monitor) = SyncIntegrationJob::register(
+        monitor,
+        pool.clone(),
+        db.clone(),
+        config.clone(),
+        third_party_repository_service,
+        integration_service,
+    );
 
     tokio::spawn(async move {
         monitor.run().await.expect("failed to start worker");
     });
 
-    Arc::new(BackgroundJobImpl {
-        scheduler,
-        gitlab,
-        github,
-    })
+    tokio::spawn(async move {
+        let mut background_job = BackgroundJobImpl {
+            scheduler,
+            third_party_repository,
+        };
+
+        while let Some(event) = receiver.recv().await {
+            background_job.on_event_publish(event).await;
+        }
+    });
 }
 
-struct FakeBackgroundJob;
-
-#[async_trait]
-impl BackgroundJob for FakeBackgroundJob {
-    async fn trigger_scheduler(&self) {}
-    async fn trigger_sync_github(&self, _provider_id: i64) {}
-    async fn trigger_sync_gitlab(&self, _provider_id: i64) {}
-}
-
-#[cfg(test)]
-pub fn create_fake() -> Arc<dyn BackgroundJob> {
-    Arc::new(FakeBackgroundJob)
-}
-
-#[async_trait]
-impl BackgroundJob for BackgroundJobImpl {
-    async fn trigger_scheduler(&self) {
+impl BackgroundJobImpl {
+    async fn trigger_scheduler(&self, repository: RepositoryConfig) {
         self.scheduler
             .clone()
-            .push(SchedulerJob)
+            .push(SchedulerJob::new(repository))
             .await
             .expect("unable to push job");
     }
 
-    async fn trigger_sync_github(&self, provider_id: i64) {
-        self.github
+    async fn trigger_sync_integration(&self, provider_id: ID) {
+        self.third_party_repository
             .clone()
-            .push(SyncGithubJob::new(provider_id))
+            .push(SyncIntegrationJob::new(provider_id))
             .await
-            .expect("unable to push job");
+            .expect("Unable to push job");
     }
 
-    async fn trigger_sync_gitlab(&self, provider_id: i64) {
-        self.gitlab
-            .clone()
-            .push(SyncGitlabJob::new(provider_id))
-            .await
-            .expect("unable to push job");
-    }
-}
-
-macro_rules! ceprintln {
-    ($ctx:expr, $($params:tt)+) => {
-        {
-            tracing::debug!($($params)+);
-            $ctx.r#internal_eprintln(format!($($params)+)).await;
+    async fn on_event_publish(&mut self, event: BackgroundJobEvent) {
+        match event {
+            BackgroundJobEvent::Scheduler(repository) => self.trigger_scheduler(repository).await,
+            BackgroundJobEvent::SyncThirdPartyRepositories(integration_id) => {
+                self.trigger_sync_integration(integration_id).await
+            }
         }
     }
 }
@@ -117,5 +115,4 @@ macro_rules! cprintln {
     }
 }
 
-use ceprintln;
 use cprintln;

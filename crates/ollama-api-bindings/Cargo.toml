@@ -1,0 +1,24 @@
+[package]
+name = "ollama-api-bindings"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tabby-common = { path = "../tabby-common" }
+tabby-inference = { path = "../tabby-inference" }
+
+anyhow.workspace = true
+async-stream.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+tracing.workspace = true
+
+# Use git version for now: https://github.com/pepperoni21/ollama-rs/issues/44 is required to correct work with normal URLs
+[dependencies.ollama-rs]
+git = "https://github.com/pepperoni21/ollama-rs.git"
+rev = "56e8157d98d4185bc171fe9468d3d09bc56e9dd3"
+features = ["stream"]

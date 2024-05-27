@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { noop } from 'lodash-es'
 
@@ -17,14 +18,21 @@ import {
   IconChat,
   IconCode,
   IconGear,
+  IconJetBrains,
   IconLogout,
   IconMail,
   IconRotate,
-  IconSpinner
+  IconSpinner,
+  IconVSCode
 } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import { CopyButton } from '@/components/copy-button'
 import SlackDialog from '@/components/slack-dialog'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -100,7 +108,47 @@ function Configuration({ className }: { className?: string }) {
           for details
         </span>
       </CardFooter>
+
+      <div className="mb-6 mt-3 flex gap-x-3 lg:mb-0">
+        <IDELink
+          href="https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby"
+          name="Visual Studio Code"
+          icon={<IconVSCode className="h-5 w-5" />}
+        />
+        <IDELink
+          href="https://plugins.jetbrains.com/plugin/22379-tabby"
+          name="JetBrains"
+          icon={<IconJetBrains className="h-5 w-5" />}
+        />
+      </div>
     </div>
+  )
+}
+
+function IDELink({
+  href,
+  name,
+  icon
+}: {
+  href: string
+  name: string
+  icon: React.ReactNode
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger>
+        <Link
+          href={href}
+          className="transition-all hover:opacity-80 dark:text-muted-foreground"
+          target="_blank"
+        >
+          {icon}
+        </Link>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{name}</p>
+      </TooltipContent>
+    </Tooltip>
   )
 }
 

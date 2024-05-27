@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
+import { UseFormReturn } from 'react-hook-form'
 
 import { graphql } from '@/lib/gql/generates'
 import { RepositoryKind } from '@/lib/gql/generates/graphql'
@@ -9,7 +10,8 @@ import { useMutation } from '@/lib/tabby/gql'
 
 import {
   CommonProviderForm,
-  RepositoryProviderFormValues,
+  CreateRepositoryProviderFormValues,
+  UpdateRepositoryProviderFormValues,
   useRepositoryProviderForm
 } from '../../components/common-provider-form'
 import { useRepositoryKind } from '../../hooks/use-repository-kind'
@@ -33,7 +35,7 @@ const createGitlabRepositoryProvider = graphql(/* GraphQL */ `
 export const NewProvider = () => {
   const kind = useRepositoryKind()
   const router = useRouter()
-  const form = useRepositoryProviderForm()
+  const form = useRepositoryProviderForm(true)
   // for github
   const createGithubRepositoryProviderMutation = useMutation(
     createGithubRepositoryProvider,
@@ -60,7 +62,7 @@ export const NewProvider = () => {
     }
   )
 
-  const handleSubmit = async (values: RepositoryProviderFormValues) => {
+  const handleSubmit = async (values: CreateRepositoryProviderFormValues) => {
     if (kind === RepositoryKind.Github) {
       return createGithubRepositoryProviderMutation({
         input: values
@@ -75,7 +77,11 @@ export const NewProvider = () => {
 
   return (
     <div className="ml-4">
-      <CommonProviderForm isNew form={form} onSubmit={handleSubmit} />
+      <CommonProviderForm
+        isNew
+        form={form as UseFormReturn<UpdateRepositoryProviderFormValues>}
+        onSubmit={handleSubmit}
+      />
     </div>
   )
 }

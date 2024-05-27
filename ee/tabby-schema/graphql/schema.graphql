@@ -53,12 +53,15 @@ enum LicenseType {
 enum OAuthProvider {
   GITHUB
   GOOGLE
+  GITLAB
 }
 
 enum RepositoryKind {
   GIT
   GITHUB
   GITLAB
+  GITHUB_SELF_HOSTED
+  GITLAB_SELF_HOSTED
 }
 
 enum RepositoryProviderStatus {
@@ -67,14 +70,15 @@ enum RepositoryProviderStatus {
   FAILED
 }
 
-enum WorkerKind {
-  COMPLETION
-  CHAT
-}
-
 input CreateRepositoryProviderInput {
   displayName: String!
   accessToken: String!
+}
+
+input CreateSelfHostedRepositoryProviderInput {
+  displayName: String!
+  accessToken: String!
+  apiBase: String
 }
 
 input EmailSettingInput {
@@ -125,7 +129,14 @@ input UpdateOAuthCredentialInput {
 input UpdateRepositoryProviderInput {
   id: ID!
   displayName: String!
-  accessToken: String!
+  accessToken: String
+}
+
+input UpdateSelfHostedRepositoryProviderInput {
+  id: ID!
+  displayName: String!
+  accessToken: String
+  apiBase: String
 }
 
 """
@@ -186,6 +197,7 @@ type GitRepository {
   id: ID!
   name: String!
   gitUrl: String!
+  refs: [String!]!
 }
 
 type GithubProvidedRepository {
@@ -195,6 +207,7 @@ type GithubProvidedRepository {
   name: String!
   gitUrl: String!
   active: Boolean!
+  refs: [String!]!
 }
 
 type GithubProvidedRepositoryConnection {
@@ -230,6 +243,7 @@ type GitlabProvidedRepository {
   name: String!
   gitUrl: String!
   active: Boolean!
+  refs: [String!]!
 }
 
 type GitlabProvidedRepositoryConnection {
@@ -256,6 +270,32 @@ type GitlabRepositoryProviderConnection {
 type GitlabRepositoryProviderEdge {
   node: GitlabRepositoryProvider!
   cursor: String!
+}
+
+type GrepFile {
+  path: String!
+  lines: [GrepLine!]!
+}
+
+type GrepLine {
+  "Content of the line."
+  line: GrepTextOrBase64!
+  "Byte offset in the file to the start of the line."
+  byteOffset: Int!
+  "Line number in the file, starting from 1."
+  lineNumber: Int!
+  "The matches in the line."
+  subMatches: [GrepSubMatch!]!
+}
+
+type GrepSubMatch {
+  bytesStart: Int!
+  bytesEnd: Int!
+}
+
+type GrepTextOrBase64 {
+  text: String
+  base64: String
 }
 
 type Invitation {
@@ -322,7 +362,8 @@ type Mutation {
   updateUserActive(id: ID!, active: Boolean!): Boolean!
   updateUserRole(id: ID!, isAdmin: Boolean!): Boolean!
   uploadUserAvatarBase64(id: ID!, avatarBase64: String): Boolean!
-  register(email: String!, password1: String!, password2: String!, invitationCode: String): RegisterResponse!
+  updateUserName(id: ID!, name: String!): Boolean!
+  register(email: String!, password1: String!, password2: String!, invitationCode: String, name: String!): RegisterResponse!
   tokenAuth(email: String!, password: String!): TokenAuthResponse!
   verifyToken(token: String!): Boolean!
   refreshToken(refreshToken: String!): RefreshTokenResponse!
@@ -341,13 +382,21 @@ type Mutation {
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
   createGithubRepositoryProvider(input: CreateRepositoryProviderInput!): ID!
+  createGithubSelfHostedRepositoryProvider(input: CreateSelfHostedRepositoryProviderInput!): ID!
   deleteGithubRepositoryProvider(id: ID!): Boolean!
+  deleteGithubSelfHostedRepositoryProvider(id: ID!): Boolean!
   updateGithubRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean!
+  updateGithubSelfHostedRepositoryProvider(input: UpdateSelfHostedRepositoryProviderInput!): Boolean!
   updateGithubProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
+  updateGithubSelfHostedProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
   createGitlabRepositoryProvider(input: CreateRepositoryProviderInput!): ID!
+  createGitlabSelfHostedRepositoryProvider(input: CreateSelfHostedRepositoryProviderInput!): ID!
   deleteGitlabRepositoryProvider(id: ID!): Boolean!
+  deleteGitlabSelfHostedRepositoryProvider(id: ID!): Boolean!
+  updateGitlabSelfHostedRepositoryProvider(input: UpdateSelfHostedRepositoryProviderInput!): Boolean!
   updateGitlabRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean!
   updateGitlabProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
+  updateGitlabSelfHostedProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
 }
 
 type NetworkSetting {
@@ -369,14 +418,17 @@ type PageInfo {
 }
 
 type Query {
-  workers: [Worker!]!
   registrationToken: String!
   me: User!
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   githubRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GithubRepositoryProviderConnection!
   githubRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
+  githubSelfHostedRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
+  gitlabSelfHostedRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
   gitlabRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
+  gitlabSelfHostedRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
+  githubSelfHostedRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
   gitlabRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GitlabProvidedRepositoryConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
@@ -384,7 +436,23 @@ type Query {
   networkSetting: NetworkSetting!
   securitySetting: SecuritySetting!
   gitRepositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
-  repositorySearch(kind: RepositoryKind!, id: ID!, pattern: String!): [FileEntrySearchResult!]!
+  "Search files that matches the pattern in the repository."
+  repositorySearch(kind: RepositoryKind!, id: ID!, rev: String, pattern: String!): [FileEntrySearchResult!]!
+  """
+    File content search with a grep-like experience.
+
+    Syntax:
+
+    1. Unprefixed text will be treated as a regex pattern for file content search.
+    2. 'f:' to search by file name with a regex pattern.
+    3. 'lang:' to search by file language.
+    4. All tokens can be negated by prefixing them with '-'.
+
+    Examples:
+    * `f:schema -lang:rust fn`
+    * `func_name lang:go`
+  """
+  repositoryGrep(kind: RepositoryKind!, id: ID!, rev: String, query: String!): [GrepFile!]!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
   serverInfo: ServerInfo!
@@ -412,6 +480,8 @@ type Repository {
   id: ID!
   name: String!
   kind: RepositoryKind!
+  gitUrl: String!
+  refs: [String!]!
 }
 
 type RepositoryConnection {
@@ -445,6 +515,7 @@ type TokenAuthResponse {
 type User {
   id: ID!
   email: String!
+  name: String!
   isAdmin: Boolean!
   isOwner: Boolean!
   authToken: String!
@@ -479,15 +550,4 @@ type UserEventConnection {
 type UserEventEdge {
   node: UserEvent!
   cursor: String!
-}
-
-type Worker {
-  kind: WorkerKind!
-  name: String!
-  addr: String!
-  device: String!
-  arch: String!
-  cpuInfo: String!
-  cpuCount: Int!
-  cudaDevices: [String!]!
 }

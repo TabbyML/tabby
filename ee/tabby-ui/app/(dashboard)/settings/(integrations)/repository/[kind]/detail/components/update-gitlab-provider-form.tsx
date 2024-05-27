@@ -8,7 +8,7 @@ import { useMutation } from '@/lib/tabby/gql'
 
 import {
   CommonProviderForm,
-  RepositoryProviderFormValues,
+  CreateRepositoryProviderFormValues,
   useRepositoryProviderForm
 } from '../../components/common-provider-form'
 
@@ -28,18 +28,20 @@ const updateGitlabRepositoryProviderMutation = graphql(/* GraphQL */ `
 
 interface UpdateProviderFormProps {
   id: string
-  defaultValues?: Partial<RepositoryProviderFormValues>
+  defaultValues?: Partial<CreateRepositoryProviderFormValues>
   onSuccess?: () => void
   onDelete: () => void
+  onUpdate: () => void
 }
 
 export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
   defaultValues,
   onSuccess,
   onDelete,
+  onUpdate,
   id
 }) => {
-  const form = useRepositoryProviderForm(defaultValues)
+  const form = useRepositoryProviderForm(false, defaultValues)
 
   const deleteGitlabRepositoryProvider = useMutation(
     deleteGitlabRepositoryProviderMutation
@@ -59,13 +61,16 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
     }
   )
 
-  const onSubmit = async (values: RepositoryProviderFormValues) => {
-    await updateGitlabRepositoryProvider({
+  const onSubmit = async (values: CreateRepositoryProviderFormValues) => {
+    const res = await updateGitlabRepositoryProvider({
       input: {
         id,
         ...values
       }
     })
+    if (res?.data?.updateGitlabRepositoryProvider) {
+      onUpdate?.()
+    }
   }
 
   const handleDeleteRepositoryProvider = async () => {
@@ -74,7 +79,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
       onDelete?.()
     } else {
       toast.error(
-        res?.error?.message || 'Failed to delete GitHub repository provider'
+        res?.error?.message || 'Failed to delete GitLab repository provider'
       )
     }
   }
@@ -86,6 +91,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
       deletable
       cancleable={false}
       form={form}
+      isNew={false}
     />
   )
 }

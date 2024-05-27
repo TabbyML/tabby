@@ -1,36 +1,46 @@
 //! Responsible for scheduling all of the background jobs for tabby.
 //! Includes syncing respositories and updating indices.
-mod cache;
+
 mod code;
-mod dataset;
-mod index;
-mod repository;
-mod utils;
+pub mod crawl;
+mod indexer;
 
-use std::sync::Arc;
+use async_stream::stream;
+pub use code::CodeIndexer;
+use crawl::crawl_pipeline;
+use doc::SourceDocument;
+use futures::StreamExt;
+use indexer::{IndexAttributeBuilder, Indexer};
 
-use cache::CacheStore;
+mod doc;
+use std::{env, sync::Arc};
+
+use doc::create_web_index;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tokio_cron_scheduler::{Job, JobScheduler};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
-pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
+pub async fn scheduler<T: RepositoryAccess + 'static>(
+    now: bool,
+    config: &tabby_common::config::Config,
+    access: T,
+) {
     if now {
-        let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
         let repositories = access
             .list_repositories()
             .await
             .expect("Must be able to retrieve repositories for sync");
-        job_sync(&mut cache, &repositories);
-        job_index(&mut cache, &repositories);
-
-        cache.garbage_collection_for_source_files();
+        scheduler_pipeline(&repositories).await;
+        if env::var("TABBY_SCHEDULER_EXPERIMENTAL_DOC_INDEX").is_ok() {
+            doc_index_pipeline(config).await;
+        }
     } else {
         let access = Arc::new(access);
         let scheduler = JobScheduler::new()
             .await
             .expect("Failed to create scheduler");
         let scheduler_mutex = Arc::new(tokio::sync::Mutex::new(()));
+        let _config = config.clone();
 
         // Every 10 minutes
         scheduler
@@ -44,16 +54,12 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
                             return;
                         };
 
-                        let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
-
                         let repositories = access
                             .list_repositories()
                             .await
                             .expect("Must be able to retrieve repositories for sync");
 
-                        job_sync(&mut cache, &repositories);
-                        job_index(&mut cache, &repositories);
-                        cache.garbage_collection_for_source_files();
+                        scheduler_pipeline(&repositories).await;
                     })
                 })
                 .expect("Failed to create job"),
@@ -69,15 +75,80 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
     }
 }
 
-fn job_index(cache: &mut CacheStore, repositories: &[RepositoryConfig]) {
-    println!("Indexing repositories...");
-    index::index_repositories(cache, repositories);
+async fn scheduler_pipeline(repositories: &[RepositoryConfig]) {
+    let mut code = CodeIndexer::default();
+    for repository in repositories {
+        code.refresh(repository).await;
+    }
+
+    code.garbage_collection(repositories);
 }
 
-fn job_sync(cache: &mut CacheStore, repositories: &[RepositoryConfig]) {
-    println!("Syncing {} repositories...", repositories.len());
-    repository::sync_repositories(repositories);
+async fn doc_index_pipeline(config: &tabby_common::config::Config) {
+    let Some(index_config) = &config.experimental.doc else {
+        return;
+    };
 
-    println!("Creating dataset...");
-    dataset::create_dataset(cache, repositories);
+    let Some(embedding_config) = &config.model.embedding else {
+        return;
+    };
+
+    debug!("Starting doc index pipeline...");
+    let embedding = llama_cpp_server::create_embedding(embedding_config).await;
+    for url in &index_config.start_urls {
+        let embedding = embedding.clone();
+        stream! {
+            let mut num_docs = 0;
+            let doc_index = create_web_index(embedding.clone());
+            for await doc in crawl_pipeline(url).await {
+                let source_doc = SourceDocument {
+                    id: doc.url.clone(),
+                    title: doc.metadata.title.unwrap_or_default(),
+                    link: doc.url,
+                    body: doc.markdown,
+                };
+
+                num_docs += 1;
+                doc_index.add(source_doc).await;
+            }
+            info!("Crawled {} documents from '{}'", num_docs, url);
+            doc_index.commit();
+        }
+        .collect::<Vec<_>>()
+        .await;
+    }
+}
+
+mod tantivy_utils {
+    use std::{fs, path::Path};
+
+    use tantivy::{directory::MmapDirectory, schema::Schema, Index};
+    use tracing::{debug, warn};
+
+    pub fn open_or_create_index(code: &Schema, path: &Path) -> (bool, Index) {
+        let (recreated, index) = match open_or_create_index_impl(code, path) {
+            Ok(index) => (false, index),
+            Err(err) => {
+                warn!(
+                    "Failed to open index repositories: {}, removing index directory '{}'...",
+                    err,
+                    path.display()
+                );
+                fs::remove_dir_all(path).expect("Failed to remove index directory");
+
+                debug!("Reopening index repositories...");
+                (
+                    true,
+                    open_or_create_index_impl(code, path).expect("Failed to open index"),
+                )
+            }
+        };
+        (recreated, index)
+    }
+
+    fn open_or_create_index_impl(code: &Schema, path: &Path) -> tantivy::Result<Index> {
+        fs::create_dir_all(path).expect("Failed to create index directory");
+        let directory = MmapDirectory::open(path).expect("Failed to open index directory");
+        Index::open_or_create(directory, code.clone())
+    }
 }

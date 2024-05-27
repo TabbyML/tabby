@@ -65,7 +65,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
 
-      - run: bash ./ci/prepare_build_environment.sh
+      - run: sudo bash ./ci/prepare_build_environment.sh
 
       - name: Run unit tests on community build
         run: cargo test --bin tabby --no-default-features
@@ -109,9 +109,11 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
 
-      - run: bash ./ci/prepare_build_environment.sh
+      - run: sudo bash ./ci/prepare_build_environment.sh
 
       - name: Generate code coverage
+        env:
+          CI_COVERAGE: 1
         run: cargo llvm-cov --bin tabby --lib --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov

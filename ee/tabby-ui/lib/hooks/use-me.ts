@@ -10,6 +10,7 @@ const meQuery = graphql(/* GraphQL */ `
       email
       isAdmin
       isPasswordSet
+      name
     }
   }
 `)

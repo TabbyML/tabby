@@ -47,7 +47,7 @@ where
 pub async fn handler(uri: Uri) -> impl IntoResponse {
     let mut path = uri.path().trim_start_matches('/').to_string();
     if path.is_empty() {
-        path = "index.html".to_owned()
+        "index.html".clone_into(&mut path)
     } else if !path.contains('.') && WebAssets::get(&format!("{}.html", path)).is_some() {
         path += ".html"
     }

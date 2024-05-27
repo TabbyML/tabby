@@ -8,6 +8,7 @@ use axum::{
     routing, Json, Router,
 };
 use serde::Deserialize;
+use strum::IntoEnumIterator;
 use tabby_schema::auth::{AuthenticationService, OAuthError, OAuthProvider, OAuthResponse};
 use tracing::error;
 
@@ -21,6 +22,7 @@ pub fn routes(state: Arc<dyn AuthenticationService>) -> Router {
         .route("/providers", routing::get(providers_handler))
         .route("/callback/github", routing::get(github_oauth_handler))
         .route("/callback/google", routing::get(google_oauth_handler))
+        .route("/callback/gitlab", routing::get(gitlab_oauth_handler))
         .with_state(state)
 }
 
@@ -53,10 +55,9 @@ async fn has_provider(auth: &Arc<dyn AuthenticationService>, x: &OAuthProvider) 
 }
 
 async fn providers_handler(state: State<OAuthState>) -> Json<Vec<OAuthProvider>> {
-    let candidates = vec![OAuthProvider::Google, OAuthProvider::Github];
     let mut providers = vec![];
 
-    for x in candidates {
+    for x in OAuthProvider::iter() {
         if has_provider(&state, &x).await {
             providers.push(x);
         }
@@ -103,6 +104,23 @@ async fn google_oauth_handler(
     match_auth_result(
         OAuthProvider::Google,
         state.oauth(param.code, OAuthProvider::Google).await,
+    )
+}
+
+#[derive(Deserialize)]
+#[allow(dead_code)]
+struct GitlabOAuthQueryParam {
+    code: String,
+    state: Option<String>,
+}
+
+async fn gitlab_oauth_handler(
+    State(state): State<OAuthState>,
+    Query(param): Query<GitlabOAuthQueryParam>,
+) -> Redirect {
+    match_auth_result(
+        OAuthProvider::Gitlab,
+        state.oauth(param.code, OAuthProvider::Gitlab).await,
     )
 }
 

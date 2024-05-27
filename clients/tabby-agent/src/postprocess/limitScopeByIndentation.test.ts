@@ -1,17 +1,14 @@
-import { expect } from "chai";
-import { documentContext, inline } from "./testUtils";
-import { limitScopeByIndentation as createLimitScopeByIndentationFilter } from "./limitScopeByIndentation";
+import { documentContext, inline, assertFilterResult, assertFilterResultNotEqual } from "./testUtils";
+import { limitScopeByIndentation } from "./limitScopeByIndentation";
 
 describe("postprocess", () => {
   describe("limitScopeByIndentation", () => {
-    const limitScopeByIndentation = createLimitScopeByIndentationFilter({});
-    it("should limit scope at sentence end, when completion is continuing uncompleted sentence in the prefix.", () => {
-      const context = {
-        ...documentContext`
+    const filter = limitScopeByIndentation();
+    it("should limit scope at sentence end, when completion is continuing uncompleted sentence in the prefix.", async () => {
+      const context = documentContext`
         let a =║
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
                ├ 1;
         let b = 2;┤
@@ -19,12 +16,11 @@ describe("postprocess", () => {
       const expected = inline`
                ├ 1;┤
       `;
-      expect(limitScopeByIndentation(completion, context)).to.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should limit scope at sentence end, when completion is continuing uncompleted sentence in the prefix.", () => {
-      const context = {
-        ...documentContext`
+    it("should limit scope at sentence end, when completion is continuing uncompleted sentence in the prefix.", async () => {
+      const context = documentContext`
         function safeParse(json) {
           try {
             console.log║
@@ -33,9 +29,8 @@ describe("postprocess", () => {
             return null;
           }
         }
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
                         ├("Parsing", { json });
             return JSON.parse(json);
@@ -47,16 +42,14 @@ describe("postprocess", () => {
       const expected = inline`
                         ├("Parsing", { json });┤
       `;
-      expect(limitScopeByIndentation(completion, context)).to.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should limit scope at next indent level, including closing line, when completion is starting a new indent level in next line.", () => {
-      const context = {
-        ...documentContext`
+    it("should limit scope at next indent level, including closing line, when completion is starting a new indent level in next line.", async () => {
+      const context = documentContext`
         function findMax(arr) {║}
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
                                ├
           let max = arr[0];
@@ -80,19 +73,17 @@ describe("postprocess", () => {
           return max;
         }┤
       `;
-      expect(limitScopeByIndentation(completion, context)).to.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should limit scope at next indent level, including closing line, when completion is continuing uncompleted sentence in the prefix, and starting a new indent level in next line.", () => {
-      const context = {
-        ...documentContext`
+    it("should limit scope at next indent level, including closing line, when completion is continuing uncompleted sentence in the prefix, and starting a new indent level in next line.", async () => {
+      const context = documentContext`
         function findMax(arr) {
           let max = arr[0];
           for║
         }
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
              ├ (let i = 1; i < arr.length; i++) {
             if (arr[i] > max) {
@@ -111,18 +102,16 @@ describe("postprocess", () => {
           }┤
         ┴┴
       `;
-      expect(limitScopeByIndentation(completion, context)).to.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should limit scope at current indent level, including closing line, when completion starts new sentences at same indent level.", () => {
-      const context = {
-        ...documentContext`
+    it("should limit scope at current indent level, including closing line, when completion starts new sentences at same indent level.", async () => {
+      const context = documentContext`
         function findMax(arr) {
           let max = arr[0];║
         }
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
                            ├
           for (let i = 1; i < arr.length; i++) {
@@ -133,20 +122,19 @@ describe("postprocess", () => {
           return max;
         }┤
       `;
-      expect(limitScopeByIndentation(completion, context)).to.eq(completion);
+      const expected = completion;
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should allow only one level closing bracket", () => {
-      const context = {
-        ...documentContext`
+    it("should allow only one level closing bracket", async () => {
+      const context = documentContext`
         function safeParse(json) {
           try {
             return JSON.parse(json);
           } catch (e) {
             return null;║
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
                         ├
           }
@@ -157,54 +145,49 @@ describe("postprocess", () => {
           }┤
         ┴┴
       `;
-      expect(limitScopeByIndentation(completion, context)).to.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should allow level closing bracket at current line, it looks same as starts new sentences", () => {
-      const context = {
-        ...documentContext`
+    it("should allow level closing bracket at current line, it looks same as starts new sentences", async () => {
+      const context = documentContext`
         function helloworld() {
           console.log("hello");
           ║
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
           ├}┤
       `;
-      expect(limitScopeByIndentation(completion, context)).to.be.eq(completion);
+      const expected = completion;
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should not allow level closing bracket, when the suffix lines have same indent level", () => {
-      const context = {
-        ...documentContext`
+    it("should not allow level closing bracket, when the suffix lines have same indent level", async () => {
+      const context = documentContext`
         function helloworld() {
           console.log("hello");║
           console.log("world");
         }
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
                                ├
         }┤
       `;
       const expected = inline`
                                ├┤`;
-      expect(limitScopeByIndentation(completion, context)).to.be.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should use indent level of previous line, when current line is empty.", () => {
-      const context = {
-        ...documentContext`
+    it("should use indent level of previous line, when current line is empty.", async () => {
+      const context = documentContext`
         function safeParse(json) {
           try {
             ║
           }
         }
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
             ├return JSON.parse(json);
           } catch (e) {
@@ -219,24 +202,22 @@ describe("postprocess", () => {
           }┤
         ┴┴
       `;
-      expect(limitScopeByIndentation(completion, context)).to.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
   });
 
   describe("limitScopeByIndentation: bad cases", () => {
-    const limitScopeByIndentation = createLimitScopeByIndentationFilter({});
-    it("cannot handle the case of indent that does'nt have a close line, e.g. chaining call", () => {
-      const context = {
-        ...documentContext`
+    const filter = limitScopeByIndentation();
+    it("cannot handle the case of indent that does'nt have a close line, e.g. chaining call", async () => {
+      const context = documentContext`
         function sortWords(input) {
           const output = input.trim()
             .split("\n")
             .map((line) => line.split(" "))
             ║
         }
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
             ├.flat()
             .sort()
@@ -254,17 +235,15 @@ describe("postprocess", () => {
           return output;
         }┤
       `;
-      expect(limitScopeByIndentation(completion, context)).not.to.eq(expected);
+      await assertFilterResultNotEqual(filter, context, completion, expected);
     });
 
-    it("cannot handle the case of indent that does'nt have a close line, e.g. python def function", () => {
-      const context = {
-        ...documentContext`
+    it("cannot handle the case of indent that does'nt have a close line, e.g. python def function", async () => {
+      const context = documentContext`
         def findMax(arr):
           ║
-        `,
-        language: "python",
-      };
+      `;
+      context.language = "python";
       const completion = inline`
           ├max = arr[0]
           for i in range(1, len(arr)):
@@ -280,7 +259,7 @@ describe("postprocess", () => {
               max = arr[i]
           return max┤
       `;
-      expect(limitScopeByIndentation(completion, context)).not.to.eq(expected);
+      await assertFilterResultNotEqual(filter, context, completion, expected);
     });
   });
 });

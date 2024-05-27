@@ -1,3 +1,14 @@
+## 1.6.0
+
+### Features
+
+- Added support for multiple choices in inline completion.
+- Introduced an experimental feature to generate commit messages.
+
+### Fixes & Improvements
+
+- Improved logging, logging levels can now be set to `silent`, `error`, `info`, `debug` or `verbose`.
+
 ## 1.5.0
 
 ### Features

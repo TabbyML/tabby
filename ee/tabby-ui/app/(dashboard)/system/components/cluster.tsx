@@ -5,11 +5,7 @@ import prettyBytes from 'pretty-bytes'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
-import {
-  DiskUsage,
-  DiskUsageStats,
-  WorkerKind
-} from '@/lib/gql/generates/graphql'
+import { DiskUsage, DiskUsageStats } from '@/lib/gql/generates/graphql'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useWorkers } from '@/lib/hooks/use-workers'
 import { useMutation } from '@/lib/tabby/gql'
@@ -100,16 +96,16 @@ export default function Workers() {
             </div>
           )}
           <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:flex-wrap">
-            {!!workers?.[WorkerKind.Completion] && (
+            {!!workers?.['COMPLETION'] && (
               <>
-                {workers[WorkerKind.Completion].map((worker, i) => {
+                {workers['COMPLETION'].map((worker, i) => {
                   return <WorkerCard key={i} {...worker} />
                 })}
               </>
             )}
-            {!!workers?.[WorkerKind.Chat] && (
+            {!!workers?.['CHAT'] && (
               <>
-                {workers[WorkerKind.Chat].map((worker, i) => {
+                {workers['CHAT'].map((worker, i) => {
                   return <WorkerCard key={i} {...worker} />
                 })}
               </>

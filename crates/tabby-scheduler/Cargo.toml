@@ -12,8 +12,6 @@ tantivy = { workspace = true }
 tracing = { workspace = true }
 tree-sitter-tags = "0.20.2"
 lazy_static = { workspace = true }
-serde-jsonlines = { workspace = true }
-file-rotate = "0.7.5"
 tree-sitter-python = "0.20.2"
 tree-sitter-java = "0.20.2"
 tree-sitter-kotlin = "0.3.1"
@@ -26,24 +24,27 @@ tree-sitter-cpp = { git = "https://github.com/tree-sitter/tree-sitter-cpp", rev 
 tree-sitter-c-sharp = "0.20.0"
 tree-sitter-solidity = { git = "https://github.com/JoranHonig/tree-sitter-solidity", rev = "b239a95" }
 ignore.workspace = true
-kdam = { version = "0.5.0" }
-requirements = "0.3.0"
-serdeconv.workspace = true
-cargo-lock = { version = "9.0.0", features = ["dependency-tree"] }
 tokio-cron-scheduler = { workspace = true }
 tokio = { workspace = true, features = ["process"] }
-package-lock-json-parser = "0.4.0"
-npm-package-json = "0.1.3"
-yarn-lock-parser = "0.7.0"
 text-splitter = "0.10.0"
 kv = { version = "0.24.0", features = ["json-value"] }
 serde.workspace = true
 serde_json.workspace = true
+futures.workspace = true
+async-stream.workspace = true
+mdka = "1.2.4"
+readable-readability = "0.4.0"
+url.workspace = true
+tabby-inference = { path = "../tabby-inference" }
+git2.workspace = true
+llama-cpp-server = { path = "../llama-cpp-server"}
+async-trait.workspace = true
 
 [dev-dependencies]
 temp_testdir = { workspace = true }
 tabby-common = { path = "../tabby-common", features = [ "testutils" ] }
-tracing-test = "0.1"
-tokio = { workspace = true, features = ["rt", "macros"] }
+tracing-test = "0.2"
+tokio = { workspace = true, features = ["rt", "macros", "rt-multi-thread"] }
 serde_json = { workspace = true }
 async-trait = { workspace = true }
+tracing-subscriber = { workspace = true }

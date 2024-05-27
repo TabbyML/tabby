@@ -1,21 +1,24 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use juniper::ID;
-use tabby_db::DbConn;
+use tabby_common::config::RepositoryConfig;
+use tabby_db::{DbConn, RepositoryDAO};
 use tabby_schema::{
     repository::{GitRepository, GitRepositoryService, Repository, RepositoryProvider},
     AsID, AsRowid, Result,
 };
+use tokio::sync::mpsc::UnboundedSender;
 
-use crate::service::{background_job::BackgroundJob, graphql_pagination_to_filter};
+use crate::service::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
 
 struct GitRepositoryServiceImpl {
     db: DbConn,
-    background_job: Arc<dyn BackgroundJob>,
+    background_job: UnboundedSender<BackgroundJobEvent>,
 }
 
-pub fn create(db: DbConn, background_job: Arc<dyn BackgroundJob>) -> impl GitRepositoryService {
+pub fn create(
+    db: DbConn,
+    background_job: UnboundedSender<BackgroundJobEvent>,
+) -> impl GitRepositoryService {
     GitRepositoryServiceImpl { db, background_job }
 }
 
@@ -33,12 +36,20 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
             .db
             .list_repositories_with_filter(limit, skip_id, backwards)
             .await?;
-        Ok(repositories.into_iter().map(Into::into).collect())
+        Ok(repositories.into_iter().map(to_git_repository).collect())
     }
 
     async fn create(&self, name: String, git_url: String) -> Result<ID> {
-        let id = self.db.create_repository(name, git_url).await?.as_id();
-        self.background_job.trigger_scheduler().await;
+        let id = self
+            .db
+            .create_repository(name, git_url.clone())
+            .await?
+            .as_id();
+        let _ = self
+            .background_job
+            .send(BackgroundJobEvent::Scheduler(RepositoryConfig::new(
+                git_url,
+            )));
         Ok(id)
     }
 
@@ -48,9 +59,13 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
 
     async fn update(&self, id: &ID, name: String, git_url: String) -> Result<bool> {
         self.db
-            .update_repository(id.as_rowid()?, name, git_url)
+            .update_repository(id.as_rowid()?, name, git_url.clone())
             .await?;
-        self.background_job.trigger_scheduler().await;
+        let _ = self
+            .background_job
+            .send(BackgroundJobEvent::Scheduler(RepositoryConfig::new(
+                git_url,
+            )));
         Ok(true)
     }
 }
@@ -67,8 +82,18 @@ impl RepositoryProvider for GitRepositoryServiceImpl {
     }
 
     async fn get_repository(&self, id: &ID) -> Result<Repository> {
-        let git_repo: GitRepository = self.db.get_repository(id.as_rowid()?).await?.into();
+        let dao = self.db.get_repository(id.as_rowid()?).await?;
+        let git_repo = to_git_repository(dao);
         Ok(git_repo.into())
+    }
+}
+
+fn to_git_repository(repo: RepositoryDAO) -> GitRepository {
+    GitRepository {
+        id: repo.id.as_id(),
+        name: repo.name,
+        refs: tabby_git::list_refs(&RepositoryConfig::new(&repo.git_url).dir()).unwrap_or_default(),
+        git_url: repo.git_url,
     }
 }
 
@@ -77,7 +102,11 @@ mod tests {
     use tabby_db::DbConn;
 
     use super::*;
-    use crate::background_job::create_fake;
+
+    fn create_fake() -> UnboundedSender<BackgroundJobEvent> {
+        let (sender, _) = tokio::sync::mpsc::unbounded_channel();
+        sender
+    }
 
     #[tokio::test]
     pub async fn test_duplicate_repository_error() {

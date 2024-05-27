@@ -10,13 +10,9 @@ use axum::{
     response::IntoResponse,
 };
 use axum_extra::TypedHeader;
-use tabby_common::{
-    api::{code::SearchResponse, event::LogEntry},
-    config::{RepositoryAccess, RepositoryConfig},
-};
+use tabby_common::api::event::LogEntry;
 use tabby_schema::ServiceLocator;
 use tarpc::server::{BaseChannel, Channel};
-use tracing::warn;
 
 use crate::{
     axum::{extract::AuthBearer, websocket::WebSocketTransport},
@@ -25,18 +21,11 @@ use crate::{
 
 pub(crate) struct HubState {
     locator: Arc<dyn ServiceLocator>,
-    repository_access: Arc<dyn RepositoryAccess>,
 }
 
 impl HubState {
-    pub fn new(
-        locator: Arc<dyn ServiceLocator>,
-        repository_access: Arc<dyn RepositoryAccess>,
-    ) -> Self {
-        HubState {
-            locator,
-            repository_access,
-        }
+    pub fn new(locator: Arc<dyn ServiceLocator>) -> Self {
+        HubState { locator }
     }
 }
 
@@ -72,61 +61,22 @@ pub(crate) async fn ws_handler(
 async fn handle_socket(
     state: Arc<HubState>,
     socket: WebSocket,
-    addr: IpAddr,
-    req: ConnectHubRequest,
+    _addr: IpAddr,
+    _req: ConnectHubRequest,
 ) {
     let transport = WebSocketTransport::from(socket);
     let server = BaseChannel::with_defaults(transport);
-    let addr = match req {
-        ConnectHubRequest::Scheduler => None,
-        ConnectHubRequest::Worker(worker) => {
-            let worker = worker.create_worker(addr);
-            let addr = worker.addr.clone();
-            match state.locator.worker().register(worker).await {
-                Ok(_) => Some(addr),
-                Err(err) => {
-                    warn!("Failed to register worker: {}", err);
-                    return;
-                }
-            }
-        }
-    };
-    let imp = Arc::new(HubImpl::new(
-        state.locator.clone(),
-        state.repository_access.clone(),
-        addr,
-    ));
+    let imp = Arc::new(HubImpl::new(state.locator.clone()));
     tokio::spawn(server.execute(imp.serve())).await.unwrap()
 }
 
 struct HubImpl {
     ctx: Arc<dyn ServiceLocator>,
-    repository_access: Arc<dyn RepositoryAccess>,
-    worker_addr: Option<String>,
 }
 
 impl HubImpl {
-    fn new(
-        ctx: Arc<dyn ServiceLocator>,
-        repository_access: Arc<dyn RepositoryAccess>,
-        worker_addr: Option<String>,
-    ) -> Self {
-        Self {
-            ctx,
-            worker_addr,
-            repository_access,
-        }
-    }
-}
-
-impl Drop for HubImpl {
-    fn drop(&mut self) {
-        let ctx = self.ctx.clone();
-        if let Some(worker_addr) = self.worker_addr.clone() {
-            tokio::spawn(async move {
-                ctx.worker().unregister(worker_addr.as_str()).await;
-            });
-        }
+    fn new(ctx: Arc<dyn ServiceLocator>) -> Self {
+        Self { ctx }
     }
 }
 
@@ -134,53 +84,5 @@ impl Drop for HubImpl {
 impl Hub for Arc<HubImpl> {
     async fn write_log(self, _context: tarpc::context::Context, x: LogEntry) {
         self.ctx.logger().write(x)
-    }
-
-    async fn search(
-        self,
-        _context: tarpc::context::Context,
-        q: String,
-        limit: usize,
-        offset: usize,
-    ) -> SearchResponse {
-        match self.ctx.code().search(&q, limit, offset).await {
-            Ok(serp) => serp,
-            Err(err) => {
-                warn!("Failed to search: {}", err);
-                SearchResponse::default()
-            }
-        }
-    }
-
-    async fn search_in_language(
-        self,
-        _context: tarpc::context::Context,
-        git_url: String,
-        language: String,
-        tokens: Vec<String>,
-        limit: usize,
-        offset: usize,
-    ) -> SearchResponse {
-        match self
-            .ctx
-            .code()
-            .search_in_language(&git_url, &language, &tokens, limit, offset)
-            .await
-        {
-            Ok(serp) => serp,
-            Err(err) => {
-                warn!("Failed to search: {}", err);
-                SearchResponse::default()
-            }
-        }
-    }
-    async fn list_repositories(self, _context: tarpc::context::Context) -> Vec<RepositoryConfig> {
-        self.repository_access
-            .list_repositories()
-            .await
-            .unwrap_or_else(|e| {
-                warn!("Failed to retrieve list of repositories: {e}");
-                vec![]
-            })
     }
 }

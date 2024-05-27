@@ -1,5 +1,5 @@
 import { Range, TextDocument, TextDocumentChangeEvent } from "vscode";
-import { logger } from "./logger";
+import { getLogger } from "./logger";
 import { CodeSearchEngine, ChunkingConfig, DocumentRange } from "./CodeSearchEngine";
 
 type TextChangeCroppingWindowConfig = {
@@ -13,7 +13,7 @@ type TextChangeListenerConfig = {
 };
 
 export class RecentlyChangedCodeSearch {
-  private readonly logger = logger();
+  private readonly logger = getLogger("CodeSearch");
   private codeSearchEngine: CodeSearchEngine;
 
   private pendingDocumentRanges: DocumentRange[] = [];
@@ -29,11 +29,12 @@ export class RecentlyChangedCodeSearch {
     this.indexingWorker = setInterval(async () => {
       let documentRange: DocumentRange | undefined = undefined;
       while ((documentRange = this.pendingDocumentRanges.shift()) != undefined) {
-        this.logger.trace("Consuming indexing task", { documentRange });
+        this.logger.trace("Consuming indexing task.");
         await this.codeSearchEngine.index(documentRange);
       }
     }, config.checkingChangesInterval);
-    this.logger.debug("Created RecentlyChangedCodeSearch engine.", { config });
+    this.logger.info("Created code search engine for recently changed files.");
+    this.logger.trace("Created with config.", { config });
   }
 
   handleDidChangeTextDocument(event: TextDocumentChangeEvent) {
@@ -74,7 +75,7 @@ export class RecentlyChangedCodeSearch {
       timer: setTimeout(() => {
         this.pendingDocumentRanges.push(documentRange);
         this.didChangeEventDebouncingCache.delete(documentUriString);
-        this.logger.trace("Created indexing task", { documentRange });
+        this.logger.trace("Created indexing task:", { path: documentUriString, range: targetRange });
       }, this.config.changesDebouncingInterval),
     });
   }
@@ -97,7 +98,7 @@ export class RecentlyChangedCodeSearch {
       languagesFilter: this.getLanguageFilter(currentDocument.languageId),
       limit,
     };
-    this.logger.trace("Search in recently changed files", { indexed, query, options });
+    this.logger.trace("Search in recently changed files", { query, options });
     const result = await this.codeSearchEngine.search(query, options);
     this.logger.trace("Search result", { result });
     return result.map((hit) => {

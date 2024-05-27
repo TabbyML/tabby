@@ -2,22 +2,25 @@ use anyhow::bail;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, GithubProvidedRepositoryDAO, GithubRepositoryProviderDAO,
-    GitlabProvidedRepositoryDAO, GitlabRepositoryProviderDAO, InvitationDAO, JobRunDAO,
-    OAuthCredentialDAO, RepositoryDAO, ServerSettingDAO, UserDAO, UserEventDAO,
+    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
+    ServerSettingDAO, UserDAO, UserEventDAO,
 };
 
-use crate::schema::{
-    auth::{self, OAuthCredential, OAuthProvider},
-    email::{AuthMethod, EmailSetting, Encryption},
-    job,
-    repository::{
-        GitRepository, GithubProvidedRepository, GithubRepositoryProvider,
-        GitlabProvidedRepository, GitlabRepositoryProvider, RepositoryProviderStatus,
+use crate::{
+    integration::{Integration, IntegrationKind, IntegrationStatus},
+    repository::{ProvidedRepository, RepositoryKind},
+    schema::{
+        auth::{self, OAuthCredential, OAuthProvider},
+        email::{AuthMethod, EmailSetting, Encryption},
+        job,
+        repository::{
+            GithubProvidedRepository, GithubRepositoryProvider, GitlabProvidedRepository,
+            GitlabRepositoryProvider, RepositoryProviderStatus,
+        },
+        setting::{NetworkSetting, SecuritySetting},
+        user_event::{EventKind, UserEvent},
+        CoreError,
     },
-    setting::{NetworkSetting, SecuritySetting},
-    user_event::{EventKind, UserEvent},
-    CoreError,
 };
 
 impl From<InvitationDAO> for auth::Invitation {
@@ -52,6 +55,7 @@ impl From<UserDAO> for auth::User {
         auth::User {
             id: val.id.as_id(),
             email: val.email,
+            name: val.name.unwrap_or_default(),
             is_owner,
             is_admin: val.is_admin,
             auth_token: val.auth_token,
@@ -73,16 +77,6 @@ impl TryFrom<OAuthCredentialDAO> for OAuthCredential {
             updated_at: *val.updated_at,
             client_secret: val.client_secret,
         })
-    }
-}
-
-impl From<RepositoryDAO> for GitRepository {
-    fn from(value: RepositoryDAO) -> Self {
-        GitRepository {
-            id: value.id.as_id(),
-            name: value.name,
-            git_url: value.git_url,
-        }
     }
 }
 
@@ -124,56 +118,96 @@ impl From<ServerSettingDAO> for NetworkSetting {
     }
 }
 
-impl From<GithubRepositoryProviderDAO> for GithubRepositoryProvider {
-    fn from(value: GithubRepositoryProviderDAO) -> Self {
-        Self {
+impl TryFrom<IntegrationDAO> for Integration {
+    type Error = anyhow::Error;
+    fn try_from(value: IntegrationDAO) -> anyhow::Result<Self> {
+        let status = if value.synced && value.error.is_none() {
+            IntegrationStatus::Ready
+        } else if value.error.is_some() {
+            IntegrationStatus::Failed
+        } else {
+            IntegrationStatus::Pending
+        };
+        Ok(Self {
+            id: value.id.as_id(),
+            kind: IntegrationKind::from_enum_str(&value.kind)?,
             display_name: value.display_name,
-            id: value.id.as_id(),
-            status: RepositoryProviderStatus::new(
-                value.access_token.is_some(),
-                value.synced_at.is_some(),
-            ),
             access_token: value.access_token,
+            api_base: value.api_base,
+            created_at: *value.created_at,
+            updated_at: *value.updated_at,
+            status,
+        })
+    }
+}
+
+impl From<IntegrationKind> for RepositoryKind {
+    fn from(value: IntegrationKind) -> Self {
+        match value {
+            IntegrationKind::Github => RepositoryKind::Github,
+            IntegrationKind::Gitlab => RepositoryKind::Gitlab,
+            IntegrationKind::GithubSelfHosted => RepositoryKind::GithubSelfHosted,
+            IntegrationKind::GitlabSelfHosted => RepositoryKind::GitlabSelfHosted,
         }
     }
 }
 
-impl From<GithubProvidedRepositoryDAO> for GithubProvidedRepository {
-    fn from(value: GithubProvidedRepositoryDAO) -> Self {
+impl From<ProvidedRepository> for GithubProvidedRepository {
+    fn from(value: ProvidedRepository) -> Self {
         Self {
-            id: value.id.as_id(),
-            github_repository_provider_id: value.github_repository_provider_id.as_id(),
-            name: value.name,
-            git_url: value.git_url,
+            id: value.id,
             vendor_id: value.vendor_id,
+            github_repository_provider_id: value.integration_id,
+            name: value.display_name,
+            git_url: value.git_url,
             active: value.active,
+            refs: value.refs,
         }
     }
 }
 
-impl From<GitlabRepositoryProviderDAO> for GitlabRepositoryProvider {
-    fn from(value: GitlabRepositoryProviderDAO) -> Self {
+impl From<Integration> for GithubRepositoryProvider {
+    fn from(value: Integration) -> Self {
         Self {
+            id: value.id,
             display_name: value.display_name,
-            id: value.id.as_id(),
-            status: RepositoryProviderStatus::new(
-                value.access_token.is_some(),
-                value.synced_at.is_some(),
-            ),
-            access_token: value.access_token,
+            status: value.status.into(),
+            access_token: Some(value.access_token),
         }
     }
 }
 
-impl From<GitlabProvidedRepositoryDAO> for GitlabProvidedRepository {
-    fn from(value: GitlabProvidedRepositoryDAO) -> Self {
+impl From<Integration> for GitlabRepositoryProvider {
+    fn from(value: Integration) -> Self {
         Self {
-            id: value.id.as_id(),
-            gitlab_repository_provider_id: value.gitlab_repository_provider_id.as_id(),
-            name: value.name,
-            git_url: value.git_url,
+            id: value.id,
+            display_name: value.display_name,
+            status: value.status.into(),
+            access_token: Some(value.access_token),
+        }
+    }
+}
+
+impl From<IntegrationStatus> for RepositoryProviderStatus {
+    fn from(value: IntegrationStatus) -> Self {
+        match value {
+            IntegrationStatus::Ready => Self::Ready,
+            IntegrationStatus::Pending => Self::Pending,
+            IntegrationStatus::Failed => Self::Failed,
+        }
+    }
+}
+
+impl From<ProvidedRepository> for GitlabProvidedRepository {
+    fn from(value: ProvidedRepository) -> Self {
+        Self {
+            id: value.id,
             vendor_id: value.vendor_id,
+            gitlab_repository_provider_id: value.integration_id,
+            name: value.display_name,
+            git_url: value.git_url,
             active: value.active,
+            refs: value.refs,
         }
     }
 }
@@ -254,6 +288,27 @@ impl DbEnum for EventKind {
     }
 }
 
+impl DbEnum for IntegrationKind {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            IntegrationKind::Github => "github",
+            IntegrationKind::Gitlab => "gitlab",
+            IntegrationKind::GithubSelfHosted => "github_self_hosted",
+            IntegrationKind::GitlabSelfHosted => "gitlab_self_hosted",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "github" => Ok(IntegrationKind::Github),
+            "gitlab" => Ok(IntegrationKind::Gitlab),
+            "github_self_hosted" => Ok(IntegrationKind::GithubSelfHosted),
+            "gitlab_self_hosted" => Ok(IntegrationKind::GitlabSelfHosted),
+            _ => bail!("{s} is not a valid value for ProviderKind"),
+        }
+    }
+}
+
 impl DbEnum for Encryption {
     fn as_enum_str(&self) -> &'static str {
         match self {
@@ -278,6 +333,7 @@ impl DbEnum for OAuthProvider {
         match self {
             OAuthProvider::Google => "google",
             OAuthProvider::Github => "github",
+            OAuthProvider::Gitlab => "gitlab",
         }
     }
 
@@ -285,6 +341,7 @@ impl DbEnum for OAuthProvider {
         match s {
             "github" => Ok(OAuthProvider::Github),
             "google" => Ok(OAuthProvider::Google),
+            "gitlab" => Ok(OAuthProvider::Gitlab),
             _ => bail!("Invalid OAuth credential type"),
         }
     }

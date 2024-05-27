@@ -86,9 +86,11 @@ async function fetchEntriesFromPath(
     directoryPaths.map(
       dir => () =>
         fetcher(
-          `/repositories/${repository.kind.toLowerCase()}/${
-            repository.id
-          }/resolve/${dir}`
+          encodeURIComponentIgnoringSlash(
+            `/repositories/${repository.kind.toLowerCase()}/${
+              repository.id
+            }/resolve/${dir}`
+          )
         ).catch(e => [])
     )
   const entries = await Promise.all(requests.map(fn => fn()))
@@ -117,11 +119,19 @@ function repositoryList2Map(repos: RepositoryListQuery['repositoryList']) {
   return keyBy(repos, o => `${o.kind.toLowerCase()}/${o.name}`)
 }
 
+function encodeURIComponentIgnoringSlash(str: string) {
+  return str
+    .split('/')
+    .map(part => encodeURIComponent(part))
+    .join('/')
+}
+
 export {
   resolveRepoSpecifierFromRepoInfo,
   resolveFileNameFromPath,
   getDirectoriesFromBasename,
   fetchEntriesFromPath,
   resolveRepositoryInfoFromPath,
-  repositoryList2Map
+  repositoryList2Map,
+  encodeURIComponentIgnoringSlash
 }

@@ -1,132 +1,105 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
 use cached::{CachedAsync, TimedCache};
 use parse_git_url::GitUrl;
 use tabby_common::{
-    api::code::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse},
+    api::code::{
+        CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchQuery,
+        CodeSearchResponse,
+    },
     config::{RepositoryAccess, RepositoryConfig},
-    index::{self, register_tokenizers, CodeSearchSchema},
-    path,
+    index::{code, IndexSchema},
 };
 use tantivy::{
     collector::{Count, TopDocs},
-    query::{BooleanQuery, QueryParser},
-    query_grammar::Occur,
-    schema::Field,
-    DocAddress, Document, Index, IndexReader,
+    schema::{self, document::ReferenceValue, Value},
+    IndexReader, TantivyDocument,
 };
-use tokio::{sync::Mutex, time::sleep};
-use tracing::debug;
+use tokio::sync::Mutex;
+
+use super::tantivy::IndexReaderProvider;
 
 struct CodeSearchImpl {
-    reader: IndexReader,
-    query_parser: QueryParser,
-
-    schema: CodeSearchSchema,
     repository_access: Arc<dyn RepositoryAccess>,
     repo_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
 }
 
 impl CodeSearchImpl {
-    fn load(repository_access: Arc<dyn RepositoryAccess>) -> Result<Self> {
-        let code_schema = index::CodeSearchSchema::new();
-        let index = Index::open_in_dir(path::index_dir())?;
-        register_tokenizers(&index);
-
-        let query_parser = QueryParser::new(
-            code_schema.schema.clone(),
-            vec![code_schema.field_body],
-            index.tokenizers().clone(),
-        );
-        let reader = index
-            .reader_builder()
-            .reload_policy(tantivy::ReloadPolicy::OnCommit)
-            .try_into()?;
-        Ok(Self {
+    fn new(repository_access: Arc<dyn RepositoryAccess>) -> Self {
+        Self {
             repository_access,
-            reader,
-            query_parser,
-            schema: code_schema,
             repo_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
-        })
-    }
-
-    async fn load_async(repository_access: Arc<dyn RepositoryAccess>) -> CodeSearchImpl {
-        loop {
-            match CodeSearchImpl::load(repository_access.clone()) {
-                Ok(code) => {
-                    debug!("Index is ready, enabling code search...");
-                    return code;
-                }
-                Err(err) => {
-                    debug!("Source code index is not ready `{}`", err);
-                }
-            };
-
-            sleep(Duration::from_secs(60)).await;
         }
     }
 
-    fn create_hit(&self, score: f32, doc: Document, doc_address: DocAddress) -> Hit {
-        Hit {
-            score,
-            doc: HitDocument {
-                body: get_field(&doc, self.schema.field_body),
-                filepath: get_field(&doc, self.schema.field_filepath),
-                git_url: get_field(&doc, self.schema.field_git_url),
-                language: get_field(&doc, self.schema.field_language),
-            },
-            id: doc_address.doc_id,
-        }
+    fn create_hit(&self, score: f32, doc: TantivyDocument) -> CodeSearchHit {
+        let schema = IndexSchema::instance();
+        let doc = CodeSearchDocument {
+            file_id: get_text(&doc, schema.field_id).to_owned(),
+            body: get_json_text_field(
+                &doc,
+                schema.field_chunk_attributes,
+                code::fields::CHUNK_BODY,
+            )
+            .to_owned(),
+            filepath: get_json_text_field(
+                &doc,
+                schema.field_chunk_attributes,
+                code::fields::CHUNK_FILEPATH,
+            )
+            .to_owned(),
+            git_url: get_json_text_field(
+                &doc,
+                schema.field_chunk_attributes,
+                code::fields::CHUNK_GIT_URL,
+            )
+            .to_owned(),
+            language: get_json_text_field(
+                &doc,
+                schema.field_chunk_attributes,
+                code::fields::CHUNK_LANGUAGE,
+            )
+            .to_owned(),
+            start_line: get_json_number_field(
+                &doc,
+                schema.field_chunk_attributes,
+                code::fields::CHUNK_START_LINE,
+            ) as usize,
+        };
+        CodeSearchHit { score, doc }
     }
 
     async fn search_with_query(
         &self,
+        reader: &IndexReader,
         q: &dyn tantivy::query::Query,
         limit: usize,
         offset: usize,
-    ) -> Result<SearchResponse, CodeSearchError> {
-        let searcher = self.reader.searcher();
+    ) -> Result<CodeSearchResponse, CodeSearchError> {
+        let searcher = reader.searcher();
         let (top_docs, num_hits) =
             { searcher.search(q, &(TopDocs::with_limit(limit).and_offset(offset), Count))? };
-        let hits: Vec<Hit> = {
+        let hits: Vec<CodeSearchHit> = {
             top_docs
                 .iter()
                 .map(|(score, doc_address)| {
-                    let doc = searcher.doc(*doc_address).unwrap();
-                    self.create_hit(*score, doc, *doc_address)
+                    let doc: TantivyDocument = searcher.doc(*doc_address).unwrap();
+                    self.create_hit(*score, doc)
                 })
                 .collect()
         };
-        Ok(SearchResponse { num_hits, hits })
-    }
-}
-
-#[async_trait]
-impl CodeSearch for CodeSearchImpl {
-    async fn search(
-        &self,
-        q: &str,
-        limit: usize,
-        offset: usize,
-    ) -> Result<SearchResponse, CodeSearchError> {
-        let query = self.query_parser.parse_query(q)?;
-        self.search_with_query(&query, limit, offset).await
+        Ok(CodeSearchResponse { num_hits, hits })
     }
 
     async fn search_in_language(
         &self,
-        git_url: &str,
-        language: &str,
-        tokens: &[String],
+        reader: &IndexReader,
+        mut query: CodeSearchQuery,
         limit: usize,
         offset: usize,
-    ) -> Result<SearchResponse, CodeSearchError> {
-        let language_query = self.schema.language_query(language);
-        let body_query = self.schema.body_query(tokens);
-
+    ) -> Result<CodeSearchResponse, CodeSearchError> {
         let mut cache = self.repo_cache.lock().await;
 
         let repos = cache
@@ -136,19 +109,43 @@ impl CodeSearch for CodeSearchImpl {
             })
             .await?;
 
-        let Some(git_url) = closest_match(git_url, repos.iter()) else {
-            return Ok(SearchResponse::default());
+        let Some(git_url) = closest_match(&query.git_url, repos.iter()) else {
+            return Ok(CodeSearchResponse::default());
         };
 
-        let git_url_query = self.schema.git_url_query(git_url);
+        query.git_url = git_url.to_owned();
 
-        let query = BooleanQuery::new(vec![
-            (Occur::Must, language_query),
-            (Occur::Must, body_query),
-            (Occur::Must, git_url_query),
-        ]);
-        self.search_with_query(&query, limit, offset).await
+        let query = code::code_search_query(&query);
+        self.search_with_query(reader, &query, limit, offset).await
     }
+}
+
+fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
+    doc.get_first(field).unwrap().as_str().unwrap()
+}
+
+fn get_json_number_field(doc: &TantivyDocument, field: schema::Field, name: &str) -> i64 {
+    let ReferenceValue::Object(obj) = doc.get_first(field).unwrap() else {
+        panic!("Field {} is not an object", name);
+    };
+    obj.into_iter()
+        .find(|(k, _)| *k == name)
+        .unwrap()
+        .1
+        .as_i64()
+        .unwrap()
+}
+
+fn get_json_text_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name: &str) -> &'a str {
+    let ReferenceValue::Object(obj) = doc.get_first(field).unwrap() else {
+        panic!("Field {} is not an object", name);
+    };
+    obj.into_iter()
+        .find(|(k, _)| *k == name)
+        .unwrap()
+        .1
+        .as_str()
+        .unwrap()
 }
 
 fn closest_match<'a>(
@@ -165,63 +162,41 @@ fn closest_match<'a>(
         .map(|x| x.git_url.as_str())
 }
 
-fn get_field(doc: &Document, field: Field) -> String {
-    doc.get_first(field)
-        .and_then(|x| x.as_text())
-        .expect("Missing field")
-        .to_owned()
-}
-
 struct CodeSearchService {
-    search: Arc<Mutex<Option<CodeSearchImpl>>>,
+    imp: CodeSearchImpl,
+    provider: Arc<IndexReaderProvider>,
 }
 
 impl CodeSearchService {
-    pub fn new(repository_access: Arc<dyn RepositoryAccess>) -> Self {
-        let search = Arc::new(Mutex::new(None));
-
-        let ret = Self {
-            search: search.clone(),
-        };
-
-        tokio::spawn(async move {
-            let code = CodeSearchImpl::load_async(repository_access).await;
-            *search.lock().await = Some(code);
-        });
-
-        ret
+    pub fn new(
+        repository_access: Arc<dyn RepositoryAccess>,
+        provider: Arc<IndexReaderProvider>,
+    ) -> Self {
+        Self {
+            imp: CodeSearchImpl::new(repository_access),
+            provider,
+        }
     }
 }
 
-pub fn create_code_search(repository_access: Arc<dyn RepositoryAccess>) -> impl CodeSearch {
-    CodeSearchService::new(repository_access)
+pub fn create_code_search(
+    repository_access: Arc<dyn RepositoryAccess>,
+    provider: Arc<IndexReaderProvider>,
+) -> impl CodeSearch {
+    CodeSearchService::new(repository_access, provider)
 }
 
 #[async_trait]
 impl CodeSearch for CodeSearchService {
-    async fn search(
-        &self,
-        q: &str,
-        limit: usize,
-        offset: usize,
-    ) -> Result<SearchResponse, CodeSearchError> {
-        if let Some(imp) = self.search.lock().await.as_ref() {
-            imp.search(q, limit, offset).await
-        } else {
-            Err(CodeSearchError::NotReady)
-        }
-    }
-
     async fn search_in_language(
         &self,
-        git_url: &str,
-        language: &str,
-        tokens: &[String],
+        query: CodeSearchQuery,
         limit: usize,
         offset: usize,
-    ) -> Result<SearchResponse, CodeSearchError> {
-        if let Some(imp) = self.search.lock().await.as_ref() {
-            imp.search_in_language(git_url, language, tokens, limit, offset)
+    ) -> Result<CodeSearchResponse, CodeSearchError> {
+        if let Some(reader) = self.provider.reader().await.as_ref() {
+            self.imp
+                .search_in_language(reader, query, limit, offset)
                 .await
         } else {
             Err(CodeSearchError::NotReady)

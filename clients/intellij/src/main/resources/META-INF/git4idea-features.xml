@@ -1,0 +1,7 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationService serviceInterface="com.tabbyml.intellijtabby.git.GitContextProvider"
+                            serviceImplementation="com.tabbyml.intellijtabby.git.Git4IdeaGitContextProvider"
+                            overrides="true" />
+    </extensions>
+</idea-plugin>

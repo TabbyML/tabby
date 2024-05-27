@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, ID};
 use serde::{Deserialize, Serialize};
+use strum::EnumIter;
 use thiserror::Error;
 use tokio::task::JoinHandle;
 use tracing::error;
@@ -175,6 +176,7 @@ impl JWTPayload {
 pub struct User {
     pub id: juniper::ID,
     pub email: String,
+    pub name: String,
     pub is_admin: bool,
     pub is_owner: bool,
     pub auth_token: String,
@@ -278,6 +280,22 @@ pub struct PasswordChangeInput {
     pub new_password2: String,
 }
 
+#[derive(Validate)]
+pub struct UpdateUserNameInput {
+    #[validate(length(min = 2, code = "name", message = "Name must be at least 2 characters"))]
+    #[validate(length(
+        max = 20,
+        code = "name",
+        message = "Name must be at most 20 characters"
+    ))]
+    #[validate(regex(
+        code = "name",
+        path = "crate::schema::constants::USERNAME_REGEX",
+        message = "Invalid name, name may contain numbers or special characters which are not supported"
+    ))]
+    pub name: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, GraphQLObject)]
 #[graphql(context = Context)]
 pub struct Invitation {
@@ -304,11 +322,12 @@ impl relay::NodeType for Invitation {
     }
 }
 
-#[derive(GraphQLEnum, Clone, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(GraphQLEnum, Clone, Serialize, Deserialize, PartialEq, Debug, EnumIter)]
 #[serde(rename_all = "lowercase")]
 pub enum OAuthProvider {
     Github,
     Google,
+    Gitlab,
 }
 
 #[derive(GraphQLObject)]
@@ -344,6 +363,7 @@ pub trait AuthenticationService: Send + Sync {
         email: String,
         password1: String,
         invitation_code: Option<String>,
+        name: Option<String>,
     ) -> Result<RegisterResponse>;
     async fn allow_self_signup(&self) -> Result<bool>;
 
@@ -406,6 +426,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn update_user_role(&self, id: &ID, is_admin: bool) -> Result<()>;
     async fn update_user_avatar(&self, id: &ID, avatar: Option<Box<[u8]>>) -> Result<()>;
     async fn get_user_avatar(&self, id: &ID) -> Result<Option<Box<[u8]>>>;
+    async fn update_user_name(&self, id: &ID, name: String) -> Result<()>;
 }
 
 fn validate_password(value: &str) -> Result<(), validator::ValidationError> {

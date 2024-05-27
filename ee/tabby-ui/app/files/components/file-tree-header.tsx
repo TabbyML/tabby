@@ -208,13 +208,20 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
           value={repositorySpecifier}
         >
           <SelectTrigger>
-            <SelectValue>
-              <div className="flex items-center gap-2">
-                <RepositoryKindIcon
-                  kind={repositoryKind}
-                  fallback={<IconFolderGit />}
-                />
-                <span className={repositoryName ? '' : 'text-muted-foreground'}>
+            <SelectValue asChild>
+              <div className="flex items-center gap-2 overflow-hidden">
+                <div className="shrink-0">
+                  <RepositoryKindIcon
+                    kind={repositoryKind}
+                    fallback={<IconFolderGit />}
+                  />
+                </div>
+                <span
+                  className={cn(
+                    'truncate',
+                    !repositoryName && 'text-muted-foreground'
+                  )}
+                >
                   {repositoryName || 'Pick a repository'}
                 </span>
               </div>

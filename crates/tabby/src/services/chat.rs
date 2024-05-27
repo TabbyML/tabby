@@ -1,11 +1,15 @@
 use std::sync::Arc;
 
 use async_stream::stream;
+use derive_builder::Builder;
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
-use tabby_common::api::{
-    chat::Message,
-    event::{Event, EventLogger},
+use tabby_common::{
+    api::{
+        chat::Message,
+        event::{Event, EventLogger},
+    },
+    config::ModelConfig,
 };
 use tabby_inference::{ChatCompletionOptionsBuilder, ChatCompletionStream};
 use tracing::warn;
@@ -13,9 +17,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use super::model;
-use crate::Device;
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Builder, Debug)]
 #[schema(example=json!({
     "messages": [
         Message { role: "user".to_owned(), content: "What is tail recursion?".to_owned()},
@@ -25,8 +28,15 @@ use crate::Device;
 }))]
 pub struct ChatCompletionRequest {
     messages: Vec<Message>,
+
+    #[builder(default = "None")]
     temperature: Option<f32>,
+
+    #[builder(default = "None")]
     seed: Option<u64>,
+
+    #[builder(default = "None")]
+    presence_penalty: Option<f32>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -36,7 +46,7 @@ pub struct ChatCompletionChunk {
     system_fingerprint: String,
     object: &'static str,
     model: &'static str,
-    choices: [ChatCompletionChoice; 1],
+    pub choices: [ChatCompletionChoice; 1],
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
@@ -46,12 +56,12 @@ pub struct ChatCompletionChoice {
     logprobs: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     finish_reason: Option<String>,
-    delta: ChatCompletionDelta,
+    pub delta: ChatCompletionDelta,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 pub struct ChatCompletionDelta {
-    content: String,
+    pub content: String,
 }
 
 impl ChatCompletionChunk {
@@ -95,6 +105,9 @@ impl ChatService {
             });
             request.seed.inspect(|x| {
                 builder.seed(*x);
+            });
+            request.presence_penalty.inspect(|x| {
+                builder.presence_penalty(*x);
             });
             builder
                 .build()
@@ -151,13 +164,8 @@ fn convert_messages(input: &[Message]) -> Vec<tabby_common::api::event::Message>
         .collect()
 }
 
-pub async fn create_chat_service(
-    logger: Arc<dyn EventLogger>,
-    model: &str,
-    device: &Device,
-    parallelism: u8,
-) -> ChatService {
-    let engine = model::load_chat_completion(model, device, parallelism).await;
+pub async fn create_chat_service(logger: Arc<dyn EventLogger>, chat: &ModelConfig) -> ChatService {
+    let engine = model::load_chat_completion(chat).await;
 
     ChatService::new(engine, logger)
 }

@@ -21,7 +21,12 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 
 import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
-import { resolveFileNameFromPath, resolveRepositoryInfoFromPath } from './utils'
+import {
+  encodeURIComponentIgnoringSlash,
+  resolveFileNameFromPath,
+  resolveRepositoryInfoFromPath
+} from './utils'
+import { useInView } from 'react-intersection-observer'
 
 type TFileTreeNode = {
   name: string
@@ -132,7 +137,22 @@ const GridArea: React.FC<{ level: number }> = ({ level }) => {
 }
 
 const ActiveViewBar = () => {
-  return <div className="absolute -left-2 h-8 w-1 rounded-md bg-primary" />
+  const { ref, entry, inView } = useInView({
+    trackVisibility: true,
+    delay: 500
+  })
+
+  React.useEffect(() => {
+    if (!!entry?.target && !inView) {
+      entry?.target?.scrollIntoView({
+        block: 'center'
+      })
+    }
+  }, [entry?.target])
+
+  return (
+    <div ref={ref} className="absolute -left-2 h-8 w-1 rounded-md bg-primary" />
+  )
 }
 
 /**
@@ -241,7 +261,9 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   const { data, isLoading }: SWRResponse<ResolveEntriesResponse> =
     useSWRImmutable(
       shouldFetchChildren
-        ? `/repositories/${activeRepoIdentity}/resolve/${basename}`
+        ? encodeURIComponentIgnoringSlash(
+            `/repositories/${activeRepoIdentity}/resolve/${basename}`
+          )
         : null,
       fetcher,
       {
@@ -275,7 +297,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
     onSelectTreeNode?.(node)
   }
 
-  const [loading] = useDebounceValue(isLoading, 300)
+  const [loading] = useDebounceValue(isLoading, 100)
 
   const existingChildren = !!node?.children?.length
 
@@ -330,6 +352,13 @@ const FileTreeRenderer: React.FC = () => {
     React.useContext(FileTreeContext)
   const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
 
+  const hasSelectedRepo = !!repositorySpecifier
+  const hasNoRepoEntries = hasSelectedRepo && !fileTreeData?.length
+  const fetchingRepoEntries =
+    activePath &&
+    fileMap?.[activePath]?.isRepository &&
+    !fileMap?.[activePath]?.treeExpanded
+
   if (!initialized) return <FileTreeSkeleton />
 
   if (isEmpty(fileMap))
@@ -339,14 +368,18 @@ const FileTreeRenderer: React.FC = () => {
       </div>
     )
 
-  if (repositorySpecifier && !fileTreeData?.length) {
+  if (!hasSelectedRepo) {
+    return null
+  }
+
+  if (hasNoRepoEntries) {
+    if (fetchingRepoEntries) {
+      return <FileTreeSkeleton />
+    }
+
     return (
       <div className="flex h-full items-center justify-center">No Data</div>
     )
-  }
-
-  if (!repositorySpecifier) {
-    return null
   }
 
   return (

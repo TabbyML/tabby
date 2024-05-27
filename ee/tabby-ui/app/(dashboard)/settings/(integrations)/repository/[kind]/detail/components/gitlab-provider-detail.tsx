@@ -63,7 +63,7 @@ const GitlabProviderDetail: React.FC = () => {
   const searchParams = useSearchParams()
   const router = useRouter()
   const id = searchParams.get('id')?.toString() ?? ''
-  const [{ data, fetching }] = useQuery({
+  const [{ data, fetching }, reexecuteQuery] = useQuery({
     query: listGitlabRepositoryProviders,
     variables: { ids: [id] },
     pause: !id
@@ -72,6 +72,10 @@ const GitlabProviderDetail: React.FC = () => {
 
   const onDeleteProvider = () => {
     router.back()
+  }
+
+  const onUpdateProvider = () => {
+    reexecuteQuery()
   }
 
   if (!id || (!!id && !fetching && !provider)) {
@@ -106,6 +110,7 @@ const GitlabProviderDetail: React.FC = () => {
           <UpdateProviderForm
             defaultValues={provider}
             onDelete={onDeleteProvider}
+            onUpdate={onUpdateProvider}
             id={id}
           />
         </LoadingWrapper>

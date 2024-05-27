@@ -16,7 +16,10 @@ impl RepositoryAccess for StaticRepositoryAccess {
 mod tests {
     use std::fs::create_dir_all;
 
-    use tabby_common::{config::RepositoryConfig, path::set_tabby_root};
+    use tabby_common::{
+        config::{Config, RepositoryConfig},
+        path::set_tabby_root,
+    };
     use temp_testdir::*;
     use tracing_test::traced_test;
 
@@ -29,12 +32,14 @@ mod tests {
         create_dir_all(&root).expect("Failed to create tabby root");
         set_tabby_root(root.to_path_buf());
 
-        let config = StaticRepositoryAccess {
+        let access = StaticRepositoryAccess {
             repositories: vec![RepositoryConfig::new(
                 "https://github.com/TabbyML/interview-questions".to_owned(),
             )],
         };
 
-        tabby_scheduler::scheduler(true, config).await;
+        let config = Config::load().unwrap_or_default();
+
+        tabby_scheduler::scheduler(true, &config, access).await;
     }
 }

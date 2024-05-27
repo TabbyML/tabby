@@ -1,11 +1,15 @@
-import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-type RunnerType = WorkerKind | 'INDEX'
-
-interface RunnerCardProps extends Partial<Omit<Worker, '__typename' | 'kind'>> {
-  kind: RunnerType
+interface RunnerCardProps {
+  kind: string
+  device: string
+  addr: string
+  arch: string
+  cpuInfo: string
+  name: string
+  cpuCount: number
+  cudaDevices: string[]
 }
 
 export default function RunnerCard({
@@ -134,9 +138,9 @@ function Info({ children }: InfoProps) {
   )
 }
 
-function ModelIcon({ type }: { type: RunnerType }) {
+function ModelIcon({ type }: { type: string }) {
   const className = 'h-5 w-5'
-  if (type == WorkerKind.Completion) {
+  if (type == 'COMPLETION') {
     return (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -156,7 +160,7 @@ function ModelIcon({ type }: { type: RunnerType }) {
         <path d="m14 17 2-2-2-2" />
       </svg>
     )
-  } else if (type == WorkerKind.Chat) {
+  } else if (type == 'CHAT') {
     return (
       <svg
         xmlns="http://www.w3.org/2000/svg"

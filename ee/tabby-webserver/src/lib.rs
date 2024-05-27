@@ -1,5 +1,4 @@
 //! Defines behavior for the tabby webserver which allows users to interact with enterprise features.
-//! Using the web interface (e.g chat playground) requires using this module with the `--webserver` flag on the command line.
 mod axum;
 mod hub;
 mod jwt;
@@ -16,10 +15,7 @@ pub mod public {
 
     pub use super::{
         /* used by tabby workers (consumer of /hub api) */
-        hub::{
-            create_scheduler_client, create_worker_client, RegisterWorkerRequest, SchedulerClient,
-            WorkerClient, WorkerKind,
-        },
+        hub::{create_worker_client, WorkerClient},
         webserver::Webserver,
     };
 }
