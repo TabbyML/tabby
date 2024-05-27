@@ -1,5 +1,6 @@
 import { EventEmitter } from "events";
 import { workspace, ExtensionContext, WorkspaceConfiguration, ConfigurationTarget, Memento } from "vscode";
+import { State as LanguageClientState } from "vscode-languageclient";
 import { ClientProvidedConfig, ServerConfig } from "tabby-agent";
 import { Client } from "./lsp/Client";
 
@@ -11,6 +12,12 @@ export class Config extends EventEmitter {
     private readonly client: Client,
   ) {
     super();
+    this.client.languageClient.onDidChangeState(async (state) => {
+      if (state.newState === LanguageClientState.Running) {
+        this.serverConfig = await this.client.agent.fetchServerConfig();
+        this.emit("updatedServerConfig");
+      }
+    });
     this.client.agent.on("didChangeServerConfig", (params: ServerConfig) => {
       this.serverConfig = params;
       this.emit("updatedServerConfig");

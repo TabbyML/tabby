@@ -7,8 +7,16 @@ import { Config } from "./Config";
 export class Issues extends EventEmitter {
   private issues: IssueName[] = [];
 
-  constructor(private readonly client: Client, private readonly config: Config) {
+  constructor(
+    private readonly client: Client,
+    private readonly config: Config,
+  ) {
     super();
+    // schedule initial fetch
+    this.client.agent.fetchIssues().then((params) => {
+      this.issues = params.issues;
+      this.emit("updated");
+    });
     this.client.agent.on("didUpdateIssues", (params: IssueName[]) => {
       this.issues = params;
       this.emit("updated");
@@ -16,8 +24,8 @@ export class Issues extends EventEmitter {
   }
 
   get filteredIssues(): IssueName[] {
-    return this.issues.filter((item) => !this.config.mutedNotifications.includes(item))
-   }
+    return this.issues.filter((item) => !this.config.mutedNotifications.includes(item));
+  }
 
   get first(): IssueName | undefined {
     return this.filteredIssues[0];

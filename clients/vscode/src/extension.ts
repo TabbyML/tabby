@@ -10,7 +10,7 @@ import { Issues } from "./Issues";
 import { GitProvider } from "./git/GitProvider";
 import { ContextVariables } from "./ContextVariables";
 import { StatusBarItem } from "./StatusBarItem";
-import { ChatViewProvider } from "./ChatViewProvider";
+import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { Commands } from "./Commands";
 
 const isBrowser = !!process.env["IS_BROWSER"];
@@ -49,9 +49,16 @@ export async function activate(context: ExtensionContext) {
     client = new Client(context, languageClient);
   }
   const config = new Config(context, client);
-  const issues = new Issues(client, config);
   const inlineCompletionProvider = new InlineCompletionProvider(client, config);
   const gitProvider = new GitProvider();
+
+  client.registerConfigManager(config);
+  client.registerInlineCompletionProvider(inlineCompletionProvider);
+  client.registerGitProvider(gitProvider);
+
+  await client.start();
+
+  const issues = new Issues(client, config);
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ /* @ts-expect-error noUnusedLocals */
   const contextVariables = new ContextVariables(client, config);
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ /* @ts-expect-error noUnusedLocals */
@@ -59,19 +66,14 @@ export async function activate(context: ExtensionContext) {
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ /* @ts-expect-error noUnusedLocals */
   const commands = new Commands(context, client, config, inlineCompletionProvider, gitProvider);
 
-  client.registerConfigManager(config);
-  client.registerInlineCompletionProvider(inlineCompletionProvider);
-  client.registerGitProvider(gitProvider);
-
   // Register chat panel
-  const chatViewProvider = new ChatViewProvider(context);
+  const chatViewProvider = new ChatViewProvider(context, config);
   context.subscriptions.push(
     window.registerWebviewViewProvider("tabby.chatView", chatViewProvider, {
       webviewOptions: { retainContextWhenHidden: true }, // FIXME(wwayne): necessary?
     }),
   );
 
-  await client.start();
   logger.info("Tabby extension activated.");
 }
 

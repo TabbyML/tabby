@@ -1,7 +1,8 @@
 import { ExtensionContext, WebviewViewProvider, WebviewView, workspace, Uri, env } from "vscode";
-import { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
-
-import { agent } from "./agent";
+import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
+import { ServerConfig } from "tabby-agent";
+import hashObject from "object-hash";
+import { Config } from "../Config";
 import { createClient } from "./chatPanel";
 
 // FIXME(wwayne): Example code has webview removed case, not sure when it would happen, need to double check
@@ -10,18 +11,25 @@ export class ChatViewProvider implements WebviewViewProvider {
   client?: ServerApi;
   private pendingMessages: ChatMessage[] = [];
 
-  constructor(private readonly context: ExtensionContext) {}
+  constructor(
+    private readonly context: ExtensionContext,
+    private readonly config: Config,
+  ) {}
 
   public async resolveWebviewView(webviewView: WebviewView) {
     this.webview = webviewView;
     const extensionUri = this.context.extensionUri;
-    const { server } = agent().getConfig();
 
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [extensionUri],
     };
-    webviewView.webview.html = await this._getWebviewContent();
+    console.log("resolveWebviewView", { config: this.config.server });
+    webviewView.webview.html = this._getWebviewContent(this.config.server);
+    this.config.on("updatedServerConfig", () => {
+      console.log("updatedServerConfig", { config: this.config.server });
+      webviewView.webview.html = this._getWebviewContent(this.config.server);
+    });
 
     this.client = createClient(webviewView, {
       navigate: async (context: Context) => {
@@ -38,7 +46,7 @@ export class ChatViewProvider implements WebviewViewProvider {
         this.pendingMessages.forEach((message) => this.client?.sendMessage(message));
         this.client?.init({
           fetcherOptions: {
-            authorization: server.token,
+            authorization: this.config.server.token,
           },
         });
       }
@@ -51,11 +59,11 @@ export class ChatViewProvider implements WebviewViewProvider {
     });
   }
 
-  private async _getWebviewContent() {
-    const { server } = agent().getConfig();
+  private _getWebviewContent(server: ServerConfig) {
     return `
       <!DOCTYPE html>
       <html lang="en">
+        <!--hash: ${hashObject(server)}-->
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />

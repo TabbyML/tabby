@@ -16,7 +16,7 @@ import { strict as assert } from "assert";
 import { Client } from "./lsp/Client";
 import { Config } from "./Config";
 import { InlineCompletionProvider } from "./InlineCompletionProvider";
-import { ChatViewProvider } from "./ChatViewProvider";
+import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { GitProvider, Repository } from "./git/GitProvider";
 
 export class Commands {
@@ -205,17 +205,17 @@ export class Commands {
       const alignIndent = (text: string) => {
         const lines = text.split("\n");
         const subsequentLines = lines.slice(1);
-      
+
         // Determine the minimum indent for subsequent lines
         const minIndent = subsequentLines.reduce((min, line) => {
           const match = line.match(/^(\s*)/);
           const indent = match ? match[0].length : 0;
           return line.trim() ? Math.min(min, indent) : min;
         }, Infinity);
-      
+
         // Remove the minimum indent
         const adjustedLines = lines.slice(1).map((line) => line.slice(minIndent));
-      
+
         return [lines[0]?.trim(), ...adjustedLines].join("\n");
       };
 

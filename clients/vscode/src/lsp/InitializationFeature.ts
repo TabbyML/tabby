@@ -9,8 +9,7 @@ export class InitializationFeature implements StaticFeature {
     private readonly client: BaseLanguageClient,
     private readonly config: Config,
     private readonly logger: LogOutputChannel,
-  ) {
-  }
+  ) {}
 
   getState(): FeatureState {
     return { kind: "static" };
@@ -44,9 +43,11 @@ export class InitializationFeature implements StaticFeature {
   initialize(): void {
     // Sync trace setting
     this.client.setTrace(Trace.fromString(this.getCurrentTraceValue()));
-    this.context.subscriptions.push(this.logger.onDidChangeLogLevel(async () => {
-      await this.client.setTrace(Trace.fromString(this.getCurrentTraceValue()));
-    }));
+    this.context.subscriptions.push(
+      this.logger.onDidChangeLogLevel(async () => {
+        await this.client.setTrace(Trace.fromString(this.getCurrentTraceValue()));
+      }),
+    );
   }
 
   clear(): void {
