@@ -44,7 +44,7 @@ pub async fn start(
         .await
         .expect("unable to run migrations for sqlite");
 
-    let config = apalis_sql::Config::default().poll_interval(Duration::from_secs(1));
+    let config = apalis_sql::Config::default().poll_interval(Duration::from_secs(5));
     let monitor = Monitor::new();
     let monitor = DbMaintainanceJob::register(monitor, db.clone());
     let (scheduler, monitor) =
