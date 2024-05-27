@@ -15,7 +15,8 @@ export interface ChatPanelProps
   className?: string
   onSubmit: (content: string) => Promise<any>
   reload: () => void
-  chatMaxWidthClass: string
+  chatMaxWidthClass: string,
+  onInputKeyDown?: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void
 }
 
 export function ChatPanel({
@@ -26,7 +27,8 @@ export function ChatPanel({
   setInput,
   className,
   onSubmit,
-  chatMaxWidthClass
+  chatMaxWidthClass,
+  onInputKeyDown
 }: ChatPanelProps) {
   const promptFormRef = React.useRef<PromptFormRef>(null)
   const { container, onClearMessages, qaPairs, isLoading } =
@@ -79,6 +81,7 @@ export function ChatPanel({
             input={input}
             setInput={setInput}
             isLoading={isLoading}
+            onInputKeyDown={onInputKeyDown}
           />
           <FooterText className="hidden sm:block" />
         </div>

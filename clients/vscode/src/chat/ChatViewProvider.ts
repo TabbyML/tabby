@@ -58,6 +58,7 @@ export class ChatViewProvider implements WebviewViewProvider {
   }
 
   private _getWebviewContent(server: ServerConfig) {
+    const styleUri = this.webview?.webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'assets', 'chat-panel.css'));
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -67,16 +68,17 @@ export class ChatViewProvider implements WebviewViewProvider {
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
           <title>Tabby</title>
           <link rel="preconnect" href="${server.endpoint}">
+          <link href="${styleUri}" rel="stylesheet">
           <script defer>
             const vscode = acquireVsCodeApi();
-
+          
             function iframeLoaded () {
               vscode.postMessage({ action: 'rendered' });
             }
 
             window.onload = function () {
               const chatIframe = document.getElementById("chat");
-
+        
               const syncTheme = () => {
                 const parentHtmlStyle = document.documentElement.getAttribute('style');
                 chatIframe.contentWindow.postMessage({ style: parentHtmlStyle }, "${server.endpoint}");
@@ -85,14 +87,14 @@ export class ChatViewProvider implements WebviewViewProvider {
                 themeClass += ' vscode'
                 chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${server.endpoint}");
               }
-
+        
               window.addEventListener("message", (event) => {
                 if (event.data) {
                   if (event.data.action === 'sync-theme') {
                     syncTheme();
                     return;
                   }
-
+        
                   if (event.data.data) {
                     chatIframe.contentWindow.postMessage(event.data.data[0], "${server.endpoint}");
                   } else {
@@ -102,34 +104,18 @@ export class ChatViewProvider implements WebviewViewProvider {
               });
             }
           </script>
-          <style>
-            html, body {
-              background: transparent;
-            }
-            html, body, iframe {
-              padding: 0;
-              margin: 0;
-              box-sizing: border-box;
-              overflow: hidden;
-            }
-            iframe {
-              border-width: 0;
-              width: 100%;
-              height: 100vh;
-            }
-          </style>
         </head>
         <body>
-          
           <iframe
             id="chat"
-            src="${server.endpoint}/chat?max-width=5xl"
+            src="${server.endpoint}/chat?from=vscode"
             onload="iframeLoaded(this)" />
-            
         </body>
       </html>
     `;
   }
+
+  
 
   public getWebview() {
     return this.webview;

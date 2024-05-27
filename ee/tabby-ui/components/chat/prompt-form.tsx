@@ -30,7 +30,8 @@ import {
 export interface PromptProps
   extends Pick<UseChatHelpers, 'input' | 'setInput'> {
   onSubmit: (value: string) => Promise<void>
-  isLoading: boolean
+  isLoading: boolean,
+  onInputKeyDown?: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void
 }
 
 export interface PromptFormRef {
@@ -38,10 +39,12 @@ export interface PromptFormRef {
 }
 
 function PromptFormRenderer(
-  { onSubmit, input, setInput, isLoading }: PromptProps,
+  { onSubmit, input, setInput, isLoading, onInputKeyDown }: PromptProps,
   ref: React.ForwardedRef<PromptFormRef>
 ) {
-  const { formRef, onKeyDown } = useEnterSubmit()
+  const { formRef, onKeyDown } = useEnterSubmit({
+    onKeyDown: onInputKeyDown
+  })
   const [queryCompletionUrl, setQueryCompletionUrl] = React.useState<
     string | null
   >(null)
