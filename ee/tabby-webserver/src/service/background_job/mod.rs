@@ -47,8 +47,13 @@ pub async fn start(
     let config = apalis_sql::Config::default().poll_interval(Duration::from_secs(5));
     let monitor = Monitor::new();
     let monitor = DbMaintainanceJob::register(monitor, db.clone());
-    let (scheduler, monitor) =
-        SchedulerJob::register(monitor, pool.clone(), db.clone(), config.clone(), repository_access);
+    let (scheduler, monitor) = SchedulerJob::register(
+        monitor,
+        pool.clone(),
+        db.clone(),
+        config.clone(),
+        repository_access,
+    );
     let (third_party_repository, monitor) = SyncIntegrationJob::register(
         monitor,
         pool.clone(),
