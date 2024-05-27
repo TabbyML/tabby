@@ -363,7 +363,7 @@ type Mutation {
   updateUserRole(id: ID!, isAdmin: Boolean!): Boolean!
   uploadUserAvatarBase64(id: ID!, avatarBase64: String): Boolean!
   updateUserName(id: ID!, name: String!): Boolean!
-  register(email: String!, password1: String!, password2: String!, invitationCode: String): RegisterResponse!
+  register(name: String, email: String!, password1: String!, password2: String!, invitationCode: String): RegisterResponse!
   tokenAuth(email: String!, password: String!): TokenAuthResponse!
   verifyToken(token: String!): Boolean!
   refreshToken(refreshToken: String!): RefreshTokenResponse!

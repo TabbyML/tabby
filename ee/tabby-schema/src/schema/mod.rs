@@ -834,6 +834,7 @@ impl Mutation {
         password1: String,
         password2: String,
         invitation_code: Option<String>,
+        name: Option<String>
     ) -> Result<RegisterResponse> {
         let input = auth::RegisterInput {
             email,
@@ -844,7 +845,7 @@ impl Mutation {
 
         ctx.locator
             .auth()
-            .register(input.email, input.password1, invitation_code)
+            .register(input.email, input.password1, invitation_code, name)
             .await
     }
 

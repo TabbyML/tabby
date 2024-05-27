@@ -61,6 +61,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         email: String,
         password: String,
         invitation_code: Option<String>,
+        name: Option<String>
     ) -> Result<RegisterResponse> {
         let is_admin_initialized = self.is_admin_initialized().await?;
         if is_admin_initialized && is_demo_mode() {
@@ -85,12 +86,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
                     Some(pwd_hash),
                     !is_admin_initialized,
                     invitation.id,
-                    None,
+                    name.clone(),
                 )
                 .await?
         } else {
             self.db
-                .create_user(email.clone(), Some(pwd_hash), !is_admin_initialized, None)
+                .create_user(email.clone(), Some(pwd_hash), !is_admin_initialized, name.clone())
                 .await?
         };
 
