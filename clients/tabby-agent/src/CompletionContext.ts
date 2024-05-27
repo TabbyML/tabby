@@ -26,8 +26,8 @@ export type CompletionRequest = {
 
 export type Declaration = {
   filepath: string;
-  offset: number;
   text: string;
+  offset?: number;
 };
 
 export type CodeSnippet = {
@@ -183,6 +183,7 @@ export class CompletionContext {
           !this.declarations?.find((declaration) => {
             return (
               declaration.filepath === snippet.filepath &&
+              declaration.offset &&
               // Is range overlapping
               Math.max(declaration.offset, snippet.offset) <=
                 Math.min(declaration.offset + declaration.text.length, snippet.offset + snippet.text.length)
