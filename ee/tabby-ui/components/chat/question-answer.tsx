@@ -27,7 +27,7 @@ import {
   AccordionTrigger
 } from '../ui/accordion'
 import { Button } from '../ui/button'
-import { IconFile, IconRefresh, IconTrash } from '../ui/icons'
+import { IconFile, IconRefresh, IconTrash, IconUser } from '../ui/icons'
 import { Separator } from '../ui/separator'
 import { Skeleton } from '../ui/skeleton'
 import { UserAvatar } from '../user-avatar'
@@ -35,11 +35,15 @@ import { ChatContext } from './chat'
 
 interface QuestionAnswerListProps {
   messages: QuestionAnswerPair[]
+  chatMaxWidthClass: string
 }
-function QuestionAnswerList({ messages }: QuestionAnswerListProps) {
+function QuestionAnswerList({
+  messages,
+  chatMaxWidthClass
+}: QuestionAnswerListProps) {
   const { isLoading } = React.useContext(ChatContext)
   return (
-    <div className="relative mx-auto max-w-2xl px-4">
+    <div className={`relative mx-auto px-4 ${chatMaxWidthClass}`}>
       {messages?.map((message, index) => {
         const isLastItem = index === messages.length - 1
         return (
@@ -104,7 +108,14 @@ function UserMessageCard(props: { message: UserMessage }) {
       {...props}
     >
       <div className="shrink-0 select-none rounded-full border bg-background shadow">
-        <UserAvatar className="h-8 w-8" />
+        <UserAvatar
+          className="h-8 w-8"
+          fallback={
+            <div className="flex h-8 w-8 items-center justify-center">
+              <IconUser className="h-5 w-5" />
+            </div>
+          }
+        />
       </div>
       <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
         <MessageMarkdown message={message.message} />
@@ -204,7 +215,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 function MessageMarkdown({ message }: { message: string }) {
   return (
     <MemoizedReactMarkdown
-      className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
+      className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
       remarkPlugins={[remarkGfm, remarkMath]}
       components={{
         p({ children }) {

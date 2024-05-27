@@ -6,6 +6,7 @@ use apalis::{
     sqlite::{SqlitePool, SqliteStorage},
     utils::TokioExecutor,
 };
+use apalis_sql::Config;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_common::config::{ConfigAccess, RepositoryConfig};
@@ -81,9 +82,10 @@ impl SchedulerJob {
         monitor: Monitor<TokioExecutor>,
         pool: SqlitePool,
         db: DbConn,
+        config: Config,
         config_access: Arc<dyn ConfigAccess>,
     ) -> (SqliteStorage<SchedulerJob>, Monitor<TokioExecutor>) {
-        let storage = SqliteStorage::new(pool);
+        let storage = SqliteStorage::new_with_config(pool, config);
         let monitor = monitor
             .register(Self::basic_worker(storage.clone(), db.clone()).build_fn(Self::run))
             .register(

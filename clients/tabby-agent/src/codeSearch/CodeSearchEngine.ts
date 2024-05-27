@@ -1,13 +1,15 @@
 import * as Engine from "@orama/orama";
-import { Position, Range, TextDocument } from "vscode";
-import { extractNonReservedWordList } from "./utils";
+import { Position, Range } from "vscode-languageserver";
+import { TextDocument } from "vscode-languageserver-textdocument";
+import { extractNonReservedWordList } from "../utils/string";
+import { isPositionBefore, isPositionAfter, unionRange, rangeInDocument } from "../utils/range";
 
-export type DocumentRange = {
+export interface DocumentRange {
   document: TextDocument;
   range: Range;
-};
+}
 
-export type CodeSnippet = {
+export interface CodeSnippet {
   // Which file does the snippet belongs to
   filepath: string;
   // (Not Indexed) The offset of the snippet in the file
@@ -18,29 +20,32 @@ export type CodeSnippet = {
   language: string;
   // The semantic symbols extracted from the snippet
   symbols: string;
-};
+}
 
-export type ChunkingConfig = {
+export interface ChunkingConfig {
   // max count for chunks in memory
   maxChunks: number;
   // chars count per code chunk
   chunkSize: number;
   // lines count overlap between neighbor chunks
   overlapLines: number;
-};
+}
 
-export type CodeSearchHit = {
+export interface CodeSearchHit {
   snippet: CodeSnippet;
   score: number;
-};
+}
 
 export class CodeSearchEngine {
   constructor(private config: ChunkingConfig) {}
 
-  private db: any | undefined = undefined;
+  private db: Engine.AnyOrama | undefined = undefined;
   private indexedDocumentRanges: (DocumentRange & { indexIds: string[] })[] = [];
 
   private async init() {
+    if (this.db) {
+      return;
+    }
     this.db = await Engine.create({
       schema: {
         filepath: "string",
@@ -61,7 +66,10 @@ export class CodeSearchEngine {
     if (!this.db) {
       await this.init();
     }
-    return await Engine.insertMultiple(this.db, snippets);
+    if (this.db) {
+      return await Engine.insertMultiple(this.db, snippets);
+    }
+    return [];
   }
 
   private async remove(ids: string[]): Promise<number> {
@@ -72,33 +80,35 @@ export class CodeSearchEngine {
   }
 
   private async chunk(documentRange: DocumentRange): Promise<CodeSnippet[]> {
-    const chunks: CodeSnippet[] = [];
     const document = documentRange.document;
-    const documentUriString = document.uri.toString();
-    const range = document.validateRange(documentRange.range);
-    let positionStart = range.start;
+    const range = rangeInDocument(documentRange.range, document);
+    if (!range) {
+      return [];
+    }
+    const chunks: CodeSnippet[] = [];
+    let positionStart: Position = range.start;
     let positionEnd;
     do {
       const offset = document.offsetAt(positionStart);
       // move forward chunk size
       positionEnd = document.positionAt(offset + this.config.chunkSize);
-      if (positionEnd.isBefore(range.end)) {
+      if (isPositionBefore(positionEnd, range.end)) {
         // If have not reached the end, back to the last newline instead
-        positionEnd = positionEnd.with({ character: 0 });
+        positionEnd = { line: positionEnd.line, character: 0 };
       }
       if (positionEnd.line <= positionStart.line + this.config.overlapLines) {
         // In case of forward chunk size does not moved enough lines for overlap, force move that much lines
-        positionEnd = new Position(positionStart.line + this.config.overlapLines + 1, 0);
+        positionEnd = { line: positionStart.line + this.config.overlapLines + 1, character: 0 };
       }
-      if (positionEnd.isAfter(range.end)) {
+      if (isPositionAfter(positionEnd, range.end)) {
         // If have passed the end, back to the end
         positionEnd = range.end;
       }
 
-      const text = document.getText(new Range(positionStart, positionEnd));
+      const text = document.getText({ start: positionStart, end: positionEnd });
       if (text.trim().length > 0) {
         chunks.push({
-          filepath: documentUriString,
+          filepath: document.uri,
           offset: document.offsetAt(positionStart),
           fullText: text,
           language: document.languageId,
@@ -107,8 +117,8 @@ export class CodeSearchEngine {
       }
 
       // move the start position to the next chunk start
-      positionStart = new Position(positionEnd.line - this.config.overlapLines, 0);
-    } while (chunks.length < this.config.maxChunks && positionEnd.isBefore(range.end));
+      positionStart = { line: positionEnd.line - this.config.overlapLines, character: 0 };
+    } while (chunks.length < this.config.maxChunks && isPositionBefore(positionEnd, range.end));
     return chunks;
   }
 
@@ -134,13 +144,14 @@ export class CodeSearchEngine {
     const indexToUpdate = this.indexedDocumentRanges.findIndex(
       (item) => item.document.uri.toString() === documentUriString,
     );
-    if (indexToUpdate >= 0) {
-      // FIXME: union is not very good for merging two ranges have large distance between them
-      targetRange = targetRange.union(this.indexedDocumentRanges[indexToUpdate]!.range);
+    const documentRangeToUpdate = this.indexedDocumentRanges[indexToUpdate];
+    if (documentRangeToUpdate) {
+      // FIXME: union is not perfect for merging two ranges have large distance between them
+      targetRange = unionRange(targetRange, documentRangeToUpdate.range);
     }
     const chunks = await this.chunk({ document, range: targetRange });
-    if (indexToUpdate >= 0) {
-      await this.remove(this.indexedDocumentRanges[indexToUpdate]!.indexIds);
+    if (documentRangeToUpdate) {
+      await this.remove(documentRangeToUpdate.indexIds);
       this.indexedDocumentRanges.splice(indexToUpdate);
     }
     const indexIds = await this.insert(chunks);
@@ -181,12 +192,10 @@ export class CodeSearchEngine {
     if (!this.db) {
       return [];
     }
-    const searchResult = await Engine.search(this.db, {
+    const searchResult = await Engine.search<Engine.AnyOrama, CodeSnippet>(this.db, {
       term: query,
       properties: ["symbols"],
       where: {
-        // FIXME: It seems this cannot exactly filtering using the filepaths
-        // So we do a manual filtering later
         filepath: options?.filepathsFilter,
         language: options?.languagesFilter,
       },
@@ -196,10 +205,10 @@ export class CodeSearchEngine {
       searchResult.hits
         // manual filtering
         .filter((hit) => {
-          if (options?.filepathsFilter && !options?.filepathsFilter.includes(hit.document.filepath)) {
+          if (options?.filepathsFilter && !options?.filepathsFilter.includes(hit.document["filepath"])) {
             return false;
           }
-          if (options?.languagesFilter && !options?.languagesFilter.includes(hit.document.language)) {
+          if (options?.languagesFilter && !options?.languagesFilter.includes(hit.document["language"])) {
             return false;
           }
           return true;
@@ -207,7 +216,6 @@ export class CodeSearchEngine {
         .map((hit) => {
           return {
             snippet: hit.document,
-            // FIXME: Why there are many scores NaN?
             score: hit.score || 0,
           };
         })

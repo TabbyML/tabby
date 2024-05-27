@@ -26,9 +26,9 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 
 ## 🔥 What's New
 
+* **05/22/2024** Tabby [VSCode 1.6](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby) comes with **multiple choices** in inline completion, and the **auto-generated commit messages**🐱💻!
+* **05/11/2024** [v0.11.0](https://github.com/TabbyML/tabby/releases/tag/v0.11.0) brings significant enterprise upgrades, including 📊**storage usage** stats, 🔗**GitHub & GitLab** integration, 📋**Activities** page, and the long-awaited 🤖**Ask Tabby** feature!
 * **04/22/2024** [v0.10.0](https://github.com/TabbyML/tabby/releases/tag/v0.10.0) released, featuring the latest **Reports** tab with team-wise analytics for Tabby usage.
-* **04/19/2024** 📣 Tabby now incorporates [locally relevant snippets](https://github.com/TabbyML/tabby/pull/1844)(declarations from local LSP, and recently modified code) for code completion!
-* **04/17/2024** CodeGemma and CodeQwen model series have now been added to the [official registry](https://tabby.tabbyml.com/docs/models/)!
 
 
 
@@ -36,6 +36,8 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 <details>
   <summary>Archived</summary>
 
+* **04/19/2024** 📣 Tabby now incorporates [locally relevant snippets](https://github.com/TabbyML/tabby/pull/1844)(declarations from local LSP, and recently modified code) for code completion!
+* **04/17/2024** CodeGemma and CodeQwen model series have now been added to the [official registry](https://tabby.tabbyml.com/docs/models/)!
 * **03/20/2024** [v0.9](https://github.com/TabbyML/tabby/releases/tag/v0.9.1) released, highlighting a full feature admin UI.
 * **12/23/2023** Seamlessly [deploy Tabby on any cloud](https://tabby.tabbyml.com/docs/installation/skypilot/) with [SkyServe](https://skypilot.readthedocs.io/en/latest/serving/sky-serve.html) 🛫 from SkyPilot.
 * **12/15/2023** [v0.7.0](https://github.com/TabbyML/tabby/releases/tag/v0.7.0) released with team management and secured access!

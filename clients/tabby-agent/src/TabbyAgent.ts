@@ -341,7 +341,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     } catch (error) {
       if (isUnauthorizedError(error)) {
         this.logger.debug(`Fetch server provided config request failed due to unauthorized. [${requestId}]`);
-      } else if (error! instanceof HttpError) {
+      } else if (!(error instanceof HttpError)) {
         this.logger.error(`Fetch server provided config request failed. [${requestId}]`, error);
       }
     }

@@ -3,7 +3,7 @@ mod helper;
 mod scheduler;
 mod third_party_integration;
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use apalis::{
     prelude::{Monitor, Storage},
@@ -44,14 +44,21 @@ pub async fn start(
         .await
         .expect("unable to run migrations for sqlite");
 
+    let config = apalis_sql::Config::default().poll_interval(Duration::from_secs(5));
     let monitor = Monitor::new();
     let monitor = DbMaintainanceJob::register(monitor, db.clone());
-    let (scheduler, monitor) =
-        SchedulerJob::register(monitor, pool.clone(), db.clone(), config_access);
+    let (scheduler, monitor) = SchedulerJob::register(
+        monitor,
+        pool.clone(),
+        db.clone(),
+        config.clone(),
+        config_access,
+    );
     let (third_party_repository, monitor) = SyncIntegrationJob::register(
         monitor,
         pool.clone(),
         db.clone(),
+        config.clone(),
         third_party_repository_service,
         integration_service,
     );
