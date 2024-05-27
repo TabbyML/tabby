@@ -27,7 +27,7 @@ import {
   AccordionTrigger
 } from '../ui/accordion'
 import { Button } from '../ui/button'
-import { IconFile, IconRefresh, IconTrash } from '../ui/icons'
+import { IconFile, IconRefresh, IconTrash, IconUser } from '../ui/icons'
 import { Separator } from '../ui/separator'
 import { Skeleton } from '../ui/skeleton'
 import { UserAvatar } from '../user-avatar'
@@ -108,7 +108,7 @@ function UserMessageCard(props: { message: UserMessage }) {
       {...props}
     >
       <div className="shrink-0 select-none rounded-full border bg-background shadow">
-        <UserAvatar className="h-8 w-8" />
+        <UserAvatar className="h-8 w-8" fallback={<IconUser />} />
       </div>
       <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
         <MessageMarkdown message={message.message} />
