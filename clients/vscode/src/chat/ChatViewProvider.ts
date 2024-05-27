@@ -69,7 +69,7 @@ export class ChatViewProvider implements WebviewViewProvider {
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
           <title>Tabby</title>
-          <link rel="preconnect" href="${server.endpoint}">
+          <link href="${server.endpoint}" rel="preconnect">
           <link href="${styleUri}" rel="stylesheet">
           <script defer>
             const vscode = acquireVsCodeApi();
@@ -122,7 +122,6 @@ export class ChatViewProvider implements WebviewViewProvider {
   }
 
   public sendMessage(message: ChatMessage) {
-    console.log("this.client", this.client);
     if (!this.client) {
       this.pendingMessages.push(message);
     } else {
