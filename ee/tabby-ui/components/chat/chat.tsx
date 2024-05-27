@@ -114,7 +114,6 @@ interface ChatProps extends React.ComponentProps<'div'> {
   docQuery?: boolean
   generateRelevantQuestions?: boolean
   maxWidth?: string
-  onInputKeyDown?: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void
 }
 
 function ChatRenderer(
@@ -131,8 +130,7 @@ function ChatRenderer(
     fetcher,
     docQuery,
     generateRelevantQuestions,
-    maxWidth,
-    onInputKeyDown
+    maxWidth
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -402,7 +400,6 @@ function ChatRenderer(
             input={input}
             setInput={setInput}
             chatMaxWidthClass={chatMaxWidthClass}
-            onInputKeyDown={onInputKeyDown}
           />
         </div>
       </div>

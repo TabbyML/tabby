@@ -1,10 +1,6 @@
 import { useRef, type RefObject } from 'react'
 
-export function useEnterSubmit({
-  onKeyDown
-}: {
-  onKeyDown?: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void
-}): {
+export function useEnterSubmit(): {
   formRef: RefObject<HTMLFormElement>
   onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void
 } {
@@ -21,8 +17,6 @@ export function useEnterSubmit({
       formRef.current?.requestSubmit()
       event.preventDefault()
     }
-
-    onKeyDown?.(event)
   }
 
   return { formRef, onKeyDown: handleKeyDown }

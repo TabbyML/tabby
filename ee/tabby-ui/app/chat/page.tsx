@@ -42,7 +42,14 @@ export default function ChatPage() {
   const maxWidth = isFromVSCode ? '5xl' : undefined
 
   useEffect(() => {
-    window.addEventListener('message', ({ data }) => {
+    const onMessage = ({
+      data
+    }: {
+      data: {
+        style?: string
+        themeClass?: string
+      }
+    }) => {
       // Sync with VSCode CSS variable
       if (data.style) {
         const styleWithHslValue = data.style
@@ -65,7 +72,35 @@ export default function ChatPage() {
       if (data.themeClass) {
         document.documentElement.className = data.themeClass
       }
-    })
+    }
+
+    window.addEventListener('message', onMessage)
+    return () => {
+      window.removeEventListener('message', onMessage)
+    }
+  }, [])
+
+  // VSCode bug: not support shortcuts like copy/paste
+  // @see - https://github.com/microsoft/vscode/issues/129178
+  useEffect(() => {
+    if (!isFromVSCode) return
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.code === 'KeyC') {
+        document.execCommand('copy')
+      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyX') {
+        document.execCommand('cut')
+      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyV') {
+        document.execCommand('paste')
+      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyA') {
+        document.execCommand('selectAll')
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
   }, [])
 
   const sendMessage = (message: ChatMessage) => {
@@ -99,22 +134,6 @@ export default function ChatPage() {
     server?.navigate(context)
   }
 
-  // VSCode bug: not support shortcuts like copy/paste
-  // @see - https://github.com/microsoft/vscode/issues/129178
-  const onInputKeyDown = isFromVSCode
-    ? (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if ((event.ctrlKey || event.metaKey) && event.code === 'KeyC') {
-          document.execCommand('copy')
-        } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyX') {
-          document.execCommand('cut')
-        } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyV') {
-          document.execCommand('paste')
-        } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyA') {
-          document.execCommand('selectAll')
-        }
-      }
-    : undefined
-
   if (!isInit || !fetcherOptions) return <></>
   const headers = {
     Authorization: `Bearer ${fetcherOptions.authorization}`
@@ -129,7 +148,6 @@ export default function ChatPage() {
       onNavigateToContext={onNavigateToContext}
       onLoaded={onChatLoaded}
       maxWidth={maxWidth}
-      onInputKeyDown={onInputKeyDown}
     />
   )
 }
