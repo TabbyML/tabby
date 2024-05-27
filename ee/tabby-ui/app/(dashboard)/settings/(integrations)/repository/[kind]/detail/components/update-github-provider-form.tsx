@@ -26,6 +26,48 @@ const updateGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
   }
 `)
 
+const deleteGitlabRepositoryProviderMutation = graphql(/* GraphQL */ `
+  mutation DeleteGitlabRepositoryProvider($id: ID!) {
+    deleteGitlabRepositoryProvider(id: $id)
+  }
+`)
+
+const updateGitlabRepositoryProviderMutation = graphql(/* GraphQL */ `
+  mutation UpdateGitlabRepositoryProvider(
+    $input: UpdateRepositoryProviderInput!
+  ) {
+    updateGitlabRepositoryProvider(input: $input)
+  }
+`)
+
+const deleteGithubSelfHostedRepositoryProviderMutation = graphql(/* GraphQL */ `
+  mutation DeleteGithubSelfHostedRepositoryProvider($id: ID!) {
+    deleteGithubSelfHostedRepositoryProvider(id: $id)
+  }
+`)
+
+const updateGithubSelfHostedRepositoryProviderMutation = graphql(/* GraphQL */ `
+  mutation UpdateGithubSelfHostedRepositoryProvider(
+    $input: UpdateSelfHostedRepositoryProviderInput!
+  ) {
+    updateGithubSelfHostedRepositoryProvider(input: $input)
+  }
+`)
+
+const deleteGitlabSelfHostedRepositoryProviderMutation = graphql(/* GraphQL */ `
+  mutation DeleteGitlabSelfHostedRepositoryProvider($id: ID!) {
+    deleteGitlabSelfHostedRepositoryProvider(id: $id)
+  }
+`)
+
+const updateGitlabSelfHostedRepositoryProviderMutation = graphql(/* GraphQL */ `
+  mutation UpdateGitlabSelfHostedRepositoryProvider(
+    $input: UpdateSelfHostedRepositoryProviderInput!
+  ) {
+    updateGitlabSelfHostedRepositoryProvider(input: $input)
+  }
+`)
+
 interface UpdateProviderFormProps {
   id: string
   defaultValues?: Partial<CreateRepositoryProviderFormValues>
@@ -43,11 +85,11 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
 }) => {
   const form = useRepositoryProviderForm(false, defaultValues)
 
-  const deleteGithubRepositoryProvider = useMutation(
+  const deleteRepositoryProvider = useMutation(
     deleteGithubRepositoryProviderMutation
   )
 
-  const updateGithubRepositoryProvider = useMutation(
+  const updateRepositoryProvider = useMutation(
     updateGithubRepositoryProviderMutation,
     {
       form,
@@ -62,19 +104,21 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
   )
 
   const onSubmit = async (values: CreateRepositoryProviderFormValues) => {
-    const res = await updateGithubRepositoryProvider({
+    const res = await updateRepositoryProvider({
       input: {
         id,
         ...values
       }
     })
+    // todo update resolver
     if (res?.data?.updateGithubRepositoryProvider) {
       onUpdate?.()
     }
   }
 
   const handleDeleteRepositoryProvider = async () => {
-    const res = await deleteGithubRepositoryProvider({ id })
+    const res = await deleteRepositoryProvider({ id })
+    // todo delete resovler
     if (res?.data?.deleteGithubRepositoryProvider) {
       onDelete?.()
     } else {
