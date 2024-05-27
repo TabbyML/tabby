@@ -54,8 +54,6 @@ export function UserAvatar({
     return genConfig(data.me.email)
   }, [data?.me?.email])
 
-  if (!userId) return null
-
   if (isLoading) {
     return <Skeleton className={cn('h-16 w-16 rounded-full', className)} />
   }
@@ -78,10 +76,10 @@ export function UserAvatar({
     <AvatarComponent className={cn('h-16 w-16', className)}>
       <AvatarImage
         src={avatarImageSrc}
-        alt={data.me.email}
+        alt={data?.me?.email}
         className="object-cover"
       />
-      <AvatarFallback>{data.me?.email.substring(0, 2)}</AvatarFallback>
+      <AvatarFallback>{data?.me?.email?.substring(0, 2)}</AvatarFallback>
     </AvatarComponent>
   )
 }
