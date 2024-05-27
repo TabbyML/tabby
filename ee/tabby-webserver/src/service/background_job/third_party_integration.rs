@@ -5,6 +5,7 @@ use apalis::{
     sqlite::{SqlitePool, SqliteStorage},
     utils::TokioExecutor,
 };
+use apalis_sql::Config;
 use chrono::{DateTime, Utc};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
@@ -66,10 +67,11 @@ impl SyncIntegrationJob {
         monitor: Monitor<TokioExecutor>,
         pool: SqlitePool,
         db: DbConn,
+        config: Config,
         repository_service: Arc<dyn ThirdPartyRepositoryService>,
         integration_service: Arc<dyn IntegrationService>,
     ) -> (SqliteStorage<SyncIntegrationJob>, Monitor<TokioExecutor>) {
-        let storage = SqliteStorage::new(pool);
+        let storage = SqliteStorage::new_with_config(pool, config);
         let monitor = monitor
             .register(
                 Self::basic_worker(storage.clone(), db.clone())
