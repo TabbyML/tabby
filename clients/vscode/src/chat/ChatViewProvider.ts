@@ -96,7 +96,7 @@ export class ChatViewProvider implements WebviewViewProvider {
                     syncTheme();
                     return;
                   }
-        
+
                   if (event.data.data) {
                     chatIframe.contentWindow.postMessage(event.data.data[0], "${server.endpoint}");
                   } else {
@@ -122,6 +122,7 @@ export class ChatViewProvider implements WebviewViewProvider {
   }
 
   public sendMessage(message: ChatMessage) {
+    console.log("this.client", this.client);
     if (!this.client) {
       this.pendingMessages.push(message);
     } else {
