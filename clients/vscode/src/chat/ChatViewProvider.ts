@@ -65,27 +65,15 @@ export class ChatViewProvider implements WebviewViewProvider {
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <title>Tabby</title>     
-        </head>
-        <style>
-          html, body {
-            background: transparent;
-          }
-          html, body, iframe {
-            padding: 0;
-            margin: 0;
-            box-sizing: border-box;
-            overflow: hidden;
-          }
-          iframe {
-            border-width: 0;
-            width: 100%;
-            height: 100vh;
-          }
-        </style>
-        <body>
-          <script>const vscode = acquireVsCodeApi();</script>
+          <title>Tabby</title>
+          <link rel="preconnect" href="${server.endpoint}">
           <script defer>
+            const vscode = acquireVsCodeApi();
+
+            function iframeLoaded () {
+              vscode.postMessage({ action: 'rendered' });
+            }
+
             window.onload = function () {
               const chatIframe = document.getElementById("chat");
 
@@ -114,15 +102,30 @@ export class ChatViewProvider implements WebviewViewProvider {
               });
             }
           </script>
-          <script>
-            function iframeLoaded () {
-              vscode.postMessage({ action: 'rendered' });
+          <style>
+            html, body {
+              background: transparent;
             }
-          </script>
+            html, body, iframe {
+              padding: 0;
+              margin: 0;
+              box-sizing: border-box;
+              overflow: hidden;
+            }
+            iframe {
+              border-width: 0;
+              width: 100%;
+              height: 100vh;
+            }
+          </style>
+        </head>
+        <body>
+          
           <iframe
             id="chat"
             src="${server.endpoint}/chat?max-width=5xl"
             onload="iframeLoaded(this)" />
+            
         </body>
       </html>
     `;
