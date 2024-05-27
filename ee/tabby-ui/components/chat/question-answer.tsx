@@ -108,7 +108,14 @@ function UserMessageCard(props: { message: UserMessage }) {
       {...props}
     >
       <div className="shrink-0 select-none rounded-full border bg-background shadow">
-        <UserAvatar className="h-8 w-8" fallback={<IconUser />} />
+        <UserAvatar
+          className="h-8 w-8"
+          fallback={
+            <div className="w-8 h-8 flex justify-center items-center">
+              <IconUser className="h-5 w-5" />
+            </div>
+          }
+        />
       </div>
       <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
         <MessageMarkdown message={message.message} />
