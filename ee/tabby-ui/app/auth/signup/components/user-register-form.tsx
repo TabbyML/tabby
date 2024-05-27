@@ -30,12 +30,14 @@ import {
 
 export const registerUser = graphql(/* GraphQL */ `
   mutation register(
+    $name: String!
     $email: String!
     $password1: String!
     $password2: String!
     $invitationCode: String
   ) {
     register(
+      name: $name
       email: $email
       password1: $password1
       password2: $password2
@@ -48,6 +50,7 @@ export const registerUser = graphql(/* GraphQL */ `
 `)
 
 const formSchema = z.object({
+  name: z.string(),
   email: z.string().email('Invalid email address'),
   password1: z.string(),
   password2: z.string(),
@@ -104,6 +107,19 @@ export function UserAuthForm({
     <Form {...form}>
       <div className={cn('grid gap-2', className)} {...props}>
         <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="email"
