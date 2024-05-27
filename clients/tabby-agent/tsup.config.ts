@@ -67,8 +67,6 @@ export default defineConfig(async () => {
       outDir: "dist/node",
       platform: "node",
       target: "node18",
-      treeshake: "smallest",
-      minify: true,
       sourcemap: true,
       banner: {
         js: banner,
@@ -86,8 +84,6 @@ export default defineConfig(async () => {
       outDir: "dist/browser",
       platform: "browser",
       format: "esm",
-      treeshake: "smallest",
-      minify: true,
       sourcemap: true,
       banner: {
         js: banner,

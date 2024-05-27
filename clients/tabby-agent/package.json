@@ -25,9 +25,9 @@
   "main": "./dist/protocol.js",
   "types": "./dist/protocol.d.ts",
   "scripts": {
+    "build": "tsc --noEmit && tsup --minify --treeshake smallest",
+    "watch": "tsc-watch --noEmit --onSuccess \"tsup\"",
     "openapi-codegen": "openapi-typescript ./openapi/tabby.json -o ./src/types/tabbyApi.d.ts",
-    "dev": "tsup --watch --no-minify --no-treeshake",
-    "build": "tsc --noEmit && tsup",
     "test": "mocha",
     "lint": "eslint --ext .ts ./src && prettier --check .",
     "lint:fix": "eslint --fix --ext .ts ./src && prettier --write ."
@@ -76,6 +76,7 @@
     "stats-logscale": "^1.0.9",
     "toml": "^3.0.0",
     "ts-node": "^10.9.1",
+    "tsc-watch": "^6.2.0",
     "tsup": "^8.0.2",
     "typescript": "^5.3.2",
     "uuid": "^9.0.0",
