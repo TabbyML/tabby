@@ -1,12 +1,13 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import { ExtensionContext, commands, languages, workspace } from "vscode";
+import { ExtensionContext, commands, languages, workspace, window } from "vscode";
 import { getLogger } from "./logger";
 import { createAgentInstance, disposeAgentInstance } from "./agent";
 import { tabbyCommands } from "./commands";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
 import { TabbyStatusBarItem } from "./TabbyStatusBarItem";
 import { RecentlyChangedCodeSearch } from "./RecentlyChangedCodeSearch";
+import { ChatViewProvider } from "./ChatViewProvider";
 
 const logger = getLogger();
 
@@ -39,7 +40,15 @@ export async function activate(context: ExtensionContext) {
   const statusBarItem = new TabbyStatusBarItem(context, completionProvider);
   context.subscriptions.push(statusBarItem.register());
 
-  context.subscriptions.push(...tabbyCommands(context, completionProvider, statusBarItem));
+  // Register chat panel
+  const chatViewProvider = new ChatViewProvider(context);
+  context.subscriptions.push(
+    window.registerWebviewViewProvider("tabby.chatView", chatViewProvider, {
+      webviewOptions: { retainContextWhenHidden: true }, // FIXME(wwayne): necessary?
+    }),
+  );
+
+  context.subscriptions.push(...tabbyCommands(context, completionProvider, statusBarItem, chatViewProvider));
 
   const updateIsChatEnabledContextVariable = () => {
     if (agent.getStatus() === "ready") {

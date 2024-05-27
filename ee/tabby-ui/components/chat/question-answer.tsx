@@ -35,11 +35,15 @@ import { ChatContext } from './chat'
 
 interface QuestionAnswerListProps {
   messages: QuestionAnswerPair[]
+  chatMaxWidthClass: string
 }
-function QuestionAnswerList({ messages }: QuestionAnswerListProps) {
+function QuestionAnswerList({
+  messages,
+  chatMaxWidthClass
+}: QuestionAnswerListProps) {
   const { isLoading } = React.useContext(ChatContext)
   return (
-    <div className="relative mx-auto max-w-2xl px-4">
+    <div className={`relative mx-auto px-4 ${chatMaxWidthClass}`}>
       {messages?.map((message, index) => {
         const isLastItem = index === messages.length - 1
         return (
@@ -204,7 +208,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 function MessageMarkdown({ message }: { message: string }) {
   return (
     <MemoizedReactMarkdown
-      className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
+      className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
       remarkPlugins={[remarkGfm, remarkMath]}
       components={{
         p({ children }) {

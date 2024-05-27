@@ -42,7 +42,6 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   const activeChatId = useStore(useChatStore, state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
   const repoMapRef = useLatest(repoMap)
-
   const onNavigate = async (context: Context) => {
     if (context?.filepath && context?.git_url) {
       const repoMap = repoMapRef.current

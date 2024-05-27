@@ -28,7 +28,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onView:chatView"
   ],
   "main": "./dist/node/extension.js",
   "browser": "./dist/web/extension.js",
@@ -241,7 +242,26 @@
         "key": "escape",
         "when": "inlineSuggestionVisible"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "chatView",
+          "title": "Tabby",
+          "icon": "assets/side-logo.svg"
+        }
+      ]
+    },
+    "views": {
+      "chatView": [
+        {
+          "type": "webview",
+          "id": "tabby.chatView",
+          "name": "",
+          "visibility": "visible"
+        }
+      ]
+    }
   },
   "scripts": {
     "build": "tsc --noEmit && tsup --minify --treeshake smallest",
@@ -275,7 +295,9 @@
   },
   "dependencies": {
     "@orama/orama": "^2.0.15",
+    "@quilted/threads": "^2.2.0",
     "@xstate/fsm": "^2.0.1",
-    "tabby-agent": "workspace:*"
+    "tabby-agent": "workspace:*",
+    "tabby-chat-panel": "workspace:*"
   }
 }

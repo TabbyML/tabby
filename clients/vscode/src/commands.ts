@@ -19,6 +19,7 @@ import { agent } from "./agent";
 import { notifications } from "./notifications";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
 import { TabbyStatusBarItem } from "./TabbyStatusBarItem";
+import { ChatViewProvider } from "./ChatViewProvider";
 
 const configTarget = ConfigurationTarget.Global;
 
@@ -319,23 +320,53 @@ const resetMutedNotifications = (context: ExtensionContext, statusBarItem: Tabby
   };
 };
 
-const explainCodeBlock: Command = {
-  command: "tabby.experimental.chat.explainCodeBlock",
-  callback: async () => {
-    const editor = window.activeTextEditor;
-    const configuration = agent().getConfig();
-    const serverHost = configuration.server.endpoint;
+const alignIndent = (text: string) => {
+  const lines = text.split("\n");
+  const subsequentLines = lines.slice(1);
 
-    if (editor) {
-      const { languageId } = editor.document;
-      const language = languageId.startsWith("typescript") ? "typescript" : languageId;
-      const text = editor.document.getText(editor.selection);
-      const encodedText = encodeURIComponent("```" + `${language}\n${text}\n` + "```");
-      await env.openExternal(Uri.parse(`${serverHost}/playground?initialMessage=${encodedText}`));
-    } else {
-      window.showInformationMessage("No active editor");
-    }
-  },
+  // Determine the minimum indent for subsequent lines
+  const minIndent = subsequentLines.reduce((min, line) => {
+    const match = line.match(/^(\s*)/);
+    const indent = match ? match[0].length : 0;
+    return line.trim() ? Math.min(min, indent) : min;
+  }, Infinity);
+
+  // Remove the minimum indent
+  const adjustedLines = lines.slice(1).map((line) => line.slice(minIndent));
+
+  return [lines[0]?.trim(), ...adjustedLines].join("\n");
+};
+
+const explainCodeBlock = (chatViewProvider: ChatViewProvider): Command => {
+  return {
+    command: "tabby.experimental.chat.explainCodeBlock",
+    callback: async () => {
+      const editor = window.activeTextEditor;
+      if (editor) {
+        const text = editor.document.getText(editor.selection);
+        const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+
+        commands.executeCommand("tabby.chatView.focus");
+
+        const filePath = editor.document.fileName.replace(workspaceFolder, "");
+        chatViewProvider.sendMessage({
+          message: "Explain the selected code:",
+          selectContext: {
+            kind: "file",
+            content: alignIndent(text),
+            range: {
+              start: editor.selection.start.line + 1,
+              end: editor.selection.end.line + 1,
+            },
+            filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
+            git_url: "https://github.com/tabbyML/tabby", // FIXME
+          },
+        });
+      } else {
+        window.showInformationMessage("No active editor");
+      }
+    },
+  };
 };
 
 const generateCommitMessage: Command = {
@@ -429,6 +460,7 @@ export const tabbyCommands = (
   context: ExtensionContext,
   completionProvider: TabbyCompletionProvider,
   statusBarItem: TabbyStatusBarItem,
+  chatViewProvider: ChatViewProvider,
 ) =>
   [
     toggleInlineCompletionTriggerMode,
@@ -448,6 +480,6 @@ export const tabbyCommands = (
     openOnlineHelp,
     muteNotifications(context, statusBarItem),
     resetMutedNotifications(context, statusBarItem),
-    explainCodeBlock,
+    explainCodeBlock(chatViewProvider),
     generateCommitMessage,
   ].map((command) => commands.registerCommand(command.command, command.callback, command.thisArg));
