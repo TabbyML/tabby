@@ -30,7 +30,7 @@ import {
 export interface PromptProps
   extends Pick<UseChatHelpers, 'input' | 'setInput'> {
   onSubmit: (value: string) => Promise<void>
-  isLoading: boolean,
+  isLoading: boolean
   onInputKeyDown?: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void
 }
 

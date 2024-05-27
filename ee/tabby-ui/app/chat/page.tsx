@@ -66,8 +66,6 @@ export default function ChatPage() {
         document.documentElement.className = data.themeClass
       }
     })
-
-    
   }, [])
 
   const sendMessage = (message: ChatMessage) => {
@@ -103,17 +101,19 @@ export default function ChatPage() {
 
   // VSCode bug: not support shortcuts like copy/paste
   // @see - https://github.com/microsoft/vscode/issues/129178
-  const onInputKeyDown = isFromVSCode ? (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if ((event.ctrlKey || event.metaKey) && event.code === "KeyC") {
-      document.execCommand("copy");
-    } else if ((event.ctrlKey || event.metaKey) && event.code === "KeyX") {
-      document.execCommand("cut");
-    } else if ((event.ctrlKey || event.metaKey) && event.code === "KeyV") {
-      document.execCommand("paste");
-    } else if ((event.ctrlKey || event.metaKey) && event.code === "KeyA") {
-      document.execCommand("selectAll");
-    }
-  } : undefined
+  const onInputKeyDown = isFromVSCode
+    ? (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if ((event.ctrlKey || event.metaKey) && event.code === 'KeyC') {
+          document.execCommand('copy')
+        } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyX') {
+          document.execCommand('cut')
+        } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyV') {
+          document.execCommand('paste')
+        } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyA') {
+          document.execCommand('selectAll')
+        }
+      }
+    : undefined
 
   if (!isInit || !fetcherOptions) return <></>
   const headers = {

@@ -58,7 +58,9 @@ export class ChatViewProvider implements WebviewViewProvider {
   }
 
   private _getWebviewContent(server: ServerConfig) {
-    const styleUri = this.webview?.webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, 'assets', 'chat-panel.css'));
+    const styleUri = this.webview?.webview.asWebviewUri(
+      Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
+    );
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -114,8 +116,6 @@ export class ChatViewProvider implements WebviewViewProvider {
       </html>
     `;
   }
-
-  
 
   public getWebview() {
     return this.webview;

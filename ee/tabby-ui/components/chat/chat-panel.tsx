@@ -15,7 +15,7 @@ export interface ChatPanelProps
   className?: string
   onSubmit: (content: string) => Promise<any>
   reload: () => void
-  chatMaxWidthClass: string,
+  chatMaxWidthClass: string
   onInputKeyDown?: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void
 }
 

@@ -1,7 +1,10 @@
-html, body {
+html,
+body {
   background: transparent;
 }
-html, body, iframe {
+html,
+body,
+iframe {
   padding: 0;
   margin: 0;
   box-sizing: border-box;

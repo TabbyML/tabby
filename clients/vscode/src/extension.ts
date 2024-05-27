@@ -70,7 +70,7 @@ export async function activate(context: ExtensionContext) {
   const chatViewProvider = new ChatViewProvider(context, config);
   context.subscriptions.push(
     window.registerWebviewViewProvider("tabby.chatView", chatViewProvider, {
-      webviewOptions: { retainContextWhenHidden: true }
+      webviewOptions: { retainContextWhenHidden: true },
     }),
   );
 
