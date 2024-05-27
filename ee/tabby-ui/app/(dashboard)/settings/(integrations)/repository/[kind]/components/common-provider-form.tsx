@@ -39,7 +39,8 @@ import { useRepositoryKind } from '../hooks/use-repository-kind'
 
 export const createRepositoryProviderFormSchema = z.object({
   displayName: z.string().trim(),
-  accessToken: z.string()
+  accessToken: z.string(),
+  apiBase: z.string().optional()
 })
 
 export const updateRepositoryProviderFormSchema =
@@ -105,8 +106,12 @@ export function CommonProviderForm<T extends boolean>({
     switch (kind) {
       case RepositoryKind.Github:
         return 'e.g. GitHub'
+      case RepositoryKind.GithubSelfHosted:
+        return 'e.g. GitHub Self-Hosted'
       case RepositoryKind.Gitlab:
         return 'e.g. GitLab'
+      case RepositoryKind.GitlabSelfHosted:
+        return 'e.g. GitLab Self-Hosted'
       default:
         return ''
     }
@@ -116,13 +121,31 @@ export function CommonProviderForm<T extends boolean>({
     if (!isNew) return new Array(36).fill('*').join('')
     switch (kind) {
       case RepositoryKind.Github:
+      case RepositoryKind.GithubSelfHosted:
         return 'e.g. github_pat_1ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234'
       case RepositoryKind.Gitlab:
+      case RepositoryKind.GitlabSelfHosted:
         return 'e.g. glpat_1ABCD1234ABCD1234ABCD1234ABCD1234'
       default:
         return ''
     }
   }, [kind, isNew])
+
+  const apiBasePlaceholder = React.useMemo(() => {
+    switch (kind) {
+      case RepositoryKind.GithubSelfHosted:
+        return 'e.g. https://github.yourcompany.com'
+      case RepositoryKind.GitlabSelfHosted:
+        return 'e.g. https://gitlab.yourcompany.com'
+      default:
+        return ''
+    }
+  }, [kind])
+
+  const showApiBase = [
+    RepositoryKind.GithubSelfHosted,
+    RepositoryKind.GitlabSelfHosted
+  ].includes(kind)
 
   return (
     <Form {...form}>
@@ -150,6 +173,30 @@ export function CommonProviderForm<T extends boolean>({
               </FormItem>
             )}
           />
+          {showApiBase && (
+            <FormField
+              control={form.control}
+              name="apiBase"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>Instance URL</FormLabel>
+                  <FormDescription>
+                  The VCS instance URL. Make sure this instance and Tabby are network reachable from each other.
+                  </FormDescription>
+                  <FormControl>
+                    <Input
+                      placeholder={apiBasePlaceholder}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      autoComplete="off"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           <FormField
             control={form.control}
             name="accessToken"
@@ -256,7 +303,8 @@ export function useRepositoryProviderForm<T extends boolean>(
 
 function AccessTokenDescription() {
   const kind = useRepositoryKind()
-  if (kind === RepositoryKind.Github) {
+
+  if (kind === RepositoryKind.Github || kind === RepositoryKind.GithubSelfHosted) {
     return (
       <>
         <div>
@@ -272,7 +320,7 @@ function AccessTokenDescription() {
     )
   }
 
-  if (kind === RepositoryKind.Gitlab) {
+  if (kind === RepositoryKind.Gitlab || kind === RepositoryKind.GitlabSelfHosted) {
     return (
       <>
         <div>

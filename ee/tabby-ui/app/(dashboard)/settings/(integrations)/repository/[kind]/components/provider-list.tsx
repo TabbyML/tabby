@@ -4,51 +4,90 @@ import Link from 'next/link'
 import { useQuery } from 'urql'
 
 import {
+  ListGithubRepositoriesQuery,
+  ListGithubSelfHostedRepositoryProvidersQuery,
+  ListGitlabRepositoriesQuery,
+  ListGitlabSelfHostedRepositoryProvidersQuery,
   RepositoryKind,
   RepositoryProviderStatus
 } from '@/lib/gql/generates/graphql'
 import {
   listGithubRepositoryProviders,
-  listGitlabRepositoryProviders
+  listGithubSelfHostedRepositoryProviders,
+  listGitlabRepositoryProviders,
+  listGitlabSelfHostedRepositoryProviders
 } from '@/lib/tabby/query'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 import { useRepositoryKind } from '../hooks/use-repository-kind'
+import React from 'react'
+import { useParams } from 'next/navigation'
 
 interface GitProvidersListProps {
   kind: RepositoryKind
 }
 
+type TProviderList =
+  | Array<{
+      node: {
+        id: string
+        displayName: string
+        status: RepositoryProviderStatus
+        apiBase?: string
+      }
+    }>
+  | undefined
+
 export default function RepositoryProvidersPage({
   kind
 }: GitProvidersListProps) {
-  if (kind === RepositoryKind.Github) {
-    return <GithubProviders />
-  }
+  return <ProviderList kind={kind} key={kind} />
 
-  if (kind === RepositoryKind.Gitlab) {
-    return <GitlabProviders />
-  }
-
-  return <div>404</div>
+  // return <div>404</div>
 }
 
-function GithubProviders() {
-  const [{ data, fetching }] = useQuery({
-    query: listGithubRepositoryProviders
-  })
-  const providers = data?.githubRepositoryProviders?.edges
+function ProviderList({ kind }: GitProvidersListProps) {
+  const query = React.useMemo(() => {
+    switch (kind) {
+      case RepositoryKind.Github:
+        return listGithubRepositoryProviders
+      case RepositoryKind.GithubSelfHosted:
+        return listGithubSelfHostedRepositoryProviders
+      case RepositoryKind.Gitlab:
+        return listGitlabRepositoryProviders
+      case RepositoryKind.GitlabSelfHosted:
+        return listGitlabSelfHostedRepositoryProviders
+    }
+  }, [kind])
 
-  return <RepositoryProvidersView fetching={fetching} providers={providers} />
-}
+  const resolver = React.useMemo(() => {
+    // todo also return pageInfo for pagination
+    switch (kind) {
+      case RepositoryKind.Github:
+        return (res: ListGithubRepositoriesQuery) =>
+          res?.githubRepositories?.edges
+      case RepositoryKind.GithubSelfHosted:
+        return (res: ListGithubSelfHostedRepositoryProvidersQuery) =>
+          res?.githubSelfHostedRepositoryProviders?.edges
+      case RepositoryKind.Gitlab:
+        return (res: ListGitlabRepositoriesQuery) =>
+          res?.gitlabRepositories?.edges
+      case RepositoryKind.GitlabSelfHosted:
+        return (res: ListGitlabSelfHostedRepositoryProvidersQuery) =>
+          res?.gitlabSelfHostedRepositoryProviders?.edges
+      default:
+        return () => []
+    }
+  }, [kind]) as (response: any) => TProviderList
 
-function GitlabProviders() {
   const [{ data, fetching }] = useQuery({
-    query: listGitlabRepositoryProviders
+    query: query as any,
+    pause: !query
   })
-  const providers = data?.gitlabRepositoryProviders?.edges
+
+  const providers = resolver(data)
 
   return <RepositoryProvidersView fetching={fetching} providers={providers} />
 }
@@ -61,10 +100,12 @@ interface RepositoryProvidersViewProps {
           id: string
           displayName: string
           status: RepositoryProviderStatus
+          apiBase?: string
         }
       }>
     | undefined
 }
+
 function RepositoryProvidersView({
   fetching,
   providers
@@ -124,13 +165,10 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
 }
 
 const CreateRepositoryProvider = () => {
-  const kind = useRepositoryKind()
+  const params = useParams()
   return (
     <div className="mt-4 flex justify-end">
-      <Link
-        href={`./${kind.toLocaleLowerCase()}/new`}
-        className={buttonVariants()}
-      >
+      <Link href={`./${params.kind}/new`} className={buttonVariants()}>
         Create
       </Link>
     </div>
@@ -149,13 +187,13 @@ function toStatusMessage(status: RepositoryProviderStatus) {
 }
 
 const GitProvidersPlaceholder = () => {
-  const kind = useRepositoryKind()
+  const params = useParams()
   return (
     <div className="flex flex-col items-center gap-4 rounded-lg border-4 border-dashed py-8">
       <div>No Data</div>
       <div className="flex justify-center">
         <Link
-          href={`./${kind.toLocaleLowerCase()}/new`}
+          href={`./${params.kind}/new`}
           className={buttonVariants({ variant: 'default' })}
         >
           Create

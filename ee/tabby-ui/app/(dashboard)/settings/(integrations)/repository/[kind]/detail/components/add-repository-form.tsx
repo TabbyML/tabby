@@ -7,7 +7,11 @@ import * as z from 'zod'
 
 import {
   RepositoryKind,
-  RepositoryProviderStatus
+  RepositoryProviderStatus,
+  UpdateGithubProvidedRepositoryActiveMutation,
+  UpdateGithubSelfHostedProvidedRepositoryActiveMutation,
+  UpdateGitlabProvidedRepositoryActiveMutation,
+  UpdateGitlabSelfHostedProvidedRepositoryActiveMutation
 } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
@@ -40,8 +44,11 @@ import {
 
 import {
   updateGithubProvidedRepositoryActiveMutation,
-  updateGitlabProvidedRepositoryActiveMutation
+  updateGitlabProvidedRepositoryActiveMutation,
+  updateGithubSelfHostedProvidedRepositoryActiveMutation,
+  updateGitlabSelfHostedProvidedRepositoryActiveMutation
 } from '../query'
+import { TypedDocumentNode } from 'urql'
 
 const formSchema = z.object({
   id: z.string()
@@ -96,15 +103,38 @@ export default function AddRepositoryForm({
     }
   }, [providerStatus])
 
-  const updateGithubProvidedRepositoryActive = useMutation(
-    updateGithubProvidedRepositoryActiveMutation,
-    {
-      form
+  const { mutation, resolver } = React.useMemo(() => {
+    switch (kind) {
+      case RepositoryKind.Github:
+        return {
+          mutation: updateGithubProvidedRepositoryActiveMutation,
+          resolver: (res?: UpdateGithubProvidedRepositoryActiveMutation) => res?.updateGithubProvidedRepositoryActive
+        }
+      case RepositoryKind.GithubSelfHosted:
+        return {
+          mutation: updateGithubSelfHostedProvidedRepositoryActiveMutation,
+          resolver: (res?: UpdateGithubSelfHostedProvidedRepositoryActiveMutation) => res?.updateGithubSelfHostedProvidedRepositoryActive
+        }
+      case RepositoryKind.Gitlab:
+        return {
+          mutation: updateGitlabProvidedRepositoryActiveMutation,
+          resolver: (res?: UpdateGitlabProvidedRepositoryActiveMutation) => res?.updateGitlabProvidedRepositoryActive
+        }
+      case RepositoryKind.GitlabSelfHosted:
+        return {
+          mutation: updateGitlabSelfHostedProvidedRepositoryActiveMutation,
+          resolver: (res?: UpdateGitlabSelfHostedProvidedRepositoryActiveMutation) => res?.updateGitlabSelfHostedProvidedRepositoryActive
+        }
+      default:
+        return {}
     }
-  )
+  }, [kind]) as {
+    mutation: TypedDocumentNode<any, any>
+    resolver: (data?: Record<string, boolean>) => boolean | undefined
+  }
 
-  const updateGitlabProvidedRepositoryActive = useMutation(
-    updateGitlabProvidedRepositoryActiveMutation,
+  const updateProvidedRepositoryActive = useMutation(
+    mutation,
     {
       form
     }
@@ -113,29 +143,15 @@ export default function AddRepositoryForm({
   const onSubmit = (values: ActivateRepositoryFormValues) => {
     const id = values.id
 
-    if (kind === RepositoryKind.Github) {
-      return updateGithubProvidedRepositoryActive({
-        id: values.id,
-        active: true
-      }).then(res => {
-        if (res?.data?.updateGithubProvidedRepositoryActive) {
-          form.reset({ id: undefined })
-          onCreated?.(id)
-        }
-      })
-    }
-
-    if (kind === RepositoryKind.Gitlab) {
-      return updateGitlabProvidedRepositoryActive({
-        id: values.id,
-        active: true
-      }).then(res => {
-        if (res?.data?.updateGitlabProvidedRepositoryActive) {
-          form.reset({ id: undefined })
-          onCreated?.(id)
-        }
-      })
-    }
+    return updateProvidedRepositoryActive({
+      id: values.id,
+      active: true
+    }).then(res => {
+      if (resolver?.(res?.data)) {
+        form.reset({ id: undefined })
+        onCreated?.(id)
+      }
+    })
   }
 
   const scrollCommandListToTop = () => {
