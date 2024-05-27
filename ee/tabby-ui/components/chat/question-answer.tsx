@@ -111,7 +111,7 @@ function UserMessageCard(props: { message: UserMessage }) {
         <UserAvatar
           className="h-8 w-8"
           fallback={
-            <div className="w-8 h-8 flex justify-center items-center">
+            <div className="flex h-8 w-8 items-center justify-center">
               <IconUser className="h-5 w-5" />
             </div>
           }
