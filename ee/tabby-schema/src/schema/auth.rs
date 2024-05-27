@@ -363,7 +363,7 @@ pub trait AuthenticationService: Send + Sync {
         email: String,
         password1: String,
         invitation_code: Option<String>,
-        name: Option<String>
+        name: Option<String>,
     ) -> Result<RegisterResponse>;
     async fn allow_self_signup(&self) -> Result<bool>;
 

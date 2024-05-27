@@ -61,7 +61,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         email: String,
         password: String,
         invitation_code: Option<String>,
-        name: Option<String>
+        name: Option<String>,
     ) -> Result<RegisterResponse> {
         let is_admin_initialized = self.is_admin_initialized().await?;
         if is_admin_initialized && is_demo_mode() {
@@ -91,7 +91,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
                 .await?
         } else {
             self.db
-                .create_user(email.clone(), Some(pwd_hash), !is_admin_initialized, name.clone())
+                .create_user(
+                    email.clone(),
+                    Some(pwd_hash),
+                    !is_admin_initialized,
+                    name.clone(),
+                )
                 .await?
         };
 
@@ -737,7 +742,12 @@ mod tests {
 
     async fn register_admin_user(service: &AuthenticationServiceImpl) -> RegisterResponse {
         service
-            .register(ADMIN_EMAIL.to_owned(), ADMIN_PASSWORD.to_owned(), None, None)
+            .register(
+                ADMIN_EMAIL.to_owned(),
+                ADMIN_PASSWORD.to_owned(),
+                None,
+                None,
+            )
             .await
             .unwrap()
     }

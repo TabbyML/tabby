@@ -834,7 +834,7 @@ impl Mutation {
         password1: String,
         password2: String,
         invitation_code: Option<String>,
-        name: String
+        name: String,
     ) -> Result<RegisterResponse> {
         let input = auth::RegisterInput {
             email,
