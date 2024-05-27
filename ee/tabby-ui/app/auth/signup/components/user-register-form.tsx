@@ -30,7 +30,7 @@ import {
 
 export const registerUser = graphql(/* GraphQL */ `
   mutation register(
-    $name: String
+    $name: String!
     $email: String!
     $password1: String!
     $password2: String!
@@ -50,7 +50,7 @@ export const registerUser = graphql(/* GraphQL */ `
 `)
 
 const formSchema = z.object({
-  name: z.string().optional(),
+  name: z.string(),
   email: z.string().email('Invalid email address'),
   password1: z.string(),
   password2: z.string(),
