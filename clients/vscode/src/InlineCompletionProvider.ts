@@ -89,7 +89,10 @@ export class InlineCompletionProvider extends EventEmitter implements InlineComp
       textDocument: {
         uri: document.uri.toString(),
       },
-      position,
+      position: {
+        line: position.line,
+        character: position.character,
+      },
     };
     let request: Promise<InlineCompletionList | null> | undefined = undefined;
     try {

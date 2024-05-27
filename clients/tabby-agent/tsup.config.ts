@@ -84,6 +84,7 @@ export default defineConfig(async () => {
       outDir: "dist/browser",
       platform: "browser",
       format: "esm",
+      treeshake: "smallest", // Required for browser to cleanup fs related libs
       sourcemap: true,
       banner: {
         js: banner,

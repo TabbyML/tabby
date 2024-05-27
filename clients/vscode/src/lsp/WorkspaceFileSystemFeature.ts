@@ -28,7 +28,7 @@ export class WorkspaceFileSystemFeature implements StaticFeature {
 
   initialize(): void {
     this.disposables.push(
-      this.client.onRequest(ReadFileRequest.method, async (params: ReadFileParams) => {
+      this.client.onRequest(ReadFileRequest.type, async (params: ReadFileParams) => {
         if (params.format !== "text") {
           return null;
         }

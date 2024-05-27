@@ -24,10 +24,8 @@ export class ChatViewProvider implements WebviewViewProvider {
       enableScripts: true,
       localResourceRoots: [extensionUri],
     };
-    console.log("resolveWebviewView", { config: this.config.server });
     webviewView.webview.html = this._getWebviewContent(this.config.server);
     this.config.on("updatedServerConfig", () => {
-      console.log("updatedServerConfig", { config: this.config.server });
       webviewView.webview.html = this._getWebviewContent(this.config.server);
     });
 
