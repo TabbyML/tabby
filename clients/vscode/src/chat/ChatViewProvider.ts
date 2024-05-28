@@ -101,14 +101,12 @@ export class ChatViewProvider implements WebviewViewProvider {
         <html lang="en">
           <head>
             <meta charset="UTF-8" />
-            <title>Tabby</title>
           </head>
           <body>
-            <h2>The chat panel is not available:</h2>
+            <h2>Tabby is not available</h2>
             <ul>
-              <li>Update to <a href="https://github.com/TabbyML/tabby/releases" target="_blank"> the latest version of Tabby server.</a> </li>
-              <li>You have to launch the server with the chat model enabled, for example, <code>--chat-model CodeQwen-7B-Chat</code>. </li>
-              <li>The webserver feature needs to be enabled; do not use <code>--no-webserver</code>. </li>
+             <li>Please update to <a href="https://github.com/TabbyML/tabby/releases" target="_blank">the latest version</a> of the Tabby server.</li>
+             <li>You also need to launch the server with the chat model enabled; for example, use <code>--chat-model Mistral-7B</code>.</li>
             </ul>
           </body>
         </html>
