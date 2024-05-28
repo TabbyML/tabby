@@ -7,6 +7,10 @@ import {
 import fetcher from '@/lib/tabby/fetcher'
 import { ResolveEntriesResponse, TFile } from '@/lib/types'
 
+function getProviderVariantFromKind(kind: RepositoryKind) {
+  return kind.toLowerCase().replaceAll('_', '')
+}
+
 function resolveRepositoryInfoFromPath(path: string | undefined): {
   repositoryKind?: RepositoryKind
   repositoryName?: string
@@ -32,19 +36,36 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
       basename: pathSegments.slice(2).join('/'),
       repositorySpecifier: `git/${repositoryName}`
     }
-  } else if (['github', 'gitlab'].includes(repositoryKindStr)) {
+  } else if (
+    ['github', 'gitlab', 'githubselfhosted', 'gitlabselfhosted'].includes(
+      repositoryKindStr
+    )
+  ) {
     if (pathSegments.length < 3) return emptyResult
-    const kind =
-      repositoryKindStr === 'github'
-        ? RepositoryKind.Github
-        : RepositoryKind.Gitlab
+    let kind: RepositoryKind = RepositoryKind.Github
+    switch (repositoryKindStr) {
+      case 'github':
+        kind = RepositoryKind.Github
+        break
+      case 'gitlab':
+        kind = RepositoryKind.Gitlab
+        break
+      case 'githubselfhosted':
+        kind = RepositoryKind.GithubSelfHosted
+        break
+      case 'gitlabselfhosted':
+        kind = RepositoryKind.GitlabSelfHosted
+        break
+    }
     const repositoryName = [pathSegments[1], pathSegments[2]].join('/')
 
     return {
       repositoryKind: kind,
       repositoryName,
       basename: pathSegments.slice(3).join('/'),
-      repositorySpecifier: `${kind.toLowerCase()}/${repositoryName}`
+      repositorySpecifier: `${getProviderVariantFromKind(
+        kind
+      )}/${repositoryName}`
     }
   }
   return emptyResult
@@ -87,7 +108,7 @@ async function fetchEntriesFromPath(
       dir => () =>
         fetcher(
           encodeURIComponentIgnoringSlash(
-            `/repositories/${repository.kind.toLowerCase()}/${
+            `/repositories/${getProviderVariantFromKind(repository.kind)}/${
               repository.id
             }/resolve/${dir}`
           )
@@ -109,14 +130,14 @@ function resolveRepoSpecifierFromRepoInfo(
     | undefined
 ) {
   if (repo?.kind && repo?.name) {
-    return `${repo.kind.toLowerCase()}/${repo.name}`
+    return `${getProviderVariantFromKind(repo.kind)}/${repo.name}`
   }
 
   return undefined
 }
 
 function repositoryList2Map(repos: RepositoryListQuery['repositoryList']) {
-  return keyBy(repos, o => `${o.kind.toLowerCase()}/${o.name}`)
+  return keyBy(repos, o => `${getProviderVariantFromKind(o.kind)}/${o.name}`)
 }
 
 function encodeURIComponentIgnoringSlash(str: string) {
@@ -133,5 +154,6 @@ export {
   fetchEntriesFromPath,
   resolveRepositoryInfoFromPath,
   repositoryList2Map,
-  encodeURIComponentIgnoringSlash
+  encodeURIComponentIgnoringSlash,
+  getProviderVariantFromKind
 }

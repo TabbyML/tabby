@@ -38,6 +38,7 @@ import {
   encodeURIComponentIgnoringSlash,
   fetchEntriesFromPath,
   getDirectoriesFromBasename,
+  getProviderVariantFromKind,
   repositoryList2Map,
   resolveFileNameFromPath,
   resolveRepositoryInfoFromPath,
@@ -227,6 +228,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     chatSideBarVisible,
     setChatSideBarVisible,
     setPendingEvent,
+    fileTreeData,
+    repoMap,
     setRepoMap,
     activeRepo
   } = React.useContext(SourceCodeBrowserContext)
@@ -241,7 +244,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     const repoId = activeRepo?.id
     const kind = activeRepo?.kind
     if (!repoId || !kind) return ''
-    return `${activeRepo.kind?.toLowerCase()}/${repoId}`
+    return `${getProviderVariantFromKind(kind)}/${repoId}`
   }, [activeRepo])
 
   const activeBasename = React.useMemo(() => {
@@ -433,6 +436,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       chatSideBarPanelRef.current?.collapse()
     }
   }, [chatSideBarVisible])
+
+  console.log('repoMap', repoMap, fileTreeData)
 
   return (
     <ResizablePanelGroup

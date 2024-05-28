@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
 import {
   encodeURIComponentIgnoringSlash,
+  getProviderVariantFromKind,
   resolveFileNameFromPath,
   resolveRepositoryInfoFromPath
 } from './utils'
@@ -246,7 +247,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
     const repoId = activeRepo?.id
     if (!kind || !repoId) return ''
 
-    return `${kind.toLowerCase()}/${repoId}`
+    return `${getProviderVariantFromKind(kind)}/${repoId}`
   }, [activeRepo])
 
   const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
