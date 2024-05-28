@@ -39,19 +39,21 @@ export interface ChatMessage {
   relevantContext?: Array<Context>
 }
 
-export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerApi {
+export function createClient(target: HTMLIFrameElement, api: ClientApi, signal?: AbortSignal): ServerApi {
   return createThreadFromIframe(target, {
     expose: {
       navigate: api.navigate,
     },
+    signal
   })
 }
 
-export function createServer(api: ServerApi): ClientApi {
+export function createServer(api: ServerApi, signal?: AbortSignal): ClientApi {
   return createThreadFromInsideIframe({
     expose: {
       init: api.init,
       sendMessage: api.sendMessage,
     },
+    signal
   })
 }

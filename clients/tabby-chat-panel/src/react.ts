@@ -6,12 +6,14 @@ import { createClient, createServer } from './index'
 
 function useClient(iframeRef: RefObject<HTMLIFrameElement>, api: ClientApi) {
   const [client, setClient] = useState<ServerApi | null>(null)
-  let isCreated = false
+  let abortController: AbortController
 
   useEffect(() => {
-    if (iframeRef.current && !isCreated) {
-      isCreated = true
-      setClient(createClient(iframeRef.current, api))
+    if (iframeRef.current) {
+      console.log('client abortController', abortController)
+      abortController?.abort()
+      setClient(createClient(iframeRef.current, api, abortController?.signal))
+      abortController = new AbortController()
     }
   }, [iframeRef.current])
 
@@ -20,13 +22,15 @@ function useClient(iframeRef: RefObject<HTMLIFrameElement>, api: ClientApi) {
 
 function useServer(api: ServerApi) {
   const [server, setServer] = useState<ClientApi | null>(null)
-  let isCreated = false
+  let abortController: AbortController
 
   useEffect(() => {
     const isInIframe = window.self !== window.top
-    if (isInIframe && !isCreated) {
-      isCreated = true
-      setServer(createServer(api))
+    if (isInIframe) {
+      console.log('server abortController', abortController)
+      abortController?.abort()
+      setServer(createServer(api, abortController?.signal))
+      abortController = new AbortController()
     }
   }, [])
 
