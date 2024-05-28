@@ -113,7 +113,8 @@ interface ChatProps extends React.ComponentProps<'div'> {
   container?: HTMLDivElement
   docQuery?: boolean
   generateRelevantQuestions?: boolean
-  maxWidth?: string
+  maxWidth?: string,
+  welcomeMessage?: string
 }
 
 function ChatRenderer(
@@ -130,7 +131,8 @@ function ChatRenderer(
     fetcher,
     docQuery,
     generateRelevantQuestions,
-    maxWidth
+    maxWidth,
+    welcomeMessage
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -387,6 +389,7 @@ function ChatRenderer(
               <EmptyScreen
                 setInput={setInput}
                 chatMaxWidthClass={chatMaxWidthClass}
+                welcomeMessage={welcomeMessage}
               />
             )}
             <ChatScrollAnchor trackVisibility={isLoading} />
