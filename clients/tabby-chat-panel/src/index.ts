@@ -44,7 +44,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApi, signal?:
     expose: {
       navigate: api.navigate,
     },
-    signal
+    signal,
   })
 }
 
@@ -54,6 +54,6 @@ export function createServer(api: ServerApi, signal?: AbortSignal): ClientApi {
       init: api.init,
       sendMessage: api.sendMessage,
     },
-    signal
+    signal,
   })
 }

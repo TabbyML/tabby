@@ -10,7 +10,6 @@ function useClient(iframeRef: RefObject<HTMLIFrameElement>, api: ClientApi) {
 
   useEffect(() => {
     if (iframeRef.current) {
-      console.log('client abortController', abortController)
       abortController?.abort()
       setClient(createClient(iframeRef.current, api, abortController?.signal))
       abortController = new AbortController()
@@ -27,7 +26,6 @@ function useServer(api: ServerApi) {
   useEffect(() => {
     const isInIframe = window.self !== window.top
     if (isInIframe) {
-      console.log('server abortController', abortController)
       abortController?.abort()
       setServer(createServer(api, abortController?.signal))
       abortController = new AbortController()
