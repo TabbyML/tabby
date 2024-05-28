@@ -1060,7 +1060,7 @@ impl Mutation {
             .integration()
             .update_integration(
                 input.id,
-                IntegrationKind::Github,
+                IntegrationKind::GithubSelfHosted,
                 input.display_name,
                 input.access_token,
                 input.api_base,
@@ -1161,7 +1161,7 @@ impl Mutation {
             .integration()
             .update_integration(
                 input.id,
-                IntegrationKind::Gitlab,
+                IntegrationKind::GitlabSelfHosted,
                 input.display_name,
                 input.access_token,
                 input.api_base,
