@@ -1,3 +1,9 @@
+## 1.6.3
+
+### Fixes
+
+- Fixed a bug that caused unexpected logging output and the generation of an `audit.json` file in the working directory.
+
 ## 1.6.2
 
 **stable**
