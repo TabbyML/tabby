@@ -14,10 +14,23 @@
       "preLaunchTask": "${defaultBuildTask}"
     },
     {
+      "name": "Run Web Extension ",
+      "type": "extensionHost",
+      "debugWebWorkerHost": true,
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--disable-extensions",
+        "--extensionDevelopmentKind=web"
+      ],
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "preLaunchTask": "${defaultBuildTask}"
+    },
+    {
       "name": "Run Web Extension in Browser",
       "type": "node",
       "request": "launch",
-      "runtimeExecutable": "yarn",
+      "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "vscode-test-web",
         "--extensionDevelopmentPath=${workspaceFolder}",

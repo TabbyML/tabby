@@ -224,6 +224,7 @@ type GithubRepositoryProvider {
   id: ID!
   displayName: String!
   status: RepositoryProviderStatus!
+  apiBase: String
 }
 
 type GithubRepositoryProviderConnection {
@@ -260,6 +261,7 @@ type GitlabRepositoryProvider {
   id: ID!
   displayName: String!
   status: RepositoryProviderStatus!
+  apiBase: String
 }
 
 type GitlabRepositoryProviderConnection {
@@ -425,7 +427,7 @@ type Query {
   githubRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GithubRepositoryProviderConnection!
   githubRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
   githubSelfHostedRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
-  gitlabSelfHostedRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
+  gitlabSelfHostedRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GitlabProvidedRepositoryConnection!
   gitlabRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
   gitlabSelfHostedRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
   githubSelfHostedRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!

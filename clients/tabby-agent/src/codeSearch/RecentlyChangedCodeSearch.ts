@@ -1,22 +1,25 @@
-import { Range, TextDocument, TextDocumentChangeEvent } from "vscode";
-import { getLogger } from "./logger";
+import { Range } from "vscode-languageserver";
+import { TextDocument, TextDocumentContentChangeEvent } from "vscode-languageserver-textdocument";
 import { CodeSearchEngine, ChunkingConfig, DocumentRange } from "./CodeSearchEngine";
+import { getLogger } from "../logger";
+import { unionRange, rangeInDocument } from "../utils/range";
 
-type TextChangeCroppingWindowConfig = {
+interface TextChangeCroppingWindowConfig {
   prefixLines: number;
   suffixLines: number;
-};
+}
 
-type TextChangeListenerConfig = {
+interface TextChangeListenerConfig {
   checkingChangesInterval: number;
   changesDebouncingInterval: number;
-};
+}
 
 export class RecentlyChangedCodeSearch {
   private readonly logger = getLogger("CodeSearch");
   private codeSearchEngine: CodeSearchEngine;
 
   private pendingDocumentRanges: DocumentRange[] = [];
+  /* @ts-expect-error noUnusedLocals */
   private indexingWorker: ReturnType<typeof setInterval>;
 
   private didChangeEventDebouncingCache = new Map<
@@ -37,45 +40,55 @@ export class RecentlyChangedCodeSearch {
     this.logger.trace("Created with config.", { config });
   }
 
-  handleDidChangeTextDocument(event: TextDocumentChangeEvent) {
+  handleDidChangeTextDocument(event: { document: TextDocument; contentChanges: TextDocumentContentChangeEvent[] }) {
     const { document, contentChanges } = event;
     if (contentChanges.length < 1) {
       return;
     }
-    const documentUriString = document.uri.toString();
     let ranges = [];
-    if (this.didChangeEventDebouncingCache.has(documentUriString)) {
-      const cache = this.didChangeEventDebouncingCache.get(documentUriString)!;
-      ranges.push(cache.documentRange.range);
-      clearTimeout(cache.timer);
+    if (this.didChangeEventDebouncingCache.has(document.uri)) {
+      const cache = this.didChangeEventDebouncingCache.get(document.uri);
+      if (cache) {
+        ranges.push(cache.documentRange.range);
+        clearTimeout(cache.timer);
+      }
     }
     ranges = ranges.concat(
-      contentChanges.map(
-        (change) =>
-          new Range(
-            document.positionAt(change.rangeOffset),
-            document.positionAt(change.rangeOffset + change.text.length),
-          ),
-      ),
+      contentChanges
+        .map((change) =>
+          "range" in change
+            ? {
+                start: change.range.start,
+                end: document.positionAt(document.offsetAt(change.range.start) + change.text.length),
+              }
+            : null,
+        )
+        .filter((range): range is Range => range !== null),
     );
-    const mergedEditedRange = ranges.reduce((a, b) => a.union(b));
+    const mergedEditedRange = ranges.reduce((a, b) => unionRange(a, b));
     // Expand the range to cropping window
-    const targetRange = document.validateRange(
-      new Range(
-        Math.max(0, mergedEditedRange.start.line - this.config.prefixLines),
-        0,
-        Math.min(document.lineCount, mergedEditedRange.end.line + this.config.suffixLines + 1),
-        0,
-      ),
-    );
+    const expand: Range = {
+      start: {
+        line: Math.max(0, mergedEditedRange.start.line - this.config.prefixLines),
+        character: 0,
+      },
+      end: {
+        line: Math.min(document.lineCount, mergedEditedRange.end.line + this.config.suffixLines + 1),
+        character: 0,
+      },
+    };
+    const targetRange = rangeInDocument(expand, document);
+    if (targetRange === null) {
+      return;
+    }
     const documentRange = { document, range: targetRange };
     // A debouncing to avoid indexing the same document multiple times in a short time
-    this.didChangeEventDebouncingCache.set(documentUriString, {
+    this.didChangeEventDebouncingCache.set(document.uri, {
       documentRange,
       timer: setTimeout(() => {
         this.pendingDocumentRanges.push(documentRange);
-        this.didChangeEventDebouncingCache.delete(documentUriString);
-        this.logger.trace("Created indexing task:", { path: documentUriString, range: targetRange });
+        this.didChangeEventDebouncingCache.delete(document.uri);
+        this.logger.trace("Created indexing task:", { documentRange });
       }, this.config.changesDebouncingInterval),
     });
   }
