@@ -318,7 +318,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<repository::GithubProvidedRepository>> {
+    ) -> Result<Connection<repository::GitlabProvidedRepository>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,

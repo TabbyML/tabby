@@ -329,6 +329,7 @@ export const listGithubSelfHostedRepositoryProviders = graphql(/* GraphQL */ `
           id
           displayName
           status
+          apiBase
         }
         cursor
       }
@@ -362,6 +363,7 @@ export const listGitlabSelfHostedRepositoryProviders = graphql(/* GraphQL */ `
           id
           displayName
           status
+          apiBase
         }
         cursor
       }

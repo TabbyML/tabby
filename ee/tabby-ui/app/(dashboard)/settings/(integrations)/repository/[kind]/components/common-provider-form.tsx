@@ -203,7 +203,7 @@ export function CommonProviderForm<T extends boolean>({
             name="accessToken"
             render={({ field }) => (
               <FormItem>
-                <FormLabel required>Personal Access Token</FormLabel>
+                <FormLabel required={isNew}>Personal Access Token</FormLabel>
                 <FormDescription>
                   <AccessTokenDescription />
                 </FormDescription>
