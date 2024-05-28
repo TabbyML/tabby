@@ -234,6 +234,8 @@ export class Commands {
           filePath = filePath.replace(workspaceFolder.uri.toString(), "");
         }
 
+        commands.executeCommand("tabby.chatView.focus");
+
         this.chatViewProvider.sendMessage({
           message: "Explain the selected code:",
           selectContext: {
