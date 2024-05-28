@@ -181,7 +181,8 @@ export function CommonProviderForm<T extends boolean>({
                 <FormItem>
                   <FormLabel required>Instance URL</FormLabel>
                   <FormDescription>
-                  The VCS instance URL. Make sure this instance and Tabby are network reachable from each other.
+                    The VCS instance URL. Make sure this instance and Tabby are
+                    network reachable from each other.
                   </FormDescription>
                   <FormControl>
                     <Input
@@ -304,7 +305,10 @@ export function useRepositoryProviderForm<T extends boolean>(
 function AccessTokenDescription() {
   const kind = useRepositoryKind()
 
-  if (kind === RepositoryKind.Github || kind === RepositoryKind.GithubSelfHosted) {
+  if (
+    kind === RepositoryKind.Github ||
+    kind === RepositoryKind.GithubSelfHosted
+  ) {
     return (
       <>
         <div>
@@ -320,7 +324,10 @@ function AccessTokenDescription() {
     )
   }
 
-  if (kind === RepositoryKind.Gitlab || kind === RepositoryKind.GitlabSelfHosted) {
+  if (
+    kind === RepositoryKind.Gitlab ||
+    kind === RepositoryKind.GitlabSelfHosted
+  ) {
     return (
       <>
         <div>

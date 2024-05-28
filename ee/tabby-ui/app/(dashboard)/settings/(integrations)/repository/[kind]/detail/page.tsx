@@ -1,5 +1,5 @@
 import { PROVIDER_KIND_METAS } from '../../constants'
-import ProviderDetail from './components/detail-page'
+import ProviderDetail from './components/provider-detail'
 
 export function generateStaticParams() {
   return PROVIDER_KIND_METAS.map(item => ({ kind: item.name }))

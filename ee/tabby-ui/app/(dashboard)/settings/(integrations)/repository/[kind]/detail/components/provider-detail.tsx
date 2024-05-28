@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { useQuery } from 'urql'
+import { TypedDocumentNode, useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import {
@@ -20,7 +20,13 @@ import {
 } from '@/lib/tabby/gql'
 import {
   listGithubRepositories,
-  listGithubRepositoryProviders
+  listGithubRepositoryProviders,
+  listGithubSelfHostedRepositories,
+  listGithubSelfHostedRepositoryProviders,
+  listGitlabRepositories,
+  listGitlabRepositoryProviders,
+  listGitlabSelfHostedRepositories,
+  listGitlabSelfHostedRepositoryProviders
 } from '@/lib/tabby/query'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -51,9 +57,15 @@ import {
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
-import { updateGithubProvidedRepositoryActiveMutation } from '../query'
+import {
+  updateGithubProvidedRepositoryActiveMutation,
+  updateGithubSelfHostedProvidedRepositoryActiveMutation,
+  updateGitlabProvidedRepositoryActiveMutation,
+  updateGitlabSelfHostedProvidedRepositoryActiveMutation
+} from '../query'
 import AddRepositoryForm from './add-repository-form'
-import { UpdateProviderForm } from './update-github-provider-form'
+import { UpdateProviderForm } from './update-provider-form'
+import { useRepositoryKind } from '../../hooks/use-repository-kind'
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
@@ -61,16 +73,73 @@ type GithubRepositories = QueryResponseData<
   typeof listGithubRepositories
 >['githubRepositories']['edges']
 
-const GithubProviderDetail: React.FC = () => {
+type TProviderList =
+  | Array<{
+      node: {
+        id: string
+        displayName: string
+        status: RepositoryProviderStatus
+        apiBase?: string
+      }
+    }>
+  | undefined
+
+const ProviderDetail: React.FC = () => {
   const searchParams = useSearchParams()
+  const kind = useRepositoryKind()
   const router = useRouter()
   const id = searchParams.get('id')?.toString() ?? ''
+
+  const { query, resolver } = React.useMemo(() => {
+    switch (kind) {
+      case RepositoryKind.Github:
+        return {
+          query: listGithubRepositoryProviders,
+          resolver: (
+            res: QueryResponseData<typeof listGithubRepositoryProviders>
+          ) => res?.githubRepositoryProviders?.edges
+        }
+      case RepositoryKind.GithubSelfHosted:
+        return {
+          query: listGithubSelfHostedRepositoryProviders,
+          resolver: (
+            res?: QueryResponseData<
+              typeof listGithubSelfHostedRepositoryProviders
+            >
+          ) => res?.githubSelfHostedRepositoryProviders?.edges
+        }
+      case RepositoryKind.Gitlab:
+        return {
+          query: listGitlabRepositoryProviders,
+          resolver: (
+            res: QueryResponseData<typeof listGitlabRepositoryProviders>
+          ) => res?.gitlabRepositoryProviders?.edges
+        }
+      case RepositoryKind.GitlabSelfHosted:
+        return {
+          query: listGitlabSelfHostedRepositoryProviders,
+          resolver: (
+            res?: QueryResponseData<
+              typeof listGitlabSelfHostedRepositoryProviders
+            >
+          ) => res?.gitlabSelfHostedRepositoryProviders?.edges
+        }
+      default:
+        return {
+          query: listGithubRepositoryProviders,
+          resolver: (
+            res?: QueryResponseData<typeof listGithubRepositoryProviders>
+          ) => res?.githubRepositoryProviders?.edges
+        }
+    }
+  }, [kind])
+
   const [{ data, fetching }, reexecuteQuery] = useQuery({
-    query: listGithubRepositoryProviders,
+    query: query as TypedDocumentNode<any, any>,
     variables: { ids: [id] },
     pause: !id
   })
-  const provider = data?.githubRepositoryProviders?.edges?.[0]?.node
+  const provider = resolver(data)?.[0]?.node
 
   const onDeleteProvider = () => {
     router.back()
@@ -114,12 +183,17 @@ const GithubProviderDetail: React.FC = () => {
             onDelete={onDeleteProvider}
             onUpdate={onUpdateProvider}
             id={id}
+            kind={kind}
           />
         </LoadingWrapper>
       </CardContent>
 
       <div className="p-4">
-        <ActiveRepoTable providerStatus={provider?.status} providerId={id} />
+        <ActiveRepoTable
+          kind={kind}
+          providerStatus={provider?.status}
+          providerId={id}
+        />
       </div>
     </LoadingWrapper>
   )
@@ -139,18 +213,84 @@ function toStatusBadge(status: RepositoryProviderStatus) {
 const ActiveRepoTable: React.FC<{
   providerId: string
   providerStatus: RepositoryProviderStatus | undefined
-}> = ({ providerStatus, providerId }) => {
+  kind: RepositoryKind
+}> = ({ providerStatus, providerId, kind }) => {
+  const { query, resolver, updateQuery, updateResolver } = React.useMemo(() => {
+    switch (kind) {
+      case RepositoryKind.Github:
+        return {
+          query: listGithubRepositories,
+          updateQuery: updateGithubProvidedRepositoryActiveMutation,
+          resolver: (res?: QueryResponseData<typeof listGithubRepositories>) =>
+            res?.githubRepositories,
+          updateResolver: (
+            res?: QueryResponseData<
+              typeof updateGithubProvidedRepositoryActiveMutation
+            >
+          ) => res?.updateGithubProvidedRepositoryActive
+        }
+      case RepositoryKind.GithubSelfHosted:
+        return {
+          query: listGithubSelfHostedRepositories,
+          updateQuery: updateGithubSelfHostedProvidedRepositoryActiveMutation,
+          resolver: (
+            res?: QueryResponseData<typeof listGithubSelfHostedRepositories>
+          ) => res?.githubSelfHostedRepositories,
+          updateResolver: (
+            res?: QueryResponseData<
+              typeof updateGithubSelfHostedProvidedRepositoryActiveMutation
+            >
+          ) => res?.updateGithubSelfHostedProvidedRepositoryActive
+        }
+      case RepositoryKind.Gitlab:
+        return {
+          query: listGitlabRepositories,
+          updateQuery: updateGitlabProvidedRepositoryActiveMutation,
+          resolver: (res?: QueryResponseData<typeof listGitlabRepositories>) =>
+            res?.gitlabRepositories,
+          updateResolver: (
+            res?: QueryResponseData<
+              typeof updateGithubSelfHostedProvidedRepositoryActiveMutation
+            >
+          ) => res?.updateGithubSelfHostedProvidedRepositoryActive
+        }
+      case RepositoryKind.GitlabSelfHosted:
+        return {
+          query: listGitlabSelfHostedRepositories,
+          updateQuery: updateGitlabSelfHostedProvidedRepositoryActiveMutation,
+          resolver: (
+            res?: QueryResponseData<typeof listGitlabSelfHostedRepositories>
+          ) => res?.gitlabSelfHostedRepositories,
+          updateResolver: (
+            res?: QueryResponseData<
+              typeof updateGitlabSelfHostedProvidedRepositoryActiveMutation
+            >
+          ) => res?.updateGitlabSelfHostedProvidedRepositoryActive
+        }
+      default:
+        return {
+          query: listGithubRepositories,
+          updateQuery: updateGithubProvidedRepositoryActiveMutation,
+          resolver: (res?: QueryResponseData<typeof listGithubRepositories>) =>
+            res?.githubRepositories,
+          updateResolver: (
+            res?: QueryResponseData<
+              typeof updateGithubProvidedRepositoryActiveMutation
+            >
+          ) => res?.updateGithubProvidedRepositoryActive
+        }
+    }
+  }, [kind])
+
   const [page, setPage] = React.useState(1)
   const {
     repositories: inactiveRepositories,
     setRepositories: setInactiveRepositories,
     isAllLoaded: isInactiveRepositoriesLoaded
-  } = useAllInactiveRepositories(providerId)
+  } = useAllInactiveRepositories(providerId, query, resolver)
 
-  const fetchRepositories = (
-    variables: QueryVariables<typeof listGithubRepositories>
-  ) => {
-    return client.query(listGithubRepositories, variables).toPromise()
+  const fetchRepositories = (variables: QueryVariables<typeof query>) => {
+    return client.query(query, variables).toPromise()
   }
 
   const fetchRepositoriesSequentially = async (
@@ -163,7 +303,8 @@ const ActiveRepoTable: React.FC<{
       after: cursor,
       active: true
     })
-    const _pageInfo = res?.data?.githubRepositories?.pageInfo
+    const responseData = resolver(res?.data)
+    const _pageInfo = responseData?.pageInfo
     if (page - 1 > 0 && _pageInfo?.hasNextPage && _pageInfo?.endCursor) {
       return fetchRepositoriesSequentially(page - 1, _pageInfo.endCursor)
     } else {
@@ -172,31 +313,28 @@ const ActiveRepoTable: React.FC<{
   }
 
   const [activeRepositoriesResult, setActiveRepositoriesResult] =
-    React.useState<QueryResponseData<typeof listGithubRepositories>>()
+    React.useState<QueryResponseData<typeof query>>()
   const [fetching, setFetching] = React.useState(true)
   const [recentlyActivatedRepositories, setRecentlyActivatedRepositories] =
     React.useState<GithubRepositories>([])
-  const activeRepos = activeRepositoriesResult?.githubRepositories?.edges
-  const pageInfo = activeRepositoriesResult?.githubRepositories?.pageInfo
+  const activeRepos = resolver?.(activeRepositoriesResult)?.edges
+  const pageInfo = resolver?.(activeRepositoriesResult)?.pageInfo
 
-  const updateGithubProvidedRepositoryActive = useMutation(
-    updateGithubProvidedRepositoryActiveMutation,
-    {
-      onError(error) {
-        toast.error(error.message || 'Failed to delete')
-      }
+  const updateProvidedRepositoryActive = useMutation(updateQuery, {
+    onError(error) {
+      toast.error(error.message || 'Failed to delete')
     }
-  )
+  })
 
   const handleDelete = async (
     repo: GithubRepositories[0],
     isLastItem?: boolean
   ) => {
-    updateGithubProvidedRepositoryActive({
+    updateProvidedRepositoryActive({
       id: repo.node.id,
       active: false
     }).then(res => {
-      if (res?.data?.updateGithubProvidedRepositoryActive) {
+      if (updateResolver?.(res?.data)) {
         setInactiveRepositories(sortRepos([...inactiveRepositories, repo]))
         const nextPage = isLastItem ? page - 1 : page
         loadPage(nextPage || 1)
@@ -377,7 +515,11 @@ const ActiveRepoTable: React.FC<{
   )
 }
 
-function useAllInactiveRepositories(id: string) {
+function useAllInactiveRepositories(
+  id: string,
+  query: TypedDocumentNode<any, any>,
+  resolver: (res?: QueryResponseData<any>) => any
+) {
   const [queryVariables, setQueryVariables] = useState<
     QueryVariables<typeof listGithubRepositories>
   >({ providerIds: [id], first: PAGE_SIZE, active: false })
@@ -385,7 +527,7 @@ function useAllInactiveRepositories(id: string) {
   const [isAllLoaded, setIsAllLoaded] = useState(!id)
 
   const [{ data, fetching }] = useQuery({
-    query: listGithubRepositories,
+    query,
     variables: queryVariables,
     pause: !id
   })
@@ -393,9 +535,9 @@ function useAllInactiveRepositories(id: string) {
   useEffect(() => {
     if (isAllLoaded) return
     if (!fetching && data) {
-      const pageInfo = data?.githubRepositories?.pageInfo
+      const pageInfo = resolver(data)?.pageInfo
       const currentList = [...repositories]
-      setRepositories(currentList.concat(data?.githubRepositories?.edges))
+      setRepositories(currentList.concat(resolver(data)?.edges))
 
       if (pageInfo?.hasNextPage) {
         setQueryVariables({
@@ -417,4 +559,4 @@ function useAllInactiveRepositories(id: string) {
   }
 }
 
-export default GithubProviderDetail
+export default ProviderDetail

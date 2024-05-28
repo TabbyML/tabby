@@ -374,3 +374,78 @@ export const listGitlabSelfHostedRepositoryProviders = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const listGithubSelfHostedRepositories = graphql(/* GraphQL */ `
+  query ListGithubSelfHostedRepositories(
+    $providerIds: [ID!]!
+    $active: Boolean
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    githubSelfHostedRepositories(
+      providerIds: $providerIds
+      active: $active
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          vendorId
+          githubRepositoryProviderId
+          name
+          gitUrl
+          active
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
+
+export const listGitlabSelfHostedRepositories = graphql(/* GraphQL */ `
+  query ListGitlabSelfHostedRepositories(
+    $providerIds: [ID!]!
+    $active: Boolean
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    gitlabSelfHostedRepositories(
+      providerIds: $providerIds
+      active: $active
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          vendorId
+          name
+          gitUrl
+          active
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)

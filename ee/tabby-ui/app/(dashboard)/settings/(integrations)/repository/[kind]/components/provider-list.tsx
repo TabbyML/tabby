@@ -4,10 +4,6 @@ import Link from 'next/link'
 import { useQuery } from 'urql'
 
 import {
-  ListGithubRepositoriesQuery,
-  ListGithubSelfHostedRepositoryProvidersQuery,
-  ListGitlabRepositoriesQuery,
-  ListGitlabSelfHostedRepositoryProvidersQuery,
   RepositoryKind,
   RepositoryProviderStatus
 } from '@/lib/gql/generates/graphql'
@@ -21,9 +17,9 @@ import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import LoadingWrapper from '@/components/loading-wrapper'
 
-import { useRepositoryKind } from '../hooks/use-repository-kind'
 import React from 'react'
 import { useParams } from 'next/navigation'
+import { QueryResponseData } from '@/lib/tabby/gql'
 
 interface GitProvidersListProps {
   kind: RepositoryKind
@@ -44,7 +40,6 @@ export default function RepositoryProvidersPage({
   kind
 }: GitProvidersListProps) {
   return <ProviderList kind={kind} key={kind} />
-
   // return <div>404</div>
 }
 
@@ -66,17 +61,19 @@ function ProviderList({ kind }: GitProvidersListProps) {
     // todo also return pageInfo for pagination
     switch (kind) {
       case RepositoryKind.Github:
-        return (res: ListGithubRepositoriesQuery) =>
-          res?.githubRepositories?.edges
+        return (res: QueryResponseData<typeof listGithubRepositoryProviders>) =>
+          res?.githubRepositoryProviders?.edges
       case RepositoryKind.GithubSelfHosted:
-        return (res: ListGithubSelfHostedRepositoryProvidersQuery) =>
-          res?.githubSelfHostedRepositoryProviders?.edges
+        return (
+          res: QueryResponseData<typeof listGithubSelfHostedRepositoryProviders>
+        ) => res?.githubSelfHostedRepositoryProviders?.edges
       case RepositoryKind.Gitlab:
-        return (res: ListGitlabRepositoriesQuery) =>
-          res?.gitlabRepositories?.edges
+        return (res: QueryResponseData<typeof listGitlabRepositoryProviders>) =>
+          res?.gitlabRepositoryProviders?.edges
       case RepositoryKind.GitlabSelfHosted:
-        return (res: ListGitlabSelfHostedRepositoryProvidersQuery) =>
-          res?.gitlabSelfHostedRepositoryProviders?.edges
+        return (
+          res: QueryResponseData<typeof listGitlabSelfHostedRepositoryProviders>
+        ) => res?.gitlabSelfHostedRepositoryProviders?.edges
       default:
         return () => []
     }
@@ -128,7 +125,7 @@ interface GitProvidersTableProps {
   data: RepositoryProvidersViewProps['providers']
 }
 const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
-  const kind = useRepositoryKind()
+  const params = useParams()
   return (
     <div className="space-y-8">
       {data?.map(item => {
@@ -142,7 +139,7 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
                   </div>
                 </CardTitle>
                 <Link
-                  href={`${kind.toLocaleLowerCase()}/detail?id=${item.node.id}`}
+                  href={`${params.kind}/detail?id=${item.node.id}`}
                   className={buttonVariants({ variant: 'secondary' })}
                 >
                   View

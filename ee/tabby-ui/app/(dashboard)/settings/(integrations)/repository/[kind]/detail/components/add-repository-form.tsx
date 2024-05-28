@@ -7,13 +7,9 @@ import * as z from 'zod'
 
 import {
   RepositoryKind,
-  RepositoryProviderStatus,
-  UpdateGithubProvidedRepositoryActiveMutation,
-  UpdateGithubSelfHostedProvidedRepositoryActiveMutation,
-  UpdateGitlabProvidedRepositoryActiveMutation,
-  UpdateGitlabSelfHostedProvidedRepositoryActiveMutation
+  RepositoryProviderStatus
 } from '@/lib/gql/generates/graphql'
-import { useMutation } from '@/lib/tabby/gql'
+import { QueryResponseData, useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -108,22 +104,38 @@ export default function AddRepositoryForm({
       case RepositoryKind.Github:
         return {
           mutation: updateGithubProvidedRepositoryActiveMutation,
-          resolver: (res?: UpdateGithubProvidedRepositoryActiveMutation) => res?.updateGithubProvidedRepositoryActive
+          resolver: (
+            res?: QueryResponseData<
+              typeof updateGithubProvidedRepositoryActiveMutation
+            >
+          ) => res?.updateGithubProvidedRepositoryActive
         }
       case RepositoryKind.GithubSelfHosted:
         return {
           mutation: updateGithubSelfHostedProvidedRepositoryActiveMutation,
-          resolver: (res?: UpdateGithubSelfHostedProvidedRepositoryActiveMutation) => res?.updateGithubSelfHostedProvidedRepositoryActive
+          resolver: (
+            res?: QueryResponseData<
+              typeof updateGithubSelfHostedProvidedRepositoryActiveMutation
+            >
+          ) => res?.updateGithubSelfHostedProvidedRepositoryActive
         }
       case RepositoryKind.Gitlab:
         return {
           mutation: updateGitlabProvidedRepositoryActiveMutation,
-          resolver: (res?: UpdateGitlabProvidedRepositoryActiveMutation) => res?.updateGitlabProvidedRepositoryActive
+          resolver: (
+            res?: QueryResponseData<
+              typeof updateGitlabProvidedRepositoryActiveMutation
+            >
+          ) => res?.updateGitlabProvidedRepositoryActive
         }
       case RepositoryKind.GitlabSelfHosted:
         return {
           mutation: updateGitlabSelfHostedProvidedRepositoryActiveMutation,
-          resolver: (res?: UpdateGitlabSelfHostedProvidedRepositoryActiveMutation) => res?.updateGitlabSelfHostedProvidedRepositoryActive
+          resolver: (
+            res?: QueryResponseData<
+              typeof updateGitlabSelfHostedProvidedRepositoryActiveMutation
+            >
+          ) => res?.updateGitlabSelfHostedProvidedRepositoryActive
         }
       default:
         return {}
@@ -133,12 +145,9 @@ export default function AddRepositoryForm({
     resolver: (data?: Record<string, boolean>) => boolean | undefined
   }
 
-  const updateProvidedRepositoryActive = useMutation(
-    mutation,
-    {
-      form
-    }
-  )
+  const updateProvidedRepositoryActive = useMutation(mutation, {
+    form
+  })
 
   const onSubmit = (values: ActivateRepositoryFormValues) => {
     const id = values.id

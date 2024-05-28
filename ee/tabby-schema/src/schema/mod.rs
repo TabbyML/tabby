@@ -1004,7 +1004,7 @@ impl Mutation {
             .locator
             .integration()
             .create_integration(
-                IntegrationKind::Github,
+                IntegrationKind::GithubSelfHosted,
                 input.display_name,
                 input.access_token,
                 input.api_base,
@@ -1124,7 +1124,7 @@ impl Mutation {
             .locator
             .integration()
             .create_integration(
-                IntegrationKind::Gitlab,
+                IntegrationKind::GitlabSelfHosted,
                 input.display_name,
                 input.access_token,
                 input.api_base,
