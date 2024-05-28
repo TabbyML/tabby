@@ -42,7 +42,7 @@ name = "another_project"
 git_url = "https://<PAT>@github.com/icycodes/another_project.git"
 ```
 
-For more detailed about the configuration file, you can refer to the [configuration documentation](https://tabby.tabbyml.com/docs/extensions/configurations/).
+For more detailed about the configuration file, you can refer to the [configuration documentation](https://tabby.tabbyml.com/docs/configuration).
 
 **Note:** The URL format for GitLab repositories may vary, you can check the [official documentation](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#clone-repository-using-personal-access-token) for specific guidelines.
 
