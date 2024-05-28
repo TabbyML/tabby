@@ -157,6 +157,8 @@ pub struct GitlabRepositoryProvider {
 
     #[graphql(skip)]
     pub access_token: Option<String>,
+
+    pub api_base: Option<String>,
 }
 
 impl NodeType for GitlabRepositoryProvider {
@@ -185,6 +187,8 @@ pub struct GithubRepositoryProvider {
 
     #[graphql(skip)]
     pub access_token: Option<String>,
+
+    pub api_base: Option<String>,
 }
 
 impl NodeType for GithubRepositoryProvider {

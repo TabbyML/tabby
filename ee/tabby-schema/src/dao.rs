@@ -173,6 +173,7 @@ impl From<Integration> for GithubRepositoryProvider {
             display_name: value.display_name,
             status: value.status.into(),
             access_token: Some(value.access_token),
+            api_base: value.api_base,
         }
     }
 }
@@ -184,6 +185,7 @@ impl From<Integration> for GitlabRepositoryProvider {
             display_name: value.display_name,
             status: value.status.into(),
             access_token: Some(value.access_token),
+            api_base: value.api_base,
         }
     }
 }

@@ -308,3 +308,146 @@ export const listGitlabRepositories = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const listGithubSelfHostedRepositoryProviders = graphql(/* GraphQL */ `
+  query ListGithubSelfHostedRepositoryProviders(
+    $ids: [ID!]
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    githubSelfHostedRepositoryProviders(
+      ids: $ids
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          displayName
+          status
+          apiBase
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
+
+export const listGitlabSelfHostedRepositoryProviders = graphql(/* GraphQL */ `
+  query ListGitlabSelfHostedRepositoryProviders(
+    $ids: [ID!]
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    gitlabSelfHostedRepositoryProviders(
+      ids: $ids
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          displayName
+          status
+          apiBase
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
+
+export const listGithubSelfHostedRepositories = graphql(/* GraphQL */ `
+  query ListGithubSelfHostedRepositories(
+    $providerIds: [ID!]!
+    $active: Boolean
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    githubSelfHostedRepositories(
+      providerIds: $providerIds
+      active: $active
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          vendorId
+          githubRepositoryProviderId
+          name
+          gitUrl
+          active
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
+
+export const listGitlabSelfHostedRepositories = graphql(/* GraphQL */ `
+  query ListGitlabSelfHostedRepositories(
+    $providerIds: [ID!]!
+    $active: Boolean
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    gitlabSelfHostedRepositories(
+      providerIds: $providerIds
+      active: $active
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          vendorId
+          name
+          gitUrl
+          active
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)

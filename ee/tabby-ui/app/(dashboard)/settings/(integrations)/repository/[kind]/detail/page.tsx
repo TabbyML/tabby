@@ -1,8 +1,8 @@
-import { REPOSITORY_KIND_METAS } from '../constants'
-import ProviderDetail from './components/detail-page'
+import { PROVIDER_KIND_METAS } from '../../constants'
+import ProviderDetail from './components/provider-detail'
 
 export function generateStaticParams() {
-  return REPOSITORY_KIND_METAS.map(item => ({ kind: item.enum.toLowerCase() }))
+  return PROVIDER_KIND_METAS.map(item => ({ kind: item.name }))
 }
 
 export default function IndexPage() {

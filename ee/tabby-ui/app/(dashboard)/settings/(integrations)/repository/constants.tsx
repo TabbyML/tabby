@@ -1,10 +1,9 @@
 import { RepositoryKind } from '@/lib/gql/generates/graphql'
 
-export const REPOSITORY_KIND_METAS: Array<{
+export const PROVIDER_KIND_METAS: Array<{
   name: string
   enum: RepositoryKind
   meta: {
-    domain: string
     displayName: string
   }
 }> = [
@@ -12,16 +11,28 @@ export const REPOSITORY_KIND_METAS: Array<{
     name: 'github',
     enum: RepositoryKind.Github,
     meta: {
-      domain: 'github.com',
       displayName: 'GitHub'
+    }
+  },
+  {
+    name: 'github-self-hosted',
+    enum: RepositoryKind.GithubSelfHosted,
+    meta: {
+      displayName: 'GitHub Self-Hosted'
     }
   },
   {
     name: 'gitlab',
     enum: RepositoryKind.Gitlab,
     meta: {
-      domain: 'gitlab.com',
       displayName: 'GitLab'
+    }
+  },
+  {
+    name: 'gitlab-self-hosted',
+    enum: RepositoryKind.GitlabSelfHosted,
+    meta: {
+      displayName: 'GitLab Self-Hosted'
     }
   }
 ]
