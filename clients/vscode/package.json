@@ -276,9 +276,11 @@
     "vscode:publish": "vsce publish --no-dependencies"
   },
   "devDependencies": {
+    "@types/deep-equal": "^1.0.4",
     "@types/mocha": "^10.0.1",
     "@types/node": "18.x",
     "@types/object-hash": "^3.0.0",
+    "@types/semver": "^7.5.8",
     "@types/vscode": "^1.82.0",
     "@typescript-eslint/eslint-plugin": "^6.13.1",
     "@typescript-eslint/parser": "^6.13.1",
@@ -299,7 +301,9 @@
   },
   "dependencies": {
     "@quilted/threads": "^2.2.0",
+    "deep-equal": "^2.2.1",
     "object-hash": "^3.0.0",
+    "semver": "^7.6.0",
     "tabby-agent": "workspace:*",
     "tabby-chat-panel": "workspace:*",
     "vscode-languageclient": "^9.0.1"

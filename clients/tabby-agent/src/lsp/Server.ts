@@ -32,17 +32,14 @@ import {
   ServerCapabilities,
   DidChangeConfigurationParams,
   ClientProvidedConfig,
-  AgentServerConfigRequest,
-  AgentServerConfigSync,
-  DidChangeServerConfigParams,
-  ServerConfig,
+  AgentServerInfoRequest,
+  AgentServerInfoSync,
+  ServerInfo,
   AgentStatusRequest,
   AgentStatusSync,
-  DidChangeStatusParams,
   Status,
   AgentIssuesRequest,
   AgentIssuesSync,
-  DidUpdateIssueParams,
   IssueList,
   AgentIssueDetailRequest,
   IssueDetailParams,
@@ -112,10 +109,9 @@ export class Server {
   private clientInfo?: ClientInfo | undefined | null;
   private clientCapabilities?: ClientCapabilities | undefined | null;
   private clientProvidedConfig?: ClientProvidedConfig | undefined | null;
-  private serverConfig: ServerConfig;
+  private serverInfo?: ServerInfo | undefined | null;
 
   constructor(private readonly agent: Agent) {
-    this.serverConfig = agent.getConfig().server;
     // Lifecycle
     this.connection.onInitialize(async (params) => {
       return this.initialize(params);
@@ -133,8 +129,8 @@ export class Server {
       return this.exit();
     });
     // Agent
-    this.connection.onRequest(AgentServerConfigRequest.type, async () => {
-      return this.getServerConfig();
+    this.connection.onRequest(AgentServerInfoRequest.type, async () => {
+      return this.getServerInfo();
     });
     this.connection.onRequest(AgentStatusRequest.type, async () => {
       return this.getStatus();
@@ -247,49 +243,67 @@ export class Server {
       });
     }
 
-    if (this.clientCapabilities?.tabby?.agent) {
-      this.agent.on("configUpdated", (event: ConfigUpdatedEvent) => {
-        if (!deepEqual(event.config.server, this.serverConfig)) {
-          const params: DidChangeServerConfigParams = {
-            server: event.config.server,
-          };
-          this.connection.sendNotification(AgentServerConfigSync.type, params);
-          this.serverConfig = event.config.server;
+    this.serverInfo = {
+      config: agentConfig.server,
+      health: this.agent.getServerHealthState(),
+    };
+    this.agent.on("configUpdated", (event: ConfigUpdatedEvent) => {
+      const serverInfo = {
+        config: event.config.server,
+        health: this.agent.getServerHealthState(),
+      };
+      if (!deepEqual(serverInfo, this.serverInfo)) {
+        if (this.clientCapabilities?.tabby?.agent) {
+          this.connection.sendNotification(AgentServerInfoSync.type, { serverInfo });
         }
-      });
+        this.serverInfo = serverInfo;
+      }
+    });
 
-      this.agent.on("statusChanged", (event: StatusChangedEvent) => {
-        const params: DidChangeStatusParams = {
+    this.agent.on("statusChanged", (event: StatusChangedEvent) => {
+      if (this.clientCapabilities?.tabby?.agent) {
+        this.connection.sendNotification(AgentStatusSync.type, {
           status: event.status,
-        };
-        this.connection.sendNotification(AgentStatusSync.type, params);
+        });
+      }
 
-        if (this.agent.getServerHealthState()?.chat_model) {
-          this.connection.sendRequest(RegistrationRequest.type, {
-            registrations: [
-              {
-                id: ChatFeatureRegistration.type.method,
-                method: ChatFeatureRegistration.type.method,
-              },
-            ],
-          });
-        } else {
-          this.connection.sendRequest(UnregistrationRequest.type, {
-            unregisterations: [
-              {
-                id: ChatFeatureRegistration.type.method,
-                method: ChatFeatureRegistration.type.method,
-              },
-            ],
-          });
+      const health = this.agent.getServerHealthState();
+      const serverInfo = {
+        config: this.agent.getConfig().server,
+        health,
+      };
+      if (!deepEqual(serverInfo, this.serverInfo)) {
+        if (this.clientCapabilities?.tabby?.agent) {
+          this.connection.sendNotification(AgentServerInfoSync.type, { serverInfo });
         }
-      });
+        this.serverInfo = serverInfo;
+      }
+      if (health?.chat_model) {
+        this.connection.sendRequest(RegistrationRequest.type, {
+          registrations: [
+            {
+              id: ChatFeatureRegistration.type.method,
+              method: ChatFeatureRegistration.type.method,
+            },
+          ],
+        });
+      } else {
+        this.connection.sendRequest(UnregistrationRequest.type, {
+          unregisterations: [
+            {
+              id: ChatFeatureRegistration.type.method,
+              method: ChatFeatureRegistration.type.method,
+            },
+          ],
+        });
+      }
+    });
 
+    if (this.clientCapabilities?.tabby?.agent) {
       this.agent.on("issuesUpdated", (event: IssuesUpdatedEvent) => {
-        const params: DidUpdateIssueParams = {
+        this.connection.sendNotification(AgentIssuesSync.type, {
           issues: event.issues,
-        };
-        this.connection.sendNotification(AgentIssuesSync.type, params);
+        });
       });
     }
   }
@@ -354,13 +368,13 @@ export class Server {
     return process.exit(0);
   }
 
-  private async getServerConfig(): Promise<ServerConfig> {
-    const serverConfig = this.agent.getConfig().server;
-    return {
-      endpoint: serverConfig.endpoint,
-      token: serverConfig.token,
-      requestHeaders: serverConfig.requestHeaders,
-    };
+  private async getServerInfo(): Promise<ServerInfo> {
+    return (
+      this.serverInfo ?? {
+        config: this.agent.getConfig().server,
+        health: this.agent.getServerHealthState(),
+      }
+    );
   }
 
   private async getStatus(): Promise<Status> {
@@ -1047,7 +1061,6 @@ export class Server {
         "You can find a list of recommend models in the online documentation.\n";
     }
     let commonHelpMessage = "";
-    const host = new URL(this.serverConfig.endpoint).host;
     if (helpMessageForRunningLargeModelOnCPU.length == 0) {
       commonHelpMessage += ` - The running model ${
         serverHealthState?.model ?? ""
@@ -1055,6 +1068,7 @@ export class Server {
       commonHelpMessage +=
         "Please consider trying smaller models. You can find a list of recommend models in the online documentation.\n";
     }
+    const host = new URL(this.serverInfo?.config.endpoint ?? "http://localhost:8080").host;
     if (!(host.startsWith("localhost") || host.startsWith("127.0.0.1") || host.startsWith("0.0.0.0"))) {
       commonHelpMessage += " - A poor network connection. Please check your network and proxy settings.\n";
       commonHelpMessage += " - Server overload. Please contact your Tabby server administrator for assistance.\n";

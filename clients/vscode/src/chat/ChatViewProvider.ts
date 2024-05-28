@@ -1,8 +1,9 @@
 import { ExtensionContext, WebviewViewProvider, WebviewView, workspace, Uri, env } from "vscode";
 import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
-import { ServerConfig } from "tabby-agent";
 import hashObject from "object-hash";
-import { Config } from "../Config";
+import * as semver from "semver";
+import type { ServerInfo } from "tabby-agent";
+import type { AgentFeature as Agent } from "../lsp/AgentFeature";
 import { createClient } from "./chatPanel";
 
 // FIXME(wwayne): Example code has webview removed case, not sure when it would happen, need to double check
@@ -13,7 +14,7 @@ export class ChatViewProvider implements WebviewViewProvider {
 
   constructor(
     private readonly context: ExtensionContext,
-    private readonly config: Config,
+    private readonly agent: Agent,
   ) {}
 
   public async resolveWebviewView(webviewView: WebviewView) {
@@ -24,9 +25,20 @@ export class ChatViewProvider implements WebviewViewProvider {
       enableScripts: true,
       localResourceRoots: [extensionUri],
     };
-    webviewView.webview.html = this._getWebviewContent(this.config.server);
-    this.config.on("updatedServerConfig", () => {
-      webviewView.webview.html = this._getWebviewContent(this.config.server);
+    // FIXME: we need to wait for the server to be ready, consider rendering a loading indicator
+    if (this.agent.status !== "ready") {
+      await new Promise<void>((resolve) => {
+        this.agent.on("didChangeStatus", (status) => {
+          if (status === "ready") {
+            resolve();
+          }
+        });
+      });
+    }
+    const serverInfo = await this.agent.fetchServerInfo();
+    webviewView.webview.html = this.getWebviewContent(serverInfo);
+    this.agent.on("didUpdateServerInfo", (serverInfo: ServerInfo) => {
+      webviewView.webview.html = this.getWebviewContent(serverInfo);
     });
 
     this.client = createClient(webviewView, {
@@ -38,15 +50,18 @@ export class ChatViewProvider implements WebviewViewProvider {
       },
     });
 
-    webviewView.webview.onDidReceiveMessage((message) => {
+    webviewView.webview.onDidReceiveMessage(async (message) => {
       if (message.action === "rendered") {
         this.webview?.webview.postMessage({ action: "sync-theme" });
         this.pendingMessages.forEach((message) => this.client?.sendMessage(message));
-        this.client?.init({
-          fetcherOptions: {
-            authorization: this.config.server.token,
-          },
-        });
+        const serverInfo = await this.agent.fetchServerInfo();
+        if (serverInfo.config.token) {
+          this.client?.init({
+            fetcherOptions: {
+              authorization: serverInfo.config.token,
+            },
+          });
+        }
       }
     });
 
@@ -57,19 +72,59 @@ export class ChatViewProvider implements WebviewViewProvider {
     });
   }
 
-  private _getWebviewContent(server: ServerConfig) {
+  private isChatPanelAvailable(serverInfo: ServerInfo): boolean {
+    if (!serverInfo.health || !serverInfo.health["webserver"] || !serverInfo.health["chat_model"]) {
+      return false;
+    }
+    if (serverInfo.health["version"]) {
+      let version: semver.SemVer | undefined | null = undefined;
+      if (typeof serverInfo.health["version"] === "string") {
+        version = semver.coerce(serverInfo.health["version"]);
+      } else if (
+        typeof serverInfo.health["version"] === "object" &&
+        "git_describe" in serverInfo.health["version"] &&
+        typeof serverInfo.health["version"]["git_describe"] === "string"
+      ) {
+        version = semver.coerce(serverInfo.health["version"]["git_describe"]);
+      }
+      if (version && semver.lt(version, "0.12.0")) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private getWebviewContent(serverInfo: ServerInfo) {
+    if (!this.isChatPanelAvailable(serverInfo)) {
+      return `
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+          </head>
+          <body>
+            <h2>Tabby is not available</h2>
+            <ul>
+             <li>Please update to <a href="https://github.com/TabbyML/tabby/releases" target="_blank">the latest version</a> of the Tabby server.</li>
+             <li>You also need to launch the server with the chat model enabled; for example, use <code>--chat-model Mistral-7B</code>.</li>
+            </ul>
+          </body>
+        </html>
+      `;
+    }
+    const endpoint = serverInfo.config.endpoint;
     const styleUri = this.webview?.webview.asWebviewUri(
       Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
     );
     return `
       <!DOCTYPE html>
       <html lang="en">
-        <!--hash: ${hashObject(server)}-->
+        <!--hash: ${hashObject(serverInfo)}-->
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
           <title>Tabby</title>
-          <link href="${server.endpoint}" rel="preconnect">
+          <link href="${endpoint}" rel="preconnect">
           <link href="${styleUri}" rel="stylesheet">
           <script defer>
             const vscode = acquireVsCodeApi();
@@ -83,11 +138,11 @@ export class ChatViewProvider implements WebviewViewProvider {
         
               const syncTheme = () => {
                 const parentHtmlStyle = document.documentElement.getAttribute('style');
-                chatIframe.contentWindow.postMessage({ style: parentHtmlStyle }, "${server.endpoint}");
+                chatIframe.contentWindow.postMessage({ style: parentHtmlStyle }, "${endpoint}");
             
                 let themeClass = document.body.className === 'vscode-dark' ? 'dark' : 'light'
                 themeClass += ' vscode'
-                chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${server.endpoint}");
+                chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${endpoint}");
               }
         
               window.addEventListener("message", (event) => {
@@ -98,7 +153,7 @@ export class ChatViewProvider implements WebviewViewProvider {
                   }
 
                   if (event.data.data) {
-                    chatIframe.contentWindow.postMessage(event.data.data[0], "${server.endpoint}");
+                    chatIframe.contentWindow.postMessage(event.data.data[0], "${endpoint}");
                   } else {
                     vscode.postMessage(event.data);
                   }
@@ -110,7 +165,7 @@ export class ChatViewProvider implements WebviewViewProvider {
         <body>
           <iframe
             id="chat"
-            src="${server.endpoint}/chat?from=vscode"
+            src="${endpoint}/chat?from=vscode"
             onload="iframeLoaded(this)" />
         </body>
       </html>
