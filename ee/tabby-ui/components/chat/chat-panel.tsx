@@ -38,7 +38,7 @@ export function ChatPanel({
   return (
     <div className={className}>
       <ButtonScrollToBottom container={container} />
-      <div className={`md:px-4 mx-auto ${chatMaxWidthClass}`}>
+      <div className={`mx-auto md:px-4 ${chatMaxWidthClass}`}>
         <div className="flex h-10 items-center justify-center gap-2">
           {isLoading ? (
             <Button

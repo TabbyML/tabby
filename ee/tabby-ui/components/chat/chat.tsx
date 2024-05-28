@@ -113,7 +113,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   container?: HTMLDivElement
   docQuery?: boolean
   generateRelevantQuestions?: boolean
-  maxWidth?: string,
+  maxWidth?: string
   welcomeMessage?: string
 }
 

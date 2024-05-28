@@ -18,7 +18,10 @@ export function EmptyScreen({
   setInput,
   chatMaxWidthClass,
   welcomeMessage
-}: Pick<UseChatHelpers, 'setInput'> & { chatMaxWidthClass: string, welcomeMessage?: string }) {
+}: Pick<UseChatHelpers, 'setInput'> & {
+  chatMaxWidthClass: string
+  welcomeMessage?: string
+}) {
   const welcomeMsg = welcomeMessage || 'Welcome'
   return (
     <div className={`mx-auto px-4 ${chatMaxWidthClass}`}>
