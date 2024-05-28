@@ -1,27 +1,10 @@
 import { EventEmitter } from "events";
 import { workspace, ExtensionContext, WorkspaceConfiguration, ConfigurationTarget, Memento } from "vscode";
-import { State as LanguageClientState } from "vscode-languageclient";
-import { ClientProvidedConfig, ServerConfig } from "tabby-agent";
-import { Client } from "./lsp/Client";
+import { ClientProvidedConfig } from "tabby-agent";
 
 export class Config extends EventEmitter {
-  private serverConfig?: ServerConfig;
-
-  constructor(
-    private readonly context: ExtensionContext,
-    private readonly client: Client,
-  ) {
+  constructor(private readonly context: ExtensionContext) {
     super();
-    this.client.languageClient.onDidChangeState(async (state) => {
-      if (state.newState === LanguageClientState.Running) {
-        this.serverConfig = await this.client.agent.fetchServerConfig();
-        this.emit("updatedServerConfig");
-      }
-    });
-    this.client.agent.on("didChangeServerConfig", (params: ServerConfig) => {
-      this.serverConfig = params;
-      this.emit("updatedServerConfig");
-    });
     context.subscriptions.push(
       workspace.onDidChangeConfiguration(async (event) => {
         if (event.affectsConfiguration("tabby")) {
@@ -37,16 +20,6 @@ export class Config extends EventEmitter {
 
   get memento(): Memento {
     return this.context.globalState;
-  }
-
-  get server(): ServerConfig {
-    return (
-      this.serverConfig ?? {
-        endpoint: this.serverEndpoint,
-        token: this.serverToken,
-        requestHeaders: null,
-      }
-    );
   }
 
   get serverEndpoint(): string {

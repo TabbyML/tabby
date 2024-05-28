@@ -317,43 +317,44 @@ export type EventParams = {
 };
 
 /**
- * [Tabby] DidChangeServerConfig Notification(⬅️)
+ * [Tabby] DidUpdateServerInfo Notification(⬅️)
  *
- * This method is sent from the server to the client to notify the current configuration
- * for connecting to the Tabby server has changed.
- * - method: `tabby/agent/didChangeServerConfig`
- * - params: {@link DidChangeServerConfigParams}
+ * This method is sent from the server to the client to notify the current Tabby server info has changed.
+ * - method: `tabby/agent/didChangeServerInfo`
+ * - params: {@link DidUpdateServerInfoParams}
  * - result: void
  */
-export namespace AgentServerConfigSync {
-  export const method = "tabby/agent/didChangeServerConfig";
+export namespace AgentServerInfoSync {
+  export const method = "tabby/agent/didUpdateServerInfo";
   export const messageDirection = MessageDirection.serverToClient;
-  export const type = new ProtocolNotificationType<DidChangeServerConfigParams, void>(method);
+  export const type = new ProtocolNotificationType<DidUpdateServerInfoParams, void>(method);
 }
 
-export type DidChangeServerConfigParams = {
-  server: ServerConfig;
+export type DidUpdateServerInfoParams = {
+  serverInfo: ServerInfo;
 };
 
-export type ServerConfig = {
-  endpoint: string;
-  token: string;
-  requestHeaders: Record<string, string | number | boolean | null | undefined> | null;
+export type ServerInfo = {
+  config: {
+    endpoint: string;
+    token: string | null;
+    requestHeaders: Record<string, string | number | boolean | null | undefined> | null;
+  };
+  health: Record<string, unknown> | null;
 };
 
 /**
- * [Tabby] Server Config Request(↩️)
+ * [Tabby] Server Info Request(↩️)
  *
- * This method is sent from the client to the server to check the current configuration
- * for connecting to the Tabby server.
- * - method: `tabby/agent/server`
+ * This method is sent from the client to the server to check the current Tabby server info.
+ * - method: `tabby/agent/serverInfo`
  * - params: none
- * - result: {@link ServerConfig}
+ * - result: {@link ServerInfo}
  */
-export namespace AgentServerConfigRequest {
-  export const method = "tabby/agent/server";
+export namespace AgentServerInfoRequest {
+  export const method = "tabby/agent/serverInfo";
   export const messageDirection = MessageDirection.clientToServer;
-  export const type = new ProtocolRequestType0<ServerConfig, never, void, void>(method);
+  export const type = new ProtocolRequestType0<ServerInfo, never, void, void>(method);
 }
 
 /**

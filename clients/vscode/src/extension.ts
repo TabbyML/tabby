@@ -48,7 +48,7 @@ export async function activate(context: ExtensionContext) {
     const languageClient = new NodeLanguageClient("Tabby", serverOptions, clientOptions);
     client = new Client(context, languageClient);
   }
-  const config = new Config(context, client);
+  const config = new Config(context);
   const inlineCompletionProvider = new InlineCompletionProvider(client, config);
   const gitProvider = new GitProvider();
 
@@ -59,7 +59,7 @@ export async function activate(context: ExtensionContext) {
   await client.start();
 
   // Register chat panel
-  const chatViewProvider = new ChatViewProvider(context, config);
+  const chatViewProvider = new ChatViewProvider(context, client.agent);
   context.subscriptions.push(
     window.registerWebviewViewProvider("tabby.chatView", chatViewProvider, {
       webviewOptions: { retainContextWhenHidden: true },

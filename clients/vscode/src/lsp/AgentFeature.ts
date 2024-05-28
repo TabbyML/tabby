@@ -1,10 +1,11 @@
 import { EventEmitter } from "events";
+import deepEqual from "deep-equal";
 import { BaseLanguageClient, StaticFeature, FeatureState, Disposable } from "vscode-languageclient";
 import {
   ClientCapabilities,
-  AgentServerConfigRequest,
-  AgentServerConfigSync,
-  ServerConfig,
+  AgentServerInfoRequest,
+  AgentServerInfoSync,
+  ServerInfo,
   AgentStatusRequest,
   AgentStatusSync,
   Status,
@@ -18,6 +19,7 @@ import {
 
 export class AgentFeature extends EventEmitter implements StaticFeature {
   private disposables: Disposable[] = [];
+  private serverInfo: ServerInfo | undefined = undefined;
   private statusValue: Status = "notInitialized";
 
   constructor(private readonly client: BaseLanguageClient) {
@@ -45,14 +47,19 @@ export class AgentFeature extends EventEmitter implements StaticFeature {
 
   initialize(): void {
     this.disposables.push(
-      this.client.onNotification(AgentServerConfigSync.type, (params) => {
-        this.emit("didChangeServerConfig", params.server);
+      this.client.onNotification(AgentServerInfoSync.type, (params) => {
+        if (!deepEqual(params.serverInfo, this.serverInfo)) {
+          this.serverInfo = params.serverInfo;
+          this.emit("didUpdateServerInfo", params.serverInfo);
+        }
       }),
     );
     this.disposables.push(
       this.client.onNotification(AgentStatusSync.type, (params) => {
-        this.statusValue = params.status;
-        this.emit("didChangeStatus", params.status);
+        if (params.status !== this.statusValue) {
+          this.statusValue = params.status;
+          this.emit("didChangeStatus", params.status);
+        }
       }),
     );
     this.disposables.push(
@@ -60,7 +67,13 @@ export class AgentFeature extends EventEmitter implements StaticFeature {
         this.emit("didUpdateIssues", params.issues);
       }),
     );
-    // schedule a initial status sync
+    // schedule a initial sync
+    this.fetchServerInfo().then((serverInfo) => {
+      if (!deepEqual(serverInfo, this.serverInfo)) {
+        this.serverInfo = serverInfo;
+        this.emit("didUpdateServerInfo", serverInfo);
+      }
+    });
     this.fetchStatus().then((status) => {
       if (status !== this.statusValue) {
         this.statusValue = status;
@@ -78,8 +91,8 @@ export class AgentFeature extends EventEmitter implements StaticFeature {
     return this.statusValue;
   }
 
-  async fetchServerConfig(): Promise<ServerConfig> {
-    return this.client.sendRequest(AgentServerConfigRequest.type);
+  async fetchServerInfo(): Promise<ServerInfo> {
+    return this.client.sendRequest(AgentServerInfoRequest.type);
   }
 
   async fetchStatus(): Promise<Status> {

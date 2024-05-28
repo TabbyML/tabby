@@ -299,7 +299,9 @@
   },
   "dependencies": {
     "@quilted/threads": "^2.2.0",
+    "deep-equal": "^2.2.1",
     "object-hash": "^3.0.0",
+    "semver": "^7.6.0",
     "tabby-agent": "workspace:*",
     "tabby-chat-panel": "workspace:*",
     "vscode-languageclient": "^9.0.1"
