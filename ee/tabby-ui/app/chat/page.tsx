@@ -139,17 +139,15 @@ export default function ChatPage() {
     Authorization: `Bearer ${fetcherOptions.authorization}`
   }
   return (
-    <div className="relative h-screen overflow-auto">
-      <Chat
-        chatId={activeChatId}
-        key={activeChatId}
-        ref={chatRef}
-        headers={headers}
-        onThreadUpdates={() => {}}
-        onNavigateToContext={onNavigateToContext}
-        onLoaded={onChatLoaded}
-        maxWidth={maxWidth}
-      />
-    </div>
+    <Chat
+      chatId={activeChatId}
+      key={activeChatId}
+      ref={chatRef}
+      headers={headers}
+      onThreadUpdates={() => {}}
+      onNavigateToContext={onNavigateToContext}
+      onLoaded={onChatLoaded}
+      maxWidth={maxWidth}
+    />
   )
 }
