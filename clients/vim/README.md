@@ -47,14 +47,14 @@ You can install Tabby plugin using your favorite plugin manager. Here are some e
 filetype plugin on
 
 " Section for plugins managed by vim-plug
-plug#begin()
+call plug#begin()
 
 " Tabby plugin
 Plug 'TabbyML/vim-tabby'
 " Add config here. Example config:
 let g:tabby_keybinding_accept = '<Tab>'
 
-plug#end()
+call plug#end()
 ```
 
 ### 🥡 [Vundle.vim](https://github.com/VundleVim/Vundle.vim)
