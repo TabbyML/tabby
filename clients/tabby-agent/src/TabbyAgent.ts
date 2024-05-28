@@ -348,11 +348,29 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   public async initialize(options: AgentInitOptions): Promise<boolean> {
-    this.logger.info("Initializing...");
-    this.logger.trace("Initialization options:", options);
+    // initialize loggers
     if (options.loggers) {
       logDestinations.attach(...options.loggers);
     }
+    if (configFile) {
+      await configFile.load();
+      this.userConfig = configFile.config;
+      configFile.on("updated", async (config) => {
+        this.userConfig = config;
+        await this.applyConfig();
+      });
+      configFile.watch();
+    }
+    if (options.config) {
+      this.clientConfig = options.config;
+    }
+    if (fileLogger) {
+      fileLogger.level = this.clientConfig.logs?.level ?? this.userConfig.logs?.level ?? this.config.logs.level;
+    }
+
+    this.logger.info("Initializing...");
+    this.logger.trace("Initialization options:", options);
+
     this.dataStore = options.dataStore ?? defaultDataStore;
     if (this.dataStore) {
       try {
@@ -376,18 +394,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
           this.anonymousUsageLogger.setUserProperties(key, value);
         });
       }
-    }
-    if (configFile) {
-      await configFile.load();
-      this.userConfig = configFile.config;
-      configFile.on("updated", async (config) => {
-        this.userConfig = config;
-        await this.applyConfig();
-      });
-      configFile.watch();
-    }
-    if (options.config) {
-      this.clientConfig = options.config;
     }
     if (this.dataStore) {
       const localConfig = deepmerge(defaultAgentConfig, this.userConfig, this.clientConfig) as AgentConfig;
