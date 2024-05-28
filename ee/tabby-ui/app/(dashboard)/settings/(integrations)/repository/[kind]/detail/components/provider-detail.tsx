@@ -69,20 +69,21 @@ import { useRepositoryKind } from '../../hooks/use-repository-kind'
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
-type GithubRepositories = QueryResponseData<
-  typeof listGithubRepositories
->['githubRepositories']['edges']
+type Repositories = Array<{
+  cursor: string
+  node: {
+    id: string
+    vendorId: string
+    name: string
+    gitUrl: string
+    active: boolean
+  }
+}>
 
-type TProviderList =
-  | Array<{
-      node: {
-        id: string
-        displayName: string
-        status: RepositoryProviderStatus
-        apiBase?: string
-      }
-    }>
-  | undefined
+type ListRepositoriesResponseData = {
+  edges: Repositories
+  pageInfo: ListGithubRepositoriesQuery['githubRepositories']['pageInfo']
+}
 
 const ProviderDetail: React.FC = () => {
   const searchParams = useSearchParams()
@@ -280,7 +281,12 @@ const ActiveRepoTable: React.FC<{
           ) => res?.updateGithubProvidedRepositoryActive
         }
     }
-  }, [kind])
+  }, [kind]) as {
+    query: TypedDocumentNode<ListRepositoriesResponseData>
+    updateQuery: TypedDocumentNode
+    resolver: (res?: QueryResponseData<any>) => ListRepositoriesResponseData
+    updateResolver: (res?: QueryResponseData<any>) => boolean | undefined
+  }
 
   const [page, setPage] = React.useState(1)
   const {
@@ -296,7 +302,7 @@ const ActiveRepoTable: React.FC<{
   const fetchRepositoriesSequentially = async (
     page: number,
     cursor?: string
-  ): Promise<ListGithubRepositoriesQuery | undefined> => {
+  ): Promise<ListRepositoriesResponseData | undefined> => {
     const res = await fetchRepositories({
       providerIds: [providerId],
       first: PAGE_SIZE,
@@ -316,7 +322,7 @@ const ActiveRepoTable: React.FC<{
     React.useState<QueryResponseData<typeof query>>()
   const [fetching, setFetching] = React.useState(true)
   const [recentlyActivatedRepositories, setRecentlyActivatedRepositories] =
-    React.useState<GithubRepositories>([])
+    React.useState<Repositories>([])
   const activeRepos = resolver?.(activeRepositoriesResult)?.edges
   const pageInfo = resolver?.(activeRepositoriesResult)?.pageInfo
 
@@ -326,10 +332,7 @@ const ActiveRepoTable: React.FC<{
     }
   })
 
-  const handleDelete = async (
-    repo: GithubRepositories[0],
-    isLastItem?: boolean
-  ) => {
+  const handleDelete = async (repo: Repositories[0], isLastItem?: boolean) => {
     updateProvidedRepositoryActive({
       id: repo.node.id,
       active: false
@@ -361,7 +364,7 @@ const ActiveRepoTable: React.FC<{
 
   const [open, setOpen] = React.useState(false)
 
-  const sortRepos = (repos: GithubRepositories) => {
+  const sortRepos = (repos: Repositories) => {
     if (!repos?.length) return repos
     return repos.sort((a, b) => a.node.name?.localeCompare(b.node.name))
   }
@@ -518,12 +521,14 @@ const ActiveRepoTable: React.FC<{
 function useAllInactiveRepositories(
   id: string,
   query: TypedDocumentNode<any, any>,
-  resolver: (res?: QueryResponseData<any>) => any
+  resolver: (
+    res?: QueryResponseData<ListRepositoriesResponseData>
+  ) => ListRepositoriesResponseData
 ) {
   const [queryVariables, setQueryVariables] = useState<
-    QueryVariables<typeof listGithubRepositories>
+    QueryVariables<typeof query>
   >({ providerIds: [id], first: PAGE_SIZE, active: false })
-  const [repositories, setRepositories] = useState<GithubRepositories>([])
+  const [repositories, setRepositories] = useState<Repositories>([])
   const [isAllLoaded, setIsAllLoaded] = useState(!id)
 
   const [{ data, fetching }] = useQuery({
