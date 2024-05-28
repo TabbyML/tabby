@@ -104,7 +104,7 @@ function UserMessageCard(props: { message: UserMessage }) {
 
   return (
     <div
-      className={cn('group relative mb-4 flex items-start md:-ml-12')}
+      className={cn('group relative mb-4 flex items-start md:-ml-4')}
       {...props}
     >
       <div className="shrink-0 select-none rounded-full border bg-background shadow">
@@ -178,7 +178,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 
   return (
     <div
-      className={cn('group relative mb-4 flex items-start md:-ml-12')}
+      className={cn('group relative mb-4 flex items-start md:-ml-4')}
       {...rest}
     >
       <div className="shrink-0 select-none rounded-full border bg-background shadow">
