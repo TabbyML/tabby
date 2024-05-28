@@ -296,6 +296,9 @@ importers:
       '@types/object-hash':
         specifier: ^3.0.0
         version: 3.0.6
+      '@types/semver':
+        specifier: ^7.5.8
+        version: 7.5.8
       '@types/vscode':
         specifier: ^1.82.0
         version: 1.89.0

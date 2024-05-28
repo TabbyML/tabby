@@ -279,6 +279,7 @@
     "@types/mocha": "^10.0.1",
     "@types/node": "18.x",
     "@types/object-hash": "^3.0.0",
+    "@types/semver": "^7.5.8",
     "@types/vscode": "^1.82.0",
     "@typescript-eslint/eslint-plugin": "^6.13.1",
     "@typescript-eslint/parser": "^6.13.1",
