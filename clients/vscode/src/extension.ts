@@ -58,21 +58,21 @@ export async function activate(context: ExtensionContext) {
 
   await client.start();
 
+  // Register chat panel
+  const chatViewProvider = new ChatViewProvider(context, config);
+  context.subscriptions.push(
+    window.registerWebviewViewProvider("tabby.chatView", chatViewProvider, {
+      webviewOptions: { retainContextWhenHidden: true },
+    }),
+  );
+
   const issues = new Issues(client, config);
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ /* @ts-expect-error noUnusedLocals */
   const contextVariables = new ContextVariables(client, config);
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ /* @ts-expect-error noUnusedLocals */
   const statusBarItem = new StatusBarItem(context, client, config, issues, inlineCompletionProvider);
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ /* @ts-expect-error noUnusedLocals */
-  const commands = new Commands(context, client, config, inlineCompletionProvider, gitProvider);
-
-  // Register chat panel
-  const chatViewProvider = new ChatViewProvider(context, config);
-  context.subscriptions.push(
-    window.registerWebviewViewProvider("tabby.chatView", chatViewProvider, {
-      webviewOptions: { retainContextWhenHidden: true }, // FIXME(wwayne): necessary?
-    }),
-  );
+  const commands = new Commands(context, client, config, inlineCompletionProvider, chatViewProvider, gitProvider);
 
   logger.info("Tabby extension activated.");
 }
