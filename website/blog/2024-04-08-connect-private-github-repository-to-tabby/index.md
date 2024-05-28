@@ -28,9 +28,9 @@ For additional information, please refer to the documentation on [Managing your 
 
 ## Configuration
 
-To configure the Tabby server with your private Git repositories, you need to provide the required settings in a YAML file. Create and edit a configuration file located at `~/.tabby/config.yaml`:
+To configure the Tabby server with your private Git repositories, you need to provide the required settings in a TOML file. Create and edit a configuration file located at `~/.tabby/config.toml`:
 
-```yaml
+```toml
 ## Add the private repository
 [[repositories]]
 name = "my_private_project"
@@ -42,7 +42,7 @@ name = "another_project"
 git_url = "https://<PAT>@github.com/icycodes/another_project.git"
 ```
 
-For more detailed about the configuration file, you can refer to the [configuration documentation](https://tabby.tabbyml.com/docs/configuration).
+For more detailed about the configuration file, you can refer to the [configuration documentation](https://tabby.tabbyml.com/docs/extensions/configurations/).
 
 **Note:** The URL format for GitLab repositories may vary, you can check the [official documentation](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#clone-repository-using-personal-access-token) for specific guidelines.
 
