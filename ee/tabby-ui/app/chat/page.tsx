@@ -139,7 +139,7 @@ export default function ChatPage() {
     Authorization: `Bearer ${fetcherOptions.authorization}`
   }
   return (
-    <div className="h-screen overflow-auto relative">
+    <div className="relative h-screen overflow-auto">
       <Chat
         chatId={activeChatId}
         key={activeChatId}
