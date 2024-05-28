@@ -134,7 +134,7 @@ export function CommonProviderForm<T extends boolean>({
   const apiBasePlaceholder = React.useMemo(() => {
     switch (kind) {
       case RepositoryKind.GithubSelfHosted:
-        return 'e.g. https://github.yourcompany.com'
+        return 'e.g. https://api.github.yourcompany.com'
       case RepositoryKind.GitlabSelfHosted:
         return 'e.g. https://gitlab.yourcompany.com'
       default:
