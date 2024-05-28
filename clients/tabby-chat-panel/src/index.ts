@@ -43,7 +43,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerA
   return createThreadFromIframe(target, {
     expose: {
       navigate: api.navigate,
-    }
+    },
   })
 }
 
@@ -52,6 +52,6 @@ export function createServer(api: ServerApi): ClientApi {
     expose: {
       init: api.init,
       sendMessage: api.sendMessage,
-    }
+    },
   })
 }
