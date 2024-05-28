@@ -13,6 +13,7 @@ import {
 import os from "os";
 import path from "path";
 import { strict as assert } from "assert";
+import GitUrlParse from "git-url-parse";
 import { Client } from "./lsp/Client";
 import { Config } from "./Config";
 import { InlineCompletionProvider } from "./InlineCompletionProvider";
@@ -233,8 +234,6 @@ export class Commands {
           filePath = filePath.replace(workspaceFolder.uri.toString(), "");
         }
 
-        commands.executeCommand("tabby.chatView.focus");
-
         this.chatViewProvider.sendMessage({
           message: "Explain the selected code:",
           selectContext: {
@@ -245,7 +244,7 @@ export class Commands {
               end: editor.selection.end.line + 1,
             },
             filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
-            git_url: remoteUrl ?? "",
+            git_url: remoteUrl ? GitUrlParse(remoteUrl).toString("https") : "",
           },
         });
       } else {
