@@ -287,6 +287,9 @@ importers:
         specifier: ^9.0.1
         version: 9.0.1
     devDependencies:
+      '@types/deep-equal':
+        specifier: ^1.0.4
+        version: 1.0.4
       '@types/mocha':
         specifier: ^10.0.1
         version: 10.0.6

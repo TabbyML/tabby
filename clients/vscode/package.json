@@ -276,6 +276,7 @@
     "vscode:publish": "vsce publish --no-dependencies"
   },
   "devDependencies": {
+    "@types/deep-equal": "^1.0.4",
     "@types/mocha": "^10.0.1",
     "@types/node": "18.x",
     "@types/object-hash": "^3.0.0",
