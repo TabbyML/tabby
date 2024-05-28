@@ -221,14 +221,20 @@ export class Commands {
 
       const editor = window.activeTextEditor;
       if (editor) {
+        const uri = editor.document.uri;
         const text = editor.document.getText(editor.selection);
-        const repo = this.gitProvider.getRepository(editor.document.uri);
+        const workspaceFolder = workspace.getWorkspaceFolder(uri);
+        const repo = this.gitProvider.getRepository(uri);
         const remoteUrl = repo ? this.gitProvider.getDefaultRemoteUrl(repo) : undefined;
-        const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+        let filePath = uri.toString();
+        if (repo) {
+          filePath = filePath.replace(repo.rootUri.toString(), "");
+        } else if (workspaceFolder) {
+          filePath = filePath.replace(workspaceFolder.uri.toString(), "");
+        }
 
         commands.executeCommand("tabby.chatView.focus");
 
-        const filePath = editor.document.fileName.replace(workspaceFolder, "");
         this.chatViewProvider.sendMessage({
           message: "Explain the selected code:",
           selectContext: {
