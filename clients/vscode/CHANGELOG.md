@@ -1,3 +1,32 @@
+## 1.7.0
+
+**pre-release**
+
+### Features
+
+- Introducing a new chat view feature that allows users to engage in conversations with their AI assistant. Access the chat view conveniently from the activity bar.
+
+## 1.6.3
+
+### Fixes
+
+- Fixed a bug that caused unexpected logging output and the generation of an `audit.json` file in the working directory.
+
+## 1.6.2
+
+**stable**
+
+Stable release for 1.6.1.
+
+## 1.6.1
+
+**pre-release**
+
+### Fixes & Improvements
+
+- Fixed a bug causing the chat stream parsing to fail.
+- Improved the message extraction when generating commit messages.
+
 ## 1.6.0
 
 **pre-release**
