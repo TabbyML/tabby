@@ -222,6 +222,8 @@ export class Commands {
       const editor = window.activeTextEditor;
       if (editor) {
         const text = editor.document.getText(editor.selection);
+        const repo = this.gitProvider.getRepository(editor.document.uri);
+        const remoteUrl = repo ? this.gitProvider.getDefaultRemoteUrl(repo) : undefined;
         const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath || "";
 
         commands.executeCommand("tabby.chatView.focus");
@@ -237,7 +239,7 @@ export class Commands {
               end: editor.selection.end.line + 1,
             },
             filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
-            git_url: "https://github.com/tabbyML/tabby", // FIXME
+            git_url: remoteUrl ?? "",
           },
         });
       } else {
