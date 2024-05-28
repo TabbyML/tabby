@@ -25,7 +25,7 @@
   "main": "./dist/protocol.js",
   "types": "./dist/protocol.d.ts",
   "scripts": {
-    "build": "tsc --noEmit && tsup --minify --treeshake smallest",
+    "build": "tsc --noEmit && tsup --minify",
     "watch": "tsc-watch --noEmit --onSuccess \"tsup\"",
     "openapi-codegen": "openapi-typescript ./openapi/tabby.json -o ./src/types/tabbyApi.d.ts",
     "test": "mocha",
