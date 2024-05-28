@@ -264,15 +264,15 @@
     }
   },
   "scripts": {
-    "build": "tsc --noEmit && tsup --minify --treeshake smallest",
+    "build": "tsc --noEmit && tsup --minify",
     "watch": "tsc-watch --noEmit --onSuccess \"tsup\"",
     "dev": "code --extensionDevelopmentPath=$PWD --disable-extensions && pnpm watch",
     "dev:browser": "vscode-test-web --extensionDevelopmentPath=$PWD --browserType=chromium --port=3000 && pnpm watch",
     "lint": "eslint --ext .ts ./src && prettier --check .",
     "lint:fix": "eslint --fix --ext .ts ./src && prettier --write .",
-    "vscode:prepackage": "turbo build",
+    "vscode:prepackage": "turbo build --force",
     "vscode:package": "vsce package --no-dependencies",
-    "vscode:prepublish": "turbo build",
+    "vscode:prepublish": "turbo build --force",
     "vscode:publish": "vsce publish --no-dependencies"
   },
   "devDependencies": {
