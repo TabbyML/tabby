@@ -5,7 +5,7 @@ use std::{
 };
 
 use tokio::task::JoinHandle;
-use tracing::warn;
+use tracing::{debug, warn};
 use which::which;
 
 use crate::api_endpoint;
@@ -101,6 +101,7 @@ impl LlamaCppSupervisor {
     }
 
     pub async fn start(&self) {
+        debug!("Waiting for llama-server to start...");
         let client = reqwest::Client::new();
         loop {
             let Ok(resp) = client.get(api_endpoint(self.port) + "/health").send().await else {
@@ -108,6 +109,7 @@ impl LlamaCppSupervisor {
             };
 
             if resp.status().is_success() {
+                debug!("llama-server started successfully");
                 return;
             }
         }
