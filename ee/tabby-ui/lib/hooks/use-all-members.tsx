@@ -8,6 +8,7 @@ import { listUsers } from '@/lib/tabby/query'
 export type Member = {
   id: string
   email: string
+  name: string
 }
 
 export function useAllMembers() {
@@ -28,7 +29,8 @@ export function useAllMembers() {
     if (!fetching && data) {
       const members: Member[] = data?.users.edges.map(edge => ({
         id: edge.node.id,
-        email: edge.node.email
+        email: edge.node.email,
+        name: edge.node.name
       }))
       const cursor = data?.users.pageInfo.endCursor || ''
       const hasMore = data?.users.pageInfo.hasNextPage
