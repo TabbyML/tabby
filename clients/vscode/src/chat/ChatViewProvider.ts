@@ -29,7 +29,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     };
 
     if (this.isReady) {
-      await this.renderChatPage()
+      await this.renderChatPage();
     } else {
       webviewView.webview.html = this.getWelcomeContent();
     }
@@ -46,12 +46,12 @@ export class ChatViewProvider implements WebviewViewProvider {
     this.agent.on("didChangeStatus", async (status) => {
       if (status === "ready" && !this.isReady) {
         this.isReady = true;
-        await this.renderChatPage()
+        await this.renderChatPage();
       }
     });
 
     this.agent.on("didUpdateServerInfo", async (serverInfo: ServerInfo) => {
-      await this.renderChatPage(serverInfo)
+      await this.renderChatPage(serverInfo);
     });
 
     // The event will not be triggered during the initial rendering.
@@ -74,12 +74,12 @@ export class ChatViewProvider implements WebviewViewProvider {
     });
   }
 
-  private async renderChatPage (serverInfo?: ServerInfo) {
+  private async renderChatPage(serverInfo?: ServerInfo) {
     if (!serverInfo) {
       serverInfo = await this.agent.fetchServerInfo();
     }
     if (this.webview) {
-      this.webview.webview.html = this.getWebviewContent(serverInfo)
+      this.webview.webview.html = this.getWebviewContent(serverInfo);
     }
   }
 
