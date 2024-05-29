@@ -1,12 +1,15 @@
 'use client'
 
+import React from 'react'
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { useQuery } from 'urql'
 
 import {
   RepositoryKind,
   RepositoryProviderStatus
 } from '@/lib/gql/generates/graphql'
+import { QueryResponseData } from '@/lib/tabby/gql'
 import {
   listGithubRepositoryProviders,
   listGithubSelfHostedRepositoryProviders,
@@ -16,10 +19,6 @@ import {
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import LoadingWrapper from '@/components/loading-wrapper'
-
-import React from 'react'
-import { useParams } from 'next/navigation'
-import { QueryResponseData } from '@/lib/tabby/gql'
 
 interface GitProvidersListProps {
   kind: RepositoryKind

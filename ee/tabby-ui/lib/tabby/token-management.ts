@@ -62,6 +62,7 @@ class TokenManager {
   async refreshToken(doRefreshToken: () => Promise<AuthData | undefined>) {
     try {
       if (typeof navigator?.locks === 'undefined') {
+        // eslint-disable-next-line no-console
         console.error(
           'The Web Locks API is not supported in your browser. Please upgrade to a newer browser version.'
         )

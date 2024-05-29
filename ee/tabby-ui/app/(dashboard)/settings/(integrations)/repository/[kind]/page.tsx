@@ -1,8 +1,8 @@
 import { NextPage } from 'next'
 import { findIndex } from 'lodash-es'
 
-import RepositoryProvidersPage from './components/provider-list'
 import { PROVIDER_KIND_METAS } from '../constants'
+import RepositoryProvidersPage from './components/provider-list'
 
 type Params = {
   kind: string

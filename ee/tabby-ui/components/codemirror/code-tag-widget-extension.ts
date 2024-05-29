@@ -91,7 +91,8 @@ function computeDecorations(
     try {
       lineNumber = state.doc.lineAt(range.start)?.number ?? -1
     } catch (e) {
-      console.log('line parse error')
+      // eslint-disable-next-line no-console
+      console.error('line parse error')
     }
     if (lineNumber > -1) {
       temp.push({ line: lineNumber, annotation: ann })

@@ -3,6 +3,8 @@ import { Message } from 'ai'
 import { findIndex } from 'lodash-es'
 import type { Context } from 'tabby-chat-panel'
 
+import { useDebounceCallback } from '@/lib/hooks/use-debounce'
+import { useLatest } from '@/lib/hooks/use-latest'
 import { filename2prism } from '@/lib/language-utils'
 import {
   AnswerRequest,
@@ -14,14 +16,12 @@ import {
 } from '@/lib/types/chat'
 import { cn, nanoid } from '@/lib/utils'
 
+import { ListSkeleton } from '../skeleton'
 import { ChatPanel } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
 import { useTabbyAnswer } from './use-tabby-answer'
-import { useLatest } from '@/lib/hooks/use-latest'
-import { useDebounceCallback } from '@/lib/hooks/use-debounce'
-import { ListSkeleton } from '../skeleton'
 
 type ChatContextValue = {
   isLoading: boolean

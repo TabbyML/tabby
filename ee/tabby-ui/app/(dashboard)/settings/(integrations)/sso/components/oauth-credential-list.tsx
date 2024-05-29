@@ -14,13 +14,13 @@ import {
 } from '@/lib/gql/generates/graphql'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { IconGitHub, IconGitLab, IconGoogle } from '@/components/ui/icons'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LicenseGuard } from '@/components/license-guard'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 import { PROVIDER_METAS } from './constant'
 import { SSOHeader } from './sso-header'
-import { IconGitHub, IconGitLab, IconGoogle } from '@/components/ui/icons'
 
 export const oauthCredential = graphql(/* GraphQL */ `
   query OAuthCredential($provider: OAuthProvider!) {

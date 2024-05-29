@@ -57,6 +57,7 @@ import {
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
+import { useRepositoryKind } from '../../hooks/use-repository-kind'
 import {
   updateGithubProvidedRepositoryActiveMutation,
   updateGithubSelfHostedProvidedRepositoryActiveMutation,
@@ -65,7 +66,6 @@ import {
 } from '../query'
 import AddRepositoryForm from './add-repository-form'
 import { UpdateProviderForm } from './update-provider-form'
-import { useRepositoryKind } from '../../hooks/use-repository-kind'
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE
 

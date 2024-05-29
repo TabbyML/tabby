@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
+import { TypedDocumentNode } from 'urql'
 import * as z from 'zod'
 
 import {
@@ -40,11 +41,10 @@ import {
 
 import {
   updateGithubProvidedRepositoryActiveMutation,
-  updateGitlabProvidedRepositoryActiveMutation,
   updateGithubSelfHostedProvidedRepositoryActiveMutation,
+  updateGitlabProvidedRepositoryActiveMutation,
   updateGitlabSelfHostedProvidedRepositoryActiveMutation
 } from '../query'
-import { TypedDocumentNode } from 'urql'
 
 const formSchema = z.object({
   id: z.string()

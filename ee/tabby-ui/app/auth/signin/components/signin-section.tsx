@@ -9,8 +9,8 @@ import { useAllowSelfSignup } from '@/lib/hooks/use-server-info'
 import { useSession, useSignIn } from '@/lib/tabby/auth'
 import fetcher from '@/lib/tabby/fetcher'
 import {
-  IconGitLab,
   IconGithub,
+  IconGitLab,
   IconGoogle,
   IconSpinner
 } from '@/components/ui/icons'

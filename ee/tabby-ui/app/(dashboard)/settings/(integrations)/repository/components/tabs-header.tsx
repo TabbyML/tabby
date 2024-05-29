@@ -1,13 +1,14 @@
 'use client'
 
+import React from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 import { RepositoryKind } from '@/lib/gql/generates/graphql'
 import { IconGitHub, IconGitLab } from '@/components/ui/icons'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 import { PROVIDER_KIND_METAS } from '../constants'
-import React from 'react'
 
 export default function GitTabsHeader() {
   const params = useParams<{ kind?: RepositoryKind }>()

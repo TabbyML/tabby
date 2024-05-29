@@ -3,6 +3,7 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import { UseFormReturn } from 'react-hook-form'
+import { TypedDocumentNode } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 import { RepositoryKind } from '@/lib/gql/generates/graphql'
@@ -15,7 +16,6 @@ import {
   useRepositoryProviderForm
 } from '../../components/common-provider-form'
 import { useRepositoryKind } from '../../hooks/use-repository-kind'
-import { TypedDocumentNode } from 'urql'
 
 const createGithubRepositoryProvider = graphql(/* GraphQL */ `
   mutation CreateGithubRepositoryProvider(

@@ -8,6 +8,7 @@ import { fontMono, fontSans } from '@/lib/fonts'
 import { cn } from '@/lib/utils'
 import { Providers } from '@/components/providers'
 import { TailwindIndicator } from '@/components/tailwind-indicator'
+
 import Main from './components/main'
 
 export const metadata: Metadata = {
