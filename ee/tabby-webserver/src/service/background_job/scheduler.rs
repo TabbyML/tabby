@@ -34,7 +34,7 @@ impl Job for SchedulerJob {
 }
 
 impl CronJob for SchedulerJob {
-    const SCHEDULE: &'static str = "1 * * * * *";
+    const SCHEDULE: &'static str = "@hourly";
 }
 
 impl SchedulerJob {
