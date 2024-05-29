@@ -34,6 +34,7 @@ iframe {
   margin-right: 0.4rem;
   padding: 0.2rem;
   border: 1px solid var(--vscode-editorWidget-border);
+  background-color: rgb(232, 226, 210);
 }
 
 .static-content .title {
