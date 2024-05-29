@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { ReactNode } from 'react'
 import NiceAvatar, { genConfig } from 'react-nice-avatar'
 import { mutate } from 'swr'
 import useSWRImmutable from 'swr/immutable'
@@ -14,7 +14,6 @@ import {
   AvatarImage
 } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ReactNode } from 'react'
 
 const NOT_FOUND_ERROR = 'not_found'
 let shouldFetchAvatar = true

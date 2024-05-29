@@ -2,8 +2,10 @@
 
 import React from 'react'
 import { toast } from 'sonner'
+import { TypedDocumentNode } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
+import { RepositoryKind } from '@/lib/gql/generates/graphql'
 import { QueryResponseData, useMutation } from '@/lib/tabby/gql'
 
 import {
@@ -11,8 +13,6 @@ import {
   CreateRepositoryProviderFormValues,
   useRepositoryProviderForm
 } from '../../components/common-provider-form'
-import { RepositoryKind } from '@/lib/gql/generates/graphql'
-import { TypedDocumentNode } from 'urql'
 
 const deleteGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
   mutation DeleteGithubRepositoryProvider($id: ID!) {

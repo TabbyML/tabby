@@ -23,8 +23,8 @@ import {
   IconMail,
   IconRotate,
   IconSpinner,
-  IconVSCode,
-  IconUser
+  IconUser,
+  IconVSCode
 } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
