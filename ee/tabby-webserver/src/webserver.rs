@@ -6,7 +6,7 @@ use tabby_common::{
         code::CodeSearch,
         event::{ComposedLogger, EventLogger},
     },
-    config::{ConfigAccess, RepositoryConfig},
+    config::{Config, ConfigAccess, RepositoryConfig},
 };
 use tabby_db::DbConn;
 use tabby_schema::{integration::IntegrationService, repository::RepositoryService};
@@ -30,7 +30,8 @@ pub struct Webserver {
 #[async_trait::async_trait]
 impl ConfigAccess for Webserver {
     async fn repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
-        let repos = self.repository.list_repositories().await?;
+        let mut repos = Config::load()?.repositories;
+        repos.extend(self.repository.list_repositories().await?);
         Ok(repos)
     }
 }
