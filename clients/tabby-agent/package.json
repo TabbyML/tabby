@@ -33,7 +33,6 @@
     "lint:fix": "eslint --fix --ext .ts ./src && prettier --write ."
   },
   "devDependencies": {
-    "axios": "^1.7.2",
     "@orama/orama": "^2.0.18",
     "@types/chai": "^4.3.5",
     "@types/dedent": "^0.7.2",
@@ -62,7 +61,6 @@
     "eventsource-parser": "^1.1.2",
     "fast-levenshtein": "^3.0.0",
     "file-stream-rotator": "^1.0.0",
-    "form-data": "^4.0.0",
     "fs-extra": "^11.1.1",
     "glob": "^7.2.0",
     "jwt-decode": "^3.1.2",
