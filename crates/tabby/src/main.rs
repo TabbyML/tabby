@@ -115,9 +115,9 @@ fn init_logging() {
     layers.push(fmt_layer);
 
     let mut dirs = if cfg!(feature = "prod") {
-        "tabby=info,otel=debug".into()
+        "tabby=info,otel=debug,http_api_bindings=info".into()
     } else {
-        "tabby=debug,otel=debug".into()
+        "tabby=debug,otel=debug,http_api_bindings=debug".into()
     };
 
     if let Ok(env) = std::env::var(EnvFilter::DEFAULT_ENV) {
