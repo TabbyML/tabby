@@ -78,10 +78,11 @@ pub fn sync_repository(repository: &RepositoryConfig) {
 pub fn garbage_collection(repositories: &[RepositoryConfig]) {
     let names = repositories.iter().map(|r| r.dir()).collect::<HashSet<_>>();
 
-    for file in fs::read_dir(repositories_dir())
-        .expect("Failed to read repository dir")
-        .filter_map(Result::ok)
-    {
+    let Ok(dir) = fs::read_dir(repositories_dir()) else {
+        return;
+    };
+
+    for file in dir.filter_map(Result::ok) {
         let metadata = file.metadata().expect("Failed to read metadata");
         let filename = file.file_name();
         if metadata.is_file() {
