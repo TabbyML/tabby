@@ -130,7 +130,7 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
     initialized.current = true
     if (authToken?.accessToken && authToken?.refreshToken) {
       dispatch({ type: AuthActionType.SignIn, data: authToken })
-    } else {
+    } else if (!authToken?.accessToken && !authToken?.refreshToken) {
       dispatch({ type: AuthActionType.SignOut })
     }
   }, [])

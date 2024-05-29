@@ -31,6 +31,8 @@ export default async function authEnhancedFetch(
   )
 
   if (response.status === 401) {
+    tokenManager.clearAccessToken()
+
     return tokenManager.refreshToken(doRefreshToken).then(res => {
       return requestWithAuth(url, options)
     })
