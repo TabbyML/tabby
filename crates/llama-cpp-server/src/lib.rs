@@ -56,6 +56,7 @@ struct CompletionServer {
 impl CompletionServer {
     async fn new(num_gpu_layers: u16, model_path: &str, parallelism: u8) -> Self {
         let server = LlamaCppSupervisor::new(num_gpu_layers, false, model_path, parallelism);
+        server.start().await;
         let config = HttpModelConfigBuilder::default()
             .api_endpoint(api_endpoint(server.port()))
             .kind("llama.cpp/completion".to_string())
