@@ -14,7 +14,7 @@ use tabby_common::{
 };
 use tantivy::{
     collector::{Count, TopDocs},
-    schema::{self, document::ReferenceValue, Value},
+    schema::{self, Value},
     IndexReader, TantivyDocument,
 };
 use tokio::sync::Mutex;
@@ -125,10 +125,10 @@ fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
 }
 
 fn get_json_number_field(doc: &TantivyDocument, field: schema::Field, name: &str) -> i64 {
-    let ReferenceValue::Object(obj) = doc.get_first(field).unwrap() else {
-        panic!("Field {} is not an object", name);
-    };
-    obj.into_iter()
+    doc.get_first(field)
+        .unwrap()
+        .as_object()
+        .unwrap()
         .find(|(k, _)| *k == name)
         .unwrap()
         .1
@@ -137,10 +137,10 @@ fn get_json_number_field(doc: &TantivyDocument, field: schema::Field, name: &str
 }
 
 fn get_json_text_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name: &str) -> &'a str {
-    let ReferenceValue::Object(obj) = doc.get_first(field).unwrap() else {
-        panic!("Field {} is not an object", name);
-    };
-    obj.into_iter()
+    doc.get_first(field)
+        .unwrap()
+        .as_object()
+        .unwrap()
         .find(|(k, _)| *k == name)
         .unwrap()
         .1
