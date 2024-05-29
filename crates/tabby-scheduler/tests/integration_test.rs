@@ -1,29 +1,11 @@
-use async_trait::async_trait;
-use tabby_common::config::{RepositoryAccess, RepositoryConfig};
-
-struct StaticRepositoryAccess {
-    repositories: Vec<RepositoryConfig>,
-}
-
-#[async_trait]
-impl RepositoryAccess for StaticRepositoryAccess {
-    async fn list_repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
-        Ok(self.repositories.clone())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::fs::create_dir_all;
 
-    use tabby_common::{
-        config::{Config, RepositoryConfig},
-        path::set_tabby_root,
-    };
+    use serde_json::json;
+    use tabby_common::{config::Config, path::set_tabby_root};
     use temp_testdir::*;
     use tracing_test::traced_test;
-
-    use super::StaticRepositoryAccess;
 
     #[traced_test]
     #[tokio::test]
@@ -31,15 +13,13 @@ mod tests {
         let root = TempDir::default();
         create_dir_all(&root).expect("Failed to create tabby root");
         set_tabby_root(root.to_path_buf());
+        let config: Config = serde_json::from_value(json!({
+                "repositories": [{
+                    "git_url": "https://github.com/TabbyML/interview-questions"
+        }]
+        }))
+        .unwrap();
 
-        let access = StaticRepositoryAccess {
-            repositories: vec![RepositoryConfig::new(
-                "https://github.com/TabbyML/interview-questions".to_owned(),
-            )],
-        };
-
-        let config = Config::load().unwrap_or_default();
-
-        tabby_scheduler::scheduler(true, &config, access).await;
+        tabby_scheduler::scheduler(true, &config).await;
     }
 }

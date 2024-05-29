@@ -8,7 +8,7 @@ mod serve;
 use std::os::unix::fs::PermissionsExt;
 
 use clap::{Parser, Subcommand};
-use tabby_common::config::{Config, ConfigRepositoryAccess, LocalModelConfig, ModelConfig};
+use tabby_common::config::{Config, LocalModelConfig, ModelConfig};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
@@ -82,7 +82,7 @@ async fn main() {
         Commands::Serve(ref args) => serve::main(&config, args).await,
         Commands::Download(ref args) => download::main(args).await,
         Commands::Scheduler(SchedulerArgs { now, .. }) => {
-            tabby_scheduler::scheduler(now, &config, ConfigRepositoryAccess).await
+            tabby_scheduler::scheduler(now, &config).await
         }
     }
 }
