@@ -13,7 +13,7 @@ use tabby_common::{
 use tabby_inference::{CompletionOptions, CompletionStream, Embedding};
 
 fn api_endpoint(port: u16) -> String {
-    format!("http://localhost:{port}")
+    format!("http://127.0.0.1:{port}")
 }
 
 struct EmbeddingServer {
