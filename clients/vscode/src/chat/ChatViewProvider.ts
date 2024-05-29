@@ -28,18 +28,11 @@ export class ChatViewProvider implements WebviewViewProvider {
       localResourceRoots: [extensionUri],
     };
 
-    // FIXME: does 1s delay needed?
-    if (this.agent.status !== "ready") {
-      await new Promise<void>((resolve) => {
-        setTimeout(() => {
-          this.isReady = this.agent.status === "ready";
-          resolve();
-        }, 1000);
-      });
+    if (this.isReady) {
+      await this.renderChatPage()
+    } else {
+      webviewView.webview.html = this.getWelcomeContent();
     }
-
-    const serverInfo = await this.agent.fetchServerInfo();
-    webviewView.webview.html = this.isReady ? this.getWebviewContent(serverInfo) : this.getWelcomeContent();
 
     this.client = createClient(webviewView, {
       navigate: async (context: Context) => {
@@ -50,21 +43,15 @@ export class ChatViewProvider implements WebviewViewProvider {
       },
     });
 
-    this.agent.on("didChangeStatus", (status) => {
+    this.agent.on("didChangeStatus", async (status) => {
       if (status === "ready" && !this.isReady) {
         this.isReady = true;
-        webviewView.webview.html = this.getWebviewContent(serverInfo);
+        await this.renderChatPage()
       }
     });
 
-    this.agent.on("didUpdateServerInfo", (serverInfo: ServerInfo) => {
-      webviewView.webview.html = this.getWebviewContent(serverInfo);
-    });
-
-    webviewView.webview.onDidReceiveMessage(async (message) => {
-      if (message.action === "rendered") {
-        await this.initChatPage();
-      }
+    this.agent.on("didUpdateServerInfo", async (serverInfo: ServerInfo) => {
+      await this.renderChatPage(serverInfo)
     });
 
     // The event will not be triggered during the initial rendering.
@@ -74,11 +61,26 @@ export class ChatViewProvider implements WebviewViewProvider {
       }
     });
 
+    webviewView.webview.onDidReceiveMessage(async (message) => {
+      if (message.action === "rendered") {
+        await this.initChatPage();
+      }
+    });
+
     workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("workbench.colorTheme")) {
         this.webview?.webview.postMessage({ action: "sync-theme" });
       }
     });
+  }
+
+  private async renderChatPage (serverInfo?: ServerInfo) {
+    if (!serverInfo) {
+      serverInfo = await this.agent.fetchServerInfo();
+    }
+    if (this.webview) {
+      this.webview.webview.html = this.getWebviewContent(serverInfo)
+    }
   }
 
   private isChatPanelAvailable(serverInfo: ServerInfo): boolean {
