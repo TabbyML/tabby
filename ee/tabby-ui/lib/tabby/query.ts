@@ -124,6 +124,7 @@ export const listUsers = graphql(/* GraphQL */ `
           isOwner
           createdAt
           active
+          name
         }
         cursor
       }

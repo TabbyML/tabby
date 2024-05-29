@@ -169,7 +169,7 @@ export default function Activity() {
                         </SelectItem>
                         {members.map(member => (
                           <SelectItem value={member.id} key={member.id}>
-                            {member.email}
+                            {member.name}
                           </SelectItem>
                         ))}
                       </SelectGroup>
@@ -360,7 +360,7 @@ function ActivityRow({
           </Tooltip>
         </TableCell>
         <TableCell>
-          {members.find(user => user.id === activity.userId)?.email ||
+          {members.find(user => user.id === activity.userId)?.name ||
             activity.userId}
         </TableCell>
         <TableCell className="pr-4 md:pr-8">

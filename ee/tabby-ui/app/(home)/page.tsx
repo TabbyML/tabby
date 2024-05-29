@@ -23,7 +23,8 @@ import {
   IconMail,
   IconRotate,
   IconSpinner,
-  IconVSCode
+  IconVSCode,
+  IconUser
 } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -167,7 +168,6 @@ function MainPanel() {
     await signOut()
     setSignOutLoading(false)
   }
-
   return (
     <div className="flex flex-1 justify-center lg:mt-[10vh]">
       <div className="mx-auto flex w-screen flex-col px-5 py-20 lg:w-auto lg:flex-row lg:justify-center lg:gap-x-10 lg:px-0 lg:py-10">
@@ -175,12 +175,20 @@ function MainPanel() {
           <UserAvatar className="h-20 w-20 border-4 border-background" />
 
           <div className="mt-2 flex w-full">
-            <div className="flex items-center gap-2">
-              <IconMail className="text-muted-foreground" />
-              <p className="max-w-[10rem] truncate text-sm">{data.me.email}</p>
+            <div className="flex flex-col gap-y-1">
+              <div className="flex items-center gap-2">
+                <IconUser className="text-muted-foreground" />
+                <p className="max-w-[10rem] truncate text-sm">{data.me.name}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <IconMail className="text-muted-foreground" />
+                <p className="max-w-[10rem] truncate text-sm">
+                  {data.me.email}
+                </p>
+              </div>
             </div>
 
-            <ThemeToggle className="ml-auto" />
+            <ThemeToggle className="-mt-2 ml-auto" />
           </div>
 
           <Separator className="my-4" />
