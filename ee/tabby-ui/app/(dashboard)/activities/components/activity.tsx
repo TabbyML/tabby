@@ -169,7 +169,7 @@ export default function Activity() {
                         </SelectItem>
                         {members.map(member => (
                           <SelectItem value={member.id} key={member.id}>
-                            {member.name}
+                            {member.name || member.email}
                           </SelectItem>
                         ))}
                       </SelectGroup>
@@ -338,6 +338,10 @@ function ActivityRow({
       break
     }
   }
+
+  let displayUser = activity.userId
+  const user = members.find(user => user.id === activity.userId)
+  if (user) displayUser = user.name || user.email
   return (
     <>
       <TableRow
@@ -359,10 +363,7 @@ function ActivityRow({
             </TooltipContent>
           </Tooltip>
         </TableCell>
-        <TableCell>
-          {members.find(user => user.id === activity.userId)?.name ||
-            activity.userId}
-        </TableCell>
+        <TableCell>{displayUser}</TableCell>
         <TableCell className="pr-4 md:pr-8">
           <Tooltip>
             <TooltipTrigger>

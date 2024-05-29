@@ -176,10 +176,14 @@ function MainPanel() {
 
           <div className="mt-2 flex w-full">
             <div className="flex flex-col gap-y-1">
-              <div className="flex items-center gap-2">
-                <IconUser className="text-muted-foreground" />
-                <p className="max-w-[10rem] truncate text-sm">{data.me.name}</p>
-              </div>
+              {data.me.name && (
+                <div className="flex items-center gap-2">
+                  <IconUser className="text-muted-foreground" />
+                  <p className="max-w-[10rem] truncate text-sm">
+                    {data.me.name}
+                  </p>
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <IconMail className="text-muted-foreground" />
                 <p className="max-w-[10rem] truncate text-sm">
