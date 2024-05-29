@@ -169,7 +169,7 @@ export default function Chats() {
                     }
                   })) as typeof fetch
               }
-              promptFormClassname='absolute'
+              promptFormClassname="absolute"
             />
           </div>
         </ScrollArea>
