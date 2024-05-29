@@ -11,6 +11,7 @@ export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
   private pendingMessages: ChatMessage[] = [];
+  private isReady = false;
 
   constructor(
     private readonly context: ExtensionContext,
@@ -19,27 +20,26 @@ export class ChatViewProvider implements WebviewViewProvider {
 
   public async resolveWebviewView(webviewView: WebviewView) {
     this.webview = webviewView;
+    this.isReady = this.agent.status === "ready";
     const extensionUri = this.context.extensionUri;
 
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [extensionUri],
     };
-    // FIXME: we need to wait for the server to be ready, consider rendering a loading indicator
+
+    // FIXME: does 1s delay needed?
     if (this.agent.status !== "ready") {
       await new Promise<void>((resolve) => {
-        this.agent.on("didChangeStatus", (status) => {
-          if (status === "ready") {
-            resolve();
-          }
-        });
+        setTimeout(() => {
+          this.isReady = this.agent.status === "ready";
+          resolve();
+        }, 1000);
       });
     }
+
     const serverInfo = await this.agent.fetchServerInfo();
-    webviewView.webview.html = this.getWebviewContent(serverInfo);
-    this.agent.on("didUpdateServerInfo", (serverInfo: ServerInfo) => {
-      webviewView.webview.html = this.getWebviewContent(serverInfo);
-    });
+    webviewView.webview.html = this.isReady ? this.getWebviewContent(serverInfo) : this.getWelcomeContent();
 
     this.client = createClient(webviewView, {
       navigate: async (context: Context) => {
@@ -50,18 +50,27 @@ export class ChatViewProvider implements WebviewViewProvider {
       },
     });
 
+    this.agent.on("didChangeStatus", (status) => {
+      if (status === "ready" && !this.isReady) {
+        this.isReady = true;
+        webviewView.webview.html = this.getWebviewContent(serverInfo);
+      }
+    });
+
+    this.agent.on("didUpdateServerInfo", (serverInfo: ServerInfo) => {
+      webviewView.webview.html = this.getWebviewContent(serverInfo);
+    });
+
     webviewView.webview.onDidReceiveMessage(async (message) => {
       if (message.action === "rendered") {
-        this.webview?.webview.postMessage({ action: "sync-theme" });
-        this.pendingMessages.forEach((message) => this.client?.sendMessage(message));
-        const serverInfo = await this.agent.fetchServerInfo();
-        if (serverInfo.config.token) {
-          this.client?.init({
-            fetcherOptions: {
-              authorization: serverInfo.config.token,
-            },
-          });
-        }
+        await this.initChatPage();
+      }
+    });
+
+    // The event will not be triggered during the initial rendering.
+    webviewView.onDidChangeVisibility(async () => {
+      if (webviewView.visible) {
+        await this.initChatPage();
       }
     });
 
@@ -94,24 +103,28 @@ export class ChatViewProvider implements WebviewViewProvider {
     return true;
   }
 
+  private async initChatPage() {
+    this.webview?.webview.postMessage({ action: "sync-theme" });
+    this.pendingMessages.forEach((message) => this.client?.sendMessage(message));
+    const serverInfo = await this.agent.fetchServerInfo();
+    if (serverInfo.config.token) {
+      this.client?.init({
+        fetcherOptions: {
+          authorization: serverInfo.config.token,
+        },
+      });
+    }
+  }
+
   private getWebviewContent(serverInfo: ServerInfo) {
     if (!this.isChatPanelAvailable(serverInfo)) {
-      return `
-        <!DOCTYPE html>
-        <html lang="en">
-          <head>
-            <meta charset="UTF-8" />
-          </head>
-          <body>
-            <h2>Tabby is not available</h2>
-            <ul>
-             <li>Please update to <a href="https://github.com/TabbyML/tabby/releases" target="_blank">the latest version</a> of the Tabby server.</li>
-             <li>You also need to launch the server with the chat model enabled; for example, use <code>--chat-model Mistral-7B</code>.</li>
-            </ul>
-          </body>
-        </html>
-      `;
+      return this.getStaticContent(`
+        <h4 class='title'>Tabby is not available</h4>
+        <p>Please update to <a href="https://github.com/TabbyML/tabby/releases" target="_blank">the latest version</a> of the Tabby server.</p>
+        <p>You also need to launch the server with the chat model enabled; for example, use <code>--chat-model Mistral-7B</code>.</p>
+      `);
     }
+
     const endpoint = serverInfo.config.endpoint;
     const styleUri = this.webview?.webview.asWebviewUri(
       Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
@@ -123,7 +136,6 @@ export class ChatViewProvider implements WebviewViewProvider {
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <title>Tabby</title>
           <link href="${endpoint}" rel="preconnect">
           <link href="${styleUri}" rel="stylesheet">
           <script defer>
@@ -167,6 +179,40 @@ export class ChatViewProvider implements WebviewViewProvider {
             id="chat"
             src="${endpoint}/chat?from=vscode"
             onload="iframeLoaded(this)" />
+        </body>
+      </html>
+    `;
+  }
+
+  // The content is displayed before the server is ready
+  private getWelcomeContent() {
+    return this.getStaticContent(`
+      <h4 class='title'>Welcome to Tabby Chat!</h4>
+      <p>Before you can start chatting, please take a moment to set up your credentials to connect to the Tabby server.</p>
+    `);
+  }
+
+  private getStaticContent(htmlContent: string) {
+    const logoUri = this.webview?.webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"));
+    const styleUri = this.webview?.webview.asWebviewUri(
+      Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
+    );
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <link href="${styleUri}" rel="stylesheet">
+        </head>
+        <body>
+          <main class='static-content'>
+            <div class='avatar'>
+              <img src="${logoUri}" />
+              <p>Tabby</p>
+            </div>
+            ${htmlContent}
+          </main>
         </body>
       </html>
     `;
