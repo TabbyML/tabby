@@ -115,6 +115,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   generateRelevantQuestions?: boolean
   maxWidth?: string
   welcomeMessage?: string
+  promptFormClassname?: string
 }
 
 function ChatRenderer(
@@ -132,7 +133,8 @@ function ChatRenderer(
     docQuery,
     generateRelevantQuestions,
     maxWidth,
-    welcomeMessage
+    welcomeMessage,
+    promptFormClassname
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -365,7 +367,8 @@ function ChatRenderer(
   }, [])
 
   const chatMaxWidthClass = maxWidth ? `max-w-${maxWidth}` : 'max-w-2xl'
-  if (!initialized) return <ListSkeleton />
+  if (!initialized) return <ListSkeleton className={`${chatMaxWidthClass} mx-auto pt-4 md:pt-10`} />
+
   return (
     <ChatContext.Provider
       value={{
@@ -396,7 +399,7 @@ function ChatRenderer(
           </div>
           <ChatPanel
             onSubmit={handleSubmit}
-            className="fixed inset-x-0 bottom-0"
+            className={cn('fixed inset-x-0 bottom-0', promptFormClassname)}
             id={chatId}
             stop={onStop}
             reload={onReload}
