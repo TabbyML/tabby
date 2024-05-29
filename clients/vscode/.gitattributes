@@ -1,3 +1,2 @@
 *.png filter=lfs diff=lfs merge=lfs -text
-assets/*.png filter=lfs diff=lfs merge=lfs -text
-assets/*.svg filter=lfs diff=lfs merge=lfs -text
+*.svg filter=lfs diff=lfs merge=lfs -text
