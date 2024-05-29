@@ -28,7 +28,8 @@
           }
         ]
       }
-    ]
+    ],
+    "no-console": "error"
   },
   "settings": {
     "tailwindcss": {

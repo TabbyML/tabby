@@ -437,8 +437,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     }
   }, [chatSideBarVisible])
 
-  console.log('repoMap', repoMap, fileTreeData)
-
   return (
     <ResizablePanelGroup
       direction="horizontal"
@@ -576,6 +574,7 @@ async function getInitialFileData(path?: string) {
 
     return { patchMap, expandedKeys, repos }
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.error(e)
     return {}
   }
@@ -609,6 +608,7 @@ async function getInitialFileData(path?: string) {
         result = defaultEntries ?? []
       }
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.error(e)
       return result
     }
