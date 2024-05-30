@@ -34,6 +34,7 @@ type ChatContextValue = {
   onClearMessages: () => void
   container?: HTMLDivElement
   onCopyContent?: (value: string) => void
+  isReferenceClickable: boolean
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -118,6 +119,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   welcomeMessage?: string
   promptFormClassname?: string
   onCopyContent?: (value: string) => void
+  isReferenceClickable?: boolean
 }
 
 function ChatRenderer(
@@ -137,7 +139,8 @@ function ChatRenderer(
     maxWidth,
     welcomeMessage,
     promptFormClassname,
-    onCopyContent
+    onCopyContent,
+    isReferenceClickable = true
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -384,7 +387,8 @@ function ChatRenderer(
         handleMessageAction,
         onClearMessages,
         container,
-        onCopyContent
+        onCopyContent,
+        isReferenceClickable
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
