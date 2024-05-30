@@ -2,16 +2,13 @@
 
 import * as React from 'react'
 import copy from 'copy-to-clipboard'
-import { toast } from 'sonner'
 
 export interface useCopyToClipboardProps {
   timeout?: number
-  onError?: (e?: any) => void
 }
 
 export function useCopyToClipboard({
-  timeout = 2000,
-  onError
+  timeout = 2000
 }: useCopyToClipboardProps) {
   const [isCopied, setIsCopied] = React.useState<Boolean>(false)
 
@@ -22,15 +19,6 @@ export function useCopyToClipboard({
     }, timeout)
   }
 
-  const onCopyError = (error?: any) => {
-    if (typeof onError === 'function') {
-      onError?.(error)
-      return
-    }
-
-    toast.error('Failed to copy.')
-  }
-
   const copyToClipboard = (value: string) => {
     if (typeof window === 'undefined') return
     if (!value) return
@@ -39,15 +27,24 @@ export function useCopyToClipboard({
       navigator.clipboard
         .writeText(value)
         .then(onCopySuccess)
-        .catch(onCopyError)
+        .catch(() => {})
     } else {
       const copyResult = copy(value)
       if (copyResult) {
         onCopySuccess()
-      } else {
-        onCopyError()
       }
     }
+
+    // When component inside an iframe sandbox(VSCode)
+    // We need to notify parent environment to handle the copy event
+    parent.postMessage(
+      {
+        action: 'copy',
+        data: value
+      },
+      '*'
+    )
+    onCopySuccess()
   }
 
   return { isCopied, copyToClipboard }
