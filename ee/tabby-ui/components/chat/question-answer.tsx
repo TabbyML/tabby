@@ -181,7 +181,7 @@ interface AssistantMessageCardProps {
 }
 
 function AssistantMessageCard(props: AssistantMessageCardProps) {
-  const { message, isLoading, onCopyContent, ...rest } = props
+  const { message, isLoading, ...rest } = props
 
   const contexts: Array<Context> = React.useMemo(() => {
     return (
@@ -243,8 +243,11 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 }
 
 function AssistantMessageCardActions(props: AssistantMessageCardProps) {
-  const { handleMessageAction, isLoading: isGenerating } =
-    React.useContext(ChatContext)
+  const {
+    handleMessageAction,
+    isLoading: isGenerating,
+    onCopyContent
+  } = React.useContext(ChatContext)
   const { message, userMessageId } = props
   return (
     <ChatMessageActionsWrapper>
@@ -397,7 +400,7 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
     <Accordion
       type="single"
       collapsible
-      className="bg-background text-foreground"
+      className="bg-transparent text-foreground"
     >
       <AccordionItem value="references" className="my-0 border-0">
         <AccordionTrigger className="my-0 py-2">
