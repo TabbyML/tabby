@@ -354,7 +354,7 @@ function ErrorMessageBlock({ error = 'Fail to fetch' }: { error?: string }) {
 
 function MessagePendingIndicator() {
   return (
-    <div className="space-y-2 py-2 md:py-0 md:px-1">
+    <div className="space-y-2 py-2 md:px-1 md:py-0">
       <Skeleton className="h-3 w-full" />
       <Skeleton className="h-3 w-full" />
     </div>
