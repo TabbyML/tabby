@@ -27,6 +27,8 @@ use super::model;
     ]
 }))]
 pub struct ChatCompletionRequest {
+    pub(crate) user: Option<String>,
+
     messages: Vec<Message>,
 
     #[builder(default = "None")]
@@ -135,8 +137,7 @@ impl ChatService {
             }
             yield ChatCompletionChunk::new(String::default(), completion_id.clone(), created, true);
 
-            // FIXME(boxbeam): Log user for chat completion events
-            self.logger.log(None, Event::ChatCompletion {
+            self.logger.log(request.user, Event::ChatCompletion {
                 completion_id,
                 input: convert_messages(&request.messages),
                 output: create_assistant_message(output)
