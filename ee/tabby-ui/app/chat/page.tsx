@@ -134,6 +134,16 @@ export default function ChatPage() {
     server?.navigate(context)
   }
 
+  const onCopyContent = (value: string) => {
+    parent.postMessage(
+      {
+        action: 'copy',
+        data: value
+      },
+      '*'
+    )
+  }
+
   if (!isInit || !fetcherOptions) return <></>
   const headers = {
     Authorization: `Bearer ${fetcherOptions.authorization}`
@@ -148,6 +158,8 @@ export default function ChatPage() {
       onNavigateToContext={onNavigateToContext}
       onLoaded={onChatLoaded}
       maxWidth={maxWidth}
+      onCopyContent={from === 'vscode' ? onCopyContent : undefined}
+      isReferenceClickable={from !== 'vscode'}
     />
   )
 }

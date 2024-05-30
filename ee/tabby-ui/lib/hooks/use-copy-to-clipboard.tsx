@@ -7,11 +7,13 @@ import { toast } from 'sonner'
 export interface useCopyToClipboardProps {
   timeout?: number
   onError?: (e?: any) => void
+  onCopyContent?: (value: string) => void
 }
 
 export function useCopyToClipboard({
   timeout = 2000,
-  onError
+  onError,
+  onCopyContent
 }: useCopyToClipboardProps) {
   const [isCopied, setIsCopied] = React.useState<Boolean>(false)
 
@@ -34,6 +36,12 @@ export function useCopyToClipboard({
   const copyToClipboard = (value: string) => {
     if (typeof window === 'undefined') return
     if (!value) return
+
+    if (onCopyContent) {
+      onCopyContent(value)
+      onCopySuccess()
+      return
+    }
 
     if (!!navigator.clipboard?.writeText) {
       navigator.clipboard

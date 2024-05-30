@@ -62,8 +62,15 @@ export class ChatViewProvider implements WebviewViewProvider {
     });
 
     webviewView.webview.onDidReceiveMessage(async (message) => {
-      if (message.action === "rendered") {
-        await this.initChatPage();
+      switch (message.action) {
+        case "rendered": {
+          await this.initChatPage();
+          return;
+        }
+        case "copy": {
+          env.clipboard.writeText(message.data);
+          return;
+        }
       }
     });
 
@@ -165,6 +172,10 @@ export class ChatViewProvider implements WebviewViewProvider {
                     syncTheme();
                     return;
                   }
+                  if (event.data.action === 'copy') {
+                    vscode.postMessage(event.data);
+                    return;
+                  }
 
                   if (event.data.data) {
                     chatIframe.contentWindow.postMessage(event.data.data[0], "${endpoint}");
@@ -180,6 +191,7 @@ export class ChatViewProvider implements WebviewViewProvider {
           <iframe
             id="chat"
             src="${endpoint}/chat?from=vscode"
+            allow="clipboard-read; clipboard-write"
             onload="iframeLoaded(this)" />
         </body>
       </html>

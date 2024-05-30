@@ -12,7 +12,7 @@ import CodeBrowserUrl from "./code-browser.png";
 
 The repository context is used to connect Tabby with a source code repository from Git, GitHub, GitLab, etc. Tabby fetches the source code from the repository, parses it into an AST, and stores it in the index. During LLM inference, this context is utilized for code completion, as well as chat and search functionalities.
 
-## Adding a Repository Provider
+## Adding a Repository through Admin UI
 
 1. Navigate to the **Integrations > Repository Providers** page.
 
@@ -32,6 +32,26 @@ The repository context is used to connect Tabby with a source code repository fr
     * Once the token is set, you can add the repository by selecting it from the dropdown list.
 
     <img src={SelectRepoUrl} alt="select-repo" width="700" />
+
+## Adding a Repository through configuration file
+
+`~/.tabby/config.toml` is the configuration file for Tabby. You can add repositories with it as well, and it's also the only way to add a repository for the Tabby OSS.
+
+```toml title="~/.tabby/config.toml"
+[[repositories]]
+name = "tabby"
+git_url = "https://github.com/TabbyML/tabby.git"
+
+# git through ssh protocol.
+[[repositories]]
+name = "CTranslate2"
+git_url = "git@github.com:OpenNMT/CTranslate2.git"
+
+# local directory is also supported!
+[[repositories]]
+name = "repository_a"
+git_url = "file:///home/users/repository_a"
+```
 
 ## Verifying the Repository Provider
 

@@ -42,11 +42,12 @@ async fn load_completion(model: &ModelConfig) -> (Arc<dyn CompletionStream>, Pro
     match model {
         ModelConfig::Http(http) => {
             let engine = http_api_bindings::create(http).await;
+            let (prompt_template, chat_template) = http_api_bindings::build_completion_prompt(http);
             (
                 engine,
                 PromptInfo {
-                    prompt_template: http.prompt_template.clone(),
-                    chat_template: http.chat_template.clone(),
+                    prompt_template,
+                    chat_template,
                 },
             )
         }
