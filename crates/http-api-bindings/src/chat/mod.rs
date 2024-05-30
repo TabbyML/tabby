@@ -8,7 +8,7 @@ use tabby_inference::ChatCompletionStream;
 
 pub async fn create(model: &HttpModelConfig) -> Arc<dyn ChatCompletionStream> {
     match model.kind.as_str() {
-        "openai-chat" => Arc::new(OpenAIChatEngine::create(
+        "openai/chat" => Arc::new(OpenAIChatEngine::create(
             &model.api_endpoint,
             model.model_name.as_deref().unwrap_or_default(),
             model.api_key.clone(),
