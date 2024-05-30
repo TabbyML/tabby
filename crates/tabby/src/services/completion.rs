@@ -375,9 +375,9 @@ mod tests {
 
     #[async_trait]
     impl CompletionStream for MockCompletionStream {
-        async fn generate(&self, _prompt: &str, _optionss: CompletionOptions) -> BoxStream<String> {
+        async fn generate(&self, _prompt: &str, _options: CompletionOptions) -> BoxStream<String> {
             let s = stream! {
-                yield r#"{ "Hello, world!" } "#.into();
+                yield r#""Hello, world!""#.into();
             };
 
             Box::pin(s)
@@ -407,24 +407,25 @@ mod tests {
             Arc::new(generation),
             Arc::new(MockCodeSearch),
             Arc::new(MockEventLogger),
-            None,
+            Some("<pre>{prefix}<mid>{suffix}<end>".into()),
         )
     }
 
     #[tokio::test]
     async fn test_completion_service() {
         let completion_service = mock_completion_service();
+        let segment = Segments {
+            prefix: "fn hello_world() -> &'static str {".into(),
+            suffix: Some("}".into()),
+            filepath: None,
+            git_url: None,
+            declarations: None,
+            relevant_snippets_from_changed_files: None,
+            clipboard: None,
+        };
         let request = CompletionRequest {
             language: Some("rust".into()),
-            segments: Some(Segments {
-                prefix: "fn hello_world() -> &'static str ".into(),
-                suffix: None,
-                filepath: None,
-                git_url: None,
-                declarations: None,
-                relevant_snippets_from_changed_files: None,
-                clipboard: None,
-            }),
+            segments: Some(segment.clone()),
             user: None,
             debug_options: None,
             temperature: None,
@@ -432,7 +433,11 @@ mod tests {
         };
 
         let response = completion_service.generate(&request).await.unwrap();
-        dbg!(response.choices);
-        assert!(response.debug_data.is_some());
+        assert_eq!(response.choices[0].text, r#""Hello, world!""#);
+
+        let prompt = completion_service
+            .prompt_builder
+            .build("rust", segment.clone(), &[]);
+        assert_eq!(prompt, "<pre>fn hello_world() -> &'static str {<mid>}<end>");
     }
 }
