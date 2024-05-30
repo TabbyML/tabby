@@ -8,7 +8,6 @@ import {
   CancellationToken,
   ThemeColor,
   DecorationRangeBehavior,
-  OverviewRulerLane,
 } from "vscode";
 import { CodeLensMiddleware as VscodeLspCodeLensMiddleware, ProvideCodeLensesSignature } from "vscode-languageclient";
 import { CodeLens as TabbyCodeLens } from "tabby-agent";
@@ -20,13 +19,11 @@ const decorationTypeHeader = window.createTextEditorDecorationType({
   backgroundColor: new ThemeColor("merge.incomingHeaderBackground"),
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
-  overviewRulerLane: OverviewRulerLane.Right,
 });
 const decorationTypeFooter = window.createTextEditorDecorationType({
   backgroundColor: new ThemeColor("merge.incomingHeaderBackground"),
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
-  overviewRulerLane: OverviewRulerLane.Right,
 });
 const decorationTypeComments = window.createTextEditorDecorationType({
   color: new ThemeColor("editorInlayHint.foreground"),
@@ -34,7 +31,6 @@ const decorationTypeComments = window.createTextEditorDecorationType({
   fontStyle: "italic",
   fontWeight: "normal",
   isWholeLine: true,
-  overviewRulerLane: OverviewRulerLane.Right,
   rangeBehavior: DecorationRangeBehavior.ClosedOpen,
   before: {
     contentText: ">",
@@ -54,7 +50,6 @@ const decorationTypeUnchanged = window.createTextEditorDecorationType({
 const decorationTypeInserted = window.createTextEditorDecorationType({
   backgroundColor: new ThemeColor("diffEditor.insertedTextBackground"),
   isWholeLine: true,
-  overviewRulerLane: OverviewRulerLane.Right,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
   before: {
     contentText: "+",
@@ -66,7 +61,6 @@ const decorationTypeInserted = window.createTextEditorDecorationType({
 const decorationTypeDeleted = window.createTextEditorDecorationType({
   backgroundColor: new ThemeColor("diffEditor.removedTextBackground"),
   isWholeLine: true,
-  overviewRulerLane: OverviewRulerLane.Right,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
   before: {
     contentText: "-",

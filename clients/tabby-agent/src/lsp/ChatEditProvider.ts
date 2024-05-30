@@ -16,7 +16,7 @@ import { Readable } from "node:stream";
 import * as RandomString from "randomstring";
 import * as Diff from "diff";
 import { TabbyAgent } from "../TabbyAgent";
-import { isBlank } from "../utils";
+import { isBlank, stringToRegExp } from "../utils";
 
 export type Edit = {
   id: ChatEditToken;
@@ -65,7 +65,8 @@ export class ChatEditProvider {
         message: "Chat feature not available",
       } as ChatFeatureNotAvailableError;
     }
-    const { documentMaxChars, commandMaxChars, responseSplitter } = this.agent.getConfig().experimentalChat.edit;
+    const { documentMaxChars, commandMaxChars, responseSplitter, responseSplitterIncrement } =
+      this.agent.getConfig().experimentalChat.edit;
     const documentText = document.getText(params.location.range);
     if (documentText.length > documentMaxChars) {
       throw { name: "ChatEditDocumentTooLongError", message: "Document too long" } as ChatEditDocumentTooLongError;
@@ -101,7 +102,11 @@ export class ChatEditProvider {
     if (!readableStream) {
       return null;
     }
-    await this.readResponseStream(readableStream, responseSplitter);
+    let splitter = responseSplitter;
+    while (stringToRegExp(`/^\\s*${splitter}/gm`).test(documentText)) {
+      splitter += responseSplitterIncrement;
+    }
+    await this.readResponseStream(readableStream, splitter);
     return editId;
   }
 
