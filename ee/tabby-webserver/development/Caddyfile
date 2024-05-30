@@ -1,4 +1,6 @@
 :8080 {
+	rewrite /browser/* /browser?{query}&path={path}
+
 	@backend {
 		path /graphql
 		path /graphiql
