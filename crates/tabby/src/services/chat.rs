@@ -220,6 +220,7 @@ mod tests {
             temperature: None,
             seed: None,
             presence_penalty: None,
+            user: None,
         };
         let mut output = service.generate(request).await;
         let response = output.next().await.unwrap();
