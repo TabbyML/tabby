@@ -8,6 +8,8 @@ import {
   MessageDirection,
   URI,
   Range,
+  Location,
+  Command as LspCommand,
   InitializeRequest as LspInitializeRequest,
   InitializeParams as LspInitializeParams,
   InitializeResult as LspInitializeResult,
@@ -17,6 +19,10 @@ import {
   ConfigurationRequest as LspConfigurationRequest,
   DidChangeConfigurationNotification as LspDidChangeConfigurationNotification,
   DidChangeConfigurationParams as LspDidChangeConfigurationParams,
+  CodeLensRequest as LspCodeLensRequest,
+  CodeLensParams,
+  CodeLens as LspCodeLens,
+  CodeLensResolveRequest as LspCodeLensResolveRequest,
   CompletionRequest as LspCompletionRequest,
   CompletionParams,
   CompletionList as LspCompletionList,
@@ -125,6 +131,7 @@ export type ServerCapabilities = LspServerCapabilities & {
   tabby?: {
     /**
      * The server supports:
+     * - `tabby/chat/edit`
      * - `tabby/chat/generateCommitMessage`
      * See {@link ChatFeatureRegistration}
      */
@@ -193,8 +200,58 @@ export namespace DidChangeConfigurationNotification {
 }
 
 export type DidChangeConfigurationParams = LspDidChangeConfigurationParams & {
-  settings: ClientProvidedConfig | null;
+  settings?: ClientProvidedConfig;
 };
+
+/**
+ * Extends LSP method Code Lens Request(↩️)
+ *
+ * Tabby provides this method for preview changes applied in the Chat Edit feature,
+ * the client should render codelens and decorations to improve the readability of the pending changes.
+ * - method: `textDocument/codeLens`
+ * - params: {@link CodeLensParams}
+ * - result: {@link CodeLens[]} | null
+ * - partialResult:  {@link CodeLens[]}
+ */
+export namespace CodeLensRequest {
+  export const method = LspCodeLensRequest.method;
+  export const messageDirection = LspCodeLensRequest.messageDirection;
+  export const type = new ProtocolRequestType<CodeLensParams, CodeLens[] | null, never, CodeLens[], void>(method);
+}
+
+export type CodeLens = LspCodeLens & {
+  command?: ChatEditResolveCommand | LspCommand;
+  data?: {
+    type: CodeLensType;
+    line?: ChangesPreviewLineType;
+  };
+};
+
+export type CodeLensType = "previewChanges";
+export type ChangesPreviewLineType =
+  | "header"
+  | "footer"
+  | "commentsFirstLine"
+  | "comments"
+  | "waiting"
+  | "inProgress"
+  | "unchanged"
+  | "inserted"
+  | "deleted";
+
+/**
+ * Extends LSP method Code Lens Resolve Request(↩️)
+ *
+ * - method: `codeLens/resolve`
+ * - params: {@link CodeLensParams}
+ * - result: {@link CodeLens[]} | null
+ * - partialResult:  {@link CodeLens[]}
+ */
+export namespace CodeLensResolveRequest {
+  export const method = LspCodeLensResolveRequest.method;
+  export const messageDirection = LspCodeLensResolveRequest.messageDirection;
+  export const type = new ProtocolRequestType<CodeLens, CodeLens, never, void, void>(method);
+}
 
 /**
  * Extends LSP method Completion Request(↩️)
@@ -259,6 +316,97 @@ export type InlineCompletionItem = LspInlineCompletionItem & {
 };
 
 /**
+ * [Tabby] Chat Edit Request(↩️)
+ *
+ * This method is sent from the client to the server to edit the document content by user's command.
+ * The server will edit the document content using ApplyEdit(`workspace/applyEdit`) request,
+ * which requires the client to have this capability.
+ * - method: `tabby/chat/edit`
+ * - params: {@link ChatEditRequest}
+ * - result: {@link ChatEditToken}
+ * - workDoneProgress: "begin" | "end"
+ * - error: {@link ChatFeatureNotAvailableError}
+ *        | {@link ChatEditDocumentTooLongError}
+ *        | {@link ChatEditCommandTooLongError}
+ *        | {@link ChatEditMutexError}
+ */
+export namespace ChatEditRequest {
+  export const method = "tabby/chat/edit";
+  export const messageDirection = MessageDirection.clientToServer;
+  export const type = new ProtocolRequestType<
+    ChatEditParams,
+    ChatEditToken,
+    ChatFeatureNotAvailableError | ChatEditDocumentTooLongError | ChatEditCommandTooLongError | ChatEditMutexError,
+    void,
+    void
+  >(method);
+}
+
+export type ChatEditParams = {
+  /**
+   * The document location to edit.
+   */
+  location: Location;
+  /**
+   * The command for this edit.
+   */
+  command: string;
+  /**
+   * Select a edit format.
+   * - "previewChanges": The document will be edit to preview changes,
+   *    use {@link ChatEditResolveRequest} to resolve it later.
+   */
+  format: "previewChanges";
+};
+
+export type ChatEditToken = string;
+
+export type ChatFeatureNotAvailableError = {
+  name: "ChatFeatureNotAvailableError";
+};
+export type ChatEditDocumentTooLongError = {
+  name: "ChatEditDocumentTooLongError";
+};
+export type ChatEditCommandTooLongError = {
+  name: "ChatEditCommandTooLongError";
+};
+export type ChatEditMutexError = {
+  name: "ChatEditMutexError";
+};
+
+/**
+ * [Tabby] Chat Edit Resolve Request(↩️)
+ *
+ * This method is sent from the client to the server to accept or discard the smart edit in preview.
+ * - method: `tabby/chat/edit/resolve`
+ * - params: {@link ChatEditResolveParams}
+ * - result: boolean
+ */
+export namespace ChatEditResolveRequest {
+  export const method = "tabby/chat/edit/resolve";
+  export const messageDirection = MessageDirection.clientToServer;
+  export const type = new ProtocolRequestType<ChatEditResolveParams, boolean, never, void, void>(method);
+}
+
+export type ChatEditResolveParams = {
+  /**
+   * The document location to resolve the smart edit changes, should contains the header line of the changes preview.
+   */
+  location: Location;
+  /**
+   * The action to take for this edit.
+   */
+  action: "accept" | "discard";
+};
+
+export type ChatEditResolveCommand = LspCommand & {
+  title: string;
+  tooltip?: string;
+  command: "tabby/chat/edit/resolve";
+  arguments: [ChatEditResolveParams];
+};
+
+/**
  * [Tabby] GenerateCommitMessage Request(↩️)
  *
  * This method is sent from the client to the server to generate a commit message for a git repository.
@@ -288,10 +436,6 @@ export type GenerateCommitMessageParams = {
 
 export type GenerateCommitMessageResult = {
   commitMessage: string;
-};
-
-export type ChatFeatureNotAvailableError = {
-  name: "ChatFeatureNotAvailableError";
 };
 
 /**

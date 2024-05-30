@@ -79,6 +79,26 @@
         "command": "tabby.experimental.chat.generateCommitMessage",
         "title": "Generate Commit Message",
         "category": "Tabby"
+      },
+      {
+        "command": "tabby.experimental.chat.edit.start",
+        "title": "Edit",
+        "category": "Tabby"
+      },
+      {
+        "command": "tabby.experimental.chat.edit.stop",
+        "title": "Stop Editing",
+        "category": "Tabby"
+      },
+      {
+        "command": "tabby.experimental.chat.edit.accept",
+        "title": "Accept Preview Changes",
+        "category": "Tabby"
+      },
+      {
+        "command": "tabby.experimental.chat.edit.discard",
+        "title": "Discard Preview Changes",
+        "category": "Tabby"
       }
     ],
     "menus": {
@@ -98,6 +118,18 @@
         {
           "command": "tabby.experimental.chat.generateCommitMessage",
           "when": "tabby.chatEnabled && tabby.generateCommitMessageEnabled"
+        },
+        {
+          "command": "tabby.experimental.chat.edit.stop",
+          "when": "false"
+        },
+        {
+          "command": "tabby.experimental.chat.edit.accept",
+          "when": "false"
+        },
+        {
+          "command": "tabby.experimental.chat.edit.discard",
+          "when": "false"
         }
       ],
       "editor/context": [
@@ -241,6 +273,29 @@
         "command": "tabby.inlineCompletion.dismiss",
         "key": "escape",
         "when": "inlineSuggestionVisible"
+      },
+      {
+        "command": "tabby.experimental.chat.edit.start",
+        "key": "ctrl+i",
+        "mac": "cmd+i",
+        "when": "editorTextFocus && editorHasSelection && !editorReadonly"
+      },
+      {
+        "command": "tabby.experimental.chat.edit.stop",
+        "key": "escape",
+        "when": "tabby.chatEditInProgress && editorTextFocus"
+      },
+      {
+        "command": "tabby.experimental.chat.edit.accept",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "tabby.chatEditResolving && editorTextFocus && !editorReadonly"
+      },
+      {
+        "command": "tabby.experimental.chat.edit.discard",
+        "key": "escape",
+        "mac": "escape",
+        "when": "tabby.chatEditResolving && editorTextFocus && !editorReadonly"
       }
     ],
     "viewsContainers": {

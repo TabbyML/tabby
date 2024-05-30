@@ -1,6 +1,7 @@
-import { window } from "vscode";
+import { Uri } from "vscode";
 import { BaseLanguageClient, StaticFeature, FeatureState, Disposable } from "vscode-languageclient";
 import { ClientCapabilities, EditorOptionsRequest, EditorOptionsParams } from "tabby-agent";
+import { findTextEditor } from "./vscodeWindowUtils";
 
 export class EditorOptionsFeature implements StaticFeature {
   private disposables: Disposable[] = [];
@@ -29,7 +30,7 @@ export class EditorOptionsFeature implements StaticFeature {
   initialize(): void {
     this.disposables.push(
       this.client.onRequest(EditorOptionsRequest.type, (params: EditorOptionsParams) => {
-        const editor = window.visibleTextEditors.find((editor) => editor.document.uri.toString() === params.uri);
+        const editor = findTextEditor(Uri.parse(params.uri));
         if (!editor) {
           return null;
         }

@@ -80,6 +80,14 @@ export class Config extends EventEmitter {
     this.emit("updated");
   }
 
+  get chatEditRecentlyCommand(): string[] {
+    return this.memento.get("edit.recentlyCommand", []);
+  }
+
+  set chatEditRecentlyCommand(value: string[]) {
+    this.memento.update("edit.recentlyCommand", value);
+  }
+
   buildClientProvidedConfig(): ClientProvidedConfig {
     return {
       server: {

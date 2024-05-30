@@ -6,6 +6,7 @@ import { getProperty, setProperty, deleteProperty } from "dot-prop";
 import createClient from "openapi-fetch";
 import type { ParseAs } from "openapi-fetch";
 import * as semver from "semver";
+import { Readable } from "node:stream";
 import type { paths as TabbyApi, components as TabbyApiComponents } from "./types/tabbyApi";
 import type {
   Agent,
@@ -31,7 +32,7 @@ import {
   errorToString,
   stringToRegExp,
 } from "./utils";
-import { parseChatResponse } from "./stream";
+import { readChatStream, parseChatResponse } from "./stream";
 import { Auth } from "./Auth";
 import { AgentConfig, PartialAgentConfig, defaultAgentConfig } from "./AgentConfig";
 import { configFile } from "./configFile";
@@ -869,5 +870,76 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.healthCheck(); // schedule a health check
     }
     return "";
+  }
+
+  public async provideChatEdit(
+    document: string,
+    command: string,
+    options?: AbortSignalOption & { useBetaVersion?: boolean },
+  ): Promise<Readable | null> {
+    if (this.status === "notInitialized") {
+      throw new Error("Agent is not initialized");
+    }
+    const { documentMaxChars, commandMaxChars, promptTemplate } = this.config.experimentalChat.edit;
+    // request chat api
+    const requestId = uuid();
+    try {
+      if (!this.api) {
+        throw new Error("http client not initialized");
+      }
+      if (document.length > documentMaxChars) {
+        throw new Error("Document to edit is too long");
+      }
+      if (command.length > commandMaxChars) {
+        throw new Error("Command is too long");
+      }
+      const requestPath = options?.useBetaVersion ? "/v1beta/chat/completions" : "/v1/chat/completions";
+      const messages = [
+        {
+          role: "user",
+          content: promptTemplate.replace(/{{document}}|{{command}}/g, (pattern: string) => {
+            switch (pattern) {
+              case "{{document}}":
+                return document;
+              case "{{command}}":
+                return command;
+              default:
+                return "";
+            }
+          }),
+        },
+      ];
+      const requestOptions = {
+        body: { messages },
+        signal: this.createAbortSignal(options),
+        parseAs: "stream" as ParseAs,
+      };
+      const requestDescription = `POST ${this.config.server.endpoint + requestPath}`;
+      this.logger.debug(`Chat request: ${requestDescription}. [${requestId}]`);
+      this.logger.trace(`Chat request body: [${requestId}]`, requestOptions.body);
+      const response = await this.api.POST(requestPath, requestOptions);
+      this.logger.debug(`Chat response status: ${response.response.status}. [${requestId}]`);
+      if (response.error || !response.response.ok) {
+        throw new HttpError(response.response);
+      }
+      if (!response.response.body) {
+        return null;
+      }
+      const readableStream = readChatStream(response.response.body, requestOptions.signal);
+      return readableStream;
+    } catch (error) {
+      if (error instanceof HttpError && error.status == 404 && !options?.useBetaVersion) {
+        return await this.provideChatEdit(document, command, { ...options, useBetaVersion: true });
+      }
+      if (isCanceledError(error)) {
+        this.logger.debug(`Chat request canceled. [${requestId}]`);
+      } else if (isUnauthorizedError(error)) {
+        this.logger.debug(`Chat request failed due to unauthorized. [${requestId}]`);
+      } else {
+        this.logger.error(`Chat request failed. [${requestId}]`, error);
+      }
+      this.healthCheck(); // schedule a health check
+      return null;
+    }
   }
 }
