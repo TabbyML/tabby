@@ -26,7 +26,7 @@ pub struct DocBuilder {
 }
 
 impl DocBuilder {
-    pub fn new(embedding: Arc<dyn Embedding>) -> Self {
+    fn new(embedding: Arc<dyn Embedding>) -> Self {
         Self { embedding }
     }
 }

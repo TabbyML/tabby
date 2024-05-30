@@ -1,6 +1,9 @@
+use std::sync::Arc;
+
 use ignore::Walk;
 use kv::Batch;
 use tabby_common::config::RepositoryConfig;
+use tabby_inference::Embedding;
 use tracing::warn;
 
 use super::{cache::CacheStore, create_code_index, intelligence::SourceCode, KeyedSourceCode};
@@ -10,8 +13,12 @@ use crate::Indexer;
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 
-pub async fn index_repository(cache: &mut CacheStore, repository: &RepositoryConfig) {
-    let index = create_code_index();
+pub async fn index_repository(
+    cache: &mut CacheStore,
+    embedding: Arc<dyn Embedding>,
+    repository: &RepositoryConfig,
+) {
+    let index = create_code_index(embedding);
     if index.recreated {
         cache.clear_indexed()
     }
@@ -19,8 +26,8 @@ pub async fn index_repository(cache: &mut CacheStore, repository: &RepositoryCon
     index.commit();
 }
 
-pub fn garbage_collection(cache: &mut CacheStore) {
-    let index = create_code_index();
+pub fn garbage_collection(cache: &mut CacheStore, embedding: Arc<dyn Embedding>) {
+    let index = create_code_index(embedding);
     remove_staled_documents(cache, &index);
     index.commit();
 }
