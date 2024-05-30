@@ -14,6 +14,7 @@ import { IconCheck, IconCopy } from '@/components/ui/icons'
 interface Props {
   language: string
   value: string
+  onCopyContent?: (value: string) => void
 }
 
 interface languageMap {
@@ -56,8 +57,11 @@ export const generateRandomString = (length: number, lowercase = false) => {
   return lowercase ? result.toLowerCase() : result
 }
 
-const CodeBlock: FC<Props> = memo(({ language, value }) => {
-  const { isCopied, copyToClipboard } = useCopyToClipboard({ timeout: 2000 })
+const CodeBlock: FC<Props> = memo(({ language, value, onCopyContent }) => {
+  const { isCopied, copyToClipboard } = useCopyToClipboard({
+    timeout: 2000,
+    onCopyContent
+  })
 
   const onCopy = () => {
     if (isCopied) return
