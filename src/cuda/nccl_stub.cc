@@ -69,9 +69,9 @@ extern "C" {
   return func(comm);
   }
 
-  ncclResult_t ncclCommAbort(ncclComm_t comm) {
+  ncclResult_t ncclCommFinalize(ncclComm_t comm) {
     using Signature = ncclResult_t(*)(ncclComm_t comm);
-    static auto func = ctranslate2::load_symbol<Signature>("ncclCommAbort");
+    static auto func = ctranslate2::load_symbol<Signature>("ncclCommFinalize");
     return func(comm);
   }
 

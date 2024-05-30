@@ -196,7 +196,7 @@ namespace ctranslate2 {
     for (auto* comm : _nccl_comms) {
         //finalizing NCCL
         if (*comm) {
-          NCCL_CHECK(ncclCommAbort(*comm));
+          NCCL_CHECK(ncclCommFinalize(*comm));
           NCCL_CHECK(ncclCommDestroy(*comm));
         }
     }

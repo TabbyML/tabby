@@ -1,5 +1,7 @@
 #include "ctranslate2/layers/attention.h"
 #include "ctranslate2/ops/split.h"
+#include "ctranslate2/utils.h"
+
 
 #include <algorithm>
 #include <cmath>
@@ -210,11 +212,20 @@ namespace ctranslate2 {
                                                  is_decoder,
                                                  with_cache ? key_length - 1 : 0);
         }
+        StorageView* position_bias_per_gpu = position_bias;
+        StorageView position_bias_tmp(position_bias->dtype(), position_bias->device());
+        if (ScopedMPISetter::getCurRank() != 0) {
+          const dim_t num_head_per_gpu = SAFE_DIVIDE(position_bias->dim(0), ScopedMPISetter::getNRanks());
+          ops::Slide slide_ops(0, num_head_per_gpu * ScopedMPISetter::getCurRank(),
+                               num_head_per_gpu, true);
+          slide_ops(*position_bias, position_bias_tmp);
+          position_bias_per_gpu = &position_bias_tmp;
+        }
 
         DEVICE_AND_TYPE_DISPATCH(output.device(), output.dtype(),
-                                 primitives<D>::add_batch_broadcast(position_bias->data<T>(),
+                                 primitives<D>::add_batch_broadcast(position_bias_per_gpu->data<T>(),
                                                                     output.data<T>(),
-                                                                    position_bias->size(),
+                                                                    position_bias_per_gpu->size(),
                                                                     output.size()));
       }
 
