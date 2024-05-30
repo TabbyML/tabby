@@ -5443,6 +5443,7 @@ dependencies = [
  "futures",
  "git2",
  "ignore",
+ "insta",
  "kv",
  "lazy_static",
  "llama-cpp-server",
