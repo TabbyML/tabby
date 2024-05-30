@@ -139,6 +139,7 @@ mod tests {
     #[test]
     fn test_code_splitter() {
         let intelligence = CodeIntelligence::default();
+        // First file, chat/openai_chat.rs
         let file_contents = include_str!("../../../http-api-bindings/src/chat/openai_chat.rs");
 
         let rust_chunks = intelligence
@@ -154,5 +155,22 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_snapshot!(format!("{:#?}", text_chunks));
+
+        // Second file, tabby-db/src/cache.rs
+        let file_contents2 = include_str!("../../../../ee/tabby-db/src/cache.rs");
+
+        let rust_chunks2 = intelligence
+            .chunks(file_contents2, "rust")
+            .map(|(_, chunk)| chunk)
+            .collect::<Vec<_>>();
+
+        assert_snapshot!(format!("{:#?}", rust_chunks2));
+
+        let text_chunks2 = intelligence
+            .chunks(file_contents2, "unknown")
+            .map(|(_, chunk)| chunk)
+            .collect::<Vec<_>>();
+
+        assert_snapshot!(format!("{:#?}", text_chunks2));
     }
 }
