@@ -132,13 +132,18 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
     if (line && editorView && value) {
       try {
         const lineNumber = parseInt(line)
-        const lineObject = editorView?.state?.doc?.line(lineNumber)
-        if (lineObject) {
-          setSelectedLines(editorView, lineObject.from)
+        const lineInfo = editorView?.state?.doc?.line(lineNumber)
+
+        if (lineInfo) {
+          const pos = lineInfo.from
+          setSelectedLines(editorView, pos)
+          if (isPositionInView(editorView, pos, 90)) {
+            return
+          }
           editorView.dispatch({
-            effects: EditorView.scrollIntoView(lineObject.from, {
+            effects: EditorView.scrollIntoView(pos, {
               y: 'start',
-              yMargin: 120
+              yMargin: 200
             })
           })
         }
@@ -156,6 +161,24 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
       viewDidUpdate={view => setEditorView(view)}
     />
   )
+}
+
+function isPositionInView(
+  view: EditorView,
+  pos: number,
+  offsetTop: number = 0
+) {
+  const node = view.domAtPos(pos).node
+  const lineElement =
+    node.nodeType === 3 ? node.parentElement : (node as HTMLElement)
+  if (lineElement) {
+    const rect = lineElement.getBoundingClientRect()
+    const viewportHeight =
+      window.innerHeight || document.documentElement.clientHeight
+    return rect.top >= offsetTop && rect.bottom <= viewportHeight
+  }
+
+  return false
 }
 
 export default CodeEditorView
