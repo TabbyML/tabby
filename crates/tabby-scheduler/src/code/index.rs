@@ -7,7 +7,7 @@ use tantivy::{Index, IndexWriter, Term};
 use tracing::warn;
 
 use super::{
-    cache::CacheStore,
+    cache::{CacheStore, INDEX_VERSION},
     intelligence::{CodeIntelligence, SourceCode},
 };
 use crate::tantivy_utils;
@@ -88,7 +88,7 @@ fn add_changed_documents(cache: &mut CacheStore, repository: &RepositoryConfig, 
         }
 
         indexed_files_batch
-            .set(&file_id, &String::new())
+            .set(&file_id, &INDEX_VERSION.to_string())
             .expect("Failed to mark file as indexed");
     }
 
@@ -133,8 +133,9 @@ fn is_valid_file(file: &SourceCode) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use insta::assert_snapshot;
+
+    use super::*;
 
     #[test]
     fn test_code_splitter() {

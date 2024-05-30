@@ -65,6 +65,8 @@ pub struct CacheStore {
     code: CodeIntelligence,
 }
 
+pub const INDEX_VERSION: &str = "1";
+
 impl CacheStore {
     pub fn new(path: PathBuf) -> Self {
         Self {
@@ -85,9 +87,9 @@ impl CacheStore {
             .to_string();
         let indexed = self
             .index_bucket()
-            .contains(&key)
+            .get(&key)
             .expect("Failed to read index bucket");
-        (key, indexed)
+        (key, indexed.is_some_and(|indexed| indexed == INDEX_VERSION))
     }
 
     pub fn clear_indexed(&self) {
