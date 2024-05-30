@@ -92,12 +92,12 @@
       },
       {
         "command": "tabby.experimental.chat.edit.accept",
-        "title": "Accept Preview Changes",
+        "title": "Accept Changes",
         "category": "Tabby"
       },
       {
         "command": "tabby.experimental.chat.edit.discard",
-        "title": "Discard Preview Changes",
+        "title": "Discard Changes",
         "category": "Tabby"
       }
     ],

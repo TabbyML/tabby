@@ -22,7 +22,6 @@ import {
   CodeLensRequest as LspCodeLensRequest,
   CodeLensParams,
   CodeLens as LspCodeLens,
-  CodeLensResolveRequest as LspCodeLensResolveRequest,
   CompletionRequest as LspCompletionRequest,
   CompletionParams,
   CompletionList as LspCompletionList,
@@ -238,20 +237,6 @@ export type ChangesPreviewLineType =
   | "unchanged"
   | "inserted"
   | "deleted";
-
-/**
- * Extends LSP method Code Lens Resolve Request(↩️)
- *
- * - method: `codeLens/resolve`
- * - params: {@link CodeLensParams}
- * - result: {@link CodeLens[]} | null
- * - partialResult:  {@link CodeLens[]}
- */
-export namespace CodeLensResolveRequest {
-  export const method = LspCodeLensResolveRequest.method;
-  export const messageDirection = LspCodeLensResolveRequest.messageDirection;
-  export const type = new ProtocolRequestType<CodeLens, CodeLens, never, void, void>(method);
-}
 
 /**
  * Extends LSP method Completion Request(↩️)

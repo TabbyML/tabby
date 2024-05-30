@@ -371,7 +371,7 @@ export class ChatEditProvider {
       }
     }
     // footer
-    lines.push(`>>>>>>> {{markers}}[${edit.id}]`);
+    lines.push(`>>>>>>> ${stateDescription} {{markers}}[${edit.id}]`);
     markers += ">";
     // replace markers
     lines[0] = lines[0]!.replace("{{markers}}", markers);

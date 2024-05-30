@@ -75,6 +75,17 @@ const decorationTypeDeleted = window.createTextEditorDecorationType({
     width: "10px",
   },
 });
+const decorationTypes: Record<string, TextEditorDecorationType> = {
+  header: decorationTypeHeader,
+  footer: decorationTypeFooter,
+  commentsFirstLine: decorationTypeComments,
+  comments: decorationTypeComments,
+  waiting: decorationTypeUnchanged,
+  inProgress: decorationTypeInserted,
+  unchanged: decorationTypeUnchanged,
+  inserted: decorationTypeInserted,
+  deleted: decorationTypeDeleted,
+};
 
 export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
   private readonly decorationMap = new Map<TextEditor, Map<TextEditorDecorationType, Range[]>>();
@@ -108,34 +119,15 @@ export class CodeLensMiddleware implements VscodeLspCodeLensMiddleware {
       codeLens.range.end.line,
       codeLens.range.end.character,
     );
-    switch (codeLens.data.line) {
-      case "header":
-        this.addDecorationRange(editor, decorationTypeHeader, decorationRange);
-        return codeLens;
-      case "footer":
-        this.addDecorationRange(editor, decorationTypeFooter, decorationRange);
-        return null;
-      case "commentsFirstLine":
-        this.addDecorationRange(editor, decorationTypeComments, decorationRange);
-        return null;
-      case "comments":
-        this.addDecorationRange(editor, decorationTypeComments, decorationRange);
-        return null;
-      case "waiting":
-        this.addDecorationRange(editor, decorationTypeUnchanged, decorationRange);
-        return null;
-      case "inProgress":
-        this.addDecorationRange(editor, decorationTypeInserted, decorationRange);
-        return null;
-      case "unchanged":
-        this.addDecorationRange(editor, decorationTypeUnchanged, decorationRange);
-        return null;
-      case "inserted":
-        this.addDecorationRange(editor, decorationTypeInserted, decorationRange);
-        return null;
-      case "deleted":
-        this.addDecorationRange(editor, decorationTypeDeleted, decorationRange);
-        return null;
+    const lineType = codeLens.data.line;
+    if (typeof lineType === "string" && lineType in decorationTypes) {
+      const decorationType = decorationTypes[lineType];
+      if (decorationType) {
+        this.addDecorationRange(editor, decorationType, decorationRange);
+      }
+    }
+    if (codeLens.data.line === "header") {
+      return codeLens;
     }
     return null;
   }
