@@ -14,8 +14,6 @@ tree-sitter-tags = "0.22.6"
 lazy_static = { workspace = true }
 tree-sitter-python = "0.21.0"
 tree-sitter-java = "0.21.0"
-# Need to pin version due to breaking change from tree-sitter-kotlin in minor release (maybe related to https://github.com/fwcd/tree-sitter-kotlin/commit/d5dc99a9bdc3fe895e6bcd39caddcfa4820f4c03)
-# Causes version conflict with tree-sitter
 tree-sitter-kotlin = "0.3.6"
 tree-sitter-rust = "0.21.2"
 tree-sitter-typescript = "0.21.1"
