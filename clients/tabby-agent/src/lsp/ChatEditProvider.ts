@@ -82,7 +82,7 @@ export class ChatEditProvider {
     this.mutexAbortController = new AbortController();
     token.onCancellationRequested(() => this.mutexAbortController?.abort());
 
-    const readableStream = await this.agent.provideChatEdit(documentText, params.command, {
+    const readableStream = await this.agent.provideChatEdit(documentText, params.command, document.languageId, {
       signal: this.mutexAbortController.signal,
     });
 

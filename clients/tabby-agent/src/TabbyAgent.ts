@@ -875,6 +875,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
   public async provideChatEdit(
     document: string,
     command: string,
+    languageId = "",
     options?: AbortSignalOption & { useBetaVersion?: boolean },
   ): Promise<Readable | null> {
     if (this.status === "notInitialized") {
@@ -897,12 +898,14 @@ export class TabbyAgent extends EventEmitter implements Agent {
       const messages = [
         {
           role: "user",
-          content: promptTemplate.replace(/{{document}}|{{command}}/g, (pattern: string) => {
+          content: promptTemplate.replace(/{{document}}|{{command}}|{{languageId}}/g, (pattern: string) => {
             switch (pattern) {
               case "{{document}}":
                 return document;
               case "{{command}}":
                 return command;
+              case "{{languageId}}":
+                return languageId;
               default:
                 return "";
             }
@@ -929,7 +932,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       return readableStream;
     } catch (error) {
       if (error instanceof HttpError && error.status == 404 && !options?.useBetaVersion) {
-        return await this.provideChatEdit(document, command, { ...options, useBetaVersion: true });
+        return await this.provideChatEdit(document, command, languageId, { ...options, useBetaVersion: true });
       }
       if (isCanceledError(error)) {
         this.logger.debug(`Chat request canceled. [${requestId}]`);
