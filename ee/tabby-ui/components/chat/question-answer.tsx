@@ -144,8 +144,11 @@ interface AssistantMessageCardProps {
 }
 
 function AssistantMessageCard(props: AssistantMessageCardProps) {
-  const { handleMessageAction, isLoading: isGenerating } =
-    React.useContext(ChatContext)
+  const {
+    handleMessageAction,
+    isLoading: isGenerating,
+    onCopyContent
+  } = React.useContext(ChatContext)
   const {
     message,
     selectContext,
@@ -205,7 +208,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               <span className="sr-only">Regenerate message</span>
             </Button>
           )}
-          <CopyButton value={message.message} />
+          <CopyButton value={message.message} onCopyContent={onCopyContent} />
         </ChatMessageActionsWrapper>
       </div>
     </div>
@@ -213,6 +216,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 }
 
 function MessageMarkdown({ message }: { message: string }) {
+  const { onCopyContent } = React.useContext(ChatContext)
   return (
     <MemoizedReactMarkdown
       className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
@@ -253,6 +257,7 @@ function MessageMarkdown({ message }: { message: string }) {
               key={Math.random()}
               language={(match && match[1]) || ''}
               value={String(children).replace(/\n$/, '')}
+              onCopyContent={onCopyContent}
               {...props}
             />
           )
