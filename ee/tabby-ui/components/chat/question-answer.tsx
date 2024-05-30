@@ -391,7 +391,8 @@ interface ContextReferencesProps {
   contexts: Context[]
 }
 const CodeReferences = ({ contexts }: ContextReferencesProps) => {
-  const { onNavigateToContext } = React.useContext(ChatContext)
+  const { onNavigateToContext, isReferenceClickable } =
+    React.useContext(ChatContext)
   const isMultipleReferences = contexts?.length > 1
 
   if (!contexts?.length) return null
@@ -421,9 +422,14 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
               .join('/')
             return (
               <div
-                className="cursor-pointer rounded-md border p-2 hover:bg-accent"
+                className={cn('rounded-md border p-2 hover:bg-accent', {
+                  'cursor-pointer': isReferenceClickable,
+                  'cursor-default pointer-events-auto': !isReferenceClickable
+                })}
                 key={index}
-                onClick={e => onNavigateToContext?.(item)}
+                onClick={e =>
+                  isReferenceClickable && onNavigateToContext?.(item)
+                }
               >
                 <div className="flex items-center gap-1 overflow-x-auto">
                   <IconFile className="shrink-0" />

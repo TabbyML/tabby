@@ -35,7 +35,12 @@ export class ChatViewProvider implements WebviewViewProvider {
     }
 
     this.client = createClient(webviewView, {
-      navigate: async () => {},
+      navigate: async (context: Context) => {
+        if (context?.filepath && context?.git_url) {
+          const url = `${context.git_url}/blob/main/${context.filepath}#L${context.range.start}-L${context.range.end}`;
+          await env.openExternal(Uri.parse(url));
+        }
+      },
     });
 
     this.agent.on("didChangeStatus", async (status) => {
