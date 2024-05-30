@@ -1,5 +1,4 @@
 use ignore::Walk;
-use kv::Batch;
 use tabby_common::{
     api::code::CodeSearchDocument, config::RepositoryConfig, index::CodeSearchSchema, path,
 };
@@ -7,7 +6,7 @@ use tantivy::{Index, IndexWriter, Term};
 use tracing::warn;
 
 use super::{
-    cache::{CacheStore, INDEX_VERSION},
+    cache::{CacheStore, IndexBatch},
     intelligence::{CodeIntelligence, SourceCode},
 };
 use crate::tantivy_utils;
@@ -43,7 +42,7 @@ fn add_changed_documents(cache: &mut CacheStore, repository: &RepositoryConfig, 
         .expect("Failed to create index writer");
 
     let intelligence = CodeIntelligence::default();
-    let mut indexed_files_batch = Batch::new();
+    let mut indexed_files_batch = IndexBatch::default();
     for file in Walk::new(repository.dir()) {
         let file = match file {
             Ok(file) => file,
@@ -87,9 +86,7 @@ fn add_changed_documents(cache: &mut CacheStore, repository: &RepositoryConfig, 
                 .expect("Failed to add document");
         }
 
-        indexed_files_batch
-            .set(&file_id, &INDEX_VERSION.to_string())
-            .expect("Failed to mark file as indexed");
+        indexed_files_batch.set_indexed(file_id);
     }
 
     // Commit updating indexed documents
