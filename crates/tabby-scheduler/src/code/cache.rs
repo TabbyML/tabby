@@ -65,7 +65,7 @@ pub struct CacheStore {
     code: CodeIntelligence,
 }
 
-const INDEX_ALGORITHM_VERSION: &str = "1";
+const INDEX_ALGORITHM_VERSION: &str = "20240531";
 
 #[derive(Default)]
 pub struct IndexBatch {
