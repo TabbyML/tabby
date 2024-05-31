@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { isEmpty } from 'lodash-es'
+import { useInView } from 'react-intersection-observer'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
@@ -23,10 +24,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
 import {
   encodeURIComponentIgnoringSlash,
+  getProviderVariantFromKind,
   resolveFileNameFromPath,
   resolveRepositoryInfoFromPath
 } from './utils'
-import { useInView } from 'react-intersection-observer'
 
 type TFileTreeNode = {
   name: string
@@ -246,7 +247,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
     const repoId = activeRepo?.id
     if (!kind || !repoId) return ''
 
-    return `${kind.toLowerCase()}/${repoId}`
+    return `${getProviderVariantFromKind(kind)}/${repoId}`
   }, [activeRepo])
 
   const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)

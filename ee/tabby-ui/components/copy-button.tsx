@@ -9,10 +9,19 @@ import { IconCheck, IconCopy } from './ui/icons'
 
 interface CopyButtonProps extends ButtonProps {
   value: string
+  onCopyContent?: (value: string) => void
 }
 
-export function CopyButton({ className, value, ...props }: CopyButtonProps) {
-  const { isCopied, copyToClipboard } = useCopyToClipboard({ timeout: 2000 })
+export function CopyButton({
+  className,
+  value,
+  onCopyContent,
+  ...props
+}: CopyButtonProps) {
+  const { isCopied, copyToClipboard } = useCopyToClipboard({
+    timeout: 2000,
+    onCopyContent
+  })
 
   const onCopy = () => {
     if (isCopied) return

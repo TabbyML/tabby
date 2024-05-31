@@ -9,7 +9,7 @@ use apalis::{
 use apalis_sql::Config;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use tabby_common::config::{RepositoryAccess, RepositoryConfig};
+use tabby_common::config::{ConfigAccess, RepositoryConfig};
 use tabby_db::DbConn;
 use tabby_scheduler::CodeIndexer;
 
@@ -56,11 +56,11 @@ impl SchedulerJob {
 
     async fn cron(
         _now: DateTime<Utc>,
-        repository_access: Data<Arc<dyn RepositoryAccess>>,
+        config_access: Data<Arc<dyn ConfigAccess>>,
         storage: Data<SqliteStorage<SchedulerJob>>,
     ) -> tabby_schema::Result<()> {
-        let repositories = repository_access
-            .list_repositories()
+        let repositories = config_access
+            .repositories()
             .await
             .context("Must be able to retrieve repositories for sync")?;
 
@@ -83,7 +83,7 @@ impl SchedulerJob {
         pool: SqlitePool,
         db: DbConn,
         config: Config,
-        repository_access: Arc<dyn RepositoryAccess>,
+        config_access: Arc<dyn ConfigAccess>,
     ) -> (SqliteStorage<SchedulerJob>, Monitor<TokioExecutor>) {
         let storage = SqliteStorage::new_with_config(pool, config);
         let monitor = monitor
@@ -91,7 +91,7 @@ impl SchedulerJob {
             .register(
                 Self::cron_worker(db.clone())
                     .data(storage.clone())
-                    .data(repository_access)
+                    .data(config_access)
                     .build_fn(SchedulerJob::cron),
             );
         (storage, monitor)

@@ -9,12 +9,12 @@ use tabby_common::{
         CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchQuery,
         CodeSearchResponse,
     },
-    config::{RepositoryAccess, RepositoryConfig},
+    config::{ConfigAccess, RepositoryConfig},
     index::{code, IndexSchema},
 };
 use tantivy::{
     collector::{Count, TopDocs},
-    schema::{self, document::ReferenceValue, Value},
+    schema::{self, Value},
     IndexReader, TantivyDocument,
 };
 use tokio::sync::Mutex;
@@ -22,14 +22,14 @@ use tokio::sync::Mutex;
 use super::tantivy::IndexReaderProvider;
 
 struct CodeSearchImpl {
-    repository_access: Arc<dyn RepositoryAccess>,
+    config_access: Arc<dyn ConfigAccess>,
     repo_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
 }
 
 impl CodeSearchImpl {
-    fn new(repository_access: Arc<dyn RepositoryAccess>) -> Self {
+    fn new(config_access: Arc<dyn ConfigAccess>) -> Self {
         Self {
-            repository_access,
+            config_access,
             repo_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
         }
     }
@@ -104,7 +104,7 @@ impl CodeSearchImpl {
 
         let repos = cache
             .try_get_or_set_with((), || async {
-                let repos = self.repository_access.list_repositories().await?;
+                let repos = self.config_access.repositories().await?;
                 Ok::<_, anyhow::Error>(repos)
             })
             .await?;
@@ -125,10 +125,10 @@ fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
 }
 
 fn get_json_number_field(doc: &TantivyDocument, field: schema::Field, name: &str) -> i64 {
-    let ReferenceValue::Object(obj) = doc.get_first(field).unwrap() else {
-        panic!("Field {} is not an object", name);
-    };
-    obj.into_iter()
+    doc.get_first(field)
+        .unwrap()
+        .as_object()
+        .unwrap()
         .find(|(k, _)| *k == name)
         .unwrap()
         .1
@@ -137,10 +137,10 @@ fn get_json_number_field(doc: &TantivyDocument, field: schema::Field, name: &str
 }
 
 fn get_json_text_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name: &str) -> &'a str {
-    let ReferenceValue::Object(obj) = doc.get_first(field).unwrap() else {
-        panic!("Field {} is not an object", name);
-    };
-    obj.into_iter()
+    doc.get_first(field)
+        .unwrap()
+        .as_object()
+        .unwrap()
         .find(|(k, _)| *k == name)
         .unwrap()
         .1
@@ -168,22 +168,19 @@ struct CodeSearchService {
 }
 
 impl CodeSearchService {
-    pub fn new(
-        repository_access: Arc<dyn RepositoryAccess>,
-        provider: Arc<IndexReaderProvider>,
-    ) -> Self {
+    pub fn new(config_access: Arc<dyn ConfigAccess>, provider: Arc<IndexReaderProvider>) -> Self {
         Self {
-            imp: CodeSearchImpl::new(repository_access),
+            imp: CodeSearchImpl::new(config_access),
             provider,
         }
     }
 }
 
 pub fn create_code_search(
-    repository_access: Arc<dyn RepositoryAccess>,
+    config_access: Arc<dyn ConfigAccess>,
     provider: Arc<IndexReaderProvider>,
 ) -> impl CodeSearch {
-    CodeSearchService::new(repository_access, provider)
+    CodeSearchService::new(config_access, provider)
 }
 
 #[async_trait]

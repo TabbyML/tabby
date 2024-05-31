@@ -16,7 +16,7 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
             let engine = LlamaCppEngine::create(&config.api_endpoint, config.api_key.clone());
             Arc::new(engine)
         }
-        "openai-embedding" => {
+        "openai/embedding" => {
             let engine = OpenAIEmbeddingEngine::create(
                 &config.api_endpoint,
                 config.model_name.as_deref().unwrap_or_default(),

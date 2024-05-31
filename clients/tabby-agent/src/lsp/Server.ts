@@ -77,7 +77,6 @@ import { TextDocuments } from "./TextDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import deepEqual from "deep-equal";
 import type {
-  Agent,
   AgentIssue,
   ConfigUpdatedEvent,
   StatusChangedEvent,
@@ -86,6 +85,7 @@ import type {
   CompletionResponse,
   ClientProperties,
 } from "../Agent";
+import { TabbyAgent } from "../TabbyAgent";
 import type { PartialAgentConfig } from "../AgentConfig";
 import { isBrowser } from "../env";
 import { getLogger, Logger } from "../logger";
@@ -95,6 +95,9 @@ import { RecentlyChangedCodeSearch } from "../codeSearch/RecentlyChangedCodeSear
 import { isPositionInRange, intersectionRange } from "../utils/range";
 import { extractNonReservedWordList } from "../utils/string";
 import { splitLines, isBlank } from "../utils";
+import { ChatEditProvider } from "./ChatEditProvider";
+import { CodeLensProvider } from "./CodeLensProvider";
+import { CommandProvider } from "./CommandProvider";
 
 export class Server {
   private readonly logger = getLogger("LspServer");
@@ -105,13 +108,16 @@ export class Server {
   private readonly documents = new TextDocuments(TextDocument);
   private readonly notebooks = new NotebookDocuments(this.documents);
   private recentlyChangedCodeSearch: RecentlyChangedCodeSearch | undefined = undefined;
+  private chatEditProvider: ChatEditProvider;
+  private codeLensProvider: CodeLensProvider | undefined = undefined;
+  private commandProvider: CommandProvider;
 
   private clientInfo?: ClientInfo | undefined | null;
   private clientCapabilities?: ClientCapabilities | undefined | null;
   private clientProvidedConfig?: ClientProvidedConfig | undefined | null;
   private serverInfo?: ServerInfo | undefined | null;
 
-  constructor(private readonly agent: Agent) {
+  constructor(private readonly agent: TabbyAgent) {
     // Lifecycle
     this.connection.onInitialize(async (params) => {
       return this.initialize(params);
@@ -153,6 +159,7 @@ export class Server {
       return this.provideInlineCompletion(params, token);
     });
     // Chat
+    this.chatEditProvider = new ChatEditProvider(this.connection, this.documents, this.agent);
     this.connection.onRequest(GenerateCommitMessageRequest.type, async (params, token) => {
       return this.generateCommitMessage(params, token);
     });
@@ -160,6 +167,8 @@ export class Server {
     this.connection.onNotification(TelemetryEventNotification.type, async (param) => {
       return this.event(param);
     });
+    // Command
+    this.commandProvider = new CommandProvider(this.connection, this.chatEditProvider);
   }
 
   listen() {
@@ -203,6 +212,12 @@ export class Server {
     } else {
       serverCapabilities.completionProvider = {};
     }
+
+    if (clientCapabilities.workspace?.codeLens) {
+      this.codeLensProvider = new CodeLensProvider(this.connection, this.documents);
+      this.codeLensProvider.fillServerCapabilities(serverCapabilities);
+    }
+    this.commandProvider.fillServerCapabilities(serverCapabilities);
 
     await this.agent.initialize({
       config: this.createInitConfig(clientProvidedConfig),

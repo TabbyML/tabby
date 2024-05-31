@@ -63,6 +63,13 @@ export type AgentConfig = {
     calculateReplaceRange: any;
   };
   experimentalChat: {
+    edit: {
+      documentMaxChars: number;
+      commandMaxChars: number;
+      promptTemplate: string;
+      responseSplitter: string;
+      responseSplitterIncrement: string;
+    };
     generateCommitMessage: {
       maxDiffLength: number;
       promptTemplate: string;
@@ -141,6 +148,14 @@ export const defaultAgentConfig: AgentConfig = {
     calculateReplaceRange: {},
   },
   experimentalChat: {
+    edit: {
+      documentMaxChars: 3600,
+      commandMaxChars: 200,
+      promptTemplate:
+        'Edit the given document according to the given command. You should use the same language with the given document if not specified. You should keep the leading indentation or empty lines if not formatting the document. You must reply the edited document quoted by 6 backticks, in the following format: \n``````\nyour edited document \n``````\n\n After the edited document, you can optionally add a comment to briefly describe your changes. \n\n\nThe command:  \n"{{command}}" \n\nThe document: \n``````{{languageId}}\n{{document}} \n``````\n',
+      responseSplitter: "```",
+      responseSplitterIncrement: "`",
+    },
     generateCommitMessage: {
       maxDiffLength: 3600,
       promptTemplate:

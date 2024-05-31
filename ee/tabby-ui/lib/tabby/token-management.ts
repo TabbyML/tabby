@@ -48,9 +48,21 @@ const isTokenRecentlyIssued = (iat: number | undefined): boolean => {
 }
 
 class TokenManager {
+  clearAccessToken() {
+    let authToken = getAuthToken()
+    if (authToken) {
+      // remove accessToken only, keep the refreshToken
+      saveAuthToken({
+        ...authToken,
+        accessToken: ''
+      })
+    }
+  }
+
   async refreshToken(doRefreshToken: () => Promise<AuthData | undefined>) {
     try {
       if (typeof navigator?.locks === 'undefined') {
+        // eslint-disable-next-line no-console
         console.error(
           'The Web Locks API is not supported in your browser. Please upgrade to a newer browser version.'
         )
@@ -59,7 +71,8 @@ class TokenManager {
 
       await navigator.locks.request(AUTH_LOCK_KEY, async () => {
         const authToken = getAuthToken()
-        const accessToken = getAuthToken()?.accessToken
+        const accessToken = authToken?.accessToken
+        const refreshToken = authToken?.refreshToken
 
         let newAuthToken: AuthData | undefined
 
@@ -70,6 +83,8 @@ class TokenManager {
           } else {
             newAuthToken = await doRefreshToken()
           }
+        } else if (refreshToken) {
+          newAuthToken = await doRefreshToken()
         }
 
         if (newAuthToken) {

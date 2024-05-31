@@ -7,6 +7,11 @@ import {
   GenerateCommitMessageRequest,
   GenerateCommitMessageParams,
   GenerateCommitMessageResult,
+  ChatEditRequest,
+  ChatEditParams,
+  ChatEditToken,
+  ChatEditResolveRequest,
+  ChatEditResolveParams,
 } from "tabby-agent";
 
 export class ChatFeature extends EventEmitter implements DynamicFeature<unknown> {
@@ -67,5 +72,16 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
       return null;
     }
     return this.client.sendRequest(GenerateCommitMessageRequest.method, params, token);
+  }
+
+  async provideEdit(params: ChatEditParams, token?: CancellationToken): Promise<ChatEditToken | null> {
+    if (!this.isAvailable) {
+      return null;
+    }
+    return this.client.sendRequest(ChatEditRequest.method, params, token);
+  }
+
+  async resolveEdit(params: ChatEditResolveParams): Promise<boolean> {
+    return this.client.sendRequest(ChatEditResolveRequest.method, params);
   }
 }

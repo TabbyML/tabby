@@ -1,13 +1,13 @@
 'use client'
 
-import { useRef, useState, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Color from 'color'
 import type { ChatMessage, Context, FetcherOptions } from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
-import { useSearchParams } from 'next/navigation'
 
 import { nanoid } from '@/lib/utils'
 import { Chat, ChatRef } from '@/components/chat/chat'
-import Color from 'color'
 
 import './page.css'
 
@@ -134,6 +134,16 @@ export default function ChatPage() {
     server?.navigate(context)
   }
 
+  const onCopyContent = (value: string) => {
+    parent.postMessage(
+      {
+        action: 'copy',
+        data: value
+      },
+      '*'
+    )
+  }
+
   if (!isInit || !fetcherOptions) return <></>
   const headers = {
     Authorization: `Bearer ${fetcherOptions.authorization}`
@@ -148,6 +158,8 @@ export default function ChatPage() {
       onNavigateToContext={onNavigateToContext}
       onLoaded={onChatLoaded}
       maxWidth={maxWidth}
+      onCopyContent={from === 'vscode' ? onCopyContent : undefined}
+      isReferenceClickable={from !== 'vscode'}
     />
   )
 }

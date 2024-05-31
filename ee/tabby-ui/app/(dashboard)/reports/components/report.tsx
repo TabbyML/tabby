@@ -237,7 +237,7 @@ export function Report() {
                 <SelectItem value={KEY_SELECT_ALL}>All members</SelectItem>
                 {members.map(member => (
                   <SelectItem value={member.id} key={member.id}>
-                    {member.email}
+                    {member.name || member.email}
                   </SelectItem>
                 ))}
               </SelectGroup>

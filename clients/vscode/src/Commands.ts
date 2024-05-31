@@ -4,26 +4,35 @@ import {
   env,
   commands,
   ExtensionContext,
+  CancellationTokenSource,
   Uri,
+  Position,
+  Selection,
   Disposable,
   InputBoxValidationSeverity,
   ProgressLocation,
   ThemeIcon,
+  QuickPickItem,
+  QuickPickItemKind,
 } from "vscode";
 import os from "os";
 import path from "path";
 import { strict as assert } from "assert";
 import { Client } from "./lsp/Client";
 import { Config } from "./Config";
+import { ContextVariables } from "./ContextVariables";
 import { InlineCompletionProvider } from "./InlineCompletionProvider";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { GitProvider, Repository } from "./git/GitProvider";
 
 export class Commands {
+  private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
+
   constructor(
     private readonly context: ExtensionContext,
     private readonly client: Client,
     private readonly config: Config,
+    private readonly contextVariables: ContextVariables,
     private readonly inlineCompletionProvider: InlineCompletionProvider,
     private readonly chatViewProvider: ChatViewProvider,
     private readonly gitProvider: GitProvider,
@@ -251,6 +260,127 @@ export class Commands {
       } else {
         window.showInformationMessage("No active editor");
       }
+    },
+    "experimental.chat.edit.start": async () => {
+      const editor = window.activeTextEditor;
+      if (!editor || editor.selection.isEmpty) {
+        return;
+      }
+      const startPosition = new Position(editor.selection.start.line, 0);
+      const editLocation = {
+        uri: editor.document.uri.toString(),
+        range: {
+          start: { line: editor.selection.start.line, character: 0 },
+          end: { line: editor.selection.end.line + 1, character: 0 },
+        },
+      };
+      const recentlyCommand = this.config.chatEditRecentlyCommand;
+      const buildQuickPickList = (input = "") => {
+        const list: QuickPickItem[] = [];
+        if (input.length > 0) {
+          list.push({
+            label: input,
+            iconPath: new ThemeIcon("run"),
+            description: "",
+            alwaysShow: true,
+          });
+        }
+        list.push({
+          label: "",
+          kind: QuickPickItemKind.Separator,
+        });
+        list.push(
+          ...recentlyCommand.map((item) => {
+            return {
+              label: item,
+              iconPath: new ThemeIcon("history"),
+              description: "History",
+            };
+          }),
+        );
+        return list;
+      };
+      const quickPick = window.createQuickPick();
+      quickPick.placeholder = "Enter the command for editing";
+      quickPick.items = buildQuickPickList();
+      quickPick.onDidChangeValue((input: string) => {
+        quickPick.items = buildQuickPickList(input);
+      });
+      quickPick.onDidAccept(() => {
+        quickPick.hide();
+        const command = quickPick.selectedItems[0]?.label;
+        if (command) {
+          this.config.chatEditRecentlyCommand = [command]
+            .concat(recentlyCommand.filter((item) => item !== command))
+            .slice(0, 20);
+          window.withProgress(
+            {
+              location: ProgressLocation.Notification,
+              title: "Editing in progress...",
+              cancellable: true,
+            },
+            async (_, token) => {
+              editor.selection = new Selection(startPosition, startPosition);
+              this.contextVariables.chatEditInProgress = true;
+              if (token.isCancellationRequested) {
+                return;
+              }
+              this.chatEditCancellationTokenSource = new CancellationTokenSource();
+              token.onCancellationRequested(() => {
+                this.chatEditCancellationTokenSource?.cancel();
+              });
+              try {
+                await this.client.chat.provideEdit(
+                  {
+                    location: editLocation,
+                    command,
+                    format: "previewChanges",
+                  },
+                  this.chatEditCancellationTokenSource.token,
+                );
+              } catch (_) {
+                // ignore
+              }
+              this.chatEditCancellationTokenSource.dispose();
+              this.chatEditCancellationTokenSource = null;
+              this.contextVariables.chatEditInProgress = false;
+              editor.selection = new Selection(startPosition, startPosition);
+            },
+          );
+        }
+      });
+      quickPick.show();
+    },
+    "experimental.chat.edit.stop": async () => {
+      this.chatEditCancellationTokenSource?.cancel();
+    },
+    "experimental.chat.edit.accept": async () => {
+      const editor = window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+      const location = {
+        uri: editor.document.uri.toString(),
+        range: {
+          start: { line: editor.selection.start.line, character: 0 },
+          end: { line: editor.selection.end.line + 1, character: 0 },
+        },
+      };
+      await this.client.chat.resolveEdit({ location, action: "accept" });
+    },
+    "experimental.chat.edit.discard": async () => {
+      const editor = window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+      const location = {
+        uri: editor.document.uri.toString(),
+        range: {
+          start: { line: editor.selection.start.line, character: 0 },
+          end: { line: editor.selection.end.line + 1, character: 0 },
+        },
+      };
+      await this.client.chat.resolveEdit({ location, action: "discard" });
     },
     "experimental.chat.generateCommitMessage": async () => {
       const repos = this.gitProvider.getRepositories() ?? [];

@@ -3,10 +3,10 @@
 import React from 'react'
 
 import { Avatar } from './avatar'
+import { ChangeName } from './change-name'
 import { ChangePassword } from './change-password'
 import { Email } from './email'
 import { ProfileCard } from './profile-card'
-import { ChangeName } from './change-name'
 
 export default function Profile() {
   return (
