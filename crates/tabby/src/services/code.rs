@@ -3,12 +3,11 @@ use std::{collections::HashMap, sync::Arc};
 use anyhow::Result;
 use async_trait::async_trait;
 use cached::{CachedAsync, TimedCache};
-use color_eyre::owo_colors::colors::css::Tan;
 use parse_git_url::GitUrl;
 use tabby_common::{
     api::code::{
         CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchQuery,
-        CodeSearchResponse, CodeSearchScores,
+        CodeSearchResponse, CodeSearchScores, CodeSearchScoringParams,
     },
     config::{ConfigAccess, RepositoryConfig},
     index::{
@@ -19,13 +18,13 @@ use tabby_common::{
 };
 use tabby_inference::Embedding;
 use tantivy::{
-    collector::{Count, TopDocs},
+    collector::TopDocs,
     schema::{self, Value},
     IndexReader, TantivyDocument,
 };
 use tokio::sync::Mutex;
 
-use super::{embedding, tantivy::IndexReaderProvider};
+use super::tantivy::IndexReaderProvider;
 
 struct CodeSearchImpl {
     config_access: Arc<dyn ConfigAccess>,
@@ -38,7 +37,7 @@ impl CodeSearchImpl {
         Self {
             config_access,
             embedding,
-            repo_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
+            repo_cache: Mutex::new(TimedCache::with_lifespan(60)),
         }
     }
 
@@ -101,6 +100,7 @@ impl CodeSearchImpl {
         };
 
         Ok(merge_code_responses_by_rank(
+            &query.scoring_params,
             docs_from_embedding,
             docs_from_bm25,
             limit,
@@ -108,10 +108,8 @@ impl CodeSearchImpl {
     }
 }
 
-const EMBEDDING_SCORE_THRESHOLD: f32 = 0.75;
-const BM25_SCORE_THRESHOLD: f32 = 8.0;
-
 fn merge_code_responses_by_rank(
+    scoring_params: &CodeSearchScoringParams,
     embedding_resp: Vec<(f32, TantivyDocument)>,
     bm25_resp: Vec<(f32, TantivyDocument)>,
     limit: usize,
@@ -119,9 +117,11 @@ fn merge_code_responses_by_rank(
     let mut scored_hits: HashMap<String, (CodeSearchScores, TantivyDocument)> = HashMap::default();
 
     for (rank, embedding, doc) in compute_rank_score(embedding_resp).into_iter() {
-        let mut scores = CodeSearchScores::default();
-        scores.combined_rank = rank;
-        scores.embedding = embedding;
+        let scores = CodeSearchScores {
+            combined_rank: rank,
+            embedding,
+            ..CodeSearchScores::default()
+        };
 
         scored_hits.insert(get_chunk_id(&doc).to_owned(), (scores, doc));
     }
@@ -137,7 +137,6 @@ fn merge_code_responses_by_rank(
 
     let mut scored_hits: Vec<CodeSearchHit> = scored_hits
         .into_values()
-        .into_iter()
         .map(|(scores, doc)| create_hit(scores, doc))
         .collect();
     scored_hits.sort_unstable_by_key(|x| x.scores.combined_rank);
@@ -145,8 +144,8 @@ fn merge_code_responses_by_rank(
         hits: scored_hits
             .into_iter()
             .filter(|hit| {
-                hit.scores.bm25 > BM25_SCORE_THRESHOLD
-                    && hit.scores.embedding > EMBEDDING_SCORE_THRESHOLD
+                hit.scores.bm25 > scoring_params.min_bm25_score_threshold
+                    && hit.scores.embedding > scoring_params.min_embedding_score_threshold
             })
             .take(limit)
             .collect(),
@@ -160,7 +159,7 @@ fn compute_rank_score(resp: Vec<(f32, TantivyDocument)>) -> Vec<(i32, f32, Tanti
         .collect()
 }
 
-fn get_chunk_id<'a>(doc: &'a TantivyDocument) -> &'a str {
+fn get_chunk_id(doc: &TantivyDocument) -> &str {
     let schema = IndexSchema::instance();
     get_text(doc, schema.field_chunk_id)
 }

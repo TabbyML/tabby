@@ -186,6 +186,7 @@ async fn collect_snippets(
         filepath: filepath.map(|x| x.to_owned()),
         language: language.to_owned(),
         content: content.to_owned(),
+        scoring_params: Default::default(),
     };
 
     let mut ret = Vec::new();
