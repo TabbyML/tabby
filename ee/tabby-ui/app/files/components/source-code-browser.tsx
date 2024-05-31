@@ -353,6 +353,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
       const redirect_filepath = searchParams.get('redirect_filepath')
       const redirect_git_url = searchParams.get('redirect_git_url')
+      const line = searchParams.get('line')
 
       if (repos?.length && redirect_filepath && redirect_git_url) {
         // get repo from repos and redirect_git_url
@@ -361,7 +362,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           const repoSpecifier = resolveRepoSpecifierFromRepoInfo(targetRepo)
           setActivePath(
             `${repoSpecifier}/${redirect_filepath}`,
-            undefined,
+            { line: line ?? '' },
             true
           )
           initializing.current = false
