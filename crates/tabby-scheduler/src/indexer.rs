@@ -1,4 +1,4 @@
-use std::pin::Pin;
+use std::{pin::Pin, sync::Arc};
 
 use futures::{stream::BoxStream, Future, Stream, StreamExt};
 use tabby_common::{index::IndexSchema, path};
@@ -11,15 +11,16 @@ pub trait IndexAttributeBuilder<T>: Send + Sync {
     fn format_id(&self, id: &str) -> String;
     async fn build_id(&self, document: &T) -> String;
     async fn build_attributes(&self, document: &T) -> serde_json::Value;
-    fn build_chunk_attributes(
+    async fn build_chunk_attributes(
         &self,
         document: T,
-    ) -> Pin<Box<dyn Future<Output = BoxStream<(Vec<String>, serde_json::Value)>> + Send + Sync + '_>>;
+        consumer: Box<dyn FnMut(usize, Vec<String>, serde_json::Value) + Send>,
+    );
 }
 
 pub struct Indexer<T> {
     builder: Box<dyn IndexAttributeBuilder<T>>,
-    writer: IndexWriter,
+    writer: Arc<IndexWriter>,
     pub recreated: bool,
 }
 
@@ -33,24 +34,32 @@ impl<T> Indexer<T> {
 
         Self {
             builder: Box::new(builder),
-            writer,
+            writer: Arc::new(writer),
             recreated,
         }
     }
 
     pub async fn add(&self, document: T) {
-        self.iter_docs(document)
-            .await
-            .for_each(|doc| {
-                self.writer
-                    .add_document(doc)
-                    .expect("Failed to add document");
-                async {}
-            })
-            .await;
+        let writer = self.writer.clone();
+        self.iter_docs(document, move |doc| {
+            writer.add_document(doc).expect("Failed to add document");
+        })
+        .await;
+        // .await
+        // .for_each(|doc| {
+        //     self.writer
+        //         .add_document(doc)
+        //         .expect("Failed to add document");
+        //     async {}
+        // })
+        // .await;
     }
 
-    async fn iter_docs(&self, document: T) -> impl Stream<Item = TantivyDocument> + '_ {
+    async fn iter_docs(
+        &self,
+        document: T,
+        mut consumer: impl FnMut(TantivyDocument) + Send + 'static,
+    ) {
         let schema = IndexSchema::instance();
         let id = self.builder.build_id(&document).await;
 
@@ -67,7 +76,9 @@ impl<T> Indexer<T> {
             schema.field_updated_at => updated_at,
         };
 
-        futures::stream::once(async { doc }).chain(self.iter_chunks(id, updated_at, document).await)
+        consumer(doc);
+        self.iter_chunks(id, updated_at, document, move |doc| consumer(doc))
+            .await;
     }
 
     async fn iter_chunks(
@@ -75,13 +86,12 @@ impl<T> Indexer<T> {
         id: String,
         updated_at: tantivy::DateTime,
         document: T,
-    ) -> impl Stream<Item = TantivyDocument> + '_ {
+        mut consumer: impl FnMut(TantivyDocument) + Send + 'static,
+    ) {
         let schema = IndexSchema::instance();
-        self.builder
-            .build_chunk_attributes(document)
-            .await
-            .enumerate()
-            .map(move |(chunk_id, (tokens, chunk_attributes))| {
+        self.builder.build_chunk_attributes(
+            document,
+            Box::new(move |chunk_id, tokens, chunk_attributes| {
                 let mut doc = doc! {
                     schema.field_id => id,
                     schema.field_updated_at => updated_at,
@@ -93,8 +103,9 @@ impl<T> Indexer<T> {
                     doc.add_text(schema.field_chunk_tokens, token);
                 }
 
-                doc
-            })
+                consumer(doc)
+            }),
+        );
     }
 
     pub fn delete(&self, id: &str) {
@@ -104,9 +115,12 @@ impl<T> Indexer<T> {
         ));
     }
 
-    pub fn commit(mut self) {
-        self.writer.commit().expect("Failed to commit changes");
-        self.writer
+    pub fn commit(self) {
+        let mut writer = Arc::try_unwrap(self.writer)
+            .ok()
+            .expect("Failed to get unique write access");
+        writer.commit().expect("Failed to commit changes");
+        writer
             .wait_merging_threads()
             .expect("Failed to wait for merging threads");
     }
