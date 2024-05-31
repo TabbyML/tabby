@@ -15,8 +15,7 @@ pub async fn create(config: Option<&ModelConfig>) -> Arc<dyn Embedding> {
 
 fn default_config() -> ModelConfig {
     ModelConfig::Local(LocalModelConfig {
-        // FIXME(wsxiaoys): move Nomic-Embed-Text to official registry.
-        model_id: "wsxiaoys/Nomic-Embed-Text".to_string(),
+        model_id: "Nomic-Embed-Text".to_string(),
         parallelism: 4,
         num_gpu_layers: 9999,
     })
