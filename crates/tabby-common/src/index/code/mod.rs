@@ -32,7 +32,7 @@ fn language_query(language: &str) -> Box<TermQuery> {
     Box::new(TermQuery::new(term, IndexRecordOption::Basic))
 }
 
-fn body_query(tokens: &[String]) -> Box<dyn Query> {
+pub fn body_query(tokens: &[String]) -> Box<dyn Query> {
     let schema = IndexSchema::instance();
     let subqueries: Vec<Box<dyn Query>> = tokens
         .iter()
@@ -64,14 +64,12 @@ fn filepath_query(filepath: &str) -> Box<TermQuery> {
     Box::new(TermQuery::new(term, IndexRecordOption::Basic))
 }
 
-pub fn code_search_query(query: &CodeSearchQuery) -> BooleanQuery {
+pub fn code_search_query(
+    query: &CodeSearchQuery,
+    chunk_tokens_query: Box<dyn Query>,
+) -> BooleanQuery {
     let language_query = language_query(&query.language);
     let git_url_query = git_url_query(&query.git_url);
-
-    // Create body query with a scoring normalized by the number of tokens.
-    let body_tokens = tokenize_code(&query.content);
-    let body_query = body_query(&body_tokens);
-    let normalized_score_body_query = BoostQuery::new(body_query, 1.0 / body_tokens.len() as f32);
 
     // language / git_url / filepath field shouldn't contribute to the score, mark them to 0.0.
     let mut subqueries: Vec<(Occur, Box<dyn Query>)> = vec![
@@ -79,14 +77,14 @@ pub fn code_search_query(query: &CodeSearchQuery) -> BooleanQuery {
             Occur::Must,
             Box::new(ConstScoreQuery::new(language_query, 0.0)),
         ),
-        (Occur::Must, Box::new(normalized_score_body_query)),
+        (Occur::Must, Box::new(chunk_tokens_query)),
         (
             Occur::Must,
             Box::new(ConstScoreQuery::new(git_url_query, 0.0)),
         ),
     ];
 
-    // When filepath presents, we exlucde the file from the search.
+    // When filepath presents, we exclude the file from the search.
     if let Some(filepath) = &query.filepath {
         subqueries.push((
             Occur::MustNot,

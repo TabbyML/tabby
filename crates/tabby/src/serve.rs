@@ -164,6 +164,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     let code = Arc::new(create_code_search(
         config_access,
+        embedding.clone(),
         index_reader_provider.clone(),
     ));
     let mut api = api_router(
