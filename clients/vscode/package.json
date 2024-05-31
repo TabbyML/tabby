@@ -28,8 +28,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished",
-    "onView:chatView"
+    "onStartupFinished"
   ],
   "main": "./dist/node/extension.js",
   "browser": "./dist/browser/extension.js",
