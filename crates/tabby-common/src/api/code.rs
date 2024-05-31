@@ -68,6 +68,8 @@ pub struct CodeSearchQuery {
 
 #[derive(Deserialize, ToSchema)]
 pub struct CodeSearchScoringParams {
+    pub num_to_score: usize,
+    pub max_rank_score_threshold: i32,
     pub min_embedding_score_threshold: f32,
     pub min_bm25_score_threshold: f32,
 }
@@ -75,6 +77,8 @@ pub struct CodeSearchScoringParams {
 impl Default for CodeSearchScoringParams {
     fn default() -> Self {
         Self {
+            num_to_score: 20,
+            max_rank_score_threshold: 10,
             min_embedding_score_threshold: 0.75,
             min_bm25_score_threshold: 8.0,
         }
@@ -86,6 +90,5 @@ pub trait CodeSearch: Send + Sync {
     async fn search_in_language(
         &self,
         query: CodeSearchQuery,
-        limit: usize,
     ) -> Result<CodeSearchResponse, CodeSearchError>;
 }
