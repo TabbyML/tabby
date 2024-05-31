@@ -23,6 +23,12 @@ lazy_static! {
 
         // FIXME: Hack for codellama / codegemma to simplify tabby's implementation.
 
+        // StarCoder
+        "<fim_prefix>",
+        "<fim_suffix>",
+        "<fim_middle>",
+        "<file_sep>",
+
         // CodeLlama
         " <EOT>",
 
