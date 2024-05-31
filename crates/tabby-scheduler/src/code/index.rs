@@ -5,7 +5,12 @@ use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
 use tracing::warn;
 
-use super::{cache::{CacheStore, IndexBatch}, create_code_index, intelligence::SourceCode, KeyedSourceCode};
+use super::{
+    cache::{CacheStore, IndexBatch},
+    create_code_index,
+    intelligence::SourceCode,
+    KeyedSourceCode,
+};
 use crate::Indexer;
 
 // Magic numbers
@@ -36,7 +41,7 @@ async fn add_changed_documents(
     repository: &RepositoryConfig,
     index: &Indexer<KeyedSourceCode>,
 ) {
-    let mut indexed_files_batch = Batch::new();
+    let mut indexed_files_batch = IndexBatch::default();
     for file in Walk::new(repository.dir()) {
         let file = match file {
             Ok(file) => file,
@@ -62,9 +67,7 @@ async fn add_changed_documents(
                 code,
             })
             .await;
-        indexed_files_batch
-            .set(&key, &String::new())
-            .expect("Failed to mark file as indexed");
+        indexed_files_batch.set_indexed(key);
     }
 
     // Mark all indexed documents as indexed
@@ -87,9 +90,8 @@ fn is_valid_file(file: &SourceCode) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use crate::code::intelligence::CodeIntelligence;
     use insta::assert_snapshot;
-
-    use super::*;
 
     #[test]
     fn test_code_splitter() {

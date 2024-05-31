@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::{pin::Pin, sync::Arc};
 
 use async_stream::stream;
 use async_trait::async_trait;
-use futures::stream::BoxStream;
+use futures::{stream::BoxStream, Future};
 use serde_json::json;
 use tabby_common::{config::RepositoryConfig, index::code};
 use tabby_inference::Embedding;
@@ -73,55 +73,59 @@ impl IndexAttributeBuilder<KeyedSourceCode> for CodeBuilder {
         json!({})
     }
 
-    async fn build_chunk_attributes(
+    fn build_chunk_attributes(
         &self,
-        source_code: &KeyedSourceCode,
-    ) -> BoxStream<(Vec<String>, serde_json::Value)> {
-        let source_code = &source_code.code;
-        let text = match source_code.read_content() {
-            Ok(content) => content,
-            Err(e) => {
-                warn!(
-                    "Failed to read content of '{}': {}",
-                    source_code.filepath, e
-                );
+        source_code: KeyedSourceCode,
+    ) -> Pin<Box<dyn Future<Output = BoxStream<(Vec<String>, serde_json::Value)>> + Send + Sync + '_>>
+    {
+        Box::pin(async move {
+            let source_code = &source_code.code;
+            let text = match source_code.read_content() {
+                Ok(content) => content,
+                Err(e) => {
+                    warn!(
+                        "Failed to read content of '{}': {}",
+                        source_code.filepath, e
+                    );
+                    let b: BoxStream<_> = Box::pin(futures::stream::empty());
 
-                return Box::pin(futures::stream::empty());
-            }
-        };
-
-        let Some(embedding) = self.embedding.clone() else {
-            warn!("No embedding service found for code indexing");
-            return Box::pin(futures::stream::empty());
-        };
-
-        let source_code = source_code.clone();
-        let s = stream! {
-            let intelligence = CodeIntelligence::default();
-            for (start_line, body) in intelligence.chunks(&text) {
-                let embedding = match embedding.embed(body).await {
-                    Ok(x) => x,
-                    Err(err) => {
-                        warn!("Failed to embed chunk text: {}", err);
-                        continue;
-                    }
-                };
-
-                let mut tokens = code::tokenize_code(body);
-                for token in tabby_common::index::binarize_embedding(embedding.iter()) {
-                    tokens.push(token);
+                    return b;
                 }
-                yield (tokens, json!({
-                    code::fields::CHUNK_FILEPATH: source_code.filepath,
-                    code::fields::CHUNK_GIT_URL: source_code.git_url,
-                    code::fields::CHUNK_LANGUAGE: source_code.language,
-                    code::fields::CHUNK_BODY:  body,
-                    code::fields::CHUNK_START_LINE: start_line,
-                }));
-            }
-        };
+            };
 
-        Box::pin(s)
+            let Some(embedding) = self.embedding.clone() else {
+                warn!("No embedding service found for code indexing");
+                return Box::pin(futures::stream::empty());
+            };
+
+            let source_code = source_code.clone();
+            let s = stream! {
+                let intelligence = CodeIntelligence::default();
+                for (start_line, body) in intelligence.chunks(&text, &source_code.language) {
+                    let embedding = match embedding.embed(body).await {
+                        Ok(x) => x,
+                        Err(err) => {
+                            warn!("Failed to embed chunk text: {}", err);
+                            continue;
+                        }
+                    };
+
+                    let mut tokens = code::tokenize_code(body);
+                    for token in tabby_common::index::binarize_embedding(embedding.iter()) {
+                        tokens.push(token);
+                    }
+                    yield (tokens, json!({
+                        code::fields::CHUNK_FILEPATH: source_code.filepath,
+                        code::fields::CHUNK_GIT_URL: source_code.git_url,
+                        code::fields::CHUNK_LANGUAGE: source_code.language,
+                        code::fields::CHUNK_BODY:  body,
+                        code::fields::CHUNK_START_LINE: start_line,
+                    }));
+                }
+            };
+
+            Box::pin(s)
+        })
     }
 }
 

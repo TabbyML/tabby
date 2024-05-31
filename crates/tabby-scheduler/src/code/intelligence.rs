@@ -112,12 +112,11 @@ impl CodeIntelligence {
         Some(source_file)
     }
 
-    // FIXME(boxbeam): implement with treesitter based CodeSplitter.
     pub fn chunks<'splitter, 'text: 'splitter>(
         &'splitter self,
         text: &'text str,
         language: &'text str,
-    ) -> Box<dyn Iterator<Item = (usize, &'text str)> + 'splitter> {
+    ) -> Box<dyn Iterator<Item = (usize, &'text str)> + 'splitter + Send> {
         if let Some(splitter) = self.code_splitters.get(language) {
             Box::new(
                 splitter

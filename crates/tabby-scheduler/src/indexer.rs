@@ -1,4 +1,6 @@
-use futures::{stream::BoxStream, Stream, StreamExt};
+use std::pin::Pin;
+
+use futures::{stream::BoxStream, Future, Stream, StreamExt};
 use tabby_common::{index::IndexSchema, path};
 use tantivy::{doc, IndexWriter, TantivyDocument, Term};
 
@@ -9,10 +11,10 @@ pub trait IndexAttributeBuilder<T>: Send + Sync {
     fn format_id(&self, id: &str) -> String;
     async fn build_id(&self, document: &T) -> String;
     async fn build_attributes(&self, document: &T) -> serde_json::Value;
-    async fn build_chunk_attributes(
+    fn build_chunk_attributes(
         &self,
-        document: &T,
-    ) -> BoxStream<(Vec<String>, serde_json::Value)>;
+        document: T,
+    ) -> Pin<Box<dyn Future<Output = BoxStream<(Vec<String>, serde_json::Value)>> + Send + Sync + '_>>;
 }
 
 pub struct Indexer<T> {
@@ -76,7 +78,7 @@ impl<T> Indexer<T> {
     ) -> impl Stream<Item = TantivyDocument> + '_ {
         let schema = IndexSchema::instance();
         self.builder
-            .build_chunk_attributes(&document)
+            .build_chunk_attributes(document)
             .await
             .enumerate()
             .map(move |(chunk_id, (tokens, chunk_attributes))| {

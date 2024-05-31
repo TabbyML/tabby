@@ -1,8 +1,11 @@
-use std::sync::Arc;
+use std::{
+    pin::{pin, Pin},
+    sync::Arc,
+};
 
 use async_stream::stream;
 use async_trait::async_trait;
-use futures::stream::BoxStream;
+use futures::{stream::BoxStream, Future, Stream};
 use serde_json::json;
 use tabby_common::index::{self, doc};
 use tabby_inference::Embedding;
@@ -50,38 +53,42 @@ impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
 
     /// This function splits the document into chunks and computes the embedding for each chunk. It then converts the embeddings
     /// into binarized tokens by thresholding on zero.
-    async fn build_chunk_attributes(
+    fn build_chunk_attributes(
         &self,
-        document: &SourceDocument,
-    ) -> BoxStream<(Vec<String>, serde_json::Value)> {
-        let splitter = TextSplitter::new(CHUNK_SIZE);
+        document: SourceDocument,
+    ) -> Pin<Box<dyn Future<Output = BoxStream<(Vec<String>, serde_json::Value)>> + Send + Sync>>
+    {
         let embedding = self.embedding.clone();
-        let content = document.body.clone();
+        Box::pin(async move {
+            let splitter = TextSplitter::new(CHUNK_SIZE);
+            let content = document.body.clone();
 
-        let s = stream! {
-            for chunk_text in splitter.chunks(&content) {
-                let embedding = match embedding.embed(chunk_text).await {
-                    Ok(embedding) => embedding,
-                    Err(err) => {
-                        warn!("Failed to embed chunk text: {}", err);
-                        continue;
+            let s = stream! {
+                for chunk_text in splitter.chunks(&content) {
+                    let embedding = match embedding.embed(chunk_text).await {
+                        Ok(embedding) => embedding,
+                        Err(err) => {
+                            warn!("Failed to embed chunk text: {}", err);
+                            continue;
+                        }
+                    };
+
+                    let mut chunk_embedding_tokens = vec![];
+                    for token in index::binarize_embedding(embedding.iter()) {
+                        chunk_embedding_tokens.push(token);
                     }
-                };
 
-                let mut chunk_embedding_tokens = vec![];
-                for token in index::binarize_embedding(embedding.iter()) {
-                    chunk_embedding_tokens.push(token);
+                    let chunk = json!({
+                            doc::fields::CHUNK_TEXT: chunk_text,
+                    });
+
+                    yield (chunk_embedding_tokens, chunk)
                 }
+            };
 
-                let chunk = json!({
-                        doc::fields::CHUNK_TEXT: chunk_text,
-                });
-
-                yield (chunk_embedding_tokens, chunk)
-            }
-        };
-
-        Box::pin(s)
+            let b: BoxStream<_> = Box::pin(s);
+            b
+        })
     }
 }
 
