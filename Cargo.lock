@@ -5598,6 +5598,7 @@ dependencies = [
  "tabby-common",
  "tabby-db",
  "tabby-git",
+ "tabby-inference",
  "tabby-scheduler",
  "tabby-schema",
  "tarpc",

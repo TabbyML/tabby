@@ -11,6 +11,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_common::config::{ConfigAccess, RepositoryConfig};
 use tabby_db::DbConn;
+use tabby_inference::Embedding;
 use tabby_scheduler::CodeIndexer;
 
 use super::{
@@ -38,7 +39,11 @@ impl CronJob for SchedulerJob {
 }
 
 impl SchedulerJob {
-    async fn run(self, job_logger: Data<JobLogger>) -> tabby_schema::Result<()> {
+    async fn run(
+        self,
+        job_logger: Data<JobLogger>,
+        embedding: Data<Arc<dyn Embedding>>,
+    ) -> tabby_schema::Result<()> {
         let repository = self.repository.clone();
         tokio::spawn(async move {
             let mut code = CodeIndexer::default();
@@ -47,7 +52,7 @@ impl SchedulerJob {
                 "Refreshing repository {}",
                 repository.canonical_git_url()
             );
-            code.refresh(&repository).await;
+            code.refresh((*embedding).clone(), &repository).await;
         })
         .await
         .context("Job execution failed")?;
@@ -84,10 +89,15 @@ impl SchedulerJob {
         db: DbConn,
         config: Config,
         config_access: Arc<dyn ConfigAccess>,
+        embedding: Arc<dyn Embedding>,
     ) -> (SqliteStorage<SchedulerJob>, Monitor<TokioExecutor>) {
         let storage = SqliteStorage::new_with_config(pool, config);
         let monitor = monitor
-            .register(Self::basic_worker(storage.clone(), db.clone()).build_fn(Self::run))
+            .register(
+                Self::basic_worker(storage.clone(), db.clone())
+                    .data(embedding)
+                    .build_fn(Self::run),
+            )
             .register(
                 Self::cron_worker(db.clone())
                     .data(storage.clone())

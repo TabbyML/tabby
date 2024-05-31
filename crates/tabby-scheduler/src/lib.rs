@@ -21,7 +21,7 @@ use tracing::{debug, info, warn};
 
 pub async fn scheduler(now: bool, config: &tabby_common::config::Config) {
     if now {
-        scheduler_pipeline(&config).await;
+        scheduler_pipeline(config).await;
         if env::var("TABBY_SCHEDULER_EXPERIMENTAL_DOC_INDEX").is_ok() {
             doc_index_pipeline(config).await;
         }
@@ -70,9 +70,9 @@ async fn scheduler_pipeline(config: &tabby_common::config::Config) {
 
     let repositories = &config.repositories;
 
-    let mut code = CodeIndexer::new(embedding);
+    let mut code = CodeIndexer::default();
     for repository in repositories {
-        code.refresh(repository).await;
+        code.refresh(embedding.clone(), repository).await;
     }
 
     code.garbage_collection(repositories);

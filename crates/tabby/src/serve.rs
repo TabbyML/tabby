@@ -4,10 +4,11 @@ use axum::{routing, Router};
 use clap::Args;
 use hyper::StatusCode;
 use tabby_common::{
-    api::{self, code::CodeSearch, doc::DocSearch, event::EventLogger},
+    api::{self, code::CodeSearch, event::EventLogger},
     config::{Config, ConfigAccess, ModelConfig, StaticConfigAccess},
     usage,
 };
+use tabby_inference::Embedding;
 use tokio::time::sleep;
 use tower_http::timeout::TimeoutLayer;
 use tracing::{debug, warn};
@@ -139,9 +140,13 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         webserver = Some(!args.no_webserver)
     }
 
+    let embedding = embedding::create(config.model.embedding.as_ref()).await;
+
     #[cfg(feature = "ee")]
     let ws = if !args.no_webserver {
-        Some(tabby_webserver::public::Webserver::new(create_event_logger()).await)
+        Some(
+            tabby_webserver::public::Webserver::new(create_event_logger(), embedding.clone()).await,
+        )
     } else {
         None
     };
@@ -166,6 +171,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         &config,
         logger.clone(),
         code.clone(),
+        embedding,
         index_reader_provider,
         webserver,
     )
@@ -204,6 +210,7 @@ async fn api_router(
     config: &Config,
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
+    embedding: Arc<dyn Embedding>,
     index_reader_provider: Arc<IndexReaderProvider>,
     webserver: Option<bool>,
 ) -> Router {
@@ -222,15 +229,7 @@ async fn api_router(
         None
     };
 
-    let docsearch_state: Option<Arc<dyn DocSearch>> = if let Some(embedding) = &model.embedding {
-        let embedding = embedding::create(embedding).await;
-        Some(Arc::new(services::doc::create(
-            embedding,
-            index_reader_provider,
-        )))
-    } else {
-        None
-    };
+    let docsearch_state = Arc::new(services::doc::create(embedding, index_reader_provider));
 
     let answer_state = chat_state.as_ref().map(|chat| {
         Arc::new(services::answer::create(

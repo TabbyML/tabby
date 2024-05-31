@@ -18,7 +18,7 @@ pub async fn index_repository(
     embedding: Arc<dyn Embedding>,
     repository: &RepositoryConfig,
 ) {
-    let index = create_code_index(embedding);
+    let index = create_code_index(Some(embedding));
     if index.recreated {
         cache.clear_indexed()
     }
@@ -26,8 +26,8 @@ pub async fn index_repository(
     index.commit();
 }
 
-pub fn garbage_collection(cache: &mut CacheStore, embedding: Arc<dyn Embedding>) {
-    let index = create_code_index(embedding);
+pub fn garbage_collection(cache: &mut CacheStore) {
+    let index = create_code_index(None);
     remove_staled_documents(cache, &index);
     index.commit();
 }
