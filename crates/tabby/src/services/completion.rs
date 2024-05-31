@@ -354,3 +354,86 @@ pub async fn create_completion_service(
 
     CompletionService::new(engine.clone(), code, logger, prompt_template)
 }
+
+#[cfg(test)]
+mod tests {
+    use async_stream::stream;
+    use async_trait::async_trait;
+    use futures::stream::BoxStream;
+    use tabby_common::api::code::{CodeSearchError, CodeSearchQuery, CodeSearchResponse};
+    use tabby_inference::{CompletionOptions, CompletionStream};
+
+    use super::*;
+
+    struct MockEventLogger;
+
+    impl EventLogger for MockEventLogger {
+        fn write(&self, _x: api::event::LogEntry) {}
+    }
+
+    struct MockCompletionStream;
+
+    #[async_trait]
+    impl CompletionStream for MockCompletionStream {
+        async fn generate(&self, _prompt: &str, _options: CompletionOptions) -> BoxStream<String> {
+            let s = stream! {
+                yield r#""Hello, world!""#.into();
+            };
+
+            Box::pin(s)
+        }
+    }
+
+    struct MockCodeSearch;
+
+    #[async_trait]
+    impl CodeSearch for MockCodeSearch {
+        async fn search_in_language(
+            &self,
+            _query: CodeSearchQuery,
+            _limit: usize,
+        ) -> Result<CodeSearchResponse, CodeSearchError> {
+            Ok(CodeSearchResponse { hits: vec![] })
+        }
+    }
+
+    fn mock_completion_service() -> CompletionService {
+        let generation = CodeGeneration::new(Arc::new(MockCompletionStream));
+        CompletionService::new(
+            Arc::new(generation),
+            Arc::new(MockCodeSearch),
+            Arc::new(MockEventLogger),
+            Some("<pre>{prefix}<mid>{suffix}<end>".into()),
+        )
+    }
+
+    #[tokio::test]
+    async fn test_completion_service() {
+        let completion_service = mock_completion_service();
+        let segment = Segments {
+            prefix: "fn hello_world() -> &'static str {".into(),
+            suffix: Some("}".into()),
+            filepath: None,
+            git_url: None,
+            declarations: None,
+            relevant_snippets_from_changed_files: None,
+            clipboard: None,
+        };
+        let request = CompletionRequest {
+            language: Some("rust".into()),
+            segments: Some(segment.clone()),
+            user: None,
+            debug_options: None,
+            temperature: None,
+            seed: None,
+        };
+
+        let response = completion_service.generate(&request).await.unwrap();
+        assert_eq!(response.choices[0].text, r#""Hello, world!""#);
+
+        let prompt = completion_service
+            .prompt_builder
+            .build("rust", segment.clone(), &[]);
+        assert_eq!(prompt, "<pre>fn hello_world() -> &'static str {<mid>}<end>");
+    }
+}
