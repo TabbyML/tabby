@@ -12,6 +12,7 @@ use apalis::{
 use juniper::ID;
 use tabby_common::config::{ConfigAccess, RepositoryConfig};
 use tabby_db::DbConn;
+use tabby_inference::Embedding;
 use tabby_schema::{integration::IntegrationService, repository::ThirdPartyRepositoryService};
 
 use self::{
@@ -34,6 +35,7 @@ pub async fn start(
     config_access: Arc<dyn ConfigAccess>,
     third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
     integration_service: Arc<dyn IntegrationService>,
+    embedding: Arc<dyn Embedding>,
     mut receiver: tokio::sync::mpsc::UnboundedReceiver<BackgroundJobEvent>,
 ) {
     let path = format!("sqlite://{}?mode=rwc", job_db_file().display());
@@ -53,6 +55,7 @@ pub async fn start(
         db.clone(),
         config.clone(),
         config_access,
+        embedding,
     );
     let (third_party_repository, monitor) = SyncIntegrationJob::register(
         monitor,
