@@ -84,7 +84,11 @@ const repositoryListQuery = graphql(/* GraphQL */ `
 
 type SourceCodeBrowserContextValue = {
   activePath: string | undefined
-  setActivePath: (path: string | undefined, replace?: boolean) => void
+  setActivePath: (
+    path: string | undefined,
+    params?: Record<'line', string>,
+    replace?: boolean
+  ) => void
   repoMap: Record<string, RepositoryItem>
   setRepoMap: (map: Record<string, RepositoryItem>) => void
   fileMap: TFileMap
@@ -118,11 +122,25 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   }, [searchParams])
   const isChatEnabled = useIsChatEnabled()
 
-  const setActivePath = (path: string | undefined, replace?: boolean) => {
+  const setActivePath = (
+    path: string | undefined,
+    params?: Record<'line', string>,
+    replace?: boolean
+  ) => {
     if (!path) {
       updateSearchParams({ del: ['path', 'plain', 'line'], replace })
     } else {
-      updateSearchParams({ set: { path }, del: ['plain', 'line'], replace })
+      const setParams: Record<string, string> = { path }
+      let delList = ['plain', 'line', 'redirect_filepath', 'redirect_git_url']
+      if (params?.line) {
+        setParams['line'] = params.line
+        delList = delList.filter(o => o !== 'line')
+      }
+      updateSearchParams({
+        set: setParams,
+        del: delList,
+        replace
+      })
     }
   }
 
@@ -228,12 +246,10 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     chatSideBarVisible,
     setChatSideBarVisible,
     setPendingEvent,
-    fileTreeData,
-    repoMap,
     setRepoMap,
     activeRepo
   } = React.useContext(SourceCodeBrowserContext)
-  const { updateSearchParams } = useRouterStuff()
+  const { searchParams } = useRouterStuff()
 
   const initializing = React.useRef(false)
   const { setProgress } = useTopbarProgress()
@@ -335,10 +351,28 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         activePath
       )
 
+      const redirect_filepath = searchParams.get('redirect_filepath')
+      const redirect_git_url = searchParams.get('redirect_git_url')
+
+      if (repos?.length && redirect_filepath && redirect_git_url) {
+        // get repo from repos and redirect_git_url
+        const targetRepo = repos.find(repo => repo.gitUrl === redirect_git_url)
+        if (targetRepo) {
+          const repoSpecifier = resolveRepoSpecifierFromRepoInfo(targetRepo)
+          setActivePath(
+            `${repoSpecifier}/${redirect_filepath}`,
+            undefined,
+            true
+          )
+          initializing.current = false
+          return
+        }
+      }
+
       // By default, selecting the first repository if initialPath is empty
       if (repos?.length && !activePath) {
         const repoSpecifier = resolveRepoSpecifierFromRepoInfo(repos?.[0])
-        setActivePath(repoSpecifier, true)
+        setActivePath(repoSpecifier, undefined, true)
         initializing.current = false
         return
       }
