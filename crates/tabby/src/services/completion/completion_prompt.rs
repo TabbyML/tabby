@@ -190,10 +190,7 @@ async fn collect_snippets(
 
     let mut ret = Vec::new();
 
-    let serp = match code
-        .search_in_language(query, MAX_SNIPPETS_TO_FETCH, 0)
-        .await
-    {
+    let serp = match code.search_in_language(query, MAX_SNIPPETS_TO_FETCH).await {
         Ok(serp) => serp,
         Err(CodeSearchError::NotReady) => {
             // Ignore.
@@ -225,7 +222,7 @@ async fn collect_snippets(
         ret.push(Snippet {
             filepath: hit.doc.filepath,
             body,
-            score: hit.score,
+            score: hit.scores.combined_rank as f32,
         });
     }
 

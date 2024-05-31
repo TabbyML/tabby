@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use serde_json::json;
 use tabby_common::{config::RepositoryConfig, index::code};
+use tabby_inference::Embedding;
 use tracing::{info, warn};
 
 use self::intelligence::SourceCode;
@@ -22,14 +25,14 @@ pub struct CodeIndexer {
 }
 
 impl CodeIndexer {
-    pub async fn refresh(&mut self, repository: &RepositoryConfig) {
+    pub async fn refresh(&mut self, embedding: Arc<dyn Embedding>, repository: &RepositoryConfig) {
         self.is_dirty = true;
 
         info!("Refreshing repository: {}", repository.canonical_git_url());
         repository::sync_repository(repository);
 
         let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
-        index::index_repository(&mut cache, repository).await;
+        index::index_repository(&mut cache, embedding, repository).await;
     }
 
     pub fn garbage_collection(&mut self, repositories: &[RepositoryConfig]) {
@@ -46,7 +49,15 @@ struct KeyedSourceCode {
     code: SourceCode,
 }
 
-struct CodeBuilder;
+struct CodeBuilder {
+    embedding: Option<Arc<dyn Embedding>>,
+}
+
+impl CodeBuilder {
+    fn new(embedding: Option<Arc<dyn Embedding>>) -> Self {
+        Self { embedding }
+    }
+}
 
 #[async_trait]
 impl IndexAttributeBuilder<KeyedSourceCode> for CodeBuilder {
@@ -79,11 +90,27 @@ impl IndexAttributeBuilder<KeyedSourceCode> for CodeBuilder {
             }
         };
 
+        let Some(embedding) = self.embedding.clone() else {
+            warn!("No embedding service found for code indexing");
+            return Box::pin(futures::stream::empty());
+        };
+
         let source_code = source_code.clone();
         let s = stream! {
             let intelligence = CodeIntelligence::default();
             for (start_line, body) in intelligence.chunks(&text) {
-                let tokens = code::tokenize_code(body);
+                let embedding = match embedding.embed(body).await {
+                    Ok(x) => x,
+                    Err(err) => {
+                        warn!("Failed to embed chunk text: {}", err);
+                        continue;
+                    }
+                };
+
+                let mut tokens = code::tokenize_code(body);
+                for token in tabby_common::index::binarize_embedding(embedding.iter()) {
+                    tokens.push(token);
+                }
                 yield (tokens, json!({
                     code::fields::CHUNK_FILEPATH: source_code.filepath,
                     code::fields::CHUNK_GIT_URL: source_code.git_url,
@@ -98,7 +125,7 @@ impl IndexAttributeBuilder<KeyedSourceCode> for CodeBuilder {
     }
 }
 
-fn create_code_index() -> Indexer<KeyedSourceCode> {
-    let builder = CodeBuilder;
+fn create_code_index(embedding: Option<Arc<dyn Embedding>>) -> Indexer<KeyedSourceCode> {
+    let builder = CodeBuilder::new(embedding);
     Indexer::new(builder)
 }

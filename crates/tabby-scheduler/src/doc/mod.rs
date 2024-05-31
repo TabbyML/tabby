@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_stream::stream;
 use async_trait::async_trait;
-use futures::{stream::BoxStream, StreamExt};
+use futures::stream::BoxStream;
 use serde_json::json;
 use tabby_common::index::{self, doc};
 use tabby_inference::Embedding;
@@ -26,7 +26,7 @@ pub struct DocBuilder {
 }
 
 impl DocBuilder {
-    pub fn new(embedding: Arc<dyn Embedding>) -> Self {
+    fn new(embedding: Arc<dyn Embedding>) -> Self {
         Self { embedding }
     }
 }
