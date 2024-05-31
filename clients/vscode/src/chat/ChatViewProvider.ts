@@ -1,4 +1,4 @@
-import { ExtensionContext, WebviewViewProvider, WebviewView, workspace, Uri, env } from "vscode";
+import { ExtensionContext, WebviewViewProvider, WebviewView, workspace, Uri, env, LogOutputChannel } from "vscode";
 import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
@@ -16,6 +16,7 @@ export class ChatViewProvider implements WebviewViewProvider {
   constructor(
     private readonly context: ExtensionContext,
     private readonly agent: Agent,
+    private readonly logger: LogOutputChannel,
   ) {}
 
   public async resolveWebviewView(webviewView: WebviewView) {
@@ -114,7 +115,7 @@ export class ChatViewProvider implements WebviewViewProvider {
 
   private async initChatPage() {
     this.webview?.webview.postMessage({ action: "sync-theme" });
-    this.pendingMessages.forEach((message) => this.client?.sendMessage(message));
+    this.pendingMessages.forEach((message) => this.sendMessageToChatPanel(message));
     const serverInfo = await this.agent.fetchServerInfo();
     if (serverInfo.config.token) {
       this.client?.init({
@@ -240,7 +241,12 @@ export class ChatViewProvider implements WebviewViewProvider {
     if (!this.client) {
       this.pendingMessages.push(message);
     } else {
-      this.client.sendMessage(message);
+      this.sendMessageToChatPanel(message);
     }
+  }
+
+  private sendMessageToChatPanel(message: ChatMessage) {
+    this.logger.info(`Sending message to chat panel: ${JSON.stringify(message)}`);
+    this.client?.sendMessage(message);
   }
 }
