@@ -19,14 +19,11 @@ import os from "os";
 import path from "path";
 import { strict as assert } from "assert";
 import { Client } from "./lsp/Client";
-import { getLogger } from "./logger";
 import { Config } from "./Config";
 import { ContextVariables } from "./ContextVariables";
 import { InlineCompletionProvider } from "./InlineCompletionProvider";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { GitProvider, Repository } from "./git/GitProvider";
-
-const logger = getLogger();
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -246,10 +243,6 @@ export class Commands {
         }
 
         commands.executeCommand("tabby.chatView.focus");
-
-        if (!remoteUrl) {
-          logger.warn("Failed to get git_url for explainCodeBlock, uri: $uri, repo: $repo");
-        }
 
         this.chatViewProvider.sendMessage({
           message: "Explain the selected code:",
