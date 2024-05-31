@@ -1,13 +1,36 @@
-import { extensions, workspace, Extension, Uri } from "vscode";
-import type { GitExtension, Repository as GitRepository, API } from "./git";
+import { extensions, workspace, Uri } from "vscode";
+import type { Repository as GitRepository, API } from "./git";
 export type Repository = GitRepository;
+import { getLogger } from "../logger";
+
+function getGitExtensionApi(): API | undefined {
+  const ext = extensions.getExtension("vscode.git");
+  return ext?.isActive ? ext.exports.getAPI(1) : undefined;
+}
 
 export class GitProvider {
-  private ext: Extension<GitExtension> | undefined;
-  private api: API | undefined;
+  private readonly logger = getLogger();
+  private api: API | undefined = undefined;
+
   constructor() {
-    this.ext = extensions.getExtension("vscode.git");
-    this.api = this.ext?.isActive ? this.ext.exports.getAPI(1) : undefined;
+    this.init();
+  }
+
+  private init(tries = 0) {
+    this.api = getGitExtensionApi();
+    if (this.api) {
+      this.logger.info("GitProvider created.");
+    } else {
+      if (tries > 10) {
+        this.logger.warn(`Failed to create GitProvider after ${tries} tries, giving up.`);
+      } else {
+        const delay = (tries + 1) * 1000;
+        this.logger.info(`Failed to create GitProvider, retry after ${delay}ms`);
+        setTimeout(() => {
+          this.init(tries + 1);
+        }, delay);
+      }
+    }
   }
 
   getRepositories(): Repository[] | undefined {
