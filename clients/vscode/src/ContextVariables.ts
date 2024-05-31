@@ -1,4 +1,4 @@
-import { commands, window, Range } from "vscode";
+import { commands, window, workspace, Range } from "vscode";
 import { Client } from "./lsp/Client";
 import { Config } from "./Config";
 
@@ -24,6 +24,11 @@ export class ContextVariables {
     this.updateChatEditResolving();
     window.onDidChangeTextEditorSelection((params) => {
       if (params.textEditor === window.activeTextEditor) {
+        this.updateChatEditResolving();
+      }
+    });
+    workspace.onDidChangeTextDocument((params) => {
+      if (params.document === window.activeTextEditor?.document) {
         this.updateChatEditResolving();
       }
     });

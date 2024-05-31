@@ -345,7 +345,6 @@ export class Commands {
               this.chatEditCancellationTokenSource = null;
               this.contextVariables.chatEditInProgress = false;
               editor.selection = new Selection(startPosition, startPosition);
-              this.contextVariables.updateChatEditResolving();
             },
           );
         }
@@ -354,7 +353,6 @@ export class Commands {
     },
     "experimental.chat.edit.stop": async () => {
       this.chatEditCancellationTokenSource?.cancel();
-      this.contextVariables.updateChatEditResolving();
     },
     "experimental.chat.edit.accept": async () => {
       const editor = window.activeTextEditor;
@@ -369,7 +367,6 @@ export class Commands {
         },
       };
       await this.client.chat.resolveEdit({ location, action: "accept" });
-      this.contextVariables.updateChatEditResolving();
     },
     "experimental.chat.edit.discard": async () => {
       const editor = window.activeTextEditor;
@@ -384,7 +381,6 @@ export class Commands {
         },
       };
       await this.client.chat.resolveEdit({ location, action: "discard" });
-      this.contextVariables.updateChatEditResolving();
     },
     "experimental.chat.generateCommitMessage": async () => {
       const repos = this.gitProvider.getRepositories() ?? [];
