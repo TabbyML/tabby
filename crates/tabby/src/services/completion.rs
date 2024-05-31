@@ -392,12 +392,8 @@ mod tests {
             &self,
             _query: CodeSearchQuery,
             _limit: usize,
-            _offset: usize,
         ) -> Result<CodeSearchResponse, CodeSearchError> {
-            Ok(CodeSearchResponse {
-                num_hits: 0,
-                hits: vec![],
-            })
+            Ok(CodeSearchResponse { hits: vec![] })
         }
     }
 
