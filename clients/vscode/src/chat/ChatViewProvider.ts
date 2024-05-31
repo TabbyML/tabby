@@ -37,8 +37,16 @@ export class ChatViewProvider implements WebviewViewProvider {
     this.client = createClient(webviewView, {
       navigate: async (context: Context) => {
         if (context?.filepath && context?.git_url) {
-          const url = `${context.git_url}/blob/main/${context.filepath}#L${context.range.start}-L${context.range.end}`;
-          await env.openExternal(Uri.parse(url));
+          const serverInfo = await this.agent.fetchServerInfo();
+
+          const url = new URL(`${serverInfo.config.endpoint}/files`);
+          const searchParams = new URLSearchParams();
+          searchParams.append("redirect_filepath", context.filepath);
+          searchParams.append("redirect_git_url", context.git_url);
+          searchParams.append("line", String(context.range.start));
+          url.search = searchParams.toString();
+
+          await env.openExternal(Uri.parse(url.toString()));
         }
       },
     });
