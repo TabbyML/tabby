@@ -3,15 +3,16 @@ mod helper;
 mod scheduler;
 mod third_party_integration;
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use apalis::{
     prelude::{Monitor, Storage},
     sqlite::{SqlitePool, SqliteStorage},
 };
 use juniper::ID;
-use tabby_common::config::{RepositoryAccess, RepositoryConfig};
+use tabby_common::config::{ConfigAccess, RepositoryConfig};
 use tabby_db::DbConn;
+use tabby_inference::Embedding;
 use tabby_schema::{integration::IntegrationService, repository::ThirdPartyRepositoryService};
 
 use self::{
@@ -31,9 +32,10 @@ struct BackgroundJobImpl {
 
 pub async fn start(
     db: DbConn,
-    repository_access: Arc<dyn RepositoryAccess>,
+    config_access: Arc<dyn ConfigAccess>,
     third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
     integration_service: Arc<dyn IntegrationService>,
+    embedding: Arc<dyn Embedding>,
     mut receiver: tokio::sync::mpsc::UnboundedReceiver<BackgroundJobEvent>,
 ) {
     let path = format!("sqlite://{}?mode=rwc", job_db_file().display());
@@ -44,14 +46,22 @@ pub async fn start(
         .await
         .expect("unable to run migrations for sqlite");
 
+    let config = apalis_sql::Config::default().poll_interval(Duration::from_secs(5));
     let monitor = Monitor::new();
     let monitor = DbMaintainanceJob::register(monitor, db.clone());
-    let (scheduler, monitor) =
-        SchedulerJob::register(monitor, pool.clone(), db.clone(), repository_access);
+    let (scheduler, monitor) = SchedulerJob::register(
+        monitor,
+        pool.clone(),
+        db.clone(),
+        config.clone(),
+        config_access,
+        embedding,
+    );
     let (third_party_repository, monitor) = SyncIntegrationJob::register(
         monitor,
         pool.clone(),
         db.clone(),
+        config.clone(),
         third_party_repository_service,
         integration_service,
     );

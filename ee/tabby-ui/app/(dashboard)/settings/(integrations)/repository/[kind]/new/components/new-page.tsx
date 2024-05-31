@@ -3,10 +3,11 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import { UseFormReturn } from 'react-hook-form'
+import { TypedDocumentNode } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 import { RepositoryKind } from '@/lib/gql/generates/graphql'
-import { useMutation } from '@/lib/tabby/gql'
+import { QueryResponseData, useMutation } from '@/lib/tabby/gql'
 
 import {
   CommonProviderForm,
@@ -24,6 +25,14 @@ const createGithubRepositoryProvider = graphql(/* GraphQL */ `
   }
 `)
 
+const createGithubSelfHostedRepositoryProvider = graphql(/* GraphQL */ `
+  mutation CreateGithubSelfHostedRepositoryProvider(
+    $input: CreateSelfHostedRepositoryProviderInput!
+  ) {
+    createGithubSelfHostedRepositoryProvider(input: $input)
+  }
+`)
+
 const createGitlabRepositoryProvider = graphql(/* GraphQL */ `
   mutation CreateGitlabRepositoryProvider(
     $input: CreateRepositoryProviderInput!
@@ -32,47 +41,81 @@ const createGitlabRepositoryProvider = graphql(/* GraphQL */ `
   }
 `)
 
+const createGitlabSelfHostedRepositoryProvider = graphql(/* GraphQL */ `
+  mutation CreateGitlabSelfHostedRepositoryProvider(
+    $input: CreateSelfHostedRepositoryProviderInput!
+  ) {
+    createGitlabSelfHostedRepositoryProvider(input: $input)
+  }
+`)
+
 export const NewProvider = () => {
   const kind = useRepositoryKind()
   const router = useRouter()
   const form = useRepositoryProviderForm(true)
-  // for github
-  const createGithubRepositoryProviderMutation = useMutation(
-    createGithubRepositoryProvider,
-    {
-      onCompleted(data) {
-        if (data?.createGithubRepositoryProvider) {
-          router.back()
-        }
-      },
-      form
-    }
-  )
 
-  // for gitlab
-  const createGitlabRepositoryProviderMutation = useMutation(
-    createGitlabRepositoryProvider,
-    {
-      onCompleted(data) {
-        if (data?.createGitlabRepositoryProvider) {
-          router.back()
+  const { mutation, resolver } = React.useMemo(() => {
+    switch (kind) {
+      case RepositoryKind.Github:
+        return {
+          mutation: createGithubRepositoryProvider,
+          resolver: (
+            res?: QueryResponseData<typeof createGithubRepositoryProvider>
+          ) => res?.createGithubRepositoryProvider
         }
-      },
-      form
+      case RepositoryKind.GithubSelfHosted:
+        return {
+          mutation: createGithubSelfHostedRepositoryProvider,
+          resolver: (
+            res?: QueryResponseData<
+              typeof createGithubSelfHostedRepositoryProvider
+            >
+          ) => res?.createGithubSelfHostedRepositoryProvider
+        }
+      case RepositoryKind.Gitlab:
+        return {
+          mutation: createGitlabRepositoryProvider,
+          resolver: (
+            res?: QueryResponseData<typeof createGitlabRepositoryProvider>
+          ) => res?.createGitlabRepositoryProvider
+        }
+      case RepositoryKind.GitlabSelfHosted:
+        return {
+          mutation: createGitlabSelfHostedRepositoryProvider,
+          resolver: (
+            res?: QueryResponseData<
+              typeof createGitlabSelfHostedRepositoryProvider
+            >
+          ) => res?.createGitlabSelfHostedRepositoryProvider
+        }
+      default:
+        return {
+          mutation: createGithubRepositoryProvider,
+          resolver: (
+            res?: QueryResponseData<typeof createGithubRepositoryProvider>
+          ) => res?.createGithubRepositoryProvider
+        }
     }
-  )
+  }, [kind]) as {
+    mutation: TypedDocumentNode<any, any>
+    resolver: (
+      res?: QueryResponseData<TypedDocumentNode<any, any>>
+    ) => string | undefined
+  }
+
+  const createRepositoryProviderMutation = useMutation(mutation, {
+    onCompleted(data) {
+      if (resolver(data)) {
+        router.back()
+      }
+    },
+    form
+  })
 
   const handleSubmit = async (values: CreateRepositoryProviderFormValues) => {
-    if (kind === RepositoryKind.Github) {
-      return createGithubRepositoryProviderMutation({
-        input: values
-      })
-    }
-    if (kind === RepositoryKind.Gitlab) {
-      return createGitlabRepositoryProviderMutation({
-        input: values
-      })
-    }
+    return createRepositoryProviderMutation({
+      input: values
+    })
   }
 
   return (

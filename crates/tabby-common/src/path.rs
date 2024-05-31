@@ -33,18 +33,12 @@ pub fn usage_id_file() -> PathBuf {
     tabby_root().join("usage_anonymous_id")
 }
 
-// FIXME: migrate to /corpus/code/repositories
 pub fn repositories_dir() -> PathBuf {
     tabby_root().join("repositories")
 }
 
-// FIXME: migrate to /corpus/code/tantivy
 pub fn index_dir() -> PathBuf {
     tabby_root().join("index")
-}
-
-pub fn doc_index_dir() -> PathBuf {
-    tabby_root().join("corpus").join("doc").join("tantivy")
 }
 
 pub fn models_dir() -> PathBuf {

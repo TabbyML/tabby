@@ -11,6 +11,9 @@ pub struct CompletionOptions {
     pub sampling_temperature: f32,
 
     pub seed: u64,
+
+    #[builder(default = "0.0")]
+    pub presence_penalty: f32,
 }
 
 #[async_trait]

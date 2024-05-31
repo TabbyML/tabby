@@ -3,6 +3,8 @@ import { Message } from 'ai'
 import { findIndex } from 'lodash-es'
 import type { Context } from 'tabby-chat-panel'
 
+import { useDebounceCallback } from '@/lib/hooks/use-debounce'
+import { useLatest } from '@/lib/hooks/use-latest'
 import { filename2prism } from '@/lib/language-utils'
 import {
   AnswerRequest,
@@ -14,12 +16,12 @@ import {
 } from '@/lib/types/chat'
 import { cn, nanoid } from '@/lib/utils'
 
+import { ListSkeleton } from '../skeleton'
 import { ChatPanel } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
 import { useTabbyAnswer } from './use-tabby-answer'
-import { useLatest } from '@/lib/hooks/use-latest'
 
 type ChatContextValue = {
   isLoading: boolean
@@ -31,6 +33,8 @@ type ChatContextValue = {
   onNavigateToContext?: (context: Context) => void
   onClearMessages: () => void
   container?: HTMLDivElement
+  onCopyContent?: (value: string) => void
+  isReferenceClickable: boolean
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -111,6 +115,11 @@ interface ChatProps extends React.ComponentProps<'div'> {
   container?: HTMLDivElement
   docQuery?: boolean
   generateRelevantQuestions?: boolean
+  maxWidth?: string
+  welcomeMessage?: string
+  promptFormClassname?: string
+  onCopyContent?: (value: string) => void
+  isReferenceClickable?: boolean
 }
 
 function ChatRenderer(
@@ -126,13 +135,19 @@ function ChatRenderer(
     container,
     fetcher,
     docQuery,
-    generateRelevantQuestions
+    generateRelevantQuestions,
+    maxWidth,
+    welcomeMessage,
+    promptFormClassname,
+    onCopyContent,
+    isReferenceClickable = true
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
+  const [initialized, setInitialzed] = React.useState(false)
+  const isOnLoadExecuted = React.useRef(false)
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
   const [input, setInput] = React.useState<string>('')
-  const loaded = React.useRef(false)
 
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
     api,
@@ -228,6 +243,27 @@ function ChatRenderer(
     })
   }, [answer, isLoading])
 
+  const scrollToBottom = useDebounceCallback(() => {
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
+      })
+    } else {
+      window.scrollTo({
+        top: document.body.offsetHeight,
+        behavior: 'smooth'
+      })
+    }
+  }, 100)
+
+  React.useLayoutEffect(() => {
+    // scroll to bottom when a request is sent
+    if (isLoading) {
+      scrollToBottom.run()
+    }
+  }, [isLoading])
+
   React.useEffect(() => {
     if (error && qaPairs?.length) {
       setQaPairs(prev => {
@@ -312,7 +348,7 @@ function ChatRenderer(
   }
 
   React.useEffect(() => {
-    if (!loaded.current) return
+    if (!isOnLoadExecuted.current) return
     onThreadUpdates(qaPairs)
   }, [qaPairs])
 
@@ -329,11 +365,18 @@ function ChatRenderer(
   )
 
   React.useEffect(() => {
-    if (loaded?.current) return
+    if (isOnLoadExecuted.current) return
 
-    loaded.current = true
+    isOnLoadExecuted.current = true
     onLoaded?.()
+    setInitialzed(true)
   }, [])
+
+  const chatMaxWidthClass = maxWidth ? `max-w-${maxWidth}` : 'max-w-2xl'
+  if (!initialized)
+    return (
+      <ListSkeleton className={`${chatMaxWidthClass} mx-auto pt-4 md:pt-10`} />
+    )
 
   return (
     <ChatContext.Provider
@@ -343,27 +386,37 @@ function ChatRenderer(
         onNavigateToContext,
         handleMessageAction,
         onClearMessages,
-        container
+        container,
+        onCopyContent,
+        isReferenceClickable
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
-        <div className="w-full max-w-2xl px-4">
+        <div className={`w-full px-4 ${chatMaxWidthClass}`}>
           <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
             {qaPairs?.length ? (
-              <QuestionAnswerList messages={qaPairs} />
+              <QuestionAnswerList
+                messages={qaPairs}
+                chatMaxWidthClass={chatMaxWidthClass}
+              />
             ) : (
-              <EmptyScreen setInput={setInput} />
+              <EmptyScreen
+                setInput={setInput}
+                chatMaxWidthClass={chatMaxWidthClass}
+                welcomeMessage={welcomeMessage}
+              />
             )}
             <ChatScrollAnchor trackVisibility={isLoading} />
           </div>
           <ChatPanel
             onSubmit={handleSubmit}
-            className="fixed inset-x-0 bottom-0 lg:ml-[280px]"
+            className={cn('fixed inset-x-0 bottom-0', promptFormClassname)}
             id={chatId}
             stop={onStop}
             reload={onReload}
             input={input}
             setInput={setInput}
+            chatMaxWidthClass={chatMaxWidthClass}
           />
         </div>
       </div>

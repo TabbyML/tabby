@@ -30,6 +30,7 @@ struct CompletionRequest {
     temperature: f32,
     stream: bool,
     penalty_last_n: i32,
+    presence_penalty: f32,
 }
 
 #[derive(Deserialize)]
@@ -47,6 +48,7 @@ impl CompletionStream for LlamaCppEngine {
             temperature: options.sampling_temperature,
             stream: true,
             penalty_last_n: 0,
+            presence_penalty: options.presence_penalty,
         };
 
         let mut request = self.client.post(&self.api_endpoint).json(&request);

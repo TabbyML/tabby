@@ -13,7 +13,7 @@ use tabby_common::{
 use tabby_inference::{CompletionOptions, CompletionStream, Embedding};
 
 fn api_endpoint(port: u16) -> String {
-    format!("http://localhost:{port}")
+    format!("http://127.0.0.1:{port}")
 }
 
 struct EmbeddingServer {
@@ -35,7 +35,7 @@ impl EmbeddingServer {
 
         Self {
             server,
-            embedding: http_api_bindings::create_embedding(&config),
+            embedding: http_api_bindings::create_embedding(&config).await,
         }
     }
 }
@@ -56,12 +56,13 @@ struct CompletionServer {
 impl CompletionServer {
     async fn new(num_gpu_layers: u16, model_path: &str, parallelism: u8) -> Self {
         let server = LlamaCppSupervisor::new(num_gpu_layers, false, model_path, parallelism);
+        server.start().await;
         let config = HttpModelConfigBuilder::default()
             .api_endpoint(api_endpoint(server.port()))
             .kind("llama.cpp/completion".to_string())
             .build()
             .expect("Failed to create HttpModelConfig");
-        let completion = http_api_bindings::create(&config);
+        let completion = http_api_bindings::create(&config).await;
         Self { server, completion }
     }
 }
@@ -83,7 +84,7 @@ pub async fn create_completion(
 
 pub async fn create_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {
     match config {
-        ModelConfig::Http(http) => http_api_bindings::create_embedding(http),
+        ModelConfig::Http(http) => http_api_bindings::create_embedding(http).await,
         ModelConfig::Local(llama) => {
             if fs::metadata(&llama.model_id).is_ok() {
                 let path = PathBuf::from(&llama.model_id);

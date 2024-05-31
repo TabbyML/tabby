@@ -6,11 +6,13 @@ use apalis::{
     sqlite::{SqlitePool, SqliteStorage},
     utils::TokioExecutor,
 };
+use apalis_sql::Config;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use tabby_common::config::{RepositoryAccess, RepositoryConfig};
+use tabby_common::config::{ConfigAccess, RepositoryConfig};
 use tabby_db::DbConn;
-use tabby_scheduler::CodeIndex;
+use tabby_inference::Embedding;
+use tabby_scheduler::CodeIndexer;
 
 use super::{
     cprintln,
@@ -37,16 +39,20 @@ impl CronJob for SchedulerJob {
 }
 
 impl SchedulerJob {
-    async fn run(self, job_logger: Data<JobLogger>) -> tabby_schema::Result<()> {
+    async fn run(
+        self,
+        job_logger: Data<JobLogger>,
+        embedding: Data<Arc<dyn Embedding>>,
+    ) -> tabby_schema::Result<()> {
         let repository = self.repository.clone();
         tokio::spawn(async move {
-            let mut code = CodeIndex::default();
+            let mut code = CodeIndexer::default();
             cprintln!(
                 job_logger,
                 "Refreshing repository {}",
                 repository.canonical_git_url()
             );
-            code.refresh(&repository);
+            code.refresh((*embedding).clone(), &repository).await;
         })
         .await
         .context("Job execution failed")?;
@@ -55,15 +61,15 @@ impl SchedulerJob {
 
     async fn cron(
         _now: DateTime<Utc>,
-        repository_access: Data<Arc<dyn RepositoryAccess>>,
+        config_access: Data<Arc<dyn ConfigAccess>>,
         storage: Data<SqliteStorage<SchedulerJob>>,
     ) -> tabby_schema::Result<()> {
-        let repositories = repository_access
-            .list_repositories()
+        let repositories = config_access
+            .repositories()
             .await
             .context("Must be able to retrieve repositories for sync")?;
 
-        let mut code = CodeIndex::default();
+        let mut code = CodeIndexer::default();
         code.garbage_collection(&repositories);
 
         let mut storage = (*storage).clone();
@@ -81,15 +87,21 @@ impl SchedulerJob {
         monitor: Monitor<TokioExecutor>,
         pool: SqlitePool,
         db: DbConn,
-        repository_access: Arc<dyn RepositoryAccess>,
+        config: Config,
+        config_access: Arc<dyn ConfigAccess>,
+        embedding: Arc<dyn Embedding>,
     ) -> (SqliteStorage<SchedulerJob>, Monitor<TokioExecutor>) {
-        let storage = SqliteStorage::new(pool);
+        let storage = SqliteStorage::new_with_config(pool, config);
         let monitor = monitor
-            .register(Self::basic_worker(storage.clone(), db.clone()).build_fn(Self::run))
+            .register(
+                Self::basic_worker(storage.clone(), db.clone())
+                    .data(embedding)
+                    .build_fn(Self::run),
+            )
             .register(
                 Self::cron_worker(db.clone())
                     .data(storage.clone())
-                    .data(repository_access)
+                    .data(config_access)
                     .build_fn(SchedulerJob::cron),
             );
         (storage, monitor)

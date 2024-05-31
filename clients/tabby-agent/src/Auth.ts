@@ -178,7 +178,7 @@ export class Auth extends EventEmitter {
           clearInterval(timer);
           resolve(true);
         } catch (error) {
-          if (error! instanceof HttpError && [400, 401, 403, 405].includes(error.status)) {
+          if (!(error instanceof HttpError && [400, 401, 403, 405].includes(error.status))) {
             // unknown error but still keep polling
             this.logger.error("Failed due to unknown error when polling auth token", error);
           }
@@ -211,7 +211,7 @@ export class Auth extends EventEmitter {
         payload: decodeJwt(refreshedJwt.data.jwt),
       };
     } catch (error) {
-      if (error! instanceof HttpError && [400, 401, 403, 405].includes(error.status)) {
+      if (!(error instanceof HttpError && [400, 401, 403, 405].includes(error.status))) {
         // unknown error, retry a few times
         this.logger.error("Failed due to unknown error when refreshing auth token.", error);
         if (retry < options.maxTry) {

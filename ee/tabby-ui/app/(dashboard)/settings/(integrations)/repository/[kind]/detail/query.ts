@@ -13,3 +13,23 @@ export const updateGitlabProvidedRepositoryActiveMutation =
       updateGitlabProvidedRepositoryActive(id: $id, active: $active)
     }
   `)
+
+export const updateGithubSelfHostedProvidedRepositoryActiveMutation =
+  graphql(/* GraphQL */ `
+    mutation UpdateGithubSelfHostedProvidedRepositoryActive(
+      $id: ID!
+      $active: Boolean!
+    ) {
+      updateGithubSelfHostedProvidedRepositoryActive(id: $id, active: $active)
+    }
+  `)
+
+export const updateGitlabSelfHostedProvidedRepositoryActiveMutation =
+  graphql(/* GraphQL */ `
+    mutation UpdateGitlabSelfHostedProvidedRepositoryActive(
+      $id: ID!
+      $active: Boolean!
+    ) {
+      updateGitlabSelfHostedProvidedRepositoryActive(id: $id, active: $active)
+    }
+  `)

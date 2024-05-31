@@ -52,8 +52,10 @@ function isNewVersionAvailable(version?: string, latestRelease?: ReleaseInfo) {
   try {
     return version && latestRelease && compare(latestRelease.name, version, '>')
   } catch (err) {
-    // Handle invalid semver
+    // eslint-disable-next-line no-console
     console.warn(err)
+
+    // Handle invalid semver
     return true
   }
 }

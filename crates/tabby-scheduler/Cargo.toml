@@ -39,6 +39,7 @@ tabby-inference = { path = "../tabby-inference" }
 git2.workspace = true
 llama-cpp-server = { path = "../llama-cpp-server"}
 insta.workspace = true
+async-trait.workspace = true
 
 [dev-dependencies]
 temp_testdir = { workspace = true }

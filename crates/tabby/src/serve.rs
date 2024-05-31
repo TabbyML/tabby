@@ -4,10 +4,11 @@ use axum::{routing, Router};
 use clap::Args;
 use hyper::StatusCode;
 use tabby_common::{
-    api::{self, code::CodeSearch, doc::DocSearch, event::EventLogger},
-    config::{Config, ConfigRepositoryAccess, ModelConfig, RepositoryAccess},
+    api::{self, code::CodeSearch, event::EventLogger},
+    config::{Config, ConfigAccess, ModelConfig, StaticConfigAccess},
     usage,
 };
+use tabby_inference::Embedding;
 use tokio::time::sleep;
 use tower_http::timeout::TimeoutLayer;
 use tracing::{debug, warn};
@@ -28,6 +29,7 @@ use crate::{
         event::create_event_logger,
         health,
         model::download_model_if_needed,
+        tantivy::IndexReaderProvider,
     },
     to_local_config, Device,
 };
@@ -138,24 +140,43 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         webserver = Some(!args.no_webserver)
     }
 
+    let embedding = embedding::create(config.model.embedding.as_ref()).await;
+
     #[cfg(feature = "ee")]
     let ws = if !args.no_webserver {
-        Some(tabby_webserver::public::Webserver::new(create_event_logger(), args.port).await)
+        Some(
+            tabby_webserver::public::Webserver::new(create_event_logger(), embedding.clone()).await,
+        )
     } else {
         None
     };
 
     let mut logger: Arc<dyn EventLogger> = Arc::new(create_event_logger());
-    let mut repository_access: Arc<dyn RepositoryAccess> = Arc::new(ConfigRepositoryAccess);
+    let mut config_access: Arc<dyn ConfigAccess> = Arc::new(StaticConfigAccess);
 
     #[cfg(feature = "ee")]
     if let Some(ws) = &ws {
         logger = ws.logger();
-        repository_access = ws.repository_access();
+        config_access = ws.clone();
     }
 
-    let code = Arc::new(create_code_search(repository_access));
-    let mut api = api_router(args, &config, logger.clone(), code.clone(), webserver).await;
+    let index_reader_provider = Arc::new(IndexReaderProvider::default());
+
+    let code = Arc::new(create_code_search(
+        config_access,
+        embedding.clone(),
+        index_reader_provider.clone(),
+    ));
+    let mut api = api_router(
+        args,
+        &config,
+        logger.clone(),
+        code.clone(),
+        embedding,
+        index_reader_provider,
+        webserver,
+    )
+    .await;
     let mut ui = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .fallback(|| async { axum::response::Redirect::temporary("/swagger-ui") });
@@ -190,6 +211,8 @@ async fn api_router(
     config: &Config,
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
+    embedding: Arc<dyn Embedding>,
+    index_reader_provider: Arc<IndexReaderProvider>,
     webserver: Option<bool>,
 ) -> Router {
     let model = &config.model;
@@ -207,12 +230,7 @@ async fn api_router(
         None
     };
 
-    let docsearch_state: Option<Arc<dyn DocSearch>> = if let Some(embedding) = &model.embedding {
-        let embedding = embedding::create(embedding).await;
-        Some(Arc::new(services::doc::create(embedding)))
-    } else {
-        None
-    };
+    let docsearch_state = Arc::new(services::doc::create(embedding, index_reader_provider));
 
     let answer_state = chat_state.as_ref().map(|chat| {
         Arc::new(services::answer::create(

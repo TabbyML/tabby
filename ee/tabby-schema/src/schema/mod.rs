@@ -318,7 +318,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<repository::GithubProvidedRepository>> {
+    ) -> Result<Connection<repository::GitlabProvidedRepository>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -834,6 +834,7 @@ impl Mutation {
         password1: String,
         password2: String,
         invitation_code: Option<String>,
+        name: String,
     ) -> Result<RegisterResponse> {
         let input = auth::RegisterInput {
             email,
@@ -844,7 +845,7 @@ impl Mutation {
 
         ctx.locator
             .auth()
-            .register(input.email, input.password1, invitation_code)
+            .register(input.email, input.password1, invitation_code, Some(name))
             .await
     }
 
@@ -1003,7 +1004,7 @@ impl Mutation {
             .locator
             .integration()
             .create_integration(
-                IntegrationKind::Github,
+                IntegrationKind::GithubSelfHosted,
                 input.display_name,
                 input.access_token,
                 input.api_base,
@@ -1059,7 +1060,7 @@ impl Mutation {
             .integration()
             .update_integration(
                 input.id,
-                IntegrationKind::Github,
+                IntegrationKind::GithubSelfHosted,
                 input.display_name,
                 input.access_token,
                 input.api_base,
@@ -1123,7 +1124,7 @@ impl Mutation {
             .locator
             .integration()
             .create_integration(
-                IntegrationKind::Gitlab,
+                IntegrationKind::GitlabSelfHosted,
                 input.display_name,
                 input.access_token,
                 input.api_base,
@@ -1160,7 +1161,7 @@ impl Mutation {
             .integration()
             .update_integration(
                 input.id,
-                IntegrationKind::Gitlab,
+                IntegrationKind::GitlabSelfHosted,
                 input.display_name,
                 input.access_token,
                 input.api_base,

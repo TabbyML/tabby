@@ -224,6 +224,7 @@ type GithubRepositoryProvider {
   id: ID!
   displayName: String!
   status: RepositoryProviderStatus!
+  apiBase: String
 }
 
 type GithubRepositoryProviderConnection {
@@ -260,6 +261,7 @@ type GitlabRepositoryProvider {
   id: ID!
   displayName: String!
   status: RepositoryProviderStatus!
+  apiBase: String
 }
 
 type GitlabRepositoryProviderConnection {
@@ -363,7 +365,7 @@ type Mutation {
   updateUserRole(id: ID!, isAdmin: Boolean!): Boolean!
   uploadUserAvatarBase64(id: ID!, avatarBase64: String): Boolean!
   updateUserName(id: ID!, name: String!): Boolean!
-  register(email: String!, password1: String!, password2: String!, invitationCode: String): RegisterResponse!
+  register(email: String!, password1: String!, password2: String!, invitationCode: String, name: String!): RegisterResponse!
   tokenAuth(email: String!, password: String!): TokenAuthResponse!
   verifyToken(token: String!): Boolean!
   refreshToken(refreshToken: String!): RefreshTokenResponse!
@@ -425,7 +427,7 @@ type Query {
   githubRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GithubRepositoryProviderConnection!
   githubRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
   githubSelfHostedRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
-  gitlabSelfHostedRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
+  gitlabSelfHostedRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GitlabProvidedRepositoryConnection!
   gitlabRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
   gitlabSelfHostedRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
   githubSelfHostedRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!

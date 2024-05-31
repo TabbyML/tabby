@@ -168,7 +168,7 @@ pub struct HttpModelConfig {
     #[builder(default)]
     pub api_key: Option<String>,
 
-    /// Used by Chat API.
+    /// Used by OpenAI style API for model name.
     #[builder(default)]
     pub model_name: Option<String>,
 
@@ -211,15 +211,15 @@ pub struct DocIndexConfig {
 }
 
 #[async_trait]
-pub trait RepositoryAccess: Send + Sync {
-    async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>>;
+pub trait ConfigAccess: Send + Sync {
+    async fn repositories(&self) -> Result<Vec<RepositoryConfig>>;
 }
 
-pub struct ConfigRepositoryAccess;
+pub struct StaticConfigAccess;
 
 #[async_trait]
-impl RepositoryAccess for ConfigRepositoryAccess {
-    async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>> {
+impl ConfigAccess for StaticConfigAccess {
+    async fn repositories(&self) -> Result<Vec<RepositoryConfig>> {
         Ok(Config::load()?.repositories)
     }
 }

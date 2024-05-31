@@ -53,6 +53,7 @@ impl ChatCompletionStream for ChatCompletionImpl {
             .seed(options.seed)
             .max_decoding_tokens(options.max_decoding_tokens)
             .sampling_temperature(options.sampling_temperature)
+            .presence_penalty(options.presence_penalty)
             .build()?;
 
         let prompt = self.prompt_builder.build(messages)?;

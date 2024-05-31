@@ -18,12 +18,15 @@ class LogFileStream implements pino.DestinationStream {
 
   write(data: string): void {
     if (!this.stream) {
+      // Rotating file locate at `~/.tabby-client/agent/logs/`.
+      const logDir = path.join(os.homedir(), ".tabby-client", "agent", "logs");
       this.stream = FileStreamRotator.getStream({
-        // Rotating file locate at `~/.tabby-client/agent/logs/`.
-        filename: path.join(os.homedir(), ".tabby-client", "agent", "logs", "%DATE%"),
+        filename: path.join(logDir, "%DATE%"),
+        date_format: "YMD",
         frequency: "daily",
         size: "10M",
         max_logs: "30d",
+        audit_file: path.join(logDir, "audit.json"),
         extension: ".log",
         create_symlink: true,
       });
@@ -159,6 +162,8 @@ export const fileLogger =
     : new JsonLineLogger(pino({ serializers: { error: pino.stdSerializers.err } }, new LogFileStream()));
 
 if (fileLogger) {
+  // Set the initial log level to `silent`, which will be later updated in agent initialization.
+  fileLogger.level = "silent";
   logDestinations.attach(fileLogger);
 }
 

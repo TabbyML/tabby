@@ -143,6 +143,7 @@ export default function Chats() {
         >
           <div>
             <Chat
+              welcomeMessage="Welcome to Playground!"
               chatId={activeChatId as string}
               key={activeChatId}
               initialMessages={initialMessages ?? emptyQaParise}
@@ -168,6 +169,7 @@ export default function Chats() {
                     }
                   })) as typeof fetch
               }
+              promptFormClassname="absolute"
             />
           </div>
         </ScrollArea>

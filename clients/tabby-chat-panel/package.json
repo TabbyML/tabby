@@ -31,7 +31,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "unbuild && pnpm build:vscode",
+    "build": "unbuild",
     "dev": "unbuild --stub",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -41,23 +41,18 @@
     "start": "tsx src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
-    "build:vscode": "esbuild src/iframe.tsx --bundle --minify --outfile=../vscode/chat-panel/index.js --loader:.js=jsx",
-    "dev:vscode": "esbuild src/iframe.tsx --bundle --outfile=../vscode/chat-panel/index.js --loader:.js=jsx --watch"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@quilted/threads": "^2.1.2",
-    "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "@quilted/threads": "^2.2.0",
+    "react": "18.2.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^2.16.0",
     "@antfu/ni": "^0.21.12",
     "@types/node": "^20.12.7",
     "@types/react": "18.2.23",
-    "@types/react-dom": "18.2.23",
     "bumpp": "^9.4.0",
-    "esbuild": "^0.21.3",
     "eslint": "^9.1.1",
     "eslint-formatter-mo": "^1.2.0",
     "lint-staged": "^15.2.2",
@@ -65,7 +60,6 @@
     "tsx": "^4.7.3",
     "typescript": "^5.4.5",
     "unbuild": "^2.0.0",
-    "vite": "^5.2.10",
     "vitest": "^1.5.2"
   },
   "lint-staged": {

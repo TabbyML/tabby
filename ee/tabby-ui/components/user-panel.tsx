@@ -47,7 +47,17 @@ export default function UserPanel({
     <DropdownMenu>
       <DropdownMenuTrigger>{children}</DropdownMenuTrigger>
       <DropdownMenuContent collisionPadding={{ right: 16 }}>
-        <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
+        {user.name && (
+          <>
+            <DropdownMenuLabel className="pb-0.5">
+              {user.name}
+            </DropdownMenuLabel>
+            <DropdownMenuLabel className="pb-1 pt-0 text-sm font-normal text-muted-foreground">
+              {user.email}
+            </DropdownMenuLabel>
+          </>
+        )}
+        {!user.name && <DropdownMenuLabel>{user.email}</DropdownMenuLabel>}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => window.open('/')}

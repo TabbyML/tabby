@@ -58,7 +58,7 @@ pub trait ThirdPartyRepositoryService: Send + Sync + RepositoryProvider {
         vendor_id: String,
         display_name: String,
         git_url: String,
-    ) -> Result<()>;
+    ) -> Result<ID>;
     async fn sync_repositories(&self, integration_id: ID) -> Result<()>;
     async fn delete_outdated_repositories(
         &self,

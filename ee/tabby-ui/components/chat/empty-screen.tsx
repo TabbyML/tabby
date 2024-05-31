@@ -14,11 +14,19 @@ const exampleMessages = [
   }
 ]
 
-export function EmptyScreen({ setInput }: Pick<UseChatHelpers, 'setInput'>) {
+export function EmptyScreen({
+  setInput,
+  chatMaxWidthClass,
+  welcomeMessage
+}: Pick<UseChatHelpers, 'setInput'> & {
+  chatMaxWidthClass: string
+  welcomeMessage?: string
+}) {
+  const welcomeMsg = welcomeMessage || 'Welcome'
   return (
-    <div className="mx-auto max-w-2xl px-4">
+    <div className={`mx-auto px-4 ${chatMaxWidthClass}`}>
       <div className="rounded-lg border bg-background p-8">
-        <h1 className="mb-2 text-lg font-semibold">Welcome to Playground!</h1>
+        <h1 className="mb-2 text-lg font-semibold">{welcomeMsg}</h1>
         <p className="leading-normal text-muted-foreground">
           You can start a conversation here or try the following examples:
         </p>
@@ -31,7 +39,7 @@ export function EmptyScreen({ setInput }: Pick<UseChatHelpers, 'setInput'>) {
               onClick={() => setInput(message.message)}
             >
               <IconArrowRight className="mr-2 text-muted-foreground" />
-              {message.heading}
+              <p className="text-left">{message.heading}</p>
             </Button>
           ))}
         </div>

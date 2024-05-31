@@ -28,9 +28,9 @@ For additional information, please refer to the documentation on [Managing your 
 
 ## Configuration
 
-To configure the Tabby server with your private Git repositories, you need to provide the required settings in a YAML file. Create and edit a configuration file located at `~/.tabby/config.yaml`:
+To configure the Tabby server with your private Git repositories, you need to provide the required settings in a TOML file. Create and edit a configuration file located at `~/.tabby/config.toml`:
 
-```yaml
+```toml
 ## Add the private repository
 [[repositories]]
 name = "my_private_project"

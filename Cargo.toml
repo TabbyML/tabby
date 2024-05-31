@@ -11,6 +11,7 @@ members = [
     "crates/aim-downloader",
     "crates/http-api-bindings",
     "crates/llama-cpp-server",
+    "crates/ollama-api-bindings",
 
     "ee/tabby-webserver",
     "ee/tabby-db",
@@ -35,11 +36,11 @@ tracing = "0.1"
 tokio-cron-scheduler = "0.9.4"
 tracing-subscriber = "0.3"
 anyhow = "1.0.71"
-tantivy = "0.22"
+tantivy = { git = "https://github.com/quickwit-oss/tantivy", rev = "4143d31" }
 async-trait = "0.1.72"
 reqwest = { version = "0.12" }
 derive_builder = "0.12.0"
-futures = "0.3.28"
+futures = "0.3.30"
 async-stream = "0.3.5"
 regex = "1.10.0"
 strum = { version = "0.24", features = ["derive"] }

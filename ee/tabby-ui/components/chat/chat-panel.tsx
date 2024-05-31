@@ -1,7 +1,6 @@
 import React from 'react'
 import type { UseChatHelpers } from 'ai/react'
 
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconRefresh, IconStop, IconTrash } from '@/components/ui/icons'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
@@ -16,6 +15,7 @@ export interface ChatPanelProps
   className?: string
   onSubmit: (content: string) => Promise<any>
   reload: () => void
+  chatMaxWidthClass: string
 }
 
 export function ChatPanel({
@@ -25,7 +25,8 @@ export function ChatPanel({
   input,
   setInput,
   className,
-  onSubmit
+  onSubmit,
+  chatMaxWidthClass
 }: ChatPanelProps) {
   const promptFormRef = React.useRef<PromptFormRef>(null)
   const { container, onClearMessages, qaPairs, isLoading } =
@@ -35,14 +36,9 @@ export function ChatPanel({
   }, [id])
 
   return (
-    <div
-      className={cn(
-        'bg-gradient-to-b from-transparent from-0% to-muted/25 to-100%',
-        className
-      )}
-    >
+    <div className={className}>
       <ButtonScrollToBottom container={container} />
-      <div className="mx-auto sm:max-w-2xl sm:px-4">
+      <div className={`mx-auto md:px-4 ${chatMaxWidthClass}`}>
         <div className="flex h-10 items-center justify-center gap-2">
           {isLoading ? (
             <Button

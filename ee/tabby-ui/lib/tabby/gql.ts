@@ -173,9 +173,14 @@ const client = new Client({
           })
         },
         didAuthError(error, _operation) {
-          return error.graphQLErrors.some(
+          const isUnauthorized = error.graphQLErrors.some(
             e => e?.extensions?.code === 'UNAUTHORIZED'
           )
+          if (isUnauthorized) {
+            tokenManager.clearAccessToken()
+          }
+
+          return isUnauthorized
         },
         willAuthError(operation) {
           // Sync tokens on every operation
@@ -231,6 +236,7 @@ const client = new Client({
               return true
             }
           } else {
+            tokenManager.clearAccessToken()
             return true
           }
         },

@@ -9,6 +9,7 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import type { Context } from 'tabby-chat-panel'
 
+import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
 import {
   AssistantMessage,
@@ -27,7 +28,7 @@ import {
   AccordionTrigger
 } from '../ui/accordion'
 import { Button } from '../ui/button'
-import { IconFile, IconRefresh, IconTrash } from '../ui/icons'
+import { IconFile, IconRefresh, IconTrash, IconUser } from '../ui/icons'
 import { Separator } from '../ui/separator'
 import { Skeleton } from '../ui/skeleton'
 import { UserAvatar } from '../user-avatar'
@@ -35,11 +36,15 @@ import { ChatContext } from './chat'
 
 interface QuestionAnswerListProps {
   messages: QuestionAnswerPair[]
+  chatMaxWidthClass: string
 }
-function QuestionAnswerList({ messages }: QuestionAnswerListProps) {
+function QuestionAnswerList({
+  messages,
+  chatMaxWidthClass
+}: QuestionAnswerListProps) {
   const { isLoading } = React.useContext(ChatContext)
   return (
-    <div className="relative mx-auto max-w-2xl px-4">
+    <div className={`relative mx-auto px-4 ${chatMaxWidthClass}`}>
       {messages?.map((message, index) => {
         const isLastItem = index === messages.length - 1
         return (
@@ -88,7 +93,7 @@ function QuestionAnswerItem({ message, isLoading }: QuestionAnswerItemProps) {
 
 function UserMessageCard(props: { message: UserMessage }) {
   const { message } = props
-  const { handleMessageAction } = React.useContext(ChatContext)
+  const [{ data }] = useMe()
   const selectContext = message.selectContext
   const selectCodeSnippet = React.useMemo(() => {
     if (!selectContext?.content) return ''
@@ -100,27 +105,70 @@ function UserMessageCard(props: { message: UserMessage }) {
 
   return (
     <div
-      className={cn('group relative mb-4 flex items-start md:-ml-12')}
+      className={cn(
+        'group relative mb-4 flex flex-col items-start gap-y-2 md:-ml-4 md:flex-row'
+      )}
       {...props}
     >
-      <div className="shrink-0 select-none rounded-full border bg-background shadow">
-        <UserAvatar className="h-8 w-8" />
+      <div
+        className={cn('flex w-full items-center justify-between md:w-auto', {
+          'hidden md:flex': !data?.me.name
+        })}
+      >
+        <div className="flex items-center gap-x-2">
+          <div className="shrink-0 select-none rounded-full border bg-background shadow">
+            <UserAvatar
+              className="h-6 w-6 md:h-8 md:w-8"
+              fallback={
+                <div className="flex h-6 w-6 items-center justify-center md:h-8 md:w-8">
+                  <IconUser className="h-6 w-6" />
+                </div>
+              }
+            />
+          </div>
+          <p className="block text-xs font-bold md:hidden">{data?.me.name}</p>
+        </div>
+
+        <div className="block opacity-0 transition-opacity group-hover:opacity-100 md:hidden">
+          <UserMessageCardActions {...props} />
+        </div>
       </div>
-      <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
-        <MessageMarkdown message={message.message} />
-        {!!selectCodeSnippet && <MessageMarkdown message={selectCodeSnippet} />}
-        <ChatMessageActionsWrapper>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={e => handleMessageAction?.(message.id, 'delete')}
-          >
-            <IconTrash />
-            <span className="sr-only">Delete message</span>
-          </Button>
-        </ChatMessageActionsWrapper>
+
+      <div className="group flex w-full justify-between gap-x-2">
+        <div className="flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
+          <MessageMarkdown message={message.message} />
+          {!!selectCodeSnippet && (
+            <MessageMarkdown message={selectCodeSnippet} />
+          )}
+          <div className="hidden md:block">
+            <UserMessageCardActions {...props} />
+          </div>
+        </div>
+
+        {!data?.me.name && (
+          <div className="block opacity-0 transition-opacity group-hover:opacity-100 md:hidden">
+            <UserMessageCardActions {...props} />
+          </div>
+        )}
       </div>
     </div>
+  )
+}
+
+function UserMessageCardActions(props: { message: UserMessage }) {
+  const { message } = props
+  const { handleMessageAction } = React.useContext(ChatContext)
+  return (
+    <ChatMessageActionsWrapper>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={e => handleMessageAction?.(message.id, 'delete')}
+      >
+        <IconTrash />
+        <span className="sr-only">Delete message</span>
+      </Button>
+    </ChatMessageActionsWrapper>
   )
 }
 
@@ -133,16 +181,7 @@ interface AssistantMessageCardProps {
 }
 
 function AssistantMessageCard(props: AssistantMessageCardProps) {
-  const { handleMessageAction, isLoading: isGenerating } =
-    React.useContext(ChatContext)
-  const {
-    message,
-    selectContext,
-    relevantContext,
-    isLoading,
-    userMessageId,
-    ...rest
-  } = props
+  const { message, isLoading, ...rest } = props
 
   const contexts: Array<Context> = React.useMemo(() => {
     return (
@@ -167,13 +206,25 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 
   return (
     <div
-      className={cn('group relative mb-4 flex items-start md:-ml-12')}
+      className={cn(
+        'group relative mb-4 flex flex-col items-start gap-y-2 md:-ml-4 md:flex-row'
+      )}
       {...rest}
     >
-      <div className="shrink-0 select-none rounded-full border bg-background shadow">
-        <IconTabby className="h-8 w-8" />
+      <div className="flex w-full items-center justify-between md:w-auto">
+        <div className="flex items-center gap-x-2">
+          <div className="shrink-0 select-none rounded-full border bg-background shadow">
+            <IconTabby className="h-6 w-6 md:h-8 md:w-8" />
+          </div>
+          <p className="block text-xs font-bold md:hidden">Tabby</p>
+        </div>
+
+        <div className="block opacity-0 transition-opacity group-hover:opacity-100 md:hidden">
+          <AssistantMessageCardActions {...props} />
+        </div>
       </div>
-      <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
+
+      <div className="w-full flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
         <CodeReferences contexts={contexts} />
         {isLoading && !message?.message ? (
           <MessagePendingIndicator />
@@ -183,28 +234,43 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
             {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>
         )}
-        <ChatMessageActionsWrapper>
-          {!isGenerating && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={e => handleMessageAction(userMessageId, 'regenerate')}
-            >
-              <IconRefresh />
-              <span className="sr-only">Regenerate message</span>
-            </Button>
-          )}
-          <CopyButton value={message.message} />
-        </ChatMessageActionsWrapper>
+        <div className="hidden md:block">
+          <AssistantMessageCardActions {...props} />
+        </div>
       </div>
     </div>
   )
 }
 
+function AssistantMessageCardActions(props: AssistantMessageCardProps) {
+  const {
+    handleMessageAction,
+    isLoading: isGenerating,
+    onCopyContent
+  } = React.useContext(ChatContext)
+  const { message, userMessageId } = props
+  return (
+    <ChatMessageActionsWrapper>
+      {!isGenerating && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={e => handleMessageAction(userMessageId, 'regenerate')}
+        >
+          <IconRefresh />
+          <span className="sr-only">Regenerate message</span>
+        </Button>
+      )}
+      <CopyButton value={message.message} onCopyContent={onCopyContent} />
+    </ChatMessageActionsWrapper>
+  )
+}
+
 function MessageMarkdown({ message }: { message: string }) {
+  const { onCopyContent } = React.useContext(ChatContext)
   return (
     <MemoizedReactMarkdown
-      className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
+      className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
       remarkPlugins={[remarkGfm, remarkMath]}
       components={{
         p({ children }) {
@@ -242,6 +308,7 @@ function MessageMarkdown({ message }: { message: string }) {
               key={Math.random()}
               language={(match && match[1]) || ''}
               value={String(children).replace(/\n$/, '')}
+              onCopyContent={onCopyContent}
               {...props}
             />
           )
@@ -287,7 +354,7 @@ function ErrorMessageBlock({ error = 'Fail to fetch' }: { error?: string }) {
 
 function MessagePendingIndicator() {
   return (
-    <div className="space-y-2 px-1">
+    <div className="space-y-2 py-2 md:px-1 md:py-0">
       <Skeleton className="h-3 w-full" />
       <Skeleton className="h-3 w-full" />
     </div>
@@ -324,7 +391,8 @@ interface ContextReferencesProps {
   contexts: Context[]
 }
 const CodeReferences = ({ contexts }: ContextReferencesProps) => {
-  const { onNavigateToContext } = React.useContext(ChatContext)
+  const { onNavigateToContext, isReferenceClickable } =
+    React.useContext(ChatContext)
   const isMultipleReferences = contexts?.length > 1
 
   if (!contexts?.length) return null
@@ -333,7 +401,7 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
     <Accordion
       type="single"
       collapsible
-      className="bg-background text-foreground"
+      className="bg-transparent text-foreground"
     >
       <AccordionItem value="references" className="my-0 border-0">
         <AccordionTrigger className="my-0 py-2">
@@ -354,9 +422,14 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
               .join('/')
             return (
               <div
-                className="cursor-pointer rounded-md border p-2 hover:bg-accent"
+                className={cn('rounded-md border p-2 hover:bg-accent', {
+                  'cursor-pointer': isReferenceClickable,
+                  'cursor-default pointer-events-auto': !isReferenceClickable
+                })}
                 key={index}
-                onClick={e => onNavigateToContext?.(item)}
+                onClick={e =>
+                  isReferenceClickable && onNavigateToContext?.(item)
+                }
               >
                 <div className="flex items-center gap-1 overflow-x-auto">
                   <IconFile className="shrink-0" />

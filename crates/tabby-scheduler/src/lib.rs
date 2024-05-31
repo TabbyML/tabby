@@ -1,49 +1,42 @@
 //! Responsible for scheduling all of the background jobs for tabby.
 //! Includes syncing respositories and updating indices.
 
-pub mod crawl;
-
 mod code;
+pub mod crawl;
+mod indexer;
+
 use async_stream::stream;
-pub use code::CodeIndex;
+pub use code::CodeIndexer;
 use crawl::crawl_pipeline;
+use doc::SourceDocument;
 use futures::StreamExt;
+use indexer::{IndexAttributeBuilder, Indexer};
 
 mod doc;
 use std::{env, sync::Arc};
 
-pub use doc::{DocIndex, SourceDocument};
-use tabby_common::config::{RepositoryAccess, RepositoryConfig};
+use doc::create_web_index;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{debug, info, warn};
 
-pub async fn scheduler<T: RepositoryAccess + 'static>(
-    now: bool,
-    config: &tabby_common::config::Config,
-    access: T,
-) {
+pub async fn scheduler(now: bool, config: &tabby_common::config::Config) {
     if now {
-        let repositories = access
-            .list_repositories()
-            .await
-            .expect("Must be able to retrieve repositories for sync");
-        scheduler_pipeline(&repositories).await;
+        scheduler_pipeline(config).await;
         if env::var("TABBY_SCHEDULER_EXPERIMENTAL_DOC_INDEX").is_ok() {
             doc_index_pipeline(config).await;
         }
     } else {
-        let access = Arc::new(access);
         let scheduler = JobScheduler::new()
             .await
             .expect("Failed to create scheduler");
         let scheduler_mutex = Arc::new(tokio::sync::Mutex::new(()));
-        let _config = config.clone();
+        let config = config.clone();
 
         // Every 10 minutes
         scheduler
             .add(
                 Job::new_async("0 1/10 * * * *", move |_, _| {
-                    let access = access.clone();
+                    let config = config.clone();
                     let scheduler_mutex = scheduler_mutex.clone();
                     Box::pin(async move {
                         let Ok(_guard) = scheduler_mutex.try_lock() else {
@@ -51,12 +44,7 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(
                             return;
                         };
 
-                        let repositories = access
-                            .list_repositories()
-                            .await
-                            .expect("Must be able to retrieve repositories for sync");
-
-                        scheduler_pipeline(&repositories).await;
+                        scheduler_pipeline(&config).await;
                     })
                 })
                 .expect("Failed to create job"),
@@ -72,10 +60,19 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(
     }
 }
 
-async fn scheduler_pipeline(repositories: &[RepositoryConfig]) {
-    let mut code = CodeIndex::default();
+async fn scheduler_pipeline(config: &tabby_common::config::Config) {
+    let Some(embedding_config) = &config.model.embedding else {
+        warn!("No embedding configuration found, skipping scheduler...");
+        return;
+    };
+
+    let embedding = llama_cpp_server::create_embedding(embedding_config).await;
+
+    let repositories = &config.repositories;
+
+    let mut code = CodeIndexer::default();
     for repository in repositories {
-        code.refresh(repository);
+        code.refresh(embedding.clone(), repository).await;
     }
 
     code.garbage_collection(repositories);
@@ -87,6 +84,7 @@ async fn doc_index_pipeline(config: &tabby_common::config::Config) {
     };
 
     let Some(embedding_config) = &config.model.embedding else {
+        warn!("No embedding configuration found, skipping doc index pipeline...");
         return;
     };
 
@@ -96,7 +94,7 @@ async fn doc_index_pipeline(config: &tabby_common::config::Config) {
         let embedding = embedding.clone();
         stream! {
             let mut num_docs = 0;
-            let mut doc_index = DocIndex::new(embedding);
+            let doc_index = create_web_index(embedding.clone());
             for await doc in crawl_pipeline(url).await {
                 let source_doc = SourceDocument {
                     id: doc.url.clone(),
@@ -119,7 +117,6 @@ async fn doc_index_pipeline(config: &tabby_common::config::Config) {
 mod tantivy_utils {
     use std::{fs, path::Path};
 
-    use tabby_common::index::register_tokenizers;
     use tantivy::{directory::MmapDirectory, schema::Schema, Index};
     use tracing::{debug, warn};
 
@@ -141,7 +138,6 @@ mod tantivy_utils {
                 )
             }
         };
-        register_tokenizers(&index);
         (recreated, index)
     }
 
