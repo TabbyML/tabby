@@ -1,3 +1,11 @@
+## 1.7.1
+
+**pre-release**
+
+### Features
+
+- Introducing a new experimental feature for editing documents using a chat command. Select some text in the editor and press `Ctrl + i` to start.
+
 ## 1.7.0
 
 **pre-release**
