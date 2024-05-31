@@ -14,9 +14,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 const codeLensType: CodeLensType = "previewChanges";
 const changesPreviewLineType = {
   header: "header" as ChangesPreviewLineType,
-  headerInProgress: "headerInProgress" as ChangesPreviewLineType,
   footer: "footer" as ChangesPreviewLineType,
-  footerInProgress: "footerInProgress" as ChangesPreviewLineType,
   commentsFirstLine: "commentsFirstLine" as ChangesPreviewLineType,
   comments: "comments" as ChangesPreviewLineType,
   waiting: "waiting" as ChangesPreviewLineType,
