@@ -1,6 +1,6 @@
 mod tokenizer;
 use tantivy::{
-    query::{BooleanQuery, BoostQuery, ConstScoreQuery, Occur, Query, TermQuery},
+    query::{BooleanQuery, ConstScoreQuery, Occur, Query, TermQuery},
     schema::IndexRecordOption,
     Term,
 };

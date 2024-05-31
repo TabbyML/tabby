@@ -99,7 +99,7 @@ impl IndexAttributeBuilder<KeyedSourceCode> for CodeBuilder {
         let s = stream! {
             let intelligence = CodeIntelligence::default();
             for (start_line, body) in intelligence.chunks(&text) {
-                let embedding = match embedding.embed(&body).await {
+                let embedding = match embedding.embed(body).await {
                     Ok(x) => x,
                     Err(err) => {
                         warn!("Failed to embed chunk text: {}", err);

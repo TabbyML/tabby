@@ -190,10 +190,7 @@ async fn collect_snippets(
 
     let mut ret = Vec::new();
 
-    let serp = match code
-        .search_in_language(query, MAX_SNIPPETS_TO_FETCH)
-        .await
-    {
+    let serp = match code.search_in_language(query, MAX_SNIPPETS_TO_FETCH).await {
         Ok(serp) => serp,
         Err(CodeSearchError::NotReady) => {
             // Ignore.
