@@ -2,6 +2,7 @@ import { ExtensionContext } from "vscode";
 import { BaseLanguageClient } from "vscode-languageclient";
 import { AgentFeature } from "./AgentFeature";
 import { ChatFeature } from "./ChatFeature";
+import { CodeLensMiddleware } from "./CodeLensMiddleware";
 import { ConfigurationMiddleware } from "./ConfigurationMiddleware";
 import { ConfigurationSyncFeature } from "./ConfigurationSyncFeature";
 import { DataStoreFeature } from "./DataStoreFeature";
@@ -36,6 +37,10 @@ export class Client {
     this.languageClient.registerFeature(new EditorOptionsFeature(this.languageClient));
     this.languageClient.registerFeature(new LanguageSupportFeature(this.languageClient));
     this.languageClient.registerFeature(new WorkspaceFileSystemFeature(this.languageClient));
+
+    const codeLensMiddleware = new CodeLensMiddleware();
+    this.languageClient.middleware.provideCodeLenses = (document, token, next) =>
+      codeLensMiddleware.provideCodeLenses(document, token, next);
   }
 
   async start(): Promise<void> {
@@ -51,10 +56,10 @@ export class Client {
     this.languageClient.registerFeature(initializationFeature);
 
     const configMiddleware = new ConfigurationMiddleware(config);
-    this.languageClient.middleware.workspace = {
-      ...this.languageClient.middleware.workspace,
-      ...configMiddleware,
-    };
+    if (!this.languageClient.middleware.workspace) {
+      this.languageClient.middleware.workspace = {};
+    }
+    this.languageClient.middleware.workspace.configuration = () => configMiddleware.configuration();
 
     const configSyncFeature = new ConfigurationSyncFeature(this.languageClient, config);
     this.languageClient.registerFeature(configSyncFeature);
