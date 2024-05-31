@@ -9,13 +9,13 @@ pub struct CodeSearchResponse {
     pub hits: Vec<CodeSearchHit>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CodeSearchHit {
     pub scores: CodeSearchScores,
     pub doc: CodeSearchDocument,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct CodeSearchScores {
     pub combined_rank: i32,
     pub bm25: f32,
@@ -61,6 +61,28 @@ pub struct CodeSearchQuery {
     pub filepath: Option<String>,
     pub language: String,
     pub content: String,
+
+    #[serde(default)]
+    pub scoring_params: CodeSearchScoringParams,
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct CodeSearchScoringParams {
+    pub num_to_score: usize,
+    pub max_rank_score_threshold: i32,
+    pub min_embedding_score_threshold: f32,
+    pub min_bm25_score_threshold: f32,
+}
+
+impl Default for CodeSearchScoringParams {
+    fn default() -> Self {
+        Self {
+            num_to_score: 20,
+            max_rank_score_threshold: 10,
+            min_embedding_score_threshold: 0.75,
+            min_bm25_score_threshold: 8.0,
+        }
+    }
 }
 
 #[async_trait]
@@ -68,6 +90,5 @@ pub trait CodeSearch: Send + Sync {
     async fn search_in_language(
         &self,
         query: CodeSearchQuery,
-        limit: usize,
     ) -> Result<CodeSearchResponse, CodeSearchError>;
 }

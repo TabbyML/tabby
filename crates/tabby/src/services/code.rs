@@ -3,12 +3,11 @@ use std::{collections::HashMap, sync::Arc};
 use anyhow::Result;
 use async_trait::async_trait;
 use cached::{CachedAsync, TimedCache};
-use color_eyre::owo_colors::colors::css::Tan;
 use parse_git_url::GitUrl;
 use tabby_common::{
     api::code::{
         CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchQuery,
-        CodeSearchResponse, CodeSearchScores,
+        CodeSearchResponse, CodeSearchScores, CodeSearchScoringParams,
     },
     config::{ConfigAccess, RepositoryConfig},
     index::{
@@ -19,13 +18,13 @@ use tabby_common::{
 };
 use tabby_inference::Embedding;
 use tantivy::{
-    collector::{Count, TopDocs},
+    collector::TopDocs,
     schema::{self, Value},
     IndexReader, TantivyDocument,
 };
 use tokio::sync::Mutex;
 
-use super::{embedding, tantivy::IndexReaderProvider};
+use super::tantivy::IndexReaderProvider;
 
 struct CodeSearchImpl {
     config_access: Arc<dyn ConfigAccess>,
@@ -38,7 +37,7 @@ impl CodeSearchImpl {
         Self {
             config_access,
             embedding,
-            repo_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
+            repo_cache: Mutex::new(TimedCache::with_lifespan(60)),
         }
     }
 
@@ -64,7 +63,6 @@ impl CodeSearchImpl {
         &self,
         reader: &IndexReader,
         mut query: CodeSearchQuery,
-        limit: usize,
     ) -> Result<CodeSearchResponse, CodeSearchError> {
         let mut cache = self.repo_cache.lock().await;
 
@@ -88,40 +86,51 @@ impl CodeSearchImpl {
                 embedding.iter(),
             ));
 
-            let query = code::code_search_query(&query, embedding_tokens_query);
-            self.search_with_query(reader, &query, limit * 2).await?
+            let code_search_query = code::code_search_query(&query, embedding_tokens_query);
+            self.search_with_query(
+                reader,
+                &code_search_query,
+                query.scoring_params.num_to_score,
+            )
+            .await?
         };
 
         let docs_from_bm25 = {
             let body_tokens = tokenize_code(&query.content);
             let body_query = code::body_query(&body_tokens);
 
-            let query = code::code_search_query(&query, body_query);
-            self.search_with_query(reader, &query, limit * 2).await?
+            let code_search_query = code::code_search_query(&query, body_query);
+            self.search_with_query(
+                reader,
+                &code_search_query,
+                query.scoring_params.num_to_score,
+            )
+            .await?
         };
 
-        Ok(merge_code_responses_by_rank(
+        let hits = merge_code_responses_by_rank(
+            &query.scoring_params,
             docs_from_embedding,
             docs_from_bm25,
-            limit,
-        ))
+        );
+
+        Ok(CodeSearchResponse { hits })
     }
 }
 
-const EMBEDDING_SCORE_THRESHOLD: f32 = 0.75;
-const BM25_SCORE_THRESHOLD: f32 = 8.0;
-
 fn merge_code_responses_by_rank(
+    scoring_params: &CodeSearchScoringParams,
     embedding_resp: Vec<(f32, TantivyDocument)>,
     bm25_resp: Vec<(f32, TantivyDocument)>,
-    limit: usize,
-) -> CodeSearchResponse {
+) -> Vec<CodeSearchHit> {
     let mut scored_hits: HashMap<String, (CodeSearchScores, TantivyDocument)> = HashMap::default();
 
     for (rank, embedding, doc) in compute_rank_score(embedding_resp).into_iter() {
-        let mut scores = CodeSearchScores::default();
-        scores.combined_rank = rank;
-        scores.embedding = embedding;
+        let scores = CodeSearchScores {
+            combined_rank: rank,
+            embedding,
+            ..CodeSearchScores::default()
+        };
 
         scored_hits.insert(get_chunk_id(&doc).to_owned(), (scores, doc));
     }
@@ -137,20 +146,17 @@ fn merge_code_responses_by_rank(
 
     let mut scored_hits: Vec<CodeSearchHit> = scored_hits
         .into_values()
-        .into_iter()
         .map(|(scores, doc)| create_hit(scores, doc))
         .collect();
     scored_hits.sort_unstable_by_key(|x| x.scores.combined_rank);
-    CodeSearchResponse {
-        hits: scored_hits
-            .into_iter()
-            .filter(|hit| {
-                hit.scores.bm25 > BM25_SCORE_THRESHOLD
-                    && hit.scores.embedding > EMBEDDING_SCORE_THRESHOLD
-            })
-            .take(limit)
-            .collect(),
-    }
+    scored_hits
+        .into_iter()
+        .filter(|hit| {
+            hit.scores.bm25 > scoring_params.min_bm25_score_threshold
+                && hit.scores.embedding > scoring_params.min_embedding_score_threshold
+        })
+        .filter(|hit| hit.scores.combined_rank < scoring_params.max_rank_score_threshold)
+        .collect()
 }
 
 fn compute_rank_score(resp: Vec<(f32, TantivyDocument)>) -> Vec<(i32, f32, TantivyDocument)> {
@@ -160,7 +166,7 @@ fn compute_rank_score(resp: Vec<(f32, TantivyDocument)>) -> Vec<(i32, f32, Tanti
         .collect()
 }
 
-fn get_chunk_id<'a>(doc: &'a TantivyDocument) -> &'a str {
+fn get_chunk_id(doc: &TantivyDocument) -> &str {
     let schema = IndexSchema::instance();
     get_text(doc, schema.field_chunk_id)
 }
@@ -276,10 +282,9 @@ impl CodeSearch for CodeSearchService {
     async fn search_in_language(
         &self,
         query: CodeSearchQuery,
-        limit: usize,
     ) -> Result<CodeSearchResponse, CodeSearchError> {
         if let Some(reader) = self.provider.reader().await.as_ref() {
-            self.imp.search_in_language(reader, query, limit).await
+            self.imp.search_in_language(reader, query).await
         } else {
             Err(CodeSearchError::NotReady)
         }

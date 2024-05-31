@@ -48,7 +48,6 @@ pub struct AnswerService {
 }
 
 // FIXME(meng): make this configurable.
-const RANK_SCORE_THRESHOLD: i32 = 10;
 const PRESENCE_PENALTY: f32 = 0.5;
 
 impl AnswerService {
@@ -136,7 +135,7 @@ impl AnswerService {
     }
 
     async fn collect_relevant_code(&self, query: CodeSearchQuery) -> Vec<CodeSearchDocument> {
-        let hits = match self.code.search_in_language(query, 20).await {
+        let hits = match self.code.search_in_language(query).await {
             Ok(docs) => docs.hits,
             Err(err) => {
                 if let CodeSearchError::NotReady = err {
@@ -149,7 +148,6 @@ impl AnswerService {
         };
 
         hits.into_iter()
-            .filter(|hit| hit.scores.combined_rank < RANK_SCORE_THRESHOLD)
             .inspect(|hit| {
                 debug!(
                     "Code search hit: {:?}, score {:?}",
