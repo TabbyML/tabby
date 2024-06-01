@@ -112,24 +112,25 @@ impl CodeIntelligence {
         Some(source_file)
     }
 
-    // FIXME(boxbeam): implement with treesitter based CodeSplitter.
-    pub fn chunks<'splitter, 'text: 'splitter>(
-        &'splitter self,
-        text: &'text str,
-        language: &'text str,
-    ) -> Box<dyn Iterator<Item = (usize, &'text str)> + 'splitter> {
+    pub fn chunks(
+        &self,
+        text: &str,
+        language: &str,
+    ) -> Vec<(usize, String)> {
         if let Some(splitter) = self.code_splitters.get(language) {
-            Box::new(
-                splitter
-                    .chunk_indices(text)
-                    .map(|(offset, chunk)| (line_number_from_byte_offset(text, offset), chunk)),
-            )
+            splitter
+                .chunk_indices(text)
+                .map(|(offset, chunk)| {
+                    (line_number_from_byte_offset(text, offset), chunk.to_owned())
+                })
+                .collect()
         } else {
-            Box::new(
-                self.splitter
-                    .chunk_indices(text)
-                    .map(|(offset, chunk)| (line_number_from_byte_offset(text, offset), chunk)),
-            )
+            self.splitter
+                .chunk_indices(text)
+                .map(|(offset, chunk)| {
+                    (line_number_from_byte_offset(text, offset), chunk.to_owned())
+                })
+                .collect()
         }
     }
 }

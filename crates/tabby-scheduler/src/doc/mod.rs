@@ -54,13 +54,15 @@ impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
         &self,
         document: &SourceDocument,
     ) -> BoxStream<(Vec<String>, serde_json::Value)> {
-        let splitter = TextSplitter::new(CHUNK_SIZE);
         let embedding = self.embedding.clone();
-        let content = document.body.clone();
+        let chunks: Vec<_> = TextSplitter::new(CHUNK_SIZE)
+            .chunks(&document.body)
+            .map(|x| x.to_owned())
+            .collect();
 
         let s = stream! {
-            for chunk_text in splitter.chunks(&content) {
-                let embedding = match embedding.embed(chunk_text).await {
+            for chunk_text in chunks {
+                let embedding = match embedding.embed(&chunk_text).await {
                     Ok(embedding) => embedding,
                     Err(err) => {
                         warn!("Failed to embed chunk text: {}", err);

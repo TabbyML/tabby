@@ -98,8 +98,8 @@ impl IndexAttributeBuilder<KeyedSourceCode> for CodeBuilder {
         let source_code = source_code.clone();
         let s = stream! {
             let intelligence = CodeIntelligence::default();
-            for (start_line, body) in intelligence.chunks(&text) {
-                let embedding = match embedding.embed(body).await {
+            for (start_line, body) in intelligence.chunks(&text, &source_code.language) {
+                let embedding = match embedding.embed(&body).await {
                     Ok(x) => x,
                     Err(err) => {
                         warn!("Failed to embed chunk text: {}", err);
@@ -107,7 +107,7 @@ impl IndexAttributeBuilder<KeyedSourceCode> for CodeBuilder {
                     }
                 };
 
-                let mut tokens = code::tokenize_code(body);
+                let mut tokens = code::tokenize_code(&body);
                 for token in tabby_common::index::binarize_embedding(embedding.iter()) {
                     tokens.push(token);
                 }
