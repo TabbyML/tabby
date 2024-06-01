@@ -112,11 +112,7 @@ impl CodeIntelligence {
         Some(source_file)
     }
 
-    pub fn chunks(
-        &self,
-        text: &str,
-        language: &str,
-    ) -> Vec<(usize, String)> {
+    pub fn chunks(&self, text: &str, language: &str) -> Vec<(usize, String)> {
         if let Some(splitter) = self.code_splitters.get(language) {
             splitter
                 .chunk_indices(text)

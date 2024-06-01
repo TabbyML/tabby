@@ -90,8 +90,9 @@ fn is_valid_file(file: &SourceCode) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use crate::code::intelligence::CodeIntelligence;
     use insta::assert_snapshot;
+
+    use crate::code::intelligence::CodeIntelligence;
 
     #[test]
     fn test_code_splitter() {
