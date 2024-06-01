@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
+use anyhow::anyhow;
 use apalis::{
-    prelude::{Data, Job, Monitor, Storage, WorkerFactoryFn},
-    sqlite::{SqlitePool, SqliteStorage},
+    prelude::{Data, Job, MemoryStorage, MessageQueue, Monitor, WorkerFactoryFn},
     utils::TokioExecutor,
 };
-use apalis_sql::Config;
 use chrono::{DateTime, Utc};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
@@ -45,33 +44,30 @@ impl SyncIntegrationJob {
 
     async fn cron(
         _now: DateTime<Utc>,
-        storage: Data<SqliteStorage<SyncIntegrationJob>>,
+        storage: Data<MemoryStorage<SyncIntegrationJob>>,
         integration_service: Data<Arc<dyn IntegrationService>>,
     ) -> tabby_schema::Result<()> {
         debug!("Syncing all third-party repositories");
 
-        let mut storage = (*storage).clone();
         for integration in integration_service
             .list_integrations(None, None, None, None, None, None)
             .await?
         {
             storage
-                .push(SyncIntegrationJob::new(integration.id))
+                .enqueue(SyncIntegrationJob::new(integration.id))
                 .await
-                .expect("Unable to push job");
+                .map_err(|_| anyhow!("Failed to enqueue scheduler job"))?;
         }
         Ok(())
     }
 
     pub fn register(
         monitor: Monitor<TokioExecutor>,
-        pool: SqlitePool,
         db: DbConn,
-        config: Config,
         repository_service: Arc<dyn ThirdPartyRepositoryService>,
         integration_service: Arc<dyn IntegrationService>,
-    ) -> (SqliteStorage<SyncIntegrationJob>, Monitor<TokioExecutor>) {
-        let storage = SqliteStorage::new_with_config(pool, config);
+    ) -> (MemoryStorage<SyncIntegrationJob>, Monitor<TokioExecutor>) {
+        let storage = MemoryStorage::default();
         let monitor = monitor
             .register(
                 Self::basic_worker(storage.clone(), db.clone())

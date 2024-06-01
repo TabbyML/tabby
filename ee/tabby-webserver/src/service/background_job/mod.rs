@@ -3,12 +3,9 @@ mod helper;
 mod scheduler;
 mod third_party_integration;
 
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
-use apalis::{
-    prelude::{Monitor, Storage},
-    sqlite::{SqlitePool, SqliteStorage},
-};
+use apalis::prelude::{MemoryStorage, MessageQueue, Monitor};
 use juniper::ID;
 use tabby_common::config::{ConfigAccess, RepositoryConfig};
 use tabby_db::DbConn;
@@ -18,7 +15,6 @@ use tabby_schema::{integration::IntegrationService, repository::ThirdPartyReposi
 use self::{
     db::DbMaintainanceJob, scheduler::SchedulerJob, third_party_integration::SyncIntegrationJob,
 };
-use crate::path::job_db_file;
 
 pub enum BackgroundJobEvent {
     Scheduler(RepositoryConfig),
@@ -26,8 +22,8 @@ pub enum BackgroundJobEvent {
 }
 
 struct BackgroundJobImpl {
-    scheduler: SqliteStorage<SchedulerJob>,
-    third_party_repository: SqliteStorage<SyncIntegrationJob>,
+    scheduler: MemoryStorage<SchedulerJob>,
+    third_party_repository: MemoryStorage<SyncIntegrationJob>,
 }
 
 pub async fn start(
@@ -38,30 +34,13 @@ pub async fn start(
     embedding: Arc<dyn Embedding>,
     mut receiver: tokio::sync::mpsc::UnboundedReceiver<BackgroundJobEvent>,
 ) {
-    let path = format!("sqlite://{}?mode=rwc", job_db_file().display());
-    let pool = SqlitePool::connect(&path)
-        .await
-        .expect("unable to create sqlite pool");
-    SqliteStorage::setup(&pool)
-        .await
-        .expect("unable to run migrations for sqlite");
-
-    let config = apalis_sql::Config::default().poll_interval(Duration::from_secs(5));
     let monitor = Monitor::new();
     let monitor = DbMaintainanceJob::register(monitor, db.clone());
-    let (scheduler, monitor) = SchedulerJob::register(
-        monitor,
-        pool.clone(),
-        db.clone(),
-        config.clone(),
-        config_access,
-        embedding,
-    );
+    let (scheduler, monitor) =
+        SchedulerJob::register(monitor, db.clone(), config_access, embedding);
     let (third_party_repository, monitor) = SyncIntegrationJob::register(
         monitor,
-        pool.clone(),
         db.clone(),
-        config.clone(),
         third_party_repository_service,
         integration_service,
     );
@@ -86,7 +65,7 @@ impl BackgroundJobImpl {
     async fn trigger_scheduler(&self, repository: RepositoryConfig) {
         self.scheduler
             .clone()
-            .push(SchedulerJob::new(repository))
+            .enqueue(SchedulerJob::new(repository))
             .await
             .expect("unable to push job");
     }
@@ -94,7 +73,7 @@ impl BackgroundJobImpl {
     async fn trigger_sync_integration(&self, provider_id: ID) {
         self.third_party_repository
             .clone()
-            .push(SyncIntegrationJob::new(provider_id))
+            .enqueue(SyncIntegrationJob::new(provider_id))
             .await
             .expect("Unable to push job");
     }

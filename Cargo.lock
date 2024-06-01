@@ -138,8 +138,9 @@ checksum = "25bdb32cbbdce2b519a9cd7df3a678443100e265d5e25ca763b7572a5104f5f3"
 
 [[package]]
 name = "apalis"
-version = "0.5.2"
-source = "git+https://github.com/geofmureithi/apalis?rev=f63480c#f63480c3b53682ae29ec7e6c28757709e8c6e6ac"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be13bf89e734a1ec4d44233429aafea5a9e693c98a4a126b00a29f321d4a2e03"
 dependencies = [
  "apalis-core",
  "apalis-cron",
@@ -157,8 +158,9 @@ dependencies = [
 
 [[package]]
 name = "apalis-core"
-version = "0.5.2"
-source = "git+https://github.com/geofmureithi/apalis?rev=f63480c#f63480c3b53682ae29ec7e6c28757709e8c6e6ac"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7fb0704a3274e289bebbe042d7adf2b1455a2afd084c7a835cfc2e918cad2eff"
 dependencies = [
  "async-oneshot",
  "futures",
@@ -173,8 +175,9 @@ dependencies = [
 
 [[package]]
 name = "apalis-cron"
-version = "0.5.2"
-source = "git+https://github.com/geofmureithi/apalis?rev=f63480c#f63480c3b53682ae29ec7e6c28757709e8c6e6ac"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3918af413df3fb888bb662b7504ea16cbbabd20293a08f9e7548c57764612db"
 dependencies = [
  "apalis-core",
  "async-stream",
@@ -186,8 +189,9 @@ dependencies = [
 
 [[package]]
 name = "apalis-redis"
-version = "0.5.2"
-source = "git+https://github.com/geofmureithi/apalis?rev=f63480c#f63480c3b53682ae29ec7e6c28757709e8c6e6ac"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8deabd06576b44f87e0fa709e44aa7edc47937b4325eac78384168df47ba30b"
 dependencies = [
  "apalis-core",
  "async-stream",
@@ -202,8 +206,9 @@ dependencies = [
 
 [[package]]
 name = "apalis-sql"
-version = "0.5.2"
-source = "git+https://github.com/geofmureithi/apalis?rev=f63480c#f63480c3b53682ae29ec7e6c28757709e8c6e6ac"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb4df1ac2762e170a12a920d1f74207816341e5eed5870887cc3bcd9e8c59028"
 dependencies = [
  "apalis-core",
  "async-stream",
@@ -5567,7 +5572,6 @@ version = "0.12.0-dev.0"
 dependencies = [
  "anyhow",
  "apalis",
- "apalis-sql",
  "argon2",
  "assert_matches",
  "async-trait",

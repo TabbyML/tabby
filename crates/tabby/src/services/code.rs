@@ -3,7 +3,6 @@ use std::{collections::HashMap, sync::Arc};
 use anyhow::Result;
 use async_trait::async_trait;
 use cached::{CachedAsync, TimedCache};
-use color_eyre::owo_colors::colors::css::Tan;
 use parse_git_url::GitUrl;
 use tabby_common::{
     api::code::{
@@ -19,13 +18,13 @@ use tabby_common::{
 };
 use tabby_inference::Embedding;
 use tantivy::{
-    collector::{Count, TopDocs},
+    collector::TopDocs,
     schema::{self, Value},
     IndexReader, TantivyDocument,
 };
 use tokio::sync::Mutex;
 
-use super::{embedding, tantivy::IndexReaderProvider};
+use super::tantivy::IndexReaderProvider;
 
 struct CodeSearchImpl {
     config_access: Arc<dyn ConfigAccess>,
@@ -118,10 +117,12 @@ fn merge_code_responses_by_rank(
 ) -> CodeSearchResponse {
     let mut scored_hits: HashMap<String, (CodeSearchScores, TantivyDocument)> = HashMap::default();
 
-    for (rank, embedding, doc) in compute_rank_score(embedding_resp).into_iter() {
-        let mut scores = CodeSearchScores::default();
-        scores.combined_rank = rank;
-        scores.embedding = embedding;
+    for (combined_rank, embedding, doc) in compute_rank_score(embedding_resp).into_iter() {
+        let scores = CodeSearchScores {
+            combined_rank,
+            embedding,
+            ..Default::default()
+        };
 
         scored_hits.insert(get_chunk_id(&doc).to_owned(), (scores, doc));
     }
@@ -137,7 +138,6 @@ fn merge_code_responses_by_rank(
 
     let mut scored_hits: Vec<CodeSearchHit> = scored_hits
         .into_values()
-        .into_iter()
         .map(|(scores, doc)| create_hit(scores, doc))
         .collect();
     scored_hits.sort_unstable_by_key(|x| x.scores.combined_rank);
@@ -160,7 +160,7 @@ fn compute_rank_score(resp: Vec<(f32, TantivyDocument)>) -> Vec<(i32, f32, Tanti
         .collect()
 }
 
-fn get_chunk_id<'a>(doc: &'a TantivyDocument) -> &'a str {
+fn get_chunk_id(doc: &TantivyDocument) -> &str {
     let schema = IndexSchema::instance();
     get_text(doc, schema.field_chunk_id)
 }

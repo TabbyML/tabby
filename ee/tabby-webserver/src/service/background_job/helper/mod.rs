@@ -4,7 +4,7 @@ use std::{pin::Pin, str::FromStr};
 
 use apalis::{
     cron::{CronStream, Schedule},
-    prelude::{Data, Job, Storage, WorkerBuilder},
+    prelude::{Backend, Data, Job, Request, WorkerBuilder},
 };
 use chrono::{DateTime, Utc};
 use futures::Stream;
@@ -20,14 +20,14 @@ type DefaultMiddleware =
 
 pub trait BasicJob: Job + Sized {
     fn basic_worker<NS, Serv>(
-        storage: NS,
+        backend: NS,
         db: DbConn,
     ) -> WorkerBuilder<Self, NS, DefaultMiddleware, Serv>
     where
-        NS: Storage<Job = Self>,
+        NS: Backend<Request<Self>>,
     {
         WorkerBuilder::new(Self::NAME)
-            .with_storage(storage)
+            .source(backend)
             .data(db.clone())
             .layer(ConcurrencyLimitLayer::new(1))
             .layer(JobLogLayer::new(db, Self::NAME))
