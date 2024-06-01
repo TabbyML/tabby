@@ -4,6 +4,7 @@ mod services;
 mod download;
 mod serve;
 
+use std::net::Ipv4Addr;
 #[cfg(target_family = "unix")]
 use std::os::unix::fs::PermissionsExt;
 
@@ -66,7 +67,11 @@ async fn main() {
     color_eyre::install().expect("Must be able to install color_eyre");
 
     let cli = Cli::parse();
-    init_logging();
+    console_subscriber::ConsoleLayer::builder()
+        .enable_grpc_web(true)
+        .server_addr((Ipv4Addr::UNSPECIFIED, 9999))
+        .init();
+    // init_logging();
 
     let config = Config::load().unwrap_or_default();
     let root = tabby_common::path::tabby_root();
