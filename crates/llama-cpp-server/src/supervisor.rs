@@ -89,6 +89,8 @@ impl LlamaCppSupervisor {
                         "llama-server exited with status code {}, restarting...",
                         status_code
                     );
+
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                 }
             }
         });

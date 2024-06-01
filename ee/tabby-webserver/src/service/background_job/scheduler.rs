@@ -35,7 +35,7 @@ impl Job for SchedulerJob {
 }
 
 impl CronJob for SchedulerJob {
-    const SCHEDULE: &'static str = "@hourly";
+    const SCHEDULE: &'static str = "1 * * * * *";
 }
 
 impl SchedulerJob {
@@ -44,18 +44,13 @@ impl SchedulerJob {
         job_logger: Data<JobLogger>,
         embedding: Data<Arc<dyn Embedding>>,
     ) -> tabby_schema::Result<()> {
-        let repository = self.repository.clone();
-        tokio::spawn(async move {
-            let mut code = CodeIndexer::default();
-            cprintln!(
-                job_logger,
-                "Refreshing repository {}",
-                repository.canonical_git_url()
-            );
-            code.refresh((*embedding).clone(), &repository).await;
-        })
-        .await
-        .context("Job execution failed")?;
+        let mut code = CodeIndexer::default();
+        cprintln!(
+            job_logger,
+            "Refreshing repository {}",
+            self.repository.canonical_git_url()
+        );
+        code.refresh((*embedding).clone(), &self.repository).await;
         Ok(())
     }
 

@@ -20,14 +20,10 @@ mod repository;
 mod types;
 
 #[derive(Default)]
-pub struct CodeIndexer {
-    is_dirty: bool,
-}
+pub struct CodeIndexer;
 
 impl CodeIndexer {
     pub async fn refresh(&mut self, embedding: Arc<dyn Embedding>, repository: &RepositoryConfig) {
-        self.is_dirty = true;
-
         info!("Refreshing repository: {}", repository.canonical_git_url());
         repository::sync_repository(repository);
 
@@ -36,7 +32,6 @@ impl CodeIndexer {
     }
 
     pub fn garbage_collection(&mut self, repositories: &[RepositoryConfig]) {
-        self.is_dirty = false;
         let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
         cache.garbage_collection_for_source_files();
         index::garbage_collection(&mut cache);

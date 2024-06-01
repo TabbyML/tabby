@@ -25,7 +25,7 @@ impl Job for SyncIntegrationJob {
 }
 
 impl CronJob for SyncIntegrationJob {
-    const SCHEDULE: &'static str = "@hourly";
+    const SCHEDULE: &'static str = "1/10 * * * * *";
 }
 
 impl SyncIntegrationJob {
