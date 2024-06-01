@@ -1,7 +1,6 @@
 ;; Copied from https://github.com/JoranHonig/tree-sitter-solidity/blob/master/queries/tags.scm
 ;;
 ;; Method and Function declarations
-;; Method and Function declarations
 (contract_declaration (_
     (function_definition
         name: (identifier) @name) @definition.method))
