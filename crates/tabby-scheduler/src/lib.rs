@@ -70,7 +70,7 @@ async fn scheduler_pipeline(config: &tabby_common::config::Config) {
 
     let repositories = &config.repositories;
 
-    let mut code = CodeIndexer::default();
+    let mut code = CodeIndexer;
     for repository in repositories {
         code.refresh(embedding.clone(), repository).await;
     }

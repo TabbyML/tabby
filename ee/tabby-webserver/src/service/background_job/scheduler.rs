@@ -44,7 +44,7 @@ impl SchedulerJob {
         job_logger: Data<JobLogger>,
         embedding: Data<Arc<dyn Embedding>>,
     ) -> tabby_schema::Result<()> {
-        let mut code = CodeIndexer::default();
+        let mut code = CodeIndexer;
         cprintln!(
             job_logger,
             "Refreshing repository {}",
@@ -64,7 +64,7 @@ impl SchedulerJob {
             .await
             .context("Must be able to retrieve repositories for sync")?;
 
-        let mut code = CodeIndexer::default();
+        let mut code = CodeIndexer;
         code.garbage_collection(&repositories);
 
         let mut storage = (*storage).clone();
