@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use apalis::{
-    prelude::{Data, Job, Monitor, Storage, WorkerFactoryFn},
-    sqlite::{SqlitePool, SqliteStorage},
+    prelude::{Data, Job, MemoryStorage, MessageQueue, Monitor, WorkerFactoryFn},
     utils::TokioExecutor,
 };
-use apalis_sql::Config;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_common::config::{ConfigAccess, RepositoryConfig};
@@ -62,7 +60,7 @@ impl SchedulerJob {
     async fn cron(
         _now: DateTime<Utc>,
         config_access: Data<Arc<dyn ConfigAccess>>,
-        storage: Data<SqliteStorage<SchedulerJob>>,
+        storage: Data<MemoryStorage<SchedulerJob>>,
     ) -> tabby_schema::Result<()> {
         let repositories = config_access
             .repositories()
@@ -72,26 +70,22 @@ impl SchedulerJob {
         let mut code = CodeIndexer::default();
         code.garbage_collection(&repositories);
 
-        let mut storage = (*storage).clone();
-
         for repository in repositories {
             storage
-                .push(SchedulerJob::new(repository))
+                .enqueue(SchedulerJob::new(repository))
                 .await
-                .context("unable to push job")?;
+                .map_err(|_| anyhow!("Failed to enqueue scheduler job"))?;
         }
         Ok(())
     }
 
     pub fn register(
         monitor: Monitor<TokioExecutor>,
-        pool: SqlitePool,
         db: DbConn,
-        config: Config,
         config_access: Arc<dyn ConfigAccess>,
         embedding: Arc<dyn Embedding>,
-    ) -> (SqliteStorage<SchedulerJob>, Monitor<TokioExecutor>) {
-        let storage = SqliteStorage::new_with_config(pool, config);
+    ) -> (MemoryStorage<SchedulerJob>, Monitor<TokioExecutor>) {
+        let storage = MemoryStorage::default();
         let monitor = monitor
             .register(
                 Self::basic_worker(storage.clone(), db.clone())
