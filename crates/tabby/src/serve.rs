@@ -5,7 +5,7 @@ use clap::Args;
 use hyper::StatusCode;
 use tabby_common::{
     api::{self, code::CodeSearch, event::EventLogger},
-    config::{Config, ConfigAccess, ModelConfig, StaticConfigAccess},
+    config::{Config, ConfigAccess, LocalModelConfig, ModelConfig, StaticConfigAccess},
     usage,
 };
 use tabby_inference::Embedding;
@@ -396,6 +396,14 @@ fn merge_args(config: &Config, args: &ServeArgs) -> Config {
             args.parallelism,
             args.chat_device.as_ref().unwrap_or(&args.device),
         ));
+    }
+
+    if config.model.embedding.is_none() {
+        config.model.embedding = Some(ModelConfig::Local(LocalModelConfig {
+            model_id: "Nomic-Embed-Text".to_string(),
+            parallelism: 4,
+            num_gpu_layers: 9999,
+        }))
     }
 
     config
