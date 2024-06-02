@@ -17,6 +17,7 @@ members = [
     "ee/tabby-db",
     "ee/tabby-db-macros",
     "ee/tabby-schema",
+    "ee/tabby-job",
 ]
 
 [workspace.package]
@@ -63,6 +64,7 @@ tower-http = "0.5"
 mime_guess = "2.0.4"
 assert_matches = "1.5"
 insta = "1.34.0" 
+tower = "0.4"
 
 [workspace.dependencies.uuid]
 version = "1.3.3"

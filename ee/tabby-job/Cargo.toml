@@ -1,0 +1,18 @@
+[package]
+name = "tabby-job"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+futures.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tower = { workspace = true, features = ["full"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }
+assert_matches.workspace = true
