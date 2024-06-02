@@ -3,14 +3,17 @@ mod helper;
 mod scheduler;
 mod third_party_integration;
 
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 
-use apalis::prelude::{MemoryStorage, MessageQueue, Monitor};
+use cron::Schedule;
+use futures::StreamExt;
+use helper::{CronStream, Job, JobLogger, JobQueue};
 use juniper::ID;
 use tabby_common::config::{ConfigAccess, RepositoryConfig};
 use tabby_db::DbConn;
 use tabby_inference::Embedding;
 use tabby_schema::{integration::IntegrationService, repository::ThirdPartyRepositoryService};
+use tracing::warn;
 
 use self::{
     db::DbMaintainanceJob, scheduler::SchedulerJob, third_party_integration::SyncIntegrationJob,
@@ -22,8 +25,8 @@ pub enum BackgroundJobEvent {
 }
 
 struct BackgroundJobImpl {
-    scheduler: MemoryStorage<SchedulerJob>,
-    third_party_repository: MemoryStorage<SyncIntegrationJob>,
+    scheduler: JobQueue<SchedulerJob>,
+    third_party_repository: JobQueue<SyncIntegrationJob>,
 }
 
 pub async fn start(
@@ -34,29 +37,59 @@ pub async fn start(
     embedding: Arc<dyn Embedding>,
     mut receiver: tokio::sync::mpsc::UnboundedReceiver<BackgroundJobEvent>,
 ) {
-    let monitor = Monitor::new();
-    let monitor = DbMaintainanceJob::register(monitor, db.clone());
-    let (scheduler, monitor) =
-        SchedulerJob::register(monitor, db.clone(), config_access, embedding);
-    let (third_party_repository, monitor) = SyncIntegrationJob::register(
-        monitor,
-        db.clone(),
-        third_party_repository_service,
-        integration_service,
-    );
+    let mut hourly =
+        CronStream::new(Schedule::from_str("1 * * * * *").expect("Invalid cron expression"))
+            .into_stream();
 
     tokio::spawn(async move {
-        monitor.run().await.expect("failed to start worker");
-    });
+        let (tx, mut scheduler_rx) = tokio::sync::mpsc::unbounded_channel();
+        let scheduler = JobQueue::new(tx);
 
-    tokio::spawn(async move {
+        let (tx, mut third_party_repository_rx) = tokio::sync::mpsc::unbounded_channel();
+        let third_party_repository = JobQueue::new(tx);
+
         let mut background_job = BackgroundJobImpl {
             scheduler,
             third_party_repository,
         };
 
-        while let Some(event) = receiver.recv().await {
-            background_job.on_event_publish(event).await;
+        loop {
+            tokio::select! {
+                Some(event) = receiver.recv() => {
+                    background_job.on_event_publish(event).await;
+                },
+                Some(job) = scheduler_rx.recv() => {
+                    let mut job_logger = JobLogger::new(SchedulerJob::NAME, db.clone()).await;
+                    if let Err(err) = job.run(job_logger.clone(), embedding.clone()).await {
+                        cprintln!(job_logger, "{:?}", err);
+                        job_logger.complete(-1).await;
+                    } else {
+                        job_logger.complete(0).await;
+                    }
+                },
+                Some(job) = third_party_repository_rx.recv() => {
+                    if let Err(err) = job.run(third_party_repository_service.clone()).await {
+                        warn!("Sync integration job failed: {:?}", err);
+                    }
+                },
+                Some(now) = hourly.next() => {
+                    if let Err(err) = DbMaintainanceJob::cron(now, db.clone()).await {
+                        warn!("Database maintainance failed: {:?}", err);
+                    }
+
+                    if let Err(err) = SchedulerJob::cron(now, config_access.clone(), background_job.scheduler.clone()).await {
+                        warn!("Scheduler job failed: {:?}", err);
+                    }
+
+                    if let Err(err) = SyncIntegrationJob::cron(now, background_job.third_party_repository.clone(), integration_service.clone()).await {
+                        warn!("Sync integration job failed: {:?}", err);
+                    }
+                },
+                else => {
+                    warn!("Background job channel closed");
+                    break;
+                }
+            };
         }
     });
 }
@@ -64,17 +97,13 @@ pub async fn start(
 impl BackgroundJobImpl {
     async fn trigger_scheduler(&self, repository: RepositoryConfig) {
         self.scheduler
-            .clone()
             .enqueue(SchedulerJob::new(repository))
-            .await
             .expect("unable to push job");
     }
 
     async fn trigger_sync_integration(&self, provider_id: ID) {
         self.third_party_repository
-            .clone()
             .enqueue(SyncIntegrationJob::new(provider_id))
-            .await
             .expect("Unable to push job");
     }
 

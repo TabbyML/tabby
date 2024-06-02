@@ -17,7 +17,6 @@ members = [
     "ee/tabby-db",
     "ee/tabby-db-macros",
     "ee/tabby-schema",
-    "ee/tabby-job",
 ]
 
 [workspace.package]
