@@ -69,6 +69,7 @@ impl Webserver {
             repository.third_party(),
             integration.clone(),
             embedding,
+            sender,
             receiver,
         )
         .await;

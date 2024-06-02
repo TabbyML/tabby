@@ -9,7 +9,8 @@ use tabby_scheduler::CodeIndexer;
 
 use super::{
     cprintln,
-    helper::{Job, JobLogger, JobQueue},
+    helper::{Job, JobLogger},
+    BackgroundJobEvent,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -51,7 +52,7 @@ impl SchedulerJob {
     pub async fn cron(
         _now: DateTime<Utc>,
         config_access: Arc<dyn ConfigAccess>,
-        storage: JobQueue<SchedulerJob>,
+        sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
     ) -> tabby_schema::Result<()> {
         let repositories = config_access
             .repositories()
@@ -63,8 +64,8 @@ impl SchedulerJob {
         code.garbage_collection(&repositories);
 
         for repository in repositories {
-            storage
-                .enqueue(SchedulerJob::new(repository))
+            sender
+                .send(BackgroundJobEvent::Scheduler(repository))
                 .context("Failed to enqueue scheduler job")?;
         }
         Ok(())

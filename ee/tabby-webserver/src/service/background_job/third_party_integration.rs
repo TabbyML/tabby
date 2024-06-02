@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use tabby_schema::{integration::IntegrationService, repository::ThirdPartyRepositoryService};
 use tracing::debug;
 
-use super::helper::{Job, JobQueue};
+use super::{helper::Job, BackgroundJobEvent};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SyncIntegrationJob {
@@ -35,7 +35,7 @@ impl SyncIntegrationJob {
 
     pub async fn cron(
         _now: DateTime<Utc>,
-        storage: JobQueue<SyncIntegrationJob>,
+        sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
         integration_service: Arc<dyn IntegrationService>,
     ) -> tabby_schema::Result<()> {
         debug!("Syncing all third-party repositories");
@@ -44,8 +44,10 @@ impl SyncIntegrationJob {
             .list_integrations(None, None, None, None, None, None)
             .await?
         {
-            storage
-                .enqueue(SyncIntegrationJob::new(integration.id))
+            sender
+                .send(BackgroundJobEvent::SyncThirdPartyRepositories(
+                    integration.id,
+                ))
                 .map_err(|_| anyhow!("Failed to enqueue scheduler job"))?;
         }
         Ok(())
