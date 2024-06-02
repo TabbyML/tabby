@@ -1,6 +1,7 @@
 use chrono::{DateTime, TimeZone, Utc};
 pub use cron::Schedule;
 use futures::Stream;
+use tracing::warn;
 
 /// Represents a stream from a cron schedule with a timezone
 #[derive(Clone, Debug)]
@@ -34,7 +35,13 @@ where
                 match next {
                     Some(next) => {
                         let to_sleep = next.clone() - timezone.from_utc_datetime(&Utc::now().naive_utc());
-                        let to_sleep = to_sleep.to_std().unwrap();
+                        let to_sleep = match to_sleep.to_std() {
+                            Ok(to_sleep) => to_sleep,
+                            Err(err) => {
+                                warn!("Failed to convert to std duration: {}", err);
+                                continue;
+                            }
+                        };
                         tokio::time::sleep(to_sleep).await;
                         yield next;
                     },
