@@ -187,7 +187,7 @@ impl Choice {
     }
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, PartialEq)]
 pub struct Snippet {
     filepath: String,
     body: String,
