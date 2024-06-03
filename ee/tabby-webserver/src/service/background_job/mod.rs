@@ -34,7 +34,7 @@ pub async fn start(
     mut receiver: tokio::sync::mpsc::UnboundedReceiver<BackgroundJobEvent>,
 ) {
     let mut hourly =
-        CronStream::new(Schedule::from_str("1 * * * * *").expect("Invalid cron expression"))
+        CronStream::new(Schedule::from_str("@hourly").expect("Invalid cron expression"))
             .into_stream();
 
     tokio::spawn(async move {
