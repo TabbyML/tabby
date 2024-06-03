@@ -1,7 +1,7 @@
-use std::{fs::read_to_string, path::Path};
+use std::{collections::HashMap, fs::read_to_string, path::Path};
 
 use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext};
-use text_splitter::{Characters, TextSplitter};
+use text_splitter::{Characters, ExperimentalCodeSplitter, TextSplitter};
 use tracing::warn;
 use tree_sitter_tags::TagsContext;
 
@@ -11,13 +11,25 @@ pub use super::types::{Point, SourceCode, Tag};
 pub struct CodeIntelligence {
     context: TagsContext,
     splitter: TextSplitter<Characters>,
+    code_splitters: HashMap<String, ExperimentalCodeSplitter<Characters>>,
 }
+
+const CHUNK_SIZE: usize = 256;
 
 impl Default for CodeIntelligence {
     fn default() -> Self {
         Self {
             context: TagsContext::new(),
-            splitter: TextSplitter::default().with_trim_chunks(true),
+            splitter: TextSplitter::new(CHUNK_SIZE),
+            code_splitters: super::languages::all()
+                .map(|(name, config)| {
+                    let name = name.to_string();
+                    let splitter =
+                        ExperimentalCodeSplitter::new(config.0.language.clone(), CHUNK_SIZE)
+                            .expect("Failed to create code splitter");
+                    (name, splitter)
+                })
+                .collect(),
         }
     }
 }
@@ -100,14 +112,22 @@ impl CodeIntelligence {
         Some(source_file)
     }
 
-    // FIXME(boxbeam): implement with treesitter based CodeSplitter.
-    pub fn chunks<'splitter, 'text: 'splitter>(
-        &'splitter self,
-        text: &'text str,
-    ) -> impl Iterator<Item = (usize, &'text str)> + 'splitter {
-        self.splitter
-            .chunk_indices(text, 256)
-            .map(|(offset, chunk)| (line_number_from_byte_offset(text, offset), chunk))
+    pub fn chunks(&self, text: &str, language: &str) -> Vec<(usize, String)> {
+        if let Some(splitter) = self.code_splitters.get(language) {
+            splitter
+                .chunk_indices(text)
+                .map(|(offset, chunk)| {
+                    (line_number_from_byte_offset(text, offset), chunk.to_owned())
+                })
+                .collect()
+        } else {
+            self.splitter
+                .chunk_indices(text)
+                .map(|(offset, chunk)| {
+                    (line_number_from_byte_offset(text, offset), chunk.to_owned())
+                })
+                .collect()
+        }
     }
 }
 
