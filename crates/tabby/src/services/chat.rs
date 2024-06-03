@@ -214,6 +214,7 @@ mod tests {
         let service = Arc::new(ChatService::new(engine, logger.clone()));
 
         let request = ChatCompletionRequest {
+            user: None,
             messages: vec![Message {
                 role: "user".into(),
                 content: "Hello, computer!".into(),
