@@ -872,8 +872,12 @@ export class TabbyAgent extends EventEmitter implements Agent {
     return "";
   }
 
+  // selection.start equals selection.end means the cursor position with no selection
   public async provideChatEdit(
     document: string,
+    selection: { start: number; end: number },
+    filepath: string,
+    insertMode = false,
     command: string,
     languageId = "",
     options?: AbortSignalOption & { useBetaVersion?: boolean },
@@ -881,35 +885,74 @@ export class TabbyAgent extends EventEmitter implements Agent {
     if (this.status === "notInitialized") {
       throw new Error("Agent is not initialized");
     }
-    const { documentMaxChars, commandMaxChars, promptTemplate } = this.config.experimentalChat.edit;
+
+    const documentMaxChars = this.config.experimentalChat.edit.documentMaxChars;
+    if (selection.end - selection.start > documentMaxChars) {
+      throw new Error("Document to edit is too long");
+    }
+    if (command.length > this.config.experimentalChat.edit.commandMaxChars) {
+      throw new Error("Command is too long");
+    }
+
+    let promptTemplate: string;
+    let userCommand: string;
+    const presetCommand = /^\/\w+\b/g.exec(command)?.[0];
+    const presetConfig = presetCommand && this.config.experimentalChat.edit.presetCommands[presetCommand];
+    if (presetConfig) {
+      promptTemplate = presetConfig.promptTemplate;
+      userCommand = command.substring(presetCommand.length);
+    } else {
+      promptTemplate = insertMode
+        ? this.config.experimentalChat.edit.promptTemplate.insert
+        : this.config.experimentalChat.edit.promptTemplate.replace;
+      userCommand = command;
+    }
+    // Extract the selected text and the surrounding context
+    const documentSelection = document.substring(selection.start, selection.end);
+    let documentPrefix = document.substring(0, selection.start);
+    let documentSuffix = document.substring(selection.end);
+    if (document.length > documentMaxChars) {
+      const charsRemain = documentMaxChars - documentSelection.length;
+      if (documentPrefix.length < charsRemain / 2) {
+        documentSuffix = documentSuffix.substring(0, charsRemain - documentPrefix.length);
+      } else if (documentSuffix.length < charsRemain / 2) {
+        documentPrefix = documentPrefix.substring(documentPrefix.length - charsRemain + documentSuffix.length);
+      } else {
+        documentPrefix = documentPrefix.substring(documentPrefix.length - charsRemain / 2);
+        documentSuffix = documentSuffix.substring(0, charsRemain / 2);
+      }
+    }
     // request chat api
     const requestId = uuid();
     try {
       if (!this.api) {
         throw new Error("http client not initialized");
       }
-      if (document.length > documentMaxChars) {
-        throw new Error("Document to edit is too long");
-      }
-      if (command.length > commandMaxChars) {
-        throw new Error("Command is too long");
-      }
       const requestPath = options?.useBetaVersion ? "/v1beta/chat/completions" : "/v1/chat/completions";
       const messages = [
         {
           role: "user",
-          content: promptTemplate.replace(/{{document}}|{{command}}|{{languageId}}/g, (pattern: string) => {
-            switch (pattern) {
-              case "{{document}}":
-                return document;
-              case "{{command}}":
-                return command;
-              case "{{languageId}}":
-                return languageId;
-              default:
-                return "";
-            }
-          }),
+          content: promptTemplate.replace(
+            /{{filepath}}|{{documentPrefix}}|{{document}}|{{documentSuffix}}|{{command}}|{{languageId}}/g,
+            (pattern: string) => {
+              switch (pattern) {
+                case "{{filepath}}":
+                  return filepath;
+                case "{{documentPrefix}}":
+                  return documentPrefix;
+                case "{{document}}":
+                  return documentSelection;
+                case "{{documentSuffix}}":
+                  return documentSuffix;
+                case "{{command}}":
+                  return userCommand;
+                case "{{languageId}}":
+                  return languageId;
+                default:
+                  return "";
+              }
+            },
+          ),
         },
       ];
       const requestOptions = {
@@ -932,7 +975,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
       return readableStream;
     } catch (error) {
       if (error instanceof HttpError && error.status == 404 && !options?.useBetaVersion) {
-        return await this.provideChatEdit(document, command, languageId, { ...options, useBetaVersion: true });
+        return await this.provideChatEdit(document, selection, filepath, insertMode, command, languageId, {
+          ...options,
+          useBetaVersion: true,
+        });
       }
       if (isCanceledError(error)) {
         this.logger.debug(`Chat request canceled. [${requestId}]`);

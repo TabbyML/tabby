@@ -290,12 +290,12 @@
         "command": "tabby.experimental.chat.edit.start",
         "key": "ctrl+i",
         "mac": "cmd+i",
-        "when": "editorTextFocus && editorHasSelection && !editorReadonly"
+        "when": "editorTextFocus && !editorReadonly"
       },
       {
         "command": "tabby.experimental.chat.edit.stop",
         "key": "escape",
-        "when": "tabby.chatEditInProgress && editorTextFocus"
+        "when": "tabby.chatEditInProgress && editorTextFocus && !editorReadonly"
       },
       {
         "command": "tabby.experimental.chat.edit.accept",

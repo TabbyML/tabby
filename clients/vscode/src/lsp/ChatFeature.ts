@@ -7,6 +7,9 @@ import {
   GenerateCommitMessageRequest,
   GenerateCommitMessageParams,
   GenerateCommitMessageResult,
+  ChatEditCommandRequest,
+  ChatEditCommandParams,
+  ChatEditCommand,
   ChatEditRequest,
   ChatEditParams,
   ChatEditToken,
@@ -72,6 +75,28 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
       return null;
     }
     return this.client.sendRequest(GenerateCommitMessageRequest.method, params, token);
+  }
+
+  // target is where the fetched command will be filled in
+  // callback will be called when target updated
+  async provideEditCommands(
+    params: ChatEditCommandParams,
+    target: {
+      commands: ChatEditCommand[];
+      callback: () => void;
+    },
+    token?: CancellationToken,
+  ): Promise<void> {
+    // FIXME: handle partial results after server supports partial results
+    const commands: ChatEditCommand[] | null = await this.client.sendRequest(
+      ChatEditCommandRequest.method,
+      params,
+      token,
+    );
+    if (commands && commands.length > 0) {
+      target.commands.push(...commands);
+      target.callback();
+    }
   }
 
   async provideEdit(params: ChatEditParams, token?: CancellationToken): Promise<ChatEditToken | null> {
