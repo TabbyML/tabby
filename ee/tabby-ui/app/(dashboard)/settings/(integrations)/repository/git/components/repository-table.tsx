@@ -151,7 +151,7 @@ export default function RepositoryTable() {
                     <TableCell className="truncate">{x.node.name}</TableCell>
                     <TableCell className="truncate">{x.node.gitUrl}</TableCell>
                     <TableCell className="truncate">
-                      <div className="flex gap-2.5 items-center">
+                      <div className="flex items-center gap-2.5">
                         <TooltipProvider delayDuration={0}>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -182,7 +182,7 @@ export default function RepositoryTable() {
                                 <Button size="icon" variant="ghost">
                                   <IconCirclePlay
                                     strokeWidth={1}
-                                    className="w-5 h-5"
+                                    className="h-5 w-5"
                                   />
                                 </Button>
                               </TooltipTrigger>
@@ -197,7 +197,7 @@ export default function RepositoryTable() {
                                 <Button size="icon" variant="ghost">
                                   <IconStop
                                     strokeWidth={1}
-                                    className="w-5 h-5"
+                                    className="h-5 w-5"
                                   />
                                 </Button>
                               </TooltipTrigger>
