@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fs::read_to_string, path::Path};
 
 use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext};
-use text_splitter::{Characters, ExperimentalCodeSplitter, TextSplitter};
+use text_splitter::{Characters, CodeSplitter, TextSplitter};
 use tracing::warn;
 use tree_sitter_tags::TagsContext;
 
@@ -11,7 +11,7 @@ pub use super::types::{Point, SourceCode, Tag};
 pub struct CodeIntelligence {
     context: TagsContext,
     splitter: TextSplitter<Characters>,
-    code_splitters: HashMap<String, ExperimentalCodeSplitter<Characters>>,
+    code_splitters: HashMap<String, CodeSplitter<Characters>>,
 }
 
 const CHUNK_SIZE: usize = 256;
@@ -24,9 +24,8 @@ impl Default for CodeIntelligence {
             code_splitters: super::languages::all()
                 .map(|(name, config)| {
                     let name = name.to_string();
-                    let splitter =
-                        ExperimentalCodeSplitter::new(config.0.language.clone(), CHUNK_SIZE)
-                            .expect("Failed to create code splitter");
+                    let splitter = CodeSplitter::new(config.0.language.clone(), CHUNK_SIZE)
+                        .expect("Failed to create code splitter");
                     (name, splitter)
                 })
                 .collect(),
