@@ -229,7 +229,7 @@ export class Commands {
         commands.executeCommand("tabby.chatView.focus");
         const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
         this.chatViewProvider.sendMessage({
-          message: "Identify and fix potential bugs from the selected code:",
+          message: "Identify and fix potential bugs in the selected code:",
           selectContext: fileContext,
         });
       } else {
