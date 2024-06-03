@@ -210,52 +210,53 @@ export class Commands {
         this.config.mutedNotifications = [];
       }
     },
-    "experimental.chat.explainCodeBlock": async () => {
-      const alignIndent = (text: string) => {
-        const lines = text.split("\n");
-        const subsequentLines = lines.slice(1);
-
-        // Determine the minimum indent for subsequent lines
-        const minIndent = subsequentLines.reduce((min, line) => {
-          const match = line.match(/^(\s*)/);
-          const indent = match ? match[0].length : 0;
-          return line.trim() ? Math.min(min, indent) : min;
-        }, Infinity);
-
-        // Remove the minimum indent
-        const adjustedLines = lines.slice(1).map((line) => line.slice(minIndent));
-
-        return [lines[0]?.trim(), ...adjustedLines].join("\n");
-      };
-
+    "chat.explainCodeBlock": async () => {
       const editor = window.activeTextEditor;
       if (editor) {
-        const uri = editor.document.uri;
-        const text = editor.document.getText(editor.selection);
-        const workspaceFolder = workspace.getWorkspaceFolder(uri);
-        const repo = this.gitProvider.getRepository(uri);
-        const remoteUrl = repo ? this.gitProvider.getDefaultRemoteUrl(repo) : undefined;
-        let filePath = uri.toString();
-        if (repo) {
-          filePath = filePath.replace(repo.rootUri.toString(), "");
-        } else if (workspaceFolder) {
-          filePath = filePath.replace(workspaceFolder.uri.toString(), "");
-        }
-
         commands.executeCommand("tabby.chatView.focus");
-
+        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
         this.chatViewProvider.sendMessage({
           message: "Explain the selected code:",
-          selectContext: {
-            kind: "file",
-            content: alignIndent(text),
-            range: {
-              start: editor.selection.start.line + 1,
-              end: editor.selection.end.line + 1,
-            },
-            filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
-            git_url: remoteUrl ?? "",
-          },
+          selectContext: fileContext,
+        });
+      } else {
+        window.showInformationMessage("No active editor");
+      }
+    },
+    "chat.fixCodeBlock": async () => {
+      const editor = window.activeTextEditor;
+      if (editor) {
+        commands.executeCommand("tabby.chatView.focus");
+        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+        this.chatViewProvider.sendMessage({
+          message: "Identify and fix potential bugs from the selected code:",
+          selectContext: fileContext,
+        });
+      } else {
+        window.showInformationMessage("No active editor");
+      }
+    },
+    "chat.generateCodeBlockDoc": async () => {
+      const editor = window.activeTextEditor;
+      if (editor) {
+        commands.executeCommand("tabby.chatView.focus");
+        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+        this.chatViewProvider.sendMessage({
+          message: "Generate documentation for the selected code:",
+          selectContext: fileContext,
+        });
+      } else {
+        window.showInformationMessage("No active editor");
+      }
+    },
+    "chat.generateCodeBlockTest": async () => {
+      const editor = window.activeTextEditor;
+      if (editor) {
+        commands.executeCommand("tabby.chatView.focus");
+        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+        this.chatViewProvider.sendMessage({
+          message: "Generate a unit test for the selected code:",
+          selectContext: fileContext,
         });
       } else {
         window.showInformationMessage("No active editor");

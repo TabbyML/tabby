@@ -75,6 +75,18 @@
         "title": "Tabby: Explain This"
       },
       {
+        "command": "tabby.chat.fixCodeBlock",
+        "title": "Tabby: Fix This"
+      },
+      {
+        "command": "tabby.chat.generateCodeBlockDoc",
+        "title": "Tabby: Generate Docs"
+      },
+      {
+        "command": "tabby.chat.generateCodeBlockTest",
+        "title": "Tabby: Generate Tests"
+      },
+      {
         "command": "tabby.experimental.chat.generateCommitMessage",
         "title": "Generate Commit Message",
         "category": "Tabby"
@@ -112,6 +124,18 @@
         },
         {
           "command": "tabby.chat.explainCodeBlock",
+          "when": "editorHasSelection && tabby.chatEnabled"
+        },
+        {
+          "command": "tabby.chat.fixCodeBlock",
+          "when": "editorHasSelection && tabby.chatEnabled"
+        },
+        {
+          "command": "tabby.chat.generateCodeBlockDoc",
+          "when": "editorHasSelection && tabby.chatEnabled"
+        },
+        {
+          "command": "tabby.chat.generateCodeBlockTest",
           "when": "editorHasSelection && tabby.chatEnabled"
         },
         {
