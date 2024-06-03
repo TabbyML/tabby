@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use tabby_common::config::{LocalModelConfig, ModelConfig};
+use tabby_common::config::ModelConfig;
 use tabby_inference::Embedding;
 
 use super::model;
