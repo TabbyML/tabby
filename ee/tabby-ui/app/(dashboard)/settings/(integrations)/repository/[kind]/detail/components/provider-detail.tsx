@@ -1,7 +1,9 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import moment from 'moment'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
@@ -33,8 +35,10 @@ import {
 import {
   IconChevronLeft,
   IconChevronRight,
+  IconCirclePlay,
   IconPlus,
   IconSpinner,
+  IconStop,
   IconTrash
 } from '@/components/ui/icons'
 import {
@@ -45,6 +49,12 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
@@ -54,6 +64,7 @@ import AddRepositoryForm from './add-repository-form'
 import { UpdateProviderForm } from './update-provider-form'
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE
+const MOCK_START_TIME = moment().format('YYYY-MM-DD HH:mm')
 
 type IntegratedRepositories =
   ListIntegratedRepositoriesQuery['integratedRepositories']['edges']
@@ -275,7 +286,8 @@ const ActiveRepoTable: React.FC<{
           <TableRow>
             <TableHead className="w-[25%]">Name</TableHead>
             <TableHead className="w-[45%]">URL</TableHead>
-            <TableHead className="text-right">
+            <TableHead>Job</TableHead>
+            <TableHead className="text-right w-[100px]">
               <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="top-[20vh]">
                   <DialogHeader className="gap-3">
@@ -323,11 +335,70 @@ const ActiveRepoTable: React.FC<{
                   </TableRow>
                 )
               })}
-              {activeRepos?.map(x => {
+              {activeRepos?.map((x, index) => {
                 return (
                   <TableRow key={x.node.id}>
                     <TableCell>{x.node.displayName}</TableCell>
                     <TableCell>{x.node.gitUrl}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2.5 items-center">
+                        <TooltipProvider delayDuration={0}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link
+                                href=""
+                                className={cn(
+                                  'flex h-8 w-8 items-center justify-center rounded text-xs text-white hover:opacity-70',
+                                  {
+                                    'bg-blue-600': index === 0,
+                                    'bg-green-600': index === 1,
+                                    'bg-red-600': index === 2
+                                  }
+                                )}
+                              >
+                                {index === 0 ? <IconSpinner /> : '20s'}
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{MOCK_START_TIME}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        <div className="flex items-center gap-1.5">
+                          {index !== 0 && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="icon" variant="ghost">
+                                  <IconCirclePlay
+                                    strokeWidth={1}
+                                    className="w-5 h-5"
+                                  />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Run</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          {index === 0 && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="icon" variant="ghost">
+                                  <IconStop
+                                    strokeWidth={1}
+                                    className="w-5 h-5"
+                                  />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Stop</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
                     <TableCell className="flex justify-end">
                       <div className="flex gap-1">
                         <Button

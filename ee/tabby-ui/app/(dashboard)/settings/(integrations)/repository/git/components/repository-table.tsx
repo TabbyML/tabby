@@ -1,6 +1,8 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
+import moment from 'moment'
 import { toast } from 'sonner'
 import { useClient, useQuery } from 'urql'
 
@@ -9,8 +11,14 @@ import { graphql } from '@/lib/gql/generates'
 import { GitRepositoriesQueryVariables } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { listRepositories } from '@/lib/tabby/query'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { IconTrash } from '@/components/ui/icons'
+import {
+  IconCirclePlay,
+  IconSpinner,
+  IconStop,
+  IconTrash
+} from '@/components/ui/icons'
 import {
   Pagination,
   PaginationContent,
@@ -26,6 +34,12 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 const deleteRepositoryMutation = graphql(/* GraphQL */ `
@@ -35,6 +49,7 @@ const deleteRepositoryMutation = graphql(/* GraphQL */ `
 `)
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE
+const MOCK_START_TIME = moment().format('YYYY-MM-DD HH:mm')
 export default function RepositoryTable() {
   const client = useClient()
   const [{ data, fetching }] = useQuery({
@@ -116,24 +131,84 @@ export default function RepositoryTable() {
         <TableHeader>
           <TableRow>
             <TableHead className="w-[25%]">Name</TableHead>
-            <TableHead>Git URL</TableHead>
+            <TableHead className="w-[45%]">Git URL</TableHead>
+            <TableHead>Job</TableHead>
             <TableHead className="w-[100px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {!currentPageRepos?.length && currentPage === 1 ? (
             <TableRow>
-              <TableCell colSpan={3} className="h-[100px] text-center">
+              <TableCell colSpan={4} className="h-[100px] text-center">
                 No Data
               </TableCell>
             </TableRow>
           ) : (
             <>
-              {currentPageRepos?.map(x => {
+              {currentPageRepos?.map((x, index) => {
                 return (
                   <TableRow key={x.node.id}>
                     <TableCell className="truncate">{x.node.name}</TableCell>
                     <TableCell className="truncate">{x.node.gitUrl}</TableCell>
+                    <TableCell className="truncate">
+                      <div className="flex gap-2.5 items-center">
+                        <TooltipProvider delayDuration={0}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link
+                                href=""
+                                className={cn(
+                                  'flex h-8 w-8 items-center justify-center rounded text-xs text-white hover:opacity-70',
+                                  {
+                                    'bg-blue-600': index === 0,
+                                    'bg-green-600': index === 1,
+                                    'bg-red-600': index === 2
+                                  }
+                                )}
+                              >
+                                {index === 0 ? <IconSpinner /> : '20s'}
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{MOCK_START_TIME}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        <div className="flex items-center gap-1.5">
+                          {index !== 0 && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="icon" variant="ghost">
+                                  <IconCirclePlay
+                                    strokeWidth={1}
+                                    className="w-5 h-5"
+                                  />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Run</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          {index === 0 && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="icon" variant="ghost">
+                                  <IconStop
+                                    strokeWidth={1}
+                                    className="w-5 h-5"
+                                  />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Stop</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
                     <TableCell className="flex justify-end">
                       <div className="flex gap-1">
                         <Button
