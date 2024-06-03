@@ -401,7 +401,7 @@ fn merge_args(config: &Config, args: &ServeArgs) -> Config {
     if config.model.embedding.is_none() {
         config.model.embedding = Some(ModelConfig::Local(LocalModelConfig {
             model_id: "Nomic-Embed-Text".to_string(),
-            parallelism: 4,
+            parallelism: 1,
             num_gpu_layers: 9999,
         }))
     }

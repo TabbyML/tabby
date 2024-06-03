@@ -1,20 +1,16 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Context};
-use apalis::{
-    prelude::{Data, Job, MemoryStorage, MessageQueue, Monitor, WorkerFactoryFn},
-    utils::TokioExecutor,
-};
+use anyhow::Context;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_common::config::{ConfigAccess, RepositoryConfig};
-use tabby_db::DbConn;
 use tabby_inference::Embedding;
 use tabby_scheduler::CodeIndexer;
 
 use super::{
     cprintln,
-    helper::{BasicJob, CronJob, JobLogger},
+    helper::{Job, JobLogger},
+    BackgroundJobEvent,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -32,15 +28,11 @@ impl Job for SchedulerJob {
     const NAME: &'static str = "scheduler";
 }
 
-impl CronJob for SchedulerJob {
-    const SCHEDULE: &'static str = "@hourly";
-}
-
 impl SchedulerJob {
-    async fn run(
+    pub async fn run(
         self,
-        job_logger: Data<JobLogger>,
-        embedding: Data<Arc<dyn Embedding>>,
+        job_logger: JobLogger,
+        embedding: Arc<dyn Embedding>,
     ) -> tabby_schema::Result<()> {
         let repository = self.repository.clone();
         tokio::spawn(async move {
@@ -50,17 +42,17 @@ impl SchedulerJob {
                 "Refreshing repository {}",
                 repository.canonical_git_url()
             );
-            code.refresh((*embedding).clone(), &repository).await;
+            code.refresh(embedding, &repository).await;
         })
         .await
         .context("Job execution failed")?;
         Ok(())
     }
 
-    async fn cron(
+    pub async fn cron(
         _now: DateTime<Utc>,
-        config_access: Data<Arc<dyn ConfigAccess>>,
-        storage: Data<MemoryStorage<SchedulerJob>>,
+        config_access: Arc<dyn ConfigAccess>,
+        sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
     ) -> tabby_schema::Result<()> {
         let repositories = config_access
             .repositories()
@@ -68,36 +60,14 @@ impl SchedulerJob {
             .context("Must be able to retrieve repositories for sync")?;
 
         let mut code = CodeIndexer::default();
+
         code.garbage_collection(&repositories);
 
         for repository in repositories {
-            storage
-                .enqueue(SchedulerJob::new(repository))
-                .await
-                .map_err(|_| anyhow!("Failed to enqueue scheduler job"))?;
+            sender
+                .send(BackgroundJobEvent::Scheduler(repository))
+                .context("Failed to enqueue scheduler job")?;
         }
         Ok(())
-    }
-
-    pub fn register(
-        monitor: Monitor<TokioExecutor>,
-        db: DbConn,
-        config_access: Arc<dyn ConfigAccess>,
-        embedding: Arc<dyn Embedding>,
-    ) -> (MemoryStorage<SchedulerJob>, Monitor<TokioExecutor>) {
-        let storage = MemoryStorage::default();
-        let monitor = monitor
-            .register(
-                Self::basic_worker(storage.clone(), db.clone())
-                    .data(embedding)
-                    .build_fn(Self::run),
-            )
-            .register(
-                Self::cron_worker(db.clone())
-                    .data(storage.clone())
-                    .data(config_access)
-                    .build_fn(SchedulerJob::cron),
-            );
-        (storage, monitor)
     }
 }
