@@ -16,7 +16,6 @@ export function createThreadFromWebview<Self = Record<string, never>, Target = R
           listen(data);
         });
 
-        // FIXME(wwayne): double check if the connection got any edge cases
         signal?.addEventListener("abort", () => {
           dispose();
         });

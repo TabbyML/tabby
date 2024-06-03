@@ -71,8 +71,20 @@
         "title": "Tabby: Reset notifications marked as \"Don't Show Again\""
       },
       {
-        "command": "tabby.experimental.chat.explainCodeBlock",
+        "command": "tabby.chat.explainCodeBlock",
         "title": "Tabby: Explain This"
+      },
+      {
+        "command": "tabby.chat.fixCodeBlock",
+        "title": "Tabby: Fix This"
+      },
+      {
+        "command": "tabby.chat.generateCodeBlockDoc",
+        "title": "Tabby: Generate Docs"
+      },
+      {
+        "command": "tabby.chat.generateCodeBlockTest",
+        "title": "Tabby: Generate Tests"
       },
       {
         "command": "tabby.experimental.chat.generateCommitMessage",
@@ -111,8 +123,20 @@
           "when": "!isWeb"
         },
         {
-          "command": "tabby.experimental.chat.explainCodeBlock",
-          "when": "editorHasSelection && tabby.chatEnabled && tabby.explainCodeBlockEnabled"
+          "command": "tabby.chat.explainCodeBlock",
+          "when": "editorHasSelection && tabby.chatEnabled"
+        },
+        {
+          "command": "tabby.chat.fixCodeBlock",
+          "when": "editorHasSelection && tabby.chatEnabled"
+        },
+        {
+          "command": "tabby.chat.generateCodeBlockDoc",
+          "when": "editorHasSelection && tabby.chatEnabled"
+        },
+        {
+          "command": "tabby.chat.generateCodeBlockTest",
+          "when": "editorHasSelection && tabby.chatEnabled"
         },
         {
           "command": "tabby.experimental.chat.generateCommitMessage",
@@ -129,13 +153,6 @@
         {
           "command": "tabby.experimental.chat.edit.discard",
           "when": "false"
-        }
-      ],
-      "editor/context": [
-        {
-          "command": "tabby.experimental.chat.explainCodeBlock",
-          "group": "1_close",
-          "when": "editorHasSelection && tabby.chatEnabled && tabby.explainCodeBlockEnabled"
         }
       ]
     },
@@ -221,10 +238,6 @@
           "tabby.experimental": {
             "default": {},
             "properties": {
-              "chat.explainCodeBlock": {
-                "type": "boolean",
-                "default": false
-              },
               "chat.generateCommitMessage": {
                 "type": "boolean",
                 "default": false

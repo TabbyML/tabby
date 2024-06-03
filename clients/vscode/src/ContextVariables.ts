@@ -4,7 +4,6 @@ import { Config } from "./Config";
 
 export class ContextVariables {
   private chatEnabledValue = false;
-  private explainCodeBlockEnabledValue = false;
   private generateCommitMessageEnabledValue = false;
   private chatEditInProgressValue = false;
   private chatEditResolvingValue = false;
@@ -36,7 +35,6 @@ export class ContextVariables {
 
   private updateExperimentalFlags() {
     const experimental = this.config.workspace.get<Record<string, unknown>>("experimental", {});
-    this.explainCodeBlockEnabled = !!experimental["chat.explainCodeBlock"];
     this.generateCommitMessageEnabled = !!experimental["chat.generateCommitMessage"];
   }
 
@@ -63,15 +61,6 @@ export class ContextVariables {
   private set chatEnabled(value: boolean) {
     commands.executeCommand("setContext", "tabby.chatEnabled", value);
     this.chatEnabledValue = value;
-  }
-
-  get explainCodeBlockEnabled(): boolean {
-    return this.explainCodeBlockEnabledValue;
-  }
-
-  private set explainCodeBlockEnabled(value: boolean) {
-    commands.executeCommand("setContext", "tabby.explainCodeBlockEnabled", value);
-    this.explainCodeBlockEnabledValue = value;
   }
 
   get generateCommitMessageEnabled(): boolean {

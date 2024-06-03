@@ -1,12 +1,21 @@
-import { ExtensionContext, WebviewViewProvider, WebviewView, workspace, Uri, env, LogOutputChannel } from "vscode";
+import {
+  ExtensionContext,
+  WebviewViewProvider,
+  WebviewView,
+  workspace,
+  Uri,
+  env,
+  LogOutputChannel,
+  TextEditor,
+} from "vscode";
 import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
 import type { ServerInfo } from "tabby-agent";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
 import { createClient } from "./chatPanel";
+import { GitProvider } from "../git/GitProvider";
 
-// FIXME(wwayne): Example code has webview removed case, not sure when it would happen, need to double check
 export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
@@ -18,6 +27,54 @@ export class ChatViewProvider implements WebviewViewProvider {
     private readonly agent: Agent,
     private readonly logger: LogOutputChannel,
   ) {}
+
+  static getFileContextFromSelection({
+    editor,
+    gitProvider,
+  }: {
+    editor: TextEditor;
+    gitProvider: GitProvider;
+  }): Context {
+    const alignIndent = (text: string) => {
+      const lines = text.split("\n");
+      const subsequentLines = lines.slice(1);
+
+      // Determine the minimum indent for subsequent lines
+      const minIndent = subsequentLines.reduce((min, line) => {
+        const match = line.match(/^(\s*)/);
+        const indent = match ? match[0].length : 0;
+        return line.trim() ? Math.min(min, indent) : min;
+      }, Infinity);
+
+      // Remove the minimum indent
+      const adjustedLines = lines.slice(1).map((line) => line.slice(minIndent));
+
+      return [lines[0]?.trim(), ...adjustedLines].join("\n");
+    };
+
+    const uri = editor.document.uri;
+    const text = editor.document.getText(editor.selection);
+    const workspaceFolder = workspace.getWorkspaceFolder(uri);
+    const repo = gitProvider.getRepository(uri);
+    const remoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
+    let filePath = uri.toString();
+    if (repo) {
+      filePath = filePath.replace(repo.rootUri.toString(), "");
+    } else if (workspaceFolder) {
+      filePath = filePath.replace(workspaceFolder.uri.toString(), "");
+    }
+
+    return {
+      kind: "file",
+      content: alignIndent(text),
+      range: {
+        start: editor.selection.start.line + 1,
+        end: editor.selection.end.line + 1,
+      },
+      filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
+      git_url: remoteUrl ?? "",
+    };
+  }
 
   public async resolveWebviewView(webviewView: WebviewView) {
     this.webview = webviewView;
