@@ -16,6 +16,7 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
   repositoryName?: string
   basename?: string
   repositorySpecifier?: string
+  rev?: string
 } {
   const emptyResult = {}
   if (!path) return emptyResult
@@ -27,21 +28,24 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
   }
 
   if (repositoryKindStr === 'git') {
-    if (pathSegments.length < 2) return emptyResult
+    if (pathSegments.length < 3) return emptyResult
 
+    // e.g.  git/tabby/main/ee/tabby-ui
     const repositoryName = pathSegments[1]
     return {
       repositoryKind: RepositoryKind.Git,
       repositoryName,
-      basename: pathSegments.slice(2).join('/'),
-      repositorySpecifier: `git/${repositoryName}`
+      basename: pathSegments.slice(3).join('/'),
+      repositorySpecifier: `git/${repositoryName}`,
+      rev: pathSegments[2]
     }
   } else if (
     ['github', 'gitlab', 'githubselfhosted', 'gitlabselfhosted'].includes(
       repositoryKindStr
     )
   ) {
-    if (pathSegments.length < 3) return emptyResult
+    // e.g.  /github/TabbyML/tabby/main/ee/tabby-ui
+    if (pathSegments.length < 4) return emptyResult
     let kind: RepositoryKind = RepositoryKind.Github
     switch (repositoryKindStr) {
       case 'github':
@@ -62,10 +66,11 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
     return {
       repositoryKind: kind,
       repositoryName,
-      basename: pathSegments.slice(3).join('/'),
+      basename: pathSegments.slice(4).join('/'),
       repositorySpecifier: `${getProviderVariantFromKind(
         kind
-      )}/${repositoryName}`
+      )}/${repositoryName}`,
+      rev: pathSegments[3]
     }
   }
   return emptyResult
@@ -78,13 +83,13 @@ function resolveFileNameFromPath(path: string) {
 }
 
 function getDirectoriesFromBasename(
-  path: string | undefined,
+  basename: string | undefined,
   isDir?: boolean
 ): string[] {
-  if (isNil(path)) return []
+  if (isNil(basename)) return []
 
   let result = ['']
-  const pathSegments = path.split('/')
+  const pathSegments = basename.split('/')
   // if path points to a file, the dirs do not include the path itself
   const len = isDir ? pathSegments.length : pathSegments.length - 1
   for (let i = 0; i < len; i++) {
@@ -99,7 +104,7 @@ async function fetchEntriesFromPath(
 ) {
   if (!path || !repository) return []
 
-  const { basename } = resolveRepositoryInfoFromPath(path)
+  const { basename, rev } = resolveRepositoryInfoFromPath(path)
   // array of dir basename that do not include the repo name.
   const directoryPaths = getDirectoriesFromBasename(basename)
   // fetch all dirs from path
@@ -110,7 +115,7 @@ async function fetchEntriesFromPath(
           encodeURIComponentIgnoringSlash(
             `/repositories/${getProviderVariantFromKind(repository.kind)}/${
               repository.id
-            }/resolve/${dir}`
+            }/rev/${encodeURIComponent(rev ?? '')}/${dir}`
           )
         ).catch(e => [])
     )
@@ -147,6 +152,27 @@ function encodeURIComponentIgnoringSlash(str: string) {
     .join('/')
 }
 
+function resolveRepoRef(ref: string): {
+  kind?: 'branch' | 'tag'
+  name?: string
+  ref?: string
+} {
+  if (!ref) return {}
+  const regx = /refs\/(\w+)\/(.*)/
+  const match = ref.match(regx)
+  if (match) {
+    const kind = match[1] === 'tags' ? 'tag' : 'branch'
+    return {
+      kind,
+      name: match[2],
+      ref
+    }
+  }
+  return {
+    ref
+  }
+}
+
 export {
   resolveRepoSpecifierFromRepoInfo,
   resolveFileNameFromPath,
@@ -155,5 +181,6 @@ export {
   resolveRepositoryInfoFromPath,
   repositoryList2Map,
   encodeURIComponentIgnoringSlash,
-  getProviderVariantFromKind
+  getProviderVariantFromKind,
+  resolveRepoRef
 }

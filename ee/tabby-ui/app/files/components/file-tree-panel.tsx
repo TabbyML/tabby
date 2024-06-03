@@ -14,7 +14,7 @@ interface FileTreePanelProps extends React.HTMLAttributes<HTMLDivElement> {}
 export const FileTreePanel: React.FC<FileTreePanelProps> = () => {
   const {
     activePath,
-    setActivePath,
+    updateActivePath,
     expandedKeys,
     updateFileMap,
     toggleExpandedKey,
@@ -25,13 +25,14 @@ export const FileTreePanel: React.FC<FileTreePanelProps> = () => {
   const containerRef = React.useRef<HTMLDivElement>(null)
   const scrollTop = useScrollTop(containerRef, 200)
   const onSelectTreeNode = (treeNode: TFileTreeNode) => {
-    setActivePath(treeNode.fullPath)
+    updateActivePath(treeNode.fullPath)
   }
 
   const currentFileTreeData = React.useMemo(() => {
-    const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
+    const { repositorySpecifier, rev } =
+      resolveRepositoryInfoFromPath(activePath)
     const repo = fileTreeData.find(
-      treeNode => treeNode.fullPath === repositorySpecifier
+      treeNode => treeNode.fullPath === `${repositorySpecifier}/${rev}`
     )
     return repo?.children ?? []
   }, [activePath, fileTreeData])

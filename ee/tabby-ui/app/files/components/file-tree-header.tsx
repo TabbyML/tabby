@@ -9,11 +9,27 @@ import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList
+} from '@/components/ui/command'
+import {
+  IconCheck,
   IconClose,
   IconDirectorySolid,
   IconFile,
-  IconFolderGit
+  IconFolderGit,
+  IconGitFork,
+  IconTag
 } from '@/components/ui/icons'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -21,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   SearchableSelect,
   SearchableSelectAnchor,
@@ -36,6 +53,7 @@ import {
   fetchEntriesFromPath,
   getDirectoriesFromBasename,
   resolveFileNameFromPath,
+  resolveRepoRef,
   resolveRepositoryInfoFromPath
 } from './utils'
 
@@ -47,6 +65,8 @@ type SearchOption = {
   indices: number[]
   id: string
 }
+
+type RepositoryRefKind = 'branch' | 'tag'
 
 const repositorySearch = graphql(/* GraphQL */ `
   query RepositorySearch($kind: RepositoryKind!, $id: ID!, $pattern: String!) {
@@ -65,18 +85,30 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   const {
     activePath,
     fileTreeData,
-    setActivePath,
+    updateActivePath,
     initialized,
     updateFileMap,
     setExpandedKeys,
     repoMap,
-    activeRepo
+    activeRepo,
+    activeRepoRef
   } = useContext(SourceCodeBrowserContext)
   const { setProgress } = useTopbarProgress()
-
+  const [refSelectVisible, setRefSelectVisible] = React.useState(false)
+  // todo default kind, consider abstarct to upper level
+  const [activeRefKind, setActiveRefKind] =
+    React.useState<RepositoryRefKind>('branch')
   const { repositoryKind, repositoryName, repositorySpecifier } =
     resolveRepositoryInfoFromPath(activePath)
   const repoId = activeRepo?.id
+  const refs = activeRepo?.refs
+  const formattedRefs = React.useMemo(() => {
+    if (!refs?.length) return []
+    return refs.map(ref => resolveRepoRef(ref))
+  }, [refs])
+  const branches = formattedRefs.filter(o => o.kind === 'branch')
+  const tags = formattedRefs.filter(o => o.kind === 'tag')
+  const commandOptions = activeRefKind === 'tag' ? tags : branches
 
   const inputRef = React.useRef<HTMLInputElement>(null)
   const [input, setInput] = React.useState<string>()
@@ -108,7 +140,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   }, [repositorySearchData?.repositorySearch])
 
   const onSelectRepo = (name: string) => {
-    setActivePath(name)
+    updateActivePath(name)
   }
 
   const onInputValueChange = useDebounceCallback((v: string | undefined) => {
@@ -167,7 +199,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
       }
     } catch (e) {
     } finally {
-      setActivePath(fullPath)
+      updateActivePath(fullPath)
       setProgress(false)
     }
   }
@@ -202,6 +234,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     <div className={cn(className)} {...props}>
       <div className="py-4 font-bold leading-8">Files</div>
       <div className="space-y-3">
+        {/* Repository select */}
         <Select
           disabled={!initialized}
           onValueChange={onSelectRepo}
@@ -251,6 +284,76 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
             )}
           </SelectContent>
         </Select>
+        {/* branch select */}
+        <Popover open={refSelectVisible} onOpenChange={setRefSelectVisible}>
+          <PopoverTrigger asChild>
+            <Button
+              className="w-full justify-start gap-2 px-3"
+              variant="outline"
+            >
+              {!!activeRepoRef && (
+                <>
+                  {activeRepoRef.kind === 'branch' ? (
+                    <IconGitFork />
+                  ) : (
+                    <IconTag />
+                  )}
+                  {activeRepoRef.name}
+                </>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-[var(--radix-popover-trigger-width)] p-0"
+            align="start"
+            side="bottom"
+          >
+            {/* <div className='px-2 py-1'>Switch branches/tags</div> */}
+            <Command className="transition-all">
+              <CommandInput
+                placeholder={
+                  activeRefKind === 'tag' ? 'Find a tag' : 'Find a branch'
+                }
+              />
+              <Tabs
+                className="my-1 border-b"
+                value={activeRefKind}
+                onValueChange={v => setActiveRefKind(v as RepositoryRefKind)}
+              >
+                {/* todo style */}
+                <TabsList className="bg-popover py-0">
+                  <TabsTrigger value="branch">Branches</TabsTrigger>
+                  <TabsTrigger value="tag">Tags</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <CommandList className="max-h-[30vh]">
+                <CommandEmpty>Nothing to show</CommandEmpty>
+                <CommandGroup>
+                  {commandOptions.map((ref, refIndex) => (
+                    <CommandItem
+                      key={ref.ref ?? refIndex}
+                      onSelect={() => {
+                        setRefSelectVisible(false)
+                        // todo
+                      }}
+                    >
+                      {/* <IconCheck
+                          className={cn(
+                            'mr-2',
+                            ref.node.id === field.value
+                              ? 'opacity-100'
+                              : 'opacity-0'
+                          )}
+                        /> */}
+                      {ref.name}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+        {/* Go to file */}
         <SearchableSelect
           stayOpenOnInputClick
           options={options}

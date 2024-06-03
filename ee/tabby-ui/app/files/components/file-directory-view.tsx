@@ -23,7 +23,7 @@ const DirectoryView: React.FC<DirectoryViewProps> = ({
   loading: propsLoading,
   initialized
 }) => {
-  const { activePath, currentFileRoutes, setActivePath, fileTreeData } =
+  const { activePath, currentFileRoutes, updateActivePath, fileTreeData } =
     React.useContext(SourceCodeBrowserContext)
 
   const files = React.useMemo(() => {
@@ -37,11 +37,11 @@ const DirectoryView: React.FC<DirectoryViewProps> = ({
   const onClickParent = () => {
     const parentPath =
       currentFileRoutes[currentFileRoutes?.length - 2]?.fullPath
-    setActivePath(parentPath)
+    updateActivePath(parentPath)
   }
 
   const onClickFile = (file: TFileMapItem) => {
-    setActivePath(file.fullPath)
+    updateActivePath(file.fullPath)
   }
 
   return (
@@ -138,11 +138,15 @@ function getCurrentDirFromTree(
     const repos = treeData.map(x => omit(x, 'children')) || []
     return repos
   } else {
-    let { repositorySpecifier = '', basename = '' } =
-      resolveRepositoryInfoFromPath(path)
-    let pathSegments = [repositorySpecifier, ...basename.split('/')].filter(
-      Boolean
-    )
+    let {
+      repositorySpecifier = '',
+      basename = '',
+      rev = ''
+    } = resolveRepositoryInfoFromPath(path)
+    let pathSegments = [
+      `${repositorySpecifier}/${rev}`,
+      ...basename.split('/')
+    ].filter(Boolean)
     let currentNodes: TFileTreeNode[] = treeData
     for (let i = 0; i < pathSegments.length; i++) {
       const path = pathSegments.slice(0, i + 1).join('/')

@@ -1,4 +1,16 @@
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import {
+  ReadonlyURLSearchParams,
+  usePathname,
+  useRouter,
+  useSearchParams
+} from 'next/navigation'
+
+type UpdateSearchParamsOptions = {
+  set?: Record<string, string>
+  del?: string | string[]
+  replace?: boolean
+  path?: string
+}
 
 export default function useRouterStuff() {
   const pathname = usePathname()
@@ -14,32 +26,26 @@ export default function useRouterStuff() {
     return queryString.length > 0 ? `?${queryString}` : ''
   }
 
-  const updateSearchParams = ({
-    set,
-    del,
-    replace
-  }: {
-    set?: Record<string, string>
-    del?: string | string[]
-    replace?: boolean
-  }) => {
-    const newParams = new URLSearchParams(searchParams)
-    if (set) {
-      Object.entries(set).forEach(([k, v]) => newParams.set(k, v))
-    }
-    if (del) {
-      if (Array.isArray(del)) {
-        del.forEach(k => newParams.delete(k))
-      } else {
-        newParams.delete(del)
-      }
-    }
-    const queryString = newParams.toString()
-    const newPath = `${pathname}${
-      queryString.length > 0 ? `?${queryString}` : ''
-    }`
+  const updateSearchParams = (option: UpdateSearchParamsOptions) => {
+    const newPath = resolveSearchParams(pathname, searchParams, option)
 
-    if (replace) {
+    if (option.replace) {
+      router.replace(newPath)
+    } else {
+      router.push(newPath)
+    }
+  }
+
+  const updatePathnameAndSearch = (
+    pathname: string,
+    option?: UpdateSearchParamsOptions
+  ) => {
+    let newPath = pathname
+    if (option) {
+      newPath = resolveSearchParams(pathname, searchParams, option)
+    }
+
+    if (option?.replace) {
       router.replace(newPath)
     } else {
       router.push(newPath)
@@ -51,6 +57,31 @@ export default function useRouterStuff() {
     router,
     searchParams,
     updateSearchParams,
-    getQueryString
+    getQueryString,
+    updatePathnameAndSearch
   }
+}
+
+function resolveSearchParams(
+  pathname: string,
+  searchParams: ReadonlyURLSearchParams,
+  option: UpdateSearchParamsOptions
+) {
+  const { set, del } = option
+  const newParams = new URLSearchParams(searchParams)
+  if (set) {
+    Object.entries(set).forEach(([k, v]) => newParams.set(k, v))
+  }
+  if (del) {
+    if (Array.isArray(del)) {
+      del.forEach(k => newParams.delete(k))
+    } else {
+      newParams.delete(del)
+    }
+  }
+  const queryString = newParams.toString()
+  const newPath = `${pathname}${
+    queryString.length > 0 ? `?${queryString}` : ''
+  }`
+  return newPath
 }

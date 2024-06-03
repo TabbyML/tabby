@@ -230,7 +230,9 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   level,
   root
 }) => {
-  const { activeRepo } = React.useContext(SourceCodeBrowserContext)
+  const { activeRepo, activeRepoRef } = React.useContext(
+    SourceCodeBrowserContext
+  )
   const {
     fileMap,
     updateFileMap,
@@ -250,7 +252,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
     return `${getProviderVariantFromKind(kind)}/${repoId}`
   }, [activeRepo])
 
-  const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
+  const { repositorySpecifier, rev } = resolveRepositoryInfoFromPath(activePath)
 
   const basename = root ? '' : node.file.basename
   const expanded = expandedKeys.has(node.fullPath)
@@ -263,7 +265,9 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
     useSWRImmutable(
       shouldFetchChildren
         ? encodeURIComponentIgnoringSlash(
-            `/repositories/${activeRepoIdentity}/resolve/${basename}`
+            `/repositories/${activeRepoIdentity}/rev/${encodeURIComponent(
+              rev ?? ''
+            )}/${basename}`
           )
         : null,
       fetcher,
@@ -277,7 +281,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
 
     if (data?.entries?.length) {
       const patchMap: TFileMap = data.entries.reduce((sum, cur) => {
-        const path = `${repositorySpecifier}/${cur.basename}`
+        const path = `${repositorySpecifier}/${rev}/${cur.basename}`
         return {
           ...sum,
           [path]: {
@@ -353,6 +357,7 @@ const FileTreeRenderer: React.FC = () => {
     React.useContext(FileTreeContext)
   const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
 
+  // todo
   const hasSelectedRepo = !!repositorySpecifier
   const hasNoRepoEntries = hasSelectedRepo && !fileTreeData?.length
   const fetchingRepoEntries =
@@ -414,11 +419,15 @@ function mapToFileTree(fileMap: TFileMap | undefined): TFileTreeNode[] {
   const fileKeys = Object.keys(fileMap)
   for (const fileKey of fileKeys) {
     const file = fileMap[fileKey]
-    const { repositorySpecifier = '', basename = '' } =
-      resolveRepositoryInfoFromPath(fileKey)
-    const pathSegments = [repositorySpecifier, ...basename?.split('/')].filter(
-      Boolean
-    )
+    const {
+      repositorySpecifier = '',
+      basename = '',
+      rev = ''
+    } = resolveRepositoryInfoFromPath(fileKey)
+    const pathSegments = [
+      `${repositorySpecifier}/${rev}`,
+      ...basename?.split('/')
+    ].filter(Boolean)
     let currentNode = tree
     for (let i = 0; i < pathSegments.length; i++) {
       const p = pathSegments.slice(0, i + 1).join('/')
@@ -433,6 +442,7 @@ function mapToFileTree(fileMap: TFileMap | undefined): TFileTreeNode[] {
           fullPath: fileKey,
           children: [],
           isRepository: file.isRepository,
+          // todo remove this field and get it from repoMap
           repository: file.repository
         }
         currentNode.push(newNode)

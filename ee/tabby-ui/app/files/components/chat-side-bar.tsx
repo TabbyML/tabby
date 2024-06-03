@@ -30,7 +30,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   ...props
 }) => {
   const { setProgress } = useTopbarProgress()
-  const { updateSearchParams } = useRouterStuff()
+  const { updateSearchParams, updatePathnameAndSearch } = useRouterStuff()
   const [{ data }] = useMe()
   const {
     pendingEvent,
@@ -52,13 +52,17 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
       if (matchedRepositoryKey) {
         const repository = repoMap[matchedRepositoryKey]
         const repositorySpecifier = resolveRepoSpecifierFromRepoInfo(repository)
-        const fullPath = `${repositorySpecifier}/${context.filepath}`
+        // todo should contain rev or get default rev
+        const rev = 'main'
+        const fullPath = `${repositorySpecifier}/${rev}/${context.filepath}`
         if (!fullPath) return
         try {
           setProgress(true)
           const entries = await fetchEntriesFromPath(
             fullPath,
-            repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined
+            repositorySpecifier
+              ? repoMap?.[`${repositorySpecifier}/${rev}`]
+              : undefined
           )
           const initialExpandedDirs = getDirectoriesFromBasename(
             context.filepath
@@ -92,13 +96,15 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
           }
         } catch (e) {
         } finally {
-          updateSearchParams({
-            set: {
-              path: `${repositorySpecifier ?? ''}/${context.filepath}`,
-              line: String(context.range.start ?? '')
-            },
-            del: 'plain'
-          })
+          updatePathnameAndSearch(
+            `${repositorySpecifier ?? ''}/${context.filepath}`,
+            {
+              set: {
+                line: String(context.range.start ?? '')
+              },
+              del: 'plain'
+            }
+          )
           setProgress(false)
         }
       }

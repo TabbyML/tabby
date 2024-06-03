@@ -12,7 +12,7 @@ interface FileDirectoryBreadcrumbProps
 const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
   className
 }) => {
-  const { currentFileRoutes, setActivePath, activePath } = React.useContext(
+  const { currentFileRoutes, updateActivePath, activePath } = React.useContext(
     SourceCodeBrowserContext
   )
   const basename = React.useMemo(
@@ -25,7 +25,7 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
       <div className="flex items-center gap-1 overflow-x-auto leading-8">
         <div
           className="cursor-pointer font-medium text-primary hover:underline"
-          onClick={e => setActivePath(undefined)}
+          onClick={e => updateActivePath(undefined)}
         >
           Repositories
         </div>
@@ -45,7 +45,7 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
                     : 'cursor-pointer text-primary hover:underline',
                   isRepo ? 'hover:underline' : undefined
                 )}
-                onClick={e => setActivePath(route.fullPath)}
+                onClick={e => updateActivePath(route.fullPath)}
               >
                 {route.name}
               </div>
