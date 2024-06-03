@@ -65,6 +65,21 @@ pub struct CacheStore {
     code: CodeIntelligence,
 }
 
+const INDEX_ALGORITHM_VERSION: &str = "20240531";
+
+#[derive(Default)]
+pub struct IndexBatch {
+    batch: Batch<String, String>,
+}
+
+impl IndexBatch {
+    pub fn set_indexed(&mut self, file_id: String) {
+        self.batch
+            .set(&file_id, &INDEX_ALGORITHM_VERSION.into())
+            .expect("Failed to write to batch");
+    }
+}
+
 impl CacheStore {
     pub fn new(path: PathBuf) -> Self {
         Self {
@@ -85,9 +100,12 @@ impl CacheStore {
             .to_string();
         let indexed = self
             .index_bucket()
-            .contains(&key)
+            .get(&key)
             .expect("Failed to read index bucket");
-        (key, indexed)
+        (
+            key,
+            indexed.is_some_and(|indexed| indexed == INDEX_ALGORITHM_VERSION),
+        )
     }
 
     pub fn clear_indexed(&self) {
@@ -96,9 +114,9 @@ impl CacheStore {
             .expect("Failed to clear indexed files bucket");
     }
 
-    pub fn apply_indexed(&self, batch: Batch<String, String>) {
+    pub fn apply_indexed(&self, batch: IndexBatch) {
         self.index_bucket()
-            .batch(batch)
+            .batch(batch.batch)
             .expect("Failed to commit batched index update")
     }
 

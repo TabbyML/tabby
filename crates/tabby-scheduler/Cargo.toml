@@ -10,23 +10,23 @@ anyhow = { workspace = true }
 tabby-common = { path = "../tabby-common" }
 tantivy = { workspace = true }
 tracing = { workspace = true }
-tree-sitter-tags = "0.20.2"
+tree-sitter-tags = "0.22.6"
 lazy_static = { workspace = true }
-tree-sitter-python = "0.20.2"
-tree-sitter-java = "0.20.2"
-tree-sitter-kotlin = "0.3.1"
-tree-sitter-rust = "0.20.3"
-tree-sitter-typescript = "0.20.3"
-tree-sitter-go = "0.20.0"
-tree-sitter-ruby = "0.20.0"
-tree-sitter-c = { git = "https://github.com/tree-sitter/tree-sitter-c/", rev = "212a80f" }
-tree-sitter-cpp = { git = "https://github.com/tree-sitter/tree-sitter-cpp", rev = "a714740" }
-tree-sitter-c-sharp = "0.20.0"
-tree-sitter-solidity = { git = "https://github.com/JoranHonig/tree-sitter-solidity", rev = "b239a95" }
+tree-sitter-python = "0.21.0"
+tree-sitter-java = "0.21.0"
+tree-sitter-kotlin = "0.3.6"
+tree-sitter-rust = "0.21.2"
+tree-sitter-typescript = "0.21.1"
+tree-sitter-go = "0.21.0"
+tree-sitter-ruby = "0.21.0"
+tree-sitter-c = { git = "https://github.com/tree-sitter/tree-sitter-c/", rev = "00ed08f" }
+tree-sitter-cpp = { git = "https://github.com/tree-sitter/tree-sitter-cpp", rev = "d29fbff" }
+tree-sitter-c-sharp = "0.21.2"
+tree-sitter-solidity = { git = "https://github.com/JoranHonig/tree-sitter-solidity", rev = "0e86ae647bda22c9bee00ec59752df7b3d3b000b" }
 ignore.workspace = true
 tokio-cron-scheduler = { workspace = true }
 tokio = { workspace = true, features = ["process"] }
-text-splitter = "0.10.0"
+text-splitter = { git = "https://github.com/benbrandt/text-splitter/", rev = "0c0886f9b5c62512b8b18fee17a3663f1487987f", features = [ "code" ] }
 kv = { version = "0.24.0", features = ["json-value"] }
 serde.workspace = true
 serde_json.workspace = true
@@ -38,6 +38,7 @@ url.workspace = true
 tabby-inference = { path = "../tabby-inference" }
 git2.workspace = true
 llama-cpp-server = { path = "../llama-cpp-server"}
+insta.workspace = true
 async-trait.workspace = true
 
 [dev-dependencies]
