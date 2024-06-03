@@ -369,8 +369,13 @@ export class Commands {
                   },
                   this.chatEditCancellationTokenSource.token,
                 );
-              } catch (_) {
-                // ignore
+              } catch (error) {
+                if (typeof error === "object" && error && "name" in error) {
+                  error.name === "ChatEditDocumentTooLongError";
+                  window.showErrorMessage(
+                    "The selected text is too long to edit, please select less text and try again.",
+                  );
+                }
               }
               this.chatEditCancellationTokenSource.dispose();
               this.chatEditCancellationTokenSource = null;
