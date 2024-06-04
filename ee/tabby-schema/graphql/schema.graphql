@@ -22,6 +22,19 @@ enum EventKind {
   DISMISS
 }
 
+enum IntegrationKind {
+  GITHUB
+  GITLAB
+  GITHUB_SELF_HOSTED
+  GITLAB_SELF_HOSTED
+}
+
+enum IntegrationStatus {
+  READY
+  PENDING
+  FAILED
+}
+
 enum Language {
   RUST
   PYTHON
@@ -68,6 +81,13 @@ enum RepositoryProviderStatus {
   READY
   PENDING
   FAILED
+}
+
+input CreateIntegrationInput {
+  displayName: String!
+  accessToken: String!
+  kind: IntegrationKind!
+  apiBase: String
 }
 
 input CreateRepositoryProviderInput {
@@ -118,6 +138,14 @@ input RequestPasswordResetEmailInput {
 input SecuritySettingInput {
   allowedRegisterDomainList: [String!]!
   disableClientSideTelemetry: Boolean!
+}
+
+input UpdateIntegrationInput {
+  id: ID!
+  displayName: String!
+  accessToken: String
+  apiBase: String
+  kind: IntegrationKind!
 }
 
 input UpdateOAuthCredentialInput {
@@ -300,6 +328,27 @@ type GrepTextOrBase64 {
   base64: String
 }
 
+type Integration {
+  id: ID!
+  kind: IntegrationKind!
+  displayName: String!
+  accessToken: String!
+  apiBase: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  status: IntegrationStatus!
+}
+
+type IntegrationConnection {
+  edges: [IntegrationEdge!]!
+  pageInfo: PageInfo!
+}
+
+type IntegrationEdge {
+  node: Integration!
+  cursor: String!
+}
+
 type Invitation {
   id: ID!
   email: String!
@@ -399,6 +448,10 @@ type Mutation {
   updateGitlabRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean!
   updateGitlabProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
   updateGitlabSelfHostedProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
+  createIntegration(input: CreateIntegrationInput!): ID!
+  updateIntegration(input: UpdateIntegrationInput!): Boolean!
+  deleteIntegration(id: ID!, kind: IntegrationKind!): Boolean!
+  updateIntegratedRepositoryActive(id: ID!, active: Boolean!): Boolean!
 }
 
 type NetworkSetting {
@@ -417,6 +470,28 @@ type PageInfo {
   hasNextPage: Boolean!
   startCursor: String
   endCursor: String
+}
+
+type ProvidedRepository {
+  id: ID!
+  integrationId: ID!
+  active: Boolean!
+  displayName: String!
+  gitUrl: String!
+  vendorId: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  refs: [String!]!
+}
+
+type ProvidedRepositoryConnection {
+  edges: [ProvidedRepositoryEdge!]!
+  pageInfo: PageInfo!
+}
+
+type ProvidedRepositoryEdge {
+  node: ProvidedRepository!
+  cursor: String!
 }
 
 type Query {
@@ -465,6 +540,8 @@ type Query {
   userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTime!, end: DateTime!): UserEventConnection!
   diskUsageStats: DiskUsageStats!
   repositoryList: [Repository!]!
+  integrations(ids: [ID!], kind: IntegrationKind, after: String, before: String, first: Int, last: Int): IntegrationConnection!
+  integratedRepositories(ids: [ID!], kind: IntegrationKind, active: Boolean, after: String, before: String, first: Int, last: Int): ProvidedRepositoryConnection!
 }
 
 type RefreshTokenResponse {
