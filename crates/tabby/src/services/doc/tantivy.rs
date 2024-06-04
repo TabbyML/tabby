@@ -37,9 +37,9 @@ impl DocSearchImpl {
         let embedding = self.embedding.embed(q).await?;
         let embedding_tokens_query =
             index::embedding_tokens_query(embedding.len(), embedding.iter());
-        let kind_query = schema.kind_query(corpus::WEB);
+        let corpus_query = schema.corpus_query(corpus::WEB);
         let query = BooleanQuery::new(vec![
-            (Occur::Must, Box::new(ConstScoreQuery::new(kind_query, 0.0))),
+            (Occur::Must, Box::new(ConstScoreQuery::new(corpus_query, 0.0))),
             (Occur::Must, Box::new(embedding_tokens_query)),
         ]);
 

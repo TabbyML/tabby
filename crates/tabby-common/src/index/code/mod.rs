@@ -69,13 +69,13 @@ pub fn code_search_query(
     chunk_tokens_query: Box<dyn Query>,
 ) -> BooleanQuery {
     let schema = IndexSchema::instance();
-    let kind_query = schema.kind_query(corpus::CODE);
+    let corpus_query = schema.corpus_query(corpus::CODE);
     let language_query = language_query(&query.language);
     let git_url_query = git_url_query(&query.git_url);
 
     // language / git_url / filepath field shouldn't contribute to the score, mark them to 0.0.
     let mut subqueries: Vec<(Occur, Box<dyn Query>)> = vec![
-        (Occur::Must, Box::new(ConstScoreQuery::new(kind_query, 0.0))),
+        (Occur::Must, Box::new(ConstScoreQuery::new(corpus_query, 0.0))),
         (
             Occur::Must,
             Box::new(ConstScoreQuery::new(language_query, 0.0)),

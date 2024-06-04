@@ -99,7 +99,7 @@ impl IndexSchema {
         ])
     }
 
-    pub fn kind_query(&self, kind: &str) -> Box<dyn Query> {
+    pub fn corpus_query(&self, kind: &str) -> Box<dyn Query> {
         Box::new(TermQuery::new(
             Term::from_field_text(self.field_corpus, kind),
             tantivy::schema::IndexRecordOption::Basic,
