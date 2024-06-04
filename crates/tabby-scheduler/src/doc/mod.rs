@@ -4,7 +4,7 @@ use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use serde_json::json;
-use tabby_common::index::{self, doc, corpus};
+use tabby_common::index::{self, corpus, doc};
 use tabby_inference::Embedding;
 use tantivy::doc;
 use text_splitter::TextSplitter;

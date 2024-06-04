@@ -75,7 +75,10 @@ pub fn code_search_query(
 
     // language / git_url / filepath field shouldn't contribute to the score, mark them to 0.0.
     let mut subqueries: Vec<(Occur, Box<dyn Query>)> = vec![
-        (Occur::Must, Box::new(ConstScoreQuery::new(corpus_query, 0.0))),
+        (
+            Occur::Must,
+            Box::new(ConstScoreQuery::new(corpus_query, 0.0)),
+        ),
         (
             Occur::Must,
             Box::new(ConstScoreQuery::new(language_query, 0.0)),
