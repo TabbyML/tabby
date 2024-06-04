@@ -18,6 +18,7 @@ import {
 import os from "os";
 import path from "path";
 import { strict as assert } from "assert";
+import { ChatEditCommand } from "tabby-agent";
 import { Client } from "./lsp/Client";
 import { Config } from "./Config";
 import { ContextVariables } from "./ContextVariables";
@@ -264,7 +265,7 @@ export class Commands {
     },
     "experimental.chat.edit.start": async () => {
       const editor = window.activeTextEditor;
-      if (!editor || editor.selection.isEmpty) {
+      if (!editor) {
         return;
       }
       const startPosition = new Position(editor.selection.start.line, 0);
@@ -272,44 +273,73 @@ export class Commands {
         uri: editor.document.uri.toString(),
         range: {
           start: { line: editor.selection.start.line, character: 0 },
-          end: { line: editor.selection.end.line + 1, character: 0 },
+          end: {
+            line: editor.selection.end.character === 0 ? editor.selection.end.line : editor.selection.end.line + 1,
+            character: 0,
+          },
         },
       };
       const recentlyCommand = this.config.chatEditRecentlyCommand;
-      const buildQuickPickList = (input = "") => {
-        const list: QuickPickItem[] = [];
-        if (input.length > 0) {
+      const suggestedCommand: ChatEditCommand[] = [];
+      const quickPick = window.createQuickPick<QuickPickItem & { value: string }>();
+      const updateQuickPickList = () => {
+        const input = quickPick.value;
+        const list: (QuickPickItem & { value: string })[] = [];
+        if (input.length > 0 && !input.startsWith("/")) {
           list.push({
             label: input,
+            value: input,
             iconPath: new ThemeIcon("run"),
             description: "",
             alwaysShow: true,
           });
         }
-        list.push({
-          label: "",
-          kind: QuickPickItemKind.Separator,
-        });
         list.push(
-          ...recentlyCommand.map((item) => {
+          ...suggestedCommand.map((item) => {
+            return {
+              label: item.label,
+              value: item.command,
+              iconPath: item.source === "preset" ? new ThemeIcon("edit") : new ThemeIcon("spark"),
+              description: item.source === "preset" ? item.command : "Suggested",
+            };
+          }),
+        );
+        if (list.length > 0) {
+          list.push({
+            label: "",
+            value: "",
+            kind: QuickPickItemKind.Separator,
+            alwaysShow: true,
+          });
+        }
+        const recentlyCommandToAdd = recentlyCommand.filter((item) => !list.find((i) => i.value === item));
+        list.push(
+          ...recentlyCommandToAdd.map((item) => {
             return {
               label: item,
+              value: item,
               iconPath: new ThemeIcon("history"),
               description: "History",
             };
           }),
         );
-        return list;
+        quickPick.items = list;
       };
-      const quickPick = window.createQuickPick();
+      const fetchingSuggestedCommandCancellationTokenSource = new CancellationTokenSource();
+      this.client.chat.provideEditCommands(
+        { location: editLocation },
+        { commands: suggestedCommand, callback: () => updateQuickPickList() },
+        fetchingSuggestedCommandCancellationTokenSource.token,
+      );
       quickPick.placeholder = "Enter the command for editing";
-      quickPick.items = buildQuickPickList();
-      quickPick.onDidChangeValue((input: string) => {
-        quickPick.items = buildQuickPickList(input);
+      quickPick.matchOnDescription = true;
+      quickPick.onDidChangeValue(() => updateQuickPickList());
+      quickPick.onDidHide(() => {
+        fetchingSuggestedCommandCancellationTokenSource.cancel();
       });
       quickPick.onDidAccept(() => {
         quickPick.hide();
-        const command = quickPick.selectedItems[0]?.label;
+        const command = quickPick.selectedItems[0]?.value;
         if (command) {
           this.config.chatEditRecentlyCommand = [command]
             .concat(recentlyCommand.filter((item) => item !== command))
@@ -339,8 +369,13 @@ export class Commands {
                   },
                   this.chatEditCancellationTokenSource.token,
                 );
-              } catch (_) {
-                // ignore
+              } catch (error) {
+                if (typeof error === "object" && error && "name" in error) {
+                  error.name === "ChatEditDocumentTooLongError";
+                  window.showErrorMessage(
+                    "The selected text is too long to edit, please select less text and try again.",
+                  );
+                }
               }
               this.chatEditCancellationTokenSource.dispose();
               this.chatEditCancellationTokenSource = null;

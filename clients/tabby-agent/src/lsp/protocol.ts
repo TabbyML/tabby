@@ -209,13 +209,13 @@ export type DidChangeConfigurationParams = LspDidChangeConfigurationParams & {
  * the client should render codelens and decorations to improve the readability of the pending changes.
  * - method: `textDocument/codeLens`
  * - params: {@link CodeLensParams}
- * - result: {@link CodeLens[]} | null
- * - partialResult:  {@link CodeLens[]}
+ * - result: {@link CodeLens}[] | null
+ * - partialResult:  {@link CodeLens}[]
  */
 export namespace CodeLensRequest {
   export const method = LspCodeLensRequest.method;
   export const messageDirection = LspCodeLensRequest.messageDirection;
-  export const type = new ProtocolRequestType<CodeLensParams, CodeLens[] | null, never, CodeLens[], void>(method);
+  export const type = new ProtocolRequestType<CodeLensParams, CodeLens[] | null, CodeLens[], void, void>(method);
 }
 
 export type CodeLens = LspCodeLens & {
@@ -301,6 +301,50 @@ export type InlineCompletionItem = LspInlineCompletionItem & {
 };
 
 /**
+ * [Tabby] Chat Edit Suggestion Command Request(↩️)
+ *
+ * This method is sent from the client to the server to get suggestion commands for the current context.
+ * - method: `tabby/chat/edit/command`
+ * - params: {@link ChatEditCommandParams}
+ * - result: {@link ChatEditCommand}[] | null
+ * - partialResult:  {@link ChatEditCommand}[]
+ */
+export namespace ChatEditCommandRequest {
+  export const method = "tabby/chat/edit/command";
+  export const messageDirection = MessageDirection.clientToServer;
+  export const type = new ProtocolRequestType<
+    ChatEditCommandParams,
+    ChatEditCommand[] | null,
+    ChatEditCommand[],
+    void,
+    void
+  >(method);
+}
+
+export type ChatEditCommandParams = {
+  /**
+   * The document location to get suggestion commands for.
+   */
+  location: Location;
+};
+
+export type ChatEditCommand = {
+  /**
+   * The display label of the command.
+   */
+  label: string;
+  /**
+   * A string value for the command.
+   * If the command is a `preset` command, it always starts with `/`.
+   */
+  command: string;
+  /**
+   * The source of the command.
+   */
+  source: "preset";
+};
+
+/**
  * [Tabby] Chat Edit Request(↩️)
  *
  * This method is sent from the client to the server to edit the document content by user's command.
@@ -309,7 +353,6 @@ export type InlineCompletionItem = LspInlineCompletionItem & {
  * - method: `tabby/chat/edit`
  * - params: {@link ChatEditRequest}
  * - result: {@link ChatEditToken}
- * - workDoneProgress: "begin" | "end"
  * - error: {@link ChatFeatureNotAvailableError}
  *        | {@link ChatEditDocumentTooLongError}
  *        | {@link ChatEditCommandTooLongError}
@@ -321,8 +364,8 @@ export namespace ChatEditRequest {
   export const type = new ProtocolRequestType<
     ChatEditParams,
     ChatEditToken,
-    ChatFeatureNotAvailableError | ChatEditDocumentTooLongError | ChatEditCommandTooLongError | ChatEditMutexError,
     void,
+    ChatFeatureNotAvailableError | ChatEditDocumentTooLongError | ChatEditCommandTooLongError | ChatEditMutexError,
     void
   >(method);
 }
@@ -334,6 +377,8 @@ export type ChatEditParams = {
   location: Location;
   /**
    * The command for this edit.
+   * If the command is a `preset` command, it should always start with "/".
+   * See {@link ChatEditCommand}
    */
   command: string;
   /**
@@ -362,7 +407,7 @@ export type ChatEditMutexError = {
 /**
  * [Tabby] Chat Edit Resolve Request(↩️)
  *
- * This method is sent from the client to the server to accept or discard the smart edit in preview.
+ * This method is sent from the client to the server to accept or discard the changes in preview.
  * - method: `tabby/chat/edit/resolve`
  * - params: {@link ChatEditResolveParams}
  * - result: boolean
@@ -375,7 +420,7 @@ export namespace ChatEditResolveRequest {
 
 export type ChatEditResolveParams = {
   /**
-   * The document location to resolve the smart edit changes, should contains the header line of the changes preview.
+   * The document location to resolve the changes, should locate at the header line of the changes preview.
    */
   location: Location;
   /**
@@ -406,8 +451,8 @@ export namespace GenerateCommitMessageRequest {
   export const type = new ProtocolRequestType<
     GenerateCommitMessageParams,
     GenerateCommitMessageResult | null,
-    ChatFeatureNotAvailableError,
     void,
+    ChatFeatureNotAvailableError,
     void
   >(method);
 }
