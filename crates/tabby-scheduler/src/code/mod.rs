@@ -6,7 +6,7 @@ use futures::stream::BoxStream;
 use serde_json::json;
 use tabby_common::{
     config::RepositoryConfig,
-    index::{code, kind},
+    index::{code, corpus},
 };
 use tabby_inference::Embedding;
 use tracing::{info, warn};
@@ -126,5 +126,5 @@ impl IndexAttributeBuilder<KeyedSourceCode> for CodeBuilder {
 
 fn create_code_index(embedding: Option<Arc<dyn Embedding>>) -> Indexer<KeyedSourceCode> {
     let builder = CodeBuilder::new(embedding);
-    Indexer::new(kind::CODE, builder)
+    Indexer::new(corpus::CODE, builder)
 }

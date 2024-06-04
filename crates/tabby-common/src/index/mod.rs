@@ -18,7 +18,7 @@ pub struct IndexSchema {
 
     // === Fields for both document and chunk ===
     pub field_id: Field,
-    pub field_kind: Field,
+    pub field_corpus: Field,
     pub field_updated_at: Field,
 
     // === Fields for document ===
@@ -33,7 +33,7 @@ pub struct IndexSchema {
 
 const FIELD_CHUNK_ID: &str = "chunk_id";
 
-pub mod kind {
+pub mod corpus {
     pub const CODE: &str = "code";
     pub const WEB: &str = "web";
 }
@@ -47,7 +47,7 @@ impl IndexSchema {
         let mut builder = Schema::builder();
 
         let field_id = builder.add_text_field("id", STRING | STORED);
-        let field_kind = builder.add_text_field("kind", STRING | FAST);
+        let field_corpus = builder.add_text_field("corpus", STRING | FAST);
         let field_updated_at = builder.add_date_field("updated_at", INDEXED);
         let field_attributes = builder.add_text_field("attributes", STORED);
 
@@ -71,7 +71,7 @@ impl IndexSchema {
         Self {
             schema,
             field_id,
-            field_kind,
+            field_corpus,
             field_updated_at,
             field_attributes,
 
@@ -101,7 +101,7 @@ impl IndexSchema {
 
     pub fn kind_query(&self, kind: &str) -> Box<dyn Query> {
         Box::new(TermQuery::new(
-            Term::from_field_text(self.field_kind, kind),
+            Term::from_field_text(self.field_corpus, kind),
             tantivy::schema::IndexRecordOption::Basic,
         ))
     }

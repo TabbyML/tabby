@@ -6,7 +6,7 @@ use tantivy::{
 };
 pub use tokenizer::tokenize_code;
 
-use super::{kind, IndexSchema};
+use super::{corpus, IndexSchema};
 use crate::api::code::CodeSearchQuery;
 
 pub mod fields {
@@ -69,7 +69,7 @@ pub fn code_search_query(
     chunk_tokens_query: Box<dyn Query>,
 ) -> BooleanQuery {
     let schema = IndexSchema::instance();
-    let kind_query = schema.kind_query(kind::CODE);
+    let kind_query = schema.kind_query(corpus::CODE);
     let language_query = language_query(&query.language);
     let git_url_query = git_url_query(&query.git_url);
 

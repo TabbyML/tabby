@@ -4,7 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use tabby_common::{
     api::doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse},
-    index::{self, doc, kind},
+    index::{self, doc, corpus},
 };
 use tabby_inference::Embedding;
 use tantivy::{
@@ -37,7 +37,7 @@ impl DocSearchImpl {
         let embedding = self.embedding.embed(q).await?;
         let embedding_tokens_query =
             index::embedding_tokens_query(embedding.len(), embedding.iter());
-        let kind_query = schema.kind_query(kind::WEB);
+        let kind_query = schema.kind_query(corpus::WEB);
         let query = BooleanQuery::new(vec![
             (Occur::Must, Box::new(ConstScoreQuery::new(kind_query, 0.0))),
             (Occur::Must, Box::new(embedding_tokens_query)),

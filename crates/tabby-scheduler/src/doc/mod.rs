@@ -4,7 +4,7 @@ use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use serde_json::json;
-use tabby_common::index::{self, doc, kind};
+use tabby_common::index::{self, doc, corpus};
 use tabby_inference::Embedding;
 use tantivy::doc;
 use text_splitter::TextSplitter;
@@ -85,5 +85,5 @@ impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
 
 pub fn create_web_index(embedding: Arc<dyn Embedding>) -> Indexer<SourceDocument> {
     let builder = DocBuilder::new(embedding);
-    Indexer::new(kind::WEB, builder)
+    Indexer::new(corpus::WEB, builder)
 }
