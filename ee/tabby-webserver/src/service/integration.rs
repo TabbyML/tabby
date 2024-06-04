@@ -216,15 +216,17 @@ mod tests {
             .await
             .unwrap();
 
+        // Test integration status is failed after updating sync status with an error
         integration
-            .update_integration_sync_status(id.clone(), None)
+            .update_integration_sync_status(id.clone(), Some("error".into()))
             .await
             .unwrap();
 
         let provider = integration.get_integration(id.clone()).await.unwrap();
 
-        assert_eq!(provider.status, IntegrationStatus::Ready);
+        assert_eq!(provider.status, IntegrationStatus::Failed);
 
+        // Test integration status is pending after updating token
         integration
             .update_integration(
                 id.clone(),
@@ -240,6 +242,7 @@ mod tests {
 
         assert_eq!(provider.status, IntegrationStatus::Pending);
 
+        // Test event is sent to re-sync provider after credentials are updated
         let event = recv.recv().await.unwrap();
         assert_eq!(
             event,
