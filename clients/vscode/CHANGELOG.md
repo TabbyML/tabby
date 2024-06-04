@@ -1,3 +1,13 @@
+## 1.7.2
+
+**pre-release**
+
+### Improvements
+
+- Added a set of commands in the command palette to interact with the chat view.
+- Added some preset chat commands for chat editing.
+- Improved prompts used in generating commit messages and chat editing.
+
 ## 1.7.1
 
 **pre-release**
