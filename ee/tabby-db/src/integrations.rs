@@ -86,7 +86,7 @@ impl DbConn {
         };
 
         let res = query!(
-            "UPDATE integrations SET display_name = ?, access_token = ?, api_base = ?, updated_at = DATETIME('now'), synced = false WHERE id = ? AND kind = ?;",
+            "UPDATE integrations SET display_name = ?, access_token = ?, api_base = ?, updated_at = DATETIME('now'), synced = false, error = NULL WHERE id = ? AND kind = ?;",
             display_name,
             access_token,
             api_base,
