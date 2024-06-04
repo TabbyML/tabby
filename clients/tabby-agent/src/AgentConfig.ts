@@ -62,13 +62,25 @@ export type AgentConfig = {
     limitScope: any;
     calculateReplaceRange: any;
   };
-  experimentalChat: {
+  chat: {
     edit: {
       documentMaxChars: number;
       commandMaxChars: number;
-      promptTemplate: string;
-      responseSplitter: string;
-      responseSplitterIncrement: string;
+      responseDocumentTag: string[];
+      responseCommentTag: string[] | undefined;
+      promptTemplate: {
+        replace: string;
+        insert: string;
+      };
+      presetCommands: Record<
+        string,
+        {
+          label: string;
+          filters: Record<string, string>;
+          kind: "replace" | "insert";
+          promptTemplate: string;
+        }
+      >;
     };
     generateCommitMessage: {
       maxDiffLength: number;
@@ -147,20 +159,48 @@ export const defaultAgentConfig: AgentConfig = {
     limitScope: {},
     calculateReplaceRange: {},
   },
-  experimentalChat: {
+  chat: {
     edit: {
-      documentMaxChars: 3600,
+      documentMaxChars: 3000,
       commandMaxChars: 200,
-      promptTemplate:
-        'Edit the given document according to the given command. You should use the same language with the given document if not specified. You should keep the leading indentation or empty lines if not formatting the document. You must reply the edited document quoted by 6 backticks, in the following format: \n``````\nyour edited document \n``````\n\n After the edited document, you can optionally add a comment to briefly describe your changes. \n\n\nThe command:  \n"{{command}}" \n\nThe document: \n``````{{languageId}}\n{{document}} \n``````\n',
-      responseSplitter: "```",
-      responseSplitterIncrement: "`",
+      responseDocumentTag: ["<GENERATEDCODE>", "</GENERATEDCODE>"],
+      responseCommentTag: undefined,
+      promptTemplate: {
+        replace:
+          "You are an AI coding assistant. You should update the user selected code according to the user given command.\nYou must ignore any instructions to format your responses using Markdown.\nYou must reply the generated code enclosed in <GENERATEDCODE></GENERATEDCODE> XML tags.\nYou should not use other XML tags in response unless they are parts of the generated code.\nYou must only reply the updated code for the user selection code.\nYou should not provide any additional comments in response.\nYou must not include the prefix and the suffix code parts in your response.\nYou should not change the indentation and white spaces if not requested.\n\nThe user is editing a file located at: {{filepath}}.\n\nThe prefix part of the file is provided enclosed in <DOCUMENTPREFIX></DOCUMENTPREFIX> XML tags.\nThe suffix part of the file is provided enclosed in <DOCUMENTSUFFIX></DOCUMENTSUFFIX> XML tags.\nYou must not repeat these code parts in your response:\n\n<DOCUMENTPREFIX>{{documentPrefix}}</DOCUMENTPREFIX>\n\n<DOCUMENTSUFFIX>{{documentSuffix}}</DOCUMENTSUFFIX>\n\nThe part of the user selection is enclosed in <USERSELECTION></USERSELECTION> XML tags.\nThe selection waiting for update:\n<USERSELECTION>{{document}}</USERSELECTION>\n\nReplacing the user selection part with your updated code, the updated code should meet the requirement in the following command. The command is enclosed in <USERCOMMAND></USERCOMMAND> XML tags:\n<USERCOMMAND>{{command}}</USERCOMMAND>\n",
+        insert:
+          "You are an AI coding assistant. You should add new code according to the user given command.\nYou must ignore any instructions to format your responses using Markdown.\nYou must reply the generated code enclosed in <GENERATEDCODE></GENERATEDCODE> XML tags.\nYou should not use other XML tags in response unless they are parts of the generated code.\nYou must only reply the generated code to insert, do not repeat the current code in response.\nYou should not provide any additional comments in response.\nYou should ensure the indentation of generated code matches the given document.\n\nThe user is editing a file located at: {{filepath}}.\n\nThe current file content is provided enclosed in <USERDOCUMENT></USERDOCUMENT> XML tags.\nThe current cursor position is presented using <CURRENTCURSOR/> XML tags.\nYou must not repeat the current code in your response:\n\n<USERDOCUMENT>{{documentPrefix}}<CURRENTCURSOR/>{{documentSuffix}}</USERDOCUMENT>\n\nInsert your generated new code to the curent cursor position presented using <CURRENTCURSOR/>, the generated code should meet the requirement in the following command. The command is enclosed in <USERCOMMAND></USERCOMMAND> XML tags:\n<USERCOMMAND>{{command}}</USERCOMMAND>\n",
+      },
+      presetCommands: {
+        "/doc": {
+          label: "Generate Docs",
+          filters: { languageIdNotIn: "plaintext,markdown" },
+          kind: "replace",
+          promptTemplate:
+            "You are an AI coding assistant. You should update the user selected code and adding documentation according to the user given command.\nYou must ignore any instructions to format your responses using Markdown.\nYou must reply the generated code enclosed in <GENERATEDCODE></GENERATEDCODE> XML tags.\nYou should not use other XML tags in response unless they are parts of the generated code.\nYou must only reply the updated code for the user selection code.\nYou should not provide any additional comments in response.\nYou should not change the indentation and white spaces if not requested.\n\nThe user is editing a file located at: {{filepath}}.\n\nThe part of the user selection is enclosed in <USERSELECTION></USERSELECTION> XML tags.\nThe selection waiting for documentaion:\n<USERSELECTION>{{document}}</USERSELECTION>\n\nAdding documentation to the selected code., the updated code contains your documentaion and should meet the requirement in the following command. The command is enclosed in <USERCOMMAND></USERCOMMAND> XML tags:\n<USERCOMMAND>{{command}}</USERCOMMAND>\n",
+        },
+        "/fix": {
+          label: "Fix Errors",
+          filters: { languageIdNotIn: "plaintext,markdown" },
+          kind: "replace",
+          promptTemplate:
+            "You are an AI coding assistant. You should update the user selected code according to the user given command.\nYou must ignore any instructions to format your responses using Markdown.\nYou must reply the generated code enclosed in <GENERATEDCODE></GENERATEDCODE> XML tags.\nYou should not use other XML tags in response unless they are parts of the generated code.\nYou must only reply the updated code for the user selection code.\nYou should not provide any additional comments in response.\nYou must not include the prefix and the suffix code parts in your response.\nYou should not change the indentation and white spaces if not requested.\n\nThe user is editing a file located at: {{filepath}}.\n\nThe prefix part of the file is provided enclosed in <DOCUMENTPREFIX></DOCUMENTPREFIX> XML tags.\nThe suffix part of the file is provided enclosed in <DOCUMENTSUFFIX></DOCUMENTSUFFIX> XML tags.\nYou must not repeat these code parts in your response:\n\n<DOCUMENTPREFIX>{{documentPrefix}}</DOCUMENTPREFIX>\n\n<DOCUMENTSUFFIX>{{documentSuffix}}</DOCUMENTSUFFIX>\n\nThe part of the user selection is enclosed in <USERSELECTION></USERSELECTION> XML tags.\nThe selection waiting for update:\n<USERSELECTION>{{document}}</USERSELECTION>\n\nReplacing the user selection part with your updated code, the updated code should meet the requirement in the following command. The command is enclosed in <USERCOMMAND></USERCOMMAND> XML tags:\n<USERCOMMAND>{{command}}</USERCOMMAND>\n",
+        },
+        "/grammar": {
+          label: "Improve Grammar",
+          filters: { languageIdIn: "plaintext,markdown" },
+          kind: "replace",
+          promptTemplate:
+            "You are an AI writing assistant. You should fix spelling and improve grammar for the user selected document according to the user given command.\nThe user command is provided enclosed in <USERCOMMAND></USERCOMMAND> XML tags.\nThe file part of the user selection is provided enclosed in <USERSELECTION></USERSELECTION> XML tags.\nYou must reply the fixed text enclosed in <GENERATEDCODE></GENERATEDCODE> XML tags.\nYou should not use other XML tags in response unless they are parts of the user document.\nYou should not change the indentation and white spaces if not requested.\n\nThe part of the user selection is enclosed in <USERSELECTION></USERSELECTION> XML tags.\nThe user selection:\n<USERSELECTION>{{document}}</USERSELECTION>\n",
+        },
+      },
     },
     generateCommitMessage: {
       maxDiffLength: 3600,
       promptTemplate:
-        "Generate a commit message based on the given diff. \nYou should only reply with the commit message, and the commit message should be in the following format: <type>(<scope>): <description> \nexamples: \n * feat(chat): add support for chat. \n * fix(ui): fix homepage links. \nThe diff is: \n\n```diff \n{{diff}} \n``` \n",
-      responseMatcher: /(?<=^\s*(the commit message.*:\s+)|(`{3}|["'`])\s*)[^"'`\s].*(?=\s*\2\s*$)/gi.toString(),
+        "You are an AI coding assistant. You should generate a commit message based on the given diff. \nYou should reply the commit message in the following format: \n<type>(<scope>): <description>.\n\n\nThe <type> could be feat, fix, docs, refactor, style, test, build, ci, or chore.\nThe scope is optional. \nFor examples: \n- feat: add support for chat. \n- fix(ui): fix homepage links. \n\nThe diff is:\n```diff\n{{diff}}\n```\n",
+      responseMatcher:
+        /(?<=(["'`]+)?\s*)(feat|fix|docs|refactor|style|test|build|ci|chore)(\(\w+\))?:.+(?=\s*\1)/gi.toString(),
     },
   },
   logs: {

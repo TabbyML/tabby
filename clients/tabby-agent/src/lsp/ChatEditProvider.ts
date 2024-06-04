@@ -5,6 +5,9 @@ import {
   ChatEditParams,
   ChatEditResolveRequest,
   ChatEditResolveParams,
+  ChatEditCommandRequest,
+  ChatEditCommandParams,
+  ChatEditCommand,
   ChatFeatureNotAvailableError,
   ChatEditDocumentTooLongError,
   ChatEditCommandTooLongError,
@@ -16,7 +19,8 @@ import { Readable } from "node:stream";
 import * as RandomString from "randomstring";
 import * as Diff from "diff";
 import { TabbyAgent } from "../TabbyAgent";
-import { isBlank, stringToRegExp } from "../utils";
+import { isEmptyRange } from "../utils/range";
+import { isBlank } from "../utils";
 
 export type Edit = {
   id: ChatEditToken;
@@ -39,6 +43,9 @@ export class ChatEditProvider {
     private readonly documents: TextDocuments<TextDocument>,
     private readonly agent: TabbyAgent,
   ) {
+    this.connection.onRequest(ChatEditCommandRequest.type, async (params) => {
+      return this.provideEditCommands(params);
+    });
     this.connection.onRequest(ChatEditRequest.type, async (params, token) => {
       return this.provideEdit(params, token);
     });
@@ -49,6 +56,46 @@ export class ChatEditProvider {
 
   isCurrentEdit(id: ChatEditToken): boolean {
     return this.currentEdit?.id === id;
+  }
+
+  async provideEditCommands(params: ChatEditCommandParams): Promise<ChatEditCommand[]> {
+    const commands = this.agent.getConfig().chat.edit.presetCommands;
+    const result: ChatEditCommand[] = [];
+    const document = this.documents.get(params.location.uri);
+
+    result.push(
+      ...Object.entries(commands)
+        .filter(([_command, commandConfig]) => {
+          for (const [filterKey, filterValue] of Object.entries(commandConfig.filters)) {
+            if (filterValue) {
+              switch (filterKey) {
+                case "languageIdIn":
+                  if (document && !filterValue.split(",").includes(document.languageId)) {
+                    return false;
+                  }
+                  break;
+                case "languageIdNotIn":
+                  if (document && filterValue.split(",").includes(document.languageId)) {
+                    return false;
+                  }
+                  break;
+                default:
+                  break;
+              }
+            }
+          }
+          return true;
+        })
+        .map(([command, commandConfig]) => {
+          return {
+            label: commandConfig.label,
+            command,
+            source: "preset",
+          } as ChatEditCommand;
+        }),
+    );
+
+    return result;
   }
 
   async provideEdit(params: ChatEditParams, token: CancellationToken): Promise<ChatEditToken | null> {
@@ -65,14 +112,25 @@ export class ChatEditProvider {
         message: "Chat feature not available",
       } as ChatFeatureNotAvailableError;
     }
-    const { documentMaxChars, commandMaxChars, responseSplitter, responseSplitterIncrement } =
-      this.agent.getConfig().experimentalChat.edit;
-    const documentText = document.getText(params.location.range);
-    if (documentText.length > documentMaxChars) {
-      throw { name: "ChatEditDocumentTooLongError", message: "Document too long" } as ChatEditDocumentTooLongError;
-    }
-    if (params.command.length > commandMaxChars) {
+    const config = this.agent.getConfig().chat;
+    if (params.command.length > config.edit.commandMaxChars) {
       throw { name: "ChatEditCommandTooLongError", message: "Command too long" } as ChatEditCommandTooLongError;
+    }
+
+    let insertMode: boolean = isEmptyRange(params.location.range);
+    const presetCommand = /^\/\w+\b/g.exec(params.command)?.[0];
+    if (presetCommand) {
+      insertMode = config.edit.presetCommands[presetCommand]?.kind === "insert";
+    }
+
+    const documentText = document.getText();
+    const selection = {
+      start: document.offsetAt(params.location.range.start),
+      end: document.offsetAt(params.location.range.end),
+    };
+    const selectedDocumentText = documentText.substring(selection.start, selection.end);
+    if (selection.end - selection.start > config.edit.documentMaxChars) {
+      throw { name: "ChatEditDocumentTooLongError", message: "Document too long" } as ChatEditDocumentTooLongError;
     }
     if (this.mutexAbortController) {
       throw {
@@ -83,17 +141,27 @@ export class ChatEditProvider {
     this.mutexAbortController = new AbortController();
     token.onCancellationRequested(() => this.mutexAbortController?.abort());
 
-    const readableStream = await this.agent.provideChatEdit(documentText, params.command, document.languageId, {
-      signal: this.mutexAbortController.signal,
-    });
+    const readableStream = await this.agent.provideChatEdit(
+      documentText,
+      selection,
+      params.location.uri,
+      insertMode,
+      params.command,
+      document.languageId,
+      {
+        signal: this.mutexAbortController.signal,
+      },
+    );
 
     const editId = "tabby-" + RandomString.generate({ length: 6, charset: "alphanumeric" });
     this.currentEdit = {
       id: editId,
       location: params.location,
       languageId: document.languageId,
-      originalText: documentText,
-      editedRange: params.location.range,
+      originalText: selectedDocumentText,
+      editedRange: insertMode
+        ? { start: params.location.range.end, end: params.location.range.end }
+        : params.location.range,
       editedText: "",
       comments: "",
       buffer: "",
@@ -102,11 +170,7 @@ export class ChatEditProvider {
     if (!readableStream) {
       return null;
     }
-    let splitter = responseSplitter;
-    while (stringToRegExp(`/^\\s*${splitter}/gm`).test(documentText)) {
-      splitter += responseSplitterIncrement;
-    }
-    await this.readResponseStream(readableStream, splitter);
+    await this.readResponseStream(readableStream, config.edit.responseDocumentTag, config.edit.responseCommentTag);
     return editId;
   }
 
@@ -180,7 +244,11 @@ export class ChatEditProvider {
     return true;
   }
 
-  private async readResponseStream(stream: Readable, responseSplitter: string): Promise<void> {
+  private async readResponseStream(
+    stream: Readable,
+    responseDocumentTag: string[],
+    responseCommentTag?: string[],
+  ): Promise<void> {
     const finalize = async (state: "completed" | "stopped") => {
       if (this.currentEdit) {
         const edit = this.currentEdit;
@@ -203,7 +271,7 @@ export class ChatEditProvider {
       this.mutexAbortController = null;
     };
     try {
-      let currentBlock = 0;
+      let inTag: "document" | "comment" | false = false;
       for await (const delta of stream) {
         if (!this.currentEdit || !this.mutexAbortController || this.mutexAbortController.signal.aborted) {
           break;
@@ -211,39 +279,54 @@ export class ChatEditProvider {
         let changed = false;
         const edit = this.currentEdit;
         edit.buffer += delta;
-        const lines = edit.buffer.split("\n");
-        edit.buffer = "";
-        for (let lineIndex = 0; lineIndex < lines.length - 1; lineIndex++) {
-          const line = lines[lineIndex];
-          if (line === undefined) {
+        if (!inTag) {
+          const openTags = [responseDocumentTag[0], responseCommentTag?.[0]].filter(Boolean);
+          if (openTags.length < 1) {
             break;
           }
-          if (line.trim().startsWith(responseSplitter)) {
-            currentBlock++;
-          } else {
-            if (currentBlock === 1) {
-              edit.editedText += line + "\n";
-              changed = true;
-            } else if (currentBlock === 2) {
-              edit.comments += line + "\n";
-              changed = true;
+          const reg = new RegExp(openTags.join("|"), "g");
+          const match = reg.exec(edit.buffer);
+          if (match && match[0]) {
+            if (match[0] === responseDocumentTag[0]) {
+              inTag = "document";
+              edit.buffer = edit.buffer.substring(match.index + match[0].length);
+            } else if (match[0] === responseCommentTag?.[0]) {
+              inTag = "comment";
+              edit.buffer = edit.buffer.substring(match.index + match[0].length);
             }
           }
         }
-        const lastLine = lines[lines.length - 1];
-        if (lastLine) {
-          if (responseSplitter.startsWith(lastLine.trim()) || lastLine.trim().startsWith(responseSplitter)) {
-            // seems to be a splitter, keep it
-            edit.buffer = lastLine;
+        if (inTag) {
+          let closeTag: string | undefined = undefined;
+          if (inTag === "document") {
+            closeTag = responseDocumentTag[1];
+          } else if (inTag === "comment") {
+            closeTag = responseCommentTag?.[1];
+          }
+          if (!closeTag) {
+            break;
+          }
+          const reg = this.createCloseTagMatcher(closeTag);
+          const match = reg.exec(edit.buffer);
+          if (!match) {
+            if (inTag === "document") {
+              edit.editedText += edit.buffer;
+            } else if (inTag === "comment") {
+              edit.comments += edit.buffer;
+            }
+            edit.buffer = "";
           } else {
-            if (currentBlock === 1) {
-              edit.editedText += lastLine;
-              changed = true;
-            } else if (currentBlock === 2) {
-              edit.comments += lastLine;
-              changed = true;
+            if (inTag === "document") {
+              edit.editedText += edit.buffer.substring(0, match.index);
+            } else if (inTag === "comment") {
+              edit.comments += edit.buffer.substring(0, match.index);
+            }
+            edit.buffer = edit.buffer.substring(match.index);
+            if (match[0] === closeTag) {
+              inTag = false;
             }
           }
+          changed = true;
         }
         if (changed) {
           const editedLines = this.generateChangesPreview(edit);
@@ -384,6 +467,14 @@ export class ChatEditProvider {
     return lines;
   }
 
+  private createCloseTagMatcher(tag: string): RegExp {
+    let reg = `${tag}`;
+    for (let length = tag.length - 1; length > 0; length--) {
+      reg += "|" + tag.substring(0, length) + "$";
+    }
+    return new RegExp(reg, "g");
+  }
+
   // FIXME: improve this
   private getCommentPrefix(languageId: string) {
     if (["plaintext", "markdown"].includes(languageId)) {
@@ -392,7 +483,21 @@ export class ChatEditProvider {
     if (["python", "ruby"].includes(languageId)) {
       return "#";
     }
-    if (["c", "cpp", "java", "javascript", "typescript", "go", "rust", "swift", "kotlin"].includes(languageId)) {
+    if (
+      [
+        "c",
+        "cpp",
+        "java",
+        "javascript",
+        "typescript",
+        "javascriptreact",
+        "typescriptreact",
+        "go",
+        "rust",
+        "swift",
+        "kotlin",
+      ].includes(languageId)
+    ) {
       return "//";
     }
     return "";

@@ -190,10 +190,7 @@ async fn collect_snippets(
 
     let mut ret = Vec::new();
 
-    let serp = match code
-        .search_in_language(query, MAX_SNIPPETS_TO_FETCH, 0)
-        .await
-    {
+    let serp = match code.search_in_language(query, MAX_SNIPPETS_TO_FETCH).await {
         Ok(serp) => serp,
         Err(CodeSearchError::NotReady) => {
             // Ignore.
@@ -225,7 +222,7 @@ async fn collect_snippets(
         ret.push(Snippet {
             filepath: hit.doc.filepath,
             body,
-            score: hit.score,
+            score: hit.scores.combined_rank as f32,
         });
     }
 
@@ -234,6 +231,11 @@ async fn collect_snippets(
 
 #[cfg(test)]
 mod tests {
+    use async_trait::async_trait;
+    use tabby_common::api::code::{
+        CodeSearchDocument, CodeSearchHit, CodeSearchResponse, CodeSearchScores,
+    };
+
     use super::*;
     use crate::services::completion::Declaration;
 
@@ -259,6 +261,42 @@ mod tests {
             relevant_snippets_from_changed_files: None,
             clipboard: None,
         }
+    }
+
+    struct MockCodeSearch(fn() -> Result<CodeSearchResponse, CodeSearchError>);
+
+    #[async_trait]
+    impl CodeSearch for MockCodeSearch {
+        async fn search_in_language(
+            &self,
+            _query: CodeSearchQuery,
+            _limit: usize,
+        ) -> Result<CodeSearchResponse, CodeSearchError> {
+            (self.0)()
+        }
+    }
+
+    #[tokio::test]
+    async fn test_collect_snippets() {
+        // Not ready error from CodeSearch should result in empty snippets, rather than error
+        let search = MockCodeSearch(|| Err(CodeSearchError::NotReady));
+        let snippets = collect_snippets(150, &search, "", None, "", "").await;
+        assert_eq!(snippets, vec![]);
+
+        let search = MockCodeSearch(|| {
+            Ok(CodeSearchResponse {
+                hits: vec![Default::default()],
+            })
+        });
+        let snippets = collect_snippets(150, &search, "", None, "", "").await;
+        assert_eq!(
+            snippets,
+            vec![Snippet {
+                filepath: "".into(),
+                body: "".into(),
+                score: 0.0
+            }]
+        );
     }
 
     #[test]

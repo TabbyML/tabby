@@ -159,7 +159,6 @@ export default function ChatPage() {
       onLoaded={onChatLoaded}
       maxWidth={maxWidth}
       onCopyContent={from === 'vscode' ? onCopyContent : undefined}
-      isReferenceClickable={from !== 'vscode'}
     />
   )
 }

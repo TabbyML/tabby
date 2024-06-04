@@ -18,6 +18,7 @@ import {
 import os from "os";
 import path from "path";
 import { strict as assert } from "assert";
+import { ChatEditCommand } from "tabby-agent";
 import { Client } from "./lsp/Client";
 import { Config } from "./Config";
 import { ContextVariables } from "./ContextVariables";
@@ -210,60 +211,61 @@ export class Commands {
         this.config.mutedNotifications = [];
       }
     },
-    "experimental.chat.explainCodeBlock": async () => {
-      const alignIndent = (text: string) => {
-        const lines = text.split("\n");
-        const subsequentLines = lines.slice(1);
-
-        // Determine the minimum indent for subsequent lines
-        const minIndent = subsequentLines.reduce((min, line) => {
-          const match = line.match(/^(\s*)/);
-          const indent = match ? match[0].length : 0;
-          return line.trim() ? Math.min(min, indent) : min;
-        }, Infinity);
-
-        // Remove the minimum indent
-        const adjustedLines = lines.slice(1).map((line) => line.slice(minIndent));
-
-        return [lines[0]?.trim(), ...adjustedLines].join("\n");
-      };
-
+    "chat.explainCodeBlock": async () => {
       const editor = window.activeTextEditor;
       if (editor) {
-        const uri = editor.document.uri;
-        const text = editor.document.getText(editor.selection);
-        const workspaceFolder = workspace.getWorkspaceFolder(uri);
-        const repo = this.gitProvider.getRepository(uri);
-        const remoteUrl = repo ? this.gitProvider.getDefaultRemoteUrl(repo) : undefined;
-        let filePath = uri.toString();
-        if (repo) {
-          filePath = filePath.replace(repo.rootUri.toString(), "");
-        } else if (workspaceFolder) {
-          filePath = filePath.replace(workspaceFolder.uri.toString(), "");
-        }
-
         commands.executeCommand("tabby.chatView.focus");
-
+        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
         this.chatViewProvider.sendMessage({
           message: "Explain the selected code:",
-          selectContext: {
-            kind: "file",
-            content: alignIndent(text),
-            range: {
-              start: editor.selection.start.line + 1,
-              end: editor.selection.end.line + 1,
-            },
-            filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
-            git_url: remoteUrl ?? "",
-          },
+          selectContext: fileContext,
         });
       } else {
         window.showInformationMessage("No active editor");
       }
     },
-    "experimental.chat.edit.start": async () => {
+    "chat.fixCodeBlock": async () => {
       const editor = window.activeTextEditor;
-      if (!editor || editor.selection.isEmpty) {
+      if (editor) {
+        commands.executeCommand("tabby.chatView.focus");
+        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+        this.chatViewProvider.sendMessage({
+          message: "Identify and fix potential bugs in the selected code:",
+          selectContext: fileContext,
+        });
+      } else {
+        window.showInformationMessage("No active editor");
+      }
+    },
+    "chat.generateCodeBlockDoc": async () => {
+      const editor = window.activeTextEditor;
+      if (editor) {
+        commands.executeCommand("tabby.chatView.focus");
+        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+        this.chatViewProvider.sendMessage({
+          message: "Generate documentation for the selected code:",
+          selectContext: fileContext,
+        });
+      } else {
+        window.showInformationMessage("No active editor");
+      }
+    },
+    "chat.generateCodeBlockTest": async () => {
+      const editor = window.activeTextEditor;
+      if (editor) {
+        commands.executeCommand("tabby.chatView.focus");
+        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+        this.chatViewProvider.sendMessage({
+          message: "Generate a unit test for the selected code:",
+          selectContext: fileContext,
+        });
+      } else {
+        window.showInformationMessage("No active editor");
+      }
+    },
+    "chat.edit.start": async () => {
+      const editor = window.activeTextEditor;
+      if (!editor) {
         return;
       }
       const startPosition = new Position(editor.selection.start.line, 0);
@@ -271,44 +273,73 @@ export class Commands {
         uri: editor.document.uri.toString(),
         range: {
           start: { line: editor.selection.start.line, character: 0 },
-          end: { line: editor.selection.end.line + 1, character: 0 },
+          end: {
+            line: editor.selection.end.character === 0 ? editor.selection.end.line : editor.selection.end.line + 1,
+            character: 0,
+          },
         },
       };
       const recentlyCommand = this.config.chatEditRecentlyCommand;
-      const buildQuickPickList = (input = "") => {
-        const list: QuickPickItem[] = [];
-        if (input.length > 0) {
+      const suggestedCommand: ChatEditCommand[] = [];
+      const quickPick = window.createQuickPick<QuickPickItem & { value: string }>();
+      const updateQuickPickList = () => {
+        const input = quickPick.value;
+        const list: (QuickPickItem & { value: string })[] = [];
+        if (input.length > 0 && !input.startsWith("/")) {
           list.push({
             label: input,
+            value: input,
             iconPath: new ThemeIcon("run"),
             description: "",
             alwaysShow: true,
           });
         }
-        list.push({
-          label: "",
-          kind: QuickPickItemKind.Separator,
-        });
         list.push(
-          ...recentlyCommand.map((item) => {
+          ...suggestedCommand.map((item) => {
+            return {
+              label: item.label,
+              value: item.command,
+              iconPath: item.source === "preset" ? new ThemeIcon("edit") : new ThemeIcon("spark"),
+              description: item.source === "preset" ? item.command : "Suggested",
+            };
+          }),
+        );
+        if (list.length > 0) {
+          list.push({
+            label: "",
+            value: "",
+            kind: QuickPickItemKind.Separator,
+            alwaysShow: true,
+          });
+        }
+        const recentlyCommandToAdd = recentlyCommand.filter((item) => !list.find((i) => i.value === item));
+        list.push(
+          ...recentlyCommandToAdd.map((item) => {
             return {
               label: item,
+              value: item,
               iconPath: new ThemeIcon("history"),
               description: "History",
             };
           }),
         );
-        return list;
+        quickPick.items = list;
       };
-      const quickPick = window.createQuickPick();
+      const fetchingSuggestedCommandCancellationTokenSource = new CancellationTokenSource();
+      this.client.chat.provideEditCommands(
+        { location: editLocation },
+        { commands: suggestedCommand, callback: () => updateQuickPickList() },
+        fetchingSuggestedCommandCancellationTokenSource.token,
+      );
       quickPick.placeholder = "Enter the command for editing";
-      quickPick.items = buildQuickPickList();
-      quickPick.onDidChangeValue((input: string) => {
-        quickPick.items = buildQuickPickList(input);
+      quickPick.matchOnDescription = true;
+      quickPick.onDidChangeValue(() => updateQuickPickList());
+      quickPick.onDidHide(() => {
+        fetchingSuggestedCommandCancellationTokenSource.cancel();
       });
       quickPick.onDidAccept(() => {
         quickPick.hide();
-        const command = quickPick.selectedItems[0]?.label;
+        const command = quickPick.selectedItems[0]?.value;
         if (command) {
           this.config.chatEditRecentlyCommand = [command]
             .concat(recentlyCommand.filter((item) => item !== command))
@@ -338,8 +369,13 @@ export class Commands {
                   },
                   this.chatEditCancellationTokenSource.token,
                 );
-              } catch (_) {
-                // ignore
+              } catch (error) {
+                if (typeof error === "object" && error && "name" in error) {
+                  error.name === "ChatEditDocumentTooLongError";
+                  window.showErrorMessage(
+                    "The selected text is too long to edit, please select less text and try again.",
+                  );
+                }
               }
               this.chatEditCancellationTokenSource.dispose();
               this.chatEditCancellationTokenSource = null;
@@ -351,10 +387,10 @@ export class Commands {
       });
       quickPick.show();
     },
-    "experimental.chat.edit.stop": async () => {
+    "chat.edit.stop": async () => {
       this.chatEditCancellationTokenSource?.cancel();
     },
-    "experimental.chat.edit.accept": async () => {
+    "chat.edit.accept": async () => {
       const editor = window.activeTextEditor;
       if (!editor) {
         return;
@@ -368,7 +404,7 @@ export class Commands {
       };
       await this.client.chat.resolveEdit({ location, action: "accept" });
     },
-    "experimental.chat.edit.discard": async () => {
+    "chat.edit.discard": async () => {
       const editor = window.activeTextEditor;
       if (!editor) {
         return;
@@ -382,7 +418,7 @@ export class Commands {
       };
       await this.client.chat.resolveEdit({ location, action: "discard" });
     },
-    "experimental.chat.generateCommitMessage": async () => {
+    "chat.generateCommitMessage": async () => {
       const repos = this.gitProvider.getRepositories() ?? [];
       if (repos.length < 1) {
         window.showInformationMessage("No Git repositories found.");

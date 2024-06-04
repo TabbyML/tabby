@@ -59,7 +59,7 @@ export async function activate(context: ExtensionContext) {
   await client.start();
 
   // Register chat panel
-  const chatViewProvider = new ChatViewProvider(context, client.agent);
+  const chatViewProvider = new ChatViewProvider(context, client.agent, logger);
   context.subscriptions.push(
     window.registerWebviewViewProvider("tabby.chatView", chatViewProvider, {
       webviewOptions: { retainContextWhenHidden: true },
@@ -67,7 +67,7 @@ export async function activate(context: ExtensionContext) {
   );
 
   const issues = new Issues(client, config);
-  const contextVariables = new ContextVariables(client, config);
+  const contextVariables = new ContextVariables(client);
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ /* @ts-expect-error noUnusedLocals */
   const statusBarItem = new StatusBarItem(context, client, config, issues, inlineCompletionProvider);
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ /* @ts-expect-error noUnusedLocals */

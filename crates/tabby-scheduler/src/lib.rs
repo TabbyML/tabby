@@ -16,13 +16,12 @@ mod doc;
 use std::{env, sync::Arc};
 
 use doc::create_web_index;
-use tabby_common::config::RepositoryConfig;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{debug, info, warn};
 
 pub async fn scheduler(now: bool, config: &tabby_common::config::Config) {
     if now {
-        scheduler_pipeline(&config.repositories).await;
+        scheduler_pipeline(config).await;
         if env::var("TABBY_SCHEDULER_EXPERIMENTAL_DOC_INDEX").is_ok() {
             doc_index_pipeline(config).await;
         }
@@ -45,7 +44,7 @@ pub async fn scheduler(now: bool, config: &tabby_common::config::Config) {
                             return;
                         };
 
-                        scheduler_pipeline(&config.repositories).await;
+                        scheduler_pipeline(&config).await;
                     })
                 })
                 .expect("Failed to create job"),
@@ -61,10 +60,19 @@ pub async fn scheduler(now: bool, config: &tabby_common::config::Config) {
     }
 }
 
-async fn scheduler_pipeline(repositories: &[RepositoryConfig]) {
+async fn scheduler_pipeline(config: &tabby_common::config::Config) {
+    let Some(embedding_config) = &config.model.embedding else {
+        warn!("No embedding configuration found, skipping scheduler...");
+        return;
+    };
+
+    let embedding = llama_cpp_server::create_embedding(embedding_config).await;
+
+    let repositories = &config.repositories;
+
     let mut code = CodeIndexer::default();
     for repository in repositories {
-        code.refresh(repository).await;
+        code.refresh(embedding.clone(), repository).await;
     }
 
     code.garbage_collection(repositories);
@@ -76,6 +84,7 @@ async fn doc_index_pipeline(config: &tabby_common::config::Config) {
     };
 
     let Some(embedding_config) = &config.model.embedding else {
+        warn!("No embedding configuration found, skipping doc index pipeline...");
         return;
     };
 

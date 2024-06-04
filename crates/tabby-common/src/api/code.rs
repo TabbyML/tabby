@@ -6,23 +6,32 @@ use utoipa::ToSchema;
 
 #[derive(Default, Serialize, Deserialize, Debug)]
 pub struct CodeSearchResponse {
-    pub num_hits: usize,
     pub hits: Vec<CodeSearchHit>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct CodeSearchHit {
-    pub score: f32,
+    pub scores: CodeSearchScores,
     pub doc: CodeSearchDocument,
 }
 
-#[derive(Serialize, Deserialize, Debug, Builder, Clone, ToSchema)]
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct CodeSearchScores {
+    pub combined_rank: i32,
+    pub bm25: f32,
+    pub embedding: f32,
+}
+
+#[derive(Serialize, Deserialize, Debug, Builder, Clone, ToSchema, Default)]
 pub struct CodeSearchDocument {
     /// Unique identifier for the file in the repository, stringified SourceFileKey.
     ///
     /// Skipped in API responses.
     #[serde(skip_serializing)]
     pub file_id: String,
+
+    #[serde(skip_serializing)]
+    pub chunk_id: String,
 
     pub body: String,
     pub filepath: String,
@@ -60,6 +69,5 @@ pub trait CodeSearch: Send + Sync {
         &self,
         query: CodeSearchQuery,
         limit: usize,
-        offset: usize,
     ) -> Result<CodeSearchResponse, CodeSearchError>;
 }

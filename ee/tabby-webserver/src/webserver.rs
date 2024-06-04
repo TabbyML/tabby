@@ -9,6 +9,7 @@ use tabby_common::{
     config::{Config, ConfigAccess, RepositoryConfig},
 };
 use tabby_db::DbConn;
+use tabby_inference::Embedding;
 use tabby_schema::{integration::IntegrationService, repository::RepositoryService};
 
 use crate::{
@@ -37,7 +38,10 @@ impl ConfigAccess for Webserver {
 }
 
 impl Webserver {
-    pub async fn new(logger1: impl EventLogger + 'static) -> Arc<Self> {
+    pub async fn new(
+        logger1: impl EventLogger + 'static,
+        embedding: Arc<dyn Embedding>,
+    ) -> Arc<Self> {
         let db = DbConn::new(db_file().as_path())
             .await
             .expect("Must be able to initialize db");
@@ -48,7 +52,7 @@ impl Webserver {
         let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<BackgroundJobEvent>();
 
         let integration = Arc::new(integration::create(db.clone(), sender.clone()));
-        let repository = repository::create(db.clone(), integration.clone(), sender);
+        let repository = repository::create(db.clone(), integration.clone(), sender.clone());
 
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
@@ -64,6 +68,8 @@ impl Webserver {
             ws.clone(),
             repository.third_party(),
             integration.clone(),
+            embedding,
+            sender,
             receiver,
         )
         .await;

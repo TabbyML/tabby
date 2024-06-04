@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_stream::stream;
 use async_trait::async_trait;
-use futures::{stream::BoxStream, StreamExt};
+use futures::stream::BoxStream;
 use serde_json::json;
 use tabby_common::index::{self, doc};
 use tabby_inference::Embedding;
@@ -26,7 +26,7 @@ pub struct DocBuilder {
 }
 
 impl DocBuilder {
-    pub fn new(embedding: Arc<dyn Embedding>) -> Self {
+    fn new(embedding: Arc<dyn Embedding>) -> Self {
         Self { embedding }
     }
 }
@@ -54,13 +54,15 @@ impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
         &self,
         document: &SourceDocument,
     ) -> BoxStream<(Vec<String>, serde_json::Value)> {
-        let splitter = TextSplitter::default().with_trim_chunks(true);
         let embedding = self.embedding.clone();
-        let content = document.body.clone();
+        let chunks: Vec<_> = TextSplitter::new(CHUNK_SIZE)
+            .chunks(&document.body)
+            .map(|x| x.to_owned())
+            .collect();
 
         let s = stream! {
-            for chunk_text in splitter.chunks(&content, CHUNK_SIZE) {
-                let embedding = match embedding.embed(chunk_text).await {
+            for chunk_text in chunks {
+                let embedding = match embedding.embed(&chunk_text).await {
                     Ok(embedding) => embedding,
                     Err(err) => {
                         warn!("Failed to embed chunk text: {}", err);

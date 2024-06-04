@@ -134,7 +134,7 @@ function UserMessageCard(props: { message: UserMessage }) {
         </div>
       </div>
 
-      <div className="group flex w-full justify-between gap-x-2">
+      <div className="group relative flex w-full justify-between gap-x-2">
         <div className="flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
           <MessageMarkdown message={message.message} />
           {!!selectCodeSnippet && (
@@ -144,9 +144,8 @@ function UserMessageCard(props: { message: UserMessage }) {
             <UserMessageCardActions {...props} />
           </div>
         </div>
-
         {!data?.me.name && (
-          <div className="block opacity-0 transition-opacity group-hover:opacity-100 md:hidden">
+          <div className="editor-bg absolute right-0 top-0 -mt-0.5 block opacity-0 transition-opacity group-hover:opacity-100 md:hidden">
             <UserMessageCardActions {...props} />
           </div>
         )}

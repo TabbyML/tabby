@@ -12,6 +12,10 @@ pub fn get(language: &str) -> Option<&TagsConfigurationSync> {
     LANGUAGE_TAGS.get(language)
 }
 
+pub fn all() -> impl Iterator<Item = (&'static str, &'static TagsConfigurationSync)> {
+    LANGUAGE_TAGS.iter().map(|(a, b)| (*a, b))
+}
+
 lazy_static! {
     static ref LANGUAGE_TAGS: HashMap<&'static str, TagsConfigurationSync> = {
         HashMap::from([
@@ -20,7 +24,7 @@ lazy_static! {
                 TagsConfigurationSync(
                     TagsConfiguration::new(
                         tree_sitter_python::language(),
-                        tree_sitter_python::TAGGING_QUERY,
+                        tree_sitter_python::TAGS_QUERY,
                         "",
                     )
                     .unwrap(),
@@ -42,7 +46,7 @@ lazy_static! {
                 TagsConfigurationSync(
                     TagsConfiguration::new(
                         tree_sitter_java::language(),
-                        tree_sitter_java::TAGGING_QUERY,
+                        tree_sitter_java::TAGS_QUERY,
                         "",
                     )
                     .unwrap(),
@@ -86,7 +90,7 @@ lazy_static! {
                 TagsConfigurationSync(
                     TagsConfiguration::new(
                         tree_sitter_ruby::language(),
-                        tree_sitter_ruby::TAGGING_QUERY,
+                        tree_sitter_ruby::TAGS_QUERY,
                         "",
                     )
                     .unwrap(),
