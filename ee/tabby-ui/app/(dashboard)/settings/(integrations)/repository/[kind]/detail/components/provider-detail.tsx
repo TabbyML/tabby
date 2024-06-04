@@ -251,9 +251,9 @@ const ActiveRepoTable: React.FC<{
             res?.gitlabRepositories,
           updateResolver: (
             res?: QueryResponseData<
-              typeof updateGithubSelfHostedProvidedRepositoryActiveMutation
+              typeof updateGitlabProvidedRepositoryActiveMutation
             >
-          ) => res?.updateGithubSelfHostedProvidedRepositoryActive
+          ) => res?.updateGitlabProvidedRepositoryActive
         }
       case RepositoryKind.GitlabSelfHosted:
         return {
