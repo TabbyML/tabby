@@ -6,7 +6,6 @@ use crate::tantivy_utils::open_or_create_index;
 
 #[async_trait::async_trait]
 pub trait IndexAttributeBuilder<T>: Send + Sync {
-    fn format_id(&self, id: &str) -> String;
     async fn build_id(&self, document: &T) -> String;
     async fn build_attributes(&self, document: &T) -> serde_json::Value;
     async fn build_chunk_attributes(
@@ -16,13 +15,14 @@ pub trait IndexAttributeBuilder<T>: Send + Sync {
 }
 
 pub struct Indexer<T> {
+    kind: &'static str,
     builder: Box<dyn IndexAttributeBuilder<T>>,
     writer: IndexWriter,
     pub recreated: bool,
 }
 
 impl<T> Indexer<T> {
-    pub fn new(builder: impl IndexAttributeBuilder<T> + 'static) -> Self {
+    pub fn new(kind: &'static str, builder: impl IndexAttributeBuilder<T> + 'static) -> Self {
         let doc = IndexSchema::instance();
         let (recreated, index) = open_or_create_index(&doc.schema, &path::index_dir());
         let writer = index
@@ -30,6 +30,7 @@ impl<T> Indexer<T> {
             .expect("Failed to create index writer");
 
         Self {
+            kind,
             builder: Box::new(builder),
             writer,
             recreated,
@@ -60,7 +61,8 @@ impl<T> Indexer<T> {
         let updated_at = tantivy::DateTime::from_utc(now);
 
         let doc = doc! {
-            schema.field_id => id,
+            schema.field_id => self.format_id(&id),
+            schema.field_corpus => self.kind,
             schema.field_attributes => self.builder.build_attributes(&document).await,
             schema.field_updated_at => updated_at,
         };
@@ -82,6 +84,7 @@ impl<T> Indexer<T> {
             .map(move |(chunk_id, (tokens, chunk_attributes))| {
                 let mut doc = doc! {
                     schema.field_id => id,
+                    schema.field_corpus => self.kind,
                     schema.field_updated_at => updated_at,
                     schema.field_chunk_id => format!("{}-{}", id, chunk_id),
                     schema.field_chunk_attributes => chunk_attributes,
@@ -98,8 +101,12 @@ impl<T> Indexer<T> {
     pub fn delete(&self, id: &str) {
         self.writer.delete_term(Term::from_field_text(
             IndexSchema::instance().field_id,
-            &self.builder.format_id(id),
+            &self.format_id(id),
         ));
+    }
+
+    fn format_id(&self, id: &str) -> String {
+        format!("{}:{}", self.kind, id)
     }
 
     pub fn commit(mut self) {
