@@ -204,4 +204,40 @@ mod tests {
                 .len()
         );
     }
+
+    #[tokio::test]
+    async fn test_update_integration_should_reset_status() {
+        let background = create_fake();
+        let db = DbConn::new_in_memory().await.unwrap();
+        let integration = Arc::new(create(db, background));
+
+        let id = integration
+            .create_integration(IntegrationKind::Github, "gh".into(), "token".into(), None)
+            .await
+            .unwrap();
+
+        integration
+            .update_integration_sync_status(id.clone(), None)
+            .await
+            .unwrap();
+
+        let provider = integration.get_integration(id.clone()).await.unwrap();
+
+        assert_eq!(provider.status, IntegrationStatus::Ready);
+
+        integration
+            .update_integration(
+                id.clone(),
+                IntegrationKind::Github,
+                "gh".into(),
+                Some("token2".into()),
+                None,
+            )
+            .await
+            .unwrap();
+
+        let provider = integration.get_integration(id.clone()).await.unwrap();
+
+        assert_eq!(provider.status, IntegrationStatus::Pending);
+    }
 }
