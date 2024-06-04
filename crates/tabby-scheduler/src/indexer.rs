@@ -84,6 +84,7 @@ impl<T> Indexer<T> {
             .map(move |(chunk_id, (tokens, chunk_attributes))| {
                 let mut doc = doc! {
                     schema.field_id => id,
+                    schema.field_kind => self.kind,
                     schema.field_updated_at => updated_at,
                     schema.field_chunk_id => format!("{}-{}", id, chunk_id),
                     schema.field_chunk_attributes => chunk_attributes,
