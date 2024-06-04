@@ -1,5 +1,5 @@
 import { splitLines, isBlank } from "./utils";
-import type { components as TabbyApiComponents } from "./types/tabbyApi";
+import type { components as TabbyApiComponents } from "tabby-openapi/compatible";
 import type { CompletionContext } from "./CompletionContext";
 
 export type InlineCompletionItem = {

@@ -180,6 +180,9 @@ importers:
       stats-logscale:
         specifier: ^1.0.9
         version: 1.0.9
+      tabby-openapi:
+        specifier: workspace:*
+        version: link:../tabby-openapi
       toml:
         specifier: ^3.0.0
         version: 3.0.0
@@ -262,6 +265,15 @@ importers:
       vitest:
         specifier: ^1.5.2
         version: 1.6.0(@types/node@20.12.12)(terser@5.31.0)
+
+  clients/tabby-openapi:
+    devDependencies:
+      openapi-typescript:
+        specifier: ^6.6.1
+        version: 6.7.6
+      wget:
+        specifier: ^0.0.1
+        version: 0.0.1
 
   clients/vim:
     devDependencies:
@@ -720,6 +732,9 @@ importers:
       prettier:
         specifier: ^2.7.1
         version: 2.8.8
+      tabby-openapi:
+        specifier: workspace:*
+        version: link:../../clients/tabby-openapi
       tailwind-merge:
         specifier: ^1.12.0
         version: 1.14.0
@@ -9471,6 +9486,10 @@ packages:
   tunnel-agent@0.6.0:
     resolution: {integrity: sha512-McnNiV1l8RYeY8tBgEpuodCC1mLUdbSN+CYBL7kJsJNInOP8UjDDEwdk6Mw60vdLLrr5NHKZhMAOSrR2NZuQ+w==}
 
+  tunnel@0.0.2:
+    resolution: {integrity: sha512-PjBRT+4Y/UH3q/lnjXosoaB+hY1yNH2TXWMjPSF1bAIdZmUDAJ2lBPt5s8jTH1e7sgb3nleK889E9vyY4NXpYw==}
+    engines: {node: '>=0.6.11 <=0.7.0 || >=0.7.3'}
+
   tunnel@0.0.6:
     resolution: {integrity: sha512-1h/Lnq9yajKY2PEbBadPXj3VxsDDu844OnaAo52UVmIzIvwwtBPIuNvkjuzBlTWpfJyUbG3ez0KSBibQkj4ojg==}
     engines: {node: '>=0.6.11 <=0.7.0 || >=0.7.3'}
@@ -9941,6 +9960,11 @@ packages:
     peerDependenciesMeta:
       webpack-cli:
         optional: true
+
+  wget@0.0.1:
+    resolution: {integrity: sha512-iKDSrvontU6lAQq89bNn7me3HU/+Cau7NedEYz607TOS4n0AgksloCt2UwU+ZH5Kn0Lq+XbJ6STOpnhpjicvOQ==}
+    engines: {node: '>= 0.6.18'}
+    hasBin: true
 
   whatwg-fetch@3.6.19:
     resolution: {integrity: sha512-d67JP4dHSbm2TrpFj8AbO8DnL1JXL5J9u0Kq2xW6d0TFDbCA3Muhdt8orXC22utleTVj7Prqt82baN6RBvnEgw==}
@@ -21029,6 +21053,8 @@ snapshots:
       safe-buffer: 5.2.1
     optional: true
 
+  tunnel@0.0.2: {}
+
   tunnel@0.0.6: {}
 
   turbo-darwin-64@1.13.3:
@@ -21566,6 +21592,10 @@ snapshots:
       - '@swc/core'
       - esbuild
       - uglify-js
+
+  wget@0.0.1:
+    dependencies:
+      tunnel: 0.0.2
 
   whatwg-fetch@3.6.19: {}
 
