@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use ignore::Walk;
-use tabby_common::config::RepositoryConfig;
+use tabby_common::{config::RepositoryConfig};
 use tabby_inference::Embedding;
 use tracing::warn;
 

@@ -4,11 +4,12 @@ use anyhow::Result;
 use async_trait::async_trait;
 use tabby_common::{
     api::doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse},
-    index::{self, doc},
+    index::{self, doc, kind},
 };
 use tabby_inference::Embedding;
 use tantivy::{
     collector::TopDocs,
+    query::{BooleanQuery, ConstScoreQuery, Occur},
     schema::{self, Value},
     IndexReader, TantivyDocument,
 };
@@ -36,12 +37,14 @@ impl DocSearchImpl {
         let embedding = self.embedding.embed(q).await?;
         let embedding_tokens_query =
             index::embedding_tokens_query(embedding.len(), embedding.iter());
+        let kind_query = schema.kind_query(kind::WEB);
+        let query = BooleanQuery::new(vec![
+            (Occur::Must, Box::new(ConstScoreQuery::new(kind_query, 0.0))),
+            (Occur::Must, Box::new(embedding_tokens_query)),
+        ]);
 
         let searcher = reader.searcher();
-        let top_chunks = searcher.search(
-            &embedding_tokens_query,
-            &TopDocs::with_limit(limit).and_offset(offset),
-        )?;
+        let top_chunks = searcher.search(&query, &TopDocs::with_limit(limit).and_offset(offset))?;
 
         let hits = top_chunks
             .iter()

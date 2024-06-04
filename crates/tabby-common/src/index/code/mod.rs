@@ -6,7 +6,7 @@ use tantivy::{
 };
 pub use tokenizer::tokenize_code;
 
-use super::IndexSchema;
+use super::{kind, IndexSchema};
 use crate::api::code::CodeSearchQuery;
 
 pub mod fields {
@@ -68,11 +68,14 @@ pub fn code_search_query(
     query: &CodeSearchQuery,
     chunk_tokens_query: Box<dyn Query>,
 ) -> BooleanQuery {
+    let schema = IndexSchema::instance();
+    let kind_query = schema.kind_query(kind::CODE);
     let language_query = language_query(&query.language);
     let git_url_query = git_url_query(&query.git_url);
 
     // language / git_url / filepath field shouldn't contribute to the score, mark them to 0.0.
     let mut subqueries: Vec<(Occur, Box<dyn Query>)> = vec![
+        (Occur::Must, Box::new(ConstScoreQuery::new(kind_query, 0.0))),
         (
             Occur::Must,
             Box::new(ConstScoreQuery::new(language_query, 0.0)),
