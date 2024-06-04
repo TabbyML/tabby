@@ -1,4 +1,4 @@
-import type { components as ApiComponents } from "./types/tabbyApi";
+import type { components as ApiComponents } from "tabby-openapi/compatible";
 import type { AgentConfig, PartialAgentConfig } from "./AgentConfig";
 import type { DataStore } from "./dataStore";
 import type { Logger } from "./logger";

@@ -7,7 +7,7 @@ import createClient from "openapi-fetch";
 import type { ParseAs } from "openapi-fetch";
 import * as semver from "semver";
 import { Readable } from "node:stream";
-import type { paths as TabbyApi, components as TabbyApiComponents } from "./types/tabbyApi";
+import type { paths as TabbyApi, components as TabbyApiComponents } from "tabby-openapi/compatible";
 import type {
   Agent,
   AgentStatus,

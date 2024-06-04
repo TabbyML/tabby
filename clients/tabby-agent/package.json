@@ -78,6 +78,7 @@
     "randomstring": "^1.3.0",
     "semver": "^7.6.0",
     "stats-logscale": "^1.0.9",
+    "tabby-openapi": "workspace:*",
     "toml": "^3.0.0",
     "ts-node": "^10.9.1",
     "tsc-watch": "^6.2.0",

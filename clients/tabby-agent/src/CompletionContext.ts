@@ -1,7 +1,7 @@
 import path from "path";
 import hashObject from "object-hash";
 import { splitLines, isBlank, regOnlyAutoClosingCloseChars } from "./utils";
-import type { components as TabbyApiComponents } from "./types/tabbyApi";
+import type { components as TabbyApiComponents } from "tabby-openapi/compatible";
 import type { AgentConfig } from "./AgentConfig";
 
 export type CompletionRequest = {

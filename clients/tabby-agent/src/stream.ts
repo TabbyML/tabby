@@ -1,7 +1,7 @@
 import { Readable } from "node:stream";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { EventSourceParserStream, ParsedEvent } from "eventsource-parser/stream";
-import type { components as TabbyApiComponents } from "./types/tabbyApi";
+import type { components as TabbyApiComponents } from "tabby-openapi/compatible";
 import { getLogger } from "./logger";
 
 const logger = getLogger("StreamParser");
