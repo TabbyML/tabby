@@ -31,8 +31,12 @@ use crate::services::answer::{AnswerRequest, AnswerService};
 pub async fn answer(
     State(state): State<Arc<AnswerService>>,
     TypedHeader(MaybeUser(user)): TypedHeader<MaybeUser>,
-    Json(request): Json<AnswerRequest>,
+    Json(mut request): Json<AnswerRequest>,
 ) -> Sse<impl Stream<Item = Result<Event, serde_json::Error>>> {
+    if let Some(user) = user {
+        request.user.replace(user);
+    }
+
     let stream = state.answer(request).await;
     Sse::new(stream.map(|chunk| match serde_json::to_string(&chunk) {
         Ok(s) => Ok(Event::default().data(s)),
