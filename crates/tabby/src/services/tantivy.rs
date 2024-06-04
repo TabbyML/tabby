@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use tabby_common::path;
+use tabby_common::{index::IndexSchema, path};
 use tantivy::{Index, IndexReader};
 use tokio::sync::RwLock;
 use tracing::debug;
@@ -19,6 +19,10 @@ impl IndexReaderProvider {
 
     fn load() -> anyhow::Result<IndexReader> {
         let index = Index::open_in_dir(path::index_dir())?;
+
+        if index.schema() != IndexSchema::instance().schema {
+            return Err(anyhow::anyhow!("Index schema mismatch"));
+        }
 
         Ok(index.reader_builder().try_into()?)
     }

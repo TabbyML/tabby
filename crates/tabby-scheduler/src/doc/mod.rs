@@ -4,7 +4,7 @@ use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use serde_json::json;
-use tabby_common::index::{self, doc};
+use tabby_common::index::{self, corpus, doc};
 use tabby_inference::Embedding;
 use tantivy::doc;
 use text_splitter::TextSplitter;
@@ -33,12 +33,8 @@ impl DocBuilder {
 
 #[async_trait]
 impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
-    fn format_id(&self, id: &str) -> String {
-        format!("web:{id}")
-    }
-
     async fn build_id(&self, document: &SourceDocument) -> String {
-        self.format_id(&document.id)
+        document.id.clone()
     }
 
     async fn build_attributes(&self, document: &SourceDocument) -> serde_json::Value {
@@ -89,5 +85,5 @@ impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
 
 pub fn create_web_index(embedding: Arc<dyn Embedding>) -> Indexer<SourceDocument> {
     let builder = DocBuilder::new(embedding);
-    Indexer::new(builder)
+    Indexer::new(corpus::WEB, builder)
 }
