@@ -71,6 +71,9 @@ impl IntegrationService for IntegrationServiceImpl {
                 api_base,
             )
             .await?;
+        let _ = self
+            .background_job
+            .send(BackgroundJobEvent::SyncThirdPartyRepositories(id.clone()));
         Ok(())
     }
 
