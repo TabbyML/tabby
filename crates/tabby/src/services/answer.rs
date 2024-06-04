@@ -20,6 +20,9 @@ use crate::services::chat::{ChatCompletionRequestBuilder, ChatService};
     ],
 }))]
 pub struct AnswerRequest {
+    #[serde(default)]
+    pub(crate) user: Option<String>,
+
     messages: Vec<Message>,
 
     #[serde(default)]
@@ -121,7 +124,8 @@ impl AnswerService {
 
             // 5. Generate answer from the query
             let s = self.chat.clone().generate(ChatCompletionRequestBuilder::default()
-                .messages(req.messages.clone())
+                .messages(req.messages)
+                .user(req.user)
                 .presence_penalty(Some(PRESENCE_PENALTY))
                 .build()
                 .expect("Failed to create ChatCompletionRequest"))

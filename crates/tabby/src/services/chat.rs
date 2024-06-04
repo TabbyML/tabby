@@ -214,7 +214,6 @@ mod tests {
         let service = Arc::new(ChatService::new(engine, logger.clone()));
 
         let request = ChatCompletionRequest {
-            user: None,
             messages: vec![Message {
                 role: "user".into(),
                 content: "Hello, computer!".into(),
@@ -222,6 +221,7 @@ mod tests {
             temperature: None,
             seed: None,
             presence_penalty: None,
+            user: None,
         };
         let mut output = service.generate(request).await;
         let response = output.next().await.unwrap();
