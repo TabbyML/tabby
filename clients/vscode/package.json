@@ -36,78 +36,91 @@
     "commands": [
       {
         "command": "tabby.toggleInlineCompletionTriggerMode",
-        "title": "Tabby: Toggle Code Completion Trigger Mode (Automatic/Manual)"
+        "title": "Toggle Code Completion Trigger Mode (Automatic/Manual)",
+        "category": "Tabby"
       },
       {
         "command": "tabby.inlineCompletion.trigger",
-        "title": "Tabby: Trigger Code Completion Manually"
+        "title": "Trigger Code Completion Manually",
+        "category": "Tabby"
       },
       {
         "command": "tabby.setApiEndpoint",
-        "title": "Tabby: Specify API Endpoint of Tabby"
+        "title": "Specify API Endpoint of Tabby",
+        "category": "Tabby"
       },
       {
         "command": "tabby.setApiToken",
-        "title": "Tabby: Set API Token"
+        "title": "Set API Token",
+        "category": "Tabby"
       },
       {
         "command": "tabby.openSettings",
-        "title": "Tabby: Open Settings"
+        "title": "Open Settings",
+        "category": "Tabby"
       },
       {
         "command": "tabby.openTabbyAgentSettings",
-        "title": "Tabby: Open Tabby Agent Settings"
+        "title": "Open Tabby Agent Settings",
+        "category": "Tabby"
       },
       {
         "command": "tabby.gettingStarted",
-        "title": "Tabby: Getting Started"
+        "title": "Getting Started",
+        "category": "Tabby"
       },
       {
         "command": "tabby.openOnlineHelp",
-        "title": "Tabby: Online Help"
+        "title": "Online Help",
+        "category": "Tabby"
       },
       {
         "command": "tabby.notifications.resetMuted",
-        "title": "Tabby: Reset notifications marked as \"Don't Show Again\""
+        "title": "Reset notifications marked as \"Don't Show Again\"",
+        "category": "Tabby"
       },
       {
         "command": "tabby.chat.explainCodeBlock",
-        "title": "Tabby: Explain This"
+        "title": "Explain This",
+        "category": "Tabby"
       },
       {
         "command": "tabby.chat.fixCodeBlock",
-        "title": "Tabby: Fix This"
+        "title": "Fix This",
+        "category": "Tabby"
       },
       {
         "command": "tabby.chat.generateCodeBlockDoc",
-        "title": "Tabby: Generate Docs"
+        "title": "Generate Docs",
+        "category": "Tabby"
       },
       {
         "command": "tabby.chat.generateCodeBlockTest",
-        "title": "Tabby: Generate Tests"
+        "title": "Generate Tests",
+        "category": "Tabby"
       },
       {
-        "command": "tabby.experimental.chat.generateCommitMessage",
+        "command": "tabby.chat.generateCommitMessage",
         "title": "Generate Commit Message",
         "category": "Tabby"
       },
       {
-        "command": "tabby.experimental.chat.edit.start",
+        "command": "tabby.chat.edit.start",
         "title": "Edit",
         "category": "Tabby"
       },
       {
-        "command": "tabby.experimental.chat.edit.stop",
+        "command": "tabby.chat.edit.stop",
         "title": "Stop Editing",
         "category": "Tabby"
       },
       {
-        "command": "tabby.experimental.chat.edit.accept",
+        "command": "tabby.chat.edit.accept",
         "title": "Accept Changes",
         "category": "Tabby"
       },
       {
-        "command": "tabby.experimental.chat.edit.discard",
+        "command": "tabby.chat.edit.discard",
         "title": "Discard Changes",
         "category": "Tabby"
       }
@@ -139,23 +152,23 @@
           "when": "editorHasSelection && tabby.chatEnabled"
         },
         {
-          "command": "tabby.experimental.chat.generateCommitMessage",
-          "when": "tabby.chatEnabled && tabby.generateCommitMessageEnabled"
-        },
-        {
-          "command": "tabby.experimental.chat.edit.start",
+          "command": "tabby.chat.generateCommitMessage",
           "when": "tabby.chatEnabled"
         },
         {
-          "command": "tabby.experimental.chat.edit.stop",
+          "command": "tabby.chat.edit.start",
+          "when": "tabby.chatEnabled"
+        },
+        {
+          "command": "tabby.chat.edit.stop",
           "when": "false"
         },
         {
-          "command": "tabby.experimental.chat.edit.accept",
+          "command": "tabby.chat.edit.accept",
           "when": "false"
         },
         {
-          "command": "tabby.experimental.chat.edit.discard",
+          "command": "tabby.chat.edit.discard",
           "when": "false"
         }
       ]
@@ -241,12 +254,7 @@
           },
           "tabby.experimental": {
             "default": {},
-            "properties": {
-              "chat.generateCommitMessage": {
-                "type": "boolean",
-                "default": false
-              }
-            }
+            "properties": {}
           }
         }
       }
@@ -291,24 +299,24 @@
         "when": "inlineSuggestionVisible"
       },
       {
-        "command": "tabby.experimental.chat.edit.start",
+        "command": "tabby.chat.edit.start",
         "key": "ctrl+i",
         "mac": "cmd+i",
         "when": "tabby.chatEnabled && editorTextFocus && !editorReadonly"
       },
       {
-        "command": "tabby.experimental.chat.edit.stop",
+        "command": "tabby.chat.edit.stop",
         "key": "escape",
         "when": "tabby.chatEditInProgress && editorTextFocus && !editorReadonly"
       },
       {
-        "command": "tabby.experimental.chat.edit.accept",
+        "command": "tabby.chat.edit.accept",
         "key": "ctrl+enter",
         "mac": "cmd+enter",
         "when": "tabby.chatEditResolving && editorTextFocus && !editorReadonly"
       },
       {
-        "command": "tabby.experimental.chat.edit.discard",
+        "command": "tabby.chat.edit.discard",
         "key": "escape",
         "mac": "escape",
         "when": "tabby.chatEditResolving && editorTextFocus && !editorReadonly"

@@ -62,7 +62,7 @@ export type AgentConfig = {
     limitScope: any;
     calculateReplaceRange: any;
   };
-  experimentalChat: {
+  chat: {
     edit: {
       documentMaxChars: number;
       commandMaxChars: number;
@@ -159,7 +159,7 @@ export const defaultAgentConfig: AgentConfig = {
     limitScope: {},
     calculateReplaceRange: {},
   },
-  experimentalChat: {
+  chat: {
     edit: {
       documentMaxChars: 3000,
       commandMaxChars: 200,
@@ -198,8 +198,9 @@ export const defaultAgentConfig: AgentConfig = {
     generateCommitMessage: {
       maxDiffLength: 3600,
       promptTemplate:
-        "Generate a commit message based on the given diff. \nYou should only reply with the commit message, and the commit message should be in the following format: <type>(<scope>): <description> \nexamples: \n * feat(chat): add support for chat. \n * fix(ui): fix homepage links. \nThe diff is: \n\n```diff \n{{diff}} \n``` \n",
-      responseMatcher: /(?<=^\s*(the commit message.*:\s+)|(`{3}|["'`])\s*)[^"'`\s].*(?=\s*\2\s*$)/gi.toString(),
+        "You are an AI coding assistant. You should generate a commit message based on the given diff. \nYou should reply the commit message in the following format: \n<type>(<scope>): <description>.\n\n\nThe <type> could be feat, fix, docs, refactor, style, test, build, ci, or chore.\nThe scope is optional. \nFor examples: \n- feat: add support for chat. \n- fix(ui): fix homepage links. \n\nThe diff is:\n```diff\n{{diff}}\n```\n",
+      responseMatcher:
+        /(?<=(["'`]+)?\s*)(feat|fix|docs|refactor|style|test|build|ci|chore)(\(\w+\))?:.+(?=\s*\1)/gi.toString(),
     },
   },
   logs: {

@@ -1,24 +1,15 @@
 import { commands, window, workspace, Range } from "vscode";
 import { Client } from "./lsp/Client";
-import { Config } from "./Config";
 
 export class ContextVariables {
   private chatEnabledValue = false;
-  private generateCommitMessageEnabledValue = false;
   private chatEditInProgressValue = false;
   private chatEditResolvingValue = false;
 
-  constructor(
-    private readonly client: Client,
-    private readonly config: Config,
-  ) {
+  constructor(private readonly client: Client) {
     this.chatEnabled = this.client.chat.isAvailable;
     this.client.chat.on("didChangeAvailability", (params: boolean) => {
       this.chatEnabled = params;
-    });
-    this.updateExperimentalFlags();
-    this.config.on("updated", () => {
-      this.updateExperimentalFlags();
     });
     this.updateChatEditResolving();
     window.onDidChangeTextEditorSelection((params) => {
@@ -31,11 +22,6 @@ export class ContextVariables {
         this.updateChatEditResolving();
       }
     });
-  }
-
-  private updateExperimentalFlags() {
-    const experimental = this.config.workspace.get<Record<string, unknown>>("experimental", {});
-    this.generateCommitMessageEnabled = !!experimental["chat.generateCommitMessage"];
   }
 
   updateChatEditResolving() {
@@ -61,15 +47,6 @@ export class ContextVariables {
   private set chatEnabled(value: boolean) {
     commands.executeCommand("setContext", "tabby.chatEnabled", value);
     this.chatEnabledValue = value;
-  }
-
-  get generateCommitMessageEnabled(): boolean {
-    return this.generateCommitMessageEnabledValue;
-  }
-
-  private set generateCommitMessageEnabled(value: boolean) {
-    commands.executeCommand("setContext", "tabby.generateCommitMessageEnabled", value);
-    this.generateCommitMessageEnabledValue = value;
   }
 
   get chatEditInProgress(): boolean {

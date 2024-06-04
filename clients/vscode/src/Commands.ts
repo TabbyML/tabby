@@ -263,7 +263,7 @@ export class Commands {
         window.showInformationMessage("No active editor");
       }
     },
-    "experimental.chat.edit.start": async () => {
+    "chat.edit.start": async () => {
       const editor = window.activeTextEditor;
       if (!editor) {
         return;
@@ -387,10 +387,10 @@ export class Commands {
       });
       quickPick.show();
     },
-    "experimental.chat.edit.stop": async () => {
+    "chat.edit.stop": async () => {
       this.chatEditCancellationTokenSource?.cancel();
     },
-    "experimental.chat.edit.accept": async () => {
+    "chat.edit.accept": async () => {
       const editor = window.activeTextEditor;
       if (!editor) {
         return;
@@ -404,7 +404,7 @@ export class Commands {
       };
       await this.client.chat.resolveEdit({ location, action: "accept" });
     },
-    "experimental.chat.edit.discard": async () => {
+    "chat.edit.discard": async () => {
       const editor = window.activeTextEditor;
       if (!editor) {
         return;
@@ -418,7 +418,7 @@ export class Commands {
       };
       await this.client.chat.resolveEdit({ location, action: "discard" });
     },
-    "experimental.chat.generateCommitMessage": async () => {
+    "chat.generateCommitMessage": async () => {
       const repos = this.gitProvider.getRepositories() ?? [];
       if (repos.length < 1) {
         window.showInformationMessage("No Git repositories found.");
