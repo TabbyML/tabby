@@ -207,7 +207,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_integration_should_reset_status() {
-        let background = create_fake();
+        let (background, mut recv) = tokio::sync::mpsc::unbounded_channel();
         let db = DbConn::new_in_memory().await.unwrap();
         let integration = Arc::new(create(db, background));
 
@@ -239,5 +239,11 @@ mod tests {
         let provider = integration.get_integration(id.clone()).await.unwrap();
 
         assert_eq!(provider.status, IntegrationStatus::Pending);
+
+        let event = recv.recv().await.unwrap();
+        assert_eq!(
+            event,
+            BackgroundJobEvent::SyncThirdPartyRepositories(id.clone())
+        );
     }
 }

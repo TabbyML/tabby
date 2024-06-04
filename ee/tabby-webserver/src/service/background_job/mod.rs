@@ -19,6 +19,7 @@ use self::{
     db::DbMaintainanceJob, scheduler::SchedulerJob, third_party_integration::SyncIntegrationJob,
 };
 
+#[derive(PartialEq, Debug)]
 pub enum BackgroundJobEvent {
     Scheduler(RepositoryConfig),
     SyncThirdPartyRepositories(ID),
