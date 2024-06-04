@@ -9,7 +9,7 @@ pub struct CodeSearchResponse {
     pub hits: Vec<CodeSearchHit>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct CodeSearchHit {
     pub scores: CodeSearchScores,
     pub doc: CodeSearchDocument,
@@ -22,7 +22,7 @@ pub struct CodeSearchScores {
     pub embedding: f32,
 }
 
-#[derive(Serialize, Deserialize, Debug, Builder, Clone, ToSchema)]
+#[derive(Serialize, Deserialize, Debug, Builder, Clone, ToSchema, Default)]
 pub struct CodeSearchDocument {
     /// Unique identifier for the file in the repository, stringified SourceFileKey.
     ///
