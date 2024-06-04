@@ -1,11 +1,11 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use juniper::ID;
+use juniper::{GraphQLEnum, GraphQLObject, ID};
 use strum::EnumIter;
 
-use crate::Result;
+use crate::{juniper::relay::NodeType, Context, Result};
 
-#[derive(Clone, EnumIter)]
+#[derive(Clone, EnumIter, GraphQLEnum)]
 pub enum IntegrationKind {
     Github,
     Gitlab,
@@ -13,13 +13,15 @@ pub enum IntegrationKind {
     GitlabSelfHosted,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, GraphQLEnum)]
 pub enum IntegrationStatus {
     Ready,
     Pending,
     Failed,
 }
 
+#[derive(GraphQLObject)]
+#[graphql(context = Context)]
 pub struct Integration {
     pub id: ID,
     pub kind: IntegrationKind,
@@ -29,6 +31,22 @@ pub struct Integration {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub status: IntegrationStatus,
+}
+
+impl NodeType for Integration {
+    type Cursor = String;
+
+    fn cursor(&self) -> Self::Cursor {
+        self.id.to_string()
+    }
+
+    fn connection_type_name() -> &'static str {
+        "IntegrationConnection"
+    }
+
+    fn edge_type_name() -> &'static str {
+        "IntegrationEdge"
+    }
 }
 
 impl Integration {
