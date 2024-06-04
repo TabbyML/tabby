@@ -57,7 +57,7 @@ type AnswerResponseChunk =
 
 export type AnswerResponse = {
   relevant_code?: AnswerResponseChunk['relevant_code']
-  relevant_documents?: AnswerResponseChunk['relevant_code']
+  relevant_documents?: AnswerResponseChunk['relevant_documents']
   relevant_questions?: AnswerResponseChunk['relevant_questions']
   answer_delta?: AnswerResponseChunk['answer_delta']
 }
