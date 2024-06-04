@@ -797,7 +797,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     }
 
     // select diffs from the list to generate a prompt under the prompt size limit
-    const { maxDiffLength, promptTemplate, responseMatcher } = this.config.experimentalChat.generateCommitMessage;
+    const { maxDiffLength, promptTemplate, responseMatcher } = this.config.chat.generateCommitMessage;
     let splitDiffs: string[];
     if (typeof diff === "string") {
       splitDiffs = diff.split(/\n(?=diff)/);
@@ -886,25 +886,25 @@ export class TabbyAgent extends EventEmitter implements Agent {
       throw new Error("Agent is not initialized");
     }
 
-    const documentMaxChars = this.config.experimentalChat.edit.documentMaxChars;
+    const documentMaxChars = this.config.chat.edit.documentMaxChars;
     if (selection.end - selection.start > documentMaxChars) {
       throw new Error("Document to edit is too long");
     }
-    if (command.length > this.config.experimentalChat.edit.commandMaxChars) {
+    if (command.length > this.config.chat.edit.commandMaxChars) {
       throw new Error("Command is too long");
     }
 
     let promptTemplate: string;
     let userCommand: string;
     const presetCommand = /^\/\w+\b/g.exec(command)?.[0];
-    const presetConfig = presetCommand && this.config.experimentalChat.edit.presetCommands[presetCommand];
+    const presetConfig = presetCommand && this.config.chat.edit.presetCommands[presetCommand];
     if (presetConfig) {
       promptTemplate = presetConfig.promptTemplate;
       userCommand = command.substring(presetCommand.length);
     } else {
       promptTemplate = insertMode
-        ? this.config.experimentalChat.edit.promptTemplate.insert
-        : this.config.experimentalChat.edit.promptTemplate.replace;
+        ? this.config.chat.edit.promptTemplate.insert
+        : this.config.chat.edit.promptTemplate.replace;
       userCommand = command;
     }
     // Extract the selected text and the surrounding context

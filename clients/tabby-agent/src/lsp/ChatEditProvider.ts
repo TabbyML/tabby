@@ -59,7 +59,7 @@ export class ChatEditProvider {
   }
 
   async provideEditCommands(params: ChatEditCommandParams): Promise<ChatEditCommand[]> {
-    const commands = this.agent.getConfig().experimentalChat.edit.presetCommands;
+    const commands = this.agent.getConfig().chat.edit.presetCommands;
     const result: ChatEditCommand[] = [];
     const document = this.documents.get(params.location.uri);
 
@@ -112,7 +112,7 @@ export class ChatEditProvider {
         message: "Chat feature not available",
       } as ChatFeatureNotAvailableError;
     }
-    const config = this.agent.getConfig().experimentalChat;
+    const config = this.agent.getConfig().chat;
     if (params.command.length > config.edit.commandMaxChars) {
       throw { name: "ChatEditCommandTooLongError", message: "Command too long" } as ChatEditCommandTooLongError;
     }
