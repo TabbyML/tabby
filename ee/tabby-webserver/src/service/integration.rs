@@ -65,7 +65,7 @@ impl IntegrationService for IntegrationServiceImpl {
         let integration = self.get_integration(id.clone()).await?;
         let access_token_is_changed = access_token
             .as_ref()
-            .is_some_and(|token| token == &integration.access_token);
+            .is_some_and(|token| token != &integration.access_token);
         let api_base_is_changed = integration.api_base != api_base;
 
         self.db
