@@ -155,9 +155,8 @@ function encodeURIComponentIgnoringSlash(str: string) {
 function resolveRepoRef(ref: string): {
   kind?: 'branch' | 'tag'
   name?: string
-  ref?: string
+  ref: string
 } {
-  if (!ref) return {}
   const regx = /refs\/(\w+)\/(.*)/
   const match = ref.match(regx)
   if (match) {

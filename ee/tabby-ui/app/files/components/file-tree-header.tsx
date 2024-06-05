@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useContext } from 'react'
+import { isNil } from 'lodash-es'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -128,6 +129,16 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     },
     pause: !repoId || !repositoryKind || !repositorySearchPattern
   })
+
+  const onSelectRef = (ref: string) => {
+    if (isNil(ref)) return
+    const nextRev = resolveRepoRef(ref)?.name
+    const { basename, repositorySpecifier } =
+      resolveRepositoryInfoFromPath(activePath)
+    // todo double check
+    // todo fetch
+    updateActivePath(`${repositorySpecifier}/${nextRev}/${basename}`)
+  }
 
   React.useEffect(() => {
     const _options =
@@ -308,7 +319,6 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
             align="start"
             side="bottom"
           >
-            {/* <div className='px-2 py-1'>Switch branches/tags</div> */}
             <Command className="transition-all">
               <CommandInput
                 placeholder={
@@ -334,17 +344,17 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                       key={ref.ref ?? refIndex}
                       onSelect={() => {
                         setRefSelectVisible(false)
-                        // todo
+                        onSelectRef(ref.ref)
                       }}
                     >
-                      {/* <IconCheck
-                          className={cn(
-                            'mr-2',
-                            ref.node.id === field.value
-                              ? 'opacity-100'
-                              : 'opacity-0'
-                          )}
-                        /> */}
+                      <IconCheck
+                        className={cn(
+                          'mr-2',
+                          !!ref?.name && ref.name === activeRepoRef?.name
+                            ? 'opacity-100'
+                            : 'opacity-0'
+                        )}
+                      />
                       {ref.name}
                     </CommandItem>
                   ))}

@@ -37,7 +37,8 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     setPendingEvent,
     repoMap,
     setExpandedKeys,
-    updateFileMap
+    updateFileMap,
+    activeRepoRef
   } = React.useContext(SourceCodeBrowserContext)
   const activeChatId = useStore(useChatStore, state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
@@ -52,8 +53,8 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
       if (matchedRepositoryKey) {
         const repository = repoMap[matchedRepositoryKey]
         const repositorySpecifier = resolveRepoSpecifierFromRepoInfo(repository)
-        // todo should contain rev or get default rev
-        const rev = 'main'
+        const rev = activeRepoRef?.name
+
         const fullPath = `${repositorySpecifier}/${rev}/${context.filepath}`
         if (!fullPath) return
         try {

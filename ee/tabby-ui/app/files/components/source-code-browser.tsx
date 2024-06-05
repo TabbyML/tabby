@@ -42,6 +42,7 @@ import {
   getProviderVariantFromKind,
   repositoryList2Map,
   resolveFileNameFromPath,
+  resolveRepoRef,
   resolveRepositoryInfoFromPath,
   resolveRepoSpecifierFromRepoInfo
 } from './utils'
@@ -109,7 +110,7 @@ type SourceCodeBrowserContextValue = {
   isChatEnabled: boolean | undefined
   activeRepo: RepositoryItem | undefined
   activeRepoRef:
-    | { kind?: 'branch' | 'tag'; name?: string; ref?: string }
+    | { kind?: 'branch' | 'tag'; name?: string; ref: string }
     | undefined
   isPathInitialized: boolean
 }
@@ -123,20 +124,10 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   children
 }) => {
   const pathname = usePathname()
-  const { searchParams, updatePathnameAndSearch } = useRouterStuff()
+  const { updatePathnameAndSearch } = useRouterStuff()
   const [isPathInitialized, setIsPathInitialized] = React.useState(false)
   const [activePath, setActivePath] = React.useState<string | undefined>()
-  // todo repositorySpecifier, rev should be resolved in context provider
   const isChatEnabled = useIsChatEnabled()
-  const activeRepoRef: SourceCodeBrowserContextValue['activeRepoRef'] =
-    React.useMemo(() => {
-      // todo
-      return {
-        kind: 'branch',
-        name: 'main',
-        ref: 'refs/heads/main'
-      }
-    }, [searchParams])
 
   const updateActivePath = (
     path: string | undefined,
@@ -224,6 +215,17 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
     if (!repositoryKind || !repositoryName) return undefined
     return repositorySpecifier ? repoMap[repositorySpecifier] : undefined
   }, [activePath, repoMap])
+
+  const activeRepoRef = React.useMemo(() => {
+    if (!activePath || !activeRepo) return undefined
+    const rev = resolveRepositoryInfoFromPath(activePath)?.rev
+    const activeRepoRef = activeRepo.refs?.find(
+      ref => ref === `refs/heads/${rev}` || ref === `refs/tags/${rev}`
+    )
+    if (activeRepoRef) {
+      return resolveRepoRef(activeRepoRef)
+    }
+  }, [activePath, activeRepo])
 
   React.useEffect(() => {
     const regex = /^\/files\/(.*)/
