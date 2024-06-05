@@ -3,11 +3,9 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import { UseFormReturn } from 'react-hook-form'
-import { TypedDocumentNode } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
-import { RepositoryKind } from '@/lib/gql/generates/graphql'
-import { QueryResponseData, useMutation } from '@/lib/tabby/gql'
+import { useMutation } from '@/lib/tabby/gql'
 
 import {
   CommonProviderForm,
@@ -15,97 +13,22 @@ import {
   UpdateRepositoryProviderFormValues,
   useRepositoryProviderForm
 } from '../../components/common-provider-form'
-import { useRepositoryKind } from '../../hooks/use-repository-kind'
+import { useIntegrationKind } from '../../hooks/use-repository-kind'
 
-const createGithubRepositoryProvider = graphql(/* GraphQL */ `
-  mutation CreateGithubRepositoryProvider(
-    $input: CreateRepositoryProviderInput!
-  ) {
-    createGithubRepositoryProvider(input: $input)
-  }
-`)
-
-const createGithubSelfHostedRepositoryProvider = graphql(/* GraphQL */ `
-  mutation CreateGithubSelfHostedRepositoryProvider(
-    $input: CreateSelfHostedRepositoryProviderInput!
-  ) {
-    createGithubSelfHostedRepositoryProvider(input: $input)
-  }
-`)
-
-const createGitlabRepositoryProvider = graphql(/* GraphQL */ `
-  mutation CreateGitlabRepositoryProvider(
-    $input: CreateRepositoryProviderInput!
-  ) {
-    createGitlabRepositoryProvider(input: $input)
-  }
-`)
-
-const createGitlabSelfHostedRepositoryProvider = graphql(/* GraphQL */ `
-  mutation CreateGitlabSelfHostedRepositoryProvider(
-    $input: CreateSelfHostedRepositoryProviderInput!
-  ) {
-    createGitlabSelfHostedRepositoryProvider(input: $input)
+const createIntegration = graphql(/* GraphQL */ `
+  mutation CreateIntegration($input: CreateIntegrationInput!) {
+    createIntegration(input: $input)
   }
 `)
 
 export const NewProvider = () => {
-  const kind = useRepositoryKind()
+  const kind = useIntegrationKind()
   const router = useRouter()
   const form = useRepositoryProviderForm(true)
 
-  const { mutation, resolver } = React.useMemo(() => {
-    switch (kind) {
-      case RepositoryKind.Github:
-        return {
-          mutation: createGithubRepositoryProvider,
-          resolver: (
-            res?: QueryResponseData<typeof createGithubRepositoryProvider>
-          ) => res?.createGithubRepositoryProvider
-        }
-      case RepositoryKind.GithubSelfHosted:
-        return {
-          mutation: createGithubSelfHostedRepositoryProvider,
-          resolver: (
-            res?: QueryResponseData<
-              typeof createGithubSelfHostedRepositoryProvider
-            >
-          ) => res?.createGithubSelfHostedRepositoryProvider
-        }
-      case RepositoryKind.Gitlab:
-        return {
-          mutation: createGitlabRepositoryProvider,
-          resolver: (
-            res?: QueryResponseData<typeof createGitlabRepositoryProvider>
-          ) => res?.createGitlabRepositoryProvider
-        }
-      case RepositoryKind.GitlabSelfHosted:
-        return {
-          mutation: createGitlabSelfHostedRepositoryProvider,
-          resolver: (
-            res?: QueryResponseData<
-              typeof createGitlabSelfHostedRepositoryProvider
-            >
-          ) => res?.createGitlabSelfHostedRepositoryProvider
-        }
-      default:
-        return {
-          mutation: createGithubRepositoryProvider,
-          resolver: (
-            res?: QueryResponseData<typeof createGithubRepositoryProvider>
-          ) => res?.createGithubRepositoryProvider
-        }
-    }
-  }, [kind]) as {
-    mutation: TypedDocumentNode<any, any>
-    resolver: (
-      res?: QueryResponseData<TypedDocumentNode<any, any>>
-    ) => string | undefined
-  }
-
-  const createRepositoryProviderMutation = useMutation(mutation, {
+  const createRepositoryProviderMutation = useMutation(createIntegration, {
     onCompleted(data) {
-      if (resolver(data)) {
+      if (data?.createIntegration) {
         router.back()
       }
     },
@@ -114,7 +37,10 @@ export const NewProvider = () => {
 
   const handleSubmit = async (values: CreateRepositoryProviderFormValues) => {
     return createRepositoryProviderMutation({
-      input: values
+      input: {
+        ...values,
+        kind
+      }
     })
   }
 

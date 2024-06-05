@@ -9,7 +9,7 @@ import { DefaultValues, useForm, UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
-import { RepositoryKind } from '@/lib/gql/generates/graphql'
+import { IntegrationKind } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
 import {
   AlertDialog,
@@ -35,7 +35,7 @@ import {
 import { IconExternalLink, IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 
-import { useRepositoryKind } from '../hooks/use-repository-kind'
+import { useIntegrationKind } from '../hooks/use-repository-kind'
 
 export const createRepositoryProviderFormSchema = z.object({
   displayName: z.string().trim(),
@@ -77,7 +77,7 @@ export function CommonProviderForm<T extends boolean>({
   cancleable = true,
   deletable
 }: GithubProviderFormProps<T>) {
-  const kind = useRepositoryKind()
+  const kind = useIntegrationKind()
   const router = useRouter()
 
   const [deleteAlertVisible, setDeleteAlertVisible] = React.useState(false)
@@ -104,13 +104,13 @@ export function CommonProviderForm<T extends boolean>({
 
   const displayNamePlaceholder = React.useMemo(() => {
     switch (kind) {
-      case RepositoryKind.Github:
+      case IntegrationKind.Github:
         return 'e.g. GitHub'
-      case RepositoryKind.GithubSelfHosted:
+      case IntegrationKind.GithubSelfHosted:
         return 'e.g. GitHub Self-Hosted'
-      case RepositoryKind.Gitlab:
+      case IntegrationKind.Gitlab:
         return 'e.g. GitLab'
-      case RepositoryKind.GitlabSelfHosted:
+      case IntegrationKind.GitlabSelfHosted:
         return 'e.g. GitLab Self-Hosted'
       default:
         return ''
@@ -120,11 +120,11 @@ export function CommonProviderForm<T extends boolean>({
   const accessTokenPlaceholder = React.useMemo(() => {
     if (!isNew) return new Array(36).fill('*').join('')
     switch (kind) {
-      case RepositoryKind.Github:
-      case RepositoryKind.GithubSelfHosted:
+      case IntegrationKind.Github:
+      case IntegrationKind.GithubSelfHosted:
         return 'e.g. github_pat_1ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234'
-      case RepositoryKind.Gitlab:
-      case RepositoryKind.GitlabSelfHosted:
+      case IntegrationKind.Gitlab:
+      case IntegrationKind.GitlabSelfHosted:
         return 'e.g. glpat_1ABCD1234ABCD1234ABCD1234ABCD1234'
       default:
         return ''
@@ -133,9 +133,9 @@ export function CommonProviderForm<T extends boolean>({
 
   const apiBasePlaceholder = React.useMemo(() => {
     switch (kind) {
-      case RepositoryKind.GithubSelfHosted:
+      case IntegrationKind.GithubSelfHosted:
         return 'e.g. https://api.github.yourcompany.com'
-      case RepositoryKind.GitlabSelfHosted:
+      case IntegrationKind.GitlabSelfHosted:
         return 'e.g. https://gitlab.yourcompany.com'
       default:
         return ''
@@ -143,8 +143,8 @@ export function CommonProviderForm<T extends boolean>({
   }, [kind])
 
   const showApiBase = [
-    RepositoryKind.GithubSelfHosted,
-    RepositoryKind.GitlabSelfHosted
+    IntegrationKind.GithubSelfHosted,
+    IntegrationKind.GitlabSelfHosted
   ].includes(kind)
 
   return (
@@ -303,11 +303,11 @@ export function useRepositoryProviderForm<T extends boolean>(
 }
 
 function AccessTokenDescription() {
-  const kind = useRepositoryKind()
+  const kind = useIntegrationKind()
 
   if (
-    kind === RepositoryKind.Github ||
-    kind === RepositoryKind.GithubSelfHosted
+    kind === IntegrationKind.Github ||
+    kind === IntegrationKind.GithubSelfHosted
   ) {
     return (
       <>
@@ -325,8 +325,8 @@ function AccessTokenDescription() {
   }
 
   if (
-    kind === RepositoryKind.Gitlab ||
-    kind === RepositoryKind.GitlabSelfHosted
+    kind === IntegrationKind.Gitlab ||
+    kind === IntegrationKind.GitlabSelfHosted
   ) {
     return (
       <>
