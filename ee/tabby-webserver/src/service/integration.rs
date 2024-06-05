@@ -284,7 +284,13 @@ mod tests {
 
         // Test sync event is not sent if no fields are updated
         integration
-            .update_integration(id.clone(), IntegrationKind::Github, "gh".into(), None, None)
+            .update_integration(
+                id.clone(),
+                IntegrationKind::Github,
+                "gh".into(),
+                Some("token2".into()),
+                None,
+            )
             .await
             .unwrap();
 
