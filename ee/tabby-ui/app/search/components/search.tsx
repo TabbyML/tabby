@@ -110,7 +110,7 @@ export function Search() {
       item => item.id === currentLoadindId
     )
     if (!currentAnswer) return
-    currentAnswer.content = answer.answer_delta || ""
+    currentAnswer.content = answer.answer_delta || ''
     currentAnswer.relevant_documents = answer.relevant_documents
     currentAnswer.relevant_questions = answer.relevant_questions
     currentAnswer.isLoading = isLoading
