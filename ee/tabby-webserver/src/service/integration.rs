@@ -62,6 +62,12 @@ impl IntegrationService for IntegrationServiceImpl {
         access_token: Option<String>,
         api_base: Option<String>,
     ) -> Result<()> {
+        let integration = self.get_integration(id.clone()).await?;
+        let access_token_is_changed = access_token
+            .as_ref()
+            .is_some_and(|token| token != &integration.access_token);
+        let api_base_is_changed = integration.api_base != api_base;
+
         self.db
             .update_integration(
                 id.as_rowid()?,
@@ -71,6 +77,13 @@ impl IntegrationService for IntegrationServiceImpl {
                 api_base,
             )
             .await?;
+
+        if access_token_is_changed || api_base_is_changed {
+            let _ = self
+                .background_job
+                .send(BackgroundJobEvent::SyncThirdPartyRepositories(id.clone()));
+        }
+
         Ok(())
     }
 
@@ -199,6 +212,91 @@ mod tests {
                 .await
                 .unwrap()
                 .len()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_update_integration_should_reset_status() {
+        let (background, mut recv) = tokio::sync::mpsc::unbounded_channel();
+        let db = DbConn::new_in_memory().await.unwrap();
+        let integration = Arc::new(create(db, background));
+
+        let id = integration
+            .create_integration(IntegrationKind::Github, "gh".into(), "token".into(), None)
+            .await
+            .unwrap();
+
+        // Test event is sent to re-sync provider after provider is created
+        let event = recv.recv().await.unwrap();
+        assert_eq!(
+            event,
+            BackgroundJobEvent::SyncThirdPartyRepositories(id.clone())
+        );
+
+        // Test integration status is failed after updating sync status with an error
+        integration
+            .update_integration_sync_status(id.clone(), Some("error".into()))
+            .await
+            .unwrap();
+
+        let provider = integration.get_integration(id.clone()).await.unwrap();
+
+        assert_eq!(provider.status, IntegrationStatus::Failed);
+
+        // Test integration status is not changed if token has not been updated
+        integration
+            .update_integration(
+                id.clone(),
+                IntegrationKind::Github,
+                "gh".into(),
+                Some("token".into()),
+                None,
+            )
+            .await
+            .unwrap();
+
+        let provider = integration.get_integration(id.clone()).await.unwrap();
+
+        assert_eq!(provider.status, IntegrationStatus::Failed);
+
+        // Test integration status is pending after updating token
+        integration
+            .update_integration(
+                id.clone(),
+                IntegrationKind::Github,
+                "gh".into(),
+                Some("token2".into()),
+                None,
+            )
+            .await
+            .unwrap();
+
+        let provider = integration.get_integration(id.clone()).await.unwrap();
+
+        assert_eq!(provider.status, IntegrationStatus::Pending);
+
+        // Test event is sent to re-sync provider after credentials are updated
+        let event = recv.recv().await.unwrap();
+        assert_eq!(
+            event,
+            BackgroundJobEvent::SyncThirdPartyRepositories(id.clone())
+        );
+
+        // Test sync event is not sent if no fields are updated
+        integration
+            .update_integration(
+                id.clone(),
+                IntegrationKind::Github,
+                "gh".into(),
+                Some("token2".into()),
+                None,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            recv.try_recv(),
+            Err(tokio::sync::mpsc::error::TryRecvError::Empty)
         );
     }
 }
