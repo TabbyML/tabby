@@ -1,11 +1,11 @@
 import { Metadata } from 'next'
 
-import Search from './components/search'
+import SearchGate from './components/search-gate'
 
 export const metadata: Metadata = {
   title: 'Search'
 }
 
 export default function SearchPage() {
-  return <Search />
+  return <SearchGate />
 }

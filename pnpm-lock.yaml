@@ -428,8 +428,8 @@ importers:
         specifier: ^1.0.3
         version: 1.0.3(@types/react-dom@18.2.8)(@types/react@18.2.23)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-dialog':
-        specifier: 1.0.4
-        version: 1.0.4(@types/react-dom@18.2.8)(@types/react@18.2.23)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        specifier: ^1.0.5
+        version: 1.0.5(@types/react-dom@18.2.8)(@types/react@18.2.23)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.0.5
         version: 2.0.6(@types/react-dom@18.2.8)(@types/react@18.2.23)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -602,7 +602,7 @@ importers:
         specifier: ^15.5.0
         version: 15.5.0(react@18.2.0)
       react-textarea-autosize:
-        specifier: ^8.4.1
+        specifier: ^8.5.3
         version: 8.5.3(@types/react@18.2.23)(react@18.2.0)
       react-topbar-progress-indicator:
         specifier: ^4.1.1

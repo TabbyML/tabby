@@ -79,18 +79,8 @@ const tabbyFetcher = ((url: string, init?: RequestInit) => {
   })
 }) as typeof fetch
 
-export default function Search() {
+export function Search() {
   const [conversation, setConversation] = useState<ConversationMessage[]>([])
-  // const [conversation, setConversation] = useState<ConversationMessage[]>([{
-  //   id: nanoid(), // FIXME
-  //   role: 'user',
-  //   content: 'add function'
-  // }, {
-  //   id: nanoid(), // FIXME
-  //   role: 'assistant',
-  //   content: "",
-  //   isLoading: true
-  // }])
   const contentContainerRef = useRef<HTMLDivElement>(null)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [title, setTitle] = useState('')
@@ -120,7 +110,7 @@ export default function Search() {
       item => item.id === currentLoadindId
     )
     if (!currentAnswer) return
-    currentAnswer.content = answer.answer_delta
+    currentAnswer.content = answer.answer_delta || ""
     currentAnswer.relevant_documents = answer.relevant_documents
     currentAnswer.relevant_questions = answer.relevant_questions
     currentAnswer.isLoading = isLoading
@@ -313,12 +303,12 @@ function SearchArea({
 }: {
   onSubmitSearch: (question: string) => void
 }) {
-  // FIXME: the textarea has unexpected flash when it's mounted, maybe it can be fixed after adding loader
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
   const [value, setValue] = useState('')
 
   useEffect(() => {
+    // Ensure the textarea height remains consistent during rendering
     setIsShow(true)
   }, [])
 
@@ -348,9 +338,14 @@ function SearchArea({
       )}
     >
       <TextareaAutosize
-        className="flex-1 resize-none rounded-lg !border-none bg-transparent px-4 py-3 !shadow-none !outline-none !ring-0 !ring-offset-0"
+        className={cn(
+          'flex-1 resize-none rounded-lg !border-none bg-transparent px-4 py-3 !shadow-none !outline-none !ring-0 !ring-offset-0',
+          {
+            '!h-[48px]': !isShow
+          }
+        )}
         placeholder="Ask anything"
-        maxRows={15}
+        maxRows={5}
         onKeyDown={onSearchKeyDown}
         onKeyUp={onSearchKeyUp}
         onFocus={() => setIsFocus(true)}
