@@ -411,14 +411,14 @@ const ActiveRepoTable: React.FC<{
                   <DialogHeader className="gap-3">
                     <DialogTitle>Add new repository</DialogTitle>
                     <DialogDescription>
-                      Add new GitHub repository from this provider
+                      Add new repository from this provider
                     </DialogDescription>
                   </DialogHeader>
                   <AddRepositoryForm
                     onCancel={() => setOpen(false)}
                     onCreated={onCreated}
                     repositories={inactiveRepositories}
-                    kind={RepositoryKind.Github}
+                    kind={kind}
                     providerStatus={providerStatus}
                     fetchingRepos={!isInactiveRepositoriesLoaded}
                   />
