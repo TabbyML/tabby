@@ -154,18 +154,14 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         .await
         {
             Ok(repos) => repos,
-            Err((e, true)) => {
+            Err(e) => {
                 self.integration
                     .update_integration_sync_status(provider.id.clone(), Some(e.to_string()))
                     .await?;
                 error!(
-                    "Credentials for integration {} are expired or invalid",
+                    "Failed to fetch repositories from integration: {}",
                     provider.display_name
                 );
-                return Err(e.into());
-            }
-            Err((e, false)) => {
-                error!("Failed to fetch repositories from github: {e}");
                 return Err(e.into());
             }
         };
