@@ -62,6 +62,8 @@ impl IntegrationService for IntegrationServiceImpl {
         access_token: Option<String>,
         api_base: Option<String>,
     ) -> Result<()> {
+        let access_token_is_changed = access_token.is_some();
+
         self.db
             .update_integration(
                 id.as_rowid()?,
@@ -71,9 +73,13 @@ impl IntegrationService for IntegrationServiceImpl {
                 api_base,
             )
             .await?;
-        let _ = self
-            .background_job
-            .send(BackgroundJobEvent::SyncThirdPartyRepositories(id.clone()));
+
+        if access_token_is_changed {
+            let _ = self
+                .background_job
+                .send(BackgroundJobEvent::SyncThirdPartyRepositories(id.clone()));
+        }
+
         Ok(())
     }
 
@@ -216,9 +222,32 @@ mod tests {
             .await
             .unwrap();
 
+        // Test event is sent to re-sync provider after provider is created
+        let event = recv.recv().await.unwrap();
+        assert_eq!(
+            event,
+            BackgroundJobEvent::SyncThirdPartyRepositories(id.clone())
+        );
+
         // Test integration status is failed after updating sync status with an error
         integration
             .update_integration_sync_status(id.clone(), Some("error".into()))
+            .await
+            .unwrap();
+
+        let provider = integration.get_integration(id.clone()).await.unwrap();
+
+        assert_eq!(provider.status, IntegrationStatus::Failed);
+
+        // Test integration status is not changed if token has not been updated
+        integration
+            .update_integration(
+                id.clone(),
+                IntegrationKind::Github,
+                "gh".into(),
+                Some("token".into()),
+                None,
+            )
             .await
             .unwrap();
 
