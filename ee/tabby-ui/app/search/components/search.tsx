@@ -22,6 +22,8 @@ import {
   IconRefresh,
   IconSparkles
 } from '@/components/ui/icons'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
 import {
   Sheet,
   SheetContent,
@@ -30,101 +32,29 @@ import {
   SheetTitle,
   SheetTrigger
 } from '@/components/ui/sheet'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 // FIXME: move to lib/hooks
 import { useTabbyAnswer } from '@/components/chat/use-tabby-answer'
 import { MemoizedReactMarkdown } from '@/components/markdown'
 
+import './search.css'
+
 interface Source {
-  url: string
   title: string
-  content: string
+  link: string
+  snippet: string
 }
 
-interface Related {
-  title: string
+type ConversationMessage = Message & {
+  relevant_documents?: {
+    title: string
+    link: string
+    snippet: string
+  }[]
+  relevant_questions?: string[]
+  isLoading?: boolean
 }
-
-const mockData = [
-  {
-    question: 'how to add function in python',
-    answer:
-      "Hello World in Python. This is a basic example of a Python program.\nGetting Started. In this section, we'll walk through writing a simple Python program. This program will print out 'Hello, world!'.\nPrerequisites. This program requires Python 3. You can download Python 3 from the official website: https://www.python.org/downloads/\nCode. Here is the Python code:\n```python\ndef say_hello():\n    print('Hello, world!')\n\nsay_hello()\n```\nThis code defines a function, `say_hello`, that prints out the string 'Hello, world!'. Then, it calls this function.\nRunning the Code. To run the code, save it as a .py file and run it from the command line with Python 3.\nConclusion. Congratulations, you've just written and run your first Python program! The print function is one of the most basic functions in Python, but it's also one of the most useful. You can use it to display information, debug your code, and more. Happy coding!",
-    sources: [
-      {
-        url: 'https://github.com/TabbyML/tabby/blob/main/clients/vscode/src/TabbyCompletionProvider.ts#L45-L49',
-        title: 'tabby/clients/vscode/src/TabbyCompletionProvider.ts',
-        content:
-          "```typescript\nworkspace.onDidChangeConfiguration((event) => {\nif (event.affectsConfiguration('tabby') || event.affectsConfiguration('editor.inlineSuggest')) {\nthis.updateConfiguration();\n}\n});```"
-      },
-      {
-        url: 'https://github.com/TabbyML/tabby/issues/2083',
-        title: 'Run chat in command line',
-        content:
-          'I wish to chat to tabby like in your demo page.\nBut from a bash command line.\nAt the moment I just used the docker container.. so I have /opt/tabby/bin/tabby and tabby-cpu'
-      },
-      {
-        url: 'https://gitlab.com/gitlab-org/gitlab/-/blob/master/ee/db/embedding/structure.sql',
-        title: 'ee/db/embedding/structure.sql',
-        content:
-          "```typescript\nworkspace.onDidChangeConfiguration((event) => {\nif (event.affectsConfiguration('tabby') || event.affectsConfiguration('editor.inlineSuggest')) {\nthis.updateConfiguration();\n}\n});```"
-      }
-    ],
-    related: [
-      {
-        title:
-          'What are the key differences between safetensor and GGUF formats?'
-      },
-      {
-        title:
-          'Can you provide more detail on the tools and dependencies needed for converting a safetensor model to GGUF?'
-      },
-      {
-        title:
-          'What are the benefits of converting a safetensor model to GGUF format?'
-      }
-    ]
-  },
-  {
-    question: 'write a triangle with CSS',
-    answer:
-      "The 'hubspot-api' library is not a preloaded package in HubSpot. Instead, you should use the '@hubspot/api-client' package. Here is an example of how to include it:\n\n```javascript\nconst hubspot = require('@hubspot/api-client');\nconst hubspotClient = new hubspot.Client({ apiKey: YOUR_API_KEY });\n```\n\nYou can find more information about the package in the [NPM reference](https://www.npmjs.com/package/@hubspot/api-client) and the [HubSpot Serverless Reference](https://developers.hubspot.com/docs/cms/data/serverless-functions/reference#preloaded-packages).",
-    sources: [
-      {
-        url: 'https://github.com/TabbyML/tabby/blob/main/clients/vscode/src/TabbyCompletionProvider.ts#L45-L49',
-        title: 'tabby/clients/vscode/src/TabbyCompletionProvider.ts',
-        content:
-          "```typescript\nworkspace.onDidChangeConfiguration((event) => {\nif (event.affectsConfiguration('tabby') || event.affectsConfiguration('editor.inlineSuggest')) {\nthis.updateConfiguration();\n}\n});```"
-      },
-      {
-        url: 'https://github.com/TabbyML/tabby/issues/2083',
-        title: 'Run chat in command line',
-        content:
-          'I wish to chat to tabby like in your demo page.\nBut from a bash command line.\nAt the moment I just used the docker container.. so I have /opt/tabby/bin/tabby and tabby-cpu'
-      },
-      {
-        url: 'https://gitlab.com/gitlab-org/gitlab/-/blob/master/ee/db/embedding/structure.sql',
-        title: 'ee/db/embedding/structure.sql',
-        content:
-          "```typescript\nworkspace.onDidChangeConfiguration((event) => {\nif (event.affectsConfiguration('tabby') || event.affectsConfiguration('editor.inlineSuggest')) {\nthis.updateConfiguration();\n}\n});```"
-      }
-    ],
-    related: [
-      {
-        title:
-          'What are the key differences between safetensor and GGUF formats?'
-      },
-      {
-        title:
-          'Can you provide more detail on the tools and dependencies needed for converting a safetensor model to GGUF?'
-      },
-      {
-        title:
-          'What are the benefits of converting a safetensor model to GGUF format?'
-      }
-    ]
-  }
-]
 
 const tabbyFetcher = ((url: string, init?: RequestInit) => {
   return fetcher(url, {
@@ -139,11 +69,22 @@ const tabbyFetcher = ((url: string, init?: RequestInit) => {
 }) as typeof fetch
 
 export default function Search() {
-  const [conversation, setConversation] = useState<Message[]>([])
+  const [conversation, setConversation] = useState<ConversationMessage[]>([])
+  // const [conversation, setConversation] = useState<ConversationMessage[]>([{
+  //   id: nanoid(), // FIXME
+  //   role: 'user',
+  //   content: 'add function'
+  // }, {
+  //   id: nanoid(), // FIXME
+  //   role: 'assistant',
+  //   content: "",
+  //   isLoading: true
+  // }])
   const contentContainerRef = useRef<HTMLDivElement>(null)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [title, setTitle] = useState('')
 
+  // FIXME: error and stop
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
     fetcher: tabbyFetcher
   })
@@ -158,13 +99,43 @@ export default function Search() {
     )
   }, [])
 
+  // Handling the stream response from useTabbyAnswer
+  useEffect(() => {
+    if (!answer) return
+    const newConversation = [...conversation]
+    let currentAnswer = newConversation[newConversation.length - 1]
+    currentAnswer.content = answer.answer_delta
+    currentAnswer.relevant_documents = answer.relevant_documents
+    currentAnswer.relevant_questions = answer.relevant_questions
+    currentAnswer.isLoading = isLoading
+    setConversation(newConversation)
+  }, [isLoading, answer])
+
   const onSubmitSearch = (question: string) => {
     // FIXME: code query? extra from user's input?
-    // FIXME: bring previous conversation
-    // FIXME: user.id
+    const newUserMessage: ConversationMessage = {
+      id: nanoid(), // FIXME
+      role: 'user',
+      content: question
+    }
+    const newAssistantMessage: ConversationMessage = {
+      id: nanoid(), // FIXME
+      role: 'assistant',
+      content: '',
+      isLoading: true
+    }
+    setConversation(
+      [...conversation].concat([newUserMessage, newAssistantMessage])
+    )
 
+    const previousMessages = conversation.map(message => ({
+      role: message.role,
+      id: message.id,
+      content: message.content
+    }))
     const answerRequest: AnswerRequest = {
       messages: [
+        ...previousMessages,
         {
           role: 'user',
           id: nanoid(),
@@ -182,24 +153,32 @@ export default function Search() {
   // FIXME: the height considering demo banner
   return (
     <div className="flex h-screen flex-col">
-      {/* <ScrollArea className="flex-1" ref={contentContainerRef}>
+      <ScrollArea className="flex-1" ref={contentContainerRef}>
         <div className="mx-auto px-0 md:w-[48rem] md:px-6">
-          <div className="pb-20">
-            {mockData.map((data, idx) => (
-              <>
-                {idx !== 0 && <Separator />}
-                <QuestionAnswerPair
-                  key={idx}
-                  question={data.question}
-                  answer={data.answer}
-                  sources={data.sources}
-                  related={data.related}
-                />
-              </>
-            ))}
+          <div className="flex flex-col pb-20">
+            {conversation.map((item, idx) => {
+              if (item.role === 'user') {
+                return (
+                  <div key={item.id}>
+                    {idx !== 0 && <Separator />}
+                    <div className="pb-2 pt-8">
+                      <MessageMarkdown message={item.content} headline />
+                    </div>
+                  </div>
+                )
+              }
+              if (item.role === 'assistant') {
+                return (
+                  <div key={item.id} className="pb-8 pt-2">
+                    <AnswerBlock question="todo" answer={item} />
+                  </div>
+                )
+              }
+              return <></>
+            })}
           </div>
         </div>
-      </ScrollArea> */}
+      </ScrollArea>
 
       {/* FIXME: support offset, currently the button wont disapper in the bottom */}
       {container && (
@@ -264,6 +243,7 @@ function SearchArea({
   const search = () => {
     if (!value) return
     onSubmitSearch(value)
+    setValue('')
   }
 
   return (
@@ -301,134 +281,122 @@ function SearchArea({
   )
 }
 
-function QuestionAnswerPair({
+function AnswerBlock({
   question,
-  answer,
-  sources,
-  related
+  answer
 }: {
   question: string
-  answer: string
-  sources: Source[]
-  related: Related[]
+  answer: ConversationMessage
 }) {
   return (
-    <div className="py-12">
-      <h3 className="mb-4 text-2xl font-semibold tracking-tight first:mt-0">
-        {question}
-      </h3>
+    <div className="flex flex-col gap-y-5">
+      {/* Relevant documents */}
+      {answer.relevant_documents && answer.relevant_documents.length > 0 && (
+        <div>
+          <div className="mb-1 flex items-center gap-x-2">
+            <IconBlocks className="relative" style={{ top: '-0.04rem' }} />
+            <p className="text-sm font-bold leading-normal">Source</p>
+          </div>
+          <div className="gap-sm grid grid-cols-4 gap-x-2">
+            {answer.relevant_documents.map((source, index) => (
+              <SourceCard key={source.link} source={source} index={index + 1} />
+            ))}
+            {answer.relevant_documents &&
+              answer.relevant_documents.length > 3 && (
+                <Sheet>
+                  <SheetTrigger>
+                    <div className="flex h-full cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card px-4 py-2 hover:bg-card/60">
+                      <div className="flex flex-1 gap-x-1 py-1">
+                        <img
+                          src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=github.com`}
+                          alt="github.com"
+                          className="mr-1 h-3.5 w-3.5 rounded-full"
+                        />
+                        <img
+                          src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=github.com`}
+                          alt="github.com"
+                          className="mr-1 h-3.5 w-3.5 rounded-full"
+                        />
+                      </div>
 
-      <div className="mb-1 flex items-center gap-x-2">
-        <IconBlocks className="relative" style={{ top: '-0.04rem' }} />
-        <p className="text-sm font-bold leading-normal">Source</p>
-      </div>
-      <div className="gap-sm grid grid-cols-4 gap-x-2">
-        {sources.map((source, index) => (
-          <SourceCard key={source.url} source={source} index={index + 1} />
-        ))}
-        <Sheet>
-          <SheetTrigger>
-            <div className="flex h-full cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card px-4 py-2 hover:bg-card/60">
-              <div className="flex flex-1 gap-x-1 py-1">
-                <img
-                  src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=github.com`}
-                  alt="github.com"
-                  className="mr-1 h-3.5 w-3.5 rounded-full"
-                />
-                <img
-                  src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=github.com`}
-                  alt="github.com"
-                  className="mr-1 h-3.5 w-3.5 rounded-full"
-                />
-              </div>
-
-              <p className="flex items-center gap-x-0.5 text-xs text-muted-foreground">
-                Check mroe
-              </p>
-            </div>
-          </SheetTrigger>
-          <SheetContent className="!max-w-3xl">
-            <SheetHeader>
-              <SheetTitle>
-                {question} (Style here need to be polished)
-              </SheetTitle>
-              <SheetDescription>{sources.length} resources</SheetDescription>
-            </SheetHeader>
-            {/* FIXME: pagination or scrolling */}
-            <div className="mt-2 flex flex-col gap-y-8">
-              {sources.map((source, index) => (
-                <SourceBlock source={source} index={index + 1} key={index} />
-              ))}
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
-
-      <div className="mt-9 flex items-center gap-x-1.5">
-        <IconSparkles />
-        <p className="text-sm font-bold leading-none">Answer</p>
-      </div>
-      <MemoizedReactMarkdown
-        className="prose-full-width prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
-        remarkPlugins={[remarkGfm, remarkMath]}
-        components={{
-          p({ children }) {
-            return <p className="mb-2 last:mb-0 ">{children}</p>
-          },
-          code({ node, inline, className, children, ...props }) {
-            if (children.length) {
-              if (children[0] == '▍') {
-                return (
-                  <span className="mt-1 animate-pulse cursor-default">▍</span>
-                )
-              }
-
-              children[0] = (children[0] as string).replace('`▍`', '▍')
-            }
-
-            const match = /language-(\w+)/.exec(className || '')
-
-            if (inline) {
-              return (
-                <code className={className} {...props}>
-                  {children}
-                </code>
-              )
-            }
-
-            return (
-              <CodeBlock
-                key={Math.random()}
-                language={(match && match[1]) || ''}
-                value={String(children).replace(/\n$/, '')}
-                {...props}
-              />
-            )
-          }
-        }}
-      >
-        {answer}
-      </MemoizedReactMarkdown>
-      <div className="mt-3 flex items-center gap-x-3 text-sm">
-        <div className="flex cursor-pointer items-center gap-x-0.5 text-muted-foreground transition-all hover:text-primary">
-          <IconCopy />
-          <p>Copy</p>
+                      <p className="flex items-center gap-x-0.5 text-xs text-muted-foreground">
+                        Check mroe
+                      </p>
+                    </div>
+                  </SheetTrigger>
+                  <SheetContent className="!max-w-3xl">
+                    <SheetHeader>
+                      <SheetTitle>
+                        {question} (Style here need to be polished)
+                      </SheetTitle>
+                      <SheetDescription>
+                        {answer.relevant_documents.length} resources
+                      </SheetDescription>
+                    </SheetHeader>
+                    {/* FIXME: pagination or scrolling */}
+                    <div className="mt-2 flex flex-col gap-y-8">
+                      {answer.relevant_documents.map((source, index) => (
+                        <SourceBlock
+                          source={source}
+                          index={index + 1}
+                          key={index}
+                        />
+                      ))}
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              )}
+          </div>
         </div>
-        <div className="flex cursor-pointer items-center gap-x-0.5 text-muted-foreground transition-all hover:text-primary">
-          <IconRefresh />
-          <p>Regenerate</p>
+      )}
+
+      {/* Answer content */}
+      <div>
+        <div className="flex items-center gap-x-1.5">
+          <IconSparkles
+            className={cn({
+              'spark-animation': answer.isLoading
+            })}
+          />
+          <p className="text-sm font-bold leading-none">Answer</p>
         </div>
+        {answer.isLoading && !answer.content && (
+          <div className="flex flex-col gap-y-1">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        )}
+
+        <MessageMarkdown message={answer.content} />
+
+        {!answer.isLoading && (
+          <div className="mt-3 flex items-center gap-x-3 text-sm">
+            <div className="flex cursor-pointer items-center gap-x-0.5 text-muted-foreground transition-all hover:text-primary">
+              <IconCopy />
+              <p>Copy</p>
+            </div>
+            <div className="flex cursor-pointer items-center gap-x-0.5 text-muted-foreground transition-all hover:text-primary">
+              <IconRefresh />
+              <p>Regenerate</p>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="mt-9 flex items-center gap-x-1.5">
-        <IconLayers />
-        <p className="text-sm font-bold leading-none">Related</p>
-      </div>
-      <div className="mt-3 flex flex-col gap-y-3">
-        {related.map((related, index) => (
-          <RealtedCard key={index} related={related} />
-        ))}
-      </div>
+      {/* Related questions */}
+      {answer.relevant_questions && answer.relevant_questions.length > 0 && (
+        <div>
+          <div className="mt-9 flex items-center gap-x-1.5">
+            <IconLayers />
+            <p className="text-sm font-bold leading-none">Related</p>
+          </div>
+          <div className="mt-3 flex flex-col gap-y-3">
+            {answer.relevant_questions?.map((related, index) => (
+              <RealtedCard key={index} related={related} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -439,54 +407,14 @@ function SourceBlock({ source, index }: { source: Source; index: number }) {
       <p className="text-sm">{index}.</p>
       <div className="flex-1">
         <p className="text-sm">{source.title}</p>
-        <MemoizedReactMarkdown
-          className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
-          remarkPlugins={[remarkGfm, remarkMath]}
-          components={{
-            p({ children }) {
-              return <p className="mb-2 last:mb-0">{children}</p>
-            },
-            code({ node, inline, className, children, ...props }) {
-              if (children.length) {
-                if (children[0] == '▍') {
-                  return (
-                    <span className="mt-1 animate-pulse cursor-default">▍</span>
-                  )
-                }
-
-                children[0] = (children[0] as string).replace('`▍`', '▍')
-              }
-
-              const match = /language-(\w+)/.exec(className || '')
-
-              if (inline) {
-                return (
-                  <code className={className} {...props}>
-                    {children}
-                  </code>
-                )
-              }
-
-              return (
-                <CodeBlock
-                  key={Math.random()}
-                  language={(match && match[1]) || ''}
-                  value={String(children).replace(/\n$/, '')}
-                  {...props}
-                />
-              )
-            }
-          }}
-        >
-          {source.content}
-        </MemoizedReactMarkdown>
+        <p>{source.snippet}</p>
       </div>
     </div>
   )
 }
 
 function SourceCard({ source, index }: { source: Source; index: number }) {
-  const { hostname } = new URL(source.url)
+  const { hostname } = new URL(source.link)
   return (
     <div className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card px-4 py-2 transition-all hover:bg-card/60">
       <p className="line-clamp-2 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
@@ -511,13 +439,73 @@ function SourceCard({ source, index }: { source: Source; index: number }) {
   )
 }
 
-function RealtedCard({ related }: { related: Related }) {
+function RealtedCard({ related }: { related: string }) {
   return (
     <div className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-all hover:text-primary">
-      <p className="w-full overflow-hidden text-ellipsis text-sm">
-        {related.title}
-      </p>
+      <p className="w-full overflow-hidden text-ellipsis text-sm">{related}</p>
       <IconPlus />
     </div>
+  )
+}
+
+function MessageMarkdown({
+  message,
+  headline = false
+}: {
+  message: string
+  headline?: boolean
+}) {
+  // FIXME: onCopyContent
+  // const { onCopyContent } = React.useContext(ChatContext)
+  return (
+    <MemoizedReactMarkdown
+      className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
+      remarkPlugins={[remarkGfm, remarkMath]}
+      components={{
+        p({ children }) {
+          if (headline) {
+            return (
+              <h3 className="break-anywhere cursor-text scroll-m-20 text-xl font-semibold tracking-tight sm:w-9/12 sm:text-2xl">
+                {children}
+              </h3>
+            )
+          }
+          return <p className="mb-2 last:mb-0">{children}</p>
+        },
+        code({ node, inline, className, children, ...props }) {
+          if (children.length) {
+            if (children[0] == '▍') {
+              return (
+                <span className="mt-1 animate-pulse cursor-default">▍</span>
+              )
+            }
+
+            children[0] = (children[0] as string).replace('`▍`', '▍')
+          }
+
+          const match = /language-(\w+)/.exec(className || '')
+
+          if (inline) {
+            return (
+              <code className={className} {...props}>
+                {children}
+              </code>
+            )
+          }
+
+          return (
+            <CodeBlock
+              key={Math.random()}
+              language={(match && match[1]) || ''}
+              value={String(children).replace(/\n$/, '')}
+              // onCopyContent={onCopyContent}
+              {...props}
+            />
+          )
+        }
+      }}
+    >
+      {message}
+    </MemoizedReactMarkdown>
   )
 }
