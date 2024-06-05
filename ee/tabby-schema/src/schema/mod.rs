@@ -208,6 +208,7 @@ impl Query {
         .await
     }
 
+    #[deprecated]
     async fn github_repository_providers(
         ctx: &Context,
         ids: Option<Vec<ID>>,
@@ -241,6 +242,7 @@ impl Query {
         .await
     }
 
+    #[deprecated]
     async fn github_repositories(
         ctx: &Context,
         provider_ids: Vec<ID>,
@@ -277,6 +279,7 @@ impl Query {
         .await
     }
 
+    #[deprecated]
     async fn github_self_hosted_repositories(
         ctx: &Context,
         provider_ids: Vec<ID>,
@@ -313,6 +316,7 @@ impl Query {
         .await
     }
 
+    #[deprecated]
     async fn gitlab_self_hosted_repositories(
         ctx: &Context,
         provider_ids: Vec<ID>,
@@ -349,6 +353,7 @@ impl Query {
         .await
     }
 
+    #[deprecated]
     async fn gitlab_repository_providers(
         ctx: &Context,
         ids: Option<Vec<ID>>,
@@ -382,6 +387,7 @@ impl Query {
         .await
     }
 
+    #[deprecated]
     async fn gitlab_self_hosted_repository_providers(
         ctx: &Context,
         ids: Option<Vec<ID>>,
@@ -415,6 +421,7 @@ impl Query {
         .await
     }
 
+    #[deprecated]
     async fn github_self_hosted_repository_providers(
         ctx: &Context,
         ids: Option<Vec<ID>>,
@@ -448,6 +455,7 @@ impl Query {
         .await
     }
 
+    #[deprecated]
     async fn gitlab_repositories(
         ctx: &Context,
         provider_ids: Vec<ID>,
@@ -1028,6 +1036,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn create_github_repository_provider(
         ctx: &Context,
         input: repository::CreateRepositoryProviderInput,
@@ -1047,6 +1056,7 @@ impl Mutation {
         Ok(id)
     }
 
+    #[deprecated]
     async fn create_github_self_hosted_repository_provider(
         ctx: &Context,
         input: repository::CreateSelfHostedRepositoryProviderInput,
@@ -1066,6 +1076,7 @@ impl Mutation {
         Ok(id)
     }
 
+    #[deprecated]
     async fn delete_github_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator
@@ -1075,6 +1086,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn delete_github_self_hosted_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator
@@ -1084,6 +1096,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn update_github_repository_provider(
         ctx: &Context,
         input: repository::UpdateRepositoryProviderInput,
@@ -1103,6 +1116,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn update_github_self_hosted_repository_provider(
         ctx: &Context,
         input: repository::UpdateSelfHostedRepositoryProviderInput,
@@ -1122,6 +1136,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn update_github_provided_repository_active(
         ctx: &Context,
         id: ID,
@@ -1135,6 +1150,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn update_github_self_hosted_provided_repository_active(
         ctx: &Context,
         id: ID,
@@ -1148,6 +1164,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn create_gitlab_repository_provider(
         ctx: &Context,
         input: repository::CreateRepositoryProviderInput,
@@ -1167,6 +1184,7 @@ impl Mutation {
         Ok(id)
     }
 
+    #[deprecated]
     async fn create_gitlab_self_hosted_repository_provider(
         ctx: &Context,
         input: repository::CreateSelfHostedRepositoryProviderInput,
@@ -1186,6 +1204,7 @@ impl Mutation {
         Ok(id)
     }
 
+    #[deprecated]
     async fn delete_gitlab_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator
@@ -1195,6 +1214,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn delete_gitlab_self_hosted_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator
@@ -1204,6 +1224,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn update_gitlab_self_hosted_repository_provider(
         ctx: &Context,
         input: repository::UpdateSelfHostedRepositoryProviderInput,
@@ -1223,6 +1244,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn update_gitlab_repository_provider(
         ctx: &Context,
         input: repository::UpdateRepositoryProviderInput,
@@ -1242,6 +1264,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn update_gitlab_provided_repository_active(
         ctx: &Context,
         id: ID,
@@ -1255,6 +1278,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn update_gitlab_self_hosted_provided_repository_active(
         ctx: &Context,
         id: ID,
