@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import logoUrl from '@/assets/tabby.png'
 import { Message } from 'ai'
@@ -17,7 +17,6 @@ import { CodeBlock } from '@/components/ui/codeblock'
 import {
   IconArrowRight,
   IconBlocks,
-  IconCopy,
   IconLayers,
   IconPlus,
   IconRefresh,
@@ -38,6 +37,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 // FIXME: move to lib/hooks
 import { useTabbyAnswer } from '@/components/chat/use-tabby-answer'
+import { CopyButton } from '@/components/copy-button'
 import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './search.css'
@@ -57,6 +57,15 @@ type ConversationMessage = Message & {
   relevant_questions?: string[]
   isLoading?: boolean
 }
+
+type SearchContextValue = {
+  isLoading: boolean
+  onRegenerateResponse: (id: string) => void
+}
+
+export const SearchContext = createContext<SearchContextValue>(
+  {} as SearchContextValue
+)
 
 const tabbyFetcher = ((url: string, init?: RequestInit) => {
   return fetcher(url, {
@@ -85,8 +94,9 @@ export default function Search() {
   const contentContainerRef = useRef<HTMLDivElement>(null)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [title, setTitle] = useState('')
+  const [currentLoadindId, setCurrentLoadingId] = useState<string>('')
 
-  // FIXME: error and stop
+  // FIXME: error
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
     fetcher: tabbyFetcher
   })
@@ -106,7 +116,10 @@ export default function Search() {
   useEffect(() => {
     if (!answer) return
     const newConversation = [...conversation]
-    let currentAnswer = newConversation[newConversation.length - 1]
+    let currentAnswer = newConversation.find(
+      item => item.id === currentLoadindId
+    )
+    if (!currentAnswer) return
     currentAnswer.content = answer.answer_delta
     currentAnswer.relevant_documents = answer.relevant_documents
     currentAnswer.relevant_questions = answer.relevant_questions
@@ -122,13 +135,14 @@ export default function Search() {
       content: message.content
     }))
     const previousUserId = previousMessages.length > 0 && previousMessages[0].id
+    const newAssistantId = nanoid()
     const newUserMessage: ConversationMessage = {
       id: previousUserId || nanoid(),
       role: 'user',
       content: question
     }
     const newAssistantMessage: ConversationMessage = {
-      id: nanoid(),
+      id: newAssistantId,
       role: 'assistant',
       content: '',
       isLoading: true
@@ -140,6 +154,7 @@ export default function Search() {
       generate_relevant_questions: true
     }
 
+    setCurrentLoadingId(newAssistantId)
     setConversation(
       [...conversation].concat([newUserMessage, newAssistantMessage])
     )
@@ -159,96 +174,137 @@ export default function Search() {
     setTitle(question)
   }
 
+  const onRegenerateResponse = (id: string) => {
+    const targetAnswerIdx = conversation.findIndex(item => item.id === id)
+    if (targetAnswerIdx < 1) return
+    const targetQuestionIdx = targetAnswerIdx - 1
+    const targetQuestion = conversation[targetQuestionIdx]
+
+    const previousMessages = conversation
+      .slice(0, targetQuestionIdx)
+      .map(message => ({
+        role: message.role,
+        id: message.id,
+        content: message.content
+      }))
+    const newUserMessage = {
+      role: 'user',
+      id: targetQuestion.id,
+      content: targetQuestion.content
+    }
+    const answerRequest: AnswerRequest = {
+      messages: [...previousMessages, newUserMessage],
+      doc_query: true,
+      generate_relevant_questions: true
+    }
+
+    const newConversation = [...conversation]
+    let newTargetAnswer = newConversation[targetAnswerIdx]
+    newTargetAnswer.content = ''
+    newTargetAnswer.isLoading = true
+
+    setCurrentLoadingId(newTargetAnswer.id)
+    setConversation(newConversation)
+    triggerRequest(answerRequest)
+  }
+
   const noConversation = conversation.length === 0
   const currentAnswerHasContent = Boolean(
     conversation[conversation.length - 1]?.content
   )
   // FIXME: the height considering demo banner
   return (
-    <div className="flex h-screen flex-col">
-      <ScrollArea className="flex-1" ref={contentContainerRef}>
-        <div className="mx-auto px-0 md:w-[48rem] md:px-6">
-          <div className="flex flex-col pb-20">
-            {conversation.map((item, idx) => {
-              if (item.role === 'user') {
-                return (
-                  <div key={item.id + idx}>
-                    {idx !== 0 && <Separator />}
-                    <div className="pb-2 pt-8">
-                      <MessageMarkdown message={item.content} headline />
+    <SearchContext.Provider
+      value={{
+        isLoading: isLoading,
+        onRegenerateResponse: onRegenerateResponse
+      }}
+    >
+      <div className="flex h-screen flex-col">
+        <ScrollArea className="flex-1" ref={contentContainerRef}>
+          <div className="mx-auto px-0 md:w-[48rem] md:px-6">
+            <div className="flex flex-col pb-20">
+              {conversation.map((item, idx) => {
+                if (item.role === 'user') {
+                  return (
+                    <div key={item.id + idx}>
+                      {idx !== 0 && <Separator />}
+                      <div className="pb-2 pt-8">
+                        <MessageMarkdown message={item.content} headline />
+                      </div>
                     </div>
-                  </div>
-                )
-              }
-              if (item.role === 'assistant') {
-                return (
-                  <div key={item.id + idx} className="pb-8 pt-2">
-                    <AnswerBlock question="todo" answer={item} />
-                  </div>
-                )
-              }
-              return <></>
-            })}
+                  )
+                }
+                if (item.role === 'assistant') {
+                  return (
+                    <div key={item.id + idx} className="pb-8 pt-2">
+                      <AnswerBlock question="todo" answer={item} />
+                    </div>
+                  )
+                }
+                return <></>
+              })}
+            </div>
           </div>
-        </div>
-      </ScrollArea>
+        </ScrollArea>
 
-      {/* FIXME: adjust position in small width */}
-      {container && (
-        <ButtonScrollToBottom
-          className="!fixed !bottom-9 !right-10 !top-auto"
-          container={container}
-          offset={100}
-        />
-      )}
+        {/* FIXME: adjust position in small width */}
+        {container && (
+          <ButtonScrollToBottom
+            className="!fixed !bottom-9 !right-10 !top-auto"
+            container={container}
+            offset={100}
+          />
+        )}
 
-      <div
-        className={cn(
-          'fixed left-1/2 flex h-24 flex-col items-center transition-all md:-ml-[24rem] md:w-[48rem] md:p-6',
-          {
-            'bottom-2/3': noConversation,
-            'bottom-0': !noConversation
-          }
-        )}
-      >
-        {noConversation && (
-          <>
-            <Image
-              src={logoUrl}
-              alt="logo"
-              width={42}
-              className="dark:hidden"
-            />
-            <h4 className="mb-6 scroll-m-20 text-xl font-semibold tracking-tight text-secondary-foreground">
-              Your private search engine (TODO)
-            </h4>
-          </>
-        )}
-        {!isLoading && (
-          <div className="relative z-20 w-full">
-            <SearchArea onSubmitSearch={onSubmitSearch} />
-          </div>
-        )}
-        <Button
+        <div
           className={cn(
-            'absolute top-8 z-0 flex items-center gap-x-2 px-8 py-4',
+            'fixed left-1/2 flex h-24 flex-col items-center transition-all md:-ml-[24rem] md:w-[48rem] md:p-6',
             {
-              'opacity-0 pointer-events-none':
-                !isLoading || !currentAnswerHasContent,
-              'opacity-100': isLoading && currentAnswerHasContent
+              'bottom-2/3': noConversation,
+              'bottom-0': !noConversation
             }
           )}
-          style={{
-            transition: 'opacity 0.55s ease-out'
-          }}
-          variant="destructive"
-          onClick={stop}
         >
-          <IconStop />
-          <p>Stop</p>
-        </Button>
+          {noConversation && (
+            <>
+              <Image
+                src={logoUrl}
+                alt="logo"
+                width={42}
+                className="dark:hidden"
+              />
+              <h4 className="mb-6 scroll-m-20 text-xl font-semibold tracking-tight text-secondary-foreground">
+                Your private search engine (TODO)
+              </h4>
+            </>
+          )}
+          {!isLoading && (
+            <div className="relative z-20 w-full">
+              <SearchArea onSubmitSearch={onSubmitSearch} />
+            </div>
+          )}
+          <Button
+            className={cn(
+              'absolute top-8 z-0 flex items-center gap-x-2 px-8 py-4',
+              {
+                'opacity-0 pointer-events-none':
+                  !isLoading || !currentAnswerHasContent,
+                'opacity-100': isLoading && currentAnswerHasContent
+              }
+            )}
+            style={{
+              transition: 'opacity 0.55s ease-out'
+            }}
+            variant="destructive"
+            onClick={stop}
+          >
+            <IconStop />
+            <p>Stop</p>
+          </Button>
+        </div>
       </div>
-    </div>
+    </SearchContext.Provider>
   )
 }
 
@@ -324,6 +380,7 @@ function AnswerBlock({
   question: string
   answer: ConversationMessage
 }) {
+  const { onRegenerateResponse, isLoading } = useContext(SearchContext)
   return (
     <div className="flex flex-col gap-y-5">
       {/* Relevant documents */}
@@ -407,14 +464,21 @@ function AnswerBlock({
 
         {!answer.isLoading && (
           <div className="mt-3 flex items-center gap-x-3 text-sm">
-            <div className="flex cursor-pointer items-center gap-x-0.5 text-muted-foreground transition-all hover:text-primary">
-              <IconCopy />
-              <p>Copy</p>
-            </div>
-            <div className="flex cursor-pointer items-center gap-x-0.5 text-muted-foreground transition-all hover:text-primary">
-              <IconRefresh />
-              <p>Regenerate</p>
-            </div>
+            <CopyButton
+              className="-ml-2.5 gap-x-1 px-2 font-normal text-muted-foreground"
+              value={answer.content}
+              text="Copy"
+            />
+            {!isLoading && (
+              <Button
+                className="flex items-center gap-x-1 px-2 font-normal text-muted-foreground"
+                variant="ghost"
+                onClick={onRegenerateResponse.bind(null, answer.id)}
+              >
+                <IconRefresh />
+                <p>Regenerate</p>
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -491,8 +555,6 @@ function MessageMarkdown({
   message: string
   headline?: boolean
 }) {
-  // FIXME: onCopyContent
-  // const { onCopyContent } = React.useContext(ChatContext)
   return (
     <MemoizedReactMarkdown
       className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
@@ -534,7 +596,6 @@ function MessageMarkdown({
               key={Math.random()}
               language={(match && match[1]) || ''}
               value={String(children).replace(/\n$/, '')}
-              // onCopyContent={onCopyContent}
               {...props}
             />
           )
