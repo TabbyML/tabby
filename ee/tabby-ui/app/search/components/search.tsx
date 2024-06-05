@@ -12,6 +12,7 @@ import remarkMath from 'remark-math'
 import fetcher from '@/lib/tabby/fetcher'
 import { AnswerRequest } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { CodeBlock } from '@/components/ui/codeblock'
 import {
   IconArrowRight,
@@ -20,7 +21,8 @@ import {
   IconLayers,
   IconPlus,
   IconRefresh,
-  IconSparkles
+  IconSparkles,
+  IconStop
 } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
@@ -90,6 +92,7 @@ export default function Search() {
   })
 
   useEffect(() => {
+    if (title) return
     document.title = title
   }, [title])
 
@@ -113,43 +116,53 @@ export default function Search() {
 
   const onSubmitSearch = (question: string) => {
     // FIXME: code query? extra from user's input?
-    const newUserMessage: ConversationMessage = {
-      id: nanoid(), // FIXME
-      role: 'user',
-      content: question
-    }
-    const newAssistantMessage: ConversationMessage = {
-      id: nanoid(), // FIXME
-      role: 'assistant',
-      content: '',
-      isLoading: true
-    }
-    setConversation(
-      [...conversation].concat([newUserMessage, newAssistantMessage])
-    )
-
     const previousMessages = conversation.map(message => ({
       role: message.role,
       id: message.id,
       content: message.content
     }))
+    const previousUserId = previousMessages.length > 0 && previousMessages[0].id
+    const newUserMessage: ConversationMessage = {
+      id: previousUserId || nanoid(),
+      role: 'user',
+      content: question
+    }
+    const newAssistantMessage: ConversationMessage = {
+      id: nanoid(),
+      role: 'assistant',
+      content: '',
+      isLoading: true
+    }
+
     const answerRequest: AnswerRequest = {
-      messages: [
-        ...previousMessages,
-        {
-          role: 'user',
-          id: nanoid(),
-          content: question
-        }
-      ],
+      messages: [...previousMessages, newUserMessage],
       doc_query: true,
       generate_relevant_questions: true
     }
-    setTitle(question)
+
+    setConversation(
+      [...conversation].concat([newUserMessage, newAssistantMessage])
+    )
     triggerRequest(answerRequest)
+
+    // Scroll to the bottom
+    if (container) {
+      setTimeout(() => {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: 'smooth'
+        })
+      }, 800)
+    }
+
+    // Update HTML page title
+    setTitle(question)
   }
 
   const noConversation = conversation.length === 0
+  const currentAnswerHasContent = Boolean(
+    conversation[conversation.length - 1]?.content
+  )
   // FIXME: the height considering demo banner
   return (
     <div className="flex h-screen flex-col">
@@ -159,7 +172,7 @@ export default function Search() {
             {conversation.map((item, idx) => {
               if (item.role === 'user') {
                 return (
-                  <div key={item.id}>
+                  <div key={item.id + idx}>
                     {idx !== 0 && <Separator />}
                     <div className="pb-2 pt-8">
                       <MessageMarkdown message={item.content} headline />
@@ -169,7 +182,7 @@ export default function Search() {
               }
               if (item.role === 'assistant') {
                 return (
-                  <div key={item.id} className="pb-8 pt-2">
+                  <div key={item.id + idx} className="pb-8 pt-2">
                     <AnswerBlock question="todo" answer={item} />
                   </div>
                 )
@@ -180,17 +193,18 @@ export default function Search() {
         </div>
       </ScrollArea>
 
-      {/* FIXME: support offset, currently the button wont disapper in the bottom */}
+      {/* FIXME: adjust position in small width */}
       {container && (
         <ButtonScrollToBottom
           className="!fixed !bottom-9 !right-10 !top-auto"
           container={container}
+          offset={100}
         />
       )}
 
       <div
         className={cn(
-          'fixed left-1/2 flex flex-col items-center transition-all md:-ml-[24rem] md:w-[48rem] md:p-6',
+          'fixed left-1/2 flex h-24 flex-col items-center transition-all md:-ml-[24rem] md:w-[48rem] md:p-6',
           {
             'bottom-2/3': noConversation,
             'bottom-0': !noConversation
@@ -210,7 +224,29 @@ export default function Search() {
             </h4>
           </>
         )}
-        <SearchArea onSubmitSearch={onSubmitSearch} />
+        {!isLoading && (
+          <div className="relative z-20 w-full">
+            <SearchArea onSubmitSearch={onSubmitSearch} />
+          </div>
+        )}
+        <Button
+          className={cn(
+            'absolute top-8 z-0 flex items-center gap-x-2 px-8 py-4',
+            {
+              'opacity-0 pointer-events-none':
+                !isLoading || !currentAnswerHasContent,
+              'opacity-100': isLoading && currentAnswerHasContent
+            }
+          )}
+          style={{
+            transition: 'opacity 0.55s ease-out'
+          }}
+          variant="destructive"
+          onClick={stop}
+        >
+          <IconStop />
+          <p>Stop</p>
+        </Button>
       </div>
     </div>
   )
