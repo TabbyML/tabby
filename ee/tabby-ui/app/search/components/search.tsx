@@ -1,10 +1,16 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
+import logoUrl from '@/assets/tabby.png'
+import { Message } from 'ai'
+import { nanoid } from 'nanoid'
 import TextareaAutosize from 'react-textarea-autosize'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
+import fetcher from '@/lib/tabby/fetcher'
+import { AnswerRequest } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { CodeBlock } from '@/components/ui/codeblock'
 import {
@@ -16,8 +22,6 @@ import {
   IconRefresh,
   IconSparkles
 } from '@/components/ui/icons'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
 import {
   Sheet,
   SheetContent,
@@ -27,7 +31,8 @@ import {
   SheetTrigger
 } from '@/components/ui/sheet'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
-import { Header } from '@/components/header'
+// FIXME: move to lib/hooks
+import { useTabbyAnswer } from '@/components/chat/use-tabby-answer'
 import { MemoizedReactMarkdown } from '@/components/markdown'
 
 interface Source {
@@ -121,9 +126,31 @@ const mockData = [
   }
 ]
 
+const tabbyFetcher = ((url: string, init?: RequestInit) => {
+  return fetcher(url, {
+    ...init,
+    responseFormatter(response) {
+      return response
+    },
+    errorHandler(response) {
+      throw new Error(response ? String(response.status) : 'Fail to fetch')
+    }
+  })
+}) as typeof fetch
+
 export default function Search() {
+  const [conversation, setConversation] = useState<Message[]>([])
   const contentContainerRef = useRef<HTMLDivElement>(null)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
+  const [title, setTitle] = useState('')
+
+  const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
+    fetcher: tabbyFetcher
+  })
+
+  useEffect(() => {
+    document.title = title
+  }, [title])
 
   useEffect(() => {
     setContainer(
@@ -131,11 +158,31 @@ export default function Search() {
     )
   }, [])
 
+  const onSubmitSearch = (question: string) => {
+    // FIXME: code query? extra from user's input?
+    // FIXME: bring previous conversation
+    // FIXME: user.id
+
+    const answerRequest: AnswerRequest = {
+      messages: [
+        {
+          role: 'user',
+          id: nanoid(),
+          content: question
+        }
+      ],
+      doc_query: true,
+      generate_relevant_questions: true
+    }
+    setTitle(question)
+    triggerRequest(answerRequest)
+  }
+
+  const noConversation = conversation.length === 0
   // FIXME: the height considering demo banner
   return (
     <div className="flex h-screen flex-col">
-      <Header />
-      <ScrollArea className="flex-1" ref={contentContainerRef}>
+      {/* <ScrollArea className="flex-1" ref={contentContainerRef}>
         <div className="mx-auto px-0 md:w-[48rem] md:px-6">
           <div className="pb-20">
             {mockData.map((data, idx) => (
@@ -152,7 +199,7 @@ export default function Search() {
             ))}
           </div>
         </div>
-      </ScrollArea>
+      </ScrollArea> */}
 
       {/* FIXME: support offset, currently the button wont disapper in the bottom */}
       {container && (
@@ -161,12 +208,40 @@ export default function Search() {
           container={container}
         />
       )}
-      <SearchArea />
+
+      <div
+        className={cn(
+          'fixed left-1/2 flex flex-col items-center transition-all md:-ml-[24rem] md:w-[48rem] md:p-6',
+          {
+            'bottom-2/3': noConversation,
+            'bottom-0': !noConversation
+          }
+        )}
+      >
+        {noConversation && (
+          <>
+            <Image
+              src={logoUrl}
+              alt="logo"
+              width={42}
+              className="dark:hidden"
+            />
+            <h4 className="mb-6 scroll-m-20 text-xl font-semibold tracking-tight text-secondary-foreground">
+              Your private search engine (TODO)
+            </h4>
+          </>
+        )}
+        <SearchArea onSubmitSearch={onSubmitSearch} />
+      </div>
     </div>
   )
 }
 
-function SearchArea() {
+function SearchArea({
+  onSubmitSearch
+}: {
+  onSubmitSearch: (question: string) => void
+}) {
   // FIXME: the textarea has unexpected flash when it's mounted, maybe it can be fixed after adding loader
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
@@ -182,49 +257,45 @@ function SearchArea() {
 
   const onSearchKeyUp = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      return alert('search')
+      return search()
     }
+  }
+
+  const search = () => {
+    if (!value) return
+    onSubmitSearch(value)
   }
 
   return (
     <div
       className={cn(
-        'fixed bottom-6 left-1/2 transition-all md:-ml-[24rem] md:w-[48rem] md:px-6',
+        'flex w-full items-center rounded-lg border border-muted-foreground bg-background transition-all hover:border-muted-foreground/60',
         {
-          'opacity-0': !isShow,
-          'opacity-100': isShow
+          '!border-primary': isFocus
         }
       )}
     >
+      <TextareaAutosize
+        className="flex-1 resize-none rounded-lg !border-none bg-transparent px-4 py-3 !shadow-none !outline-none !ring-0 !ring-offset-0"
+        placeholder="Ask anything"
+        maxRows={15}
+        onKeyDown={onSearchKeyDown}
+        onKeyUp={onSearchKeyUp}
+        onFocus={() => setIsFocus(true)}
+        onBlur={() => setIsFocus(false)}
+        onChange={e => setValue(e.target.value)}
+        value={value}
+      />
       <div
         className={cn(
-          'flex w-full items-center rounded-lg border border-muted-foreground bg-background transition-all hover:border-muted-foreground/60',
+          'mr-3 flex items-center rounded-lg bg-muted p-1 text-muted-foreground transition-all  ',
           {
-            '!border-primary': isFocus
+            '!bg-primary !text-primary-foreground': value.length > 0
           }
         )}
+        onClick={search}
       >
-        <TextareaAutosize
-          className="flex-1 resize-none rounded-lg !border-none bg-transparent px-4 py-3 !shadow-none !outline-none !ring-0 !ring-offset-0"
-          placeholder="Ask a followup question"
-          maxRows={15}
-          onKeyDown={onSearchKeyDown}
-          onKeyUp={onSearchKeyUp}
-          onFocus={() => setIsFocus(true)}
-          onBlur={() => setIsFocus(false)}
-          onChange={e => setValue(e.target.value)}
-          value={value}
-        />
-        <div
-          className={cn(
-            'mr-3 flex items-center rounded-lg bg-muted p-1 text-muted-foreground transition-all  ',
-            {
-              '!bg-primary !text-primary-foreground': value.length > 0
-            }
-          )}
-        >
-          <IconArrowRight className="h-3.5 w-3.5" />
-        </div>
+        <IconArrowRight className="h-3.5 w-3.5" />
       </div>
     </div>
   )
