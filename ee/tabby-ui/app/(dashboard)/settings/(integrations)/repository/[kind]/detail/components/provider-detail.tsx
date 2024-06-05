@@ -55,20 +55,8 @@ import { UpdateProviderForm } from './update-provider-form'
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
-type Repositories = Array<{
-  cursor: string
-  node: {
-    id: string
-    displayName: string
-    gitUrl: string
-    active: boolean
-  }
-}>
-
-type ListRepositoriesResponseData = {
-  edges: ListIntegratedRepositoriesQuery['integratedRepositories']['edges']
-  pageInfo: ListIntegratedRepositoriesQuery['integratedRepositories']['pageInfo']
-}
+type IntegratedRepositories =
+  ListIntegratedRepositoriesQuery['integratedRepositories']['edges']
 
 const ProviderDetail: React.FC = () => {
   const searchParams = useSearchParams()
@@ -196,7 +184,7 @@ const ActiveRepoTable: React.FC<{
     React.useState<QueryResponseData<typeof listIntegratedRepositories>>()
   const [fetching, setFetching] = React.useState(true)
   const [recentlyActivatedRepositories, setRecentlyActivatedRepositories] =
-    React.useState<Repositories>([])
+    React.useState<IntegratedRepositories>([])
   const activeRepos = activeRepositoriesResult?.integratedRepositories?.edges
   const pageInfo = activeRepositoriesResult?.integratedRepositories?.pageInfo
 
@@ -210,7 +198,7 @@ const ActiveRepoTable: React.FC<{
   )
 
   const handleDelete = async (
-    repo: ListIntegratedRepositoriesQuery['integratedRepositories']['edges'][0],
+    repo: IntegratedRepositories[0],
     isLastItem?: boolean
   ) => {
     updateProvidedRepositoryActive({
@@ -244,9 +232,7 @@ const ActiveRepoTable: React.FC<{
 
   const [open, setOpen] = React.useState(false)
 
-  const sortRepos = (
-    repos: ListIntegratedRepositoriesQuery['integratedRepositories']['edges']
-  ) => {
+  const sortRepos = (repos: IntegratedRepositories) => {
     if (!repos?.length) return repos
     return repos.sort((a, b) =>
       a.node.displayName?.localeCompare(b.node.displayName)
@@ -406,9 +392,7 @@ function useAllInactiveRepositories(id: string, kind: IntegrationKind) {
   const [queryVariables, setQueryVariables] = useState<
     QueryVariables<typeof listIntegratedRepositories>
   >({ ids: [id], first: PAGE_SIZE, active: false, kind })
-  const [repositories, setRepositories] = useState<
-    ListIntegratedRepositoriesQuery['integratedRepositories']['edges']
-  >([])
+  const [repositories, setRepositories] = useState<IntegratedRepositories>([])
   const [isAllLoaded, setIsAllLoaded] = useState(!id)
 
   const [{ data, fetching }] = useQuery({
