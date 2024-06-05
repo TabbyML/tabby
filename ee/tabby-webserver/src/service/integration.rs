@@ -62,7 +62,11 @@ impl IntegrationService for IntegrationServiceImpl {
         access_token: Option<String>,
         api_base: Option<String>,
     ) -> Result<()> {
-        let access_token_is_changed = access_token.is_some();
+        let integration = self.get_integration(id.clone()).await?;
+        let access_token_is_changed = access_token
+            .as_ref()
+            .is_some_and(|token| token == &integration.access_token);
+        let api_base_is_changed = integration.api_base != api_base;
 
         self.db
             .update_integration(
@@ -74,7 +78,7 @@ impl IntegrationService for IntegrationServiceImpl {
             )
             .await?;
 
-        if access_token_is_changed {
+        if access_token_is_changed || api_base_is_changed {
             let _ = self
                 .background_job
                 .send(BackgroundJobEvent::SyncThirdPartyRepositories(id.clone()));
@@ -276,6 +280,16 @@ mod tests {
         assert_eq!(
             event,
             BackgroundJobEvent::SyncThirdPartyRepositories(id.clone())
+        );
+
+        integration
+            .update_integration(id.clone(), IntegrationKind::Github, "gh".into(), None, None)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            recv.try_recv(),
+            Err(tokio::sync::mpsc::error::TryRecvError::Empty)
         );
     }
 }
