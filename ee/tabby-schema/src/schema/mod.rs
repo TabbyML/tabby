@@ -35,10 +35,13 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    integration::{IntegrationKind, IntegrationService},
+    integration::{Integration, IntegrationKind, IntegrationService},
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
-    repository::{FileEntrySearchResult, GrepFile, Repository, RepositoryKind, RepositoryService},
+    repository::{
+        CreateIntegrationInput, FileEntrySearchResult, GrepFile, ProvidedRepository, Repository,
+        RepositoryKind, RepositoryService, UpdateIntegrationInput,
+    },
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
@@ -46,7 +49,7 @@ use self::{
 };
 use crate::{
     env,
-    juniper::relay::{self, Connection},
+    juniper::relay::{self, query_async, Connection},
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -205,6 +208,7 @@ impl Query {
         .await
     }
 
+    #[deprecated]
     async fn github_repository_providers(
         ctx: &Context,
         ids: Option<Vec<ID>>,
@@ -238,6 +242,7 @@ impl Query {
         .await
     }
 
+    #[deprecated]
     async fn github_repositories(
         ctx: &Context,
         provider_ids: Vec<ID>,
@@ -274,6 +279,7 @@ impl Query {
         .await
     }
 
+    #[deprecated]
     async fn github_self_hosted_repositories(
         ctx: &Context,
         provider_ids: Vec<ID>,
@@ -310,6 +316,7 @@ impl Query {
         .await
     }
 
+    #[deprecated]
     async fn gitlab_self_hosted_repositories(
         ctx: &Context,
         provider_ids: Vec<ID>,
@@ -346,6 +353,7 @@ impl Query {
         .await
     }
 
+    #[deprecated]
     async fn gitlab_repository_providers(
         ctx: &Context,
         ids: Option<Vec<ID>>,
@@ -379,6 +387,7 @@ impl Query {
         .await
     }
 
+    #[deprecated]
     async fn gitlab_self_hosted_repository_providers(
         ctx: &Context,
         ids: Option<Vec<ID>>,
@@ -412,6 +421,7 @@ impl Query {
         .await
     }
 
+    #[deprecated]
     async fn github_self_hosted_repository_providers(
         ctx: &Context,
         ids: Option<Vec<ID>>,
@@ -445,6 +455,7 @@ impl Query {
         .await
     }
 
+    #[deprecated]
     async fn gitlab_repositories(
         ctx: &Context,
         provider_ids: Vec<ID>,
@@ -693,6 +704,56 @@ impl Query {
     async fn repository_list(ctx: &Context) -> Result<Vec<Repository>> {
         check_user(ctx).await?;
         ctx.locator.repository().repository_list().await
+    }
+
+    async fn integrations(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        kind: Option<IntegrationKind>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<Integration>> {
+        query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .integration()
+                    .list_integrations(ids, kind, after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
+
+    async fn integrated_repositories(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        kind: Option<IntegrationKind>,
+        active: Option<bool>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<ProvidedRepository>> {
+        query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .repository()
+                    .third_party()
+                    .list_repositories_with_filter(ids, kind, active, after, before, first, last)
+                    .await
+            },
+        )
+        .await
     }
 }
 
@@ -975,6 +1036,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn create_github_repository_provider(
         ctx: &Context,
         input: repository::CreateRepositoryProviderInput,
@@ -994,6 +1056,7 @@ impl Mutation {
         Ok(id)
     }
 
+    #[deprecated]
     async fn create_github_self_hosted_repository_provider(
         ctx: &Context,
         input: repository::CreateSelfHostedRepositoryProviderInput,
@@ -1013,6 +1076,7 @@ impl Mutation {
         Ok(id)
     }
 
+    #[deprecated]
     async fn delete_github_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator
@@ -1022,6 +1086,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn delete_github_self_hosted_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator
@@ -1031,6 +1096,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn update_github_repository_provider(
         ctx: &Context,
         input: repository::UpdateRepositoryProviderInput,
@@ -1050,6 +1116,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn update_github_self_hosted_repository_provider(
         ctx: &Context,
         input: repository::UpdateSelfHostedRepositoryProviderInput,
@@ -1069,6 +1136,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn update_github_provided_repository_active(
         ctx: &Context,
         id: ID,
@@ -1082,6 +1150,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn update_github_self_hosted_provided_repository_active(
         ctx: &Context,
         id: ID,
@@ -1095,6 +1164,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn create_gitlab_repository_provider(
         ctx: &Context,
         input: repository::CreateRepositoryProviderInput,
@@ -1114,6 +1184,7 @@ impl Mutation {
         Ok(id)
     }
 
+    #[deprecated]
     async fn create_gitlab_self_hosted_repository_provider(
         ctx: &Context,
         input: repository::CreateSelfHostedRepositoryProviderInput,
@@ -1133,6 +1204,7 @@ impl Mutation {
         Ok(id)
     }
 
+    #[deprecated]
     async fn delete_gitlab_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator
@@ -1142,6 +1214,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn delete_gitlab_self_hosted_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator
@@ -1151,6 +1224,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn update_gitlab_self_hosted_repository_provider(
         ctx: &Context,
         input: repository::UpdateSelfHostedRepositoryProviderInput,
@@ -1170,6 +1244,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn update_gitlab_repository_provider(
         ctx: &Context,
         input: repository::UpdateRepositoryProviderInput,
@@ -1189,6 +1264,7 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn update_gitlab_provided_repository_active(
         ctx: &Context,
         id: ID,
@@ -1202,7 +1278,57 @@ impl Mutation {
         Ok(true)
     }
 
+    #[deprecated]
     async fn update_gitlab_self_hosted_provided_repository_active(
+        ctx: &Context,
+        id: ID,
+        active: bool,
+    ) -> Result<bool> {
+        ctx.locator
+            .repository()
+            .third_party()
+            .update_repository_active(id, active)
+            .await?;
+        Ok(true)
+    }
+
+    async fn create_integration(ctx: &Context, input: CreateIntegrationInput) -> Result<ID> {
+        let id = ctx
+            .locator
+            .integration()
+            .create_integration(
+                input.kind,
+                input.display_name,
+                input.access_token,
+                input.api_base,
+            )
+            .await?;
+        Ok(id)
+    }
+
+    async fn update_integration(ctx: &Context, input: UpdateIntegrationInput) -> Result<bool> {
+        ctx.locator
+            .integration()
+            .update_integration(
+                input.id,
+                input.kind,
+                input.display_name,
+                input.access_token,
+                input.api_base,
+            )
+            .await?;
+        Ok(true)
+    }
+
+    async fn delete_integration(ctx: &Context, id: ID, kind: IntegrationKind) -> Result<bool> {
+        ctx.locator
+            .integration()
+            .delete_integration(id, kind)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_integrated_repository_active(
         ctx: &Context,
         id: ID,
         active: bool,
