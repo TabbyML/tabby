@@ -9,8 +9,7 @@ use llama::LlamaCppEngine;
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::Embedding;
 
-use self::openai::OpenAIEmbeddingEngine;
-use self::voyage::VoyageEmbeddingEngine;
+use self::{openai::OpenAIEmbeddingEngine, voyage::VoyageEmbeddingEngine};
 
 pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
     match config.kind.as_str() {
