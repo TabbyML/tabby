@@ -237,9 +237,9 @@ export function isUnauthorizedError(error: any) {
   return error instanceof HttpError && [401, 403].includes(error.status);
 }
 
-export function errorToString(error: Error & { cause?: Error }) {
+export function errorToString(error: Error) {
   let message = error.message || error.toString();
-  if (error.cause) {
+  if (error.cause instanceof Error) {
     message += "\nCaused by: " + errorToString(error.cause);
   }
   return message;

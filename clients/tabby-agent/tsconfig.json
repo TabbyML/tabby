@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "target": "ES2020",
-    "lib": ["ES2020", "WebWorker"],
+    "lib": ["esnext", "webworker"],
+    "target": "es2020",
     "sourceMap": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,

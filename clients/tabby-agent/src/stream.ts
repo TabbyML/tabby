@@ -1,5 +1,5 @@
-import { Readable } from "node:stream";
-import type { ReadableStream as NodeReadableStream } from "node:stream/web";
+import { Readable } from "readable-stream";
+import { readableFromWeb } from 'readable-from-web';
 import { EventSourceParserStream, ParsedEvent } from "eventsource-parser/stream";
 import type { components as TabbyApiComponents } from "tabby-openapi/compatible";
 import { getLogger } from "./logger";
@@ -8,7 +8,7 @@ const logger = getLogger("StreamParser");
 
 export function readChatStream(stream: ReadableStream, signal?: AbortSignal): Readable {
   const eventStream = stream.pipeThrough(new TextDecoderStream()).pipeThrough(new EventSourceParserStream());
-  const readableStream = Readable.fromWeb(eventStream as NodeReadableStream<ParsedEvent>, { objectMode: true, signal });
+  const readableStream = readableFromWeb(eventStream, { objectMode: true });
   return readableStream.map(
     (event: ParsedEvent): string | undefined => {
       try {

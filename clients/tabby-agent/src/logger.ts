@@ -3,6 +3,7 @@ import os from "os";
 import EventEmitter from "events";
 import pino from "pino";
 import * as FileStreamRotator from "file-stream-rotator";
+import { serializeError } from "serialize-error";
 import { isBrowser, isTest } from "./env";
 
 export interface Logger {
@@ -46,7 +47,7 @@ class TaggedLogger implements Logger {
   }
 
   error(msg: string, error: any): void {
-    this.baseLogger.error(this.tagMsg(msg), { error });
+    this.baseLogger.error(this.tagMsg(msg), serializeError(error));
   }
   warn(msg: string): void {
     this.baseLogger.warn(this.tagMsg(msg));
