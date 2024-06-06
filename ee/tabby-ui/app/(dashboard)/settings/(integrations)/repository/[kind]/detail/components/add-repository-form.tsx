@@ -5,7 +5,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
-import { IntegrationKind, IntegrationStatus } from '@/lib/gql/generates/graphql'
+import {
+  IntegrationKind,
+  IntegrationStatus,
+  ListIntegratedRepositoriesQuery
+} from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -49,15 +53,7 @@ interface ActivateRepositoryFormProps {
   onCancel: () => void
   providerStatus: IntegrationStatus | undefined
   repositories:
-    | Array<{
-        cursor: string
-        node: {
-          id: string
-          displayName: string
-          gitUrl: string
-          active: boolean
-        }
-      }>
+    | ListIntegratedRepositoriesQuery['integratedRepositories']['edges']
     | undefined
   fetchingRepos: boolean
 }
