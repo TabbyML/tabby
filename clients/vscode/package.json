@@ -355,6 +355,7 @@
     "vscode:publish": "vsce publish --no-dependencies"
   },
   "devDependencies": {
+    "@quilted/threads": "^2.2.0",
     "@types/deep-equal": "^1.0.4",
     "@types/mocha": "^10.0.1",
     "@types/node": "18.x",
@@ -368,23 +369,20 @@
     "@vscode/vsce": "^2.15.0",
     "assert": "^2.0.0",
     "dedent": "^0.7.0",
+    "deep-equal": "^2.2.1",
     "esbuild-plugin-copy": "^2.1.1",
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "eslint": "^8.55.0",
     "eslint-config-prettier": "^9.0.0",
     "get-installed-path": "^4.0.8",
-    "prettier": "^3.0.0",
-    "tsc-watch": "^6.2.0",
-    "tsup": "^8.0.2",
-    "typescript": "^5.3.2"
-  },
-  "dependencies": {
-    "@quilted/threads": "^2.2.0",
-    "deep-equal": "^2.2.1",
     "object-hash": "^3.0.0",
+    "prettier": "^3.0.0",
     "semver": "^7.6.0",
     "tabby-agent": "workspace:*",
     "tabby-chat-panel": "workspace:*",
+    "tsc-watch": "^6.2.0",
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.2",
     "vscode-languageclient": "^9.0.1"
   }
 }

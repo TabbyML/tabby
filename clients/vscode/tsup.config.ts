@@ -4,7 +4,6 @@ import { getInstalledPath } from "get-installed-path";
 import { copy } from "esbuild-plugin-copy";
 import { polyfillNode } from "esbuild-plugin-polyfill-node";
 import dedent from "dedent";
-import { dependencies } from "./package.json";
 
 const banner = dedent`
   /**
@@ -24,43 +23,48 @@ export default defineConfig(async () => {
       platform: "node",
       target: "node18",
       sourcemap: true,
-      banner: {
-        js: banner,
+      clean: true,
+      define: {
+        "process.env.IS_BROWSER": "false",
       },
-      external: ["vscode"],
-      noExternal: Object.keys(dependencies),
+      treeshake: {
+        preset: "smallest",
+        moduleSideEffects: "no-external",
+      },
+      external: ["vscode", "vscode-languageserver/browser"],
       esbuildPlugins: [
         copy({
           assets: { from: `${tabbyAgentDist}/**`, to: "dist/tabby-agent" },
           resolveFrom: "cwd",
         }),
       ],
-      define: {
-        "process.env.IS_BROWSER": "false",
+      banner: {
+        js: banner,
       },
-      clean: true,
     },
     {
       name: "browser",
       entry: ["src/extension.ts"],
       outDir: "dist/browser",
       platform: "browser",
-      target: "node18",
       sourcemap: true,
-      banner: {
-        js: banner,
-      },
-      external: ["vscode"],
-      noExternal: Object.keys(dependencies),
-      esbuildPlugins: [
-        polyfillNode({
-          polyfills: { fs: true },
-        }),
-      ],
+      clean: true,
       define: {
         "process.env.IS_BROWSER": "true",
       },
-      clean: true,
+      treeshake: {
+        preset: "smallest",
+        moduleSideEffects: "no-external",
+      },
+      external: ["vscode", "vscode-languageserver/node"],
+      esbuildPlugins: [
+        polyfillNode({
+          polyfills: {},
+        }),
+      ],
+      banner: {
+        js: banner,
+      },
     },
   ];
 });
