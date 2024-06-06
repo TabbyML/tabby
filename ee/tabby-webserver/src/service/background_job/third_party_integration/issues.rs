@@ -12,7 +12,7 @@ async fn fetch_issues(api_base: &str, full_name: &str, access_token: &str) -> Re
         .build()?;
 
     let (owner, repo) = full_name
-        .split_once("/")
+        .split_once('/')
         .ok_or_else(|| anyhow!("Invalid repository name"))?;
 
     let mut page = 1u32;
