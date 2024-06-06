@@ -275,6 +275,20 @@ mod tests {
 
         assert_eq!(provider.status, IntegrationStatus::Pending);
 
+        // Test integration status is ready after a successful sync and an update which changes no fields
+        integration
+            .update_integration_sync_status(id.clone(), None)
+            .await
+            .unwrap();
+        integration
+            .update_integration(id.clone(), IntegrationKind::Github, "gh".into(), None, None)
+            .await
+            .unwrap();
+
+        let provider = integration.get_integration(id.clone()).await.unwrap();
+
+        assert_eq!(provider.status, IntegrationStatus::Ready);
+
         // Test event is sent to re-sync provider after credentials are updated
         let event = recv.recv().await.unwrap();
         assert_eq!(
