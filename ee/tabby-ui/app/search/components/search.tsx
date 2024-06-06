@@ -9,6 +9,7 @@ import TextareaAutosize from 'react-textarea-autosize'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
+import { useEnableSearch } from '@/lib/experiment-flags'
 import fetcher from '@/lib/tabby/fetcher'
 import { AnswerRequest } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -17,6 +18,7 @@ import { CodeBlock } from '@/components/ui/codeblock'
 import {
   IconArrowRight,
   IconBlocks,
+  IconChevronRight,
   IconLayers,
   IconPlus,
   IconRefresh,
@@ -61,6 +63,7 @@ type ConversationMessage = Message & {
 type SearchContextValue = {
   isLoading: boolean
   onRegenerateResponse: (id: string) => void
+  onSubmitSearch: (question: string) => void
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -80,11 +83,13 @@ const tabbyFetcher = ((url: string, init?: RequestInit) => {
 }) as typeof fetch
 
 export function Search() {
+  const [searchFlag] = useEnableSearch()
   const [conversation, setConversation] = useState<ConversationMessage[]>([])
-  const contentContainerRef = useRef<HTMLDivElement>(null)
+
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [title, setTitle] = useState('')
   const [currentLoadindId, setCurrentLoadingId] = useState<string>('')
+  const contentContainerRef = useRef<HTMLDivElement>(null)
 
   // FIXME: error
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
@@ -100,7 +105,7 @@ export function Search() {
     setContainer(
       contentContainerRef?.current?.children[1] as HTMLDivElement | null
     )
-  }, [])
+  }, [contentContainerRef?.current])
 
   // Handling the stream response from useTabbyAnswer
   useEffect(() => {
@@ -119,6 +124,7 @@ export function Search() {
 
   const onSubmitSearch = (question: string) => {
     // FIXME: code query? extra from user's input?
+    // FIXME: after search, the search button should spinning for a while
     const previousMessages = conversation.map(message => ({
       role: message.role,
       id: message.id,
@@ -157,7 +163,7 @@ export function Search() {
           top: container.scrollHeight,
           behavior: 'smooth'
         })
-      }, 800)
+      }, 2000)
     }
 
     // Update HTML page title
@@ -198,6 +204,10 @@ export function Search() {
     triggerRequest(answerRequest)
   }
 
+  if (!searchFlag.value) {
+    return <></>
+  }
+
   const noConversation = conversation.length === 0
   const currentAnswerHasContent = Boolean(
     conversation[conversation.length - 1]?.content
@@ -207,13 +217,14 @@ export function Search() {
     <SearchContext.Provider
       value={{
         isLoading: isLoading,
-        onRegenerateResponse: onRegenerateResponse
+        onRegenerateResponse: onRegenerateResponse,
+        onSubmitSearch: onSubmitSearch
       }}
     >
       <div className="flex h-screen flex-col">
         <ScrollArea className="flex-1" ref={contentContainerRef}>
-          <div className="mx-auto px-0 md:w-[48rem] md:px-6">
-            <div className="flex flex-col pb-20">
+          <div className="mx-auto px-0 pb-20 md:w-[48rem] md:px-6">
+            <div className="flex flex-col">
               {conversation.map((item, idx) => {
                 if (item.role === 'user') {
                   return (
@@ -228,7 +239,11 @@ export function Search() {
                 if (item.role === 'assistant') {
                   return (
                     <div key={item.id + idx} className="pb-8 pt-2">
-                      <AnswerBlock question="todo" answer={item} />
+                      <AnswerBlock
+                        question="todo"
+                        answer={item}
+                        showRelatedQuestion={idx === conversation.length - 1}
+                      />
                     </div>
                   )
                 }
@@ -271,7 +286,7 @@ export function Search() {
           )}
           {!isLoading && (
             <div className="relative z-20 w-full">
-              <SearchArea onSubmitSearch={onSubmitSearch} />
+              <SearchArea />
             </div>
           )}
           <Button
@@ -298,14 +313,11 @@ export function Search() {
   )
 }
 
-function SearchArea({
-  onSubmitSearch
-}: {
-  onSubmitSearch: (question: string) => void
-}) {
+function SearchArea() {
+  const { onSubmitSearch } = useContext(SearchContext)
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
-  const [value, setValue] = useState('')
+  const [value, setValue] = useState('how to add function in python')
 
   useEffect(() => {
     // Ensure the textarea height remains consistent during rendering
@@ -355,7 +367,7 @@ function SearchArea({
       />
       <div
         className={cn(
-          'mr-3 flex items-center rounded-lg bg-muted p-1 text-muted-foreground transition-all  ',
+          'mr-3 flex items-center rounded-lg bg-muted p-1 text-muted-foreground transition-all',
           {
             '!bg-primary !text-primary-foreground': value.length > 0
           }
@@ -370,12 +382,15 @@ function SearchArea({
 
 function AnswerBlock({
   question,
-  answer
+  answer,
+  showRelatedQuestion
 }: {
   question: string
   answer: ConversationMessage
+  showRelatedQuestion: boolean
 }) {
-  const { onRegenerateResponse, isLoading } = useContext(SearchContext)
+  const { onRegenerateResponse, onSubmitSearch, isLoading } =
+    useContext(SearchContext)
   return (
     <div className="flex flex-col gap-y-5">
       {/* Relevant documents */}
@@ -386,51 +401,53 @@ function AnswerBlock({
             <p className="text-sm font-bold leading-normal">Source</p>
           </div>
           <div className="gap-sm grid grid-cols-4 gap-x-2">
-            {answer.relevant_documents.map((source, index) => (
+            {answer.relevant_documents.slice(0, 3).map((source, index) => (
               <SourceCard key={source.link} source={source} index={index + 1} />
             ))}
             {answer.relevant_documents &&
               answer.relevant_documents.length > 3 && (
                 <Sheet>
                   <SheetTrigger>
-                    <div className="flex h-full cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card px-4 py-2 hover:bg-card/60">
-                      <div className="flex flex-1 gap-x-1 py-1">
-                        <img
-                          src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=github.com`}
-                          alt="github.com"
-                          className="mr-1 h-3.5 w-3.5 rounded-full"
-                        />
-                        <img
-                          src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=github.com`}
-                          alt="github.com"
-                          className="mr-1 h-3.5 w-3.5 rounded-full"
-                        />
+                    <div className="flex h-full cursor-pointer flex-col items-start justify-between gap-y-1 rounded-lg border bg-card px-4 py-2 transition-all hover:bg-card/60">
+                      <div className="flex items-center gap-x-0.5 text-xs">
+                        <p>Check more</p>
+                        <IconChevronRight />
                       </div>
-
-                      <p className="flex items-center gap-x-0.5 text-xs text-muted-foreground">
-                        Check mroe
-                      </p>
+                      <div className="flex h-5 items-center">
+                        {answer.relevant_documents
+                          .slice(3, 6)
+                          .map((source, idx) => {
+                            const { hostname } = new URL(source.link)
+                            return (
+                              <img
+                                key={hostname + idx}
+                                src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=${hostname}`}
+                                alt={hostname}
+                                className="mr-1 h-3.5 w-3.5 rounded-full"
+                              />
+                            )
+                          })}
+                      </div>
                     </div>
                   </SheetTrigger>
-                  <SheetContent className="!max-w-3xl">
+                  <SheetContent className="flex !max-w-3xl flex-col">
                     <SheetHeader>
-                      <SheetTitle>
-                        {question} (Style here need to be polished)
-                      </SheetTitle>
+                      <SheetTitle>{question}</SheetTitle>
                       <SheetDescription>
                         {answer.relevant_documents.length} resources
                       </SheetDescription>
                     </SheetHeader>
-                    {/* FIXME: pagination or scrolling */}
-                    <div className="mt-2 flex flex-col gap-y-8">
-                      {answer.relevant_documents.map((source, index) => (
-                        <SourceBlock
-                          source={source}
-                          index={index + 1}
-                          key={index}
-                        />
-                      ))}
-                    </div>
+                    <ScrollArea className="flex-1">
+                      <div className="mt-2 flex flex-col gap-y-8">
+                        {answer.relevant_documents.map((source, index) => (
+                          <SourceBlock
+                            source={source}
+                            index={index + 1}
+                            key={index}
+                          />
+                        ))}
+                      </div>
+                    </ScrollArea>
                   </SheetContent>
                 </Sheet>
               )}
@@ -449,10 +466,7 @@ function AnswerBlock({
           <p className="text-sm font-bold leading-none">Answer</p>
         </div>
         {answer.isLoading && !answer.content && (
-          <div className="flex flex-col gap-y-1">
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-32 w-full" />
-          </div>
+          <Skeleton className="h-40 w-full" />
         )}
 
         <MessageMarkdown message={answer.content} />
@@ -479,30 +493,45 @@ function AnswerBlock({
       </div>
 
       {/* Related questions */}
-      {answer.relevant_questions && answer.relevant_questions.length > 0 && (
-        <div>
-          <div className="mt-9 flex items-center gap-x-1.5">
-            <IconLayers />
-            <p className="text-sm font-bold leading-none">Related</p>
+      {showRelatedQuestion &&
+        !answer.isLoading &&
+        answer.relevant_questions &&
+        answer.relevant_questions.length > 0 && (
+          <div>
+            <div className="mt-9 flex items-center gap-x-1.5">
+              <IconLayers />
+              <p className="text-sm font-bold leading-none">Related</p>
+            </div>
+            <div className="mt-3 flex flex-col gap-y-3">
+              {answer.relevant_questions?.map((related, index) => (
+                <div
+                  key={index}
+                  className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
+                  onClick={onSubmitSearch.bind(null, related)}
+                >
+                  <p className="w-full overflow-hidden text-ellipsis text-sm">
+                    {related}
+                  </p>
+                  <IconPlus />
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="mt-3 flex flex-col gap-y-3">
-            {answer.relevant_questions?.map((related, index) => (
-              <RealtedCard key={index} related={related} />
-            ))}
-          </div>
-        </div>
-      )}
+        )}
     </div>
   )
 }
 
 function SourceBlock({ source, index }: { source: Source; index: number }) {
   return (
-    <div className="flex gap-x-1">
+    <div className="flex gap-x-1.5">
       <p className="text-sm">{index}.</p>
-      <div className="flex-1">
-        <p className="text-sm">{source.title}</p>
-        <p>{source.snippet}</p>
+      <div
+        className="flex-1 cursor-pointer transition-opacity hover:opacity-70"
+        onClick={() => window.open(source.link)}
+      >
+        <p className="mb-0.5 text-sm font-bold">{source.title}</p>
+        <p className="text-sm">{source.snippet}</p>
       </div>
     </div>
   )
@@ -511,7 +540,10 @@ function SourceBlock({ source, index }: { source: Source; index: number }) {
 function SourceCard({ source, index }: { source: Source; index: number }) {
   const { hostname } = new URL(source.link)
   return (
-    <div className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card px-4 py-2 transition-all hover:bg-card/60">
+    <div
+      className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card px-4 py-2 transition-all hover:bg-card/60"
+      onClick={() => window.open(source.link)}
+    >
       <p className="line-clamp-2 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
         {source.title}
       </p>
@@ -524,21 +556,12 @@ function SourceCard({ source, index }: { source: Source; index: number }) {
 
         <div className="flex items-center gap-x-0.5 text-xs text-muted-foreground">
           <p className="flex-1 overflow-hidden text-ellipsis">
-            {hostname.split('.')[0]}
+            {hostname.replace('www.', '').split('.')[0]}
           </p>
           <span className="relative -top-1.5 text-xl leading-none">.</span>
           <p>{index}</p>
         </div>
       </div>
-    </div>
-  )
-}
-
-function RealtedCard({ related }: { related: string }) {
-  return (
-    <div className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-all hover:text-primary">
-      <p className="w-full overflow-hidden text-ellipsis text-sm">{related}</p>
-      <IconPlus />
     </div>
   )
 }
@@ -558,7 +581,7 @@ function MessageMarkdown({
         p({ children }) {
           if (headline) {
             return (
-              <h3 className="break-anywhere cursor-text scroll-m-20 text-xl font-semibold tracking-tight sm:w-9/12 sm:text-2xl">
+              <h3 className="break-anywhere cursor-text scroll-m-20 text-xl font-semibold tracking-tight">
                 {children}
               </h3>
             )
