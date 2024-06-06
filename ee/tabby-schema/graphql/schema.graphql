@@ -77,27 +77,10 @@ enum RepositoryKind {
   GITLAB_SELF_HOSTED
 }
 
-enum RepositoryProviderStatus {
-  READY
-  PENDING
-  FAILED
-}
-
 input CreateIntegrationInput {
   displayName: String!
   accessToken: String!
   kind: IntegrationKind!
-  apiBase: String
-}
-
-input CreateRepositoryProviderInput {
-  displayName: String!
-  accessToken: String!
-}
-
-input CreateSelfHostedRepositoryProviderInput {
-  displayName: String!
-  accessToken: String!
   apiBase: String
 }
 
@@ -152,19 +135,6 @@ input UpdateOAuthCredentialInput {
   provider: OAuthProvider!
   clientId: String!
   clientSecret: String
-}
-
-input UpdateRepositoryProviderInput {
-  id: ID!
-  displayName: String!
-  accessToken: String
-}
-
-input UpdateSelfHostedRepositoryProviderInput {
-  id: ID!
-  displayName: String!
-  accessToken: String
-  apiBase: String
 }
 
 """
@@ -226,80 +196,6 @@ type GitRepository {
   name: String!
   gitUrl: String!
   refs: [String!]!
-}
-
-type GithubProvidedRepository {
-  id: ID!
-  vendorId: String!
-  githubRepositoryProviderId: ID!
-  name: String!
-  gitUrl: String!
-  active: Boolean!
-  refs: [String!]!
-}
-
-type GithubProvidedRepositoryConnection {
-  edges: [GithubProvidedRepositoryEdge!]!
-  pageInfo: PageInfo!
-}
-
-type GithubProvidedRepositoryEdge {
-  node: GithubProvidedRepository!
-  cursor: String!
-}
-
-type GithubRepositoryProvider {
-  id: ID!
-  displayName: String!
-  status: RepositoryProviderStatus!
-  apiBase: String
-}
-
-type GithubRepositoryProviderConnection {
-  edges: [GithubRepositoryProviderEdge!]!
-  pageInfo: PageInfo!
-}
-
-type GithubRepositoryProviderEdge {
-  node: GithubRepositoryProvider!
-  cursor: String!
-}
-
-type GitlabProvidedRepository {
-  id: ID!
-  vendorId: String!
-  gitlabRepositoryProviderId: ID!
-  name: String!
-  gitUrl: String!
-  active: Boolean!
-  refs: [String!]!
-}
-
-type GitlabProvidedRepositoryConnection {
-  edges: [GitlabProvidedRepositoryEdge!]!
-  pageInfo: PageInfo!
-}
-
-type GitlabProvidedRepositoryEdge {
-  node: GitlabProvidedRepository!
-  cursor: String!
-}
-
-type GitlabRepositoryProvider {
-  id: ID!
-  displayName: String!
-  status: RepositoryProviderStatus!
-  apiBase: String
-}
-
-type GitlabRepositoryProviderConnection {
-  edges: [GitlabRepositoryProviderEdge!]!
-  pageInfo: PageInfo!
-}
-
-type GitlabRepositoryProviderEdge {
-  node: GitlabRepositoryProvider!
-  cursor: String!
 }
 
 type GrepFile {
@@ -432,22 +328,6 @@ type Mutation {
   deleteEmailSetting: Boolean!
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
-  createGithubRepositoryProvider(input: CreateRepositoryProviderInput!): ID! @deprecated
-  createGithubSelfHostedRepositoryProvider(input: CreateSelfHostedRepositoryProviderInput!): ID! @deprecated
-  deleteGithubRepositoryProvider(id: ID!): Boolean! @deprecated
-  deleteGithubSelfHostedRepositoryProvider(id: ID!): Boolean! @deprecated
-  updateGithubRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean! @deprecated
-  updateGithubSelfHostedRepositoryProvider(input: UpdateSelfHostedRepositoryProviderInput!): Boolean! @deprecated
-  updateGithubProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean! @deprecated
-  updateGithubSelfHostedProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean! @deprecated
-  createGitlabRepositoryProvider(input: CreateRepositoryProviderInput!): ID! @deprecated
-  createGitlabSelfHostedRepositoryProvider(input: CreateSelfHostedRepositoryProviderInput!): ID! @deprecated
-  deleteGitlabRepositoryProvider(id: ID!): Boolean! @deprecated
-  deleteGitlabSelfHostedRepositoryProvider(id: ID!): Boolean! @deprecated
-  updateGitlabSelfHostedRepositoryProvider(input: UpdateSelfHostedRepositoryProviderInput!): Boolean! @deprecated
-  updateGitlabRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean! @deprecated
-  updateGitlabProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean! @deprecated
-  updateGitlabSelfHostedProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean! @deprecated
   createIntegration(input: CreateIntegrationInput!): ID!
   updateIntegration(input: UpdateIntegrationInput!): Boolean!
   deleteIntegration(id: ID!, kind: IntegrationKind!): Boolean!
@@ -499,14 +379,6 @@ type Query {
   me: User!
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
-  githubRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GithubRepositoryProviderConnection! @deprecated
-  githubRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection! @deprecated
-  githubSelfHostedRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection! @deprecated
-  gitlabSelfHostedRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GitlabProvidedRepositoryConnection! @deprecated
-  gitlabRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection! @deprecated
-  gitlabSelfHostedRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection! @deprecated
-  githubSelfHostedRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection! @deprecated
-  gitlabRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GitlabProvidedRepositoryConnection! @deprecated
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
   emailSetting: EmailSetting
