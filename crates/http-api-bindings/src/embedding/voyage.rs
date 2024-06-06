@@ -9,12 +9,12 @@ const DEFAULT_VOYAGE_API_ENDPOINT: &str = "https://api.voyageai.com";
 pub struct VoyageEmbeddingEngine {
     client: Client,
     api_endpoint: String,
-    api_key: Option<String>,
+    api_key: String,
     model_name: String,
 }
 
 impl VoyageEmbeddingEngine {
-    pub fn create(api_endpoint: &str, model_name: &str, api_key: Option<String>) -> Self {
+    pub fn create(api_endpoint: &str, model_name: &str, api_key: String) -> Self {
         let endpoint = if api_endpoint.is_empty() {
             DEFAULT_VOYAGE_API_ENDPOINT
         } else {
@@ -54,15 +54,12 @@ impl Embedding for VoyageEmbeddingEngine {
             model: self.model_name.clone(),
         };
 
-        let mut request_builder = self
+        let request_builder = self
             .client
             .post(&self.api_endpoint)
             .json(&request)
-            .header("content-type", "application/json");
-
-        if let Some(ref api_key) = self.api_key {
-            request_builder = request_builder.bearer_auth(api_key);
-        }
+            .header("content-type", "application/json")
+            .bearer_auth(&self.api_key);
 
         let response = request_builder.send().await?;
         if response.status().is_server_error() {
@@ -93,11 +90,8 @@ mod tests {
     #[ignore]
     async fn test_voyage_embedding() {
         let api_key = std::env::var("VOYAGE_API_KEY").expect("VOYAGE_API_KEY must be set");
-        let engine = VoyageEmbeddingEngine::create(
-            DEFAULT_VOYAGE_API_ENDPOINT,
-            "voyage-code-2",
-            Some(api_key),
-        );
+        let engine =
+            VoyageEmbeddingEngine::create(DEFAULT_VOYAGE_API_ENDPOINT, "voyage-code-2", api_key);
         let embedding = engine.embed("Hello, world!").await.unwrap();
         assert_eq!(embedding.len(), 1536);
     }

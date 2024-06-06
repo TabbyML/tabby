@@ -29,8 +29,14 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
         "voyage/embedding" => {
             let engine = VoyageEmbeddingEngine::create(
                 &config.api_endpoint,
-                config.model_name.as_deref().unwrap_or_default(),
-                config.api_key.clone(),
+                config
+                    .model_name
+                    .as_deref()
+                    .expect("model_name must be set for voyage/embedding"),
+                config
+                    .api_key
+                    .clone()
+                    .expect("api_key must be set for voyage/embedding"),
             );
             Arc::new(engine)
         }
