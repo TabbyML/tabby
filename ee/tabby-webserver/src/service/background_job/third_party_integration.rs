@@ -9,6 +9,8 @@ use tracing::debug;
 
 use super::{helper::Job, BackgroundJobEvent};
 
+mod issues;
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SyncIntegrationJob {
     integration_id: ID,
@@ -51,5 +53,20 @@ impl SyncIntegrationJob {
                 .map_err(|_| anyhow!("Failed to enqueue scheduler job"))?;
         }
         Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct IndexIssuesJob {
+    integration_id: ID,
+}
+
+impl Job for IndexIssuesJob {
+    const NAME: &'static str = "index_issues";
+}
+
+impl IndexIssuesJob {
+    pub fn new(integration_id: ID) -> Self {
+        Self { integration_id }
     }
 }
