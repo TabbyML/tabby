@@ -3,14 +3,14 @@
 import * as React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { TypedDocumentNode } from 'urql'
 import * as z from 'zod'
 
 import {
-  RepositoryKind,
-  RepositoryProviderStatus
+  IntegrationKind,
+  IntegrationStatus,
+  ListIntegratedRepositoriesQuery
 } from '@/lib/gql/generates/graphql'
-import { QueryResponseData, useMutation } from '@/lib/tabby/gql'
+import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,12 +39,7 @@ import {
   PopoverTrigger
 } from '@/components/ui/popover'
 
-import {
-  updateGithubProvidedRepositoryActiveMutation,
-  updateGithubSelfHostedProvidedRepositoryActiveMutation,
-  updateGitlabProvidedRepositoryActiveMutation,
-  updateGitlabSelfHostedProvidedRepositoryActiveMutation
-} from '../query'
+import { updateIntegratedRepositoryActiveMutation } from '../query'
 
 const formSchema = z.object({
   id: z.string()
@@ -53,27 +48,17 @@ const formSchema = z.object({
 type ActivateRepositoryFormValues = z.infer<typeof formSchema>
 
 interface ActivateRepositoryFormProps {
-  kind: RepositoryKind
+  kind: IntegrationKind
   onCreated?: (id: string) => void
   onCancel: () => void
-  providerStatus: RepositoryProviderStatus | undefined
+  providerStatus: IntegrationStatus | undefined
   repositories:
-    | Array<{
-        cursor: string
-        node: {
-          id: string
-          vendorId: string
-          name: string
-          gitUrl: string
-          active: boolean
-        }
-      }>
+    | ListIntegratedRepositoriesQuery['integratedRepositories']['edges']
     | undefined
   fetchingRepos: boolean
 }
 
 export default function AddRepositoryForm({
-  kind,
   onCreated,
   onCancel,
   repositories,
@@ -90,64 +75,21 @@ export default function AddRepositoryForm({
 
   const emptyText = React.useMemo(() => {
     switch (providerStatus) {
-      case RepositoryProviderStatus.Pending:
+      case IntegrationStatus.Pending:
         return 'Awaiting the next data synchronization'
-      case RepositoryProviderStatus.Failed:
+      case IntegrationStatus.Failed:
         return 'Synchronizing error. Please check if the access token is still valid'
       default:
         return 'No repository found'
     }
   }, [providerStatus])
 
-  const { mutation, resolver } = React.useMemo(() => {
-    switch (kind) {
-      case RepositoryKind.Github:
-        return {
-          mutation: updateGithubProvidedRepositoryActiveMutation,
-          resolver: (
-            res?: QueryResponseData<
-              typeof updateGithubProvidedRepositoryActiveMutation
-            >
-          ) => res?.updateGithubProvidedRepositoryActive
-        }
-      case RepositoryKind.GithubSelfHosted:
-        return {
-          mutation: updateGithubSelfHostedProvidedRepositoryActiveMutation,
-          resolver: (
-            res?: QueryResponseData<
-              typeof updateGithubSelfHostedProvidedRepositoryActiveMutation
-            >
-          ) => res?.updateGithubSelfHostedProvidedRepositoryActive
-        }
-      case RepositoryKind.Gitlab:
-        return {
-          mutation: updateGitlabProvidedRepositoryActiveMutation,
-          resolver: (
-            res?: QueryResponseData<
-              typeof updateGitlabProvidedRepositoryActiveMutation
-            >
-          ) => res?.updateGitlabProvidedRepositoryActive
-        }
-      case RepositoryKind.GitlabSelfHosted:
-        return {
-          mutation: updateGitlabSelfHostedProvidedRepositoryActiveMutation,
-          resolver: (
-            res?: QueryResponseData<
-              typeof updateGitlabSelfHostedProvidedRepositoryActiveMutation
-            >
-          ) => res?.updateGitlabSelfHostedProvidedRepositoryActive
-        }
-      default:
-        return {}
+  const updateProvidedRepositoryActive = useMutation(
+    updateIntegratedRepositoryActiveMutation,
+    {
+      form
     }
-  }, [kind]) as {
-    mutation: TypedDocumentNode<any, any>
-    resolver: (data?: Record<string, boolean>) => boolean | undefined
-  }
-
-  const updateProvidedRepositoryActive = useMutation(mutation, {
-    form
-  })
+  )
 
   const onSubmit = (values: ActivateRepositoryFormValues) => {
     const id = values.id
@@ -156,7 +98,7 @@ export default function AddRepositoryForm({
       id: values.id,
       active: true
     }).then(res => {
-      if (resolver?.(res?.data)) {
+      if (res?.data?.updateIntegratedRepositoryActive) {
         form.reset({ id: undefined })
         onCreated?.(id)
       }
@@ -228,8 +170,7 @@ export default function AddRepositoryForm({
                           )}
                         </CommandEmpty>
                         <CommandGroup>
-                          {providerStatus !==
-                            RepositoryProviderStatus.Pending &&
+                          {providerStatus !== IntegrationStatus.Pending &&
                             repositories?.map(repo => (
                               <CommandItem
                                 key={repo.node.id}

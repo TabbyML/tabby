@@ -3,7 +3,7 @@ import { findIndex } from 'lodash-es'
 
 import { PROVIDER_KIND_METAS } from '../../constants'
 
-export function useRepositoryKind() {
+export function useIntegrationKind() {
   const params = useParams<{ kind?: string }>()
   const kindIndex = findIndex(
     PROVIDER_KIND_METAS,

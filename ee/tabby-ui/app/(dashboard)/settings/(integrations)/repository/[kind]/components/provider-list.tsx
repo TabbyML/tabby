@@ -6,100 +6,39 @@ import { useParams } from 'next/navigation'
 import { useQuery } from 'urql'
 
 import {
-  RepositoryKind,
-  RepositoryProviderStatus
+  IntegrationKind,
+  IntegrationStatus,
+  ListIntegrationsQuery
 } from '@/lib/gql/generates/graphql'
-import { QueryResponseData } from '@/lib/tabby/gql'
-import {
-  listGithubRepositoryProviders,
-  listGithubSelfHostedRepositoryProviders,
-  listGitlabRepositoryProviders,
-  listGitlabSelfHostedRepositoryProviders
-} from '@/lib/tabby/query'
+import { listIntegrations } from '@/lib/tabby/query'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 interface GitProvidersListProps {
-  kind: RepositoryKind
+  kind: IntegrationKind
 }
-
-type TProviderList =
-  | Array<{
-      node: {
-        id: string
-        displayName: string
-        status: RepositoryProviderStatus
-        apiBase?: string
-      }
-    }>
-  | undefined
 
 export default function RepositoryProvidersPage({
   kind
 }: GitProvidersListProps) {
   return <ProviderList kind={kind} key={kind} />
-  // return <div>404</div>
 }
 
 function ProviderList({ kind }: GitProvidersListProps) {
-  const query = React.useMemo(() => {
-    switch (kind) {
-      case RepositoryKind.Github:
-        return listGithubRepositoryProviders
-      case RepositoryKind.GithubSelfHosted:
-        return listGithubSelfHostedRepositoryProviders
-      case RepositoryKind.Gitlab:
-        return listGitlabRepositoryProviders
-      case RepositoryKind.GitlabSelfHosted:
-        return listGitlabSelfHostedRepositoryProviders
-    }
-  }, [kind])
-
-  const resolver = React.useMemo(() => {
-    // todo also return pageInfo for pagination
-    switch (kind) {
-      case RepositoryKind.Github:
-        return (res: QueryResponseData<typeof listGithubRepositoryProviders>) =>
-          res?.githubRepositoryProviders?.edges
-      case RepositoryKind.GithubSelfHosted:
-        return (
-          res: QueryResponseData<typeof listGithubSelfHostedRepositoryProviders>
-        ) => res?.githubSelfHostedRepositoryProviders?.edges
-      case RepositoryKind.Gitlab:
-        return (res: QueryResponseData<typeof listGitlabRepositoryProviders>) =>
-          res?.gitlabRepositoryProviders?.edges
-      case RepositoryKind.GitlabSelfHosted:
-        return (
-          res: QueryResponseData<typeof listGitlabSelfHostedRepositoryProviders>
-        ) => res?.gitlabSelfHostedRepositoryProviders?.edges
-      default:
-        return () => []
-    }
-  }, [kind]) as (response: any) => TProviderList
-
   const [{ data, fetching }] = useQuery({
-    query: query as any,
-    pause: !query
+    query: listIntegrations,
+    variables: { kind }
   })
 
-  const providers = resolver(data)
+  const providers = data?.integrations?.edges
 
   return <RepositoryProvidersView fetching={fetching} providers={providers} />
 }
 
 interface RepositoryProvidersViewProps {
   fetching: boolean
-  providers:
-    | Array<{
-        node: {
-          id: string
-          displayName: string
-          status: RepositoryProviderStatus
-          apiBase?: string
-        }
-      }>
-    | undefined
+  providers: ListIntegrationsQuery['integrations']['edges'] | undefined
 }
 
 function RepositoryProvidersView({
@@ -171,13 +110,13 @@ const CreateRepositoryProvider = () => {
   )
 }
 
-function toStatusMessage(status: RepositoryProviderStatus) {
+function toStatusMessage(status: IntegrationStatus) {
   switch (status) {
-    case RepositoryProviderStatus.Ready:
+    case IntegrationStatus.Ready:
       return 'Ready'
-    case RepositoryProviderStatus.Failed:
+    case IntegrationStatus.Failed:
       return 'Processing error. Please check if the access token is still valid'
-    case RepositoryProviderStatus.Pending:
+    case IntegrationStatus.Pending:
       return 'Awaiting the next data synchronization'
   }
 }

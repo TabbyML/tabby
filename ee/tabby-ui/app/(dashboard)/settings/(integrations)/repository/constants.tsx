@@ -1,36 +1,36 @@
-import { RepositoryKind } from '@/lib/gql/generates/graphql'
+import { IntegrationKind } from '@/lib/gql/generates/graphql'
 
 export const PROVIDER_KIND_METAS: Array<{
   name: string
-  enum: RepositoryKind
+  enum: IntegrationKind
   meta: {
     displayName: string
   }
 }> = [
   {
     name: 'github',
-    enum: RepositoryKind.Github,
+    enum: IntegrationKind.Github,
     meta: {
       displayName: 'GitHub'
     }
   },
   {
     name: 'github-self-hosted',
-    enum: RepositoryKind.GithubSelfHosted,
+    enum: IntegrationKind.GithubSelfHosted,
     meta: {
       displayName: 'GitHub Self-Hosted'
     }
   },
   {
     name: 'gitlab',
-    enum: RepositoryKind.Gitlab,
+    enum: IntegrationKind.Gitlab,
     meta: {
       displayName: 'GitLab'
     }
   },
   {
     name: 'gitlab-self-hosted',
-    enum: RepositoryKind.GitlabSelfHosted,
+    enum: IntegrationKind.GitlabSelfHosted,
     meta: {
       displayName: 'GitLab Self-Hosted'
     }

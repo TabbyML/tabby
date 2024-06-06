@@ -4,7 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
-import { RepositoryKind } from '@/lib/gql/generates/graphql'
+import { IntegrationKind, RepositoryKind } from '@/lib/gql/generates/graphql'
 import { IconGitHub, IconGitLab } from '@/components/ui/icons'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
@@ -41,13 +41,13 @@ export default function GitTabsHeader() {
   )
 }
 
-function ProviderIcon({ kind }: { kind: RepositoryKind }) {
+function ProviderIcon({ kind }: { kind: IntegrationKind }) {
   switch (kind) {
-    case RepositoryKind.Github:
-    case RepositoryKind.GithubSelfHosted:
+    case IntegrationKind.Github:
+    case IntegrationKind.GithubSelfHosted:
       return <IconGitHub />
-    case RepositoryKind.Gitlab:
-    case RepositoryKind.GitlabSelfHosted:
+    case IntegrationKind.Gitlab:
+    case IntegrationKind.GitlabSelfHosted:
       return <IconGitLab />
     default:
       return null
