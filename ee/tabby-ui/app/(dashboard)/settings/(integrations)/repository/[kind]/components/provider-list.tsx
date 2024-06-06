@@ -5,7 +5,11 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useQuery } from 'urql'
 
-import { IntegrationKind, IntegrationStatus } from '@/lib/gql/generates/graphql'
+import {
+  IntegrationKind,
+  IntegrationStatus,
+  ListIntegrationsQuery
+} from '@/lib/gql/generates/graphql'
 import { listIntegrations } from '@/lib/tabby/query'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,7 +23,6 @@ export default function RepositoryProvidersPage({
   kind
 }: GitProvidersListProps) {
   return <ProviderList kind={kind} key={kind} />
-  // return <div>404</div>
 }
 
 function ProviderList({ kind }: GitProvidersListProps) {
@@ -35,16 +38,7 @@ function ProviderList({ kind }: GitProvidersListProps) {
 
 interface RepositoryProvidersViewProps {
   fetching: boolean
-  providers:
-    | Array<{
-        node: {
-          id: string
-          displayName: string
-          status: IntegrationStatus
-          apiBase?: string
-        }
-      }>
-    | undefined
+  providers: ListIntegrationsQuery['integrations']['edges'] | undefined
 }
 
 function RepositoryProvidersView({
