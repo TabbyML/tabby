@@ -5,11 +5,12 @@ import Image from 'next/image'
 import logoUrl from '@/assets/tabby.png'
 import { Message } from 'ai'
 import { nanoid } from 'nanoid'
-import TextareaAutosize from 'react-textarea-autosize'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
+import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableSearch } from '@/lib/experiment-flags'
+import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import fetcher from '@/lib/tabby/fetcher'
 import { AnswerRequest } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -21,7 +22,6 @@ import {
   HoverCardTrigger
 } from '@/components/ui/hover-card'
 import {
-  IconArrowRight,
   IconBlocks,
   IconChevronRight,
   IconLayers,
@@ -37,7 +37,6 @@ import {
   SheetContent,
   SheetDescription,
   SheetHeader,
-  SheetTitle,
   SheetTrigger
 } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -46,6 +45,7 @@ import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { useTabbyAnswer } from '@/components/chat/use-tabby-answer'
 import { CopyButton } from '@/components/copy-button'
 import { MemoizedReactMarkdown } from '@/components/markdown'
+import TextAreaSearch from '@/components/textarea-search'
 
 import './search.css'
 
@@ -88,6 +88,7 @@ const tabbyFetcher = ((url: string, init?: RequestInit) => {
 }) as typeof fetch
 
 export function Search() {
+  const isChatEnabled = useIsChatEnabled()
   const [searchFlag] = useEnableSearch()
   const [conversation, setConversation] = useState<ConversationMessage[]>([])
 
@@ -100,6 +101,16 @@ export function Search() {
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
     fetcher: tabbyFetcher
   })
+
+  useEffect(() => {
+    const initialQuestion = sessionStorage.getItem(
+      SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
+    )
+    if (initialQuestion) {
+      onSubmitSearch(initialQuestion)
+      sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
+    }
+  }, [])
 
   useEffect(() => {
     if (title) return
@@ -211,7 +222,7 @@ export function Search() {
     triggerRequest(answerRequest)
   }
 
-  if (!searchFlag.value) {
+  if (!searchFlag.value || !isChatEnabled) {
     return <></>
   }
 
@@ -273,27 +284,22 @@ export function Search() {
           className={cn(
             'fixed left-1/2 flex flex-col items-center transition-all md:-ml-[24rem] md:w-[48rem] md:p-6',
             {
-              'bottom-2/3': noConversation,
+              'bottom-1/2 -mt-48': noConversation,
               'bottom-0 min-h-[6rem]': !noConversation
             }
           )}
         >
           {noConversation && (
             <>
-              <Image
-                src={logoUrl}
-                alt="logo"
-                width={42}
-                className="dark:hidden"
-              />
+              <Image src={logoUrl} alt="logo" width={42} />
               <h4 className="mb-6 scroll-m-20 text-xl font-semibold tracking-tight text-secondary-foreground">
-                Your private search engine (TODO)
+                The Private Search Assistant
               </h4>
             </>
           )}
           {!isLoading && (
             <div className="relative z-20 w-full">
-              <SearchArea />
+              <TextAreaSearch onSearch={onSubmitSearch} />
             </div>
           )}
           <Button
@@ -317,73 +323,6 @@ export function Search() {
         </div>
       </div>
     </SearchContext.Provider>
-  )
-}
-
-function SearchArea() {
-  const { onSubmitSearch } = useContext(SearchContext)
-  const [isShow, setIsShow] = useState(false)
-  const [isFocus, setIsFocus] = useState(false)
-  const [value, setValue] = useState('short introduce of transformer in llm')
-
-  useEffect(() => {
-    // Ensure the textarea height remains consistent during rendering
-    setIsShow(true)
-  }, [])
-
-  const onSearchKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) return e.preventDefault()
-  }
-
-  const onSearchKeyUp = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      return search()
-    }
-  }
-
-  const search = () => {
-    if (!value) return
-    onSubmitSearch(value)
-    setValue('')
-  }
-
-  return (
-    <div
-      className={cn(
-        'flex w-full items-center rounded-lg border border-muted-foreground bg-background transition-all hover:border-muted-foreground/60',
-        {
-          '!border-primary': isFocus
-        }
-      )}
-    >
-      <TextareaAutosize
-        className={cn(
-          'flex-1 resize-none rounded-lg !border-none bg-transparent px-4 py-3 !shadow-none !outline-none !ring-0 !ring-offset-0',
-          {
-            '!h-[48px]': !isShow
-          }
-        )}
-        placeholder="Ask anything"
-        maxRows={5}
-        onKeyDown={onSearchKeyDown}
-        onKeyUp={onSearchKeyUp}
-        onFocus={() => setIsFocus(true)}
-        onBlur={() => setIsFocus(false)}
-        onChange={e => setValue(e.target.value)}
-        value={value}
-      />
-      <div
-        className={cn(
-          'mr-3 flex items-center rounded-lg bg-muted p-1 text-muted-foreground transition-all',
-          {
-            '!bg-primary !text-primary-foreground': value.length > 0
-          }
-        )}
-        onClick={search}
-      >
-        <IconArrowRight className="h-3.5 w-3.5" />
-      </div>
-    </div>
   )
 }
 
@@ -444,7 +383,7 @@ function AnswerBlock({
                             const { hostname } = new URL(source.link)
                             return (
                               <SiteFavicon
-                                key={idx}
+                                key={hostname + idx}
                                 hostname={hostname}
                                 className="mr-1"
                               />
@@ -455,7 +394,6 @@ function AnswerBlock({
                   </SheetTrigger>
                   <SheetContent className="flex !max-w-3xl flex-col">
                     <SheetHeader>
-                      <SheetTitle>{question}</SheetTitle>
                       <SheetDescription>
                         {answer.relevant_documents.length} resources
                       </SheetDescription>
@@ -466,7 +404,7 @@ function AnswerBlock({
                           <SourceBlock
                             source={source}
                             index={index + 1}
-                            key={index}
+                            key={source.link + index}
                           />
                         ))}
                       </div>
@@ -612,58 +550,68 @@ function MessageMarkdown({
           }
 
           if (children.length) {
-            const content = children as string[]
-            const contentStr = content.join('')
-            const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
-            const textList = contentStr.split(citationMatchRegex)
-            const citationList = contentStr.match(citationMatchRegex)
             return (
-              <div className="mb-2 leading-relaxed last:mb-0">
-                {textList.map((text, index) => {
-                  const citation = citationList?.[index]
-                  const citationNumberMatch = citation?.match(/\d+/)
-                  const citationIndex = citationNumberMatch
-                    ? parseInt(citationNumberMatch[0], 10)
-                    : null
-                  const source =
-                    citationIndex !== null ? sources?.[citationIndex - 1] : null
-                  const sourceUrl = source ? new URL(source.link) : null
-                  return (
-                    <span key={index}>
-                      {text && <span>{text}</span>}
-                      {source && (
-                        <HoverCard>
-                          <HoverCardTrigger>
-                            <span
-                              className="relative -top-2 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
-                              onClick={() => window.open(source.link)}
-                            >
-                              {citationIndex}
+              <div className="mb-2 inline-block leading-relaxed last:mb-0">
+                {children.map((childrenItem, index) => {
+                  if (typeof childrenItem === 'string') {
+                    const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
+                    const textList = childrenItem.split(citationMatchRegex)
+                    const citationList = childrenItem.match(citationMatchRegex)
+                    return (
+                      <span key={index}>
+                        {textList.map((text, index) => {
+                          const citation = citationList?.[index]
+                          const citationNumberMatch = citation?.match(/\d+/)
+                          const citationIndex = citationNumberMatch
+                            ? parseInt(citationNumberMatch[0], 10)
+                            : null
+                          const source =
+                            citationIndex !== null
+                              ? sources?.[citationIndex - 1]
+                              : null
+                          const sourceUrl = source ? new URL(source.link) : null
+                          return (
+                            <span key={index}>
+                              {text && <span>{text}</span>}
+                              {source && (
+                                <HoverCard>
+                                  <HoverCardTrigger>
+                                    <span
+                                      className="relative -top-2 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
+                                      onClick={() => window.open(source.link)}
+                                    >
+                                      {citationIndex}
+                                    </span>
+                                  </HoverCardTrigger>
+                                  <HoverCardContent className="w-96 text-sm">
+                                    <div className="flex w-full flex-col gap-y-1">
+                                      <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground">
+                                        <SiteFavicon
+                                          hostname={sourceUrl!.hostname}
+                                          className="m-0 mr-1 leading-none"
+                                        />
+                                        <p className="m-0 leading-none">
+                                          {sourceUrl!.hostname}
+                                        </p>
+                                      </div>
+                                      <p className="m-0 font-bold leading-none">
+                                        {source.title}
+                                      </p>
+                                      <p className="m-0 leading-none">
+                                        {source.snippet}
+                                      </p>
+                                    </div>
+                                  </HoverCardContent>
+                                </HoverCard>
+                              )}
                             </span>
-                          </HoverCardTrigger>
-                          <HoverCardContent className="w-96 text-sm">
-                            <div className="flex w-full flex-col gap-y-1">
-                              <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground">
-                                <SiteFavicon
-                                  hostname={sourceUrl!.hostname}
-                                  className="mr-1"
-                                />
-                                <p className="m-0 leading-none">
-                                  {sourceUrl!.hostname}
-                                </p>
-                              </div>
-                              <p className="m-0 font-bold leading-none">
-                                {source.title}
-                              </p>
-                              <p className="m-0 leading-none">
-                                {source.snippet}
-                              </p>
-                            </div>
-                          </HoverCardContent>
-                        </HoverCard>
-                      )}
-                    </span>
-                  )
+                          )
+                        })}
+                      </span>
+                    )
+                  }
+
+                  return <span key={index}>{childrenItem}</span>
                 })}
               </div>
             )

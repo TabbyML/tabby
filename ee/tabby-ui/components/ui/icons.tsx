@@ -9,6 +9,7 @@ import {
   GitFork,
   Layers2,
   Mail,
+  Search,
   Sparkles,
   Star
 } from 'lucide-react'
@@ -1480,6 +1481,13 @@ function IconSparkles({
   return <Sparkles className={cn('h4 w-4', className)} {...props} />
 }
 
+function IconSearch({
+  className,
+  ...props
+}: React.ComponentProps<typeof Search>) {
+  return <Search className={cn('h4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1558,5 +1566,6 @@ export {
   IconVSCode,
   IconJetBrains,
   IconLayers,
-  IconSparkles
+  IconSparkles,
+  IconSearch
 }
