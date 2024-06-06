@@ -1,5 +1,6 @@
 mod llama;
 mod openai;
+mod voyage;
 
 use core::panic;
 use std::sync::Arc;
@@ -9,6 +10,7 @@ use tabby_common::config::HttpModelConfig;
 use tabby_inference::Embedding;
 
 use self::openai::OpenAIEmbeddingEngine;
+use self::voyage::VoyageEmbeddingEngine;
 
 pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
     match config.kind.as_str() {
@@ -25,7 +27,14 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
             Arc::new(engine)
         }
         "ollama/embedding" => ollama_api_bindings::create_embedding(config).await,
-
+        "voyage/embedding" => {
+            let engine = VoyageEmbeddingEngine::create(
+                &config.api_endpoint,
+                config.model_name.as_deref().unwrap_or_default(),
+                config.api_key.clone(),
+            );
+            Arc::new(engine)
+        }
         unsupported_kind => panic!(
             "Unsupported kind for http embedding model: {}",
             unsupported_kind
