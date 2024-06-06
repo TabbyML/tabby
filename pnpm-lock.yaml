@@ -78,9 +78,6 @@ importers:
       '@types/object-hash':
         specifier: ^3.0.0
         version: 3.0.6
-      '@types/randomstring':
-        specifier: ^1.3.0
-        version: 1.3.0
       '@types/semver':
         specifier: ^7.5.8
         version: 7.5.8
@@ -102,6 +99,9 @@ importers:
       chokidar:
         specifier: ^3.5.3
         version: 3.6.0
+      crypto-random-string:
+        specifier: ^5.0.0
+        version: 5.0.0
       dedent:
         specifier: ^0.7.0
         version: 0.7.0
@@ -171,9 +171,6 @@ importers:
       prettier:
         specifier: ^3.0.0
         version: 3.2.5
-      randomstring:
-        specifier: ^1.3.0
-        version: 1.3.0
       semver:
         specifier: ^7.6.0
         version: 7.6.2
@@ -288,29 +285,10 @@ importers:
         version: 1.5.0
 
   clients/vscode:
-    dependencies:
+    devDependencies:
       '@quilted/threads':
         specifier: ^2.2.0
         version: 2.2.0
-      deep-equal:
-        specifier: ^2.2.1
-        version: 2.2.3
-      object-hash:
-        specifier: ^3.0.0
-        version: 3.0.0
-      semver:
-        specifier: ^7.6.0
-        version: 7.6.2
-      tabby-agent:
-        specifier: workspace:*
-        version: link:../tabby-agent
-      tabby-chat-panel:
-        specifier: workspace:*
-        version: link:../tabby-chat-panel
-      vscode-languageclient:
-        specifier: ^9.0.1
-        version: 9.0.1
-    devDependencies:
       '@types/deep-equal':
         specifier: ^1.0.4
         version: 1.0.4
@@ -350,6 +328,9 @@ importers:
       dedent:
         specifier: ^0.7.0
         version: 0.7.0
+      deep-equal:
+        specifier: ^2.2.1
+        version: 2.2.3
       esbuild-plugin-copy:
         specifier: ^2.1.1
         version: 2.1.1(esbuild@0.19.12)
@@ -365,9 +346,21 @@ importers:
       get-installed-path:
         specifier: ^4.0.8
         version: 4.0.8
+      object-hash:
+        specifier: ^3.0.0
+        version: 3.0.0
       prettier:
         specifier: ^3.0.0
         version: 3.2.5
+      semver:
+        specifier: ^7.6.0
+        version: 7.6.2
+      tabby-agent:
+        specifier: workspace:*
+        version: link:../tabby-agent
+      tabby-chat-panel:
+        specifier: workspace:*
+        version: link:../tabby-chat-panel
       tsc-watch:
         specifier: ^6.2.0
         version: 6.2.0(typescript@5.4.5)
@@ -377,6 +370,9 @@ importers:
       typescript:
         specifier: ^5.3.2
         version: 5.4.5
+      vscode-languageclient:
+        specifier: ^9.0.1
+        version: 9.0.1
 
   ee/tabby-email:
     devDependencies:
@@ -3649,9 +3645,6 @@ packages:
   '@types/prop-types@15.7.7':
     resolution: {integrity: sha512-FbtmBWCcSa2J4zL781Zf1p5YUBXQomPEcep9QZCfRfQgTxz3pJWiDFLebohZ9fFntX5ibzOkSsrJ0TEew8cAog==}
 
-  '@types/randomstring@1.3.0':
-    resolution: {integrity: sha512-kCP61wludjY7oNUeFiMxfswHB3Wn/aC03Cu82oQsNTO6OCuhVN/rCbBs68Cq6Nkgjmp2Sh3Js6HearJPkk7KQA==}
-
   '@types/react-dom@18.2.23':
     resolution: {integrity: sha512-ZQ71wgGOTmDYpnav2knkjr3qXdAFu0vsk8Ci5w3pGAIdj7/kKAyn+VsQDhXsmzzzepAiI9leWMmubXz690AI/A==}
 
@@ -4860,6 +4853,10 @@ packages:
 
   crypt@0.0.2:
     resolution: {integrity: sha512-mCxBlsHFYh9C+HVpiEacem8FEBnMXgU9gy4zmNC+SXAZNB/1idgp/aulFJ4FgCi7GPEVbfyng092GqL2k2rmow==}
+
+  crypto-random-string@5.0.0:
+    resolution: {integrity: sha512-KWjTXWwxFd6a94m5CdRGW/t82Tr8DoBc9dNnPCAbFI1EBweN6v1tv8y4Y1m7ndkp/nkIBRxUxAzpaBnR2k3bcQ==}
+    engines: {node: '>=14.16'}
 
   css-background-parser@0.1.0:
     resolution: {integrity: sha512-2EZLisiZQ+7m4wwur/qiYJRniHX4K5Tc9w93MT3AS0WS1u5kaZ4FKXlOTBhOjc+CgEgPiGY+fX1yWD8UwpEqUA==}
@@ -8349,15 +8346,8 @@ packages:
     resolution: {integrity: sha512-WuyALRjWPDGtt/wzJiadO5AXY+8hZ80hVpe6MyivgraREW751X3SbhRvG3eLKOYN+8VEvqLcf3wdnt44Z4S4SA==}
     engines: {node: '>=10'}
 
-  randombytes@2.0.3:
-    resolution: {integrity: sha512-lDVjxQQFoCG1jcrP06LNo2lbWp4QTShEXnhActFBwYuHprllQV6VUpwreApsYqCgD+N1mHoqJ/BI/4eV4R2GYg==}
-
   randombytes@2.1.0:
     resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
-
-  randomstring@1.3.0:
-    resolution: {integrity: sha512-gY7aQ4i1BgwZ8I1Op4YseITAyiDiajeZOPQUbIq9TPGPhUm5FX59izIaOpmKbME1nmnEiABf28d9K2VSii6BBg==}
-    hasBin: true
 
   rc9@2.1.2:
     resolution: {integrity: sha512-btXCnMmRIBINM2LDZoEmOogIZU7Qe7zn4BpomSKZ/ykbLObuBdvG+mFq11DL6fjH1DRwHhrlgtYWG96bJiC7Cg==}
@@ -9559,6 +9549,10 @@ packages:
   type-fest@1.4.0:
     resolution: {integrity: sha512-yGSza74xk0UG8k+pLh5oeoYirvIiWo5t0/o3zHHAO2tRDiZcxWP7fywNlXhqb6/r6sWvwi+RsyQMWhVLe4BVuA==}
     engines: {node: '>=10'}
+
+  type-fest@2.19.0:
+    resolution: {integrity: sha512-RAH822pAdBgcNMAfWnCBU3CFZcfZ/i1eZjwFU/dsLKumyuuP3niueg2UAukXYF0E2AAoc82ZSSf9J0WQBinzHA==}
+    engines: {node: '>=12.20'}
 
   type-fest@3.13.1:
     resolution: {integrity: sha512-tLq3bSNx+xSpwvAJnzrK0Ep5CLNWjvFTOp71URMaAEWBfRb9nnJiBoUe0tF8bI4ZFO3omgBR6NvnbzVUT3Ly4g==}
@@ -13617,8 +13611,6 @@ snapshots:
 
   '@types/prop-types@15.7.7': {}
 
-  '@types/randomstring@1.3.0': {}
-
   '@types/react-dom@18.2.23':
     dependencies:
       '@types/react': 18.2.23
@@ -15288,6 +15280,10 @@ snapshots:
       which: 2.0.2
 
   crypt@0.0.2: {}
+
+  crypto-random-string@5.0.0:
+    dependencies:
+      type-fest: 2.19.0
 
   css-background-parser@0.1.0: {}
 
@@ -19401,13 +19397,13 @@ snapshots:
 
   postcss@8.4.14:
     dependencies:
-      nanoid: 3.3.6
+      nanoid: 3.3.7
       picocolors: 1.0.1
       source-map-js: 1.0.2
 
   postcss@8.4.31:
     dependencies:
-      nanoid: 3.3.6
+      nanoid: 3.3.7
       picocolors: 1.0.0
       source-map-js: 1.0.2
 
@@ -19528,15 +19524,9 @@ snapshots:
 
   quick-lru@5.1.1: {}
 
-  randombytes@2.0.3: {}
-
   randombytes@2.1.0:
     dependencies:
       safe-buffer: 5.2.1
-
-  randomstring@1.3.0:
-    dependencies:
-      randombytes: 2.0.3
 
   rc9@2.1.2:
     dependencies:
@@ -21101,6 +21091,8 @@ snapshots:
   type-fest@0.8.1: {}
 
   type-fest@1.4.0: {}
+
+  type-fest@2.19.0: {}
 
   type-fest@3.13.1: {}
 

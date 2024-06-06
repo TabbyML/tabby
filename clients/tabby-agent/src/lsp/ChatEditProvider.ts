@@ -16,7 +16,7 @@ import {
 import { TextDocuments } from "./TextDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Readable } from "node:stream";
-import * as RandomString from "randomstring";
+import cryptoRandomString from "crypto-random-string";
 import * as Diff from "diff";
 import { TabbyAgent } from "../TabbyAgent";
 import { isEmptyRange } from "../utils/range";
@@ -153,7 +153,7 @@ export class ChatEditProvider {
       },
     );
 
-    const editId = "tabby-" + RandomString.generate({ length: 6, charset: "alphanumeric" });
+    const editId = "tabby-" + cryptoRandomString({ length: 6, type: "alphanumeric" });
     this.currentEdit = {
       id: editId,
       location: params.location,
