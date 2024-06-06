@@ -8,14 +8,13 @@ mod indexer;
 use async_stream::stream;
 pub use code::CodeIndexer;
 use crawl::crawl_pipeline;
-use doc::SourceDocument;
+pub use doc::{create_web_index, SourceDocument};
 use futures::StreamExt;
-use indexer::{IndexAttributeBuilder, Indexer};
+pub use indexer::{IndexAttributeBuilder, Indexer};
 
 mod doc;
 use std::{env, sync::Arc};
 
-use doc::create_web_index;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{debug, info, warn};
 
