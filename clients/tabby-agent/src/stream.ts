@@ -1,5 +1,5 @@
 import { Readable } from "readable-stream";
-import { readableFromWeb } from 'readable-from-web';
+import { readableFromWeb } from "readable-from-web";
 import { EventSourceParserStream, ParsedEvent } from "eventsource-parser/stream";
 import type { components as TabbyApiComponents } from "tabby-openapi/compatible";
 import { getLogger } from "./logger";
