@@ -3,14 +3,19 @@ mod supervisor;
 use std::{fs, path::PathBuf, sync::Arc};
 
 use anyhow::Result;
+use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use supervisor::LlamaCppSupervisor;
 use tabby_common::{
+    api::chat::Message,
     config::{HttpModelConfigBuilder, ModelConfig},
     registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH},
 };
-use tabby_inference::{CompletionOptions, CompletionStream, Embedding};
+use tabby_inference::{
+    ChatCompletionOptions, ChatCompletionStream, CompletionOptions, CompletionOptionsBuilder,
+    CompletionStream, Embedding,
+};
 
 fn api_endpoint(port: u16) -> String {
     format!("http://127.0.0.1:{port}")
@@ -24,7 +29,7 @@ struct EmbeddingServer {
 
 impl EmbeddingServer {
     async fn new(num_gpu_layers: u16, model_path: &str, parallelism: u8) -> EmbeddingServer {
-        let server = LlamaCppSupervisor::new(num_gpu_layers, true, model_path, parallelism);
+        let server = LlamaCppSupervisor::new(num_gpu_layers, true, model_path, parallelism, None);
         server.start().await;
 
         let config = HttpModelConfigBuilder::default()
@@ -54,8 +59,18 @@ struct CompletionServer {
 }
 
 impl CompletionServer {
-    async fn new(num_gpu_layers: u16, model_path: &str, parallelism: u8) -> Self {
-        let server = LlamaCppSupervisor::new(num_gpu_layers, false, model_path, parallelism);
+    async fn new(
+        num_gpu_layers: u16,
+        model_path: &str,
+        parallelism: u8,
+    ) -> Self {
+        let server = LlamaCppSupervisor::new(
+            num_gpu_layers,
+            false,
+            model_path,
+            parallelism,
+            None,
+        );
         server.start().await;
         let config = HttpModelConfigBuilder::default()
             .api_endpoint(api_endpoint(server.port()))
@@ -72,6 +87,58 @@ impl CompletionStream for CompletionServer {
     async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
         self.completion.generate(prompt, options).await
     }
+}
+
+struct ChatCompletionServer {
+    server: LlamaCppSupervisor,
+    chat_completion: Arc<dyn ChatCompletionStream>,
+}
+
+impl ChatCompletionServer {
+    async fn new(
+        num_gpu_layers: u16,
+        model_path: &str,
+        parallelism: u8,
+        chat_template: Option<&str>,
+    ) -> Self {
+        let server = LlamaCppSupervisor::new(
+            num_gpu_layers,
+            false,
+            model_path,
+            parallelism,
+            chat_template,
+        );
+        server.start().await;
+        let config = HttpModelConfigBuilder::default()
+            .api_endpoint(api_endpoint(server.port()))
+            .kind("openai/chat".to_string())
+            .build()
+            .expect("Failed to create HttpModelConfig");
+        let chat_completion = http_api_bindings::create_chat(&config).await;
+        Self { server, chat_completion }
+    }
+}
+
+#[async_trait]
+impl ChatCompletionStream for ChatCompletionServer {
+    async fn chat_completion(
+        &self,
+        messages: &[Message],
+        options: ChatCompletionOptions,
+    ) -> Result<BoxStream<String>> {
+        self.chat_completion.chat_completion(messages, options).await
+    }
+}
+
+pub async fn create_chat_completion(
+    num_gpu_layers: u16,
+    model_path: &str,
+    parallelism: u8,
+    chat_template: Option<&str>,
+) -> Arc<dyn ChatCompletionStream> {
+    Arc::new(
+        ChatCompletionServer::new(num_gpu_layers, model_path, parallelism, chat_template).await,
+    )
 }
 
 pub async fn create_completion(

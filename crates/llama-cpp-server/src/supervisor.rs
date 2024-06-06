@@ -21,12 +21,14 @@ impl LlamaCppSupervisor {
         embedding: bool,
         model_path: &str,
         parallelism: u8,
+        chat_template: Option<&str>,
     ) -> LlamaCppSupervisor {
         let Some(binary_name) = find_binary_name() else {
             panic!("Failed to locate llama-server binary, please make sure you have llama-server binary locates in the same directory as the current executable.");
         };
 
         let model_path = model_path.to_owned();
+        let chat_template = chat_template.map(|s| s.to_owned());
         let port = get_available_port();
         let handle = tokio::spawn(async move {
             loop {
@@ -69,6 +71,12 @@ impl LlamaCppSupervisor {
                         .arg(var("LLAMA_CPP_EMBEDDING_N_UBATCH_SIZE").unwrap_or("4096".into()));
                 }
 
+                if let Some(ref chat_template) = chat_template {
+                    command.arg("--chat-template").arg(chat_template);
+                }
+
+                eprintln!("Starting llama-server with command {:?}", command);
+                debug!("Starting llama-server with command {:?}", command);
                 let mut process = command.spawn().unwrap_or_else(|e| {
                     panic!(
                         "Failed to start llama-server with command {:?}: {}",

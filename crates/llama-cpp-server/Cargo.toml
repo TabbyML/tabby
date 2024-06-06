@@ -12,6 +12,7 @@ rocm = ["binary"]
 vulkan = ["binary"]
 
 [dependencies]
+async-stream.workspace = true
 futures.workspace = true
 http-api-bindings = { path = "../http-api-bindings" }
 reqwest.workspace = true
