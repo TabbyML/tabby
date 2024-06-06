@@ -271,10 +271,10 @@ export function Search() {
 
         <div
           className={cn(
-            'fixed left-1/2 flex h-24 flex-col items-center transition-all md:-ml-[24rem] md:w-[48rem] md:p-6',
+            'fixed left-1/2 flex flex-col items-center transition-all md:-ml-[24rem] md:w-[48rem] md:p-6',
             {
               'bottom-2/3': noConversation,
-              'bottom-0': !noConversation
+              'bottom-0 min-h-[6rem]': !noConversation
             }
           )}
         >
@@ -443,11 +443,10 @@ function AnswerBlock({
                           .map((source, idx) => {
                             const { hostname } = new URL(source.link)
                             return (
-                              <img
-                                key={hostname + idx}
-                                src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=${hostname}`}
-                                alt={hostname}
-                                className="mr-1 h-3.5 w-3.5 rounded-full"
+                              <SiteFavicon
+                                key={idx}
+                                hostname={hostname}
+                                className="mr-1"
                               />
                             )
                           })}
@@ -525,7 +524,7 @@ function AnswerBlock({
         answer.relevant_questions &&
         answer.relevant_questions.length > 0 && (
           <div>
-            <div className="mt-9 flex items-center gap-x-1.5">
+            <div className="flex items-center gap-x-1.5">
               <IconLayers />
               <p className="text-sm font-bold leading-none">Related</p>
             </div>
@@ -575,11 +574,7 @@ function SourceCard({ source, index }: { source: Source; index: number }) {
         {source.title}
       </p>
       <div className="flex items-center">
-        <img
-          src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=${hostname}`}
-          alt={hostname}
-          className="mr-1 h-3.5 w-3.5 rounded-full"
-        />
+        <SiteFavicon hostname={hostname} className="mr-1" />
 
         <div className="flex items-center gap-x-0.5 text-xs text-muted-foreground">
           <p className="flex-1 overflow-hidden text-ellipsis">
@@ -649,12 +644,9 @@ function MessageMarkdown({
                           <HoverCardContent className="w-96 text-sm">
                             <div className="flex w-full flex-col gap-y-1">
                               <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground">
-                                <img
-                                  src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=${
-                                    sourceUrl!.hostname
-                                  }`}
-                                  alt={sourceUrl!.hostname}
-                                  className="m-0 mr-1 h-3.5 w-3.5 rounded-full leading-none"
+                                <SiteFavicon
+                                  hostname={sourceUrl!.hostname}
+                                  className="mr-1"
                                 />
                                 <p className="m-0 leading-none">
                                   {sourceUrl!.hostname}
@@ -713,5 +705,21 @@ function MessageMarkdown({
     >
       {message}
     </MemoizedReactMarkdown>
+  )
+}
+
+function SiteFavicon({
+  hostname,
+  className
+}: {
+  hostname: string
+  className?: string
+}) {
+  return (
+    <img
+      src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=${hostname}`}
+      alt={hostname}
+      className={cn('h-3.5 w-3.5 rounded-full leading-none', className)}
+    />
   )
 }
