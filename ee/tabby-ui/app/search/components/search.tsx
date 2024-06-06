@@ -16,6 +16,11 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { CodeBlock } from '@/components/ui/codeblock'
 import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger
+} from '@/components/ui/hover-card'
+import {
   IconArrowRight,
   IconBlocks,
   IconChevronRight,
@@ -125,6 +130,7 @@ export function Search() {
   const onSubmitSearch = (question: string) => {
     // FIXME: code query? extra from user's input?
     // FIXME: after search, the search button should spinning for a while
+    // FIXME: scroll stick to the bottom when loading?
     const previousMessages = conversation.map(message => ({
       role: message.role,
       id: message.id,
@@ -159,6 +165,7 @@ export function Search() {
     // Scroll to the bottom
     if (container) {
       setTimeout(() => {
+        // FIXME: after loading?
         container.scrollTo({
           top: container.scrollHeight,
           behavior: 'smooth'
@@ -317,7 +324,7 @@ function SearchArea() {
   const { onSubmitSearch } = useContext(SearchContext)
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
-  const [value, setValue] = useState('how to add function in python')
+  const [value, setValue] = useState('short introduce of transformer in llm')
 
   useEffect(() => {
     // Ensure the textarea height remains consistent during rendering
@@ -391,6 +398,23 @@ function AnswerBlock({
 }) {
   const { onRegenerateResponse, onSubmitSearch, isLoading } =
     useContext(SearchContext)
+
+  const getCopyContent = (answer: ConversationMessage) => {
+    if (!answer.relevant_documents) return answer.content
+
+    const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
+    const content = answer.content
+      .replace(citationMatchRegex, (match, p1) => {
+        const citationNumberMatch = match?.match(/\d+/)
+        return `[${citationNumberMatch}]`
+      })
+      .trim()
+    const citations = answer.relevant_documents
+      .map((relevent, idx) => `[${idx + 1}] ${relevent.link}`)
+      .join('\n')
+    return `${content}\n\nCitations:\n${citations}`
+  }
+
   return (
     <div className="flex flex-col gap-y-5">
       {/* Relevant documents */}
@@ -469,13 +493,16 @@ function AnswerBlock({
           <Skeleton className="h-40 w-full" />
         )}
 
-        <MessageMarkdown message={answer.content} />
+        <MessageMarkdown
+          message={answer.content}
+          sources={answer.relevant_documents}
+        />
 
         {!answer.isLoading && (
           <div className="mt-3 flex items-center gap-x-3 text-sm">
             <CopyButton
               className="-ml-2.5 gap-x-1 px-2 font-normal text-muted-foreground"
-              value={answer.content}
+              value={getCopyContent(answer)}
               text="Copy"
             />
             {!isLoading && (
@@ -568,10 +595,12 @@ function SourceCard({ source, index }: { source: Source; index: number }) {
 
 function MessageMarkdown({
   message,
-  headline = false
+  headline = false,
+  sources
 }: {
   message: string
   headline?: boolean
+  sources?: Source[]
 }) {
   return (
     <MemoizedReactMarkdown
@@ -586,6 +615,68 @@ function MessageMarkdown({
               </h3>
             )
           }
+
+          if (children.length) {
+            const content = children as string[]
+            const contentStr = content.join('')
+            const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
+            const textList = contentStr.split(citationMatchRegex)
+            const citationList = contentStr.match(citationMatchRegex)
+            return (
+              <div className="mb-2 leading-relaxed last:mb-0">
+                {textList.map((text, index) => {
+                  const citation = citationList?.[index]
+                  const citationNumberMatch = citation?.match(/\d+/)
+                  const citationIndex = citationNumberMatch
+                    ? parseInt(citationNumberMatch[0], 10)
+                    : null
+                  const source =
+                    citationIndex !== null ? sources?.[citationIndex - 1] : null
+                  const sourceUrl = source ? new URL(source.link) : null
+                  return (
+                    <span key={index}>
+                      {text && <span>{text}</span>}
+                      {source && (
+                        <HoverCard>
+                          <HoverCardTrigger>
+                            <span
+                              className="relative -top-2 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
+                              onClick={() => window.open(source.link)}
+                            >
+                              {citationIndex}
+                            </span>
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-96 text-sm">
+                            <div className="flex w-full flex-col gap-y-1">
+                              <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground">
+                                <img
+                                  src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=${
+                                    sourceUrl!.hostname
+                                  }`}
+                                  alt={sourceUrl!.hostname}
+                                  className="m-0 mr-1 h-3.5 w-3.5 rounded-full leading-none"
+                                />
+                                <p className="m-0 leading-none">
+                                  {sourceUrl!.hostname}
+                                </p>
+                              </div>
+                              <p className="m-0 font-bold leading-none">
+                                {source.title}
+                              </p>
+                              <p className="m-0 leading-none">
+                                {source.snippet}
+                              </p>
+                            </div>
+                          </HoverCardContent>
+                        </HoverCard>
+                      )}
+                    </span>
+                  )
+                })}
+              </div>
+            )
+          }
+
           return <p className="mb-2 last:mb-0">{children}</p>
         },
         code({ node, inline, className, children, ...props }) {
