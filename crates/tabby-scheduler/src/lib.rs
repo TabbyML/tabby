@@ -61,10 +61,7 @@ pub async fn scheduler(now: bool, config: &tabby_common::config::Config) {
 }
 
 async fn scheduler_pipeline(config: &tabby_common::config::Config) {
-    let Some(embedding_config) = &config.model.embedding else {
-        warn!("No embedding configuration found, skipping scheduler...");
-        return;
-    };
+    let embedding_config = &config.model.embedding;
 
     let embedding = llama_cpp_server::create_embedding(embedding_config).await;
 
@@ -83,10 +80,7 @@ async fn doc_index_pipeline(config: &tabby_common::config::Config) {
         return;
     };
 
-    let Some(embedding_config) = &config.model.embedding else {
-        warn!("No embedding configuration found, skipping doc index pipeline...");
-        return;
-    };
+    let embedding_config = &config.model.embedding;
 
     debug!("Starting doc index pipeline...");
     let embedding = llama_cpp_server::create_embedding(embedding_config).await;
