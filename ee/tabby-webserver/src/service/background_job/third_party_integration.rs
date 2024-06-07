@@ -12,10 +12,7 @@ use tabby_schema::{
 use tracing::debug;
 
 use self::issues::index_github_issues;
-use super::{
-    helper::{Job},
-    BackgroundJobEvent,
-};
+use super::{helper::Job, BackgroundJobEvent};
 
 mod issues;
 
