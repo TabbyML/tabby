@@ -6,7 +6,7 @@ import { getProperty, setProperty, deleteProperty } from "dot-prop";
 import createClient from "openapi-fetch";
 import type { ParseAs } from "openapi-fetch";
 import * as semver from "semver";
-import { Readable } from "node:stream";
+import { Readable } from "readable-stream";
 import type { paths as TabbyApi, components as TabbyApiComponents } from "tabby-openapi/compatible";
 import type {
   Agent,

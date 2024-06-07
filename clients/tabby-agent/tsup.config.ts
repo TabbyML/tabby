@@ -1,14 +1,14 @@
 import { defineConfig } from "tsup";
+import type { Plugin, PluginBuild } from "esbuild";
 import path from "path";
 import fs from "fs-extra";
-import type { Plugin } from "esbuild";
 import { polyfillNode } from "esbuild-plugin-polyfill-node";
 import dedent from "dedent";
 
 function processWinCa(copyRootsExe: boolean = false): Plugin {
   return {
     name: "processWinCa",
-    setup: (build) => {
+    setup: (build: PluginBuild) => {
       build.onLoad({ filter: /win-ca\/lib\/crypt32-\w*.node$/ }, async () => {
         // As win-ca fallback is used, skip not required `.node` binaries
         return {

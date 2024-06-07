@@ -370,11 +370,8 @@ export class Commands {
                   this.chatEditCancellationTokenSource.token,
                 );
               } catch (error) {
-                if (typeof error === "object" && error && "name" in error) {
-                  error.name === "ChatEditDocumentTooLongError";
-                  window.showErrorMessage(
-                    "The selected text is too long to edit, please select less text and try again.",
-                  );
+                if (typeof error === "object" && error && "message" in error && typeof error["message"] === "string") {
+                  window.showErrorMessage(error["message"]);
                 }
               }
               this.chatEditCancellationTokenSource.dispose();

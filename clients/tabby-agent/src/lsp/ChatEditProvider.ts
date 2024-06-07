@@ -15,7 +15,7 @@ import {
 } from "./protocol";
 import { TextDocuments } from "./TextDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { Readable } from "node:stream";
+import { Readable } from "readable-stream";
 import cryptoRandomString from "crypto-random-string";
 import * as Diff from "diff";
 import { TabbyAgent } from "../TabbyAgent";
