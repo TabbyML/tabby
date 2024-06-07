@@ -79,7 +79,6 @@
     "readable-from-web": "^1.0.0",
     "readable-stream": "^4.5.2",
     "semver": "^7.6.0",
-    "serialize-error": "^11.0.3",
     "stats-logscale": "^1.0.9",
     "tabby-openapi": "workspace:*",
     "toml": "^3.0.0",
