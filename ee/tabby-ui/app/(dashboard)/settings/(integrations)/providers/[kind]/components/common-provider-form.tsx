@@ -40,7 +40,7 @@ import { useIntegrationKind } from '../hooks/use-repository-kind'
 export const createRepositoryProviderFormSchema = z.object({
   displayName: z.string().trim(),
   accessToken: z.string(),
-  apiBase: z.string().optional()
+  apiBase: z.string().optional().nullable()
 })
 
 export const updateRepositoryProviderFormSchema =
@@ -190,7 +190,8 @@ export function CommonProviderForm<T extends boolean>({
                       autoCapitalize="none"
                       autoCorrect="off"
                       autoComplete="off"
-                      {...field}
+                      value={field.value ?? ''}
+                      onChange={e => field.onChange(e.target.value)}
                     />
                   </FormControl>
                   <FormMessage />
