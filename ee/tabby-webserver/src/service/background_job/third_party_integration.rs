@@ -12,9 +12,8 @@ use tabby_schema::{
 use tracing::debug;
 
 use self::issues::index_github_issues;
-
 use super::{
-    helper::{Job, JobLogger},
+    helper::{Job},
     BackgroundJobEvent,
 };
 
