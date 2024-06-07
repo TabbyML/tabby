@@ -5,6 +5,6 @@ use tabby_inference::Embedding;
 
 use super::model;
 
-pub async fn create(config: Option<&ModelConfig>) -> Arc<dyn Embedding> {
-    model::load_embedding(config.expect("Embedding model is not specified")).await
+pub async fn create(config: &ModelConfig) -> Arc<dyn Embedding> {
+    model::load_embedding(config).await
 }

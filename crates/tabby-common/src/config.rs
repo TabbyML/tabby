@@ -142,7 +142,7 @@ impl Default for ServerConfig {
 pub struct ModelConfigGroup {
     pub completion: Option<ModelConfig>,
     pub chat: Option<ModelConfig>,
-    pub embedding: Option<ModelConfig>,
+    pub embedding: ModelConfig,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -150,6 +150,16 @@ pub struct ModelConfigGroup {
 pub enum ModelConfig {
     Http(HttpModelConfig),
     Local(LocalModelConfig),
+}
+
+impl Default for ModelConfig {
+    fn default() -> Self {
+        ModelConfig::Local(LocalModelConfig {
+            model_id: "Nomic-Embed-Text".to_string(),
+            parallelism: 1,
+            num_gpu_layers: 9999,
+        })
+    }
 }
 
 #[derive(Serialize, Deserialize, Builder, Debug, Clone)]
