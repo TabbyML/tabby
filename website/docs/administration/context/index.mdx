@@ -25,7 +25,7 @@ The repository context is used to connect Tabby with a source code repository fr
     <img src={GitUrl} alt="Git" width="700" />
 
   - For GitHub / GitLab, a personal access token is required to access private repositories.
-    * Check the instructions in the corresponding tab to create a token. 
+    * Check the instructions in the corresponding tab to create a token.
 
     <img src={GitHubGitLabUrl} alt="GitHub or GitLab" width="700" />
 
@@ -59,4 +59,26 @@ Once connected, the indexing job will start automatically. You can check the sta
 
 Additionally, you can also visit the **Code Browser** page to view the connected repository.
 
-<img src={CodeBrowserUrl} alt="code browser" width="800" />
+<img src={CodeBrowserUrl} alt="code browser" width="800" />'
+
+# Embedding
+
+Embedding is used to convert your search queries or chat messages into a vector of numbers that can be used to find relevant context.
+
+## Adding an embedding model provider
+
+You can add a new embedding model provider by adding a new section to the `~/.tabby/config.toml` file.
+
+```toml
+[model.completion.http]
+kind = "openai/embedding"
+api_key = "sk-..."
+model_name = "gpt-4"
+```
+
+Available provider kinds:
+
+* `openai/embedding`
+* `voyageai/embedding`
+* `llama.cpp/embedding`
+* `ollama/embedding`
