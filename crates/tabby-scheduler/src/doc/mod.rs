@@ -87,3 +87,18 @@ pub fn create_web_index(embedding: Arc<dyn Embedding>) -> Indexer<SourceDocument
     let builder = DocBuilder::new(embedding);
     Indexer::new(corpus::WEB, builder)
 }
+
+pub struct DocIndexer {
+    indexer: Indexer<SourceDocument>,
+}
+
+impl DocIndexer {
+    pub fn new(embedding: Arc<dyn Embedding>) -> Self {
+        let indexer = create_web_index(embedding);
+        Self { indexer }
+    }
+
+    pub async fn index_document(&self, document: SourceDocument) {
+        self.indexer.add(document).await;
+    }
+}

@@ -13,6 +13,7 @@ use tabby_common::config::{ConfigAccess, RepositoryConfig};
 use tabby_db::DbConn;
 use tabby_inference::Embedding;
 use tabby_schema::{integration::IntegrationService, repository::ThirdPartyRepositoryService};
+use third_party_integration::IndexIssuesJob;
 use tracing::warn;
 
 use self::{
@@ -23,6 +24,7 @@ use self::{
 pub enum BackgroundJobEvent {
     Scheduler(RepositoryConfig),
     SyncThirdPartyRepositories(ID),
+    IndexIssues(ID),
 }
 
 pub async fn start(
@@ -53,10 +55,16 @@ pub async fn start(
                                 job_logger.complete(0).await;
                             }
                         },
-                        BackgroundJobEvent::SyncThirdPartyRepositories(intergraion_id) => {
-                            let job = SyncIntegrationJob::new(intergraion_id);
+                        BackgroundJobEvent::SyncThirdPartyRepositories(integration_id) => {
+                            let job = SyncIntegrationJob::new(integration_id);
                             if let Err(err) = job.run(third_party_repository_service.clone()).await {
-                                warn!("Sync integration job failed: {:?}", err);
+                                warn!("Sync integration job failed: {err:?}");
+                            }
+                        }
+                        BackgroundJobEvent::IndexIssues(integration_id) => {
+                            let job = IndexIssuesJob::new(integration_id);
+                            if let Err(err) = job.run(embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await {
+                                warn!("Index issues job failed: {err:?}");
                             }
                         }
                     }
@@ -72,6 +80,10 @@ pub async fn start(
 
                     if let Err(err) = SyncIntegrationJob::cron(now, sender.clone(), integration_service.clone()).await {
                         warn!("Sync integration job failed: {:?}", err);
+                    }
+
+                    if let Err(err) = IndexIssuesJob::cron(now, sender.clone(), integration_service.clone()).await {
+                        warn!("Index issues job failed: {err:?}");
                     }
                 },
                 else => {
