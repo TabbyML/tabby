@@ -142,6 +142,7 @@ impl Default for ServerConfig {
 pub struct ModelConfigGroup {
     pub completion: Option<ModelConfig>,
     pub chat: Option<ModelConfig>,
+    #[serde(default)]
     pub embedding: ModelConfig,
 }
 
