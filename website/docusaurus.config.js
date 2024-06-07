@@ -169,7 +169,11 @@ export default {
         defaultMode: "light",
         respectPrefersColorScheme: false,
         disableSwitch: true
-      }
+      },
+      tableOfContents: {
+        minHeadingLevel: 2,
+        maxHeadingLevel: 5,
+      },
     }),
 
   plugins: [
