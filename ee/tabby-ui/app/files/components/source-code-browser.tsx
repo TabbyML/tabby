@@ -144,7 +144,6 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
     QuickActionEventPayload | undefined
   >()
 
-  // todo rename
   const fetchAllEntries = React.useCallback(
     async (fullPath: string) => {
       if (!fullPath) return
@@ -159,7 +158,6 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
           repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined
         )
         const expandedDirs = getDirectoriesFromBasename(basename)
-
         const patchMap: TFileMap = {}
         if (entries.length) {
           forEach(repoMap, (repo, repoKey) => {
@@ -187,7 +185,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
           }
         }
         const expandedKeys = expandedDirs.map(dir =>
-          [repositorySpecifier, dir].filter(Boolean).join('/')
+          [repositorySpecifier, rev, dir].filter(Boolean).join('/')
         )
         if (patchMap) {
           setFileMap(patchMap)
@@ -468,8 +466,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       const { patchMap, expandedKeys, repos } = await getInitialFileData(
         activePath
       )
-      // todo if no rev, set default rev
-
       const redirect_filepath = searchParams.get('redirect_filepath')
       const redirect_git_url = searchParams.get('redirect_git_url')
       const line = searchParams.get('line')
@@ -739,7 +735,7 @@ async function getInitialFileData(path?: string) {
       }
     }
     const expandedKeys = initialExpandedDirs.map(dir =>
-      [resolveRepoSpecifierFromRepoInfo(initialRepo), dir]
+      [resolveRepoSpecifierFromRepoInfo(initialRepo), rev, dir]
         .filter(Boolean)
         .join('/')
     )

@@ -264,9 +264,9 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   const { data, isLoading }: SWRResponse<ResolveEntriesResponse> =
     useSWRImmutable(
       shouldFetchChildren
-        ? `/repositories/${activeRepoIdentity}/rev/${encodeURIComponent(
-            rev ?? ''
-          )}/${encodeURIComponentIgnoringSlash(basename)}`
+        ? `/repositories/${activeRepoIdentity}/rev/${
+            rev ?? 'main'
+          }/${encodeURIComponentIgnoringSlash(basename)}`
         : null,
       fetcher,
       {
