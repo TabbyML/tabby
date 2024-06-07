@@ -470,7 +470,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       const redirect_git_url = searchParams.get('redirect_git_url')
       const line = searchParams.get('line')
 
-      // todo need ref info
       if (repos?.length && redirect_filepath && redirect_git_url) {
         // get repo from repos and redirect_git_url
         const targetRepo = repos.find(repo => repo.gitUrl === redirect_git_url)
@@ -488,7 +487,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         }
       }
 
-      // todo if there's no rev, set default rev, should make a function to do it
       // By default, selecting the first repository if initialPath is empty
       if (repos?.length && !activePath) {
         const targetRepo = repos?.[0]

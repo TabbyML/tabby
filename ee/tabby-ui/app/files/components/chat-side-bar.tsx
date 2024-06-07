@@ -5,22 +5,15 @@ import { useClient } from 'tabby-chat-panel/react'
 
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useMe } from '@/lib/hooks/use-me'
-import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useStore } from '@/lib/hooks/use-store'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconClose } from '@/components/ui/icons'
-import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
 import { QuickActionEventPayload } from '../lib/event-emitter'
-import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
-import {
-  fetchEntriesFromPath,
-  getDirectoriesFromBasename,
-  resolveFileNameFromPath,
-  resolveRepoSpecifierFromRepoInfo
-} from './utils'
+import { SourceCodeBrowserContext } from './source-code-browser'
+import { resolveRepoSpecifierFromRepoInfo } from './utils'
 
 interface ChatSideBarProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {}
@@ -29,20 +22,18 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   className,
   ...props
 }) => {
-  const { setProgress } = useTopbarProgress()
-  const { updateSearchParams, updatePathnameAndSearch } = useRouterStuff()
   const [{ data }] = useMe()
   const {
     pendingEvent,
     setPendingEvent,
     repoMap,
-    setExpandedKeys,
-    updateFileMap,
-    activeRepoRef
+    activeRepoRef,
+    updateActivePath
   } = React.useContext(SourceCodeBrowserContext)
   const activeChatId = useStore(useChatStore, state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
   const repoMapRef = useLatest(repoMap)
+  const latestRepoRef = useLatest(activeRepoRef)
   const onNavigate = async (context: Context) => {
     if (context?.filepath && context?.git_url) {
       const repoMap = repoMapRef.current
@@ -53,61 +44,16 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
       if (matchedRepositoryKey) {
         const repository = repoMap[matchedRepositoryKey]
         const repositorySpecifier = resolveRepoSpecifierFromRepoInfo(repository)
-        const rev = activeRepoRef?.name
+        const rev = latestRepoRef?.current?.name ?? 'main'
 
         const fullPath = `${repositorySpecifier}/${rev}/${context.filepath}`
         if (!fullPath) return
-        try {
-          setProgress(true)
-          const entries = await fetchEntriesFromPath(
-            fullPath,
-            repositorySpecifier
-              ? repoMap?.[`${repositorySpecifier}/${rev}`]
-              : undefined
-          )
-          const initialExpandedDirs = getDirectoriesFromBasename(
-            context.filepath
-          )
-
-          const patchMap: TFileMap = {}
-          // fetch dirs
-          for (const entry of entries) {
-            const path = `${repositorySpecifier}/${entry.basename}`
-            patchMap[path] = {
-              file: entry,
-              name: resolveFileNameFromPath(path),
-              fullPath: path,
-              treeExpanded: initialExpandedDirs.includes(entry.basename)
-            }
+        updateActivePath(fullPath, {
+          shouldFetchAllEntries: true,
+          params: {
+            line: String(context.range.start)
           }
-          const expandedKeys = initialExpandedDirs.map(dir =>
-            [repositorySpecifier, dir].filter(Boolean).join('/')
-          )
-          if (patchMap) {
-            updateFileMap(patchMap)
-          }
-          if (expandedKeys?.length) {
-            setExpandedKeys(prevKeys => {
-              const newSet = new Set(prevKeys)
-              for (const k of expandedKeys) {
-                newSet.add(k)
-              }
-              return newSet
-            })
-          }
-        } catch (e) {
-        } finally {
-          updatePathnameAndSearch(
-            `${repositorySpecifier ?? ''}/${context.filepath}`,
-            {
-              set: {
-                line: String(context.range.start ?? '')
-              },
-              del: 'plain'
-            }
-          )
-          setProgress(false)
-        }
+        })
       }
     }
   }

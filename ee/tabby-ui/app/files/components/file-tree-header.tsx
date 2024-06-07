@@ -63,7 +63,12 @@ type SearchOption = {
 type RepositoryRefKind = 'branch' | 'tag'
 
 const repositorySearch = graphql(/* GraphQL */ `
-  query RepositorySearch($kind: RepositoryKind!, $id: ID!, $rev: String, $pattern: String!) {
+  query RepositorySearch(
+    $kind: RepositoryKind!
+    $id: ID!
+    $rev: String
+    $pattern: String!
+  ) {
     repositorySearch(kind: $kind, id: $id, rev: $rev, pattern: $pattern) {
       type
       path
@@ -115,7 +120,9 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
       kind: repositoryKind as RepositoryKind,
       id: repoId as string,
       pattern: repositorySearchPattern ?? '',
-      rev: activeRepoRef?.name ? decodeURIComponent(activeRepoRef.name) : undefined
+      rev: activeRepoRef?.name
+        ? decodeURIComponent(activeRepoRef.name)
+        : undefined
     },
     pause: !repoId || !repositoryKind || !repositorySearchPattern
   })
@@ -457,7 +464,12 @@ const HighlightMatches = ({
     <p className="text-muted-foreground">
       {text.split('').map((char, index) => {
         return indicesSet.has(index) ? (
-          <span className="font-semibold text-foreground" key={`${char}_${index}`}>{char}</span>
+          <span
+            className="font-semibold text-foreground"
+            key={`${char}_${index}`}
+          >
+            {char}
+          </span>
         ) : (
           char
         )

@@ -230,9 +230,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   level,
   root
 }) => {
-  const { activeRepo, activeRepoRef } = React.useContext(
-    SourceCodeBrowserContext
-  )
+  const { activeRepo } = React.useContext(SourceCodeBrowserContext)
   const {
     fileMap,
     updateFileMap,

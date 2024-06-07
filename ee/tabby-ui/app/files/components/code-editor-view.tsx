@@ -46,10 +46,10 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const { isChatEnabled, activePath, fileMap } = React.useContext(
     SourceCodeBrowserContext
   )
-  const { repositorySpecifier, basename } =
+  const { repositorySpecifier, rev, basename } =
     resolveRepositoryInfoFromPath(activePath)
   const gitUrl = repositorySpecifier
-    ? fileMap[repositorySpecifier]?.repository?.gitUrl ?? ''
+    ? fileMap[`${repositorySpecifier}/${rev}`]?.repository?.gitUrl ?? ''
     : ''
 
   const extensions = React.useMemo(() => {
