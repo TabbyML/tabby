@@ -256,6 +256,7 @@ export function Search() {
     const newConversation = [...conversation]
     let newTargetAnswer = newConversation[targetAnswerIdx]
     newTargetAnswer.content = ''
+    newTargetAnswer.relevant_documents = undefined
     newTargetAnswer.error = undefined
     newTargetAnswer.isLoading = true
 
