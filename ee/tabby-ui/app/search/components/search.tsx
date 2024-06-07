@@ -9,9 +9,13 @@ import {
   useState
 } from 'react'
 import Image from 'next/image'
-import logoUrl from '@/assets/tabby.png'
+import Link from 'next/link'
+import logoDarkUrl from '@/assets/logo-dark.png'
+import logoUrl from '@/assets/logo.png'
+import tabbyUrl from '@/assets/tabby.png'
 import { Message } from 'ai'
 import { nanoid } from 'nanoid'
+import { useTheme } from 'next-themes'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
@@ -40,19 +44,16 @@ import {
 } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTrigger
-} from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
+import { ClientOnly } from '@/components/client-only'
 import { CopyButton } from '@/components/copy-button'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import { MemoizedReactMarkdown } from '@/components/markdown'
 import TextAreaSearch from '@/components/textarea-search'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { UserAvatar } from '@/components/user-avatar'
+import UserPanel from '@/components/user-panel'
 
 import './search.css'
 
@@ -95,10 +96,16 @@ const tabbyFetcher = ((url: string, init?: RequestInit) => {
   })
 }) as typeof fetch
 
+const SOURCE_CARD_STYLE = {
+  compress: 5,
+  expand: 7
+}
+
 export function Search() {
   const isChatEnabled = useIsChatEnabled()
   const [searchFlag] = useEnableSearch()
   const [isShowDemoBanner] = useShowDemoBanner()
+  const { theme } = useTheme()
   const [conversation, setConversation] = useState<ConversationMessage[]>([])
   const [showStop, setShowStop] = useState(false)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
@@ -270,6 +277,24 @@ export function Search() {
       }}
     >
       <div className="flex flex-col transition-all" style={style}>
+        <div className="flex w-full items-center justify-between border-b px-10 py-3">
+          <Link href="/">
+            <Image
+              src={theme === 'dark' ? logoDarkUrl : logoUrl}
+              alt="logo"
+              width={80}
+            />
+          </Link>
+
+          <div className="flex items-center justify-center gap-4">
+            <ClientOnly>
+              <ThemeToggle />
+            </ClientOnly>
+            <UserPanel>
+              <UserAvatar className="h-8 w-8 border" />
+            </UserPanel>
+          </div>
+        </div>
         <ScrollArea className="flex-1" ref={contentContainerRef}>
           <div className="mx-auto px-10 pb-24 lg:max-w-4xl lg:px-0">
             <div className="flex flex-col">
@@ -320,7 +345,7 @@ export function Search() {
         >
           {noConversation && (
             <>
-              <Image src={logoUrl} alt="logo" width={42} />
+              <Image src={tabbyUrl} alt="logo" width={42} />
               <h4 className="mb-6 scroll-m-20 text-xl font-semibold tracking-tight text-secondary-foreground">
                 The Private Search Assistant
               </h4>
@@ -374,6 +399,7 @@ function AnswerBlock({
 }) {
   const { onRegenerateResponse, onSubmitSearch, isLoading } =
     useContext(SearchContext)
+  const [showMore, setShowMore] = useState(false)
 
   const getCopyContent = (answer: ConversationMessage) => {
     if (!answer.relevant_documents) return answer.content
@@ -391,6 +417,11 @@ function AnswerBlock({
     return `${content}\n\nCitations:\n${citations}`
   }
 
+  const totalHeightInRem = answer.relevant_documents
+    ? Math.ceil(answer.relevant_documents.length / 3) *
+        SOURCE_CARD_STYLE.expand +
+      0.5 * Math.floor(answer.relevant_documents.length / 3)
+    : 0
   return (
     <div className="flex flex-col gap-y-5">
       {/* Relevant documents */}
@@ -400,56 +431,37 @@ function AnswerBlock({
             <IconBlocks className="relative" style={{ top: '-0.04rem' }} />
             <p className="text-sm font-bold leading-normal">Source</p>
           </div>
-          <div className="gap-sm grid grid-cols-4 gap-x-2">
-            {answer.relevant_documents.slice(0, 3).map((source, index) => (
-              <SourceCard key={source.link} source={source} index={index + 1} />
+          <div
+            className="gap-sm grid grid-cols-3 gap-2 overflow-hidden"
+            style={{
+              transition: 'height 0.25s ease-out',
+              height: showMore
+                ? `${totalHeightInRem}rem`
+                : `${SOURCE_CARD_STYLE.compress}rem`
+            }}
+          >
+            {answer.relevant_documents.map((source, index) => (
+              <SourceCard
+                key={source.link}
+                source={source}
+                showMore={showMore}
+                index={index + 1}
+              />
             ))}
-            {answer.relevant_documents &&
-              answer.relevant_documents.length > 3 && (
-                <Sheet>
-                  <SheetTrigger>
-                    <div className="flex h-full cursor-pointer flex-col items-start justify-between gap-y-1 rounded-lg border bg-card px-4 py-2 transition-all hover:bg-card/60">
-                      <div className="flex items-center gap-x-0.5 text-xs">
-                        <p>Check more</p>
-                        <IconChevronRight />
-                      </div>
-                      <div className="flex h-5 items-center">
-                        {answer.relevant_documents
-                          .slice(3, 6)
-                          .map((source, idx) => {
-                            const { hostname } = new URL(source.link)
-                            return (
-                              <SiteFavicon
-                                key={hostname + idx}
-                                hostname={hostname}
-                                className="mr-1"
-                              />
-                            )
-                          })}
-                      </div>
-                    </div>
-                  </SheetTrigger>
-                  <SheetContent className="flex !max-w-3xl flex-col">
-                    <SheetHeader>
-                      <SheetDescription>
-                        {answer.relevant_documents.length} resources
-                      </SheetDescription>
-                    </SheetHeader>
-                    <ScrollArea className="flex-1">
-                      <div className="mt-2 flex flex-col gap-y-8">
-                        {answer.relevant_documents.map((source, index) => (
-                          <SourceBlock
-                            source={source}
-                            index={index + 1}
-                            key={source.link + index}
-                          />
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </SheetContent>
-                </Sheet>
-              )}
           </div>
+          <Button
+            variant="ghost"
+            className="-ml-1.5 mt-1 flex items-center gap-x-1 px-1 py-2 text-sm font-normal text-muted-foreground"
+            onClick={() => setShowMore(!showMore)}
+          >
+            <IconChevronRight
+              className={cn({
+                '-rotate-90': showMore,
+                'rotate-90': !showMore
+              })}
+            />
+            <p>{showMore ? 'Show less' : 'Show more'}</p>
+          </Button>
         </div>
       )}
 
@@ -476,13 +488,13 @@ function AnswerBlock({
         {!answer.isLoading && (
           <div className="mt-3 flex items-center gap-x-3 text-sm">
             <CopyButton
-              className="-ml-2.5 gap-x-1 px-2 font-normal text-muted-foreground"
+              className="-ml-1.5 gap-x-1 px-1 font-normal text-muted-foreground"
               value={getCopyContent(answer)}
               text="Copy"
             />
             {!isLoading && (
               <Button
-                className="flex items-center gap-x-1 px-2 font-normal text-muted-foreground"
+                className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
                 variant="ghost"
                 onClick={onRegenerateResponse.bind(null, answer.id)}
               >
@@ -524,31 +536,34 @@ function AnswerBlock({
   )
 }
 
-function SourceBlock({ source, index }: { source: Source; index: number }) {
-  return (
-    <div className="flex gap-x-1.5">
-      <p className="text-sm">{index}.</p>
-      <div
-        className="flex-1 cursor-pointer transition-opacity hover:opacity-70"
-        onClick={() => window.open(source.link)}
-      >
-        <p className="mb-0.5 text-sm font-bold">{source.title}</p>
-        <p className="text-sm">{source.snippet}</p>
-      </div>
-    </div>
-  )
-}
-
-function SourceCard({ source, index }: { source: Source; index: number }) {
+function SourceCard({
+  source,
+  index,
+  showMore
+}: {
+  source: Source
+  index: number
+  showMore: boolean
+}) {
   const { hostname } = new URL(source.link)
   return (
     <div
       className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card px-4 py-2 transition-all hover:bg-card/60"
+      style={{
+        height: showMore
+          ? `${SOURCE_CARD_STYLE.expand}rem`
+          : `${SOURCE_CARD_STYLE.compress}rem`
+      }}
       onClick={() => window.open(source.link)}
     >
       <p className="line-clamp-2 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
         {source.title}
       </p>
+      {showMore && (
+        <p className="line-clamp-2 w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground">
+          {source.snippet}
+        </p>
+      )}
       <div className="flex items-center">
         <SiteFavicon hostname={hostname} className="mr-1" />
 

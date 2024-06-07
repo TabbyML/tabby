@@ -241,7 +241,7 @@ function MainPanel() {
                 <DialogContent className="dialog-without-close-btn -mt-48 border-none bg-transparent shadow-none sm:max-w-xl">
                   <div className="flex flex-col items-center">
                     <Image src={logoUrl} alt="logo" width={42} />
-                    <h4 className="mb-6 scroll-m-20 text-xl font-semibold tracking-tight text-secondary-foreground">
+                    <h4 className="mb-6 scroll-m-20 text-xl font-semibold tracking-tight text-background dark:text-foreground">
                       The Private Search Assistant
                     </h4>
                     <TextAreaSearch onSearch={onSearch} />
