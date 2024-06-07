@@ -285,15 +285,6 @@ export class Commands {
       const updateQuickPickList = () => {
         const input = quickPick.value;
         const list: (QuickPickItem & { value: string })[] = [];
-        if (input.length > 0 && !input.startsWith("/")) {
-          list.push({
-            label: input,
-            value: input,
-            iconPath: new ThemeIcon("run"),
-            description: "",
-            alwaysShow: true,
-          });
-        }
         list.push(
           ...suggestedCommand.map((item) => {
             return {
@@ -323,6 +314,15 @@ export class Commands {
             };
           }),
         );
+        if (input.length > 0 && !list.find((i) => i.value === input)) {
+          list.unshift({
+            label: input,
+            value: input,
+            iconPath: new ThemeIcon("run"),
+            description: "",
+            alwaysShow: true,
+          });
+        }
         quickPick.items = list;
       };
       const fetchingSuggestedCommandCancellationTokenSource = new CancellationTokenSource();
