@@ -458,7 +458,7 @@ function AnswerBlock({
         <div className="flex items-center gap-x-1.5">
           <IconSparkles
             className={cn({
-              'spark-animation': answer.isLoading
+              'sparkle-animation': answer.isLoading
             })}
           />
           <p className="text-sm font-bold leading-none">Answer</p>
