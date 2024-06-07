@@ -91,7 +91,7 @@ export function Search() {
   const isChatEnabled = useIsChatEnabled()
   const [searchFlag] = useEnableSearch()
   const [conversation, setConversation] = useState<ConversationMessage[]>([])
-
+  const [showStop, setShowStop] = useState(false)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [title, setTitle] = useState('')
   const [currentLoadindId, setCurrentLoadingId] = useState<string>('')
@@ -127,7 +127,7 @@ export function Search() {
   useEffect(() => {
     if (!answer) return
     const newConversation = [...conversation]
-    let currentAnswer = newConversation.find(
+    const currentAnswer = newConversation.find(
       item => item.id === currentLoadindId
     )
     if (!currentAnswer) return
@@ -137,6 +137,16 @@ export function Search() {
     currentAnswer.isLoading = isLoading
     setConversation(newConversation)
   }, [isLoading, answer])
+
+  // Delay showing the stop button
+  useEffect(() => {
+    if (isLoading && !showStop) {
+      setTimeout(() => setShowStop(true), 2000)
+    }
+    if (!isLoading && showStop) {
+      setShowStop(false)
+    }
+  }, [isLoading])
 
   const onSubmitSearch = (question: string) => {
     // FIXME: code query? extra from user's input?
@@ -227,9 +237,6 @@ export function Search() {
   }
 
   const noConversation = conversation.length === 0
-  const currentAnswerHasContent = Boolean(
-    conversation[conversation.length - 1]?.content
-  )
   // FIXME: the height considering demo banner
   return (
     <SearchContext.Provider
@@ -241,7 +248,7 @@ export function Search() {
     >
       <div className="flex h-screen flex-col">
         <ScrollArea className="flex-1" ref={contentContainerRef}>
-          <div className="mx-auto px-0 pb-20 md:w-[48rem] md:px-6">
+          <div className="mx-auto px-10 pb-28 lg:max-w-4xl lg:px-0">
             <div className="flex flex-col">
               {conversation.map((item, idx) => {
                 if (item.role === 'user') {
@@ -282,7 +289,7 @@ export function Search() {
 
         <div
           className={cn(
-            'fixed left-1/2 flex flex-col items-center transition-all md:-ml-[24rem] md:w-[48rem] md:p-6',
+            'fixed left-0 flex w-full flex-col items-center transition-all',
             {
               'bottom-1/2 -mt-48': noConversation,
               'bottom-0 min-h-[6rem]': !noConversation
@@ -298,17 +305,25 @@ export function Search() {
             </>
           )}
           {!isLoading && (
-            <div className="relative z-20 w-full">
-              <TextAreaSearch onSearch={onSubmitSearch} />
+            <div className="relative z-20 flex justify-center self-stretch px-10">
+              <TextAreaSearch
+                className={cn({
+                  'lg:max-w-2xl': noConversation,
+                  'lg:max-w-4xl': !noConversation
+                })}
+                onSearch={onSubmitSearch}
+                placeholder={
+                  (!noConversation && 'Ask a follow up question') || undefined
+                }
+              />
             </div>
           )}
           <Button
             className={cn(
               'absolute top-8 z-0 flex items-center gap-x-2 px-8 py-4',
               {
-                'opacity-0 pointer-events-none':
-                  !isLoading || !currentAnswerHasContent,
-                'opacity-100': isLoading && currentAnswerHasContent
+                'opacity-0 pointer-events-none': !showStop,
+                'opacity-100': showStop
               }
             )}
             style={{

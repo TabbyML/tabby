@@ -9,10 +9,12 @@ import { IconArrowRight } from './ui/icons'
 
 export default function TextAreaSearch({
   onSearch,
-  className
+  className,
+  placeholder
 }: {
   onSearch: (value: string) => void
   className?: string
+  placeholder?: string
 }) {
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
@@ -56,7 +58,7 @@ export default function TextAreaSearch({
             '!h-[48px]': !isShow
           }
         )}
-        placeholder="Ask anything"
+        placeholder={placeholder || 'Ask anything'}
         maxRows={5}
         onKeyDown={onSearchKeyDown}
         onKeyUp={onSearchKeyUp}
