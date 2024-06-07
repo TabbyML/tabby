@@ -303,7 +303,7 @@ export function Search() {
 
         {container && (
           <ButtonScrollToBottom
-            className="!fixed !bottom-[6rem] !right-10 !top-auto lg:!bottom-10"
+            className="!fixed !bottom-[7rem] !right-10 !top-auto lg:!bottom-[3.8rem]"
             container={container}
             offset={100}
           />
@@ -314,7 +314,7 @@ export function Search() {
             'fixed left-0 flex w-full flex-col items-center transition-all',
             {
               'bottom-1/2 -mt-48': noConversation,
-              'bottom-0 min-h-[5rem]': !noConversation
+              'bottom-5 min-h-[5rem]': !noConversation
             }
           )}
         >
