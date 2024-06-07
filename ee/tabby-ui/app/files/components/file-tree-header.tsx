@@ -63,8 +63,8 @@ type SearchOption = {
 type RepositoryRefKind = 'branch' | 'tag'
 
 const repositorySearch = graphql(/* GraphQL */ `
-  query RepositorySearch($kind: RepositoryKind!, $id: ID!, $pattern: String!) {
-    repositorySearch(kind: $kind, id: $id, pattern: $pattern) {
+  query RepositorySearch($kind: RepositoryKind!, $id: ID!, $rev: String, $pattern: String!) {
+    repositorySearch(kind: $kind, id: $id, rev: $rev, pattern: $pattern) {
       type
       path
       indices
@@ -114,7 +114,8 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     variables: {
       kind: repositoryKind as RepositoryKind,
       id: repoId as string,
-      pattern: repositorySearchPattern ?? ''
+      pattern: repositorySearchPattern ?? '',
+      rev: activeRepoRef?.name ? decodeURIComponent(activeRepoRef.name) : undefined
     },
     pause: !repoId || !repositoryKind || !repositorySearchPattern
   })
