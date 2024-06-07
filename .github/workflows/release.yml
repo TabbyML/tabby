@@ -261,6 +261,10 @@ jobs:
             for tabby in tabby_*/tabby_*; do
               llamab=$(basename $llama_server)
               tabbyb=$(basename $tabby)
+              extname=${tabby##*.}
+              if [[ -n "${extname}" ]]
+                exname=.${extname}
+              fi
 
               llaman=${llamab%.*}
               tabbyn=${tabbyb%.*}
@@ -271,8 +275,8 @@ jobs:
                 echo "Creating bundle for $llamav"
                 distdir=dist/tabby_$llamav
                 mkdir -p $distdir
-                cp $llama_server $distdir/llama-server
-                cp $tabby $distdir/tabby
+                cp $llama_server $distdir/llama-server${extname}
+                cp $tabby $distdir/tabby${extname}
                 zip -r $distdir.zip $distdir
                 rm -rf $distdir
               fi
