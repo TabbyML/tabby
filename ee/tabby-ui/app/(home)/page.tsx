@@ -167,6 +167,7 @@ function MainPanel() {
   const isChatEnabled = useIsChatEnabled()
   const signOut = useSignOut()
   const [signOutLoading, setSignOutLoading] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   if (!healthInfo || !data?.me) return <></>
 
@@ -180,6 +181,7 @@ function MainPanel() {
   const onSearch = (question: string) => {
     sessionStorage.setItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG, question)
     window.open('/search')
+    setIsSearchOpen(false)
   }
 
   return (
@@ -225,7 +227,7 @@ function MainPanel() {
               Code Browser
             </MenuLink>
             {searchFlag.value && isChatEnabled && (
-              <Dialog>
+              <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
                 <DialogTrigger>
                   <div className="flex items-center gap-2">
                     <div className="text-muted-foreground">

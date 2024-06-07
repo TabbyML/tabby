@@ -105,7 +105,6 @@ export function Search() {
   const [title, setTitle] = useState('')
   const [currentLoadindId, setCurrentLoadingId] = useState<string>('')
   const contentContainerRef = useRef<HTMLDivElement>(null)
-  let scrollBottomInterval: NodeJS.Timeout
 
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
     fetcher: tabbyFetcher
@@ -216,7 +215,7 @@ export function Search() {
     triggerRequest(answerRequest)
 
     // Update HTML page title
-    setTitle(question)
+    if (!title) setTitle(question)
   }
 
   const onRegenerateResponse = (id: string) => {
@@ -633,7 +632,10 @@ function MessageMarkdown({
                                           {sourceUrl!.hostname}
                                         </p>
                                       </div>
-                                      <p className="m-0 font-bold leading-none">
+                                      <p
+                                        className="m-0 cursor-pointer font-bold leading-none transition-opacity hover:opacity-70"
+                                        onClick={() => window.open(source.link)}
+                                      >
                                         {source.title}
                                       </p>
                                       <p className="m-0 leading-none">
