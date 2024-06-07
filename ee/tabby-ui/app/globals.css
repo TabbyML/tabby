@@ -91,3 +91,7 @@
 .prose-full-width {
   max-width: none !important;
 }
+
+.dialog-without-close-btn > button {
+  display: none;
+}

@@ -52,7 +52,11 @@ export function useTabbyAnswer({
       // merge answer_delta
       answer_delta: `${existingData?.answer_delta ?? ''}${
         data?.answer_delta ?? ''
-      }`
+      }`,
+      relevant_documents:
+        data?.relevant_documents || existingData.relevant_documents,
+      relevant_questions:
+        data?.relevant_questions || existingData.relevant_questions
     }
   }
 
