@@ -175,10 +175,14 @@ export function Search() {
 
         // Scroll to the bottom
         if (container) {
-          container.scrollTo({
-            top: container.scrollHeight,
-            behavior: 'smooth'
-          })
+          const isLastAnswerLoading =
+            currentLoadindId === conversation[conversation.length - 1].id
+          if (isLastAnswerLoading) {
+            container.scrollTo({
+              top: container.scrollHeight,
+              behavior: 'smooth'
+            })
+          }
         }
       }, 1500)
     }
