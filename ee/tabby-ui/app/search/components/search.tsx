@@ -635,7 +635,7 @@ function MessageMarkdown({
                                 <HoverCard>
                                   <HoverCardTrigger>
                                     <span
-                                      className="relative -top-2 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
+                                      className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
                                       onClick={() => window.open(source.link)}
                                     >
                                       {citationIndex}
