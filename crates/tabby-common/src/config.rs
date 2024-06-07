@@ -138,12 +138,30 @@ impl Default for ServerConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+fn default_embedding_config() -> ModelConfig {
+    ModelConfig::Local(LocalModelConfig {
+        model_id: "Nomic-Embed-Text".into(),
+        parallelism: 1,
+        num_gpu_layers: 9999,
+    })
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModelConfigGroup {
     pub completion: Option<ModelConfig>,
     pub chat: Option<ModelConfig>,
-    #[serde(default)]
+    #[serde(default = "default_embedding_config")]
     pub embedding: ModelConfig,
+}
+
+impl Default for ModelConfigGroup {
+    fn default() -> Self {
+        Self {
+            completion: None,
+            chat: None,
+            embedding: default_embedding_config(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -151,16 +169,6 @@ pub struct ModelConfigGroup {
 pub enum ModelConfig {
     Http(HttpModelConfig),
     Local(LocalModelConfig),
-}
-
-impl Default for ModelConfig {
-    fn default() -> Self {
-        ModelConfig::Local(LocalModelConfig {
-            model_id: "Nomic-Embed-Text".to_string(),
-            parallelism: 1,
-            num_gpu_layers: 9999,
-        })
-    }
 }
 
 #[derive(Serialize, Deserialize, Builder, Debug, Clone)]
