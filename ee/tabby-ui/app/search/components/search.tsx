@@ -272,7 +272,7 @@ export function Search() {
     >
       <div className="flex flex-col transition-all" style={style}>
         <ScrollArea className="flex-1" ref={contentContainerRef}>
-          <div className="mx-auto px-10 pb-28 lg:max-w-4xl lg:px-0">
+          <div className="mx-auto px-10 pb-24 lg:max-w-4xl lg:px-0">
             <div className="flex flex-col">
               {conversation.map((item, idx) => {
                 if (item.role === 'user') {
@@ -465,7 +465,7 @@ function AnswerBlock({
           <p className="text-sm font-bold leading-none">Answer</p>
         </div>
         {answer.isLoading && !answer.content && (
-          <Skeleton className="h-40 w-full" />
+          <Skeleton className="mt-1 h-40 w-full" />
         )}
 
         <MessageMarkdown
