@@ -44,9 +44,18 @@ impl OllamaModelExt for Ollama {
     async fn model_available(&self, name: impl AsRef<str> + Send) -> Result<bool> {
         let name = name.as_ref();
 
-        let models_available = self.list_local_models().await?;
+        let models_available = self.show_model_info(name.into()).await;
 
-        Ok(models_available.into_iter().any(|model| model.name == name))
+        match models_available {
+            Ok(_) => Ok(true),
+            Err(err) => {
+                if err.to_string().contains("not found") {
+                    Ok(false)
+                } else {
+                    Err(err.into())
+                }
+            }
+        }
     }
 
     async fn get_first_available_model(&self) -> Result<Option<String>> {
