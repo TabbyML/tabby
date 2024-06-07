@@ -457,7 +457,7 @@ const HighlightMatches = ({
     <p className="text-muted-foreground">
       {text.split('').map((char, index) => {
         return indicesSet.has(index) ? (
-          <span className="font-semibold text-foreground">{char}</span>
+          <span className="font-semibold text-foreground" key={`${char}_${index}`}>{char}</span>
         ) : (
           char
         )
