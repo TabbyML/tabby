@@ -44,7 +44,7 @@ const TopbarProgressProvider: React.FC<TopbarProgressProviderProps> = ({
 
   return (
     <TopbarProgressContext.Provider
-      value={{ progress: debouncedProgress, setProgress: updateProgress }}
+      value={{ progress: debouncedProgress, setProgress }}
     >
       {debouncedProgress && <TopBarProgress />}
       {children}

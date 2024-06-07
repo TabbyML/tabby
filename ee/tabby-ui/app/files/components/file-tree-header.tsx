@@ -46,17 +46,10 @@ import {
   SearchableSelectInput,
   SearchableSelectOption
 } from '@/components/searchable-select'
-import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
 import { RepositoryKindIcon } from './repository-kind-icon'
-import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
-import {
-  fetchEntriesFromPath,
-  getDirectoriesFromBasename,
-  resolveFileNameFromPath,
-  resolveRepoRef,
-  resolveRepositoryInfoFromPath
-} from './utils'
+import { SourceCodeBrowserContext } from './source-code-browser'
+import { resolveRepoRef, resolveRepositoryInfoFromPath } from './utils'
 
 interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -88,17 +81,13 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     fileTreeData,
     updateActivePath,
     initialized,
-    updateFileMap,
-    setExpandedKeys,
-    repoMap,
     activeRepo,
     activeRepoRef
   } = useContext(SourceCodeBrowserContext)
-  const { setProgress } = useTopbarProgress()
   const [refSelectVisible, setRefSelectVisible] = React.useState(false)
-  // todo default kind, consider abstarct to upper level
-  const [activeRefKind, setActiveRefKind] =
-    React.useState<RepositoryRefKind>('branch')
+  const [activeRefKind, setActiveRefKind] = React.useState<RepositoryRefKind>(
+    activeRepoRef?.kind ?? 'branch'
+  )
   const { repositoryKind, repositoryName, repositorySpecifier } =
     resolveRepositoryInfoFromPath(activePath)
   const repoId = activeRepo?.id
@@ -135,9 +124,9 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     const nextRev = resolveRepoRef(ref)?.name
     const { basename, repositorySpecifier } =
       resolveRepositoryInfoFromPath(activePath)
-    // todo double check
-    // todo fetch
-    updateActivePath(`${repositorySpecifier}/${nextRev}/${basename}`)
+    updateActivePath(`${repositorySpecifier}/${nextRev}/${basename}`, {
+      shouldFetchAllEntries: true
+    })
   }
 
   React.useEffect(() => {
@@ -150,8 +139,8 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     setOptionsVisible(!!repositorySearchPattern)
   }, [repositorySearchData?.repositorySearch])
 
-  const onSelectRepo = (name: string) => {
-    updateActivePath(name)
+  const onSelectRepo = (path: string) => {
+    updateActivePath(path, { shouldFetchAllEntries: true })
   }
 
   const onInputValueChange = useDebounceCallback((v: string | undefined) => {
@@ -173,46 +162,10 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     const path = value.path
     if (!path) return
 
-    const fullPath = `${repositorySpecifier}/${path}`
-    try {
-      setProgress(true)
-      const entries = await fetchEntriesFromPath(
-        fullPath,
-        repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined
-      )
-      const initialExpandedDirs = getDirectoriesFromBasename(path)
-
-      const patchMap: TFileMap = {}
-      // fetch dirs
-      for (const entry of entries) {
-        const path = `${repositorySpecifier}/${entry.basename}`
-        patchMap[path] = {
-          file: entry,
-          name: resolveFileNameFromPath(path),
-          fullPath: path,
-          treeExpanded: initialExpandedDirs.includes(entry.basename)
-        }
-      }
-      const expandedKeys = initialExpandedDirs.map(dir =>
-        [repositorySpecifier, dir].filter(Boolean).join('/')
-      )
-      if (patchMap) {
-        updateFileMap(patchMap)
-      }
-      if (expandedKeys?.length) {
-        setExpandedKeys(prevKeys => {
-          const newSet = new Set(prevKeys)
-          for (const k of expandedKeys) {
-            newSet.add(k)
-          }
-          return newSet
-        })
-      }
-    } catch (e) {
-    } finally {
-      updateActivePath(fullPath)
-      setProgress(false)
-    }
+    const fullPath = `${repositorySpecifier}/${
+      activeRepoRef?.name ?? ''
+    }/${path}`
+    await updateActivePath(fullPath, { shouldFetchAllEntries: true })
   }
 
   // shortcut 't'
@@ -278,6 +231,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
               </SelectItem>
             ) : (
               <>
+                {/* todo use default */}
                 {fileTreeData?.map(repo => {
                   return (
                     <SelectItem key={repo.fullPath} value={repo.fullPath}>
@@ -309,7 +263,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                   ) : (
                     <IconTag />
                   )}
-                  {activeRepoRef.name}
+                  {decodeURIComponent(activeRepoRef.name ?? '')}
                 </>
               )}
             </Button>
@@ -355,7 +309,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                             : 'opacity-0'
                         )}
                       />
-                      {ref.name}
+                      {decodeURIComponent(ref.name ?? '')}
                     </CommandItem>
                   ))}
                 </CommandGroup>

@@ -3,7 +3,7 @@
 import React, { PropsWithChildren } from 'react'
 import { usePathname } from 'next/navigation'
 import { createRequest } from '@urql/core'
-import { compact, isEmpty, toNumber } from 'lodash-es'
+import { compact, forEach, isEmpty, toNumber } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import { toast } from 'sonner'
 import { SWRResponse } from 'swr'
@@ -38,6 +38,7 @@ import { TextFileView } from './text-file-view'
 import {
   encodeURIComponentIgnoringSlash,
   fetchEntriesFromPath,
+  getDefaultRepoRef,
   getDirectoriesFromBasename,
   getProviderVariantFromKind,
   repositoryList2Map,
@@ -89,9 +90,12 @@ type SourceCodeBrowserContextValue = {
   activePath: string | undefined
   updateActivePath: (
     path: string | undefined,
-    params?: Record<'line', string>,
-    replace?: boolean
-  ) => void
+    options?: {
+      params?: Record<'line', string>
+      shouldFetchAllEntries?: boolean
+      replace?: boolean
+    }
+  ) => Promise<void>
   repoMap: Record<string, RepositoryItem>
   setRepoMap: (map: Record<string, RepositoryItem>) => void
   fileMap: TFileMap
@@ -124,37 +128,11 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   children
 }) => {
   const pathname = usePathname()
+  const { setProgress } = useTopbarProgress()
   const { updatePathnameAndSearch } = useRouterStuff()
   const [isPathInitialized, setIsPathInitialized] = React.useState(false)
   const [activePath, setActivePath] = React.useState<string | undefined>()
   const isChatEnabled = useIsChatEnabled()
-
-  const updateActivePath = (
-    path: string | undefined,
-    params?: Record<'line', string>,
-    replace?: boolean
-  ) => {
-    if (!path) {
-      // To maintain compatibility with older versions, remove the path params
-      updatePathnameAndSearch('/files', {
-        del: ['path', 'plain', 'line'],
-        replace
-      })
-    } else {
-      const setParams: Record<string, string> = {}
-      let delList = ['plain', 'line', 'redirect_filepath', 'redirect_git_url']
-      if (params?.line) {
-        setParams['line'] = params.line
-        delList = delList.filter(o => o !== 'line')
-      }
-      updatePathnameAndSearch(`/files/${path}`, {
-        set: setParams,
-        del: delList,
-        replace
-      })
-    }
-  }
-
   const [initialized, setInitialized] = React.useState(false)
   const [fileMap, setFileMap] = React.useState<TFileMap>({})
   const [repoMap, setRepoMap] = React.useState<
@@ -165,6 +143,100 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   const [pendingEvent, setPendingEvent] = React.useState<
     QuickActionEventPayload | undefined
   >()
+
+  // todo rename
+  const fetchAllEntries = React.useCallback(
+    async (fullPath: string) => {
+      if (!fullPath) return
+
+      const { repositorySpecifier, rev, basename } =
+        resolveRepositoryInfoFromPath(fullPath)
+      try {
+        setProgress(true)
+        // fetch dirs
+        const entries = await fetchEntriesFromPath(
+          fullPath,
+          repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined
+        )
+        const expandedDirs = getDirectoriesFromBasename(basename)
+
+        const patchMap: TFileMap = {}
+        if (entries.length) {
+          forEach(repoMap, (repo, repoKey) => {
+            patchMap[`${repoKey}/${rev}`] = {
+              file: {
+                kind: 'dir',
+                basename: repo.name
+              },
+              name: repo.name,
+              fullPath: `${repoKey}/${rev}`,
+              treeExpanded: repoKey === repositorySpecifier,
+              isRepository: true,
+              repository: repo
+            }
+          })
+
+          for (const entry of entries) {
+            const path = `${repositorySpecifier}/${rev}/${entry.basename}`
+            patchMap[path] = {
+              file: entry,
+              name: resolveFileNameFromPath(path),
+              fullPath: path,
+              treeExpanded: expandedDirs.includes(entry.basename)
+            }
+          }
+        }
+        const expandedKeys = expandedDirs.map(dir =>
+          [repositorySpecifier, dir].filter(Boolean).join('/')
+        )
+        if (patchMap) {
+          setFileMap(patchMap)
+        }
+        if (expandedKeys?.length) {
+          setExpandedKeys(new Set(expandedKeys))
+        }
+      } catch (e) {
+      } finally {
+        setProgress(false)
+      }
+    },
+    [repoMap]
+  )
+
+  const updateActivePath: SourceCodeBrowserContextValue['updateActivePath'] =
+    React.useCallback(
+      async (path, options) => {
+        const replace = options?.replace
+        if (!path) {
+          // To maintain compatibility with older versions, remove the path params
+          updatePathnameAndSearch('/files', {
+            del: ['path', 'plain', 'line'],
+            replace
+          })
+        } else {
+          if (options?.shouldFetchAllEntries) {
+            await fetchAllEntries(path)
+          }
+          const setParams: Record<string, string> = {}
+          let delList = [
+            'plain',
+            'line',
+            'redirect_filepath',
+            'redirect_git_url'
+          ]
+          if (options?.params?.line) {
+            setParams['line'] = options.params.line
+            delList = delList.filter(o => o !== 'line')
+          }
+          updatePathnameAndSearch(`/files/${path}`, {
+            set: setParams,
+            del: delList,
+            replace
+          })
+        }
+      },
+      [fetchAllEntries]
+    )
 
   const updateFileMap = (map: TFileMap) => {
     if (!map) return
@@ -218,7 +290,9 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
 
   const activeRepoRef = React.useMemo(() => {
     if (!activePath || !activeRepo) return undefined
-    const rev = resolveRepositoryInfoFromPath(activePath)?.rev
+    const rev = decodeURIComponent(
+      resolveRepositoryInfoFromPath(activePath)?.rev ?? ''
+    )
     const activeRepoRef = activeRepo.refs?.find(
       ref => ref === `refs/heads/${rev}` || ref === `refs/tags/${rev}`
     )
@@ -230,7 +304,8 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   React.useEffect(() => {
     const regex = /^\/files\/(.*)/
     const path = pathname.match(regex)?.[1]
-    setActivePath(path)
+
+    setActivePath(path ?? '')
     if (!isPathInitialized) {
       setIsPathInitialized(true)
     }
@@ -330,11 +405,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       contentLength?: number
     }>(
       isFileSelected
-        ? encodeURIComponentIgnoringSlash(
-            `/repositories/${activeRepoIdentity}/rev/${encodeURIComponent(
-              activeRepoRef?.name ?? ''
-            )}/${activeBasename}`
-          )
+        ? `/repositories/${activeRepoIdentity}/rev/${
+            activeRepoRef?.name ?? 'main'
+          }/${encodeURIComponentIgnoringSlash(activeBasename ?? '')}`
         : null,
       (url: string) =>
         fetcher(url, {
@@ -368,11 +441,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     isLoading: fetchingSubTree
   }: SWRResponse<ResolveEntriesResponse> = useSWRImmutable(
     shouldFetchSubDir
-      ? encodeURIComponentIgnoringSlash(
-          `/repositories/${activeRepoIdentity}/rev/${encodeURIComponent(
-            activeRepoRef?.name ?? ''
-          )}/${activeBasename}`
-        )
+      ? `/repositories/${activeRepoIdentity}/rev/${
+          activeRepoRef?.name ?? 'main'
+        }/${encodeURIComponentIgnoringSlash(activeBasename ?? '')}`
       : null,
     fetcher
   )
@@ -397,36 +468,44 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       const { patchMap, expandedKeys, repos } = await getInitialFileData(
         activePath
       )
-      const { rev } = resolveRepositoryInfoFromPath(activePath)
       // todo if no rev, set default rev
 
       const redirect_filepath = searchParams.get('redirect_filepath')
       const redirect_git_url = searchParams.get('redirect_git_url')
       const line = searchParams.get('line')
 
+      // todo need ref info
       if (repos?.length && redirect_filepath && redirect_git_url) {
         // get repo from repos and redirect_git_url
         const targetRepo = repos.find(repo => repo.gitUrl === redirect_git_url)
         if (targetRepo) {
+          const defaultRef = getDefaultRepoRef(targetRepo.refs)
+          // use 'main' as fallback
+          const refName = resolveRepoRef(defaultRef ?? '')?.name || 'main'
           const repoSpecifier = resolveRepoSpecifierFromRepoInfo(targetRepo)
-          updateActivePath(
-            `${repoSpecifier}/${redirect_filepath}`,
-            { line: line ?? '' },
-            true
-          )
+          updateActivePath(`${repoSpecifier}/${refName}/${redirect_filepath}`, {
+            params: { line: line ?? '' },
+            replace: true
+          })
           initializing.current = false
           return
         }
       }
 
-      // todo
+      // todo if there's no rev, set default rev, should make a function to do it
       // By default, selecting the first repository if initialPath is empty
-      // if (repos?.length && !activePath) {
-      //   const repoSpecifier = resolveRepoSpecifierFromRepoInfo(repos?.[0])
-      //   updateActivePath(repoSpecifier, undefined, true)
-      //   initializing.current = false
-      //   return
-      // }
+      if (repos?.length && !activePath) {
+        const targetRepo = repos?.[0]
+        const defaultRef = getDefaultRepoRef(targetRepo.refs)
+        // use 'main' as fallback
+        const refName = resolveRepoRef(defaultRef ?? '')?.name || 'main'
+        const repoSpecifier = resolveRepoSpecifierFromRepoInfo(targetRepo)
+        updateActivePath(`${repoSpecifier}/${refName}`, {
+          replace: true
+        })
+        initializing.current = false
+        return
+      }
 
       // todo
       if (repos) setRepoMap(repositoryList2Map(repos))
@@ -438,7 +517,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     if (!initialized && isPathInitialized) {
       init()
     }
-  }, [activePath])
+  }, [activePath, initialized, isPathInitialized])
 
   React.useEffect(() => {
     if (!initialized) return
@@ -624,15 +703,21 @@ async function getInitialFileData(path?: string) {
 
     const patchMap: TFileMap = {}
     for (const repo of repos) {
-      const repoSpecifier = resolveRepoSpecifierFromRepoInfo(repo)
-      if (repoSpecifier) {
-        patchMap[`${repoSpecifier}/${rev}`] = {
+      const specifier = resolveRepoSpecifierFromRepoInfo(repo)
+      const defaultRevName =
+        resolveRepoRef(getDefaultRepoRef(repo.refs) ?? '')?.name ?? 'main'
+      const fullPath =
+        repositorySpecifier === specifier
+          ? `${specifier}/${rev}`
+          : `${specifier}/${defaultRevName}`
+      if (specifier) {
+        patchMap[fullPath] = {
           file: {
             kind: 'dir',
             basename: repo.name
           },
           name: repo.name,
-          fullPath: `${repoSpecifier}/${rev}`,
+          fullPath,
           treeExpanded:
             repo.name === initialRepositoryName &&
             repo.kind === initialRepositoryKind,

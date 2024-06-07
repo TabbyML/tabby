@@ -112,11 +112,9 @@ async function fetchEntriesFromPath(
     directoryPaths.map(
       dir => () =>
         fetcher(
-          encodeURIComponentIgnoringSlash(
-            `/repositories/${getProviderVariantFromKind(repository.kind)}/${
-              repository.id
-            }/rev/${encodeURIComponent(rev ?? '')}/${dir}`
-          )
+          `/repositories/${getProviderVariantFromKind(repository.kind)}/${
+            repository.id
+          }/rev/${rev ?? 'main'}/${encodeURIComponentIgnoringSlash(dir)}`
         ).catch(e => [])
     )
   const entries = await Promise.all(requests.map(fn => fn()))
@@ -163,13 +161,32 @@ function resolveRepoRef(ref: string): {
     const kind = match[1] === 'tags' ? 'tag' : 'branch'
     return {
       kind,
-      name: match[2],
+      name: encodeURIComponent(match[2]),
       ref
     }
   }
   return {
     ref
   }
+}
+
+function getDefaultRepoRef(refs: string[]) {
+  let mainRef: string | undefined
+  let masterRef: string | undefined
+  let firstHeadRef: string | undefined
+  let firstTagRef: string | undefined
+  for (const ref of refs) {
+    if (ref === 'refs/heads/main') {
+      mainRef = ref
+    } else if (ref === 'refs/heads/master') {
+      masterRef = ref
+    } else if (!firstHeadRef && ref.startsWith('refs/heads/')) {
+      firstHeadRef = ref
+    } else if (!firstTagRef && ref.startsWith('refs/tags/')) {
+      firstTagRef = ref
+    }
+  }
+  return mainRef || masterRef || firstHeadRef || firstTagRef
 }
 
 export {
@@ -181,5 +198,6 @@ export {
   repositoryList2Map,
   encodeURIComponentIgnoringSlash,
   getProviderVariantFromKind,
-  resolveRepoRef
+  resolveRepoRef,
+  getDefaultRepoRef
 }
