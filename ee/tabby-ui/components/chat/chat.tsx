@@ -16,12 +16,12 @@ import {
 } from '@/lib/types/chat'
 import { cn, nanoid } from '@/lib/utils'
 
+import { useTabbyAnswer } from '../../lib/hooks/use-tabby-answer'
 import { ListSkeleton } from '../skeleton'
 import { ChatPanel } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
-import { useTabbyAnswer } from './use-tabby-answer'
 
 type ChatContextValue = {
   isLoading: boolean

@@ -1,6 +1,13 @@
 'use client'
 
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import Image from 'next/image'
 import logoUrl from '@/assets/tabby.png'
 import { Message } from 'ai'
@@ -11,6 +18,7 @@ import remarkMath from 'remark-math'
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableSearch } from '@/lib/experiment-flags'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
+import { useTabbyAnswer } from '@/lib/hooks/use-tabby-answer'
 import fetcher from '@/lib/tabby/fetcher'
 import { AnswerRequest } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -41,9 +49,8 @@ import {
 } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
-// FIXME: move to lib/hooks
-import { useTabbyAnswer } from '@/components/chat/use-tabby-answer'
 import { CopyButton } from '@/components/copy-button'
+import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import { MemoizedReactMarkdown } from '@/components/markdown'
 import TextAreaSearch from '@/components/textarea-search'
 
@@ -63,6 +70,7 @@ type ConversationMessage = Message & {
   }[]
   relevant_questions?: string[]
   isLoading?: boolean
+  error?: string
 }
 
 type SearchContextValue = {
@@ -90,14 +98,15 @@ const tabbyFetcher = ((url: string, init?: RequestInit) => {
 export function Search() {
   const isChatEnabled = useIsChatEnabled()
   const [searchFlag] = useEnableSearch()
+  const [isShowDemoBanner] = useShowDemoBanner()
   const [conversation, setConversation] = useState<ConversationMessage[]>([])
   const [showStop, setShowStop] = useState(false)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [title, setTitle] = useState('')
   const [currentLoadindId, setCurrentLoadingId] = useState<string>('')
   const contentContainerRef = useRef<HTMLDivElement>(null)
+  let scrollBottomInterval: NodeJS.Timeout
 
-  // FIXME: error
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
     fetcher: tabbyFetcher
   })
@@ -113,8 +122,7 @@ export function Search() {
   }, [])
 
   useEffect(() => {
-    if (title) return
-    document.title = title
+    if (title) document.title = title
   }, [title])
 
   useEffect(() => {
@@ -138,11 +146,37 @@ export function Search() {
     setConversation(newConversation)
   }, [isLoading, answer])
 
+  // Handling the error response from useTabbyAnswer
+  useEffect(() => {
+    if (error) {
+      const newConversation = [...conversation]
+      const currentAnswer = newConversation.find(
+        item => item.id === currentLoadindId
+      )
+      if (currentAnswer) {
+        currentAnswer.error =
+          error.message === '401' ? 'Unauthorized' : 'Fail to fetch'
+        currentAnswer.isLoading = false
+      }
+    }
+  }, [error])
+
   // Delay showing the stop button
   useEffect(() => {
     if (isLoading && !showStop) {
-      setTimeout(() => setShowStop(true), 2000)
+      setTimeout(() => {
+        setShowStop(true)
+
+        // Scroll to the bottom
+        if (container) {
+          container.scrollTo({
+            top: container.scrollHeight,
+            behavior: 'smooth'
+          })
+        }
+      }, 1500)
     }
+
     if (!isLoading && showStop) {
       setShowStop(false)
     }
@@ -150,8 +184,6 @@ export function Search() {
 
   const onSubmitSearch = (question: string) => {
     // FIXME: code query? extra from user's input?
-    // FIXME: after search, the search button should spinning for a while
-    // FIXME: scroll stick to the bottom when loading?
     const previousMessages = conversation.map(message => ({
       role: message.role,
       id: message.id,
@@ -182,17 +214,6 @@ export function Search() {
       [...conversation].concat([newUserMessage, newAssistantMessage])
     )
     triggerRequest(answerRequest)
-
-    // Scroll to the bottom
-    if (container) {
-      setTimeout(() => {
-        // FIXME: after loading?
-        container.scrollTo({
-          top: container.scrollHeight,
-          behavior: 'smooth'
-        })
-      }, 2000)
-    }
 
     // Update HTML page title
     setTitle(question)
@@ -225,6 +246,7 @@ export function Search() {
     const newConversation = [...conversation]
     let newTargetAnswer = newConversation[targetAnswerIdx]
     newTargetAnswer.content = ''
+    newTargetAnswer.error = undefined
     newTargetAnswer.isLoading = true
 
     setCurrentLoadingId(newTargetAnswer.id)
@@ -237,7 +259,9 @@ export function Search() {
   }
 
   const noConversation = conversation.length === 0
-  // FIXME: the height considering demo banner
+  const style = isShowDemoBanner
+    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
+    : { height: '100vh' }
   return (
     <SearchContext.Provider
       value={{
@@ -246,7 +270,7 @@ export function Search() {
         onSubmitSearch: onSubmitSearch
       }}
     >
-      <div className="flex h-screen flex-col">
+      <div className="flex flex-col transition-all" style={style}>
         <ScrollArea className="flex-1" ref={contentContainerRef}>
           <div className="mx-auto px-10 pb-28 lg:max-w-4xl lg:px-0">
             <div className="flex flex-col">
@@ -278,10 +302,9 @@ export function Search() {
           </div>
         </ScrollArea>
 
-        {/* FIXME: adjust position in small width */}
         {container && (
           <ButtonScrollToBottom
-            className="!fixed !bottom-9 !right-10 !top-auto"
+            className="!fixed !bottom-[6rem] !right-10 !top-auto lg:!bottom-10"
             container={container}
             offset={100}
           />
@@ -292,7 +315,7 @@ export function Search() {
             'fixed left-0 flex w-full flex-col items-center transition-all',
             {
               'bottom-1/2 -mt-48': noConversation,
-              'bottom-0 min-h-[6rem]': !noConversation
+              'bottom-0 min-h-[5rem]': !noConversation
             }
           )}
         >
@@ -320,7 +343,7 @@ export function Search() {
           )}
           <Button
             className={cn(
-              'absolute top-8 z-0 flex items-center gap-x-2 px-8 py-4',
+              'absolute top-2 z-0 flex items-center gap-x-2 px-8 py-4',
               {
                 'opacity-0 pointer-events-none': !showStop,
                 'opacity-100': showStop
@@ -449,6 +472,7 @@ function AnswerBlock({
           message={answer.content}
           sources={answer.relevant_documents}
         />
+        {answer.error && <ErrorMessageBlock error={answer.error} />}
 
         {!answer.isLoading && (
           <div className="mt-3 flex items-center gap-x-3 text-sm">
@@ -684,5 +708,37 @@ function SiteFavicon({
       alt={hostname}
       className={cn('h-3.5 w-3.5 rounded-full leading-none', className)}
     />
+  )
+}
+
+function ErrorMessageBlock({ error = 'Fail to fetch' }: { error?: string }) {
+  const errorMessage = useMemo(() => {
+    let jsonString = JSON.stringify(
+      {
+        error: true,
+        message: error
+      },
+      null,
+      2
+    )
+    const markdownJson = '```\n' + jsonString + '\n```'
+    return markdownJson
+  }, [error])
+  return (
+    <MemoizedReactMarkdown
+      className="prose-full-width prose break-words text-sm dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
+      remarkPlugins={[remarkGfm, remarkMath]}
+      components={{
+        code({ node, inline, className, children, ...props }) {
+          return (
+            <div {...props} className={cn(className, 'bg-zinc-950 p-2')}>
+              {children}
+            </div>
+          )
+        }
+      }}
+    >
+      {errorMessage}
+    </MemoizedReactMarkdown>
   )
 }
