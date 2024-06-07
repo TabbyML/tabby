@@ -3,9 +3,13 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use octocrab::{models::issues::Issue, Octocrab};
 use tabby_inference::Embedding;
-use tabby_scheduler::{create_web_index, SourceDocument};
+use tabby_scheduler::{DocIndexer, SourceDocument};
 
-async fn fetch_issues(api_base: &str, full_name: &str, access_token: &str) -> Result<Vec<Issue>> {
+async fn fetch_github_issues(
+    api_base: &str,
+    full_name: &str,
+    access_token: &str,
+) -> Result<Vec<Issue>> {
     let octocrab = Octocrab::builder()
         .personal_token(access_token.to_string())
         .base_uri(api_base)?
@@ -38,22 +42,22 @@ async fn fetch_issues(api_base: &str, full_name: &str, access_token: &str) -> Re
     Ok(issues)
 }
 
-async fn index_issues(
+pub async fn index_github_issues(
     embedding: Arc<dyn Embedding>,
     api_base: &str,
     full_name: &str,
     access_token: &str,
 ) -> Result<()> {
-    let index = create_web_index(embedding);
+    let index = DocIndexer::new(embedding);
 
-    for issue in fetch_issues(api_base, full_name, access_token).await? {
+    for issue in fetch_github_issues(api_base, full_name, access_token).await? {
         let document = SourceDocument {
             id: format!("{full_name}/issues/{}", issue.id),
             title: issue.title,
             link: issue.url.to_string(),
             body: issue.body.unwrap_or_default(),
         };
-        index.add(document).await;
+        index.index_document(document).await;
     }
     Ok(())
 }

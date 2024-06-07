@@ -8,7 +8,8 @@ mod indexer;
 use async_stream::stream;
 pub use code::CodeIndexer;
 use crawl::crawl_pipeline;
-pub use doc::{create_web_index, SourceDocument};
+use doc::create_web_index;
+pub use doc::{DocIndexer, SourceDocument};
 use futures::StreamExt;
 pub use indexer::{IndexAttributeBuilder, Indexer};
 

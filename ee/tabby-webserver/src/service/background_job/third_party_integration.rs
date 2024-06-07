@@ -4,10 +4,19 @@ use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
-use tabby_schema::{integration::IntegrationService, repository::ThirdPartyRepositoryService};
+use tabby_inference::Embedding;
+use tabby_schema::{
+    integration::{IntegrationKind, IntegrationService},
+    repository::ThirdPartyRepositoryService,
+};
 use tracing::debug;
 
-use super::{helper::Job, BackgroundJobEvent};
+use self::issues::index_github_issues;
+
+use super::{
+    helper::{Job, JobLogger},
+    BackgroundJobEvent,
+};
 
 mod issues;
 
@@ -68,5 +77,59 @@ impl Job for IndexIssuesJob {
 impl IndexIssuesJob {
     pub fn new(integration_id: ID) -> Self {
         Self { integration_id }
+    }
+
+    pub async fn run(
+        self,
+        embedding: Arc<dyn Embedding>,
+        repository_service: Arc<dyn ThirdPartyRepositoryService>,
+        integration_service: Arc<dyn IntegrationService>,
+    ) -> tabby_schema::Result<()> {
+        let integration = integration_service
+            .get_integration(self.integration_id)
+            .await?;
+
+        for repository in repository_service
+            .list_repositories_with_filter(
+                Some(vec![integration.id.clone()]),
+                None,
+                Some(true),
+                None,
+                None,
+                None,
+                None,
+            )
+            .await?
+        {
+            match &integration.kind {
+                IntegrationKind::Github | IntegrationKind::GithubSelfHosted => {
+                    index_github_issues(
+                        embedding.clone(),
+                        integration.api_base(),
+                        &repository.display_name,
+                        &integration.access_token,
+                    )
+                    .await?;
+                }
+                IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => {}
+            }
+        }
+        Ok(())
+    }
+
+    pub async fn cron(
+        _now: DateTime<Utc>,
+        sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
+        integration_service: Arc<dyn IntegrationService>,
+    ) -> tabby_schema::Result<()> {
+        for integration in integration_service
+            .list_integrations(None, None, None, None, None, None)
+            .await?
+        {
+            sender
+                .send(BackgroundJobEvent::IndexIssues(integration.id))
+                .map_err(|_| anyhow!("Failed to enqueue issue index job"))?;
+        }
+        Ok(())
     }
 }
