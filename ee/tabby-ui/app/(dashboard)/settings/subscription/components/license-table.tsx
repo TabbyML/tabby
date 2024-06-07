@@ -149,12 +149,6 @@ const FEATURES: FeatureGroup[] = [
         enterprise: 'Unlimited'
       },
       {
-        name: 'Node count',
-        community: dashed,
-        team: 'Up to 2',
-        enterprise: 'Unlimited'
-      },
-      {
         name: 'Secure Access',
         community: checked,
         team: checked,
