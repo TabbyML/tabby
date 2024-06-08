@@ -3,7 +3,6 @@ mod supervisor;
 use std::{fs, path::PathBuf, sync::Arc};
 
 use anyhow::Result;
-use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use supervisor::LlamaCppSupervisor;
@@ -13,7 +12,7 @@ use tabby_common::{
     registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH},
 };
 use tabby_inference::{
-    ChatCompletionOptions, ChatCompletionStream, CompletionOptions, CompletionOptionsBuilder,
+    ChatCompletionOptions, ChatCompletionStream, CompletionOptions,
     CompletionStream, Embedding,
 };
 
@@ -59,18 +58,8 @@ struct CompletionServer {
 }
 
 impl CompletionServer {
-    async fn new(
-        num_gpu_layers: u16,
-        model_path: &str,
-        parallelism: u8,
-    ) -> Self {
-        let server = LlamaCppSupervisor::new(
-            num_gpu_layers,
-            false,
-            model_path,
-            parallelism,
-            None,
-        );
+    async fn new(num_gpu_layers: u16, model_path: &str, parallelism: u8) -> Self {
+        let server = LlamaCppSupervisor::new(num_gpu_layers, false, model_path, parallelism, None);
         server.start().await;
         let config = HttpModelConfigBuilder::default()
             .api_endpoint(api_endpoint(server.port()))
@@ -115,7 +104,10 @@ impl ChatCompletionServer {
             .build()
             .expect("Failed to create HttpModelConfig");
         let chat_completion = http_api_bindings::create_chat(&config).await;
-        Self { server, chat_completion }
+        Self {
+            server,
+            chat_completion,
+        }
     }
 }
 
@@ -126,7 +118,9 @@ impl ChatCompletionStream for ChatCompletionServer {
         messages: &[Message],
         options: ChatCompletionOptions,
     ) -> Result<BoxStream<String>> {
-        self.chat_completion.chat_completion(messages, options).await
+        self.chat_completion
+            .chat_completion(messages, options)
+            .await
     }
 }
 
