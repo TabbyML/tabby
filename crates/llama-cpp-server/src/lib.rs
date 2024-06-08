@@ -78,6 +78,7 @@ impl CompletionStream for CompletionServer {
 }
 
 struct ChatCompletionServer {
+    #[allow(unused)]
     server: LlamaCppSupervisor,
     chat_completion: Arc<dyn ChatCompletionStream>,
 }
@@ -87,14 +88,14 @@ impl ChatCompletionServer {
         num_gpu_layers: u16,
         model_path: &str,
         parallelism: u8,
-        chat_template: Option<&str>,
+        chat_template: String,
     ) -> Self {
         let server = LlamaCppSupervisor::new(
             num_gpu_layers,
             false,
             model_path,
             parallelism,
-            chat_template,
+            Some(chat_template),
         );
         server.start().await;
         let config = HttpModelConfigBuilder::default()
@@ -127,7 +128,7 @@ pub async fn create_chat_completion(
     num_gpu_layers: u16,
     model_path: &str,
     parallelism: u8,
-    chat_template: Option<&str>,
+    chat_template: String,
 ) -> Arc<dyn ChatCompletionStream> {
     Arc::new(
         ChatCompletionServer::new(num_gpu_layers, model_path, parallelism, chat_template).await,
