@@ -25,7 +25,7 @@ use juniper::{
 };
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
-    config::{Config, RepositoryConfig},
+    config::{Config},
 };
 use tracing::error;
 use validator::{Validate, ValidationErrors};
