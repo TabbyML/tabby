@@ -36,8 +36,7 @@ impl LlamaCppSupervisor {
                     .expect("Failed to get parent directory")
                     .join(&binary_name)
                     .display()
-                    .to_string()
-                    + std::env::consts::EXE_SUFFIX;
+                    .to_string();
                 let mut command = tokio::process::Command::new(server_binary);
 
                 command
