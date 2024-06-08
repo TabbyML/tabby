@@ -12,8 +12,7 @@ use tabby_common::{
     registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH},
 };
 use tabby_inference::{
-    ChatCompletionOptions, ChatCompletionStream, CompletionOptions,
-    CompletionStream, Embedding,
+    ChatCompletionOptions, ChatCompletionStream, CompletionOptions, CompletionStream, Embedding,
 };
 
 fn api_endpoint(port: u16) -> String {

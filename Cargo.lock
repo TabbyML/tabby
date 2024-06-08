@@ -2583,7 +2583,6 @@ name = "llama-cpp-server"
 version = "0.13.0-dev.0"
 dependencies = [
  "anyhow",
- "async-stream",
  "async-trait",
  "cmake",
  "futures",
