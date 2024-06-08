@@ -23,7 +23,10 @@ use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLObject, IntoFieldError,
     Object, RootNode, ScalarValue, Value, ID,
 };
-use tabby_common::api::{code::CodeSearch, event::EventLogger};
+use tabby_common::{
+    api::{code::CodeSearch, event::EventLogger},
+    config::{Config, RepositoryConfig},
+};
 use tracing::error;
 use validator::{Validate, ValidationErrors};
 use worker::WorkerService;
@@ -419,7 +422,27 @@ impl Query {
 
     async fn repository_list(ctx: &Context) -> Result<Vec<Repository>> {
         check_user(ctx).await?;
-        ctx.locator.repository().repository_list().await
+        let mut repositories = ctx.locator.repository().repository_list().await?;
+
+        repositories.extend(
+            Config::load()?
+                .repositories
+                .into_iter()
+                .enumerate()
+                .map(|(index, repo)| {
+                    Ok(Repository {
+                        id: ID::new(format!("CONFIG_{}", index + 1)),
+                        name: repo.canonical_git_url(),
+                        kind: RepositoryKind::Git,
+                        dir: repo.dir(),
+                        refs: tabby_git::list_refs(&repo.dir())?,
+                        git_url: repo.git_url,
+                    })
+                })
+                .collect::<Result<Vec<_>, anyhow::Error>>()?,
+        );
+
+        Ok(repositories)
     }
 
     async fn integrations(
