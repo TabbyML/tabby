@@ -24,7 +24,9 @@ pub async fn load_chat_completion(chat: &ModelConfig) -> Arc<dyn ChatCompletionS
                     llama.num_gpu_layers,
                     &model_path,
                     llama.parallelism,
-                    engine_info.chat_template.unwrap_or_else(|| fatal!("Chat model requires specifying prompt template"))
+                    engine_info.chat_template.unwrap_or_else(|| {
+                        fatal!("Chat model requires specifying prompt template")
+                    }),
                 )
                 .await
             } else {
@@ -36,7 +38,9 @@ pub async fn load_chat_completion(chat: &ModelConfig) -> Arc<dyn ChatCompletionS
                     llama.num_gpu_layers,
                     &model_path,
                     llama.parallelism,
-                    model_info.chat_template.clone().unwrap_or_else(|| fatal!("Chat model requires specifying prompt template"))
+                    model_info.chat_template.clone().unwrap_or_else(|| {
+                        fatal!("Chat model requires specifying prompt template")
+                    }),
                 )
                 .await
             }
