@@ -65,12 +65,18 @@ Additionally, you can also visit the **Code Browser** page to view the connected
 
 Embedding is used to convert your search queries or chat messages into a vector of numbers that can be used to find relevant context.
 
-## Adding an embedding model provider
+## Use the default embedding model
 
-You can add a new embedding model provider by adding a new section to the `~/.tabby/config.toml` file.
+The default embedding model is "Nomic-Embed-Text", which is a high-performing open embedding model with a large token context window.
+
+Currently, "Nomic-Embed-Text" is the only supported local embedding model.
+
+## Adding a remote embedding model provider
+
+You can add also a remote embedding model provider by adding a new section to the `~/.tabby/config.toml` file.
 
 ```toml
-[model.completion.http]
+[model.embedding.http]
 kind = "openai/embedding"
 api_key = "sk-..."
 model_name = "gpt-4"
