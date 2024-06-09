@@ -21,6 +21,7 @@ impl LlamaCppSupervisor {
         embedding: bool,
         model_path: &str,
         parallelism: u8,
+        chat_template: Option<String>,
     ) -> LlamaCppSupervisor {
         let Some(binary_name) = find_binary_name() else {
             panic!("Failed to locate llama-server binary, please make sure you have llama-server binary locates in the same directory as the current executable.");
@@ -67,6 +68,10 @@ impl LlamaCppSupervisor {
                         .arg("--embedding")
                         .arg("--ubatch-size")
                         .arg(var("LLAMA_CPP_EMBEDDING_N_UBATCH_SIZE").unwrap_or("4096".into()));
+                }
+
+                if let Some(chat_template) = chat_template.as_ref() {
+                    command.arg("--chat-template").arg(chat_template);
                 }
 
                 let mut process = command.spawn().unwrap_or_else(|e| {

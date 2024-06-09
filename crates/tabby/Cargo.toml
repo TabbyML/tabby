@@ -44,7 +44,6 @@ sysinfo = "0.29.8"
 nvml-wrapper = "0.9.0"
 http-api-bindings = { path = "../http-api-bindings" }
 async-stream = { workspace = true }
-minijinja = { version = "1.0.8", features = ["loader"] }
 llama-cpp-server = { path = "../llama-cpp-server" }
 futures.workspace = true
 async-trait.workspace = true
