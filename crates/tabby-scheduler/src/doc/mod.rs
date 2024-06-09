@@ -72,7 +72,7 @@ impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
                 }
 
                 let chunk = json!({
-                        doc::fields::CHUNK_TEXT: chunk_text,
+                    doc::fields::CHUNK_TEXT: chunk_text,
                 });
 
                 yield (chunk_embedding_tokens, chunk)
