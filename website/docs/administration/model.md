@@ -66,7 +66,7 @@ For `HTTP` configuration, the settings are as follows:
 
 ```toml
 [model.chat.http]
-kind = "openai-chat"
+kind = "openai/chat"
 model_name = "deepseek-chat"
 api_endpoint = "https://api.deepseek.com/v1"
 api_key = "secret-api-key"
