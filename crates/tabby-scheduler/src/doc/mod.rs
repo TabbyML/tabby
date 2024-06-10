@@ -92,13 +92,35 @@ pub struct DocIndexer {
     indexer: Indexer<SourceDocument>,
 }
 
+pub struct IssueDocument {
+    pub id: String,
+    pub link: String,
+    pub title: String,
+    pub body: String,
+}
+
+impl From<IssueDocument> for SourceDocument {
+    fn from(value: IssueDocument) -> Self {
+        Self {
+            id: value.id,
+            link: value.link,
+            title: value.title,
+            body: value.body,
+        }
+    }
+}
+
 impl DocIndexer {
     pub fn new(embedding: Arc<dyn Embedding>) -> Self {
         let indexer = create_web_index(embedding);
         Self { indexer }
     }
 
-    pub async fn index_document(&self, document: SourceDocument) {
-        self.indexer.add(document).await;
+    pub async fn index_issue(&self, document: IssueDocument) {
+        self.indexer.add(document.into()).await;
+    }
+
+    pub fn commit(self) {
+        self.indexer.commit();
     }
 }
