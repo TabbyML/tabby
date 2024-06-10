@@ -9,7 +9,7 @@ use async_stream::stream;
 pub use code::CodeIndexer;
 use crawl::crawl_pipeline;
 use doc::create_web_index;
-pub use doc::{DocIndexer, SourceDocument};
+pub use doc::{DocIndexer, IssueDocument};
 use futures::StreamExt;
 pub use indexer::{IndexAttributeBuilder, Indexer};
 
@@ -18,6 +18,8 @@ use std::{env, sync::Arc};
 
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{debug, info, warn};
+
+use crate::doc::SourceDocument;
 
 pub async fn scheduler(now: bool, config: &tabby_common::config::Config) {
     if now {

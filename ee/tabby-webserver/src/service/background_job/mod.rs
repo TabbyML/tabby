@@ -82,7 +82,7 @@ pub async fn start(
                         warn!("Sync integration job failed: {:?}", err);
                     }
 
-                    if let Err(err) = IndexIssuesJob::cron(now, sender.clone(), integration_service.clone()).await {
+                    if let Err(err) = IndexIssuesJob::cron(now, sender.clone(), third_party_repository_service.clone()).await {
                         warn!("Index issues job failed: {err:?}");
                     }
                 },

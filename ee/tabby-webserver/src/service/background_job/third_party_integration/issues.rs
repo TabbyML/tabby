@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use octocrab::{models::issues::Issue, Octocrab};
 use tabby_inference::Embedding;
-use tabby_scheduler::{DocIndexer, SourceDocument};
+use tabby_scheduler::{DocIndexer, IssueDocument};
 
 async fn fetch_github_issues(
     api_base: &str,
@@ -26,6 +26,7 @@ async fn fetch_github_issues(
         let response = octocrab
             .issues(owner, repo)
             .list()
+            .state(octocrab::params::State::All)
             .page(page)
             .send()
             .await?;
@@ -51,13 +52,15 @@ pub async fn index_github_issues(
     let index = DocIndexer::new(embedding);
 
     for issue in fetch_github_issues(api_base, full_name, access_token).await? {
-        let document = SourceDocument {
+        let document = IssueDocument {
             id: format!("{full_name}/issues/{}", issue.id),
             title: issue.title,
             link: issue.url.to_string(),
             body: issue.body.unwrap_or_default(),
         };
-        index.index_document(document).await;
+        index.index_issue(document).await;
     }
+
+    index.commit();
     Ok(())
 }

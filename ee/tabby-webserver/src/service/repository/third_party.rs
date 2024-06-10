@@ -135,6 +135,10 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
                 .send(BackgroundJobEvent::Scheduler(RepositoryConfig::new(
                     git_url,
                 )));
+
+            let _ = self
+                .background_job
+                .send(BackgroundJobEvent::IndexIssues(repo.id));
         }
 
         Ok(())
