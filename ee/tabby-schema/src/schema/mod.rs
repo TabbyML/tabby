@@ -431,7 +431,7 @@ impl Query {
                 .enumerate()
                 .map(|(index, repo)| {
                     Ok(Repository {
-                        id: ID::new(format!("CONFIG_{}", index + 1)),
+                        id: ID::new(format!("CONFIG_{}", index)),
                         name: repo.canonical_git_url(),
                         kind: RepositoryKind::Git,
                         dir: repo.dir(),
