@@ -4,6 +4,13 @@
 
 ### Fixes and improvements
 
+## [v4.3.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v4.3.1) (2024-06-10)
+Note: Because of exceeding project's size on Pypi (> 20 GB), the release v4.3.0 was pushed unsuccessfully.
+
+### Fixes and improvements
+* Improve the compilation (#1706 and #1705)
+* Fix position bias in tensor parallel mode (#1714)
+
 ## [v4.3.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v4.3.0) (2024-05-17)
 
 ### New features
