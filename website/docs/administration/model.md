@@ -1,6 +1,6 @@
 # Model Configuration
 
-Tabby incorporates two distinct model types: `Completion` and `Chat`. The `Completion` model is designed to provide suggestions for code completion, focusing mainly on the Fill-in-the-Middle (FIM) prompting style. On the other hand, the `Chat` model is adept at producing conversational replies and is broadly compatible with OpenAI's standards.
+You can configure how Tabby connect with LLM models by editing the `~/.tabby/config.toml` file. Tabby incorporates two distinct model types: `Completion` and `Chat`. The `Completion` model is designed to provide suggestions for code completion, focusing mainly on the Fill-in-the-Middle (FIM) prompting style. On the other hand, the `Chat` model is adept at producing conversational replies and is broadly compatible with OpenAI's standards.
 
 With the release of version 0.12, Tabby has rolled out an innovative model configuration system that facilitates linking Tabby to an HTTP API of a model. Furthermore, models listed in the [Model Registry](/docs/models) may be set up as a `local` backend. In this arrangement, Tabby initiates the `llama-server` as a subprocess and seamlessly establishes a connection to the model via the subprocess's HTTP API.
 
