@@ -261,9 +261,9 @@ jobs:
             for tabby in tabby_*/tabby_*; do
               llamab=$(basename $llama_server)
               tabbyb=$(basename $tabby)
-              extname=${tabby##*.}
-              if [[ -n "${extname}" ]]
-                exname=.${extname}
+              extname=${tabbyb##*.}
+              if [[ -n "${extname}" ]]; then
+                extname=.${extname}
               fi
 
               llaman=${llamab%.*}
