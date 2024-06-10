@@ -74,13 +74,13 @@ jobs:
             ext: .exe
             build_args: --features vulkan,binary
             vulkan_sdk: '1.3.280.0'
-          - os: windows-latest
+          - os: windows-2019
             target: x86_64-pc-windows-msvc
             binary: x86_64-windows-msvc-cuda117
             ext: .exe
             build_args: --features cuda,binary
             windows_cuda: '11.7.1'
-          - os: windows-latest
+          - os: windows-2019
             target: x86_64-pc-windows-msvc
             binary: x86_64-windows-msvc-cuda122
             ext: .exe
