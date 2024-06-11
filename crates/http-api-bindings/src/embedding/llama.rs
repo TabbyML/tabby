@@ -51,7 +51,11 @@ impl Embedding for LlamaCppEngine {
         let response = request.send().await?;
         if response.status().is_server_error() {
             let error = response.text().await?;
-            return Err(anyhow::anyhow!("Error from server: {}", error));
+            return Err(anyhow::anyhow!(
+                "Error from server: {}, prompt: {}",
+                error,
+                prompt
+            ));
         }
 
         let response = response.json::<EmbeddingResponse>().await?;

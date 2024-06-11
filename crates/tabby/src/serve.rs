@@ -5,7 +5,7 @@ use clap::Args;
 use hyper::StatusCode;
 use tabby_common::{
     api::{self, code::CodeSearch, event::EventLogger},
-    config::{Config, ConfigAccess, LocalModelConfig, ModelConfig, StaticConfigAccess},
+    config::{Config, ConfigAccess, ModelConfig, StaticConfigAccess},
     usage,
 };
 use tabby_inference::Embedding;

@@ -1,6 +1,7 @@
 use futures::{stream::BoxStream, Stream, StreamExt};
 use tabby_common::{index::IndexSchema, path};
 use tantivy::{doc, IndexWriter, TantivyDocument, Term};
+use tracing::info;
 
 use crate::tantivy_utils::open_or_create_index;
 
@@ -21,7 +22,7 @@ pub struct Indexer<T> {
     pub recreated: bool,
 }
 
-impl<T> Indexer<T> {
+impl<T: Send + 'static> Indexer<T> {
     pub fn new(kind: &'static str, builder: impl IndexAttributeBuilder<T> + 'static) -> Self {
         let doc = IndexSchema::instance();
         let (recreated, index) = open_or_create_index(&doc.schema, &path::index_dir());
@@ -110,6 +111,7 @@ impl<T> Indexer<T> {
     }
 
     pub fn commit(mut self) {
+        info!("Committing changes to index...");
         self.writer.commit().expect("Failed to commit changes");
         self.writer
             .wait_merging_threads()
