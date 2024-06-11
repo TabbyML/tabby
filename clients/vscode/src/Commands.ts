@@ -124,7 +124,11 @@ export class Commands {
         },
       );
     },
-    openOnlineHelp: () => {
+    openOnlineHelp: (path?: string | undefined) => {
+      if (typeof path === "string" && path.length > 0) {
+        env.openExternal(Uri.parse(`https://tabby.tabbyml.com${path}`));
+        return;
+      }
       window
         .showQuickPick([
           {
@@ -171,7 +175,7 @@ export class Commands {
         });
     },
     openKeybindings: () => {
-      commands.executeCommand("workbench.action.openGlobalKeybindings", "tabby.inlineCompletion");
+      commands.executeCommand("workbench.action.openGlobalKeybindings", "Tabby");
     },
     gettingStarted: () => {
       commands.executeCommand("workbench.action.openWalkthrough", "TabbyML.vscode-tabby#gettingStarted");

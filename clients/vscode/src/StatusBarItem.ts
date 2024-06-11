@@ -168,7 +168,7 @@ export class StatusBarItem {
     this.item.command = {
       title: "",
       command: "tabby.applyCallback",
-      arguments: [() => this.showInformationWhenManualTriggerLoading()],
+      arguments: [() => this.showInformationWhenManualLoading()],
     };
   }
 
@@ -242,22 +242,13 @@ export class StatusBarItem {
   }
 
   private showInformationWhenAutomaticTrigger() {
-    window
-      .showInformationMessage(
-        "Tabby automatic code completion is enabled. Switch to manual trigger mode?",
-        "Manual Mode",
-        "Settings",
-      )
-      .then((selection) => {
-        switch (selection) {
-          case "Manual Mode":
-            commands.executeCommand("tabby.toggleInlineCompletionTriggerMode", "manual");
-            break;
-          case "Settings":
-            commands.executeCommand("tabby.openSettings");
-            break;
-        }
-      });
+    window.showInformationMessage("Tabby automatic code completion is enabled.", "Settings").then((selection) => {
+      switch (selection) {
+        case "Settings":
+          commands.executeCommand("tabby.openSettings");
+          break;
+      }
+    });
   }
 
   private showInformationWhenManualTrigger() {
@@ -283,7 +274,7 @@ export class StatusBarItem {
       });
   }
 
-  private showInformationWhenManualTriggerLoading() {
+  private showInformationWhenManualLoading() {
     window.showInformationMessage("Tabby is generating code completions.", "Settings").then((selection) => {
       switch (selection) {
         case "Settings":
@@ -313,11 +304,14 @@ export class StatusBarItem {
   }
 
   private showInformationWhenUnauthorized() {
-    const message = "Tabby server requires authentication, please set your personal token.";
-    window.showWarningMessage(message, "Set Credentials", "Settings").then((selection) => {
+    const message = "Tabby server requires authentication, please set your token.";
+    window.showWarningMessage(message, "Set Token...", "I Don't Have a Token", "Settings").then((selection) => {
       switch (selection) {
-        case "Set Credentials":
+        case "Set Token...":
           commands.executeCommand("tabby.setApiToken");
+          break;
+        case "I Don't Have a Token":
+          commands.executeCommand("tabby.openOnlineHelp", "/docs/quick-start/register-account");
           break;
         case "Settings":
           commands.executeCommand("tabby.openSettings");

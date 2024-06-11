@@ -75,9 +75,9 @@ export class Issues extends EventEmitter {
             }
           });
       } else {
-        window.showWarningMessage(`Cannot connect to Tabby Server.`, "Detail", "Settings").then((selection) => {
+        window.showWarningMessage(`Cannot connect to Tabby Server.`, "Detail...", "Settings").then((selection) => {
           switch (selection) {
-            case "Detail":
+            case "Detail...":
               this.showHelpMessage(name, true);
               break;
             case "Settings":
@@ -115,10 +115,10 @@ export class Issues extends EventEmitter {
           });
       } else {
         window
-          .showWarningMessage("Most completion requests timed out.", "Detail", "Settings", "Don't Show Again")
+          .showWarningMessage("Most completion requests timed out.", "Detail...", "Settings", "Don't Show Again")
           .then((selection) => {
             switch (selection) {
-              case "Detail":
+              case "Detail...":
                 this.showHelpMessage(name, true);
                 break;
               case "Settings":

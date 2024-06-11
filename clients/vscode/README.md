@@ -5,27 +5,31 @@
 [![VSCode Extension Installs](https://img.shields.io/visual-studio-marketplace/i/TabbyML.vscode-tabby)](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby)
 [![Slack Community](https://shields.io/badge/Tabby-Join%20Slack-red?logo=slack)](https://links.tabbyml.com/join-slack)
 
-Tabby is an AI coding assistant that can suggest multi-line code or full functions in real-time.
+[Tabby](https://tabby.tabbyml.com/) is an open-source, self-hosted AI coding assistant designed to help you write code more efficiently.
 
-Tabby VSCode extension is compatible with `VSCode ≥ 1.82.0`, as well as web environments like [vscode.dev](https://vscode.dev).
+## Autocomplete
 
-For more information, please check out our [Website](https://tabbyml.com/) and [GitHub](https://github.com/TabbyML/tabby).
-If you encounter any problem or have any suggestion, please [open an issue](https://github.com/TabbyML/tabby/issues/new), or join our [Slack community](https://links.tabbyml.com/join-slack) for support.
+Tabby suggests multi-line code completions and full functions in real-time as you write code. Give it a try in the [online playground](https://tabby.tabbyml.com/playground).
 
-## Demo
+![Autocomplete Demo](https://tabby.tabbyml.com/img/demo.gif)
 
-Try our online demo [here](https://tabby.tabbyml.com/playground).
+## Chat
 
-![Demo](https://tabby.tabbyml.com/img/demo.gif)
+Tabby can answer general coding questions and specific questions about your codebase with its chat functionality. Here are a few ways to utilize it:
+
+- Start a session in the chat view from the activity bar.
+- Select some code and use commands such as `Tabby: Explain This` to ask questions about your selection.
+- Request code edits directly by using the `Tabby: Edit...` command (shortcut: `Ctrl/Cmd+I`).
 
 ## Getting Started
 
-Once you have installed the Tabby VSCode extension, you can easily get started by following the built-in walkthrough guides. You can access the walkthrough page at any time by using the command `Tabby: Getting Started`.
+1. **Setup Tabby Server**: Set up your self-hosted Tabby server and create your account following [this guide](https://tabby.tabbyml.com/docs/installation).
+2. **Connect to Server**: Use the `Tabby: Connect to Server...` command in the command palette and input your Tabby server's endpoint URL and account token. Alternatively, use the [Config File](https://tabby.tabbyml.com/docs/extensions/configurations) for cross-IDE settings.
 
-1. **Setup the Tabby server**: You can build your own self-hosted Tabby server following [this guide](https://tabby.tabbyml.com/docs/installation).
-2. **Connect the extension to your Tabby server**: Use the command `Tabby: Specify API Endpoint of Tabby` to connect the extension to your Tabby server.
-   - **Note**: If your Tabby server requires an authentication token, a notification will be displayed, and you can set the token by following the prompt. Alternatively, you can set it in the [config file](https://tabby.tabbyml.com/docs/extensions/configurations).
+That's it! You can now start using Tabby in VSCode. Use the `Tabby: Quick Start` command for a detailed interactive walkthrough.
 
-Once the setup is complete, Tabby will automatically provide inline suggestions. You can accept the suggestions by simply pressing the `Tab` key.
+## Additional Resources
 
-If you prefer to trigger code completion manually, you can select the manual trigger option in the settings. After that, use the shortcut `Alt + \` to trigger code completion. To access the settings page, use the command `Tabby: Open Settings`.
+- [Online Documentation](https://tabby.tabbyml.com/)
+- [GitHub Repository](https://github.com/TabbyML/tabby/): Feel free to [Report Issues](https://github.com/TabbyML/tabby/issues/new/choose) or [Contribute](https://github.com/TabbyML/tabby/blob/main/CONTRIBUTING.md)
+- [Slack Community](https://links.tabbyml.com/join-slack): Participate in discussions, seek assistance, and share your insights on Tabby.
