@@ -78,7 +78,8 @@ impl ChatCompletionStream for OpenAIChatEngine {
                         yield x.choices[0].delta.content.clone().unwrap_or_default();
                     },
                     Err(e) => {
-                        warn!("Failed to stream response: {}", e);
+                        // Stream finished.
+                        debug!("openai-chat stream finished: {:?}", e);
                         break;
                     }
                 };
