@@ -801,7 +801,8 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn trigger_job(ctx: &Context, _command: String) -> Result<ID> {
+    /// Trigger a job run given its command string.
+    async fn trigger_job_run(ctx: &Context, _command: String) -> Result<ID> {
         check_admin(ctx).await?;
         bail!("Not implemented")
     }
