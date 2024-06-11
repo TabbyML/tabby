@@ -107,8 +107,10 @@ impl CodeSearchImpl {
     }
 }
 
+const RANK_CONSTANT: f32 = 60.0;
 const EMBEDDING_SCORE_THRESHOLD: f32 = 0.75;
 const BM25_SCORE_THRESHOLD: f32 = 8.0;
+const RRF_SCORE_THRESHOLD: f32 = 0.028;
 
 fn merge_code_responses_by_rank(
     embedding_resp: Vec<(f32, TantivyDocument)>,
@@ -117,9 +119,9 @@ fn merge_code_responses_by_rank(
 ) -> CodeSearchResponse {
     let mut scored_hits: HashMap<String, (CodeSearchScores, TantivyDocument)> = HashMap::default();
 
-    for (combined_rank, embedding, doc) in compute_rank_score(embedding_resp).into_iter() {
+    for (rank, embedding, doc) in compute_rank_score(embedding_resp).into_iter() {
         let scores = CodeSearchScores {
-            combined_rank,
+            rrf: rank,
             embedding,
             ..Default::default()
         };
@@ -131,7 +133,7 @@ fn merge_code_responses_by_rank(
         let chunk_id = get_chunk_id(&doc);
         // Only keep items with embedding score > 0.
         if let Some((score, _)) = scored_hits.get_mut(chunk_id) {
-            score.combined_rank += rank;
+            score.rrf += rank;
             score.bm25 = bm25;
         }
     }
@@ -140,23 +142,24 @@ fn merge_code_responses_by_rank(
         .into_values()
         .map(|(scores, doc)| create_hit(scores, doc))
         .collect();
-    scored_hits.sort_unstable_by_key(|x| x.scores.combined_rank);
+    scored_hits.sort_by(|a, b| b.scores.rrf.total_cmp(&a.scores.rrf));
     CodeSearchResponse {
         hits: scored_hits
             .into_iter()
             .filter(|hit| {
                 hit.scores.bm25 > BM25_SCORE_THRESHOLD
                     && hit.scores.embedding > EMBEDDING_SCORE_THRESHOLD
+                    && hit.scores.rrf > RRF_SCORE_THRESHOLD
             })
             .take(limit)
             .collect(),
     }
 }
 
-fn compute_rank_score(resp: Vec<(f32, TantivyDocument)>) -> Vec<(i32, f32, TantivyDocument)> {
+fn compute_rank_score(resp: Vec<(f32, TantivyDocument)>) -> Vec<(f32, f32, TantivyDocument)> {
     resp.into_iter()
         .enumerate()
-        .map(|(i, (score, doc))| (i as i32, score, doc))
+        .map(|(rank, (score, doc))| (1.0 / (RANK_CONSTANT + (rank + 1) as f32), score, doc))
         .collect()
 }
 

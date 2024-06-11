@@ -222,7 +222,7 @@ async fn collect_snippets(
         ret.push(Snippet {
             filepath: hit.doc.filepath,
             body,
-            score: hit.scores.combined_rank as f32,
+            score: hit.scores.rrf as f32,
         });
     }
 
