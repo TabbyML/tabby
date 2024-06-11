@@ -17,7 +17,8 @@ pub struct CodeSearchHit {
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct CodeSearchScores {
-    pub combined_rank: i32,
+    /// Reciprocal rank fusion score: https://www.elastic.co/guide/en/elasticsearch/reference/current/rrf.html
+    pub rrf: f32,
     pub bm25: f32,
     pub embedding: f32,
 }
