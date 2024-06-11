@@ -168,7 +168,7 @@ export class StatusBarItem {
     this.item.command = {
       title: "",
       command: "tabby.applyCallback",
-      arguments: [() => this.showInformationWhenManualLoading()],
+      arguments: [() => this.showInformationWhenLoading()],
     };
   }
 
@@ -274,7 +274,7 @@ export class StatusBarItem {
       });
   }
 
-  private showInformationWhenManualLoading() {
+  private showInformationWhenLoading() {
     window.showInformationMessage("Tabby is generating code completions.", "Settings").then((selection) => {
       switch (selection) {
         case "Settings":
