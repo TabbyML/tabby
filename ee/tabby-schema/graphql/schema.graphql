@@ -340,7 +340,8 @@ type Mutation {
   updateIntegration(input: UpdateIntegrationInput!): Boolean!
   deleteIntegration(id: ID!, kind: IntegrationKind!): Boolean!
   updateIntegratedRepositoryActive(id: ID!, active: Boolean!): Boolean!
-  triggerJob(command: String!): ID!
+  "Trigger a job run given its command string."
+  triggerJobRun(command: String!): ID!
 }
 
 type NetworkSetting {
