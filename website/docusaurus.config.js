@@ -65,7 +65,7 @@ export default {
           showReadingTime: true,
           editUrl:
             'https://github.com/TabbyML/tabby/edit/main/website',
-          blogSidebarCount: 10,
+          blogSidebarCount: 20,
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),

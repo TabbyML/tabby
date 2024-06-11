@@ -36,7 +36,7 @@ By introducing the semantic relevance score and rank fusion, Tabby can now provi
 
 For developers using Tabby, the enhanced ranking system requires no additional configuration beyond the repository context setup in the admin UI. The indexing process now includes the computation of embedding vectors, which, while slightly extending the initial indexing time, is mitigated by caching vectors between commits to optimize performance.
 
-*Example: Repository Context Triggered in the Code Browser "Ask Tabby" side panel.*
+*Try **Explain Code** in [Code Browser](https://demo.tabbyml.com)*
 
 ![Repository Context Triggered](./repository-context-triggered.png)
 
