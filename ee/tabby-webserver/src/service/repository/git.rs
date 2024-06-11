@@ -96,7 +96,7 @@ fn to_git_repository(repo: RepositoryDAO) -> GitRepository {
         refs: tabby_git::list_refs(&RepositoryConfig::new(&repo.git_url).dir()).unwrap_or_default(),
         git_url: repo.git_url,
         job_info: JobInfo {
-            last_run: None,
+            last_job_run: None,
             command: "FIXME".to_string(),
         },
     }

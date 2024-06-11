@@ -26,9 +26,9 @@ pub struct JobRun {
 #[graphql(context = Context)]
 pub struct JobInfo {
     /// Last run of the job.
-    pub last_run: Option<JobRun>,
+    pub last_job_run: Option<JobRun>,
 
-    /// The command to submit job run using triggerJob mutation.
+    /// The command to submit job run using triggerJobRun mutation.
     pub command: String,
 }
 

@@ -296,7 +296,7 @@ fn to_provided_repository(value: ProvidedRepositoryDAO) -> ProvidedRepository {
         git_url: value.git_url,
 
         job_info: JobInfo {
-            last_run: None,
+            last_job_run: None,
             command: "FIXME".to_string(),
         },
     }

@@ -265,8 +265,8 @@ type InvitationEdge {
 
 type JobInfo {
   "Last run of the job."
-  lastRun: JobRun
-  "The command to submit job run using triggerJob mutation."
+  lastJobRun: JobRun
+  "The command to submit job run using triggerJobRun mutation."
   command: String!
 }
 
