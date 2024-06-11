@@ -3,6 +3,7 @@ use juniper::ID;
 use tabby_common::config::RepositoryConfig;
 use tabby_db::{DbConn, RepositoryDAO};
 use tabby_schema::{
+    job::JobInfo,
     repository::{GitRepository, GitRepositoryService, Repository, RepositoryProvider},
     AsID, AsRowid, Result,
 };
@@ -94,6 +95,10 @@ fn to_git_repository(repo: RepositoryDAO) -> GitRepository {
         name: repo.name,
         refs: tabby_git::list_refs(&RepositoryConfig::new(&repo.git_url).dir()).unwrap_or_default(),
         git_url: repo.git_url,
+        job_info: JobInfo {
+            last_run: None,
+            command: "FIXME".to_string(),
+        },
     }
 }
 

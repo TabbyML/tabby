@@ -23,6 +23,16 @@ pub struct JobRun {
 }
 
 #[derive(Debug, GraphQLObject)]
+#[graphql(context = Context)]
+pub struct JobInfo {
+    /// Last run of the job.
+    pub last_run: Option<JobRun>,
+
+    /// The command to submit job run using triggerJob mutation.
+    pub command: String,
+}
+
+#[derive(Debug, GraphQLObject)]
 pub struct JobStats {
     pub success: i32,
     pub failed: i32,

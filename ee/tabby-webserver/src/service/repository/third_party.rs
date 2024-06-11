@@ -9,6 +9,7 @@ use tabby_common::config::RepositoryConfig;
 use tabby_db::{DbConn, ProvidedRepositoryDAO};
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
+    job::JobInfo,
     repository::{ProvidedRepository, Repository, RepositoryProvider, ThirdPartyRepositoryService},
     AsID, AsRowid, DbEnum, Result,
 };
@@ -293,6 +294,11 @@ fn to_provided_repository(value: ProvidedRepositoryDAO) -> ProvidedRepository {
         refs: tabby_git::list_refs(&RepositoryConfig::new(&value.git_url).dir())
             .unwrap_or_default(),
         git_url: value.git_url,
+
+        job_info: JobInfo {
+            last_run: None,
+            command: "FIXME".to_string(),
+        },
     }
 }
 

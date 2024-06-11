@@ -48,7 +48,7 @@ use self::{
     user_event::{UserEvent, UserEventService},
 };
 use crate::{
-    env,
+    bail, env,
     juniper::relay::{self, query_async, Connection},
 };
 
@@ -799,6 +799,11 @@ impl Mutation {
             .update_repository_active(id, active)
             .await?;
         Ok(true)
+    }
+
+    async fn trigger_job(ctx: &Context, _command: String) -> Result<ID> {
+        check_admin(ctx).await?;
+        bail!("Not implemented")
     }
 }
 
