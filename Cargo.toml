@@ -74,3 +74,6 @@ features = [
 
 [profile.dev.package]
 insta.opt-level = 3
+
+[profile.dev.package."*"]
+debug = 0
