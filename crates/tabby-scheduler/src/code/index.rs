@@ -1,5 +1,7 @@
-use std::sync::Arc;
+use std::{env, pin::pin, sync::Arc};
 
+use async_stream::stream;
+use futures::StreamExt;
 use ignore::Walk;
 use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
@@ -26,8 +28,8 @@ pub async fn index_repository(
     if index.recreated {
         cache.clear_indexed()
     }
-    add_changed_documents(cache, repository, &index).await;
-    index.commit();
+    let index_batch = add_changed_documents(cache, repository, index).await;
+    cache.apply_indexed(index_batch);
 }
 
 pub fn garbage_collection(cache: &mut CacheStore) {
@@ -39,39 +41,66 @@ pub fn garbage_collection(cache: &mut CacheStore) {
 async fn add_changed_documents(
     cache: &mut CacheStore,
     repository: &RepositoryConfig,
-    index: &Indexer<KeyedSourceCode>,
-) {
-    let mut indexed_files_batch = IndexBatch::default();
-    for file in Walk::new(repository.dir()) {
-        let file = match file {
-            Ok(file) => file,
-            Err(e) => {
-                warn!("Failed to walk file tree for indexing: {e}");
+    index: Indexer<KeyedSourceCode>,
+) -> IndexBatch {
+    let index = Arc::new(index);
+    let cloned_index = index.clone();
+    let s = stream! {
+        for file in Walk::new(repository.dir()) {
+            let file = match file {
+                Ok(file) => file,
+                Err(e) => {
+                    warn!("Failed to walk file tree for indexing: {e}");
+                    continue;
+                }
+            };
+            let Some(code) = cache.get_source_file(repository, file.path()) else {
+                continue;
+            };
+            if !is_valid_file(&code) {
                 continue;
             }
-        };
-        let Some(code) = cache.get_source_file(repository, file.path()) else {
-            continue;
-        };
-        if !is_valid_file(&code) {
-            continue;
+
+            let (key, indexed) = cache.check_indexed(file.path());
+            if indexed {
+                continue;
+            }
+
+            let index = cloned_index.clone();
+            yield tokio::spawn(async move {
+                index
+                    .add(KeyedSourceCode {
+                        key: key.clone(),
+                        code,
+                    })
+                    .await;
+                key
+            });
         }
 
-        let (key, indexed) = cache.check_indexed(file.path());
-        if indexed {
-            continue;
+    };
+
+    let parallelism = env::var("TABBY_CODE_INDEXER_PARALLELISM")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or_else(|| std::thread::available_parallelism().unwrap().get() * 2);
+    let mut s = pin!(s.buffer_unordered(parallelism));
+
+    let mut indexed_files_batch = IndexBatch::default();
+    while let Some(key) = s.next().await {
+        if let Ok(key) = key {
+            indexed_files_batch.set_indexed(key);
+        } else {
+            warn!("Failed to index file");
         }
-        index
-            .add(KeyedSourceCode {
-                key: key.clone(),
-                code,
-            })
-            .await;
-        indexed_files_batch.set_indexed(key);
     }
 
-    // Mark all indexed documents as indexed
-    cache.apply_indexed(indexed_files_batch);
+    match Arc::try_unwrap(index) {
+        Ok(index) => index.commit(),
+        Err(_) => panic!("Failed to unwrap index"),
+    }
+
+    indexed_files_batch
 }
 
 fn remove_staled_documents(cache: &mut CacheStore, index: &Indexer<KeyedSourceCode>) {
