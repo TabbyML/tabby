@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use jsonwebtoken as jwt;
 use lazy_static::lazy_static;
 use serde::Deserialize;
