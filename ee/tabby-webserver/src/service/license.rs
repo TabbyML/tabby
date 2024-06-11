@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use jsonwebtoken as jwt;
 use lazy_static::lazy_static;
 use serde::Deserialize;
@@ -57,8 +57,7 @@ fn validate_license(token: &str) -> Result<LicenseJWTPayload, jwt::errors::Error
 }
 
 fn jwt_timestamp_to_utc(secs: i64) -> Result<DateTime<Utc>> {
-    let datetime = NaiveDateTime::from_timestamp_opt(secs, 0).context("Timestamp is corrupt")?;
-    Ok(datetime.and_utc())
+    Ok(DateTime::from_timestamp(secs, 0).context("Timestamp is corrupt")?)
 }
 
 struct LicenseServiceImpl {
