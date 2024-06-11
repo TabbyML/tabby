@@ -3,7 +3,7 @@ authors: [meng]
 tags: [quality, vector embedding]
 ---
 
-# Integrating Rank Fusion for improved Code Context in Tabby
+# Rank Fusion for improved Code Context in Tabby
 
 ## Introduction
 
