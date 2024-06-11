@@ -7,7 +7,7 @@ import { useScrollTop } from '@/lib/hooks/use-scroll-top'
 import { FileTree, TFileTreeNode } from './file-tree'
 import { FileTreeHeader } from './file-tree-header'
 import { SourceCodeBrowserContext } from './source-code-browser'
-import { resolveRepositoryInfoFromPath } from './utils'
+import { generateEntryPath } from './utils'
 
 interface FileTreePanelProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -20,22 +20,33 @@ export const FileTreePanel: React.FC<FileTreePanelProps> = () => {
     toggleExpandedKey,
     initialized,
     fileTreeData,
-    fileMap
+    fileMap,
+    activeRepo,
+    activeRepoRef
   } = React.useContext(SourceCodeBrowserContext)
   const containerRef = React.useRef<HTMLDivElement>(null)
   const scrollTop = useScrollTop(containerRef, 200)
   const onSelectTreeNode = (treeNode: TFileTreeNode) => {
-    updateActivePath(treeNode.fullPath)
+    const nextPath = generateEntryPath(
+      activeRepo,
+      activeRepoRef?.name as string,
+      treeNode.file.basename,
+      treeNode.file.kind
+    )
+    updateActivePath(nextPath)
   }
 
-  const currentFileTreeData = React.useMemo(() => {
-    const { repositorySpecifier, rev } =
-      resolveRepositoryInfoFromPath(activePath)
-    const repo = fileTreeData.find(
-      treeNode => treeNode.fullPath === `${repositorySpecifier}/${rev}`
-    )
-    return repo?.children ?? []
-  }, [activePath, fileTreeData])
+  // const currentFileTreeData = React.useMemo(() => {
+  //   const { repositorySpecifier, rev, basename } =
+  //     resolveRepositoryInfoFromPath(activePath)
+
+  //   if (!basename) return fileTreeData
+
+  //   const repo = fileTreeData.find(
+  //     treeNode => treeNode.fullPath === basename
+  //   )
+  //   return repo?.children ?? []
+  // }, [activePath, fileTreeData])
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -52,7 +63,7 @@ export const FileTreePanel: React.FC<FileTreePanelProps> = () => {
           expandedKeys={expandedKeys}
           toggleExpandedKey={toggleExpandedKey}
           initialized={initialized}
-          fileTreeData={currentFileTreeData}
+          fileTreeData={fileTreeData}
         />
       </div>
     </div>

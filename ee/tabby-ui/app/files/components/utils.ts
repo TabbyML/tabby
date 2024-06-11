@@ -1,4 +1,4 @@
-import { isNil, keyBy } from 'lodash-es'
+import { isNil, keyBy, map } from 'lodash-es'
 
 import {
   RepositoryKind,
@@ -6,6 +6,9 @@ import {
 } from '@/lib/gql/generates/graphql'
 import fetcher from '@/lib/tabby/fetcher'
 import { ResolveEntriesResponse, TFile } from '@/lib/types'
+
+export type ViewMode = 'tree' | 'blob'
+type RepositoryItem = RepositoryListQuery['repositoryList'][0]
 
 function getProviderVariantFromKind(kind: RepositoryKind) {
   return kind.toLowerCase().replaceAll('_', '')
@@ -16,6 +19,8 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
   repositoryName?: string
   basename?: string
   repositorySpecifier?: string
+  // todo
+  viewMode?: string
   rev?: string
 } {
   const emptyResult = {}
@@ -30,21 +35,22 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
   if (repositoryKindStr === 'git') {
     if (pathSegments.length < 3) return emptyResult
 
-    // e.g.  git/tabby/main/ee/tabby-ui
+    // e.g.  git/tabby/tree/main/ee/tabby-ui
     const repositoryName = pathSegments[1]
     return {
       repositoryKind: RepositoryKind.Git,
       repositoryName,
-      basename: pathSegments.slice(3).join('/'),
+      viewMode: pathSegments[2],
+      basename: pathSegments.slice(4).join('/').replace(/\/?$/, ''),
       repositorySpecifier: `git/${repositoryName}`,
-      rev: pathSegments[2]
+      rev: pathSegments[3]
     }
   } else if (
     ['github', 'gitlab', 'githubselfhosted', 'gitlabselfhosted'].includes(
       repositoryKindStr
     )
   ) {
-    // e.g.  /github/TabbyML/tabby/main/ee/tabby-ui
+    // e.g.  /github/TabbyML/tabby/tree/main/ee/tabby-ui
     if (pathSegments.length < 4) return emptyResult
     let kind: RepositoryKind = RepositoryKind.Github
     switch (repositoryKindStr) {
@@ -66,11 +72,12 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
     return {
       repositoryKind: kind,
       repositoryName,
-      basename: pathSegments.slice(4).join('/'),
+      basename: pathSegments.slice(5).join('/').replace(/\/?$/, ''),
       repositorySpecifier: `${getProviderVariantFromKind(
         kind
       )}/${repositoryName}`,
-      rev: pathSegments[3]
+      viewMode: pathSegments[3],
+      rev: pathSegments[4]
     }
   }
   return emptyResult
@@ -143,6 +150,16 @@ function repositoryList2Map(repos: RepositoryListQuery['repositoryList']) {
   return keyBy(repos, o => `${getProviderVariantFromKind(o.kind)}/${o.name}`)
 }
 
+function repositoryMap2List(
+  repoMap: Record<string, RepositoryItem>
+): RepositoryListQuery['repositoryList'] {
+  const list = map(repoMap, v => v)
+  list.sort((a, b) => {
+    return a.name.localeCompare(b.name)
+  })
+  return list
+}
+
 function encodeURIComponentIgnoringSlash(str: string) {
   return str
     .split('/')
@@ -150,11 +167,16 @@ function encodeURIComponentIgnoringSlash(str: string) {
     .join('/')
 }
 
-function resolveRepoRef(ref: string): {
+function resolveRepoRef(ref: string | undefined): {
   kind?: 'branch' | 'tag'
   name?: string
   ref: string
 } {
+  if (!ref)
+    return {
+      ref: ''
+    }
+
   const regx = /refs\/(\w+)\/(.*)/
   const match = ref.match(regx)
   if (match) {
@@ -189,6 +211,39 @@ function getDefaultRepoRef(refs: string[]) {
   return mainRef || masterRef || firstHeadRef || firstTagRef
 }
 
+// todo encode & decode
+function generateEntryPath(
+  repo:
+    | { kind: RepositoryKind | undefined; name: string | undefined }
+    | undefined,
+  rev: string | undefined,
+  basename: string,
+  kind: 'dir' | 'file'
+) {
+  const specifier = resolveRepoSpecifierFromRepoInfo(repo)
+  // todo use 'main' as fallback
+  const finalRev = rev ?? 'main'
+  return `${specifier}/${
+    kind === 'dir' ? 'tree' : 'blob'
+  }/${finalRev}/${basename}`
+}
+
+function toEntryRequestUrl(
+  repo: RepositoryItem | undefined,
+  rev: string | undefined,
+  basename: string | undefined
+): string | null {
+  const repoId = repo?.id
+  const kind = repo?.kind
+  if (!repoId || !kind || !rev) return null
+
+  const activeRepoIdentity = `${getProviderVariantFromKind(kind)}/${repoId}`
+
+  return `/repositories/${activeRepoIdentity}/rev/${rev}/${encodeURIComponentIgnoringSlash(
+    basename ?? ''
+  )}`
+}
+
 export {
   resolveRepoSpecifierFromRepoInfo,
   resolveFileNameFromPath,
@@ -196,8 +251,11 @@ export {
   fetchEntriesFromPath,
   resolveRepositoryInfoFromPath,
   repositoryList2Map,
+  repositoryMap2List,
   encodeURIComponentIgnoringSlash,
   getProviderVariantFromKind,
   resolveRepoRef,
-  getDefaultRepoRef
+  getDefaultRepoRef,
+  generateEntryPath,
+  toEntryRequestUrl
 }

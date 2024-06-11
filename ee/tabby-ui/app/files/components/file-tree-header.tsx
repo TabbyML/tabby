@@ -49,7 +49,11 @@ import {
 
 import { RepositoryKindIcon } from './repository-kind-icon'
 import { SourceCodeBrowserContext } from './source-code-browser'
-import { resolveRepoRef, resolveRepositoryInfoFromPath } from './utils'
+import {
+  generateEntryPath,
+  resolveRepoRef,
+  resolveRepositoryInfoFromPath
+} from './utils'
 
 interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -87,7 +91,8 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     updateActivePath,
     initialized,
     activeRepo,
-    activeRepoRef
+    activeRepoRef,
+    fileMap
   } = useContext(SourceCodeBrowserContext)
   const [refSelectVisible, setRefSelectVisible] = React.useState(false)
   const [activeRefKind, setActiveRefKind] = React.useState<RepositoryRefKind>(
@@ -129,10 +134,14 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
 
   const onSelectRef = (ref: string) => {
     if (isNil(ref)) return
-    const nextRev = resolveRepoRef(ref)?.name
-    const { basename, repositorySpecifier } =
-      resolveRepositoryInfoFromPath(activePath)
-    updateActivePath(`${repositorySpecifier}/${nextRev}/${basename}`, {
+    const nextRev = resolveRepoRef(ref)?.name ?? 'main'
+    const { basename = '' } = resolveRepositoryInfoFromPath(activePath)
+    const kind = fileMap?.[basename]?.file?.kind ?? 'dir'
+    // updateActivePath(`${repositorySpecifier}/${nextRev}/${basename}`, {
+    //   shouldFetchAllEntries: true
+    // })
+    updateActivePath(generateEntryPath(activeRepo, nextRev, basename, kind), {
+      // todo
       shouldFetchAllEntries: true
     })
   }
