@@ -196,6 +196,7 @@ type GitRepository {
   name: String!
   gitUrl: String!
   refs: [String!]!
+  jobInfo: JobInfo!
 }
 
 type GrepFile {
@@ -260,6 +261,13 @@ type InvitationConnection {
 type InvitationEdge {
   node: Invitation!
   cursor: String!
+}
+
+type JobInfo {
+  "Last run of the job."
+  lastJobRun: JobRun
+  "The command to submit job run using triggerJobRun mutation."
+  command: String!
 }
 
 type JobRun {
@@ -332,6 +340,8 @@ type Mutation {
   updateIntegration(input: UpdateIntegrationInput!): Boolean!
   deleteIntegration(id: ID!, kind: IntegrationKind!): Boolean!
   updateIntegratedRepositoryActive(id: ID!, active: Boolean!): Boolean!
+  "Trigger a job run given its command string."
+  triggerJobRun(command: String!): ID!
 }
 
 type NetworkSetting {
@@ -362,6 +372,7 @@ type ProvidedRepository {
   createdAt: DateTime!
   updatedAt: DateTime!
   refs: [String!]!
+  jobInfo: JobInfo!
 }
 
 type ProvidedRepositoryConnection {
