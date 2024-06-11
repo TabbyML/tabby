@@ -67,9 +67,7 @@ impl<T> Indexer<T> {
             schema.field_updated_at => updated_at,
         };
 
-        let chunks = self.iter_chunks(id, updated_at, document).await;
-
-        futures::stream::once(async { doc }).chain(chunks)
+        futures::stream::once(async { doc }).chain(self.iter_chunks(id, updated_at, document).await)
     }
 
     async fn iter_chunks(
