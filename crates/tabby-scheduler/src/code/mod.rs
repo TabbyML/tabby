@@ -4,7 +4,10 @@ use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use serde_json::json;
-use tabby_common::{config::RepositoryConfig, index::code};
+use tabby_common::{
+    config::RepositoryConfig,
+    index::{code, corpus},
+};
 use tabby_inference::Embedding;
 use tracing::{info, warn};
 
@@ -61,12 +64,8 @@ impl CodeBuilder {
 
 #[async_trait]
 impl IndexAttributeBuilder<KeyedSourceCode> for CodeBuilder {
-    fn format_id(&self, id: &str) -> String {
-        format!("code:{}", id)
-    }
-
     async fn build_id(&self, source_code: &KeyedSourceCode) -> String {
-        self.format_id(&source_code.key)
+        source_code.key.clone()
     }
 
     async fn build_attributes(&self, _source_code: &KeyedSourceCode) -> serde_json::Value {
@@ -127,5 +126,5 @@ impl IndexAttributeBuilder<KeyedSourceCode> for CodeBuilder {
 
 fn create_code_index(embedding: Option<Arc<dyn Embedding>>) -> Indexer<KeyedSourceCode> {
     let builder = CodeBuilder::new(embedding);
-    Indexer::new(builder)
+    Indexer::new(corpus::CODE, builder)
 }

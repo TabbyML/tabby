@@ -33,6 +33,12 @@ struct EmbeddingResponse {
 #[async_trait]
 impl Embedding for LlamaCppEngine {
     async fn embed(&self, prompt: &str) -> anyhow::Result<Vec<f32>> {
+        // Workaround for https://github.com/ggerganov/llama.cpp/issues/6722
+        // When prompt is super short, we just return an empty embedding vector.
+        if prompt.len() < 32 {
+            return Ok(vec![]);
+        }
+
         let request = EmbeddingRequest {
             content: prompt.to_owned(),
         };
@@ -45,7 +51,11 @@ impl Embedding for LlamaCppEngine {
         let response = request.send().await?;
         if response.status().is_server_error() {
             let error = response.text().await?;
-            return Err(anyhow::anyhow!("Error from server: {}", error));
+            return Err(anyhow::anyhow!(
+                "Error from server: {}, prompt: {}",
+                error,
+                prompt
+            ));
         }
 
         let response = response.json::<EmbeddingResponse>().await?;

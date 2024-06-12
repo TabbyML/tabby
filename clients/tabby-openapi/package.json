@@ -1,0 +1,18 @@
+{
+  "name": "tabby-openapi",
+  "version": "0.12.0-dev",
+  "description": "Tabby API schema for typescript.",
+  "files": [
+    "lib/**/*.d.ts",
+    "compatible/**/*.d.ts"
+  ],
+  "types": "./lib/index.d.ts",
+  "scripts": {
+    "update-schema": "wget http://localhost:8080/api-docs/openapi.json -O ./openapi.json",
+    "codegen": "openapi-typescript ./openapi.json -o ./lib/index.d.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^6.6.1",
+    "wget": "^0.0.1"
+  }
+}

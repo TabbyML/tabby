@@ -222,7 +222,7 @@ async fn collect_snippets(
         ret.push(Snippet {
             filepath: hit.doc.filepath,
             body,
-            score: hit.scores.combined_rank as f32,
+            score: hit.scores.rrf,
         });
     }
 
@@ -232,9 +232,7 @@ async fn collect_snippets(
 #[cfg(test)]
 mod tests {
     use async_trait::async_trait;
-    use tabby_common::api::code::{
-        CodeSearchDocument, CodeSearchHit, CodeSearchResponse, CodeSearchScores,
-    };
+    use tabby_common::api::code::CodeSearchResponse;
 
     use super::*;
     use crate::services::completion::Declaration;

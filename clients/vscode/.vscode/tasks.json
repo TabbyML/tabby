@@ -4,18 +4,19 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "watch",
       "type": "npm",
       "script": "watch",
       "problemMatcher": [
         {
           "severity": "error",
-          "applyTo": "closedDocuments",
-          "source": "esbuild",
-          "fileLocation": "relative",
+          "applyTo": "allDocuments",
           "owner": "typescript",
+          "source": "tsc-watch",
+          "fileLocation": "relative",
           "pattern": [
             {
-              "regexp": "^(.*?):([0-9]+):([0-9]+): (warning|error): (.+)$",
+              "regexp": "^(.*)\\(([0-9]+),([0-9]+)\\): (warning|error) (.+: .+)$",
               "file": 1,
               "line": 2,
               "column": 3,
@@ -26,10 +27,10 @@
           "background": {
             "activeOnStart": true,
             "beginsPattern": {
-              "regexp": "^(.*?)Change detected:(.*)$"
+              "regexp": "^.*Starting incremental compilation\\.\\.\\..*$"
             },
             "endsPattern": {
-              "regexp": "^(.*?)Build (failed|success)(.*)$"
+              "regexp": "^.*Found \\d+ errors\\. Watching for file changes\\..*$"
             }
           }
         }

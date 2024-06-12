@@ -4,7 +4,9 @@ use juniper::{GraphQLObject, ID};
 use tabby_common::config::RepositoryConfig;
 
 use super::RepositoryProvider;
-use crate::{integration::IntegrationKind, juniper::relay::NodeType, schema::Result, Context};
+use crate::{
+    integration::IntegrationKind, job::JobInfo, juniper::relay::NodeType, schema::Result, Context,
+};
 
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
@@ -18,6 +20,8 @@ pub struct ProvidedRepository {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub refs: Vec<String>,
+
+    pub job_info: JobInfo,
 }
 
 impl NodeType for ProvidedRepository {

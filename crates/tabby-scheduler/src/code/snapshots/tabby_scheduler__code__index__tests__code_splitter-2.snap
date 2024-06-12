@@ -17,5 +17,5 @@ expression: "format!(\"{:#?}\", text_chunks)"
     "debug!(\"openai-chat request: {:?}\", request);\n        let s = stream! {\n            let s = match self.client.chat().create_stream(request).await {\n                Ok(x) => x,\n                Err(e) => {",
     "warn!(\"Failed to create completion request {:?}\", e);\n                    return;\n                }\n            };",
     "for await x in s {\n                match x {\n                    Ok(x) => {\n                        yield x.choices[0].delta.content.clone().unwrap_or_default();\n                    },\n                    Err(e) => {",
-    "warn!(\"Failed to stream response: {}\", e);\n                        break;\n                    }\n                };\n            }\n        };\n\n        Ok(Box::pin(s))\n    }\n}",
+    "// Stream finished.\n                        debug!(\"openai-chat stream finished: {:?}\", e);\n                        break;\n                    }\n                };\n            }\n        };\n\n        Ok(Box::pin(s))\n    }\n}",
 ]

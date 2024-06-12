@@ -1,5 +1,3 @@
-mod chat;
-
 use std::{fs, path::PathBuf, sync::Arc};
 
 use serde::Deserialize;
@@ -17,14 +15,35 @@ pub async fn load_chat_completion(chat: &ModelConfig) -> Arc<dyn ChatCompletionS
     match chat {
         ModelConfig::Http(http) => http_api_bindings::create_chat(http).await,
 
-        ModelConfig::Local(_) => {
-            let (engine, PromptInfo { chat_template, .. }) = load_completion(chat).await;
-
-            let Some(chat_template) = chat_template else {
-                fatal!("Chat model requires specifying prompt template");
-            };
-
-            Arc::new(chat::make_chat_completion(engine, chat_template))
+        ModelConfig::Local(llama) => {
+            if fs::metadata(&llama.model_id).is_ok() {
+                let path = PathBuf::from(&llama.model_id);
+                let model_path = path.join(GGML_MODEL_RELATIVE_PATH).display().to_string();
+                let engine_info = PromptInfo::read(path.join("tabby.json"));
+                llama_cpp_server::create_chat_completion(
+                    llama.num_gpu_layers,
+                    &model_path,
+                    llama.parallelism,
+                    engine_info.chat_template.unwrap_or_else(|| {
+                        fatal!("Chat model requires specifying prompt template")
+                    }),
+                )
+                .await
+            } else {
+                let (registry, name) = parse_model_id(&llama.model_id);
+                let registry = ModelRegistry::new(registry).await;
+                let model_path = registry.get_model_path(name).display().to_string();
+                let model_info = registry.get_model_info(name);
+                llama_cpp_server::create_chat_completion(
+                    llama.num_gpu_layers,
+                    &model_path,
+                    llama.parallelism,
+                    model_info.chat_template.clone().unwrap_or_else(|| {
+                        fatal!("Chat model requires specifying prompt template")
+                    }),
+                )
+                .await
+            }
         }
     }
 }

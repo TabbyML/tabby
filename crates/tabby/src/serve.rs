@@ -5,7 +5,7 @@ use clap::Args;
 use hyper::StatusCode;
 use tabby_common::{
     api::{self, code::CodeSearch, event::EventLogger},
-    config::{Config, ConfigAccess, LocalModelConfig, ModelConfig, StaticConfigAccess},
+    config::{Config, ConfigAccess, ModelConfig, StaticConfigAccess},
     usage,
 };
 use tabby_inference::Embedding;
@@ -140,7 +140,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         webserver = Some(!args.no_webserver)
     }
 
-    let embedding = embedding::create(config.model.embedding.as_ref()).await;
+    let embedding = embedding::create(&config.model.embedding).await;
 
     #[cfg(feature = "ee")]
     let ws = if !args.no_webserver {
@@ -201,7 +201,7 @@ async fn load_model(config: &Config) {
         download_model_if_needed(&model.model_id).await;
     }
 
-    if let Some(ModelConfig::Local(ref model)) = config.model.embedding {
+    if let ModelConfig::Local(ref model) = config.model.embedding {
         download_model_if_needed(&model.model_id).await;
     }
 }
@@ -396,14 +396,6 @@ fn merge_args(config: &Config, args: &ServeArgs) -> Config {
             args.parallelism,
             args.chat_device.as_ref().unwrap_or(&args.device),
         ));
-    }
-
-    if config.model.embedding.is_none() {
-        config.model.embedding = Some(ModelConfig::Local(LocalModelConfig {
-            model_id: "Nomic-Embed-Text".to_string(),
-            parallelism: 1,
-            num_gpu_layers: 9999,
-        }))
     }
 
     config

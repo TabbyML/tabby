@@ -9,6 +9,7 @@ use tabby_common::config::RepositoryConfig;
 use tabby_db::{DbConn, ProvidedRepositoryDAO};
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
+    job::JobInfo,
     repository::{ProvidedRepository, Repository, RepositoryProvider, ThirdPartyRepositoryService},
     AsID, AsRowid, DbEnum, Result,
 };
@@ -154,18 +155,14 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         .await
         {
             Ok(repos) => repos,
-            Err((e, true)) => {
+            Err(e) => {
                 self.integration
                     .update_integration_sync_status(provider.id.clone(), Some(e.to_string()))
                     .await?;
                 error!(
-                    "Credentials for integration {} are expired or invalid",
+                    "Failed to fetch repositories from integration: {}",
                     provider.display_name
                 );
-                return Err(e.into());
-            }
-            Err((e, false)) => {
-                error!("Failed to fetch repositories from github: {e}");
                 return Err(e.into());
             }
         };
@@ -297,6 +294,11 @@ fn to_provided_repository(value: ProvidedRepositoryDAO) -> ProvidedRepository {
         refs: tabby_git::list_refs(&RepositoryConfig::new(&value.git_url).dir())
             .unwrap_or_default(),
         git_url: value.git_url,
+
+        job_info: JobInfo {
+            last_job_run: None,
+            command: "FIXME".to_string(),
+        },
     }
 }
 

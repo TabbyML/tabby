@@ -1,5 +1,5 @@
-import { Message } from 'ai'
 import type { ChatMessage } from 'tabby-chat-panel'
+import type { components as TabbyOpenApiComponents } from 'tabby-openapi'
 
 export interface UserMessage extends ChatMessage {
   id: string
@@ -50,29 +50,14 @@ export type SearchReponse = {
 
 export type MessageActionType = 'delete' | 'regenerate'
 
-export type CodeSearchDocument = {
-  body: string
-  filepath: string
-  git_url: string
-  language: string
-  start_line: number
-}
+export type AnswerRequest = TabbyOpenApiComponents['schemas']['AnswerRequest']
 
-export type AnswerRequest = {
-  messages: Array<Message>
-  code_query?: {
-    git_url: string
-    filepath: string
-    language: string
-    content: string
-  }
-  doc_query?: boolean
-  generate_relevant_questions?: boolean
-}
+type AnswerResponseChunk =
+  TabbyOpenApiComponents['schemas']['AnswerResponseChunk']
 
 export type AnswerResponse = {
-  relevant_code?: Array<CodeSearchDocument>
-  relevant_documents?: Array<CodeSearchDocument>
-  relevant_questions?: Array<string>
-  answer_delta?: string
+  relevant_code?: AnswerResponseChunk['relevant_code']
+  relevant_documents?: AnswerResponseChunk['relevant_documents']
+  relevant_questions?: AnswerResponseChunk['relevant_questions']
+  answer_delta?: AnswerResponseChunk['answer_delta']
 }

@@ -11,5 +11,6 @@
     "plugin:@typescript-eslint/strict",
     "plugin:@typescript-eslint/stylistic",
     "prettier"
-  ]
+  ],
+  "ignorePatterns": ["dist", "node_modules"]
 }

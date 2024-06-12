@@ -124,7 +124,11 @@ export class Commands {
         },
       );
     },
-    openOnlineHelp: () => {
+    openOnlineHelp: (path?: string | undefined) => {
+      if (typeof path === "string" && path.length > 0) {
+        env.openExternal(Uri.parse(`https://tabby.tabbyml.com${path}`));
+        return;
+      }
       window
         .showQuickPick([
           {
@@ -171,7 +175,7 @@ export class Commands {
         });
     },
     openKeybindings: () => {
-      commands.executeCommand("workbench.action.openGlobalKeybindings", "tabby.inlineCompletion");
+      commands.executeCommand("workbench.action.openGlobalKeybindings", "Tabby");
     },
     gettingStarted: () => {
       commands.executeCommand("workbench.action.openWalkthrough", "TabbyML.vscode-tabby#gettingStarted");
@@ -285,15 +289,6 @@ export class Commands {
       const updateQuickPickList = () => {
         const input = quickPick.value;
         const list: (QuickPickItem & { value: string })[] = [];
-        if (input.length > 0 && !input.startsWith("/")) {
-          list.push({
-            label: input,
-            value: input,
-            iconPath: new ThemeIcon("run"),
-            description: "",
-            alwaysShow: true,
-          });
-        }
         list.push(
           ...suggestedCommand.map((item) => {
             return {
@@ -323,6 +318,15 @@ export class Commands {
             };
           }),
         );
+        if (input.length > 0 && !list.find((i) => i.value === input)) {
+          list.unshift({
+            label: input,
+            value: input,
+            iconPath: new ThemeIcon("run"),
+            description: "",
+            alwaysShow: true,
+          });
+        }
         quickPick.items = list;
       };
       const fetchingSuggestedCommandCancellationTokenSource = new CancellationTokenSource();
@@ -370,11 +374,8 @@ export class Commands {
                   this.chatEditCancellationTokenSource.token,
                 );
               } catch (error) {
-                if (typeof error === "object" && error && "name" in error) {
-                  error.name === "ChatEditDocumentTooLongError";
-                  window.showErrorMessage(
-                    "The selected text is too long to edit, please select less text and try again.",
-                  );
+                if (typeof error === "object" && error && "message" in error && typeof error["message"] === "string") {
+                  window.showErrorMessage(error["message"]);
                 }
               }
               this.chatEditCancellationTokenSource.dispose();

@@ -1,10 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import logoUrl from '@/assets/tabby.png'
 import { noop } from 'lodash-es'
 
+import { SESSION_STORAGE_KEY } from '@/lib/constants'
+import { useEnableSearch } from '@/lib/experiment-flags'
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
@@ -14,6 +18,7 @@ import { useSignOut } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import {
   IconChat,
   IconCode,
@@ -22,6 +27,7 @@ import {
   IconLogout,
   IconMail,
   IconRotate,
+  IconSearch,
   IconSpinner,
   IconUser,
   IconVSCode
@@ -36,6 +42,7 @@ import {
 } from '@/components/ui/tooltip'
 import { CopyButton } from '@/components/copy-button'
 import SlackDialog from '@/components/slack-dialog'
+import TextAreaSearch from '@/components/textarea-search'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { UserAvatar } from '@/components/user-avatar'
 
@@ -154,11 +161,13 @@ function IDELink({
 }
 
 function MainPanel() {
+  const [searchFlag] = useEnableSearch()
   const { data: healthInfo } = useHealth()
   const [{ data }] = useMe()
   const isChatEnabled = useIsChatEnabled()
   const signOut = useSignOut()
   const [signOutLoading, setSignOutLoading] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   if (!healthInfo || !data?.me) return <></>
 
@@ -168,8 +177,15 @@ function MainPanel() {
     await signOut()
     setSignOutLoading(false)
   }
+
+  const onSearch = (question: string) => {
+    sessionStorage.setItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG, question)
+    window.open('/search')
+    setIsSearchOpen(false)
+  }
+
   return (
-    <div className="flex flex-1 justify-center lg:mt-[10vh]">
+    <div className="lg:mt-[10vh]">
       <div className="mx-auto flex w-screen flex-col px-5 py-20 lg:w-auto lg:flex-row lg:justify-center lg:gap-x-10 lg:px-0 lg:py-10">
         <div className="relative mb-5 flex flex-col rounded-lg pb-4 lg:mb-0 lg:mt-12 lg:w-64">
           <UserAvatar className="h-20 w-20 border-4 border-background" />
@@ -210,6 +226,29 @@ function MainPanel() {
             <MenuLink href="/files" icon={<IconCode />} target="_blank">
               Code Browser
             </MenuLink>
+            {searchFlag.value && isChatEnabled && (
+              <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+                <DialogTrigger>
+                  <div className="flex items-center gap-2">
+                    <div className="text-muted-foreground">
+                      <IconSearch />
+                    </div>
+                    <div className="flex cursor-pointer items-center gap-1 text-sm transition-opacity hover:opacity-50">
+                      Search
+                    </div>
+                  </div>
+                </DialogTrigger>
+                <DialogContent className="dialog-without-close-btn -mt-48 border-none bg-transparent shadow-none sm:max-w-xl">
+                  <div className="flex flex-col items-center">
+                    <Image src={logoUrl} alt="logo" width={42} />
+                    <h4 className="mb-6 scroll-m-20 text-xl font-semibold tracking-tight text-background dark:text-foreground">
+                      The Private Search Assistant
+                    </h4>
+                    <TextAreaSearch onSearch={onSearch} />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
             <MenuLink icon={<IconLogout />} onClick={handleSignOut}>
               <span>Sign out</span>
               {signOutLoading && <IconSpinner className="ml-1" />}

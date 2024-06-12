@@ -46,12 +46,12 @@
       },
       {
         "command": "tabby.setApiEndpoint",
-        "title": "Specify API Endpoint of Tabby",
+        "title": "Connect to Server...",
         "category": "Tabby"
       },
       {
         "command": "tabby.setApiToken",
-        "title": "Set API Token",
+        "title": "Set Token...",
         "category": "Tabby"
       },
       {
@@ -66,12 +66,12 @@
       },
       {
         "command": "tabby.gettingStarted",
-        "title": "Getting Started",
+        "title": "Quick Start",
         "category": "Tabby"
       },
       {
         "command": "tabby.openOnlineHelp",
-        "title": "Online Help",
+        "title": "Online Help...",
         "category": "Tabby"
       },
       {
@@ -106,7 +106,7 @@
       },
       {
         "command": "tabby.chat.edit.start",
-        "title": "Edit",
+        "title": "Edit...",
         "category": "Tabby"
       },
       {
@@ -141,7 +141,7 @@
         },
         {
           "command": "tabby.chat.fixCodeBlock",
-          "when": "editorHasSelection && tabby.chatEnabled"
+          "when": "false"
         },
         {
           "command": "tabby.chat.generateCodeBlockDoc",
@@ -177,38 +177,54 @@
       {
         "id": "gettingStarted",
         "title": "Getting Started with Tabby",
-        "description": "Set up your own AI coding assistant",
+        "description": "Set up Tabby and explore the features.",
         "steps": [
           {
-            "id": "getTabbyServerReady",
-            "title": "Get Tabby Server Ready",
-            "description": "The Tabby VSCode extension requires a Tabby server to work. Please follow this guide to get your Tabby server ready.",
+            "id": "setupServer",
+            "title": "Setup Tabby Server",
+            "description": "Follow the guide to prepare your Tabby server.",
             "media": {
-              "markdown": "assets/walkthroughs/server.md"
+              "markdown": "assets/walkthroughs/setupServer.md"
             }
           },
           {
-            "id": "connectToTabbyServer",
-            "title": "Connect to Tabby Server",
-            "description": "Once your Tabby server is ready, specify the server API endpoint here. \n[Specify API Endpoint](command:tabby.setApiEndpoint)",
+            "id": "connectToServer",
+            "title": "Connect to Server",
+            "description": "Connect the Tabby extension to your server. \n[Connect to Server](command:tabby.setApiEndpoint)",
             "media": {
-              "markdown": "assets/walkthroughs/setApiEndpoint.md"
+              "markdown": "assets/walkthroughs/connectToServer.md"
             }
           },
           {
             "id": "codeCompletion",
             "title": "Code Completion",
-            "description": "Tabby provides inline suggestions automatically by default, and you can accept suggestions by just pressing the Tab key.",
+            "description": "Write code more efficiently.",
             "media": {
               "markdown": "assets/walkthroughs/codeCompletion.md"
             }
           },
           {
+            "id": "chat",
+            "title": "Chat",
+            "description": "Ask any coding questions. \n[Start Chat](command:tabby.chatView.focus)",
+            "media": {
+              "markdown": "assets/walkthroughs/chat.md"
+            }
+          },
+          {
             "id": "commands",
             "title": "Commands",
-            "description": "Type `>Tabby:` in command palette to list all Tabby commands. \n[Tabby commands](command:workbench.action.quickOpen?%5B%22%3ETabby%3A%22%5D)",
+            "description": "Explore all Tabby commands. \n[Tabby commands](command:workbench.action.quickOpen?%5B%22%3ETabby%22%5D)",
             "media": {
               "markdown": "assets/walkthroughs/commands.md"
+            }
+          },
+          {
+            "id": "keybindings",
+            "title": "Keyboard Shortcuts",
+            "description": "Tabby provides a set of default keyboard shortcuts, but you can also customize them. \n[Keyboard Shortcuts](command:tabby.openKeybindings)",
+            "media": {
+              "markdown": "assets/walkthroughs/keybindings.md"
             }
           }
         ]
@@ -318,7 +334,6 @@
       {
         "command": "tabby.chat.edit.discard",
         "key": "escape",
-        "mac": "escape",
         "when": "tabby.chatEditResolving && editorTextFocus && !editorReadonly"
       }
     ],
@@ -327,7 +342,7 @@
         {
           "id": "chatView",
           "title": "Tabby",
-          "icon": "assets/side-logo.svg"
+          "icon": "assets/chat.svg"
         }
       ]
     },
@@ -336,7 +351,7 @@
         {
           "type": "webview",
           "id": "tabby.chatView",
-          "name": "",
+          "name": "Tabby",
           "visibility": "visible"
         }
       ]
@@ -355,6 +370,7 @@
     "vscode:publish": "vsce publish --no-dependencies"
   },
   "devDependencies": {
+    "@quilted/threads": "^2.2.0",
     "@types/deep-equal": "^1.0.4",
     "@types/mocha": "^10.0.1",
     "@types/node": "18.x",
@@ -368,23 +384,20 @@
     "@vscode/vsce": "^2.15.0",
     "assert": "^2.0.0",
     "dedent": "^0.7.0",
+    "deep-equal": "^2.2.1",
     "esbuild-plugin-copy": "^2.1.1",
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "eslint": "^8.55.0",
     "eslint-config-prettier": "^9.0.0",
     "get-installed-path": "^4.0.8",
-    "prettier": "^3.0.0",
-    "tsc-watch": "^6.2.0",
-    "tsup": "^8.0.2",
-    "typescript": "^5.3.2"
-  },
-  "dependencies": {
-    "@quilted/threads": "^2.2.0",
-    "deep-equal": "^2.2.1",
     "object-hash": "^3.0.0",
+    "prettier": "^3.0.0",
     "semver": "^7.6.0",
     "tabby-agent": "workspace:*",
     "tabby-chat-panel": "workspace:*",
+    "tsc-watch": "^6.2.0",
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.2",
     "vscode-languageclient": "^9.0.1"
   }
 }

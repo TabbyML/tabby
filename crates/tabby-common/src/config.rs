@@ -10,7 +10,7 @@ use crate::{
     terminal::{HeaderFormat, InfoMessage},
 };
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct Config {
     #[serde(default)]
     pub repositories: Vec<RepositoryConfig>,
@@ -71,7 +71,7 @@ impl Config {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RepositoryConfig {
     pub git_url: String,
 }
@@ -124,7 +124,7 @@ fn sanitize_name(s: &str) -> String {
     sanitized.into_iter().collect()
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ServerConfig {
     /// The timeout in seconds for the /v1/completion api.
     pub completion_timeout: u64,
@@ -138,21 +138,40 @@ impl Default for ServerConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+fn default_embedding_config() -> ModelConfig {
+    ModelConfig::Local(LocalModelConfig {
+        model_id: "Nomic-Embed-Text".into(),
+        parallelism: 4,
+        num_gpu_layers: 9999,
+    })
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModelConfigGroup {
     pub completion: Option<ModelConfig>,
     pub chat: Option<ModelConfig>,
-    pub embedding: Option<ModelConfig>,
+    #[serde(default = "default_embedding_config")]
+    pub embedding: ModelConfig,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+impl Default for ModelConfigGroup {
+    fn default() -> Self {
+        Self {
+            completion: None,
+            chat: None,
+            embedding: default_embedding_config(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum ModelConfig {
     Http(HttpModelConfig),
     Local(LocalModelConfig),
 }
 
-#[derive(Serialize, Deserialize, Builder, Clone)]
+#[derive(Serialize, Deserialize, Builder, Debug, Clone)]
 pub struct HttpModelConfig {
     /// The kind of model, we have three group of models:
     /// 1. Completion API [CompletionStream](tabby_inference::CompletionStream)
@@ -181,7 +200,7 @@ pub struct HttpModelConfig {
     pub chat_template: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LocalModelConfig {
     pub model_id: String,
 
@@ -200,12 +219,12 @@ fn default_num_gpu_layers() -> u16 {
     9999
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct ExperimentalConfig {
     pub doc: Option<DocIndexConfig>,
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct DocIndexConfig {
     pub start_urls: Vec<String>,
 }

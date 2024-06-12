@@ -10,12 +10,14 @@ import { IconCheck, IconCopy } from './ui/icons'
 interface CopyButtonProps extends ButtonProps {
   value: string
   onCopyContent?: (value: string) => void
+  text?: string
 }
 
 export function CopyButton({
   className,
   value,
   onCopyContent,
+  text,
   ...props
 }: CopyButtonProps) {
   const { isCopied, copyToClipboard } = useCopyToClipboard({
@@ -33,13 +35,14 @@ export function CopyButton({
   return (
     <Button
       variant="ghost"
-      size="icon"
+      size={text ? 'default' : 'icon'}
       className={className}
       onClick={onCopy}
       {...props}
     >
       {isCopied ? <IconCheck className="text-green-600" /> : <IconCopy />}
-      <span className="sr-only">Copy</span>
+      {text && <span>{text}</span>}
+      {!text && <span className="sr-only">Copy</span>}
     </Button>
   )
 }

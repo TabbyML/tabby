@@ -1,0 +1,1 @@
+@keyframes sparkle{0%{transform:scaleX(1)}50%{transform:scaleX(-1)}to{transform:scaleX(1)}}.sparkle-animation{animation:sparkle 2s infinite}

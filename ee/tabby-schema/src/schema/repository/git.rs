@@ -4,6 +4,7 @@ use validator::Validate;
 
 use super::RepositoryProvider;
 use crate::{
+    job::JobInfo,
     juniper::relay::NodeType,
     schema::{Context, Result},
 };
@@ -27,6 +28,8 @@ pub struct GitRepository {
     pub name: String,
     pub git_url: String,
     pub refs: Vec<String>,
+
+    pub job_info: JobInfo,
 }
 
 impl NodeType for GitRepository {

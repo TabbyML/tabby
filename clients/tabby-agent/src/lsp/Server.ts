@@ -631,7 +631,7 @@ export class Server {
     const notebookCell = this.notebooks.getNotebookCell(textDocument.uri);
     let additionalContext: { prefix: string; suffix: string } | undefined = undefined;
     if (notebookCell) {
-      this.logger.trace("Notebook cell found:", { notebookCell });
+      this.logger.trace("Notebook cell found:", { cell: notebookCell.kind });
       additionalContext = this.buildNotebookAdditionalContext(document, notebookCell);
     }
     if (additionalContext) {
@@ -731,7 +731,7 @@ export class Server {
       return;
     }
     this.logger.debug("Collecting declaration snippets...");
-    this.logger.trace("Collecting snippets for:", { textDocument, position });
+    this.logger.trace("Collecting snippets for:", { textDocument: textDocument.uri, position });
     // Find symbol positions in the previous lines
     const prefixRange: Range = {
       start: { line: Math.max(0, position.line - agentConfig.completion.prompt.maxPrefixLines), character: 0 },
@@ -815,7 +815,10 @@ export class Server {
       let text: string | undefined = undefined;
       const targetDocument = this.documents.get(location.uri);
       if (targetDocument) {
-        this.logger.trace("Fetching text content from synced text document.", { targetDocument });
+        this.logger.trace("Fetching text content from synced text document.", {
+          uri: targetDocument.uri,
+          range: location.range,
+        });
         text = targetDocument.getText(location.range);
         this.logger.trace("Fetched text content from synced text document.", { text });
       } else if (this.clientCapabilities?.tabby?.workspaceFileSystem) {
@@ -923,7 +926,7 @@ export class Server {
       return undefined;
     }
     this.logger.debug("Collecting snippets from recently changed files...");
-    this.logger.trace("Collecting snippets for:", { textDocument, position });
+    this.logger.trace("Collecting snippets for:", { document: textDocument.uri, position });
     const prefixRange: Range = {
       start: { line: Math.max(0, position.line - agentConfig.completion.prompt.maxPrefixLines), character: 0 },
       end: { line: position.line, character: position.character },

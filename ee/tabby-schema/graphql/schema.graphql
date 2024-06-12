@@ -22,6 +22,19 @@ enum EventKind {
   DISMISS
 }
 
+enum IntegrationKind {
+  GITHUB
+  GITLAB
+  GITHUB_SELF_HOSTED
+  GITLAB_SELF_HOSTED
+}
+
+enum IntegrationStatus {
+  READY
+  PENDING
+  FAILED
+}
+
 enum Language {
   RUST
   PYTHON
@@ -64,20 +77,10 @@ enum RepositoryKind {
   GITLAB_SELF_HOSTED
 }
 
-enum RepositoryProviderStatus {
-  READY
-  PENDING
-  FAILED
-}
-
-input CreateRepositoryProviderInput {
+input CreateIntegrationInput {
   displayName: String!
   accessToken: String!
-}
-
-input CreateSelfHostedRepositoryProviderInput {
-  displayName: String!
-  accessToken: String!
+  kind: IntegrationKind!
   apiBase: String
 }
 
@@ -120,23 +123,18 @@ input SecuritySettingInput {
   disableClientSideTelemetry: Boolean!
 }
 
-input UpdateOAuthCredentialInput {
-  provider: OAuthProvider!
-  clientId: String!
-  clientSecret: String
-}
-
-input UpdateRepositoryProviderInput {
-  id: ID!
-  displayName: String!
-  accessToken: String
-}
-
-input UpdateSelfHostedRepositoryProviderInput {
+input UpdateIntegrationInput {
   id: ID!
   displayName: String!
   accessToken: String
   apiBase: String
+  kind: IntegrationKind!
+}
+
+input UpdateOAuthCredentialInput {
+  provider: OAuthProvider!
+  clientId: String!
+  clientSecret: String
 }
 
 """
@@ -198,80 +196,7 @@ type GitRepository {
   name: String!
   gitUrl: String!
   refs: [String!]!
-}
-
-type GithubProvidedRepository {
-  id: ID!
-  vendorId: String!
-  githubRepositoryProviderId: ID!
-  name: String!
-  gitUrl: String!
-  active: Boolean!
-  refs: [String!]!
-}
-
-type GithubProvidedRepositoryConnection {
-  edges: [GithubProvidedRepositoryEdge!]!
-  pageInfo: PageInfo!
-}
-
-type GithubProvidedRepositoryEdge {
-  node: GithubProvidedRepository!
-  cursor: String!
-}
-
-type GithubRepositoryProvider {
-  id: ID!
-  displayName: String!
-  status: RepositoryProviderStatus!
-  apiBase: String
-}
-
-type GithubRepositoryProviderConnection {
-  edges: [GithubRepositoryProviderEdge!]!
-  pageInfo: PageInfo!
-}
-
-type GithubRepositoryProviderEdge {
-  node: GithubRepositoryProvider!
-  cursor: String!
-}
-
-type GitlabProvidedRepository {
-  id: ID!
-  vendorId: String!
-  gitlabRepositoryProviderId: ID!
-  name: String!
-  gitUrl: String!
-  active: Boolean!
-  refs: [String!]!
-}
-
-type GitlabProvidedRepositoryConnection {
-  edges: [GitlabProvidedRepositoryEdge!]!
-  pageInfo: PageInfo!
-}
-
-type GitlabProvidedRepositoryEdge {
-  node: GitlabProvidedRepository!
-  cursor: String!
-}
-
-type GitlabRepositoryProvider {
-  id: ID!
-  displayName: String!
-  status: RepositoryProviderStatus!
-  apiBase: String
-}
-
-type GitlabRepositoryProviderConnection {
-  edges: [GitlabRepositoryProviderEdge!]!
-  pageInfo: PageInfo!
-}
-
-type GitlabRepositoryProviderEdge {
-  node: GitlabRepositoryProvider!
-  cursor: String!
+  jobInfo: JobInfo!
 }
 
 type GrepFile {
@@ -300,6 +225,27 @@ type GrepTextOrBase64 {
   base64: String
 }
 
+type Integration {
+  id: ID!
+  kind: IntegrationKind!
+  displayName: String!
+  accessToken: String!
+  apiBase: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  status: IntegrationStatus!
+}
+
+type IntegrationConnection {
+  edges: [IntegrationEdge!]!
+  pageInfo: PageInfo!
+}
+
+type IntegrationEdge {
+  node: Integration!
+  cursor: String!
+}
+
 type Invitation {
   id: ID!
   email: String!
@@ -315,6 +261,13 @@ type InvitationConnection {
 type InvitationEdge {
   node: Invitation!
   cursor: String!
+}
+
+type JobInfo {
+  "Last run of the job."
+  lastJobRun: JobRun
+  "The command to submit job run using triggerJobRun mutation."
+  command: String!
 }
 
 type JobRun {
@@ -383,22 +336,12 @@ type Mutation {
   deleteEmailSetting: Boolean!
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
-  createGithubRepositoryProvider(input: CreateRepositoryProviderInput!): ID!
-  createGithubSelfHostedRepositoryProvider(input: CreateSelfHostedRepositoryProviderInput!): ID!
-  deleteGithubRepositoryProvider(id: ID!): Boolean!
-  deleteGithubSelfHostedRepositoryProvider(id: ID!): Boolean!
-  updateGithubRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean!
-  updateGithubSelfHostedRepositoryProvider(input: UpdateSelfHostedRepositoryProviderInput!): Boolean!
-  updateGithubProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
-  updateGithubSelfHostedProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
-  createGitlabRepositoryProvider(input: CreateRepositoryProviderInput!): ID!
-  createGitlabSelfHostedRepositoryProvider(input: CreateSelfHostedRepositoryProviderInput!): ID!
-  deleteGitlabRepositoryProvider(id: ID!): Boolean!
-  deleteGitlabSelfHostedRepositoryProvider(id: ID!): Boolean!
-  updateGitlabSelfHostedRepositoryProvider(input: UpdateSelfHostedRepositoryProviderInput!): Boolean!
-  updateGitlabRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean!
-  updateGitlabProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
-  updateGitlabSelfHostedProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
+  createIntegration(input: CreateIntegrationInput!): ID!
+  updateIntegration(input: UpdateIntegrationInput!): Boolean!
+  deleteIntegration(id: ID!, kind: IntegrationKind!): Boolean!
+  updateIntegratedRepositoryActive(id: ID!, active: Boolean!): Boolean!
+  "Trigger a job run given its command string."
+  triggerJobRun(command: String!): ID!
 }
 
 type NetworkSetting {
@@ -419,19 +362,34 @@ type PageInfo {
   endCursor: String
 }
 
+type ProvidedRepository {
+  id: ID!
+  integrationId: ID!
+  active: Boolean!
+  displayName: String!
+  gitUrl: String!
+  vendorId: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  refs: [String!]!
+  jobInfo: JobInfo!
+}
+
+type ProvidedRepositoryConnection {
+  edges: [ProvidedRepositoryEdge!]!
+  pageInfo: PageInfo!
+}
+
+type ProvidedRepositoryEdge {
+  node: ProvidedRepository!
+  cursor: String!
+}
+
 type Query {
   registrationToken: String!
   me: User!
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
-  githubRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GithubRepositoryProviderConnection!
-  githubRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
-  githubSelfHostedRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
-  gitlabSelfHostedRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GitlabProvidedRepositoryConnection!
-  gitlabRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
-  gitlabSelfHostedRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
-  githubSelfHostedRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
-  gitlabRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GitlabProvidedRepositoryConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
   emailSetting: EmailSetting
@@ -465,6 +423,8 @@ type Query {
   userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTime!, end: DateTime!): UserEventConnection!
   diskUsageStats: DiskUsageStats!
   repositoryList: [Repository!]!
+  integrations(ids: [ID!], kind: IntegrationKind, after: String, before: String, first: Int, last: Int): IntegrationConnection!
+  integratedRepositories(ids: [ID!], kind: IntegrationKind, active: Boolean, after: String, before: String, first: Int, last: Int): ProvidedRepositoryConnection!
 }
 
 type RefreshTokenResponse {

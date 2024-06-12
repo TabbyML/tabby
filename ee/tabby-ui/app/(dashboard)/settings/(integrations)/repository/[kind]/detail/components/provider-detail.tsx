@@ -3,13 +3,13 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { TypedDocumentNode, useQuery } from 'urql'
+import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import {
-  ListGithubRepositoriesQuery,
-  RepositoryKind,
-  RepositoryProviderStatus
+  IntegrationKind,
+  IntegrationStatus,
+  ListIntegratedRepositoriesQuery
 } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import {
@@ -18,16 +18,7 @@ import {
   QueryVariables,
   useMutation
 } from '@/lib/tabby/gql'
-import {
-  listGithubRepositories,
-  listGithubRepositoryProviders,
-  listGithubSelfHostedRepositories,
-  listGithubSelfHostedRepositoryProviders,
-  listGitlabRepositories,
-  listGitlabRepositoryProviders,
-  listGitlabSelfHostedRepositories,
-  listGitlabSelfHostedRepositoryProviders
-} from '@/lib/tabby/query'
+import { listIntegratedRepositories, listIntegrations } from '@/lib/tabby/query'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { CardContent, CardTitle } from '@/components/ui/card'
@@ -57,90 +48,28 @@ import {
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
-import { useRepositoryKind } from '../../hooks/use-repository-kind'
-import {
-  updateGithubProvidedRepositoryActiveMutation,
-  updateGithubSelfHostedProvidedRepositoryActiveMutation,
-  updateGitlabProvidedRepositoryActiveMutation,
-  updateGitlabSelfHostedProvidedRepositoryActiveMutation
-} from '../query'
+import { useIntegrationKind } from '../../hooks/use-repository-kind'
+import { updateIntegratedRepositoryActiveMutation } from '../query'
 import AddRepositoryForm from './add-repository-form'
 import { UpdateProviderForm } from './update-provider-form'
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
-type Repositories = Array<{
-  cursor: string
-  node: {
-    id: string
-    vendorId: string
-    name: string
-    gitUrl: string
-    active: boolean
-  }
-}>
-
-type ListRepositoriesResponseData = {
-  edges: Repositories
-  pageInfo: ListGithubRepositoriesQuery['githubRepositories']['pageInfo']
-}
+type IntegratedRepositories =
+  ListIntegratedRepositoriesQuery['integratedRepositories']['edges']
 
 const ProviderDetail: React.FC = () => {
   const searchParams = useSearchParams()
-  const kind = useRepositoryKind()
+  const kind = useIntegrationKind()
   const router = useRouter()
   const id = searchParams.get('id')?.toString() ?? ''
 
-  const { query, resolver } = React.useMemo(() => {
-    switch (kind) {
-      case RepositoryKind.Github:
-        return {
-          query: listGithubRepositoryProviders,
-          resolver: (
-            res: QueryResponseData<typeof listGithubRepositoryProviders>
-          ) => res?.githubRepositoryProviders?.edges
-        }
-      case RepositoryKind.GithubSelfHosted:
-        return {
-          query: listGithubSelfHostedRepositoryProviders,
-          resolver: (
-            res?: QueryResponseData<
-              typeof listGithubSelfHostedRepositoryProviders
-            >
-          ) => res?.githubSelfHostedRepositoryProviders?.edges
-        }
-      case RepositoryKind.Gitlab:
-        return {
-          query: listGitlabRepositoryProviders,
-          resolver: (
-            res: QueryResponseData<typeof listGitlabRepositoryProviders>
-          ) => res?.gitlabRepositoryProviders?.edges
-        }
-      case RepositoryKind.GitlabSelfHosted:
-        return {
-          query: listGitlabSelfHostedRepositoryProviders,
-          resolver: (
-            res?: QueryResponseData<
-              typeof listGitlabSelfHostedRepositoryProviders
-            >
-          ) => res?.gitlabSelfHostedRepositoryProviders?.edges
-        }
-      default:
-        return {
-          query: listGithubRepositoryProviders,
-          resolver: (
-            res?: QueryResponseData<typeof listGithubRepositoryProviders>
-          ) => res?.githubRepositoryProviders?.edges
-        }
-    }
-  }, [kind])
-
   const [{ data, fetching }, reexecuteQuery] = useQuery({
-    query: query as TypedDocumentNode<any, any>,
-    variables: { ids: [id] },
-    pause: !id
+    query: listIntegrations,
+    variables: { ids: [id], kind },
+    pause: !id || !kind
   })
-  const provider = resolver(data)?.[0]?.node
+  const provider = data?.integrations?.edges?.[0]?.node
 
   const onDeleteProvider = () => {
     router.back()
@@ -200,116 +129,49 @@ const ProviderDetail: React.FC = () => {
   )
 }
 
-function toStatusBadge(status: RepositoryProviderStatus) {
+function toStatusBadge(status: IntegrationStatus) {
   switch (status) {
-    case RepositoryProviderStatus.Ready:
+    case IntegrationStatus.Ready:
       return <Badge variant="successful">Ready</Badge>
-    case RepositoryProviderStatus.Failed:
+    case IntegrationStatus.Failed:
       return <Badge variant="destructive">Error</Badge>
-    case RepositoryProviderStatus.Pending:
+    case IntegrationStatus.Pending:
       return <Badge>Pending</Badge>
   }
 }
 
 const ActiveRepoTable: React.FC<{
   providerId: string
-  providerStatus: RepositoryProviderStatus | undefined
-  kind: RepositoryKind
+  providerStatus: IntegrationStatus | undefined
+  kind: IntegrationKind
 }> = ({ providerStatus, providerId, kind }) => {
-  const { query, resolver, updateQuery, updateResolver } = React.useMemo(() => {
-    switch (kind) {
-      case RepositoryKind.Github:
-        return {
-          query: listGithubRepositories,
-          updateQuery: updateGithubProvidedRepositoryActiveMutation,
-          resolver: (res?: QueryResponseData<typeof listGithubRepositories>) =>
-            res?.githubRepositories,
-          updateResolver: (
-            res?: QueryResponseData<
-              typeof updateGithubProvidedRepositoryActiveMutation
-            >
-          ) => res?.updateGithubProvidedRepositoryActive
-        }
-      case RepositoryKind.GithubSelfHosted:
-        return {
-          query: listGithubSelfHostedRepositories,
-          updateQuery: updateGithubSelfHostedProvidedRepositoryActiveMutation,
-          resolver: (
-            res?: QueryResponseData<typeof listGithubSelfHostedRepositories>
-          ) => res?.githubSelfHostedRepositories,
-          updateResolver: (
-            res?: QueryResponseData<
-              typeof updateGithubSelfHostedProvidedRepositoryActiveMutation
-            >
-          ) => res?.updateGithubSelfHostedProvidedRepositoryActive
-        }
-      case RepositoryKind.Gitlab:
-        return {
-          query: listGitlabRepositories,
-          updateQuery: updateGitlabProvidedRepositoryActiveMutation,
-          resolver: (res?: QueryResponseData<typeof listGitlabRepositories>) =>
-            res?.gitlabRepositories,
-          updateResolver: (
-            res?: QueryResponseData<
-              typeof updateGitlabProvidedRepositoryActiveMutation
-            >
-          ) => res?.updateGitlabProvidedRepositoryActive
-        }
-      case RepositoryKind.GitlabSelfHosted:
-        return {
-          query: listGitlabSelfHostedRepositories,
-          updateQuery: updateGitlabSelfHostedProvidedRepositoryActiveMutation,
-          resolver: (
-            res?: QueryResponseData<typeof listGitlabSelfHostedRepositories>
-          ) => res?.gitlabSelfHostedRepositories,
-          updateResolver: (
-            res?: QueryResponseData<
-              typeof updateGitlabSelfHostedProvidedRepositoryActiveMutation
-            >
-          ) => res?.updateGitlabSelfHostedProvidedRepositoryActive
-        }
-      default:
-        return {
-          query: listGithubRepositories,
-          updateQuery: updateGithubProvidedRepositoryActiveMutation,
-          resolver: (res?: QueryResponseData<typeof listGithubRepositories>) =>
-            res?.githubRepositories,
-          updateResolver: (
-            res?: QueryResponseData<
-              typeof updateGithubProvidedRepositoryActiveMutation
-            >
-          ) => res?.updateGithubProvidedRepositoryActive
-        }
-    }
-  }, [kind]) as {
-    query: TypedDocumentNode<ListRepositoriesResponseData>
-    updateQuery: TypedDocumentNode
-    resolver: (res?: QueryResponseData<any>) => ListRepositoriesResponseData
-    updateResolver: (res?: QueryResponseData<any>) => boolean | undefined
-  }
-
   const [page, setPage] = React.useState(1)
   const {
     repositories: inactiveRepositories,
     setRepositories: setInactiveRepositories,
     isAllLoaded: isInactiveRepositoriesLoaded
-  } = useAllInactiveRepositories(providerId, query, resolver)
+  } = useAllInactiveRepositories(providerId, kind)
 
-  const fetchRepositories = (variables: QueryVariables<typeof query>) => {
-    return client.query(query, variables).toPromise()
+  const fetchRepositories = (
+    variables: QueryVariables<typeof listIntegratedRepositories>
+  ) => {
+    return client.query(listIntegratedRepositories, variables).toPromise()
   }
 
   const fetchRepositoriesSequentially = async (
     page: number,
     cursor?: string
-  ): Promise<ListRepositoriesResponseData | undefined> => {
+  ): Promise<
+    QueryResponseData<typeof listIntegratedRepositories> | undefined
+  > => {
     const res = await fetchRepositories({
-      providerIds: [providerId],
+      ids: [providerId],
       first: PAGE_SIZE,
       after: cursor,
-      active: true
+      active: true,
+      kind
     })
-    const responseData = resolver(res?.data)
+    const responseData = res?.data?.integratedRepositories
     const _pageInfo = responseData?.pageInfo
     if (page - 1 > 0 && _pageInfo?.hasNextPage && _pageInfo?.endCursor) {
       return fetchRepositoriesSequentially(page - 1, _pageInfo.endCursor)
@@ -319,25 +181,31 @@ const ActiveRepoTable: React.FC<{
   }
 
   const [activeRepositoriesResult, setActiveRepositoriesResult] =
-    React.useState<QueryResponseData<typeof query>>()
+    React.useState<QueryResponseData<typeof listIntegratedRepositories>>()
   const [fetching, setFetching] = React.useState(true)
   const [recentlyActivatedRepositories, setRecentlyActivatedRepositories] =
-    React.useState<Repositories>([])
-  const activeRepos = resolver?.(activeRepositoriesResult)?.edges
-  const pageInfo = resolver?.(activeRepositoriesResult)?.pageInfo
+    React.useState<IntegratedRepositories>([])
+  const activeRepos = activeRepositoriesResult?.integratedRepositories?.edges
+  const pageInfo = activeRepositoriesResult?.integratedRepositories?.pageInfo
 
-  const updateProvidedRepositoryActive = useMutation(updateQuery, {
-    onError(error) {
-      toast.error(error.message || 'Failed to delete')
+  const updateProvidedRepositoryActive = useMutation(
+    updateIntegratedRepositoryActiveMutation,
+    {
+      onError(error) {
+        toast.error(error.message || 'Failed to delete')
+      }
     }
-  })
+  )
 
-  const handleDelete = async (repo: Repositories[0], isLastItem?: boolean) => {
+  const handleDelete = async (
+    repo: IntegratedRepositories[0],
+    isLastItem?: boolean
+  ) => {
     updateProvidedRepositoryActive({
       id: repo.node.id,
       active: false
     }).then(res => {
-      if (updateResolver?.(res?.data)) {
+      if (res?.data?.updateIntegratedRepositoryActive) {
         setInactiveRepositories(sortRepos([...inactiveRepositories, repo]))
         const nextPage = isLastItem ? page - 1 : page
         loadPage(nextPage || 1)
@@ -364,9 +232,11 @@ const ActiveRepoTable: React.FC<{
 
   const [open, setOpen] = React.useState(false)
 
-  const sortRepos = (repos: Repositories) => {
+  const sortRepos = (repos: IntegratedRepositories) => {
     if (!repos?.length) return repos
-    return repos.sort((a, b) => a.node.name?.localeCompare(b.node.name))
+    return repos.sort((a, b) =>
+      a.node.displayName?.localeCompare(b.node.displayName)
+    )
   }
 
   const onCreated = (id: string) => {
@@ -411,14 +281,14 @@ const ActiveRepoTable: React.FC<{
                   <DialogHeader className="gap-3">
                     <DialogTitle>Add new repository</DialogTitle>
                     <DialogDescription>
-                      Add new GitHub repository from this provider
+                      Add new repository from this provider
                     </DialogDescription>
                   </DialogHeader>
                   <AddRepositoryForm
                     onCancel={() => setOpen(false)}
                     onCreated={onCreated}
                     repositories={inactiveRepositories}
-                    kind={RepositoryKind.Github}
+                    kind={kind}
                     providerStatus={providerStatus}
                     fetchingRepos={!isInactiveRepositoriesLoaded}
                   />
@@ -438,7 +308,7 @@ const ActiveRepoTable: React.FC<{
               {recentlyActivatedRepositories?.map(x => {
                 return (
                   <TableRow key={x.node.id} className="!bg-muted/80">
-                    <TableCell>{x.node.name}</TableCell>
+                    <TableCell>{x.node.displayName}</TableCell>
                     <TableCell>{x.node.gitUrl}</TableCell>
                     <TableCell className="flex justify-end">
                       <div
@@ -456,7 +326,7 @@ const ActiveRepoTable: React.FC<{
               {activeRepos?.map(x => {
                 return (
                   <TableRow key={x.node.id}>
-                    <TableCell>{x.node.name}</TableCell>
+                    <TableCell>{x.node.displayName}</TableCell>
                     <TableCell>{x.node.gitUrl}</TableCell>
                     <TableCell className="flex justify-end">
                       <div className="flex gap-1">
@@ -518,21 +388,15 @@ const ActiveRepoTable: React.FC<{
   )
 }
 
-function useAllInactiveRepositories(
-  id: string,
-  query: TypedDocumentNode<any, any>,
-  resolver: (
-    res?: QueryResponseData<ListRepositoriesResponseData>
-  ) => ListRepositoriesResponseData
-) {
+function useAllInactiveRepositories(id: string, kind: IntegrationKind) {
   const [queryVariables, setQueryVariables] = useState<
-    QueryVariables<typeof query>
-  >({ providerIds: [id], first: PAGE_SIZE, active: false })
-  const [repositories, setRepositories] = useState<Repositories>([])
+    QueryVariables<typeof listIntegratedRepositories>
+  >({ ids: [id], first: PAGE_SIZE, active: false, kind })
+  const [repositories, setRepositories] = useState<IntegratedRepositories>([])
   const [isAllLoaded, setIsAllLoaded] = useState(!id)
 
   const [{ data, fetching }] = useQuery({
-    query,
+    query: listIntegratedRepositories,
     variables: queryVariables,
     pause: !id
   })
@@ -540,13 +404,13 @@ function useAllInactiveRepositories(
   useEffect(() => {
     if (isAllLoaded) return
     if (!fetching && data) {
-      const pageInfo = resolver(data)?.pageInfo
+      const pageInfo = data?.integratedRepositories?.pageInfo
       const currentList = [...repositories]
-      setRepositories(currentList.concat(resolver(data)?.edges))
+      setRepositories(currentList.concat(data?.integratedRepositories?.edges))
 
       if (pageInfo?.hasNextPage) {
         setQueryVariables({
-          providerIds: [id],
+          ids: [id],
           first: PAGE_SIZE,
           after: pageInfo.endCursor,
           active: false

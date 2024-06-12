@@ -1,4 +1,0 @@
-kind: Fixed and Improvements
-body: llama-server from llama.cpp is now distributed as an individual binary, allowing for
-  more flexible configuration
-time: 2024-05-27T19:14:52.09868+08:00

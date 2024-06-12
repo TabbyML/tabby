@@ -1,5 +1,5 @@
 use gitlab::{
-    api::{projects::Projects, ApiError, AsyncQuery, Pagination},
+    api::{projects::Projects, AsyncQuery, Pagination},
     GitlabBuilder,
 };
 use serde::Deserialize;
@@ -21,25 +21,6 @@ pub enum GitlabError {
     Gitlab(#[from] gitlab::GitlabError),
     #[error(transparent)]
     Projects(#[from] gitlab::api::projects::ProjectsBuilderError),
-}
-
-impl GitlabError {
-    pub fn is_client_error(&self) -> bool {
-        match self {
-            GitlabError::Rest(source)
-            | GitlabError::Gitlab(gitlab::GitlabError::Api { source }) => {
-                matches!(
-                    source,
-                    ApiError::Auth { .. }
-                        | ApiError::Client {
-                            source: gitlab::RestError::AuthError { .. }
-                        }
-                        | ApiError::Gitlab { .. }
-                )
-            }
-            _ => false,
-        }
-    }
 }
 
 pub async fn fetch_all_gitlab_repos(

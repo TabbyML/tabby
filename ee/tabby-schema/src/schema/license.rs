@@ -42,14 +42,6 @@ impl LicenseInfo {
         30
     }
 
-    pub fn check_node_limit(&self, num_nodes: usize) -> bool {
-        match self.r#type {
-            LicenseType::Community => false,
-            LicenseType::Team => num_nodes <= 2,
-            LicenseType::Enterprise => true,
-        }
-    }
-
     pub fn guard_seat_limit(mut self) -> Self {
         let seats = self.seats as usize;
         self.seats = match self.r#type {

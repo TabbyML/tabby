@@ -1,14 +1,14 @@
 import { defineConfig } from "tsup";
+import type { Plugin, PluginBuild } from "esbuild";
 import path from "path";
 import fs from "fs-extra";
-import type { Plugin } from "esbuild";
 import { polyfillNode } from "esbuild-plugin-polyfill-node";
 import dedent from "dedent";
 
 function processWinCa(copyRootsExe: boolean = false): Plugin {
   return {
     name: "processWinCa",
-    setup: (build) => {
+    setup: (build: PluginBuild) => {
       build.onLoad({ filter: /win-ca\/lib\/crypt32-\w*.node$/ }, async () => {
         // As win-ca fallback is used, skip not required `.node` binaries
         return {
@@ -57,6 +57,7 @@ export default defineConfig(async () => {
       name: "lsp-protocol",
       entry: ["src/lsp/protocol.ts"],
       dts: true,
+      external: ["vscode-languageserver-protocol"],
       banner: {
         js: banner,
       },
@@ -68,15 +69,20 @@ export default defineConfig(async () => {
       platform: "node",
       target: "node18",
       sourcemap: true,
-      banner: {
-        js: banner,
-      },
+      clean: true,
       define: {
         "process.env.IS_TEST": "false",
         "process.env.IS_BROWSER": "false",
       },
+      treeshake: {
+        preset: "smallest",
+        moduleSideEffects: "no-external",
+      },
+      external: ["vscode-languageserver/browser"],
       esbuildPlugins: [processWinCa(true)],
-      clean: true,
+      banner: {
+        js: banner,
+      },
     },
     {
       name: "lsp-browser",
@@ -84,23 +90,34 @@ export default defineConfig(async () => {
       outDir: "dist/browser",
       platform: "browser",
       format: "esm",
-      treeshake: "smallest", // Required for browser to cleanup fs related libs
       sourcemap: true,
-      banner: {
-        js: banner,
-      },
-      external: ["glob", "fs-extra", "chokidar", "file-stream-rotator", "win-ca", "mac-ca"],
+      clean: true,
       define: {
         "process.env.IS_TEST": "false",
         "process.env.IS_BROWSER": "true",
       },
+      treeshake: {
+        preset: "smallest",
+        moduleSideEffects: "no-external",
+      },
+      external: [
+        "glob",
+        "fs-extra",
+        "chokidar",
+        "file-stream-rotator",
+        "win-ca",
+        "mac-ca",
+        "vscode-languageserver/node",
+      ],
       esbuildPlugins: [
         processWinCa(),
         polyfillNode({
           polyfills: {},
         }),
       ],
-      clean: true,
+      banner: {
+        js: banner,
+      },
     },
   ];
 });
