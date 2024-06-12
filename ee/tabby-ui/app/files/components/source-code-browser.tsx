@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 import { createRequest } from '@urql/core'
 import { compact, isEmpty, toNumber } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
-import { toast } from 'sonner'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
@@ -113,10 +112,13 @@ type SourceCodeBrowserContextValue = {
   isChatEnabled: boolean | undefined
   activeRepo: RepositoryItem | undefined
   activeRepoRef:
-    | { kind?: 'branch' | 'tag'; name?: string; ref: string }
-    | undefined
+  | { kind?: 'branch' | 'tag'; name?: string; ref: string }
+  | undefined
   isPathInitialized: boolean
   activeEntryInfo: ReturnType<typeof resolveRepositoryInfoFromPath>
+  fetchingTreeEntries: boolean
+  setFetchingTreeEntries: React.Dispatch<React.SetStateAction<boolean>>
+
 }
 
 const SourceCodeBrowserContext =
@@ -128,11 +130,10 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   children
 }) => {
   const pathname = usePathname()
-  const { setProgress } = useTopbarProgress()
   const { updatePathnameAndSearch } = useRouterStuff()
   const [isPathInitialized, setIsPathInitialized] = React.useState(false)
   const [activePath, setActivePath] = React.useState<string | undefined>()
-
+  const [fetchingTreeEntries, setFetchingTreeEntries] = React.useState(false)
   const activeEntryInfo = React.useMemo(() => {
     return resolveRepositoryInfoFromPath(activePath)
   }, [activePath])
@@ -148,15 +149,18 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   const [pendingEvent, setPendingEvent] = React.useState<
     QuickActionEventPayload | undefined
   >()
+  const prevActivePath = React.useRef<string | undefined>()
 
+  // todo fetch all entries should use swr
   const fetchAllEntries = React.useCallback(
     async (fullPath: string) => {
       if (!fullPath) return
-
-      const { repositorySpecifier, rev, basename } =
+      const { repositorySpecifier, basename, rev } =
         resolveRepositoryInfoFromPath(fullPath)
+      const { repositorySpecifier: prevRepositorySpecifier, rev: prevRev } =
+      resolveRepositoryInfoFromPath(prevActivePath.current)
       try {
-        setProgress(true)
+        setFetchingTreeEntries(true)
         // fetch dirs
         const entries = await fetchEntriesFromPath(
           fullPath,
@@ -175,21 +179,34 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
             }
           }
         }
-        const expandedKeys = expandedDirs.map(dir =>
-          [repositorySpecifier, rev, dir].filter(Boolean).join('/')
-        )
+
+        // todo remove ''
+        const expandedKeys = expandedDirs.filter(Boolean)
         if (patchMap) {
-          setFileMap(patchMap)
+          if (repositorySpecifier !== prevRepositorySpecifier || rev !== prevRev) {
+            setFileMap(patchMap)
+          } else {
+            setFileMap(prev => ({
+              ...prev,
+              ...patchMap
+            }))
+          }
         }
         if (expandedKeys?.length) {
-          setExpandedKeys(new Set(expandedKeys))
+          setExpandedKeys(keys => {
+            const newSet = new Set(keys)
+            for (const k of expandedKeys) {
+              newSet.add(k)
+            }
+            return newSet
+          })
         }
       } catch (e) {
       } finally {
-        setProgress(false)
+        setFetchingTreeEntries(false)
       }
     },
-    [repoMap]
+    [repoMap, activeEntryInfo?.viewMode]
   )
 
   const updateActivePath: SourceCodeBrowserContextValue['updateActivePath'] =
@@ -203,9 +220,6 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
             replace
           })
         } else {
-          if (options?.shouldFetchAllEntries) {
-            await fetchAllEntries(path)
-          }
           const setParams: Record<string, string> = {}
           let delList = [
             'plain',
@@ -298,12 +312,25 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   React.useEffect(() => {
     const regex = /^\/files\/(.*)/
     const path = pathname.match(regex)?.[1]
-
+    prevActivePath.current = activePath
     setActivePath(path ?? '')
     if (!isPathInitialized) {
       setIsPathInitialized(true)
     }
   }, [pathname])
+
+  React.useEffect(() => {
+    if (!isPathInitialized || isEmpty(repoMap)) return
+
+    const update = async (activePath: string) => {
+      await fetchAllEntries(activePath)
+    }
+
+    if (activePath) {
+      update(activePath)
+    }
+
+  }, [activeEntryInfo, repoMap])
 
   return (
     <SourceCodeBrowserContext.Provider
@@ -329,7 +356,9 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         activeRepo,
         activeRepoRef,
         isPathInitialized,
-        activeEntryInfo
+        activeEntryInfo,
+        fetchingTreeEntries,
+        setFetchingTreeEntries
       }}
     >
       {children}
@@ -361,7 +390,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     activeRepo,
     activeRepoRef,
     isPathInitialized,
-    activeEntryInfo
+    activeEntryInfo,
+    fetchingTreeEntries,
   } = React.useContext(SourceCodeBrowserContext)
   const { searchParams } = useRouterStuff()
   const activeEntryPath = activeEntryInfo?.basename
@@ -380,17 +410,17 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   const isBlobMode = activeEntryInfo?.viewMode === 'blob'
 
+  // todo handle entries error
   const shouldFetchSubDir = React.useMemo(() => {
-    if (!initialized) return false
+    if (!initialized || fetchingTreeEntries) return false
 
-    // const isDir =
-    //   activeEntryPath && fileMap?.[activeEntryPath]?.file?.kind === 'dir'
     const isDir = activeEntryInfo?.viewMode === 'tree'
     return isDir && activeEntryPath && !fileMap?.[activeEntryPath]?.treeExpanded
-  }, [activeEntryInfo?.viewMode, activeEntryPath, fileMap, initialized])
+  }, [activeEntryInfo?.viewMode, activeEntryPath, fileMap, initialized, fetchingTreeEntries])
 
   // fetch raw file
-  const { data: rawFileResponse, isLoading: fetchingRawFile } =
+  // todo handle raw file error
+  const { data: rawFileResponse, isLoading: fetchingRawFile, error: rawFileError } =
     useSWRImmutable<{
       blob?: Blob
       contentLength?: number
@@ -412,13 +442,13 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
               contentLength,
               blob
             }
-          }
-        }),
-      {
-        onError(err) {
-          toast.error('Fail to fetch')
-        }
-      }
+          },
+          errorHandler(response) {
+              if (!response?.ok) {
+                throw new Error()
+              }
+          },
+        })
     )
 
   const fileBlob = rawFileResponse?.blob
@@ -452,9 +482,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       if (initializing.current) return
 
       initializing.current = true
-      const { patchMap, expandedKeys, repos } = await getInitialFileData(
-        activePath
-      )
+      const repos = await fetchAllRepositories()
       const redirect_filepath = searchParams.get('redirect_filepath')
       const redirect_git_url = searchParams.get('redirect_git_url')
       const line = searchParams.get('line')
@@ -476,24 +504,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         }
       }
 
-      // By default, selecting the first repository if initialPath is empty
-      if (repos?.length && !activePath) {
-        const targetRepo = repos?.[0]
-        const defaultRef = getDefaultRepoRef(targetRepo.refs)
-        // use 'main' as fallback
-        const refName = resolveRepoRef(defaultRef ?? '')?.name || 'main'
-        const repoSpecifier = resolveRepoSpecifierFromRepoInfo(targetRepo)
-        updateActivePath(`${repoSpecifier}/${refName}`, {
-          replace: true
-        })
-        initializing.current = false
-        return
-      }
-
-      // todo
       if (repos) setRepoMap(repositoryList2Map(repos))
-      if (patchMap) updateFileMap(patchMap)
-      if (expandedKeys?.length) setExpandedKeys(new Set(expandedKeys))
       setInitialized(true)
     }
 
@@ -504,12 +515,12 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   React.useEffect(() => {
     if (!initialized) return
-    if (fetchingSubTree || fetchingRawFile) {
+    if (fetchingSubTree || fetchingRawFile || fetchingTreeEntries) {
       setProgress(true)
-    } else if (!fetchingSubTree && !fetchingRawFile) {
+    } else if (!fetchingSubTree && !fetchingRawFile && !fetchingTreeEntries) {
       setProgress(false)
     }
-  }, [fetchingSubTree, fetchingRawFile])
+  }, [fetchingSubTree, fetchingRawFile, fetchingTreeEntries])
 
   React.useEffect(() => {
     const onFetchSubTree = () => {
@@ -664,78 +675,16 @@ const SourceCodeBrowser: React.FC<SourceCodeBrowserProps> = props => {
   )
 }
 
-async function getInitialFileData(path?: string) {
-  try {
-    const {
-      basename: initialBasename,
-      repositorySpecifier,
-      rev
-    } = resolveRepositoryInfoFromPath(path)
-    const repos = await fetchAllRepositories()
-    const repoMap = repositoryList2Map(repos)
-    const initialRepo = repositorySpecifier
-      ? repoMap?.[repositorySpecifier]
-      : undefined
-    const initialEntries =
-      path && initialRepo ? await fetchInitialEntries(path, repoMap) : []
-    const initialExpandedDirs = path
-      ? getDirectoriesFromBasename(initialBasename)
-      : []
-
-    const patchMap: TFileMap = {}
-    for (const entry of initialEntries) {
-      const path = entry.basename
-      patchMap[path] = {
-        file: entry,
-        name: resolveFileNameFromPath(path),
-        // fullPath: generateEntryPath(initialRepo, rev, entry.basename, entry.kind),
-        fullPath: path,
-        treeExpanded: initialExpandedDirs.includes(entry.basename)
-      }
-    }
-
-    return { patchMap, expandedKeys: initialExpandedDirs, repos }
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error(e)
-    return {}
-  }
-
-  async function fetchAllRepositories(): Promise<
-    RepositoryListQuery['repositoryList']
-  > {
-    const query = client.createRequestOperation(
-      'query',
-      createRequest(repositoryListQuery, {})
-    )
-    return client
-      .executeQuery(query)
-      .then(data => data?.data?.repositoryList || [])
-  }
-
-  async function fetchInitialEntries(
-    path: string,
-    repoMap: Record<string, RepositoryItem>
-  ) {
-    let result: TFile[] = []
-    try {
-      const { repositorySpecifier } = resolveRepositoryInfoFromPath(path)
-      if (!isEmpty(repoMap) && repositorySpecifier) {
-        const repo = repoMap[repositorySpecifier]
-        if (!repo) {
-          return result
-        }
-
-        const defaultEntries = await fetchEntriesFromPath(path, repo)
-        result = defaultEntries ?? []
-      }
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error(e)
-      return result
-    }
-    return result
-  }
+async function fetchAllRepositories(): Promise<
+  RepositoryListQuery['repositoryList']
+> {
+  const query = client.createRequestOperation(
+    'query',
+    createRequest(repositoryListQuery, {})
+  )
+  return client
+    .executeQuery(query)
+    .then(data => data?.data?.repositoryList || [])
 }
 
 function isReadableTextFile(blob: Blob) {

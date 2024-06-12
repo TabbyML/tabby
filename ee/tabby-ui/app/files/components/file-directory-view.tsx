@@ -149,10 +149,13 @@ const DirectoryView: React.FC<DirectoryViewProps> = ({
             </>
           </TableBody>
         </Table>
-      ) : (
+      ) : isEmpty(repoMap) ? (
         <div className="flex justify-center py-8">
           No indexed repository yet
         </div>
+      ) : (
+        // <div>404</div>
+        null
       )}
     </div>
   )

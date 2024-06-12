@@ -111,9 +111,9 @@ async function fetchEntriesFromPath(
 ) {
   if (!path || !repository) return []
 
-  const { basename, rev } = resolveRepositoryInfoFromPath(path)
+  const { basename, rev, viewMode } = resolveRepositoryInfoFromPath(path)
   // array of dir basename that do not include the repo name.
-  const directoryPaths = getDirectoriesFromBasename(basename)
+  const directoryPaths = getDirectoriesFromBasename(basename, viewMode === 'tree')
   // fetch all dirs from path
   const requests: Array<() => Promise<ResolveEntriesResponse>> =
     directoryPaths.map(

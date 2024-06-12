@@ -137,13 +137,8 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     const nextRev = resolveRepoRef(ref)?.name ?? 'main'
     const { basename = '' } = resolveRepositoryInfoFromPath(activePath)
     const kind = fileMap?.[basename]?.file?.kind ?? 'dir'
-    // updateActivePath(`${repositorySpecifier}/${nextRev}/${basename}`, {
-    //   shouldFetchAllEntries: true
-    // })
-    updateActivePath(generateEntryPath(activeRepo, nextRev, basename, kind), {
-      // todo
-      shouldFetchAllEntries: true
-    })
+
+    updateActivePath(generateEntryPath(activeRepo, nextRev, basename, kind))
   }
 
   React.useEffect(() => {
@@ -157,7 +152,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   }, [repositorySearchData?.repositorySearch])
 
   const onSelectRepo = (path: string) => {
-    updateActivePath(path, { shouldFetchAllEntries: true })
+    updateActivePath(path)
   }
 
   const onInputValueChange = useDebounceCallback((v: string | undefined) => {
@@ -179,10 +174,11 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     const path = value.path
     if (!path) return
 
+    // todo generate entry path
     const fullPath = `${repositorySpecifier}/${
       activeRepoRef?.name ?? ''
     }/${path}`
-    await updateActivePath(fullPath, { shouldFetchAllEntries: true })
+    await updateActivePath(fullPath)
   }
 
   // shortcut 't'
