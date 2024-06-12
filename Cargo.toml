@@ -77,3 +77,6 @@ insta.opt-level = 3
 
 [profile.dev.package."*"]
 debug = 0
+
+[profile.dev.package.tantivy]
+debug = 1
