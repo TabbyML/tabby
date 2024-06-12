@@ -6,6 +6,7 @@ import { ThemeProvider as NextThemesProvider } from 'next-themes'
 import { ThemeProviderProps } from 'next-themes/dist/types'
 import { Provider as UrqlProvider } from 'urql'
 
+import { PostHogProvider } from '@/lib/posthog'
 import { AuthProvider, useAuthenticatedSession } from '@/lib/tabby/auth'
 import { client } from '@/lib/tabby/gql'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -25,8 +26,10 @@ export function Providers({ children, ...props }: ThemeProviderProps) {
           <AuthProvider>
             <TopbarProgressProvider>
               <ShowDemoBannerProvider>
-                {!isPublicPath && <EnsureSignin />}
-                {children}
+                <PostHogProvider>
+                  {!isPublicPath && <EnsureSignin />}
+                  {children}
+                </PostHogProvider>
               </ShowDemoBannerProvider>
             </TopbarProgressProvider>
           </AuthProvider>
