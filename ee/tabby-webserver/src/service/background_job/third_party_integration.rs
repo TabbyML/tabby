@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
+use issues::{fetch_github_issues, fetch_gitlab_issues, index_issues};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
 use tabby_inference::Embedding;
@@ -10,8 +11,6 @@ use tabby_schema::{
     repository::ThirdPartyRepositoryService,
 };
 use tracing::debug;
-
-use issues::{fetch_github_issues, fetch_gitlab_issues, index_issues};
 
 use super::{helper::Job, BackgroundJobEvent};
 
