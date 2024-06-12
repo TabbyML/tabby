@@ -1,3 +1,12 @@
+## 1.7.3
+
+**stable**
+
+### Fixes & Improvements
+
+- Updated the walkthrough guides.
+- Fixed bugs causing the web extension initialization to fail.
+
 ## 1.7.2
 
 **pre-release**
