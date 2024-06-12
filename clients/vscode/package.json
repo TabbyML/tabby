@@ -141,7 +141,7 @@
         },
         {
           "command": "tabby.chat.fixCodeBlock",
-          "when": "editorHasSelection && tabby.chatEnabled"
+          "when": "false"
         },
         {
           "command": "tabby.chat.generateCodeBlockDoc",
