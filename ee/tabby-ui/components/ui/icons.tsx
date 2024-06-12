@@ -9,6 +9,7 @@ import {
   GitFork,
   Layers2,
   Mail,
+  Play,
   Search,
   Sparkles,
   Star
@@ -1488,6 +1489,10 @@ function IconSearch({
   return <Search className={cn('h4 w-4', className)} {...props} />
 }
 
+function IconPlay({ className, ...props }: React.ComponentProps<typeof Play>) {
+  return <Play className={cn('h4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1567,5 +1572,6 @@ export {
   IconJetBrains,
   IconLayers,
   IconSparkles,
-  IconSearch
+  IconSearch,
+  IconPlay
 }

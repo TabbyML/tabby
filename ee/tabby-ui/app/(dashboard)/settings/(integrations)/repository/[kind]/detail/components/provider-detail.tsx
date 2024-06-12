@@ -1,7 +1,9 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { isNil } from 'lodash-es'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
@@ -33,6 +35,7 @@ import {
 import {
   IconChevronLeft,
   IconChevronRight,
+  IconPlay,
   IconPlus,
   IconSpinner,
   IconTrash
@@ -45,6 +48,11 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
@@ -275,7 +283,8 @@ const ActiveRepoTable: React.FC<{
           <TableRow>
             <TableHead className="w-[25%]">Name</TableHead>
             <TableHead className="w-[45%]">URL</TableHead>
-            <TableHead className="text-right">
+            <TableHead>Job</TableHead>
+            <TableHead className="w-[100px] text-right">
               <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="top-[20vh]">
                   <DialogHeader className="gap-3">
@@ -310,6 +319,7 @@ const ActiveRepoTable: React.FC<{
                   <TableRow key={x.node.id} className="!bg-muted/80">
                     <TableCell>{x.node.displayName}</TableCell>
                     <TableCell>{x.node.gitUrl}</TableCell>
+                    <TableCell></TableCell>
                     <TableCell className="flex justify-end">
                       <div
                         className={buttonVariants({
@@ -323,11 +333,48 @@ const ActiveRepoTable: React.FC<{
                   </TableRow>
                 )
               })}
-              {activeRepos?.map(x => {
+              {activeRepos?.map((x, index) => {
+                const lastJobRun = x.node.jobInfo.lastJobRun
+                const hasRunningJob =
+                  !!lastJobRun?.id && isNil(lastJobRun.exitCode)
+
                 return (
                   <TableRow key={x.node.id}>
                     <TableCell>{x.node.displayName}</TableCell>
                     <TableCell>{x.node.gitUrl}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        {hasRunningJob ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link
+                                href={`/jobs/detail?id=${lastJobRun.id}`}
+                                className={buttonVariants({
+                                  variant: 'ghost',
+                                  size: 'icon'
+                                })}
+                              >
+                                <IconSpinner />
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Navigate to job detail
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="icon" variant="ghost">
+                                <IconPlay />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Run</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="flex justify-end">
                       <div className="flex gap-1">
                         <Button

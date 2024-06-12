@@ -1,6 +1,8 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
+import { isNil } from 'lodash-es'
 import { toast } from 'sonner'
 import { useClient, useQuery } from 'urql'
 
@@ -9,8 +11,8 @@ import { graphql } from '@/lib/gql/generates'
 import { GitRepositoriesQueryVariables } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { listRepositories } from '@/lib/tabby/query'
-import { Button } from '@/components/ui/button'
-import { IconTrash } from '@/components/ui/icons'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { IconPlay, IconSpinner, IconTrash } from '@/components/ui/icons'
 import {
   Pagination,
   PaginationContent,
@@ -26,6 +28,11 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 const deleteRepositoryMutation = graphql(/* GraphQL */ `
@@ -35,6 +42,7 @@ const deleteRepositoryMutation = graphql(/* GraphQL */ `
 `)
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE
+
 export default function RepositoryTable() {
   const client = useClient()
   const [{ data, fetching }] = useQuery({
@@ -116,24 +124,61 @@ export default function RepositoryTable() {
         <TableHeader>
           <TableRow>
             <TableHead className="w-[25%]">Name</TableHead>
-            <TableHead>Git URL</TableHead>
+            <TableHead className="w-[45%]">Git URL</TableHead>
+            <TableHead>Job</TableHead>
             <TableHead className="w-[100px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {!currentPageRepos?.length && currentPage === 1 ? (
             <TableRow>
-              <TableCell colSpan={3} className="h-[100px] text-center">
+              <TableCell colSpan={4} className="h-[100px] text-center">
                 No Data
               </TableCell>
             </TableRow>
           ) : (
             <>
               {currentPageRepos?.map(x => {
+                const lastJobRun = x.node.jobInfo.lastJobRun
+                const hasRunningJob =
+                  !!lastJobRun?.id && isNil(lastJobRun.exitCode)
                 return (
                   <TableRow key={x.node.id}>
                     <TableCell className="truncate">{x.node.name}</TableCell>
                     <TableCell className="truncate">{x.node.gitUrl}</TableCell>
+                    <TableCell className="truncate">
+                      <div className="flex items-center gap-1.5">
+                        {hasRunningJob ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link
+                                href={`/jobs/detail?id=${lastJobRun.id}`}
+                                className={buttonVariants({
+                                  variant: 'ghost',
+                                  size: 'icon'
+                                })}
+                              >
+                                <IconSpinner />
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Navigate to job detail
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="icon" variant="ghost">
+                                <IconPlay />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Run</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="flex justify-end">
                       <div className="flex gap-1">
                         <Button
