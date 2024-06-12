@@ -9,6 +9,7 @@ use anyhow::anyhow;
 use cache::Cache;
 use cached::TimedSizedCache;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
+pub use doc_crawler_urls::DocCrawlerUrlDAO;
 pub use email_setting::EmailSettingDAO;
 pub use integrations::IntegrationDAO;
 pub use invitations::InvitationDAO;
@@ -27,6 +28,7 @@ pub use user_events::UserEventDAO;
 pub use users::UserDAO;
 
 pub mod cache;
+mod doc_crawler_urls;
 mod email_setting;
 mod integrations;
 mod invitations;

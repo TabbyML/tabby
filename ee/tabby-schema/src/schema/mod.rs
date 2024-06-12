@@ -1,6 +1,7 @@
 pub mod analytic;
 pub mod auth;
 pub mod constants;
+pub mod doc_crawler;
 pub mod email;
 pub mod integration;
 pub mod job;
@@ -34,6 +35,7 @@ use self::{
         JWTPayload, OAuthCredential, OAuthProvider, PasswordChangeInput, PasswordResetInput,
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
+    doc_crawler::{CreateDocCrawlerUrlInput, DocCrawlerService, DocCrawlerUrl},
     email::{EmailService, EmailSetting, EmailSettingInput},
     integration::{Integration, IntegrationKind, IntegrationService},
     job::JobStats,
@@ -65,6 +67,7 @@ pub trait ServiceLocator: Send + Sync {
     fn license(&self) -> Arc<dyn LicenseService>;
     fn analytic(&self) -> Arc<dyn AnalyticService>;
     fn user_event(&self) -> Arc<dyn UserEventService>;
+    fn doc_crawler(&self) -> Arc<dyn DocCrawlerService>;
 }
 
 pub struct Context {
@@ -471,6 +474,28 @@ impl Query {
         )
         .await
     }
+
+    async fn doc_crawler_urls(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<DocCrawlerUrl>> {
+        query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .doc_crawler()
+                    .list_doc_crawler_urls(after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
 }
 
 #[derive(GraphQLObject)]
@@ -805,6 +830,20 @@ impl Mutation {
     async fn trigger_job_run(ctx: &Context, _command: String) -> Result<ID> {
         check_admin(ctx).await?;
         bail!("Not implemented")
+    }
+
+    async fn create_doc_crawler_url(ctx: &Context, input: CreateDocCrawlerUrlInput) -> Result<ID> {
+        let id = ctx
+            .locator
+            .doc_crawler()
+            .create_doc_crawler_url(input.url)
+            .await?;
+        Ok(id)
+    }
+
+    async fn delete_doc_crawler_url(ctx: &Context, id: ID) -> Result<bool> {
+        ctx.locator.doc_crawler().delete_doc_crawler_url(id).await?;
+        Ok(true)
     }
 }
 

@@ -1,6 +1,7 @@
 mod analytic;
 mod auth;
 pub mod background_job;
+mod doc_crawler;
 mod email;
 pub mod event_logger;
 pub mod integration;
@@ -29,6 +30,7 @@ use tabby_db::DbConn;
 use tabby_schema::{
     analytic::AnalyticService,
     auth::AuthenticationService,
+    doc_crawler::DocCrawlerService,
     email::EmailService,
     integration::IntegrationService,
     is_demo_mode,
@@ -53,6 +55,7 @@ struct ServerContext {
     integration: Arc<dyn IntegrationService>,
     user_event: Arc<dyn UserEventService>,
     job: Arc<dyn JobService>,
+    doc_crawler: Arc<dyn DocCrawlerService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -92,6 +95,7 @@ impl ServerContext {
                 license.clone(),
                 setting.clone(),
             )),
+            doc_crawler: Arc::new(doc_crawler::create(db_conn.clone())),
             license,
             repository,
             integration,
@@ -240,6 +244,10 @@ impl ServiceLocator for ArcServerContext {
 
     fn integration(&self) -> Arc<dyn IntegrationService> {
         self.0.integration.clone()
+    }
+
+    fn doc_crawler(&self) -> Arc<dyn DocCrawlerService> {
+        self.0.doc_crawler.clone()
     }
 }
 

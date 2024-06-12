@@ -2,11 +2,12 @@ use anyhow::bail;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
-    ServerSettingDAO, UserDAO, UserEventDAO,
+    DocCrawlerUrlDAO, EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO,
+    OAuthCredentialDAO, ServerSettingDAO, UserDAO, UserEventDAO,
 };
 
 use crate::{
+    doc_crawler::DocCrawlerUrl,
     integration::{Integration, IntegrationKind, IntegrationStatus},
     repository::{ProvidedRepository, RepositoryKind},
     schema::{
@@ -77,6 +78,16 @@ impl TryFrom<OAuthCredentialDAO> for OAuthCredential {
             updated_at: *val.updated_at,
             client_secret: val.client_secret,
         })
+    }
+}
+
+impl From<DocCrawlerUrlDAO> for DocCrawlerUrl {
+    fn from(value: DocCrawlerUrlDAO) -> Self {
+        Self {
+            url: value.url,
+            id: value.id.as_id(),
+            created_at: *value.created_at,
+        }
     }
 }
 
