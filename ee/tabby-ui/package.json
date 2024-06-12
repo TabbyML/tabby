@@ -77,6 +77,7 @@
     "next-themes": "^0.2.1",
     "numeral": "^2.0.6",
     "openai-edge": "^0.5.1",
+    "posthog-js": "^1.139.0",
     "pretty-bytes": "^6.1.1",
     "react": "^18.2.0",
     "react-activity-calendar": "^2.2.8",

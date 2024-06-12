@@ -574,6 +574,9 @@ importers:
       openai-edge:
         specifier: ^0.5.1
         version: 0.5.1
+      posthog-js:
+        specifier: ^1.139.0
+        version: 1.139.0
       pretty-bytes:
         specifier: ^6.1.1
         version: 6.1.1
@@ -5848,6 +5851,9 @@ packages:
   fd-slicer@1.1.0:
     resolution: {integrity: sha512-cE1qsB/VwyQozZ+q1dGxR8LBYNZeofhEdUNGSMbQD3Gw2lAzX9Zb3uIU6Ebc/Fmyjo9AWWfnn0AUCHqtevs/8g==}
 
+  fflate@0.4.8:
+    resolution: {integrity: sha512-FJqqoDBR00Mdj9ppamLa/Y7vxm+PRmNWA67N846RvsoYVMKB4q3y/de5PA7gUmRMYK/8CMz2GDZQmCRN1wBcWA==}
+
   fflate@0.7.4:
     resolution: {integrity: sha512-5u2V/CDW15QM1XbbgS+0DfPxVB+jUKhWEKuuFuHncbk3tEEqzmoXL+2KyOFuKGqOnmdIy0/davWF1CkuwtibCw==}
 
@@ -8243,6 +8249,12 @@ packages:
   postcss@8.4.38:
     resolution: {integrity: sha512-Wglpdk03BSfXkHoQa3b/oulrotAkwrlLDRSOb9D0bN86FdRyE9lppSp33aHNPgBa0JKCoB+drFLZkQoRRYae5A==}
     engines: {node: ^10 || ^12 || >=14}
+
+  posthog-js@1.139.0:
+    resolution: {integrity: sha512-FuYlxQFO0Dq5X1/bFEM8F+NgOqZiVh4fPVHHeOTWMkqVP+pCnODQitbtW0hgT0/EE665w0xpZBk93YavaZRhzQ==}
+
+  preact@10.22.0:
+    resolution: {integrity: sha512-RRurnSjJPj4rp5K6XoP45Ui33ncb7e4H7WiOHVpjbkvqvA3U+N8Z6Qbo0AE6leGYBV66n8EhEaFixvIu3SkxFw==}
 
   prebuild-install@7.1.2:
     resolution: {integrity: sha512-UnNke3IQb6sgarcZIDU3gbMeTp/9SSU1DAIkil7PrqG1vZlBtY5msYccSKSHDqa3hNg436IXK+SNImReuA1wEQ==}
@@ -16651,6 +16663,8 @@ snapshots:
     dependencies:
       pend: 1.2.0
 
+  fflate@0.4.8: {}
+
   fflate@0.7.4: {}
 
   figures@3.2.0:
@@ -19432,6 +19446,13 @@ snapshots:
       nanoid: 3.3.7
       picocolors: 1.0.1
       source-map-js: 1.2.0
+
+  posthog-js@1.139.0:
+    dependencies:
+      fflate: 0.4.8
+      preact: 10.22.0
+
+  preact@10.22.0: {}
 
   prebuild-install@7.1.2:
     dependencies:
