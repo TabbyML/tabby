@@ -78,8 +78,9 @@ You can add also a remote embedding model provider by adding a new section to th
 ```toml
 [model.embedding.http]
 kind = "openai/embedding"
+api_endpoint = "https://api.openai.com"
 api_key = "sk-..."
-model_name = "gpt-4"
+model_name = "text-embedding-3-small"
 ```
 
 Following embedding model providers are supported:
