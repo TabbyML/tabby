@@ -1499,10 +1499,7 @@ function IconBox({ className, ...props }: React.ComponentProps<typeof Box>) {
   return <Box className={cn('h4 w-4', className)} {...props} />
 }
 
-function IconTag({
-  className,
-  ...props
-}: React.ComponentProps<typeof Tag>) {
+function IconTag({ className, ...props }: React.ComponentProps<typeof Tag>) {
   return <Tag className={cn('h4 w-4', className)} {...props} />
 }
 
