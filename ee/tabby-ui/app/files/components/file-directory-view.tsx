@@ -36,7 +36,8 @@ const DirectoryView: React.FC<DirectoryViewProps> = ({
     fileTreeData,
     activeRepo,
     activeRepoRef,
-    repoMap
+    repoMap,
+    activeEntryInfo
   } = React.useContext(SourceCodeBrowserContext)
 
   const files: TFileTreeNode[] = React.useMemo(() => {
@@ -66,28 +67,28 @@ const DirectoryView: React.FC<DirectoryViewProps> = ({
 
   const [loading] = useDebounceValue(propsLoading, 300)
 
-  const showParentEntry = currentFileRoutes?.length > 0
+  const showParentEntry = !!activeEntryInfo?.basename
   const parentNode = currentFileRoutes[currentFileRoutes?.length - 2]
 
   return (
     <div className={cn('text-base', className)}>
       <BlobHeader blob={undefined} hideBlobActions className="border-0" />
-      {loading || !initialized ? (
+      {(loading && !files?.length) || !initialized ? (
         <FileTreeSkeleton />
       ) : files?.length ? (
         <Table>
           <TableBody>
             {showParentEntry && (
               <TableRow className="cursor-pointer">
-                <Link
-                  href={`/files/${generateEntryPath(
-                    activeRepo,
-                    activeRepoRef?.name as string,
-                    parentNode?.file?.basename,
-                    parentNode?.file?.kind
-                  )}`}
-                >
-                  <TableCell className="p-1 px-4">
+                <TableCell className="p-1 px-4">
+                  <Link
+                    href={`/files/${generateEntryPath(
+                      activeRepo,
+                      activeRepoRef?.name as string,
+                      parentNode?.file?.basename,
+                      parentNode?.file?.kind
+                    )}`}
+                  >
                     <div className="flex items-center gap-2">
                       <div className="shrink-0">
                         <IconDirectorySolid
@@ -96,8 +97,8 @@ const DirectoryView: React.FC<DirectoryViewProps> = ({
                       </div>
                       <span className="px-1 py-2">..</span>
                     </div>
-                  </TableCell>
-                </Link>
+                  </Link>
+                </TableCell>
               </TableRow>
             )}
             <>
@@ -153,8 +154,7 @@ const DirectoryView: React.FC<DirectoryViewProps> = ({
         <div className="flex justify-center py-8">
           No indexed repository yet
         </div>
-      ) : // <div>404</div>
-      null}
+      ) : null}
     </div>
   )
 }

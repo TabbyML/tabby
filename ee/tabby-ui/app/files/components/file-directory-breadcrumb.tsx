@@ -1,4 +1,5 @@
 import React from 'react'
+import Link from 'next/link'
 
 import { RepositoryKind } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
@@ -19,7 +20,6 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
 }) => {
   const {
     currentFileRoutes,
-    updateActivePath,
     activePath,
     activeRepo,
     activeRepoRef,
@@ -61,36 +61,32 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
   return (
     <div className={cn('flex flex-nowrap items-center gap-1', className)}>
       <div className="flex items-center gap-1 overflow-x-auto leading-8">
-        <div
-          className="cursor-pointer font-medium text-primary hover:underline"
-          onClick={e => updateActivePath(undefined)}
+        <Link
+          className="text-primary cursor-pointer font-medium hover:underline"
+          href="/files"
         >
           Repositories
-        </div>
+        </Link>
         <div>/</div>
         {routes?.map((route, idx) => {
           const isRepo = idx === 0 && routes?.length > 1
           const isActiveFile = idx === routes.length - 1
+          const classname = cn(
+            'whitespace-nowrap',
+            isRepo || isActiveFile ? 'font-bold' : 'font-medium',
+            isActiveFile ? '' : 'text-primary cursor-pointer hover:underline',
+            isRepo ? 'hover:underline' : undefined
+          )
 
-          // todo use link
           return (
             <React.Fragment key={route.href}>
-              <div
-                className={cn(
-                  'whitespace-nowrap',
-                  isRepo || isActiveFile ? 'font-bold' : 'font-medium',
-                  isActiveFile
-                    ? ''
-                    : 'cursor-pointer text-primary hover:underline',
-                  isRepo ? 'hover:underline' : undefined
-                )}
-                onClick={e => {
-                  if (isActiveFile) return
-                  updateActivePath(route.href)
-                }}
-              >
-                {route.name}
-              </div>
+              {isActiveFile ? (
+                <div className={classname}>{route.name}</div>
+              ) : (
+                <Link className={classname} href={`/files/${route.href}`}>
+                  {route.name}
+                </Link>
+              )}
               {!isActiveFile && <div>/</div>}
             </React.Fragment>
           )

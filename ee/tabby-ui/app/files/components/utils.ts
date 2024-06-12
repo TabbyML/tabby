@@ -4,11 +4,15 @@ import {
   RepositoryKind,
   RepositoryListQuery
 } from '@/lib/gql/generates/graphql'
-import fetcher from '@/lib/tabby/fetcher'
-import { ResolveEntriesResponse, TFile } from '@/lib/types'
 
 export type ViewMode = 'tree' | 'blob'
 type RepositoryItem = RepositoryListQuery['repositoryList'][0]
+
+export enum Errors {
+  NOT_FOUND = 'NOT_FOUND',
+  INCORRECT_VIEW_MODE = 'INCORRECT_VIEW_MODE',
+  EMPTY_REPOSITORY = 'EMPTY_REPOSITORY'
+}
 
 function getProviderVariantFromKind(kind: RepositoryKind) {
   return kind.toLowerCase().replaceAll('_', '')
@@ -19,7 +23,6 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
   repositoryName?: string
   basename?: string
   repositorySpecifier?: string
-  // todo
   viewMode?: string
   rev?: string
 } {
@@ -105,38 +108,6 @@ function getDirectoriesFromBasename(
   return result
 }
 
-async function fetchEntriesFromPath(
-  path: string | undefined,
-  repository: RepositoryListQuery['repositoryList'][0] | undefined
-) {
-  if (!path || !repository) return []
-
-  const { basename, rev, viewMode } = resolveRepositoryInfoFromPath(path)
-  // array of dir basename that do not include the repo name.
-  const directoryPaths = getDirectoriesFromBasename(
-    basename,
-    viewMode === 'tree'
-  )
-  // fetch all dirs from path
-  const requests: Array<() => Promise<ResolveEntriesResponse>> =
-    directoryPaths.map(
-      dir => () =>
-        fetcher(
-          `/repositories/${getProviderVariantFromKind(repository.kind)}/${
-            repository.id
-          }/rev/${rev ?? 'main'}/${encodeURIComponentIgnoringSlash(dir)}`
-        ).catch(e => [])
-    )
-  const entries = await Promise.all(requests.map(fn => fn()))
-  let result: TFile[] = []
-  for (let entry of entries) {
-    if (entry?.entries?.length) {
-      result = [...result, ...entry.entries]
-    }
-  }
-  return result
-}
-
 function resolveRepoSpecifierFromRepoInfo(
   repo:
     | { kind: RepositoryKind | undefined; name: string | undefined }
@@ -214,7 +185,6 @@ function getDefaultRepoRef(refs: string[]) {
   return mainRef || masterRef || firstHeadRef || firstTagRef
 }
 
-// todo encode & decode
 function generateEntryPath(
   repo:
     | { kind: RepositoryKind | undefined; name: string | undefined }
@@ -224,7 +194,7 @@ function generateEntryPath(
   kind: 'dir' | 'file'
 ) {
   const specifier = resolveRepoSpecifierFromRepoInfo(repo)
-  // todo use 'main' as fallback
+  // use 'main' as fallback
   const finalRev = rev ?? 'main'
   return `${specifier}/${
     kind === 'dir' ? 'tree' : 'blob'
@@ -251,7 +221,6 @@ export {
   resolveRepoSpecifierFromRepoInfo,
   resolveFileNameFromPath,
   getDirectoriesFromBasename,
-  fetchEntriesFromPath,
   resolveRepositoryInfoFromPath,
   repositoryList2Map,
   repositoryMap2List,

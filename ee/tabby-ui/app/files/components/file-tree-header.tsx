@@ -51,8 +51,11 @@ import { RepositoryKindIcon } from './repository-kind-icon'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import {
   generateEntryPath,
+  getDefaultRepoRef,
+  repositoryMap2List,
   resolveRepoRef,
-  resolveRepositoryInfoFromPath
+  resolveRepositoryInfoFromPath,
+  resolveRepoSpecifierFromRepoInfo
 } from './utils'
 
 interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
@@ -87,13 +90,22 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
 }) => {
   const {
     activePath,
-    fileTreeData,
     updateActivePath,
     initialized,
     activeRepo,
     activeRepoRef,
-    fileMap
+    fileMap,
+    repoMap
   } = useContext(SourceCodeBrowserContext)
+  const repoList = React.useMemo(() => {
+    return repositoryMap2List(repoMap).map(repo => {
+      const repoSpecifier = resolveRepoSpecifierFromRepoInfo(repo) as string
+      return {
+        repo,
+        repoSpecifier
+      }
+    })
+  }, [repoMap])
   const [refSelectVisible, setRefSelectVisible] = React.useState(false)
   const [activeRefKind, setActiveRefKind] = React.useState<RepositoryRefKind>(
     activeRepoRef?.kind ?? 'branch'
@@ -117,7 +129,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   const [options, setOptions] = React.useState<Array<SearchOption>>()
   const [optionsVisible, setOptionsVisible] = React.useState(false)
 
-  const noIndexedRepo = initialized && !fileTreeData?.length
+  const noIndexedRepo = initialized && !repoList?.length
 
   const [{ data: repositorySearchData }] = useQuery({
     query: repositorySearch,
@@ -138,6 +150,8 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     const { basename = '' } = resolveRepositoryInfoFromPath(activePath)
     const kind = fileMap?.[basename]?.file?.kind ?? 'dir'
 
+    // clear repository search
+    setInput(undefined)
     updateActivePath(generateEntryPath(activeRepo, nextRev, basename, kind))
   }
 
@@ -151,8 +165,16 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     setOptionsVisible(!!repositorySearchPattern)
   }, [repositorySearchData?.repositorySearch])
 
-  const onSelectRepo = (path: string) => {
-    updateActivePath(path)
+  const onSelectRepo = (repoSpecifier: string) => {
+    const repo = repoList.find(o => o.repoSpecifier === repoSpecifier)?.repo
+    if (repo) {
+      const path = `${repoSpecifier}/tree/${
+        resolveRepoRef(getDefaultRepoRef(repo.refs)).name
+      }`
+      // clear repository search
+      setInput(undefined)
+      updateActivePath(path)
+    }
   }
 
   const onInputValueChange = useDebounceCallback((v: string | undefined) => {
@@ -171,14 +193,14 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   }
 
   const onSelectFile = async (value: SearchOption) => {
-    const path = value.path
-    if (!path) return
-
-    // todo generate entry path
-    const fullPath = `${repositorySpecifier}/${
-      activeRepoRef?.name ?? ''
-    }/${path}`
-    await updateActivePath(fullPath)
+    if (!value.path) return
+    const path = generateEntryPath(
+      activeRepo,
+      activeRepoRef?.name,
+      value.path,
+      value.type as any
+    )
+    updateActivePath(path)
   }
 
   // shortcut 't'
@@ -244,16 +266,18 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
               </SelectItem>
             ) : (
               <>
-                {/* todo use default */}
-                {fileTreeData?.map(repo => {
+                {repoList?.map(repo => {
                   return (
-                    <SelectItem key={repo.fullPath} value={repo.fullPath}>
+                    <SelectItem
+                      key={repo.repoSpecifier}
+                      value={repo.repoSpecifier}
+                    >
                       <div className="flex items-center gap-1">
                         <RepositoryKindIcon
-                          kind={repo?.repository?.kind}
+                          kind={repo.repo.kind}
                           fallback={<IconFolderGit />}
                         />
-                        {repo.name}
+                        {repo.repo.name}
                       </div>
                     </SelectItem>
                   )
@@ -297,7 +321,6 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                 value={activeRefKind}
                 onValueChange={v => setActiveRefKind(v as RepositoryRefKind)}
               >
-                {/* todo style */}
                 <TabsList className="bg-popover py-0">
                   <TabsTrigger value="branch">Branches</TabsTrigger>
                   <TabsTrigger value="tag">Tags</TabsTrigger>

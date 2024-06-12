@@ -46,6 +46,7 @@ interface FileTreeProps extends React.HTMLAttributes<HTMLDivElement> {
   toggleExpandedKey: (key: string) => void
   initialized: boolean
   fileTreeData: TFileTreeNode[]
+  fetchingTreeEntries: boolean
 }
 
 interface FileTreeProviderProps extends FileTreeProps {}
@@ -59,6 +60,7 @@ type FileTreeContextValue = {
   toggleExpandedKey: (key: string) => void
   activePath: string | undefined
   initialized: boolean
+  fetchingTreeEntries: boolean
 }
 
 type DirectoryTreeNodeProps = {
@@ -97,7 +99,8 @@ const FileTreeProvider: React.FC<
   expandedKeys,
   toggleExpandedKey,
   initialized,
-  fileTreeData
+  fileTreeData,
+  fetchingTreeEntries
 }) => {
   return (
     <FileTreeContext.Provider
@@ -109,7 +112,8 @@ const FileTreeProvider: React.FC<
         activePath,
         fileMap,
         updateFileMap,
-        initialized
+        initialized,
+        fetchingTreeEntries
       }}
     >
       {children}
@@ -340,25 +344,13 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
 }
 
 const FileTreeRenderer: React.FC = () => {
-  const { activeEntryInfo, repoMap } = React.useContext(
-    SourceCodeBrowserContext
-  )
-  const { initialized, activePath, fileMap, fileTreeData } =
+  const { repoMap } = React.useContext(SourceCodeBrowserContext)
+  const { initialized, activePath, fileTreeData, fetchingTreeEntries } =
     React.useContext(FileTreeContext)
   const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
 
-  // todo
   const hasSelectedRepo = !!repositorySpecifier
   const hasNoRepoEntries = hasSelectedRepo && !fileTreeData?.length
-  const activeEntryPath = activeEntryInfo?.basename
-  // const fetchingRepoEntries =
-  //   activeEntryPath &&
-  //   fileMap?.[activeEntryPath]?.isRepository &&
-  //   !fileMap?.[activeEntryPath]?.treeExpanded
-  const fetchingRepoEntries =
-    activeEntryPath &&
-    fileMap?.[activeEntryPath]?.isRepository &&
-    !fileMap?.[activeEntryPath]?.treeExpanded
 
   if (!initialized) return <FileTreeSkeleton />
 
@@ -374,7 +366,7 @@ const FileTreeRenderer: React.FC = () => {
   }
 
   if (hasNoRepoEntries) {
-    if (fetchingRepoEntries) {
+    if (fetchingTreeEntries) {
       return <FileTreeSkeleton />
     }
 

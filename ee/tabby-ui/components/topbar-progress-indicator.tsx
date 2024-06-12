@@ -23,15 +23,7 @@ const TopbarProgressProvider: React.FC<TopbarProgressProviderProps> = ({
   children
 }) => {
   const [progress, setProgress] = React.useState(false)
-  const updateProgress = React.useCallback(
-    (v: boolean) => {
-      if (v !== progress) {
-        setProgress(v)
-      }
-    },
-    [progress, setProgress]
-  )
-  const [debouncedProgress] = useDebounceValue(progress, 300, { leading: true })
+  const [debouncedProgress] = useDebounceValue(progress, 200, { leading: true })
   const { theme } = useTheme()
   React.useEffect(() => {
     TopBarProgress.config({

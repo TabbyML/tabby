@@ -49,7 +49,6 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
         const fullPath = `${repositorySpecifier}/${rev}/${context.filepath}`
         if (!fullPath) return
         updateActivePath(fullPath, {
-          shouldFetchAllEntries: true,
           params: {
             line: String(context.range.start)
           }

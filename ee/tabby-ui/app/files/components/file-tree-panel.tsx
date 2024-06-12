@@ -9,9 +9,13 @@ import { FileTreeHeader } from './file-tree-header'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { generateEntryPath } from './utils'
 
-interface FileTreePanelProps extends React.HTMLAttributes<HTMLDivElement> {}
+interface FileTreePanelProps extends React.HTMLAttributes<HTMLDivElement> {
+  fetchingTreeEntries: boolean
+}
 
-export const FileTreePanel: React.FC<FileTreePanelProps> = () => {
+export const FileTreePanel: React.FC<FileTreePanelProps> = ({
+  fetchingTreeEntries
+}) => {
   const {
     activePath,
     updateActivePath,
@@ -36,18 +40,6 @@ export const FileTreePanel: React.FC<FileTreePanelProps> = () => {
     updateActivePath(nextPath)
   }
 
-  // const currentFileTreeData = React.useMemo(() => {
-  //   const { repositorySpecifier, rev, basename } =
-  //     resolveRepositoryInfoFromPath(activePath)
-
-  //   if (!basename) return fileTreeData
-
-  //   const repo = fileTreeData.find(
-  //     treeNode => treeNode.fullPath === basename
-  //   )
-  //   return repo?.children ?? []
-  // }, [activePath, fileTreeData])
-
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <FileTreeHeader className="shrink-0 px-4 pb-3" />
@@ -64,6 +56,7 @@ export const FileTreePanel: React.FC<FileTreePanelProps> = () => {
           toggleExpandedKey={toggleExpandedKey}
           initialized={initialized}
           fileTreeData={fileTreeData}
+          fetchingTreeEntries={fetchingTreeEntries}
         />
       </div>
     </div>
