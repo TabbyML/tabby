@@ -11,7 +11,8 @@ use tabby_schema::{
 };
 use tracing::debug;
 
-use self::issues::index_github_issues;
+use issues::{fetch_github_issues, fetch_gitlab_issues, index_issues};
+
 use super::{helper::Job, BackgroundJobEvent};
 
 mod issues;
@@ -90,18 +91,26 @@ impl IndexIssuesJob {
 
         debug!("Indexing issues for repository {}", repository.display_name);
 
-        match &integration.kind {
+        let issues = match &integration.kind {
             IntegrationKind::Github | IntegrationKind::GithubSelfHosted => {
-                index_github_issues(
-                    embedding.clone(),
+                fetch_github_issues(
                     integration.api_base(),
                     &repository.display_name,
                     &integration.access_token,
                 )
-                .await?;
+                .await?
             }
-            IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => {}
-        }
+            IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => {
+                fetch_gitlab_issues(
+                    integration.api_base(),
+                    &repository.display_name,
+                    &integration.access_token,
+                )
+                .await?
+            }
+        };
+
+        index_issues(embedding, issues).await?;
         Ok(())
     }
 
