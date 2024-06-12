@@ -92,15 +92,15 @@ pub struct DocIndexer {
     indexer: Indexer<SourceDocument>,
 }
 
-pub struct IssueDocument {
+pub struct WebDocument {
     pub id: String,
     pub link: String,
     pub title: String,
     pub body: String,
 }
 
-impl From<IssueDocument> for SourceDocument {
-    fn from(value: IssueDocument) -> Self {
+impl From<WebDocument> for SourceDocument {
+    fn from(value: WebDocument) -> Self {
         Self {
             id: value.id,
             link: value.link,
@@ -116,7 +116,7 @@ impl DocIndexer {
         Self { indexer }
     }
 
-    pub async fn index_issue(&self, document: IssueDocument) {
+    pub async fn index_issue(&self, document: WebDocument) {
         self.indexer.add(document.into()).await;
     }
 

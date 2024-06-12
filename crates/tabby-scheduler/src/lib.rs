@@ -9,7 +9,7 @@ use async_stream::stream;
 pub use code::CodeIndexer;
 use crawl::crawl_pipeline;
 use doc::create_web_index;
-pub use doc::{DocIndexer, IssueDocument};
+pub use doc::{DocIndexer, WebDocument};
 use futures::StreamExt;
 pub use indexer::{IndexAttributeBuilder, Indexer};
 
