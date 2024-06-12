@@ -6,13 +6,14 @@ import {
   Blocks,
   BookOpenText,
   ChevronsDownUp,
+  CircleStop,
   GitFork,
   Layers2,
   Mail,
+  Play,
   Search,
   Sparkles,
-  Star,
-  Play
+  Star
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -1482,10 +1483,7 @@ function IconSearch({
   return <Search className={cn('h4 w-4', className)} {...props} />
 }
 
-function IconPlay({
-  className,
-  ...props
-}: React.ComponentProps<typeof Play>) {
+function IconPlay({ className, ...props }: React.ComponentProps<typeof Play>) {
   return <Play className={cn('h4 w-4', className)} {...props} />
 }
 

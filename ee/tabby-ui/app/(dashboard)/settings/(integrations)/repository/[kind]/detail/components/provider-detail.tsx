@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { isNil } from 'lodash-es'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
@@ -34,7 +35,6 @@ import {
 import {
   IconChevronLeft,
   IconChevronRight,
-  IconLink,
   IconPlay,
   IconPlus,
   IconSpinner,
@@ -334,13 +334,34 @@ const ActiveRepoTable: React.FC<{
                 )
               })}
               {activeRepos?.map((x, index) => {
+                const lastJobRun = x.node.jobInfo.lastJobRun
+                const hasRunningJob =
+                  !!lastJobRun?.id && isNil(lastJobRun.exitCode)
+
                 return (
                   <TableRow key={x.node.id}>
                     <TableCell>{x.node.displayName}</TableCell>
                     <TableCell>{x.node.gitUrl}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        {index !== 0 && (
+                        {hasRunningJob ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link
+                                href={`/jobs/detail?id=${lastJobRun.id}`}
+                                className={buttonVariants({
+                                  variant: 'ghost',
+                                  size: 'icon'
+                                })}
+                              >
+                                <IconSpinner />
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Navigate to job detail
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button size="icon" variant="ghost">
@@ -349,24 +370,6 @@ const ActiveRepoTable: React.FC<{
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Run</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                        {index === 0 && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Link
-                                href=""
-                                className={buttonVariants({
-                                  variant: 'ghost',
-                                  size: 'icon'
-                                })}
-                              >
-                                <IconLink />
-                              </Link>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              Navigate to job detail
                             </TooltipContent>
                           </Tooltip>
                         )}

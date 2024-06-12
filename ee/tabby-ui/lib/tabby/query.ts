@@ -45,6 +45,16 @@ export const listRepositories = graphql(/* GraphQL */ `
           id
           name
           gitUrl
+          jobInfo {
+            lastJobRun {
+              id
+              job
+              createdAt
+              finishedAt
+              exitCode
+            }
+            command
+          }
         }
         cursor
       }
@@ -228,6 +238,16 @@ export const listIntegratedRepositories = graphql(/* GraphQL */ `
           displayName
           gitUrl
           active
+          jobInfo {
+            lastJobRun {
+              id
+              job
+              createdAt
+              finishedAt
+              exitCode
+            }
+            command
+          }
         }
         cursor
       }

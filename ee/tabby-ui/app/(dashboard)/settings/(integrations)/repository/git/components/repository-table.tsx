@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import { isNil } from 'lodash-es'
 import { toast } from 'sonner'
 import { useClient, useQuery } from 'urql'
 
@@ -11,7 +12,7 @@ import { GitRepositoriesQueryVariables } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { listRepositories } from '@/lib/tabby/query'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { IconLink, IconPlay, IconTrash } from '@/components/ui/icons'
+import { IconPlay, IconSpinner, IconTrash } from '@/components/ui/icons'
 import {
   Pagination,
   PaginationContent,
@@ -137,14 +138,34 @@ export default function RepositoryTable() {
             </TableRow>
           ) : (
             <>
-              {currentPageRepos?.map((x, index) => {
+              {currentPageRepos?.map(x => {
+                const lastJobRun = x.node.jobInfo.lastJobRun
+                const hasRunningJob =
+                  !!lastJobRun?.id && isNil(lastJobRun.exitCode)
                 return (
                   <TableRow key={x.node.id}>
                     <TableCell className="truncate">{x.node.name}</TableCell>
                     <TableCell className="truncate">{x.node.gitUrl}</TableCell>
                     <TableCell className="truncate">
                       <div className="flex items-center gap-1.5">
-                        {index !== 0 && (
+                        {hasRunningJob ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link
+                                href={`/jobs/detail?id=${lastJobRun.id}`}
+                                className={buttonVariants({
+                                  variant: 'ghost',
+                                  size: 'icon'
+                                })}
+                              >
+                                <IconSpinner />
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Navigate to job detail
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button size="icon" variant="ghost">
@@ -153,24 +174,6 @@ export default function RepositoryTable() {
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Run</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                        {index === 0 && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Link
-                                href=""
-                                className={buttonVariants({
-                                  variant: 'ghost',
-                                  size: 'icon'
-                                })}
-                              >
-                                <IconLink />
-                              </Link>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              Navigate to job detail
                             </TooltipContent>
                           </Tooltip>
                         )}
