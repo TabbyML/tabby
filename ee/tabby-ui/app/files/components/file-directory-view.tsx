@@ -153,10 +153,8 @@ const DirectoryView: React.FC<DirectoryViewProps> = ({
         <div className="flex justify-center py-8">
           No indexed repository yet
         </div>
-      ) : (
-        // <div>404</div>
-        null
-      )}
+      ) : // <div>404</div>
+      null}
     </div>
   )
 }

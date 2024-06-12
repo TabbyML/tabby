@@ -48,7 +48,7 @@ interface FileTreeProps extends React.HTMLAttributes<HTMLDivElement> {
   fileTreeData: TFileTreeNode[]
 }
 
-interface FileTreeProviderProps extends FileTreeProps { }
+interface FileTreeProviderProps extends FileTreeProps {}
 
 type FileTreeContextValue = {
   fileMap: TFileMap
@@ -99,23 +99,23 @@ const FileTreeProvider: React.FC<
   initialized,
   fileTreeData
 }) => {
-    return (
-      <FileTreeContext.Provider
-        value={{
-          onSelectTreeNode,
-          fileTreeData,
-          expandedKeys,
-          toggleExpandedKey,
-          activePath,
-          fileMap,
-          updateFileMap,
-          initialized
-        }}
-      >
-        {children}
-      </FileTreeContext.Provider>
-    )
-  }
+  return (
+    <FileTreeContext.Provider
+      value={{
+        onSelectTreeNode,
+        fileTreeData,
+        expandedKeys,
+        toggleExpandedKey,
+        activePath,
+        fileMap,
+        updateFileMap,
+        initialized
+      }}
+    >
+      {children}
+    </FileTreeContext.Provider>
+  )
+}
 
 const GridArea: React.FC<{ level: number }> = ({ level }) => {
   const items = React.useMemo(() => {

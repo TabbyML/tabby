@@ -112,13 +112,12 @@ type SourceCodeBrowserContextValue = {
   isChatEnabled: boolean | undefined
   activeRepo: RepositoryItem | undefined
   activeRepoRef:
-  | { kind?: 'branch' | 'tag'; name?: string; ref: string }
-  | undefined
+    | { kind?: 'branch' | 'tag'; name?: string; ref: string }
+    | undefined
   isPathInitialized: boolean
   activeEntryInfo: ReturnType<typeof resolveRepositoryInfoFromPath>
   fetchingTreeEntries: boolean
   setFetchingTreeEntries: React.Dispatch<React.SetStateAction<boolean>>
-
 }
 
 const SourceCodeBrowserContext =
@@ -158,7 +157,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
       const { repositorySpecifier, basename, rev } =
         resolveRepositoryInfoFromPath(fullPath)
       const { repositorySpecifier: prevRepositorySpecifier, rev: prevRev } =
-      resolveRepositoryInfoFromPath(prevActivePath.current)
+        resolveRepositoryInfoFromPath(prevActivePath.current)
       try {
         setFetchingTreeEntries(true)
         // fetch dirs
@@ -183,7 +182,10 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         // todo remove ''
         const expandedKeys = expandedDirs.filter(Boolean)
         if (patchMap) {
-          if (repositorySpecifier !== prevRepositorySpecifier || rev !== prevRev) {
+          if (
+            repositorySpecifier !== prevRepositorySpecifier ||
+            rev !== prevRev
+          ) {
             setFileMap(patchMap)
           } else {
             setFileMap(prev => ({
@@ -329,7 +331,6 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
     if (activePath) {
       update(activePath)
     }
-
   }, [activeEntryInfo, repoMap])
 
   return (
@@ -391,7 +392,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     activeRepoRef,
     isPathInitialized,
     activeEntryInfo,
-    fetchingTreeEntries,
+    fetchingTreeEntries
   } = React.useContext(SourceCodeBrowserContext)
   const { searchParams } = useRouterStuff()
   const activeEntryPath = activeEntryInfo?.basename
@@ -416,40 +417,47 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
     const isDir = activeEntryInfo?.viewMode === 'tree'
     return isDir && activeEntryPath && !fileMap?.[activeEntryPath]?.treeExpanded
-  }, [activeEntryInfo?.viewMode, activeEntryPath, fileMap, initialized, fetchingTreeEntries])
+  }, [
+    activeEntryInfo?.viewMode,
+    activeEntryPath,
+    fileMap,
+    initialized,
+    fetchingTreeEntries
+  ])
 
   // fetch raw file
   // todo handle raw file error
-  const { data: rawFileResponse, isLoading: fetchingRawFile, error: rawFileError } =
-    useSWRImmutable<{
-      blob?: Blob
-      contentLength?: number
-    }>(
-      isBlobMode
-        ? toEntryRequestUrl(activeRepo, activeRepoRef?.name, activeBasename)
-        : null,
-      (url: string) =>
-        fetcher(url, {
-          responseFormatter: async response => {
-            if (!response.ok) return undefined
+  const {
+    data: rawFileResponse,
+    isLoading: fetchingRawFile,
+    error: rawFileError
+  } = useSWRImmutable<{
+    blob?: Blob
+    contentLength?: number
+  }>(
+    isBlobMode
+      ? toEntryRequestUrl(activeRepo, activeRepoRef?.name, activeBasename)
+      : null,
+    (url: string) =>
+      fetcher(url, {
+        responseFormatter: async response => {
+          if (!response.ok) return undefined
 
-            const contentLength = toNumber(
-              response.headers.get('Content-Length')
-            )
-            // todo abort big size request and truncate
-            const blob = await response.blob()
-            return {
-              contentLength,
-              blob
-            }
-          },
-          errorHandler(response) {
-              if (!response?.ok) {
-                throw new Error()
-              }
-          },
-        })
-    )
+          const contentLength = toNumber(response.headers.get('Content-Length'))
+          // todo abort big size request and truncate
+          const blob = await response.blob()
+          return {
+            contentLength,
+            blob
+          }
+        },
+        errorHandler(response) {
+          if (!response?.ok) {
+            throw new Error()
+          }
+        }
+      })
+  )
 
   const fileBlob = rawFileResponse?.blob
   const contentLength = rawFileResponse?.contentLength
