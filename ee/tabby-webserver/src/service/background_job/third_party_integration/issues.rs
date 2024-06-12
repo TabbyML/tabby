@@ -7,8 +7,10 @@ use gitlab::{
 };
 use octocrab::Octocrab;
 use serde::Deserialize;
+use tabby_common::index::IndexSchema;
 use tabby_inference::Embedding;
 use tabby_scheduler::{DocIndexer, WebDocument};
+use tantivy::{collector::TopDocs, query::TermQuery, schema::Value, TantivyDocument, Term};
 
 pub async fn fetch_github_issues(
     api_base: &str,
@@ -95,10 +97,30 @@ pub async fn fetch_gitlab_issues(
 pub async fn index_issues(embedding: Arc<dyn Embedding>, issues: Vec<WebDocument>) -> Result<()> {
     let index = DocIndexer::new(embedding);
 
+    let mut ids = vec![];
     for issue in issues {
+        ids.push(issue.id.clone());
         index.index_issue(issue).await;
     }
 
+    let i = index.indexer.writer.index().clone();
+
     index.commit();
+
+    if !ids.is_empty() {
+        let schema = IndexSchema::instance();
+        let search = i.reader()?.searcher();
+        let docs = search.search(
+            &TermQuery::new(
+                Term::from_field_text(schema.field_id, &ids[0]),
+                tantivy::schema::IndexRecordOption::Basic,
+            ),
+            &TopDocs::with_limit(1),
+        )?;
+        let doc: TantivyDocument = search.doc(docs[0].1)?;
+        for value in doc.field_values() {
+            dbg!(value.0, value.1.as_str());
+        }
+    }
     Ok(())
 }

@@ -89,7 +89,7 @@ pub fn create_web_index(embedding: Arc<dyn Embedding>) -> Indexer<SourceDocument
 }
 
 pub struct DocIndexer {
-    indexer: Indexer<SourceDocument>,
+    pub indexer: Indexer<SourceDocument>,
 }
 
 pub struct WebDocument {

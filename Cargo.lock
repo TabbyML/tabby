@@ -5395,6 +5395,7 @@ dependencies = [
  "tabby-inference",
  "tabby-scheduler",
  "tabby-schema",
+ "tantivy",
  "tarpc",
  "temp_testdir",
  "thiserror",

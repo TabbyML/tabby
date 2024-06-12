@@ -17,7 +17,7 @@ pub trait IndexAttributeBuilder<T>: Send + Sync {
 pub struct Indexer<T> {
     kind: &'static str,
     builder: Box<dyn IndexAttributeBuilder<T>>,
-    writer: IndexWriter,
+    pub writer: IndexWriter,
     pub recreated: bool,
 }
 
