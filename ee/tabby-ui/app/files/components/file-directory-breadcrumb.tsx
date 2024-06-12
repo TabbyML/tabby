@@ -38,7 +38,7 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
     const basename = activeEntryInfo?.basename
     let result = [
       {
-        name: activeRepo?.name ?? '',
+        name: activeEntryInfo?.repositoryName ?? '',
         href: generateEntryPath(activeRepo, activeRepoRef?.name, '', 'dir')
       }
     ]
