@@ -210,7 +210,7 @@ function generateEntryPath(
   const finalRev = rev ?? 'main'
   return `${specifier}/-/${
     kind === 'dir' ? 'tree' : 'blob'
-  }/${finalRev}/${basename}`
+  }/${finalRev}/${encodeURIComponentIgnoringSlash(basename)}`
 }
 
 function toEntryRequestUrl(
@@ -224,9 +224,7 @@ function toEntryRequestUrl(
 
   const activeRepoIdentity = `${getProviderVariantFromKind(kind)}/${repoId}`
 
-  return `/repositories/${activeRepoIdentity}/rev/${rev}/${encodeURIComponentIgnoringSlash(
-    basename ?? ''
-  )}`
+  return `/repositories/${activeRepoIdentity}/rev/${rev}/${basename ?? ''}`
 }
 
 export {

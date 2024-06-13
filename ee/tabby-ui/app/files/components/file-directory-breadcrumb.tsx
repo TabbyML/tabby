@@ -36,7 +36,7 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
         const p = pathSegments.slice(0, i + 1).join('/')
         const name = resolveFileNameFromPath(p)
         result.push({
-          name,
+          name: decodeURIComponent(name),
           href: generateEntryPath(activeRepo, activeRepoRef?.name, p, 'dir')
         })
       }

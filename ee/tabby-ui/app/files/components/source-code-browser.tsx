@@ -514,6 +514,28 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [activePath, isBlobMode, fileBlob])
 
   React.useEffect(() => {
+    if (chatSideBarVisible) {
+      chatSideBarPanelRef.current?.expand()
+      chatSideBarPanelRef.current?.resize(chatSideBarPanelSize)
+    } else {
+      chatSideBarPanelRef.current?.collapse()
+    }
+  }, [chatSideBarVisible])
+
+  React.useEffect(() => {
+    if (!(fetchingRawFile || fetchingTreeEntries)) return
+
+    const { repositorySpecifier, rev } = activeEntryInfo
+    const { repositorySpecifier: prevRepositorySpecifier, rev: prevRev } =
+      resolveRepositoryInfoFromPath(prevActivePath.current)
+    if (repositorySpecifier !== prevRepositorySpecifier || rev !== prevRev) {
+      // cleanup cache
+      updateFileMap({}, true)
+      setExpandedKeys(new Set())
+    }
+  }, [activeEntryInfo])
+
+  React.useEffect(() => {
     const onCallCompletion = (data: QuickActionEventPayload) => {
       setChatSideBarVisible(true)
       setPendingEvent(data)
@@ -524,15 +546,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       emitter.off('code_browser_quick_action', onCallCompletion)
     }
   }, [])
-
-  React.useEffect(() => {
-    if (chatSideBarVisible) {
-      chatSideBarPanelRef.current?.expand()
-      chatSideBarPanelRef.current?.resize(chatSideBarPanelSize)
-    } else {
-      chatSideBarPanelRef.current?.collapse()
-    }
-  }, [chatSideBarVisible])
 
   return (
     <ResizablePanelGroup
