@@ -70,12 +70,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ github.repository == 'TabbyML/tabby' }}
 
       - name: Log into Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+        if: ${{ github.repository == 'TabbyML/tabby' }}
 
       - name: Generate image name
         env:
@@ -110,7 +112,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           file: docker/Dockerfile.${{ matrix.device-type }}
-          push: true
+          push: ${{ github.repository == 'TabbyML/tabby' }}
           context: .
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -124,3 +126,4 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: tabbyml/tabby
+        if: ${{ github.repository == 'TabbyML/tabby' }}
