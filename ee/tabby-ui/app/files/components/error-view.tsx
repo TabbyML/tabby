@@ -3,23 +3,14 @@ import React from 'react'
 import { cn } from '@/lib/utils'
 import { IconFileSearch } from '@/components/ui/icons'
 
-import { SourceCodeBrowserContext } from './source-code-browser'
 import { Errors } from './utils'
-
-// import { Errors } from "./utils";
 
 interface ErrorViewProps extends React.HTMLAttributes<HTMLDivElement> {
   error: Error | undefined
 }
 
 export const ErrorView: React.FC<ErrorViewProps> = ({ className, error }) => {
-  const { activeEntryInfo, activeRepo, activeRepoRef } = React.useContext(
-    SourceCodeBrowserContext
-  )
-  const basename = activeEntryInfo?.basename
-  const isNotFound = error?.message === Errors.NOT_FOUND
   const isEmptyRepository = error?.message === Errors?.EMPTY_REPOSITORY
-  // const isEmptyRepository = !!basename && (!activeRepo || !activeRepoRef?.name)
 
   let errorMessge = 'Not found'
   if (isEmptyRepository) {
