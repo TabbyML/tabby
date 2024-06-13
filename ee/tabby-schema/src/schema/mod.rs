@@ -434,7 +434,7 @@ impl Query {
                 .map(|(index, repo)| {
                     Ok(Repository {
                         id: ID::new(format!("CONFIG_{}", index)),
-                        name: repo.canonical_git_url(),
+                        name: repo.dir_name(),
                         kind: RepositoryKind::Git,
                         dir: repo.dir(),
                         refs: tabby_git::list_refs(&repo.dir())?,
