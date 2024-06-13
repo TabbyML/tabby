@@ -12,7 +12,7 @@ export default function TextAreaSearch({
   onSearch,
   className,
   placeholder,
-  isExpanded
+  isExpanded,
 }: {
   onSearch: (value: string) => void
   className?: string

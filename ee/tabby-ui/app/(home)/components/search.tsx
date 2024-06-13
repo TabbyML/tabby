@@ -6,20 +6,16 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState
+  useState,
+  useImperativeHandle,
+  ForwardedRef,
+  forwardRef
 } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
-import logoDarkUrl from '@/assets/logo-dark.png'
-import logoUrl from '@/assets/logo.png'
-import tabbyUrl from '@/assets/tabby.png'
 import { Message } from 'ai'
 import { nanoid } from 'nanoid'
-import { useTheme } from 'next-themes'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
-import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableSearch } from '@/lib/experiment-flags'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useTabbyAnswer } from '@/lib/hooks/use-tabby-answer'
@@ -46,14 +42,10 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
-import { ClientOnly } from '@/components/client-only'
+
 import { CopyButton } from '@/components/copy-button'
-import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import { MemoizedReactMarkdown } from '@/components/markdown'
 import TextAreaSearch from '@/components/textarea-search'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { UserAvatar } from '@/components/user-avatar'
-import UserPanel from '@/components/user-panel'
 
 import './search.css'
 
@@ -80,6 +72,11 @@ type SearchContextValue = {
   onSubmitSearch: (question: string) => void
 }
 
+export interface SearchRef {
+  onSubmitSearch: (question: string) => void
+  stop: () => void
+}
+
 export const SearchContext = createContext<SearchContextValue>(
   {} as SearchContextValue
 )
@@ -101,11 +98,9 @@ const SOURCE_CARD_STYLE = {
   expand: 7
 }
 
-export function Search() {
+export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
   const isChatEnabled = useIsChatEnabled()
   const [searchFlag] = useEnableSearch()
-  const [isShowDemoBanner] = useShowDemoBanner()
-  const { theme } = useTheme()
   const [conversation, setConversation] = useState<ConversationMessage[]>([])
   const [showStop, setShowStop] = useState(false)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
@@ -117,15 +112,16 @@ export function Search() {
     fetcher: tabbyFetcher
   })
 
-  useEffect(() => {
-    const initialQuestion = sessionStorage.getItem(
-      SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
-    )
-    if (initialQuestion) {
-      onSubmitSearch(initialQuestion)
-      sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
-    }
-  }, [])
+  useImperativeHandle(
+    ref,
+    () => {
+      return {
+        onSubmitSearch,
+        stop
+      }
+    },
+    []
+  )
 
   useEffect(() => {
     if (title) document.title = title
@@ -269,10 +265,6 @@ export function Search() {
     return <></>
   }
 
-  const noConversation = conversation.length === 0
-  const style = isShowDemoBanner
-    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
-    : { height: '100vh' }
   return (
     <SearchContext.Provider
       value={{
@@ -281,26 +273,8 @@ export function Search() {
         onSubmitSearch: onSubmitSearch
       }}
     >
-      <div className="flex flex-col transition-all" style={style}>
-        <div className="flex w-full items-center justify-between border-b px-10 py-3">
-          <Link href="/">
-            <Image
-              src={theme === 'dark' ? logoDarkUrl : logoUrl}
-              alt="logo"
-              width={80}
-            />
-          </Link>
-
-          <div className="flex items-center justify-center gap-4">
-            <ClientOnly>
-              <ThemeToggle />
-            </ClientOnly>
-            <UserPanel>
-              <UserAvatar className="h-8 w-8 border" />
-            </UserPanel>
-          </div>
-        </div>
-        <ScrollArea className="flex-1" ref={contentContainerRef}>
+      <>
+        <ScrollArea className="h-full" ref={contentContainerRef}>
           <div className="mx-auto px-10 pb-24 lg:max-w-4xl lg:px-0">
             <div className="flex flex-col">
               {conversation.map((item, idx) => {
@@ -318,7 +292,6 @@ export function Search() {
                   return (
                     <div key={item.id + idx} className="pb-8 pt-2">
                       <AnswerBlock
-                        question="todo"
                         answer={item}
                         showRelatedQuestion={idx === conversation.length - 1}
                       />
@@ -341,35 +314,19 @@ export function Search() {
 
         <div
           className={cn(
-            'fixed left-0 flex w-full flex-col items-center transition-all',
-            {
-              'bottom-1/2 -mt-48': noConversation,
-              'bottom-5 min-h-[5rem]': !noConversation
-            }
+            'fixed left-0 flex w-full flex-col items-center transition-all bottom-5 min-h-[5rem]'
           )}
         >
-          {noConversation && (
-            <>
-              <Image src={tabbyUrl} alt="logo" width={42} />
-              <h4 className="mb-6 scroll-m-20 text-xl font-semibold tracking-tight text-secondary-foreground">
-                The Private Search Assistant
-              </h4>
-            </>
-          )}
           {!isLoading && (
             <div className="relative z-20 flex justify-center self-stretch px-10">
-              <TextAreaSearch
-                className={cn({
-                  'lg:max-w-2xl': noConversation,
-                  'lg:max-w-4xl': !noConversation
-                })}
+              <TextAreaSearch 
                 onSearch={onSubmitSearch}
-                placeholder={
-                  (!noConversation && 'Ask a follow up question') || undefined
-                }
+                className='lg:max-w-4xl'
+                placeholder='Ask a follow up question'
               />
             </div>
           )}
+
           <Button
             className={cn(
               'absolute top-2 z-0 flex items-center gap-x-2 px-8 py-4',
@@ -388,17 +345,17 @@ export function Search() {
             <p>Stop</p>
           </Button>
         </div>
-      </div>
+      </>
     </SearchContext.Provider>
   )
 }
 
+export const Search = forwardRef<SearchRef>(SearchRenderer)
+
 function AnswerBlock({
-  question,
   answer,
   showRelatedQuestion
 }: {
-  question: string
   answer: ConversationMessage
   showRelatedQuestion: boolean
 }) {
@@ -423,9 +380,9 @@ function AnswerBlock({
   }
 
   const totalHeightInRem = answer.relevant_documents
-    ? Math.ceil(answer.relevant_documents.length / 3) *
+    ? Math.ceil(answer.relevant_documents.length / 4) *
         SOURCE_CARD_STYLE.expand +
-      0.5 * Math.floor(answer.relevant_documents.length / 3)
+      0.5 * Math.floor(answer.relevant_documents.length / 4)
     : 0
   return (
     <div className="flex flex-col gap-y-5">
@@ -437,7 +394,7 @@ function AnswerBlock({
             <p className="text-sm font-bold leading-normal">Source</p>
           </div>
           <div
-            className="gap-sm grid grid-cols-3 gap-2 overflow-hidden"
+            className="gap-sm grid grid-cols-4 gap-2 overflow-hidden"
             style={{
               transition: 'height 0.25s ease-out',
               height: showMore

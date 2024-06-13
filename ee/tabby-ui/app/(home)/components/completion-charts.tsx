@@ -154,7 +154,7 @@ export function CompletionCharts({
   return (
     <div>
       <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-4 md:space-y-0 xl:justify-start">
-        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block">
+        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block" data-aos="fade-up" data-aos-delay="200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1">
             <CardTitle className="text-sm font-normal leading-none tracking-tight">
               Acceptance Rate
@@ -183,7 +183,7 @@ export function CompletionCharts({
           </ResponsiveContainer>
         </Card>
 
-        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block">
+        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block" data-aos="fade-up" data-aos-delay="250">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1">
             <CardTitle className="text-sm font-normal leading-none tracking-tight">
               Completions
@@ -223,7 +223,7 @@ export function CompletionCharts({
           </ResponsiveContainer>
         </Card>
 
-        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block">
+        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block" data-aos="fade-up" data-aos-delay="300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1">
             <CardTitle className="text-sm font-normal leading-none tracking-tight">
               Acceptances

@@ -505,6 +505,9 @@ importers:
       ai:
         specifier: ^2.1.6
         version: 2.2.13(encoding@0.1.13)(react@18.2.0)(solid-js@1.8.17)(svelte@4.2.17)(vue@3.4.27(typescript@5.2.2))
+      aos:
+        specifier: ^2.3.4
+        version: 2.3.4
       class-variance-authority:
         specifier: ^0.4.0
         version: 0.4.0(typescript@5.2.2)
@@ -677,6 +680,9 @@ importers:
       '@tailwindcss/typography':
         specifier: ^0.5.9
         version: 0.5.10(tailwindcss@3.3.3(ts-node@10.9.2(@types/node@17.0.45)(typescript@5.2.2)))
+      '@types/aos':
+        specifier: ^3.0.7
+        version: 3.0.7
       '@types/color':
         specifier: ^3.0.6
         version: 3.0.6
@@ -3498,6 +3504,9 @@ packages:
   '@tsconfig/node16@1.0.4':
     resolution: {integrity: sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==}
 
+  '@types/aos@3.0.7':
+    resolution: {integrity: sha512-sEhyFqvKauUJZDbvAB3Pggynrq6g+2PS4XB3tmUr+mDL1gfDJnwslUC4QQ7/l8UD+LWpr3RxZVR/rHoZrLqZVg==}
+
   '@types/chai@4.3.16':
     resolution: {integrity: sha512-PatH4iOdyh3MyWtmHVFXLWCCIhUbopaltqddG9BzB+gMIzee2MJrvd+jouii9Z3wzQJruGWAm7WOMjgfG8hQlQ==}
 
@@ -4203,6 +4212,9 @@ packages:
     resolution: {integrity: sha512-KMReFUr0B4t+D+OBkjR3KYqvocp2XaSzO55UcB6mgQMd3KbcE+mWTyvVV7D/zsdEbNnV6acZUutkiHQXvTr1Rw==}
     engines: {node: '>= 8'}
 
+  aos@2.3.4:
+    resolution: {integrity: sha512-zh/ahtR2yME4I51z8IttIt4lC1Nw0ktsFtmeDzID1m9naJnWXhCoARaCgNOGXb5CLy3zm+wqmRAEgMYB5E2HUw==}
+
   are-docs-informative@0.0.2:
     resolution: {integrity: sha512-ixiS0nLNNG5jNQzgZJNoUpBKdo9yTYZMGJ+QgT2jmjR7G7+QHRCc4v6LQ3NgE7EBJq+o0ams3waJwkrlBom8Ig==}
     engines: {node: '>=14'}
@@ -4609,6 +4621,9 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  classlist-polyfill@1.2.0:
+    resolution: {integrity: sha512-GzIjNdcEtH4ieA2S8NmrSxv7DfEV5fmixQeyTmqmRmRJPGpRBaSnA2a0VrCjyT8iW8JjEdMbKzDotAJf+ajgaQ==}
 
   clean-regexp@1.0.0:
     resolution: {integrity: sha512-GfisEZEJvzKrmGWkvfhgzcz/BllN1USeqD2V6tg14OAOgaCD2Z/PUEuxnAZ/nPvmaHRG7a8y77p1T/IRQ4D1Hw==}
@@ -6987,6 +7002,9 @@ packages:
   lodash.curry@4.1.1:
     resolution: {integrity: sha512-/u14pXGviLaweY5JI0IUzgzF2J6Ne8INyzAZjImcryjgkZ+ebruBxy2/JaOOkTqScddcYtakjhSaeemV8lR0tA==}
 
+  lodash.debounce@4.0.8:
+    resolution: {integrity: sha512-FT1yDzDYEoYWhnSGnpE/4Kj1fLZkDFyqRb7fNt6FdYOSxlUWAtp42Eh6Wb0rGIv/m9Bgo7x4GhQbm5Ys4SG5ow==}
+
   lodash.flow@3.5.0:
     resolution: {integrity: sha512-ff3BX/tSioo+XojX4MOsOMhJw0nZoUEF011LX8g8d3gvjVbxd89cCio4BCXronjxcTUIJUoqKEUA+n4CqvvRPw==}
 
@@ -7019,6 +7037,9 @@ packages:
 
   lodash.sortby@4.7.0:
     resolution: {integrity: sha512-HDWXG8isMntAyRF5vZ7xKuEvOhT4AhlRt/3czTSjvGUxjYCBVRQY48ViDHyfYz9VIoBkW4TMGQNapx+l3RUwdA==}
+
+  lodash.throttle@4.1.1:
+    resolution: {integrity: sha512-wIkUCfVKpVsWo3JSZlc+8MB5it+2AN5W8J7YVMST30UrvcQNZ1Okbj+rbVniijTWE6FGYy4XJq/rHkas8qJMLQ==}
 
   lodash.uniq@4.5.0:
     resolution: {integrity: sha512-xfBaXQd9ryd9dlSDvnvI0lvxfLJlYAZzXomUYzLKtUeOQvOP5piqAWuGtrhWeqaXK9hhoM/iyJc5AV+XfsX3HQ==}
@@ -13487,6 +13508,8 @@ snapshots:
 
   '@tsconfig/node16@1.0.4': {}
 
+  '@types/aos@3.0.7': {}
+
   '@types/chai@4.3.16': {}
 
   '@types/chroma-js@2.4.4': {}
@@ -14539,6 +14562,12 @@ snapshots:
       normalize-path: 3.0.0
       picomatch: 2.3.1
 
+  aos@2.3.4:
+    dependencies:
+      classlist-polyfill: 1.2.0
+      lodash.debounce: 4.0.8
+      lodash.throttle: 4.1.1
+
   are-docs-informative@0.0.2: {}
 
   arg@4.1.3: {}
@@ -15057,6 +15086,8 @@ snapshots:
   class-variance-authority@0.4.0(typescript@5.2.2):
     optionalDependencies:
       typescript: 5.2.2
+
+  classlist-polyfill@1.2.0: {}
 
   clean-regexp@1.0.0:
     dependencies:
@@ -17937,6 +17968,8 @@ snapshots:
 
   lodash.curry@4.1.1: {}
 
+  lodash.debounce@4.0.8: {}
+
   lodash.flow@3.5.0: {}
 
   lodash.includes@4.3.0: {}
@@ -17958,6 +17991,8 @@ snapshots:
   lodash.once@4.1.1: {}
 
   lodash.sortby@4.7.0: {}
+
+  lodash.throttle@4.1.1: {}
 
   lodash.uniq@4.5.0: {}
 

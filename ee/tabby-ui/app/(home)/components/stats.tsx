@@ -36,7 +36,7 @@ function ActivityCalendar({
   const { theme } = useTheme()
   const size = useWindowSize()
   const width = size.width || 0
-  const blockSize = width >= 1000 ? 7 : width >= 800 ? 10 : 9
+  const blockSize = width >= 1000 ? 6 : width >= 800 ? 10 : 9
 
   return (
     <ReactActivityCalendar
@@ -167,11 +167,11 @@ export default function Stats() {
   if (!data?.me?.id) return <></>
   return (
     <div className="flex w-full flex-col gap-y-4">
-      <LoadingWrapper
+      {/* <LoadingWrapper
         loading={fetchingYearlyStats}
-        fallback={<Skeleton className="h-48" />}
-      >
-        <div>
+        fallback={<div className="h-40"  />}
+      > */}
+        <div data-aos="fade-up" data-aos-delay="150">
           <h3 className="mb-2 text-xs font-medium tracking-tight">
             <b>{lastYearActivities}</b> activities in the last year
           </h3>
@@ -179,18 +179,18 @@ export default function Stats() {
             <ActivityCalendar data={activities} />
           </div>
         </div>
-      </LoadingWrapper>
+      {/* </LoadingWrapper> */}
 
-      <LoadingWrapper
+      {/* <LoadingWrapper
         loading={fetchingDailyState}
-        fallback={<Skeleton className="h-48" />}
-      >
+        fallback={<div className="h-40" />}
+      > */}
         <CompletionCharts
           dailyStats={dailyStats}
           from={moment().subtract(DATE_RANGE, 'day').toDate()}
           to={moment().toDate()}
         />
-      </LoadingWrapper>
+      {/* </LoadingWrapper> */}
     </div>
   )
 }
