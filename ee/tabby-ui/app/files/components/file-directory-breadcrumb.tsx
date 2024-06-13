@@ -6,11 +6,7 @@ import { cn } from '@/lib/utils'
 import { CopyButton } from '@/components/copy-button'
 
 import { SourceCodeBrowserContext } from './source-code-browser'
-import {
-  generateEntryPath,
-  resolveFileNameFromPath,
-  resolveRepositoryInfoFromPath
-} from './utils'
+import { generateEntryPath, resolveFileNameFromPath } from './utils'
 
 interface FileDirectoryBreadcrumbProps
   extends React.HTMLAttributes<HTMLDivElement> {}
@@ -18,18 +14,9 @@ interface FileDirectoryBreadcrumbProps
 const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
   className
 }) => {
-  const {
-    currentFileRoutes,
-    activePath,
-    activeRepo,
-    activeRepoRef,
-    activeEntryInfo
-  } = React.useContext(SourceCodeBrowserContext)
-  const basename = React.useMemo(
-    () => resolveRepositoryInfoFromPath(activePath)?.basename,
-    [activePath]
-  )
-
+  const { currentFileRoutes, activeRepo, activeRepoRef, activeEntryInfo } =
+    React.useContext(SourceCodeBrowserContext)
+  const basename = activeEntryInfo?.basename
   const routes: Array<{
     name: string
     href: string

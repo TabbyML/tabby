@@ -22,11 +22,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 
 import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
-import {
-  resolveFileNameFromPath,
-  resolveRepositoryInfoFromPath,
-  toEntryRequestUrl
-} from './utils'
+import { resolveFileNameFromPath, toEntryRequestUrl } from './utils'
 
 type TFileTreeNode = {
   name: string
@@ -344,10 +340,12 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
 }
 
 const FileTreeRenderer: React.FC = () => {
-  const { repoMap } = React.useContext(SourceCodeBrowserContext)
-  const { initialized, activePath, fileTreeData, fetchingTreeEntries } =
+  const { repoMap, activeEntryInfo } = React.useContext(
+    SourceCodeBrowserContext
+  )
+  const { initialized, fileTreeData, fetchingTreeEntries } =
     React.useContext(FileTreeContext)
-  const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
+  const { repositorySpecifier } = activeEntryInfo
 
   const hasSelectedRepo = !!repositorySpecifier
   const hasNoRepoEntries = hasSelectedRepo && !fileTreeData?.length

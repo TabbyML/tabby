@@ -54,7 +54,6 @@ import {
   getDefaultRepoRef,
   repositoryMap2List,
   resolveRepoRef,
-  resolveRepositoryInfoFromPath,
   resolveRepoSpecifierFromRepoInfo
 } from './utils'
 
@@ -95,7 +94,8 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     activeRepo,
     activeRepoRef,
     fileMap,
-    repoMap
+    repoMap,
+    activeEntryInfo
   } = useContext(SourceCodeBrowserContext)
   const repoList = React.useMemo(() => {
     return repositoryMap2List(repoMap).map(repo => {
@@ -111,7 +111,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     activeRepoRef?.kind ?? 'branch'
   )
   const { repositoryKind, repositoryName, repositorySpecifier } =
-    resolveRepositoryInfoFromPath(activePath)
+    activeEntryInfo
   const repoId = activeRepo?.id
   const refs = activeRepo?.refs
   const formattedRefs = React.useMemo(() => {
@@ -147,7 +147,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   const onSelectRef = (ref: string) => {
     if (isNil(ref)) return
     const nextRev = resolveRepoRef(ref)?.name ?? 'main'
-    const { basename = '' } = resolveRepositoryInfoFromPath(activePath)
+    const { basename = '' } = activeEntryInfo
     const kind = fileMap?.[basename]?.file?.kind ?? 'dir'
 
     // clear repository search
@@ -168,7 +168,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   const onSelectRepo = (repoSpecifier: string) => {
     const repo = repoList.find(o => o.repoSpecifier === repoSpecifier)?.repo
     if (repo) {
-      const path = `${repoSpecifier}/tree/${
+      const path = `${repoSpecifier}/-/tree/${
         resolveRepoRef(getDefaultRepoRef(repo.refs)).name
       }`
       // clear repository search

@@ -1,4 +1,4 @@
-import { isNil, keyBy, map } from 'lodash-es'
+import { isNil, keyBy, map, trimEnd } from 'lodash-es'
 
 import {
   RepositoryKind,
@@ -14,6 +14,10 @@ export enum Errors {
   EMPTY_REPOSITORY = 'EMPTY_REPOSITORY'
 }
 
+const repositoryKindStrList = Object.keys(RepositoryKind).map(kind =>
+  getProviderVariantFromKind(kind as RepositoryKind)
+)
+
 function getProviderVariantFromKind(kind: RepositoryKind) {
   return kind.toLowerCase().replaceAll('_', '')
 }
@@ -27,63 +31,71 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
   rev?: string
 } {
   const emptyResult = {}
+
   if (!path) return emptyResult
+  const separatorIndex = path.indexOf('/-/')
+
   const pathSegments = path.split('/')
   const repositoryKindStr = pathSegments[0]
+  const isValidRepositoryKind =
+    repositoryKindStrList.includes(repositoryKindStr)
 
-  if (!repositoryKindStr) {
+  if (!isValidRepositoryKind || separatorIndex === -1) {
     return emptyResult
   }
 
-  if (repositoryKindStr === 'git') {
-    if (pathSegments.length < 3) return emptyResult
-
-    // e.g.  git/tabby/tree/main/ee/tabby-ui
-    const repositoryName = pathSegments[1]
-    return {
-      repositoryKind: RepositoryKind.Git,
-      repositoryName,
-      viewMode: pathSegments[2],
-      basename: pathSegments.slice(4).join('/').replace(/\/?$/, ''),
-      repositorySpecifier: `git/${repositoryName}`,
-      rev: pathSegments[3]
-    }
-  } else if (
-    ['github', 'gitlab', 'githubselfhosted', 'gitlabselfhosted'].includes(
-      repositoryKindStr
-    )
-  ) {
-    // e.g.  /github/TabbyML/tabby/tree/main/ee/tabby-ui
-    if (pathSegments.length < 4) return emptyResult
-    let kind: RepositoryKind = RepositoryKind.Github
-    switch (repositoryKindStr) {
-      case 'github':
-        kind = RepositoryKind.Github
-        break
-      case 'gitlab':
-        kind = RepositoryKind.Gitlab
-        break
-      case 'githubselfhosted':
-        kind = RepositoryKind.GithubSelfHosted
-        break
-      case 'gitlabselfhosted':
-        kind = RepositoryKind.GitlabSelfHosted
-        break
-    }
-    const repositoryName = [pathSegments[1], pathSegments[2]].join('/')
-
-    return {
-      repositoryKind: kind,
-      repositoryName,
-      basename: pathSegments.slice(5).join('/').replace(/\/?$/, ''),
-      repositorySpecifier: `${getProviderVariantFromKind(
-        kind
-      )}/${repositoryName}`,
-      viewMode: pathSegments[3],
-      rev: pathSegments[4]
-    }
+  let kind: RepositoryKind = RepositoryKind.Git
+  switch (repositoryKindStr) {
+    case 'git':
+      kind = RepositoryKind.Git
+      break
+    case 'github':
+      kind = RepositoryKind.Github
+      break
+    case 'gitlab':
+      kind = RepositoryKind.Gitlab
+      break
+    case 'githubselfhosted':
+      kind = RepositoryKind.GithubSelfHosted
+      break
+    case 'gitlabselfhosted':
+      kind = RepositoryKind.GitlabSelfHosted
+      break
   }
-  return emptyResult
+  let basename: string | undefined
+  let viewMode: ViewMode | undefined
+  let rev: string | undefined
+
+  const treeSeparatorIndex = path.indexOf('/-/tree/')
+  const blobSeparatorIndex = path.indexOf('/-/blob/')
+
+  if (treeSeparatorIndex > -1) {
+    viewMode = 'tree'
+    const temp = path.slice(treeSeparatorIndex + '/-/tree/'.length)
+    const tempSegments = temp.split('/')
+    rev = tempSegments[0]
+    basename = trimEnd(tempSegments.slice(1).join('/'), '/')
+  }
+
+  if (blobSeparatorIndex > -1) {
+    viewMode = 'blob'
+    const temp = path.slice(blobSeparatorIndex + '/-/blob/'.length)
+    const tempSegments = temp.split('/')
+    rev = tempSegments[0]
+    basename = trimEnd(tempSegments.slice(1).join('/'), '/')
+  }
+
+  const repositorySpecifier = path.split('/-/')[0]
+  const repositoryName = repositorySpecifier.split('/').slice(1).join('/')
+
+  return {
+    repositorySpecifier: path.split('/-/')[0],
+    repositoryName,
+    repositoryKind: kind,
+    rev,
+    viewMode,
+    basename
+  }
 }
 
 function resolveFileNameFromPath(path: string) {
@@ -196,7 +208,7 @@ function generateEntryPath(
   const specifier = resolveRepoSpecifierFromRepoInfo(repo)
   // use 'main' as fallback
   const finalRev = rev ?? 'main'
-  return `${specifier}/${
+  return `${specifier}/-/${
     kind === 'dir' ? 'tree' : 'blob'
   }/${finalRev}/${basename}`
 }

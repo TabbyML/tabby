@@ -45,8 +45,11 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
         const repository = repoMap[matchedRepositoryKey]
         const repositorySpecifier = resolveRepoSpecifierFromRepoInfo(repository)
         const rev = latestRepoRef?.current?.name ?? 'main'
+        const isFile = context.kind === 'file'
 
-        const fullPath = `${repositorySpecifier}/${rev}/${context.filepath}`
+        const fullPath = `${repositorySpecifier}/-/${
+          isFile ? 'blob' : 'tree'
+        }/${rev}/${context.filepath}`
         if (!fullPath) return
         updateActivePath(fullPath, {
           params: {

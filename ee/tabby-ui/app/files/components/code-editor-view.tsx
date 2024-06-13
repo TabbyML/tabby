@@ -26,7 +26,6 @@ import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 
 import { emitter, LineMenuActionEventPayload } from '../lib/event-emitter'
-import { resolveRepositoryInfoFromPath } from './utils'
 
 interface CodeEditorViewProps {
   value: string
@@ -43,11 +42,9 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const line = searchParams.get('line')?.toString()
   const [editorView, setEditorView] = React.useState<EditorView | null>(null)
 
-  const { isChatEnabled, activePath, fileMap } = React.useContext(
-    SourceCodeBrowserContext
-  )
-  const { repositorySpecifier, rev, basename } =
-    resolveRepositoryInfoFromPath(activePath)
+  const { isChatEnabled, activePath, fileMap, activeEntryInfo } =
+    React.useContext(SourceCodeBrowserContext)
+  const { repositorySpecifier, rev, basename } = activeEntryInfo
   const gitUrl = repositorySpecifier
     ? fileMap[`${repositorySpecifier}/${rev}`]?.repository?.gitUrl ?? ''
     : ''

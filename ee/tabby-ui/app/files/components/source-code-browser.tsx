@@ -200,27 +200,25 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
 
   const activeRepo = React.useMemo(() => {
     const { repositoryKind, repositoryName, repositorySpecifier } =
-      resolveRepositoryInfoFromPath(activePath)
+      activeEntryInfo
     if (!repositoryKind || !repositoryName) return undefined
     return repositorySpecifier ? repoMap[repositorySpecifier] : undefined
-  }, [activePath, repoMap])
+  }, [repoMap, activeEntryInfo])
 
   const activeRepoRef = React.useMemo(() => {
-    if (!activePath || !activeRepo) return undefined
-    const rev = decodeURIComponent(
-      resolveRepositoryInfoFromPath(activePath)?.rev ?? ''
-    )
+    if (!activeEntryInfo || !activeRepo) return undefined
+    const rev = decodeURIComponent(activeEntryInfo?.rev ?? '')
     const activeRepoRef = activeRepo.refs?.find(
       ref => ref === `refs/heads/${rev}` || ref === `refs/tags/${rev}`
     )
     if (activeRepoRef) {
       return resolveRepoRef(activeRepoRef)
     }
-  }, [activePath, activeRepo])
+  }, [activeEntryInfo, activeRepo])
 
   const currentFileRoutes = React.useMemo(() => {
     if (!activePath) return []
-    const { basename = '' } = resolveRepositoryInfoFromPath(activePath)
+    const { basename = '' } = activeEntryInfo
     let result: TFileMapItem[] = [
       {
         file: {
@@ -240,7 +238,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
       result.push(fileMap?.[p])
     }
     return compact(result)
-  }, [activePath, fileMap])
+  }, [activePath, fileMap, activeEntryInfo])
 
   React.useEffect(() => {
     const regex = /^\/files\/(.*)/
