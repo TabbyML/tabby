@@ -28,11 +28,11 @@ export const ErrorView: React.FC<ErrorViewProps> = ({ className, error }) => {
 
   return (
     <div
-      className={cn('min-h-[30vh] flex items-center justify-center', className)}
+      className={cn('flex min-h-[30vh] items-center justify-center', className)}
     >
       <div className="flex flex-col items-center">
         <IconFileSearch className="mb-2 h-10 w-10" />
-        <div className="font-semibold text-2xl">{errorMessge}</div>
+        <div className="text-2xl font-semibold">{errorMessge}</div>
       </div>
     </div>
   )

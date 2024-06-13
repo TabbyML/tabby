@@ -49,7 +49,7 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
     <div className={cn('flex flex-nowrap items-center gap-1', className)}>
       <div className="flex items-center gap-1 overflow-x-auto leading-8">
         <Link
-          className="text-primary cursor-pointer font-medium hover:underline"
+          className="cursor-pointer font-medium text-primary hover:underline"
           href="/files"
         >
           Repositories
@@ -61,7 +61,7 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
           const classname = cn(
             'whitespace-nowrap',
             isRepo || isActiveFile ? 'font-bold' : 'font-medium',
-            isActiveFile ? '' : 'text-primary cursor-pointer hover:underline',
+            isActiveFile ? '' : 'cursor-pointer text-primary hover:underline',
             isRepo ? 'hover:underline' : undefined
           )
 
