@@ -17,8 +17,6 @@ import {
 import { useMe } from '@/lib/hooks/use-me'
 import { useIsDemoMode } from '@/lib/hooks/use-server-info'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
-import { Skeleton } from '@/components/ui/skeleton'
-import LoadingWrapper from '@/components/loading-wrapper'
 
 import { CompletionCharts } from './completion-charts'
 
@@ -36,7 +34,7 @@ function ActivityCalendar({
   const { theme } = useTheme()
   const size = useWindowSize()
   const width = size.width || 0
-  const blockSize = width >= 1000 ? 6 : width >= 800 ? 10 : 9
+  const blockSize = width >= 800 ? 7 : 9
 
   return (
     <ReactActivityCalendar
@@ -167,30 +165,19 @@ export default function Stats() {
   if (!data?.me?.id) return <></>
   return (
     <div className="flex w-full flex-col gap-y-4">
-      {/* <LoadingWrapper
-        loading={fetchingYearlyStats}
-        fallback={<div className="h-40"  />}
-      > */}
-        <div data-aos="fade-up" data-aos-delay="150">
-          <h3 className="mb-2 text-xs font-medium tracking-tight">
-            <b>{lastYearActivities}</b> activities in the last year
-          </h3>
-          <div className="flex items-end justify-center rounded-xl border p-5">
-            <ActivityCalendar data={activities} />
-          </div>
+      <div data-aos="fade-up" data-aos-delay="150">
+        <h3 className="mb-2 text-xs font-medium tracking-tight">
+          <b>{lastYearActivities}</b> activities in the last year
+        </h3>
+        <div className="flex items-end justify-center rounded-xl border px-5 py-4">
+          <ActivityCalendar data={activities} />
         </div>
-      {/* </LoadingWrapper> */}
-
-      {/* <LoadingWrapper
-        loading={fetchingDailyState}
-        fallback={<div className="h-40" />}
-      > */}
-        <CompletionCharts
-          dailyStats={dailyStats}
-          from={moment().subtract(DATE_RANGE, 'day').toDate()}
-          to={moment().toDate()}
-        />
-      {/* </LoadingWrapper> */}
+      </div>
+      <CompletionCharts
+        dailyStats={dailyStats}
+        from={moment().subtract(DATE_RANGE, 'day').toDate()}
+        to={moment().toDate()}
+      />
     </div>
   )
 }

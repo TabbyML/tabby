@@ -13,3 +13,7 @@
 .sparkle-animation {
   animation: sparkle 2s infinite;
 }
+
+.text-area-autosize::-webkit-scrollbar {
+  display: none;
+}

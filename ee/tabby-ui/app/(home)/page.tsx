@@ -1,16 +1,15 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import logoDarkUrl from '@/assets/logo-dark.png'
 import logoUrl from '@/assets/logo.png'
 import tabbyUrl from '@/assets/tabby.png'
+import AOS from 'aos'
 import { noop } from 'lodash-es'
 import { useTheme } from 'next-themes'
-import AOS from "aos";
 
-import { cn } from '@/lib/utils'
 import { useEnableSearch } from '@/lib/experiment-flags'
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
@@ -18,6 +17,7 @@ import { useMe } from '@/lib/hooks/use-me'
 import { useExternalURL } from '@/lib/hooks/use-network-setting'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useMutation } from '@/lib/tabby/gql'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
 import { IconJetBrains, IconRotate, IconVSCode } from '@/components/ui/icons'
@@ -36,12 +36,11 @@ import TextAreaSearch from '@/components/textarea-search'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { UserAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
-import { Search, SearchRef } from './components/search'
 
+import { Search, SearchRef } from './components/search'
 import Stats from './components/stats'
 
 import 'aos/dist/aos.css'
-import { duration } from 'moment'
 
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
   mutation ResetUserAuthToken {
@@ -164,12 +163,22 @@ function MainPanel() {
   const [isShowDemoBanner] = useShowDemoBanner()
   const [isSearch, setIsSearch] = useState(false)
   const [initialMsg, setInitialMsg] = useState('')
+  const elementRef = useRef<HTMLDivElement | null>(null)
   const searchRef = useRef<SearchRef>(null)
 
-  AOS.init({
-    once: true,
-    duration: 250
-  });
+  useEffect(() => {
+    setTimeout(() => {
+      if (elementRef.current) {
+        const disable =
+          elementRef.current.scrollHeight > elementRef.current.clientHeight
+        AOS.init({
+          once: true,
+          duration: 250,
+          disable
+        })
+      }
+    }, 100)
+  }, [elementRef.current])
 
   useEffect(() => {
     if (isSearch && searchRef.current) {
@@ -198,10 +207,10 @@ function MainPanel() {
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
   return (
-    <div className="flex flex-col transition-all" style={style}>
-      <header className="flex items-center justify-between px-10 h-16">
+    <div className="transition-all" style={style}>
+      <header className="flex h-16 items-center justify-between px-10">
         <div>
-          {isSearch &&
+          {isSearch && (
             <Image
               src={theme === 'dark' ? logoDarkUrl : logoUrl}
               className="cursor-pointer"
@@ -209,7 +218,7 @@ function MainPanel() {
               width={80}
               onClick={hideSearch}
             />
-          }
+          )}
         </div>
         <div className="flex items-center gap-x-3">
           <ClientOnly>
@@ -221,33 +230,36 @@ function MainPanel() {
         </div>
       </header>
 
-      <main className={cn("flex-1 h-[calc(100%-4rem)]", {
-        'flex flex-col items-center justify-center': !isSearch
-      })}>
-        {!isSearch &&
-          <div className="mx-auto -mt-[2vh] flex w-full max-w-4xl flex-col items-center">
+      <main
+        className={cn('h-[calc(100%-4rem)] overflow-auto py-10 lg:py-0', {
+          'lg:flex flex-col items-center justify-center': !isSearch
+        })}
+        ref={elementRef}
+      >
+        {!isSearch && (
+          <div className="mx-auto flex w-full flex-col items-center px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
             <Image
               src={tabbyUrl}
               alt="logo"
               width={45}
               data-aos="fade-down"
-              data-aos-delay="150" />
+              data-aos-delay="150"
+            />
             <p
               className="mb-6 scroll-m-20 text-xl font-semibold tracking-tight text-secondary-foreground"
               data-aos="fade-down"
-              data-aos-delay="100">
+              data-aos-delay="100"
+            >
               The Private Search Assistant
             </p>
-            {isChatEnabled && searchFlag.value &&
+            {isChatEnabled && searchFlag.value && (
               <div className="w-full" data-aos="fade-down">
-                <TextAreaSearch
-                  onSearch={onSearch}
-                  isExpanded />
+                <TextAreaSearch onSearch={onSearch} isExpanded />
               </div>
-            }
-            <div className="mt-10 flex w-full gap-x-5">
+            )}
+            <div className="mt-10 flex w-full flex-col gap-x-5 lg:flex-row">
               <div
-                className="w-[21rem] rounded-lg p-4"
+                className="mb-10 w-full rounded-lg p-4 lg:mb-0 lg:w-[21rem]"
                 style={{ background: theme === 'dark' ? '#423929' : '#e8e1d3' }}
                 data-aos="fade-up"
                 data-aos-delay="100"
@@ -257,11 +269,8 @@ function MainPanel() {
               <Stats />
             </div>
           </div>
-        }
-        {isSearch &&
-          <Search ref={searchRef} />
-        }
-        
+        )}
+        {isSearch && <Search ref={searchRef} />}
       </main>
     </div>
   )

@@ -2,14 +2,14 @@
 
 import {
   createContext,
+  ForwardedRef,
+  forwardRef,
   useContext,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
-  useState,
-  useImperativeHandle,
-  ForwardedRef,
-  forwardRef
+  useState
 } from 'react'
 import { Message } from 'ai'
 import { nanoid } from 'nanoid'
@@ -42,7 +42,6 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
-
 import { CopyButton } from '@/components/copy-button'
 import { MemoizedReactMarkdown } from '@/components/markdown'
 import TextAreaSearch from '@/components/textarea-search'
@@ -314,15 +313,15 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
 
         <div
           className={cn(
-            'fixed left-0 flex w-full flex-col items-center transition-all bottom-5 min-h-[5rem]'
+            'fixed bottom-5 left-0 flex min-h-[5rem] w-full flex-col items-center transition-all'
           )}
         >
           {!isLoading && (
             <div className="relative z-20 flex justify-center self-stretch px-10">
-              <TextAreaSearch 
+              <TextAreaSearch
                 onSearch={onSubmitSearch}
-                className='lg:max-w-4xl'
-                placeholder='Ask a follow up question'
+                className="lg:max-w-4xl"
+                placeholder="Ask a follow up question"
               />
             </div>
           )}
@@ -391,10 +390,10 @@ function AnswerBlock({
         <div>
           <div className="mb-1 flex items-center gap-x-2">
             <IconBlocks className="relative" style={{ top: '-0.04rem' }} />
-            <p className="text-sm font-bold leading-normal">Source</p>
+            <p className="text-sm font-bold leading-normal">Sources</p>
           </div>
           <div
-            className="gap-sm grid grid-cols-4 gap-2 overflow-hidden"
+            className="gap-sm grid grid-cols-3 gap-2 overflow-hidden md:grid-cols-4"
             style={{
               transition: 'height 0.25s ease-out',
               height: showMore
@@ -476,7 +475,7 @@ function AnswerBlock({
           <div>
             <div className="flex items-center gap-x-1.5">
               <IconLayers />
-              <p className="text-sm font-bold leading-none">Related</p>
+              <p className="text-sm font-bold leading-none">Suggestions</p>
             </div>
             <div className="mt-3 flex flex-col gap-y-3">
               {answer.relevant_questions?.map((related, index) => (
@@ -510,7 +509,7 @@ function SourceCard({
   const { hostname } = new URL(source.link)
   return (
     <div
-      className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card px-4 py-2 transition-all hover:bg-card/60"
+      className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card px-3 py-2 transition-all hover:bg-card/60"
       style={{
         height: showMore
           ? `${SOURCE_CARD_STYLE.expand}rem`
@@ -526,16 +525,16 @@ function SourceCard({
           {source.snippet}
         </p>
       )}
-      <div className="flex items-center">
-        <SiteFavicon hostname={hostname} className="mr-1" />
-
-        <div className="flex items-center gap-x-0.5 text-xs text-muted-foreground">
-          <p className="flex-1 overflow-hidden text-ellipsis">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex flex-1 items-center">
+          <SiteFavicon hostname={hostname} />
+          <p className="ml-1 flex-1 overflow-hidden text-ellipsis">
             {hostname.replace('www.', '').split('.')[0]}
           </p>
-          <span className="relative -top-1.5 text-xl leading-none">.</span>
-          <p>{index}</p>
         </div>
+        <p className="h-4 w-4 rounded bg-primary/50 text-center text-primary-foreground">
+          {index}
+        </p>
       </div>
     </div>
   )

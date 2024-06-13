@@ -154,8 +154,12 @@ export function CompletionCharts({
   return (
     <div>
       <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-4 md:space-y-0 xl:justify-start">
-        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block" data-aos="fade-up" data-aos-delay="200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1">
+        <Card
+          className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block"
+          data-aos="fade-up"
+          data-aos-delay="200"
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-sm font-normal leading-none tracking-tight">
               Acceptance Rate
             </CardTitle>
@@ -164,10 +168,10 @@ export function CompletionCharts({
             <div className="font-bold">{averageAcceptance}%</div>
           </CardContent>
 
-          <ResponsiveContainer width="100%" height={80}>
+          <ResponsiveContainer width="100%" height={40}>
             <LineChart
               data={acceptRateData}
-              margin={{ top: 30, right: 20, left: 15, bottom: 5 }}
+              margin={{ top: 10, right: 20, left: 15, bottom: 5 }}
             >
               <Line
                 type="monotone"
@@ -183,8 +187,12 @@ export function CompletionCharts({
           </ResponsiveContainer>
         </Card>
 
-        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block" data-aos="fade-up" data-aos-delay="250">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1">
+        <Card
+          className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block"
+          data-aos="fade-up"
+          data-aos-delay="250"
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-sm font-normal leading-none tracking-tight">
               Completions
             </CardTitle>
@@ -193,7 +201,7 @@ export function CompletionCharts({
             <div className="font-bold">{numeral(totalViews).format('0,0')}</div>
           </CardContent>
 
-          <ResponsiveContainer width="100%" height={80}>
+          <ResponsiveContainer width="100%" height={40}>
             <BarChart
               data={viewData}
               margin={{
@@ -223,8 +231,12 @@ export function CompletionCharts({
           </ResponsiveContainer>
         </Card>
 
-        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block" data-aos="fade-up" data-aos-delay="300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1">
+        <Card
+          className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block"
+          data-aos="fade-up"
+          data-aos-delay="300"
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-sm font-normal leading-none tracking-tight">
               Acceptances
             </CardTitle>
@@ -235,7 +247,7 @@ export function CompletionCharts({
             </div>
           </CardContent>
 
-          <ResponsiveContainer width="100%" height={80}>
+          <ResponsiveContainer width="100%" height={40}>
             <BarChart
               data={viewData}
               margin={{
