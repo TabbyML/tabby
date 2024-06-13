@@ -3,19 +3,23 @@
 import { useEffect, useState } from 'react'
 import TextareaAutosize from 'react-textarea-autosize'
 
+import { useHealth } from '@/lib/hooks/use-health'
 import { cn } from '@/lib/utils'
 
-import { IconArrowRight } from './ui/icons'
+import { IconArrowRight, IconBox } from './ui/icons'
 
 export default function TextAreaSearch({
   onSearch,
   className,
-  placeholder
+  placeholder,
+  isExpanded
 }: {
   onSearch: (value: string) => void
   className?: string
   placeholder?: string
+  isExpanded?: boolean
 }) {
+  const { data: healthInfo } = useHealth()
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
   const [value, setValue] = useState('')
@@ -44,16 +48,18 @@ export default function TextAreaSearch({
   return (
     <div
       className={cn(
-        'flex w-full items-center rounded-lg border border-muted-foreground bg-background transition-all hover:border-muted-foreground/60',
+        'flex w-full rounded-lg border border-muted-foreground bg-background p-4 transition-all hover:border-muted-foreground/60',
         {
-          '!border-primary': isFocus
+          '!border-primary': isFocus,
+          'items-center': !isExpanded,
+          'flex-col': isExpanded
         },
         className
       )}
     >
       <TextareaAutosize
         className={cn(
-          'flex-1 resize-none rounded-lg !border-none bg-transparent px-4 py-3 !shadow-none !outline-none !ring-0 !ring-offset-0',
+          'text-area-autosize resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
           {
             '!h-[48px]': !isShow
           }
@@ -67,17 +73,41 @@ export default function TextAreaSearch({
         onChange={e => setValue(e.target.value)}
         value={value}
       />
-      <div
-        className={cn(
-          'mr-3 flex items-center rounded-lg bg-muted p-1 text-muted-foreground transition-all',
-          {
-            '!bg-primary !text-primary-foreground': value.length > 0
-          }
-        )}
-        onClick={search}
-      >
-        <IconArrowRight className="h-3.5 w-3.5" />
-      </div>
+      {!isExpanded && (
+        <div
+          className={cn(
+            'mr-3 flex items-center rounded-lg bg-muted p-1 text-muted-foreground transition-all',
+            {
+              '!bg-primary !text-primary-foreground': value.length > 0
+            }
+          )}
+          onClick={search}
+        >
+          <IconArrowRight className="h-3.5 w-3.5" />
+        </div>
+      )}
+      {isExpanded && (
+        <div className="mt-3 flex items-center text-xs">
+          <div className="flex-1">
+            <div className="flex items-center text-muted-foreground">
+              <IconBox className="mr-1 h-3.5 w-3.5" />
+              <p>{healthInfo!.chat_model}</p>
+            </div>
+          </div>
+          <div
+            className={cn(
+              'mr-3 flex items-center rounded-lg p-1 transition-all',
+              {
+                'text-primary cursor-pointer': value.length > 0,
+                'text-muted-foreground': value.length === 0
+              }
+            )}
+            onClick={search}
+          >
+            <IconArrowRight className="h-3.5 w-3.5" />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
