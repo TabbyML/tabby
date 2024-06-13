@@ -1,4 +1,3 @@
-
 use anyhow::{anyhow, Result};
 use gitlab::{
     api::{issues::ProjectIssues, AsyncQuery},
