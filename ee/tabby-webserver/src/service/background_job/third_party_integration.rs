@@ -2,10 +2,11 @@ use std::sync::Arc;
 
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use issues::{fetch_github_issues, fetch_gitlab_issues, index_issues};
+use issues::{index_github_issues, index_gitlab_issues};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
 use tabby_inference::Embedding;
+use tabby_scheduler::DocIndexer;
 use tabby_schema::{
     integration::{IntegrationKind, IntegrationService},
     repository::ThirdPartyRepositoryService,
@@ -45,14 +46,16 @@ impl SyncIntegrationJob {
         sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
         integration_service: Arc<dyn IntegrationService>,
     ) -> tabby_schema::Result<()> {
-        debug!("Syncing all third-party repositories");
+        // FIXME(boxbeam): Find a way to clean up issues from the index
+        // if the repository was set to inactive or the issue was deleted upstream
+        debug!("Syncing all github and gitlab repositories");
 
         for integration in integration_service
             .list_integrations(None, None, None, None, None, None)
             .await?
         {
             sender
-                .send(BackgroundJobEvent::SyncThirdPartyRepositories(
+                .send(BackgroundJobEvent::SchedulerGithubGitlabRepository(
                     integration.id,
                 ))
                 .map_err(|_| anyhow!("Failed to enqueue scheduler job"))?;
@@ -90,26 +93,29 @@ impl IndexIssuesJob {
 
         debug!("Indexing issues for repository {}", repository.display_name);
 
-        let issues = match &integration.kind {
+        let index = DocIndexer::new(embedding);
+        match &integration.kind {
             IntegrationKind::Github | IntegrationKind::GithubSelfHosted => {
-                fetch_github_issues(
+                index_github_issues(
                     integration.api_base(),
                     &repository.display_name,
                     &integration.access_token,
+                    &index,
                 )
-                .await?
+                .await?;
             }
             IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => {
-                fetch_gitlab_issues(
+                index_gitlab_issues(
                     integration.api_base(),
                     &repository.display_name,
                     &integration.access_token,
+                    &index,
                 )
-                .await?
+                .await?;
             }
-        };
+        }
+        index.commit();
 
-        index_issues(embedding, issues).await?;
         Ok(())
     }
 
@@ -123,7 +129,7 @@ impl IndexIssuesJob {
             .await?
         {
             sender
-                .send(BackgroundJobEvent::IndexIssues(repository.id))
+                .send(BackgroundJobEvent::IndexGithubGitlabIssues(repository.id))
                 .map_err(|_| anyhow!("Failed to enqueue scheduler job"))?;
         }
         Ok(())

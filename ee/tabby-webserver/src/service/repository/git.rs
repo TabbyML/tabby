@@ -48,9 +48,9 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
             .as_id();
         let _ = self
             .background_job
-            .send(BackgroundJobEvent::Scheduler(RepositoryConfig::new(
-                git_url,
-            )));
+            .send(BackgroundJobEvent::SchedulerGitRepository(
+                RepositoryConfig::new(git_url),
+            ));
         Ok(id)
     }
 
@@ -64,9 +64,9 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
             .await?;
         let _ = self
             .background_job
-            .send(BackgroundJobEvent::Scheduler(RepositoryConfig::new(
-                git_url,
-            )));
+            .send(BackgroundJobEvent::SchedulerGitRepository(
+                RepositoryConfig::new(git_url),
+            ));
         Ok(true)
     }
 }

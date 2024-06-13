@@ -10,11 +10,12 @@ use serde::Deserialize;
 use tabby_inference::Embedding;
 use tabby_scheduler::{DocIndexer, WebDocument};
 
-pub async fn fetch_github_issues(
+pub async fn index_github_issues(
     api_base: &str,
     full_name: &str,
     access_token: &str,
-) -> Result<Vec<WebDocument>> {
+    index: &DocIndexer,
+) -> Result<()> {
     let octocrab = Octocrab::builder()
         .personal_token(access_token.to_string())
         .base_uri(api_base)?
@@ -45,15 +46,17 @@ pub async fn fetch_github_issues(
         }
     }
 
-    Ok(issues
-        .into_iter()
-        .map(|issue| WebDocument {
+    for issue in issues {
+        let doc = WebDocument {
             id: format!("github/{full_name}/issues/{}", issue.id),
             link: issue.html_url.to_string(),
             title: issue.title,
             body: issue.body.unwrap_or_default(),
-        })
-        .collect())
+        };
+        index.index_issue(doc).await;
+    }
+
+    Ok(())
 }
 
 #[derive(Deserialize)]
@@ -64,11 +67,12 @@ struct GitlabIssue {
     web_url: String,
 }
 
-pub async fn fetch_gitlab_issues(
+pub async fn index_gitlab_issues(
     api_base: &str,
     full_name: &str,
     access_token: &str,
-) -> Result<Vec<WebDocument>> {
+    index: &DocIndexer,
+) -> Result<()> {
     let api_base = api_base.strip_prefix("https://").unwrap_or(api_base);
     let gitlab = GitlabBuilder::new(api_base, access_token)
         .build_async()
@@ -81,24 +85,15 @@ pub async fn fetch_gitlab_issues(
     .query_async(&gitlab)
     .await?;
 
-    Ok(issues
-        .into_iter()
-        .map(|issue| WebDocument {
+    for issue in issues {
+        let doc = WebDocument {
             id: format!("gitlab/{full_name}/issues/{}", issue.id),
             link: issue.web_url,
             title: issue.title,
             body: issue.description,
-        })
-        .collect())
-}
-
-pub async fn index_issues(embedding: Arc<dyn Embedding>, issues: Vec<WebDocument>) -> Result<()> {
-    let index = DocIndexer::new(embedding);
-
-    for issue in issues {
-        index.index_issue(issue).await;
+        };
+        index.index_issue(doc).await;
     }
 
-    index.commit();
     Ok(())
 }

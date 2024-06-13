@@ -22,9 +22,9 @@ use self::{
 
 #[derive(PartialEq, Debug)]
 pub enum BackgroundJobEvent {
-    Scheduler(RepositoryConfig),
-    SyncThirdPartyRepositories(ID),
-    IndexIssues(ID),
+    SchedulerGitRepository(RepositoryConfig),
+    SchedulerGithubGitlabRepository(ID),
+    IndexGithubGitlabIssues(ID),
 }
 
 pub async fn start(
@@ -45,7 +45,7 @@ pub async fn start(
             tokio::select! {
                 Some(event) = receiver.recv() => {
                     match event {
-                        BackgroundJobEvent::Scheduler(repository_config) => {
+                        BackgroundJobEvent::SchedulerGitRepository(repository_config) => {
                             let job = SchedulerJob::new(repository_config);
                             let mut job_logger = JobLogger::new(SchedulerJob::NAME, db.clone()).await;
                             if let Err(err) = job.run(job_logger.clone(), embedding.clone()).await {
@@ -55,13 +55,13 @@ pub async fn start(
                                 job_logger.complete(0).await;
                             }
                         },
-                        BackgroundJobEvent::SyncThirdPartyRepositories(integration_id) => {
+                        BackgroundJobEvent::SchedulerGithubGitlabRepository(integration_id) => {
                             let job = SyncIntegrationJob::new(integration_id);
                             if let Err(err) = job.run(third_party_repository_service.clone()).await {
                                 warn!("Sync integration job failed: {err:?}");
                             }
                         }
-                        BackgroundJobEvent::IndexIssues(integration_id) => {
+                        BackgroundJobEvent::IndexGithubGitlabIssues(integration_id) => {
                             let job = IndexIssuesJob::new(integration_id);
                             if let Err(err) = job.run(embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await {
                                 warn!("Index issues job failed: {err:?}");

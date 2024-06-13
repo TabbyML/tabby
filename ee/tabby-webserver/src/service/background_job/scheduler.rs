@@ -65,7 +65,7 @@ impl SchedulerJob {
 
         for repository in repositories {
             sender
-                .send(BackgroundJobEvent::Scheduler(repository))
+                .send(BackgroundJobEvent::SchedulerGitRepository(repository))
                 .context("Failed to enqueue scheduler job")?;
         }
         Ok(())
