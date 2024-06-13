@@ -1,4 +1,3 @@
-use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use gitlab::{
@@ -7,7 +6,6 @@ use gitlab::{
 };
 use octocrab::Octocrab;
 use serde::Deserialize;
-use tabby_inference::Embedding;
 use tabby_scheduler::{DocIndexer, WebDocument};
 
 pub async fn index_github_issues(
