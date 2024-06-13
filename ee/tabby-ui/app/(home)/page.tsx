@@ -4,8 +4,9 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import logoUrl from '@/assets/tabby.png'
+import tabbyUrl from '@/assets/tabby.png'
 import { noop } from 'lodash-es'
+import { useTheme } from 'next-themes'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableSearch } from '@/lib/experiment-flags'
@@ -18,33 +19,22 @@ import { useSignOut } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
-import {
-  IconChat,
-  IconCode,
-  IconGear,
-  IconJetBrains,
-  IconLogout,
-  IconMail,
-  IconRotate,
-  IconSearch,
-  IconSpinner,
-  IconUser,
-  IconVSCode
-} from '@/components/ui/icons'
+import { IconJetBrains, IconRotate, IconVSCode } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
+import { ClientOnly } from '@/components/client-only'
 import { CopyButton } from '@/components/copy-button'
+import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import SlackDialog from '@/components/slack-dialog'
 import TextAreaSearch from '@/components/textarea-search'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { UserAvatar } from '@/components/user-avatar'
+import UserPanel from '@/components/user-panel'
 
 import Stats from './components/stats'
 
@@ -168,6 +158,8 @@ function MainPanel() {
   const signOut = useSignOut()
   const [signOutLoading, setSignOutLoading] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const { theme } = useTheme()
+  const [isShowDemoBanner] = useShowDemoBanner()
 
   if (!healthInfo || !data?.me) return <></>
 
@@ -184,83 +176,118 @@ function MainPanel() {
     setIsSearchOpen(false)
   }
 
+  const style = isShowDemoBanner
+    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
+    : { height: '100vh' }
   return (
-    <div className="lg:mt-[10vh]">
-      <div className="mx-auto flex w-screen flex-col px-5 py-20 lg:w-auto lg:flex-row lg:justify-center lg:gap-x-10 lg:px-0 lg:py-10">
-        <div className="relative mb-5 flex flex-col rounded-lg pb-4 lg:mb-0 lg:mt-12 lg:w-64">
-          <UserAvatar className="h-20 w-20 border-4 border-background" />
+    <div className="flex flex-col transition-all" style={style}>
+      <header className="flex items-center justify-between px-10 py-5">
+        <div />
+        <div className="flex items-center gap-x-3">
+          <ClientOnly>
+            <ThemeToggle />
+          </ClientOnly>
+          <UserPanel>
+            <UserAvatar className="h-10 w-10 border" />
+          </UserPanel>
+        </div>
+      </header>
 
-          <div className="mt-2 flex w-full">
-            <div className="flex flex-col gap-y-1">
-              {data.me.name && (
-                <div className="flex items-center gap-2">
-                  <IconUser className="text-muted-foreground" />
-                  <p className="max-w-[10rem] truncate text-sm">
-                    {data.me.name}
-                  </p>
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <IconMail className="text-muted-foreground" />
-                <p className="max-w-[10rem] truncate text-sm">
-                  {data.me.email}
-                </p>
-              </div>
+      <main className="flex flex-1 flex-col items-center justify-center">
+        <div className="mx-auto -mt-[2vh] flex w-full max-w-4xl flex-col items-center">
+          <Image src={tabbyUrl} alt="logo" width={45} />
+          <p className="mb-6 scroll-m-20 text-xl font-semibold tracking-tight text-secondary-foreground">
+            The Private Search Assistant
+          </p>
+          <TextAreaSearch onSearch={onSearch} isExpanded />
+          <div className="mt-10 flex w-full gap-x-5">
+            <div
+              className="w-[21rem] rounded p-4"
+              style={{ background: theme === 'dark' ? '#423929' : '#e8e1d3' }}
+            >
+              <Configuration />
             </div>
-
-            <ThemeToggle className="-mt-2 ml-auto" />
-          </div>
-
-          <Separator className="my-4" />
-          <Configuration />
-
-          <div className="mt-auto flex flex-col gap-1 lg:mb-[28px]">
-            <MenuLink href="/profile" icon={<IconGear />}>
-              Settings
-            </MenuLink>
-            {isChatEnabled && (
-              <MenuLink href="/playground" icon={<IconChat />} target="_blank">
-                Chat Playground
-              </MenuLink>
-            )}
-            <MenuLink href="/files" icon={<IconCode />} target="_blank">
-              Code Browser
-            </MenuLink>
-            {searchFlag.value && isChatEnabled && (
-              <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-                <DialogTrigger>
-                  <div className="flex items-center gap-2">
-                    <div className="text-muted-foreground">
-                      <IconSearch />
-                    </div>
-                    <div className="flex cursor-pointer items-center gap-1 text-sm transition-opacity hover:opacity-50">
-                      Search
-                    </div>
-                  </div>
-                </DialogTrigger>
-                <DialogContent className="dialog-without-close-btn -mt-48 border-none bg-transparent shadow-none sm:max-w-xl">
-                  <div className="flex flex-col items-center">
-                    <Image src={logoUrl} alt="logo" width={42} />
-                    <h4 className="mb-6 scroll-m-20 text-xl font-semibold tracking-tight text-background dark:text-foreground">
-                      The Private Search Assistant
-                    </h4>
-                    <TextAreaSearch onSearch={onSearch} />
-                  </div>
-                </DialogContent>
-              </Dialog>
-            )}
-            <MenuLink icon={<IconLogout />} onClick={handleSignOut}>
-              <span>Sign out</span>
-              {signOutLoading && <IconSpinner className="ml-1" />}
-            </MenuLink>
+            <Stats />
           </div>
         </div>
-
-        <div className="lg:min-h-[700px] lg:w-[calc(100vw-30rem)] xl:w-[62rem]">
-          <Stats />
-        </div>
-      </div>
+      </main>
     </div>
+    // <div className="lg:mt-[10vh]">
+    //   <div className="mx-auto flex w-screen flex-col px-5 py-20 lg:w-auto lg:flex-row lg:justify-center lg:gap-x-10 lg:px-0 lg:py-10">
+    //     <div className="relative mb-5 flex flex-col rounded-lg pb-4 lg:mb-0 lg:mt-12 lg:w-64">
+    //       <UserAvatar className="h-20 w-20 border-4 border-background" />
+
+    //       <div className="mt-2 flex w-full">
+    //         <div className="flex flex-col gap-y-1">
+    //           {data.me.name && (
+    //             <div className="flex items-center gap-2">
+    //               <IconUser className="text-muted-foreground" />
+    //               <p className="max-w-[10rem] truncate text-sm">
+    //                 {data.me.name}
+    //               </p>
+    //             </div>
+    //           )}
+    //           <div className="flex items-center gap-2">
+    //             <IconMail className="text-muted-foreground" />
+    //             <p className="max-w-[10rem] truncate text-sm">
+    //               {data.me.email}
+    //             </p>
+    //           </div>
+    //         </div>
+
+    //         <ThemeToggle className="-mt-2 ml-auto" />
+    //       </div>
+
+    //       <Separator className="my-4" />
+    //       <Configuration />
+
+    //       <div className="mt-auto flex flex-col gap-1 lg:mb-[28px]">
+    //         <MenuLink href="/profile" icon={<IconGear />}>
+    //           Settings
+    //         </MenuLink>
+    //         {isChatEnabled && (
+    //           <MenuLink href="/playground" icon={<IconChat />} target="_blank">
+    //             Chat Playground
+    //           </MenuLink>
+    //         )}
+    //         <MenuLink href="/files" icon={<IconCode />} target="_blank">
+    //           Code Browser
+    //         </MenuLink>
+    //         {searchFlag.value && isChatEnabled && (
+    //           <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+    //             <DialogTrigger>
+    //               <div className="flex items-center gap-2">
+    //                 <div className="text-muted-foreground">
+    //                   <IconSearch />
+    //                 </div>
+    //                 <div className="flex cursor-pointer items-center gap-1 text-sm transition-opacity hover:opacity-50">
+    //                   Search
+    //                 </div>
+    //               </div>
+    //             </DialogTrigger>
+    //             <DialogContent className="dialog-without-close-btn -mt-48 border-none bg-transparent shadow-none sm:max-w-xl">
+    //               <div className="flex flex-col items-center">
+    //                 <Image src={logoUrl} alt="logo" width={42} />
+    //                 <h4 className="mb-6 scroll-m-20 text-xl font-semibold tracking-tight text-background dark:text-foreground">
+    //                   The Private Search Assistant
+    //                 </h4>
+    //                 <TextAreaSearch onSearch={onSearch} />
+    //               </div>
+    //             </DialogContent>
+    //           </Dialog>
+    //         )}
+    //         <MenuLink icon={<IconLogout />} onClick={handleSignOut}>
+    //           <span>Sign out</span>
+    //           {signOutLoading && <IconSpinner className="ml-1" />}
+    //         </MenuLink>
+    //       </div>
+    //     </div>
+
+    //     <div className="lg:min-h-[700px] lg:w-[calc(100vw-30rem)] xl:w-[62rem]">
+    //       <Stats />
+    //     </div>
+    //   </div>
+    // </div>
   )
 }
 

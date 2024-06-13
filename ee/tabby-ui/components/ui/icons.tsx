@@ -5,6 +5,7 @@ import * as React from 'react'
 import {
   Blocks,
   BookOpenText,
+  Box,
   ChevronsDownUp,
   GitFork,
   Layers2,
@@ -1493,6 +1494,10 @@ function IconPlay({ className, ...props }: React.ComponentProps<typeof Play>) {
   return <Play className={cn('h4 w-4', className)} {...props} />
 }
 
+function IconBox({ className, ...props }: React.ComponentProps<typeof Box>) {
+  return <Box className={cn('h4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1573,5 +1578,6 @@ export {
   IconLayers,
   IconSparkles,
   IconSearch,
-  IconPlay
+  IconPlay,
+  IconBox
 }
