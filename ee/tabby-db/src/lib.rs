@@ -9,7 +9,6 @@ use anyhow::anyhow;
 use cache::Cache;
 use cached::TimedSizedCache;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
-pub use doc_crawler_urls::DocCrawlerUrlDAO;
 pub use email_setting::EmailSettingDAO;
 pub use integrations::IntegrationDAO;
 pub use invitations::InvitationDAO;
@@ -26,9 +25,9 @@ use tokio::sync::Mutex;
 use user_completions::UserCompletionDailyStatsDAO;
 pub use user_events::UserEventDAO;
 pub use users::UserDAO;
+pub use web_crawler::WebCrawlerUrlDAO;
 
 pub mod cache;
-mod doc_crawler_urls;
 mod email_setting;
 mod integrations;
 mod invitations;
@@ -44,6 +43,7 @@ mod server_setting;
 mod user_completions;
 mod user_events;
 mod users;
+mod web_crawler;
 
 use anyhow::Result;
 use sql_query_builder as sql;

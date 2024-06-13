@@ -2,12 +2,11 @@ use anyhow::bail;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    DocCrawlerUrlDAO, EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO,
-    OAuthCredentialDAO, ServerSettingDAO, UserDAO, UserEventDAO,
+    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
+    ServerSettingDAO, UserDAO, UserEventDAO, WebCrawlerUrlDAO,
 };
 
 use crate::{
-    doc_crawler::DocCrawlerUrl,
     integration::{Integration, IntegrationKind, IntegrationStatus},
     repository::{ProvidedRepository, RepositoryKind},
     schema::{
@@ -22,6 +21,7 @@ use crate::{
         user_event::{EventKind, UserEvent},
         CoreError,
     },
+    web_crawler::WebCrawlerUrl,
 };
 
 impl From<InvitationDAO> for auth::Invitation {
@@ -81,8 +81,8 @@ impl TryFrom<OAuthCredentialDAO> for OAuthCredential {
     }
 }
 
-impl From<DocCrawlerUrlDAO> for DocCrawlerUrl {
-    fn from(value: DocCrawlerUrlDAO) -> Self {
+impl From<WebCrawlerUrlDAO> for WebCrawlerUrl {
+    fn from(value: WebCrawlerUrlDAO) -> Self {
         Self {
             url: value.url,
             id: value.id.as_id(),

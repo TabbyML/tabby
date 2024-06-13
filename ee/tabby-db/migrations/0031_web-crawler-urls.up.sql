@@ -1,4 +1,4 @@
-CREATE TABLE doc_crawler_urls(
+CREATE TABLE web_crawler_urls(
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     url TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
