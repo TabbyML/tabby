@@ -13,7 +13,8 @@ import {
   Play,
   Search,
   Sparkles,
-  Star
+  Star,
+  Tag
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -1498,6 +1499,10 @@ function IconBox({ className, ...props }: React.ComponentProps<typeof Box>) {
   return <Box className={cn('h4 w-4', className)} {...props} />
 }
 
+function IconTag({ className, ...props }: React.ComponentProps<typeof Tag>) {
+  return <Tag className={cn('h4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1579,5 +1584,6 @@ export {
   IconSparkles,
   IconSearch,
   IconPlay,
-  IconBox
+  IconBox,
+  IconTag
 }
