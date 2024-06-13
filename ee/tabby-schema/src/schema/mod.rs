@@ -68,6 +68,7 @@ pub trait ServiceLocator: Send + Sync {
     fn license(&self) -> Arc<dyn LicenseService>;
     fn analytic(&self) -> Arc<dyn AnalyticService>;
     fn user_event(&self) -> Arc<dyn UserEventService>;
+    fn config(&self) -> &Config;
 }
 
 pub struct Context {
@@ -425,9 +426,10 @@ impl Query {
         let mut repositories = ctx.locator.repository().repository_list().await?;
 
         repositories.extend(
-            Config::load()?
+            ctx.locator
+                .config()
                 .repositories
-                .into_iter()
+                .iter()
                 .enumerate()
                 .map(|(index, repo)| {
                     Ok(Repository {
@@ -436,7 +438,7 @@ impl Query {
                         kind: RepositoryKind::Git,
                         dir: repo.dir(),
                         refs: tabby_git::list_refs(&repo.dir())?,
-                        git_url: repo.git_url,
+                        git_url: repo.git_url.clone(),
                     })
                 })
                 .collect::<Result<Vec<_>, anyhow::Error>>()?,
