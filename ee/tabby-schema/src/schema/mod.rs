@@ -441,7 +441,7 @@ impl Query {
                         git_url: repo.git_url.clone(),
                     })
                 })
-                .collect::<Result<Vec<_>, anyhow::Error>>()?,
+                .collect::<crate::Result<Vec<_>>>()?,
         );
 
         Ok(repositories)
