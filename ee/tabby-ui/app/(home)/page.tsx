@@ -215,7 +215,7 @@ function MainPanel() {
               src={theme === 'dark' ? logoDarkUrl : logoUrl}
               className="cursor-pointer"
               alt="logo"
-              width={80}
+              width={theme === 'dark' ? 80 : 100}
               onClick={hideSearch}
             />
           )}
@@ -260,7 +260,7 @@ function MainPanel() {
             <div className="mt-10 flex w-full flex-col gap-x-5 lg:flex-row">
               <div
                 className="mb-10 w-full rounded-lg p-4 lg:mb-0 lg:w-[21rem]"
-                style={{ background: theme === 'dark' ? '#423929' : '#e8e1d3' }}
+                style={{ background: theme === 'dark' ? '#333' : '#e8e1d3' }}
                 data-aos="fade-up"
                 data-aos-delay="100"
               >
