@@ -66,14 +66,18 @@ type ConversationMessage = Message & {
   error?: string
 }
 
+type SubmitSearchOpts = {
+  isNew?: boolean
+}
+
 type SearchContextValue = {
   isLoading: boolean
   onRegenerateResponse: (id: string) => void
-  onSubmitSearch: (question: string) => void
+  onSubmitSearch: (question: string, opts?: SubmitSearchOpts) => void
 }
 
 export interface SearchRef {
-  onSubmitSearch: (question: string) => void
+  onSubmitSearch: (question: string, opts?: SubmitSearchOpts) => void
   stop: () => void
 }
 
@@ -172,7 +176,7 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
 
   // Delay showing the stop button
   useEffect(() => {
-    if (isLoading && !showStop) {
+    if (isLoading) {
       setTimeout(() => {
         setShowStop(true)
 
@@ -190,18 +194,20 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
       }, 1500)
     }
 
-    if (!isLoading && showStop) {
+    if (!isLoading) {
       setShowStop(false)
     }
   }, [isLoading])
 
-  const onSubmitSearch = (question: string) => {
+  const onSubmitSearch = (question: string, opts?: SubmitSearchOpts) => {
     // FIXME: code query? extra from user's input?
-    const previousMessages = conversation.map(message => ({
-      role: message.role,
-      id: message.id,
-      content: message.content
-    }))
+    const previousMessages = opts?.isNew
+      ? []
+      : conversation.map(message => ({
+          role: message.role,
+          id: message.id,
+          content: message.content
+        }))
     const previousUserId = previousMessages.length > 0 && previousMessages[0].id
     const newAssistantId = nanoid()
     const newUserMessage: ConversationMessage = {
@@ -223,13 +229,14 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
     }
 
     setCurrentLoadingId(newAssistantId)
+    const previousConversation = opts?.isNew ? [] : [...conversation]
     setConversation(
-      [...conversation].concat([newUserMessage, newAssistantMessage])
+      previousConversation.concat([newUserMessage, newAssistantMessage])
     )
     triggerRequest(answerRequest)
 
     // Update HTML page title
-    if (!title) setTitle(question)
+    if (!title || opts?.isNew) setTitle(question)
   }
 
   const onRegenerateResponse = (id: string) => {

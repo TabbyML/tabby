@@ -3,9 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import logoDarkUrl from '@/assets/logo-dark.png'
 import tabbyUrl from '@/assets/logo-dark.png'
-import logoUrl from '@/assets/logo.png'
 import AOS from 'aos'
 import { noop } from 'lodash-es'
 import { useTheme } from 'next-themes'
@@ -20,10 +18,16 @@ import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
-import { IconJetBrains, IconRotate, IconVSCode, IconPlus, IconChevronLeft } from '@/components/ui/icons'
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import {
+  IconChevronLeft,
+  IconJetBrains,
+  IconPlus,
+  IconRotate,
+  IconVSCode
+} from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import {
   Tooltip,
   TooltipContent,
@@ -92,7 +96,16 @@ function MainPanel() {
   const onSearch = (question: string) => {
     setInitialMsg(question)
     setIsSearch(true)
+  }
+
+  const onSearchInNewThread = (question: string) => {
     setIsSearchDialogOpen(false)
+    if (isSearch && searchRef.current) {
+      searchRef.current.stop()
+      setTimeout(() => {
+        searchRef.current?.onSubmitSearch(question, { isNew: true })
+      }, 100)
+    }
   }
 
   const hideSearch = () => {
@@ -111,47 +124,59 @@ function MainPanel() {
         <div>
           {isSearch && (
             <div className="flex items-center gap-x-6">
-              <Button variant='ghost' className="text-sm text-muted-foreground">
-                <IconChevronLeft className="w-5 h-5 mr-1" />
+              <Button
+                variant="ghost"
+                className="text-sm text-muted-foreground"
+                onClick={hideSearch}
+              >
+                <IconChevronLeft className="mr-1 h-5 w-5" />
                 Home
               </Button>
             </div>
           )}
         </div>
         <div className="flex items-center gap-x-6">
-          <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant='outline' className="text-sm shadow-none text-muted-foreground">
-                <IconPlus className="w-3 h-3 mr-1" />
-                New thread
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="dialog-without-close-btn -mt-48 border-none bg-transparent shadow-none sm:max-w-4xl">
-              <div className="flex flex-col items-center">
-                <Image
-                  src={tabbyUrl}
-                  alt="logo"
-                  width={192}
-                  className="my-4 invert-0"
-                  data-aos="fade-down"
-                  data-aos-delay="150"
-                />
-                <p
-                  className="mb-6 flex scroll-m-20 items-center gap-2 text-sm tracking-tight text-white"
-                  data-aos="fade-down"
-                  data-aos-delay="100"
+          {isSearch && (
+            <Dialog
+              open={isSearchDialogOpen}
+              onOpenChange={setIsSearchDialogOpen}
+            >
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="text-sm text-muted-foreground shadow-none"
                 >
-                  <span>research</span>
-                  <Separator orientation="vertical" className="h-[80%]" />
-                  <span>develop</span>
-                  <Separator orientation="vertical" className="h-[80%]" />
-                  <span>debug</span>
-                </p>
-                <TextAreaSearch onSearch={onSearch} />
-              </div>
-            </DialogContent>
-          </Dialog>
-          
+                  <IconPlus className="mr-1 h-3 w-3" />
+                  New thread
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="dialog-without-close-btn -mt-48 border-none bg-transparent shadow-none sm:max-w-4xl">
+                <div className="flex flex-col items-center">
+                  <Image
+                    src={tabbyUrl}
+                    alt="logo"
+                    width={192}
+                    className="my-4 invert-0"
+                    data-aos="fade-down"
+                    data-aos-delay="100"
+                  />
+                  <p
+                    className="mb-6 flex scroll-m-20 items-center gap-2 text-sm tracking-tight text-white"
+                    data-aos="fade-down"
+                    data-aos-delay="50"
+                  >
+                    <span>research</span>
+                    <Separator orientation="vertical" className="h-[80%]" />
+                    <span>develop</span>
+                    <Separator orientation="vertical" className="h-[80%]" />
+                    <span>debug</span>
+                  </p>
+                  <TextAreaSearch onSearch={onSearchInNewThread} />
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+
           <ClientOnly>
             <ThemeToggle />
           </ClientOnly>
