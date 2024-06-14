@@ -86,11 +86,14 @@ export default function Chats() {
 
   const onNavigateToContext = (context: ChatContext) => {
     if (!context.filepath) return
+    const url = new URL(`${window.location.origin}/files`)
+    const searchParams = new URLSearchParams()
+    searchParams.append('redirect_filepath', context.filepath)
+    searchParams.append('redirect_git_url', context.git_url)
+    searchParams.append('line', String(context.range.start))
+    url.search = searchParams.toString()
 
-    const url = `/files?path=${encodeURIComponent(context.filepath)}&line=${
-      context.range.start ?? ''
-    }`
-    window.open(url)
+    window.open(url.toString())
   }
 
   const onChatLoaded = () => {
