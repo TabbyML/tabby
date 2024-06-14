@@ -693,8 +693,12 @@ async function fetchEntriesFromPath(
 ) {
   if (!path) return []
   if (!repository) throw new Error(Errors.EMPTY_REPOSITORY)
+  if (isEmpty(repository.refs)) throw new Error(Errors.REPOSITORY_SYNC_FAILED)
 
   const { basename, rev, viewMode } = resolveRepositoryInfoFromPath(path)
+
+  if (!rev || !viewMode) throw new Error(Errors.INVALID_URL)
+
   // array of dir basename that do not include the repo name.
   const directoryPaths = getDirectoriesFromBasename(
     basename,
@@ -704,11 +708,11 @@ async function fetchEntriesFromPath(
   const requests: Array<() => Promise<ResolveEntriesResponse>> =
     directoryPaths.map(
       dir => () =>
-        fetcher(toEntryRequestUrl(repository, rev ?? 'main', dir) as string, {
+        fetcher(toEntryRequestUrl(repository, rev, dir) as string, {
           responseFormatter(response) {
             const contentType = response.headers.get('Content-Type')
             if (contentType !== 'application/vnd.directory+json') {
-              throw new Error(Errors.INCORRECT_VIEW_MODE)
+              throw new Error(Errors.INVALID_URL)
             }
             return response.json()
           },
