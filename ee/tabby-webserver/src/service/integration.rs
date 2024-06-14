@@ -43,9 +43,7 @@ impl IntegrationService for IntegrationServiceImpl {
         let id = id.as_id();
         let _ = self
             .background_job
-            .send(BackgroundJobEvent::SchedulerGithubGitlabRepository(
-                id.clone(),
-            ));
+            .send(BackgroundJobEvent::SyncThirdPartyRepositories(id.clone()));
         Ok(id)
     }
 
@@ -83,9 +81,7 @@ impl IntegrationService for IntegrationServiceImpl {
         if access_token_is_changed || api_base_is_changed {
             let _ = self
                 .background_job
-                .send(BackgroundJobEvent::SchedulerGithubGitlabRepository(
-                    id.clone(),
-                ));
+                .send(BackgroundJobEvent::SyncThirdPartyRepositories(id.clone()));
         }
 
         Ok(())
@@ -234,7 +230,7 @@ mod tests {
         let event = recv.recv().await.unwrap();
         assert_eq!(
             event,
-            BackgroundJobEvent::SchedulerGithubGitlabRepository(id.clone())
+            BackgroundJobEvent::SyncThirdPartyRepositories(id.clone())
         );
 
         // Test integration status is failed after updating sync status with an error
@@ -297,7 +293,7 @@ mod tests {
         let event = recv.recv().await.unwrap();
         assert_eq!(
             event,
-            BackgroundJobEvent::SchedulerGithubGitlabRepository(id.clone())
+            BackgroundJobEvent::SyncThirdPartyRepositories(id.clone())
         );
 
         // Test sync event is not sent if no fields are updated

@@ -65,7 +65,7 @@ impl Webserver {
 
         background_job::start(
             db.clone(),
-            ws.clone(),
+            repository.git(),
             repository.third_party(),
             integration.clone(),
             embedding,

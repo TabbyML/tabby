@@ -3,9 +3,10 @@ use std::sync::Arc;
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use tabby_common::config::{ConfigAccess, RepositoryConfig};
+use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
 use tabby_scheduler::CodeIndexer;
+use tabby_schema::repository::GitRepositoryService;
 
 use super::{
     cprintln,
@@ -14,21 +15,21 @@ use super::{
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SchedulerJob {
+pub struct SchedulerGitJob {
     repository: RepositoryConfig,
 }
 
-impl SchedulerJob {
+impl SchedulerGitJob {
     pub fn new(repository: RepositoryConfig) -> Self {
         Self { repository }
     }
 }
 
-impl Job for SchedulerJob {
+impl Job for SchedulerGitJob {
     const NAME: &'static str = "scheduler";
 }
 
-impl SchedulerJob {
+impl SchedulerGitJob {
     pub async fn run(
         self,
         job_logger: JobLogger,
@@ -51,13 +52,18 @@ impl SchedulerJob {
 
     pub async fn cron(
         _now: DateTime<Utc>,
-        config_access: Arc<dyn ConfigAccess>,
+        git_repository_service: Arc<dyn GitRepositoryService>,
         sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
     ) -> tabby_schema::Result<()> {
-        let repositories = config_access
-            .repositories()
+        let repositories = git_repository_service
+            .repository_list()
             .await
             .context("Must be able to retrieve repositories for sync")?;
+
+        let repositories: Vec<_> = repositories
+            .into_iter()
+            .map(|repo| RepositoryConfig::new(repo.git_url))
+            .collect();
 
         let mut code = CodeIndexer::default();
 

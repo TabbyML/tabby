@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 use strum::EnumIter;
+use url::Url;
 
 use crate::{juniper::relay::NodeType, Context, Result};
 
@@ -11,6 +12,22 @@ pub enum IntegrationKind {
     Gitlab,
     GithubSelfHosted,
     GitlabSelfHosted,
+}
+
+impl IntegrationKind {
+    pub fn format_authenticated_url(&self, git_url: &str, access_token: &str) -> Result<String> {
+        let mut url = Url::parse(git_url).map_err(anyhow::Error::from)?;
+        match self {
+            IntegrationKind::Github | IntegrationKind::GithubSelfHosted => {
+                let _ = url.set_username(access_token);
+            }
+            IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => {
+                let _ = url.set_username("oauth2");
+                let _ = url.set_password(Some(access_token));
+            }
+        }
+        Ok(url.to_string())
+    }
 }
 
 #[derive(PartialEq, Eq, Debug, GraphQLEnum)]

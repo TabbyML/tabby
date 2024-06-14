@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use issues::{index_github_issues, index_gitlab_issues};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
+use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
 use tabby_scheduler::DocIndexer;
 use tabby_schema::{
@@ -13,7 +14,11 @@ use tabby_schema::{
 };
 use tracing::debug;
 
-use super::{helper::Job, BackgroundJobEvent};
+use super::{
+    git::SchedulerGitJob,
+    helper::{Job, JobLogger},
+    BackgroundJobEvent,
+};
 
 mod issues;
 
@@ -55,7 +60,7 @@ impl SyncIntegrationJob {
             .await?
         {
             sender
-                .send(BackgroundJobEvent::SchedulerGithubGitlabRepository(
+                .send(BackgroundJobEvent::SyncThirdPartyRepositories(
                     integration.id,
                 ))
                 .map_err(|_| anyhow!("Failed to enqueue scheduler job"))?;
@@ -65,21 +70,22 @@ impl SyncIntegrationJob {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct IndexIssuesJob {
+pub struct SchedulerGithubGitlabJob {
     repository_id: ID,
 }
 
-impl Job for IndexIssuesJob {
+impl Job for SchedulerGithubGitlabJob {
     const NAME: &'static str = "index_issues";
 }
 
-impl IndexIssuesJob {
+impl SchedulerGithubGitlabJob {
     pub fn new(repository_id: ID) -> Self {
         Self { repository_id }
     }
 
     pub async fn run(
         self,
+        job_logger: JobLogger,
         embedding: Arc<dyn Embedding>,
         repository_service: Arc<dyn ThirdPartyRepositoryService>,
         integration_service: Arc<dyn IntegrationService>,
@@ -89,6 +95,17 @@ impl IndexIssuesJob {
             .await?;
         let integration = integration_service
             .get_integration(repository.integration_id.clone())
+            .await?;
+
+        let authenticated_url = integration
+            .kind
+            .format_authenticated_url(&repository.git_url, &integration.access_token)?;
+
+        let repo = RepositoryConfig::new(authenticated_url);
+
+        // First, run the regular scheduler job to sync and index the repository
+        SchedulerGitJob::new(repo)
+            .run(job_logger, embedding.clone())
             .await?;
 
         debug!("Indexing issues for repository {}", repository.display_name);
@@ -129,7 +146,9 @@ impl IndexIssuesJob {
             .await?
         {
             sender
-                .send(BackgroundJobEvent::IndexGithubGitlabIssues(repository.id))
+                .send(BackgroundJobEvent::SchedulerGithubGitlabRepository(
+                    repository.id,
+                ))
                 .map_err(|_| anyhow!("Failed to enqueue scheduler job"))?;
         }
         Ok(())
