@@ -15,7 +15,6 @@ import {
 
 import {
   IconBackpack,
-  IconChat,
   IconCode,
   IconGear,
   IconHome,
@@ -82,15 +81,6 @@ export default function UserPanel({
           >
             <IconGear />
             <span className="ml-2">Settings</span>
-          </DropdownMenuItem>
-        )}
-        {isChatEnabled && (
-          <DropdownMenuItem
-            onClick={() => window.open('/playground')}
-            className="cursor-pointer"
-          >
-            <IconChat />
-            <span className="ml-2">Chat Playground</span>
           </DropdownMenuItem>
         )}
         <DropdownMenuItem

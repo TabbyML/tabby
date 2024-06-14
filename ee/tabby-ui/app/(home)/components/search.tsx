@@ -102,11 +102,12 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
   const isChatEnabled = useIsChatEnabled()
   const [searchFlag] = useEnableSearch()
   const [conversation, setConversation] = useState<ConversationMessage[]>([])
-  const [showStop, setShowStop] = useState(false)
+  const [showStop, setShowStop] = useState(true)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [title, setTitle] = useState('')
   const [currentLoadindId, setCurrentLoadingId] = useState<string>('')
   const contentContainerRef = useRef<HTMLDivElement>(null)
+  const [showSearchInput, setShowSearchInput] = useState(false)
 
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
     fetcher: tabbyFetcher
@@ -126,6 +127,12 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
   useEffect(() => {
     if (title) document.title = title
   }, [title])
+
+  useEffect(() => {
+    setTimeout(() => {
+      setShowSearchInput(true)
+    }, 500)
+  }, [])
 
   useEffect(() => {
     setContainer(
@@ -314,36 +321,36 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
 
         <div
           className={cn(
-            'fixed bottom-5 left-0 flex min-h-[5rem] w-full flex-col items-center transition-all'
+            'fixed bottom-5 left-0 flex min-h-[5rem] w-full flex-col items-center gap-y-2',
+            {
+              'opacity-100 translate-y-0': showSearchInput,
+              'opacity-0 translate-y-10': !showSearchInput
+            }
           )}
+          style={{ transition: 'all 0.35s ease-out' }}
         >
-          {!isLoading && (
-            <div className="relative z-20 flex justify-center self-stretch px-10">
-              <TextAreaSearch
-                onSearch={onSubmitSearch}
-                className="lg:max-w-4xl"
-                placeholder="Ask a follow up question"
-              />
-            </div>
-          )}
-
           <Button
-            className={cn(
-              'absolute top-2 z-0 flex items-center gap-x-2 px-8 py-4',
-              {
-                'opacity-0 pointer-events-none': !showStop,
-                'opacity-100': showStop
-              }
-            )}
+            className={cn('bg-background', {
+              'opacity-0 pointer-events-none': !showStop,
+              'opacity-100': showStop
+            })}
             style={{
               transition: 'opacity 0.55s ease-out'
             }}
-            variant="destructive"
+            variant="outline"
             onClick={stop}
           >
-            <IconStop />
-            <p>Stop</p>
+            <IconStop className="mr-2" />
+            Stop generating
           </Button>
+          <div className="relative z-20 flex justify-center self-stretch px-10">
+            <TextAreaSearch
+              onSearch={onSubmitSearch}
+              className="lg:max-w-4xl"
+              placeholder="Ask a follow up question"
+              isLoading={isLoading}
+            />
+          </div>
         </div>
       </>
     </SearchContext.Provider>
