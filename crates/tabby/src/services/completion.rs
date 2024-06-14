@@ -52,6 +52,9 @@ pub struct CompletionRequest {
 
     /// The seed used for randomly selecting tokens
     seed: Option<u64>,
+
+    /// The maximum number of tokens to decode, used to limit the length of the model output
+    max_decoding_tokens: Option<i32>,
 }
 
 impl CompletionRequest {
@@ -263,11 +266,12 @@ impl CompletionService {
         language: &str,
         temperature: Option<f32>,
         seed: Option<u64>,
+        max_decoding_tokens: Option<i32>,
     ) -> CodeGenerationOptions {
         let mut builder = CodeGenerationOptionsBuilder::default();
         builder
             .max_input_length(1024 + 512)
-            .max_decoding_tokens(64)
+            .max_decoding_tokens(max_decoding_tokens.unwrap_or(64))
             .language(Some(get_language(language)));
         temperature.inspect(|x| {
             builder.sampling_temperature(*x);
@@ -287,7 +291,7 @@ impl CompletionService {
         let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
         let language = request.language_or_unknown();
         let options =
-            Self::text_generation_options(language.as_str(), request.temperature, request.seed);
+            Self::text_generation_options(language.as_str(), request.temperature, request.seed, request.max_decoding_tokens);
 
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
             (prompt, None, vec![])
