@@ -18,11 +18,9 @@ import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import {
   IconChevronLeft,
   IconJetBrains,
-  IconPlus,
   IconRotate,
   IconVSCode
 } from '@/components/ui/icons'
@@ -66,7 +64,6 @@ function MainPanel() {
   const [initialMsg, setInitialMsg] = useState('')
   const elementRef = useRef<HTMLDivElement | null>(null)
   const searchRef = useRef<SearchRef>(null)
-  const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false)
 
   useEffect(() => {
     setTimeout(() => {
@@ -98,16 +95,6 @@ function MainPanel() {
     setIsSearch(true)
   }
 
-  const onSearchInNewThread = (question: string) => {
-    setIsSearchDialogOpen(false)
-    if (isSearch && searchRef.current) {
-      searchRef.current.stop()
-      setTimeout(() => {
-        searchRef.current?.onSubmitSearch(question, { isNew: true })
-      }, 100)
-    }
-  }
-
   const hideSearch = () => {
     if (searchRef.current) {
       searchRef.current.stop()
@@ -136,47 +123,6 @@ function MainPanel() {
           )}
         </div>
         <div className="flex items-center gap-x-6">
-          {isSearch && (
-            <Dialog
-              open={isSearchDialogOpen}
-              onOpenChange={setIsSearchDialogOpen}
-            >
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="text-sm text-muted-foreground shadow-none"
-                >
-                  <IconPlus className="mr-1 h-3 w-3" />
-                  New thread
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="dialog-without-close-btn -mt-24 border-none bg-transparent shadow-none sm:max-w-4xl">
-                <div className="flex flex-col items-center">
-                  <Image
-                    src={tabbyUrl}
-                    alt="logo"
-                    width={192}
-                    className="my-4 invert-0"
-                    data-aos="fade-down"
-                    data-aos-delay="100"
-                  />
-                  <p
-                    className="mb-6 flex scroll-m-20 items-center gap-2 text-sm tracking-tight text-white"
-                    data-aos="fade-down"
-                    data-aos-delay="50"
-                  >
-                    <span>research</span>
-                    <Separator orientation="vertical" className="h-[80%]" />
-                    <span>develop</span>
-                    <Separator orientation="vertical" className="h-[80%]" />
-                    <span>debug</span>
-                  </p>
-                  <TextAreaSearch onSearch={onSearchInNewThread} />
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
-
           <ClientOnly>
             <ThemeToggle />
           </ClientOnly>
