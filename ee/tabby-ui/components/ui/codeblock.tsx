@@ -3,7 +3,7 @@
 
 'use client'
 
-import { FC, memo } from 'react'
+import { FC, memo, useEffect, useRef } from 'react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { coldarkDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 
@@ -58,6 +58,7 @@ export const generateRandomString = (length: number, lowercase = false) => {
 }
 
 const CodeBlock: FC<Props> = memo(({ language, value, onCopyContent }) => {
+  const codeRef = useRef<HTMLDivElement>(null)
   const { isCopied, copyToClipboard } = useCopyToClipboard({
     timeout: 2000,
     onCopyContent
@@ -67,6 +68,29 @@ const CodeBlock: FC<Props> = memo(({ language, value, onCopyContent }) => {
     if (isCopied) return
     copyToClipboard(value)
   }
+
+  // Firefox has bug of adding extra lines to the copied codes
+  useEffect(() => {
+    const isFirefox =
+      typeof window !== 'undefined' && /firefox/i.test(navigator.userAgent)
+
+    const handleCopy = (event: ClipboardEvent) => {
+      if (codeRef.current && codeRef.current.contains(event.target as Node)) {
+        const selection = document.getSelection()
+        if (event.clipboardData && selection) {
+          event.clipboardData.setData('text/plain', selection.toString())
+          event.preventDefault()
+        }
+      }
+    }
+
+    if (isFirefox) {
+      document.addEventListener('copy', handleCopy)
+      return () => {
+        document.removeEventListener('copy', handleCopy)
+      }
+    }
+  }, [])
 
   return (
     <div className="codeblock relative w-full bg-zinc-950 font-sans">
@@ -84,26 +108,29 @@ const CodeBlock: FC<Props> = memo(({ language, value, onCopyContent }) => {
           </Button>
         </div>
       </div>
-      <SyntaxHighlighter
-        language={language}
-        style={coldarkDark}
-        PreTag="div"
-        showLineNumbers
-        customStyle={{
-          margin: 0,
-          width: '100%',
-          background: 'transparent',
-          padding: '1.5rem 1rem'
-        }}
-        codeTagProps={{
-          style: {
-            fontSize: '0.9rem',
-            fontFamily: 'var(--font-mono)'
-          }
-        }}
-      >
-        {value}
-      </SyntaxHighlighter>
+
+      <div ref={codeRef}>
+        <SyntaxHighlighter
+          language={language}
+          style={coldarkDark}
+          PreTag="div"
+          showLineNumbers
+          customStyle={{
+            margin: 0,
+            width: '100%',
+            background: 'transparent',
+            padding: '1.5rem 1rem'
+          }}
+          codeTagProps={{
+            style: {
+              fontSize: '0.9rem',
+              fontFamily: 'var(--font-mono)'
+            }
+          }}
+        >
+          {value}
+        </SyntaxHighlighter>
+      </div>
     </div>
   )
 })
