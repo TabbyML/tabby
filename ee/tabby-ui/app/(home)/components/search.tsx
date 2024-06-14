@@ -172,7 +172,7 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
 
   // Delay showing the stop button
   useEffect(() => {
-    if (isLoading && !showStop) {
+    if (isLoading) {
       setTimeout(() => {
         setShowStop(true)
 
@@ -190,7 +190,7 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
       }, 1500)
     }
 
-    if (!isLoading && showStop) {
+    if (!isLoading) {
       setShowStop(false)
     }
   }, [isLoading])
