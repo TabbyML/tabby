@@ -27,7 +27,7 @@ impl ResolveState {
     }
 
     async fn find_repository(&self, params: &ResolveParams) -> Option<PathBuf> {
-        if let Ok(index) = config_id_to_index(&*params.id) {
+        if let Ok(index) = config_id_to_index(&params.id) {
             return Some(self.config.get(index)?.dir());
         }
 
