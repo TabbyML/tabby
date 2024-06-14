@@ -52,7 +52,7 @@ pub fn create(ctx: Arc<dyn ServiceLocator>, api: Router, ui: Router) -> (Router,
             repositories::routes(
                 ctx.repository(),
                 ctx.auth(),
-                ctx.config().repositories.clone(),
+                ctx.repository().configured_repositories(),
             ),
         )
         .route(

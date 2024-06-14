@@ -288,5 +288,6 @@ pub trait RepositoryService: Send + Sync {
     fn git(&self) -> Arc<dyn GitRepositoryService>;
     fn third_party(&self) -> Arc<dyn ThirdPartyRepositoryService>;
 
-    async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>>;
+    async fn list_all_repository_urls(&self) -> Result<Vec<RepositoryConfig>>;
+    fn configured_repositories(&self) -> Vec<RepositoryConfig>;
 }

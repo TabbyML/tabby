@@ -23,7 +23,6 @@ use hyper::{HeaderMap, Uri};
 use juniper::ID;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
-    config::Config,
     constants::USER_HEADER_FIELD_NAME,
 };
 use tabby_db::DbConn;
@@ -46,7 +45,6 @@ use self::{
     analytic::new_analytic_service, email::new_email_service, license::new_license_service,
 };
 struct ServerContext {
-    config: Config,
     db_conn: DbConn,
     mail: Arc<dyn EmailService>,
     auth: Arc<dyn AuthenticationService>,
@@ -87,9 +85,7 @@ impl ServerContext {
         let job = Arc::new(job::create(db_conn.clone()).await);
         let setting = Arc::new(setting::create(db_conn.clone()));
 
-        let config = Config::load().unwrap_or_default();
         Self {
-            config,
             mail: mail.clone(),
             auth: Arc::new(auth::create(
                 db_conn.clone(),
@@ -245,10 +241,6 @@ impl ServiceLocator for ArcServerContext {
 
     fn integration(&self) -> Arc<dyn IntegrationService> {
         self.0.integration.clone()
-    }
-
-    fn config(&self) -> &Config {
-        &self.0.config
     }
 }
 

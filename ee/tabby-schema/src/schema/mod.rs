@@ -23,10 +23,7 @@ use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLObject, IntoFieldError,
     Object, RootNode, ScalarValue, Value, ID,
 };
-use tabby_common::{
-    api::{code::CodeSearch, event::EventLogger},
-    config::Config,
-};
+use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use tracing::error;
 use validator::{Validate, ValidationErrors};
 use worker::WorkerService;
@@ -68,7 +65,6 @@ pub trait ServiceLocator: Send + Sync {
     fn license(&self) -> Arc<dyn LicenseService>;
     fn analytic(&self) -> Arc<dyn AnalyticService>;
     fn user_event(&self) -> Arc<dyn UserEventService>;
-    fn config(&self) -> &Config;
 }
 
 pub struct Context {
@@ -423,28 +419,8 @@ impl Query {
 
     async fn repository_list(ctx: &Context) -> Result<Vec<Repository>> {
         check_user(ctx).await?;
-        let mut repositories = ctx.locator.repository().repository_list().await?;
 
-        repositories.extend(
-            ctx.locator
-                .config()
-                .repositories
-                .iter()
-                .enumerate()
-                .map(|(index, repo)| {
-                    Ok(Repository {
-                        id: ID::new(format!("CONFIG_{}", index)),
-                        name: repo.dir_name(),
-                        kind: RepositoryKind::Git,
-                        dir: repo.dir(),
-                        refs: tabby_git::list_refs(&repo.dir())?,
-                        git_url: repo.git_url.clone(),
-                    })
-                })
-                .collect::<crate::Result<Vec<_>>>()?,
-        );
-
-        Ok(repositories)
+        Ok(ctx.locator.repository().repository_list().await?)
     }
 
     async fn integrations(

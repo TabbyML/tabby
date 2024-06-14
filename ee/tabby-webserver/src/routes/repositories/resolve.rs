@@ -5,7 +5,7 @@ use axum::{body::Body, response::Response};
 use hyper::StatusCode;
 use juniper::ID;
 use serde::Deserialize;
-use tabby_common::config::RepositoryConfig;
+use tabby_common::config::{config_id_to_index, RepositoryConfig};
 use tabby_schema::repository::{RepositoryKind, RepositoryService};
 
 #[derive(Deserialize, Debug)]
@@ -27,8 +27,7 @@ impl ResolveState {
     }
 
     async fn find_repository(&self, params: &ResolveParams) -> Option<PathBuf> {
-        if let Some(index) = params.id.strip_prefix("CONFIG_") {
-            let index: usize = index.parse().ok()?;
+        if let Ok(index) = config_id_to_index(&*params.id) {
             return Some(self.config.get(index)?.dir());
         }
 
