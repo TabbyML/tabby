@@ -210,7 +210,7 @@ function MainPanel() {
     : { height: '100vh' }
   return (
     <div className="transition-all" style={style}>
-      <header className="flex h-16 items-center justify-between px-10">
+      <header className="flex h-16 items-center justify-between px-4">
         <div>
           {isSearch && (
             <Image
@@ -222,11 +222,11 @@ function MainPanel() {
             />
           )}
         </div>
-        <div className="flex items-center gap-x-3">
+        <div className="flex items-center gap-x-6">
           <ClientOnly>
             <ThemeToggle />
           </ClientOnly>
-          <UserPanel>
+          <UserPanel showHome={false} showSetting>
             <UserAvatar className="h-10 w-10 border" />
           </UserPanel>
         </div>
