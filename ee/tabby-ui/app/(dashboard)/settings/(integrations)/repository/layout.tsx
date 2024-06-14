@@ -8,7 +8,7 @@ const Header = ({ className }: { className?: string }) => {
   return (
     <SubHeader
       className={className}
-      // externalLink="https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion"
+      externalLink="https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion"
     >
       <span className="text-foreground text-base">
         Connect to a range of context sources to enhance performance of large
