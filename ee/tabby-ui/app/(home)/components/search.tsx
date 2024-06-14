@@ -66,7 +66,6 @@ type ConversationMessage = Message & {
   error?: string
 }
 
-
 type SearchContextValue = {
   isLoading: boolean
   onRegenerateResponse: (id: string) => void
