@@ -150,7 +150,7 @@ function MainPanel() {
                   New thread
                 </Button>
               </DialogTrigger>
-              <DialogContent className="dialog-without-close-btn -mt-48 border-none bg-transparent shadow-none sm:max-w-4xl">
+              <DialogContent className="dialog-without-close-btn -mt-24 border-none bg-transparent shadow-none sm:max-w-4xl">
                 <div className="flex flex-col items-center">
                   <Image
                     src={tabbyUrl}
