@@ -104,7 +104,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
                     }
                   >
                     <SidebarButton href="/settings/repository/git">
-                      Repository Providers
+                      Context Connection
                     </SidebarButton>
                     <SidebarButton href="/settings/sso">SSO</SidebarButton>
                     <SidebarButton href="/settings/mail">

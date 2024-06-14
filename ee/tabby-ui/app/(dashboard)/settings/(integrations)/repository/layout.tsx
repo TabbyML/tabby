@@ -8,10 +8,12 @@ const Header = ({ className }: { className?: string }) => {
   return (
     <SubHeader
       className={className}
-      externalLink="https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion"
+      // externalLink="https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion"
     >
-      Connect to Git repositories and uses these repositories as a context to
-      enhance performance of large language model.
+      <span className="text-foreground text-base">
+        Connect to a range of context sources to enhance performance of large
+        language model.
+      </span>
     </SubHeader>
   )
 }
@@ -21,7 +23,7 @@ export default function GitLayout({ children }: { children: React.ReactNode }) {
     <>
       <Header />
       <RepositoryTabsHeader />
-      <div className="mt-8">{children}</div>
+      <div className="mt-4">{children}</div>
     </>
   )
 }
