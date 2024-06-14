@@ -66,18 +66,15 @@ type ConversationMessage = Message & {
   error?: string
 }
 
-type SubmitSearchOpts = {
-  isNew?: boolean
-}
 
 type SearchContextValue = {
   isLoading: boolean
   onRegenerateResponse: (id: string) => void
-  onSubmitSearch: (question: string, opts?: SubmitSearchOpts) => void
+  onSubmitSearch: (question: string) => void
 }
 
 export interface SearchRef {
-  onSubmitSearch: (question: string, opts?: SubmitSearchOpts) => void
+  onSubmitSearch: (question: string) => void
   stop: () => void
 }
 
@@ -199,15 +196,13 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
     }
   }, [isLoading])
 
-  const onSubmitSearch = (question: string, opts?: SubmitSearchOpts) => {
+  const onSubmitSearch = (question: string) => {
     // FIXME: code query? extra from user's input?
-    const previousMessages = opts?.isNew
-      ? []
-      : conversation.map(message => ({
-          role: message.role,
-          id: message.id,
-          content: message.content
-        }))
+    const previousMessages = conversation.map(message => ({
+      role: message.role,
+      id: message.id,
+      content: message.content
+    }))
     const previousUserId = previousMessages.length > 0 && previousMessages[0].id
     const newAssistantId = nanoid()
     const newUserMessage: ConversationMessage = {
@@ -229,14 +224,13 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
     }
 
     setCurrentLoadingId(newAssistantId)
-    const previousConversation = opts?.isNew ? [] : [...conversation]
     setConversation(
-      previousConversation.concat([newUserMessage, newAssistantMessage])
+      [...conversation].concat([newUserMessage, newAssistantMessage])
     )
     triggerRequest(answerRequest)
 
     // Update HTML page title
-    if (!title || opts?.isNew) setTitle(question)
+    if (!title) setTitle(question)
   }
 
   const onRegenerateResponse = (id: string) => {
