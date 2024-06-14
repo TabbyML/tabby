@@ -45,7 +45,7 @@ export const ErrorView: React.FC<ErrorViewProps> = ({ className, error }) => {
 function RepositoryNotFoundError() {
   return (
     <>
-      <div className="flex gap-2 items-center">
+      <div className="flex items-center gap-2">
         <IconFileSearch className="h-6 w-6" />
         <div className="text-xl font-semibold">Repository not found</div>
       </div>
@@ -60,7 +60,7 @@ function RepositoryNotFoundError() {
 function NotFoundError() {
   return (
     <>
-      <div className="flex gap-2 items-center">
+      <div className="flex items-center gap-2">
         <IconFileSearch className="h-6 w-6" />
         <div className="text-xl font-semibold">Not found</div>
       </div>
@@ -75,7 +75,7 @@ function NotFoundError() {
 function RepositorySyncError() {
   return (
     <>
-      <div className="flex gap-2 items-center">
+      <div className="flex items-center gap-2">
         <IconFileSearch className="h-6 w-6" />
         <div className="text-xl font-semibold">Synchronization failed</div>
       </div>
@@ -97,7 +97,7 @@ function RepositorySyncError() {
 function InvalidUrlError() {
   return (
     <>
-      <div className="flex gap-2 items-center">
+      <div className="flex items-center gap-2">
         <IconFileSearch className="h-6 w-6" />
         <div className="text-xl font-semibold">Invalid URL</div>
       </div>
