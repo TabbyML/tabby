@@ -1,8 +1,10 @@
 import { SubHeader } from '@/components/sub-header'
 
-import Git from './components/git'
-
-export default function GitTabPage() {
+export default function GitProviderLayout({
+  children
+}: {
+  children: React.ReactNode
+}) {
   return (
     <>
       <SubHeader externalLink="https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion">
@@ -10,7 +12,7 @@ export default function GitTabPage() {
         repositories as context to enhance the performance of large language
         models.
       </SubHeader>
-      <Git />
+      {children}
     </>
   )
 }

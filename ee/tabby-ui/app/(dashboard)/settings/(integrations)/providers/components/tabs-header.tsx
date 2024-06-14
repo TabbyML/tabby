@@ -21,14 +21,14 @@ export default function GitTabsHeader() {
       <div className="sticky top-0 mb-4 flex">
         <TabsList className="grid grid-cols-5">
           <TabsTrigger value="git" asChild>
-            <Link href="/settings/repository/git">
+            <Link href="/settings/providers/git">
               <span className="ml-2">Git</span>
             </Link>
           </TabsTrigger>
           {PROVIDER_KIND_METAS.map(provider => {
             return (
               <TabsTrigger value={provider.name} asChild key={provider.name}>
-                <Link href={`/settings/repository/${provider.name}`}>
+                <Link href={`/settings/providers/${provider.name}`}>
                   <ProviderIcon kind={provider.enum} />
                   <span className="ml-2">{provider.meta.displayName}</span>
                 </Link>
