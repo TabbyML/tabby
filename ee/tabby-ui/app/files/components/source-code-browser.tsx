@@ -36,13 +36,13 @@ import { RawFileView } from './raw-file-view'
 import { TextFileView } from './text-file-view'
 import {
   Errors,
+  generateEntryPath,
   getDefaultRepoRef,
   getDirectoriesFromBasename,
   repositoryList2Map,
   resolveFileNameFromPath,
   resolveRepoRef,
   resolveRepositoryInfoFromPath,
-  resolveRepoSpecifierFromRepoInfo,
   toEntryRequestUrl
 } from './utils'
 
@@ -419,17 +419,18 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       const line = searchParams.get('line')
 
       if (repos?.length && redirect_filepath && redirect_git_url) {
-        // get repo from repos and redirect_git_url
         const targetRepo = repos.find(repo => repo.gitUrl === redirect_git_url)
         if (targetRepo) {
+          // use default rev
           const defaultRef = getDefaultRepoRef(targetRepo.refs)
-          // use 'main' as fallback
-          const refName = resolveRepoRef(defaultRef ?? '')?.name || 'main'
-          const repoSpecifier = resolveRepoSpecifierFromRepoInfo(targetRepo)
-          updateActivePath(`${repoSpecifier}/${refName}/${redirect_filepath}`, {
-            params: { line: line ?? '' },
-            replace: true
-          })
+          const refName = resolveRepoRef(defaultRef ?? '')?.name || ''
+          updateActivePath(
+            generateEntryPath(targetRepo, refName, redirect_filepath, 'file'),
+            {
+              params: { line: line ?? '' },
+              replace: true
+            }
+          )
           initializing.current = false
           return
         }
