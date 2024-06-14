@@ -12,12 +12,14 @@ export default function TextAreaSearch({
   onSearch,
   className,
   placeholder,
-  isExpanded
+  isExpanded,
+  isLoading
 }: {
   onSearch: (value: string) => void
   className?: string
   placeholder?: string
   isExpanded?: boolean
+  isLoading?: boolean
 }) {
   const { data: healthInfo } = useHealth()
   const [isShow, setIsShow] = useState(false)
@@ -40,7 +42,7 @@ export default function TextAreaSearch({
   }
 
   const search = () => {
-    if (!value) return
+    if (!value || isLoading) return
     onSearch(value)
     setValue('')
   }
@@ -76,9 +78,12 @@ export default function TextAreaSearch({
       {!isExpanded && (
         <div
           className={cn(
-            'mr-3 flex items-center rounded-lg bg-muted p-1 text-muted-foreground transition-all',
+            'mr-3 flex items-center rounded-lg p-1 transition-all',
             {
-              '!bg-primary !text-primary-foreground': value.length > 0
+              'bg-primary text-primary-foreground cursor-pointer':
+                value.length > 0,
+              '!bg-muted !text-muted-foreground !cursor-default':
+                isLoading || value.length === 0
             }
           )}
           onClick={search}
@@ -99,7 +104,8 @@ export default function TextAreaSearch({
               'mr-3 flex items-center rounded-lg p-1 transition-all',
               {
                 'text-primary cursor-pointer': value.length > 0,
-                'text-muted-foreground': value.length === 0
+                '!text-muted-foreground !cursor-default':
+                  isLoading || value.length === 0
               }
             )}
             onClick={search}
