@@ -1,5 +1,5 @@
 import React from 'react'
-import { find } from 'lodash-es'
+import { find, isNil } from 'lodash-es'
 import type { Context } from 'tabby-chat-panel'
 import { useClient } from 'tabby-chat-panel/react'
 
@@ -13,7 +13,7 @@ import { IconClose } from '@/components/ui/icons'
 
 import { QuickActionEventPayload } from '../lib/event-emitter'
 import { SourceCodeBrowserContext } from './source-code-browser'
-import { resolveRepoSpecifierFromRepoInfo } from './utils'
+import { generateEntryPath, getDefaultRepoRef, resolveRepoRef } from './utils'
 
 interface ChatSideBarProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {}
@@ -36,26 +36,34 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   const latestRepoRef = useLatest(activeRepoRef)
   const onNavigate = async (context: Context) => {
     if (context?.filepath && context?.git_url) {
+      const line = context?.range?.start
       const repoMap = repoMapRef.current
       const matchedRepositoryKey = find(
         Object.keys(repoMap),
         key => repoMap?.[key]?.gitUrl === context.git_url
       )
       if (matchedRepositoryKey) {
-        const repository = repoMap[matchedRepositoryKey]
-        const repositorySpecifier = resolveRepoSpecifierFromRepoInfo(repository)
-        const rev = latestRepoRef?.current?.name ?? 'main'
-        const isFile = context.kind === 'file'
-
-        const fullPath = `${repositorySpecifier}/-/${
-          isFile ? 'blob' : 'tree'
-        }/${rev}/${context.filepath}`
-        if (!fullPath) return
-        updateActivePath(fullPath, {
-          params: {
-            line: String(context.range.start)
-          }
-        })
+        const targetRepo = repoMap[matchedRepositoryKey]
+        if (targetRepo) {
+          const defaultRef = getDefaultRepoRef(targetRepo.refs)
+          // use curernt rev, and use defaultRev as fallback
+          const refName =
+            latestRepoRef?.current?.name ||
+            resolveRepoRef(defaultRef ?? '')?.name
+          updateActivePath(
+            generateEntryPath(
+              targetRepo,
+              refName,
+              context.filepath,
+              context.kind
+            ),
+            {
+              params: { line: !isNil(line) ? String(line) : '' },
+              replace: true
+            }
+          )
+          return
+        }
       }
     }
   }
