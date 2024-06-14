@@ -36,6 +36,7 @@ import {
   IconPlus,
   IconRefresh,
   IconSparkles,
+  IconSpinner,
   IconStop
 } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -378,6 +379,8 @@ function AnswerBlock({
     return `${content}\n\nCitations:\n${citations}`
   }
 
+  const IconAnswer = answer.isLoading ? IconSpinner : IconSparkles
+
   const totalHeightInRem = answer.relevant_documents
     ? Math.ceil(answer.relevant_documents.length / 4) *
         SOURCE_CARD_STYLE.expand +
@@ -429,9 +432,9 @@ function AnswerBlock({
       {/* Answer content */}
       <div>
         <div className="flex items-center gap-x-1.5">
-          <IconSparkles
+          <IconAnswer
             className={cn({
-              'sparkle-animation': answer.isLoading
+              'animate-spinner': answer.isLoading
             })}
           />
           <p className="text-sm font-bold leading-none">Answer</p>
@@ -525,16 +528,13 @@ function SourceCard({
           {source.snippet}
         </p>
       )}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="flex items-center text-xs text-muted-foreground">
         <div className="flex flex-1 items-center">
           <SiteFavicon hostname={hostname} />
-          <p className="ml-1 flex-1 overflow-hidden text-ellipsis">
+          <p className="ml-1 overflow-hidden text-ellipsis">
             {hostname.replace('www.', '').split('.')[0]}
           </p>
         </div>
-        <p className="h-4 w-4 rounded bg-primary/50 text-center text-primary-foreground">
-          {index}
-        </p>
       </div>
     </div>
   )

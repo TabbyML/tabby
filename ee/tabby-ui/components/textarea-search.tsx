@@ -59,12 +59,12 @@ export default function TextAreaSearch({
     >
       <TextareaAutosize
         className={cn(
-          'text-area-autosize resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
+          'text-area-autosize flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
           {
             '!h-[48px]': !isShow
           }
         )}
-        placeholder={placeholder || 'Ask anything'}
+        placeholder={placeholder || 'Ask anything...'}
         maxRows={5}
         onKeyDown={onSearchKeyDown}
         onKeyUp={onSearchKeyUp}

@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import logoDarkUrl from '@/assets/logo-dark.png'
+import tabbyUrl from '@/assets/logo-dark.png'
 import logoUrl from '@/assets/logo.png'
-import tabbyUrl from '@/assets/tabby.png'
 import AOS from 'aos'
 import { noop } from 'lodash-es'
 import { useTheme } from 'next-themes'
@@ -41,6 +41,8 @@ import { Search, SearchRef } from './components/search'
 import Stats from './components/stats'
 
 import 'aos/dist/aos.css'
+
+import { Separator } from '@/components/ui/separator'
 
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
   mutation ResetUserAuthToken {
@@ -241,20 +243,25 @@ function MainPanel() {
             <Image
               src={tabbyUrl}
               alt="logo"
-              width={45}
+              width={192}
+              className="my-4 invert dark:invert-0"
               data-aos="fade-down"
               data-aos-delay="150"
             />
             <p
-              className="mb-6 scroll-m-20 text-xl font-semibold tracking-tight text-secondary-foreground"
+              className="mb-6 flex scroll-m-20 items-center gap-2 text-sm tracking-tight text-secondary-foreground"
               data-aos="fade-down"
               data-aos-delay="100"
             >
-              The Private Search Assistant
+              <span>research</span>
+              <Separator orientation="vertical" className="h-[80%]" />
+              <span>develop</span>
+              <Separator orientation="vertical" className="h-[80%]" />
+              <span>debug</span>
             </p>
             {isChatEnabled && searchFlag.value && (
               <div className="w-full" data-aos="fade-down">
-                <TextAreaSearch onSearch={onSearch} isExpanded />
+                <TextAreaSearch onSearch={onSearch} />
               </div>
             )}
             <div className="mt-10 flex w-full flex-col gap-x-5 lg:flex-row">
