@@ -67,6 +67,12 @@ interface QuestionAnswerItemProps {
   isLoading: boolean
 }
 
+type SelectCode = {
+  fileName: string
+  isMultiLine: boolean
+  path: string
+}
+
 function QuestionAnswerItem({ message, isLoading }: QuestionAnswerItemProps) {
   const { user, assistant } = message
 
@@ -91,6 +97,7 @@ function UserMessageCard(props: { message: UserMessage }) {
   const { message } = props
   const [{ data }] = useMe()
   const selectContext = message.selectContext
+  const { onNavigateToContext } = React.useContext(ChatContext)
   const selectCodeSnippet = React.useMemo(() => {
     if (!selectContext?.content) return ''
     const language = selectContext?.filepath
@@ -99,6 +106,17 @@ function UserMessageCard(props: { message: UserMessage }) {
     return `\n${'```'}${language}\n${selectContext?.content ?? ''}\n${'```'}\n`
   }, [selectContext])
 
+  let selectCode: SelectCode | null = null
+  if (selectCodeSnippet && message.selectContext) {
+    const { range, filepath } = message.selectContext
+    const pathSegments = filepath.split('/')
+    selectCode = {
+      fileName: pathSegments[pathSegments.length - 1],
+      path: pathSegments.slice(0, pathSegments.length - 1).join('/'),
+      isMultiLine:
+        !isNil(range?.start) && !isNil(range?.end) && range.start < range.end
+    }
+  }
   return (
     <div
       className={cn(
@@ -139,6 +157,26 @@ function UserMessageCard(props: { message: UserMessage }) {
           <div className="hidden md:block">
             <UserMessageCardActions {...props} />
           </div>
+
+          {selectCode && message.selectContext && (
+            <div
+              className="flex cursor-pointer items-center gap-1 overflow-x-auto text-xs text-muted-foreground hover:underline"
+              onClick={() => onNavigateToContext?.(message.selectContext!)}
+            >
+              <IconFile className="h-3 w-3" />
+              <p className="flex-1 truncate pr-1">
+                <span>
+                  {selectCode.path}/{selectCode.fileName}
+                </span>
+                {message.selectContext?.range?.start && (
+                  <span>:{message.selectContext?.range.start}</span>
+                )}
+                {selectCode.isMultiLine && (
+                  <span>-{message.selectContext?.range.end}</span>
+                )}
+              </p>
+            </div>
+          )}
         </div>
         {!data?.me.name && (
           <div className="editor-bg absolute right-0 top-0 -mt-0.5 block opacity-0 transition-opacity group-hover:opacity-100 md:hidden">
