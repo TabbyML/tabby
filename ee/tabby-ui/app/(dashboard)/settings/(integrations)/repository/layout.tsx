@@ -10,7 +10,7 @@ const Header = ({ className }: { className?: string }) => {
       className={className}
       externalLink="https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion"
     >
-      <span className="text-foreground text-base">
+      <span className="text-base text-foreground">
         Connect to a range of context sources to enhance performance of large
         language model.
       </span>
