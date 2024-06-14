@@ -42,12 +42,10 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const line = searchParams.get('line')?.toString()
   const [editorView, setEditorView] = React.useState<EditorView | null>(null)
 
-  const { isChatEnabled, activePath, fileMap, activeEntryInfo } =
+  const { isChatEnabled, activePath, activeEntryInfo, activeRepo } =
     React.useContext(SourceCodeBrowserContext)
-  const { repositorySpecifier, rev, basename } = activeEntryInfo
-  const gitUrl = repositorySpecifier
-    ? fileMap[`${repositorySpecifier}/${rev}`]?.repository?.gitUrl ?? ''
-    : ''
+  const { basename } = activeEntryInfo
+  const gitUrl = activeRepo?.gitUrl ?? ''
 
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
