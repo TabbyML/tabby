@@ -52,7 +52,7 @@ impl<T: Send + 'static> Indexer<T> {
 
     async fn iter_docs(&self, document: T) -> impl Stream<Item = TantivyDocument> + '_ {
         let schema = IndexSchema::instance();
-        let id = self.builder.build_id(&document).await;
+        let id = self.format_id(&self.builder.build_id(&document).await);
 
         // Delete the document if it already exists
         self.writer
@@ -62,7 +62,7 @@ impl<T: Send + 'static> Indexer<T> {
         let updated_at = tantivy::DateTime::from_utc(now);
 
         let doc = doc! {
-            schema.field_id => self.format_id(&id),
+            schema.field_id => id,
             schema.field_corpus => self.kind,
             schema.field_attributes => self.builder.build_attributes(&document).await,
             schema.field_updated_at => updated_at,
