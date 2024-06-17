@@ -191,7 +191,7 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
             })
           }
         }
-      }, 1500)
+      }, 300)
     }
 
     if (!isLoadingRef.current) {
