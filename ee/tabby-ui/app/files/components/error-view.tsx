@@ -77,10 +77,13 @@ function RepositorySyncError() {
     <>
       <div className="flex items-center gap-2">
         <IconFileSearch className="h-6 w-6" />
-        <div className="text-xl font-semibold">Repository is not cloned properly</div>
+        <div className="text-xl font-semibold">
+          Repository is not cloned properly
+        </div>
       </div>
       <div>
-The cloning of the repository has failed. Please verify your settings or attempt to retry the job.
+        The cloning of the repository has failed. Please verify your settings or
+        attempt to retry the job.
       </div>
       <Link
         href="/settings/repository/git"
