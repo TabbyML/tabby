@@ -17,6 +17,7 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
 import { useEnableSearch } from '@/lib/experiment-flags'
+import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useTabbyAnswer } from '@/lib/hooks/use-tabby-answer'
 import fetcher from '@/lib/tabby/fetcher'
@@ -113,6 +114,8 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
     fetcher: tabbyFetcher
   })
 
+  const isLoadingRef = useLatest(isLoading)
+
   useImperativeHandle(
     ref,
     () => {
@@ -172,8 +175,9 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
 
   // Delay showing the stop button
   useEffect(() => {
-    if (isLoading) {
+    if (isLoadingRef.current) {
       setTimeout(() => {
+        if (!isLoadingRef.current) return
         setShowStop(true)
 
         // Scroll to the bottom
@@ -190,7 +194,7 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
       }, 1500)
     }
 
-    if (!isLoading) {
+    if (!isLoadingRef.current) {
       setShowStop(false)
     }
   }, [isLoading])
