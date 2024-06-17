@@ -118,13 +118,21 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
     setIsRunning(true)
 
     try {
-      const data = await client.query(globalSearchQuery, {
-        id: repoId ?? '',
-        kind: repositoryKind ?? RepositoryKind.Git, // TODO: Confirm default
-        query
-      })
-      debugger
+      const { data } = (await client
+        .query(globalSearchQuery, {
+          id: repoId as string,
+          kind: repositoryKind as RepositoryKind,
+          query,
+          pause: !repoId || !repositoryKind
+        })
+        // TODO: Fix types
+        .toPromise()) as unknown as { data: { repositoryGrep: GrepFile[] } }
+
       setResults(data.repositoryGrep)
+      // If we want to show more dynamic results, we'll need to
+      // fetch the matches separately
+
+      console.log('greps', data.repositoryGrep)
     } catch (e) {
       //  TODO: Handle error
       console.error(e)
@@ -138,6 +146,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
       <div className="w-full ml-20 relative">
         <input
           type="text"
+          placeholder="Jump to a file or search the repository..."
           className="w-full h-9 pl-10 bg-yellow-500"
           value={value}
           onInput={onInput}
@@ -147,8 +156,28 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
           {isRunning ? '🌀' : '🔍'}
         </div>
         {results && results.length > 0 && (
-          <div className="absolute bottom-0 left-0 w-full p-9 bg-red-200">
-            results
+          <div className="absolute translate-y-full bottom-0 left-0 w-full p-9 bg-red-200">
+            <ol>
+              {results.map((file, i) => {
+                return (
+                  <li key={i}>
+                    <div>{file.path}</div>
+                    <ol>
+                      {file.lines.map((line, i) => {
+                        return (
+                          <li key={i}>
+                            {/* TODO: fetch the file and display its lines */}
+                            <div>
+                              {line.lineNumber} + {line.byteOffset}
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ol>
+                  </li>
+                )
+              })}
+            </ol>
           </div>
         )}
       </div>
