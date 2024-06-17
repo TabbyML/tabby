@@ -173,6 +173,11 @@ interface AssistantMessageCardProps {
   message: AssistantMessage
 }
 
+interface AssistantMessageActionProps {
+  userMessageId: string
+  message: AssistantMessage
+}
+
 function AssistantMessageCard(props: AssistantMessageCardProps) {
   const { message, isLoading, userMessageId, ...rest } = props
 
@@ -215,7 +220,6 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
         <div className="block opacity-0 transition-opacity group-hover:opacity-100 md:hidden">
           <AssistantMessageCardActions
             message={message}
-            isLoading={isLoading}
             userMessageId={userMessageId}
           />
         </div>
@@ -234,7 +238,6 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
         <div className="hidden md:block">
           <AssistantMessageCardActions
             message={message}
-            isLoading={isLoading}
             userMessageId={userMessageId}
           />
         </div>
@@ -243,7 +246,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   )
 }
 
-function AssistantMessageCardActions(props: AssistantMessageCardProps) {
+function AssistantMessageCardActions(props: AssistantMessageActionProps) {
   const {
     handleMessageAction,
     isLoading: isGenerating,
