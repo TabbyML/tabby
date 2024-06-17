@@ -112,7 +112,7 @@ function UserMessageCard(props: { message: UserMessage }) {
         })}
       >
         <div className="flex items-center gap-x-2">
-          <div className="bg-background shrink-0 select-none rounded-full border shadow">
+          <div className="shrink-0 select-none rounded-full border bg-background shadow">
             <UserAvatar
               className="h-6 w-6 md:h-8 md:w-8"
               fallback={
@@ -206,7 +206,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     >
       <div className="flex w-full items-center justify-between md:w-auto">
         <div className="flex items-center gap-x-2">
-          <div className="bg-background shrink-0 select-none rounded-full border shadow">
+          <div className="shrink-0 select-none rounded-full border bg-background shadow">
             <IconTabby className="h-6 w-6 md:h-8 md:w-8" />
           </div>
           <p className="block text-xs font-bold md:hidden">Tabby</p>
@@ -271,7 +271,7 @@ function MessageMarkdown({ message }: { message: string }) {
   const { onCopyContent } = React.useContext(ChatContext)
   return (
     <MemoizedReactMarkdown
-      className="prose dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0 max-w-none break-words"
+      className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
       remarkPlugins={[remarkGfm, remarkMath]}
       components={{
         p({ children }) {
@@ -336,7 +336,7 @@ function ErrorMessageBlock({ error = 'Fail to fetch' }: { error?: string }) {
   }, [error])
   return (
     <MemoizedReactMarkdown
-      className="prose dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0 break-words text-sm"
+      className="prose break-words text-sm dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
       remarkPlugins={[remarkGfm, remarkMath]}
       components={{
         code({ node, inline, className, children, ...props }) {
@@ -402,7 +402,7 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
     <Accordion
       type="single"
       collapsible
-      className="text-foreground bg-transparent"
+      className="bg-transparent text-foreground"
     >
       <AccordionItem value="references" className="my-0 border-0">
         <AccordionTrigger className="my-0 py-2">
@@ -423,7 +423,7 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
               .join('/')
             return (
               <div
-                className={cn('hover:bg-accent rounded-md border p-2', {
+                className={cn('rounded-md border p-2 hover:bg-accent', {
                   'cursor-pointer': isReferenceClickable,
                   'cursor-default pointer-events-auto': !isReferenceClickable
                 })}
@@ -446,7 +446,7 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
                         -{item.range.end}
                       </span>
                     )}
-                    <span className="text-muted-foreground ml-2 text-xs">
+                    <span className="ml-2 text-xs text-muted-foreground">
                       {path}
                     </span>
                   </div>
