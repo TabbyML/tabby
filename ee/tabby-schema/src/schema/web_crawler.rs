@@ -15,7 +15,7 @@ pub struct WebCrawlerUrl {
 
 #[derive(Validate, GraphQLInputObject)]
 pub struct CreateWebCrawlerUrlInput {
-    #[validate(url)]
+    #[validate(url(code = "url", message = "Invalid URL"))]
     pub url: String,
 }
 
