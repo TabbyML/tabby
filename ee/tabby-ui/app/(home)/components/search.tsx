@@ -552,16 +552,21 @@ function SourceCard({
       }}
       onClick={() => window.open(source.link)}
     >
-      <p className='w-full overflow-hidden text-ellipsis break-all text-xs font-semibold line-clamp-1'>
+      <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
         {source.title}
       </p>
-      <p className={cn(" w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground", {
-        "line-clamp-2": showMore,
-        "line-clamp-1": !showMore
-      })}>
+      <p
+        className={cn(
+          ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
+          {
+            'line-clamp-2': showMore,
+            'line-clamp-1': !showMore
+          }
+        )}
+      >
         {normalizedText(source.snippet)}
       </p>
-      <div className="flex items-center text-xs text-muted-foreground mt-1.5">
+      <div className="mt-1.5 flex items-center text-xs text-muted-foreground">
         <div className="flex w-full flex-1 items-center">
           <SiteFavicon hostname={hostname} />
           <p className="ml-1 overflow-hidden text-ellipsis">
