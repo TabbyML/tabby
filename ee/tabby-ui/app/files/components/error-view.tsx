@@ -80,8 +80,7 @@ function RepositorySyncError() {
         <div className="text-xl font-semibold">Repository is not cloned properly</div>
       </div>
       <div>
-        Repository synchronization has failed. Please verify your repository
-        connection settings or attempt to manually initiate a sync task.
+The cloning of the repository has failed. Please verify your settings or attempt to retry the job.
       </div>
       <Link
         href="/settings/repository/git"
