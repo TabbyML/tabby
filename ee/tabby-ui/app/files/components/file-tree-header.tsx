@@ -8,19 +8,7 @@ import { RepositoryKind } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import {
-  IconClose,
-  IconDirectorySolid,
-  IconFile,
-  IconFolderGit
-} from '@/components/ui/icons'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
+import { IconClose, IconDirectorySolid, IconFile } from '@/components/ui/icons'
 import {
   SearchableSelect,
   SearchableSelectAnchor,
@@ -30,7 +18,6 @@ import {
 } from '@/components/searchable-select'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
-import { RepositoryKindIcon } from './repository-kind-icon'
 import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
 import {
   fetchEntriesFromPath,
@@ -64,9 +51,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
 }) => {
   const {
     activePath,
-    fileTreeData,
     setActivePath,
-    initialized,
     updateFileMap,
     setExpandedKeys,
     repoMap,
@@ -84,8 +69,6 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     React.useState<string>()
   const [options, setOptions] = React.useState<Array<SearchOption>>()
   const [optionsVisible, setOptionsVisible] = React.useState(false)
-
-  const noIndexedRepo = initialized && !fileTreeData?.length
 
   const [{ data: repositorySearchData }] = useQuery({
     query: repositorySearch,
@@ -106,10 +89,6 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     setOptions(_options)
     setOptionsVisible(!!repositorySearchPattern)
   }, [repositorySearchData?.repositorySearch])
-
-  const onSelectRepo = (name: string) => {
-    setActivePath(name)
-  }
 
   const onInputValueChange = useDebounceCallback((v: string | undefined) => {
     if (!v) {
@@ -200,57 +179,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
 
   return (
     <div className={cn(className)} {...props}>
-      <div className="py-4 font-bold leading-8">Files</div>
-      <div className="space-y-3">
-        <Select
-          disabled={!initialized}
-          onValueChange={onSelectRepo}
-          value={repositorySpecifier}
-        >
-          <SelectTrigger>
-            <SelectValue asChild>
-              <div className="flex items-center gap-2 overflow-hidden">
-                <div className="shrink-0">
-                  <RepositoryKindIcon
-                    kind={repositoryKind}
-                    fallback={<IconFolderGit />}
-                  />
-                </div>
-                <span
-                  className={cn(
-                    'truncate',
-                    !repositoryName && 'text-muted-foreground'
-                  )}
-                >
-                  {repositoryName || 'Pick a repository'}
-                </span>
-              </div>
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent className="max-h-[50vh] overflow-y-auto">
-            {noIndexedRepo ? (
-              <SelectItem isPlaceHolder value="" disabled>
-                No indexed repository
-              </SelectItem>
-            ) : (
-              <>
-                {fileTreeData?.map(repo => {
-                  return (
-                    <SelectItem key={repo.fullPath} value={repo.fullPath}>
-                      <div className="flex items-center gap-1">
-                        <RepositoryKindIcon
-                          kind={repo?.repository?.kind}
-                          fallback={<IconFolderGit />}
-                        />
-                        {repo.name}
-                      </div>
-                    </SelectItem>
-                  )
-                })}
-              </>
-            )}
-          </SelectContent>
-        </Select>
+      <div className="space-y-3 pt-4">
         <SearchableSelect
           stayOpenOnInputClick
           options={options}

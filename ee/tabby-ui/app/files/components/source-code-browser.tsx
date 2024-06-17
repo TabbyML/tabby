@@ -1,6 +1,9 @@
 'use client'
 
 import React, { PropsWithChildren } from 'react'
+import Image from 'next/image'
+import tabbyUrl from '@/assets/tabby.png'
+import { SelectContent } from '@radix-ui/react-select'
 import { createRequest } from '@urql/core'
 import { compact, isEmpty, toNumber } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
@@ -17,11 +20,18 @@ import fetcher from '@/lib/tabby/fetcher'
 import { client } from '@/lib/tabby/gql'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { IconFolderGit } from '@/components/ui/icons'
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup
 } from '@/components/ui/resizable'
+import {
+  Select,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import { ListSkeleton } from '@/components/skeleton'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
@@ -32,7 +42,9 @@ import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
 import { DirectoryView } from './file-directory-view'
 import { mapToFileTree, sortFileTree, type TFileTreeNode } from './file-tree'
 import { FileTreePanel } from './file-tree-panel'
+import { GlobalSearch } from './global-search'
 import { RawFileView } from './raw-file-view'
+import { RepositoryKindIcon } from './repository-kind-icon'
 import { TextFileView } from './text-file-view'
 import {
   encodeURIComponentIgnoringSlash,
@@ -237,6 +249,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 }) => {
   const {
     activePath,
+    fileTreeData,
     setActivePath,
     updateFileMap,
     fileMap,
@@ -472,68 +485,137 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     }
   }, [chatSideBarVisible])
 
+  const onSelectRepo = (name: string) => {
+    setActivePath(name)
+  }
+
+  const noIndexedRepo = initialized && !fileTreeData?.length
+
+  const { repositoryKind, repositoryName, repositorySpecifier } =
+    resolveRepositoryInfoFromPath(activePath)
+
   return (
-    <ResizablePanelGroup
-      direction="horizontal"
-      className={cn(className)}
-      onLayout={onPanelLayout}
-    >
-      <ResizablePanel
-        defaultSize={20}
-        minSize={20}
-        maxSize={40}
-        className="hidden lg:block"
-      >
-        <FileTreePanel />
-      </ResizablePanel>
-      <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
-      <ResizablePanel defaultSize={80} minSize={30}>
-        <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
-          <FileDirectoryBreadcrumb className="py-4" />
-          {!initialized ? (
-            <ListSkeleton className="rounded-lg border p-4" />
-          ) : (
-            <div>
-              {showDirectoryView && (
-                <DirectoryView
-                  loading={fetchingSubTree}
-                  initialized={initialized}
-                  className={`rounded-lg border`}
-                />
-              )}
-              {showTextFileView && (
-                <TextFileView blob={fileBlob} contentLength={contentLength} />
-              )}
-              {showRawFileView && (
-                <RawFileView
-                  blob={fileBlob}
-                  isImage={fileViewType === 'image'}
-                  contentLength={contentLength}
-                />
-              )}
-            </div>
-          )}
+    <>
+      <div className="w-full bg-red-500 flex py-2 items-center justify-between px-4 gap-4">
+        <div className="flex items-center w-full gap-2">
+          <Image src={tabbyUrl} alt="logo" width={45} />
+          <div className="shrink-0 mr-8">Code Browser</div>
+          <div className="w-72">
+            <Select
+              disabled={!initialized}
+              onValueChange={onSelectRepo}
+              value={repositorySpecifier}
+            >
+              <SelectTrigger>
+                <SelectValue asChild>
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <div className="shrink-0">
+                      <RepositoryKindIcon
+                        kind={repositoryKind}
+                        fallback={<IconFolderGit />}
+                      />
+                    </div>
+                    <span
+                      className={cn(
+                        'truncate',
+                        !repositoryName && 'text-muted-foreground'
+                      )}
+                    >
+                      {repositoryName || 'Pick a repository'}
+                    </span>
+                  </div>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="max-h-[50vh] overflow-y-auto">
+                {noIndexedRepo ? (
+                  <SelectItem isPlaceHolder value="" disabled>
+                    No indexed repository
+                  </SelectItem>
+                ) : (
+                  <>
+                    {fileTreeData?.map(repo => {
+                      return (
+                        <SelectItem key={repo.fullPath} value={repo.fullPath}>
+                          <div className="flex items-center gap-1">
+                            <RepositoryKindIcon
+                              kind={repo?.repository?.kind}
+                              fallback={<IconFolderGit />}
+                            />
+                            {repo.name}
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <GlobalSearch />
         </div>
-      </ResizablePanel>
-      <>
-        <ResizableHandle
-          className={cn(
-            'hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500',
-            chatSideBarVisible && 'block'
-          )}
-        />
+      </div>
+      <ResizablePanelGroup
+        direction="horizontal"
+        className={cn(className)}
+        onLayout={onPanelLayout}
+      >
         <ResizablePanel
-          collapsible
-          collapsedSize={0}
-          defaultSize={0}
-          minSize={25}
-          ref={chatSideBarPanelRef}
-          onCollapse={() => setChatSideBarVisible(false)}
+          defaultSize={20}
+          minSize={20}
+          maxSize={40}
+          className="hidden lg:block"
         >
-          <ChatSideBar />
+          <FileTreePanel />
         </ResizablePanel>
-      </>
-    </ResizablePanelGroup>
+        <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
+        <ResizablePanel defaultSize={80} minSize={30}>
+          <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
+            <FileDirectoryBreadcrumb className="py-4" />
+            {!initialized ? (
+              <ListSkeleton className="rounded-lg border p-4" />
+            ) : (
+              <div>
+                {showDirectoryView && (
+                  <DirectoryView
+                    loading={fetchingSubTree}
+                    initialized={initialized}
+                    className={`rounded-lg border`}
+                  />
+                )}
+                {showTextFileView && (
+                  <TextFileView blob={fileBlob} contentLength={contentLength} />
+                )}
+                {showRawFileView && (
+                  <RawFileView
+                    blob={fileBlob}
+                    isImage={fileViewType === 'image'}
+                    contentLength={contentLength}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        </ResizablePanel>
+        <>
+          <ResizableHandle
+            className={cn(
+              'hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500',
+              chatSideBarVisible && 'block'
+            )}
+          />
+          <ResizablePanel
+            collapsible
+            collapsedSize={0}
+            defaultSize={0}
+            minSize={25}
+            ref={chatSideBarPanelRef}
+            onCollapse={() => setChatSideBarVisible(false)}
+          >
+            <ChatSideBar />
+          </ResizablePanel>
+        </>
+      </ResizablePanelGroup>
+    </>
   )
 }
 
