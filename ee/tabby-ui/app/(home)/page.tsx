@@ -39,6 +39,7 @@ import TextAreaSearch from '@/components/textarea-search'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { UserAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
+import { Badge } from '@/components/ui/badge'
 
 import { Search, SearchRef } from './components/search'
 import Stats from './components/stats'
@@ -140,14 +141,19 @@ function MainPanel() {
       >
         {!isSearch && (
           <div className="mx-auto flex w-full flex-col items-center px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
-            <Image
-              src={tabbyUrl}
-              alt="logo"
-              width={192}
-              className="my-4 invert dark:invert-0"
+            <div
+              className="relative"
               data-aos="fade-down"
-              data-aos-delay="150"
-            />
+              data-aos-delay="150">
+              <Image
+                src={tabbyUrl}
+                alt="logo"
+                width={192}
+                className="my-4 invert dark:invert-0"
+                
+              />
+              <Badge className="absolute left-full bottom-0 mb-4 text-muted-foreground" variant='outline'>Beta</Badge>
+            </div>
             <p
               className="mb-6 flex scroll-m-20 items-center gap-2 text-sm tracking-tight text-secondary-foreground"
               data-aos="fade-down"
