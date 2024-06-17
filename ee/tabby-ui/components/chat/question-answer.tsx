@@ -69,8 +69,6 @@ interface QuestionAnswerItemProps {
 
 function QuestionAnswerItem({ message, isLoading }: QuestionAnswerItemProps) {
   const { user, assistant } = message
-  const selectContext = user.selectContext
-  const relevantContext = user.relevantContext
 
   return (
     <>
@@ -82,8 +80,6 @@ function QuestionAnswerItem({ message, isLoading }: QuestionAnswerItemProps) {
             message={assistant}
             isLoading={isLoading}
             userMessageId={user.id}
-            selectContext={selectContext}
-            relevantContext={relevantContext}
           />
         </>
       )}
@@ -116,7 +112,7 @@ function UserMessageCard(props: { message: UserMessage }) {
         })}
       >
         <div className="flex items-center gap-x-2">
-          <div className="shrink-0 select-none rounded-full border bg-background shadow">
+          <div className="bg-background shrink-0 select-none rounded-full border shadow">
             <UserAvatar
               className="h-6 w-6 md:h-8 md:w-8"
               fallback={
@@ -175,12 +171,10 @@ interface AssistantMessageCardProps {
   userMessageId: string
   isLoading: boolean
   message: AssistantMessage
-  selectContext?: Context
-  relevantContext?: Array<Context>
 }
 
 function AssistantMessageCard(props: AssistantMessageCardProps) {
-  const { message, isLoading, ...rest } = props
+  const { message, isLoading, userMessageId, ...rest } = props
 
   const contexts: Array<Context> = React.useMemo(() => {
     return (
@@ -212,14 +206,18 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     >
       <div className="flex w-full items-center justify-between md:w-auto">
         <div className="flex items-center gap-x-2">
-          <div className="shrink-0 select-none rounded-full border bg-background shadow">
+          <div className="bg-background shrink-0 select-none rounded-full border shadow">
             <IconTabby className="h-6 w-6 md:h-8 md:w-8" />
           </div>
           <p className="block text-xs font-bold md:hidden">Tabby</p>
         </div>
 
         <div className="block opacity-0 transition-opacity group-hover:opacity-100 md:hidden">
-          <AssistantMessageCardActions {...props} />
+          <AssistantMessageCardActions
+            message={message}
+            isLoading={isLoading}
+            userMessageId={userMessageId}
+          />
         </div>
       </div>
 
@@ -234,7 +232,11 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           </>
         )}
         <div className="hidden md:block">
-          <AssistantMessageCardActions {...props} />
+          <AssistantMessageCardActions
+            message={message}
+            isLoading={isLoading}
+            userMessageId={userMessageId}
+          />
         </div>
       </div>
     </div>
@@ -269,7 +271,7 @@ function MessageMarkdown({ message }: { message: string }) {
   const { onCopyContent } = React.useContext(ChatContext)
   return (
     <MemoizedReactMarkdown
-      className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
+      className="prose dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0 max-w-none break-words"
       remarkPlugins={[remarkGfm, remarkMath]}
       components={{
         p({ children }) {
@@ -334,7 +336,7 @@ function ErrorMessageBlock({ error = 'Fail to fetch' }: { error?: string }) {
   }, [error])
   return (
     <MemoizedReactMarkdown
-      className="prose break-words text-sm dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
+      className="prose dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0 break-words text-sm"
       remarkPlugins={[remarkGfm, remarkMath]}
       components={{
         code({ node, inline, className, children, ...props }) {
@@ -400,7 +402,7 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
     <Accordion
       type="single"
       collapsible
-      className="bg-transparent text-foreground"
+      className="text-foreground bg-transparent"
     >
       <AccordionItem value="references" className="my-0 border-0">
         <AccordionTrigger className="my-0 py-2">
@@ -421,7 +423,7 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
               .join('/')
             return (
               <div
-                className={cn('rounded-md border p-2 hover:bg-accent', {
+                className={cn('hover:bg-accent rounded-md border p-2', {
                   'cursor-pointer': isReferenceClickable,
                   'cursor-default pointer-events-auto': !isReferenceClickable
                 })}
@@ -430,9 +432,9 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
                   isReferenceClickable && onNavigateToContext?.(item)
                 }
               >
-                <div className="flex items-center gap-1 overflow-x-auto">
+                <div className="flex items-center gap-1 overflow-hidden">
                   <IconFile className="shrink-0" />
-                  <span>
+                  <div className="flex-1 truncate" title={item.filepath}>
                     <span>{fileName}</span>
                     {item.range?.start && (
                       <span className="text-muted-foreground">
@@ -444,10 +446,10 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
                         -{item.range.end}
                       </span>
                     )}
-                  </span>
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    {path}
-                  </span>
+                    <span className="text-muted-foreground ml-2 text-xs">
+                      {path}
+                    </span>
+                  </div>
                 </div>
               </div>
             )
