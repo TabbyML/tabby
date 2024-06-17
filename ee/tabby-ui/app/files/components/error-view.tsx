@@ -77,7 +77,7 @@ function RepositorySyncError() {
     <>
       <div className="flex items-center gap-2">
         <IconFileSearch className="h-6 w-6" />
-        <div className="text-xl font-semibold">Synchronization failed</div>
+        <div className="text-xl font-semibold">Repository is not cloned properly</div>
       </div>
       <div>
         Repository synchronization has failed. Please verify your repository
