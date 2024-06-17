@@ -174,9 +174,10 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
   }, [error])
 
   // Delay showing the stop button
+  let showStopTimeoutId: number
   useEffect(() => {
     if (isLoadingRef.current) {
-      setTimeout(() => {
+      showStopTimeoutId = window.setTimeout(() => {
         if (!isLoadingRef.current) return
         setShowStop(true)
 
@@ -196,6 +197,10 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
 
     if (!isLoadingRef.current) {
       setShowStop(false)
+    }
+
+    return () => {
+      window.clearTimeout(showStopTimeoutId)
     }
   }, [isLoading])
 
