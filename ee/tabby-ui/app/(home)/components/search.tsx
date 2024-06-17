@@ -97,7 +97,7 @@ const tabbyFetcher = ((url: string, init?: RequestInit) => {
 }) as typeof fetch
 
 const SOURCE_CARD_STYLE = {
-  compress: 4.6,
+  compress: 4.8,
   expand: 5.8
 }
 
@@ -561,7 +561,7 @@ function SourceCard({
       })}>
         {normalizedText(source.snippet)}
       </p>
-      <div className="flex items-center text-xs text-muted-foreground mt-1">
+      <div className="flex items-center text-xs text-muted-foreground mt-1.5">
         <div className="flex w-full flex-1 items-center">
           <SiteFavicon hostname={hostname} />
           <p className="ml-1 overflow-hidden text-ellipsis">
