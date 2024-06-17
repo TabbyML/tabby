@@ -68,9 +68,8 @@ interface QuestionAnswerItemProps {
 }
 
 type SelectCode = {
-  fileName: string
+  filepath: string
   isMultiLine: boolean
-  path: string
 }
 
 function QuestionAnswerItem({ message, isLoading }: QuestionAnswerItemProps) {
@@ -109,10 +108,8 @@ function UserMessageCard(props: { message: UserMessage }) {
   let selectCode: SelectCode | null = null
   if (selectCodeSnippet && message.selectContext) {
     const { range, filepath } = message.selectContext
-    const pathSegments = filepath.split('/')
     selectCode = {
-      fileName: pathSegments[pathSegments.length - 1],
-      path: pathSegments.slice(0, pathSegments.length - 1).join('/'),
+      filepath,
       isMultiLine:
         !isNil(range?.start) && !isNil(range?.end) && range.start < range.end
     }
@@ -165,9 +162,7 @@ function UserMessageCard(props: { message: UserMessage }) {
             >
               <IconFile className="h-3 w-3" />
               <p className="flex-1 truncate pr-1">
-                <span>
-                  {selectCode.path}/{selectCode.fileName}
-                </span>
+                <span>{selectCode.filepath}</span>
                 {message.selectContext?.range?.start && (
                   <span>:{message.selectContext?.range.start}</span>
                 )}
