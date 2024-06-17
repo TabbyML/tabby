@@ -12,6 +12,8 @@ import {
   useState
 } from 'react'
 import { Message } from 'ai'
+import DOMPurify from 'dompurify'
+import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -95,8 +97,8 @@ const tabbyFetcher = ((url: string, init?: RequestInit) => {
 }) as typeof fetch
 
 const SOURCE_CARD_STYLE = {
-  compress: 5,
-  expand: 7
+  compress: 5.3,
+  expand: 6.3
 }
 
 export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
@@ -526,29 +528,51 @@ function SourceCard({
   showMore: boolean
 }) {
   const { hostname } = new URL(source.link)
+
+  // Remove HTML and Markdown format
+  const normalizedText = (input: string) => {
+    const sanitizedHtml = DOMPurify.sanitize(input, {
+      ALLOWED_TAGS: [],
+      ALLOWED_ATTR: []
+    })
+    const parsed = marked.parse(sanitizedHtml) as string
+    const plainText = parsed.replace(/<\/?[^>]+(>|$)/g, '')
+
+    return plainText
+  }
+
   return (
     <div
-      className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card px-3 py-2 transition-all hover:bg-card/60"
+      className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card p-3 hover:bg-card/60"
       style={{
         height: showMore
           ? `${SOURCE_CARD_STYLE.expand}rem`
-          : `${SOURCE_CARD_STYLE.compress}rem`
+          : `${SOURCE_CARD_STYLE.compress}rem`,
+        transition: 'all 0.25s ease-out'
       }}
       onClick={() => window.open(source.link)}
     >
-      <p className="line-clamp-2 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-        {source.title}
-      </p>
-      {showMore && (
-        <p className="line-clamp-2 w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground">
-          {source.snippet}
+      <div className="flex flex-col gap-y-0.5">
+        <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
+          {source.title}
         </p>
-      )}
+        <p
+          className={cn(
+            ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
+            {
+              'line-clamp-2': showMore,
+              'line-clamp-1': !showMore
+            }
+          )}
+        >
+          {normalizedText(source.snippet)}
+        </p>
+      </div>
       <div className="flex items-center text-xs text-muted-foreground">
-        <div className="flex flex-1 items-center">
+        <div className="flex w-full flex-1 items-center">
           <SiteFavicon hostname={hostname} />
           <p className="ml-1 overflow-hidden text-ellipsis">
-            {hostname.replace('www.', '').split('.')[0]}
+            {hostname.replace('www.', '').split('/')[0]}
           </p>
         </div>
       </div>
