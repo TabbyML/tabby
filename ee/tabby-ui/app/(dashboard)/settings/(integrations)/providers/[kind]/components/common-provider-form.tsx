@@ -343,7 +343,6 @@ function AccessTokenDescription() {
           to manage all projects within the group.
         </div>
         <div className="my-2 ml-3">• api</div>
-        <div className="my-2 ml-3">• read_repository</div>
       </>
     )
   }
