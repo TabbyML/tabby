@@ -99,7 +99,7 @@ const client = new Client({
       resolvers: {
         Query: {
           invitations: relayPagination(),
-          repositories: relayPagination()
+          gitRepositories: relayPagination()
         }
       },
       updates: {
