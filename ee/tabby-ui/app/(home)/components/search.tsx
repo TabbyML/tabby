@@ -97,8 +97,8 @@ const tabbyFetcher = ((url: string, init?: RequestInit) => {
 }) as typeof fetch
 
 const SOURCE_CARD_STYLE = {
-  compress: 3.5,
-  expand: 7
+  compress: 4.6,
+  expand: 5.8
 }
 
 export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
@@ -543,7 +543,7 @@ function SourceCard({
 
   return (
     <div
-      className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card px-3 py-2 hover:bg-card/60"
+      className="flex cursor-pointer flex-col justify-between gap-y-0.5 rounded-lg border bg-card px-3 py-2 hover:bg-card/60"
       style={{
         height: showMore
           ? `${SOURCE_CARD_STYLE.expand}rem`
@@ -552,30 +552,16 @@ function SourceCard({
       }}
       onClick={() => window.open(source.link)}
     >
-      <div
-        className={cn('flex w-full items-center', {
-          'h-8': showMore,
-          'h-4': !showMore
-        })}
-      >
-        <p
-          className={cn(
-            'w-full overflow-hidden text-ellipsis break-all text-xs font-semibold',
-            {
-              'line-clamp-2': showMore,
-              'line-clamp-1': !showMore
-            }
-          )}
-        >
-          {source.title}
-        </p>
-      </div>
-      {showMore && (
-        <p className="line-clamp-2 w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground">
-          {normalizedText(source.snippet)}
-        </p>
-      )}
-      <div className="flex items-center text-xs text-muted-foreground">
+      <p className='w-full overflow-hidden text-ellipsis break-all text-xs font-semibold line-clamp-1'>
+        {source.title}
+      </p>
+      <p className={cn(" w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground", {
+        "line-clamp-2": showMore,
+        "line-clamp-1": !showMore
+      })}>
+        {normalizedText(source.snippet)}
+      </p>
+      <div className="flex items-center text-xs text-muted-foreground mt-1">
         <div className="flex w-full flex-1 items-center">
           <SiteFavicon hostname={hostname} />
           <p className="ml-1 overflow-hidden text-ellipsis">
