@@ -116,7 +116,7 @@ impl DocIndexer {
         Self { indexer }
     }
 
-    pub async fn index_issue(&self, document: WebDocument) {
+    pub async fn add(&self, document: WebDocument) {
         self.indexer.add(document.into()).await;
     }
 

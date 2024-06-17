@@ -50,7 +50,7 @@ pub async fn index_github_issues(
             title: issue.title,
             body: issue.body.unwrap_or_default(),
         };
-        index.index_issue(doc).await;
+        index.add(doc).await;
     }
 
     Ok(())
@@ -89,7 +89,7 @@ pub async fn index_gitlab_issues(
             title: issue.title,
             body: issue.description,
         };
-        index.index_issue(doc).await;
+        index.add(doc).await;
     }
 
     Ok(())

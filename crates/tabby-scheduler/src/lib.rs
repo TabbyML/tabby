@@ -11,7 +11,7 @@ use crawl::crawl_pipeline;
 use doc::create_web_index;
 pub use doc::{DocIndexer, WebDocument};
 use futures::StreamExt;
-pub use indexer::{IndexAttributeBuilder, Indexer};
+use indexer::{IndexAttributeBuilder, Indexer};
 
 mod doc;
 use std::{env, sync::Arc};
