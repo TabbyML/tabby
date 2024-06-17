@@ -529,6 +529,9 @@ importers:
       date-fns:
         specifier: ^3.6.0
         version: 3.6.0
+      dompurify:
+        specifier: ^3.1.5
+        version: 3.1.5
       downshift:
         specifier: ^8.2.2
         version: 8.2.2(react@18.2.0)
@@ -553,6 +556,9 @@ importers:
       lucide-react:
         specifier: ^0.365.0
         version: 0.365.0(react@18.2.0)
+      marked:
+        specifier: ^13.0.0
+        version: 13.0.0
       mitt:
         specifier: ^3.0.1
         version: 3.0.1
@@ -686,6 +692,9 @@ importers:
       '@types/color':
         specifier: ^3.0.6
         version: 3.0.6
+      '@types/dompurify':
+        specifier: ^3.0.5
+        version: 3.0.5
       '@types/humanize-duration':
         specifier: ^3.27.4
         version: 3.27.4
@@ -3567,6 +3576,9 @@ packages:
   '@types/diff@5.2.1':
     resolution: {integrity: sha512-uxpcuwWJGhe2AR1g8hD9F5OYGCqjqWnBUQFD8gMZsDbv8oPHzxJF6iMO6n8Tk0AdzlxoaaoQhOYlIg/PukVU8g==}
 
+  '@types/dompurify@3.0.5':
+    resolution: {integrity: sha512-1Wg0g3BtQF7sSb27fJQAKck1HECM6zV1EB66j8JH9i3LCjYabJa0FSdiSgsD5K/RbrsR0SiraKacLB+T8ZVYAg==}
+
   '@types/eslint-scope@3.7.7':
     resolution: {integrity: sha512-MzMFlSLBqNF2gcHWO0G1vP/YQyfvrxZ0bF+u7mzUdZ1/xK4A4sru+nraZz5i3iEIk1l1uyicaDVTB4QbbEkAYg==}
 
@@ -3695,6 +3707,9 @@ packages:
 
   '@types/tinycolor2@1.4.6':
     resolution: {integrity: sha512-iEN8J0BoMnsWBqjVbWH/c0G0Hh7O21lpR2/+PrvAVgWdzL7eexIFm4JN/Wn10PTcmNdtS6U67r499mlWMXOxNw==}
+
+  '@types/trusted-types@2.0.7':
+    resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
 
   '@types/unist@2.0.8':
     resolution: {integrity: sha512-d0XxK3YTObnWVp6rZuev3c49+j4Lo8g4L1ZRm9z5L0xpoZycUPshHgczK5gsUMaZOstjVYYi09p5gYvUtfChYw==}
@@ -5216,6 +5231,9 @@ packages:
   domhandler@5.0.3:
     resolution: {integrity: sha512-cgwlv/1iFQiFnU96XXgROh8xTeetsnJiDsTc7TYCLFd9+/WNkIqPTxiM/8pSd8VIrhXGTf1Ny1q1hquVqDJB5w==}
     engines: {node: '>= 4'}
+
+  dompurify@3.1.5:
+    resolution: {integrity: sha512-lwG+n5h8QNpxtyrJW/gJWckL+1/DQiYMX8f7t8Z2AZTPw1esVrqjI63i7Zc2Gz0aKzLVMYC1V1PL/ky+aY/NgA==}
 
   domutils@3.1.0:
     resolution: {integrity: sha512-H78uMmQtI2AhgDJjWeQmHwJJ2bLPD3GMmO7Zja/ZZh84wkm+4ut+IUnUdRa8uCGX88DiVx1j6FRe1XfxEgjEZA==}
@@ -7139,6 +7157,11 @@ packages:
 
   markdown-table@3.0.3:
     resolution: {integrity: sha512-Z1NL3Tb1M9wH4XESsCDEksWoKTdlUafKc4pt0GRwjUyXaCFZ+dc3g2erqB6zm3szA2IUSi7VnPI+o/9jnxh9hw==}
+
+  marked@13.0.0:
+    resolution: {integrity: sha512-VTeDCd9txf4KLLljUZ0nljE/Incb9SrWuueE44QVuU0pkOdh4sfCeW1Z6lPcxyDRSVY6rm8db/0OPaN75RNUmw==}
+    engines: {node: '>= 18'}
+    hasBin: true
 
   marked@7.0.4:
     resolution: {integrity: sha512-t8eP0dXRJMtMvBojtkcsA7n48BkauktUKzfkPSCq85ZMTJ0v76Rke4DYz01omYpPTUh4p/f7HePgRo3ebG8+QQ==}
@@ -13564,6 +13587,10 @@ snapshots:
 
   '@types/diff@5.2.1': {}
 
+  '@types/dompurify@3.0.5':
+    dependencies:
+      '@types/trusted-types': 2.0.7
+
   '@types/eslint-scope@3.7.7':
     dependencies:
       '@types/eslint': 8.56.10
@@ -13693,6 +13720,8 @@ snapshots:
   '@types/semver@7.5.8': {}
 
   '@types/tinycolor2@1.4.6': {}
+
+  '@types/trusted-types@2.0.7': {}
 
   '@types/unist@2.0.8': {}
 
@@ -15658,6 +15687,8 @@ snapshots:
   domhandler@5.0.3:
     dependencies:
       domelementtype: 2.3.0
+
+  dompurify@3.1.5: {}
 
   domutils@3.1.0:
     dependencies:
@@ -18097,6 +18128,8 @@ snapshots:
       uc.micro: 1.0.6
 
   markdown-table@3.0.3: {}
+
+  marked@13.0.0: {}
 
   marked@7.0.4: {}
 

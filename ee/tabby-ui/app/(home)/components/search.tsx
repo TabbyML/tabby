@@ -12,6 +12,8 @@ import {
   useState
 } from 'react'
 import { Message } from 'ai'
+import DOMPurify from 'dompurify'
+import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -526,6 +528,19 @@ function SourceCard({
   showMore: boolean
 }) {
   const { hostname } = new URL(source.link)
+
+  // Remove HTML and Markdown format
+  const normalizedText = (input: string) => {
+    const sanitizedHtml = DOMPurify.sanitize(input, {
+      ALLOWED_TAGS: [],
+      ALLOWED_ATTR: []
+    })
+    const parsed = marked.parse(sanitizedHtml) as string
+    const plainText = parsed.replace(/<\/?[^>]+(>|$)/g, '')
+
+    return plainText
+  }
+
   return (
     <div
       className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card px-3 py-2 transition-all hover:bg-card/60"
@@ -541,7 +556,7 @@ function SourceCard({
       </p>
       {showMore && (
         <p className="line-clamp-2 w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground">
-          {source.snippet}
+          {normalizedText(source.snippet)}
         </p>
       )}
       <div className="flex items-center text-xs text-muted-foreground">
