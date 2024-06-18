@@ -10,7 +10,7 @@ import { WebCrawlerUrlsQueryVariables } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { listWebCrawlerUrl } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
-import { IconTrash } from '@/components/ui/icons'
+import { IconPlay, IconTrash } from '@/components/ui/icons'
 import {
   Pagination,
   PaginationContent,
@@ -26,6 +26,11 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 const deleteWebCrawlerUrlMutation = graphql(/* GraphQL */ `
@@ -116,7 +121,8 @@ export default function WebCrawlerTable() {
       <Table className="table-fixed border-b">
         <TableHeader>
           <TableRow>
-            <TableHead>URL</TableHead>
+            <TableHead className="w-[70%]">URL</TableHead>
+            <TableHead>Job</TableHead>
             <TableHead className="w-[100px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -133,6 +139,18 @@ export default function WebCrawlerTable() {
                 return (
                   <TableRow key={x.node.id}>
                     <TableCell className="truncate">{x.node.url}</TableCell>
+                    <TableCell>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="icon" variant="ghost">
+                            <IconPlay />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Run</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableCell>
                     <TableCell className="flex justify-end">
                       <div className="flex gap-1">
                         <Button
