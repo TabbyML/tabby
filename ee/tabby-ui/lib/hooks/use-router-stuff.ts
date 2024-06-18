@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import {
   ReadonlyURLSearchParams,
   usePathname,
@@ -5,11 +6,14 @@ import {
   useSearchParams
 } from 'next/navigation'
 
-type UpdateSearchParamsOptions = {
-  set?: Record<string, string>
-  del?: string | string[]
+type UpdateUrlComponentsOptions = {
+  pathname?: string
+  searchParams?: {
+    set?: Record<string, string>
+    del?: string | string[]
+  }
+  hash?: string
   replace?: boolean
-  path?: string
 }
 
 export default function useRouterStuff() {
@@ -17,57 +21,51 @@ export default function useRouterStuff() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const getQueryString = (kv?: Record<string, string>) => {
-    const newParams = new URLSearchParams(searchParams)
-    if (kv) {
-      Object.entries(kv).forEach(([k, v]) => newParams.set(k, v))
-    }
-    const queryString = newParams.toString()
-    return queryString.length > 0 ? `?${queryString}` : ''
-  }
+  const getQueryString = useCallback(
+    (kv?: Record<string, string>) => {
+      const newParams = new URLSearchParams(searchParams)
+      if (kv) {
+        Object.entries(kv).forEach(([k, v]) => newParams.set(k, v))
+      }
+      const queryString = newParams.toString()
+      return queryString.length > 0 ? `?${queryString}` : ''
+    },
+    [searchParams]
+  )
 
-  const updateSearchParams = (option: UpdateSearchParamsOptions) => {
-    const newPath = resolveSearchParams(pathname, searchParams, option)
+  const updateUrlComponents = useCallback(
+    (options: UpdateUrlComponentsOptions) => {
+      let newPath = resolveUrlComponents(
+        options?.pathname || pathname,
+        searchParams,
+        options
+      )
 
-    if (option.replace) {
-      router.replace(newPath)
-    } else {
-      router.push(newPath)
-    }
-  }
-
-  const updatePathnameAndSearch = (
-    pathname: string,
-    option?: UpdateSearchParamsOptions
-  ) => {
-    let newPath = pathname
-    if (option) {
-      newPath = resolveSearchParams(pathname, searchParams, option)
-    }
-
-    if (option?.replace) {
-      router.replace(newPath)
-    } else {
-      router.push(newPath)
-    }
-  }
+      if (options.replace) {
+        router.replace(newPath)
+      } else {
+        router.push(newPath)
+      }
+    },
+    [pathname, searchParams]
+  )
 
   return {
     pathname,
     router,
     searchParams,
-    updateSearchParams,
     getQueryString,
-    updatePathnameAndSearch
+    updateUrlComponents
   }
 }
 
-function resolveSearchParams(
+function resolveUrlComponents(
   pathname: string,
   searchParams: ReadonlyURLSearchParams,
-  option: UpdateSearchParamsOptions
+  options: UpdateUrlComponentsOptions
 ) {
-  const { set, del } = option
+  const set = options.searchParams?.set
+  const del = options.searchParams?.del
   const newParams = new URLSearchParams(searchParams)
   if (set) {
     Object.entries(set).forEach(([k, v]) => newParams.set(k, v))
@@ -80,8 +78,12 @@ function resolveSearchParams(
     }
   }
   const queryString = newParams.toString()
-  const newPath = `${pathname}${
-    queryString.length > 0 ? `?${queryString}` : ''
-  }`
+  let newPath = pathname
+  if (queryString.length > 0) {
+    newPath += `?${queryString}`
+  }
+  if (options.hash) {
+    newPath += options.hash
+  }
   return newPath
 }

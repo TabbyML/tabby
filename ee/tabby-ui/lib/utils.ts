@@ -80,14 +80,20 @@ export const delay = (ms: number) => {
   })
 }
 
-export function formatLineQueryParamForCodeBrowser({
-  start,
-  end
-}: {
-  start: number
-  end?: number
-}): string {
+export function formatLineHashForCodeBrowser(
+  range:
+    | {
+        start: number
+        end?: number
+      }
+    | undefined
+): string {
+  if (!range) return ''
+
+  const { start, end } = range
   if (isNil(start)) return ''
-  if (start === end) return String(start)
-  return compact([start, end]).join('-')
+  if (start === end) return `L${start}`
+  return compact(
+    [start, end].map(num => (typeof num === 'number' ? `L${num}` : undefined))
+  ).join('-')
 }

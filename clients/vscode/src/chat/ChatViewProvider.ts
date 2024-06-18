@@ -102,8 +102,12 @@ export class ChatViewProvider implements WebviewViewProvider {
 
           searchParams.append("redirect_filepath", context.filepath);
           searchParams.append("redirect_git_url", context.git_url);
-          searchParams.append("line", this.formatLineQueryParamForCodeBrowser(context.range));
           url.search = searchParams.toString();
+
+          const lineHash = this.formatLineHashForCodeBrowser(context.range)
+          if (lineHash) {
+            url.hash = lineHash;
+          }
 
           await env.openExternal(Uri.parse(url.toString()));
         }
@@ -316,9 +320,20 @@ export class ChatViewProvider implements WebviewViewProvider {
     this.client?.sendMessage(message);
   }
 
-  private formatLineQueryParamForCodeBrowser({ start, end }: { start: number; end?: number }): string {
-    if (typeof start !== "number") return "";
-    if (start === end) return String(start);
-    return `${start}-${end ?? ""}`;
+  private formatLineHashForCodeBrowser(
+    range:
+      | {
+          start: number
+          end?: number
+        }
+      | undefined
+  ): string {
+    if (!range) return ''
+    const { start, end } = range
+    if (typeof start !== 'number') return ''
+    if (start === end) return `L${start}`
+    return (
+      [start, end].map(num => (typeof num === 'number' ? `L${num}` : undefined))
+    ).filter(o => o !== undefined).join('-')
   }
 }

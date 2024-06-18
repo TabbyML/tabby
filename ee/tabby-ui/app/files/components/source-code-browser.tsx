@@ -89,7 +89,7 @@ type SourceCodeBrowserContextValue = {
   updateActivePath: (
     path: string | undefined,
     options?: {
-      params?: Record<'line', string>
+      hash?: string
       replace?: boolean
     }
   ) => Promise<void>
@@ -127,7 +127,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   children
 }) => {
   const pathname = usePathname()
-  const { updatePathnameAndSearch } = useRouterStuff()
+  const { updateUrlComponents } = useRouterStuff()
   const [isPathInitialized, setIsPathInitialized] = React.useState(false)
   const [activePath, setActivePath] = React.useState<string | undefined>()
   const activeEntryInfo = React.useMemo(() => {
@@ -152,21 +152,26 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
       const replace = options?.replace
       if (!path) {
         // To maintain compatibility with older versions, remove the path params
-        updatePathnameAndSearch('/files', {
-          del: ['path', 'plain', 'line'],
+        updateUrlComponents({
+          pathname: '/files',
+          searchParams: {
+            del: ['path', 'plain']
+          },
+          hash: options?.hash,
           replace
         })
       } else {
         const setParams: Record<string, string> = {}
-        let delList = ['plain', 'line', 'redirect_filepath', 'redirect_git_url']
-        if (options?.params?.line) {
-          setParams['line'] = options.params.line
-          delList = delList.filter(o => o !== 'line')
-        }
-        updatePathnameAndSearch(`/files/${path}`, {
-          set: setParams,
-          del: delList,
-          replace
+        let delList = ['plain', 'redirect_filepath', 'redirect_git_url']
+
+        updateUrlComponents({
+          pathname: `/files/${path}`,
+          searchParams: {
+            set: setParams,
+            del: delList
+          },
+          replace,
+          hash: options?.hash
         })
       }
     }, [])
@@ -312,6 +317,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     updateFileMap,
     setExpandedKeys
   } = React.useContext(SourceCodeBrowserContext)
+
   const { searchParams } = useRouterStuff()
   const initializing = React.useRef(false)
   const { progress, setProgress } = useTopbarProgress()
@@ -418,7 +424,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       const repos = await fetchAllRepositories()
       const redirect_filepath = searchParams.get('redirect_filepath')
       const redirect_git_url = searchParams.get('redirect_git_url')
-      const line = searchParams.get('line')?.toString()
 
       if (repos?.length && redirect_filepath && redirect_git_url) {
         const targetRepo = repos.find(repo => repo.gitUrl === redirect_git_url)
@@ -429,8 +434,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           updateActivePath(
             generateEntryPath(targetRepo, refName, redirect_filepath, 'file'),
             {
-              params: { line: line ?? '' },
-              replace: true
+              replace: true,
+              hash: window.location.hash
             }
           )
           initializing.current = false
