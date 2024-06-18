@@ -1,5 +1,5 @@
 import React from 'react'
-import { find, isNil } from 'lodash-es'
+import { find } from 'lodash-es'
 import type { Context } from 'tabby-chat-panel'
 import { useClient } from 'tabby-chat-panel/react'
 
@@ -13,7 +13,12 @@ import { IconClose } from '@/components/ui/icons'
 
 import { QuickActionEventPayload } from '../lib/event-emitter'
 import { SourceCodeBrowserContext } from './source-code-browser'
-import { generateEntryPath, getDefaultRepoRef, resolveRepoRef } from './utils'
+import {
+  generateEntryPath,
+  generateLineParams,
+  getDefaultRepoRef,
+  resolveRepoRef
+} from './utils'
 
 interface ChatSideBarProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {}
@@ -36,7 +41,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   const latestRepoRef = useLatest(activeRepoRef)
   const onNavigate = async (context: Context) => {
     if (context?.filepath && context?.git_url) {
-      const line = context?.range?.start
+      const line = generateLineParams(context?.range)
       const repoMap = repoMapRef.current
       const matchedRepositoryKey = find(
         Object.keys(repoMap),
@@ -58,7 +63,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
               context.kind
             ),
             {
-              params: { line: !isNil(line) ? String(line) : '' },
+              params: { line },
               replace: true
             }
           )

@@ -1,4 +1,4 @@
-import { isNil, keyBy, map, trimEnd } from 'lodash-es'
+import { compact, isNil, keyBy, map, trimEnd } from 'lodash-es'
 
 import {
   RepositoryKind,
@@ -227,6 +227,29 @@ function toEntryRequestUrl(
   return `/repositories/${activeRepoIdentity}/rev/${rev}/${basename ?? ''}`
 }
 
+function parseLineFromSearchParam(line: string | undefined): {
+  start?: number
+  end?: number
+} {
+  if (!line) return {}
+  const [startStr, endStr] = line.split('-')
+  return {
+    start: parseInt(startStr),
+    end: endStr ? parseInt(endStr) : undefined
+  }
+}
+
+function generateLineParams({
+  start,
+  end
+}: {
+  start: number
+  end?: number
+}): string {
+  if (isNil(start)) return ''
+  return compact([start, end]).join('-')
+}
+
 export {
   resolveRepoSpecifierFromRepoInfo,
   resolveFileNameFromPath,
@@ -239,5 +262,7 @@ export {
   resolveRepoRef,
   getDefaultRepoRef,
   generateEntryPath,
-  toEntryRequestUrl
+  toEntryRequestUrl,
+  parseLineFromSearchParam,
+  generateLineParams
 }
