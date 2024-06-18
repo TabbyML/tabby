@@ -22,7 +22,7 @@ export const TextFileView: React.FC<TextFileViewProps> = ({
   blob,
   contentLength
 }) => {
-  const { searchParams, updateSearchParams } = useRouterStuff()
+  const { searchParams, updateUrlComponents } = useRouterStuff()
   const [value, setValue] = React.useState<string>('')
   const { activePath } = useContext(SourceCodeBrowserContext)
 
@@ -51,14 +51,18 @@ export const TextFileView: React.FC<TextFileViewProps> = ({
 
   const onToggleMarkdownView = (value: string) => {
     if (value === '1') {
-      updateSearchParams({
-        set: {
-          plain: '1'
+      updateUrlComponents({
+        searchParams: {
+          set: {
+            plain: '1'
+          }
         }
       })
     } else {
-      updateSearchParams({
-        del: 'plain'
+      updateUrlComponents({
+        searchParams: {
+          del: 'plain'
+        }
       })
     }
   }

@@ -242,6 +242,25 @@ function parseLineFromSearchParam(line: string | undefined): {
   }
 }
 
+// hash will be like #L10 or #L10-L20
+function parseLineNumberFromHash(hash: string | undefined): {
+  start?: number
+  end?: number
+} | null {
+  const regex = /^#L(\d+)(?:-L(\d+))?/
+  if (!hash) return null
+  const match = regex.exec(hash)
+  if (!match) return null
+
+  const [, startStr, endStr] = match
+  const startNumber = parseInt(startStr)
+  const endNumber = parseInt(endStr)
+  return {
+    start: Number.isNaN(startNumber) ? undefined : startNumber,
+    end: Number.isNaN(endNumber) ? undefined : endNumber
+  }
+}
+
 export {
   resolveRepoSpecifierFromRepoInfo,
   resolveFileNameFromPath,
@@ -255,5 +274,6 @@ export {
   getDefaultRepoRef,
   generateEntryPath,
   toEntryRequestUrl,
-  parseLineFromSearchParam
+  parseLineFromSearchParam,
+  parseLineNumberFromHash
 }
