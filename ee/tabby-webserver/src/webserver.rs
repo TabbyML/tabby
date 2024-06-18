@@ -32,7 +32,7 @@ pub struct Webserver {
 impl ConfigAccess for Webserver {
     async fn repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
         let mut repos = Config::load().map(|x| x.repositories).unwrap_or_default();
-        repos.extend(self.repository.list_repositories().await?);
+        repos.extend(self.repository.list_all_repository_urls().await?);
         Ok(repos)
     }
 }

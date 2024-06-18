@@ -6,7 +6,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use futures::StreamExt;
 use juniper::ID;
-use tabby_common::config::RepositoryConfig;
+use tabby_common::config::{config_index_to_id, Config, RepositoryConfig};
 use tabby_db::DbConn;
 use tabby_schema::{
     integration::IntegrationService,
@@ -23,6 +23,7 @@ use crate::service::background_job::BackgroundJobEvent;
 struct RepositoryServiceImpl {
     git: Arc<dyn GitRepositoryService>,
     third_party: Arc<dyn ThirdPartyRepositoryService>,
+    config: Vec<RepositoryConfig>,
 }
 
 pub fn create(
@@ -33,12 +34,15 @@ pub fn create(
     Arc::new(RepositoryServiceImpl {
         git: Arc::new(git::create(db.clone(), background.clone())),
         third_party: Arc::new(third_party::create(db, integration, background.clone())),
+        config: Config::load()
+            .map(|config| config.repositories)
+            .unwrap_or_default(),
     })
 }
 
 #[async_trait]
 impl RepositoryService for RepositoryServiceImpl {
-    async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>> {
+    async fn list_all_repository_urls(&self) -> Result<Vec<RepositoryConfig>> {
         let mut repos: Vec<RepositoryConfig> = self
             .git
             .list(None, None, None, None)
@@ -69,6 +73,22 @@ impl RepositoryService for RepositoryServiceImpl {
         let mut all = vec![];
         all.extend(self.git().repository_list().await?);
         all.extend(self.third_party().repository_list().await?);
+        all.extend(
+            self.config
+                .iter()
+                .enumerate()
+                .map(|(index, repo)| {
+                    Ok(Repository {
+                        id: ID::new(config_index_to_id(index)),
+                        name: repo.dir_name(),
+                        kind: RepositoryKind::Git,
+                        dir: repo.dir(),
+                        refs: tabby_git::list_refs(&repo.dir())?,
+                        git_url: repo.git_url.clone(),
+                    })
+                })
+                .collect::<Result<Vec<_>>>()?,
+        );
 
         Ok(all)
     }
@@ -139,6 +159,10 @@ impl RepositoryService for RepositoryServiceImpl {
             .await;
 
         Ok(ret)
+    }
+
+    fn configured_repositories(&self) -> Vec<RepositoryConfig> {
+        self.config.clone()
     }
 }
 
@@ -213,7 +237,7 @@ mod tests {
             .unwrap();
 
         // FIXME(boxbeam): add repo with github service once there's syncing logic.
-        let repos = service.list_repositories().await.unwrap();
+        let repos = service.list_all_repository_urls().await.unwrap();
         assert_eq!(repos.len(), 1);
     }
 }

@@ -422,6 +422,7 @@ impl Query {
 
     async fn repository_list(ctx: &Context) -> Result<Vec<Repository>> {
         check_user(ctx).await?;
+
         ctx.locator.repository().repository_list().await
     }
 

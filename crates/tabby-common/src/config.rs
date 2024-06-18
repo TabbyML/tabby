@@ -3,6 +3,8 @@ use std::{collections::HashSet, path::PathBuf};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use derive_builder::Builder;
+use hash_ids::HashIds;
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -71,6 +73,30 @@ impl Config {
     }
 }
 
+lazy_static! {
+    static ref HASHER: HashIds = HashIds::builder()
+        .with_salt("tabby-config-id-serializer")
+        .with_min_length(6)
+        .finish();
+}
+
+pub fn config_index_to_id(index: usize) -> String {
+    let id = HASHER.encode(&[index as u64]);
+    format!("config:{id}")
+}
+
+pub fn config_id_to_index(id: &str) -> Result<usize, anyhow::Error> {
+    let id = id
+        .strip_prefix("config:")
+        .ok_or_else(|| anyhow!("Invalid config ID"))?;
+
+    HASHER
+        .decode(id)
+        .first()
+        .map(|i| *i as usize)
+        .ok_or_else(|| anyhow!("Invalid config ID"))
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RepositoryConfig {
     pub git_url: String,
@@ -103,8 +129,12 @@ impl RepositoryConfig {
             let path = self.git_url.strip_prefix("file://").unwrap();
             path.into()
         } else {
-            repositories_dir().join(sanitize_name(&self.canonical_git_url()))
+            repositories_dir().join(self.dir_name())
         }
+    }
+
+    pub fn dir_name(&self) -> String {
+        sanitize_name(&self.canonical_git_url())
     }
 
     pub fn is_local_dir(&self) -> bool {

@@ -87,6 +87,7 @@ impl ServerContext {
         let user_event = Arc::new(user_event::create(db_conn.clone()));
         let job = Arc::new(job::create(db_conn.clone()).await);
         let setting = Arc::new(setting::create(db_conn.clone()));
+
         Self {
             mail: mail.clone(),
             auth: Arc::new(auth::create(
