@@ -16,6 +16,7 @@ import { useExternalURL } from '@/lib/hooks/use-network-setting'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
 import {
@@ -140,14 +141,20 @@ function MainPanel() {
       >
         {!isSearch && (
           <div className="mx-auto flex w-full flex-col items-center px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
-            <Image
-              src={tabbyUrl}
-              alt="logo"
-              width={192}
-              className="my-4 invert dark:invert-0"
-              data-aos="fade-down"
-              data-aos-delay="150"
-            />
+            <div className="relative" data-aos="fade-down" data-aos-delay="150">
+              <Image
+                src={tabbyUrl}
+                alt="logo"
+                width={192}
+                className="my-4 invert dark:invert-0"
+              />
+              <Badge
+                className="absolute bottom-0 left-full mb-4 text-muted-foreground"
+                variant="outline"
+              >
+                Beta
+              </Badge>
+            </div>
             <p
               className="mb-6 flex scroll-m-20 items-center gap-2 text-sm tracking-tight text-secondary-foreground"
               data-aos="fade-down"
