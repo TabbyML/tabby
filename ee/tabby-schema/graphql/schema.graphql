@@ -84,6 +84,10 @@ input CreateIntegrationInput {
   apiBase: String
 }
 
+input CreateWebCrawlerUrlInput {
+  url: String!
+}
+
 input EmailSettingInput {
   smtpUsername: String!
   fromAddress: String!
@@ -342,6 +346,8 @@ type Mutation {
   updateIntegratedRepositoryActive(id: ID!, active: Boolean!): Boolean!
   "Trigger a job run given its command string."
   triggerJobRun(command: String!): ID!
+  createWebCrawlerUrl(input: CreateWebCrawlerUrlInput!): ID!
+  deleteWebCrawlerUrl(id: ID!): Boolean!
 }
 
 type NetworkSetting {
@@ -425,6 +431,7 @@ type Query {
   repositoryList: [Repository!]!
   integrations(ids: [ID!], kind: IntegrationKind, after: String, before: String, first: Int, last: Int): IntegrationConnection!
   integratedRepositories(ids: [ID!], kind: IntegrationKind, active: Boolean, after: String, before: String, first: Int, last: Int): ProvidedRepositoryConnection!
+  webCrawlerUrls(after: String, before: String, first: Int, last: Int): WebCrawlerUrlConnection!
 }
 
 type RefreshTokenResponse {
@@ -511,5 +518,21 @@ type UserEventConnection {
 
 type UserEventEdge {
   node: UserEvent!
+  cursor: String!
+}
+
+type WebCrawlerUrl {
+  url: String!
+  id: ID!
+  createdAt: DateTime!
+}
+
+type WebCrawlerUrlConnection {
+  edges: [WebCrawlerUrlEdge!]!
+  pageInfo: PageInfo!
+}
+
+type WebCrawlerUrlEdge {
+  node: WebCrawlerUrl!
   cursor: String!
 }

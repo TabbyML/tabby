@@ -3,7 +3,7 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
-    ServerSettingDAO, UserDAO, UserEventDAO,
+    ServerSettingDAO, UserDAO, UserEventDAO, WebCrawlerUrlDAO,
 };
 
 use crate::{
@@ -21,6 +21,7 @@ use crate::{
         user_event::{EventKind, UserEvent},
         CoreError,
     },
+    web_crawler::WebCrawlerUrl,
 };
 
 impl From<InvitationDAO> for auth::Invitation {
@@ -77,6 +78,16 @@ impl TryFrom<OAuthCredentialDAO> for OAuthCredential {
             updated_at: *val.updated_at,
             client_secret: val.client_secret,
         })
+    }
+}
+
+impl From<WebCrawlerUrlDAO> for WebCrawlerUrl {
+    fn from(value: WebCrawlerUrlDAO) -> Self {
+        Self {
+            url: value.url,
+            id: value.id.as_id(),
+            created_at: *value.created_at,
+        }
     }
 }
 

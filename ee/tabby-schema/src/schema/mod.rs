@@ -8,6 +8,7 @@ pub mod license;
 pub mod repository;
 pub mod setting;
 pub mod user_event;
+pub mod web_crawler;
 pub mod worker;
 
 use std::sync::Arc;
@@ -46,6 +47,7 @@ use self::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
     user_event::{UserEvent, UserEventService},
+    web_crawler::{CreateWebCrawlerUrlInput, WebCrawlerService, WebCrawlerUrl},
 };
 use crate::{
     bail, env,
@@ -65,6 +67,7 @@ pub trait ServiceLocator: Send + Sync {
     fn license(&self) -> Arc<dyn LicenseService>;
     fn analytic(&self) -> Arc<dyn AnalyticService>;
     fn user_event(&self) -> Arc<dyn UserEventService>;
+    fn web_crawler(&self) -> Arc<dyn WebCrawlerService>;
 }
 
 pub struct Context {
@@ -471,6 +474,28 @@ impl Query {
         )
         .await
     }
+
+    async fn web_crawler_urls(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<WebCrawlerUrl>> {
+        query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .web_crawler()
+                    .list_web_crawler_urls(after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
 }
 
 #[derive(GraphQLObject)]
@@ -805,6 +830,20 @@ impl Mutation {
     async fn trigger_job_run(ctx: &Context, _command: String) -> Result<ID> {
         check_admin(ctx).await?;
         bail!("Not implemented")
+    }
+
+    async fn create_web_crawler_url(ctx: &Context, input: CreateWebCrawlerUrlInput) -> Result<ID> {
+        let id = ctx
+            .locator
+            .web_crawler()
+            .create_web_crawler_url(input.url)
+            .await?;
+        Ok(id)
+    }
+
+    async fn delete_web_crawler_url(ctx: &Context, id: ID) -> Result<bool> {
+        ctx.locator.web_crawler().delete_web_crawler_url(id).await?;
+        Ok(true)
     }
 }
 

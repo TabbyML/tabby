@@ -9,6 +9,7 @@ mod license;
 pub mod repository;
 mod setting;
 mod user_event;
+mod web_crawler;
 
 use std::sync::Arc;
 
@@ -37,6 +38,7 @@ use tabby_schema::{
     repository::RepositoryService,
     setting::SettingService,
     user_event::UserEventService,
+    web_crawler::WebCrawlerService,
     worker::WorkerService,
     AsID, AsRowid, CoreError, Result, ServiceLocator,
 };
@@ -53,6 +55,7 @@ struct ServerContext {
     integration: Arc<dyn IntegrationService>,
     user_event: Arc<dyn UserEventService>,
     job: Arc<dyn JobService>,
+    web_crawler: Arc<dyn WebCrawlerService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -92,6 +95,7 @@ impl ServerContext {
                 license.clone(),
                 setting.clone(),
             )),
+            web_crawler: Arc::new(web_crawler::create(db_conn.clone())),
             license,
             repository,
             integration,
@@ -240,6 +244,10 @@ impl ServiceLocator for ArcServerContext {
 
     fn integration(&self) -> Arc<dyn IntegrationService> {
         self.0.integration.clone()
+    }
+
+    fn web_crawler(&self) -> Arc<dyn WebCrawlerService> {
+        self.0.web_crawler.clone()
     }
 }
 
