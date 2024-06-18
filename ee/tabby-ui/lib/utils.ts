@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from 'clsx'
+import { compact, isNil } from 'lodash-es'
 import { customAlphabet } from 'nanoid'
 import { twMerge } from 'tailwind-merge'
 
@@ -77,4 +78,16 @@ export const delay = (ms: number) => {
   return new Promise(resolve => {
     setTimeout(() => resolve(null), ms)
   })
+}
+
+export function generateLineParamsForCodeBrowser({
+  start,
+  end
+}: {
+  start: number
+  end?: number
+}): string {
+  if (isNil(start)) return ''
+  if (start === end) return String(start)
+  return compact([start, end]).join('-')
 }

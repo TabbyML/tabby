@@ -99,9 +99,10 @@ export class ChatViewProvider implements WebviewViewProvider {
 
           const url = new URL(`${serverInfo.config.endpoint}/files`);
           const searchParams = new URLSearchParams();
+
           searchParams.append("redirect_filepath", context.filepath);
           searchParams.append("redirect_git_url", context.git_url);
-          searchParams.append("line", String(context.range.start));
+          searchParams.append("line", this.generateLineParamsForCodeBrowser(context.range));
           url.search = searchParams.toString();
 
           await env.openExternal(Uri.parse(url.toString()));
@@ -313,5 +314,17 @@ export class ChatViewProvider implements WebviewViewProvider {
   private sendMessageToChatPanel(message: ChatMessage) {
     this.logger.info(`Sending message to chat panel: ${JSON.stringify(message)}`);
     this.client?.sendMessage(message);
+  }
+
+  private generateLineParamsForCodeBrowser({
+    start,
+    end
+  }: {
+    start: number
+    end?: number
+  }): string {
+    if (typeof start !== 'number') return ''
+    if (start === end) return String(start)
+    return `${start}-${end ?? ''}`
   }
 }

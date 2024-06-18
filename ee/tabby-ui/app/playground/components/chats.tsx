@@ -11,7 +11,7 @@ import { useChatStore } from '@/lib/stores/chat-store'
 import { getChatById } from '@/lib/stores/utils'
 import fetcher from '@/lib/tabby/fetcher'
 import { QuestionAnswerPair } from '@/lib/types/chat'
-import { truncateText } from '@/lib/utils'
+import { generateLineParamsForCodeBrowser, truncateText } from '@/lib/utils'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Chat, ChatRef } from '@/components/chat/chat'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
@@ -90,7 +90,7 @@ export default function Chats() {
     const searchParams = new URLSearchParams()
     searchParams.append('redirect_filepath', context.filepath)
     searchParams.append('redirect_git_url', context.git_url)
-    searchParams.append('line', String(context.range.start))
+    searchParams.append('line', generateLineParamsForCodeBrowser(context.range))
     url.search = searchParams.toString()
 
     window.open(url.toString())

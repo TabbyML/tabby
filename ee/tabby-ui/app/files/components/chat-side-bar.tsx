@@ -7,18 +7,13 @@ import { useLatest } from '@/lib/hooks/use-latest'
 import { useMe } from '@/lib/hooks/use-me'
 import { useStore } from '@/lib/hooks/use-store'
 import { useChatStore } from '@/lib/stores/chat-store'
-import { cn } from '@/lib/utils'
+import { cn, generateLineParamsForCodeBrowser } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconClose } from '@/components/ui/icons'
 
 import { QuickActionEventPayload } from '../lib/event-emitter'
 import { SourceCodeBrowserContext } from './source-code-browser'
-import {
-  generateEntryPath,
-  generateLineParams,
-  getDefaultRepoRef,
-  resolveRepoRef
-} from './utils'
+import { generateEntryPath, getDefaultRepoRef, resolveRepoRef } from './utils'
 
 interface ChatSideBarProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {}
@@ -41,7 +36,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   const latestRepoRef = useLatest(activeRepoRef)
   const onNavigate = async (context: Context) => {
     if (context?.filepath && context?.git_url) {
-      const line = generateLineParams(context?.range)
+      const line = generateLineParamsForCodeBrowser(context?.range)
       const repoMap = repoMapRef.current
       const matchedRepositoryKey = find(
         Object.keys(repoMap),

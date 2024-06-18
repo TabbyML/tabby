@@ -1,4 +1,4 @@
-import { compact, isNil, keyBy, map, trimEnd } from 'lodash-es'
+import { isNil, keyBy, map, trimEnd } from 'lodash-es'
 
 import {
   RepositoryKind,
@@ -233,21 +233,12 @@ function parseLineFromSearchParam(line: string | undefined): {
 } {
   if (!line) return {}
   const [startStr, endStr] = line.split('-')
+  const startNumber = parseInt(startStr)
+  const endNumber = parseInt(endStr)
   return {
-    start: parseInt(startStr),
-    end: endStr ? parseInt(endStr) : undefined
+    start: Number.isNaN(startNumber) ? undefined : startNumber,
+    end: Number.isNaN(endNumber) ? undefined : endNumber
   }
-}
-
-function generateLineParams({
-  start,
-  end
-}: {
-  start: number
-  end?: number
-}): string {
-  if (isNil(start)) return ''
-  return compact([start, end]).join('-')
 }
 
 export {
@@ -263,6 +254,5 @@ export {
   getDefaultRepoRef,
   generateEntryPath,
   toEntryRequestUrl,
-  parseLineFromSearchParam,
-  generateLineParams
+  parseLineFromSearchParam
 }
