@@ -1,11 +1,10 @@
 import React from 'react'
-import { usePathname } from 'next/navigation'
+import Router from 'next/router'
 
 import { useLatest } from './use-latest'
 
 export function useHash(): [string, (hash: string) => void] {
   const [hash, setHash] = React.useState<string>('')
-  const pathname = usePathname()
   const hashRef = useLatest(hash)
 
   const changeHash = React.useCallback((hash: string) => {
@@ -22,12 +21,12 @@ export function useHash(): [string, (hash: string) => void] {
 
     handleHashChange()
 
-    window.addEventListener('hashchange', handleHashChange)
+    Router.events.on('hashChangeComplete', handleHashChange)
 
     return () => {
-      window.removeEventListener('hashchange', handleHashChange)
+      Router.events.off('hashChangeComplete', handleHashChange)
     }
-  }, [pathname])
+  }, [])
 
   return [hash, changeHash]
 }
