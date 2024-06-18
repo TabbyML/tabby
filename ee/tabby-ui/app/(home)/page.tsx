@@ -146,7 +146,10 @@ function MainPanel() {
                 src={tabbyUrl}
                 alt="logo"
                 width={192}
-                className="my-4 invert dark:invert-0"
+                className={cn('mt-4 invert dark:invert-0', {
+                  'mb-4': isChatEnabled && searchFlag.value,
+                  'mb-2': !isChatEnabled || !searchFlag.value
+                })}
               />
               <Badge
                 className="absolute bottom-0 left-full mb-4 text-muted-foreground"
@@ -165,13 +168,13 @@ function MainPanel() {
               <span>develop</span>
               <Separator orientation="vertical" className="h-[80%]" />
               <span>debug</span>
-            </p>
+            </div>
             {isChatEnabled && searchFlag.value && (
-              <div className="w-full" data-aos="fade-down">
+              <div className="mb-10 w-full" data-aos="fade-down">
                 <TextAreaSearch onSearch={onSearch} />
               </div>
             )}
-            <div className="mt-10 flex w-full flex-col gap-x-5 lg:flex-row">
+            <div className="flex w-full flex-col gap-x-5 lg:flex-row">
               <div
                 className="mb-10 w-full rounded-lg p-4 lg:mb-0 lg:w-[21rem]"
                 style={{ background: theme === 'dark' ? '#333' : '#e8e1d3' }}
