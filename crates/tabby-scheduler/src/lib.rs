@@ -12,6 +12,7 @@ use doc::create_web_index;
 pub use doc::{DocIndexer, WebDocument};
 use futures::StreamExt;
 use indexer::{IndexAttributeBuilder, Indexer};
+use tabby_inference::Embedding;
 
 mod doc;
 use std::{env, sync::Arc};
@@ -83,10 +84,14 @@ async fn doc_index_pipeline(config: &tabby_common::config::Config) {
     };
 
     let embedding_config = &config.model.embedding;
-
-    debug!("Starting doc index pipeline...");
     let embedding = llama_cpp_server::create_embedding(embedding_config).await;
-    for url in &index_config.start_urls {
+
+    crawl_index_docs(&index_config.start_urls, embedding).await;
+}
+
+pub async fn crawl_index_docs(urls: &[String], embedding: Arc<dyn Embedding>) {
+    for url in urls {
+        debug!("Starting doc index pipeline for {url}");
         let embedding = embedding.clone();
         stream! {
             let mut num_docs = 0;

@@ -2,6 +2,7 @@ mod db;
 mod git;
 mod helper;
 mod third_party_integration;
+mod web_crawler;
 
 use std::{str::FromStr, sync::Arc};
 
@@ -15,9 +16,11 @@ use tabby_inference::Embedding;
 use tabby_schema::{
     integration::IntegrationService,
     repository::{GitRepositoryService, ThirdPartyRepositoryService},
+    web_crawler::WebCrawlerService,
 };
 use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::warn;
+use web_crawler::WebCrawlerJob;
 
 use self::{
     db::DbMaintainanceJob, git::SchedulerGitJob, third_party_integration::SyncIntegrationJob,
@@ -28,6 +31,7 @@ pub enum BackgroundJobEvent {
     SchedulerGitRepository(RepositoryConfig),
     SchedulerGithubGitlabRepository(ID),
     SyncThirdPartyRepositories(ID),
+    WebCrawler(String),
 }
 
 pub async fn start(
@@ -35,6 +39,7 @@ pub async fn start(
     git_repository_service: Arc<dyn GitRepositoryService>,
     third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
     integration_service: Arc<dyn IntegrationService>,
+    web_crawler_service: Arc<dyn WebCrawlerService>,
     embedding: Arc<dyn Embedding>,
     sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
     mut receiver: tokio::sync::mpsc::UnboundedReceiver<BackgroundJobEvent>,
@@ -71,6 +76,10 @@ pub async fn start(
                                 warn!("Index issues job failed: {err:?}");
                             }
                         }
+                        BackgroundJobEvent::WebCrawler(url) => {
+                            let job = WebCrawlerJob::new(url);
+                            job.run(embedding.clone()).await;
+                        }
                     }
                 },
                 Some(now) = hourly.next() => {
@@ -88,6 +97,10 @@ pub async fn start(
 
                     if let Err(err) = SchedulerGithubGitlabJob::cron(now, sender.clone(), third_party_repository_service.clone()).await {
                         warn!("Index issues job failed: {err:?}");
+                    }
+
+                    if let Err(err) = WebCrawlerJob::cron(now, sender.clone(), web_crawler_service.clone()).await {
+                        warn!("Web crawler job failed: {err:?}");
                     }
                 },
                 else => {
