@@ -158,8 +158,14 @@ function MainPanel() {
                 Beta
               </Badge>
             </div>
-            <p
-              className="mb-6 flex scroll-m-20 items-center gap-2 text-sm tracking-tight text-secondary-foreground"
+            <div
+              className={cn(
+                ' flex scroll-m-20 items-center gap-2 text-sm tracking-tight text-secondary-foreground',
+                {
+                  'mb-6': isChatEnabled && searchFlag.value,
+                  'mb-9': !isChatEnabled || !searchFlag.value
+                }
+              )}
               data-aos="fade-down"
               data-aos-delay="100"
             >
