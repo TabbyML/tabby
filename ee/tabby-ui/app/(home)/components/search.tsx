@@ -293,7 +293,7 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
     >
       <>
         <ScrollArea className="h-full" ref={contentContainerRef}>
-          <div className="mx-auto px-10 pb-24 lg:max-w-4xl lg:px-0">
+          <div className="mx-auto px-4 pb-24 lg:max-w-4xl lg:px-0">
             <div className="flex flex-col">
               {conversation.map((item, idx) => {
                 if (item.role === 'user') {
@@ -324,7 +324,7 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
 
         {container && (
           <ButtonScrollToBottom
-            className="!fixed !bottom-[7rem] !right-10 !top-auto lg:!bottom-[3.8rem]"
+            className="!fixed !bottom-[5.4rem] !right-10 !top-auto lg:!bottom-[3.8rem]"
             container={container}
             offset={100}
           />
@@ -354,7 +354,7 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
             <IconStop className="mr-2" />
             Stop generating
           </Button>
-          <div className="relative z-20 flex justify-center self-stretch px-10">
+          <div className="relative z-20 flex justify-center self-stretch px-4">
             <TextAreaSearch
               onSearch={onSubmitSearch}
               className="lg:max-w-4xl"

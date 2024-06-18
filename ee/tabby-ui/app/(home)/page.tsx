@@ -114,7 +114,7 @@ function MainPanel() {
             <div className="flex items-center gap-x-6">
               <Button
                 variant="ghost"
-                className="text-sm text-muted-foreground"
+                className="-ml-1 pl-0 text-sm text-muted-foreground"
                 onClick={hideSearch}
               >
                 <IconChevronLeft className="mr-1 h-5 w-5" />
@@ -134,7 +134,7 @@ function MainPanel() {
       </header>
 
       <main
-        className={cn('h-[calc(100%-4rem)] overflow-auto py-10 lg:py-0', {
+        className={cn('h-[calc(100%-4rem)] overflow-auto', {
           'lg:flex flex-col items-center justify-center': !isSearch
         })}
         ref={elementRef}
