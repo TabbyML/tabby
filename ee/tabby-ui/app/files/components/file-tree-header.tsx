@@ -146,7 +146,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
 
   const onSelectRef = (ref: string) => {
     if (isNil(ref)) return
-    const nextRev = resolveRepoRef(ref)?.name ?? 'main'
+    const nextRev = resolveRepoRef(ref)?.name ?? ''
     const { basename = '' } = activeEntryInfo
     const kind = fileMap?.[basename]?.file?.kind ?? 'dir'
 

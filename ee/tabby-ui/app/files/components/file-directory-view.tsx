@@ -52,8 +52,7 @@ const DirectoryView: React.FC<DirectoryViewProps> = ({
           repository: repo,
           fullPath: generateEntryPath(
             repo,
-            resolveRepoRef(getDefaultRepoRef(repo.refs) ?? 'refs/heads/main')
-              ?.name,
+            resolveRepoRef(getDefaultRepoRef(repo.refs))?.name,
             '',
             'dir'
           ),

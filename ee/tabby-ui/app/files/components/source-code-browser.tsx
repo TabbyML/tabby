@@ -35,7 +35,7 @@ import { FileTreePanel } from './file-tree-panel'
 import { RawFileView } from './raw-file-view'
 import { TextFileView } from './text-file-view'
 import {
-  Errors,
+  CodeBrowserError,
   generateEntryPath,
   getDefaultRepoRef,
   getDirectoriesFromBasename,
@@ -289,6 +289,8 @@ interface SourceCodeBrowserProps {
 
 type FileDisplayType = 'image' | 'text' | 'raw' | ''
 
+const ENTRY_CONTENT_TYPE = 'application/vnd.directory+json'
+
 const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   className
 }) => {
@@ -367,8 +369,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       fetcher(url, {
         responseFormatter: async response => {
           const contentType = response.headers.get('Content-Type')
-          if (contentType === 'application/vnd.directory+json') {
-            throw new Error(Errors.INCORRECT_VIEW_MODE)
+          if (contentType === ENTRY_CONTENT_TYPE) {
+            throw new Error(CodeBrowserError.INVALID_URL)
           }
           const contentLength = toNumber(response.headers.get('Content-Length'))
           // todo abort big size request and truncate
@@ -379,7 +381,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           }
         },
         errorHandler() {
-          throw new Error(Errors.NOT_FOUND)
+          throw new Error(CodeBrowserError.NOT_FOUND)
         }
       }),
     {
@@ -692,9 +694,17 @@ async function fetchEntriesFromPath(
   repository: RepositoryListQuery['repositoryList'][0] | undefined
 ) {
   if (!path) return []
-  if (!repository) throw new Error(Errors.EMPTY_REPOSITORY)
+  if (!repository) {
+    throw new Error(CodeBrowserError.REPOSITORY_NOT_FOUND)
+  }
+  if (isEmpty(repository.refs)) {
+    throw new Error(CodeBrowserError.REPOSITORY_SYNC_FAILED)
+  }
 
   const { basename, rev, viewMode } = resolveRepositoryInfoFromPath(path)
+
+  if (!rev || !viewMode) throw new Error(CodeBrowserError.INVALID_URL)
+
   // array of dir basename that do not include the repo name.
   const directoryPaths = getDirectoriesFromBasename(
     basename,
@@ -704,16 +714,16 @@ async function fetchEntriesFromPath(
   const requests: Array<() => Promise<ResolveEntriesResponse>> =
     directoryPaths.map(
       dir => () =>
-        fetcher(toEntryRequestUrl(repository, rev ?? 'main', dir) as string, {
+        fetcher(toEntryRequestUrl(repository, rev, dir) as string, {
           responseFormatter(response) {
             const contentType = response.headers.get('Content-Type')
-            if (contentType !== 'application/vnd.directory+json') {
-              throw new Error(Errors.INCORRECT_VIEW_MODE)
+            if (contentType !== ENTRY_CONTENT_TYPE) {
+              throw new Error(CodeBrowserError.INVALID_URL)
             }
             return response.json()
           },
           errorHandler() {
-            throw new Error(Errors.NOT_FOUND)
+            throw new Error(CodeBrowserError.NOT_FOUND)
           }
         })
     )

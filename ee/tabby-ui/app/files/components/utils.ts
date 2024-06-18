@@ -8,10 +8,11 @@ import {
 export type ViewMode = 'tree' | 'blob'
 type RepositoryItem = RepositoryListQuery['repositoryList'][0]
 
-export enum Errors {
+export enum CodeBrowserError {
+  INVALID_URL = 'INVALID_URL',
   NOT_FOUND = 'NOT_FOUND',
-  INCORRECT_VIEW_MODE = 'INCORRECT_VIEW_MODE',
-  EMPTY_REPOSITORY = 'EMPTY_REPOSITORY'
+  REPOSITORY_NOT_FOUND = 'REPOSITORY_NOT_FOUND',
+  REPOSITORY_SYNC_FAILED = 'REPOSITORY_SYNC_FAILED'
 }
 
 const repositoryKindStrList = Object.keys(RepositoryKind).map(kind =>
@@ -155,11 +156,12 @@ function encodeURIComponentIgnoringSlash(str: string) {
 
 function resolveRepoRef(ref: string | undefined): {
   kind?: 'branch' | 'tag'
-  name?: string
+  name: string
   ref: string
 } {
   if (!ref)
     return {
+      name: '',
       ref: ''
     }
 
@@ -174,6 +176,7 @@ function resolveRepoRef(ref: string | undefined): {
     }
   }
   return {
+    name: '',
     ref
   }
 }
@@ -206,11 +209,9 @@ function generateEntryPath(
   kind: 'dir' | 'file'
 ) {
   const specifier = resolveRepoSpecifierFromRepoInfo(repo)
-  // use 'main' as fallback
-  const finalRev = rev ?? 'main'
-  return `${specifier}/-/${
-    kind === 'dir' ? 'tree' : 'blob'
-  }/${finalRev}/${encodeURIComponentIgnoringSlash(basename)}`
+  return `${specifier}/-/${kind === 'dir' ? 'tree' : 'blob'}/${
+    rev ?? ''
+  }/${encodeURIComponentIgnoringSlash(basename)}`
 }
 
 function toEntryRequestUrl(
