@@ -8,7 +8,7 @@ import {
   LogOutputChannel,
   TextEditor,
 } from "vscode";
-import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
+import type { ServerApi, ChatMessage, Context, LineRange } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
 import type { ServerInfo } from "tabby-agent";
@@ -316,7 +316,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     this.client?.sendMessage(message);
   }
 
-  private formatLineQueryParamForCodeBrowser({ start, end }: { start: number; end?: number }): string {
+  private formatLineQueryParamForCodeBrowser({ start, end }: LineRange): string {
     if (typeof start !== "number") return "";
     if (start === end) return String(start);
     return `${start}-${end ?? ""}`;
