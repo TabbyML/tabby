@@ -8,16 +8,18 @@ mod indexer;
 use async_stream::stream;
 pub use code::CodeIndexer;
 use crawl::crawl_pipeline;
-use doc::SourceDocument;
+use doc::create_web_index;
+pub use doc::{DocIndexer, WebDocument};
 use futures::StreamExt;
 use indexer::{IndexAttributeBuilder, Indexer};
 
 mod doc;
 use std::{env, sync::Arc};
 
-use doc::create_web_index;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{debug, info, warn};
+
+use crate::doc::SourceDocument;
 
 pub async fn scheduler(now: bool, config: &tabby_common::config::Config) {
     if now {
