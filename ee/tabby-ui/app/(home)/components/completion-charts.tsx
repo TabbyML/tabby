@@ -151,6 +151,7 @@ export function CompletionCharts({
       selectPlaceholder: selects === 0 ? 0.5 : 0
     }
   })
+
   return (
     <div>
       <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-4 md:space-y-0 xl:justify-start">
@@ -205,7 +206,7 @@ export function CompletionCharts({
             <BarChart
               data={viewData}
               margin={{
-                top: totalViews === 0 ? 40 : 5,
+                top: totalViews === 0 ? 30 : 5,
                 right: 15,
                 left: 15,
                 bottom: 0
@@ -251,7 +252,7 @@ export function CompletionCharts({
             <BarChart
               data={viewData}
               margin={{
-                top: totalViews === 0 ? 40 : 5,
+                top: totalViews === 0 ? 30 : 5,
                 right: 15,
                 left: 15,
                 bottom: 0
