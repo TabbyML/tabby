@@ -17,10 +17,11 @@ import {
 
 import {
   GitRepositoriesQueryVariables,
-  ListInvitationsQueryVariables
+  ListInvitationsQueryVariables,
+  WebCrawlerUrlsQueryVariables
 } from '../gql/generates/graphql'
 import { refreshTokenMutation } from './auth'
-import { listInvitations, listRepositories } from './query'
+import { listInvitations, listRepositories, listWebCrawlerUrl } from './query'
 import { getAuthToken, isTokenExpired, tokenManager } from './token-management'
 
 interface ValidationError {
@@ -99,7 +100,8 @@ const client = new Client({
       resolvers: {
         Query: {
           invitations: relayPagination(),
-          gitRepositories: relayPagination()
+          gitRepositories: relayPagination(),
+          webCrawlerUrls: relayPagination()
         }
       },
       updates: {
@@ -144,6 +146,30 @@ const client = new Client({
                       if (data?.gitRepositories?.edges) {
                         data.gitRepositories.edges =
                           data.gitRepositories.edges.filter(
+                            e => e.node.id !== args.id
+                          )
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          },
+          deleteWebCrawlerUrl(result, args, cache, info) {
+            if (result.deleteWebCrawlerUrl) {
+              cache
+                .inspectFields('Query')
+                .filter(field => field.fieldName === 'webCrawlerUrls')
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listWebCrawlerUrl,
+                      variables: field.arguments as WebCrawlerUrlsQueryVariables
+                    },
+                    data => {
+                      if (data?.webCrawlerUrls?.edges) {
+                        data.webCrawlerUrls.edges =
+                          data.webCrawlerUrls.edges.filter(
                             e => e.node.id !== args.id
                           )
                       }
