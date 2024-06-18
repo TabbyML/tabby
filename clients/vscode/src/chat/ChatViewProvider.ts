@@ -102,7 +102,7 @@ export class ChatViewProvider implements WebviewViewProvider {
 
           searchParams.append("redirect_filepath", context.filepath);
           searchParams.append("redirect_git_url", context.git_url);
-          searchParams.append("line", this.generateLineParamsForCodeBrowser(context.range));
+          searchParams.append("line", this.formatLineQueryParamForCodeBrowser(context.range));
           url.search = searchParams.toString();
 
           await env.openExternal(Uri.parse(url.toString()));
@@ -316,7 +316,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     this.client?.sendMessage(message);
   }
 
-  private generateLineParamsForCodeBrowser({
+  private formatLineQueryParamForCodeBrowser({
     start,
     end
   }: {

@@ -80,7 +80,7 @@ export const delay = (ms: number) => {
   })
 }
 
-export function generateLineParamsForCodeBrowser({
+export function formatLineQueryParamForCodeBrowser({
   start,
   end
 }: {
