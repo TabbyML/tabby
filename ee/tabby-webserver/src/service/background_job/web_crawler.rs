@@ -2,12 +2,10 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use tabby_inference::Embedding;
-use tabby_schema::web_crawler::WebCrawlerService;
-use tabby_schema::Result;
+use tabby_schema::{web_crawler::WebCrawlerService, Result};
 use tokio::sync::mpsc::UnboundedSender;
 
-use super::helper::Job;
-use super::BackgroundJobEvent;
+use super::{helper::Job, BackgroundJobEvent};
 
 pub struct WebCrawlerJob {
     url: String,

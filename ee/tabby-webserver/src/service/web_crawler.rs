@@ -7,9 +7,7 @@ use tabby_schema::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 
-use super::background_job::BackgroundJobEvent;
-
-use super::graphql_pagination_to_filter;
+use super::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
 
 pub fn create(db: DbConn, sender: UnboundedSender<BackgroundJobEvent>) -> impl WebCrawlerService {
     WebCrawlerServiceImpl { db, sender }

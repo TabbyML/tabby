@@ -16,11 +16,10 @@ use tabby_inference::Embedding;
 use tabby_schema::{
     integration::IntegrationService,
     repository::{GitRepositoryService, ThirdPartyRepositoryService},
-    web_crawler::WebCrawlerService
+    web_crawler::WebCrawlerService,
 };
 use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::warn;
-
 use web_crawler::WebCrawlerJob;
 
 use self::{
