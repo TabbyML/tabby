@@ -5,30 +5,23 @@ import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { IconArrowRight, IconFileSearch } from '@/components/ui/icons'
 
-import { Errors } from './utils'
+import { CodeBrowserError } from './utils'
 
 interface ErrorViewProps extends React.HTMLAttributes<HTMLDivElement> {
   error: Error | undefined
 }
 
 export const ErrorView: React.FC<ErrorViewProps> = ({ className, error }) => {
-  const isEmptyRepository = error?.message === Errors.EMPTY_REPOSITORY
-
-  let errorMessge = 'Not found'
-  if (isEmptyRepository) {
-    errorMessge = 'Empty repository'
-  }
-
   let errorComponent: ReactComponentElement<any, any> = <NotFoundError />
 
   switch (error?.message) {
-    case Errors.EMPTY_REPOSITORY:
+    case CodeBrowserError.REPOSITORY_NOT_FOUND:
       errorComponent = <RepositoryNotFoundError />
       break
-    case Errors.REPOSITORY_SYNC_FAILED:
+    case CodeBrowserError.REPOSITORY_SYNC_FAILED:
       errorComponent = <RepositorySyncError />
       break
-    case Errors.INVALID_URL:
+    case CodeBrowserError.INVALID_URL:
       errorComponent = <InvalidUrlError />
       break
   }

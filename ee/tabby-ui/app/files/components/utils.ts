@@ -8,12 +8,11 @@ import {
 export type ViewMode = 'tree' | 'blob'
 type RepositoryItem = RepositoryListQuery['repositoryList'][0]
 
-export enum Errors {
+export enum CodeBrowserError {
+  INVALID_URL = 'INVALID_URL',
   NOT_FOUND = 'NOT_FOUND',
-  INCORRECT_VIEW_MODE = 'INCORRECT_VIEW_MODE',
-  EMPTY_REPOSITORY = 'EMPTY_REPOSITORY',
-  REPOSITORY_SYNC_FAILED = 'REPOSITORY_SYNC_FAILED',
-  INVALID_URL = 'INVALID_URL'
+  REPOSITORY_NOT_FOUND = 'REPOSITORY_NOT_FOUND',
+  REPOSITORY_SYNC_FAILED = 'REPOSITORY_SYNC_FAILED'
 }
 
 const repositoryKindStrList = Object.keys(RepositoryKind).map(kind =>
