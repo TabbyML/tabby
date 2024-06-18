@@ -316,15 +316,9 @@ export class ChatViewProvider implements WebviewViewProvider {
     this.client?.sendMessage(message);
   }
 
-  private formatLineQueryParamForCodeBrowser({
-    start,
-    end
-  }: {
-    start: number
-    end?: number
-  }): string {
-    if (typeof start !== 'number') return ''
-    if (start === end) return String(start)
-    return `${start}-${end ?? ''}`
+  private formatLineQueryParamForCodeBrowser({ start, end }: { start: number; end?: number }): string {
+    if (typeof start !== "number") return "";
+    if (start === end) return String(start);
+    return `${start}-${end ?? ""}`;
   }
 }
