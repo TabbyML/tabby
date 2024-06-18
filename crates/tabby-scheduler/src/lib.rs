@@ -15,7 +15,7 @@ use indexer::{IndexAttributeBuilder, Indexer};
 use tabby_inference::Embedding;
 
 mod doc;
-use std::{env, sync::Arc};
+use std::sync::Arc;
 
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{debug, info, warn};
@@ -25,9 +25,6 @@ use crate::doc::SourceDocument;
 pub async fn scheduler(now: bool, config: &tabby_common::config::Config) {
     if now {
         scheduler_pipeline(config).await;
-        if env::var("TABBY_SCHEDULER_EXPERIMENTAL_DOC_INDEX").is_ok() {
-            doc_index_pipeline(config).await;
-        }
     } else {
         let scheduler = JobScheduler::new()
             .await
@@ -76,17 +73,6 @@ async fn scheduler_pipeline(config: &tabby_common::config::Config) {
     }
 
     code.garbage_collection(repositories);
-}
-
-async fn doc_index_pipeline(config: &tabby_common::config::Config) {
-    let Some(index_config) = &config.experimental.doc else {
-        return;
-    };
-
-    let embedding_config = &config.model.embedding;
-    let embedding = llama_cpp_server::create_embedding(embedding_config).await;
-
-    crawl_index_docs(&index_config.start_urls, embedding).await;
 }
 
 pub async fn crawl_index_docs(urls: &[String], embedding: Arc<dyn Embedding>) {

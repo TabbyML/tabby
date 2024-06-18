@@ -22,9 +22,6 @@ pub struct Config {
 
     #[serde(default)]
     pub model: ModelConfigGroup,
-
-    #[serde(default)]
-    pub experimental: ExperimentalConfig,
 }
 
 impl Config {
@@ -247,11 +244,6 @@ fn default_parallelism() -> u8 {
 
 fn default_num_gpu_layers() -> u16 {
     9999
-}
-
-#[derive(Serialize, Deserialize, Default, Debug, Clone)]
-pub struct ExperimentalConfig {
-    pub doc: Option<DocIndexConfig>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
