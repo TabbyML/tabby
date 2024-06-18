@@ -20,12 +20,13 @@ import { SourceCodeBrowserContext } from './source-code-browser'
 
 import './line-menu-extension/line-menu.css'
 
-import { isNaN } from 'lodash-es'
+import { isNaN, isNil } from 'lodash-es'
 
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 
 import { emitter, LineMenuActionEventPayload } from '../lib/event-emitter'
+import { parseLineFromSearchParam } from './utils'
 
 interface CodeEditorViewProps {
   value: string
@@ -40,6 +41,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   }, [])
   const { copyToClipboard } = useCopyToClipboard({})
   const line = searchParams.get('line')?.toString()
+  const lineNumber = parseLineFromSearchParam(line).start
   const [editorView, setEditorView] = React.useState<EditorView | null>(null)
 
   const { isChatEnabled, activePath, activeEntryInfo, activeRepo } =
@@ -61,6 +63,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
       selectLinesGutter({
         onSelectLine: v => {
           if (v === -1 || isNaN(v)) return
+          // todo support multi lines
           updateSearchParams({ set: { line: String(v) } })
         }
       }),
@@ -124,9 +127,8 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   }, [value, line])
 
   React.useEffect(() => {
-    if (line && editorView && value) {
+    if (!isNil(lineNumber) && editorView && value) {
       try {
-        const lineNumber = parseInt(line)
         const lineInfo = editorView?.state?.doc?.line(lineNumber)
 
         if (lineInfo) {
@@ -144,7 +146,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
         }
       } catch (e) {}
     }
-  }, [value, line, editorView])
+  }, [value, lineNumber, editorView])
 
   return (
     <CodeEditor

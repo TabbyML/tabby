@@ -418,7 +418,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       const repos = await fetchAllRepositories()
       const redirect_filepath = searchParams.get('redirect_filepath')
       const redirect_git_url = searchParams.get('redirect_git_url')
-      const line = searchParams.get('line')
+      const line = searchParams.get('line')?.toString()
 
       if (repos?.length && redirect_filepath && redirect_git_url) {
         const targetRepo = repos.find(repo => repo.gitUrl === redirect_git_url)

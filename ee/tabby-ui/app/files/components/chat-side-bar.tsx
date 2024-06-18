@@ -1,5 +1,5 @@
 import React from 'react'
-import { find, isNil } from 'lodash-es'
+import { find } from 'lodash-es'
 import type { Context } from 'tabby-chat-panel'
 import { useClient } from 'tabby-chat-panel/react'
 
@@ -7,7 +7,7 @@ import { useLatest } from '@/lib/hooks/use-latest'
 import { useMe } from '@/lib/hooks/use-me'
 import { useStore } from '@/lib/hooks/use-store'
 import { useChatStore } from '@/lib/stores/chat-store'
-import { cn } from '@/lib/utils'
+import { cn, formatLineQueryParamForCodeBrowser } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconClose } from '@/components/ui/icons'
 
@@ -36,7 +36,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   const latestRepoRef = useLatest(activeRepoRef)
   const onNavigate = async (context: Context) => {
     if (context?.filepath && context?.git_url) {
-      const line = context?.range?.start
+      const line = formatLineQueryParamForCodeBrowser(context?.range)
       const repoMap = repoMapRef.current
       const matchedRepositoryKey = find(
         Object.keys(repoMap),
@@ -58,7 +58,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
               context.kind
             ),
             {
-              params: { line: !isNil(line) ? String(line) : '' },
+              params: { line },
               replace: true
             }
           )

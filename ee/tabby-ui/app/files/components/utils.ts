@@ -228,6 +228,20 @@ function toEntryRequestUrl(
   return `/repositories/${activeRepoIdentity}/rev/${rev}/${basename ?? ''}`
 }
 
+function parseLineFromSearchParam(line: string | undefined): {
+  start?: number
+  end?: number
+} {
+  if (!line) return {}
+  const [startStr, endStr] = line.split('-')
+  const startNumber = parseInt(startStr)
+  const endNumber = parseInt(endStr)
+  return {
+    start: Number.isNaN(startNumber) ? undefined : startNumber,
+    end: Number.isNaN(endNumber) ? undefined : endNumber
+  }
+}
+
 export {
   resolveRepoSpecifierFromRepoInfo,
   resolveFileNameFromPath,
@@ -240,5 +254,6 @@ export {
   resolveRepoRef,
   getDefaultRepoRef,
   generateEntryPath,
-  toEntryRequestUrl
+  toEntryRequestUrl,
+  parseLineFromSearchParam
 }
