@@ -6,7 +6,6 @@ import { useParams } from 'next/navigation'
 import { useQuery } from 'urql'
 
 import {
-  IntegrationKind,
   IntegrationStatus,
   ListIntegrationsQuery
 } from '@/lib/gql/generates/graphql'
@@ -15,17 +14,14 @@ import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import LoadingWrapper from '@/components/loading-wrapper'
 
-interface GitProvidersListProps {
-  kind: IntegrationKind
+import { useIntegrationKind } from '../hooks/use-repository-kind'
+
+export default function RepositoryProvidersPage() {
+  return <ProviderList />
 }
 
-export default function RepositoryProvidersPage({
-  kind
-}: GitProvidersListProps) {
-  return <ProviderList kind={kind} key={kind} />
-}
-
-function ProviderList({ kind }: GitProvidersListProps) {
+function ProviderList() {
+  const kind = useIntegrationKind()
   const [{ data, fetching }] = useQuery({
     query: listIntegrations,
     variables: { kind }

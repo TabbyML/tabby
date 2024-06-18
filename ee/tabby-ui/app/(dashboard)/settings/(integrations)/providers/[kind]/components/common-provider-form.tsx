@@ -320,6 +320,8 @@ function AccessTokenDescription() {
           managed.
         </div>
         <div className="my-2 ml-3">• Contents (Read-only)</div>
+        <div className="my-2 ml-3">• Pull requests (Read-only)</div>
+        <div className="my-2 ml-3">• Issues (Read-only)</div>
       </>
     )
   }
@@ -341,7 +343,6 @@ function AccessTokenDescription() {
           to manage all projects within the group.
         </div>
         <div className="my-2 ml-3">• api</div>
-        <div className="my-2 ml-3">• read repository</div>
       </>
     )
   }

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -81,6 +82,7 @@ export default function CreateRepositoryForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel required>Git URL</FormLabel>
+                <FormDescription>Remote or local Git URL</FormDescription>
                 <FormControl>
                   <Input
                     placeholder="e.g. https://github.com/TabbyML/tabby"
