@@ -324,7 +324,7 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
 
         {container && (
           <ButtonScrollToBottom
-            className="!fixed !bottom-[5.4rem] !right-10 !top-auto lg:!bottom-[3.8rem]"
+            className="!fixed !bottom-[5.4rem] !right-4 !top-auto lg:!bottom-[3.8rem]"
             container={container}
             offset={100}
           />
@@ -449,7 +449,7 @@ function AnswerBlock({
 
       {/* Answer content */}
       <div>
-        <div className="flex items-center gap-x-1.5">
+        <div className="mb-1 flex items-center gap-x-1.5">
           <IconAnswer
             className={cn({
               'animate-spinner': answer.isLoading
@@ -498,7 +498,7 @@ function AnswerBlock({
               <IconLayers />
               <p className="text-sm font-bold leading-none">Suggestions</p>
             </div>
-            <div className="mt-3 flex flex-col gap-y-3">
+            <div className="mt-2 flex flex-col gap-y-3">
               {answer.relevant_questions?.map((related, index) => (
                 <div
                   key={index}
