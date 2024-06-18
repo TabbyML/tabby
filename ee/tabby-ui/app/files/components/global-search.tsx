@@ -168,14 +168,14 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
         </div>
         {results && results.length > 0 && (
           <div className="absolute translate-y-full bottom-0 left-0 w-full p-9 bg-red-200">
-            <ol>
+            <ol className="grid gap-2  overflow-hidden">
               {results.map((file, i) => {
                 return (
                   <GlobalSearchListItem
                     key={i}
                     repoId={repoId as string}
                     repoKind={repositoryKind as RepositoryKind}
-                    path={file.path}
+                    file={file}
                   />
                 )
               })}

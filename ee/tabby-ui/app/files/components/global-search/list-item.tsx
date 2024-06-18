@@ -7,7 +7,9 @@ import React, {
   useEffect,
   useState
 } from 'react'
+import { toNumber } from 'lodash-es'
 import { darcula } from 'react-syntax-highlighter/dist/esm/styles/hljs'
+import { toast } from 'sonner'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
@@ -22,6 +24,7 @@ import authEnhancedFetch from '@/lib/tabby/fetcher'
 import fetcher from '@/lib/tabby/fetcher'
 import { client } from '@/lib/tabby/gql'
 import { ResolveEntriesResponse } from '@/lib/types'
+import CodeEditor from '@/components/codemirror/codemirror'
 
 import {
   encodeURIComponentIgnoringSlash,
@@ -31,7 +34,7 @@ import { SourceCodeBrowserContext } from './source-code-browser'
 import { resolveRepositoryInfoFromPath } from './utils'
 
 interface GlobalSearchListItemProps {
-  path: string
+  file: GrepFile
   repoKind: RepositoryKind
   repoId: string
 }
@@ -39,37 +42,59 @@ interface GlobalSearchListItemProps {
 export const GlobalSearchListItem = ({
   ...props
 }: GlobalSearchListItemProps) => {
+  const [blob, setBlob] = useState<Blob | undefined>(undefined)
+  const [blobText, setBlobText] = useState<string | undefined>(undefined)
+
+  // TODO: Convert to utility function
   const url = encodeURIComponentIgnoringSlash(
     `/repositories/${getProviderVariantFromKind(props.repoKind)}/${
       props.repoId
-    }/resolve/${props.path}`
+    }/resolve/${props.file.path}`
   )
 
-  const { data, isLoading, error }: SWRResponse<ResolveEntriesResponse> =
-    useSWRImmutable(url, fetcher)
+  const { data, isLoading, error } = useSWRImmutable(
+    url,
+    (url: string) =>
+      fetcher(url, {
+        responseFormatter: async response => {
+          if (!response.ok) return undefined
+          const blob = await response.blob()
+          return blob
+        }
+      }),
+    {
+      onError() {
+        // TODO: Add error handling
+      }
+    }
+  )
 
-  // const otherData = fetcher(url).then(data => {
-  //   console.log('father', data)
-  // })
-  // console.log('otherData', otherData)
+  useEffect(() => {
+    setBlob(data)
 
-  // if (error) {
-  //   // This is not always indicative of an error
-  //   console.error(error)
-  // }
+    const blob2Text = async (blob: Blob) => {
+      try {
+        const b = await blob.text()
+        setBlobText(b)
+      } catch (e) {
+        setBlobText(undefined)
+      }
+    }
 
-  // if (!data) {
-  //   return <div>Loading...</div>
-  // }
+    if (blob) {
+      blob2Text(blob)
+    }
+  }, [blob, data])
 
-  console.log('DATER', data)
-  /**
-   * TODO: We probably don't wanna fetch these individually;;; move to parent
-   */
+  console.log('blob', blob)
+  console.log('file', props.file)
 
   return (
     <li>
-      <div>TEST</div>
+      <div>{props.file.path}</div>
+      <div className="overflow-hidden max-h-[70px]">
+        <CodeEditor value={blobText} language="plain" readonly />
+      </div>
     </li>
   )
 }
