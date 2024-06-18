@@ -41,12 +41,20 @@ interface GlobalSearchProps {
 }
 
 const globalSearchQuery = graphql(/* GraphQL */ `
-  query globalSearch($id: ID!, $kind: RepositoryKind!, $query: String!) {
+  query GlobalSearch($id: ID!, $kind: RepositoryKind!, $query: String!) {
     repositoryGrep(kind: $kind, id: $id, query: $query) {
       path
       lines {
+        line {
+          text
+          base64
+        }
         byteOffset
         lineNumber
+        subMatches {
+          bytesStart
+          bytesEnd
+        }
       }
     }
   }
@@ -128,11 +136,24 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
         // TODO: Fix types
         .toPromise()) as unknown as { data: { repositoryGrep: GrepFile[] } }
 
-      setResults(data.repositoryGrep)
-      // If we want to show more dynamic results, we'll need to
-      // fetch the matches separately
+      const results = data.repositoryGrep
 
-      console.log('greps', data.repositoryGrep)
+      setResults(results)
+
+      console.log('initial', results)
+
+      // TODO: Kickoff full fetch request
+
+      const fullResults = await Promise.all(
+        results.map(async file => {
+          // TODO: Call the back-end fetch
+          const { path } = file
+
+          // TODO need an authenticated fetch
+        })
+      )
+
+      console.log('full', fullResults)
     } catch (e) {
       //  TODO: Handle error
       console.error(e)
@@ -143,16 +164,17 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
 
   return (
     <>
-      <div className="w-full ml-20 relative">
+      <div className="w-full relative">
         <input
           type="text"
           placeholder="Jump to a file or search the repository..."
-          className="w-full h-9 pl-10 bg-yellow-500"
+          // Placeholder styles
+          className="w-full h-9 pl-10  border border-gray-300 rounded"
           value={value}
           onInput={onInput}
           onFocus={onFocus}
         />
-        <div className="absolute w-4 h-4 bg-blue-400 left-2 top-1/2 -translate-y-1/2">
+        <div className="absolute w-4 h-4 leading-none left-3 top-1/2 -translate-y-1/2">
           {isRunning ? '🌀' : '🔍'}
         </div>
         {results && results.length > 0 && (

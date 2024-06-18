@@ -23,13 +23,6 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
   return (
     <div className={cn('flex flex-nowrap items-center gap-1', className)}>
       <div className="flex items-center gap-1 overflow-x-auto leading-8">
-        <div
-          className="cursor-pointer font-medium text-primary hover:underline"
-          onClick={e => setActivePath(undefined)}
-        >
-          Repositories
-        </div>
-        <div>/</div>
         {currentFileRoutes?.map((route, idx) => {
           const isRepo = idx === 0 && currentFileRoutes?.length > 1
           const isActiveFile = idx === currentFileRoutes.length - 1

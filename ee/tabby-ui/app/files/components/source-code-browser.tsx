@@ -496,10 +496,10 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   return (
     <>
-      <div className="w-full bg-red-500 flex py-2 items-center justify-between px-4 gap-4">
+      <div className="w-full border-b border-b-gray-300  relative z-20 flex py-2 items-center justify-between px-4 gap-2">
         <div className="flex items-center w-full gap-2">
           <Image src={tabbyUrl} alt="logo" width={45} />
-          <div className="shrink-0 mr-8">Code Browser</div>
+          {/* <div className="shrink-0 mr-8">Code Browser</div> */}
           <div className="w-72">
             <Select
               disabled={!initialized}
@@ -508,7 +508,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
             >
               <SelectTrigger>
                 <SelectValue asChild>
-                  <div className="flex items-center gap-2 overflow-hidden">
+                  <div className="flex items-center mr-8 gap-2 overflow-hidden">
                     <div className="shrink-0">
                       <RepositoryKindIcon
                         kind={repositoryKind}
