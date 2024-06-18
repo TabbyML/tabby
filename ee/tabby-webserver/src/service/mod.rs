@@ -9,7 +9,7 @@ mod license;
 pub mod repository;
 mod setting;
 mod user_event;
-mod web_crawler;
+pub mod web_crawler;
 
 use std::sync::Arc;
 
@@ -71,6 +71,7 @@ impl ServerContext {
         code: Arc<dyn CodeSearch>,
         repository: Arc<dyn RepositoryService>,
         integration: Arc<dyn IntegrationService>,
+        web_crawler: Arc<dyn WebCrawlerService>,
         db_conn: DbConn,
         is_chat_enabled_locally: bool,
     ) -> Self {
@@ -96,7 +97,7 @@ impl ServerContext {
                 license.clone(),
                 setting.clone(),
             )),
-            web_crawler: Arc::new(web_crawler::create(db_conn.clone())),
+            web_crawler,
             license,
             repository,
             integration,
@@ -257,11 +258,21 @@ pub async fn create_service_locator(
     code: Arc<dyn CodeSearch>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
+    web_crawler: Arc<dyn WebCrawlerService>,
     db: DbConn,
     is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(ArcServerContext::new(
-        ServerContext::new(logger, code, repository, integration, db, is_chat_enabled).await,
+        ServerContext::new(
+            logger,
+            code,
+            repository,
+            integration,
+            web_crawler,
+            db,
+            is_chat_enabled,
+        )
+        .await,
     ))
 }
 

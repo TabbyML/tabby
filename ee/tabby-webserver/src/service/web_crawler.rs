@@ -5,15 +5,19 @@ use tabby_schema::{
     web_crawler::{WebCrawlerService, WebCrawlerUrl},
     AsID, AsRowid, Result,
 };
+use tokio::sync::mpsc::UnboundedSender;
+
+use super::background_job::BackgroundJobEvent;
 
 use super::graphql_pagination_to_filter;
 
-pub fn create(db: DbConn) -> impl WebCrawlerService {
-    WebCrawlerServiceImpl { db }
+pub fn create(db: DbConn, sender: UnboundedSender<BackgroundJobEvent>) -> impl WebCrawlerService {
+    WebCrawlerServiceImpl { db, sender }
 }
 
 struct WebCrawlerServiceImpl {
     db: DbConn,
+    sender: UnboundedSender<BackgroundJobEvent>,
 }
 
 #[async_trait]
@@ -34,7 +38,10 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
     }
 
     async fn create_web_crawler_url(&self, url: String) -> Result<ID> {
-        let id = self.db.create_web_crawler_url(url).await?;
+        let id = self.db.create_web_crawler_url(url.clone()).await?;
+
+        let _ = self.sender.send(BackgroundJobEvent::WebCrawler(url));
+
         Ok(id.as_id())
     }
 

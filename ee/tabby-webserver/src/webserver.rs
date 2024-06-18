@@ -10,14 +10,18 @@ use tabby_common::{
 };
 use tabby_db::DbConn;
 use tabby_inference::Embedding;
-use tabby_schema::{integration::IntegrationService, repository::RepositoryService};
+use tabby_schema::{
+    integration::IntegrationService, repository::RepositoryService, web_crawler::WebCrawlerService,
+};
 
 use crate::{
     path::db_file,
     routes,
     service::{
-        background_job, background_job::BackgroundJobEvent, create_service_locator,
-        event_logger::create_event_logger, integration, repository,
+        background_job::{self, BackgroundJobEvent},
+        create_service_locator,
+        event_logger::create_event_logger,
+        integration, repository, web_crawler,
     },
 };
 
@@ -26,6 +30,7 @@ pub struct Webserver {
     logger: Arc<dyn EventLogger>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
+    web_crawler: Arc<dyn WebCrawlerService>,
 }
 
 #[async_trait::async_trait]
@@ -54,6 +59,8 @@ impl Webserver {
         let integration = Arc::new(integration::create(db.clone(), sender.clone()));
         let repository = repository::create(db.clone(), integration.clone(), sender.clone());
 
+        let web_crawler = Arc::new(web_crawler::create(db.clone(), sender.clone()));
+
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
         let ws = Arc::new(Webserver {
@@ -61,6 +68,7 @@ impl Webserver {
             logger,
             repository: repository.clone(),
             integration: integration.clone(),
+            web_crawler: web_crawler.clone(),
         });
 
         background_job::start(
@@ -68,6 +76,7 @@ impl Webserver {
             repository.git(),
             repository.third_party(),
             integration.clone(),
+            web_crawler,
             embedding,
             sender,
             receiver,
@@ -93,6 +102,7 @@ impl Webserver {
             code,
             self.repository.clone(),
             self.integration.clone(),
+            self.web_crawler.clone(),
             self.db.clone(),
             is_chat_enabled,
         )
