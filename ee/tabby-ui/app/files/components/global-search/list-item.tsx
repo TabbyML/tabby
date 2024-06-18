@@ -8,6 +8,7 @@ import React, {
   useState
 } from 'react'
 import { darcula } from 'react-syntax-highlighter/dist/esm/styles/hljs'
+import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
 import { graphql } from '@/lib/gql/generates'
@@ -17,55 +18,49 @@ import {
   GrepTextOrBase64,
   RepositoryKind
 } from '@/lib/gql/generates/graphql'
+import authEnhancedFetch from '@/lib/tabby/fetcher'
+import fetcher from '@/lib/tabby/fetcher'
 import { client } from '@/lib/tabby/gql'
-import { fetcher } from '@/lib/utils'
+import { ResolveEntriesResponse } from '@/lib/types'
 
-import { encodeURIComponentIgnoringSlash } from '../utils'
+import {
+  encodeURIComponentIgnoringSlash,
+  getProviderVariantFromKind
+} from '../utils'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { resolveRepositoryInfoFromPath } from './utils'
 
 interface GlobalSearchListItemProps {
-  file: GrepFile & { keys: null }
-  repo: string
+  path: string
+  repoKind: RepositoryKind
+  repoId: string
 }
 
 export const GlobalSearchListItem = ({
   ...props
 }: GlobalSearchListItemProps) => {
-  const [path, setPath] = useState('')
-  const [lines, setLines] = useState<GrepLine[]>([])
-
-  useEffect(() => {
-    setPath(props.file.path)
-    setLines(props.file.lines)
-  }, [props.file]) // Confirm this cleanup
-
-  // WIP
   const url = encodeURIComponentIgnoringSlash(
-    `/repositories/${props.repo}/resolve/${props.file.path}`
+    `/repositories/${getProviderVariantFromKind(props.repoKind)}/${
+      props.repoId
+    }/resolve/${props.path}`
   )
 
-  const fetch = useSWRImmutable(url, (url: string) => {
-    debugger
-    return fetcher(url, {
-      responseFormatter: async response => {
-        const blob = await response.blob()
-        return blob
-      }
-    })
-  })
+  const { data, isLoading, error }: SWRResponse<ResolveEntriesResponse> =
+    useSWRImmutable(url, fetcher)
 
-  const { data, error } = fetch
+  // const otherData = fetcher(url).then(data => {
+  //   console.log('father', data)
+  // })
+  // console.log('otherData', otherData)
 
-  debugger
+  // if (error) {
+  //   // This is not always indicative of an error
+  //   console.error(error)
+  // }
 
-  if (error) {
-    console.error(error)
-  }
-
-  if (!data) {
-    return <div>Loading...</div>
-  }
+  // if (!data) {
+  //   return <div>Loading...</div>
+  // }
 
   console.log('DATER', data)
   /**
@@ -74,12 +69,7 @@ export const GlobalSearchListItem = ({
 
   return (
     <li>
-      <div>{path}</div>
-      <ol>
-        {lines.slice(0, 3).map((line, i) => (
-          <li key={i}>nice</li>
-        ))}
-      </ol>
+      <div>TEST</div>
     </li>
   )
 }

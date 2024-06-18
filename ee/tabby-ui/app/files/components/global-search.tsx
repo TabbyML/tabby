@@ -1,13 +1,19 @@
 'use client'
 
 import React, { FormEventHandler, useContext, useEffect, useState } from 'react'
+import useSWRImmutable from 'swr/immutable'
 
 import { graphql } from '@/lib/gql/generates'
 import { GrepTextOrBase64, RepositoryKind } from '@/lib/gql/generates/graphql'
 import { client } from '@/lib/tabby/gql'
+import { fetcher } from '@/lib/utils'
 
+import { GlobalSearchListItem } from './global-search/list-item'
 import { SourceCodeBrowserContext } from './source-code-browser'
-import { resolveRepositoryInfoFromPath } from './utils'
+import {
+  encodeURIComponentIgnoringSlash,
+  resolveRepositoryInfoFromPath
+} from './utils'
 
 // TODO: Move these to a shared location
 
@@ -136,27 +142,10 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
         // TODO: Fix types
         .toPromise()) as unknown as { data: { repositoryGrep: GrepFile[] } }
 
-      const results = data.repositoryGrep
-
-      setResults(results)
-
-      console.log('initial', results)
-
-      // TODO: Kickoff full fetch request
-
-      const fullResults = await Promise.all(
-        results.map(async file => {
-          // TODO: Call the back-end fetch
-          const { path } = file
-
-          // TODO need an authenticated fetch
-        })
-      )
-
-      console.log('full', fullResults)
+      setResults(data.repositoryGrep)
     } catch (e) {
       //  TODO: Handle error
-      console.error(e)
+      console.error('SEARCH ERROR', e)
     } finally {
       setIsRunning(false)
     }
@@ -182,21 +171,12 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
             <ol>
               {results.map((file, i) => {
                 return (
-                  <li key={i}>
-                    <div>{file.path}</div>
-                    <ol>
-                      {file.lines.map((line, i) => {
-                        return (
-                          <li key={i}>
-                            {/* TODO: fetch the file and display its lines */}
-                            <div>
-                              {line.lineNumber} + {line.byteOffset}
-                            </div>
-                          </li>
-                        )
-                      })}
-                    </ol>
-                  </li>
+                  <GlobalSearchListItem
+                    key={i}
+                    repoId={repoId as string}
+                    repoKind={repositoryKind as RepositoryKind}
+                    path={file.path}
+                  />
                 )
               })}
             </ol>
