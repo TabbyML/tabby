@@ -68,6 +68,7 @@ const CodeBlock: FC<Props> = memo(({ language, value, onCopyContent }) => {
     copyToClipboard(value)
   }
 
+  const languageForSyntax = language === 'toml' ? 'bash' : language
   return (
     <div className="codeblock relative w-full bg-zinc-950 font-sans">
       <div className="flex w-full items-center justify-between bg-zinc-800 px-6 py-2 pr-4 text-zinc-100">
@@ -85,7 +86,7 @@ const CodeBlock: FC<Props> = memo(({ language, value, onCopyContent }) => {
         </div>
       </div>
       <SyntaxHighlighter
-        language={language}
+        language={languageForSyntax}
         style={coldarkDark}
         PreTag="div"
         showLineNumbers
