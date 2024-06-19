@@ -73,6 +73,9 @@ impl ServerContext {
         integration: Arc<dyn IntegrationService>,
         web_crawler: Arc<dyn WebCrawlerService>,
         db_conn: DbConn,
+        background_job_sender: tokio::sync::mpsc::UnboundedSender<
+            background_job::BackgroundJobEvent,
+        >,
         is_chat_enabled_locally: bool,
     ) -> Self {
         let mail = Arc::new(
@@ -86,7 +89,7 @@ impl ServerContext {
                 .expect("failed to initialize license service"),
         );
         let user_event = Arc::new(user_event::create(db_conn.clone()));
-        let job = Arc::new(job::create(db_conn.clone()).await);
+        let job = Arc::new(job::create(db_conn.clone(), background_job_sender).await);
         let setting = Arc::new(setting::create(db_conn.clone()));
 
         Self {
@@ -260,6 +263,7 @@ pub async fn create_service_locator(
     integration: Arc<dyn IntegrationService>,
     web_crawler: Arc<dyn WebCrawlerService>,
     db: DbConn,
+    background_job_sender: tokio::sync::mpsc::UnboundedSender<background_job::BackgroundJobEvent>,
     is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(ArcServerContext::new(
@@ -270,6 +274,7 @@ pub async fn create_service_locator(
             integration,
             web_crawler,
             db,
+            background_job_sender,
             is_chat_enabled,
         )
         .await,

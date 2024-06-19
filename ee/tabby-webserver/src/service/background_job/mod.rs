@@ -10,6 +10,7 @@ use cron::Schedule;
 use futures::StreamExt;
 use helper::{CronStream, Job, JobLogger};
 use juniper::ID;
+use serde::{Deserialize, Serialize};
 use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
 use tabby_inference::Embedding;
@@ -26,12 +27,13 @@ use self::{
     db::DbMaintainanceJob, git::SchedulerGitJob, third_party_integration::SyncIntegrationJob,
 };
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Serialize, Deserialize)]
 pub enum BackgroundJobEvent {
     SchedulerGitRepository(RepositoryConfig),
     SchedulerGithubGitlabRepository(ID),
     SyncThirdPartyRepositories(ID),
     WebCrawler(String),
+    SerializedBackgroundJob(String),
 }
 
 pub async fn start(
@@ -53,6 +55,16 @@ pub async fn start(
             tokio::select! {
                 Some(event) = receiver.recv() => {
                     match event {
+                        BackgroundJobEvent::SerializedBackgroundJob(serialized) => {
+                            let Ok(event) = serde_json::from_str(&serialized) else {
+                                warn!("Failed to deserialize background job event: {:?}", serialized);
+                                continue;
+                            };
+
+                            if let Err(err) = sender.send(event) {
+                                warn!("Failed to send background job event: {:?}", err);
+                            }
+                        },
                         BackgroundJobEvent::SchedulerGitRepository(repository_config) => {
                             let job = SchedulerGitJob::new(repository_config);
                             let mut job_logger = JobLogger::new(SchedulerGitJob::NAME, db.clone()).await;
@@ -70,15 +82,22 @@ pub async fn start(
                             }
                         }
                         BackgroundJobEvent::SchedulerGithubGitlabRepository(integration_id) => {
-                            let job_logger = JobLogger::new(SchedulerGithubGitlabJob::NAME, db.clone()).await;
+                            let mut job_logger = JobLogger::new(SchedulerGithubGitlabJob::NAME, db.clone()).await;
                             let job = SchedulerGithubGitlabJob::new(integration_id);
-                            if let Err(err) = job.run(job_logger, embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await {
-                                warn!("Index issues job failed: {err:?}");
+                            if let Err(err) = job.run(job_logger.clone(), embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await {
+                                cprintln!(job_logger, "{:?}", err);
+                                job_logger.complete(-1).await;
+                            } else {
+                                job_logger.complete(0).await;
                             }
                         }
                         BackgroundJobEvent::WebCrawler(url) => {
+                            let mut job_logger = JobLogger::new(WebCrawlerJob::NAME, db.clone()).await;
                             let job = WebCrawlerJob::new(url);
+
+                            // FIXME(boxbeam): handles job error.
                             job.run(embedding.clone()).await;
+                            job_logger.complete(0).await;
                         }
                     }
                 },

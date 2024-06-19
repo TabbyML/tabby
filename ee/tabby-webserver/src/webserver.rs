@@ -31,6 +31,7 @@ pub struct Webserver {
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
     web_crawler: Arc<dyn WebCrawlerService>,
+    background_job_sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
 }
 
 #[async_trait::async_trait]
@@ -69,6 +70,7 @@ impl Webserver {
             repository: repository.clone(),
             integration: integration.clone(),
             web_crawler: web_crawler.clone(),
+            background_job_sender: sender.clone(),
         });
 
         background_job::start(
@@ -104,6 +106,7 @@ impl Webserver {
             self.integration.clone(),
             self.web_crawler.clone(),
             self.db.clone(),
+            self.background_job_sender.clone(),
             is_chat_enabled,
         )
         .await;

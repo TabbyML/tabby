@@ -75,7 +75,7 @@ pub struct SchedulerGithubGitlabJob {
 }
 
 impl Job for SchedulerGithubGitlabJob {
-    const NAME: &'static str = "index_issues";
+    const NAME: &'static str = "scheduler_github_gitlab";
 }
 
 impl SchedulerGithubGitlabJob {
