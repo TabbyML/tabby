@@ -34,7 +34,7 @@ pub struct CrawledMetadata {
 impl From<readable_readability::Metadata> for CrawledMetadata {
     fn from(metadata: readable_readability::Metadata) -> Self {
         Self {
-            title: metadata.article_title.or(metadata.page_title),
+            title: metadata.page_title,
             description: metadata.description,
         }
     }

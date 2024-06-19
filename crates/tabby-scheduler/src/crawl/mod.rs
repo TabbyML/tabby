@@ -85,7 +85,13 @@ fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
     };
 
     // Convert the HTML to Markdown
-    let md = mdka::from_html(&html);
+    let md = match htmd::HtmlToMarkdown::new().convert(&html) {
+        Ok(md) => md,
+        Err(err) => {
+            warn!("Failed to convert HTML to Markdown: {:?}", err);
+            return None;
+        }
+    };
 
     // Skip if the document is empty
     if md.is_empty() {

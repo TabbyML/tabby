@@ -32,7 +32,7 @@ serde.workspace = true
 serde_json.workspace = true
 futures.workspace = true
 async-stream.workspace = true
-mdka = "1.2.4"
+htmd = "0.1"
 readable-readability = "0.4.0"
 url.workspace = true
 tabby-inference = { path = "../tabby-inference" }
