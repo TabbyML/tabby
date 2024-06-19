@@ -31,6 +31,7 @@ use tabby_schema::{
     analytic::AnalyticService,
     auth::AuthenticationService,
     email::EmailService,
+    gitlab_ssl_cert, gitlab_ssl_insecure,
     integration::IntegrationService,
     is_demo_mode,
     job::JobService,
@@ -305,4 +306,27 @@ pub fn graphql_pagination_to_filter(
         }
         _ => Ok((None, None, false)),
     }
+}
+
+pub async fn create_gitlab_client(
+    api_base: &str,
+    access_token: &str,
+) -> Result<gitlab::AsyncGitlab, anyhow::Error> {
+    // Gitlab client expects a url base like "gitlab.com" not "https://gitlab.com"
+    // We still want to take a more consistent format as user input, so this
+    // will help normalize it to prevent confusion
+    let api_base = api_base.strip_prefix("https://").unwrap_or(api_base);
+    let mut builder = gitlab::Gitlab::builder(api_base, access_token);
+    if let Some(cert) = gitlab_ssl_cert() {
+        let cert = tokio::fs::read(cert).await?;
+        builder.client_identity_from_pem(&cert);
+    }
+
+    if gitlab_ssl_insecure() {
+        builder.cert_insecure();
+    }
+
+    Ok(gitlab::Gitlab::builder(api_base, access_token)
+        .build_async()
+        .await?)
 }
