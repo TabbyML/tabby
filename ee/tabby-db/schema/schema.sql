@@ -46,6 +46,8 @@ CREATE TABLE job_runs(
   stderr TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP DEFAULT(DATETIME('now'))
+  ,
+  params TEXT
 );
 CREATE TABLE repositories(
   id INTEGER PRIMARY KEY AUTOINCREMENT,

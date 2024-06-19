@@ -10,10 +10,8 @@ use tabby_schema::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::service::background_job::Job;
-use crate::service::background_job::WebCrawlerJob;
-
 use super::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
+use crate::service::background_job::{Job, WebCrawlerJob};
 
 pub fn create(
     db: DbConn,
@@ -89,10 +87,10 @@ fn to_web_crawler_url(value: WebCrawlerUrlDAO, last_job_run: Option<JobRun>) -> 
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use tabby_db::DbConn;
     use tokio::sync::mpsc::UnboundedSender;
 
+    use super::*;
     use crate::background_job::BackgroundJobEvent;
 
     fn create_fake() -> UnboundedSender<BackgroundJobEvent> {
