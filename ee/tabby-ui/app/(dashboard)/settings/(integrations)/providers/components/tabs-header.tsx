@@ -13,7 +13,7 @@ import { PROVIDER_KIND_METAS } from '../constants'
 export default function GitTabsHeader() {
   const pathname = usePathname()
   const defaultValue = React.useMemo(() => {
-    const matcher = pathname.match(/^\/settings\/repository\/([\w-]+)/)?.[1]
+    const matcher = pathname.match(/^\/settings\/providers\/([\w-]+)/)?.[1]
     return matcher?.toLowerCase() ?? 'git'
   }, [pathname])
 
@@ -37,7 +37,7 @@ export default function GitTabsHeader() {
             )
           })}
           <TabsTrigger value="web" asChild>
-            <Link href="/settings/repository/web">
+            <Link href="/settings/providers/web">
               <IconFileText />
               <span className="ml-2">Web</span>
             </Link>
