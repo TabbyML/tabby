@@ -70,10 +70,6 @@ impl CodeGeneration {
             yield text;
         };
 
-        if let Some(text) = Box::pin(s).into_future().await.0 {
-            text
-        } else {
-            String::new()
-        }
+        Box::pin(s).into_future().await.0.unwrap_or_default()
     }
 }
