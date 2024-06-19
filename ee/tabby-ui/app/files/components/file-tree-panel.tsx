@@ -42,7 +42,7 @@ export const FileTreePanel: React.FC<FileTreePanelProps> = ({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      {/* <FileTreeHeader className="shrink-0 px-4 pb-3" /> */}
+      <FileTreeHeader className="shrink-0 px-4 pb-3" />
       {scrollTop > 0 && (
         <div className="h-0 border-b shadow-[0px_3px_8px_rgba(0,0,0,0.3)] dark:shadow-[0px_3px_8px_rgba(255,255,255,0.3)]"></div>
       )}

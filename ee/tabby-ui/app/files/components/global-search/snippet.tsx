@@ -8,7 +8,7 @@ import { GrepFile, GrepLine } from '@/lib/gql/generates/graphql'
 import CodeEditor from '@/components/codemirror/codemirror'
 
 import { SourceCodeBrowserContext } from '../source-code-browser'
-import { resolveRepositoryInfoFromPath } from '../utils'
+import { generateEntryPath, resolveRepositoryInfoFromPath } from '../utils'
 
 interface GlobalSearchSnippetProps {
   line: GrepLine
@@ -18,7 +18,9 @@ interface GlobalSearchSnippetProps {
 }
 
 export const GlobalSearchSnippet = ({ ...props }: GlobalSearchSnippetProps) => {
-  const { activePath } = React.useContext(SourceCodeBrowserContext)
+  const { activeRepo, activeRepoRef, currentFileRoutes } = React.useContext(
+    SourceCodeBrowserContext
+  )
 
   const [snippet, setSnippet] = useState<string | undefined>(undefined)
 
@@ -32,20 +34,20 @@ export const GlobalSearchSnippet = ({ ...props }: GlobalSearchSnippetProps) => {
     }
   }, [props.blobText, props.line, snippet])
 
-  const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
-
-  const path = `${repositorySpecifier}/${props.file.path}`
+  const parentNode = currentFileRoutes[currentFileRoutes?.length - 2]
 
   return (
     <>
       {snippet ? (
         <Link
           href={{
-            pathname: '/files',
-            query: {
-              path,
-              line: props.line.lineNumber
-            }
+            pathname: `/files/${generateEntryPath(
+              activeRepo,
+              activeRepoRef?.name as string,
+              props.file.path,
+              'file'
+            )}`,
+            hash: `L${props.line.lineNumber}`
           }}
         >
           <CodeEditor

@@ -1,19 +1,14 @@
 'use client'
 
 import React, { FormEventHandler, useContext, useEffect, useState } from 'react'
-import useSWRImmutable from 'swr/immutable'
 
 import { graphql } from '@/lib/gql/generates'
 import { GrepTextOrBase64, RepositoryKind } from '@/lib/gql/generates/graphql'
 import { client } from '@/lib/tabby/gql'
-import { fetcher } from '@/lib/utils'
 
 import { GlobalSearchListItem } from './global-search/list-item'
 import { SourceCodeBrowserContext } from './source-code-browser'
-import {
-  encodeURIComponentIgnoringSlash,
-  resolveRepositoryInfoFromPath
-} from './utils'
+import { resolveRepositoryInfoFromPath } from './utils'
 
 // TODO: Move these to a shared location
 
@@ -41,10 +36,7 @@ interface GrepFile {
   lines: GrepLine[]
 }
 
-interface GlobalSearchProps {
-  repoId: string
-  repoKind: RepositoryKind
-}
+interface GlobalSearchProps {}
 
 const globalSearchQuery = graphql(/* GraphQL */ `
   query GlobalSearch($id: ID!, $kind: RepositoryKind!, $query: String!) {
@@ -153,7 +145,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
 
   return (
     <>
-      <div className="w-full relative">
+      <div className="w-full relative z-20">
         <input
           type="text"
           placeholder="Jump to a file or search the repository..."

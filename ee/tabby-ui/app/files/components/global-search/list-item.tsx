@@ -1,39 +1,16 @@
 'use client'
 
-import React, {
-  FormEventHandler,
-  use,
-  useContext,
-  useEffect,
-  useState
-} from 'react'
-import { lineNumbers } from '@codemirror/view'
-import { toNumber } from 'lodash-es'
-import { darcula } from 'react-syntax-highlighter/dist/esm/styles/hljs'
-import { toast } from 'sonner'
-import { SWRResponse } from 'swr'
+import React, { useEffect, useState } from 'react'
 import useSWRImmutable from 'swr/immutable'
 
-import { graphql } from '@/lib/gql/generates'
-import {
-  GrepFile,
-  GrepLine,
-  GrepTextOrBase64,
-  RepositoryKind
-} from '@/lib/gql/generates/graphql'
-import authEnhancedFetch from '@/lib/tabby/fetcher'
+import { GrepFile, GrepLine, RepositoryKind } from '@/lib/gql/generates/graphql'
 import fetcher from '@/lib/tabby/fetcher'
-import { client } from '@/lib/tabby/gql'
-import { ResolveEntriesResponse } from '@/lib/types'
-import CodeEditor from '@/components/codemirror/codemirror'
 
 import {
   encodeURIComponentIgnoringSlash,
   getProviderVariantFromKind
 } from '../utils'
 import { GlobalSearchSnippet } from './snippet'
-import { SourceCodeBrowserContext } from './source-code-browser'
-import { resolveRepositoryInfoFromPath } from './utils'
 
 interface GlobalSearchListItemProps {
   file: GrepFile
