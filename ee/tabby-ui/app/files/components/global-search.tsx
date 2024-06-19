@@ -1,10 +1,12 @@
 'use client'
 
 import React, { FormEventHandler, useContext, useEffect, useState } from 'react'
+import { PopoverContent, PopoverTrigger } from '@radix-ui/react-popover'
 
 import { graphql } from '@/lib/gql/generates'
 import { GrepTextOrBase64, RepositoryKind } from '@/lib/gql/generates/graphql'
 import { client } from '@/lib/tabby/gql'
+import { Popover } from '@/components/ui/popover'
 
 import { GlobalSearchListItem } from './global-search/list-item'
 import { SourceCodeBrowserContext } from './source-code-browser'
@@ -60,6 +62,7 @@ const globalSearchQuery = graphql(/* GraphQL */ `
 
 const GlobalSearch: React.FC<GlobalSearchProps> = () => {
   const { activePath, activeRepo } = useContext(SourceCodeBrowserContext)
+  const [popoverIsShown, setPopoverIsShown] = useState(false)
 
   const { repositoryKind } = resolveRepositoryInfoFromPath(activePath)
 
@@ -101,6 +104,8 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
    */
   const onInput: FormEventHandler<HTMLInputElement> = e => {
     const q = e.currentTarget.value
+    if (q && !popoverIsShown) setPopoverIsShown(true)
+
     setValue(q)
     void search(q)
   }
@@ -114,6 +119,13 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
     if (value && !results) {
       void search(value)
     }
+  }
+
+  /**
+   *
+   */
+  const onBlur = () => {
+    setPopoverIsShown(false)
   }
 
   /**
@@ -144,38 +156,48 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
   }
 
   return (
-    <>
-      <div className="w-full relative z-20">
-        <input
-          type="text"
-          placeholder="Jump to a file or search the repository..."
-          // Placeholder styles
-          className="w-full h-9 pl-10  border border-gray-300 rounded"
-          value={value}
-          onInput={onInput}
-          onFocus={onFocus}
-        />
-        <div className="absolute w-4 h-4 leading-none left-3 top-1/2 -translate-y-1/2">
-          {isRunning ? '🌀' : '🔍'}
-        </div>
-        {results && results.length > 0 && (
-          <div className="absolute translate-y-full bottom-0 left-0 w-full py-8 px-9 bg-white drop-shadow-2xl">
-            <ol className="grid gap-2  overflow-hidden">
-              {results.slice(0, 8).map((file, i) => {
-                return (
-                  <GlobalSearchListItem
-                    key={i}
-                    repoId={repoId as string}
-                    repoKind={repositoryKind as RepositoryKind}
-                    file={file}
-                  />
-                )
-              })}
-            </ol>
+    <div className="px-4 py-2">
+      <Popover open={popoverIsShown}>
+        <div className="relative">
+          <PopoverTrigger className="w-full">
+            <input
+              type="text"
+              placeholder="Jump to a file or search the repository..."
+              // Placeholder styles
+              className="w-full h-9 pl-10  border border-gray-300 rounded"
+              value={value}
+              onInput={onInput}
+              onFocus={onFocus}
+            />
+          </PopoverTrigger>
+          <div className="absolute w-4 h-4 leading-none left-3 top-1/2 -translate-y-1/2">
+            {isRunning ? '🌀' : '🔍'}
           </div>
-        )}
-      </div>
-    </>
+        </div>
+        <PopoverContent
+          sideOffset={2}
+          className="bg-popover z-20 w-[var(--radix-popover-trigger-width)] p-4 rounded shadow-xl"
+        >
+          {/* TODO: Determine markup for keyboard navigation, etc */}
+          <div>
+            {results && results.length > 0 && (
+              <ol className="grid gap-2  overflow-hidden">
+                {results.slice(0, 8).map((file, i) => {
+                  return (
+                    <GlobalSearchListItem
+                      key={i}
+                      repoId={repoId as string}
+                      repoKind={repositoryKind as RepositoryKind}
+                      file={file}
+                    />
+                  )
+                })}
+              </ol>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
   )
 }
 

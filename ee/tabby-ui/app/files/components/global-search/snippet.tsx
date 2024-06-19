@@ -49,7 +49,8 @@ export const GlobalSearchSnippet = ({ ...props }: GlobalSearchSnippetProps) => {
             hash: `L${props.line.lineNumber}`
           }}
         >
-          <CodeEditor
+          {snippet}
+          {/* <CodeEditor
             value={snippet}
             // FIXME: pass language in
             language="plain"
@@ -59,7 +60,7 @@ export const GlobalSearchSnippet = ({ ...props }: GlobalSearchSnippetProps) => {
               })
             ]}
             readonly
-          />
+          /> */}
         </Link>
       ) : (
         <div>Loading</div>
