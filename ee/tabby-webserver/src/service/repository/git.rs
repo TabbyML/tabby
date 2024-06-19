@@ -97,6 +97,7 @@ fn to_git_repository(repo: RepositoryDAO) -> GitRepository {
         refs: tabby_git::list_refs(&config.dir()).unwrap_or_default(),
         git_url: repo.git_url,
         job_info: JobInfo {
+            // FIXME(boxbeam): Read latest job run from db
             last_job_run: None,
             command: serde_json::to_string(&BackgroundJobEvent::SchedulerGitRepository(config))
                 .expect("Failed to serialize job event"),

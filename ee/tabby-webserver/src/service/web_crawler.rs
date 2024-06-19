@@ -56,6 +56,7 @@ fn to_web_crawler_url(value: WebCrawlerUrlDAO) -> WebCrawlerUrl {
         url: value.url.clone(),
         created_at: *value.created_at,
         job_info: JobInfo {
+            // FIXME(boxbeam): Read latest job run from db
             last_job_run: None,
             command: serde_json::to_string(&BackgroundJobEvent::WebCrawler(value.url))
                 .expect("Failed to serialize job command"),

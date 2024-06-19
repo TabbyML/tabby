@@ -264,6 +264,7 @@ fn to_provided_repository(value: ProvidedRepositoryDAO) -> ProvidedRepository {
         git_url: value.git_url,
 
         job_info: JobInfo {
+            // FIXME(boxbeam): Read latest job run from db
             last_job_run: None,
             command: serde_json::to_string(&BackgroundJobEvent::SchedulerGithubGitlabRepository(
                 id,
