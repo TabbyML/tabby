@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use juniper::ID;
-use tabby_db::DbConn;
+use tabby_db::{DbConn, WebCrawlerUrlDAO};
 use tabby_schema::{
+    job::JobInfo,
     web_crawler::{WebCrawlerService, WebCrawlerUrl},
     AsID, AsRowid, Result,
 };
@@ -32,7 +33,7 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
             .db
             .list_web_crawler_urls(limit, skip_id, backwards)
             .await?;
-        Ok(urls.into_iter().map(WebCrawlerUrl::from).collect())
+        Ok(urls.into_iter().map(to_web_crawler_url).collect())
     }
 
     async fn create_web_crawler_url(&self, url: String) -> Result<ID> {
@@ -46,5 +47,18 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
     async fn delete_web_crawler_url(&self, id: ID) -> Result<()> {
         self.db.delete_web_crawler_url(id.as_rowid()?).await?;
         Ok(())
+    }
+}
+
+fn to_web_crawler_url(value: WebCrawlerUrlDAO) -> WebCrawlerUrl {
+    WebCrawlerUrl {
+        id: value.id.as_id(),
+        url: value.url.clone(),
+        created_at: *value.created_at,
+        job_info: JobInfo {
+            last_job_run: None,
+            command: serde_json::to_string(&BackgroundJobEvent::WebCrawler(value.url))
+                .expect("Failed to serialize job command"),
+        },
     }
 }
