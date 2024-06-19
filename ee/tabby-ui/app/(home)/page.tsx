@@ -169,7 +169,7 @@ function MainPanel() {
               <span>debug</span>
             </div>
             {isChatEnabled && searchFlag.value && (
-              <div className="relative mb-10 w-full" data-aos="fade-down">
+              <div className="mb-10 w-full" data-aos="fade-down">
                 <TextAreaSearch onSearch={onSearch} showBetaBadge />
               </div>
             )}
