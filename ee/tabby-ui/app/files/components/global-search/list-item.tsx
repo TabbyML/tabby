@@ -1,13 +1,16 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import Link from 'next/link'
 import useSWRImmutable from 'swr/immutable'
 
 import { GrepFile, GrepLine, RepositoryKind } from '@/lib/gql/generates/graphql'
 import fetcher from '@/lib/tabby/fetcher'
 
+import { SourceCodeBrowserContext } from '../source-code-browser'
 import {
   encodeURIComponentIgnoringSlash,
+  generateEntryPath,
   getProviderVariantFromKind
 } from '../utils'
 import { GlobalSearchSnippet } from './snippet'
@@ -21,6 +24,16 @@ interface GlobalSearchListItemProps {
 export const GlobalSearchListItem = ({
   ...props
 }: GlobalSearchListItemProps) => {
+  const {
+    activePath,
+    currentFileRoutes,
+    fileTreeData,
+    activeRepo,
+    activeRepoRef,
+    repoMap,
+    activeEntryInfo
+  } = React.useContext(SourceCodeBrowserContext)
+
   const [blob, setBlob] = useState<Blob | undefined>(undefined)
   const [blobText, setBlobText] = useState<string | undefined>(undefined)
 
@@ -76,7 +89,17 @@ export const GlobalSearchListItem = ({
 
   return (
     <li>
-      <h5 className="text-sm font-semibold mb-2">{props.file.path}</h5>
+      <Link
+        href={`/files/${generateEntryPath(
+          activeRepo,
+          activeRepoRef?.name as string,
+          props.file.path,
+          'file'
+        )}`}
+        className="text-sm font-semibold mb-2"
+      >
+        {props.file.path}
+      </Link>
       <ol className="overflow-hidden grid gap-0.5">
         {lines ? (
           lines.map((line, i) => {

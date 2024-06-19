@@ -45,6 +45,7 @@ export const GlobalSearchSnippet = ({ ...props }: GlobalSearchSnippetProps) => {
               props.file.path,
               'file'
             )}`,
+            // FIXME: this doesn't work when clicking a different line on the active file
             hash: `L${props.line.lineNumber}`
           }}
         >
