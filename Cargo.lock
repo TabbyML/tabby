@@ -1870,6 +1870,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "htmd"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53fff09744b11deed5946dd1b61c806bb9a94ded93cf28da819935599b69b987"
+dependencies = [
+ "html5ever 0.27.0",
+ "markup5ever_rcdom",
+]
+
+[[package]]
 name = "html5ever"
 version = "0.25.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2725,16 +2735,6 @@ checksum = "d89e7ee0cfbedfc4da3340218492196241d89eefb6dab27de5df917a6d2e78cf"
 dependencies = [
  "cfg-if",
  "digest",
-]
-
-[[package]]
-name = "mdka"
-version = "1.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b876846e5f1d4679f3e6e26e97cb51e915b4498cb6514194e6eeceb323e12458"
-dependencies = [
- "html5ever 0.27.0",
- "markup5ever_rcdom",
 ]
 
 [[package]]
@@ -5274,12 +5274,12 @@ dependencies = [
  "async-trait",
  "futures",
  "git2",
+ "htmd",
  "ignore",
  "insta",
  "kv",
  "lazy_static",
  "llama-cpp-server",
- "mdka",
  "readable-readability",
  "serde",
  "serde_json",
