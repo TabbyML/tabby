@@ -167,7 +167,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
           {isRunning ? '🌀' : '🔍'}
         </div>
         {results && results.length > 0 && (
-          <div className="absolute translate-y-full bottom-0 left-0 w-full p-9 bg-red-200">
+          <div className="absolute translate-y-full bottom-0 left-0 w-full py-8 px-9 bg-white drop-shadow-2xl">
             <ol className="grid gap-2  overflow-hidden">
               {results.slice(0, 8).map((file, i) => {
                 return (

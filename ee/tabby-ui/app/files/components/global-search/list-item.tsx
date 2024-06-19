@@ -99,7 +99,7 @@ export const GlobalSearchListItem = ({
 
   return (
     <li>
-      <div>{props.file.path}</div>
+      <h5 className="text-sm font-semibold mb-2">{props.file.path}</h5>
       <ol className="overflow-hidden grid gap-0.5">
         {lines ? (
           lines.map((line, i) => {
@@ -107,6 +107,8 @@ export const GlobalSearchListItem = ({
               <GlobalSearchSnippet
                 key={i}
                 blobText={blobText as string}
+                repoId={props.repoId}
+                file={props.file}
                 line={line}
               />
             )

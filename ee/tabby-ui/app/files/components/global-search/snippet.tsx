@@ -1,19 +1,25 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { highlightSelectionMatches } from '@codemirror/search'
-import { EditorState } from '@codemirror/state'
+import Link from 'next/link'
 import { lineNumbers } from '@codemirror/view'
 
-import { GrepLine } from '@/lib/gql/generates/graphql'
+import { GrepFile, GrepLine } from '@/lib/gql/generates/graphql'
 import CodeEditor from '@/components/codemirror/codemirror'
+
+import { SourceCodeBrowserContext } from '../source-code-browser'
+import { resolveRepositoryInfoFromPath } from '../utils'
 
 interface GlobalSearchSnippetProps {
   line: GrepLine
   blobText: string
+  repoId: string
+  file: GrepFile
 }
 
 export const GlobalSearchSnippet = ({ ...props }: GlobalSearchSnippetProps) => {
+  const { activePath } = React.useContext(SourceCodeBrowserContext)
+
   const [snippet, setSnippet] = useState<string | undefined>(undefined)
 
   useEffect(() => {
@@ -26,20 +32,34 @@ export const GlobalSearchSnippet = ({ ...props }: GlobalSearchSnippetProps) => {
     }
   }, [props.blobText, props.line, snippet])
 
+  const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
+
+  const path = `${repositorySpecifier}/${props.file.path}`
+
   return (
     <>
       {snippet ? (
-        <CodeEditor
-          value={snippet}
-          // FIXME: pass language in
-          language="plain"
-          extensions={[
-            lineNumbers({
-              formatNumber: () => props.line.lineNumber.toString()
-            })
-          ]}
-          readonly
-        />
+        <Link
+          href={{
+            pathname: '/files',
+            query: {
+              path,
+              line: props.line.lineNumber
+            }
+          }}
+        >
+          <CodeEditor
+            value={snippet}
+            // FIXME: pass language in
+            language="plain"
+            extensions={[
+              lineNumbers({
+                formatNumber: () => props.line.lineNumber.toString()
+              })
+            ]}
+            readonly
+          />
+        </Link>
       ) : (
         <div>Loading</div>
       )}
