@@ -250,8 +250,9 @@ async fn refresh_repositories_for_provider(
 }
 
 fn to_provided_repository(value: ProvidedRepositoryDAO) -> ProvidedRepository {
+    let id = value.id.as_id();
     ProvidedRepository {
-        id: value.id.as_id(),
+        id: id.clone(),
         integration_id: value.integration_id.as_id(),
         active: value.active,
         display_name: value.name,
@@ -263,8 +264,12 @@ fn to_provided_repository(value: ProvidedRepositoryDAO) -> ProvidedRepository {
         git_url: value.git_url,
 
         job_info: JobInfo {
+            // FIXME(boxbeam): Read latest job run from db
             last_job_run: None,
-            command: "FIXME".to_string(),
+            command: serde_json::to_string(&BackgroundJobEvent::SchedulerGithubGitlabRepository(
+                id,
+            ))
+            .expect("Failed to serialize job event"),
         },
     }
 }

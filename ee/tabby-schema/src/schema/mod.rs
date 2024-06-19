@@ -50,7 +50,7 @@ use self::{
     web_crawler::{CreateWebCrawlerUrlInput, WebCrawlerService, WebCrawlerUrl},
 };
 use crate::{
-    bail, env,
+    env,
     juniper::relay::{self, query_async, Connection},
 };
 
@@ -828,9 +828,10 @@ impl Mutation {
     }
 
     /// Trigger a job run given its command string.
-    async fn trigger_job_run(ctx: &Context, _command: String) -> Result<ID> {
+    async fn trigger_job_run(ctx: &Context, command: String) -> Result<bool> {
         check_admin(ctx).await?;
-        bail!("Not implemented")
+        ctx.locator.job().trigger(command).await;
+        Ok(true)
     }
 
     async fn create_web_crawler_url(ctx: &Context, input: CreateWebCrawlerUrlInput) -> Result<ID> {

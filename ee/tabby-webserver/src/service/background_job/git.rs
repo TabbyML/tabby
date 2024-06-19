@@ -26,7 +26,7 @@ impl SchedulerGitJob {
 }
 
 impl Job for SchedulerGitJob {
-    const NAME: &'static str = "scheduler";
+    const NAME: &'static str = "scheduler_git";
 }
 
 impl SchedulerGitJob {

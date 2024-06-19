@@ -90,14 +90,17 @@ impl RepositoryProvider for GitRepositoryServiceImpl {
 }
 
 fn to_git_repository(repo: RepositoryDAO) -> GitRepository {
+    let config = RepositoryConfig::new(&repo.git_url);
     GitRepository {
         id: repo.id.as_id(),
         name: repo.name,
-        refs: tabby_git::list_refs(&RepositoryConfig::new(&repo.git_url).dir()).unwrap_or_default(),
+        refs: tabby_git::list_refs(&config.dir()).unwrap_or_default(),
         git_url: repo.git_url,
         job_info: JobInfo {
+            // FIXME(boxbeam): Read latest job run from db
             last_job_run: None,
-            command: "FIXME".to_string(),
+            command: serde_json::to_string(&BackgroundJobEvent::SchedulerGitRepository(config))
+                .expect("Failed to serialize job event"),
         },
     }
 }
