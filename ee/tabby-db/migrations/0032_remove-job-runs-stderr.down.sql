@@ -1,0 +1,1 @@
+ALTER TABLE job_runs ADD COLUMN stderr TEXT NOT NULL DEFAULT ('');

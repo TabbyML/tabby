@@ -44,7 +44,6 @@ impl From<JobRunDAO> for job::JobRun {
             finished_at: run.finished_at.into_option(),
             exit_code: run.exit_code.map(|i| i as i32),
             stdout: run.stdout,
-            stderr: run.stderr,
         }
     }
 }
