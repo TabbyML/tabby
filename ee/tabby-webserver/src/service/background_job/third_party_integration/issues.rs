@@ -45,7 +45,7 @@ pub async fn index_github_issues(
 
     for issue in issues {
         let doc = WebDocument {
-            id: format!("github/{full_name}/issues/{}", issue.id),
+            id: issue.html_url.to_string(),
             link: issue.html_url.to_string(),
             title: issue.title,
             body: issue.body.unwrap_or_default(),
@@ -59,7 +59,6 @@ pub async fn index_github_issues(
 #[derive(Deserialize)]
 struct GitlabIssue {
     title: String,
-    id: u64,
     description: String,
     web_url: String,
 }
@@ -84,7 +83,7 @@ pub async fn index_gitlab_issues(
 
     for issue in issues {
         let doc = WebDocument {
-            id: format!("gitlab/{full_name}/issues/{}", issue.id),
+            id: issue.web_url.clone(),
             link: issue.web_url,
             title: issue.title,
             body: issue.description,
@@ -101,7 +100,7 @@ pub async fn index_gitlab_issues(
 
     for merge_request in merge_requests {
         let doc = WebDocument {
-            id: format!("gitlab/{full_name}/merge_requests/{}", merge_request.id),
+            id: merge_request.web_url.clone(),
             link: merge_request.web_url,
             title: merge_request.title,
             body: merge_request.description,
