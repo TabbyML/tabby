@@ -34,8 +34,6 @@ export const GlobalSearchSnippet = ({ ...props }: GlobalSearchSnippetProps) => {
     }
   }, [props.blobText, props.line, snippet])
 
-  const parentNode = currentFileRoutes[currentFileRoutes?.length - 2]
-
   return (
     <>
       {snippet ? (

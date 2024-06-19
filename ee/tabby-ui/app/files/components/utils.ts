@@ -148,7 +148,6 @@ function repositoryMap2List(
 }
 
 function encodeURIComponentIgnoringSlash(str: string) {
-  if (!str) console.log('STRING IS UNDEFINED')
   return str
     .split('/')
     .map(part => encodeURIComponent(part))
@@ -210,7 +209,6 @@ function generateEntryPath(
   kind: 'dir' | 'file'
 ) {
   const specifier = resolveRepoSpecifierFromRepoInfo(repo)
-  console.log('basename', basename)
   return `${specifier}/-/${kind === 'dir' ? 'tree' : 'blob'}/${
     rev ?? ''
   }/${encodeURIComponentIgnoringSlash(basename)}`
