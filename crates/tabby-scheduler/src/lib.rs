@@ -8,23 +8,23 @@ mod indexer;
 use async_stream::stream;
 pub use code::CodeIndexer;
 use crawl::crawl_pipeline;
-use doc::SourceDocument;
+use doc::create_web_index;
+pub use doc::{DocIndexer, WebDocument};
 use futures::StreamExt;
 use indexer::{IndexAttributeBuilder, Indexer};
+use tabby_inference::Embedding;
 
 mod doc;
-use std::{env, sync::Arc};
+use std::sync::Arc;
 
-use doc::create_web_index;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{debug, info, warn};
+
+use crate::doc::SourceDocument;
 
 pub async fn scheduler(now: bool, config: &tabby_common::config::Config) {
     if now {
         scheduler_pipeline(config).await;
-        if env::var("TABBY_SCHEDULER_EXPERIMENTAL_DOC_INDEX").is_ok() {
-            doc_index_pipeline(config).await;
-        }
     } else {
         let scheduler = JobScheduler::new()
             .await
@@ -75,16 +75,9 @@ async fn scheduler_pipeline(config: &tabby_common::config::Config) {
     code.garbage_collection(repositories);
 }
 
-async fn doc_index_pipeline(config: &tabby_common::config::Config) {
-    let Some(index_config) = &config.experimental.doc else {
-        return;
-    };
-
-    let embedding_config = &config.model.embedding;
-
-    debug!("Starting doc index pipeline...");
-    let embedding = llama_cpp_server::create_embedding(embedding_config).await;
-    for url in &index_config.start_urls {
+pub async fn crawl_index_docs(urls: &[String], embedding: Arc<dyn Embedding>) {
+    for url in urls {
+        debug!("Starting doc index pipeline for {url}");
         let embedding = embedding.clone();
         stream! {
             let mut num_docs = 0;

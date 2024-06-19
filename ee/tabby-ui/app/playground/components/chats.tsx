@@ -11,7 +11,7 @@ import { useChatStore } from '@/lib/stores/chat-store'
 import { getChatById } from '@/lib/stores/utils'
 import fetcher from '@/lib/tabby/fetcher'
 import { QuestionAnswerPair } from '@/lib/types/chat'
-import { truncateText } from '@/lib/utils'
+import { formatLineHashForCodeBrowser, truncateText } from '@/lib/utils'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Chat, ChatRef } from '@/components/chat/chat'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
@@ -23,7 +23,7 @@ import { ChatSessions } from './chat-sessions'
 const emptyQaParise: QuestionAnswerPair[] = []
 
 export default function Chats() {
-  const { searchParams, updateSearchParams } = useRouterStuff()
+  const { searchParams, updateUrlComponents } = useRouterStuff()
   const initialMessage = searchParams.get('initialMessage')?.toString()
   const shouldConsumeInitialMessage = React.useRef(!!initialMessage)
   const chatRef = React.useRef<ChatRef>(null)
@@ -86,11 +86,18 @@ export default function Chats() {
 
   const onNavigateToContext = (context: ChatContext) => {
     if (!context.filepath) return
+    const url = new URL(`${window.location.origin}/files`)
+    const searchParams = new URLSearchParams()
+    searchParams.append('redirect_filepath', context.filepath)
+    searchParams.append('redirect_git_url', context.git_url)
+    url.search = searchParams.toString()
 
-    const url = `/files?path=${encodeURIComponent(context.filepath)}&line=${
-      context.range.start ?? ''
-    }`
-    window.open(url)
+    const lineHash = formatLineHashForCodeBrowser(context.range)
+    if (lineHash) {
+      url.hash = lineHash
+    }
+
+    window.open(url.toString())
   }
 
   const onChatLoaded = () => {
@@ -104,8 +111,10 @@ export default function Chats() {
         })
         .then(() => {
           // Remove the initialMessage params after the request is completed.
-          updateSearchParams({
-            del: 'initialMessage'
+          updateUrlComponents({
+            searchParams: {
+              del: 'initialMessage'
+            }
           })
         })
 

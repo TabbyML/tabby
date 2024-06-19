@@ -3,9 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import logoDarkUrl from '@/assets/logo-dark.png'
-import logoUrl from '@/assets/logo.png'
-import tabbyUrl from '@/assets/tabby.png'
+import tabbyUrl from '@/assets/logo-dark.png'
 import AOS from 'aos'
 import { noop } from 'lodash-es'
 import { useTheme } from 'next-themes'
@@ -20,7 +18,12 @@ import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
-import { IconJetBrains, IconRotate, IconVSCode } from '@/components/ui/icons'
+import {
+  IconChevronLeft,
+  IconJetBrains,
+  IconRotate,
+  IconVSCode
+} from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -42,11 +45,152 @@ import Stats from './components/stats'
 
 import 'aos/dist/aos.css'
 
+import { Separator } from '@/components/ui/separator'
+
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
   mutation ResetUserAuthToken {
     resetUserAuthToken
   }
 `)
+
+function MainPanel() {
+  const [searchFlag] = useEnableSearch()
+  const { data: healthInfo } = useHealth()
+  const [{ data }] = useMe()
+  const isChatEnabled = useIsChatEnabled()
+  const { theme } = useTheme()
+  const [isShowDemoBanner] = useShowDemoBanner()
+  const [isSearch, setIsSearch] = useState(false)
+  const [initialMsg, setInitialMsg] = useState('')
+  const elementRef = useRef<HTMLDivElement | null>(null)
+  const searchRef = useRef<SearchRef>(null)
+
+  useEffect(() => {
+    setTimeout(() => {
+      if (elementRef.current) {
+        const disable =
+          elementRef.current.scrollHeight > elementRef.current.clientHeight
+        AOS.init({
+          once: true,
+          duration: 250,
+          disable
+        })
+      }
+    }, 100)
+  }, [elementRef.current])
+
+  useEffect(() => {
+    if (isSearch && searchRef.current) {
+      searchRef.current.onSubmitSearch(initialMsg)
+    }
+    if (!isSearch) {
+      document.title = 'Tabby'
+    }
+  }, [isSearch])
+
+  if (!healthInfo || !data?.me) return <></>
+
+  const onSearch = (question: string) => {
+    setInitialMsg(question)
+    setIsSearch(true)
+  }
+
+  const hideSearch = () => {
+    if (searchRef.current) {
+      searchRef.current.stop()
+    }
+    setIsSearch(false)
+  }
+
+  const style = isShowDemoBanner
+    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
+    : { height: '100vh' }
+  return (
+    <div className="transition-all" style={style}>
+      <header className="flex h-16 items-center justify-between px-4">
+        <div>
+          {isSearch && (
+            <div className="flex items-center gap-x-6">
+              <Button
+                variant="ghost"
+                className="-ml-1 pl-0 text-sm text-muted-foreground"
+                onClick={hideSearch}
+              >
+                <IconChevronLeft className="mr-1 h-5 w-5" />
+                Home
+              </Button>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-x-6">
+          <ClientOnly>
+            <ThemeToggle />
+          </ClientOnly>
+          <UserPanel showHome={false} showSetting>
+            <UserAvatar className="h-10 w-10 border" />
+          </UserPanel>
+        </div>
+      </header>
+
+      <main
+        className={cn('h-[calc(100%-4rem)] overflow-auto pb-8 lg:pb-0', {
+          'lg:flex flex-col items-center justify-center': !isSearch
+        })}
+        ref={elementRef}
+      >
+        {!isSearch && (
+          <div className="mx-auto flex w-full flex-col items-center px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
+            <Image
+              src={tabbyUrl}
+              alt="logo"
+              width={192}
+              className={cn('mt-4 invert dark:invert-0', {
+                'mb-4': isChatEnabled && searchFlag.value,
+                'mb-2': !isChatEnabled || !searchFlag.value
+              })}
+              data-aos="fade-down"
+              data-aos-delay="150"
+            />
+            <div
+              className={cn(
+                ' flex scroll-m-20 items-center gap-2 text-sm tracking-tight text-secondary-foreground',
+                {
+                  'mb-6': isChatEnabled && searchFlag.value,
+                  'mb-9': !isChatEnabled || !searchFlag.value
+                }
+              )}
+              data-aos="fade-down"
+              data-aos-delay="100"
+            >
+              <span>research</span>
+              <Separator orientation="vertical" className="h-[80%]" />
+              <span>develop</span>
+              <Separator orientation="vertical" className="h-[80%]" />
+              <span>debug</span>
+            </div>
+            {isChatEnabled && searchFlag.value && (
+              <div className="mb-10 w-full" data-aos="fade-down">
+                <TextAreaSearch onSearch={onSearch} showBetaBadge />
+              </div>
+            )}
+            <div className="flex w-full flex-col gap-x-5 lg:flex-row">
+              <div
+                className="mb-10 w-full rounded-lg p-4 lg:mb-0 lg:w-[21rem]"
+                style={{ background: theme === 'dark' ? '#333' : '#e8e1d3' }}
+                data-aos="fade-up"
+                data-aos-delay="100"
+              >
+                <Configuration />
+              </div>
+              <Stats />
+            </div>
+          </div>
+        )}
+        {isSearch && <Search ref={searchRef} />}
+      </main>
+    </div>
+  )
+}
 
 function Configuration({ className }: { className?: string }) {
   const [{ data }, reexecuteQuery] = useMe()
@@ -151,128 +295,6 @@ function IDELink({
         <p>{name}</p>
       </TooltipContent>
     </Tooltip>
-  )
-}
-
-function MainPanel() {
-  const [searchFlag] = useEnableSearch()
-  const { data: healthInfo } = useHealth()
-  const [{ data }] = useMe()
-  const isChatEnabled = useIsChatEnabled()
-  const { theme } = useTheme()
-  const [isShowDemoBanner] = useShowDemoBanner()
-  const [isSearch, setIsSearch] = useState(false)
-  const [initialMsg, setInitialMsg] = useState('')
-  const elementRef = useRef<HTMLDivElement | null>(null)
-  const searchRef = useRef<SearchRef>(null)
-
-  useEffect(() => {
-    setTimeout(() => {
-      if (elementRef.current) {
-        const disable =
-          elementRef.current.scrollHeight > elementRef.current.clientHeight
-        AOS.init({
-          once: true,
-          duration: 250,
-          disable
-        })
-      }
-    }, 100)
-  }, [elementRef.current])
-
-  useEffect(() => {
-    if (isSearch && searchRef.current) {
-      searchRef.current.onSubmitSearch(initialMsg)
-    }
-    if (!isSearch) {
-      document.title = 'Tabby'
-    }
-  }, [isSearch])
-
-  if (!healthInfo || !data?.me) return <></>
-
-  const onSearch = (question: string) => {
-    setInitialMsg(question)
-    setIsSearch(true)
-  }
-
-  const hideSearch = () => {
-    if (searchRef.current) {
-      searchRef.current.stop()
-    }
-    setIsSearch(false)
-  }
-
-  const style = isShowDemoBanner
-    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
-    : { height: '100vh' }
-  return (
-    <div className="transition-all" style={style}>
-      <header className="flex h-16 items-center justify-between px-10">
-        <div>
-          {isSearch && (
-            <Image
-              src={theme === 'dark' ? logoDarkUrl : logoUrl}
-              className="cursor-pointer"
-              alt="logo"
-              width={theme === 'dark' ? 80 : 100}
-              onClick={hideSearch}
-            />
-          )}
-        </div>
-        <div className="flex items-center gap-x-3">
-          <ClientOnly>
-            <ThemeToggle />
-          </ClientOnly>
-          <UserPanel>
-            <UserAvatar className="h-10 w-10 border" />
-          </UserPanel>
-        </div>
-      </header>
-
-      <main
-        className={cn('h-[calc(100%-4rem)] overflow-auto py-10 lg:py-0', {
-          'lg:flex flex-col items-center justify-center': !isSearch
-        })}
-        ref={elementRef}
-      >
-        {!isSearch && (
-          <div className="mx-auto flex w-full flex-col items-center px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
-            <Image
-              src={tabbyUrl}
-              alt="logo"
-              width={45}
-              data-aos="fade-down"
-              data-aos-delay="150"
-            />
-            <p
-              className="mb-6 scroll-m-20 text-xl font-semibold tracking-tight text-secondary-foreground"
-              data-aos="fade-down"
-              data-aos-delay="100"
-            >
-              The Private Search Assistant
-            </p>
-            {isChatEnabled && searchFlag.value && (
-              <div className="w-full" data-aos="fade-down">
-                <TextAreaSearch onSearch={onSearch} isExpanded />
-              </div>
-            )}
-            <div className="mt-10 flex w-full flex-col gap-x-5 lg:flex-row">
-              <div
-                className="mb-10 w-full rounded-lg p-4 lg:mb-0 lg:w-[21rem]"
-                style={{ background: theme === 'dark' ? '#333' : '#e8e1d3' }}
-                data-aos="fade-up"
-                data-aos-delay="100"
-              >
-                <Configuration />
-              </div>
-              <Stats />
-            </div>
-          </div>
-        )}
-        {isSearch && <Search ref={searchRef} />}
-      </main>
-    </div>
   )
 }
 

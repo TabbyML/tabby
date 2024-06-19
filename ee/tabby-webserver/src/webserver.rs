@@ -10,14 +10,18 @@ use tabby_common::{
 };
 use tabby_db::DbConn;
 use tabby_inference::Embedding;
-use tabby_schema::{integration::IntegrationService, repository::RepositoryService};
+use tabby_schema::{
+    integration::IntegrationService, repository::RepositoryService, web_crawler::WebCrawlerService,
+};
 
 use crate::{
     path::db_file,
     routes,
     service::{
-        background_job, background_job::BackgroundJobEvent, create_service_locator,
-        event_logger::create_event_logger, integration, repository,
+        background_job::{self, BackgroundJobEvent},
+        create_service_locator,
+        event_logger::create_event_logger,
+        integration, repository, web_crawler,
     },
 };
 
@@ -26,13 +30,15 @@ pub struct Webserver {
     logger: Arc<dyn EventLogger>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
+    web_crawler: Arc<dyn WebCrawlerService>,
+    background_job_sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
 }
 
 #[async_trait::async_trait]
 impl ConfigAccess for Webserver {
     async fn repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
         let mut repos = Config::load().map(|x| x.repositories).unwrap_or_default();
-        repos.extend(self.repository.list_repositories().await?);
+        repos.extend(self.repository.list_all_repository_urls().await?);
         Ok(repos)
     }
 }
@@ -54,6 +60,8 @@ impl Webserver {
         let integration = Arc::new(integration::create(db.clone(), sender.clone()));
         let repository = repository::create(db.clone(), integration.clone(), sender.clone());
 
+        let web_crawler = Arc::new(web_crawler::create(db.clone(), sender.clone()));
+
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
         let ws = Arc::new(Webserver {
@@ -61,13 +69,16 @@ impl Webserver {
             logger,
             repository: repository.clone(),
             integration: integration.clone(),
+            web_crawler: web_crawler.clone(),
+            background_job_sender: sender.clone(),
         });
 
         background_job::start(
             db.clone(),
-            ws.clone(),
+            repository.git(),
             repository.third_party(),
             integration.clone(),
+            web_crawler,
             embedding,
             sender,
             receiver,
@@ -93,7 +104,9 @@ impl Webserver {
             code,
             self.repository.clone(),
             self.integration.clone(),
+            self.web_crawler.clone(),
             self.db.clone(),
+            self.background_job_sender.clone(),
             is_chat_enabled,
         )
         .await;

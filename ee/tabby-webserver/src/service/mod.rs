@@ -9,6 +9,7 @@ mod license;
 pub mod repository;
 mod setting;
 mod user_event;
+pub mod web_crawler;
 
 use std::sync::Arc;
 
@@ -37,6 +38,7 @@ use tabby_schema::{
     repository::RepositoryService,
     setting::SettingService,
     user_event::UserEventService,
+    web_crawler::WebCrawlerService,
     worker::WorkerService,
     AsID, AsRowid, CoreError, Result, ServiceLocator,
 };
@@ -53,6 +55,7 @@ struct ServerContext {
     integration: Arc<dyn IntegrationService>,
     user_event: Arc<dyn UserEventService>,
     job: Arc<dyn JobService>,
+    web_crawler: Arc<dyn WebCrawlerService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -68,7 +71,11 @@ impl ServerContext {
         code: Arc<dyn CodeSearch>,
         repository: Arc<dyn RepositoryService>,
         integration: Arc<dyn IntegrationService>,
+        web_crawler: Arc<dyn WebCrawlerService>,
         db_conn: DbConn,
+        background_job_sender: tokio::sync::mpsc::UnboundedSender<
+            background_job::BackgroundJobEvent,
+        >,
         is_chat_enabled_locally: bool,
     ) -> Self {
         let mail = Arc::new(
@@ -82,8 +89,9 @@ impl ServerContext {
                 .expect("failed to initialize license service"),
         );
         let user_event = Arc::new(user_event::create(db_conn.clone()));
-        let job = Arc::new(job::create(db_conn.clone()).await);
+        let job = Arc::new(job::create(db_conn.clone(), background_job_sender).await);
         let setting = Arc::new(setting::create(db_conn.clone()));
+
         Self {
             mail: mail.clone(),
             auth: Arc::new(auth::create(
@@ -92,6 +100,7 @@ impl ServerContext {
                 license.clone(),
                 setting.clone(),
             )),
+            web_crawler,
             license,
             repository,
             integration,
@@ -241,6 +250,10 @@ impl ServiceLocator for ArcServerContext {
     fn integration(&self) -> Arc<dyn IntegrationService> {
         self.0.integration.clone()
     }
+
+    fn web_crawler(&self) -> Arc<dyn WebCrawlerService> {
+        self.0.web_crawler.clone()
+    }
 }
 
 pub async fn create_service_locator(
@@ -248,11 +261,23 @@ pub async fn create_service_locator(
     code: Arc<dyn CodeSearch>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
+    web_crawler: Arc<dyn WebCrawlerService>,
     db: DbConn,
+    background_job_sender: tokio::sync::mpsc::UnboundedSender<background_job::BackgroundJobEvent>,
     is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(ArcServerContext::new(
-        ServerContext::new(logger, code, repository, integration, db, is_chat_enabled).await,
+        ServerContext::new(
+            logger,
+            code,
+            repository,
+            integration,
+            web_crawler,
+            db,
+            background_job_sender,
+            is_chat_enabled,
+        )
+        .await,
     ))
 }
 

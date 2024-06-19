@@ -1,4 +1,5 @@
 import React from 'react'
+import { useRouter } from 'next/navigation'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
@@ -14,18 +15,23 @@ import {
 
 import {
   IconBackpack,
-  IconChat,
   IconCode,
+  IconGear,
   IconHome,
   IconLogout,
   IconSpinner
 } from './ui/icons'
 
 export default function UserPanel({
-  children
+  children,
+  showHome = true,
+  showSetting = false
 }: {
   children?: React.ReactNode
+  showHome?: boolean
+  showSetting?: boolean
 }) {
+  const router = useRouter()
   const signOut = useSignOut()
   const [{ data }] = useMe()
   const user = data?.me
@@ -59,20 +65,22 @@ export default function UserPanel({
         )}
         {!user.name && <DropdownMenuLabel>{user.email}</DropdownMenuLabel>}
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => window.open('/')}
-          className="cursor-pointer"
-        >
-          <IconHome />
-          <span className="ml-2">Home</span>
-        </DropdownMenuItem>
-        {isChatEnabled && (
+        {showHome && (
           <DropdownMenuItem
-            onClick={() => window.open('/playground')}
+            onClick={() => router.push('/')}
             className="cursor-pointer"
           >
-            <IconChat />
-            <span className="ml-2">Chat Playground</span>
+            <IconHome />
+            <span className="ml-2">Home</span>
+          </DropdownMenuItem>
+        )}
+        {showSetting && (
+          <DropdownMenuItem
+            onClick={() => router.push('/profile')}
+            className="cursor-pointer"
+          >
+            <IconGear />
+            <span className="ml-2">Settings</span>
           </DropdownMenuItem>
         )}
         <DropdownMenuItem

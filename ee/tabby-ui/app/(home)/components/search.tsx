@@ -12,11 +12,14 @@ import {
   useState
 } from 'react'
 import { Message } from 'ai'
+import DOMPurify from 'dompurify'
+import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
 import { useEnableSearch } from '@/lib/experiment-flags'
+import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useTabbyAnswer } from '@/lib/hooks/use-tabby-answer'
 import fetcher from '@/lib/tabby/fetcher'
@@ -36,6 +39,7 @@ import {
   IconPlus,
   IconRefresh,
   IconSparkles,
+  IconSpinner,
   IconStop
 } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -93,23 +97,26 @@ const tabbyFetcher = ((url: string, init?: RequestInit) => {
 }) as typeof fetch
 
 const SOURCE_CARD_STYLE = {
-  compress: 5,
-  expand: 7
+  compress: 5.3,
+  expand: 6.3
 }
 
 export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
   const isChatEnabled = useIsChatEnabled()
   const [searchFlag] = useEnableSearch()
   const [conversation, setConversation] = useState<ConversationMessage[]>([])
-  const [showStop, setShowStop] = useState(false)
+  const [showStop, setShowStop] = useState(true)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [title, setTitle] = useState('')
   const [currentLoadindId, setCurrentLoadingId] = useState<string>('')
   const contentContainerRef = useRef<HTMLDivElement>(null)
+  const [showSearchInput, setShowSearchInput] = useState(false)
 
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
     fetcher: tabbyFetcher
   })
+
+  const isLoadingRef = useLatest(isLoading)
 
   useImperativeHandle(
     ref,
@@ -125,6 +132,12 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
   useEffect(() => {
     if (title) document.title = title
   }, [title])
+
+  useEffect(() => {
+    setTimeout(() => {
+      setShowSearchInput(true)
+    }, 500)
+  }, [])
 
   useEffect(() => {
     setContainer(
@@ -163,9 +176,11 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
   }, [error])
 
   // Delay showing the stop button
+  let showStopTimeoutId: number
   useEffect(() => {
-    if (isLoading && !showStop) {
-      setTimeout(() => {
+    if (isLoadingRef.current) {
+      showStopTimeoutId = window.setTimeout(() => {
+        if (!isLoadingRef.current) return
         setShowStop(true)
 
         // Scroll to the bottom
@@ -179,11 +194,15 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
             })
           }
         }
-      }, 1500)
+      }, 300)
     }
 
-    if (!isLoading && showStop) {
+    if (!isLoadingRef.current) {
       setShowStop(false)
+    }
+
+    return () => {
+      window.clearTimeout(showStopTimeoutId)
     }
   }, [isLoading])
 
@@ -274,7 +293,7 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
     >
       <>
         <ScrollArea className="h-full" ref={contentContainerRef}>
-          <div className="mx-auto px-10 pb-24 lg:max-w-4xl lg:px-0">
+          <div className="mx-auto px-4 pb-24 lg:max-w-4xl lg:px-0">
             <div className="flex flex-col">
               {conversation.map((item, idx) => {
                 if (item.role === 'user') {
@@ -305,7 +324,7 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
 
         {container && (
           <ButtonScrollToBottom
-            className="!fixed !bottom-[7rem] !right-10 !top-auto lg:!bottom-[3.8rem]"
+            className="!fixed !bottom-[5.4rem] !right-4 !top-auto lg:!bottom-[3.8rem]"
             container={container}
             offset={100}
           />
@@ -313,36 +332,36 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
 
         <div
           className={cn(
-            'fixed bottom-5 left-0 flex min-h-[5rem] w-full flex-col items-center transition-all'
+            'fixed bottom-5 left-0 flex min-h-[5rem] w-full flex-col items-center gap-y-2',
+            {
+              'opacity-100 translate-y-0': showSearchInput,
+              'opacity-0 translate-y-10': !showSearchInput
+            }
           )}
+          style={{ transition: 'all 0.35s ease-out' }}
         >
-          {!isLoading && (
-            <div className="relative z-20 flex justify-center self-stretch px-10">
-              <TextAreaSearch
-                onSearch={onSubmitSearch}
-                className="lg:max-w-4xl"
-                placeholder="Ask a follow up question"
-              />
-            </div>
-          )}
-
           <Button
-            className={cn(
-              'absolute top-2 z-0 flex items-center gap-x-2 px-8 py-4',
-              {
-                'opacity-0 pointer-events-none': !showStop,
-                'opacity-100': showStop
-              }
-            )}
+            className={cn('bg-background', {
+              'opacity-0 pointer-events-none': !showStop,
+              'opacity-100': showStop
+            })}
             style={{
               transition: 'opacity 0.55s ease-out'
             }}
-            variant="destructive"
+            variant="outline"
             onClick={stop}
           >
-            <IconStop />
-            <p>Stop</p>
+            <IconStop className="mr-2" />
+            Stop generating
           </Button>
+          <div className="relative z-20 flex justify-center self-stretch px-4">
+            <TextAreaSearch
+              onSearch={onSubmitSearch}
+              className="lg:max-w-4xl"
+              placeholder="Ask a follow up question"
+              isLoading={isLoading}
+            />
+          </div>
         </div>
       </>
     </SearchContext.Provider>
@@ -377,6 +396,8 @@ function AnswerBlock({
       .join('\n')
     return `${content}\n\nCitations:\n${citations}`
   }
+
+  const IconAnswer = answer.isLoading ? IconSpinner : IconSparkles
 
   const totalHeightInRem = answer.relevant_documents
     ? Math.ceil(answer.relevant_documents.length / 4) *
@@ -428,10 +449,10 @@ function AnswerBlock({
 
       {/* Answer content */}
       <div>
-        <div className="flex items-center gap-x-1.5">
-          <IconSparkles
+        <div className="mb-1 flex items-center gap-x-1.5">
+          <IconAnswer
             className={cn({
-              'sparkle-animation': answer.isLoading
+              'animate-spinner': answer.isLoading
             })}
           />
           <p className="text-sm font-bold leading-none">Answer</p>
@@ -477,7 +498,7 @@ function AnswerBlock({
               <IconLayers />
               <p className="text-sm font-bold leading-none">Suggestions</p>
             </div>
-            <div className="mt-3 flex flex-col gap-y-3">
+            <div className="mt-2 flex flex-col gap-y-3">
               {answer.relevant_questions?.map((related, index) => (
                 <div
                   key={index}
@@ -507,34 +528,53 @@ function SourceCard({
   showMore: boolean
 }) {
   const { hostname } = new URL(source.link)
+
+  // Remove HTML and Markdown format
+  const normalizedText = (input: string) => {
+    const sanitizedHtml = DOMPurify.sanitize(input, {
+      ALLOWED_TAGS: [],
+      ALLOWED_ATTR: []
+    })
+    const parsed = marked.parse(sanitizedHtml) as string
+    const plainText = parsed.replace(/<\/?[^>]+(>|$)/g, '')
+
+    return plainText
+  }
+
   return (
     <div
-      className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card px-3 py-2 transition-all hover:bg-card/60"
+      className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card p-3 hover:bg-card/60"
       style={{
         height: showMore
           ? `${SOURCE_CARD_STYLE.expand}rem`
-          : `${SOURCE_CARD_STYLE.compress}rem`
+          : `${SOURCE_CARD_STYLE.compress}rem`,
+        transition: 'all 0.25s ease-out'
       }}
       onClick={() => window.open(source.link)}
     >
-      <p className="line-clamp-2 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-        {source.title}
-      </p>
-      {showMore && (
-        <p className="line-clamp-2 w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground">
-          {source.snippet}
+      <div className="flex flex-col gap-y-0.5">
+        <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
+          {source.title}
         </p>
-      )}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <div className="flex flex-1 items-center">
+        <p
+          className={cn(
+            ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
+            {
+              'line-clamp-2': showMore,
+              'line-clamp-1': !showMore
+            }
+          )}
+        >
+          {normalizedText(source.snippet)}
+        </p>
+      </div>
+      <div className="flex items-center text-xs text-muted-foreground">
+        <div className="flex w-full flex-1 items-center">
           <SiteFavicon hostname={hostname} />
-          <p className="ml-1 flex-1 overflow-hidden text-ellipsis">
-            {hostname.replace('www.', '').split('.')[0]}
+          <p className="ml-1 overflow-hidden text-ellipsis">
+            {hostname.replace('www.', '').split('/')[0]}
           </p>
         </div>
-        <p className="h-4 w-4 rounded bg-primary/50 text-center text-primary-foreground">
-          {index}
-        </p>
       </div>
     </div>
   )

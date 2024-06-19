@@ -5,19 +5,37 @@ use tabby_schema::{
     job::{JobRun, JobService, JobStats},
     AsRowid, Result,
 };
+use tracing::warn;
 
 use super::graphql_pagination_to_filter;
+use crate::service::background_job::BackgroundJobEvent;
 
 struct JobControllerImpl {
     db: DbConn,
+    background_job_sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
 }
 
-pub async fn create(db: DbConn) -> impl JobService {
-    JobControllerImpl { db }
+pub async fn create(
+    db: DbConn,
+    background_job_sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
+) -> impl JobService {
+    JobControllerImpl {
+        db,
+        background_job_sender,
+    }
 }
 
 #[async_trait]
 impl JobService for JobControllerImpl {
+    async fn trigger(&self, command: String) {
+        if let Err(err) = self
+            .background_job_sender
+            .send(BackgroundJobEvent::SerializedBackgroundJob(command))
+        {
+            warn!("Failed to send background job event: {:?}", err)
+        }
+    }
+
     async fn list(
         &self,
         ids: Option<Vec<ID>>,

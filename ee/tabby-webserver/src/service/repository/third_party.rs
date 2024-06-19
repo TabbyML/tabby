@@ -15,7 +15,6 @@ use tabby_schema::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::{debug, error};
-use url::Url;
 
 use self::fetch::RepositoryInfo;
 use super::to_repository;
@@ -120,21 +119,9 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             .await?;
 
         if active {
-            let repo = ThirdPartyRepositoryService::get_provided_repository(self, id).await?;
-            let integration = self
-                .integration
-                .get_integration(repo.integration_id.clone())
-                .await?;
-            let git_url = format_authenticated_url(
-                &integration.kind,
-                &repo.git_url,
-                &integration.access_token,
-            )?;
             let _ = self
                 .background_job
-                .send(BackgroundJobEvent::Scheduler(RepositoryConfig::new(
-                    git_url,
-                )));
+                .send(BackgroundJobEvent::SchedulerGithubGitlabRepository(id));
         }
 
         Ok(())
@@ -223,11 +210,9 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             .await?;
 
             for repository in repositories {
-                let url = format_authenticated_url(
-                    &integration.kind,
-                    &repository.git_url,
-                    &integration.access_token,
-                )?;
+                let url = integration
+                    .kind
+                    .format_authenticated_url(&repository.git_url, &integration.access_token)?;
                 urls.push(RepositoryConfig::new(url));
             }
         }
@@ -264,27 +249,10 @@ async fn refresh_repositories_for_provider(
     Ok(())
 }
 
-fn format_authenticated_url(
-    kind: &IntegrationKind,
-    git_url: &str,
-    access_token: &str,
-) -> Result<String> {
-    let mut url = Url::parse(git_url).map_err(anyhow::Error::from)?;
-    match kind {
-        IntegrationKind::Github | IntegrationKind::GithubSelfHosted => {
-            let _ = url.set_username(access_token);
-        }
-        IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => {
-            let _ = url.set_username("oauth2");
-            let _ = url.set_password(Some(access_token));
-        }
-    }
-    Ok(url.to_string())
-}
-
 fn to_provided_repository(value: ProvidedRepositoryDAO) -> ProvidedRepository {
+    let id = value.id.as_id();
     ProvidedRepository {
-        id: value.id.as_id(),
+        id: id.clone(),
         integration_id: value.integration_id.as_id(),
         active: value.active,
         display_name: value.name,
@@ -296,8 +264,12 @@ fn to_provided_repository(value: ProvidedRepositoryDAO) -> ProvidedRepository {
         git_url: value.git_url,
 
         job_info: JobInfo {
+            // FIXME(boxbeam): Read latest job run from db
             last_job_run: None,
-            command: "FIXME".to_string(),
+            command: serde_json::to_string(&BackgroundJobEvent::SchedulerGithubGitlabRepository(
+                id,
+            ))
+            .expect("Failed to serialize job event"),
         },
     }
 }

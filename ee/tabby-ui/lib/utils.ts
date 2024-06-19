@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from 'clsx'
+import { compact, isNil } from 'lodash-es'
 import { customAlphabet } from 'nanoid'
 import { twMerge } from 'tailwind-merge'
 
@@ -77,4 +78,22 @@ export const delay = (ms: number) => {
   return new Promise(resolve => {
     setTimeout(() => resolve(null), ms)
   })
+}
+
+export function formatLineHashForCodeBrowser(
+  range:
+    | {
+        start: number
+        end?: number
+      }
+    | undefined
+): string {
+  if (!range) return ''
+
+  const { start, end } = range
+  if (isNil(start)) return ''
+  if (start === end) return `L${start}`
+  return compact(
+    [start, end].map(num => (typeof num === 'number' ? `L${num}` : undefined))
+  ).join('-')
 }

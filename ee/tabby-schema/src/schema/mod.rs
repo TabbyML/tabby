@@ -8,6 +8,7 @@ pub mod license;
 pub mod repository;
 pub mod setting;
 pub mod user_event;
+pub mod web_crawler;
 pub mod worker;
 
 use std::sync::Arc;
@@ -46,9 +47,10 @@ use self::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
     user_event::{UserEvent, UserEventService},
+    web_crawler::{CreateWebCrawlerUrlInput, WebCrawlerService, WebCrawlerUrl},
 };
 use crate::{
-    bail, env,
+    env,
     juniper::relay::{self, query_async, Connection},
 };
 
@@ -65,6 +67,7 @@ pub trait ServiceLocator: Send + Sync {
     fn license(&self) -> Arc<dyn LicenseService>;
     fn analytic(&self) -> Arc<dyn AnalyticService>;
     fn user_event(&self) -> Arc<dyn UserEventService>;
+    fn web_crawler(&self) -> Arc<dyn WebCrawlerService>;
 }
 
 pub struct Context {
@@ -419,6 +422,7 @@ impl Query {
 
     async fn repository_list(ctx: &Context) -> Result<Vec<Repository>> {
         check_user(ctx).await?;
+
         ctx.locator.repository().repository_list().await
     }
 
@@ -466,6 +470,28 @@ impl Query {
                     .repository()
                     .third_party()
                     .list_repositories_with_filter(ids, kind, active, after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
+
+    async fn web_crawler_urls(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<WebCrawlerUrl>> {
+        query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .web_crawler()
+                    .list_web_crawler_urls(after, before, first, last)
                     .await
             },
         )
@@ -802,9 +828,24 @@ impl Mutation {
     }
 
     /// Trigger a job run given its command string.
-    async fn trigger_job_run(ctx: &Context, _command: String) -> Result<ID> {
+    async fn trigger_job_run(ctx: &Context, command: String) -> Result<bool> {
         check_admin(ctx).await?;
-        bail!("Not implemented")
+        ctx.locator.job().trigger(command).await;
+        Ok(true)
+    }
+
+    async fn create_web_crawler_url(ctx: &Context, input: CreateWebCrawlerUrlInput) -> Result<ID> {
+        let id = ctx
+            .locator
+            .web_crawler()
+            .create_web_crawler_url(input.url)
+            .await?;
+        Ok(id)
+    }
+
+    async fn delete_web_crawler_url(ctx: &Context, id: ID) -> Result<bool> {
+        ctx.locator.web_crawler().delete_web_crawler_url(id).await?;
+        Ok(true)
     }
 }
 

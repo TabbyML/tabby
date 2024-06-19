@@ -5,6 +5,7 @@ use axum::{body::Body, response::Response};
 use hyper::StatusCode;
 use juniper::ID;
 use serde::Deserialize;
+use tabby_common::config::{config_id_to_index, RepositoryConfig};
 use tabby_schema::repository::{RepositoryKind, RepositoryService};
 
 #[derive(Deserialize, Debug)]
@@ -17,14 +18,19 @@ pub struct ResolveParams {
 
 pub(super) struct ResolveState {
     service: Arc<dyn RepositoryService>,
+    config: Vec<RepositoryConfig>,
 }
 
 impl ResolveState {
-    pub fn new(service: Arc<dyn RepositoryService>) -> Self {
-        Self { service }
+    pub fn new(service: Arc<dyn RepositoryService>, config: Vec<RepositoryConfig>) -> Self {
+        Self { service, config }
     }
 
     async fn find_repository(&self, params: &ResolveParams) -> Option<PathBuf> {
+        if let Ok(index) = config_id_to_index(&params.id) {
+            return Some(self.config.get(index)?.dir());
+        }
+
         let repository = self
             .service
             .resolve_repository(&params.kind, &params.id)

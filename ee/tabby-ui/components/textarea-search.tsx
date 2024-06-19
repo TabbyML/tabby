@@ -1,28 +1,30 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTheme } from 'next-themes'
 import TextareaAutosize from 'react-textarea-autosize'
 
-import { useHealth } from '@/lib/hooks/use-health'
 import { cn } from '@/lib/utils'
 
-import { IconArrowRight, IconBox } from './ui/icons'
+import { IconArrowRight } from './ui/icons'
 
 export default function TextAreaSearch({
   onSearch,
   className,
   placeholder,
-  isExpanded
+  showBetaBadge,
+  isLoading
 }: {
   onSearch: (value: string) => void
   className?: string
   placeholder?: string
-  isExpanded?: boolean
+  showBetaBadge?: boolean
+  isLoading?: boolean
 }) {
-  const { data: healthInfo } = useHealth()
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
   const [value, setValue] = useState('')
+  const { theme } = useTheme()
 
   useEffect(() => {
     // Ensure the textarea height remains consistent during rendering
@@ -40,7 +42,7 @@ export default function TextAreaSearch({
   }
 
   const search = () => {
-    if (!value) return
+    if (!value || isLoading) return
     onSearch(value)
     setValue('')
   }
@@ -48,23 +50,30 @@ export default function TextAreaSearch({
   return (
     <div
       className={cn(
-        'flex w-full rounded-lg border border-muted-foreground bg-background p-4 transition-all hover:border-muted-foreground/60',
+        'relative flex w-full items-center overflow-hidden rounded-lg border border-muted-foreground bg-background p-4 transition-all hover:border-muted-foreground/60',
         {
           '!border-primary': isFocus,
-          'items-center': !isExpanded,
-          'flex-col': isExpanded
+          'py-5': showBetaBadge
         },
         className
       )}
     >
+      {showBetaBadge && (
+        <span
+          className="absolute -right-8 top-1 mr-3 rotate-45 rounded-none border-none py-0.5 pl-6 pr-5 text-xs text-primary"
+          style={{ background: theme === 'dark' ? '#333' : '#e8e1d3' }}
+        >
+          Beta
+        </span>
+      )}
       <TextareaAutosize
         className={cn(
-          'text-area-autosize resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
+          'text-area-autosize flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
           {
             '!h-[48px]': !isShow
           }
         )}
-        placeholder={placeholder || 'Ask anything'}
+        placeholder={placeholder || 'Ask anything...'}
         maxRows={5}
         onKeyDown={onSearchKeyDown}
         onKeyUp={onSearchKeyUp}
@@ -73,41 +82,18 @@ export default function TextAreaSearch({
         onChange={e => setValue(e.target.value)}
         value={value}
       />
-      {!isExpanded && (
-        <div
-          className={cn(
-            'mr-3 flex items-center rounded-lg bg-muted p-1 text-muted-foreground transition-all',
-            {
-              '!bg-primary !text-primary-foreground': value.length > 0
-            }
-          )}
-          onClick={search}
-        >
-          <IconArrowRight className="h-3.5 w-3.5" />
-        </div>
-      )}
-      {isExpanded && (
-        <div className="mt-3 flex items-center text-xs">
-          <div className="flex-1">
-            <div className="flex items-center text-muted-foreground">
-              <IconBox className="mr-1 h-3.5 w-3.5" />
-              <p>{healthInfo!.chat_model}</p>
-            </div>
-          </div>
-          <div
-            className={cn(
-              'mr-3 flex items-center rounded-lg p-1 transition-all',
-              {
-                'text-primary cursor-pointer': value.length > 0,
-                'text-muted-foreground': value.length === 0
-              }
-            )}
-            onClick={search}
-          >
-            <IconArrowRight className="h-3.5 w-3.5" />
-          </div>
-        </div>
-      )}
+      <div
+        className={cn('mr-6 flex items-center rounded-lg p-1 transition-all', {
+          'bg-primary text-primary-foreground cursor-pointer': value.length > 0,
+          '!bg-muted !text-primary !cursor-default':
+            isLoading || value.length === 0,
+          'mr-6': showBetaBadge,
+          'mr-1.5': !showBetaBadge
+        })}
+        onClick={search}
+      >
+        <IconArrowRight className="h-3.5 w-3.5" />
+      </div>
     </div>
   )
 }

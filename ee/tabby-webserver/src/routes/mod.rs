@@ -49,7 +49,11 @@ pub fn create(ctx: Arc<dyn ServiceLocator>, api: Router, ui: Router) -> (Router,
         )
         .nest(
             "/repositories",
-            repositories::routes(ctx.repository(), ctx.auth()),
+            repositories::routes(
+                ctx.repository(),
+                ctx.auth(),
+                ctx.repository().configured_repositories(),
+            ),
         )
         .route(
             "/avatar/:id",

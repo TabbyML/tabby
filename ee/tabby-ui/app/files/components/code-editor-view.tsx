@@ -2,31 +2,29 @@ import React from 'react'
 import { foldGutter } from '@codemirror/language'
 import { Extension } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
+import { isNaN, isNil } from 'lodash-es'
 import { useTheme } from 'next-themes'
 
 import { EXP_enable_code_browser_quick_action_bar } from '@/lib/experiment-flags'
+import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
+import { useHash } from '@/lib/hooks/use-hash'
 import { TCodeTag } from '@/lib/types'
+import { formatLineHashForCodeBrowser } from '@/lib/utils'
 import CodeEditor from '@/components/codemirror/codemirror'
 import { markTagNameExtension } from '@/components/codemirror/name-tag-extension'
 import { highlightTagExtension } from '@/components/codemirror/tag-range-highlight-extension'
 import { codeTagHoverTooltip } from '@/components/codemirror/tooltip-extesion'
 
+import { emitter, LineMenuActionEventPayload } from '../lib/event-emitter'
 import { ActionBarWidgetExtension } from './action-bar-widget/action-bar-widget-extension'
 import {
   selectLinesGutter,
   setSelectedLines
 } from './line-menu-extension/line-menu-extension'
 import { SourceCodeBrowserContext } from './source-code-browser'
+import { parseLineNumberFromHash } from './utils'
 
 import './line-menu-extension/line-menu.css'
-
-import { isNaN } from 'lodash-es'
-
-import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
-import useRouterStuff from '@/lib/hooks/use-router-stuff'
-
-import { emitter, LineMenuActionEventPayload } from '../lib/event-emitter'
-import { resolveRepositoryInfoFromPath } from './utils'
 
 interface CodeEditorViewProps {
   value: string
@@ -35,22 +33,18 @@ interface CodeEditorViewProps {
 
 const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const { theme } = useTheme()
-  const { updateSearchParams, searchParams } = useRouterStuff()
   const tags: TCodeTag[] = React.useMemo(() => {
     return []
   }, [])
   const { copyToClipboard } = useCopyToClipboard({})
-  const line = searchParams.get('line')?.toString()
+  const [hash, updateHash] = useHash()
+  const lineNumber = parseLineNumberFromHash(hash)?.start
   const [editorView, setEditorView] = React.useState<EditorView | null>(null)
 
-  const { isChatEnabled, activePath, fileMap } = React.useContext(
-    SourceCodeBrowserContext
-  )
-  const { repositorySpecifier, basename } =
-    resolveRepositoryInfoFromPath(activePath)
-  const gitUrl = repositorySpecifier
-    ? fileMap[repositorySpecifier]?.repository?.gitUrl ?? ''
-    : ''
+  const { isChatEnabled, activePath, activeEntryInfo, activeRepo } =
+    React.useContext(SourceCodeBrowserContext)
+  const { basename } = activeEntryInfo
+  const gitUrl = activeRepo?.gitUrl ?? ''
 
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
@@ -66,7 +60,8 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
       selectLinesGutter({
         onSelectLine: v => {
           if (v === -1 || isNaN(v)) return
-          updateSearchParams({ set: { line: String(v) } })
+          // todo support multi lines
+          updateHash(formatLineHashForCodeBrowser({ start: v }))
         }
       }),
       foldGutter({
@@ -108,13 +103,12 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
 
   React.useEffect(() => {
     const onClickLineMenu = (data: LineMenuActionEventPayload) => {
-      if (!line) return
+      if (typeof lineNumber !== 'number') return
       if (data.action === 'copy_permalink') {
         copyToClipboard(window.location.href)
         return
       }
       if (data.action === 'copy_line') {
-        const lineNumber = parseInt(line)
         const lineObject = editorView?.state?.doc?.line(lineNumber)
         if (lineObject) {
           copyToClipboard(lineObject.text)
@@ -126,12 +120,11 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
     return () => {
       emitter.off('line_menu_action', onClickLineMenu)
     }
-  }, [value, line])
+  }, [value, lineNumber])
 
   React.useEffect(() => {
-    if (line && editorView && value) {
+    if (!isNil(lineNumber) && editorView && value) {
       try {
-        const lineNumber = parseInt(line)
         const lineInfo = editorView?.state?.doc?.line(lineNumber)
 
         if (lineInfo) {
@@ -149,7 +142,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
         }
       } catch (e) {}
     }
-  }, [value, line, editorView])
+  }, [value, lineNumber, editorView])
 
   return (
     <CodeEditor

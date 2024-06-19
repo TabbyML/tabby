@@ -12,7 +12,7 @@ interface TopbarProgressProviderProps {
 
 interface TopbarProgressContextValue {
   progress: boolean
-  setProgress: React.Dispatch<React.SetStateAction<boolean>>
+  setProgress: (v: boolean) => void
 }
 
 const TopbarProgressContext = React.createContext<TopbarProgressContextValue>(
@@ -23,7 +23,7 @@ const TopbarProgressProvider: React.FC<TopbarProgressProviderProps> = ({
   children
 }) => {
   const [progress, setProgress] = React.useState(false)
-  const [debouncedProgress] = useDebounceValue(progress, 300, { leading: true })
+  const [debouncedProgress] = useDebounceValue(progress, 200, { leading: true })
   const { theme } = useTheme()
   React.useEffect(() => {
     TopBarProgress.config({
