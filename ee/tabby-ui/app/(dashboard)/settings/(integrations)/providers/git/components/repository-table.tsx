@@ -34,6 +34,7 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 import LoadingWrapper from '@/components/loading-wrapper'
+import { triggerJobRunMutation } from '../../query'
 
 const deleteRepositoryMutation = graphql(/* GraphQL */ `
   mutation deleteGitRepository($id: ID!) {
@@ -112,6 +113,23 @@ export default function RepositoryTable() {
     })
   }
 
+  const triggerJobRun = useMutation(triggerJobRunMutation)
+
+  const handleTriggerJobRun = (command: string) => {
+    debugger
+    return triggerJobRun({ command }).then(res => {
+      if (res?.data?.triggerJobRun) {
+        // todo update the UI
+        return
+      }
+      if (res?.error) {
+        toast.error(res.error.message)
+        return
+      }
+
+    })
+  }
+
   React.useEffect(() => {
     if (pageNum < currentPage && currentPage > 1) {
       setCurrentPage(pageNum)
@@ -168,7 +186,7 @@ export default function RepositoryTable() {
                         ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button size="icon" variant="ghost">
+                              <Button size="icon" variant="ghost" onClick={() => handleTriggerJobRun(x.node.jobInfo?.command)}>
                                 <IconPlay />
                               </Button>
                             </TooltipTrigger>
