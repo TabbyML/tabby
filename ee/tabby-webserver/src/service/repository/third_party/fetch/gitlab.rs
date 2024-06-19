@@ -2,9 +2,8 @@ use anyhow::Result;
 use gitlab::api::{projects::Projects, AsyncQuery, Pagination};
 use serde::Deserialize;
 
-use crate::service::create_gitlab_client;
-
 use super::RepositoryInfo;
+use crate::service::create_gitlab_client;
 
 #[derive(Deserialize)]
 pub struct GitlabRepository {
