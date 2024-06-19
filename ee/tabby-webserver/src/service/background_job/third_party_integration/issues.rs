@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use gitlab::{
-    api::{issues::ProjectIssues, AsyncQuery},
+    api::{issues::ProjectIssues, projects::merge_requests::MergeRequests, AsyncQuery},
     GitlabBuilder,
 };
 use octocrab::Octocrab;
@@ -88,6 +88,23 @@ pub async fn index_gitlab_issues(
             link: issue.web_url,
             title: issue.title,
             body: issue.description,
+        };
+        index.add(doc).await;
+    }
+
+    let merge_requests: Vec<GitlabIssue> = gitlab::api::paged(
+        MergeRequests::builder().project(full_name).build()?,
+        gitlab::api::Pagination::All,
+    )
+    .query_async(&gitlab)
+    .await?;
+
+    for merge_request in merge_requests {
+        let doc = WebDocument {
+            id: format!("gitlab/{full_name}/merge_requests/{}", merge_request.id),
+            link: merge_request.web_url,
+            title: merge_request.title,
+            body: merge_request.description,
         };
         index.add(doc).await;
     }
