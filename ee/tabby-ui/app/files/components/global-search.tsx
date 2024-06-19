@@ -169,7 +169,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
         {results && results.length > 0 && (
           <div className="absolute translate-y-full bottom-0 left-0 w-full p-9 bg-red-200">
             <ol className="grid gap-2  overflow-hidden">
-              {results.map((file, i) => {
+              {results.slice(0, 8).map((file, i) => {
                 return (
                   <GlobalSearchListItem
                     key={i}

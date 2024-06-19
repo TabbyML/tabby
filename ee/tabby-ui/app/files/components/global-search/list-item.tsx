@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useState
 } from 'react'
+import { lineNumbers } from '@codemirror/view'
 import { toNumber } from 'lodash-es'
 import { darcula } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 import { toast } from 'sonner'
@@ -30,6 +31,7 @@ import {
   encodeURIComponentIgnoringSlash,
   getProviderVariantFromKind
 } from '../utils'
+import { GlobalSearchSnippet } from './snippet'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { resolveRepositoryInfoFromPath } from './utils'
 
@@ -45,6 +47,8 @@ export const GlobalSearchListItem = ({
   const [blob, setBlob] = useState<Blob | undefined>(undefined)
   const [blobText, setBlobText] = useState<string | undefined>(undefined)
 
+  const [lines, setLines] = useState<GrepLine[] | undefined>(undefined)
+
   // TODO: Convert to utility function
   const url = encodeURIComponentIgnoringSlash(
     `/repositories/${getProviderVariantFromKind(props.repoKind)}/${
@@ -52,7 +56,7 @@ export const GlobalSearchListItem = ({
     }/resolve/${props.file.path}`
   )
 
-  const { data, isLoading, error } = useSWRImmutable(
+  const { data } = useSWRImmutable(
     url,
     (url: string) =>
       fetcher(url, {
@@ -70,7 +74,14 @@ export const GlobalSearchListItem = ({
   )
 
   useEffect(() => {
+    // TODO: remove?
     setBlob(data)
+
+    const linesWithSubMatches = props.file.lines.filter(
+      line => line.subMatches.length > 0
+    )
+
+    setLines(linesWithSubMatches)
 
     const blob2Text = async (blob: Blob) => {
       try {
@@ -84,17 +95,26 @@ export const GlobalSearchListItem = ({
     if (blob) {
       blob2Text(blob)
     }
-  }, [blob, data])
-
-  console.log('blob', blob)
-  console.log('file', props.file)
+  }, [props.file.lines, data, blob])
 
   return (
     <li>
       <div>{props.file.path}</div>
-      <div className="overflow-hidden max-h-[70px]">
-        <CodeEditor value={blobText} language="plain" readonly />
-      </div>
+      <ol className="overflow-hidden grid gap-0.5">
+        {lines ? (
+          lines.map((line, i) => {
+            return (
+              <GlobalSearchSnippet
+                key={i}
+                blobText={blobText as string}
+                line={line}
+              />
+            )
+          })
+        ) : (
+          <li>Loading...</li>
+        )}
+      </ol>
     </li>
   )
 }
