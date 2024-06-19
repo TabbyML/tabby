@@ -1,0 +1,1 @@
+ALTER TABLE job_runs ADD COLUMN params TEXT;

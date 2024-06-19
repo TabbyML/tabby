@@ -60,6 +60,14 @@ impl JobService for JobControllerImpl {
             .collect())
     }
 
+    async fn get_latest_job_run(&self, name: String, param: String) -> Result<Option<JobRun>> {
+        Ok(self
+            .db
+            .get_latest_job_run(name, param)
+            .await?
+            .map(JobRun::from))
+    }
+
     async fn compute_stats(&self, jobs: Option<Vec<String>>) -> Result<JobStats> {
         let stats = self.db.compute_job_stats(jobs).await?;
         Ok(JobStats {

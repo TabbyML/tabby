@@ -16,6 +16,7 @@ pub struct JobRunDAO {
     pub stderr: String,
     pub created_at: DateTimeUtc,
     pub updated_at: DateTimeUtc,
+    pub params: Option<String>,
 
     #[sqlx(rename = "end_ts")]
     pub finished_at: DbOption<DateTimeUtc>,
@@ -30,10 +31,10 @@ pub struct JobStatsDAO {
 
 /// db read/write operations for `job_runs` table
 impl DbConn {
-    pub async fn create_job_run(&self, job: String) -> Result<i64> {
+    pub async fn create_job_run(&self, job: String, params: Option<String>) -> Result<i64> {
         let rowid = query!(
-            r#"INSERT INTO job_runs (job, start_ts, stdout, stderr) VALUES (?, DATETIME('now'), '', '')"#,
-            job,
+            r#"INSERT INTO job_runs (job, start_ts, stdout, stderr, params) VALUES (?, DATETIME('now'), '', '', ?)"#,
+            job, params,
         ).execute(&self.pool).await?.last_insert_rowid();
 
         Ok(rowid)
@@ -64,6 +65,19 @@ impl DbConn {
             job_id,
         ).execute(&self.pool).await?;
         Ok(())
+    }
+
+    pub async fn get_latest_job_run(
+        &self,
+        job: String,
+        params: String,
+    ) -> Result<Option<JobRunDAO>> {
+        let job = sqlx::query_as(r#"SELECT * FROM job_runs WHERE job = ? AND params = ?"#)
+            .bind(job)
+            .bind(params)
+            .fetch_optional(&self.pool)
+            .await?;
+        Ok(job)
     }
 
     pub async fn list_job_runs_with_filter(
@@ -98,6 +112,7 @@ impl DbConn {
                 "exit_code",
                 "stdout",
                 "stderr",
+                "params",
                 "created_at"!,
                 "updated_at"!,
                 "end_ts" as "finished_at"

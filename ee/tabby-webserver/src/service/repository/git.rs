@@ -1,26 +1,37 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_common::config::RepositoryConfig;
 use tabby_db::{DbConn, RepositoryDAO};
 use tabby_schema::{
-    job::JobInfo,
+    job::{JobInfo, JobRun, JobService},
     repository::{GitRepository, GitRepositoryService, Repository, RepositoryProvider},
     AsID, AsRowid, Result,
 };
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::service::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
+use crate::service::{
+    background_job::{BackgroundJobEvent, Job, SchedulerGitJob},
+    graphql_pagination_to_filter,
+};
 
 struct GitRepositoryServiceImpl {
     db: DbConn,
     background_job: UnboundedSender<BackgroundJobEvent>,
+    job_service: Arc<dyn JobService>,
 }
 
 pub fn create(
     db: DbConn,
     background_job: UnboundedSender<BackgroundJobEvent>,
+    job_service: Arc<dyn JobService>,
 ) -> impl GitRepositoryService {
-    GitRepositoryServiceImpl { db, background_job }
+    GitRepositoryServiceImpl {
+        db,
+        background_job,
+        job_service,
+    }
 }
 
 #[async_trait]
@@ -37,7 +48,21 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
             .db
             .list_repositories_with_filter(limit, skip_id, backwards)
             .await?;
-        Ok(repositories.into_iter().map(to_git_repository).collect())
+
+        let mut converted_repositories = vec![];
+
+        for repository in repositories {
+            let job_run = self
+                .job_service
+                .get_latest_job_run(
+                    SchedulerGitJob::NAME.to_string(),
+                    repository.git_url.clone(),
+                )
+                .await?;
+
+            converted_repositories.push(to_git_repository(repository, job_run));
+        }
+        Ok(converted_repositories)
     }
 
     async fn create(&self, name: String, git_url: String) -> Result<ID> {
@@ -84,12 +109,17 @@ impl RepositoryProvider for GitRepositoryServiceImpl {
 
     async fn get_repository(&self, id: &ID) -> Result<Repository> {
         let dao = self.db.get_repository(id.as_rowid()?).await?;
-        let git_repo = to_git_repository(dao);
+
+        let last_job_run = self
+            .job_service
+            .get_latest_job_run(SchedulerGitJob::NAME.to_string(), dao.git_url.clone())
+            .await?;
+        let git_repo = to_git_repository(dao, last_job_run);
         Ok(git_repo.into())
     }
 }
 
-fn to_git_repository(repo: RepositoryDAO) -> GitRepository {
+fn to_git_repository(repo: RepositoryDAO, last_job_run: Option<JobRun>) -> GitRepository {
     let config = RepositoryConfig::new(&repo.git_url);
     GitRepository {
         id: repo.id.as_id(),
@@ -97,8 +127,7 @@ fn to_git_repository(repo: RepositoryDAO) -> GitRepository {
         refs: tabby_git::list_refs(&config.dir()).unwrap_or_default(),
         git_url: repo.git_url,
         job_info: JobInfo {
-            // FIXME(boxbeam): Read latest job run from db
-            last_job_run: None,
+            last_job_run,
             command: serde_json::to_string(&BackgroundJobEvent::SchedulerGitRepository(config))
                 .expect("Failed to serialize job event"),
         },
@@ -119,7 +148,12 @@ mod tests {
     #[tokio::test]
     pub async fn test_duplicate_repository_error() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let svc = create(db.clone(), create_fake());
+        let background = create_fake();
+        let svc = create(
+            db.clone(),
+            background.clone(),
+            Arc::new(crate::service::job::create(db.clone(), background.clone()).await),
+        );
 
         GitRepositoryService::create(
             &svc,
@@ -146,7 +180,9 @@ mod tests {
     #[tokio::test]
     pub async fn test_repository_mutations() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service = create(db.clone(), create_fake());
+        let background = create_fake();
+        let job = Arc::new(crate::service::job::create(db.clone(), background.clone()).await);
+        let service = create(db.clone(), background, job);
 
         let id_1 = service
             .create(
