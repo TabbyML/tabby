@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/icons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
+
 import { getJobDisplayName, getLabelByExitCode } from '../utils'
 
 export default function JobRunDetail() {
