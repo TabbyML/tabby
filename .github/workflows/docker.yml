@@ -3,11 +3,11 @@ name: Create and publish docker image
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 20 */1 * *"
+    - cron: '0 20 */1 * *'
   push:
     tags:
-      - "v*"
-      - "!*-dev"
+      - 'v*'
+      - '!*-dev'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
@@ -33,9 +33,9 @@ jobs:
         device-type: [cuda, rocm]
         include:
           - device-type: cuda
-            image-suffix: ""
+            image-suffix: ''
           - device-type: rocm
-            image-suffix: "-rocm"
+            image-suffix: '-rocm'
 
     steps:
       - name: Free Disk Space (Ubuntu)
@@ -54,25 +54,25 @@ jobs:
           swap-storage: true
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           submodules: recursive
 
       # Workaround: https://github.com/docker/build-push-action/issues/461
       - name: Setup Docker buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v2.0.0
 
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
       - name: Log into GitHub Container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v2.0.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log into Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v2.0.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -90,7 +90,7 @@ jobs:
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v4
         with:
           # list of Docker images to use as base name for tags
           images: |
@@ -107,7 +107,7 @@ jobs:
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
         id: build-and-push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v3.1.1
         with:
           file: docker/Dockerfile.${{ matrix.device-type }}
           push: true
@@ -119,7 +119,7 @@ jobs:
           build-args: RUST_TOOLCHAIN=${{ env.RUST_TOOLCHAIN }}
 
       - name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@v4
+        uses: peter-evans/dockerhub-description@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
