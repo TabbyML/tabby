@@ -16,7 +16,7 @@ import {
   SearchableSelectInput
 } from '@/components/searchable-select'
 
-import { GlobalSearchListItem } from './global-search/list-item'
+import { GlobalSearchResult } from './global-search/result'
 import { GlobalSearchResults } from './global-search/results'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { resolveRepositoryInfoFromPath } from './utils'
@@ -135,7 +135,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
   // FIXME: Currently the keys used to determine which option is highlighted are the same across results. for example, result 1 line 1 has an index of 1. But so does result 100 line 1, since the index is only based on the local array.
 
   return (
-    <div className="px-4 py-2 w-full max-w-[600px]">
+    <div className="px-4 py-2 w-full max-w-[800px]">
       <SearchableSelect
         options={undefined}
         open={popoverIsShown}
