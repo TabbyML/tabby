@@ -95,9 +95,12 @@ pub async fn start(
                             let mut job_logger = JobLogger::new(WebCrawlerJob::NAME, db.clone()).await;
                             let job = WebCrawlerJob::new(url);
 
-                            // FIXME(boxbeam): handles job error.
-                            job.run(embedding.clone()).await;
-                            job_logger.complete(0).await;
+                            if let Err(err) = job.run(job_logger.clone(), embedding.clone()).await {
+                                cprintln!(job_logger, "Web indexing process failed: do you have Katana installed? (https://github.com/projectdiscovery/katana) \n{err:?}");
+                                job_logger.complete(-1).await;
+                            } else {
+                                job_logger.complete(0).await;
+                            }
                         }
                     }
                 },

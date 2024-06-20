@@ -10,7 +10,7 @@ pub use code::CodeIndexer;
 use crawl::crawl_pipeline;
 use doc::create_web_index;
 pub use doc::{DocIndexer, WebDocument};
-use futures::StreamExt;
+use futures::{Future, StreamExt};
 use indexer::{IndexAttributeBuilder, Indexer};
 use tabby_inference::Embedding;
 
@@ -75,10 +75,14 @@ async fn scheduler_pipeline(config: &tabby_common::config::Config) {
     code.garbage_collection(repositories);
 }
 
-pub async fn crawl_index_docs(
+pub async fn crawl_index_docs<F>(
     urls: &[String],
+    url_logger: impl Fn(String) -> F,
     embedding: Arc<dyn Embedding>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<()>
+where
+    F: Future<Output = ()>,
+{
     for url in urls {
         debug!("Starting doc index pipeline for {url}");
         let embedding = embedding.clone();
@@ -87,6 +91,7 @@ pub async fn crawl_index_docs(
 
         let mut pipeline = Box::pin(crawl_pipeline(url).await?);
         while let Some(doc) = pipeline.next().await {
+            url_logger(doc.url.clone()).await;
             let source_doc = SourceDocument {
                 id: doc.url.clone(),
                 title: doc.metadata.title.unwrap_or_default(),
