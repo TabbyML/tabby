@@ -139,7 +139,7 @@ function MainPanel() {
         ref={elementRef}
       >
         {!isSearch && (
-          <div className="mx-auto flex w-full flex-col items-center px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
+          <div className="mx-auto flex min-h-0 w-full flex-col items-center px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
             <Image
               src={tabbyUrl}
               alt="logo"
