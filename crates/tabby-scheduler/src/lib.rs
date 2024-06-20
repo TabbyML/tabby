@@ -5,7 +5,6 @@ mod code;
 pub mod crawl;
 mod indexer;
 
-use async_stream::{stream, try_stream};
 pub use code::CodeIndexer;
 use crawl::crawl_pipeline;
 use doc::create_web_index;
