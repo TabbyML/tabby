@@ -3,6 +3,7 @@
 import React, {
   FocusEventHandler,
   FormEventHandler,
+  MouseEventHandler,
   useContext,
   useEffect,
   useState
@@ -13,7 +14,8 @@ import { PopoverContent, PopoverTrigger } from '@radix-ui/react-popover'
 import { graphql } from '@/lib/gql/generates'
 import { GrepTextOrBase64, RepositoryKind } from '@/lib/gql/generates/graphql'
 import { client } from '@/lib/tabby/gql'
-import { IconSearch, IconSpinner } from '@/components/ui/icons'
+import { Button } from '@/components/ui/button'
+import { IconClose, IconSearch, IconSpinner } from '@/components/ui/icons'
 import { Popover } from '@/components/ui/popover'
 import {
   SearchableSelect,
@@ -82,6 +84,11 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
   const { repositoryKind } = resolveRepositoryInfoFromPath(activePath)
 
   const repoId = activeRepo?.id
+
+  /**
+   *
+   */
+  const inputRef = React.useRef<HTMLInputElement>(null)
 
   /**
    * The current search value. Set `onInput` or by the
@@ -156,6 +163,21 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
     setResults(data.repositoryGrep)
   }
 
+  const focusInput = useEffect(() => {
+    inputRef.current?.focus()
+  })
+
+  /**
+   *
+   */
+  const clearInput: MouseEventHandler<HTMLButtonElement> = e => {
+    e.preventDefault()
+    e.stopPropagation()
+    setValue('')
+    setResults(null)
+    focusInput
+  }
+
   // FIXME: Currently the keys used to determine which option is highlighted are the same across results. for example, result 1 line 1 has an index of 1. But so does result 100 line 1, since the index is only based on the local array.
 
   return (
@@ -180,11 +202,36 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
             // Placeholder styles
             className="w-full h-9 pl-9 relative border border-border rounded"
             value={value}
+            ref={inputRef}
             onChange={onInput}
             onFocus={onFocus}
           />
           <div className="absolute leading-none left-3 top-1/2 -translate-y-1/2 opacity-50">
             <IconSearch />
+          </div>
+
+          <div className="absolute right-2 top-0 flex h-full items-center">
+            {value ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 cursor-pointer"
+                onClick={e => {
+                  clearInput(e)
+                }}
+              >
+                <IconClose />
+              </Button>
+            ) : (
+              <kbd
+                className="rounded-md border bg-secondary/50 px-1.5 text-xs leading-4 text-muted-foreground shadow-[inset_-0.5px_-1.5px_0_hsl(var(--muted))]"
+                onClick={() => {
+                  inputRef.current?.focus()
+                }}
+              >
+                s
+              </kbd>
+            )}
           </div>
 
           {/* TODO: show loading/working state */}
