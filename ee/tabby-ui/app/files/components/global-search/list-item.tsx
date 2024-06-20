@@ -7,6 +7,7 @@ import useSWRImmutable from 'swr/immutable'
 
 import { GrepFile, GrepLine, RepositoryKind } from '@/lib/gql/generates/graphql'
 import fetcher from '@/lib/tabby/fetcher'
+import { Skeleton } from '@/components/ui/skeleton'
 import { SearchableSelectOption } from '@/components/searchable-select'
 
 import { SourceCodeBrowserContext } from '../source-code-browser'
@@ -104,9 +105,10 @@ export const GlobalSearchListItem = ({
       >
         {props.file.path}
       </Link>
-      <ol className="overflow-hidden grid gap-0.5">
-        {lines ? (
-          lines.map((line, i) => {
+
+      {lines && (
+        <ol className="overflow-hidden grid gap-0.5">
+          {lines.map((line, i) => {
             return (
               // TODO: Replace with /  `SearchableSelectItem`
               <GlobalSearchSnippet
@@ -118,12 +120,9 @@ export const GlobalSearchListItem = ({
                 hidePopover={props.hidePopover}
               />
             )
-          })
-        ) : (
-          // TODO: Implement skeleton loader
-          <li>Loading...</li>
-        )}
-      </ol>
+          })}
+        </ol>
+      )}
     </div>
   )
 }

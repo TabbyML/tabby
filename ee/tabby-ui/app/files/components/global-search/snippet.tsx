@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { lineNumbers } from '@codemirror/view'
 
 import { GrepFile, GrepLine } from '@/lib/gql/generates/graphql'
+import { Skeleton } from '@/components/ui/skeleton'
 import CodeEditor from '@/components/codemirror/codemirror'
 
 import { SourceCodeBrowserContext } from '../source-code-browser'
@@ -37,7 +38,7 @@ export const GlobalSearchSnippet = ({ ...props }: GlobalSearchSnippetProps) => {
 
   return (
     <>
-      {snippet ? (
+      {snippet && (
         <Link
           href={{
             pathname: `/files/${generateEntryPath(
@@ -65,8 +66,6 @@ export const GlobalSearchSnippet = ({ ...props }: GlobalSearchSnippetProps) => {
             readonly
           /> */}
         </Link>
-      ) : (
-        <div>Loading</div>
       )}
     </>
   )
