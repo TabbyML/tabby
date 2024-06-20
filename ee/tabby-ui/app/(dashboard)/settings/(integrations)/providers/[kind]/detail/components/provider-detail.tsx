@@ -56,6 +56,7 @@ import {
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
+import { triggerJobRunMutation } from '../../../query'
 import { useIntegrationKind } from '../../hooks/use-repository-kind'
 import { updateIntegratedRepositoryActiveMutation } from '../query'
 import AddRepositoryForm from './add-repository-form'
@@ -205,6 +206,8 @@ const ActiveRepoTable: React.FC<{
     }
   )
 
+  const triggerJobRun = useMutation(triggerJobRunMutation)
+
   const handleDelete = async (
     repo: IntegratedRepositories[0],
     isLastItem?: boolean
@@ -268,13 +271,30 @@ const ActiveRepoTable: React.FC<{
     loadPage(page)
   }
 
+  const delayLoadPage = useDebounceCallback(() => handleLoadPage(page), 3000)
+
+  const handleTriggerJobRun = (command: string) => {
+    return triggerJobRun({ command }).then(res => {
+      if (res?.data?.triggerJobRun) {
+        toast.success(
+          'The job has been triggered successfully, it may take a few minutes to process.'
+        )
+        delayLoadPage.run()
+      } else {
+        toast.error(res?.error?.message || 'Failed to trigger job')
+      }
+    })
+  }
+
   React.useEffect(() => {
     loadPage(1)
 
-    return () => {
-      clearRecentlyActivated.cancel()
-    }
+    return () => clearRecentlyActivated.cancel()
   }, [])
+
+  React.useEffect(() => {
+    return () => delayLoadPage.cancel()
+  }, [page])
 
   return (
     <LoadingWrapper loading={fetching}>
@@ -364,7 +384,13 @@ const ActiveRepoTable: React.FC<{
                         ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button size="icon" variant="ghost">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={e =>
+                                  handleTriggerJobRun(x.node.jobInfo?.command)
+                                }
+                              >
                                 <IconPlay />
                               </Button>
                             </TooltipTrigger>
