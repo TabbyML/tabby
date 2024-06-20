@@ -147,15 +147,15 @@ export function SearchRenderer({}, ref: ForwardedRef<SearchRef>) {
 
   // Handling the stream response from useTabbyAnswer
   useEffect(() => {
-    if (!answer) return
     const newConversation = [...conversation]
     const currentAnswer = newConversation.find(
       item => item.id === currentLoadindId
     )
+
     if (!currentAnswer) return
-    currentAnswer.content = answer.answer_delta || ''
-    currentAnswer.relevant_documents = answer.relevant_documents
-    currentAnswer.relevant_questions = answer.relevant_questions
+    currentAnswer.content = answer?.answer_delta || ''
+    currentAnswer.relevant_documents = answer?.relevant_documents
+    currentAnswer.relevant_questions = answer?.relevant_questions
     currentAnswer.isLoading = isLoading
     setConversation(newConversation)
   }, [isLoading, answer])
