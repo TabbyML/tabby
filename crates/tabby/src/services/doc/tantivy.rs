@@ -122,11 +122,7 @@ impl DocSearchService {
 
 #[async_trait]
 impl DocSearch for DocSearchService {
-    async fn search(
-        &self,
-        q: &str,
-        limit: usize,
-    ) -> Result<DocSearchResponse, DocSearchError> {
+    async fn search(&self, q: &str, limit: usize) -> Result<DocSearchResponse, DocSearchError> {
         if let Some(reader) = self.provider.reader().await.as_ref() {
             self.imp.search(reader, q, limit).await
         } else {

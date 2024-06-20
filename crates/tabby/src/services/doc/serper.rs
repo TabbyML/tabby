@@ -45,11 +45,7 @@ impl SerperService {
 
 #[async_trait]
 impl DocSearch for SerperService {
-    async fn search(
-        &self,
-        q: &str,
-        limit: usize,
-    ) -> Result<DocSearchResponse, DocSearchError> {
+    async fn search(&self, q: &str, limit: usize) -> Result<DocSearchResponse, DocSearchError> {
         let request = SerperRequest {
             q: q.to_string(),
             num: limit,

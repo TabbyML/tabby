@@ -36,9 +36,5 @@ pub enum DocSearchError {
 
 #[async_trait]
 pub trait DocSearch: Send + Sync {
-    async fn search(
-        &self,
-        q: &str,
-        limit: usize,
-    ) -> Result<DocSearchResponse, DocSearchError>;
+    async fn search(&self, q: &str, limit: usize) -> Result<DocSearchResponse, DocSearchError>;
 }
