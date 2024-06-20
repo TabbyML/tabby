@@ -2,13 +2,10 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import useSWRImmutable from 'swr/immutable'
 
 import { GrepFile, GrepLine, RepositoryKind } from '@/lib/gql/generates/graphql'
 import fetcher from '@/lib/tabby/fetcher'
-import { Skeleton } from '@/components/ui/skeleton'
-import { SearchableSelectOption } from '@/components/searchable-select'
 
 import { SourceCodeBrowserContext } from '../source-code-browser'
 import {

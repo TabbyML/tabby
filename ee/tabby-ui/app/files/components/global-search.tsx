@@ -17,6 +17,7 @@ import {
 } from '@/components/searchable-select'
 
 import { GlobalSearchListItem } from './global-search/list-item'
+import { GlobalSearchResults } from './global-search/results'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { resolveRepositoryInfoFromPath } from './utils'
 
@@ -170,23 +171,13 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
           className="bg-popover max-h-[80vh] overflow-auto w-[75vw] max-w-[800px] p-4 rounded shadow-xl"
         >
           <div className="w-full overflow-hidden">
-            {/* TODO: Investigate how to pass option groups */}
-            {results && results.length > 0 && (
-              <ol className="grid gap-2 overflow-hidden">
-                {/* TODO: Replace with / create a `SearchableSelectGroup` */}
-                {results.slice(0, 12).map((file, i) => {
-                  return (
-                    <GlobalSearchListItem
-                      key={i}
-                      repoId={repoId as string}
-                      repoKind={repositoryKind as RepositoryKind}
-                      file={file}
-                      hidePopover={() => setPopoverIsShown(false)}
-                    />
-                  )
-                })}
-              </ol>
-            )}
+            <GlobalSearchResults
+              hidePopover={() => setPopoverIsShown(false)}
+              repositoryKind={repositoryKind}
+              repoId={repoId}
+              // FIXME: Wrong types
+              results={results}
+            />
           </div>
         </SearchableSelectContent>
       </SearchableSelect>
