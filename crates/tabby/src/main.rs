@@ -68,7 +68,7 @@ async fn main() {
     let cli = Cli::parse();
     init_logging();
 
-    let config = Config::load().unwrap_or_default();
+    let config = Config::load().expect("Must be able to load config");
     let root = tabby_common::path::tabby_root();
     std::fs::create_dir_all(&root).expect("Must be able to create tabby root");
     #[cfg(target_family = "unix")]
