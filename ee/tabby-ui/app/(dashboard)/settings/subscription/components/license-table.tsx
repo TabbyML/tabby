@@ -83,12 +83,12 @@ const PLANS: Plan[] = [
   {
     name: 'Community',
     pricing: '$0 per user/month',
-    limit: 'Up to 5 users, single node'
+    limit: 'Up to 5 users'
   },
   {
     name: 'Team',
     pricing: '$19 per user/month',
-    limit: 'Up to 30 users, up to 2 nodes'
+    limit: 'Up to 200 users'
   },
   {
     name: 'Enterprise',

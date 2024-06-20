@@ -39,7 +39,7 @@ impl LicenseInfo {
     }
 
     pub fn seat_limits_for_team_license() -> usize {
-        30
+        100
     }
 
     pub fn guard_seat_limit(mut self) -> Self {
