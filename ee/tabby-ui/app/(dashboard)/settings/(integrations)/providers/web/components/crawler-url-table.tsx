@@ -10,7 +10,7 @@ import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useMutation } from '@/lib/tabby/gql'
 import { listWebCrawlerUrl } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
-import { IconPlay, IconTrash } from '@/components/ui/icons'
+import { IconCirclePlay, IconTrash } from '@/components/ui/icons'
 import {
   Pagination,
   PaginationContent,
@@ -167,7 +167,7 @@ export default function WebCrawlerTable() {
                               handleTriggerJobRun(x.node.jobInfo?.command)
                             }
                           >
-                            <IconPlay />
+                            <IconCirclePlay />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>

@@ -4,15 +4,15 @@ import React from 'react'
 import Link from 'next/link'
 import { isNil } from 'lodash-es'
 import { toast } from 'sonner'
-import { useClient, useQuery } from 'urql'
+import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
-import { GitRepositoriesQueryVariables } from '@/lib/gql/generates/graphql'
+import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useMutation } from '@/lib/tabby/gql'
 import { listRepositories } from '@/lib/tabby/query'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { IconPlay, IconSpinner, IconTrash } from '@/components/ui/icons'
+import { IconCirclePlay, IconSpinner, IconTrash } from '@/components/ui/icons'
 import {
   Pagination,
   PaginationContent,
@@ -35,6 +35,8 @@ import {
 } from '@/components/ui/tooltip'
 import LoadingWrapper from '@/components/loading-wrapper'
 
+import { triggerJobRunMutation } from '../../query'
+
 const deleteRepositoryMutation = graphql(/* GraphQL */ `
   mutation deleteGitRepository($id: ID!) {
     deleteGitRepository(id: $id)
@@ -44,16 +46,29 @@ const deleteRepositoryMutation = graphql(/* GraphQL */ `
 const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
 export default function RepositoryTable() {
-  const client = useClient()
-  const [{ data, fetching }] = useQuery({
+  const [before, setBefore] = React.useState<string | undefined>()
+
+  const [{ data, fetching }, reexecuteQuery] = useQuery({
     query: listRepositories,
-    variables: { first: PAGE_SIZE }
+    variables: { last: PAGE_SIZE, before }
   })
 
   const [currentPage, setCurrentPage] = React.useState(1)
-  const edges = data?.gitRepositories?.edges
+  const edges = React.useMemo(() => {
+    return data?.gitRepositories?.edges?.slice().reverse()
+  }, [data?.gitRepositories?.edges])
   const pageInfo = data?.gitRepositories?.pageInfo
   const pageNum = Math.ceil((edges?.length || 0) / PAGE_SIZE)
+
+  const getBeforeCursor = (page: number) => {
+    return edges?.slice(0, (page - 1) * PAGE_SIZE)?.pop()?.cursor
+  }
+
+  const fetchPage = (page: number) => {
+    setBefore(getBeforeCursor(page))
+  }
+
+  const delayRefresh = useDebounceCallback(reexecuteQuery, 3000)
 
   const currentPageRepos = React.useMemo(() => {
     return edges?.slice?.(
@@ -62,61 +77,67 @@ export default function RepositoryTable() {
     )
   }, [currentPage, edges])
 
-  const hasNextPage = pageInfo?.hasNextPage || currentPage < pageNum
+  const hasNextPage = pageInfo?.hasPreviousPage || currentPage < pageNum
   const hasPrevPage = currentPage > 1
   const showPagination =
     !!currentPageRepos?.length && (hasNextPage || hasPrevPage)
 
-  const fetchRepositories = (variables: GitRepositoriesQueryVariables) => {
-    return client.query(listRepositories, variables).toPromise()
-  }
-
-  const fetchRecordsSequentially = async (cursor?: string): Promise<number> => {
-    const res = await fetchRepositories({ first: PAGE_SIZE, after: cursor })
-    let count = res?.data?.gitRepositories?.edges?.length || 0
-    const _pageInfo = res?.data?.gitRepositories?.pageInfo
-    if (_pageInfo?.hasNextPage && _pageInfo?.endCursor) {
-      // cacheExchange will merge the edges
-      count = await fetchRecordsSequentially(_pageInfo.endCursor)
-    }
-    return count
-  }
-
   const deleteRepository = useMutation(deleteRepositoryMutation)
+  const triggerJobRun = useMutation(triggerJobRunMutation)
 
   const handleNavToPrevPage = () => {
     if (currentPage <= 1) return
     if (fetching) return
-    setCurrentPage(p => p - 1)
+
+    const prevPage = currentPage - 1
+    fetchPage(prevPage)
+    setCurrentPage(prevPage)
   }
 
-  const handleFetchNextPage = () => {
+  const handleNavToNextPage = () => {
     if (!hasNextPage) return
     if (fetching) return
 
-    fetchRepositories({ first: PAGE_SIZE, after: pageInfo?.endCursor }).then(
-      data => {
-        if (data?.data?.gitRepositories?.edges?.length) {
-          setCurrentPage(p => p + 1)
-        }
-      }
-    )
+    const nextPage = currentPage + 1
+    fetchPage(nextPage)
+    setCurrentPage(nextPage)
   }
 
-  const handleDeleteRepository = (id: string) => {
+  const handleDeleteRepository = (id: string, isLast: boolean) => {
     deleteRepository({ id }).then(res => {
-      if (res?.error) {
-        toast.error(res.error.message)
-        return
+      if (res?.data?.deleteGitRepository) {
+        fetchPage(isLast ? currentPage - 1 : currentPage)
+      } else {
+        toast.error(res?.error?.message || 'Failed to delete repository')
+      }
+    })
+  }
+
+  const handleTriggerJobRun = (command: string) => {
+    return triggerJobRun({ command }).then(res => {
+      if (res?.data?.triggerJobRun) {
+        toast.success(
+          'The job has been triggered successfully, it may take a few minutes to process.'
+        )
+        delayRefresh.run()
+      } else {
+        toast.error(res?.error?.message || 'Failed to trigger job')
       }
     })
   }
 
   React.useEffect(() => {
+    if (fetching) return
     if (pageNum < currentPage && currentPage > 1) {
       setCurrentPage(pageNum)
     }
   }, [pageNum, currentPage])
+
+  React.useEffect(() => {
+    return () => {
+      delayRefresh.cancel()
+    }
+  }, [currentPage])
 
   return (
     <LoadingWrapper loading={fetching}>
@@ -168,8 +189,14 @@ export default function RepositoryTable() {
                         ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button size="icon" variant="ghost">
-                                <IconPlay />
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() =>
+                                  handleTriggerJobRun(x.node.jobInfo?.command)
+                                }
+                              >
+                                <IconCirclePlay className="h-5 w-5" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -184,7 +211,12 @@ export default function RepositoryTable() {
                         <Button
                           size="icon"
                           variant="hover-destructive"
-                          onClick={() => handleDeleteRepository(x.node.id)}
+                          onClick={() =>
+                            handleDeleteRepository(
+                              x.node.id,
+                              currentPageRepos.length === 1
+                            )
+                          }
                         >
                           <IconTrash />
                         </Button>
@@ -209,7 +241,7 @@ export default function RepositoryTable() {
             <PaginationItem>
               <PaginationNext
                 disabled={!hasNextPage}
-                onClick={handleFetchNextPage}
+                onClick={handleNavToNextPage}
               />
             </PaginationItem>
           </PaginationContent>
