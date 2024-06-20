@@ -6,13 +6,10 @@
     "prettier",
     "plugin:tailwindcss/recommended"
   ],
-  "plugins": [
-    "tailwindcss",
-    "@typescript-eslint",
-    "unused-imports"
-  ],
+  "plugins": ["tailwindcss", "@typescript-eslint", "unused-imports"],
   "rules": {
     "unused-imports/no-unused-imports": "error",
+    "tailwindcss/classnames-order": "off",
     "tailwindcss/no-custom-classname": "off",
     "import/no-restricted-paths": [
       "error",
@@ -33,19 +30,13 @@
   },
   "settings": {
     "tailwindcss": {
-      "callees": [
-        "cn",
-        "cva"
-      ],
+      "callees": ["cn", "cva"],
       "config": "tailwind.config.js"
     }
   },
   "overrides": [
     {
-      "files": [
-        "*.ts",
-        "*.tsx"
-      ],
+      "files": ["*.ts", "*.tsx"],
       "parser": "@typescript-eslint/parser"
     }
   ]
