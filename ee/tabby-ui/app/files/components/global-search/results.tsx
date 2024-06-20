@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import useSWRImmutable from 'swr/immutable'
 
-import { GrepFile, GrepLine, RepositoryKind } from '@/lib/gql/generates/graphql'
+import { GrepFile, RepositoryKind } from '@/lib/gql/generates/graphql'
 import fetcher from '@/lib/tabby/fetcher'
 
 import {
@@ -14,8 +14,8 @@ import { GlobalSearchResult } from './result'
 
 interface GlobalSearchResultsProps {
   results: GrepFile[] | null
-  repoId?: string
-  repositoryKind?: RepositoryKind
+  repoId: string
+  repositoryKind: RepositoryKind
   hidePopover: () => void
 }
 
@@ -24,6 +24,7 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
 
   const pathNamesToFetch = props.results?.map(result => result.path)
 
+  // TODO: Share this globally
   const urls = pathNamesToFetch?.map(path =>
     encodeURIComponentIgnoringSlash(
       `/repositories/${getProviderVariantFromKind(props.repositoryKind)}/${
@@ -32,6 +33,7 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
     )
   )
 
+  // TODO: Share this globally
   const multiFetcher = urls => {
     return Promise.all(
       urls.map(url => {
@@ -48,8 +50,6 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
 
   const { data } = useSWRImmutable(urls, multiFetcher)
 
-  // go through the results and add the blob to the object
-
   useEffect(() => {
     if (data) {
       const newResults = props.results?.map((result, index) => {
@@ -64,21 +64,19 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
     }
   }, [data, props.results])
 
-  if (results) {
-    return (
-      <div>
-        {results.map((result, i) => (
-          <GlobalSearchResult
-            key={i}
-            result={result}
-            hidePopover={props.hidePopover}
-          />
-        ))}
-      </div>
-    )
-  }
-
-  // What we're passing to the ListItem must be a loaded File
-
-  return <></>
+  return (
+    <>
+      {results && (
+        <>
+          {results.map((result, i) => (
+            <GlobalSearchResult
+              key={i}
+              result={result}
+              hidePopover={props.hidePopover}
+            />
+          ))}
+        </>
+      )}
+    </>
+  )
 }

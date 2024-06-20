@@ -1,6 +1,12 @@
 'use client'
 
-import React, { FormEventHandler, useContext, useEffect, useState } from 'react'
+import React, {
+  FocusEventHandler,
+  FormEventHandler,
+  useContext,
+  useEffect,
+  useState
+} from 'react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { PopoverContent, PopoverTrigger } from '@radix-ui/react-popover'
 
@@ -107,11 +113,28 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
    * Runs with every input change. Sets the value of the results
    */
   const onInput: FormEventHandler<HTMLInputElement> = e => {
-    const q = e.currentTarget.value
-    if (q && !popoverIsShown) setPopoverIsShown(true)
+    const query = e.currentTarget.value
+    setValue(query)
 
-    setValue(q)
-    void search(q)
+    if (query && !popoverIsShown) setPopoverIsShown(true)
+
+    if (query === '') {
+      setPopoverIsShown(false)
+    } else {
+      void search(query)
+    }
+  }
+
+  /**
+   *
+   */
+  const onFocus: FocusEventHandler<HTMLInputElement> = e => {
+    const query = e.currentTarget.value
+    setValue(query)
+
+    if (query.length) {
+      void search(query)
+    }
   }
 
   /**
@@ -137,10 +160,12 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
   return (
     <div className="px-4 py-2 w-full max-w-[800px]">
       <SearchableSelect
+        // FIXME: define the options
         options={undefined}
         open={popoverIsShown}
         onOpenChange={() => {
-          if (value && results?.length) {
+          if (value) {
+            // FIXME: This should be set only when the results have loaded
             setPopoverIsShown(true)
           } else {
             setPopoverIsShown(false)
@@ -155,10 +180,13 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
             className="w-full h-9 pl-9 relative border border-border rounded"
             value={value}
             onChange={onInput}
+            onFocus={onFocus}
           />
           <div className="absolute leading-none left-3 top-1/2 -translate-y-1/2 opacity-50">
             <IconSearch />
           </div>
+
+          {/* TODO: show loading/working state */}
         </SearchableSelectAnchor>
         <SearchableSelectContent
           sideOffset={4}
@@ -173,9 +201,9 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
           <div className="w-full overflow-hidden">
             <GlobalSearchResults
               hidePopover={() => setPopoverIsShown(false)}
-              repositoryKind={repositoryKind}
-              repoId={repoId}
-              // FIXME: Wrong types
+              repositoryKind={repositoryKind as RepositoryKind}
+              repoId={repoId as string}
+              // FIXME: Types
               results={results}
             />
           </div>
