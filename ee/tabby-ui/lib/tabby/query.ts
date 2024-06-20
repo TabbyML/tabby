@@ -274,6 +274,16 @@ export const listWebCrawlerUrl = graphql(/* GraphQL */ `
           url
           id
           createdAt
+          jobInfo {
+            lastJobRun {
+              id
+              job
+              createdAt
+              finishedAt
+              exitCode
+            }
+            command
+          }
         }
         cursor
       }

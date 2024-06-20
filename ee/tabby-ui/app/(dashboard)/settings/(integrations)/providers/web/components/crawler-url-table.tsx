@@ -2,11 +2,11 @@
 
 import React from 'react'
 import { toast } from 'sonner'
-import { useClient, useQuery } from 'urql'
+import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
-import { WebCrawlerUrlsQueryVariables } from '@/lib/gql/generates/graphql'
+import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useMutation } from '@/lib/tabby/gql'
 import { listWebCrawlerUrl } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
@@ -33,6 +33,8 @@ import {
 } from '@/components/ui/tooltip'
 import LoadingWrapper from '@/components/loading-wrapper'
 
+import { triggerJobRunMutation } from '../../query'
+
 const deleteWebCrawlerUrlMutation = graphql(/* GraphQL */ `
   mutation DeleteWebCrawlerUrl($id: ID!) {
     deleteWebCrawlerUrl(id: $id)
@@ -42,14 +44,16 @@ const deleteWebCrawlerUrlMutation = graphql(/* GraphQL */ `
 const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
 export default function WebCrawlerTable() {
-  const client = useClient()
-  const [{ data, fetching }] = useQuery({
+  const [before, setBefore] = React.useState<string | undefined>()
+  const [{ data, fetching }, reexecuteQuery] = useQuery({
     query: listWebCrawlerUrl,
-    variables: { first: PAGE_SIZE }
+    variables: { last: PAGE_SIZE, before }
   })
 
   const [currentPage, setCurrentPage] = React.useState(1)
-  const edges = data?.webCrawlerUrls?.edges
+  const edges = React.useMemo(() => {
+    return data?.webCrawlerUrls?.edges?.slice().reverse()
+  }, [data?.webCrawlerUrls?.edges])
   const pageInfo = data?.webCrawlerUrls?.pageInfo
   const pageNum = Math.ceil((edges?.length || 0) / PAGE_SIZE)
 
@@ -60,61 +64,75 @@ export default function WebCrawlerTable() {
     )
   }, [currentPage, edges])
 
-  const hasNextPage = pageInfo?.hasNextPage || currentPage < pageNum
+  const hasNextPage = pageInfo?.hasPreviousPage || currentPage < pageNum
   const hasPrevPage = currentPage > 1
   const showPagination =
     !!currentPageUrls?.length && (hasNextPage || hasPrevPage)
 
-  const fetchWebCrawlerUrls = (variables: WebCrawlerUrlsQueryVariables) => {
-    return client.query(listWebCrawlerUrl, variables).toPromise()
+  const getBeforeCursor = (page: number) => {
+    return edges?.slice(0, (page - 1) * PAGE_SIZE)?.pop()?.cursor
   }
 
-  const fetchRecordsSequentially = async (cursor?: string): Promise<number> => {
-    const res = await fetchWebCrawlerUrls({ first: PAGE_SIZE, after: cursor })
-    let count = res?.data?.webCrawlerUrls?.edges?.length || 0
-    const _pageInfo = res?.data?.webCrawlerUrls?.pageInfo
-    if (_pageInfo?.hasNextPage && _pageInfo?.endCursor) {
-      // cacheExchange will merge the edges
-      count = await fetchRecordsSequentially(_pageInfo.endCursor)
-    }
-    return count
+  const fetchPage = (page: number) => {
+    setBefore(getBeforeCursor(page))
   }
 
-  const deleteWebCrawlerUrl = useMutation(deleteWebCrawlerUrlMutation)
+  const delayRefresh = useDebounceCallback(reexecuteQuery, 3000)
 
   const handleNavToPrevPage = () => {
     if (currentPage <= 1) return
     if (fetching) return
-    setCurrentPage(p => p - 1)
+    const prevPage = currentPage - 1
+    fetchPage(prevPage)
+    setCurrentPage(prevPage)
   }
 
-  const handleFetchNextPage = () => {
+  const handleNavToNextPage = () => {
     if (!hasNextPage) return
     if (fetching) return
 
-    fetchWebCrawlerUrls({ first: PAGE_SIZE, after: pageInfo?.endCursor }).then(
-      data => {
-        if (data?.data?.webCrawlerUrls?.edges?.length) {
-          setCurrentPage(p => p + 1)
-        }
-      }
-    )
+    const nextPage = currentPage + 1
+    fetchPage(nextPage)
+    setCurrentPage(nextPage)
   }
 
-  const handleDeleteWebCrawler = (id: string) => {
+  const triggerJobRun = useMutation(triggerJobRunMutation)
+  const handleTriggerJobRun = (command: string) => {
+    return triggerJobRun({ command }).then(res => {
+      if (res?.data?.triggerJobRun) {
+        toast.success(
+          'The job has been triggered successfully, it may take a few minutes to process.'
+        )
+        delayRefresh.run()
+      } else {
+        toast.error(res?.error?.message || 'Failed to trigger job')
+      }
+    })
+  }
+
+  const deleteWebCrawlerUrl = useMutation(deleteWebCrawlerUrlMutation)
+  const handleDeleteWebCrawler = (id: string, isLast: boolean) => {
     deleteWebCrawlerUrl({ id }).then(res => {
-      if (res?.error) {
-        toast.error(res.error.message)
-        return
+      if (res?.data?.deleteWebCrawlerUrl) {
+        fetchPage(isLast ? currentPage - 1 : currentPage)
+      } else {
+        toast.error(res?.error?.message || 'Failed to delete')
       }
     })
   }
 
   React.useEffect(() => {
+    if (fetching) return
     if (pageNum < currentPage && currentPage > 1) {
       setCurrentPage(pageNum)
     }
   }, [pageNum, currentPage])
+
+  React.useEffect(() => {
+    return () => {
+      delayRefresh.cancel()
+    }
+  }, [currentPage])
 
   return (
     <LoadingWrapper loading={fetching}>
@@ -142,7 +160,13 @@ export default function WebCrawlerTable() {
                     <TableCell>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button size="icon" variant="ghost">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={e =>
+                              handleTriggerJobRun(x.node.jobInfo?.command)
+                            }
+                          >
                             <IconPlay />
                           </Button>
                         </TooltipTrigger>
@@ -156,7 +180,12 @@ export default function WebCrawlerTable() {
                         <Button
                           size="icon"
                           variant="hover-destructive"
-                          onClick={() => handleDeleteWebCrawler(x.node.id)}
+                          onClick={() =>
+                            handleDeleteWebCrawler(
+                              x.node.id,
+                              currentPageUrls.length === 1
+                            )
+                          }
                         >
                           <IconTrash />
                         </Button>
@@ -181,7 +210,7 @@ export default function WebCrawlerTable() {
             <PaginationItem>
               <PaginationNext
                 disabled={!hasNextPage}
-                onClick={handleFetchNextPage}
+                onClick={handleNavToNextPage}
               />
             </PaginationItem>
           </PaginationContent>
