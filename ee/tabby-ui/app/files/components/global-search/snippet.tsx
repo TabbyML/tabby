@@ -49,7 +49,7 @@ export const GlobalSearchSnippet = ({ ...props }: GlobalSearchSnippetProps) => {
             // FIXME: this doesn't work when clicking a different line on the active file
             hash: `L${props.line.lineNumber}`
           }}
-          className="font-mono text-sm bg-white truncate block p-"
+          className="font-mono text-sm truncate block text-muted-foreground"
           onClick={props.hidePopover}
         >
           {snippet}

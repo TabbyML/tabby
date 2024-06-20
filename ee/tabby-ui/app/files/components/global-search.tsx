@@ -151,21 +151,23 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
             type="text"
             placeholder="Search the repository..."
             // Placeholder styles
-            className="w-full h-9 pl-9 relative border border-gray-300 rounded"
+            className="w-full h-9 pl-9 relative border border-border rounded"
             value={value}
             onChange={onInput}
           />
-          <div className="absolute leading-none left-3 top-1/2 -translate-y-1/2">
+          <div className="absolute leading-none left-3 top-1/2 -translate-y-1/2 opacity-50">
             <IconSearch />
           </div>
         </SearchableSelectAnchor>
         <SearchableSelectContent
-          sideOffset={2}
+          sideOffset={4}
+          alignOffset={-4}
           autoFocus={false}
           side="bottom"
-          // Stop the content from stealing focus from the input
+          align="end"
+          // Stop the content from taking focus from the input
           onOpenAutoFocus={e => e.preventDefault()}
-          className="bg-popover max-h-[80vh] overflow-auto w-[var(--radix-popover-trigger-width)] p-4 rounded shadow-xl"
+          className="bg-popover max-h-[80vh] overflow-auto w-[75vw] max-w-[800px] p-4 rounded shadow-xl"
         >
           <div className="w-full overflow-hidden">
             {/* TODO: Investigate how to pass option groups */}
