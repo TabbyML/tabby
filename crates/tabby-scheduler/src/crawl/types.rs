@@ -35,8 +35,8 @@ impl From<readable_readability::Metadata> for CrawledMetadata {
     fn from(metadata: readable_readability::Metadata) -> Self {
         // Trim all ascii special chars from title
         let trim_title_chars = [
-            '#', '$', '%', '&', '*', '+', ',', '/', ':', ';', '=', '?', '@', '[', ']', '^',
-            '`', '{', '|', '}', '~', '\n', ' '
+            '#', '$', '%', '&', '*', '+', ',', '/', ':', ';', '=', '?', '@', '[', ']', '^', '`',
+            '{', '|', '}', '~', '\n', ' ',
         ];
         let title = metadata
             .article_title
