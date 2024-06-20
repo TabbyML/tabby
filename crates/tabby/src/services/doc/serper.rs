@@ -49,13 +49,11 @@ impl DocSearch for SerperService {
         &self,
         q: &str,
         limit: usize,
-        offset: usize,
     ) -> Result<DocSearchResponse, DocSearchError> {
-        let page = offset / limit;
         let request = SerperRequest {
             q: q.to_string(),
             num: limit,
-            page,
+            page: 0,
         };
         let response = self
             .client

@@ -40,6 +40,5 @@ pub trait DocSearch: Send + Sync {
         &self,
         q: &str,
         limit: usize,
-        offset: usize,
     ) -> Result<DocSearchResponse, DocSearchError>;
 }

@@ -21,6 +21,8 @@ struct DocSearchImpl {
     embedding: Arc<dyn Embedding>,
 }
 
+const EMBEDDING_SCORE_THRESHOLD: f32 = 0.75;
+
 impl DocSearchImpl {
     fn new(embedding: Arc<dyn Embedding>) -> Self {
         Self { embedding }
@@ -31,7 +33,6 @@ impl DocSearchImpl {
         reader: &IndexReader,
         q: &str,
         limit: usize,
-        offset: usize,
     ) -> Result<DocSearchResponse, DocSearchError> {
         let schema = index::IndexSchema::instance();
         let embedding = self.embedding.embed(q).await?;
@@ -47,7 +48,7 @@ impl DocSearchImpl {
         ]);
 
         let searcher = reader.searcher();
-        let top_chunks = searcher.search(&query, &TopDocs::with_limit(limit).and_offset(offset))?;
+        let top_chunks = searcher.search(&query, &TopDocs::with_limit(limit))?;
 
         let hits = top_chunks
             .iter()
@@ -82,6 +83,7 @@ impl DocSearchImpl {
                     score: *score,
                 })
             })
+            .filter(|x| x.score >= EMBEDDING_SCORE_THRESHOLD)
             .collect();
 
         Ok(DocSearchResponse { hits })
@@ -124,10 +126,9 @@ impl DocSearch for DocSearchService {
         &self,
         q: &str,
         limit: usize,
-        offset: usize,
     ) -> Result<DocSearchResponse, DocSearchError> {
         if let Some(reader) = self.provider.reader().await.as_ref() {
-            self.imp.search(reader, q, limit, offset).await
+            self.imp.search(reader, q, limit).await
         } else {
             Err(DocSearchError::NotReady)
         }
