@@ -79,7 +79,7 @@ function RepositorySyncError() {
         attempt to retry the job.
       </div>
       <Link
-        href="/settings/repository/git"
+        href="/settings/providers/git"
         className={cn(buttonVariants(), 'gap-2')}
       >
         <span>Providers Configuration</span>
