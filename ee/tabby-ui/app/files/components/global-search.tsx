@@ -120,6 +120,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
 
     if (query === '') {
       setPopoverIsShown(false)
+      setResults(null)
     } else {
       void search(query)
     }
