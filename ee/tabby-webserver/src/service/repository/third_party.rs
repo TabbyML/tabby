@@ -18,10 +18,7 @@ use tracing::{debug, error};
 
 use self::fetch::RepositoryInfo;
 use super::to_repository;
-use crate::service::{
-    background_job::{BackgroundJobEvent, Job, SchedulerGithubGitlabJob},
-    graphql_pagination_to_filter,
-};
+use crate::service::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
 
 mod fetch;
 
@@ -113,13 +110,9 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         let mut converted_repositories = vec![];
 
         for repository in repositories {
-            let job_run = self
-                .job
-                .get_latest_job_run(
-                    SchedulerGithubGitlabJob::NAME.to_string(),
-                    repository.id.to_string(),
-                )
-                .await?;
+            let event =
+                BackgroundJobEvent::SchedulerGithubGitlabRepository(repository.id.as_id().clone());
+            let job_run = self.job.get_latest_job_run(event.job_key()).await?;
 
             converted_repositories.push(to_provided_repository(repository, job_run));
         }
@@ -129,10 +122,9 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
 
     async fn get_provided_repository(&self, id: ID) -> Result<ProvidedRepository> {
         let repo = self.db.get_provided_repository(id.as_rowid()?).await?;
-        let last_job_run = self
-            .job
-            .get_latest_job_run(SchedulerGithubGitlabJob::NAME.to_string(), id.to_string())
-            .await?;
+
+        let event = BackgroundJobEvent::SchedulerGithubGitlabRepository(id);
+        let last_job_run = self.job.get_latest_job_run(event.job_key()).await?;
 
         Ok(to_provided_repository(repo, last_job_run))
     }

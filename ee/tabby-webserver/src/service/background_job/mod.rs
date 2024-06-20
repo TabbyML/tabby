@@ -8,7 +8,7 @@ use std::{str::FromStr, sync::Arc};
 
 use cron::Schedule;
 use futures::StreamExt;
-pub use git::SchedulerGitJob;
+use git::SchedulerGitJob;
 pub use helper::Job;
 use helper::{CronStream, JobLogger};
 use juniper::ID;
@@ -18,12 +18,13 @@ use tabby_db::DbConn;
 use tabby_inference::Embedding;
 use tabby_schema::{
     integration::IntegrationService,
+    job::JobKey,
     repository::{GitRepositoryService, ThirdPartyRepositoryService},
     web_crawler::WebCrawlerService,
 };
-pub use third_party_integration::SchedulerGithubGitlabJob;
+use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::warn;
-pub use web_crawler::WebCrawlerJob;
+use web_crawler::WebCrawlerJob;
 
 use self::{db::DbMaintainanceJob, third_party_integration::SyncIntegrationJob};
 
@@ -34,6 +35,43 @@ pub enum BackgroundJobEvent {
     SyncThirdPartyRepositories(ID),
     WebCrawler(String),
     SerializedBackgroundJob(String),
+}
+
+impl BackgroundJobEvent {
+    fn job_name(&self) -> Option<&'static str> {
+        match self {
+            BackgroundJobEvent::SchedulerGitRepository(_) => Some(SchedulerGitJob::NAME),
+            BackgroundJobEvent::SchedulerGithubGitlabRepository(_) => {
+                Some(SchedulerGithubGitlabJob::NAME)
+            }
+            BackgroundJobEvent::SyncThirdPartyRepositories(_) => Some(SyncIntegrationJob::NAME),
+            BackgroundJobEvent::WebCrawler(_) => Some(WebCrawlerJob::NAME),
+            BackgroundJobEvent::SerializedBackgroundJob(s) => {
+                let event = serde_json::from_str::<Self>(s);
+                event.ok().and_then(|event| event.job_name())
+            }
+        }
+    }
+
+    fn string_param(&self) -> Option<String> {
+        match self {
+            BackgroundJobEvent::SchedulerGitRepository(config) => Some(config.git_url.clone()),
+            BackgroundJobEvent::SchedulerGithubGitlabRepository(id) => Some(id.to_string()),
+            BackgroundJobEvent::SyncThirdPartyRepositories(id) => Some(id.to_string()),
+            BackgroundJobEvent::WebCrawler(url) => Some(url.clone()),
+            BackgroundJobEvent::SerializedBackgroundJob(s) => {
+                let event = serde_json::from_str::<Self>(s);
+                event.ok().and_then(|event| event.string_param())
+            }
+        }
+    }
+
+    pub fn job_key(&self) -> Option<JobKey> {
+        Some(JobKey {
+            name: self.job_name()?.to_string(),
+            param: self.string_param()?,
+        })
+    }
 }
 
 pub async fn start(

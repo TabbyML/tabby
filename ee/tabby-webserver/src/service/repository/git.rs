@@ -11,10 +11,7 @@ use tabby_schema::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::service::{
-    background_job::{BackgroundJobEvent, Job, SchedulerGitJob},
-    graphql_pagination_to_filter,
-};
+use crate::service::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
 
 struct GitRepositoryServiceImpl {
     db: DbConn,
@@ -52,13 +49,10 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
         let mut converted_repositories = vec![];
 
         for repository in repositories {
-            let job_run = self
-                .job_service
-                .get_latest_job_run(
-                    SchedulerGitJob::NAME.to_string(),
-                    repository.git_url.clone(),
-                )
-                .await?;
+            let event = BackgroundJobEvent::SchedulerGitRepository(RepositoryConfig::new(
+                repository.git_url.clone(),
+            ));
+            let job_run = self.job_service.get_latest_job_run(event.job_key()).await?;
 
             converted_repositories.push(to_git_repository(repository, job_run));
         }
@@ -110,10 +104,10 @@ impl RepositoryProvider for GitRepositoryServiceImpl {
     async fn get_repository(&self, id: &ID) -> Result<Repository> {
         let dao = self.db.get_repository(id.as_rowid()?).await?;
 
-        let last_job_run = self
-            .job_service
-            .get_latest_job_run(SchedulerGitJob::NAME.to_string(), dao.git_url.clone())
-            .await?;
+        let event =
+            BackgroundJobEvent::SchedulerGitRepository(RepositoryConfig::new(dao.git_url.clone()));
+
+        let last_job_run = self.job_service.get_latest_job_run(event.job_key()).await?;
         let git_repo = to_git_repository(dao, last_job_run);
         Ok(git_repo.into())
     }

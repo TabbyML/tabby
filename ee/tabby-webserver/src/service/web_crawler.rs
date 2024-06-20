@@ -11,7 +11,6 @@ use tabby_schema::{
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
-use crate::service::background_job::{Job, WebCrawlerJob};
 
 pub fn create(
     db: DbConn,
@@ -49,10 +48,9 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
         let mut converted_urls = vec![];
 
         for url in urls {
-            let job_run = self
-                .job_service
-                .get_latest_job_run(WebCrawlerJob::NAME.to_string(), url.url.clone())
-                .await?;
+            let event = BackgroundJobEvent::WebCrawler(url.url.clone());
+
+            let job_run = self.job_service.get_latest_job_run(event.job_key()).await?;
             converted_urls.push(to_web_crawler_url(url, job_run));
         }
         Ok(converted_urls)
@@ -107,9 +105,12 @@ mod tests {
         let url = "https://example.com".to_string();
         let id = service.create_web_crawler_url(url.clone()).await.unwrap();
 
-        db.create_job_run(WebCrawlerJob::NAME.to_string(), Some(url))
-            .await
-            .unwrap();
+        let event_name = BackgroundJobEvent::WebCrawler("".into())
+            .job_key()
+            .unwrap()
+            .name;
+
+        db.create_job_run(event_name, Some(url)).await.unwrap();
 
         let urls = service
             .list_web_crawler_urls(None, None, None, None)

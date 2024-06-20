@@ -72,7 +72,7 @@ impl DbConn {
         job: String,
         params: String,
     ) -> Result<Option<JobRunDAO>> {
-        let job = sqlx::query_as(r#"SELECT * FROM job_runs WHERE job = ? AND params = ?"#)
+        let job = sqlx::query_as(r#"SELECT * FROM job_runs WHERE job = ? AND params = ? ORDER BY created_at DESC LIMIT 1"#)
             .bind(job)
             .bind(params)
             .fetch_optional(&self.pool)
