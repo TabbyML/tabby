@@ -33,8 +33,17 @@ pub struct CrawledMetadata {
 
 impl From<readable_readability::Metadata> for CrawledMetadata {
     fn from(metadata: readable_readability::Metadata) -> Self {
+        // Trim all ascii special chars from title
+        let trim_title_chars = [
+            '#', '$', '%', '&', '*', '+', ',', '/', ':', ';', '=', '?', '@', '[', ']', '^',
+            '`', '{', '|', '}', '~', '\n', ' '
+        ];
+        let title = metadata
+            .article_title
+            .or(metadata.page_title)
+            .map(|x| x.trim_matches(trim_title_chars).to_owned());
         Self {
-            title: metadata.page_title,
+            title,
             description: metadata.description,
         }
     }
