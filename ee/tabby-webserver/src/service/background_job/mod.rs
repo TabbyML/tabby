@@ -117,10 +117,6 @@ pub async fn start(
                     if let Err(err) = SchedulerGithubGitlabJob::cron(now, sender.clone(), third_party_repository_service.clone()).await {
                         warn!("Index issues job failed: {err:?}");
                     }
-
-                    if let Err(err) = WebCrawlerJob::cron(now, sender.clone(), web_crawler_service.clone()).await {
-                        warn!("Web crawler job failed: {err:?}");
-                    }
                 },
                 else => {
                     warn!("Background job channel closed");
