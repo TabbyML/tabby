@@ -145,7 +145,7 @@ const FEATURES: FeatureGroup[] = [
       {
         name: 'User count',
         community: 'Up to 5',
-        team: 'Up to 30',
+        team: 'Up to 200',
         enterprise: 'Unlimited'
       },
       {
