@@ -110,7 +110,7 @@ const enableSearchFactory = new ExperimentFlagFactory(
   'enable_search',
   'Search',
   'Enable the search on the home page to search for anything you want to know using the local chat model.',
-  false
+  true
 )
 export const EXP_enable_search = enableSearchFactory.defineGlobalVar()
 export const useEnableSearch = enableSearchFactory.defineHook()
