@@ -68,6 +68,8 @@ const CodeBlock: FC<Props> = memo(({ language, value, onCopyContent }) => {
     copyToClipboard(value)
   }
 
+  // react-syntax-highlighter does not render .toml files correctly
+  // using bash syntax as a workaround for better display
   const languageForSyntax = language === 'toml' ? 'bash' : language
   return (
     <div className="codeblock relative w-full bg-zinc-950 font-sans">
