@@ -35,7 +35,7 @@ import {
 import {
   IconChevronLeft,
   IconChevronRight,
-  IconPlay,
+  IconCirclePlay,
   IconPlus,
   IconSpinner,
   IconTrash
@@ -391,7 +391,7 @@ const ActiveRepoTable: React.FC<{
                                   handleTriggerJobRun(x.node.jobInfo?.command)
                                 }
                               >
-                                <IconPlay />
+                                <IconCirclePlay className="h-5 w-5" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>

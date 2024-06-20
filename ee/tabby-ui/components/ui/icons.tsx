@@ -8,10 +8,10 @@ import {
   Box,
   ChevronsDownUp,
   FileText,
+  CirclePlay,
   GitFork,
   Layers2,
   Mail,
-  Play,
   Search,
   Sparkles,
   Star,
@@ -1492,8 +1492,11 @@ function IconSearch({
   return <Search className={cn('h4 w-4', className)} {...props} />
 }
 
-function IconPlay({ className, ...props }: React.ComponentProps<typeof Play>) {
-  return <Play className={cn('h4 w-4', className)} {...props} />
+function IconCirclePlay({
+  className,
+  ...props
+}: React.ComponentProps<typeof CirclePlay>) {
+  return <CirclePlay className={cn('h-4 w-4', className)} {...props} />
 }
 
 function IconBox({ className, ...props }: React.ComponentProps<typeof Box>) {
@@ -1628,7 +1631,7 @@ export {
   IconLayers,
   IconSparkles,
   IconSearch,
-  IconPlay,
+  IconCirclePlay,
   IconBox,
   IconTag,
   IconGlobal,

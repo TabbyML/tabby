@@ -12,7 +12,7 @@ import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useMutation } from '@/lib/tabby/gql'
 import { listRepositories } from '@/lib/tabby/query'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { IconPlay, IconSpinner, IconTrash } from '@/components/ui/icons'
+import { IconCirclePlay, IconSpinner, IconTrash } from '@/components/ui/icons'
 import {
   Pagination,
   PaginationContent,
@@ -196,7 +196,7 @@ export default function RepositoryTable() {
                                   handleTriggerJobRun(x.node.jobInfo?.command)
                                 }
                               >
-                                <IconPlay />
+                                <IconCirclePlay className="h-5 w-5" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
