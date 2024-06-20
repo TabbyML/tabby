@@ -1,12 +1,20 @@
 'use client'
 
 import React, { FormEventHandler, useContext, useEffect, useState } from 'react'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { PopoverContent, PopoverTrigger } from '@radix-ui/react-popover'
 
 import { graphql } from '@/lib/gql/generates'
 import { GrepTextOrBase64, RepositoryKind } from '@/lib/gql/generates/graphql'
 import { client } from '@/lib/tabby/gql'
+import { IconSearch, IconSpinner } from '@/components/ui/icons'
 import { Popover } from '@/components/ui/popover'
+import {
+  SearchableSelect,
+  SearchableSelectAnchor,
+  SearchableSelectContent,
+  SearchableSelectInput
+} from '@/components/searchable-select'
 
 import { GlobalSearchListItem } from './global-search/list-item'
 import { SourceCodeBrowserContext } from './source-code-browser'
@@ -75,11 +83,6 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
   const [value, setValue] = useState('')
 
   /**
-   * Whether the search is currently running.
-   */
-  const [isRunning, setIsRunning] = useState(false)
-
-  /**
    * The snippet(?) results of the search.
    * Set to the response of the `search` task.
    */
@@ -111,92 +114,80 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
   }
 
   /**
-   * The action run when the input is focused.
-   * Checks for the case where the input has a value but no results,
-   * such as when the input is populated from a URL parameter.
-   */
-  const onFocus = () => {
-    if (value && !results) {
-      void search(value)
-    }
-  }
-
-  /**
-   *
-   */
-  const onBlur = () => {
-    setPopoverIsShown(false)
-  }
-
-  /**
    * The async task to fetch the search results from the server.
    * Called by the `onInput` event handler when the input value changes.
    */
   const search = async (query: string) => {
-    setIsRunning(true)
+    const { data } = (await client
+      .query(globalSearchQuery, {
+        id: repoId as string,
+        kind: repositoryKind as RepositoryKind,
+        query,
+        pause: !repoId || !repositoryKind
+      })
+      // TODO: Fix types
+      .toPromise()) as unknown as { data: { repositoryGrep: GrepFile[] } }
 
-    try {
-      const { data } = (await client
-        .query(globalSearchQuery, {
-          id: repoId as string,
-          kind: repositoryKind as RepositoryKind,
-          query,
-          pause: !repoId || !repositoryKind
-        })
-        // TODO: Fix types
-        .toPromise()) as unknown as { data: { repositoryGrep: GrepFile[] } }
-
-      setResults(data.repositoryGrep)
-    } catch (e) {
-      //  TODO: Handle error
-      console.error('SEARCH ERROR', e)
-    } finally {
-      setIsRunning(false)
-    }
+    setResults(data.repositoryGrep)
   }
 
+  // FIXME: Currently the keys used to determine which option is highlighted are the same across results. for example, result 1 line 1 has an index of 1. But so does result 100 line 1, since the index is only based on the local array.
+
   return (
-    <div className="px-4 py-2">
-      <Popover open={popoverIsShown}>
-        <div className="relative">
-          <PopoverTrigger className="w-full">
-            <input
-              type="text"
-              placeholder="Jump to a file or search the repository..."
-              // Placeholder styles
-              className="w-full h-9 pl-10  border border-gray-300 rounded"
-              value={value}
-              onInput={onInput}
-              onFocus={onFocus}
-            />
-          </PopoverTrigger>
-          <div className="absolute w-4 h-4 leading-none left-3 top-1/2 -translate-y-1/2">
-            {isRunning ? '🌀' : '🔍'}
+    <div className="px-4 py-2 w-full max-w-[600px]">
+      <SearchableSelect
+        options={undefined}
+        open={popoverIsShown}
+        onOpenChange={() => {
+          if (value && results?.length) {
+            setPopoverIsShown(true)
+          } else {
+            setPopoverIsShown(false)
+          }
+        }}
+      >
+        <SearchableSelectAnchor className="relative w-full">
+          <SearchableSelectInput
+            type="text"
+            placeholder="Search the repository..."
+            // Placeholder styles
+            className="w-full h-9 pl-9 relative border border-gray-300 rounded"
+            value={value}
+            onChange={onInput}
+          />
+          <div className="absolute leading-none left-3 top-1/2 -translate-y-1/2">
+            <IconSearch />
           </div>
-        </div>
-        <PopoverContent
+        </SearchableSelectAnchor>
+        <SearchableSelectContent
           sideOffset={2}
-          className="bg-popover z-20 w-[var(--radix-popover-trigger-width)] p-4 rounded shadow-xl"
+          autoFocus={false}
+          side="bottom"
+          // Stop the content from stealing focus from the input
+          onOpenAutoFocus={e => e.preventDefault()}
+          className="bg-popover max-h-[80vh] overflow-auto w-[var(--radix-popover-trigger-width)] p-4 rounded shadow-xl"
         >
-          {/* TODO: Determine markup for keyboard navigation, etc */}
-          <div>
+          <div className="w-full overflow-hidden">
+            {/* TODO: Investigate how to pass option groups */}
             {results && results.length > 0 && (
-              <ol className="grid gap-2  overflow-hidden">
-                {results.slice(0, 8).map((file, i) => {
+              <ol className="grid gap-2 overflow-hidden">
+                {/* TODO: Replace with / create a `SearchableSelectGroup` */}
+                {results.slice(0, 12).map((file, i) => {
                   return (
                     <GlobalSearchListItem
                       key={i}
                       repoId={repoId as string}
                       repoKind={repositoryKind as RepositoryKind}
                       file={file}
+                      hidePopover={() => setPopoverIsShown(false)}
                     />
                   )
                 })}
               </ol>
             )}
           </div>
-        </PopoverContent>
-      </Popover>
+        </SearchableSelectContent>
+      </SearchableSelect>
     </div>
   )
 }

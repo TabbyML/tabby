@@ -15,6 +15,7 @@ interface GlobalSearchSnippetProps {
   blobText: string
   repoId: string
   file: GrepFile
+  hidePopover: () => void
 }
 
 export const GlobalSearchSnippet = ({ ...props }: GlobalSearchSnippetProps) => {
@@ -48,6 +49,8 @@ export const GlobalSearchSnippet = ({ ...props }: GlobalSearchSnippetProps) => {
             // FIXME: this doesn't work when clicking a different line on the active file
             hash: `L${props.line.lineNumber}`
           }}
+          className="font-mono text-sm bg-white truncate block p-"
+          onClick={props.hidePopover}
         >
           {snippet}
           {/* <CodeEditor

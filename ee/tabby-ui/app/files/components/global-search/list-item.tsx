@@ -2,10 +2,12 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import useSWRImmutable from 'swr/immutable'
 
 import { GrepFile, GrepLine, RepositoryKind } from '@/lib/gql/generates/graphql'
 import fetcher from '@/lib/tabby/fetcher'
+import { SearchableSelectOption } from '@/components/searchable-select'
 
 import { SourceCodeBrowserContext } from '../source-code-browser'
 import {
@@ -19,6 +21,8 @@ interface GlobalSearchListItemProps {
   file: GrepFile
   repoKind: RepositoryKind
   repoId: string
+  key: number
+  hidePopover: () => void
 }
 
 export const GlobalSearchListItem = ({
@@ -88,7 +92,7 @@ export const GlobalSearchListItem = ({
   }, [props.file.lines, data, blob])
 
   return (
-    <li>
+    <div>
       <Link
         href={`/files/${generateEntryPath(
           activeRepo,
@@ -104,19 +108,22 @@ export const GlobalSearchListItem = ({
         {lines ? (
           lines.map((line, i) => {
             return (
+              // TODO: Replace with /  `SearchableSelectItem`
               <GlobalSearchSnippet
                 key={i}
                 blobText={blobText as string}
                 repoId={props.repoId}
                 file={props.file}
                 line={line}
+                hidePopover={props.hidePopover}
               />
             )
           })
         ) : (
+          // TODO: Implement skeleton loader
           <li>Loading...</li>
         )}
       </ol>
-    </li>
+    </div>
   )
 }

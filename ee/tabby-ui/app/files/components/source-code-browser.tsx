@@ -1,7 +1,9 @@
 'use client'
 
 import React, { PropsWithChildren } from 'react'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
+import tabbyLogo from '@/assets/tabby.png'
 import { createRequest } from '@urql/core'
 import { compact, isEmpty, toNumber } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
@@ -16,14 +18,32 @@ import fetcher from '@/lib/tabby/fetcher'
 import { client } from '@/lib/tabby/gql'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { Avatar, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import {
+  IconClose,
+  IconDirectorySolid,
+  IconFile,
+  IconGitFork,
+  IconGithub
+} from '@/components/ui/icons'
+import { Input } from '@/components/ui/input'
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup
 } from '@/components/ui/resizable'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
+import {
+  SearchableSelect,
+  SearchableSelectAnchor,
+  SearchableSelectContent,
+  SearchableSelectInput,
+  SearchableSelectOption
+} from '@/components/searchable-select'
 import { ListSkeleton } from '@/components/skeleton'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
+import { UserAvatar } from '@/components/user-avatar'
 
 import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
 import { ChatSideBar } from './chat-side-bar'
@@ -557,73 +577,95 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [])
 
   return (
-    <ResizablePanelGroup
-      direction="horizontal"
-      className={cn(className)}
-      onLayout={onPanelLayout}
-    >
-      <ResizablePanel
-        defaultSize={20}
-        minSize={20}
-        maxSize={40}
-        className="hidden lg:block"
-      >
-        <FileTreePanel fetchingTreeEntries={fetchingTreeEntries} />
-      </ResizablePanel>
-      <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
-      <ResizablePanel defaultSize={80} minSize={30}>
-        <GlobalSearch />
-        <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
-          <FileDirectoryBreadcrumb className="py-4" />
-          {!initialized ? (
-            <ListSkeleton className="rounded-lg border p-4" />
-          ) : showErrorView ? (
-            <ErrorView
-              className={`rounded-lg border p-4`}
-              error={entriesError || rawFileError}
-            />
-          ) : (
-            <div>
-              {showDirectoryView && (
-                <DirectoryView
-                  loading={fetchingTreeEntries}
-                  initialized={initialized}
-                  className={`rounded-lg border`}
-                />
-              )}
-              {showTextFileView && (
-                <TextFileView blob={fileBlob} contentLength={contentLength} />
-              )}
-              {showRawFileView && (
-                <RawFileView
-                  blob={fileBlob}
-                  isImage={fileViewType === 'image'}
-                  contentLength={contentLength}
-                />
-              )}
-            </div>
-          )}
+    <>
+      {/* TODO: Responsive colors */}
+      <div className="flex border-b h-[52px]  border-b-gray-300 w-full justify-between items-center">
+        <div className="h-full shrink-0 w-[52px] grid place-items-center bg-accent">
+          <Image alt="Tabby logo" src={tabbyLogo} width={36} />
         </div>
-      </ResizablePanel>
-      <>
-        <ResizableHandle
-          className={cn(
-            'hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500',
-            chatSideBarVisible && 'block'
-          )}
-        />
+        <div className="flex ml-2 shrink-0">
+          {/* TODO: Truncate */}
+          <div className="flex items-center gap-2 px-2">
+            <IconGithub />
+            jeffdaley/humansource ▾
+          </div>
+          <div className="gap-2 items-center flex px-2">
+            <IconGitFork />
+            main ▾
+          </div>
+        </div>
+        <div className="flex ml-12 w-full items-center justify-end">
+          <GlobalSearch />
+          <UserAvatar className="w-9 h-9 shrink-0 mr-4" />
+        </div>
+      </div>
+      <ResizablePanelGroup
+        direction="horizontal"
+        className={cn(className)}
+        onLayout={onPanelLayout}
+      >
         <ResizablePanel
-          collapsible
-          collapsedSize={0}
-          defaultSize={0}
-          minSize={25}
-          ref={chatSideBarPanelRef}
-          onCollapse={() => setChatSideBarVisible(false)}
+          defaultSize={20}
+          minSize={20}
+          maxSize={40}
+          className="hidden lg:block"
         >
-          <ChatSideBar />
+          <FileTreePanel fetchingTreeEntries={fetchingTreeEntries} />
         </ResizablePanel>
-      </>
-    </ResizablePanelGroup>
+        <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
+        <ResizablePanel defaultSize={80} minSize={30}>
+          <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
+            <FileDirectoryBreadcrumb className="py-4" />
+            {!initialized ? (
+              <ListSkeleton className="rounded-lg border p-4" />
+            ) : showErrorView ? (
+              <ErrorView
+                className={`rounded-lg border p-4`}
+                error={entriesError || rawFileError}
+              />
+            ) : (
+              <div>
+                {showDirectoryView && (
+                  <DirectoryView
+                    loading={fetchingTreeEntries}
+                    initialized={initialized}
+                    className={`rounded-lg border`}
+                  />
+                )}
+                {showTextFileView && (
+                  <TextFileView blob={fileBlob} contentLength={contentLength} />
+                )}
+                {showRawFileView && (
+                  <RawFileView
+                    blob={fileBlob}
+                    isImage={fileViewType === 'image'}
+                    contentLength={contentLength}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        </ResizablePanel>
+        <>
+          <ResizableHandle
+            className={cn(
+              'hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500',
+              chatSideBarVisible && 'block'
+            )}
+          />
+          <ResizablePanel
+            collapsible
+            collapsedSize={0}
+            defaultSize={0}
+            minSize={25}
+            ref={chatSideBarPanelRef}
+            onCollapse={() => setChatSideBarVisible(false)}
+          >
+            <ChatSideBar />
+          </ResizablePanel>
+        </>
+      </ResizablePanelGroup>
+    </>
   )
 }
 

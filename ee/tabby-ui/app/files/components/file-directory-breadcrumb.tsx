@@ -3,6 +3,7 @@ import Link from 'next/link'
 
 import { RepositoryKind } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
+import { IconHome } from '@/components/ui/icons'
 import { CopyButton } from '@/components/copy-button'
 
 import { SourceCodeBrowserContext } from './source-code-browser'
@@ -50,11 +51,11 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
       <div className="flex items-center gap-1 overflow-x-auto leading-8">
         <Link
           className="cursor-pointer font-medium text-primary hover:underline"
+          // should point to the root
           href="/files"
         >
-          Repositories
+          <IconHome />
         </Link>
-        <div>/</div>
         {routes?.map((route, idx) => {
           const isRepo = idx === 0 && routes?.length > 1
           const isActiveFile = idx === routes.length - 1
@@ -62,7 +63,7 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
             'whitespace-nowrap',
             isRepo || isActiveFile ? 'font-bold' : 'font-medium',
             isActiveFile ? '' : 'cursor-pointer text-primary hover:underline',
-            isRepo ? 'hover:underline' : undefined
+            isRepo ? 'hover:underline hidden' : undefined
           )
 
           return (

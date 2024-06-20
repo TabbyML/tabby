@@ -59,7 +59,7 @@ import {
 
 interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
 
-type SearchOption = {
+export type SearchOption = {
   path: string
   type: string
   indices: number[]
@@ -231,10 +231,9 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
 
   return (
     <div className={cn(className)} {...props}>
-      <div className="py-4 font-bold leading-8">Files</div>
-      <div className="space-y-3">
+      <div className="space-y-3 mt-3">
         {/* Repository select */}
-        <Select
+        {/* <Select
           disabled={!initialized}
           onValueChange={onSelectRepo}
           value={repositorySpecifier}
@@ -285,9 +284,9 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
               </>
             )}
           </SelectContent>
-        </Select>
+        </Select> */}
         {/* branch select */}
-        <Popover open={refSelectVisible} onOpenChange={setRefSelectVisible}>
+        {/* <Popover open={refSelectVisible} onOpenChange={setRefSelectVisible}>
           <PopoverTrigger asChild>
             <Button
               className="w-full justify-start gap-2 px-3"
@@ -352,7 +351,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
               </CommandList>
             </Command>
           </PopoverContent>
-        </Popover>
+        </Popover> */}
         {/* Go to file */}
         <SearchableSelect
           stayOpenOnInputClick
