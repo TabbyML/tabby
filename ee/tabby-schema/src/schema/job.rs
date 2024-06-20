@@ -19,7 +19,6 @@ pub struct JobRun {
     pub finished_at: Option<DateTime<Utc>>,
     pub exit_code: Option<i32>,
     pub stdout: String,
-    pub stderr: String,
 }
 
 #[derive(Debug, GraphQLObject)]
