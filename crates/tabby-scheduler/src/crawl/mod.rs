@@ -11,7 +11,7 @@ use url::Url;
 
 use self::types::{CrawledDocument, KatanaRequestResponse};
 
-async fn crawl_url(start_url: &str) -> impl Stream<Item = KatanaRequestResponse> {
+async fn crawl_url(start_url: &str) -> anyhow::Result<impl Stream<Item = KatanaRequestResponse>> {
     let mut child = tokio::process::Command::new("katana")
         .arg("-u")
         .arg(start_url)
@@ -22,8 +22,7 @@ async fn crawl_url(start_url: &str) -> impl Stream<Item = KatanaRequestResponse>
         .arg("9999")
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
-        .spawn()
-        .expect("Failed to start katana, please check whether the binary is in your $PATH");
+        .spawn()?;
 
     let stdout = child.stdout.take().expect("Failed to acquire stdout");
     let mut stdout = tokio::io::BufReader::new(stdout).lines();
@@ -36,7 +35,7 @@ async fn crawl_url(start_url: &str) -> impl Stream<Item = KatanaRequestResponse>
         }
     });
 
-    stream! {
+    Ok(stream! {
         while let Ok(Some(line)) = stdout.next_line().await {
             let data = match serde_json::from_str::<KatanaRequestResponse>(&line) {
                 Ok(data) => data,
@@ -69,7 +68,7 @@ async fn crawl_url(start_url: &str) -> impl Stream<Item = KatanaRequestResponse>
 
             yield data;
         }
-    }
+    })
 }
 
 fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
@@ -105,10 +104,12 @@ fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
     ))
 }
 
-pub async fn crawl_pipeline(start_url: &str) -> impl Stream<Item = CrawledDocument> {
-    crawl_url(start_url)
-        .await
-        .filter_map(move |data| async move { to_document(data) })
+pub async fn crawl_pipeline(
+    start_url: &str,
+) -> anyhow::Result<impl Stream<Item = CrawledDocument>> {
+    Ok(crawl_url(start_url)
+        .await?
+        .filter_map(move |data| async move { to_document(data) }))
 }
 
 #[cfg(test)]
