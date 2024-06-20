@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/tooltip'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListRowSkeleton } from '@/components/skeleton'
+import { getJobDisplayName } from '../utils'
 
 function JobAggregateState({
   count,
@@ -209,18 +210,4 @@ export default function JobRow({ name }: { name: string }) {
       </TableRow>
     </LoadingWrapper>
   )
-}
-
-const JOB_DISPLAY_NAME_MAPPINGS = {
-  "scheduler_git": "Git",
-  "scheduler_github_gitlab": "Github / Gitlab",
-  "web": "Web"
-}
-
-function getJobDisplayName(name: string): string {
-  if (name in JOB_DISPLAY_NAME_MAPPINGS) {
-    return JOB_DISPLAY_NAME_MAPPINGS[name as keyof typeof JOB_DISPLAY_NAME_MAPPINGS]
-  } else {
-    return name;
-  }
 }
