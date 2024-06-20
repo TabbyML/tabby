@@ -2,24 +2,25 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 
-import { IntegrationKind, RepositoryKind } from '@/lib/gql/generates/graphql'
-import { IconGitHub, IconGitLab } from '@/components/ui/icons'
+import { IntegrationKind } from '@/lib/gql/generates/graphql'
+import { IconFileText, IconGitHub, IconGitLab } from '@/components/ui/icons'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { PROVIDER_KIND_METAS } from '../constants'
 
 export default function GitTabsHeader() {
-  const params = useParams<{ kind?: RepositoryKind }>()
+  const pathname = usePathname()
   const defaultValue = React.useMemo(() => {
-    return params?.kind ? params.kind?.toLowerCase() : 'git'
-  }, [params?.kind])
+    const matcher = pathname.match(/^\/settings\/providers\/([\w-]+)/)?.[1]
+    return matcher?.toLowerCase() ?? 'git'
+  }, [pathname])
 
   return (
     <Tabs value={defaultValue}>
       <div className="sticky top-0 mb-4 flex">
-        <TabsList className="grid grid-cols-5">
+        <TabsList className="grid grid-cols-6">
           <TabsTrigger value="git" asChild>
             <Link href="/settings/providers/git">
               <span className="ml-2">Git</span>
@@ -35,6 +36,12 @@ export default function GitTabsHeader() {
               </TabsTrigger>
             )
           })}
+          <TabsTrigger value="web" asChild>
+            <Link href="/settings/providers/web">
+              <IconFileText />
+              <span className="ml-2">Web</span>
+            </Link>
+          </TabsTrigger>
         </TabsList>
       </div>
     </Tabs>

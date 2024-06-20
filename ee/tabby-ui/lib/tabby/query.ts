@@ -260,3 +260,39 @@ export const listIntegratedRepositories = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const listWebCrawlerUrl = graphql(/* GraphQL */ `
+  query WebCrawlerUrls(
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    webCrawlerUrls(after: $after, before: $before, first: $first, last: $last) {
+      edges {
+        node {
+          url
+          id
+          createdAt
+          jobInfo {
+            lastJobRun {
+              id
+              job
+              createdAt
+              finishedAt
+              exitCode
+            }
+            command
+          }
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
