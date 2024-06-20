@@ -20,7 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
 
-import { getLabelByExitCode } from '../utils/state'
+import { getJobDisplayName, getLabelByExitCode } from '../utils'
 
 export default function JobRunDetail() {
   const router = useRouter()
@@ -63,7 +63,7 @@ export default function JobRunDetail() {
               >
                 <IconChevronLeft className="mr-1 h-6 w-6" />
                 <h2 className="scroll-m-20 text-3xl font-bold tracking-tight first:mt-0">
-                  {currentNode.job}
+                  {getJobDisplayName(currentNode.job)}
                 </h2>
               </div>
               <div className="mb-8 flex gap-x-5 text-sm text-muted-foreground lg:gap-x-10">

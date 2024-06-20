@@ -20,6 +20,8 @@ import {
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListRowSkeleton } from '@/components/skeleton'
 
+import { getJobDisplayName } from '../utils'
+
 function JobAggregateState({
   count,
   activeClass,
@@ -119,7 +121,7 @@ export default function JobRow({ name }: { name: string }) {
       }
     >
       <TableRow className="h-16">
-        <TableCell className="font-bold">{name}</TableCell>
+        <TableCell className="font-bold">{getJobDisplayName(name)}</TableCell>
         <TableCell>
           <div className="grid grid-cols-5 flex-wrap gap-1.5  xl:flex">
             {displayJobs?.map(job => {
