@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use gitlab::{
-    api::{issues::ProjectIssues, AsyncQuery},
+    api::{issues::ProjectIssues, projects::merge_requests::MergeRequests, AsyncQuery},
     GitlabBuilder,
 };
 use octocrab::Octocrab;
@@ -45,7 +45,7 @@ pub async fn index_github_issues(
 
     for issue in issues {
         let doc = WebDocument {
-            id: format!("github/{full_name}/issues/{}", issue.id),
+            id: issue.html_url.to_string(),
             link: issue.html_url.to_string(),
             title: issue.title,
             body: issue.body.unwrap_or_default(),
@@ -59,7 +59,6 @@ pub async fn index_github_issues(
 #[derive(Deserialize)]
 struct GitlabIssue {
     title: String,
-    id: u64,
     description: String,
     web_url: String,
 }
@@ -84,10 +83,27 @@ pub async fn index_gitlab_issues(
 
     for issue in issues {
         let doc = WebDocument {
-            id: format!("gitlab/{full_name}/issues/{}", issue.id),
+            id: issue.web_url.clone(),
             link: issue.web_url,
             title: issue.title,
             body: issue.description,
+        };
+        index.add(doc).await;
+    }
+
+    let merge_requests: Vec<GitlabIssue> = gitlab::api::paged(
+        MergeRequests::builder().project(full_name).build()?,
+        gitlab::api::Pagination::All,
+    )
+    .query_async(&gitlab)
+    .await?;
+
+    for merge_request in merge_requests {
+        let doc = WebDocument {
+            id: merge_request.web_url.clone(),
+            link: merge_request.web_url,
+            title: merge_request.title,
+            body: merge_request.description,
         };
         index.add(doc).await;
     }
