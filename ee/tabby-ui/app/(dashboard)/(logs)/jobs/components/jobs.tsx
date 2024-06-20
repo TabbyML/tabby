@@ -36,8 +36,8 @@ export default function JobRunsPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data?.jobs.map(jobName => {
-            return <JobRow key={jobName} name={jobName} />
+          {data?.jobs.map(name => {
+            return <JobRow key={name} name={name} />
           })}
         </TableBody>
       </Table>

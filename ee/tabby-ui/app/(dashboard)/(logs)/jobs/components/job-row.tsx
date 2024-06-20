@@ -119,7 +119,7 @@ export default function JobRow({ name }: { name: string }) {
       }
     >
       <TableRow className="h-16">
-        <TableCell className="font-bold">{name}</TableCell>
+        <TableCell className="font-bold">{getJobDisplayName(name)}</TableCell>
         <TableCell>
           <div className="grid grid-cols-5 flex-wrap gap-1.5  xl:flex">
             {displayJobs?.map(job => {
@@ -209,4 +209,18 @@ export default function JobRow({ name }: { name: string }) {
       </TableRow>
     </LoadingWrapper>
   )
+}
+
+const JOB_DISPLAY_NAME_MAPPINGS = {
+  "scheduler_git": "Git",
+  "scheduler_github_gitlab": "Github / Gitlab",
+  "web": "Web"
+}
+
+function getJobDisplayName(name: string): string {
+  if (name in JOB_DISPLAY_NAME_MAPPINGS) {
+    return JOB_DISPLAY_NAME_MAPPINGS[name as keyof typeof JOB_DISPLAY_NAME_MAPPINGS]
+  } else {
+    return name;
+  }
 }
