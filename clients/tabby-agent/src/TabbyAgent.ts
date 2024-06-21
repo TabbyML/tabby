@@ -96,6 +96,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.clientConfig,
       this.serverProvidedConfig,
     ) as AgentConfig;
+    this.config.server.endpoint = this.config.server.endpoint.replace(/\/+$/, ""); // remove trailing slash
     this.logger.trace("Updated config:", this.config);
 
     if (fileLogger) {
@@ -153,7 +154,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
         ? `Bearer ${this.auth.token}`
         : undefined;
     this.api = createClient<TabbyApi>({
-      baseUrl: this.config.server.endpoint.replace(/\/+$/, ""), // remove trailing slash
+      baseUrl: this.config.server.endpoint,
       headers: {
         Authorization: auth,
         ...this.config.server.requestHeaders,
