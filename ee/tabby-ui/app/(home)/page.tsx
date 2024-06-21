@@ -170,10 +170,7 @@ function MainPanel() {
             </div>
             {isChatEnabled && searchFlag.value && (
               <div className="mb-10 w-full" data-aos="fade-down">
-                <TextAreaSearch
-                  onSearch={onSearch}
-                  showBetaBadge
-                  autoFocus />
+                <TextAreaSearch onSearch={onSearch} showBetaBadge autoFocus />
               </div>
             )}
             <div className="flex w-full flex-col gap-x-5 lg:flex-row">
