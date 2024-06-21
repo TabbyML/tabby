@@ -155,23 +155,24 @@ const FEATURES: FeatureGroup[] = [
         enterprise: checked
       },
       {
-        name: (
-          <FeatureWithTooltip name="Bring your own LLM">
-            Tabby builds on top of open technologies, allowing customers to
-            bring their own LLM models.
-          </FeatureWithTooltip>
-        ),
+        name: 'Answer Engine',
+        community: checked,
+        team: checked,
+        enterprise: checked
+      },
+      {
+        name: 'Code Browser',
         community: checked,
         team: checked,
         enterprise: checked
       },
       {
         name: (
-          <FeatureWithTooltip name="Git Providers">
-            Tabby can retrieve the codebase context to enhance responses.
-            Underlying Tabby pulls context from git providers with a code search
-            index. This method enables Tabby to utilize the team&apos;s past
-            practices at scale.
+          <FeatureWithTooltip name="Context Providers">
+            Tabby can retrieve various contexts to enhance responses for code
+            completion and answering questions. Context providers offer the
+            ability to retrieve context from various sources, such as source
+            code repositories and issue trackers.
           </FeatureWithTooltip>
         ),
         community: checked,
