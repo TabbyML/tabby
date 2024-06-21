@@ -13,13 +13,15 @@ export default function TextAreaSearch({
   className,
   placeholder,
   showBetaBadge,
-  isLoading
+  isLoading,
+  autoFocus
 }: {
   onSearch: (value: string) => void
   className?: string
   placeholder?: string
   showBetaBadge?: boolean
   isLoading?: boolean
+  autoFocus?: boolean
 }) {
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
@@ -81,6 +83,7 @@ export default function TextAreaSearch({
         onBlur={() => setIsFocus(false)}
         onChange={e => setValue(e.target.value)}
         value={value}
+        autoFocus={autoFocus}
       />
       <div
         className={cn('mr-6 flex items-center rounded-lg p-1 transition-all', {

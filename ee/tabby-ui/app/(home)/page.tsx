@@ -139,7 +139,7 @@ function MainPanel() {
         ref={elementRef}
       >
         {!isSearch && (
-          <div className="mx-auto flex w-full flex-col items-center px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
+          <div className="mx-auto flex min-h-0 w-full flex-col items-center px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
             <Image
               src={tabbyUrl}
               alt="logo"
@@ -170,7 +170,7 @@ function MainPanel() {
             </div>
             {isChatEnabled && searchFlag.value && (
               <div className="mb-10 w-full" data-aos="fade-down">
-                <TextAreaSearch onSearch={onSearch} showBetaBadge />
+                <TextAreaSearch onSearch={onSearch} showBetaBadge autoFocus />
               </div>
             )}
             <div className="flex w-full flex-col gap-x-5 lg:flex-row">
