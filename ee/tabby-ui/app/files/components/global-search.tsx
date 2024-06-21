@@ -166,12 +166,12 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
         event.preventDefault()
         inputRef.current?.focus()
       }
+    }
 
-      window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown)
 
-      return () => {
-        window.removeEventListener('keydown', handleKeyDown)
-      }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
     }
   }, [])
 
@@ -201,10 +201,9 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
    *
    */
   const clearInput = (e?: MouseEvent) => {
-    console.log('bullshit')
     e?.preventDefault()
     // TODO: Confirm
-    e?.stopPropagation()
+    // e?.stopPropagation()
     setValue('')
     setResults(null)
     focusInput
