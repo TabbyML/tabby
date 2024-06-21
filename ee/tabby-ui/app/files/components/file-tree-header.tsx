@@ -476,7 +476,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   )
 }
 
-const HighlightMatches = ({
+export const HighlightMatches = ({
   text,
   indices
 }: {

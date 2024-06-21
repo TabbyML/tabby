@@ -53,6 +53,7 @@ export const GlobalSearchResult = ({ ...props }: GlobalSearchResultProps) => {
               path={props.result.path}
               lineNumber={line.lineNumber}
               hidePopover={props.hidePopover}
+              subMatches={line.subMatches}
             />
           )
         })}
