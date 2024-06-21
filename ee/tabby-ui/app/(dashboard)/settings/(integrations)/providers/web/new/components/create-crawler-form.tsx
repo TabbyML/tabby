@@ -26,7 +26,7 @@ const createWebCrawlerUrlMutation = graphql(/* GraphQL */ `
 `)
 
 const formSchema = z.object({
-  url: z.string().url()
+  url: z.string().url().trim()
 })
 
 type FormValues = z.infer<typeof formSchema>
