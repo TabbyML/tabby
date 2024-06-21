@@ -1,8 +1,5 @@
 use anyhow::{anyhow, Result};
-use gitlab::{
-    api::{issues::ProjectIssues, projects::merge_requests::MergeRequests, AsyncQuery},
-    GitlabBuilder,
-};
+use gitlab::api::{issues::ProjectIssues, projects::merge_requests::MergeRequests, AsyncQuery};
 use octocrab::Octocrab;
 use serde::Deserialize;
 use tabby_scheduler::{DocIndexer, WebDocument};
