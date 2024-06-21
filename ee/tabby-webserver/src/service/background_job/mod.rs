@@ -41,7 +41,7 @@ pub async fn start(
     git_repository_service: Arc<dyn GitRepositoryService>,
     third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
     integration_service: Arc<dyn IntegrationService>,
-    web_crawler_service: Arc<dyn WebCrawlerService>,
+    _web_crawler_service: Arc<dyn WebCrawlerService>,
     embedding: Arc<dyn Embedding>,
     sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
     mut receiver: tokio::sync::mpsc::UnboundedReceiver<BackgroundJobEvent>,
