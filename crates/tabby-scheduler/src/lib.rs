@@ -5,12 +5,11 @@ mod code;
 pub mod crawl;
 mod indexer;
 
-use async_stream::stream;
 pub use code::CodeIndexer;
 use crawl::crawl_pipeline;
 use doc::create_web_index;
 pub use doc::{DocIndexer, WebDocument};
-use futures::StreamExt;
+use futures::{Future, StreamExt};
 use indexer::{IndexAttributeBuilder, Indexer};
 use tabby_inference::Embedding;
 
@@ -75,30 +74,37 @@ async fn scheduler_pipeline(config: &tabby_common::config::Config) {
     code.garbage_collection(repositories);
 }
 
-pub async fn crawl_index_docs(urls: &[String], embedding: Arc<dyn Embedding>) {
+pub async fn crawl_index_docs<F>(
+    urls: &[String],
+    embedding: Arc<dyn Embedding>,
+    on_process_url: impl Fn(String) -> F,
+) -> anyhow::Result<()>
+where
+    F: Future<Output = ()>,
+{
     for url in urls {
         debug!("Starting doc index pipeline for {url}");
         let embedding = embedding.clone();
-        stream! {
-            let mut num_docs = 0;
-            let doc_index = create_web_index(embedding.clone());
-            for await doc in crawl_pipeline(url).await {
-                let source_doc = SourceDocument {
-                    id: doc.url.clone(),
-                    title: doc.metadata.title.unwrap_or_default(),
-                    link: doc.url,
-                    body: doc.markdown,
-                };
+        let mut num_docs = 0;
+        let doc_index = create_web_index(embedding.clone());
 
-                num_docs += 1;
-                doc_index.add(source_doc).await;
-            }
-            info!("Crawled {} documents from '{}'", num_docs, url);
-            doc_index.commit();
+        let mut pipeline = Box::pin(crawl_pipeline(url).await?);
+        while let Some(doc) = pipeline.next().await {
+            on_process_url(doc.url.clone()).await;
+            let source_doc = SourceDocument {
+                id: doc.url.clone(),
+                title: doc.metadata.title.unwrap_or_default(),
+                link: doc.url,
+                body: doc.markdown,
+            };
+
+            num_docs += 1;
+            doc_index.add(source_doc).await;
         }
-        .collect::<Vec<_>>()
-        .await;
+        info!("Crawled {} documents from '{}'", num_docs, url);
+        doc_index.commit();
     }
+    Ok(())
 }
 
 mod tantivy_utils {
