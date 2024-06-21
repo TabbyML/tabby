@@ -3,20 +3,16 @@
 import React, {
   FocusEventHandler,
   FormEventHandler,
-  MouseEventHandler,
   useContext,
   useEffect,
   useState
 } from 'react'
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import { PopoverContent, PopoverTrigger } from '@radix-ui/react-popover'
 
 import { graphql } from '@/lib/gql/generates'
 import { GrepTextOrBase64, RepositoryKind } from '@/lib/gql/generates/graphql'
 import { client } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
-import { IconClose, IconSearch, IconSpinner } from '@/components/ui/icons'
-import { Popover } from '@/components/ui/popover'
+import { IconClose, IconSearch } from '@/components/ui/icons'
 import {
   SearchableSelect,
   SearchableSelectAnchor,
@@ -24,7 +20,6 @@ import {
   SearchableSelectInput
 } from '@/components/searchable-select'
 
-import { GlobalSearchResult } from './global-search/result'
 import { GlobalSearchResults } from './global-search/results'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { resolveRepositoryInfoFromPath } from './utils'
