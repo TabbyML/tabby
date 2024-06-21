@@ -96,7 +96,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.clientConfig,
       this.serverProvidedConfig,
     ) as AgentConfig;
-    this.config.server.endpoint = this.config.server.endpoint.replace(/\/+$/, ""), // remove trailing slash
+    this.config.server.endpoint = this.config.server.endpoint.replace(/\/+$/, ""); // remove trailing slash
     this.logger.trace("Updated config:", this.config);
 
     if (fileLogger) {
