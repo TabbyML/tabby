@@ -28,12 +28,22 @@ impl Config {
     pub fn load() -> Result<Self> {
         let cfg_path = crate::path::config_file();
         if !cfg_path.as_path().exists() {
+            InfoMessage::new(
+                "Tabby config file missing",
+                HeaderFormat::Blue,
+                &[
+                    &format!(
+                        "Warning: Could not find the Tabby configuration at {}",
+                        cfg_path.display()
+                    ),
+                    "Applying default configuration",
+                ],
+            )
+            .print();
             return Ok(Default::default());
         }
-        let mut cfg: Self = serdeconv::from_toml_file(cfg_path.as_path()).context(format!(
-            "Config file '{}' is not valid",
-            cfg_path.display()
-        ))?;
+        let mut cfg: Self = serdeconv::from_toml_file(cfg_path.as_path())
+            .context(format!("Config file '{}' is not valid", cfg_path.display()))?;
 
         if let Err(e) = cfg.validate_dirs() {
             cfg = Default::default();
