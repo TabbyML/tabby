@@ -3,7 +3,7 @@
 import React, { PropsWithChildren } from 'react'
 import { usePathname } from 'next/navigation'
 import { createRequest } from '@urql/core'
-import { compact, isEmpty, toNumber } from 'lodash-es'
+import { compact, isEmpty, isNil, toNumber } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import useSWR from 'swr'
 
@@ -15,7 +15,7 @@ import { filename2prism } from '@/lib/language-utils'
 import fetcher from '@/lib/tabby/fetcher'
 import { client } from '@/lib/tabby/gql'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
 import {
   ResizableHandle,
   ResizablePanel,
@@ -39,6 +39,7 @@ import {
   generateEntryPath,
   getDefaultRepoRef,
   getDirectoriesFromBasename,
+  parseLineNumberFromHash,
   repositoryList2Map,
   resolveFileNameFromPath,
   resolveRepoRef,
@@ -155,14 +156,14 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         updateUrlComponents({
           pathname: '/files',
           searchParams: {
-            del: ['path', 'plain']
+            del: ['path', 'plain', 'line']
           },
           hash: options?.hash,
           replace
         })
       } else {
         const setParams: Record<string, string> = {}
-        let delList = ['plain', 'redirect_filepath', 'redirect_git_url']
+        let delList = ['plain', 'redirect_filepath', 'redirect_git_url', 'line']
 
         updateUrlComponents({
           pathname: `/files/${path}`,
@@ -431,11 +432,24 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           // use default rev
           const defaultRef = getDefaultRepoRef(targetRepo.refs)
           const refName = resolveRepoRef(defaultRef ?? '')?.name || ''
+
+          const lineRangeInHash = parseLineNumberFromHash(window.location.hash)
+          const isValidLineHash = !isNil(lineRangeInHash?.start)
+
+          // for backward compatibility, redirecting param likes `?line=1`
+          const startLineNumber = parseInt(
+            searchParams.get('line')?.toString() ?? ''
+          )
+
+          const nextHash = isValidLineHash
+            ? window.location.hash
+            : formatLineHashForCodeBrowser({ start: startLineNumber })
+
           updateActivePath(
             generateEntryPath(targetRepo, refName, redirect_filepath, 'file'),
             {
               replace: true,
-              hash: window.location.hash
+              hash: nextHash
             }
           )
           initializing.current = false

@@ -83,7 +83,7 @@ function resolveUrlComponents(
     newPath += `?${queryString}`
   }
   if (options.hash) {
-    newPath += options.hash
+    newPath += `#${options.hash.replace(/^#/, '')}`
   }
   return newPath
 }

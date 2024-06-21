@@ -91,9 +91,11 @@ export function formatLineHashForCodeBrowser(
   if (!range) return ''
 
   const { start, end } = range
-  if (isNil(start)) return ''
+  if (isNil(start) || isNaN(start)) return ''
   if (start === end) return `L${start}`
   return compact(
-    [start, end].map(num => (typeof num === 'number' ? `L${num}` : undefined))
+    [start, end].map(num =>
+      typeof num === 'number' && !isNaN(num) ? `L${num}` : undefined
+    )
   ).join('-')
 }
