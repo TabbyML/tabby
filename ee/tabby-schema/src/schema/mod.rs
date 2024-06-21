@@ -782,6 +782,7 @@ impl Mutation {
     }
 
     async fn create_integration(ctx: &Context, input: CreateIntegrationInput) -> Result<ID> {
+        input.validate()?;
         let id = ctx
             .locator
             .integration()
@@ -796,6 +797,7 @@ impl Mutation {
     }
 
     async fn update_integration(ctx: &Context, input: UpdateIntegrationInput) -> Result<bool> {
+        input.validate()?;
         ctx.locator
             .integration()
             .update_integration(
@@ -838,6 +840,7 @@ impl Mutation {
     }
 
     async fn create_web_crawler_url(ctx: &Context, input: CreateWebCrawlerUrlInput) -> Result<ID> {
+        input.validate()?;
         let id = ctx
             .locator
             .web_crawler()
