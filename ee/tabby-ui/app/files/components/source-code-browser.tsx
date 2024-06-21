@@ -1,6 +1,6 @@
 'use client'
 
-import React, { PropsWithChildren } from 'react'
+import React, { PropsWithChildren, useState } from 'react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import tabbyLogo from '@/assets/tabby.png'
@@ -578,27 +578,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   return (
     <>
-      {/* TODO: Responsive colors */}
-      <div className="flex border-b h-[52px]  border-b-gray-300 w-full justify-between items-center">
-        <div className="h-full shrink-0 w-[52px] grid place-items-center bg-accent">
-          <Image alt="Tabby logo" src={tabbyLogo} width={36} />
-        </div>
-        <div className="flex ml-2 shrink-0">
-          {/* TODO: Truncate */}
-          <div className="flex items-center gap-2 px-2">
-            <IconGithub />
-            jeffdaley/humansource ▾
-          </div>
-          <div className="gap-2 items-center flex px-2">
-            <IconGitFork />
-            main ▾
-          </div>
-        </div>
-        <div className="flex ml-12 w-full items-center justify-end">
-          <GlobalSearch />
-          <UserAvatar className="w-9 h-9 shrink-0 mr-4" />
-        </div>
-      </div>
       <ResizablePanelGroup
         direction="horizontal"
         className={cn(className)}
@@ -614,6 +593,12 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         </ResizablePanel>
         <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
         <ResizablePanel defaultSize={80} minSize={30}>
+          <div className="flex border-b py-3 w-full justify-between items-center border-border">
+            <div className="flex w-full items-center px-4">
+              <GlobalSearch />
+              {/* <UserAvatar className="w-9 h-9 shrink-0 mr-4" /> */}
+            </div>
+          </div>
           <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
             <FileDirectoryBreadcrumb className="py-4" />
             {!initialized ? (

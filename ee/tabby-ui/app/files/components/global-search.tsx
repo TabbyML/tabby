@@ -125,8 +125,12 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
     const query = e.currentTarget.value
     setValue(query)
 
-    if (query.length) setPopoverIsShown(true)
+    console.log('onInput', query)
 
+    if (query.length) {
+      console.log('setting popover to true')
+      setPopoverIsShown(true)
+    }
     if (query === '') {
       setPopoverIsShown(false)
       setResults(null)
@@ -143,6 +147,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
     setValue(query)
 
     if (query.length) {
+      setPopoverIsShown(true)
       void search(query)
     }
   }
@@ -180,6 +185,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
    * Called by the `onInput` event handler when the input value changes.
    */
   const search = async (query: string) => {
+    console.log('search', query)
     const { data } = (await client
       .query(globalSearchQuery, {
         id: repoId as string,
@@ -189,7 +195,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
       })
       // TODO: Fix types
       .toPromise()) as unknown as { data: { repositoryGrep: GrepFile[] } }
-
+    console.log('search results', data.repositoryGrep)
     setResults(data.repositoryGrep)
   }
 
@@ -202,8 +208,6 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
    */
   const clearInput = (e?: MouseEvent) => {
     e?.preventDefault()
-    // TODO: Confirm
-    // e?.stopPropagation()
     setValue('')
     setResults(null)
     focusInput
@@ -212,7 +216,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
   // FIXME: Currently the keys used to determine which option is highlighted are the same across results. for example, result 1 line 1 has an index of 1. But so does result 100 line 1, since the index is only based on the local array.
 
   return (
-    <div className="px-4 py-2 w-full max-w-[800px]">
+    <div className="w-full">
       <SearchableSelect
         // FIXME: define the options
         options={undefined}
@@ -228,13 +232,13 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
       >
         <SearchableSelectAnchor className="relative w-full">
           <SearchableSelectInput
-            type="text"
+            type="search" // TODO: Remove X
             placeholder="Search the repository..."
             // Placeholder styles
-            className="w-full h-9 pl-9 relative border border-border rounded"
+            className="w-full pl-9"
             value={value}
             ref={inputRef}
-            onChange={onInput}
+            onInput={onInput}
             onFocus={onFocus}
           />
           <div className="absolute leading-none left-3 top-1/2 -translate-y-1/2 opacity-50">
@@ -269,13 +273,12 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
         </SearchableSelectAnchor>
         <SearchableSelectContent
           sideOffset={4}
-          alignOffset={-4}
           autoFocus={false}
           side="bottom"
           align="end"
           // Stop the content from taking focus from the input
           onOpenAutoFocus={e => e.preventDefault()}
-          className="bg-popover max-h-[80vh] overflow-auto w-[75vw] max-w-[800px] p-4 rounded shadow-xl"
+          className="bg-popover max-h-[80vh] overflow-auto w-[var(--radix-popover-trigger-width)] p-4 rounded shadow-xl"
         >
           <div className="w-full overflow-hidden">
             <GlobalSearchResults
