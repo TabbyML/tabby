@@ -50,7 +50,7 @@ pub async fn handler(uri: Uri) -> impl IntoResponse {
     if path.is_empty() {
         "index.html".clone_into(&mut path)
     } else if path.starts_with("files/") {
-        if path.ends_with(".txt") && query.is_some_and(|x| x.starts_with("_rsc=")) {
+        if query.is_some_and(|x| x.contains("_rsc=")) {
             "files.txt".clone_into(&mut path)
         } else {
             "files.html".clone_into(&mut path)
