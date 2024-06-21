@@ -169,8 +169,10 @@ const FEATURES: FeatureGroup[] = [
       {
         name: (
           <FeatureWithTooltip name="Context Providers">
-            Tabby can retrieve various contexts to enhance responses for code completion and answering questions.
-            Context providers offer the ability to retrieve context from various sources, such as source code repositories and issue trackers.
+            Tabby can retrieve various contexts to enhance responses for code
+            completion and answering questions. Context providers offer the
+            ability to retrieve context from various sources, such as source
+            code repositories and issue trackers.
           </FeatureWithTooltip>
         ),
         community: checked,
