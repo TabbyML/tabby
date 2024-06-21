@@ -12,7 +12,8 @@ export default function WebProviderLayout({
       // externalLink="https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion"
       >
         Connect to a web URL, utilizing this as context to enhance the
-        performance of large language models.
+        performance of large language models. Uses <a href="https://github.com/projectdiscovery/katana">Katana</a>,
+        ensure it is installed before adding URLs.
       </SubHeader>
       {children}
     </>

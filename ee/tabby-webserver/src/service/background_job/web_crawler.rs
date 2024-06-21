@@ -22,14 +22,10 @@ impl WebCrawlerJob {
     }
 
     pub async fn run(self, job_logger: JobLogger, embedding: Arc<dyn Embedding>) -> Result<()> {
-        tabby_scheduler::crawl_index_docs(
-            &[self.url],
-            move |url| {
-                let job_logger = job_logger.clone();
-                async move { cprintln!(job_logger, "{url}") }
-            },
-            embedding,
-        )
+        tabby_scheduler::crawl_index_docs(&[self.url], embedding, move |url| {
+            let job_logger = job_logger.clone();
+            async move { cprintln!(job_logger, "Fetching {url}") }
+        })
         .await?;
         Ok(())
     }

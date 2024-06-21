@@ -76,8 +76,8 @@ async fn scheduler_pipeline(config: &tabby_common::config::Config) {
 
 pub async fn crawl_index_docs<F>(
     urls: &[String],
-    url_logger: impl Fn(String) -> F,
     embedding: Arc<dyn Embedding>,
+    on_process_url: impl Fn(String) -> F,
 ) -> anyhow::Result<()>
 where
     F: Future<Output = ()>,
@@ -90,7 +90,7 @@ where
 
         let mut pipeline = Box::pin(crawl_pipeline(url).await?);
         while let Some(doc) = pipeline.next().await {
-            url_logger(doc.url.clone()).await;
+            on_process_url(doc.url.clone()).await;
             let source_doc = SourceDocument {
                 id: doc.url.clone(),
                 title: doc.metadata.title.unwrap_or_default(),
