@@ -30,12 +30,10 @@ jobs:
 
     strategy:
       matrix:
-        device-type: [cuda, rocm]
+        device-type: [cuda]
         include:
           - device-type: cuda
             image-suffix: ""
-          - device-type: rocm
-            image-suffix: "-rocm"
 
     steps:
       - name: Free Disk Space (Ubuntu)

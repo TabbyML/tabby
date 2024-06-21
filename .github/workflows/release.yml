@@ -257,14 +257,21 @@ jobs:
 
       - name: Creating distribution bundles
         run: >
+          get_file_extension() {
+              local filename="$1"
+              # Check if the file has an extension
+              if [[ "$filename" == *.* && ! "$filename" == .* ]]; then
+                echo ".${filename##*.}"
+              else
+                echo ""
+              fi
+          }
+
           for llama_server in llama-server_*/llama-server_*; do
             for tabby in tabby_*/tabby_*; do
               llamab=$(basename $llama_server)
               tabbyb=$(basename $tabby)
-              extname=${tabbyb##*.}
-              if [[ -n "${extname}" ]]; then
-                extname=.${extname}
-              fi
+              extname=$(get_file_extension $tabbyb)
 
               llaman=${llamab%.*}
               tabbyn=${tabbyb%.*}
