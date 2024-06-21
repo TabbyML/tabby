@@ -16,7 +16,7 @@ members = [
     "ee/tabby-webserver",
     "ee/tabby-db",
     "ee/tabby-db-macros",
-    "ee/tabby-schema",
+    "ee/tabby-schema", "crates/custom-tls",
 ]
 
 [workspace.package]
