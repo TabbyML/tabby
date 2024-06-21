@@ -57,6 +57,12 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Install katana
+RUN curl -L https://github.com/projectdiscovery/katana/releases/download/v1.1.0/katana_1.1.0_linux_amd64.zip -o katana.zip \
+  && unzip katana.zip \
+  && mv katana /usr/bin/ \
+  && rm katana.zip
+
 # Disable safe directory in docker
 # Context: https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
 RUN git config --system --add safe.directory "*"
