@@ -193,9 +193,9 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
         query,
         pause: !repoId || !repositoryKind
       })
-      // TODO: Fix types
+      // FIXME: Wrong types
       .toPromise()) as unknown as { data: { repositoryGrep: GrepFile[] } }
-    console.log('search results', data.repositoryGrep)
+    if (!data) return
     setResults(data.repositoryGrep)
   }
 
