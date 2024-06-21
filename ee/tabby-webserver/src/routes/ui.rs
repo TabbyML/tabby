@@ -46,10 +46,15 @@ where
 
 pub async fn handler(uri: Uri) -> impl IntoResponse {
     let mut path = uri.path().trim_start_matches('/').to_string();
+    let query = uri.query();
     if path.is_empty() {
         "index.html".clone_into(&mut path)
     } else if path.starts_with("files/") {
-        "files.html".clone_into(&mut path)
+        if path.ends_with(".txt") && query.is_some_and(|x| x.starts_with("_rsc=")){
+            "files.txt".clone_into(&mut path)
+        } else {
+            "files.html".clone_into(&mut path)
+        }
     } else if !path.contains('.') && WebAssets::get(&format!("{}.html", path)).is_some() {
         path += ".html"
     }
