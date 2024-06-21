@@ -1,0 +1,14 @@
+[package]
+name = "custom-tls"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[features]
+native-tls = ["reqwest/native-tls"]
+rustls-tls = ["reqwest/rustls-tls"]
+
+[dependencies]
+tokio ={ version = "1", features = ["full"] }
+reqwest = { version = "0.12", default_features = false }
