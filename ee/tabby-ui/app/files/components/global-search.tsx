@@ -1,26 +1,18 @@
 'use client'
 
-import React, {
-  FocusEventHandler,
-  FormEventHandler,
-  useContext,
-  useEffect,
-  useState
-} from 'react'
+import React, { FormEventHandler, useContext, useEffect, useState } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
+import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
 import { GrepTextOrBase64, RepositoryKind } from '@/lib/gql/generates/graphql'
 import { client } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
+import { Form } from '@/components/ui/form'
 import { IconClose, IconSearch } from '@/components/ui/icons'
-import {
-  SearchableSelect,
-  SearchableSelectAnchor,
-  SearchableSelectContent,
-  SearchableSelectInput
-} from '@/components/searchable-select'
+import { Input } from '@/components/ui/input'
 
-import { GlobalSearchResults } from './global-search/results'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { resolveRepositoryInfoFromPath } from './utils'
 
@@ -50,7 +42,15 @@ interface GrepFile {
   lines: GrepLine[]
 }
 
+type FormValues = z.infer<typeof formSchema>
+
 interface GlobalSearchProps {}
+
+const formSchema = z.object({
+  // PLACEHOLDER
+  // TODO: Adjust for context
+  to: z.string().email('Invalid email address')
+})
 
 const globalSearchQuery = graphql(/* GraphQL */ `
   query GlobalSearch($id: ID!, $kind: RepositoryKind!, $query: String!) {
@@ -76,7 +76,6 @@ const GLOBAL_SEARCH_SHORTCUT = 's'
 
 const GlobalSearch: React.FC<GlobalSearchProps> = () => {
   const { activePath, activeRepo } = useContext(SourceCodeBrowserContext)
-  const [popoverIsShown, setPopoverIsShown] = useState(false)
 
   const { repositoryKind } = resolveRepositoryInfoFromPath(activePath)
 
@@ -92,12 +91,6 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
    * setup effect when the URL has a query parameter.
    */
   const [value, setValue] = useState('')
-
-  /**
-   * The snippet(?) results of the search.
-   * Set to the response of the `search` task.
-   */
-  const [results, setResults] = useState<GrepFile[] | null>(null)
 
   /**
    * Check if the URL has a query parameter and conditionally
@@ -119,32 +112,6 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
   const onInput: FormEventHandler<HTMLInputElement> = e => {
     const query = e.currentTarget.value
     setValue(query)
-
-    console.log('onInput', query)
-
-    if (query.length) {
-      console.log('setting popover to true')
-      setPopoverIsShown(true)
-    }
-    if (query === '') {
-      setPopoverIsShown(false)
-      setResults(null)
-    } else {
-      void search(query)
-    }
-  }
-
-  /**
-   *
-   */
-  const onFocus: FocusEventHandler<HTMLInputElement> = e => {
-    const query = e.currentTarget.value
-    setValue(query)
-
-    if (query.length) {
-      setPopoverIsShown(true)
-      void search(query)
-    }
   }
 
   /**
@@ -180,7 +147,6 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
    * Called by the `onInput` event handler when the input value changes.
    */
   const search = async (query: string) => {
-    console.log('search', query)
     const { data } = (await client
       .query(globalSearchQuery, {
         id: repoId as string,
@@ -191,63 +157,47 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
       // FIXME: Wrong types
       .toPromise()) as unknown as { data: { repositoryGrep: GrepFile[] } }
     if (!data) return
-    setResults(data.repositoryGrep)
-  }
-
-  const focusInput = () => {
-    inputRef.current?.focus()
   }
 
   /**
    *
    */
-  const clearInput = (e?: MouseEvent) => {
-    e?.preventDefault()
+  const clearInput = () => {
     setValue('')
-    setResults(null)
-    focusInput
+    inputRef.current?.focus()
   }
 
-  // FIXME: Currently the keys used to determine which option is highlighted are the same across results. for example, result 1 line 1 has an index of 1. But so does result 100 line 1, since the index is only based on the local array.
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema)
+  })
+
+  // Placeholder
+  const submitForm: FormEventHandler<HTMLFormElement> = e => {
+    e.preventDefault()
+    search(value)
+  }
 
   return (
-    <div className="w-full">
-      <SearchableSelect
-        // FIXME: define the options
-        options={undefined}
-        open={popoverIsShown}
-        onOpenChange={() => {
-          if (value) {
-            // FIXME: This should be set only when the results have loaded (unless we add a loading state)
-            setPopoverIsShown(true)
-          } else {
-            setPopoverIsShown(false)
-          }
-        }}
-      >
-        <SearchableSelectAnchor className="relative w-full">
-          <SearchableSelectInput
-            type="search" // TODO: Remove X
+    // TODO: Componentize the search input
+    <Form {...form}>
+      <form onSubmit={submitForm} className="w-full flex items-stretch">
+        <div className="relative w-full">
+          <Input
+            type="search"
             placeholder="Search the repository..."
-            // Placeholder styles
-            className="w-full pl-9"
+            className="w-full"
             value={value}
             ref={inputRef}
             onInput={onInput}
-            onFocus={onFocus}
           />
-          <div className="absolute leading-none left-3 top-1/2 -translate-y-1/2 opacity-50">
-            <IconSearch />
-          </div>
-
           <div className="absolute right-2 top-0 flex h-full items-center">
             {value ? (
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 cursor-pointer"
-                onClick={e => {
-                  clearInput(e)
+                onClick={() => {
+                  clearInput()
                 }}
               >
                 <IconClose />
@@ -262,31 +212,20 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
                 {GLOBAL_SEARCH_SHORTCUT}
               </kbd>
             )}
+            <div className="border-l-border border-l flex items-center ml-2 pl-2">
+              <Button
+                variant="ghost"
+                className="h-6 w-6 "
+                size="icon"
+                type="submit"
+              >
+                <IconSearch />
+              </Button>
+            </div>
           </div>
-
-          {/* TODO: show loading/working state */}
-        </SearchableSelectAnchor>
-        <SearchableSelectContent
-          sideOffset={4}
-          autoFocus={false}
-          side="bottom"
-          align="end"
-          // Stop the content from taking focus from the input
-          onOpenAutoFocus={e => e.preventDefault()}
-          className="bg-popover max-h-[80vh] overflow-auto w-[var(--radix-popover-trigger-width)] p-4 rounded shadow-xl"
-        >
-          <div className="w-full overflow-hidden">
-            <GlobalSearchResults
-              hidePopover={() => setPopoverIsShown(false)}
-              repositoryKind={repositoryKind as RepositoryKind}
-              repoId={repoId as string}
-              // FIXME: Types
-              results={results}
-            />
-          </div>
-        </SearchableSelectContent>
-      </SearchableSelect>
-    </div>
+        </div>
+      </form>
+    </Form>
   )
 }
 
