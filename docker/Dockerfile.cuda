@@ -49,8 +49,9 @@ FROM ${BASE_CUDA_RUN_CONTAINER} as runtime
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        git \
-        curl \
+        git   \
+        curl  \
+        unzip \
         openssh-client \
         ca-certificates \
         && \
