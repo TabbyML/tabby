@@ -1,3 +1,11 @@
+## 1.7.4
+
+**stable**
+
+### Fixes 
+
+- Fixed a bug causing the chat view failed to display due to trailing slash in the endpoint config.
+
 ## 1.7.3
 
 **stable**
