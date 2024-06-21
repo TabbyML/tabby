@@ -6,7 +6,7 @@ import TextareaAutosize from 'react-textarea-autosize'
 
 import { cn } from '@/lib/utils'
 
-import { IconArrowRight } from './ui/icons'
+import { IconArrowRight, IconSpinner } from './ui/icons'
 
 export default function TextAreaSearch({
   onSearch,
@@ -14,7 +14,9 @@ export default function TextAreaSearch({
   placeholder,
   showBetaBadge,
   isLoading,
-  autoFocus
+  autoFocus,
+  loadingWithSpinning,
+  cleanAfterSearch = true
 }: {
   onSearch: (value: string) => void
   className?: string
@@ -22,11 +24,14 @@ export default function TextAreaSearch({
   showBetaBadge?: boolean
   isLoading?: boolean
   autoFocus?: boolean
+  loadingWithSpinning?: boolean
+  cleanAfterSearch?: boolean
 }) {
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
   const [value, setValue] = useState('')
   const { theme } = useTheme()
+  const [searchLoading, setSearchLoading] = useState(false)
 
   useEffect(() => {
     // Ensure the textarea height remains consistent during rendering
@@ -46,16 +51,16 @@ export default function TextAreaSearch({
   const search = () => {
     if (!value || isLoading) return
     onSearch(value)
-    setValue('')
+    if (cleanAfterSearch) setValue('')
   }
 
   return (
     <div
       className={cn(
-        'relative flex w-full items-center overflow-hidden rounded-lg border border-muted-foreground bg-background p-4 transition-all hover:border-muted-foreground/60',
+        'relative flex w-full items-center overflow-hidden rounded-lg border border-muted-foreground bg-background px-4 transition-all hover:border-muted-foreground/60',
         {
           '!border-primary': isFocus,
-          'py-5': showBetaBadge
+          'py-0': showBetaBadge
         },
         className
       )}
@@ -72,7 +77,9 @@ export default function TextAreaSearch({
         className={cn(
           'text-area-autosize flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
           {
-            '!h-[48px]': !isShow
+            '!h-[48px]': !isShow,
+            'py-4': !showBetaBadge,
+            'py-5': showBetaBadge
           }
         )}
         placeholder={placeholder || 'Ask anything...'}
@@ -95,7 +102,12 @@ export default function TextAreaSearch({
         })}
         onClick={search}
       >
-        <IconArrowRight className="h-3.5 w-3.5" />
+        {loadingWithSpinning && isLoading && (
+          <IconSpinner className="h-3.5 w-3.5" />
+        )}
+        {(!loadingWithSpinning || !isLoading) && (
+          <IconArrowRight className="h-3.5 w-3.5" />
+        )}
       </div>
     </div>
   )

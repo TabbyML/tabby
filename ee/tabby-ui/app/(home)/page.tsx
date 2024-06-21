@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
 import AOS from 'aos'
 import { noop } from 'lodash-es'
 import { useTheme } from 'next-themes'
 
+import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableSearch } from '@/lib/experiment-flags'
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
@@ -18,12 +20,7 @@ import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
-import {
-  IconChevronLeft,
-  IconJetBrains,
-  IconRotate,
-  IconVSCode
-} from '@/components/ui/icons'
+import { IconJetBrains, IconRotate, IconVSCode } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -40,7 +37,6 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { UserAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
 
-import { Search, SearchRef } from './components/search'
 import Stats from './components/stats'
 
 import 'aos/dist/aos.css'
@@ -60,10 +56,9 @@ function MainPanel() {
   const isChatEnabled = useIsChatEnabled()
   const { theme } = useTheme()
   const [isShowDemoBanner] = useShowDemoBanner()
-  const [isSearch, setIsSearch] = useState(false)
-  const [initialMsg, setInitialMsg] = useState('')
   const elementRef = useRef<HTMLDivElement | null>(null)
-  const searchRef = useRef<SearchRef>(null)
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     setTimeout(() => {
@@ -79,27 +74,13 @@ function MainPanel() {
     }, 100)
   }, [elementRef.current])
 
-  useEffect(() => {
-    if (isSearch && searchRef.current) {
-      searchRef.current.onSubmitSearch(initialMsg)
-    }
-    if (!isSearch) {
-      document.title = 'Tabby'
-    }
-  }, [isSearch])
-
   if (!healthInfo || !data?.me) return <></>
 
   const onSearch = (question: string) => {
-    setInitialMsg(question)
-    setIsSearch(true)
-  }
-
-  const hideSearch = () => {
-    if (searchRef.current) {
-      searchRef.current.stop()
-    }
-    setIsSearch(false)
+    setIsLoading(true)
+    sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_LATEST_MSG)
+    sessionStorage.setItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG, question)
+    router.push('/search')
   }
 
   const style = isShowDemoBanner
@@ -107,21 +88,7 @@ function MainPanel() {
     : { height: '100vh' }
   return (
     <div className="transition-all" style={style}>
-      <header className="flex h-16 items-center justify-between px-4">
-        <div>
-          {isSearch && (
-            <div className="flex items-center gap-x-6">
-              <Button
-                variant="ghost"
-                className="-ml-1 pl-0 text-sm text-muted-foreground"
-                onClick={hideSearch}
-              >
-                <IconChevronLeft className="mr-1 h-5 w-5" />
-                Home
-              </Button>
-            </div>
-          )}
-        </div>
+      <header className="flex h-16 items-center justify-end px-4">
         <div className="flex items-center gap-x-6">
           <ClientOnly>
             <ThemeToggle />
@@ -133,63 +100,62 @@ function MainPanel() {
       </header>
 
       <main
-        className={cn('h-[calc(100%-4rem)] overflow-auto pb-8 lg:pb-0', {
-          'lg:flex flex-col items-center justify-center': !isSearch
-        })}
+        className="h-[calc(100%-4rem)] flex-col items-center justify-center overflow-auto pb-8 lg:flex lg:pb-0"
         ref={elementRef}
       >
-        {!isSearch && (
-          <div className="mx-auto flex min-h-0 w-full flex-col items-center px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
-            <Image
-              src={tabbyUrl}
-              alt="logo"
-              width={192}
-              className={cn('mt-4 invert dark:invert-0', {
-                'mb-4': isChatEnabled && searchFlag.value,
-                'mb-2': !isChatEnabled || !searchFlag.value
-              })}
-              data-aos="fade-down"
-              data-aos-delay="150"
-            />
+        <div className="mx-auto flex min-h-0 w-full flex-col items-center px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
+          <Image
+            src={tabbyUrl}
+            alt="logo"
+            width={192}
+            className={cn('mt-4 invert dark:invert-0', {
+              'mb-4': isChatEnabled && searchFlag.value,
+              'mb-2': !isChatEnabled || !searchFlag.value
+            })}
+            data-aos="fade-down"
+            data-aos-delay="150"
+          />
+          <div
+            className={cn(
+              ' flex scroll-m-20 items-center gap-2 text-sm tracking-tight text-secondary-foreground',
+              {
+                'mb-6': isChatEnabled && searchFlag.value,
+                'mb-9': !isChatEnabled || !searchFlag.value
+              }
+            )}
+            data-aos="fade-down"
+            data-aos-delay="100"
+          >
+            <span>research</span>
+            <Separator orientation="vertical" className="h-[80%]" />
+            <span>develop</span>
+            <Separator orientation="vertical" className="h-[80%]" />
+            <span>debug</span>
+          </div>
+          {isChatEnabled && searchFlag.value && (
+            <div className="mb-10 w-full" data-aos="fade-down">
+              <TextAreaSearch
+                onSearch={onSearch}
+                showBetaBadge
+                autoFocus
+                loadingWithSpinning
+                isLoading={isLoading}
+                cleanAfterSearch={false}
+              />
+            </div>
+          )}
+          <div className="flex w-full flex-col gap-x-5 lg:flex-row">
             <div
-              className={cn(
-                ' flex scroll-m-20 items-center gap-2 text-sm tracking-tight text-secondary-foreground',
-                {
-                  'mb-6': isChatEnabled && searchFlag.value,
-                  'mb-9': !isChatEnabled || !searchFlag.value
-                }
-              )}
-              data-aos="fade-down"
+              className="mb-10 w-full rounded-lg p-4 lg:mb-0 lg:w-[21rem]"
+              style={{ background: theme === 'dark' ? '#333' : '#e8e1d3' }}
+              data-aos="fade-up"
               data-aos-delay="100"
             >
-              <span>research</span>
-              <Separator orientation="vertical" className="h-[80%]" />
-              <span>develop</span>
-              <Separator orientation="vertical" className="h-[80%]" />
-              <span>debug</span>
+              <Configuration />
             </div>
-            {isChatEnabled && searchFlag.value && (
-              <div className="mb-10 w-full" data-aos="fade-down">
-                <TextAreaSearch
-                  onSearch={onSearch}
-                  showBetaBadge
-                  autoFocus />
-              </div>
-            )}
-            <div className="flex w-full flex-col gap-x-5 lg:flex-row">
-              <div
-                className="mb-10 w-full rounded-lg p-4 lg:mb-0 lg:w-[21rem]"
-                style={{ background: theme === 'dark' ? '#333' : '#e8e1d3' }}
-                data-aos="fade-up"
-                data-aos-delay="100"
-              >
-                <Configuration />
-              </div>
-              <Stats />
-            </div>
+            <Stats />
           </div>
-        )}
-        {isSearch && <Search ref={searchRef} />}
+        </div>
       </main>
     </div>
   )
