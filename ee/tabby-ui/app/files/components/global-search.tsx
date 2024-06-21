@@ -77,6 +77,8 @@ const globalSearchQuery = graphql(/* GraphQL */ `
   }
 `)
 
+const GLOBAL_SEARCH_SHORTCUT = 's'
+
 const GlobalSearch: React.FC<GlobalSearchProps> = () => {
   const { activePath, activeRepo } = useContext(SourceCodeBrowserContext)
   const [popoverIsShown, setPopoverIsShown] = useState(false)
@@ -123,7 +125,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
     const query = e.currentTarget.value
     setValue(query)
 
-    if (query && !popoverIsShown) setPopoverIsShown(true)
+    if (query.length) setPopoverIsShown(true)
 
     if (query === '') {
       setPopoverIsShown(false)
@@ -146,6 +148,34 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
   }
 
   /**
+   *
+   */
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as Element
+      const tagName = target?.tagName?.toLowerCase()
+      if (
+        tagName === 'input' ||
+        tagName === 'textarea' ||
+        tagName === 'select'
+      ) {
+        return
+      }
+
+      if (event.key === GLOBAL_SEARCH_SHORTCUT) {
+        event.preventDefault()
+        inputRef.current?.focus()
+      }
+
+      window.addEventListener('keydown', handleKeyDown)
+
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown)
+      }
+    }
+  }, [])
+
+  /**
    * The async task to fetch the search results from the server.
    * Called by the `onInput` event handler when the input value changes.
    */
@@ -163,16 +193,18 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
     setResults(data.repositoryGrep)
   }
 
-  const focusInput = useEffect(() => {
+  const focusInput = () => {
     inputRef.current?.focus()
-  })
+  }
 
   /**
    *
    */
-  const clearInput: MouseEventHandler<HTMLButtonElement> = e => {
-    e.preventDefault()
-    e.stopPropagation()
+  const clearInput = (e?: MouseEvent) => {
+    console.log('bullshit')
+    e?.preventDefault()
+    // TODO: Confirm
+    e?.stopPropagation()
     setValue('')
     setResults(null)
     focusInput
@@ -188,7 +220,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
         open={popoverIsShown}
         onOpenChange={() => {
           if (value) {
-            // FIXME: This should be set only when the results have loaded
+            // FIXME: This should be set only when the results have loaded (unless we add a loading state)
             setPopoverIsShown(true)
           } else {
             setPopoverIsShown(false)
@@ -229,7 +261,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
                   inputRef.current?.focus()
                 }}
               >
-                s
+                {GLOBAL_SEARCH_SHORTCUT}
               </kbd>
             )}
           </div>
