@@ -122,7 +122,7 @@ export function Search() {
 
   const isLoadingRef = useLatest(isLoading)
 
-  // Detect initial message
+  // Check sessionStorage for initial message or most recent conversation
   useEffect(() => {
     if (initCheckRef.current) return
 
