@@ -8,11 +8,11 @@ export default function WebProviderLayout({
   return (
     <>
       <SubHeader
-      // FIXME(meng): add external link
+      // FIXME(wsxiaoys): add external link
       // externalLink="https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion"
       >
-        Crawl web docs starting from following URLs, and use these content to enhance output of LLM Answer Engine.
-        Underlying tabby uses <a target="_blank" href="https://github.com/projectdiscovery/katana">Katana</a> to crawl web docs in a subprocess, and no recrawl will be done until user manually triggers it.
+        <p>Crawl documents from following URLs and use their content to enhance the Answer Engine. Recrawling will occur only if manually initiated.</p>
+        <p>Underlying, <a className="underline" target="_blank" href="https://github.com/projectdiscovery/katana">Katana</a> is used as a crawler (running as a subprocess) and thus needs to be installed in the $PATH.</p>
       </SubHeader>
       {children}
     </>
