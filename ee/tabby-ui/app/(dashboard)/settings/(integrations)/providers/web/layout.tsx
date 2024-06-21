@@ -8,12 +8,11 @@ export default function WebProviderLayout({
   return (
     <>
       <SubHeader
-      // todo: add external link
+      // FIXME(meng): add external link
       // externalLink="https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion"
       >
-        Connect to a web URL, utilizing this as context to enhance the
-        performance of large language models. Uses <a href="https://github.com/projectdiscovery/katana">Katana</a>,
-        ensure it is installed before adding URLs.
+        Crawl web docs starting from following URLs, and use these content to enhance output of LLM Answer Engine.
+        Underlying tabby uses <a target="_blank" href="https://github.com/projectdiscovery/katana">Katana</a> to crawl web docs in a subprocess, and no recrawl will be done until user manually triggers it.
       </SubHeader>
       {children}
     </>
