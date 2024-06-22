@@ -14,7 +14,6 @@ use crate::{
 pub struct JobRun {
     pub id: juniper::ID,
     pub job: String,
-    pub params: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub finished_at: Option<DateTime<Utc>>,
@@ -59,7 +58,7 @@ impl relay::NodeType for JobRun {
 #[async_trait]
 pub trait JobService: Send + Sync {
     async fn trigger(&self, command: String);
-    async fn get_latest_job_run(&self, command: String) -> Result<Option<JobRun>>;
+    async fn get_job_info(&self, command: String) -> Result<JobInfo>;
 
     async fn list(
         &self,

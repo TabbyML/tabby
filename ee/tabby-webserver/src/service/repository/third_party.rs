@@ -9,7 +9,7 @@ use tabby_common::config::RepositoryConfig;
 use tabby_db::{DbConn, ProvidedRepositoryDAO};
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
-    job::{JobInfo, JobRun, JobService},
+    job::{JobInfo, JobService},
     repository::{ProvidedRepository, Repository, RepositoryProvider, ThirdPartyRepositoryService},
     AsID, AsRowid, DbEnum, Result,
 };
@@ -112,9 +112,9 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         for repository in repositories {
             let event =
                 BackgroundJobEvent::SchedulerGithubGitlabRepository(repository.id.as_id().clone());
-            let job_run = self.job.get_latest_job_run(event.to_command()).await?;
+            let job_info = self.job.get_job_info(event.to_command()).await?;
 
-            converted_repositories.push(to_provided_repository(repository, job_run));
+            converted_repositories.push(to_provided_repository(repository, job_info));
         }
 
         Ok(converted_repositories)
@@ -124,7 +124,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         let repo = self.db.get_provided_repository(id.as_rowid()?).await?;
 
         let event = BackgroundJobEvent::SchedulerGithubGitlabRepository(id);
-        let last_job_run = self.job.get_latest_job_run(event.to_command()).await?;
+        let last_job_run = self.job.get_job_info(event.to_command()).await?;
 
         Ok(to_provided_repository(repo, last_job_run))
     }
@@ -265,10 +265,7 @@ async fn refresh_repositories_for_provider(
     Ok(())
 }
 
-fn to_provided_repository(
-    value: ProvidedRepositoryDAO,
-    last_job_run: Option<JobRun>,
-) -> ProvidedRepository {
+fn to_provided_repository(value: ProvidedRepositoryDAO, job_info: JobInfo) -> ProvidedRepository {
     let id = value.id.as_id();
     ProvidedRepository {
         id: id.clone(),
@@ -281,14 +278,7 @@ fn to_provided_repository(
         refs: tabby_git::list_refs(&RepositoryConfig::new(&value.git_url).dir())
             .unwrap_or_default(),
         git_url: value.git_url,
-
-        job_info: JobInfo {
-            last_job_run,
-            command: serde_json::to_string(&BackgroundJobEvent::SchedulerGithubGitlabRepository(
-                id,
-            ))
-            .expect("Failed to serialize job event"),
-        },
+        job_info,
     }
 }
 

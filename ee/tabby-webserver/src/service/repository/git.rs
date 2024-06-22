@@ -5,7 +5,7 @@ use juniper::ID;
 use tabby_common::config::RepositoryConfig;
 use tabby_db::{DbConn, RepositoryDAO};
 use tabby_schema::{
-    job::{JobInfo, JobRun, JobService},
+    job::{JobInfo, JobService},
     repository::{GitRepository, GitRepositoryService, Repository, RepositoryProvider},
     AsID, AsRowid, Result,
 };
@@ -52,9 +52,9 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
             let event = BackgroundJobEvent::SchedulerGitRepository(RepositoryConfig::new(
                 repository.git_url.clone(),
             ));
-            let job_run = self.job_service.get_latest_job_run(event.to_command()).await?;
+            let job_info = self.job_service.get_job_info(event.to_command()).await?;
 
-            converted_repositories.push(to_git_repository(repository, job_run));
+            converted_repositories.push(to_git_repository(repository, job_info));
         }
         Ok(converted_repositories)
     }
@@ -107,24 +107,20 @@ impl RepositoryProvider for GitRepositoryServiceImpl {
         let event =
             BackgroundJobEvent::SchedulerGitRepository(RepositoryConfig::new(dao.git_url.clone()));
 
-        let last_job_run = self.job_service.get_latest_job_run(event.to_command()).await?;
-        let git_repo = to_git_repository(dao, last_job_run);
+        let job_info = self.job_service.get_job_info(event.to_command()).await?;
+        let git_repo = to_git_repository(dao, job_info);
         Ok(git_repo.into())
     }
 }
 
-fn to_git_repository(repo: RepositoryDAO, last_job_run: Option<JobRun>) -> GitRepository {
+fn to_git_repository(repo: RepositoryDAO, job_info: JobInfo) -> GitRepository {
     let config = RepositoryConfig::new(&repo.git_url);
     GitRepository {
         id: repo.id.as_id(),
         name: repo.name,
         refs: tabby_git::list_refs(&config.dir()).unwrap_or_default(),
         git_url: repo.git_url,
-        job_info: JobInfo {
-            last_job_run,
-            command: serde_json::to_string(&BackgroundJobEvent::SchedulerGitRepository(config))
-                .expect("Failed to serialize job event"),
-        },
+        job_info,
     }
 }
 

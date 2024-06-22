@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::{DbConn, WebCrawlerUrlDAO};
 use tabby_schema::{
-    job::{JobInfo, JobRun, JobService},
+    job::{JobInfo, JobService},
     web_crawler::{WebCrawlerService, WebCrawlerUrl},
     AsID, AsRowid, Result,
 };
@@ -50,8 +50,8 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
         for url in urls {
             let event = BackgroundJobEvent::WebCrawler(url.url.clone());
 
-            let job_run = self.job_service.get_latest_job_run(event.to_command()).await?;
-            converted_urls.push(to_web_crawler_url(url, job_run));
+            let job_info = self.job_service.get_job_info(event.to_command()).await?;
+            converted_urls.push(to_web_crawler_url(url, job_info));
         }
         Ok(converted_urls)
     }
@@ -70,16 +70,12 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
     }
 }
 
-fn to_web_crawler_url(value: WebCrawlerUrlDAO, last_job_run: Option<JobRun>) -> WebCrawlerUrl {
+fn to_web_crawler_url(value: WebCrawlerUrlDAO, job_info: JobInfo) -> WebCrawlerUrl {
     WebCrawlerUrl {
         id: value.id.as_id(),
         url: value.url.clone(),
         created_at: *value.created_at,
-        job_info: JobInfo {
-            last_job_run,
-            command: serde_json::to_string(&BackgroundJobEvent::WebCrawler(value.url))
-                .expect("Failed to serialize job command"),
-        },
+        job_info,
     }
 }
 
@@ -105,13 +101,9 @@ mod tests {
         let url = "https://example.com".to_string();
         let id = service.create_web_crawler_url(url.clone()).await.unwrap();
 
-        let job_key = BackgroundJobEvent::WebCrawler("https://example.com".into())
-            .to_command()
-            .unwrap();
+        let command = BackgroundJobEvent::WebCrawler("https://example.com".into()).to_command();
 
-        db.create_job_run(job_key.name, Some(job_key.param))
-            .await
-            .unwrap();
+        db.create_job_run("web".into(), command).await.unwrap();
 
         let urls = service
             .list_web_crawler_urls(None, None, None, None)
