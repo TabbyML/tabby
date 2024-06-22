@@ -105,12 +105,13 @@ mod tests {
         let url = "https://example.com".to_string();
         let id = service.create_web_crawler_url(url.clone()).await.unwrap();
 
-        let event_name = BackgroundJobEvent::WebCrawler("".into())
+        let job_key = BackgroundJobEvent::WebCrawler("https://example.com".into())
             .job_key()
-            .unwrap()
-            .name;
+            .unwrap();
 
-        db.create_job_run(event_name, Some(url)).await.unwrap();
+        db.create_job_run(job_key.name, Some(job_key.param))
+            .await
+            .unwrap();
 
         let urls = service
             .list_web_crawler_urls(None, None, None, None)
