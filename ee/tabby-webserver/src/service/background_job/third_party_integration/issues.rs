@@ -1,11 +1,10 @@
 use anyhow::{anyhow, Result};
-use gitlab::{
-    api::{issues::ProjectIssues, projects::merge_requests::MergeRequests, AsyncQuery},
-    GitlabBuilder,
-};
+use gitlab::api::{issues::ProjectIssues, projects::merge_requests::MergeRequests, AsyncQuery};
 use octocrab::Octocrab;
 use serde::Deserialize;
 use tabby_scheduler::{DocIndexer, WebDocument};
+
+use crate::service::create_gitlab_client;
 
 pub async fn index_github_issues(
     api_base: &str,
@@ -69,10 +68,7 @@ pub async fn index_gitlab_issues(
     access_token: &str,
     index: &DocIndexer,
 ) -> Result<()> {
-    let api_base = api_base.strip_prefix("https://").unwrap_or(api_base);
-    let gitlab = GitlabBuilder::new(api_base, access_token)
-        .build_async()
-        .await?;
+    let gitlab = create_gitlab_client(api_base, access_token).await?;
 
     let issues: Vec<GitlabIssue> = gitlab::api::paged(
         ProjectIssues::builder().project(full_name).build()?,
