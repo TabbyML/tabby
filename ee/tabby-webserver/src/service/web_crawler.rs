@@ -50,7 +50,7 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
         for url in urls {
             let event = BackgroundJobEvent::WebCrawler(url.url.clone());
 
-            let job_run = self.job_service.get_latest_job_run(event.job_key()).await?;
+            let job_run = self.job_service.get_latest_job_run(event.to_command()).await?;
             converted_urls.push(to_web_crawler_url(url, job_run));
         }
         Ok(converted_urls)
@@ -106,7 +106,7 @@ mod tests {
         let id = service.create_web_crawler_url(url.clone()).await.unwrap();
 
         let job_key = BackgroundJobEvent::WebCrawler("https://example.com".into())
-            .job_key()
+            .to_command()
             .unwrap();
 
         db.create_job_run(job_key.name, Some(job_key.param))

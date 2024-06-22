@@ -56,14 +56,10 @@ impl relay::NodeType for JobRun {
     }
 }
 
-pub struct JobKey {
-    pub name: String,
-    pub param: String,
-}
-
 #[async_trait]
 pub trait JobService: Send + Sync {
     async fn trigger(&self, command: String);
+    async fn get_latest_job_run(&self, command: String) -> Result<Option<JobRun>>;
 
     async fn list(
         &self,
@@ -74,8 +70,6 @@ pub trait JobService: Send + Sync {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<JobRun>>;
-
-    async fn get_latest_job_run(&self, detail: Option<JobKey>) -> Result<Option<JobRun>>;
 
     async fn compute_stats(&self, jobs: Option<Vec<String>>) -> Result<JobStats>;
 }

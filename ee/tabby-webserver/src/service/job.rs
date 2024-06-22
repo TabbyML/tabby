@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
-    job::{JobKey, JobRun, JobService, JobStats},
+    job::{JobRun, JobService, JobStats},
     AsRowid, Result,
 };
 use tracing::warn;
@@ -60,13 +60,10 @@ impl JobService for JobControllerImpl {
             .collect())
     }
 
-    async fn get_latest_job_run(&self, detail: Option<JobKey>) -> Result<Option<JobRun>> {
-        let Some(detail) = detail else {
-            return Ok(None);
-        };
+    async fn get_latest_job_run(&self, command: String) -> Result<Option<JobRun>> {
         Ok(self
             .db
-            .get_latest_job_run(detail.name, detail.param)
+            .get_latest_job_run(command)
             .await?
             .map(JobRun::from))
     }

@@ -112,7 +112,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         for repository in repositories {
             let event =
                 BackgroundJobEvent::SchedulerGithubGitlabRepository(repository.id.as_id().clone());
-            let job_run = self.job.get_latest_job_run(event.job_key()).await?;
+            let job_run = self.job.get_latest_job_run(event.to_command()).await?;
 
             converted_repositories.push(to_provided_repository(repository, job_run));
         }
@@ -124,7 +124,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         let repo = self.db.get_provided_repository(id.as_rowid()?).await?;
 
         let event = BackgroundJobEvent::SchedulerGithubGitlabRepository(id);
-        let last_job_run = self.job.get_latest_job_run(event.job_key()).await?;
+        let last_job_run = self.job.get_latest_job_run(event.to_command()).await?;
 
         Ok(to_provided_repository(repo, last_job_run))
     }

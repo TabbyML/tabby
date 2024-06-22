@@ -31,7 +31,7 @@ pub struct JobStatsDAO {
 
 /// db read/write operations for `job_runs` table
 impl DbConn {
-    pub async fn create_job_run(&self, job: String, params: Option<String>) -> Result<i64> {
+    pub async fn create_job_run(&self, job: String, params: String) -> Result<i64> {
         let rowid = query!(
             r#"INSERT INTO job_runs (job, start_ts, stdout, stderr, params) VALUES (?, DATETIME('now'), '', '', ?)"#,
             job, params,
@@ -69,12 +69,10 @@ impl DbConn {
 
     pub async fn get_latest_job_run(
         &self,
-        job: String,
-        params: String,
+        command: String,
     ) -> Result<Option<JobRunDAO>> {
-        let job = sqlx::query_as(r#"SELECT * FROM job_runs WHERE job = ? AND params = ? ORDER BY created_at DESC LIMIT 1"#)
-            .bind(job)
-            .bind(params)
+        let job = sqlx::query_as(r#"SELECT * FROM job_runs WHERE params = ? ORDER BY created_at DESC LIMIT 1"#)
+            .bind(command)
             .fetch_optional(&self.pool)
             .await?;
         Ok(job)

@@ -1,1 +1,1 @@
-ALTER TABLE job_runs DROP COLUMN params;
+ALTER TABLE job_runs DROP COLUMN command;

@@ -52,7 +52,7 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
             let event = BackgroundJobEvent::SchedulerGitRepository(RepositoryConfig::new(
                 repository.git_url.clone(),
             ));
-            let job_run = self.job_service.get_latest_job_run(event.job_key()).await?;
+            let job_run = self.job_service.get_latest_job_run(event.to_command()).await?;
 
             converted_repositories.push(to_git_repository(repository, job_run));
         }
@@ -107,7 +107,7 @@ impl RepositoryProvider for GitRepositoryServiceImpl {
         let event =
             BackgroundJobEvent::SchedulerGitRepository(RepositoryConfig::new(dao.git_url.clone()));
 
-        let last_job_run = self.job_service.get_latest_job_run(event.job_key()).await?;
+        let last_job_run = self.job_service.get_latest_job_run(event.to_command()).await?;
         let git_repo = to_git_repository(dao, last_job_run);
         Ok(git_repo.into())
     }

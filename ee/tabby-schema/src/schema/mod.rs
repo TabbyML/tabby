@@ -832,7 +832,7 @@ impl Mutation {
         Ok(true)
     }
 
-    /// Trigger a job run given its command string.
+    /// Trigger a job run given its param string.
     async fn trigger_job_run(ctx: &Context, command: String) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator.job().trigger(command).await;
