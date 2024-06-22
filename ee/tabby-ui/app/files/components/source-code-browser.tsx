@@ -1,6 +1,12 @@
 'use client'
 
-import React, { PropsWithChildren, useState } from 'react'
+import { resolve } from 'path'
+import React, {
+  FormEventHandler,
+  PropsWithChildren,
+  use,
+  useState
+} from 'react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import logoUrl from '@/assets/logo.png'
@@ -11,7 +17,11 @@ import { ImperativePanelHandle } from 'react-resizable-panels'
 import useSWR from 'swr'
 
 import { graphql } from '@/lib/gql/generates'
-import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
+import {
+  GrepTextOrBase64,
+  RepositoryKind,
+  RepositoryListQuery
+} from '@/lib/gql/generates/graphql'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { filename2prism } from '@/lib/language-utils'
@@ -42,6 +52,7 @@ import { DirectoryView } from './file-directory-view'
 import { mapToFileTree, sortFileTree, type TFileTreeNode } from './file-tree'
 import { FileTreePanel } from './file-tree-panel'
 import { GlobalSearch } from './global-search'
+import { GlobalSearchResults } from './global-search/results'
 import { RawFileView } from './raw-file-view'
 import { TextFileView } from './text-file-view'
 import {
@@ -93,6 +104,45 @@ const repositoryListQuery = graphql(/* GraphQL */ `
     }
   }
 `)
+
+const globalSearchGQLQuery = graphql(/* GraphQL */ `
+  query GlobalSearch($id: ID!, $kind: RepositoryKind!, $query: String!) {
+    repositoryGrep(kind: $kind, id: $id, query: $query) {
+      path
+      lines {
+        line {
+          text
+          base64
+        }
+        byteOffset
+        lineNumber
+        subMatches {
+          bytesStart
+          bytesEnd
+        }
+      }
+    }
+  }
+`)
+
+// TODO: Move to shared location
+
+interface GrepFile {
+  path: string
+  lines: GrepLine[]
+}
+
+interface GrepLine {
+  line: GrepTextOrBase64
+  byteOffset: number
+  lineNumber: number
+  subMatches: GrepSubMatch[]
+}
+
+interface GrepSubMatch {
+  byteStart: number
+  byteEnd: number
+}
 
 type SourceCodeBrowserContextValue = {
   activePath: string | undefined
@@ -330,9 +380,17 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   /**
    * Whether the search tab is active
-   *
    */
   const [searchTabIsActive, setSearchTabIsActive] = useState(false)
+
+  /**
+   *
+   */
+  const maybeActivateSearchTab = () => {
+    if (globalSearchQuery && globalSearchResults) {
+      setSearchTabIsActive(true)
+    }
+  }
 
   const { searchParams } = useRouterStuff()
   const initializing = React.useRef(false)
@@ -571,6 +629,93 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     }
   }, [])
 
+  ///////////////////////////////////////////////////////////
+  /**
+   * Global Search
+   */
+  ///////////////////////////////////////////////////////////
+
+  /**
+   * The current search query
+   */
+  const [globalSearchQuery, setGlobalSearchQuery] = useState('')
+
+  /**
+   * The global search results
+   */
+  const [globalSearchResults, setGlobalSearchResults] = useState<GrepFile[]>()
+
+  /**
+   * The global search input reference
+   */
+  const [globalSearchInput, setGlobalSearchInput] = useState<HTMLInputElement>()
+
+  /**
+   * Check if the URL has a query parameter and conditionally
+   * set the value of the search input.
+   */
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    // POSSIBLY PLACEHOLDER
+    // TODO: Determine actual urlParam
+    const query = urlParams.get('q')
+
+    if (query) {
+      setGlobalSearchQuery(query)
+    }
+  }, [])
+
+  /**
+   * The async task to fetch the search results from the server.
+   * Runs with every input change. Sets the value of the results
+   */
+  const onGlobalSearchInput: FormEventHandler<HTMLInputElement> = e => {
+    console.log('input??')
+    const query = e.currentTarget.value
+    setGlobalSearchQuery(query)
+  }
+
+  /**
+   *
+   */
+  const clearGlobalSearchInput = () => {
+    setGlobalSearchQuery('')
+    globalSearchInput?.focus()
+  }
+
+  /**
+   *
+   */
+  const onGlobalSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    console.log('submitted?')
+    e.preventDefault()
+    void search(globalSearchQuery)
+  }
+
+  /**
+   * The async task to fetch the search results from the server.
+   * Called by the `onInput` event handler when the input value changes.
+   */
+  const search = async (query: string) => {
+    if (!activeRepo) return // TODO: Handle
+
+    const { repositoryKind } = resolveRepositoryInfoFromPath(activePath)
+
+    setSearchTabIsActive(true)
+
+    const { data } = (await client
+      .query(globalSearchGQLQuery, {
+        id: activeRepo.id,
+        kind: repositoryKind as RepositoryKind,
+        query,
+        pause: !activeRepo.id || !repositoryKind
+      })
+      // FIXME: Wrong types
+      .toPromise()) as unknown as { data: { repositoryGrep: GrepFile[] } }
+    console.log('setting data to', data.repositoryGrep)
+    setGlobalSearchResults(data.repositoryGrep)
+  }
+
   return (
     <>
       <ResizablePanelGroup
@@ -602,20 +747,24 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
                 {searchTabIsActive ? (
                   <>
                     <IconArrowRight className="w-4 h-4 scale-x-[-1]" />
-                    Files
+                    Browser
                   </>
                 ) : (
                   <>
                     <IconFolderTree className="w-4 h-4" />
-                    Files
+                    Browser
                   </>
                 )}
               </button>
               {/* TODO: onFocus, show the searchTab if there's a query */}
               <GlobalSearch
-                searchTabIsActive={searchTabIsActive}
-                activateSearchTab={() => setSearchTabIsActive(true)}
-                deactivateSearchTab={() => setSearchTabIsActive(false)}
+                // Might be able to "splat" the ref
+                query={globalSearchQuery}
+                inputRef={globalSearchInput}
+                onFocus={maybeActivateSearchTab}
+                onInput={onGlobalSearchInput}
+                onSubmit={onGlobalSearchSubmit}
+                clearInput={clearGlobalSearchInput}
               />
               {/* FIXME: not same height as input */}
               <Button className="flex shrink-0 gap-1.5 w-36" variant="ghost">
@@ -624,7 +773,14 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
               </Button>
             </div>
           </div>
-          {!searchTabIsActive && (
+          {searchTabIsActive ? (
+            <GlobalSearchResults
+              results={globalSearchResults}
+              repoId={activeRepo?.id}
+              repositoryKind={activeRepo?.kind}
+              hidePopover={() => {}}
+            />
+          ) : (
             <>
               <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
                 <FileDirectoryBreadcrumb className="py-4" />

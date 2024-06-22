@@ -13,14 +13,14 @@ import {
 import { GlobalSearchResult } from './result'
 
 interface GlobalSearchResultsProps {
-  results: GrepFile[] | null
-  repoId: string
-  repositoryKind: RepositoryKind
+  results?: GrepFile[]
+  repoId?: string
+  repositoryKind?: RepositoryKind
   hidePopover: () => void
 }
 
 export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
-  const [results, setResults] = useState<any[] | null>(null)
+  const [results, setResults] = useState<any[]>()
 
   const pathNamesToFetch = props.results?.map(result => result.path)
 
@@ -58,15 +58,16 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
           blob: data[index]
         }
       })
-      if (newResults) {
-        setResults(newResults)
-      }
+      setResults(newResults)
+    } else {
+      setResults([])
     }
   }, [data, props.results])
 
   return (
     <>
-      {results && (
+      DA RESULTS ARE IN
+      {results && results.length > 0 ? (
         <>
           {results.map((result, i) => (
             <GlobalSearchResult
@@ -76,6 +77,8 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
             />
           ))}
         </>
+      ) : (
+        <>No results</>
       )}
     </>
   )
