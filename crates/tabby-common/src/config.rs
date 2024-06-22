@@ -6,6 +6,7 @@ use derive_builder::Builder;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use tracing::debug;
 
 use crate::{
     path::repositories_dir,
@@ -28,18 +29,7 @@ impl Config {
     pub fn load() -> Result<Self> {
         let cfg_path = crate::path::config_file();
         if !cfg_path.as_path().exists() {
-            InfoMessage::new(
-                "Tabby config file missing",
-                HeaderFormat::Blue,
-                &[
-                    &format!(
-                        "Warning: Could not find the Tabby configuration at {}",
-                        cfg_path.display()
-                    ),
-                    "Applying default configuration",
-                ],
-            )
-            .print();
+            debug!("Config file {} not found, apply default configuration", cfg_path.display());
             return Ok(Default::default());
         }
         let mut cfg: Self = serdeconv::from_toml_file(cfg_path.as_path())

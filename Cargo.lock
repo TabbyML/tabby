@@ -5028,6 +5028,7 @@ dependencies = [
  "temp_testdir",
  "thiserror",
  "tokio",
+ "tracing",
  "url",
  "utoipa",
  "uuid",
