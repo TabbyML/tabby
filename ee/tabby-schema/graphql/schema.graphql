@@ -277,7 +277,6 @@ type JobInfo {
 type JobRun {
   id: ID!
   job: String!
-  params: String
   createdAt: DateTime!
   updatedAt: DateTime!
   finishedAt: DateTime
@@ -345,7 +344,7 @@ type Mutation {
   updateIntegration(input: UpdateIntegrationInput!): Boolean!
   deleteIntegration(id: ID!, kind: IntegrationKind!): Boolean!
   updateIntegratedRepositoryActive(id: ID!, active: Boolean!): Boolean!
-  "Trigger a job run given its command string."
+  "Trigger a job run given its param string."
   triggerJobRun(command: String!): Boolean!
   createWebCrawlerUrl(input: CreateWebCrawlerUrlInput!): ID!
   deleteWebCrawlerUrl(id: ID!): Boolean!

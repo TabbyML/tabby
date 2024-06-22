@@ -47,7 +47,7 @@ CREATE TABLE job_runs(
   created_at TIMESTAMP DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP DEFAULT(DATETIME('now'))
   ,
-  params TEXT
+  command TEXT
 );
 CREATE TABLE repositories(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -161,3 +161,4 @@ CREATE TABLE web_crawler_urls(
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   CONSTRAINT `unique_url` UNIQUE(url)
 );
+CREATE INDEX `idx_job_runs_command` ON job_runs(command);

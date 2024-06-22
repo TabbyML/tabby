@@ -39,7 +39,6 @@ impl From<JobRunDAO> for job::JobRun {
         Self {
             id: run.id.as_id(),
             job: run.name,
-            params: run.params,
             created_at: *run.created_at,
             updated_at: *run.updated_at,
             finished_at: run.finished_at.into_option(),
