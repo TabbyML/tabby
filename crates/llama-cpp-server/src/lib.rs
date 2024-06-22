@@ -27,7 +27,7 @@ struct EmbeddingServer {
 
 impl EmbeddingServer {
     async fn new(num_gpu_layers: u16, model_path: &str, parallelism: u8) -> EmbeddingServer {
-        let server = LlamaCppSupervisor::new(num_gpu_layers, true, model_path, parallelism, None);
+        let server = LlamaCppSupervisor::new("embedding", num_gpu_layers, true, model_path, parallelism, None);
         server.start().await;
 
         let config = HttpModelConfigBuilder::default()
@@ -58,7 +58,7 @@ struct CompletionServer {
 
 impl CompletionServer {
     async fn new(num_gpu_layers: u16, model_path: &str, parallelism: u8) -> Self {
-        let server = LlamaCppSupervisor::new(num_gpu_layers, false, model_path, parallelism, None);
+        let server = LlamaCppSupervisor::new("completion", num_gpu_layers, false, model_path, parallelism, None);
         server.start().await;
         let config = HttpModelConfigBuilder::default()
             .api_endpoint(api_endpoint(server.port()))
@@ -91,6 +91,7 @@ impl ChatCompletionServer {
         chat_template: String,
     ) -> Self {
         let server = LlamaCppSupervisor::new(
+            "chat",
             num_gpu_layers,
             false,
             model_path,
