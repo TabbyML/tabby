@@ -185,7 +185,7 @@
 <polygon fill="none" stroke="black" points="105.5,-737.5 105.5,-758.5 129.5,-758.5 129.5,-737.5 105.5,-737.5"/>
 <text text-anchor="start" x="115" y="-744.3" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="129.5,-737.5 129.5,-758.5 215.5,-758.5 215.5,-737.5 129.5,-737.5"/>
-<text text-anchor="start" x="145.5" y="-744.3" font-family="Times,serif" font-size="14.00">params</text>
+<text text-anchor="start" x="137.5" y="-744.3" font-family="Times,serif" font-size="14.00">command</text>
 </g>
 <!-- oauth_credential -->
 <g id="node6" class="node">
