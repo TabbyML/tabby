@@ -4,7 +4,6 @@ expression: "golden_test(json!({\n                \"language\": \"python\", \"se
 ---
 choices:
   - index: 0
-    text: "    if n <= 1:\n            return n"
+    text: return 1 if n == 0 else 1 if n == 1 else fib(n - 1) + fib(n - 2)
 debug_data: {}
 id: test-id
-
