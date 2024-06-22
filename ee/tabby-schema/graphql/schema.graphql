@@ -277,6 +277,7 @@ type JobInfo {
 type JobRun {
   id: ID!
   job: String!
+  params: String
   createdAt: DateTime!
   updatedAt: DateTime!
   finishedAt: DateTime

@@ -10,6 +10,7 @@ use tabby_common::config::{config_index_to_id, Config, RepositoryConfig};
 use tabby_db::DbConn;
 use tabby_schema::{
     integration::IntegrationService,
+    job::JobService,
     repository::{
         FileEntrySearchResult, GitRepositoryService, ProvidedRepository, Repository,
         RepositoryKind, RepositoryService, ThirdPartyRepositoryService,
@@ -29,11 +30,17 @@ struct RepositoryServiceImpl {
 pub fn create(
     db: DbConn,
     integration: Arc<dyn IntegrationService>,
+    job: Arc<dyn JobService>,
     background: UnboundedSender<BackgroundJobEvent>,
 ) -> Arc<dyn RepositoryService> {
     Arc::new(RepositoryServiceImpl {
-        git: Arc::new(git::create(db.clone(), background.clone())),
-        third_party: Arc::new(third_party::create(db, integration, background.clone())),
+        git: Arc::new(git::create(db.clone(), background.clone(), job.clone())),
+        third_party: Arc::new(third_party::create(
+            db,
+            integration,
+            job.clone(),
+            background.clone(),
+        )),
         config: Config::load()
             .map(|config| config.repositories)
             .unwrap_or_default(),
@@ -229,7 +236,9 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         let background = create_fake();
         let integration = Arc::new(crate::service::integration::create(db.clone(), background));
-        let service = create(db.clone(), integration, create_fake());
+        let background = create_fake();
+        let job = Arc::new(crate::service::job::create(db.clone(), background.clone()).await);
+        let service = create(db.clone(), integration, job, background);
         service
             .git()
             .create("test_git_repo".into(), "http://test_git_repo".into())

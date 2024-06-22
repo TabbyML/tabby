@@ -9,7 +9,7 @@ use tabby_common::config::RepositoryConfig;
 use tabby_db::{DbConn, ProvidedRepositoryDAO};
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
-    job::JobInfo,
+    job::{JobInfo, JobRun, JobService},
     repository::{ProvidedRepository, Repository, RepositoryProvider, ThirdPartyRepositoryService},
     AsID, AsRowid, DbEnum, Result,
 };
@@ -25,17 +25,20 @@ mod fetch;
 struct ThirdPartyRepositoryServiceImpl {
     db: DbConn,
     integration: Arc<dyn IntegrationService>,
+    job: Arc<dyn JobService>,
     background_job: UnboundedSender<BackgroundJobEvent>,
 }
 
 pub fn create(
     db: DbConn,
     integration: Arc<dyn IntegrationService>,
+    job: Arc<dyn JobService>,
     background_job: UnboundedSender<BackgroundJobEvent>,
 ) -> impl ThirdPartyRepositoryService {
     ThirdPartyRepositoryServiceImpl {
         db,
         integration,
+        job,
         background_job,
     }
 }
@@ -99,18 +102,31 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
 
         let kind = kind.map(|kind| kind.as_enum_str().to_string());
 
-        Ok(self
+        let repositories = self
             .db
             .list_provided_repositories(integration_ids, kind, active, limit, skip_id, backwards)
-            .await?
-            .into_iter()
-            .map(to_provided_repository)
-            .collect())
+            .await?;
+
+        let mut converted_repositories = vec![];
+
+        for repository in repositories {
+            let event =
+                BackgroundJobEvent::SchedulerGithubGitlabRepository(repository.id.as_id().clone());
+            let job_run = self.job.get_latest_job_run(event.job_key()).await?;
+
+            converted_repositories.push(to_provided_repository(repository, job_run));
+        }
+
+        Ok(converted_repositories)
     }
 
     async fn get_provided_repository(&self, id: ID) -> Result<ProvidedRepository> {
         let repo = self.db.get_provided_repository(id.as_rowid()?).await?;
-        Ok(to_provided_repository(repo))
+
+        let event = BackgroundJobEvent::SchedulerGithubGitlabRepository(id);
+        let last_job_run = self.job.get_latest_job_run(event.job_key()).await?;
+
+        Ok(to_provided_repository(repo, last_job_run))
     }
 
     async fn update_repository_active(&self, id: ID, active: bool) -> Result<()> {
@@ -249,7 +265,10 @@ async fn refresh_repositories_for_provider(
     Ok(())
 }
 
-fn to_provided_repository(value: ProvidedRepositoryDAO) -> ProvidedRepository {
+fn to_provided_repository(
+    value: ProvidedRepositoryDAO,
+    last_job_run: Option<JobRun>,
+) -> ProvidedRepository {
     let id = value.id.as_id();
     ProvidedRepository {
         id: id.clone(),
@@ -264,8 +283,7 @@ fn to_provided_repository(value: ProvidedRepositoryDAO) -> ProvidedRepository {
         git_url: value.git_url,
 
         job_info: JobInfo {
-            // FIXME(boxbeam): Read latest job run from db
-            last_job_run: None,
+            last_job_run,
             command: serde_json::to_string(&BackgroundJobEvent::SchedulerGithubGitlabRepository(
                 id,
             ))
@@ -289,8 +307,9 @@ mod tests {
     ) {
         let (sender, _) = tokio::sync::mpsc::unbounded_channel();
         let db = DbConn::new_in_memory().await.unwrap();
+        let job = Arc::new(crate::service::job::create(db.clone(), sender.clone()).await);
         let integration = Arc::new(crate::integration::create(db.clone(), sender.clone()));
-        let repository = Arc::new(create(db.clone(), integration.clone(), sender.clone()));
+        let repository = Arc::new(create(db.clone(), integration.clone(), job, sender.clone()));
         (repository, integration)
     }
 
