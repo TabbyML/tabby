@@ -62,8 +62,7 @@ fn main() {
     let out = config.build();
     let server_binary = make_output_binary(&out, "llama-server");
 
-    copy_to_output(&server_binary)
-        .expect("Failed to copy server binary to output directory");
+    copy_to_output(&server_binary).expect("Failed to copy server binary to output directory");
 }
 
 fn make_output_binary(out: &Path, name: &str) -> String {
