@@ -29,7 +29,10 @@ impl Config {
     pub fn load() -> Result<Self> {
         let cfg_path = crate::path::config_file();
         if !cfg_path.as_path().exists() {
-            debug!("Config file {} not found, apply default configuration", cfg_path.display());
+            debug!(
+                "Config file {} not found, apply default configuration",
+                cfg_path.display()
+            );
             return Ok(Default::default());
         }
         let mut cfg: Self = serdeconv::from_toml_file(cfg_path.as_path())
