@@ -49,13 +49,13 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
   return (
     <div className={cn('flex flex-nowrap items-center gap-1', className)}>
       <div className="flex items-center gap-1 overflow-x-auto leading-8">
-        <Link
+        {/* <Link
           className="cursor-pointer font-medium text-primary hover:underline"
           // should point to the root
           href="/files"
         >
           <IconHome />
-        </Link>
+        </Link> */}
         {routes?.map((route, idx) => {
           const isRepo = idx === 0 && routes?.length > 1
           const isActiveFile = idx === routes.length - 1

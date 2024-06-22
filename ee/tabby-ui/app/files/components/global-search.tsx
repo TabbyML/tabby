@@ -16,15 +16,6 @@ import { Input } from '@/components/ui/input'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { resolveRepositoryInfoFromPath } from './utils'
 
-// TODO: Move these to a shared location
-
-interface RepositoryGrep {
-  kind: RepositoryKind
-  id: string | number
-  query: string
-  rev?: string
-}
-
 interface GrepSubMatch {
   byteStart: number
   byteEnd: number
@@ -44,7 +35,11 @@ interface GrepFile {
 
 type FormValues = z.infer<typeof formSchema>
 
-interface GlobalSearchProps {}
+interface GlobalSearchProps {
+  searchTabIsActive: boolean
+  activateSearchTab: () => void
+  deactivateSearchTab: () => void
+}
 
 const formSchema = z.object({
   // PLACEHOLDER
@@ -74,7 +69,9 @@ const globalSearchQuery = graphql(/* GraphQL */ `
 
 const GLOBAL_SEARCH_SHORTCUT = 's'
 
-const GlobalSearch: React.FC<GlobalSearchProps> = () => {
+const GlobalSearch: React.FC<GlobalSearchProps> = ({
+  ...props
+}: GlobalSearchProps) => {
   const { activePath, activeRepo } = useContext(SourceCodeBrowserContext)
 
   const { repositoryKind } = resolveRepositoryInfoFromPath(activePath)
@@ -180,15 +177,22 @@ const GlobalSearch: React.FC<GlobalSearchProps> = () => {
   return (
     // TODO: Componentize the search input
     <Form {...form}>
-      <form onSubmit={submitForm} className="w-full flex items-stretch">
+      <form
+        onSubmit={submitForm}
+        className={`w-full flex items-center h-14 ${
+          props.searchTabIsActive ? '' : ''
+        }`}
+      >
         <div className="relative w-full">
           <Input
             type="search"
-            placeholder="Search the repository..."
+            placeholder="Search..."
             className="w-full"
             value={value}
             ref={inputRef}
             onInput={onInput}
+            onFocus={props.activateSearchTab}
+            className="text-center pr-32"
           />
           <div className="absolute right-2 top-0 flex h-full items-center">
             {value ? (

@@ -3,6 +3,7 @@
 import React, { PropsWithChildren, useState } from 'react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
+import logoUrl from '@/assets/logo.png'
 import tabbyLogo from '@/assets/tabby.png'
 import { createRequest } from '@urql/core'
 import { compact, isEmpty, toNumber } from 'lodash-es'
@@ -18,32 +19,20 @@ import fetcher from '@/lib/tabby/fetcher'
 import { client } from '@/lib/tabby/gql'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
-  IconClose,
-  IconDirectorySolid,
-  IconFile,
-  IconGitFork,
-  IconGithub
+  IconArrowLeftFromLine,
+  IconArrowRight,
+  IconFolderTree
 } from '@/components/ui/icons'
-import { Input } from '@/components/ui/input'
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup
 } from '@/components/ui/resizable'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
-import {
-  SearchableSelect,
-  SearchableSelectAnchor,
-  SearchableSelectContent,
-  SearchableSelectInput,
-  SearchableSelectOption
-} from '@/components/searchable-select'
 import { ListSkeleton } from '@/components/skeleton'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
-import { UserAvatar } from '@/components/user-avatar'
 
 import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
 import { ChatSideBar } from './chat-side-bar'
@@ -339,6 +328,12 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     setExpandedKeys
   } = React.useContext(SourceCodeBrowserContext)
 
+  /**
+   * Whether the search tab is active
+   *
+   */
+  const [searchTabIsActive, setSearchTabIsActive] = useState(false)
+
   const { searchParams } = useRouterStuff()
   const initializing = React.useRef(false)
   const { progress, setProgress } = useTopbarProgress()
@@ -593,43 +588,80 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         </ResizablePanel>
         <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
         <ResizablePanel defaultSize={80} minSize={30}>
-          <div className="flex border-b py-3 w-full justify-between items-center border-border">
-            <div className="flex w-full items-center px-4">
-              <GlobalSearch />
-              {/* <UserAvatar className="w-9 h-9 shrink-0 mr-4" /> */}
+          <div className="flex w-full items-center">
+            <div className="flex w-full items-center gap-8 px-4">
+              {/* FIXME: Should be a link? */}
+              <button
+                onClick={() => setSearchTabIsActive(false)}
+                // FIXME: the button doesn't have to be this wide, just its container
+                className={`gap-2  w-36 flex font-medium items-center  ${
+                  !searchTabIsActive ? '' : ''
+                }`}
+                type="button"
+              >
+                {searchTabIsActive ? (
+                  <>
+                    <IconArrowRight className="w-4 h-4 scale-x-[-1]" />
+                    Files
+                  </>
+                ) : (
+                  <>
+                    <IconFolderTree className="w-4 h-4" />
+                    Files
+                  </>
+                )}
+              </button>
+              {/* TODO: onFocus, show the searchTab if there's a query */}
+              <GlobalSearch
+                searchTabIsActive={searchTabIsActive}
+                activateSearchTab={() => setSearchTabIsActive(true)}
+                deactivateSearchTab={() => setSearchTabIsActive(false)}
+              />
+              {/* FIXME: not same height as input */}
+              <Button className="flex shrink-0 gap-1.5 w-36" variant="ghost">
+                <Image src={tabbyLogo} alt="logo" className="-ml-1.5 h-5 w-5" />
+                Ask Tabby
+              </Button>
             </div>
           </div>
-          <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
-            <FileDirectoryBreadcrumb className="py-4" />
-            {!initialized ? (
-              <ListSkeleton className="rounded-lg border p-4" />
-            ) : showErrorView ? (
-              <ErrorView
-                className={`rounded-lg border p-4`}
-                error={entriesError || rawFileError}
-              />
-            ) : (
-              <div>
-                {showDirectoryView && (
-                  <DirectoryView
-                    loading={fetchingTreeEntries}
-                    initialized={initialized}
-                    className={`rounded-lg border`}
+          {!searchTabIsActive && (
+            <>
+              <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
+                <FileDirectoryBreadcrumb className="py-4" />
+                {!initialized ? (
+                  <ListSkeleton className="rounded-lg border p-4" />
+                ) : showErrorView ? (
+                  <ErrorView
+                    className={`rounded-lg border p-4`}
+                    error={entriesError || rawFileError}
                   />
-                )}
-                {showTextFileView && (
-                  <TextFileView blob={fileBlob} contentLength={contentLength} />
-                )}
-                {showRawFileView && (
-                  <RawFileView
-                    blob={fileBlob}
-                    isImage={fileViewType === 'image'}
-                    contentLength={contentLength}
-                  />
+                ) : (
+                  <div>
+                    {showDirectoryView && (
+                      <DirectoryView
+                        loading={fetchingTreeEntries}
+                        initialized={initialized}
+                        className={`rounded-lg border`}
+                      />
+                    )}
+                    {showTextFileView && (
+                      <TextFileView
+                        blob={fileBlob}
+                        contentLength={contentLength}
+                      />
+                    )}
+                    {showRawFileView && (
+                      <RawFileView
+                        blob={fileBlob}
+                        isImage={fileViewType === 'image'}
+                        contentLength={contentLength}
+                      />
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </ResizablePanel>
         <>
           <ResizableHandle
