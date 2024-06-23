@@ -378,20 +378,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     setExpandedKeys
   } = React.useContext(SourceCodeBrowserContext)
 
-  /**
-   * Whether the search tab is active
-   */
-  const [searchTabIsActive, setSearchTabIsActive] = useState(false)
-
-  /**
-   *
-   */
-  const maybeActivateSearchTab = () => {
-    if (globalSearchQuery && globalSearchResults) {
-      setSearchTabIsActive(true)
-    }
-  }
-
   const { searchParams } = useRouterStuff()
   const initializing = React.useRef(false)
   const { progress, setProgress } = useTopbarProgress()
@@ -636,6 +622,20 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   ///////////////////////////////////////////////////////////
 
   /**
+   * Whether the search tab is active
+   */
+  const [searchTabIsActive, setSearchTabIsActive] = useState(false)
+
+  /**
+   *
+   */
+  const maybeActivateSearchTab = () => {
+    // FIXME: Can we use the query Params to determine this?
+    if (globalSearchQuery && globalSearchResults) {
+      setSearchTabIsActive(true)
+    }
+  }
+  /**
    * The current search query
    */
   const [globalSearchQuery, setGlobalSearchQuery] = useState('')
@@ -767,10 +767,16 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
                 clearInput={clearGlobalSearchInput}
               />
               {/* FIXME: not same height as input */}
-              <Button className="flex shrink-0 gap-1.5 w-36" variant="ghost">
-                <Image src={tabbyLogo} alt="logo" className="-ml-1.5 h-5 w-5" />
-                Ask Tabby
-              </Button>
+              <div className="w-36 shrink-0 flex justify-end">
+                <Button className="flex shrink-0 gap-1.5" variant="ghost">
+                  <Image
+                    src={tabbyLogo}
+                    alt="logo"
+                    className="-ml-1.5 h-5 w-5"
+                  />
+                  Ask Tabby
+                </Button>
+              </div>
             </div>
           </div>
           {searchTabIsActive ? (

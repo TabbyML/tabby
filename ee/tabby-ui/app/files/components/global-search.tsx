@@ -30,7 +30,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
         tagName === 'textarea' ||
         tagName === 'select'
       ) {
-        if (event.key !== 'Enter' && event.key !== 'Escape') {
+        if (event.key === 'Enter' || event.key === 'Escape') {
           return
         }
       }
