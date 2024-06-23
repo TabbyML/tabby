@@ -85,7 +85,6 @@ impl Webserver {
             web_crawler,
             embedding,
             sender,
-            receiver,
         )
         .await;
 

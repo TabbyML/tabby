@@ -34,7 +34,7 @@ pub fn create(
     background: UnboundedSender<BackgroundJobEvent>,
 ) -> Arc<dyn RepositoryService> {
     Arc::new(RepositoryServiceImpl {
-        git: Arc::new(git::create(db.clone(), background.clone(), job.clone())),
+        git: Arc::new(git::create(db.clone(), job.clone())),
         third_party: Arc::new(third_party::create(
             db,
             integration,

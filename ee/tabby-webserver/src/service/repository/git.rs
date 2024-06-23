@@ -15,20 +15,14 @@ use crate::service::{background_job::BackgroundJobEvent, graphql_pagination_to_f
 
 struct GitRepositoryServiceImpl {
     db: DbConn,
-    background_job: UnboundedSender<BackgroundJobEvent>,
     job_service: Arc<dyn JobService>,
 }
 
 pub fn create(
     db: DbConn,
-    background_job: UnboundedSender<BackgroundJobEvent>,
     job_service: Arc<dyn JobService>,
 ) -> impl GitRepositoryService {
-    GitRepositoryServiceImpl {
-        db,
-        background_job,
-        job_service,
-    }
+    GitRepositoryServiceImpl { db, job_service }
 }
 
 #[async_trait]
@@ -65,11 +59,9 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
             .create_repository(name, git_url.clone())
             .await?
             .as_id();
-        let _ = self
-            .background_job
-            .send(BackgroundJobEvent::SchedulerGitRepository(
-                RepositoryConfig::new(git_url),
-            ));
+        let _ = self.job_service.trigger(
+            BackgroundJobEvent::SchedulerGitRepository(RepositoryConfig::new(git_url)).to_command(),
+        );
         Ok(id)
     }
 
@@ -81,11 +73,9 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
         self.db
             .update_repository(id.as_rowid()?, name, git_url.clone())
             .await?;
-        let _ = self
-            .background_job
-            .send(BackgroundJobEvent::SchedulerGitRepository(
-                RepositoryConfig::new(git_url),
-            ));
+        let _ = self.job_service.trigger(
+            BackgroundJobEvent::SchedulerGitRepository(RepositoryConfig::new(git_url)).to_command(),
+        );
         Ok(true)
     }
 }
@@ -141,7 +131,6 @@ mod tests {
         let background = create_fake();
         let svc = create(
             db.clone(),
-            background.clone(),
             Arc::new(crate::service::job::create(db.clone(), background.clone()).await),
         );
 
@@ -172,7 +161,7 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         let background = create_fake();
         let job = Arc::new(crate::service::job::create(db.clone(), background.clone()).await);
-        let service = create(db.clone(), background, job);
+        let service = create(db.clone(), job);
 
         let id_1 = service
             .create(

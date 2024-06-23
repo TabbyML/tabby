@@ -28,11 +28,8 @@ pub async fn create(
 #[async_trait]
 impl JobService for JobControllerImpl {
     async fn trigger(&self, command: String) {
-        if let Err(err) = self
-            .background_job_sender
-            .send(BackgroundJobEvent::SerializedBackgroundJob(command))
-        {
-            warn!("Failed to send background job event: {:?}", err)
+        if let Err(err) = self.db.create_job_run("triggered".into(), command).await {
+            warn!("Failed to create job: {:?}", err);
         }
     }
 

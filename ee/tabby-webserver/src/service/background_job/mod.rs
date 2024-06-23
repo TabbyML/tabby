@@ -33,15 +33,11 @@ pub enum BackgroundJobEvent {
     SchedulerGithubGitlabRepository(ID),
     SyncThirdPartyRepositories(ID),
     WebCrawler(String),
-    SerializedBackgroundJob(String),
 }
 
 impl BackgroundJobEvent {
     pub fn to_command(&self) -> String {
-        match self {
-            BackgroundJobEvent::SerializedBackgroundJob(command) => command.clone(),
-            _ => serde_json::to_string(self).expect("Failed to serialize background job event"),
-        }
+        serde_json::to_string(self).expect("Failed to serialize background job event")
     }
 }
 
@@ -53,7 +49,6 @@ pub async fn start(
     _web_crawler_service: Arc<dyn WebCrawlerService>,
     embedding: Arc<dyn Embedding>,
     sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
-    mut receiver: tokio::sync::mpsc::UnboundedReceiver<BackgroundJobEvent>,
 ) {
     let mut hourly =
         CronStream::new(Schedule::from_str("@hourly").expect("Invalid cron expression"))
@@ -62,21 +57,17 @@ pub async fn start(
     tokio::spawn(async move {
         loop {
             tokio::select! {
-                Some(event) = receiver.recv() => {
-                    let command = event.to_command();
-                    match event {
-                        BackgroundJobEvent::SerializedBackgroundJob(serialized) => {
-                            let Ok(event) = serde_json::from_str(&serialized) else {
-                                warn!("Failed to deserialize background job event: {:?}", serialized);
-                                continue;
-                            };
+                job = db.get_next_job_to_execute() => {
+                    let Some(job) = job else {
+                        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                        continue;
+                    };
 
-                            if let Err(err) = sender.send(event) {
-                                warn!("Failed to send background job event: {:?}", err);
-                            }
-                        },
+                    let event = serde_json::from_str::<BackgroundJobEvent>(&job.command).expect("Failed to deserialize background job event");
+
+                    match event {
                         BackgroundJobEvent::SchedulerGitRepository(repository_config) => {
-                            let mut job_logger = JobLogger::new(SchedulerGitJob::NAME, command, db.clone()).await;
+                            let mut job_logger = JobLogger::new(db.clone(), job.id).await;
                             let job = SchedulerGitJob::new(repository_config);
                             if let Err(err) = job.run(job_logger.clone(), embedding.clone()).await {
                                 cprintln!(job_logger, "{:?}", err);
@@ -86,13 +77,17 @@ pub async fn start(
                             }
                         },
                         BackgroundJobEvent::SyncThirdPartyRepositories(integration_id) => {
+                            let mut job_logger = JobLogger::new(db.clone(), job.id).await;
                             let job = SyncIntegrationJob::new(integration_id);
                             if let Err(err) = job.run(third_party_repository_service.clone()).await {
                                 warn!("Sync integration job failed: {err:?}");
+                                job_logger.complete(-1).await;
+                            } else {
+                                job_logger.complete(0).await;
                             }
                         }
                         BackgroundJobEvent::SchedulerGithubGitlabRepository(integration_id) => {
-                            let mut job_logger = JobLogger::new(SchedulerGithubGitlabJob::NAME, command, db.clone()).await;
+                            let mut job_logger = JobLogger::new(db.clone(), job.id).await;
                             let job = SchedulerGithubGitlabJob::new(integration_id);
                             if let Err(err) = job.run(job_logger.clone(), embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await {
                                 cprintln!(job_logger, "{:?}", err);
@@ -102,7 +97,7 @@ pub async fn start(
                             }
                         }
                         BackgroundJobEvent::WebCrawler(url) => {
-                            let mut job_logger = JobLogger::new(WebCrawlerJob::NAME, command, db.clone()).await;
+                            let mut job_logger = JobLogger::new(db.clone(), job.id).await;
                             let job = WebCrawlerJob::new(url);
 
                             if let Err(err) = job.run(job_logger.clone(), embedding.clone()).await {
