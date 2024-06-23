@@ -33,7 +33,9 @@ import { Button } from '@/components/ui/button'
 import {
   IconArrowLeftFromLine,
   IconArrowRight,
-  IconFolderTree
+  IconChat,
+  IconFolderTree,
+  IconSidebar
 } from '@/components/ui/icons'
 import {
   ResizableHandle,
@@ -736,9 +738,10 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           <div className="flex w-full items-center">
             <div className="flex w-full justify-between items-center gap-4 px-4">
               {/* FIXME: Should be a link? */}
-              {searchTabIsActive && (
+              {/* TODO: Combine */}
+              {searchTabIsActive ? (
                 <button
-                  className="flex shrink-0 gap-1.5 font-bold"
+                  className="shrink-0 w-8 h-8 grid place-items-center font-bold"
                   type="button"
                   onClick={() => {
                     setSearchTabIsActive(false)
@@ -746,8 +749,15 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
                 >
                   <>
                     <IconArrowRight className="w-4 h-4 scale-x-[-1]" />
-                    Files
                   </>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="shrink-0 w-8 h-8 grid place-items-center font-medium items-center text-sm"
+                >
+                  <Image src={tabbyLogo} alt="logo" className="h-7 w-7" />
+                  {/* Code Browser */}
                 </button>
               )}
               {/* TODO: onFocus, show the searchTab if there's a query */}
@@ -761,20 +771,15 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
                 clearInput={clearGlobalSearchInput}
               />
               {/* FIXME: not same height as input */}
-              <div className="w-32 shrink-0 flex justify-end">
-                <Button
-                  className="flex shrink-0 gap-1.5"
-                  variant="outline"
-                  onClick={() => setChatSideBarVisible(!chatSideBarVisible)}
-                >
-                  <Image
-                    src={tabbyLogo}
-                    alt="logo"
-                    className="-ml-1.5 h-5 w-5"
-                  />
-                  Ask Tabby
-                </Button>
-              </div>
+              <Button
+                className="flex shrink-0 gap-1.5"
+                variant={chatSideBarVisible ? 'default' : 'outline'}
+                onClick={() => setChatSideBarVisible(!chatSideBarVisible)}
+              >
+                <IconSidebar className="scale-x-[-1]" />
+                {/* <IconChat /> */}
+                Ask Tabby
+              </Button>
             </div>
           </div>
           {searchTabIsActive ? (
