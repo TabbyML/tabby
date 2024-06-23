@@ -134,9 +134,9 @@ mod tests {
                 raw: "GET / HTTP/1.1\nHost: example.com\n".to_owned(),
             },
             response: types::KatanaResponse {
-                status_code: 200,
+                status_code: Some(200),
                 headers,
-                body: "<p>Hello, World!</p>".to_owned(),
+                body: Some("<p>Hello, World!</p>".to_owned()),
                 technologies: Default::default(),
                 raw: "HTTP/1.1 200 OK\nContent-Type: text/html\n".to_owned(),
             },
