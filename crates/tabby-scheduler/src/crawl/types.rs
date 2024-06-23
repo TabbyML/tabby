@@ -18,9 +18,9 @@ pub struct KatanaRequest {
 
 #[derive(Deserialize, Debug)]
 pub struct KatanaResponse {
-    pub status_code: u16,
+    pub status_code: Option<u16>,
     pub headers: HashMap<String, String>,
-    pub body: String,
+    pub body: Option<String>,
     pub technologies: Vec<String>,
     pub raw: String,
 }

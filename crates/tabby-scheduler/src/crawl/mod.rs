@@ -46,7 +46,7 @@ async fn crawl_url(start_url: &str) -> anyhow::Result<impl Stream<Item = KatanaR
             };
 
             // Skip if the status code is not 200
-            if data.response.status_code != 200 {
+            if data.response.status_code != Some(200) {
                 continue;
             }
 
@@ -76,7 +76,7 @@ fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
     let (html, metadata) = {
         let (node, metadata) = Readability::new()
             .base_url(Url::parse(&data.request.endpoint).ok()?)
-            .parse(&data.response.body);
+            .parse(&data.response.body?);
 
         let mut html_bytes = vec![];
         node.serialize(&mut html_bytes).ok()?;
@@ -134,9 +134,9 @@ mod tests {
                 raw: "GET / HTTP/1.1\nHost: example.com\n".to_owned(),
             },
             response: types::KatanaResponse {
-                status_code: 200,
+                status_code: Some(200),
                 headers,
-                body: "<p>Hello, World!</p>".to_owned(),
+                body: Some("<p>Hello, World!</p>".to_owned()),
                 technologies: Default::default(),
                 raw: "HTTP/1.1 200 OK\nContent-Type: text/html\n".to_owned(),
             },
