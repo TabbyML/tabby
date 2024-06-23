@@ -734,28 +734,22 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
         <ResizablePanel defaultSize={80} minSize={30}>
           <div className="flex w-full items-center">
-            <div className="flex w-full items-center gap-8 px-4">
+            <div className="flex w-full justify-between items-center gap-4 px-4">
               {/* FIXME: Should be a link? */}
-              <button
-                onClick={() => setSearchTabIsActive(false)}
-                // FIXME: the button doesn't have to be this wide, just its container
-                className={`gap-2  w-36 flex font-medium items-center  ${
-                  !searchTabIsActive ? '' : ''
-                }`}
-                type="button"
-              >
-                {searchTabIsActive ? (
+              {searchTabIsActive && (
+                <button
+                  className="flex shrink-0 gap-1.5 font-bold"
+                  type="button"
+                  onClick={() => {
+                    setSearchTabIsActive(false)
+                  }}
+                >
                   <>
                     <IconArrowRight className="w-4 h-4 scale-x-[-1]" />
-                    Browser
+                    Files
                   </>
-                ) : (
-                  <>
-                    <IconFolderTree className="w-4 h-4" />
-                    Browser
-                  </>
-                )}
-              </button>
+                </button>
+              )}
               {/* TODO: onFocus, show the searchTab if there's a query */}
               <GlobalSearch
                 // Might be able to "splat" the ref
@@ -767,8 +761,12 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
                 clearInput={clearGlobalSearchInput}
               />
               {/* FIXME: not same height as input */}
-              <div className="w-36 shrink-0 flex justify-end">
-                <Button className="flex shrink-0 gap-1.5" variant="ghost">
+              <div className="w-32 shrink-0 flex justify-end">
+                <Button
+                  className="flex shrink-0 gap-1.5"
+                  variant="outline"
+                  onClick={() => setChatSideBarVisible(!chatSideBarVisible)}
+                >
                   <Image
                     src={tabbyLogo}
                     alt="logo"
