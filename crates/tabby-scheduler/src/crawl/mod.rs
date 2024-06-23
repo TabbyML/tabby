@@ -76,7 +76,7 @@ fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
     let (html, metadata) = {
         let (node, metadata) = Readability::new()
             .base_url(Url::parse(&data.request.endpoint).ok()?)
-            .parse(&data.response.body);
+            .parse(&data.response.body?);
 
         let mut html_bytes = vec![];
         node.serialize(&mut html_bytes).ok()?;
