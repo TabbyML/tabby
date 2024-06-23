@@ -11,6 +11,7 @@ pub struct JobRunDAO {
     pub id: i64,
     #[sqlx(rename = "job")]
     pub name: String,
+    pub command: String,
     pub exit_code: Option<i64>,
     pub stdout: String,
     pub stderr: String,
@@ -37,6 +38,16 @@ impl DbConn {
         ).execute(&self.pool).await?.last_insert_rowid();
 
         Ok(rowid)
+    }
+
+    pub async fn get_next_job_to_execute(&self) -> Option<JobRunDAO> {
+        sqlx::query_as(
+            r#"SELECT * FROM job_runs WHERE exit_code IS NULL ORDER BY created_at ASC LIMIT 1"#,
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .ok()
+        .flatten()
     }
 
     pub async fn update_job_stdout(&self, job_id: i64, stdout: String) -> Result<()> {
@@ -66,14 +77,15 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn get_latest_job_run(&self, command: String) -> Result<Option<JobRunDAO>> {
-        let job = sqlx::query_as(
+    pub async fn get_latest_job_run(&self, command: String) -> Option<JobRunDAO> {
+        sqlx::query_as(
             r#"SELECT * FROM job_runs WHERE command = ? ORDER BY created_at DESC LIMIT 1"#,
         )
         .bind(command)
         .fetch_optional(&self.pool)
-        .await?;
-        Ok(job)
+        .await
+        .ok()
+        .flatten()
     }
 
     pub async fn list_job_runs_with_filter(
@@ -108,6 +120,7 @@ impl DbConn {
                 "exit_code",
                 "stdout",
                 "stderr",
+                "command"!,
                 "created_at"!,
                 "updated_at"!,
                 "end_ts" as "finished_at"

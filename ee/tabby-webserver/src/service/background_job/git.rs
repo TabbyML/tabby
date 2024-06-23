@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
 use tabby_scheduler::CodeIndexer;
-use tabby_schema::repository::GitRepositoryService;
+use tabby_schema::{job::JobService, repository::GitRepositoryService};
 
 use super::{
     cprintln,
@@ -52,10 +52,10 @@ impl SchedulerGitJob {
 
     pub async fn cron(
         _now: DateTime<Utc>,
-        git_repository_service: Arc<dyn GitRepositoryService>,
-        sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
+        git_repository: Arc<dyn GitRepositoryService>,
+        job: Arc<dyn JobService>,
     ) -> tabby_schema::Result<()> {
-        let repositories = git_repository_service
+        let repositories = git_repository
             .repository_list()
             .await
             .context("Must be able to retrieve repositories for sync")?;
@@ -70,9 +70,9 @@ impl SchedulerGitJob {
         code.garbage_collection(&repositories);
 
         for repository in repositories {
-            sender
-                .send(BackgroundJobEvent::SchedulerGitRepository(repository))
-                .context("Failed to enqueue scheduler job")?;
+            let _ = job
+                .trigger(BackgroundJobEvent::SchedulerGitRepository(repository).to_command())
+                .await;
         }
         Ok(())
     }

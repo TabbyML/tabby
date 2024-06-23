@@ -833,10 +833,9 @@ impl Mutation {
     }
 
     /// Trigger a job run given its param string.
-    async fn trigger_job_run(ctx: &Context, command: String) -> Result<bool> {
+    async fn trigger_job_run(ctx: &Context, command: String) -> Result<ID> {
         check_admin(ctx).await?;
-        ctx.locator.job().trigger(command).await;
-        Ok(true)
+        ctx.locator.job().trigger(command).await
     }
 
     async fn create_web_crawler_url(ctx: &Context, input: CreateWebCrawlerUrlInput) -> Result<ID> {

@@ -9,26 +9,16 @@ use tabby_schema::{
     repository::{GitRepository, GitRepositoryService, Repository, RepositoryProvider},
     AsID, AsRowid, Result,
 };
-use tokio::sync::mpsc::UnboundedSender;
 
 use crate::service::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
 
 struct GitRepositoryServiceImpl {
     db: DbConn,
-    background_job: UnboundedSender<BackgroundJobEvent>,
     job_service: Arc<dyn JobService>,
 }
 
-pub fn create(
-    db: DbConn,
-    background_job: UnboundedSender<BackgroundJobEvent>,
-    job_service: Arc<dyn JobService>,
-) -> impl GitRepositoryService {
-    GitRepositoryServiceImpl {
-        db,
-        background_job,
-        job_service,
-    }
+pub fn create(db: DbConn, job_service: Arc<dyn JobService>) -> impl GitRepositoryService {
+    GitRepositoryServiceImpl { db, job_service }
 }
 
 #[async_trait]
@@ -66,10 +56,12 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
             .await?
             .as_id();
         let _ = self
-            .background_job
-            .send(BackgroundJobEvent::SchedulerGitRepository(
-                RepositoryConfig::new(git_url),
-            ));
+            .job_service
+            .trigger(
+                BackgroundJobEvent::SchedulerGitRepository(RepositoryConfig::new(git_url))
+                    .to_command(),
+            )
+            .await;
         Ok(id)
     }
 
@@ -82,10 +74,12 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
             .update_repository(id.as_rowid()?, name, git_url.clone())
             .await?;
         let _ = self
-            .background_job
-            .send(BackgroundJobEvent::SchedulerGitRepository(
-                RepositoryConfig::new(git_url),
-            ));
+            .job_service
+            .trigger(
+                BackgroundJobEvent::SchedulerGitRepository(RepositoryConfig::new(git_url))
+                    .to_command(),
+            )
+            .await;
         Ok(true)
     }
 }
@@ -130,19 +124,12 @@ mod tests {
 
     use super::*;
 
-    fn create_fake() -> UnboundedSender<BackgroundJobEvent> {
-        let (sender, _) = tokio::sync::mpsc::unbounded_channel();
-        sender
-    }
-
     #[tokio::test]
     pub async fn test_duplicate_repository_error() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let background = create_fake();
         let svc = create(
             db.clone(),
-            background.clone(),
-            Arc::new(crate::service::job::create(db.clone(), background.clone()).await),
+            Arc::new(crate::service::job::create(db.clone()).await),
         );
 
         GitRepositoryService::create(
@@ -170,9 +157,8 @@ mod tests {
     #[tokio::test]
     pub async fn test_repository_mutations() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let background = create_fake();
-        let job = Arc::new(crate::service::job::create(db.clone(), background.clone()).await);
-        let service = create(db.clone(), background, job);
+        let job = Arc::new(crate::service::job::create(db.clone()).await);
+        let service = create(db.clone(), job);
 
         let id_1 = service
             .create(

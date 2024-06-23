@@ -1,25 +1,24 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
+    job::JobService,
     AsID, AsRowid, DbEnum, Result,
 };
-use tokio::sync::mpsc::UnboundedSender;
 
 use super::graphql_pagination_to_filter;
 use crate::service::background_job::BackgroundJobEvent;
 
 struct IntegrationServiceImpl {
     db: DbConn,
-    background_job: UnboundedSender<BackgroundJobEvent>,
+    job: Arc<dyn JobService>,
 }
 
-pub fn create(
-    db: DbConn,
-    background_job: UnboundedSender<BackgroundJobEvent>,
-) -> impl IntegrationService {
-    IntegrationServiceImpl { db, background_job }
+pub fn create(db: DbConn, job: Arc<dyn JobService>) -> impl IntegrationService {
+    IntegrationServiceImpl { db, job }
 }
 
 #[async_trait]
@@ -42,8 +41,9 @@ impl IntegrationService for IntegrationServiceImpl {
             .await?;
         let id = id.as_id();
         let _ = self
-            .background_job
-            .send(BackgroundJobEvent::SyncThirdPartyRepositories(id.clone()));
+            .job
+            .trigger(BackgroundJobEvent::SyncThirdPartyRepositories(id.clone()).to_command())
+            .await;
         Ok(id)
     }
 
@@ -80,8 +80,9 @@ impl IntegrationService for IntegrationServiceImpl {
 
         if access_token_is_changed || api_base_is_changed {
             let _ = self
-                .background_job
-                .send(BackgroundJobEvent::SyncThirdPartyRepositories(id.clone()));
+                .job
+                .trigger(BackgroundJobEvent::SyncThirdPartyRepositories(id.clone()).to_command())
+                .await;
         }
 
         Ok(())
@@ -133,18 +134,17 @@ mod tests {
     use tabby_schema::integration::IntegrationStatus;
 
     use super::*;
+    use crate::job;
 
-    fn create_fake() -> UnboundedSender<BackgroundJobEvent> {
-        let (sender, _) = tokio::sync::mpsc::unbounded_channel();
-        sender
+    async fn create_services() -> (Arc<dyn IntegrationService>, Arc<dyn JobService>, DbConn) {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let job = Arc::new(job::create(db.clone()).await);
+        (Arc::new(create(db.clone(), job.clone())), job, db)
     }
 
     #[tokio::test]
     async fn test_integration_crud() {
-        let background = create_fake();
-        let db = DbConn::new_in_memory().await.unwrap();
-        let integration = Arc::new(create(db, background));
-
+        let (integration, _, _) = create_services().await;
         let id = integration
             .create_integration(IntegrationKind::Gitlab, "id".into(), "secret".into(), None)
             .await
@@ -217,20 +217,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_integration_should_reset_status() {
-        let (background, mut recv) = tokio::sync::mpsc::unbounded_channel();
-        let db = DbConn::new_in_memory().await.unwrap();
-        let integration = Arc::new(create(db, background));
-
+        let (integration, _, db) = create_services().await;
         let id = integration
             .create_integration(IntegrationKind::Github, "gh".into(), "token".into(), None)
             .await
             .unwrap();
 
         // Test event is sent to re-sync provider after provider is created
-        let event = recv.recv().await.unwrap();
+        let job = db.get_next_job_to_execute().await.unwrap();
         assert_eq!(
-            event,
-            BackgroundJobEvent::SyncThirdPartyRepositories(id.clone())
+            job.command,
+            BackgroundJobEvent::SyncThirdPartyRepositories(id.clone()).to_command()
         );
 
         // Test integration status is failed after updating sync status with an error
@@ -290,10 +287,10 @@ mod tests {
         assert_eq!(provider.status, IntegrationStatus::Ready);
 
         // Test event is sent to re-sync provider after credentials are updated
-        let event = recv.recv().await.unwrap();
+        let job = db.get_next_job_to_execute().await.unwrap();
         assert_eq!(
-            event,
-            BackgroundJobEvent::SyncThirdPartyRepositories(id.clone())
+            job.command,
+            BackgroundJobEvent::SyncThirdPartyRepositories(id.clone()).to_command()
         );
 
         // Test sync event is not sent if no fields are updated
@@ -307,10 +304,5 @@ mod tests {
             )
             .await
             .unwrap();
-
-        assert_eq!(
-            recv.try_recv(),
-            Err(tokio::sync::mpsc::error::TryRecvError::Empty)
-        );
     }
 }
