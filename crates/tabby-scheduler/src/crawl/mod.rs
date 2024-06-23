@@ -46,7 +46,7 @@ async fn crawl_url(start_url: &str) -> anyhow::Result<impl Stream<Item = KatanaR
             };
 
             // Skip if the status code is not 200
-            if data.response.status_code != 200 {
+            if data.response.status_code != Some(200) {
                 continue;
             }
 
