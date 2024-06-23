@@ -40,7 +40,8 @@ impl IntegrationService for IntegrationServiceImpl {
             )
             .await?;
         let id = id.as_id();
-        self.job
+        let _ = self
+            .job
             .trigger(BackgroundJobEvent::SyncThirdPartyRepositories(id.clone()).to_command())
             .await;
         Ok(id)
@@ -78,7 +79,8 @@ impl IntegrationService for IntegrationServiceImpl {
             .await?;
 
         if access_token_is_changed || api_base_is_changed {
-            self.job
+            let _ = self
+                .job
                 .trigger(BackgroundJobEvent::SyncThirdPartyRepositories(id.clone()).to_command())
                 .await;
         }

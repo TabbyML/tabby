@@ -49,7 +49,8 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
     async fn create_web_crawler_url(&self, url: String) -> Result<ID> {
         let id = self.db.create_web_crawler_url(url.clone()).await?;
 
-        self.job_service
+        let _ = self
+            .job_service
             .trigger(BackgroundJobEvent::WebCrawler(url).to_command())
             .await;
 

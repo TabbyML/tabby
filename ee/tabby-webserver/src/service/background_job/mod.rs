@@ -9,7 +9,7 @@ use std::{str::FromStr, sync::Arc};
 use cron::Schedule;
 use futures::StreamExt;
 use git::SchedulerGitJob;
-use helper::{CronStream, JobLogger};
+use helper::{CronStream, Job, JobLogger};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::RepositoryConfig;
@@ -35,6 +35,17 @@ pub enum BackgroundJobEvent {
 }
 
 impl BackgroundJobEvent {
+    pub fn name(&self) -> &'static str {
+        match self {
+            BackgroundJobEvent::SchedulerGitRepository(_) => SchedulerGitJob::NAME,
+            BackgroundJobEvent::SchedulerGithubGitlabRepository(_) => {
+                SchedulerGithubGitlabJob::NAME
+            }
+            BackgroundJobEvent::SyncThirdPartyRepositories(_) => SyncIntegrationJob::NAME,
+            BackgroundJobEvent::WebCrawler(_) => WebCrawlerJob::NAME,
+        }
+    }
+
     pub fn to_command(&self) -> String {
         serde_json::to_string(self).expect("Failed to serialize background job event")
     }

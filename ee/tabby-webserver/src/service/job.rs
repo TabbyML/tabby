@@ -1,13 +1,14 @@
+use anyhow::Context;
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
     job::{JobInfo, JobRun, JobService, JobStats},
-    AsRowid, Result,
+    AsID, AsRowid, Result,
 };
-use tracing::warn;
 
 use super::graphql_pagination_to_filter;
+use crate::service::background_job::BackgroundJobEvent;
 
 struct JobControllerImpl {
     db: DbConn,
@@ -19,10 +20,18 @@ pub async fn create(db: DbConn) -> impl JobService {
 
 #[async_trait]
 impl JobService for JobControllerImpl {
-    async fn trigger(&self, command: String) {
-        if let Err(err) = self.db.create_job_run("triggered".into(), command).await {
-            warn!("Failed to create job: {:?}", err);
-        }
+    async fn trigger(&self, command: String) -> Result<ID> {
+        if let Some(job) = self.db.get_latest_job_run(command.clone()).await {
+            return Ok(job.id.as_id());
+        };
+
+        let event = serde_json::from_str::<BackgroundJobEvent>(&command)
+            .context("Failed to parse background job event")?;
+        Ok(self
+            .db
+            .create_job_run(event.name().to_owned(), command)
+            .await?
+            .as_id())
     }
 
     async fn list(
@@ -50,7 +59,7 @@ impl JobService for JobControllerImpl {
     }
 
     async fn get_job_info(&self, command: String) -> Result<JobInfo> {
-        let job_run = self.db.get_latest_job_run(command.clone()).await?;
+        let job_run = self.db.get_latest_job_run(command.clone()).await;
         Ok(JobInfo {
             last_job_run: job_run.map(JobRun::from),
             command,

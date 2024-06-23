@@ -70,8 +70,9 @@ impl SchedulerGitJob {
         code.garbage_collection(&repositories);
 
         for repository in repositories {
-            job.trigger(BackgroundJobEvent::SchedulerGitRepository(repository).to_command())
-                .await
+            let _ = job
+                .trigger(BackgroundJobEvent::SchedulerGitRepository(repository).to_command())
+                .await;
         }
         Ok(())
     }

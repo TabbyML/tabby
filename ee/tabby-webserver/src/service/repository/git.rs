@@ -55,7 +55,8 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
             .create_repository(name, git_url.clone())
             .await?
             .as_id();
-        self.job_service
+        let _ = self
+            .job_service
             .trigger(
                 BackgroundJobEvent::SchedulerGitRepository(RepositoryConfig::new(git_url))
                     .to_command(),
@@ -72,7 +73,8 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
         self.db
             .update_repository(id.as_rowid()?, name, git_url.clone())
             .await?;
-        self.job_service
+        let _ = self
+            .job_service
             .trigger(
                 BackgroundJobEvent::SchedulerGitRepository(RepositoryConfig::new(git_url))
                     .to_command(),

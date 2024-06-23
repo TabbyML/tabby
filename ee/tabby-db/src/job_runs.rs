@@ -77,14 +77,15 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn get_latest_job_run(&self, command: String) -> Result<Option<JobRunDAO>> {
-        let job = sqlx::query_as(
+    pub async fn get_latest_job_run(&self, command: String) -> Option<JobRunDAO> {
+        sqlx::query_as(
             r#"SELECT * FROM job_runs WHERE command = ? ORDER BY created_at DESC LIMIT 1"#,
         )
         .bind(command)
         .fetch_optional(&self.pool)
-        .await?;
-        Ok(job)
+        .await
+        .ok()
+        .flatten()
     }
 
     pub async fn list_job_runs_with_filter(

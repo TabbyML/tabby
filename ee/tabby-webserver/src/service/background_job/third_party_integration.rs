@@ -59,8 +59,11 @@ impl SyncIntegrationJob {
             .list_integrations(None, None, None, None, None, None)
             .await?
         {
-            job.trigger(BackgroundJobEvent::SyncThirdPartyRepositories(integration.id).to_command())
-                .await
+            let _ = job
+                .trigger(
+                    BackgroundJobEvent::SyncThirdPartyRepositories(integration.id).to_command(),
+                )
+                .await;
         }
         Ok(())
     }
@@ -142,10 +145,11 @@ impl SchedulerGithubGitlabJob {
             .list_repositories_with_filter(None, None, Some(true), None, None, None, None)
             .await?
         {
-            job.trigger(
-                BackgroundJobEvent::SchedulerGithubGitlabRepository(repository.id).to_command(),
-            )
-            .await
+            let _ = job
+                .trigger(
+                    BackgroundJobEvent::SchedulerGithubGitlabRepository(repository.id).to_command(),
+                )
+                .await;
         }
         Ok(())
     }
