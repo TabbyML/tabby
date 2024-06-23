@@ -72,51 +72,35 @@ pub async fn start(
                         continue;
                     };
 
-                    // FIXME: remove malformed jobs from the queue
-                    let event = serde_json::from_str::<BackgroundJobEvent>(&job.command).expect("Failed to deserialize background job event");
+                    let mut job_logger = JobLogger::new(db.clone(), job.id).await;
+                    let Ok(event) = serde_json::from_str::<BackgroundJobEvent>(&job.command) else {
+                        cprintln!(job_logger, "Failed to parse background job event, marking it as failed");
+                        job_logger.complete(-1).await;
+                        continue;
+                    };
 
-                    match event {
+                    if let Err(err) = match event {
                         BackgroundJobEvent::SchedulerGitRepository(repository_config) => {
-                            let mut job_logger = JobLogger::new(db.clone(), job.id).await;
                             let job = SchedulerGitJob::new(repository_config);
-                            if let Err(err) = job.run(job_logger.clone(), embedding.clone()).await {
-                                cprintln!(job_logger, "{:?}", err);
-                                job_logger.complete(-1).await;
-                            } else {
-                                job_logger.complete(0).await;
-                            }
+                            job.run(job_logger.clone(), embedding.clone()).await
                         },
                         BackgroundJobEvent::SyncThirdPartyRepositories(integration_id) => {
-                            let mut job_logger = JobLogger::new(db.clone(), job.id).await;
                             let job = SyncIntegrationJob::new(integration_id);
-                            if let Err(err) = job.run(third_party_repository_service.clone()).await {
-                                warn!("Sync integration job failed: {err:?}");
-                                job_logger.complete(-1).await;
-                            } else {
-                                job_logger.complete(0).await;
-                            }
+                            job.run(third_party_repository_service.clone()).await
                         }
                         BackgroundJobEvent::SchedulerGithubGitlabRepository(integration_id) => {
-                            let mut job_logger = JobLogger::new(db.clone(), job.id).await;
                             let job = SchedulerGithubGitlabJob::new(integration_id);
-                            if let Err(err) = job.run(job_logger.clone(), embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await {
-                                cprintln!(job_logger, "{:?}", err);
-                                job_logger.complete(-1).await;
-                            } else {
-                                job_logger.complete(0).await;
-                            }
+                            job.run(job_logger.clone(), embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await
                         }
                         BackgroundJobEvent::WebCrawler(url) => {
-                            let mut job_logger = JobLogger::new(db.clone(), job.id).await;
                             let job = WebCrawlerJob::new(url);
-
-                            if let Err(err) = job.run(job_logger.clone(), embedding.clone()).await {
-                                cprintln!(job_logger, "Web indexing process failed: do you have Katana installed? (https://github.com/projectdiscovery/katana) \n{err:?}");
-                                job_logger.complete(-1).await;
-                            } else {
-                                job_logger.complete(0).await;
-                            }
+                            job.run(job_logger.clone(), embedding.clone()).await
                         }
+                    } {
+                        cprintln!(job_logger, "{:?}", err);
+                        job_logger.complete(-1).await;
+                    } else {
+                        job_logger.complete(0).await;
                     }
                 },
                 Some(now) = hourly.next() => {
