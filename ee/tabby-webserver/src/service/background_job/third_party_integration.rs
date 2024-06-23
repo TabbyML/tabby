@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use issues::{index_github_issues, index_gitlab_issues};
 use juniper::ID;
@@ -10,6 +9,7 @@ use tabby_inference::Embedding;
 use tabby_scheduler::DocIndexer;
 use tabby_schema::{
     integration::{IntegrationKind, IntegrationService},
+    job::JobService,
     repository::ThirdPartyRepositoryService,
 };
 use tracing::debug;
@@ -48,22 +48,19 @@ impl SyncIntegrationJob {
 
     pub async fn cron(
         _now: DateTime<Utc>,
-        sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
-        integration_service: Arc<dyn IntegrationService>,
+        integration: Arc<dyn IntegrationService>,
+        job: Arc<dyn JobService>,
     ) -> tabby_schema::Result<()> {
         // FIXME(boxbeam): Find a way to clean up issues from the index
         // if the repository was set to inactive or the issue was deleted upstream
         debug!("Syncing all github and gitlab repositories");
 
-        for integration in integration_service
+        for integration in integration
             .list_integrations(None, None, None, None, None, None)
             .await?
         {
-            sender
-                .send(BackgroundJobEvent::SyncThirdPartyRepositories(
-                    integration.id,
-                ))
-                .map_err(|_| anyhow!("Failed to enqueue scheduler job"))?;
+            job.trigger(BackgroundJobEvent::SyncThirdPartyRepositories(integration.id).to_command())
+                .await
         }
         Ok(())
     }
@@ -138,18 +135,17 @@ impl SchedulerGithubGitlabJob {
 
     pub async fn cron(
         _now: DateTime<Utc>,
-        sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
-        repository_service: Arc<dyn ThirdPartyRepositoryService>,
+        repository: Arc<dyn ThirdPartyRepositoryService>,
+        job: Arc<dyn JobService>,
     ) -> tabby_schema::Result<()> {
-        for repository in repository_service
+        for repository in repository
             .list_repositories_with_filter(None, None, Some(true), None, None, None, None)
             .await?
         {
-            sender
-                .send(BackgroundJobEvent::SchedulerGithubGitlabRepository(
-                    repository.id,
-                ))
-                .map_err(|_| anyhow!("Failed to enqueue scheduler job"))?;
+            job.trigger(
+                BackgroundJobEvent::SchedulerGithubGitlabRepository(repository.id).to_command(),
+            )
+            .await
         }
         Ok(())
     }

@@ -8,21 +8,13 @@ use tabby_schema::{
 use tracing::warn;
 
 use super::graphql_pagination_to_filter;
-use crate::service::background_job::BackgroundJobEvent;
 
 struct JobControllerImpl {
     db: DbConn,
-    background_job_sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
 }
 
-pub async fn create(
-    db: DbConn,
-    background_job_sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
-) -> impl JobService {
-    JobControllerImpl {
-        db,
-        background_job_sender,
-    }
+pub async fn create(db: DbConn) -> impl JobService {
+    JobControllerImpl { db }
 }
 
 #[async_trait]

@@ -13,7 +13,6 @@ use tabby_schema::{
     repository::{ProvidedRepository, Repository, RepositoryProvider, ThirdPartyRepositoryService},
     AsID, AsRowid, DbEnum, Result,
 };
-use tokio::sync::mpsc::UnboundedSender;
 use tracing::{debug, error};
 
 use self::fetch::RepositoryInfo;
@@ -26,20 +25,17 @@ struct ThirdPartyRepositoryServiceImpl {
     db: DbConn,
     integration: Arc<dyn IntegrationService>,
     job: Arc<dyn JobService>,
-    background_job: UnboundedSender<BackgroundJobEvent>,
 }
 
 pub fn create(
     db: DbConn,
     integration: Arc<dyn IntegrationService>,
     job: Arc<dyn JobService>,
-    background_job: UnboundedSender<BackgroundJobEvent>,
 ) -> impl ThirdPartyRepositoryService {
     ThirdPartyRepositoryServiceImpl {
         db,
         integration,
         job,
-        background_job,
     }
 }
 
@@ -135,9 +131,9 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             .await?;
 
         if active {
-            let _ = self
-                .background_job
-                .send(BackgroundJobEvent::SchedulerGithubGitlabRepository(id));
+            self.job
+                .trigger(BackgroundJobEvent::SchedulerGithubGitlabRepository(id).to_command())
+                .await;
         }
 
         Ok(())
@@ -295,11 +291,10 @@ mod tests {
         Arc<dyn ThirdPartyRepositoryService>,
         Arc<dyn IntegrationService>,
     ) {
-        let (sender, _) = tokio::sync::mpsc::unbounded_channel();
         let db = DbConn::new_in_memory().await.unwrap();
-        let job = Arc::new(crate::service::job::create(db.clone(), sender.clone()).await);
-        let integration = Arc::new(crate::integration::create(db.clone(), sender.clone()));
-        let repository = Arc::new(create(db.clone(), integration.clone(), job, sender.clone()));
+        let job = Arc::new(crate::service::job::create(db.clone()).await);
+        let integration = Arc::new(crate::integration::create(db.clone(), job.clone()));
+        let repository = Arc::new(create(db.clone(), integration.clone(), job));
         (repository, integration)
     }
 

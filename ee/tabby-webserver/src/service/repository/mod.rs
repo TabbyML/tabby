@@ -17,9 +17,6 @@ use tabby_schema::{
     },
     Result,
 };
-use tokio::sync::mpsc::UnboundedSender;
-
-use crate::service::background_job::BackgroundJobEvent;
 
 struct RepositoryServiceImpl {
     git: Arc<dyn GitRepositoryService>,
@@ -31,16 +28,10 @@ pub fn create(
     db: DbConn,
     integration: Arc<dyn IntegrationService>,
     job: Arc<dyn JobService>,
-    background: UnboundedSender<BackgroundJobEvent>,
 ) -> Arc<dyn RepositoryService> {
     Arc::new(RepositoryServiceImpl {
         git: Arc::new(git::create(db.clone(), job.clone())),
-        third_party: Arc::new(third_party::create(
-            db,
-            integration,
-            job.clone(),
-            background.clone(),
-        )),
+        third_party: Arc::new(third_party::create(db, integration, job.clone())),
         config: Config::load()
             .map(|config| config.repositories)
             .unwrap_or_default(),
@@ -225,20 +216,15 @@ mod tests {
     use tabby_db::DbConn;
 
     use super::*;
-
-    fn create_fake() -> UnboundedSender<BackgroundJobEvent> {
-        let (sender, _) = tokio::sync::mpsc::unbounded_channel();
-        sender
-    }
+    use crate::job;
 
     #[tokio::test]
     async fn test_list_repositories() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let background = create_fake();
-        let integration = Arc::new(crate::service::integration::create(db.clone(), background));
-        let background = create_fake();
-        let job = Arc::new(crate::service::job::create(db.clone(), background.clone()).await);
-        let service = create(db.clone(), integration, job, background);
+        let job_service = Arc::new(job::create(db.clone()).await);
+        let integration = Arc::new(crate::service::integration::create(db.clone(), job_service));
+        let job = Arc::new(crate::service::job::create(db.clone()).await);
+        let service = create(db.clone(), integration, job);
         service
             .git()
             .create("test_git_repo".into(), "http://test_git_repo".into())

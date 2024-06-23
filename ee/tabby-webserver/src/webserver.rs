@@ -19,7 +19,7 @@ use crate::{
     path::db_file,
     routes,
     service::{
-        background_job::{self, BackgroundJobEvent},
+        background_job::{self},
         create_service_locator,
         event_logger::create_event_logger,
         integration, job, repository, web_crawler,
@@ -56,15 +56,12 @@ impl Webserver {
             .await
             .expect("Must be able to finalize stale job runs");
 
-        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<BackgroundJobEvent>();
+        let job: Arc<dyn JobService> = Arc::new(job::create(db.clone()).await);
 
-        let job: Arc<dyn JobService> = Arc::new(job::create(db.clone(), sender.clone()).await);
+        let integration = Arc::new(integration::create(db.clone(), job.clone()));
+        let repository = repository::create(db.clone(), integration.clone(), job.clone());
 
-        let integration = Arc::new(integration::create(db.clone(), sender.clone()));
-        let repository =
-            repository::create(db.clone(), integration.clone(), job.clone(), sender.clone());
-
-        let web_crawler = Arc::new(web_crawler::create(db.clone(), job.clone(), sender.clone()));
+        let web_crawler = Arc::new(web_crawler::create(db.clone(), job.clone()));
 
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
@@ -74,17 +71,16 @@ impl Webserver {
             repository: repository.clone(),
             integration: integration.clone(),
             web_crawler: web_crawler.clone(),
-            job,
+            job: job.clone(),
         });
 
         background_job::start(
             db.clone(),
+            job,
             repository.git(),
             repository.third_party(),
             integration.clone(),
-            web_crawler,
             embedding,
-            sender,
         )
         .await;
 

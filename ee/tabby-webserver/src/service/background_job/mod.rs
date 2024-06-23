@@ -9,7 +9,6 @@ use std::{str::FromStr, sync::Arc};
 use cron::Schedule;
 use futures::StreamExt;
 use git::SchedulerGitJob;
-pub use helper::Job;
 use helper::{CronStream, JobLogger};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
@@ -18,8 +17,8 @@ use tabby_db::DbConn;
 use tabby_inference::Embedding;
 use tabby_schema::{
     integration::IntegrationService,
+    job::JobService,
     repository::{GitRepositoryService, ThirdPartyRepositoryService},
-    web_crawler::WebCrawlerService,
 };
 use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::warn;
@@ -43,12 +42,11 @@ impl BackgroundJobEvent {
 
 pub async fn start(
     db: DbConn,
+    job_service: Arc<dyn JobService>,
     git_repository_service: Arc<dyn GitRepositoryService>,
     third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
     integration_service: Arc<dyn IntegrationService>,
-    _web_crawler_service: Arc<dyn WebCrawlerService>,
     embedding: Arc<dyn Embedding>,
-    sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
 ) {
     let mut hourly =
         CronStream::new(Schedule::from_str("@hourly").expect("Invalid cron expression"))
@@ -63,6 +61,7 @@ pub async fn start(
                         continue;
                     };
 
+                    // FIXME: remove malformed jobs from the queue
                     let event = serde_json::from_str::<BackgroundJobEvent>(&job.command).expect("Failed to deserialize background job event");
 
                     match event {
@@ -114,15 +113,15 @@ pub async fn start(
                         warn!("Database maintainance failed: {:?}", err);
                     }
 
-                    if let Err(err) = SchedulerGitJob::cron(now, git_repository_service.clone(), sender.clone()).await {
+                    if let Err(err) = SchedulerGitJob::cron(now, git_repository_service.clone(), job_service.clone()).await {
                         warn!("Scheduler job failed: {:?}", err);
                     }
 
-                    if let Err(err) = SyncIntegrationJob::cron(now, sender.clone(), integration_service.clone()).await {
+                    if let Err(err) = SyncIntegrationJob::cron(now, integration_service.clone(), job_service.clone()).await {
                         warn!("Sync integration job failed: {:?}", err);
                     }
 
-                    if let Err(err) = SchedulerGithubGitlabJob::cron(now, sender.clone(), third_party_repository_service.clone()).await {
+                    if let Err(err) = SchedulerGithubGitlabJob::cron(now, third_party_repository_service.clone(), job_service.clone()).await {
                         warn!("Index issues job failed: {err:?}");
                     }
                 },
