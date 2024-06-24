@@ -8,7 +8,9 @@ import {
   useRef,
   useState
 } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import defaultFavicon from '@/assets/default-favicon.png'
 import { Message } from 'ai'
 import DOMPurify from 'dompurify'
 import he from 'he'
@@ -757,7 +759,7 @@ function MessageMarkdown({
           return <p className="mb-2 last:mb-0">{children}</p>
         },
         li({ children }) {
-          if (children.length) {
+          if (children && children.length) {
             return (
               <li>
                 {children.map((childrenItem, index) => {
@@ -817,11 +819,28 @@ function SiteFavicon({
   className?: string
 }) {
   return (
-    <img
-      src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=${hostname}`}
-      alt={hostname}
-      className={cn('h-3.5 w-3.5 rounded-full leading-none', className)}
-    />
+    <div className="relative h-3.5 w-3.5">
+      <Image
+        src={defaultFavicon}
+        alt={hostname}
+        width={14}
+        height={14}
+        className={cn(
+          'absolute left-0 top-0 z-0 h-3.5 w-3.5 rounded-full leading-none',
+          className
+        )}
+      />
+      <Image
+        src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=${hostname}`}
+        alt={hostname}
+        width={14}
+        height={14}
+        className={cn(
+          'relative z-10 h-3.5 w-3.5 rounded-full bg-card leading-none',
+          className
+        )}
+      />
+    </div>
   )
 }
 
