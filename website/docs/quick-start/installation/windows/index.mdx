@@ -39,10 +39,10 @@ Open a command prompt or PowerShell window in the directory where the `tabby.exe
 Run the following command:
 ```
 # For CPU-only environments
-.\tabby.exe serve --model StarCoder-1B
+.\tabby.exe serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct
 
 # For CUDA-enabled environments
-.\tabby.exe serve --model StarCoder-1B --device cuda
+.\tabby.exe serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct --device cuda
 ```
 
 You should see a success message similar to the one in the screenshot below. After that, you can visit http://localhost:8080 to access your Tabby instance.
