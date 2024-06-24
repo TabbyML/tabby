@@ -5,7 +5,7 @@ use futures::StreamExt;
 use ignore::Walk;
 use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 use super::{
     create_code_index,
@@ -38,7 +38,7 @@ pub async fn garbage_collection() {
             }
         }
 
-        info!("Finished garbage collection for code index: {num_to_keep} items kept, {num_to_delete} items removed");
+        debug!("Finished garbage collection for code index: {num_to_keep} items kept, {num_to_delete} items removed");
         index.commit();
     }.collect::<()>().await;
 }

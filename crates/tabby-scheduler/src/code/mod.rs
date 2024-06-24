@@ -9,7 +9,7 @@ use tabby_common::{
     index::{code, corpus},
 };
 use tabby_inference::Embedding;
-use tracing::{info, warn};
+use tracing::{debug, warn};
 
 use self::intelligence::SourceCode;
 use crate::{code::intelligence::CodeIntelligence, IndexAttributeBuilder, Indexer};
@@ -22,12 +22,11 @@ mod repository;
 mod types;
 
 #[derive(Default)]
-pub struct CodeIndexer {
-}
+pub struct CodeIndexer {}
 
 impl CodeIndexer {
     pub async fn refresh(&mut self, embedding: Arc<dyn Embedding>, repository: &RepositoryConfig) {
-        info!("Refreshing repository: {}", repository.canonical_git_url());
+        debug!("Refreshing repository: {}", repository.canonical_git_url());
         repository::sync_repository(repository);
 
         index::index_repository(embedding, repository).await;
