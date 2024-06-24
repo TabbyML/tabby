@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import { foldGutter } from '@codemirror/language'
 import { Extension, StateEffect, StateField } from '@codemirror/state'
 import {
@@ -7,6 +7,7 @@ import {
   drawSelection,
   EditorView,
   highlightSpecialChars,
+  lineNumbers,
   MatchDecorator,
   PluginValue,
   ViewPlugin,
@@ -41,6 +42,17 @@ interface CodeEditorViewProps {
   language: string
   stringToMatch?: string
   lineRange?: { start: number; end: number } // TODO: Make type
+}
+
+/**
+ * Get blob at range
+ */
+const getBlobAtRange = (
+  blob: string,
+  range: { start: number; end: number }
+) => {
+  const lineArray = blob.split('\n')
+  return lineArray.slice(range.start - 1, range.end).join('\n')
 }
 
 const CodeEditorView: React.FC<CodeEditorViewProps> = ({
@@ -98,20 +110,19 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
   )
 
   /**
-   * The extension to show only the lines within a range
+   *
    */
-
-  const lineRangeExtension = ViewPlugin.fromClass(
-    class {
-      // lineRange: { start: number; end: number }
-      constructor(view: EditorView) {
-        console.log('lineRange', view)
+  const modifyStartingLineNumber = useCallback(
+    (lineNumber: number) => {
+      if (lineRange) {
+        return lineNumber + lineRange.start - 1
       }
-      update(update: ViewUpdate) {
-        // Do something?
-      }
-    }
+      return lineNumber
+    },
+    [lineRange]
   )
+
+  // TODO: snippet line numbers should be clickable to the full file
 
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
@@ -170,7 +181,14 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
     }
 
     if (lineRange) {
-      result.push(lineRangeExtension)
+      // Update the blob to just be the blob at range
+      // Push the lineNumber offset
+      result.push(
+        lineNumbers({
+          formatNumber: (lineNumber: number) =>
+            modifyStartingLineNumber(lineNumber).toString()
+        })
+      )
     }
 
     return result
@@ -186,7 +204,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
     language,
     gitUrl,
     matchExtension,
-    lineRangeExtension
+    modifyStartingLineNumber
   ])
 
   React.useEffect(() => {
@@ -234,7 +252,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
 
   return (
     <CodeEditor
-      value={value}
+      value={lineRange ? getBlobAtRange(value, lineRange) : value}
       theme={theme}
       language={language}
       readonly

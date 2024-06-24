@@ -31,14 +31,6 @@ export const GlobalSearchResult = ({ ...props }: GlobalSearchResultProps) => {
     []
   )
 
-  /**
-   *
-   */
-  const getBlobAtRange = (range: { start: number; end: number }) => {
-    const lineArray = props.result.blob.split('\n')
-    return lineArray.slice(range.start - 1, range.end).join('\n')
-  }
-
   useEffect(() => {
     const newRanges: { start: number; end: number }[] = []
     let currentRange: { start: number; end: number } = { start: 0, end: 0 }
@@ -76,21 +68,16 @@ export const GlobalSearchResult = ({ ...props }: GlobalSearchResultProps) => {
         <IconFile />
         {props.result.path}
       </Link>
-      {/* FIXME: are  */}
       <div className="overflow-hidden grid border divide-y divide-y-border border-border rounded">
-        {/* Loop through each range to create some separation? */}
         {ranges.map((range, i) => (
-          <>
-            {/* Here we just want a blob from between the ranges */}
-
-            <CodeEditorView
-              key={`${props.result.path}-${i}`}
-              value={getBlobAtRange(range)}
-              language={language}
-              stringToMatch={props.query}
-              lineRange={range}
-            />
-          </>
+          <CodeEditorView
+            key={`${props.result.path}-${i}`}
+            value={props.result.blob}
+            language={language}
+            // FIXME: This needs to add the line number to the start
+            stringToMatch={props.query}
+            lineRange={range}
+          />
         ))}
       </div>
     </div>
