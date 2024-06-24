@@ -15,7 +15,7 @@ use self::intelligence::SourceCode;
 use crate::{code::intelligence::CodeIntelligence, IndexAttributeBuilder, Indexer};
 
 ///  Module for creating code search index.
-mod cache;
+mod source_file_key;
 mod index;
 mod intelligence;
 mod languages;

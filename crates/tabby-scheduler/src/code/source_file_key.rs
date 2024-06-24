@@ -57,7 +57,7 @@ pub fn source_file_key_from_path(path: &Path) -> Option<String> {
     SourceFileKey::try_from(path).map(|key| key.to_string()).ok()
 }
 
-pub fn is_item_key_matched(item_key: &str) -> bool {
+pub fn check_source_file_key_matched(item_key: &str) -> bool {
     let Ok(key) = item_key.parse::<SourceFileKey>() else {
         return false;
     };

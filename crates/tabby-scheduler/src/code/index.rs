@@ -8,12 +8,12 @@ use tabby_inference::Embedding;
 use tracing::{debug, info, warn};
 
 use super::{
-    cache::{source_file_key_from_path},
+    source_file_key::{source_file_key_from_path},
     create_code_index,
     intelligence::{CodeIntelligence, SourceCode},
     KeyedSourceCode,
 };
-use crate::{code::cache::is_item_key_matched, Indexer};
+use crate::{code::source_file_key::check_source_file_key_matched, Indexer};
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
@@ -106,7 +106,7 @@ async fn remove_staled_documents(index: &Indexer<KeyedSourceCode>) {
 
         for await id in index.iter_ids() {
             let item_key = id;
-            if is_item_key_matched(&item_key) {
+            if check_source_file_key_matched(&item_key) {
                 num_to_keep += 1;
             } else {
                 num_to_delete += 1;
