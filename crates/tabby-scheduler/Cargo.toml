@@ -36,7 +36,6 @@ readable-readability = "0.4.0"
 url.workspace = true
 tabby-inference = { path = "../tabby-inference" }
 git2.workspace = true
-llama-cpp-server = { path = "../llama-cpp-server"}
 insta.workspace = true
 async-trait.workspace = true
 

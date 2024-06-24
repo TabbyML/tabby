@@ -16,8 +16,7 @@ use tabby_inference::Embedding;
 mod doc;
 use std::sync::Arc;
 
-use tokio_cron_scheduler::{Job, JobScheduler};
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 use crate::doc::SourceDocument;
 

@@ -19,7 +19,6 @@ prod = ["ee", 'tabby-webserver/prod']
 
 [dependencies]
 tabby-common = { path = "../tabby-common" }
-tabby-scheduler = { path = "../tabby-scheduler" }
 tabby-download = { path = "../tabby-download" }
 tabby-inference = { path = "../tabby-inference" }
 axum.workspace = true
