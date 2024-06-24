@@ -49,6 +49,12 @@ struct KeyedSourceCode {
     code: SourceCode,
 }
 
+impl KeyedSourceCode {
+    fn build_id(&self) -> String {
+        self.key.clone()
+    }
+}
+
 struct CodeBuilder {
     embedding: Option<Arc<dyn Embedding>>,
 }
@@ -62,7 +68,7 @@ impl CodeBuilder {
 #[async_trait]
 impl IndexAttributeBuilder<KeyedSourceCode> for CodeBuilder {
     async fn build_id(&self, source_code: &KeyedSourceCode) -> String {
-        source_code.key.clone()
+        source_code.build_id()
     }
 
     async fn build_attributes(&self, _source_code: &KeyedSourceCode) -> serde_json::Value {

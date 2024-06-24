@@ -64,6 +64,7 @@ async fn add_changed_documents(repository: &RepositoryConfig, index: Indexer<Key
             };
 
             if cloned_index.is_id_indexed(&key) {
+                // Skip if already indexed
                 continue;
             }
 
