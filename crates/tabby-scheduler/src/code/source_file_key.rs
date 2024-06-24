@@ -54,7 +54,9 @@ impl ToString for SourceFileKey {
 }
 
 pub fn source_file_key_from_path(path: &Path) -> Option<String> {
-    SourceFileKey::try_from(path).map(|key| key.to_string()).ok()
+    SourceFileKey::try_from(path)
+        .map(|key| key.to_string())
+        .ok()
 }
 
 pub fn check_source_file_key_matched(item_key: &str) -> bool {

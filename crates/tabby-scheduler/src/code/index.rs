@@ -8,9 +8,9 @@ use tabby_inference::Embedding;
 use tracing::{debug, info, warn};
 
 use super::{
-    source_file_key::{source_file_key_from_path},
     create_code_index,
     intelligence::{CodeIntelligence, SourceCode},
+    source_file_key::source_file_key_from_path,
     KeyedSourceCode,
 };
 use crate::{code::source_file_key::check_source_file_key_matched, Indexer};
@@ -19,10 +19,7 @@ use crate::{code::source_file_key::check_source_file_key_matched, Indexer};
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 
-pub async fn index_repository(
-    embedding: Arc<dyn Embedding>,
-    repository: &RepositoryConfig,
-) {
+pub async fn index_repository(embedding: Arc<dyn Embedding>, repository: &RepositoryConfig) {
     let index = create_code_index(Some(embedding));
     add_changed_documents(repository, index).await;
 }
@@ -48,10 +45,7 @@ pub async fn garbage_collection() {
     }.collect::<()>().await;
 }
 
-async fn add_changed_documents(
-    repository: &RepositoryConfig,
-    index: Indexer<KeyedSourceCode>,
-) {
+async fn add_changed_documents(repository: &RepositoryConfig, index: Indexer<KeyedSourceCode>) {
     let index = Arc::new(index);
     let cloned_index = index.clone();
     let s = stream! {

@@ -6,8 +6,7 @@ use tantivy::{
     doc,
     query::TermQuery,
     schema::{self, IndexRecordOption, Value},
-    DocAddress, DocSet, IndexReader, IndexWriter, Searcher, SegmentOrdinal, TantivyDocument, Term,
-    TERMINATED,
+    DocAddress, DocSet, IndexWriter, Searcher, TantivyDocument, Term, TERMINATED,
 };
 use tracing::info;
 
