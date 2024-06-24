@@ -20,6 +20,14 @@ use tracing::{debug, info};
 
 use crate::doc::SourceDocument;
 
+pub fn format_web_source(url: &str) -> String {
+    format!("website:{url}")
+}
+
+pub fn format_issue_source(provider_id: &str, repository_id: &str) -> String {
+    format!("issue:{provider_id}:{repository_id}")
+}
+
 pub async fn crawl_index_docs<F>(
     urls: &[String],
     embedding: Arc<dyn Embedding>,
@@ -40,6 +48,7 @@ where
             let source_doc = SourceDocument {
                 id: doc.url.clone(),
                 title: doc.metadata.title.unwrap_or_default(),
+                source: format_web_source(&doc.url),
                 link: doc.url,
                 body: doc.markdown,
             };

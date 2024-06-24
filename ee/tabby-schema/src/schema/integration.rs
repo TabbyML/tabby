@@ -1,10 +1,14 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 use strum::EnumIter;
 use url::Url;
 
-use crate::{juniper::relay::NodeType, Context, CoreError, Result};
+use crate::{
+    juniper::relay::NodeType, repository::ThirdPartyRepositoryService, Context, CoreError, Result,
+};
 
 #[derive(Clone, EnumIter, GraphQLEnum)]
 pub enum IntegrationKind {
@@ -93,7 +97,12 @@ pub trait IntegrationService: Send + Sync {
         api_base: Option<String>,
     ) -> Result<ID>;
 
-    async fn delete_integration(&self, id: ID, kind: IntegrationKind) -> Result<()>;
+    async fn delete_integration(
+        &self,
+        id: ID,
+        kind: IntegrationKind,
+        third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
+    ) -> Result<()>;
 
     async fn update_integration(
         &self,

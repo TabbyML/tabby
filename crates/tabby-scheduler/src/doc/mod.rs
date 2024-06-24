@@ -17,6 +17,7 @@ pub struct SourceDocument {
     pub title: String,
     pub link: String,
     pub body: String,
+    pub source: String,
 }
 
 const CHUNK_SIZE: usize = 2048;
@@ -35,6 +36,10 @@ impl DocBuilder {
 impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
     async fn build_id(&self, document: &SourceDocument) -> String {
         document.id.clone()
+    }
+
+    async fn build_source(&self, document: &SourceDocument) -> Option<String> {
+        Some(document.source.clone())
     }
 
     async fn build_attributes(&self, document: &SourceDocument) -> serde_json::Value {
@@ -97,11 +102,13 @@ pub struct WebDocument {
     pub link: String,
     pub title: String,
     pub body: String,
+    pub source: String,
 }
 
 impl From<WebDocument> for SourceDocument {
     fn from(value: WebDocument) -> Self {
         Self {
+            source: value.source,
             id: value.id,
             link: value.link,
             title: value.title,
@@ -118,6 +125,10 @@ impl DocIndexer {
 
     pub async fn add(&self, document: WebDocument) {
         self.indexer.add(document.into()).await;
+    }
+
+    pub async fn delete(&self, source: String) {
+        self.indexer.delete_from_source(source).await;
     }
 
     pub fn commit(self) {

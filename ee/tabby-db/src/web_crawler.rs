@@ -1,5 +1,5 @@
 use anyhow::Result;
-use sqlx::{prelude::FromRow, query};
+use sqlx::{prelude::FromRow, query, query_as};
 use tabby_db_macros::query_paged_as;
 
 use crate::{DateTimeUtc, DbConn};
@@ -38,6 +38,17 @@ impl DbConn {
             .await?;
 
         Ok(res.last_insert_rowid())
+    }
+
+    pub async fn get_web_crawler_url(&self, id: i64) -> Result<WebCrawlerUrlDAO> {
+        let dao = query_as!(
+            WebCrawlerUrlDAO,
+            "SELECT id, url, created_at FROM web_crawler_urls WHERE id = ?",
+            id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(dao)
     }
 
     pub async fn delete_web_crawler_url(&self, id: i64) -> Result<()> {

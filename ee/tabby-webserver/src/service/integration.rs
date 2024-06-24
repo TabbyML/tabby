@@ -3,9 +3,11 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
+use tabby_scheduler::format_issue_source;
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
     job::JobService,
+    repository::ThirdPartyRepositoryService,
     AsID, AsRowid, DbEnum, Result,
 };
 
@@ -47,7 +49,31 @@ impl IntegrationService for IntegrationServiceImpl {
         Ok(id)
     }
 
-    async fn delete_integration(&self, id: ID, kind: IntegrationKind) -> Result<()> {
+    async fn delete_integration(
+        &self,
+        id: ID,
+        kind: IntegrationKind,
+        third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
+    ) -> Result<()> {
+        for repo in third_party_repository_service
+            .list_repositories_with_filter(
+                Some(vec![id.clone()]),
+                Some(kind.clone()),
+                Some(true),
+                None,
+                None,
+                None,
+                None,
+            )
+            .await?
+        {
+            let source = format_issue_source(&*id, &*repo.id);
+            let _ = self
+                .job
+                .trigger(BackgroundJobEvent::DeleteIndexedDocumentsBySource(source).to_command())
+                .await;
+        }
+
         self.db
             .delete_integration(id.as_rowid()?, kind.as_enum_str())
             .await?;
@@ -144,7 +170,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_integration_crud() {
-        let (integration, _, _) = create_services().await;
+        let (integration, job, db) = create_services().await;
+        let repository =
+            crate::service::repository::create(db.clone(), integration.clone(), job.clone());
+
         let id = integration
             .create_integration(IntegrationKind::Gitlab, "id".into(), "secret".into(), None)
             .await
@@ -195,13 +224,21 @@ mod tests {
 
         // Deleting using github integration kind should fail since this is a gitlab integration
         assert!(integration
-            .delete_integration(id.clone(), IntegrationKind::Github)
+            .delete_integration(
+                id.clone(),
+                IntegrationKind::Github,
+                repository.third_party()
+            )
             .await
             .is_err());
 
         // Test successful deletion
         integration
-            .delete_integration(id.clone(), IntegrationKind::Gitlab)
+            .delete_integration(
+                id.clone(),
+                IntegrationKind::Gitlab,
+                repository.third_party(),
+            )
             .await
             .unwrap();
 

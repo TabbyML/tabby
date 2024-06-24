@@ -3,6 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::{DbConn, WebCrawlerUrlDAO};
+use tabby_scheduler::format_web_source;
 use tabby_schema::{
     job::{JobInfo, JobService},
     web_crawler::{WebCrawlerService, WebCrawlerUrl},
@@ -58,7 +59,18 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
     }
 
     async fn delete_web_crawler_url(&self, id: ID) -> Result<()> {
-        self.db.delete_web_crawler_url(id.as_rowid()?).await?;
+        let id = id.as_rowid()?;
+
+        let url = self.db.get_web_crawler_url(id).await?.url;
+
+        self.db.delete_web_crawler_url(id).await?;
+
+        let source = format_web_source(&url);
+        let _ = self
+            .job_service
+            .trigger(BackgroundJobEvent::DeleteIndexedDocumentsBySource(source).to_command())
+            .await;
+
         Ok(())
     }
 }

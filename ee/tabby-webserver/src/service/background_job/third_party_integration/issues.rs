@@ -1,8 +1,9 @@
 use anyhow::{anyhow, Result};
 use gitlab::api::{issues::ProjectIssues, projects::merge_requests::MergeRequests, AsyncQuery};
+use juniper::ID;
 use octocrab::Octocrab;
 use serde::Deserialize;
-use tabby_scheduler::{DocIndexer, WebDocument};
+use tabby_scheduler::{format_issue_source, DocIndexer, WebDocument};
 
 use crate::service::create_gitlab_client;
 
@@ -10,6 +11,8 @@ pub async fn index_github_issues(
     api_base: &str,
     full_name: &str,
     access_token: &str,
+    integration_id: ID,
+    repository_id: ID,
     index: &DocIndexer,
 ) -> Result<()> {
     let octocrab = Octocrab::builder()
@@ -48,6 +51,7 @@ pub async fn index_github_issues(
             link: issue.html_url.to_string(),
             title: issue.title,
             body: issue.body.unwrap_or_default(),
+            source: format_issue_source(&integration_id, &repository_id),
         };
         index.add(doc).await;
     }
@@ -66,6 +70,8 @@ pub async fn index_gitlab_issues(
     api_base: &str,
     full_name: &str,
     access_token: &str,
+    integration_id: ID,
+    repository_id: ID,
     index: &DocIndexer,
 ) -> Result<()> {
     let gitlab = create_gitlab_client(api_base, access_token).await?;
@@ -83,6 +89,7 @@ pub async fn index_gitlab_issues(
             link: issue.web_url,
             title: issue.title,
             body: issue.description,
+            source: format_issue_source(&integration_id, &repository_id),
         };
         index.add(doc).await;
     }
@@ -100,6 +107,7 @@ pub async fn index_gitlab_issues(
             link: merge_request.web_url,
             title: merge_request.title,
             body: merge_request.description,
+            source: format_issue_source(&integration_id, &repository_id),
         };
         index.add(doc).await;
     }

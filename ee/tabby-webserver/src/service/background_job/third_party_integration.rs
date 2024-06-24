@@ -117,6 +117,8 @@ impl SchedulerGithubGitlabJob {
                     integration.api_base(),
                     &repository.display_name,
                     &integration.access_token,
+                    integration.id.clone(),
+                    repository.id.clone(),
                     &index,
                 )
                 .await?;
@@ -126,6 +128,8 @@ impl SchedulerGithubGitlabJob {
                     integration.api_base(),
                     &repository.display_name,
                     &integration.access_token,
+                    integration.id.clone(),
+                    repository.id.clone(),
                     &index,
                 )
                 .await?;

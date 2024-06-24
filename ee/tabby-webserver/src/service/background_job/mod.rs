@@ -1,4 +1,5 @@
 mod db;
+mod delete_documents;
 mod git;
 mod helper;
 mod third_party_integration;
@@ -24,7 +25,10 @@ use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::warn;
 use web_crawler::WebCrawlerJob;
 
-use self::{db::DbMaintainanceJob, third_party_integration::SyncIntegrationJob};
+use self::{
+    db::DbMaintainanceJob, delete_documents::DeleteIndexedDocumentsJob,
+    third_party_integration::SyncIntegrationJob,
+};
 
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
 pub enum BackgroundJobEvent {
@@ -32,6 +36,7 @@ pub enum BackgroundJobEvent {
     SchedulerGithubGitlabRepository(ID),
     SyncThirdPartyRepositories(ID),
     WebCrawler(String),
+    DeleteIndexedDocumentsBySource(String),
 }
 
 impl BackgroundJobEvent {
@@ -43,6 +48,9 @@ impl BackgroundJobEvent {
             }
             BackgroundJobEvent::SyncThirdPartyRepositories(_) => SyncIntegrationJob::NAME,
             BackgroundJobEvent::WebCrawler(_) => WebCrawlerJob::NAME,
+            BackgroundJobEvent::DeleteIndexedDocumentsBySource(_) => {
+                DeleteIndexedDocumentsJob::NAME
+            }
         }
     }
 
@@ -95,6 +103,10 @@ pub async fn start(
                         BackgroundJobEvent::WebCrawler(url) => {
                             let job = WebCrawlerJob::new(url);
                             job.run(job_logger.clone(), embedding.clone()).await
+                        }
+                        BackgroundJobEvent::DeleteIndexedDocumentsBySource(source) => {
+                            let job = DeleteIndexedDocumentsJob::new(source);
+                            job.run(embedding.clone()).await
                         }
                     } {
                         cprintln!(job_logger, "{:?}", err);

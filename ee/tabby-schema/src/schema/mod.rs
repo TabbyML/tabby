@@ -814,7 +814,7 @@ impl Mutation {
     async fn delete_integration(ctx: &Context, id: ID, kind: IntegrationKind) -> Result<bool> {
         ctx.locator
             .integration()
-            .delete_integration(id, kind)
+            .delete_integration(id, kind, ctx.locator.repository().third_party())
             .await?;
         Ok(true)
     }

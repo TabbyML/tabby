@@ -7,6 +7,7 @@ use juniper::ID;
 use strum::IntoEnumIterator;
 use tabby_common::config::RepositoryConfig;
 use tabby_db::{DbConn, ProvidedRepositoryDAO};
+use tabby_scheduler::format_issue_source;
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
     job::{JobInfo, JobService},
@@ -126,6 +127,11 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
     }
 
     async fn update_repository_active(&self, id: ID, active: bool) -> Result<()> {
+        let repo = self.get_provided_repository(id.clone()).await?;
+        let integration = self
+            .integration
+            .get_integration(repo.integration_id)
+            .await?;
         self.db
             .update_provided_repository_active(id.as_rowid()?, active)
             .await?;
@@ -134,6 +140,12 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             let _ = self
                 .job
                 .trigger(BackgroundJobEvent::SchedulerGithubGitlabRepository(id).to_command())
+                .await;
+        } else {
+            let source = format_issue_source(&*integration.id, &*repo.id);
+            let _ = self
+                .job
+                .trigger(BackgroundJobEvent::DeleteIndexedDocumentsBySource(source).to_command())
                 .await;
         }
 
