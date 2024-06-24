@@ -9,7 +9,7 @@ use std::os::unix::fs::PermissionsExt;
 
 use clap::{Parser, Subcommand};
 use tabby_common::config::{Config, LocalModelConfig, ModelConfig};
-use tracing::level_filters::LevelFilter;
+use tracing::{error, level_filters::LevelFilter};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
 #[derive(Parser)]
@@ -31,16 +31,6 @@ pub enum Commands {
 
     /// Download the language model for serving.
     Download(download::DownloadArgs),
-
-    /// Run scheduler progress for cron jobs integrating external code repositories.
-    Scheduler(SchedulerArgs),
-}
-
-#[derive(clap::Args)]
-pub struct SchedulerArgs {
-    /// If true, runs scheduler jobs immediately.
-    #[clap(long, default_value_t = false)]
-    now: bool,
 }
 
 #[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
@@ -81,9 +71,6 @@ async fn main() {
     match cli.command {
         Commands::Serve(ref args) => serve::main(&config, args).await,
         Commands::Download(ref args) => download::main(args).await,
-        Commands::Scheduler(SchedulerArgs { now, .. }) => {
-            tabby_scheduler::scheduler(now, &config).await
-        }
     }
 }
 
