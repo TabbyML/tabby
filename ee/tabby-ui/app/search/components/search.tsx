@@ -11,11 +11,11 @@ import {
 import { useRouter } from 'next/navigation'
 import { Message } from 'ai'
 import DOMPurify from 'dompurify'
+import he from 'he'
 import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
-import he from 'he';
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableSearch } from '@/lib/experiment-flags'
@@ -509,7 +509,6 @@ function AnswerBlock({
                 key={source.link}
                 source={source}
                 showMore={showMore}
-                index={index + 1}
               />
             ))}
           </div>
@@ -542,7 +541,7 @@ function AnswerBlock({
         {answer.isLoading && !answer.content && (
           <Skeleton className="mt-1 h-40 w-full" />
         )}
-
+        {/* Download one of the pre-built Vulkan binaries for your platform from the Tabby repository or the Tabby website. [[citation:7]][[citation:8]] */}
         <MessageMarkdown
           message={answer.content}
           sources={answer.relevant_documents}
@@ -600,29 +599,26 @@ function AnswerBlock({
   )
 }
 
+// Remove HTML and Markdown format
+const normalizedText = (input: string) => {
+  const sanitizedHtml = DOMPurify.sanitize(input, {
+    ALLOWED_TAGS: [],
+    ALLOWED_ATTR: []
+  })
+  const parsed = marked.parse(sanitizedHtml) as string
+  const decoded = he.decode(parsed)
+  const plainText = decoded.replace(/<\/?[^>]+(>|$)/g, '')
+  return plainText
+}
+
 function SourceCard({
   source,
-  index,
   showMore
 }: {
   source: Source
-  index: number
   showMore: boolean
 }) {
   const { hostname } = new URL(source.link)
-
-  // Remove HTML and Markdown format
-  const normalizedText = (input: string) => {
-    const sanitizedHtml = DOMPurify.sanitize(input, {
-      ALLOWED_TAGS: [],
-      ALLOWED_ATTR: []
-    })
-    const parsed = marked.parse(sanitizedHtml) as string
-    const decoded = he.decode(parsed);
-    const plainText = decoded.replace(/<\/?[^>]+(>|$)/g, '')
-    return plainText
-  }
-
   return (
     <div
       className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card p-3 hover:bg-card/60"
@@ -671,6 +667,65 @@ function MessageMarkdown({
   headline?: boolean
   sources?: Source[]
 }) {
+  const renderTextWithCitation = (nodeStr: string, index: number) => {
+    const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
+    const textList = nodeStr.split(citationMatchRegex)
+    const citationList = nodeStr.match(citationMatchRegex)
+    return (
+      <span key={index}>
+        {textList.map((text, index) => {
+          const citation = citationList?.[index]
+          const citationNumberMatch = citation?.match(/\d+/)
+          const citationIndex = citationNumberMatch
+            ? parseInt(citationNumberMatch[0], 10)
+            : null
+          const source =
+            citationIndex !== null ? sources?.[citationIndex - 1] : null
+          const sourceUrl = source ? new URL(source.link) : null
+          return (
+            <span key={index}>
+              {text && <span>{text}</span>}
+              {source && (
+                <HoverCard>
+                  <HoverCardTrigger>
+                    <span
+                      className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
+                      onClick={() => window.open(source.link)}
+                    >
+                      {citationIndex}
+                    </span>
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-96 text-sm">
+                    <div className="flex w-full flex-col gap-y-1">
+                      <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground">
+                        <SiteFavicon
+                          hostname={sourceUrl!.hostname}
+                          className="m-0 mr-1 leading-none"
+                        />
+                        <p className="m-0 leading-none">
+                          {sourceUrl!.hostname}
+                        </p>
+                      </div>
+                      <p
+                        className="m-0 cursor-pointer font-bold leading-none transition-opacity hover:opacity-70"
+                        onClick={() => window.open(source.link)}
+                      >
+                        {source.title}
+                      </p>
+                      <p className="m-0 line-clamp-4 leading-none">
+                        {normalizedText(source.snippet)}
+                      </p>
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
+              )}
+            </span>
+          )
+        })}
+      </span>
+    )
+  }
+
   return (
     <MemoizedReactMarkdown
       className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
@@ -690,64 +745,7 @@ function MessageMarkdown({
               <div className="mb-2 inline-block leading-relaxed last:mb-0">
                 {children.map((childrenItem, index) => {
                   if (typeof childrenItem === 'string') {
-                    const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
-                    const textList = childrenItem.split(citationMatchRegex)
-                    const citationList = childrenItem.match(citationMatchRegex)
-                    return (
-                      <span key={index}>
-                        {textList.map((text, index) => {
-                          const citation = citationList?.[index]
-                          const citationNumberMatch = citation?.match(/\d+/)
-                          const citationIndex = citationNumberMatch
-                            ? parseInt(citationNumberMatch[0], 10)
-                            : null
-                          const source =
-                            citationIndex !== null
-                              ? sources?.[citationIndex - 1]
-                              : null
-                          const sourceUrl = source ? new URL(source.link) : null
-                          return (
-                            <span key={index}>
-                              {text && <span>{text}</span>}
-                              {source && (
-                                <HoverCard>
-                                  <HoverCardTrigger>
-                                    <span
-                                      className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
-                                      onClick={() => window.open(source.link)}
-                                    >
-                                      {citationIndex}
-                                    </span>
-                                  </HoverCardTrigger>
-                                  <HoverCardContent className="w-96 text-sm">
-                                    <div className="flex w-full flex-col gap-y-1">
-                                      <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground">
-                                        <SiteFavicon
-                                          hostname={sourceUrl!.hostname}
-                                          className="m-0 mr-1 leading-none"
-                                        />
-                                        <p className="m-0 leading-none">
-                                          {sourceUrl!.hostname}
-                                        </p>
-                                      </div>
-                                      <p
-                                        className="m-0 cursor-pointer font-bold leading-none transition-opacity hover:opacity-70"
-                                        onClick={() => window.open(source.link)}
-                                      >
-                                        {source.title}
-                                      </p>
-                                      <p className="m-0 leading-none">
-                                        {source.snippet}
-                                      </p>
-                                    </div>
-                                  </HoverCardContent>
-                                </HoverCard>
-                              )}
-                            </span>
-                          )
-                        })}
-                      </span>
-                    )
+                    return renderTextWithCitation(childrenItem, index)
                   }
 
                   return <span key={index}>{childrenItem}</span>
@@ -757,6 +755,22 @@ function MessageMarkdown({
           }
 
           return <p className="mb-2 last:mb-0">{children}</p>
+        },
+        li({ children }) {
+          if (children.length) {
+            return (
+              <li>
+                {children.map((childrenItem, index) => {
+                  if (typeof childrenItem === 'string') {
+                    return renderTextWithCitation(childrenItem, index)
+                  }
+
+                  return <span key={index}>{childrenItem}</span>
+                })}
+              </li>
+            )
+          }
+          return <li>{children}</li>
         },
         code({ node, inline, className, children, ...props }) {
           if (children.length) {
