@@ -37,7 +37,8 @@ const DirectoryView: React.FC<DirectoryViewProps> = ({
     activeRepo,
     activeRepoRef,
     repoMap,
-    activeEntryInfo
+    activeEntryInfo,
+    fileMap
   } = React.useContext(SourceCodeBrowserContext)
 
   const files: TFileTreeNode[] = React.useMemo(() => {
@@ -181,7 +182,7 @@ function getCurrentDirFromTree(
     let { basename = '' } = resolveRepositoryInfoFromPath(path)
 
     if (!basename) return treeData
-    let pathSegments = basename.split('/')
+    const pathSegments = decodeURIComponent(basename).split('/')
     let currentNodes: TFileTreeNode[] = treeData
     for (let i = 0; i < pathSegments.length; i++) {
       const path = pathSegments.slice(0, i + 1).join('/')
