@@ -209,9 +209,9 @@ function generateEntryPath(
   kind: 'dir' | 'file'
 ) {
   const specifier = resolveRepoSpecifierFromRepoInfo(repo)
-  return `${specifier}/-/${kind === 'dir' ? 'tree' : 'blob'}/${
+  return `${specifier}/-/${kind === 'file' ? 'blob' : 'tree'}/${
     rev ?? ''
-  }/${encodeURIComponentIgnoringSlash(basename)}`
+  }/${encodeURIComponentIgnoringSlash(basename ?? '')}`
 }
 
 function toEntryRequestUrl(

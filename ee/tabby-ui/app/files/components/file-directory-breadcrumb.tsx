@@ -31,7 +31,7 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
     ]
 
     if (basename) {
-      const pathSegments = basename?.split('/') || []
+      const pathSegments = decodeURIComponent(basename).split('/') || []
       for (let i = 0; i < pathSegments.length; i++) {
         const p = pathSegments.slice(0, i + 1).join('/')
         const name = resolveFileNameFromPath(p)
