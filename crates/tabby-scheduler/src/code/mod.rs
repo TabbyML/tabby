@@ -34,14 +34,12 @@ impl CodeIndexer {
         info!("Refreshing repository: {}", repository.canonical_git_url());
         repository::sync_repository(repository);
 
-        let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
-        index::index_repository(&mut cache, embedding, repository).await;
+        index::index_repository(embedding, repository).await;
     }
 
     pub async fn garbage_collection(&mut self, repositories: &[RepositoryConfig]) {
         self.is_dirty = false;
-        let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
-        index::garbage_collection(&mut cache).await;
+        index::garbage_collection().await;
         repository::garbage_collection(repositories);
     }
 }

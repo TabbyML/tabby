@@ -8,7 +8,7 @@ use tabby_inference::Embedding;
 use tracing::{debug, info, warn};
 
 use super::{
-    cache::{source_file_key_from_path, CacheStore, IndexBatch},
+    cache::{source_file_key_from_path},
     create_code_index,
     intelligence::{CodeIntelligence, SourceCode},
     KeyedSourceCode,
@@ -20,19 +20,14 @@ static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 
 pub async fn index_repository(
-    cache: &mut CacheStore,
     embedding: Arc<dyn Embedding>,
     repository: &RepositoryConfig,
 ) {
     let index = create_code_index(Some(embedding));
-    if index.recreated {
-        cache.clear_indexed()
-    }
-    let index_batch = add_changed_documents(repository, index).await;
-    cache.apply_indexed(index_batch);
+    add_changed_documents(repository, index).await;
 }
 
-pub async fn garbage_collection(cache: &mut CacheStore) {
+pub async fn garbage_collection() {
     let index = create_code_index(None);
     remove_staled_documents(&index).await;
     index.commit();
@@ -41,7 +36,7 @@ pub async fn garbage_collection(cache: &mut CacheStore) {
 async fn add_changed_documents(
     repository: &RepositoryConfig,
     index: Indexer<KeyedSourceCode>,
-) -> IndexBatch {
+) {
     let index = Arc::new(index);
     let cloned_index = index.clone();
     let s = stream! {
@@ -91,12 +86,10 @@ async fn add_changed_documents(
         .unwrap_or_else(|| std::thread::available_parallelism().unwrap().get() * 2);
     let mut s = pin!(s.buffer_unordered(parallelism));
 
-    let mut indexed_files_batch = IndexBatch::default();
     while let Some(key) = s.next().await {
-        if let Ok(key) = key {
-            indexed_files_batch.set_indexed(key);
-        } else {
-            warn!("Failed to index file");
+        if let Err(e) = key {
+            debug!("Failed to join task: {e}");
+            continue;
         }
     }
 
@@ -104,8 +97,6 @@ async fn add_changed_documents(
         Ok(index) => index.commit(),
         Err(_) => panic!("Failed to unwrap index"),
     }
-
-    indexed_files_batch
 }
 
 async fn remove_staled_documents(index: &Indexer<KeyedSourceCode>) {

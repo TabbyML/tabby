@@ -27,7 +27,6 @@ ignore.workspace = true
 tokio-cron-scheduler = { workspace = true }
 tokio = { workspace = true, features = ["process"] }
 text-splitter = { version = "0.13.3", features = ["code"] }
-kv = { version = "0.24.0", features = ["json-value"] }
 serde.workspace = true
 serde_json.workspace = true
 futures.workspace = true
