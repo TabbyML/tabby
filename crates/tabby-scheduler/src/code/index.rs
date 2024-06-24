@@ -56,7 +56,10 @@ async fn add_changed_documents(
                 }
             };
 
-            let (key, indexed) = cache.check_indexed(file.path());
+            let Ok((key, indexed)) = cache.check_indexed(file.path()) else {
+                continue;
+            };
+
             if indexed {
                 continue;
             }

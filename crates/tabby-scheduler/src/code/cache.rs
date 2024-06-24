@@ -89,18 +89,16 @@ impl CacheStore {
             .expect("Failed to access indexed files bucket")
     }
 
-    pub fn check_indexed(&self, path: &Path) -> (String, bool) {
-        let key = SourceFileKey::try_from(path)
-            .expect("Failed to create source file key")
-            .to_string();
+    pub fn check_indexed(&self, path: &Path) -> Result<(String, bool)> {
+        let key = SourceFileKey::try_from(path)?.to_string();
         let indexed = self
             .index_bucket()
             .get(&key)
             .expect("Failed to read index bucket");
-        (
+        Ok((
             key,
             indexed.is_some_and(|indexed| indexed == INDEX_ALGORITHM_VERSION),
-        )
+        ))
     }
 
     pub fn clear_indexed(&self) {

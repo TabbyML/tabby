@@ -1,6 +1,6 @@
 use futures::{stream::BoxStream, Stream, StreamExt};
 use tabby_common::{index::IndexSchema, path};
-use tantivy::{doc, IndexWriter, TantivyDocument, Term};
+use tantivy::{doc, IndexReader, IndexWriter, TantivyDocument, Term};
 use tracing::info;
 
 use crate::tantivy_utils::open_or_create_index;
@@ -18,6 +18,7 @@ pub trait IndexAttributeBuilder<T>: Send + Sync {
 pub struct Indexer<T> {
     kind: &'static str,
     builder: Box<dyn IndexAttributeBuilder<T>>,
+    reader: IndexReader,
     writer: IndexWriter,
     pub recreated: bool,
 }
@@ -33,13 +34,14 @@ impl<T: Send + 'static> Indexer<T> {
         Self {
             kind,
             builder: Box::new(builder),
+            reader: index.reader().expect("Failed to create index reader"),
             writer,
             recreated,
         }
     }
 
     pub async fn add(&self, document: T) {
-        self.iter_docs(document)
+        self.build_doc(document)
             .await
             .for_each(|doc| {
                 self.writer
@@ -50,7 +52,7 @@ impl<T: Send + 'static> Indexer<T> {
             .await;
     }
 
-    async fn iter_docs(&self, document: T) -> impl Stream<Item = TantivyDocument> + '_ {
+    async fn build_doc(&self, document: T) -> impl Stream<Item = TantivyDocument> + '_ {
         let schema = IndexSchema::instance();
         let id = self.format_id(&self.builder.build_id(&document).await);
 
@@ -68,10 +70,10 @@ impl<T: Send + 'static> Indexer<T> {
             schema.field_updated_at => updated_at,
         };
 
-        futures::stream::once(async { doc }).chain(self.iter_chunks(id, updated_at, document).await)
+        futures::stream::once(async { doc }).chain(self.build_chunks(id, updated_at, document).await)
     }
 
-    async fn iter_chunks(
+    async fn build_chunks(
         &self,
         id: String,
         updated_at: tantivy::DateTime,
