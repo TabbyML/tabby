@@ -24,7 +24,6 @@ tree-sitter-cpp = { git = "https://github.com/tree-sitter/tree-sitter-cpp", rev 
 tree-sitter-c-sharp = "0.21.2"
 tree-sitter-solidity = { git = "https://github.com/JoranHonig/tree-sitter-solidity", rev = "0e86ae647bda22c9bee00ec59752df7b3d3b000b" }
 ignore.workspace = true
-tokio-cron-scheduler = { workspace = true }
 tokio = { workspace = true, features = ["process"] }
 text-splitter = { version = "0.13.3", features = ["code"] }
 serde.workspace = true
@@ -36,7 +35,6 @@ readable-readability = "0.4.0"
 url.workspace = true
 tabby-inference = { path = "../tabby-inference" }
 git2.workspace = true
-llama-cpp-server = { path = "../llama-cpp-server"}
 insta.workspace = true
 async-trait.workspace = true
 

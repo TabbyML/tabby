@@ -2,7 +2,7 @@
 //! Includes syncing respositories and updating indices.
 
 mod code;
-pub mod crawl;
+mod crawl;
 mod indexer;
 
 pub use code::CodeIndexer;
@@ -16,63 +16,9 @@ use tabby_inference::Embedding;
 mod doc;
 use std::sync::Arc;
 
-use tokio_cron_scheduler::{Job, JobScheduler};
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 use crate::doc::SourceDocument;
-
-pub async fn scheduler(now: bool, config: &tabby_common::config::Config) {
-    if now {
-        scheduler_pipeline(config).await;
-    } else {
-        let scheduler = JobScheduler::new()
-            .await
-            .expect("Failed to create scheduler");
-        let scheduler_mutex = Arc::new(tokio::sync::Mutex::new(()));
-        let config = config.clone();
-
-        // Every 10 minutes
-        scheduler
-            .add(
-                Job::new_async("0 1/10 * * * *", move |_, _| {
-                    let config = config.clone();
-                    let scheduler_mutex = scheduler_mutex.clone();
-                    Box::pin(async move {
-                        let Ok(_guard) = scheduler_mutex.try_lock() else {
-                            warn!("Scheduler job overlapped, skipping...");
-                            return;
-                        };
-
-                        scheduler_pipeline(&config).await;
-                    })
-                })
-                .expect("Failed to create job"),
-            )
-            .await
-            .expect("Failed to add job");
-
-        info!("Scheduler activated...");
-        scheduler.start().await.expect("Failed to start scheduler");
-
-        // Sleep 10 years (indefinitely)
-        tokio::time::sleep(tokio::time::Duration::from_secs(3600 * 24 * 365 * 10)).await;
-    }
-}
-
-async fn scheduler_pipeline(config: &tabby_common::config::Config) {
-    let embedding_config = &config.model.embedding;
-
-    let embedding = llama_cpp_server::create_embedding(embedding_config).await;
-
-    let repositories = &config.repositories;
-
-    let mut code = CodeIndexer::default();
-    for repository in repositories {
-        code.refresh(embedding.clone(), repository).await;
-    }
-
-    code.garbage_collection(repositories).await;
-}
 
 pub async fn crawl_index_docs<F>(
     urls: &[String],
