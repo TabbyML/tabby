@@ -1,19 +1,17 @@
-use std::{env, pin::pin, sync::Arc};
+use std::sync::Arc;
 
 use async_stream::stream;
 use futures::StreamExt;
 use ignore::Walk;
 use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 
 use super::{
     create_code_index,
     intelligence::{CodeIntelligence, SourceCode},
-    source_file_key::source_file_key_from_path,
-    KeyedSourceCode,
 };
-use crate::{code::source_file_key::check_source_file_key_matched, Indexer};
+use crate::Indexer;
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
@@ -32,7 +30,7 @@ pub async fn garbage_collection() {
 
         for await id in index.iter_ids() {
             let item_key = id;
-            if check_source_file_key_matched(&item_key) {
+            if CodeIntelligence::check_source_file_id_matched(&item_key) {
                 num_to_keep += 1;
             } else {
                 num_to_delete += 1;
@@ -40,72 +38,44 @@ pub async fn garbage_collection() {
             }
         }
 
-        info!("Finished garbage collection for code index: {num_to_keep} items kept, {num_to_delete} items removed");
+        debug!("Finished garbage collection for code index: {num_to_keep} items kept, {num_to_delete} items removed");
         index.commit();
     }.collect::<()>().await;
 }
 
-async fn add_changed_documents(repository: &RepositoryConfig, index: Indexer<KeyedSourceCode>) {
+async fn add_changed_documents(repository: &RepositoryConfig, index: Indexer<SourceCode>) {
     let index = Arc::new(index);
-    let cloned_index = index.clone();
-    let s = stream! {
-        let mut intelligence = CodeIntelligence::default();
-        for file in Walk::new(repository.dir()) {
-            let file = match file {
-                Ok(file) => file,
-                Err(e) => {
-                    warn!("Failed to walk file tree for indexing: {e}");
-                    continue;
-                }
-            };
-
-            let Some(key) = source_file_key_from_path(file.path()) else {
-                continue;
-            };
-
-            if cloned_index.is_indexed(&key) {
-                // Skip if already indexed
+    let intelligence = CodeIntelligence::default();
+    for file in Walk::new(repository.dir()) {
+        let file = match file {
+            Ok(file) => file,
+            Err(e) => {
+                warn!("Failed to walk file tree for indexing: {e}");
                 continue;
             }
+        };
 
-            let Some(code) = intelligence.create_source_file(repository, file.path()) else {
-                continue;
-            };
+        let Some(key) = CodeIntelligence::compute_source_file_id(file.path()) else {
+            continue;
+        };
 
-            if !is_valid_file(&code) {
-                continue;
-            }
-
-            let index = cloned_index.clone();
-            yield tokio::spawn(async move {
-                index
-                    .add(KeyedSourceCode {
-                        key: key.clone(),
-                        code,
-                    })
-                    .await;
-                key
-            });
-        }
-
-    };
-
-    let parallelism = env::var("TABBY_CODE_INDEXER_PARALLELISM")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or_else(|| std::thread::available_parallelism().unwrap().get() * 2);
-    let mut s = pin!(s.buffer_unordered(parallelism));
-
-    while let Some(key) = s.next().await {
-        if let Err(e) = key {
-            debug!("Failed to join task: {e}");
+        if index.is_indexed(&key) {
+            // Skip if already indexed
             continue;
         }
-    }
 
-    match Arc::try_unwrap(index) {
-        Ok(index) => index.commit(),
-        Err(_) => panic!("Failed to unwrap index"),
+        let Some(code) = intelligence.compute_source_file(repository, file.path()) else {
+            continue;
+        };
+
+        if !is_valid_file(&code) {
+            continue;
+        }
+
+        let index = index.clone();
+        tokio::spawn(async move {
+            index.add(code).await;
+        });
     }
 }
 

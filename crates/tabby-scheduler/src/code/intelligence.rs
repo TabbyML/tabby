@@ -1,5 +1,8 @@
+mod id;
+
 use std::{collections::HashMap, fs::read_to_string, path::Path};
 
+use id::SourceFileId;
 use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext};
 use text_splitter::{Characters, CodeSplitter, TextSplitter};
 use tracing::warn;
@@ -9,7 +12,6 @@ use super::languages;
 pub use super::types::{Point, SourceCode, Tag};
 
 pub struct CodeIntelligence {
-    context: TagsContext,
     splitter: TextSplitter<Characters>,
     code_splitters: HashMap<String, CodeSplitter<Characters>>,
 }
@@ -19,7 +21,6 @@ const CHUNK_SIZE: usize = 256;
 impl Default for CodeIntelligence {
     fn default() -> Self {
         Self {
-            context: TagsContext::new(),
             splitter: TextSplitter::new(CHUNK_SIZE),
             code_splitters: super::languages::all()
                 .map(|(name, config)| {
@@ -34,7 +35,7 @@ impl Default for CodeIntelligence {
 }
 
 impl CodeIntelligence {
-    pub fn find_tags(&mut self, language: &str, content: &str) -> Vec<Tag> {
+    fn find_tags(&self, language: &str, content: &str) -> Vec<Tag> {
         let config = languages::get(language);
         let empty = Vec::new();
 
@@ -42,9 +43,9 @@ impl CodeIntelligence {
             return empty;
         };
 
-        let Ok((tags, has_error)) = self
-            .context
-            .generate_tags(&config.0, content.as_bytes(), None)
+        let mut context = TagsContext::new();
+
+        let Ok((tags, has_error)) = context.generate_tags(&config.0, content.as_bytes(), None)
         else {
             return empty;
         };
@@ -68,11 +69,30 @@ impl CodeIntelligence {
             .collect()
     }
 
-    pub fn create_source_file(
-        &mut self,
+    pub fn compute_source_file_id(path: &Path) -> Option<String> {
+        SourceFileId::try_from(path).map(|key| key.to_string()).ok()
+    }
+
+    pub fn check_source_file_id_matched(item_key: &str) -> bool {
+        let Ok(key) = item_key.parse::<SourceFileId>() else {
+            return false;
+        };
+
+        let Ok(file_key) = SourceFileId::try_from(key.path()) else {
+            return false;
+        };
+
+        // If key doesn't match, means file has been removed / modified.
+        file_key.to_string() == item_key
+    }
+
+    pub fn compute_source_file(
+        &self,
         config: &RepositoryConfig,
         path: &Path,
     ) -> Option<SourceCode> {
+        let id = Self::compute_source_file_id(path)?;
+
         if path.is_dir() || !path.exists() {
             warn!("Path {} is not a file or does not exist", path.display());
             return None;
@@ -99,6 +119,7 @@ impl CodeIntelligence {
             }
         };
         let source_file = SourceCode {
+            id,
             git_url: config.canonical_git_url(),
             basedir: config.dir().display().to_string(),
             filepath: relative_path.display().to_string(),
@@ -214,9 +235,9 @@ mod tests {
     fn test_create_source_file() {
         set_tabby_root(get_tabby_root());
         let config = get_repository_config();
-        let mut code = CodeIntelligence::default();
+        let code = CodeIntelligence::default();
         let source_file = code
-            .create_source_file(&config, &get_rust_source_file())
+            .compute_source_file(&config, &get_rust_source_file())
             .expect("Failed to create source file");
 
         // check source_file properties

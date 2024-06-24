@@ -12,13 +12,19 @@ fn get_git_hash(path: &Path) -> Result<String> {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-struct SourceFileKey {
+pub struct SourceFileId {
     path: PathBuf,
     language: String,
     git_hash: String,
 }
 
-impl FromStr for SourceFileKey {
+impl SourceFileId {
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl FromStr for SourceFileId {
     type Err = serde_json::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -26,7 +32,7 @@ impl FromStr for SourceFileKey {
     }
 }
 
-impl TryFrom<&Path> for SourceFileKey {
+impl TryFrom<&Path> for SourceFileId {
     type Error = anyhow::Error;
 
     fn try_from(path: &Path) -> Result<Self> {
@@ -47,27 +53,8 @@ impl TryFrom<&Path> for SourceFileKey {
     }
 }
 
-impl ToString for SourceFileKey {
+impl ToString for SourceFileId {
     fn to_string(&self) -> String {
         serde_json::to_string(&self).expect("Failed to serialize SourceFileKey")
     }
-}
-
-pub fn source_file_key_from_path(path: &Path) -> Option<String> {
-    SourceFileKey::try_from(path)
-        .map(|key| key.to_string())
-        .ok()
-}
-
-pub fn check_source_file_key_matched(item_key: &str) -> bool {
-    let Ok(key) = item_key.parse::<SourceFileKey>() else {
-        return false;
-    };
-
-    let Ok(file_key) = SourceFileKey::try_from(key.path.as_path()) else {
-        return false;
-    };
-
-    // If key doesn't match, means file has been removed / modified.
-    file_key.to_string() == item_key
 }

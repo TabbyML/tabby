@@ -9,7 +9,7 @@ use tabby_common::{
     index::{code, corpus},
 };
 use tabby_inference::Embedding;
-use tracing::{info, warn};
+use tracing::{debug, warn};
 
 use self::intelligence::SourceCode;
 use crate::{code::intelligence::CodeIntelligence, IndexAttributeBuilder, Indexer};
@@ -19,67 +19,52 @@ mod index;
 mod intelligence;
 mod languages;
 mod repository;
-mod source_file_key;
 mod types;
 
 #[derive(Default)]
-pub struct CodeIndexer {
-    is_dirty: bool,
-}
+pub struct CodeIndexer {}
 
 impl CodeIndexer {
     pub async fn refresh(&mut self, embedding: Arc<dyn Embedding>, repository: &RepositoryConfig) {
-        self.is_dirty = true;
-
-        info!("Refreshing repository: {}", repository.canonical_git_url());
+        debug!("Refreshing repository: {}", repository.canonical_git_url());
         repository::sync_repository(repository);
 
         index::index_repository(embedding, repository).await;
+        index::garbage_collection().await;
     }
 
     pub async fn garbage_collection(&mut self, repositories: &[RepositoryConfig]) {
-        self.is_dirty = false;
-        index::garbage_collection().await;
         repository::garbage_collection(repositories);
     }
 }
-
-struct KeyedSourceCode {
-    key: String,
-    code: SourceCode,
-}
-
-impl KeyedSourceCode {
-    fn build_id(&self) -> String {
-        self.key.clone()
-    }
-}
-
 struct CodeBuilder {
     embedding: Option<Arc<dyn Embedding>>,
+    intelligence: CodeIntelligence,
 }
 
 impl CodeBuilder {
     fn new(embedding: Option<Arc<dyn Embedding>>) -> Self {
-        Self { embedding }
+        Self {
+            embedding,
+            intelligence: CodeIntelligence::default(),
+        }
     }
 }
 
 #[async_trait]
-impl IndexAttributeBuilder<KeyedSourceCode> for CodeBuilder {
-    async fn build_id(&self, source_code: &KeyedSourceCode) -> String {
-        source_code.build_id()
+impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
+    async fn build_id(&self, source_code: &SourceCode) -> String {
+        source_code.id.clone()
     }
 
-    async fn build_attributes(&self, _source_code: &KeyedSourceCode) -> serde_json::Value {
+    async fn build_attributes(&self, _source_code: &SourceCode) -> serde_json::Value {
         json!({})
     }
 
     async fn build_chunk_attributes(
         &self,
-        source_code: &KeyedSourceCode,
+        source_code: &SourceCode,
     ) -> BoxStream<(Vec<String>, serde_json::Value)> {
-        let source_code = &source_code.code;
         let text = match source_code.read_content() {
             Ok(content) => content,
             Err(e) => {
@@ -99,8 +84,7 @@ impl IndexAttributeBuilder<KeyedSourceCode> for CodeBuilder {
 
         let source_code = source_code.clone();
         let s = stream! {
-            let intelligence = CodeIntelligence::default();
-            for (start_line, body) in intelligence.chunks(&text, &source_code.language) {
+            for (start_line, body) in self.intelligence.chunks(&text, &source_code.language) {
                 let embedding = match embedding.embed(&body).await {
                     Ok(x) => x,
                     Err(err) => {
@@ -127,7 +111,7 @@ impl IndexAttributeBuilder<KeyedSourceCode> for CodeBuilder {
     }
 }
 
-fn create_code_index(embedding: Option<Arc<dyn Embedding>>) -> Indexer<KeyedSourceCode> {
+fn create_code_index(embedding: Option<Arc<dyn Embedding>>) -> Indexer<SourceCode> {
     let builder = CodeBuilder::new(embedding);
     Indexer::new(corpus::CODE, builder)
 }
