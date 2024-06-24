@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SourceCode {
+    pub id: String,
     pub git_url: String,
     pub basedir: String,
     pub filepath: String,
