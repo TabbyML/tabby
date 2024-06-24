@@ -817,6 +817,12 @@ function SiteFavicon({
   hostname: string
   className?: string
 }) {
+  const [isLoaded, setIsLoaded] = useState(false)
+
+  const handleImageLoad = () => {
+    setIsLoaded(true)
+  }
+
   return (
     <div className="relative h-3.5 w-3.5">
       <Image
@@ -836,8 +842,12 @@ function SiteFavicon({
         height={14}
         className={cn(
           'relative z-10 h-3.5 w-3.5 rounded-full bg-card leading-none',
-          className
+          className,
+          {
+            'opacity-0': !isLoaded
+          }
         )}
+        onLoad={handleImageLoad}
       />
     </div>
   )
