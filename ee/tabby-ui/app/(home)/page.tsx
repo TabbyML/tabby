@@ -60,6 +60,7 @@ function MainPanel() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
+  // Initialize the page's entry animation
   useEffect(() => {
     setTimeout(() => {
       if (elementRef.current) {
@@ -73,6 +74,11 @@ function MainPanel() {
       }
     }, 100)
   }, [elementRef.current])
+
+  // Prefetch the search page
+  useEffect(() => {
+    router.prefetch('/search')
+  }, [router])
 
   if (!healthInfo || !data?.me) return <></>
 
