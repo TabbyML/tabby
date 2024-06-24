@@ -67,8 +67,8 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
   const matchDecorator = new MatchDecorator({
     regexp: new RegExp(stringToMatch ?? '', 'g'),
     decoration: Decoration.mark({
-      tagName: 'highlighted-text',
-      class: 'bg-red-500 text-5xl'
+      tagName: 'mark',
+      class: 'bg-muted outline outline-offset-1'
     })
   })
 
