@@ -14,11 +14,11 @@ use tracing::{info, warn};
 use self::intelligence::SourceCode;
 use crate::{code::intelligence::CodeIntelligence, IndexAttributeBuilder, Indexer};
 
+//  Modules for creating code search index.
 mod index;
 mod intelligence;
 mod languages;
 mod repository;
-///  Module for creating code search index.
 mod source_file_key;
 mod types;
 
