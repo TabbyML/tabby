@@ -1,9 +1,9 @@
 'use client'
 
 import React from 'react'
-import { useTheme } from 'next-themes'
 import TopBarProgress from 'react-topbar-progress-indicator'
 
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
 
 interface TopbarProgressProviderProps {
@@ -24,7 +24,7 @@ const TopbarProgressProvider: React.FC<TopbarProgressProviderProps> = ({
 }) => {
   const [progress, setProgress] = React.useState(false)
   const [debouncedProgress] = useDebounceValue(progress, 200, { leading: true })
-  const { theme } = useTheme()
+  const { theme } = useCurrentTheme()
   React.useEffect(() => {
     TopBarProgress.config({
       barColors: {

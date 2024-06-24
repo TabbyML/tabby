@@ -1,39 +1,40 @@
+use anyhow::Context;
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
-    job::{JobRun, JobService, JobStats},
-    AsRowid, Result,
+    job::{JobInfo, JobRun, JobService, JobStats},
+    AsID, AsRowid, Result,
 };
-use tracing::warn;
 
 use super::graphql_pagination_to_filter;
 use crate::service::background_job::BackgroundJobEvent;
 
 struct JobControllerImpl {
     db: DbConn,
-    background_job_sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
 }
 
-pub async fn create(
-    db: DbConn,
-    background_job_sender: tokio::sync::mpsc::UnboundedSender<BackgroundJobEvent>,
-) -> impl JobService {
-    JobControllerImpl {
-        db,
-        background_job_sender,
-    }
+pub async fn create(db: DbConn) -> impl JobService {
+    JobControllerImpl { db }
 }
 
 #[async_trait]
 impl JobService for JobControllerImpl {
-    async fn trigger(&self, command: String) {
-        if let Err(err) = self
-            .background_job_sender
-            .send(BackgroundJobEvent::SerializedBackgroundJob(command))
-        {
-            warn!("Failed to send background job event: {:?}", err)
-        }
+    async fn trigger(&self, command: String) -> Result<ID> {
+        if let Some(job) = self.db.get_latest_job_run(command.clone()).await {
+            if job.exit_code.is_none() {
+                // When there's pending job, return the existing job id
+                return Ok(job.id.as_id());
+            }
+        };
+
+        let event = serde_json::from_str::<BackgroundJobEvent>(&command)
+            .context("Failed to parse background job event")?;
+        Ok(self
+            .db
+            .create_job_run(event.name().to_owned(), command)
+            .await?
+            .as_id())
     }
 
     async fn list(
@@ -58,6 +59,14 @@ impl JobService for JobControllerImpl {
             .into_iter()
             .map(Into::into)
             .collect())
+    }
+
+    async fn get_job_info(&self, command: String) -> Result<JobInfo> {
+        let job_run = self.db.get_latest_job_run(command.clone()).await;
+        Ok(JobInfo {
+            last_job_run: job_run.map(JobRun::from),
+            command,
+        })
     }
 
     async fn compute_stats(&self, jobs: Option<Vec<String>>) -> Result<JobStats> {

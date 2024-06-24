@@ -11,7 +11,7 @@ use url::Url;
 
 use self::types::{CrawledDocument, KatanaRequestResponse};
 
-async fn crawl_url(start_url: &str) -> impl Stream<Item = KatanaRequestResponse> {
+async fn crawl_url(start_url: &str) -> anyhow::Result<impl Stream<Item = KatanaRequestResponse>> {
     let mut child = tokio::process::Command::new("katana")
         .arg("-u")
         .arg(start_url)
@@ -22,8 +22,7 @@ async fn crawl_url(start_url: &str) -> impl Stream<Item = KatanaRequestResponse>
         .arg("9999")
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
-        .spawn()
-        .expect("Failed to start katana, please check whether the binary is in your $PATH");
+        .spawn()?;
 
     let stdout = child.stdout.take().expect("Failed to acquire stdout");
     let mut stdout = tokio::io::BufReader::new(stdout).lines();
@@ -36,7 +35,7 @@ async fn crawl_url(start_url: &str) -> impl Stream<Item = KatanaRequestResponse>
         }
     });
 
-    stream! {
+    Ok(stream! {
         while let Ok(Some(line)) = stdout.next_line().await {
             let data = match serde_json::from_str::<KatanaRequestResponse>(&line) {
                 Ok(data) => data,
@@ -47,7 +46,7 @@ async fn crawl_url(start_url: &str) -> impl Stream<Item = KatanaRequestResponse>
             };
 
             // Skip if the status code is not 200
-            if data.response.status_code != 200 {
+            if data.response.status_code != Some(200) {
                 continue;
             }
 
@@ -69,7 +68,7 @@ async fn crawl_url(start_url: &str) -> impl Stream<Item = KatanaRequestResponse>
 
             yield data;
         }
-    }
+    })
 }
 
 fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
@@ -77,7 +76,7 @@ fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
     let (html, metadata) = {
         let (node, metadata) = Readability::new()
             .base_url(Url::parse(&data.request.endpoint).ok()?)
-            .parse(&data.response.body);
+            .parse(&data.response.body?);
 
         let mut html_bytes = vec![];
         node.serialize(&mut html_bytes).ok()?;
@@ -105,10 +104,12 @@ fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
     ))
 }
 
-pub async fn crawl_pipeline(start_url: &str) -> impl Stream<Item = CrawledDocument> {
-    crawl_url(start_url)
-        .await
-        .filter_map(move |data| async move { to_document(data) })
+pub async fn crawl_pipeline(
+    start_url: &str,
+) -> anyhow::Result<impl Stream<Item = CrawledDocument>> {
+    Ok(crawl_url(start_url)
+        .await?
+        .filter_map(move |data| async move { to_document(data) }))
 }
 
 #[cfg(test)]
@@ -133,9 +134,9 @@ mod tests {
                 raw: "GET / HTTP/1.1\nHost: example.com\n".to_owned(),
             },
             response: types::KatanaResponse {
-                status_code: 200,
+                status_code: Some(200),
                 headers,
-                body: "<p>Hello, World!</p>".to_owned(),
+                body: Some("<p>Hello, World!</p>".to_owned()),
                 technologies: Default::default(),
                 raw: "HTTP/1.1 200 OK\nContent-Type: text/html\n".to_owned(),
             },

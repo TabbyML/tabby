@@ -4,7 +4,7 @@ pub mod background_job;
 mod email;
 pub mod event_logger;
 pub mod integration;
-mod job;
+pub mod job;
 mod license;
 pub mod repository;
 mod setting;
@@ -72,10 +72,8 @@ impl ServerContext {
         repository: Arc<dyn RepositoryService>,
         integration: Arc<dyn IntegrationService>,
         web_crawler: Arc<dyn WebCrawlerService>,
+        job: Arc<dyn JobService>,
         db_conn: DbConn,
-        background_job_sender: tokio::sync::mpsc::UnboundedSender<
-            background_job::BackgroundJobEvent,
-        >,
         is_chat_enabled_locally: bool,
     ) -> Self {
         let mail = Arc::new(
@@ -89,7 +87,6 @@ impl ServerContext {
                 .expect("failed to initialize license service"),
         );
         let user_event = Arc::new(user_event::create(db_conn.clone()));
-        let job = Arc::new(job::create(db_conn.clone(), background_job_sender).await);
         let setting = Arc::new(setting::create(db_conn.clone()));
 
         Self {
@@ -262,8 +259,8 @@ pub async fn create_service_locator(
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
     web_crawler: Arc<dyn WebCrawlerService>,
+    job: Arc<dyn JobService>,
     db: DbConn,
-    background_job_sender: tokio::sync::mpsc::UnboundedSender<background_job::BackgroundJobEvent>,
     is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(ArcServerContext::new(
@@ -273,8 +270,8 @@ pub async fn create_service_locator(
             repository,
             integration,
             web_crawler,
+            job,
             db,
-            background_job_sender,
             is_chat_enabled,
         )
         .await,
@@ -305,4 +302,18 @@ pub fn graphql_pagination_to_filter(
         }
         _ => Ok((None, None, false)),
     }
+}
+
+pub async fn create_gitlab_client(
+    api_base: &str,
+    access_token: &str,
+) -> Result<gitlab::AsyncGitlab, anyhow::Error> {
+    // Gitlab client expects a url base like "gitlab.com" not "https://gitlab.com"
+    // We still want to take a more consistent format as user input, so this
+    // will help normalize it to prevent confusion
+    let api_base = api_base.strip_prefix("https://").unwrap_or(api_base);
+
+    Ok(gitlab::Gitlab::builder(api_base, access_token)
+        .build_async()
+        .await?)
 }

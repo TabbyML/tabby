@@ -8,11 +8,7 @@ pub struct JobLogger {
 }
 
 impl JobLogger {
-    pub async fn new(name: &str, db: DbConn) -> Self {
-        let id = db
-            .create_job_run(name.to_owned())
-            .await
-            .expect("failed to create job");
+    pub async fn new(db: DbConn, id: i64) -> Self {
         Self { id, db }
     }
 

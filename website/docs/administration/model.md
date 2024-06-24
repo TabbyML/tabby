@@ -23,6 +23,7 @@ The `llama.cpp` model can be configured with the following parameters:
 [model.completion.http]
 kind = "llama.cpp/completion"
 api_endpoint = "http://localhost:8888"
+prompt_template = "<PRE> {prefix} <SUF>{suffix} <MID>"  # Example prompt template for CodeLlama model series.
 ```
 
 #### [ollama](https://github.com/ollama/ollama/blob/main/docs/api.md#generate-a-completion)
@@ -33,6 +34,7 @@ For setting up the `ollama` model, apply the configuration below:
 [model.completion.http]
 kind = "ollama/completion"
 api_endpoint = "http://localhost:8888"
+prompt_template = "<PRE> {prefix} <SUF>{suffix} <MID>"  # Example prompt template for CodeLlama model series.
 ```
 
 #### [mistral / codestral](https://docs.mistral.ai/api/#operation/createFIMCompletion)

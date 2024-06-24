@@ -57,7 +57,8 @@ impl relay::NodeType for JobRun {
 
 #[async_trait]
 pub trait JobService: Send + Sync {
-    async fn trigger(&self, command: String);
+    async fn trigger(&self, command: String) -> Result<ID>;
+    async fn get_job_info(&self, command: String) -> Result<JobInfo>;
 
     async fn list(
         &self,

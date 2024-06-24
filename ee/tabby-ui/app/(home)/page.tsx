@@ -7,11 +7,11 @@ import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
 import AOS from 'aos'
 import { noop } from 'lodash-es'
-import { useTheme } from 'next-themes'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableSearch } from '@/lib/experiment-flags'
 import { graphql } from '@/lib/gql/generates'
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
 import { useExternalURL } from '@/lib/hooks/use-network-setting'
@@ -54,7 +54,7 @@ function MainPanel() {
   const { data: healthInfo } = useHealth()
   const [{ data }] = useMe()
   const isChatEnabled = useIsChatEnabled()
-  const { theme } = useTheme()
+  const { theme } = useCurrentTheme()
   const [isShowDemoBanner] = useShowDemoBanner()
   const elementRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()

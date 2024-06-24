@@ -1,13 +1,13 @@
 'use client'
 
 import * as React from 'react'
-import { useTheme } from 'next-themes'
 
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { Button } from '@/components/ui/button'
 import { IconMoon, IconSun } from '@/components/ui/icons'
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const { setTheme, theme } = useTheme()
+  const { setTheme, theme } = useCurrentTheme()
   const [_, startTransition] = React.useTransition()
 
   return (
