@@ -10,7 +10,7 @@ use tracing::warn;
 use super::{
     cache::{CacheStore, IndexBatch},
     create_code_index,
-    intelligence::SourceCode,
+    intelligence::{CodeIntelligence, SourceCode},
     KeyedSourceCode,
 };
 use crate::Indexer;
@@ -46,6 +46,7 @@ async fn add_changed_documents(
     let index = Arc::new(index);
     let cloned_index = index.clone();
     let s = stream! {
+        let mut intelligence = CodeIntelligence::default();
         for file in Walk::new(repository.dir()) {
             let file = match file {
                 Ok(file) => file,
@@ -54,15 +55,17 @@ async fn add_changed_documents(
                     continue;
                 }
             };
-            let Some(code) = cache.get_source_file(repository, file.path()) else {
-                continue;
-            };
-            if !is_valid_file(&code) {
-                continue;
-            }
 
             let (key, indexed) = cache.check_indexed(file.path());
             if indexed {
+                continue;
+            }
+
+            let Some(code) = intelligence.create_source_file(repository, file.path()) else {
+                continue;
+            };
+
+            if !is_valid_file(&code) {
                 continue;
             }
 

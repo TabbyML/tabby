@@ -4,14 +4,11 @@ use std::{
 };
 
 use anyhow::{bail, Context, Result};
-use kv::{Batch, Bucket, Config, Json, Store};
+use kv::{Batch, Bucket, Config, Store};
 use serde::{Deserialize, Serialize};
-use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext};
+use tabby_common::languages::get_language_by_ext;
 use tracing::info;
 
-use super::intelligence::{CodeIntelligence, SourceCode};
-
-const SOURCE_FILE_BUCKET_KEY: &str = "source_files";
 const INDEX_BUCKET_KEY: &str = "indexed_files";
 
 fn get_git_hash(path: &Path) -> Result<String> {
@@ -62,7 +59,6 @@ impl ToString for SourceFileKey {
 
 pub struct CacheStore {
     store: Store,
-    code: CodeIntelligence,
 }
 
 const INDEX_ALGORITHM_VERSION: &str = "20240531";
@@ -84,7 +80,6 @@ impl CacheStore {
     pub fn new(path: PathBuf) -> Self {
         Self {
             store: Store::new(Config::new(path)).expect("Failed to create repository store"),
-            code: CodeIntelligence::default(),
         }
     }
 
@@ -154,67 +149,6 @@ impl CacheStore {
                 .batch(batch)
                 .expect("Failed to execute batched delete")
         }
-    }
-
-    pub fn get_source_file(
-        &mut self,
-        config: &RepositoryConfig,
-        path: &Path,
-    ) -> Option<SourceCode> {
-        let key: String = SourceFileKey::try_from(path).ok()?.to_string();
-
-        let dataset_bucket: Bucket<String, Json<Option<SourceCode>>> = self
-            .store
-            .bucket(Some(SOURCE_FILE_BUCKET_KEY))
-            .expect("Could not access dataset bucket");
-
-        if let Some(source_file) = dataset_bucket
-            .get(&key)
-            .expect("Failed to read key from dataset bucket")
-            .map(|Json(file)| file)
-        {
-            source_file
-        } else {
-            let source_file = self.code.create_source_file(config, path);
-            let json = Json(source_file);
-            dataset_bucket
-                .set(&key, &json)
-                .expect("Failed to write source file to dataset bucket");
-            json.0
-        }
-    }
-
-    pub fn garbage_collection_for_source_files(&self) {
-        info!("Started cleaning up 'source_files' bucket");
-        let bucket: Bucket<String, Json<SourceCode>> = self
-            .store
-            .bucket(Some(SOURCE_FILE_BUCKET_KEY))
-            .expect("Could not access dataset bucket");
-
-        let mut batch = Batch::new();
-        let mut num_keep = 0;
-        let mut num_removed = 0;
-
-        bucket
-            .iter()
-            .filter_map(|item| {
-                let item = item.expect("Failed to read item");
-                let item_key: String = item.key().expect("Failed to get key");
-                if is_item_key_matched(&item_key) {
-                    num_keep += 1;
-                    None
-                } else {
-                    num_removed += 1;
-                    Some(item_key)
-                }
-            })
-            .for_each(|key| batch.remove(&key).expect("Failed to remove key"));
-
-        info!(
-            "Finished garbage collection for 'source_files': {} items kept, {} items removed",
-            num_keep, num_removed
-        );
-        bucket.batch(batch).expect("to batch remove staled files");
     }
 }
 
