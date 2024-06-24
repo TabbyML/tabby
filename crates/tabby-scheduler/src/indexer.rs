@@ -147,6 +147,7 @@ impl<T: Send + 'static> Indexer<T> {
         let schema = IndexSchema::instance();
 
         stream! {
+            // Based on https://github.com/quickwit-oss/tantivy/blob/main/examples/iterating_docs_and_positions.rs
             for (segment_ordinal, segment_reader) in self.searcher.segment_readers().iter().enumerate() {
                 let Ok(inverted_index) = segment_reader.inverted_index(schema.field_corpus) else {
                     continue;
