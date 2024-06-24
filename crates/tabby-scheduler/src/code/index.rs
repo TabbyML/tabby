@@ -29,8 +29,23 @@ pub async fn index_repository(
 
 pub async fn garbage_collection() {
     let index = create_code_index(None);
-    remove_staled_documents(&index).await;
-    index.commit();
+    stream! {
+        let mut num_to_keep = 0;
+        let mut num_to_delete = 0;
+
+        for await id in index.iter_ids() {
+            let item_key = id;
+            if check_source_file_key_matched(&item_key) {
+                num_to_keep += 1;
+            } else {
+                num_to_delete += 1;
+                index.delete(&item_key);
+            }
+        }
+
+        info!("Finished garbage collection for code index: {num_to_keep} items kept, {num_to_delete} items removed");
+        index.commit();
+    }.collect::<()>().await;
 }
 
 async fn add_changed_documents(
@@ -100,22 +115,6 @@ async fn add_changed_documents(
 }
 
 async fn remove_staled_documents(index: &Indexer<KeyedSourceCode>) {
-    stream! {
-        let mut num_to_keep = 0;
-        let mut num_to_delete = 0;
-
-        for await id in index.iter_ids() {
-            let item_key = id;
-            if check_source_file_key_matched(&item_key) {
-                num_to_keep += 1;
-            } else {
-                num_to_delete += 1;
-                index.delete(&item_key);
-            }
-        }
-
-        info!("Finished garbage collection for code index: {num_to_keep} items kept, {num_to_delete} items removed");
-    }.collect::<()>().await;
 }
 
 fn is_valid_file(file: &SourceCode) -> bool {
