@@ -543,7 +543,6 @@ function AnswerBlock({
         {answer.isLoading && !answer.content && (
           <Skeleton className="mt-1 h-40 w-full" />
         )}
-        {/* Download one of the pre-built Vulkan binaries for your platform from the Tabby repository or the Tabby website. [[citation:7]][[citation:8]] */}
         <MessageMarkdown
           message={answer.content}
           sources={answer.relevant_documents}
