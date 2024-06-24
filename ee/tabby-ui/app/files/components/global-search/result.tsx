@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react'
 import Link from 'next/link'
+import { set } from 'date-fns'
 
 import { GrepFile } from '@/lib/gql/generates/graphql'
 import { filename2prism } from '@/lib/language-utils'
@@ -31,11 +32,18 @@ export const GlobalSearchResult = ({ ...props }: GlobalSearchResultProps) => {
     []
   )
 
+  const [firstLineWithSubMatch, setFirstLineWithSubMatch] = React.useState<
+    number | null
+  >(null)
+
   useEffect(() => {
     const newRanges: { start: number; end: number }[] = []
     let currentRange: { start: number; end: number } = { start: 0, end: 0 }
 
     props.result.lines.forEach((line, index) => {
+      if (line.subMatches.length > 0) {
+        setFirstLineWithSubMatch(line.lineNumber)
+      }
       if (index === 0) {
         currentRange.start = line.lineNumber
         currentRange.end = line.lineNumber
@@ -57,12 +65,16 @@ export const GlobalSearchResult = ({ ...props }: GlobalSearchResultProps) => {
   return (
     <div>
       <Link
-        href={`/files/${generateEntryPath(
-          activeRepo,
-          activeRepoRef?.name as string,
-          props.result.path,
-          'file'
-        )}`}
+        href={{
+          pathname: `/files/${generateEntryPath(
+            activeRepo,
+            activeRepoRef?.name as string,
+            props.result.path,
+            'file'
+          )}`,
+          // FIXME: this doesn't work when clicking a different line on the active file
+          hash: `L${firstLineWithSubMatch}`
+        }}
         className="mb-2 inline-flex items-center gap-2"
       >
         <IconFile />

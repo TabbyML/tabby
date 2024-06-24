@@ -32,7 +32,8 @@ export function ChatPanel({
   const { container, onClearMessages, qaPairs, isLoading } =
     React.useContext(ChatContext)
   React.useEffect(() => {
-    promptFormRef?.current?.focus()
+    // FIXME: This is stealing focus onLoad
+    // promptFormRef?.current?.focus()
   }, [id])
 
   return (

@@ -568,6 +568,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     if (!progress && (fetchingRawFile || fetchingTreeEntries)) {
       setProgress(true)
     } else if (!fetchingRawFile && !fetchingTreeEntries) {
+      setSearchTabIsActive(false) // Hack
       setProgress(false)
     }
   }, [fetchingRawFile, fetchingTreeEntries])
@@ -691,6 +692,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
    *
    */
   const clearGlobalSearchInput = () => {
+    console.log('clear...why')
+
     setGlobalSearchQuery('')
     // FIXME: this isn't registered
     globalSearchInput?.focus()
@@ -700,6 +703,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
    *
    */
   const onGlobalSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    console.log('onGlobalSearchSubmit')
     e.preventDefault()
     void search(globalSearchQuery)
   }
@@ -753,6 +757,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
             <FileTreeHeader className="shrink-0 w-1/3" />
             <GlobalSearch
               query={globalSearchQuery}
+              setInputRef={setGlobalSearchInput}
               inputRef={globalSearchInput}
               onFocus={maybeActivateSearchTab}
               onInput={onGlobalSearchInput}

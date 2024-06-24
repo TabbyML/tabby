@@ -1,6 +1,13 @@
 'use client'
 
-import React from 'react'
+import React, {
+  Dispatch,
+  KeyboardEvent as ReactKeyboardEvent,
+  Ref,
+  RefAttributes,
+  SetStateAction,
+  useEffect
+} from 'react'
 
 import { Button } from '@/components/ui/button'
 import { IconClose, IconSearch } from '@/components/ui/icons'
@@ -8,20 +15,21 @@ import { Input } from '@/components/ui/input'
 
 interface GlobalSearchProps {
   query: string
-  inputRef?: HTMLInputElement
   onFocus: () => void
   onInput: (e: React.ChangeEvent<HTMLInputElement>) => void
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
+  onSubmit: (
+    e: React.FormEvent<HTMLFormElement> | ReactKeyboardEvent<HTMLInputElement>
+  ) => void
+  inputRef: HTMLInputElement | undefined
+  setInputRef: Dispatch<SetStateAction<HTMLInputElement | undefined>>
   clearInput: () => void
 }
 
 const GLOBAL_SEARCH_SHORTCUT = 's'
 
-const GlobalSearch: React.FC<GlobalSearchProps> = ({
-  ...props
-}: GlobalSearchProps) => {
+export const GlobalSearch = ({ ...props }: GlobalSearchProps) => {
   // TODO: Merge this with the file tree code
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as Element
       const tagName = target?.tagName?.toLowerCase()
@@ -31,6 +39,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
         tagName === 'select'
       ) {
         if (event.key === 'Enter' || event.key === 'Escape') {
+          console.log('return')
           return
         }
       }
@@ -41,12 +50,13 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
       }
     }
 
+    // FIXME: this is broken
     window.addEventListener('keydown', handleKeyDown)
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [])
+  }, [props.inputRef])
 
   return (
     <form onSubmit={props.onSubmit} className="w-full flex items-center h-14">
@@ -56,7 +66,20 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
           placeholder="Search repository..."
           value={props.query}
           onInput={props.onInput}
+          onKeyDown={e => {
+            if (e.key === 'Escape') {
+              props.clearInput()
+            }
+
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              props.onSubmit(e)
+            }
+          }}
           onFocus={props.onFocus}
+          ref={ref => {
+            props.setInputRef(ref as HTMLInputElement)
+          }}
           className="w-full "
         />
         <div className="absolute right-2 top-0 flex h-full items-center">
@@ -94,5 +117,3 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
     </form>
   )
 }
-
-export { GlobalSearch }
