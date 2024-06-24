@@ -63,7 +63,7 @@ export const GlobalSearchResult = ({ ...props }: GlobalSearchResultProps) => {
           props.result.path,
           'file'
         )}`}
-        className="font-bold mb-2 inline-flex items-center gap-2"
+        className="mb-2 inline-flex items-center gap-2"
       >
         <IconFile />
         {/* TODO: this should highlight the first line subMatches */}
@@ -75,7 +75,6 @@ export const GlobalSearchResult = ({ ...props }: GlobalSearchResultProps) => {
             key={`${props.result.path}-${i}`}
             value={props.result.blob}
             language={language}
-            // FIXME: This needs to add the line number to the start
             stringToMatch={props.query}
             lineRange={range}
           />

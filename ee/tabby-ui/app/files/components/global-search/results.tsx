@@ -97,7 +97,7 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
           <h1 className="text-xl font-semibold mb-0.5">
             Results for “{props.query}”
           </h1>
-          <p className="text-sm">
+          <p className="text-sm text-muted-foreground">
             {matchCount} {matchCount === 1 ? 'match' : 'matches'}
           </p>
         </div>

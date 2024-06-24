@@ -569,8 +569,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       setProgress(true)
     } else if (!fetchingRawFile && !fetchingTreeEntries) {
       setProgress(false)
-      // FIX: this is only called on initial load, not on subsequent loads
-      setSearchTabIsActive(false)
     }
   }, [fetchingRawFile, fetchingTreeEntries])
 
@@ -639,11 +637,14 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     useState<React.RefObject<HTMLDivElement>>()
 
   /**
-   *
+   * The action to conditionally activate the search tab.
+   * Called by the `onFocus` event handler of the search input.
+   * Will only activate the search tab if there is a query and results.
    */
   const maybeActivateSearchTab = () => {
     // FIXME: Can we use the query Params to determine this?
     if (globalSearchQuery && globalSearchResults) {
+      // FIXME: this should only happen if the full results have loaded
       setSearchTabIsActive(true)
     }
   }
