@@ -15,7 +15,6 @@ export interface GlobalSearchResult extends GrepFile {
 
 interface GlobalSearchResultProps {
   result: GlobalSearchResult
-  key: number
   hidePopover: () => void
 }
 
@@ -37,24 +36,26 @@ export const GlobalSearchResult = ({ ...props }: GlobalSearchResultProps) => {
           props.result.path,
           'file'
         )}`}
-        className="text-sm font-semibold mb-2"
+        className="font-bold mb-1.5 inline-flex"
         // TODO: Investigate an alternative to this
         onClick={props.hidePopover}
       >
         {props.result.path}
       </Link>
-      <ol className="overflow-hidden grid gap-0.5">
+      <ol className="overflow-hidden grid border divide-y divide-y-border border-border rounded">
         {linesWithSubMatches.map((line, i) => {
           return (
             // TODO: Replace with a `SearchableSelectItem` component
-            <GlobalSearchResultSnippet
-              key={i}
-              text={props.result.blob}
-              path={props.result.path}
-              lineNumber={line.lineNumber}
-              hidePopover={props.hidePopover}
-              subMatches={line.subMatches}
-            />
+            // FIXME: key should be unique
+            <li key={i}>
+              <GlobalSearchResultSnippet
+                text={props.result.blob}
+                path={props.result.path}
+                lineNumber={line.lineNumber}
+                hidePopover={props.hidePopover}
+                subMatches={line.subMatches}
+              />
+            </li>
           )
         })}
       </ol>

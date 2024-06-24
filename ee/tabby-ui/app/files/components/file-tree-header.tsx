@@ -231,7 +231,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
 
   return (
     <div className={cn(className)} {...props}>
-      <div className="space-y-3 mt-3">
+      <div className="grid grid-cols-2 gap-4">
         {/* Repository select */}
         <Select
           disabled={!initialized}
@@ -353,7 +353,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
           </PopoverContent>
         </Popover>
         {/* Go to file */}
-        <SearchableSelect
+        {/* <SearchableSelect
           stayOpenOnInputClick
           options={options}
           onSelect={onSelectFile}
@@ -470,7 +470,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
               </>
             )
           }}
-        </SearchableSelect>
+        </SearchableSelect> */}
       </div>
     </div>
   )

@@ -47,10 +47,11 @@ export const GlobalSearchResultSnippet = ({
         // FIXME: this doesn't work when clicking a different line on the active file
         hash: `L${props.lineNumber}`
       }}
-      className="font-mono text-sm truncate block text-muted-foreground"
+      className="font-mono py-2 px-2.5 text-sm truncate block text-muted-foreground"
       onClick={props.hidePopover}
     >
-      {indices}
+      {/* {indices} */}
+      {/* TODO: these need line numbers now */}
       <HighlightMatches text={snippet} indices={indices} />
     </Link>
   )

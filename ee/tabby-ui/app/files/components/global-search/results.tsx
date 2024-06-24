@@ -5,6 +5,7 @@ import useSWRImmutable from 'swr/immutable'
 
 import { GrepFile, RepositoryKind } from '@/lib/gql/generates/graphql'
 import fetcher from '@/lib/tabby/fetcher'
+import { Button } from '@/components/ui/button'
 
 import {
   encodeURIComponentIgnoringSlash,
@@ -14,6 +15,7 @@ import { GlobalSearchResult } from './result'
 
 interface GlobalSearchResultsProps {
   results?: GrepFile[]
+  query?: string
   repoId?: string
   repositoryKind?: RepositoryKind
   hidePopover: () => void
@@ -66,19 +68,32 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
 
   return (
     <>
-      DA RESULTS ARE IN
+      <div className="flex justify-between w-full  mb-4">
+        {/* FIXME: This shouldn't update on type */}
+        <h1 className="text-xl font-semibold mb-2">
+          Results for “{props.query}”
+        </h1>
+        {/* TODO: Use form component */}
+        <button className="flex gap-2 items-center">
+          {/* TODO: Semantics */}
+          <input type="checkbox" />
+          <label className="text-sm">Ignore case</label>
+        </button>
+      </div>
       {results && results.length > 0 ? (
-        <>
+        <ul className="grid gap-5">
           {results.map((result, i) => (
-            <GlobalSearchResult
-              key={i}
-              result={result}
-              hidePopover={props.hidePopover}
-            />
+            // FIXME: This key should be unique
+            <li key={i} className="">
+              <GlobalSearchResult
+                result={result}
+                hidePopover={props.hidePopover}
+              />
+            </li>
           ))}
-        </>
+        </ul>
       ) : (
-        <>No results</>
+        <p className="text-muted-foreground">No matches</p>
       )}
     </>
   )

@@ -52,6 +52,7 @@ import { ErrorView } from './error-view'
 import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
 import { DirectoryView } from './file-directory-view'
 import { mapToFileTree, sortFileTree, type TFileTreeNode } from './file-tree'
+import { FileTreeHeader } from './file-tree-header'
 import { FileTreePanel } from './file-tree-panel'
 import { GlobalSearch } from './global-search'
 import { GlobalSearchResults } from './global-search/results'
@@ -720,6 +721,37 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   return (
     <>
+      <div className="flex w-full items-center border-b border-b-border">
+        <div className="flex w-full justify-between items-center gap-4 px-4">
+          {/* TODO: add function */}
+          <button type="button" className="shrink-0">
+            <Image src={tabbyLogo} alt="logo" className="h-8 w-8" />
+          </button>
+          <FileTreeHeader className="shrink-0 w-1/3" />
+
+          {/* TODO: onFocus, show the searchTab if there's a query */}
+          <GlobalSearch
+            // Might be able to "splat" the ref
+            query={globalSearchQuery}
+            inputRef={globalSearchInput}
+            onFocus={maybeActivateSearchTab}
+            onInput={onGlobalSearchInput}
+            onSubmit={onGlobalSearchSubmit}
+            clearInput={clearGlobalSearchInput}
+          />
+          {/* FIXME: not same height as input */}
+          <Button
+            className="flex shrink-0 gap-1.5"
+            variant={chatSideBarVisible ? 'default' : 'outline'}
+            onClick={() => setChatSideBarVisible(!chatSideBarVisible)}
+          >
+            {/* <Image src={tabbyLogo} alt="logo" className="h-5 w-5 -ml-1.5" /> */}
+            {/* <IconSidebar className="scale-x-[-1]" /> */}
+            <IconChat />
+            Ask Tabby
+          </Button>
+        </div>
+      </div>
       <ResizablePanelGroup
         direction="horizontal"
         className={cn(className)}
@@ -735,60 +767,19 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         </ResizablePanel>
         <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
         <ResizablePanel defaultSize={80} minSize={30}>
-          <div className="flex w-full items-center">
-            <div className="flex w-full justify-between items-center gap-4 px-4">
-              {/* FIXME: Should be a link? */}
-              {/* TODO: Combine */}
-              {searchTabIsActive ? (
-                <button
-                  className="shrink-0 w-8 h-8 grid place-items-center font-bold"
-                  type="button"
-                  onClick={() => {
-                    setSearchTabIsActive(false)
-                  }}
-                >
-                  <>
-                    <IconArrowRight className="w-4 h-4 scale-x-[-1]" />
-                  </>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="shrink-0 w-8 h-8 grid place-items-center font-medium items-center text-sm"
-                >
-                  <Image src={tabbyLogo} alt="logo" className="h-7 w-7" />
-                  {/* Code Browser */}
-                </button>
-              )}
-              {/* TODO: onFocus, show the searchTab if there's a query */}
-              <GlobalSearch
-                // Might be able to "splat" the ref
-                query={globalSearchQuery}
-                inputRef={globalSearchInput}
-                onFocus={maybeActivateSearchTab}
-                onInput={onGlobalSearchInput}
-                onSubmit={onGlobalSearchSubmit}
-                clearInput={clearGlobalSearchInput}
-              />
-              {/* FIXME: not same height as input */}
-              <Button
-                className="flex shrink-0 gap-1.5"
-                variant={chatSideBarVisible ? 'default' : 'outline'}
-                onClick={() => setChatSideBarVisible(!chatSideBarVisible)}
-              >
-                <IconSidebar className="scale-x-[-1]" />
-                {/* <IconChat /> */}
-                Ask Tabby
-              </Button>
-            </div>
-          </div>
           {searchTabIsActive ? (
-            <GlobalSearchResults
-              results={globalSearchResults}
-              repoId={activeRepo?.id}
-              repositoryKind={activeRepo?.kind}
-              hidePopover={() => {}}
-            />
+            <div className="p-4">
+              <GlobalSearchResults
+                results={globalSearchResults}
+                query={globalSearchQuery}
+                repoId={activeRepo?.id}
+                repositoryKind={activeRepo?.kind}
+                hidePopover={() => {}}
+              />
+              {/* <Button variant="link" className="-ml-2">
+                Back to files
+              </Button> */}
+            </div>
           ) : (
             <>
               <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">

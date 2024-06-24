@@ -3,6 +3,7 @@
 import React from 'react'
 
 import { useScrollTop } from '@/lib/hooks/use-scroll-top'
+import { Input } from '@/components/ui/input'
 
 import { FileTree, TFileTreeNode } from './file-tree'
 import { FileTreeHeader } from './file-tree-header'
@@ -42,7 +43,10 @@ export const FileTreePanel: React.FC<FileTreePanelProps> = ({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <FileTreeHeader className="shrink-0 px-4 pb-3" />
+      {/* <FileTreeHeader className="shrink-0 px-4 pb-3" /> */}
+      <div className="px-4 mt-3.5">
+        <Input placeholder="Go to file" />
+      </div>
       {scrollTop > 0 && (
         <div className="h-0 border-b shadow-[0px_3px_8px_rgba(0,0,0,0.3)] dark:shadow-[0px_3px_8px_rgba(255,255,255,0.3)]"></div>
       )}
