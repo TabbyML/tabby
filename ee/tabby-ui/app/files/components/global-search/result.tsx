@@ -4,6 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 
 import { GrepFile } from '@/lib/gql/generates/graphql'
+import { filename2prism } from '@/lib/language-utils'
 import { IconFile } from '@/components/ui/icons'
 
 import CodeEditorView from '../code-editor-view'
@@ -29,6 +30,8 @@ export const GlobalSearchResult = ({ ...props }: GlobalSearchResultProps) => {
     line => line.subMatches.length > 0
   )
 
+  const language = filename2prism(props.result.path)[0]
+
   return (
     <div>
       <Link
@@ -53,7 +56,7 @@ export const GlobalSearchResult = ({ ...props }: GlobalSearchResultProps) => {
             <li key={i}>
               <CodeEditorView
                 value={props.result.blob}
-                language="plain" // FIXME
+                language={language}
                 // lineNumber={line.lineNumber}
                 // subMatches={line.subMatches}
               />
