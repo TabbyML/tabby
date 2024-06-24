@@ -77,7 +77,9 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
   useEffect(() => {
     setMatchCount(
       results?.reduce((acc, result) => {
-        return acc + result.lines.length
+        return (
+          acc + result.lines.filter(line => line.subMatches.length > 0).length
+        )
       }, 0)
     )
   }, [results])

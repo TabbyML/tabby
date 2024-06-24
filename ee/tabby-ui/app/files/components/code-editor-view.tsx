@@ -101,10 +101,17 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
    * The extension to show only the lines within a range
    */
 
-  const lineRangeExtension = StateEffect.define<{
-    start: number
-    end: number
-  }>()
+  const lineRangeExtension = ViewPlugin.fromClass(
+    class {
+      // lineRange: { start: number; end: number }
+      constructor(view: EditorView) {
+        console.log('lineRange', view)
+      }
+      update(update: ViewUpdate) {
+        // Do something?
+      }
+    }
+  )
 
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
@@ -162,8 +169,25 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
       result.push(matchExtension)
     }
 
+    if (lineRange) {
+      result.push(lineRangeExtension)
+    }
+
     return result
-  }, [value, tags, language])
+  }, [
+    isChatEnabled,
+    activePath,
+    basename,
+    value,
+    tags,
+    stringToMatch,
+    lineRange,
+    updateHash,
+    language,
+    gitUrl,
+    matchExtension,
+    lineRangeExtension
+  ])
 
   React.useEffect(() => {
     const onClickLineMenu = (data: LineMenuActionEventPayload) => {
