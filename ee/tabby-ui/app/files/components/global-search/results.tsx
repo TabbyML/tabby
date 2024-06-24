@@ -15,10 +15,9 @@ import { GlobalSearchResult } from './result'
 
 interface GlobalSearchResultsProps {
   results?: GrepFile[]
-  query?: string
+  query: string
   repoId?: string
   repositoryKind?: RepositoryKind
-  hidePopover: () => void
 }
 
 export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
@@ -89,10 +88,7 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
           {results.map((result, i) => (
             // FIXME: This key should be unique
             <li key={i} className="">
-              <GlobalSearchResult
-                result={result}
-                hidePopover={props.hidePopover}
-              />
+              <GlobalSearchResult result={result} query={props.query} />
             </li>
           ))}
         </ul>

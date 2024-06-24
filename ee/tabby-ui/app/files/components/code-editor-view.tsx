@@ -1,7 +1,17 @@
 import React from 'react'
 import { foldGutter } from '@codemirror/language'
-import { Extension } from '@codemirror/state'
-import { drawSelection, EditorView } from '@codemirror/view'
+import { Extension, StateEffect, StateField } from '@codemirror/state'
+import {
+  Decoration,
+  DecorationSet,
+  drawSelection,
+  EditorView,
+  highlightSpecialChars,
+  MatchDecorator,
+  PluginValue,
+  ViewPlugin,
+  ViewUpdate
+} from '@codemirror/view'
 import { isNaN, isNil } from 'lodash-es'
 import { useTheme } from 'next-themes'
 
@@ -29,9 +39,14 @@ import './line-menu-extension/line-menu.css'
 interface CodeEditorViewProps {
   value: string
   language: string
+  stringToMatch?: string
 }
 
-const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
+const CodeEditorView: React.FC<CodeEditorViewProps> = ({
+  value,
+  language,
+  stringToMatch
+}) => {
   const { theme } = useTheme()
   const tags: TCodeTag[] = React.useMemo(() => {
     return []
@@ -45,6 +60,37 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
     React.useContext(SourceCodeBrowserContext)
   const { basename } = activeEntryInfo
   const gitUrl = activeRepo?.gitUrl ?? ''
+
+  /**
+   * Special Character highlighting
+   */
+  const matchDecorator = new MatchDecorator({
+    regexp: new RegExp(stringToMatch ?? '', 'g'),
+    decoration: Decoration.mark({
+      tagName: 'highlighted-text',
+      class: 'bg-red-500 text-5xl'
+    })
+  })
+
+  const matchExtension = ViewPlugin.fromClass(
+    class {
+      matches: DecorationSet
+      constructor(view: EditorView) {
+        this.matches = matchDecorator.createDeco(view)
+      }
+      update(update: ViewUpdate) {
+        // Do something?
+        this.matches = matchDecorator.updateDeco(update, this.matches)
+      }
+    },
+    {
+      decorations: instance => instance.matches,
+      provide: plugin =>
+        EditorView.decorations.of(view => {
+          return view.plugin(plugin)?.matches || Decoration.none
+        })
+    }
+  )
 
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
@@ -96,6 +142,10 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
         codeTagHoverTooltip(tags),
         highlightTagExtension(tags)
       )
+    }
+
+    if (stringToMatch) {
+      result.push(matchExtension)
     }
 
     return result

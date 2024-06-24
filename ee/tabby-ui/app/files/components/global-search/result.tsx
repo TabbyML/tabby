@@ -18,6 +18,7 @@ export interface GlobalSearchResult extends GrepFile {
 
 interface GlobalSearchResultProps {
   result: GlobalSearchResult
+  query: string
   hidePopover: () => void
 }
 
@@ -57,6 +58,7 @@ export const GlobalSearchResult = ({ ...props }: GlobalSearchResultProps) => {
               <CodeEditorView
                 value={props.result.blob}
                 language={language}
+                stringToMatch={props.query}
                 // lineNumber={line.lineNumber}
                 // subMatches={line.subMatches}
               />
