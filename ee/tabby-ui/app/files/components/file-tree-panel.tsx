@@ -12,10 +12,12 @@ import { generateEntryPath } from './utils'
 
 interface FileTreePanelProps extends React.HTMLAttributes<HTMLDivElement> {
   fetchingTreeEntries: boolean
+  onFileClick: () => void
 }
 
 export const FileTreePanel: React.FC<FileTreePanelProps> = ({
-  fetchingTreeEntries
+  fetchingTreeEntries,
+  onFileClick
 }) => {
   const {
     activePath,
@@ -39,6 +41,7 @@ export const FileTreePanel: React.FC<FileTreePanelProps> = ({
       treeNode.file.kind
     )
     updateActivePath(nextPath)
+    onFileClick()
   }
 
   return (

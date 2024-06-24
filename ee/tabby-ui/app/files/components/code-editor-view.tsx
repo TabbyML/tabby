@@ -42,6 +42,7 @@ interface CodeEditorViewProps {
   language: string
   stringToMatch?: string
   lineRange?: { start: number; end: number } // TODO: Make type
+  onSelectLine?: (lineNumber: number) => void
 }
 
 /**
@@ -59,7 +60,8 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
   value,
   language,
   stringToMatch,
-  lineRange
+  lineRange,
+  onSelectLine
 }) => {
   const { theme } = useTheme()
   const tags: TCodeTag[] = React.useMemo(() => {
@@ -135,6 +137,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
           borderRight: 'none'
         }
       }),
+
       selectLinesGutter({
         onSelectLine: v => {
           if (v === -1 || isNaN(v)) return

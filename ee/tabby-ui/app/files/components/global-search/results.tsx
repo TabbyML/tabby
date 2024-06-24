@@ -97,11 +97,14 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
           <h1 className="text-xl font-semibold mb-0.5">
             Results for “{props.query}”
           </h1>
-          <p>
+          <p className="text-sm">
             {matchCount} {matchCount === 1 ? 'match' : 'matches'}
           </p>
         </div>
-        <button className="flex mt-1 gap-2 items-center shrink-0">
+        <button
+          onClick={() => alert('placeholder')}
+          className="flex mt-1 gap-2 items-center shrink-0"
+        >
           {/* TODO: Use form component */}
           {/* TODO: Semantics */}
           <input type="checkbox" />

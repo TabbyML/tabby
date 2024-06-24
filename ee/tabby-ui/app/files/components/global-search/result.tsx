@@ -66,6 +66,7 @@ export const GlobalSearchResult = ({ ...props }: GlobalSearchResultProps) => {
         className="font-bold mb-2 inline-flex items-center gap-2"
       >
         <IconFile />
+        {/* TODO: this should highlight the first line subMatches */}
         {props.result.path}
       </Link>
       <div className="overflow-hidden grid border divide-y divide-y-border border-border rounded">

@@ -569,6 +569,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       setProgress(true)
     } else if (!fetchingRawFile && !fetchingTreeEntries) {
       setProgress(false)
+      // FIX: this is only called on initial load, not on subsequent loads
+      setSearchTabIsActive(false)
     }
   }, [fetchingRawFile, fetchingTreeEntries])
 
@@ -689,6 +691,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
    */
   const clearGlobalSearchInput = () => {
     setGlobalSearchQuery('')
+    // FIXME: this isn't registered
     globalSearchInput?.focus()
   }
 
@@ -709,6 +712,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
     const { repositoryKind } = resolveRepositoryInfoFromPath(activePath)
 
+    // TODO: Update url to something like
+    // /files/provider/owner/repoId/search?q=query
+
     setSearchTabIsActive(true)
 
     const { data } = (await client
@@ -722,6 +728,15 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       .toPromise()) as unknown as { data: { repositoryGrep: GrepFile[] } }
 
     setGlobalSearchResults(data.repositoryGrep)
+  }
+
+  /**
+   *
+   */
+
+  const maybeDeactivateSearchTab = () => {
+    //  FIXME: this should only happen if the file is finished loading
+    setSearchTabIsActive(false)
   }
 
   return (
@@ -745,7 +760,11 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
             />
             {/* FIXME: not same height as input */}
             <Button
-              className="flex shrink-0 gap-1.5"
+              className={`flex shrink-0 gap-1.5 ${
+                chatSideBarVisible
+                  ? 'shadow-inner border border-transparent'
+                  : ''
+              }`}
               variant={chatSideBarVisible ? 'default' : 'outline'}
               onClick={() => setChatSideBarVisible(!chatSideBarVisible)}
             >
@@ -767,7 +786,10 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
             maxSize={40}
             className="hidden lg:block"
           >
-            <FileTreePanel fetchingTreeEntries={fetchingTreeEntries} />
+            <FileTreePanel
+              onFileClick={maybeDeactivateSearchTab}
+              fetchingTreeEntries={fetchingTreeEntries}
+            />
           </ResizablePanel>
           <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
           <ResizablePanel defaultSize={80} minSize={30}>
