@@ -24,7 +24,7 @@ const createIntegration = graphql(/* GraphQL */ `
 export const NewProvider = () => {
   const kind = useIntegrationKind()
   const router = useRouter()
-  const form = useRepositoryProviderForm(true)
+  const form = useRepositoryProviderForm(true, kind)
 
   const createRepositoryProviderMutation = useMutation(createIntegration, {
     onCompleted(data) {

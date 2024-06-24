@@ -200,6 +200,7 @@ export const listIntegrations = graphql(/* GraphQL */ `
           id
           displayName
           status
+          apiBase
         }
         cursor
       }
