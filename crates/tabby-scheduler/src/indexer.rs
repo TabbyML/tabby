@@ -158,6 +158,7 @@ impl<T: Send + 'static> Indexer<T> {
                     continue;
                 };
 
+                let prefix_to_strip = format!("{}:", self.kind);
                 let mut doc_id = postings.doc();
                 while doc_id != TERMINATED {
                     if !segment_reader.is_deleted(doc_id) {
@@ -166,7 +167,9 @@ impl<T: Send + 'static> Indexer<T> {
 
                         // Skip chunks, as we only want to iterate over the main docs
                         if doc.get_first(schema.field_chunk_id).is_none() {
-                            yield get_text(&doc, schema.field_id).strip_prefix(self.kind).unwrap().strip_prefix(':').unwrap().to_owned();
+                            if let Some(id) = get_text(&doc, schema.field_id).strip_prefix(&prefix_to_strip) {
+                                yield id.to_owned();
+                            }
                         }
                     }
                     doc_id = postings.advance();
