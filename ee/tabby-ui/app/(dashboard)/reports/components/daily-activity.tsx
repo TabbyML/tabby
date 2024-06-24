@@ -2,7 +2,6 @@
 
 import { eachDayOfInterval } from 'date-fns'
 import moment from 'moment'
-import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import type { DateRange } from 'react-day-picker'
 import {
   Bar,
@@ -14,6 +13,7 @@ import {
 } from 'recharts'
 
 import { DailyStatsQuery } from '@/lib/gql/generates/graphql'
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { Card, CardContent } from '@/components/ui/card'
 
 function BarTooltip({

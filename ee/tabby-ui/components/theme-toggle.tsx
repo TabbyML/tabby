@@ -1,8 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { Button } from '@/components/ui/button'
 import { IconMoon, IconSun } from '@/components/ui/icons'
 

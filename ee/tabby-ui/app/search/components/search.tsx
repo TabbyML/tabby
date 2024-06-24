@@ -2,12 +2,12 @@
 
 import {
   createContext,
+  CSSProperties,
   useContext,
   useEffect,
   useMemo,
   useRef,
-  useState,
-  CSSProperties
+  useState
 } from 'react'
 import { useRouter } from 'next/navigation'
 import { Message } from 'ai'
@@ -16,10 +16,10 @@ import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
-import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableSearch } from '@/lib/experiment-flags'
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useTabbyAnswer } from '@/lib/hooks/use-tabby-answer'
@@ -409,12 +409,16 @@ export function Search() {
 
           {container && (
             <ButtonScrollToBottom
-              className="!fixed !bottom-[5.4rem] !right-4 !top-auto lg:!bottom-[2.85rem] border-muted-foreground"
+              className="!fixed !bottom-[5.4rem] !right-4 !top-auto border-muted-foreground lg:!bottom-[2.85rem]"
               container={container}
               offset={100}
               // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
               // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
-              style={theme === 'dark' ? { '--background': '0 0% 12%' } as CSSProperties : {}}
+              style={
+                theme === 'dark'
+                  ? ({ '--background': '0 0% 12%' } as CSSProperties)
+                  : {}
+              }
             />
           )}
 
@@ -428,7 +432,9 @@ export function Search() {
             )}
             style={Object.assign(
               { transition: 'all 0.35s ease-out' },
-              theme === 'dark' ? { '--background': '0 0% 12%' } as CSSProperties : {}
+              theme === 'dark'
+                ? ({ '--background': '0 0% 12%' } as CSSProperties)
+                : {}
             )}
           >
             <Button

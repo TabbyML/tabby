@@ -1,6 +1,6 @@
 import { useTheme } from 'next-themes'
 
-export function useCurrentTheme () {
+export function useCurrentTheme() {
   const { theme, systemTheme, setTheme } = useTheme()
 
   let currentTheme

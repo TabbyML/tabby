@@ -1,9 +1,9 @@
 'use client'
 
 import React from 'react'
-import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import TopBarProgress from 'react-topbar-progress-indicator'
 
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
 
 interface TopbarProgressProviderProps {

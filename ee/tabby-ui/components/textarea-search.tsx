@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import TextareaAutosize from 'react-textarea-autosize'
 
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { cn } from '@/lib/utils'
 
 import { IconArrowRight, IconSpinner } from './ui/icons'

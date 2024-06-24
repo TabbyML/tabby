@@ -2,10 +2,10 @@
 
 import { useWindowSize } from '@uidotdev/usehooks'
 import moment from 'moment'
-import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import ReactActivityCalendar from 'react-activity-calendar'
 
 import { DailyStatsInPastYearQuery } from '@/lib/gql/generates/graphql'
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 
 function ActivityCalendar({
   data

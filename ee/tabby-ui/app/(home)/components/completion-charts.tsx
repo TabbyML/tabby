@@ -3,7 +3,6 @@
 import { eachDayOfInterval } from 'date-fns'
 import { sum } from 'lodash-es'
 import moment from 'moment'
-import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import numeral from 'numeral'
 import {
   Bar,
@@ -15,6 +14,7 @@ import {
 } from 'recharts'
 
 import { DailyStatsQuery } from '@/lib/gql/generates/graphql'
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 function LineTooltip({
