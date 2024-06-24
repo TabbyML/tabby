@@ -130,7 +130,7 @@ impl<T: Send + 'static> Indexer<T> {
     }
 
     // Check whether the document ID presents in the corpus.
-    pub fn is_id_indexed(&self, id: &str) -> bool {
+    pub fn is_indexed(&self, id: &str) -> bool {
         let schema = IndexSchema::instance();
         let query = TermQuery::new(
             Term::from_field_text(schema.field_id, &self.format_id(id)),
