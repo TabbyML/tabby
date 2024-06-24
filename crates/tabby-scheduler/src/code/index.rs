@@ -5,15 +5,15 @@ use futures::StreamExt;
 use ignore::Walk;
 use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
-use tracing::warn;
+use tracing::{debug, info, warn};
 
 use super::{
-    cache::{CacheStore, IndexBatch},
+    cache::{source_file_key_from_path, CacheStore, IndexBatch},
     create_code_index,
     intelligence::{CodeIntelligence, SourceCode},
     KeyedSourceCode,
 };
-use crate::Indexer;
+use crate::{code::cache::is_item_key_matched, Indexer};
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
@@ -28,18 +28,17 @@ pub async fn index_repository(
     if index.recreated {
         cache.clear_indexed()
     }
-    let index_batch = add_changed_documents(cache, repository, index).await;
+    let index_batch = add_changed_documents(repository, index).await;
     cache.apply_indexed(index_batch);
 }
 
-pub fn garbage_collection(cache: &mut CacheStore) {
+pub async fn garbage_collection(cache: &mut CacheStore) {
     let index = create_code_index(None);
-    remove_staled_documents(cache, &index);
+    remove_staled_documents(&index).await;
     index.commit();
 }
 
 async fn add_changed_documents(
-    cache: &mut CacheStore,
     repository: &RepositoryConfig,
     index: Indexer<KeyedSourceCode>,
 ) -> IndexBatch {
@@ -56,11 +55,11 @@ async fn add_changed_documents(
                 }
             };
 
-            let Ok((key, indexed)) = cache.check_indexed(file.path()) else {
+            let Some(key) = source_file_key_from_path(file.path()) else {
                 continue;
             };
 
-            if indexed {
+            if cloned_index.is_id_indexed(&key) {
                 continue;
             }
 
@@ -109,13 +108,23 @@ async fn add_changed_documents(
     indexed_files_batch
 }
 
-fn remove_staled_documents(cache: &mut CacheStore, index: &Indexer<KeyedSourceCode>) {
-    // Create a new writer to commit deletion of removed indexed files
-    let gc_commit = cache.prepare_garbage_collection_for_indexed_files(|key| {
-        index.delete(key);
-    });
+async fn remove_staled_documents(index: &Indexer<KeyedSourceCode>) {
+    stream! {
+        let mut num_to_keep = 0;
+        let mut num_to_delete = 0;
 
-    gc_commit();
+        for await id in index.iter_ids() {
+            let item_key = id;
+            if is_item_key_matched(&item_key) {
+                num_to_keep += 1;
+            } else {
+                num_to_delete += 1;
+                index.delete(&item_key);
+            }
+        }
+
+        info!("Finished garbage collection for code index: {num_to_keep} items kept, {num_to_delete} items removed");
+    }.collect::<()>().await;
 }
 
 fn is_valid_file(file: &SourceCode) -> bool {

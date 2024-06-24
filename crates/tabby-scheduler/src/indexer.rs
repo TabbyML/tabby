@@ -1,6 +1,14 @@
+use async_stream::stream;
 use futures::{stream::BoxStream, Stream, StreamExt};
 use tabby_common::{index::IndexSchema, path};
-use tantivy::{doc, IndexReader, IndexWriter, TantivyDocument, Term};
+use tantivy::{
+    collector::TopDocs,
+    doc,
+    query::TermQuery,
+    schema::{self, IndexRecordOption, Value},
+    DocAddress, DocSet, IndexReader, IndexWriter, Searcher, SegmentOrdinal, TantivyDocument, Term,
+    TERMINATED,
+};
 use tracing::info;
 
 use crate::tantivy_utils::open_or_create_index;
@@ -18,7 +26,7 @@ pub trait IndexAttributeBuilder<T>: Send + Sync {
 pub struct Indexer<T> {
     kind: &'static str,
     builder: Box<dyn IndexAttributeBuilder<T>>,
-    reader: IndexReader,
+    searcher: Searcher,
     writer: IndexWriter,
     pub recreated: bool,
 }
@@ -30,11 +38,12 @@ impl<T: Send + 'static> Indexer<T> {
         let writer = index
             .writer(150_000_000)
             .expect("Failed to create index writer");
+        let reader = index.reader().expect("Failed to create index reader");
 
         Self {
             kind,
             builder: Box::new(builder),
-            reader: index.reader().expect("Failed to create index reader"),
+            searcher: reader.searcher(),
             writer,
             recreated,
         }
@@ -70,7 +79,8 @@ impl<T: Send + 'static> Indexer<T> {
             schema.field_updated_at => updated_at,
         };
 
-        futures::stream::once(async { doc }).chain(self.build_chunks(id, updated_at, document).await)
+        futures::stream::once(async { doc })
+            .chain(self.build_chunks(id, updated_at, document).await)
     }
 
     async fn build_chunks(
@@ -119,4 +129,53 @@ impl<T: Send + 'static> Indexer<T> {
             .wait_merging_threads()
             .expect("Failed to wait for merging threads");
     }
+
+    // Check whether the document ID presents in the corpus.
+    pub fn is_id_indexed(&self, id: &str) -> bool {
+        let schema = IndexSchema::instance();
+        let query = TermQuery::new(
+            Term::from_field_text(schema.field_id, &self.format_id(id)),
+            IndexRecordOption::Basic,
+        );
+        let Ok(docs) = self.searcher.search(&query, &TopDocs::with_limit(1)) else {
+            return false;
+        };
+        !docs.is_empty()
+    }
+
+    /// Iterates over all the document IDs in the corpus.
+    pub fn iter_ids(&self) -> impl Stream<Item = String> + '_ {
+        let schema = IndexSchema::instance();
+
+        stream! {
+            for (segment_ordinal, segment_reader) in self.searcher.segment_readers().iter().enumerate() {
+                let Ok(inverted_index) = segment_reader.inverted_index(schema.field_corpus) else {
+                    continue;
+                };
+
+                let term_corpus = Term::from_field_text(schema.field_corpus, self.kind);
+                let Ok(Some(mut postings)) = inverted_index.read_postings(&term_corpus, tantivy::schema::IndexRecordOption::Basic) else {
+                    continue;
+                };
+
+                let mut doc_id = postings.doc();
+                while doc_id != TERMINATED {
+                    if !segment_reader.is_deleted(doc_id) {
+                        let doc_address = DocAddress::new(segment_ordinal as u32, doc_id);
+                        let doc: TantivyDocument = self.searcher.doc(doc_address).expect("Failed to read document");
+
+                        // Skip chunks, as we only want to iterate over the main docs
+                        if doc.get_first(schema.field_chunk_id).is_none() {
+                            yield get_text(&doc, schema.field_id).strip_prefix(self.kind).unwrap().strip_prefix(':').unwrap().to_owned();
+                        }
+                    }
+                    doc_id = postings.advance();
+                }
+            }
+        }
+    }
+}
+
+fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
+    doc.get_first(field).unwrap().as_str().unwrap()
 }

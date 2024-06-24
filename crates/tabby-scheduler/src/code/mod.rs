@@ -38,10 +38,10 @@ impl CodeIndexer {
         index::index_repository(&mut cache, embedding, repository).await;
     }
 
-    pub fn garbage_collection(&mut self, repositories: &[RepositoryConfig]) {
+    pub async fn garbage_collection(&mut self, repositories: &[RepositoryConfig]) {
         self.is_dirty = false;
         let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
-        index::garbage_collection(&mut cache);
+        index::garbage_collection(&mut cache).await;
         repository::garbage_collection(repositories);
     }
 }
