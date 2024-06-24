@@ -23,22 +23,18 @@ mod types;
 
 #[derive(Default)]
 pub struct CodeIndexer {
-    is_dirty: bool,
 }
 
 impl CodeIndexer {
     pub async fn refresh(&mut self, embedding: Arc<dyn Embedding>, repository: &RepositoryConfig) {
-        self.is_dirty = true;
-
         info!("Refreshing repository: {}", repository.canonical_git_url());
         repository::sync_repository(repository);
 
         index::index_repository(embedding, repository).await;
+        index::garbage_collection().await;
     }
 
     pub async fn garbage_collection(&mut self, repositories: &[RepositoryConfig]) {
-        self.is_dirty = false;
-        index::garbage_collection().await;
         repository::garbage_collection(repositories);
     }
 }
