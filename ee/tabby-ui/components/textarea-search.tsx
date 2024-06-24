@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useTheme } from 'next-themes'
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import TextareaAutosize from 'react-textarea-autosize'
 
 import { cn } from '@/lib/utils'
@@ -30,8 +30,7 @@ export default function TextAreaSearch({
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
   const [value, setValue] = useState('')
-  const { theme } = useTheme()
-  const [searchLoading, setSearchLoading] = useState(false)
+  const { theme } = useCurrentTheme()
 
   useEffect(() => {
     // Ensure the textarea height remains consistent during rendering

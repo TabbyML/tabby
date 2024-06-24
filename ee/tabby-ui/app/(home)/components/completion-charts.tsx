@@ -3,7 +3,7 @@
 import { eachDayOfInterval } from 'date-fns'
 import { sum } from 'lodash-es'
 import moment from 'moment'
-import { useTheme } from 'next-themes'
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import numeral from 'numeral'
 import {
   Bar,
@@ -104,7 +104,7 @@ export function CompletionCharts({
   to: Date
   dailyStats?: DailyStatsQuery['dailyStats']
 }) {
-  const { theme } = useTheme()
+  const { theme } = useCurrentTheme()
   const totalViews = sum(dailyStats?.map(stats => stats.views))
   const totalAccepts = sum(dailyStats?.map(stats => stats.selects))
   const daysBetweenRange = eachDayOfInterval({

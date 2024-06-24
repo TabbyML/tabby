@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import { capitalize } from 'lodash-es'
 import moment from 'moment'
 import momentTimezone from 'moment-timezone'
-import { useTheme } from 'next-themes'
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { DateRange } from 'react-day-picker'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
@@ -302,7 +302,7 @@ function ActivityRow({
   activity: ListUserEventsQuery['userEvents']['edges'][0]['node']
   members: Member[]
 }) {
-  const { theme } = useTheme()
+  const { theme } = useCurrentTheme()
   const [isExpanded, setIsExpanded] = React.useState(false)
 
   let payloadJson

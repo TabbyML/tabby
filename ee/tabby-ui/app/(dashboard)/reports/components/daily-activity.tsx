@@ -2,7 +2,7 @@
 
 import { eachDayOfInterval } from 'date-fns'
 import moment from 'moment'
-import { useTheme } from 'next-themes'
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import type { DateRange } from 'react-day-picker'
 import {
   Bar,
@@ -62,7 +62,7 @@ export function DailyActivity({
   dailyStats?: DailyStatsQuery['dailyStats']
   dateRange: DateRange
 }) {
-  const { theme } = useTheme()
+  const { theme } = useCurrentTheme()
   const from = dateRange.from || new Date()
   const to = dateRange.to || from
 

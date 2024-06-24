@@ -16,7 +16,7 @@ import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
-import { useTheme } from 'next-themes'
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableSearch } from '@/lib/experiment-flags'
@@ -117,7 +117,7 @@ export function Search() {
   const [isShowDemoBanner] = useShowDemoBanner()
   const router = useRouter()
   const initCheckRef = useRef(false)
-  const { theme } = useTheme()
+  const { theme } = useCurrentTheme()
 
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
     fetcher: tabbyFetcher

@@ -2,7 +2,7 @@
 
 import { useWindowSize } from '@uidotdev/usehooks'
 import moment from 'moment'
-import { useTheme } from 'next-themes'
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import ReactActivityCalendar from 'react-activity-calendar'
 
 import { DailyStatsInPastYearQuery } from '@/lib/gql/generates/graphql'
@@ -16,7 +16,7 @@ function ActivityCalendar({
     level: number
   }[]
 }) {
-  const { theme } = useTheme()
+  const { theme } = useCurrentTheme()
   const size = useWindowSize()
   const width = size.width || 0
   const blockSize =
