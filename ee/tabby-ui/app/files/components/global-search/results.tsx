@@ -5,7 +5,6 @@ import useSWRImmutable from 'swr/immutable'
 
 import { GrepFile, RepositoryKind } from '@/lib/gql/generates/graphql'
 import fetcher from '@/lib/tabby/fetcher'
-import { Button } from '@/components/ui/button'
 
 import {
   encodeURIComponentIgnoringSlash,
@@ -17,7 +16,7 @@ interface GlobalSearchResultsProps {
   results?: GrepFile[]
   query: string
   repoId?: string
-  repositoryKind?: RepositoryKind
+  repositoryKind: RepositoryKind
 }
 
 export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
@@ -78,9 +77,8 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
             {results?.length} {results?.length === 1 ? 'match' : 'matches'}
           </p>
         </div>
-        {/* TODO: Use form component */}
-        {/* TODO: This can be fixed-pos */}
         <button className="flex mt-1 gap-2 items-center shrink-0">
+          {/* TODO: Use form component */}
           {/* TODO: Semantics */}
           <input type="checkbox" />
           <label className="text-sm">Ignore case</label>

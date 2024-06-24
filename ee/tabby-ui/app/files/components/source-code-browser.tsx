@@ -679,7 +679,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
    * Runs with every input change. Sets the value of the results
    */
   const onGlobalSearchInput: FormEventHandler<HTMLInputElement> = e => {
-    console.log('input??')
     const query = e.currentTarget.value
     setGlobalSearchQuery(query)
   }
@@ -696,10 +695,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
    *
    */
   const onGlobalSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    console.log('submitted?')
     e.preventDefault()
-    // Keep search results at the top of the screen
-
     void search(globalSearchQuery)
   }
 
@@ -723,7 +719,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       })
       // FIXME: Wrong types
       .toPromise()) as unknown as { data: { repositoryGrep: GrepFile[] } }
-    console.log('setting data to', data.repositoryGrep)
+
     setGlobalSearchResults(data.repositoryGrep)
   }
 
@@ -733,15 +729,12 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         {/* Header */}
         <div className="flex w-full items-center border-b border-b-border">
           <div className="flex w-full justify-between items-center gap-4 px-4">
-            {/* TODO: add function */}
+            {/* TODO: add homeDir function */}
             <button type="button" className="shrink-0">
               <Image src={tabbyLogo} alt="logo" className="h-8 w-8" />
             </button>
             <FileTreeHeader className="shrink-0 w-1/3" />
-
-            {/* TODO: onFocus, show the searchTab if there's a query */}
             <GlobalSearch
-              // Might be able to "splat" the ref
               query={globalSearchQuery}
               inputRef={globalSearchInput}
               onFocus={maybeActivateSearchTab}
@@ -755,7 +748,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
               variant={chatSideBarVisible ? 'default' : 'outline'}
               onClick={() => setChatSideBarVisible(!chatSideBarVisible)}
             >
-              {/* <Image src={tabbyLogo} alt="logo" className="h-5 w-5 -ml-1.5" /> */}
+              {/* FIXME: not same height as input */}
               {/* <IconSidebar className="scale-x-[-1]" /> */}
               <IconChat />
               Ask Tabby
@@ -787,7 +780,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
                   query={globalSearchQuery}
                   repoId={activeRepo?.id}
                   repositoryKind={activeRepo?.kind}
-                  hidePopover={() => {}}
                 />
               ) : (
                 <>

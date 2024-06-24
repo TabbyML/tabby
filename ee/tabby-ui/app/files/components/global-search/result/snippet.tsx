@@ -14,7 +14,6 @@ interface GlobalSearchResultSnippetProps {
   subMatches: GrepSubMatch[]
   text: string
   path: string
-  hidePopover: () => void
 }
 
 export const GlobalSearchResultSnippet = ({
@@ -48,7 +47,6 @@ export const GlobalSearchResultSnippet = ({
         hash: `L${props.lineNumber}`
       }}
       className="font-mono py-2 px-2.5 text-sm truncate block text-muted-foreground"
-      onClick={props.hidePopover}
     >
       {/* {indices} */}
       {/* TODO: these need line numbers now */}
