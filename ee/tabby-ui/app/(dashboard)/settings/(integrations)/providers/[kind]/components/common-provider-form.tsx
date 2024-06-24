@@ -118,11 +118,11 @@ export function CommonProviderForm<T extends boolean>({
       case IntegrationKind.Github:
         return 'e.g. GitHub'
       case IntegrationKind.GithubSelfHosted:
-        return 'e.g. GitHub Self-Hosted'
+        return 'e.g. GitHub-Self-Hosted'
       case IntegrationKind.Gitlab:
         return 'e.g. GitLab'
       case IntegrationKind.GitlabSelfHosted:
-        return 'e.g. GitLab Self-Hosted'
+        return 'e.g. GitLab-Self-Hosted'
       default:
         return ''
     }
