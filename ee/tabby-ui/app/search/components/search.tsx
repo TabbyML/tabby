@@ -6,7 +6,8 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState
+  useState,
+  CSSProperties
 } from 'react'
 import { useRouter } from 'next/navigation'
 import { Message } from 'ai'
@@ -15,6 +16,7 @@ import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
+import { useTheme } from 'next-themes'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableSearch } from '@/lib/experiment-flags'
@@ -115,6 +117,7 @@ export function Search() {
   const [isShowDemoBanner] = useShowDemoBanner()
   const router = useRouter()
   const initCheckRef = useRef(false)
+  const { theme } = useTheme()
 
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
     fetcher: tabbyFetcher
@@ -409,6 +412,9 @@ export function Search() {
               className="!fixed !bottom-[5.4rem] !right-4 !top-auto lg:!bottom-[3.8rem]"
               container={container}
               offset={100}
+              // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
+              // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
+              style={theme === 'dark' ? { '--background': '0 0% 12%' } as CSSProperties : {}}
             />
           )}
 
@@ -420,7 +426,10 @@ export function Search() {
                 'opacity-0 translate-y-10': !showSearchInput
               }
             )}
-            style={{ transition: 'all 0.35s ease-out' }}
+            style={Object.assign(
+              { transition: 'all 0.35s ease-out' },
+              theme === 'dark' ? { '--background': '0 0% 12%' } as CSSProperties : {}
+            )}
           >
             <Button
               className={cn('bg-background', {
