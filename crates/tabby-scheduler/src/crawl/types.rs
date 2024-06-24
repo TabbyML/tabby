@@ -21,7 +21,7 @@ pub struct KatanaResponse {
     pub status_code: Option<u16>,
     pub headers: HashMap<String, String>,
     pub body: Option<String>,
-    pub technologies: Vec<String>,
+    pub technologies: Option<Vec<String>>,
     pub raw: String,
 }
 
