@@ -114,9 +114,6 @@ async fn add_changed_documents(
     }
 }
 
-async fn remove_staled_documents(index: &Indexer<KeyedSourceCode>) {
-}
-
 fn is_valid_file(file: &SourceCode) -> bool {
     file.max_line_length <= MAX_LINE_LENGTH_THRESHOLD
         && file.avg_line_length <= AVG_LINE_LENGTH_THRESHOLD
