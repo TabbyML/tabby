@@ -25,7 +25,7 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
    *
    */
   // TODO: Rename?
-  const [results, setResults] = useState<any[]>() // FIXME: Any
+  const [results, setResults] = useState<any[]>() // FIXME: Add type
 
   /**
    * Match count. The tally of the lines across all results.
