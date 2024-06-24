@@ -73,7 +73,10 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
           <h1 className="text-xl font-semibold mb-0.5">
             Results for “{props.query}”
           </h1>
-          <p>{results?.length} matches</p>
+          <p>
+            {/* FIXME: this only tallies the files, not the code matches */}
+            {results?.length} {results?.length === 1 ? 'match' : 'matches'}
+          </p>
         </div>
         {/* TODO: Use form component */}
         {/* TODO: This can be fixed-pos */}
