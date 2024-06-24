@@ -235,7 +235,7 @@ mod tests {
     fn test_create_source_file() {
         set_tabby_root(get_tabby_root());
         let config = get_repository_config();
-        let mut code = CodeIntelligence::default();
+        let code = CodeIntelligence::default();
         let source_file = code
             .compute_source_file(&config, &get_rust_source_file())
             .expect("Failed to create source file");

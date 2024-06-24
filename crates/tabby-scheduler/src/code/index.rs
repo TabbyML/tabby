@@ -5,7 +5,7 @@ use futures::StreamExt;
 use ignore::Walk;
 use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 
 use super::{
     create_code_index,
