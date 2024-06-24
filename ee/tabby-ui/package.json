@@ -67,6 +67,7 @@
     "eventsource-parser": "^1.1.2",
     "focus-trap-react": "^10.1.1",
     "graphql": "^16.8.1",
+    "he": "^1.2.0",
     "humanize-duration": "^3.31.0",
     "jwt-decode": "^4.0.0",
     "lodash-es": "^4.17.21",

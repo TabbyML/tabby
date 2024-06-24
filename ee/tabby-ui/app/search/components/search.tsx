@@ -15,6 +15,7 @@ import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
+import he from 'he';
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableSearch } from '@/lib/experiment-flags'
@@ -617,8 +618,8 @@ function SourceCard({
       ALLOWED_ATTR: []
     })
     const parsed = marked.parse(sanitizedHtml) as string
-    const plainText = parsed.replace(/<\/?[^>]+(>|$)/g, '')
-
+    const decoded = he.decode(parsed);
+    const plainText = decoded.replace(/<\/?[^>]+(>|$)/g, '')
     return plainText
   }
 

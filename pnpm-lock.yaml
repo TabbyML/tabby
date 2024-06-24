@@ -544,6 +544,9 @@ importers:
       graphql:
         specifier: ^16.8.1
         version: 16.8.1
+      he:
+        specifier: ^1.2.0
+        version: 1.2.0
       humanize-duration:
         specifier: ^3.31.0
         version: 3.31.0
