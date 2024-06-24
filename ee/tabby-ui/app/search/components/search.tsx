@@ -508,7 +508,7 @@ function AnswerBlock({
           >
             {answer.relevant_documents.map((source, index) => (
               <SourceCard
-                key={source.link}
+                key={source.link + index}
                 source={source}
                 showMore={showMore}
               />
