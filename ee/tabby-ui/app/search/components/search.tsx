@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  CSSProperties,
   useContext,
   useEffect,
   useMemo,
@@ -18,6 +19,7 @@ import remarkMath from 'remark-math'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableSearch } from '@/lib/experiment-flags'
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useTabbyAnswer } from '@/lib/hooks/use-tabby-answer'
@@ -115,6 +117,7 @@ export function Search() {
   const [isShowDemoBanner] = useShowDemoBanner()
   const router = useRouter()
   const initCheckRef = useRef(false)
+  const { theme } = useCurrentTheme()
 
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
     fetcher: tabbyFetcher
@@ -406,9 +409,16 @@ export function Search() {
 
           {container && (
             <ButtonScrollToBottom
-              className="!fixed !bottom-[5.4rem] !right-4 !top-auto lg:!bottom-[3.8rem]"
+              className="!fixed !bottom-[5.4rem] !right-4 !top-auto border-muted-foreground lg:!bottom-[2.85rem]"
               container={container}
               offset={100}
+              // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
+              // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
+              style={
+                theme === 'dark'
+                  ? ({ '--background': '0 0% 12%' } as CSSProperties)
+                  : {}
+              }
             />
           )}
 
@@ -420,7 +430,12 @@ export function Search() {
                 'opacity-0 translate-y-10': !showSearchInput
               }
             )}
-            style={{ transition: 'all 0.35s ease-out' }}
+            style={Object.assign(
+              { transition: 'all 0.35s ease-out' },
+              theme === 'dark'
+                ? ({ '--background': '0 0% 12%' } as CSSProperties)
+                : {}
+            )}
           >
             <Button
               className={cn('bg-background', {

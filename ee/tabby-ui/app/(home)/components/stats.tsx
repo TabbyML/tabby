@@ -4,7 +4,6 @@ import { useSearchParams } from 'next/navigation'
 import { useWindowSize } from '@uidotdev/usehooks'
 import { eachDayOfInterval } from 'date-fns'
 import moment from 'moment'
-import { useTheme } from 'next-themes'
 import ReactActivityCalendar from 'react-activity-calendar'
 import seedrandom from 'seedrandom'
 import { useQuery } from 'urql'
@@ -14,6 +13,7 @@ import {
   DailyStatsQuery,
   Language
 } from '@/lib/gql/generates/graphql'
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useMe } from '@/lib/hooks/use-me'
 import { useIsDemoMode } from '@/lib/hooks/use-server-info'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
@@ -31,7 +31,7 @@ function ActivityCalendar({
     level: number
   }[]
 }) {
-  const { theme } = useTheme()
+  const { theme } = useCurrentTheme()
   const size = useWindowSize()
   const width = size.width || 0
   const blockSize = width >= 800 ? 7 : 9
