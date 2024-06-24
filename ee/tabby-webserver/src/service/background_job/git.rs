@@ -67,7 +67,7 @@ impl SchedulerGitJob {
 
         let mut code = CodeIndexer::default();
 
-        code.garbage_collection(&repositories);
+        code.garbage_collection(&repositories).await;
 
         for repository in repositories {
             let _ = job

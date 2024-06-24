@@ -1,6 +1,13 @@
+use async_stream::stream;
 use futures::{stream::BoxStream, Stream, StreamExt};
 use tabby_common::{index::IndexSchema, path};
-use tantivy::{doc, IndexWriter, TantivyDocument, Term};
+use tantivy::{
+    collector::TopDocs,
+    doc,
+    query::TermQuery,
+    schema::{self, IndexRecordOption, Value},
+    DocAddress, DocSet, IndexWriter, Searcher, TantivyDocument, Term, TERMINATED,
+};
 use tracing::info;
 
 use crate::tantivy_utils::open_or_create_index;
@@ -18,6 +25,7 @@ pub trait IndexAttributeBuilder<T>: Send + Sync {
 pub struct Indexer<T> {
     kind: &'static str,
     builder: Box<dyn IndexAttributeBuilder<T>>,
+    searcher: Searcher,
     writer: IndexWriter,
     pub recreated: bool,
 }
@@ -29,17 +37,19 @@ impl<T: Send + 'static> Indexer<T> {
         let writer = index
             .writer(150_000_000)
             .expect("Failed to create index writer");
+        let reader = index.reader().expect("Failed to create index reader");
 
         Self {
             kind,
             builder: Box::new(builder),
+            searcher: reader.searcher(),
             writer,
             recreated,
         }
     }
 
     pub async fn add(&self, document: T) {
-        self.iter_docs(document)
+        self.build_doc(document)
             .await
             .for_each(|doc| {
                 self.writer
@@ -50,7 +60,7 @@ impl<T: Send + 'static> Indexer<T> {
             .await;
     }
 
-    async fn iter_docs(&self, document: T) -> impl Stream<Item = TantivyDocument> + '_ {
+    async fn build_doc(&self, document: T) -> impl Stream<Item = TantivyDocument> + '_ {
         let schema = IndexSchema::instance();
         let id = self.format_id(&self.builder.build_id(&document).await);
 
@@ -68,10 +78,11 @@ impl<T: Send + 'static> Indexer<T> {
             schema.field_updated_at => updated_at,
         };
 
-        futures::stream::once(async { doc }).chain(self.iter_chunks(id, updated_at, document).await)
+        futures::stream::once(async { doc })
+            .chain(self.build_chunks(id, updated_at, document).await)
     }
 
-    async fn iter_chunks(
+    async fn build_chunks(
         &self,
         id: String,
         updated_at: tantivy::DateTime,
@@ -117,4 +128,57 @@ impl<T: Send + 'static> Indexer<T> {
             .wait_merging_threads()
             .expect("Failed to wait for merging threads");
     }
+
+    // Check whether the document ID presents in the corpus.
+    pub fn is_indexed(&self, id: &str) -> bool {
+        let schema = IndexSchema::instance();
+        let query = TermQuery::new(
+            Term::from_field_text(schema.field_id, &self.format_id(id)),
+            IndexRecordOption::Basic,
+        );
+        let Ok(docs) = self.searcher.search(&query, &TopDocs::with_limit(1)) else {
+            return false;
+        };
+        !docs.is_empty()
+    }
+
+    /// Iterates over all the document IDs in the corpus.
+    pub fn iter_ids(&self) -> impl Stream<Item = String> + '_ {
+        let schema = IndexSchema::instance();
+
+        stream! {
+            // Based on https://github.com/quickwit-oss/tantivy/blob/main/examples/iterating_docs_and_positions.rs
+            for (segment_ordinal, segment_reader) in self.searcher.segment_readers().iter().enumerate() {
+                let Ok(inverted_index) = segment_reader.inverted_index(schema.field_corpus) else {
+                    continue;
+                };
+
+                let term_corpus = Term::from_field_text(schema.field_corpus, self.kind);
+                let Ok(Some(mut postings)) = inverted_index.read_postings(&term_corpus, tantivy::schema::IndexRecordOption::Basic) else {
+                    continue;
+                };
+
+                let prefix_to_strip = format!("{}:", self.kind);
+                let mut doc_id = postings.doc();
+                while doc_id != TERMINATED {
+                    if !segment_reader.is_deleted(doc_id) {
+                        let doc_address = DocAddress::new(segment_ordinal as u32, doc_id);
+                        let doc: TantivyDocument = self.searcher.doc(doc_address).expect("Failed to read document");
+
+                        // Skip chunks, as we only want to iterate over the main docs
+                        if doc.get_first(schema.field_chunk_id).is_none() {
+                            if let Some(id) = get_text(&doc, schema.field_id).strip_prefix(&prefix_to_strip) {
+                                yield id.to_owned();
+                            }
+                        }
+                    }
+                    doc_id = postings.advance();
+                }
+            }
+        }
+    }
+}
+
+fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
+    doc.get_first(field).unwrap().as_str().unwrap()
 }

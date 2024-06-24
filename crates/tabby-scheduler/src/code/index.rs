@@ -5,47 +5,51 @@ use futures::StreamExt;
 use ignore::Walk;
 use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
-use tracing::warn;
+use tracing::{debug, info, warn};
 
 use super::{
-    cache::{CacheStore, IndexBatch},
     create_code_index,
-    intelligence::SourceCode,
+    intelligence::{CodeIntelligence, SourceCode},
+    source_file_key::source_file_key_from_path,
     KeyedSourceCode,
 };
-use crate::Indexer;
+use crate::{code::source_file_key::check_source_file_key_matched, Indexer};
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 
-pub async fn index_repository(
-    cache: &mut CacheStore,
-    embedding: Arc<dyn Embedding>,
-    repository: &RepositoryConfig,
-) {
+pub async fn index_repository(embedding: Arc<dyn Embedding>, repository: &RepositoryConfig) {
     let index = create_code_index(Some(embedding));
-    if index.recreated {
-        cache.clear_indexed()
-    }
-    let index_batch = add_changed_documents(cache, repository, index).await;
-    cache.apply_indexed(index_batch);
+    add_changed_documents(repository, index).await;
 }
 
-pub fn garbage_collection(cache: &mut CacheStore) {
+pub async fn garbage_collection() {
     let index = create_code_index(None);
-    remove_staled_documents(cache, &index);
-    index.commit();
+    stream! {
+        let mut num_to_keep = 0;
+        let mut num_to_delete = 0;
+
+        for await id in index.iter_ids() {
+            let item_key = id;
+            if check_source_file_key_matched(&item_key) {
+                num_to_keep += 1;
+            } else {
+                num_to_delete += 1;
+                index.delete(&item_key);
+            }
+        }
+
+        info!("Finished garbage collection for code index: {num_to_keep} items kept, {num_to_delete} items removed");
+        index.commit();
+    }.collect::<()>().await;
 }
 
-async fn add_changed_documents(
-    cache: &mut CacheStore,
-    repository: &RepositoryConfig,
-    index: Indexer<KeyedSourceCode>,
-) -> IndexBatch {
+async fn add_changed_documents(repository: &RepositoryConfig, index: Indexer<KeyedSourceCode>) {
     let index = Arc::new(index);
     let cloned_index = index.clone();
     let s = stream! {
+        let mut intelligence = CodeIntelligence::default();
         for file in Walk::new(repository.dir()) {
             let file = match file {
                 Ok(file) => file,
@@ -54,15 +58,21 @@ async fn add_changed_documents(
                     continue;
                 }
             };
-            let Some(code) = cache.get_source_file(repository, file.path()) else {
+
+            let Some(key) = source_file_key_from_path(file.path()) else {
                 continue;
             };
-            if !is_valid_file(&code) {
+
+            if cloned_index.is_indexed(&key) {
+                // Skip if already indexed
                 continue;
             }
 
-            let (key, indexed) = cache.check_indexed(file.path());
-            if indexed {
+            let Some(code) = intelligence.create_source_file(repository, file.path()) else {
+                continue;
+            };
+
+            if !is_valid_file(&code) {
                 continue;
             }
 
@@ -86,12 +96,10 @@ async fn add_changed_documents(
         .unwrap_or_else(|| std::thread::available_parallelism().unwrap().get() * 2);
     let mut s = pin!(s.buffer_unordered(parallelism));
 
-    let mut indexed_files_batch = IndexBatch::default();
     while let Some(key) = s.next().await {
-        if let Ok(key) = key {
-            indexed_files_batch.set_indexed(key);
-        } else {
-            warn!("Failed to index file");
+        if let Err(e) = key {
+            debug!("Failed to join task: {e}");
+            continue;
         }
     }
 
@@ -99,17 +107,6 @@ async fn add_changed_documents(
         Ok(index) => index.commit(),
         Err(_) => panic!("Failed to unwrap index"),
     }
-
-    indexed_files_batch
-}
-
-fn remove_staled_documents(cache: &mut CacheStore, index: &Indexer<KeyedSourceCode>) {
-    // Create a new writer to commit deletion of removed indexed files
-    let gc_commit = cache.prepare_garbage_collection_for_indexed_files(|key| {
-        index.delete(key);
-    });
-
-    gc_commit();
 }
 
 fn is_valid_file(file: &SourceCode) -> bool {

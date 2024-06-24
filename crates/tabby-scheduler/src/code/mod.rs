@@ -14,12 +14,12 @@ use tracing::{info, warn};
 use self::intelligence::SourceCode;
 use crate::{code::intelligence::CodeIntelligence, IndexAttributeBuilder, Indexer};
 
-///  Module for creating code search index.
-mod cache;
+//  Modules for creating code search index.
 mod index;
 mod intelligence;
 mod languages;
 mod repository;
+mod source_file_key;
 mod types;
 
 #[derive(Default)]
@@ -34,15 +34,12 @@ impl CodeIndexer {
         info!("Refreshing repository: {}", repository.canonical_git_url());
         repository::sync_repository(repository);
 
-        let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
-        index::index_repository(&mut cache, embedding, repository).await;
+        index::index_repository(embedding, repository).await;
     }
 
-    pub fn garbage_collection(&mut self, repositories: &[RepositoryConfig]) {
+    pub async fn garbage_collection(&mut self, repositories: &[RepositoryConfig]) {
         self.is_dirty = false;
-        let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
-        cache.garbage_collection_for_source_files();
-        index::garbage_collection(&mut cache);
+        index::garbage_collection().await;
         repository::garbage_collection(repositories);
     }
 }
@@ -50,6 +47,12 @@ impl CodeIndexer {
 struct KeyedSourceCode {
     key: String,
     code: SourceCode,
+}
+
+impl KeyedSourceCode {
+    fn build_id(&self) -> String {
+        self.key.clone()
+    }
 }
 
 struct CodeBuilder {
@@ -65,7 +68,7 @@ impl CodeBuilder {
 #[async_trait]
 impl IndexAttributeBuilder<KeyedSourceCode> for CodeBuilder {
     async fn build_id(&self, source_code: &KeyedSourceCode) -> String {
-        source_code.key.clone()
+        source_code.build_id()
     }
 
     async fn build_attributes(&self, _source_code: &KeyedSourceCode) -> serde_json::Value {

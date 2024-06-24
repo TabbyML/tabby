@@ -71,7 +71,7 @@ async fn scheduler_pipeline(config: &tabby_common::config::Config) {
         code.refresh(embedding.clone(), repository).await;
     }
 
-    code.garbage_collection(repositories);
+    code.garbage_collection(repositories).await;
 }
 
 pub async fn crawl_index_docs<F>(
