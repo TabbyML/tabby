@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { foldGutter } from '@codemirror/language'
 import { Extension, StateEffect, StateField } from '@codemirror/state'
 import {
@@ -40,12 +40,14 @@ interface CodeEditorViewProps {
   value: string
   language: string
   stringToMatch?: string
+  lineRange?: { start: number; end: number } // TODO: Make type
 }
 
 const CodeEditorView: React.FC<CodeEditorViewProps> = ({
   value,
   language,
-  stringToMatch
+  stringToMatch,
+  lineRange
 }) => {
   const { theme } = useTheme()
   const tags: TCodeTag[] = React.useMemo(() => {
@@ -72,6 +74,9 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
     })
   })
 
+  /**
+   *
+   */
   const matchExtension = ViewPlugin.fromClass(
     class {
       matches: DecorationSet
@@ -91,6 +96,15 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
         })
     }
   )
+
+  /**
+   * The extension to show only the lines within a range
+   */
+
+  const lineRangeExtension = StateEffect.define<{
+    start: number
+    end: number
+  }>()
 
   const extensions = React.useMemo(() => {
     let result: Extension[] = [

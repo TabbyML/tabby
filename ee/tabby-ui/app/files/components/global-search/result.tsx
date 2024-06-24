@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import Link from 'next/link'
 
 import { GrepFile } from '@/lib/gql/generates/graphql'
@@ -25,11 +25,34 @@ export const GlobalSearchResult = ({ ...props }: GlobalSearchResultProps) => {
     SourceCodeBrowserContext
   )
 
-  const linesWithSubMatches = props.result.lines.filter(
-    line => line.subMatches.length > 0
+  const language = filename2prism(props.result.path)[0]
+
+  const [ranges, setRanges] = React.useState<{ start: number; end: number }[]>(
+    []
   )
 
-  const language = filename2prism(props.result.path)[0]
+  useEffect(() => {
+    const newRanges: { start: number; end: number }[] = []
+    let currentRange: { start: number; end: number } = { start: 0, end: 0 }
+
+    props.result.lines.forEach((line, index) => {
+      if (index === 0) {
+        currentRange.start = line.lineNumber
+        currentRange.end = line.lineNumber
+      } else {
+        if (line.lineNumber === currentRange.end + 1) {
+          currentRange.end = line.lineNumber
+        } else {
+          newRanges.push(currentRange)
+          currentRange = { start: line.lineNumber, end: line.lineNumber }
+        }
+      }
+    })
+
+    newRanges.push(currentRange)
+
+    setRanges(newRanges)
+  }, [props.result.lines])
 
   return (
     <div>
@@ -45,20 +68,21 @@ export const GlobalSearchResult = ({ ...props }: GlobalSearchResultProps) => {
         <IconFile />
         {props.result.path}
       </Link>
-      <ol className="overflow-hidden grid border divide-y divide-y-border border-border rounded">
-        {linesWithSubMatches.map((line, i) => {
-          return (
-            // FIXME: key should be unique
-            <li key={i}>
-              <CodeEditorView
-                value={props.result.blob}
-                language={language}
-                stringToMatch={props.query}
-              />
-            </li>
-          )
-        })}
-      </ol>
+      {/* FIXME: are  */}
+      <div className="overflow-hidden grid border divide-y divide-y-border border-border rounded">
+        {/* Loop through each range to create some separation? */}
+        {ranges.map((range, i) => (
+          <>
+            <CodeEditorView
+              key={`${props.result.path}-${i}`}
+              value={props.result.blob}
+              language={language}
+              stringToMatch={props.query}
+              lineRange={range}
+            />
+          </>
+        ))}
+      </div>
     </div>
   )
 }
