@@ -42,7 +42,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
   id,
   kind
 }) => {
-  const form = useRepositoryProviderForm(false, defaultValues)
+  const form = useRepositoryProviderForm(false, kind, defaultValues)
 
   const deleteRepositoryProvider = useMutation(deleteIntegrationMutation)
 

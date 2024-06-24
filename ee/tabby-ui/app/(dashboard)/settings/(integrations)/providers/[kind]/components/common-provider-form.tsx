@@ -40,11 +40,22 @@ import { useIntegrationKind } from '../hooks/use-repository-kind'
 export const createRepositoryProviderFormSchema = z.object({
   displayName: z.string().trim(),
   accessToken: z.string(),
-  apiBase: z.string().optional().nullable()
+  apiBase: z.string().url().optional().nullable()
 })
+
+const createSelfHostedRepositoryProviderFormSchema =
+  createRepositoryProviderFormSchema.extend({
+    // for githubSelfHosted & gitlabSelfHosted, apiBase is required
+    apiBase: z.string().url()
+  })
 
 export const updateRepositoryProviderFormSchema =
   createRepositoryProviderFormSchema.extend({
+    accessToken: z.string().optional()
+  })
+
+export const updateSelfHostedRepositoryProviderFormSchema =
+  createSelfHostedRepositoryProviderFormSchema.extend({
     accessToken: z.string().optional()
   })
 
@@ -292,11 +303,21 @@ export function CommonProviderForm<T extends boolean>({
 
 export function useRepositoryProviderForm<T extends boolean>(
   isNew: T,
+  kind: IntegrationKind,
   defaultValues?: Partial<FormValues<T>>
 ): UseFormReturn<FormValues<T>> {
+  let isSelfHostedIntegration = [
+    IntegrationKind.GithubSelfHosted,
+    IntegrationKind.GitlabSelfHosted
+  ].includes(kind)
   const schema = isNew
-    ? createRepositoryProviderFormSchema
+    ? isSelfHostedIntegration
+      ? createSelfHostedRepositoryProviderFormSchema
+      : createRepositoryProviderFormSchema
+    : isSelfHostedIntegration
+    ? updateSelfHostedRepositoryProviderFormSchema
     : updateRepositoryProviderFormSchema
+
   return useForm<FormValues<T>>({
     resolver: zodResolver(schema),
     defaultValues: defaultValues as DefaultValues<FormValues<T>>
