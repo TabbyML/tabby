@@ -68,19 +68,23 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
 
   return (
     <>
-      <div className="flex justify-between w-full  mb-4">
+      <div className="flex justify-between w-full items-start gap-16 my-4">
         {/* FIXME: This shouldn't update on type */}
-        <h1 className="text-xl font-semibold mb-2">
-          Results for “{props.query}”
-        </h1>
+        <div>
+          <h1 className="text-xl font-semibold mb-0.5">
+            Results for “{props.query}”
+          </h1>
+          <p>{results?.length} matches</p>
+        </div>
         {/* TODO: Use form component */}
-        <button className="flex gap-2 items-center">
+        {/* TODO: This can be fixed-pos */}
+        <button className="flex mt-1 gap-2 items-center shrink-0">
           {/* TODO: Semantics */}
           <input type="checkbox" />
           <label className="text-sm">Ignore case</label>
         </button>
       </div>
-      {results && results.length > 0 ? (
+      {results && results.length > 0 && (
         <ul className="grid gap-5">
           {results.map((result, i) => (
             // FIXME: This key should be unique
@@ -92,8 +96,6 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
             </li>
           ))}
         </ul>
-      ) : (
-        <p className="text-muted-foreground">No matches</p>
       )}
     </>
   )

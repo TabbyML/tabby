@@ -632,6 +632,12 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   /**
    *
    */
+  const [contentScrollContainerRef] =
+    useState<React.RefObject<HTMLDivElement>>()
+
+  /**
+   *
+   */
   const maybeActivateSearchTab = () => {
     // FIXME: Can we use the query Params to determine this?
     if (globalSearchQuery && globalSearchResults) {
@@ -692,6 +698,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const onGlobalSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     console.log('submitted?')
     e.preventDefault()
+    // Keep search results at the top of the screen
+
     void search(globalSearchQuery)
   }
 
@@ -721,123 +729,124 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   return (
     <>
-      <div className="flex w-full items-center border-b border-b-border">
-        <div className="flex w-full justify-between items-center gap-4 px-4">
-          {/* TODO: add function */}
-          <button type="button" className="shrink-0">
-            <Image src={tabbyLogo} alt="logo" className="h-8 w-8" />
-          </button>
-          <FileTreeHeader className="shrink-0 w-1/3" />
+      <div className="flex flex-col h-screen">
+        {/* Header */}
+        <div className="flex w-full items-center border-b border-b-border">
+          <div className="flex w-full justify-between items-center gap-4 px-4">
+            {/* TODO: add function */}
+            <button type="button" className="shrink-0">
+              <Image src={tabbyLogo} alt="logo" className="h-8 w-8" />
+            </button>
+            <FileTreeHeader className="shrink-0 w-1/3" />
 
-          {/* TODO: onFocus, show the searchTab if there's a query */}
-          <GlobalSearch
-            // Might be able to "splat" the ref
-            query={globalSearchQuery}
-            inputRef={globalSearchInput}
-            onFocus={maybeActivateSearchTab}
-            onInput={onGlobalSearchInput}
-            onSubmit={onGlobalSearchSubmit}
-            clearInput={clearGlobalSearchInput}
-          />
-          {/* FIXME: not same height as input */}
-          <Button
-            className="flex shrink-0 gap-1.5"
-            variant={chatSideBarVisible ? 'default' : 'outline'}
-            onClick={() => setChatSideBarVisible(!chatSideBarVisible)}
-          >
-            {/* <Image src={tabbyLogo} alt="logo" className="h-5 w-5 -ml-1.5" /> */}
-            {/* <IconSidebar className="scale-x-[-1]" /> */}
-            <IconChat />
-            Ask Tabby
-          </Button>
+            {/* TODO: onFocus, show the searchTab if there's a query */}
+            <GlobalSearch
+              // Might be able to "splat" the ref
+              query={globalSearchQuery}
+              inputRef={globalSearchInput}
+              onFocus={maybeActivateSearchTab}
+              onInput={onGlobalSearchInput}
+              onSubmit={onGlobalSearchSubmit}
+              clearInput={clearGlobalSearchInput}
+            />
+            {/* FIXME: not same height as input */}
+            <Button
+              className="flex shrink-0 gap-1.5"
+              variant={chatSideBarVisible ? 'default' : 'outline'}
+              onClick={() => setChatSideBarVisible(!chatSideBarVisible)}
+            >
+              {/* <Image src={tabbyLogo} alt="logo" className="h-5 w-5 -ml-1.5" /> */}
+              {/* <IconSidebar className="scale-x-[-1]" /> */}
+              <IconChat />
+              Ask Tabby
+            </Button>
+          </div>
         </div>
-      </div>
-      <ResizablePanelGroup
-        direction="horizontal"
-        className={cn(className)}
-        onLayout={onPanelLayout}
-      >
-        <ResizablePanel
-          defaultSize={20}
-          minSize={20}
-          maxSize={40}
-          className="hidden lg:block"
+        <ResizablePanelGroup
+          direction="horizontal"
+          className={cn(className)}
+          onLayout={onPanelLayout}
         >
-          <FileTreePanel fetchingTreeEntries={fetchingTreeEntries} />
-        </ResizablePanel>
-        <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
-        <ResizablePanel defaultSize={80} minSize={30}>
-          {searchTabIsActive ? (
-            <div className="p-4">
-              <GlobalSearchResults
-                results={globalSearchResults}
-                query={globalSearchQuery}
-                repoId={activeRepo?.id}
-                repositoryKind={activeRepo?.kind}
-                hidePopover={() => {}}
-              />
-              {/* <Button variant="link" className="-ml-2">
-                Back to files
-              </Button> */}
-            </div>
-          ) : (
-            <>
-              <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
-                <FileDirectoryBreadcrumb className="py-4" />
-                {!initialized ? (
-                  <ListSkeleton className="rounded-lg border p-4" />
-                ) : showErrorView ? (
-                  <ErrorView
-                    className={`rounded-lg border p-4`}
-                    error={entriesError || rawFileError}
-                  />
-                ) : (
-                  <div>
-                    {showDirectoryView && (
-                      <DirectoryView
-                        loading={fetchingTreeEntries}
-                        initialized={initialized}
-                        className={`rounded-lg border`}
-                      />
-                    )}
-                    {showTextFileView && (
-                      <TextFileView
-                        blob={fileBlob}
-                        contentLength={contentLength}
-                      />
-                    )}
-                    {showRawFileView && (
-                      <RawFileView
-                        blob={fileBlob}
-                        isImage={fileViewType === 'image'}
-                        contentLength={contentLength}
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </ResizablePanel>
-        <>
-          <ResizableHandle
-            className={cn(
-              'hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500',
-              chatSideBarVisible && 'block'
-            )}
-          />
           <ResizablePanel
-            collapsible
-            collapsedSize={0}
-            defaultSize={0}
-            minSize={25}
-            ref={chatSideBarPanelRef}
-            onCollapse={() => setChatSideBarVisible(false)}
+            defaultSize={20}
+            minSize={20}
+            maxSize={40}
+            className="hidden lg:block"
           >
-            <ChatSideBar />
+            <FileTreePanel fetchingTreeEntries={fetchingTreeEntries} />
           </ResizablePanel>
-        </>
-      </ResizablePanelGroup>
+          <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
+          <ResizablePanel defaultSize={80} minSize={30}>
+            <div
+              ref={contentScrollContainerRef}
+              className="flex flex-col h-full overflow-auto px-4 pb-4"
+            >
+              {searchTabIsActive ? (
+                <GlobalSearchResults
+                  results={globalSearchResults}
+                  query={globalSearchQuery}
+                  repoId={activeRepo?.id}
+                  repositoryKind={activeRepo?.kind}
+                  hidePopover={() => {}}
+                />
+              ) : (
+                <>
+                  <FileDirectoryBreadcrumb className="py-4" />
+                  {!initialized ? (
+                    <ListSkeleton className="rounded-lg border p-4" />
+                  ) : showErrorView ? (
+                    <ErrorView
+                      className={`rounded-lg border p-4`}
+                      error={entriesError || rawFileError}
+                    />
+                  ) : (
+                    <div>
+                      {showDirectoryView && (
+                        <DirectoryView
+                          loading={fetchingTreeEntries}
+                          initialized={initialized}
+                          className={`rounded-lg border`}
+                        />
+                      )}
+                      {showTextFileView && (
+                        <TextFileView
+                          blob={fileBlob}
+                          contentLength={contentLength}
+                        />
+                      )}
+                      {showRawFileView && (
+                        <RawFileView
+                          blob={fileBlob}
+                          isImage={fileViewType === 'image'}
+                          contentLength={contentLength}
+                        />
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </ResizablePanel>
+          <>
+            <ResizableHandle
+              className={cn(
+                'hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500',
+                chatSideBarVisible && 'block'
+              )}
+            />
+            <ResizablePanel
+              collapsible
+              collapsedSize={0}
+              defaultSize={0}
+              minSize={25}
+              ref={chatSideBarPanelRef}
+              onCollapse={() => setChatSideBarVisible(false)}
+            >
+              <ChatSideBar />
+            </ResizablePanel>
+          </>
+        </ResizablePanelGroup>
+      </div>
     </>
   )
 }
