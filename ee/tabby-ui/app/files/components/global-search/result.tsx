@@ -41,7 +41,6 @@ export const GlobalSearchResult = ({ ...props }: GlobalSearchResultProps) => {
           'file'
         )}`}
         className="font-bold mb-2 inline-flex items-center gap-2"
-        // TODO: Investigate an alternative to this
       >
         <IconFile />
         {props.result.path}

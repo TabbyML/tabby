@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { use, useEffect, useState } from 'react'
+import { set } from 'date-fns'
 import useSWRImmutable from 'swr/immutable'
 
 import { GrepFile, RepositoryKind } from '@/lib/gql/generates/graphql'
@@ -20,7 +21,16 @@ interface GlobalSearchResultsProps {
 }
 
 export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
-  const [results, setResults] = useState<any[]>()
+  /**
+   *
+   */
+  // TODO: Rename?
+  const [results, setResults] = useState<any[]>() // FIXME: Any
+
+  /**
+   * Match count. The tally of the lines across all results.
+   */
+  const [matchCount, setMatchCount] = useState<number>(0)
 
   const pathNamesToFetch = props.results?.map(result => result.path)
 
@@ -64,6 +74,19 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
     }
   }, [data, props.results])
 
+  useEffect(() => {
+    setMatchCount(
+      results?.reduce((acc, result) => {
+        return acc + result.lines.length
+      }, 0)
+    )
+  }, [results])
+
+  useEffect(() => {
+    // TODO: Set a static query string based on the queryParam
+    // to resolve the issue of the reactive h1
+  })
+
   return (
     <>
       <div className="flex justify-between w-full items-start gap-16 my-4">
@@ -73,8 +96,7 @@ export const GlobalSearchResults = ({ ...props }: GlobalSearchResultsProps) => {
             Results for “{props.query}”
           </h1>
           <p>
-            {/* FIXME: this only tallies the files, not the code matches */}
-            {results?.length} {results?.length === 1 ? 'match' : 'matches'}
+            {matchCount} {matchCount === 1 ? 'match' : 'matches'}
           </p>
         </div>
         <button className="flex mt-1 gap-2 items-center shrink-0">
