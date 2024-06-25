@@ -318,6 +318,7 @@ mod tests {
     async fn test_api_base() {
         let (integration, _, _) = create_services().await;
 
+        // Should not be able to create a self-hosted provider without an API base
         assert!(integration
             .create_integration(
                 IntegrationKind::GithubSelfHosted,
@@ -328,9 +329,10 @@ mod tests {
             .await
             .is_err());
 
+        // Should not be able to update an existing self-hosted provider without an API base
         let id = integration
             .create_integration(
-                IntegrationKind::GithubSelfHosted,
+                IntegrationKind::GitlabSelfHosted,
                 "github".into(),
                 "token".into(),
                 Some("https://github.com".into()),
@@ -341,7 +343,7 @@ mod tests {
         assert!(integration
             .update_integration(
                 id,
-                IntegrationKind::GithubSelfHosted,
+                IntegrationKind::GitlabSelfHosted,
                 "github".into(),
                 None,
                 None
