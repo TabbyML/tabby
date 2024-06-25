@@ -30,7 +30,7 @@ struct DbTarget {
 
 impl DbTarget {
     fn new(db: DbConn, id: i64) -> (Self, tokio::task::JoinHandle<()>) {
-        let (tx, rx) = tokio::sync::mpsc::channel::<Record>(100);
+        let (tx, rx) = tokio::sync::mpsc::channel::<Record>(1024);
         let handle = Self::create_logging_thread(db, id, rx);
         (Self { tx }, handle)
     }

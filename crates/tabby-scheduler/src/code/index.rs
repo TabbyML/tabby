@@ -45,58 +45,60 @@ pub async fn garbage_collection() {
 
 async fn add_changed_documents(repository: &RepositoryConfig, index: Indexer<SourceCode>) {
     let index = Arc::new(index);
-    let intelligence = CodeIntelligence::default();
-    for file in Walk::new(repository.dir()) {
-        let file = match file {
-            Ok(file) => file,
-            Err(e) => {
-                warn!("Failed to walk file tree for indexing: {e}");
+    let cloned_index = index.clone();
+
+    stream! {
+        let intelligence = CodeIntelligence::default();
+        for file in Walk::new(repository.dir()) {
+            let file = match file {
+                Ok(file) => file,
+                Err(e) => {
+                    warn!("Failed to walk file tree for indexing: {e}");
+                    continue;
+                }
+            };
+
+            let Some(key) = CodeIntelligence::compute_source_file_id(file.path()) else {
+                continue;
+            };
+
+            if cloned_index.is_indexed(&key) {
+                // Skip if already indexed
                 continue;
             }
-        };
 
-        let Some(key) = CodeIntelligence::compute_source_file_id(file.path()) else {
-            continue;
-        };
+            logkit::info!("Indexing file: {}", file.path().display());
 
-        if index.is_indexed(&key) {
-            // Skip if already indexed
-            continue;
-        }
+            let Some(code) = intelligence.compute_source_file(repository, file.path()) else {
+                continue;
+            };
 
-        logkit::info!("Indexing file: {}", file.path().display());
-
-        let Some(code) = intelligence.compute_source_file(repository, file.path()) else {
-            continue;
-        };
-
-        if !is_valid_file(&code) {
-            continue;
-        }
-
-        let index = index.clone();
-        tokio::spawn(async move {
-            index.add(code).await;
-        });
-    }
-
-    wait_for_index(index).await;
-}
-
-async fn wait_for_index(index: Arc<Indexer<SourceCode>>) {
-    let mut current_index = Box::new(index);
-    loop {
-        match Arc::try_unwrap(*current_index) {
-            Ok(index) => {
-                index.commit();
-                break;
+            if !is_valid_file(&code) {
+                continue;
             }
-            Err(index) => {
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                *current_index = index;
-            }
+
+            let index = cloned_index.clone();
+
+            // yield is lazy, that means only when the stream is polled, the task will be spawned.
+            yield tokio::spawn(async move {
+                index.add(code).await;
+            });
         }
     }
+    .buffer_unordered(std::cmp::max(
+        std::thread::available_parallelism().unwrap().get() * 2,
+        32,
+    ))
+    .map(|_| ())
+    .collect::<()>()
+    .await;
+
+    match Arc::try_unwrap(index) {
+        Ok(index) => index.commit(),
+        Err(_) => {
+            panic!("Failed to commit code index");
+        }
+    };
 }
 
 fn is_valid_file(file: &SourceCode) -> bool {
