@@ -22,7 +22,7 @@ pub struct KatanaResponse {
     pub headers: HashMap<String, String>,
     pub body: Option<String>,
     pub technologies: Option<Vec<String>>,
-    pub raw: String,
+    pub raw: Option<String>,
 }
 
 #[derive(Serialize)]

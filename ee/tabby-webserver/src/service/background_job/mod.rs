@@ -9,7 +9,7 @@ use std::{str::FromStr, sync::Arc};
 use cron::Schedule;
 use futures::StreamExt;
 use git::SchedulerGitJob;
-use helper::{CronStream, Job, JobLoggerGuard};
+use helper::{CronStream, Job, JobLogger};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::RepositoryConfig;
@@ -21,7 +21,7 @@ use tabby_schema::{
     repository::{GitRepositoryService, ThirdPartyRepositoryService},
 };
 use third_party_integration::SchedulerGithubGitlabJob;
-use tracing::warn;
+use tracing::{debug, warn};
 use web_crawler::WebCrawlerJob;
 
 use self::{db::DbMaintainanceJob, third_party_integration::SyncIntegrationJob};
@@ -72,9 +72,10 @@ pub async fn start(
                         continue;
                     };
 
-                    let _ = JobLoggerGuard::new(db.clone(), job.id);
+                    let logger = JobLogger::new(db.clone(), job.id);
+                    debug!("Background job {} started, command: {}", job.id, job.command);
                     let Ok(event) = serde_json::from_str::<BackgroundJobEvent>(&job.command) else {
-                        log::info!("Failed to parse background job event, marking it as failed");
+                        logkit::info!(exit_code = -1; "Failed to parse background job event, marking it as failed");
                         continue;
                     };
 
@@ -96,8 +97,12 @@ pub async fn start(
                             job.run(embedding.clone()).await
                         }
                     } {
-                        log::error!("{:?}", err);
+                        logkit::info!(exit_code = 1; "Job failed {}", err);
+                    } else {
+                        logkit::info!(exit_code = 0; "Job completed successfully");
                     }
+                    logger.finalize().await;
+                    debug!("Background job {} completed", job.id);
                 },
                 Some(now) = hourly.next() => {
                     if let Err(err) = DbMaintainanceJob::cron(now, db.clone()).await {

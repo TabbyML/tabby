@@ -97,7 +97,7 @@ impl SchedulerGithubGitlabJob {
             .format_authenticated_url(&repository.git_url, &integration.access_token)?;
 
         // First, run the regular scheduler job to sync and index the repository
-        log::info!(
+        logkit::info!(
             "Pulling source code for repository {}",
             repository.display_name
         );
@@ -105,7 +105,7 @@ impl SchedulerGithubGitlabJob {
         code.refresh(embedding.clone(), &RepositoryConfig::new(authenticated_url))
             .await;
 
-        log::info!("Indexing issues for repository {}", repository.display_name);
+        logkit::info!("Indexing issues for repository {}", repository.display_name);
 
         let index = DocIndexer::new(embedding);
         match &integration.kind {

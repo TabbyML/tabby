@@ -1,61 +1,87 @@
 use tabby_db::DbConn;
 use tracing::warn;
 
-#[derive(Clone)]
-pub struct JobLoggerGuard;
+pub struct JobLogger {
+    handle: tokio::task::JoinHandle<()>,
+}
 
-impl JobLoggerGuard {
+impl JobLogger {
     pub fn new(db: DbConn, id: i64) -> Self {
-        let logger = DbLogger::new(db, id);
-        let _ = log::set_boxed_logger(Box::new(logger));
-        Self
-    }
-}
-
-impl Drop for JobLoggerGuard {
-    fn drop(&mut self) {
-        let _ = log::set_logger(&NoneLogger);
-    }
-}
-
-#[derive(Clone)]
-struct DbLogger {
-    id: i64,
-    db: DbConn,
-}
-
-impl DbLogger {
-    fn new(db: DbConn, id: i64) -> Self {
-        Self { id, db }
-    }
-}
-
-impl log::Log for DbLogger {
-    fn enabled(&self, metadata: &log::Metadata) -> bool {
-        metadata.level() <= log::Level::Info
+        let mut logger = logkit::Logger::new(None);
+        logger.mount(logkit::LevelPlugin);
+        logger.mount(logkit::TimePlugin::from_micros());
+        let (target, handle) = DbTarget::new(db, id);
+        logger.route(target);
+        logkit::set_default_logger(logger);
+        Self { handle }
     }
 
-    fn log(&self, record: &log::Record) {
-        let id = self.id;
-        let logger = self.clone();
-        let stdout = format!("{}: {}\n", record.level(), record.args());
-        tokio::spawn(async move {
-            match logger.db.update_job_stdout(id, stdout).await {
-                Ok(_) => (),
-                Err(_) => {
-                    warn!("Failed to write stdout to job `{}`", id);
-                }
-            }
+    pub async fn finalize(self) {
+        logkit::set_default_logger(logkit::Logger::new(None));
+        self.handle.await.unwrap_or_else(|err| {
+            warn!("Failed to join logging thread: {}", err);
         });
     }
-
-    fn flush(&self) {}
 }
 
-struct NoneLogger;
+struct DbTarget {
+    tx: tokio::sync::mpsc::Sender<Record>,
+}
 
-impl log::Log for NoneLogger {
-    fn enabled(&self, _: &log::Metadata) -> bool { false }
-    fn log(&self, _: &log::Record) {}
-    fn flush(&self) {}
+impl DbTarget {
+    fn new(db: DbConn, id: i64) -> (Self, tokio::task::JoinHandle<()>) {
+        let (tx, rx) = tokio::sync::mpsc::channel::<Record>(100);
+        let handle = Self::create_logging_thread(db, id, rx);
+        (Self { tx }, handle)
+    }
+}
+
+impl DbTarget {
+    fn create_logging_thread(db: DbConn, id: i64, mut rx: tokio::sync::mpsc::Receiver<Record>) -> tokio::task::JoinHandle<()> {
+        tokio::spawn(async move {
+            while let Some(record) = rx.recv().await {
+                let stdout = format!(
+                    "{} [{}]: {}\n",
+                    record.time, record.level.to_uppercase(), record.msg
+                );
+
+                match db.update_job_stdout(id, stdout).await {
+                    Ok(_) => (),
+                    Err(_) => {
+                        warn!("Failed to write stdout to job `{}`", id);
+                    }
+                }
+
+                if let Some(exit_code) = record.exit_code {
+                    match db.update_job_status(id, exit_code).await {
+                        Ok(_) => (),
+                        Err(_) => {
+                            warn!("Failed to write exit code to job `{}`", id);
+                        }
+                    }
+                }
+            }
+        })
+    }
+}
+
+#[derive(serde::Deserialize)]
+struct Record {
+    level: String,
+    time: String,
+    msg: String,
+    exit_code: Option<i32>,
+}
+
+impl logkit::Target for DbTarget {
+    fn write(&self, buf: &[u8]) {
+        let Ok(record) = serde_json::from_slice::<Record>(buf) else {
+            warn!("Failed to parse log record");
+            return;
+        };
+
+        self.tx.try_send(record).unwrap_or_else(|err| {
+            warn!("Failed to send log record: {}", err);
+        });
+    }
 }

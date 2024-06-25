@@ -30,7 +30,6 @@ impl SchedulerGitJob {
         let repository = self.repository.clone();
         tokio::spawn(async move {
             let mut code = CodeIndexer::default();
-            log::info!("Refreshing repository {}", repository.canonical_git_url());
             code.refresh(embedding, &repository).await;
         })
         .await

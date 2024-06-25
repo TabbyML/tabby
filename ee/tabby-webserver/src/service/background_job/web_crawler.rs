@@ -19,7 +19,7 @@ impl WebCrawlerJob {
 
     pub async fn run(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
         tabby_scheduler::crawl_index_docs(&[self.url], embedding, move |url| {
-            log::info!("Crawling {}", url);
+            logkit::info!("Fetching {}", url);
         })
         .await?;
         Ok(())
