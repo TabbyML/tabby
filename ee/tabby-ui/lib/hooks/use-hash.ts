@@ -1,5 +1,4 @@
 import React from 'react'
-import Router from 'next/router'
 
 import { useLatest } from './use-latest'
 
@@ -21,10 +20,10 @@ export function useHash(): [string, (hash: string) => void] {
 
     handleHashChange()
 
-    Router.events.on('hashChangeComplete', handleHashChange)
+    window.addEventListener('hashchange', handleHashChange)
 
     return () => {
-      Router.events.off('hashChangeComplete', handleHashChange)
+      window.removeEventListener('hashchange', handleHashChange)
     }
   }, [])
 
