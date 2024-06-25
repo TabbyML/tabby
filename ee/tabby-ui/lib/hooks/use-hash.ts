@@ -26,6 +26,7 @@ export function useHash(): [string, (hash: string) => void] {
     }
   }, [])
 
+  // Handle hash changes from next/navigation
   React.useEffect(handleHashChange, [param]);
 
   return [hash, changeHash]
