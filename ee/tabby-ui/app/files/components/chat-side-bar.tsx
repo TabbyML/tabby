@@ -59,7 +59,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
             ),
             {
               hash: lineHash,
-              replace: true
+              replace: false
             }
           )
           return
