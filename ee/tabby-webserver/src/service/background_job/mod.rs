@@ -35,7 +35,7 @@ pub enum BackgroundJobEvent {
     SchedulerGitRepository(RepositoryConfig),
     SchedulerGithubGitlabRepository(ID),
     SyncThirdPartyRepositories(ID),
-    WebCrawler(String),
+    WebCrawler(String, ID),
     DeleteIndexedDocumentsBySource(String),
 }
 
@@ -47,7 +47,7 @@ impl BackgroundJobEvent {
                 SchedulerGithubGitlabJob::NAME
             }
             BackgroundJobEvent::SyncThirdPartyRepositories(_) => SyncIntegrationJob::NAME,
-            BackgroundJobEvent::WebCrawler(_) => WebCrawlerJob::NAME,
+            BackgroundJobEvent::WebCrawler(_, _) => WebCrawlerJob::NAME,
             BackgroundJobEvent::DeleteIndexedDocumentsBySource(_) => {
                 DeleteIndexedDocumentsJob::NAME
             }
@@ -100,13 +100,13 @@ pub async fn start(
                             let job = SchedulerGithubGitlabJob::new(integration_id);
                             job.run(job_logger.clone(), embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await
                         }
-                        BackgroundJobEvent::WebCrawler(url) => {
-                            let job = WebCrawlerJob::new(url);
+                        BackgroundJobEvent::WebCrawler(url, id) => {
+                            let job = WebCrawlerJob::new(url, id);
                             job.run(job_logger.clone(), embedding.clone()).await
                         }
                         BackgroundJobEvent::DeleteIndexedDocumentsBySource(source) => {
                             let job = DeleteIndexedDocumentsJob::new(source);
-                            job.run(embedding.clone()).await
+                            job.run().await
                         }
                     } {
                         cprintln!(job_logger, "{:?}", err);

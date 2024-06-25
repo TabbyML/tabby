@@ -1,6 +1,9 @@
 use async_stream::stream;
 use futures::{stream::BoxStream, Stream, StreamExt};
-use tabby_common::{index::IndexSchema, path};
+use tabby_common::{
+    index::{self, IndexSchema},
+    path,
+};
 use tantivy::{
     collector::TopDocs,
     doc,
@@ -15,7 +18,6 @@ use crate::tantivy_utils::open_or_create_index;
 #[async_trait::async_trait]
 pub trait IndexAttributeBuilder<T>: Send + Sync {
     async fn build_id(&self, document: &T) -> String;
-    async fn build_source(&self, document: &T) -> Option<String>;
     async fn build_attributes(&self, document: &T) -> serde_json::Value;
     async fn build_chunk_attributes(
         &self,
@@ -62,10 +64,13 @@ impl<T: Send + 'static> Indexer<T> {
     }
 
     pub async fn delete_from_source(&self, source: String) {
-        self.writer.delete_term(Term::from_field_text(
-            IndexSchema::instance().field_source,
-            &source,
-        ));
+        let mut term = Term::from_field_json_path(
+            IndexSchema::instance().field_chunk_attributes,
+            index::doc::fields::SOURCE,
+            false,
+        );
+        term.append_type_and_str(&source);
+        self.writer.delete_term(term);
     }
 
     async fn build_doc(&self, document: T) -> impl Stream<Item = TantivyDocument> + '_ {
@@ -79,15 +84,11 @@ impl<T: Send + 'static> Indexer<T> {
         let now = tantivy::time::OffsetDateTime::now_utc();
         let updated_at = tantivy::DateTime::from_utc(now);
 
-        let mut doc = doc! {
+        let doc = doc! {
             schema.field_id => id,
             schema.field_corpus => self.kind,
             schema.field_attributes => self.builder.build_attributes(&document).await,
             schema.field_updated_at => updated_at,
-        };
-
-        if let Some(source) = self.builder.build_source(&document).await {
-            doc.add_field_value(schema.field_source, &source);
         };
 
         futures::stream::once(async { doc })

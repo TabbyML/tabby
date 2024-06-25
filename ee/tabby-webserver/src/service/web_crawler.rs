@@ -3,7 +3,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::{DbConn, WebCrawlerUrlDAO};
-use tabby_scheduler::format_web_source;
 use tabby_schema::{
     job::{JobInfo, JobService},
     web_crawler::{WebCrawlerService, WebCrawlerUrl},
@@ -11,6 +10,10 @@ use tabby_schema::{
 };
 
 use super::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
+
+pub fn format_website_source(url_id: ID) -> String {
+    format!("website:{}", &*url_id)
+}
 
 pub fn create(db: DbConn, job_service: Arc<dyn JobService>) -> impl WebCrawlerService {
     WebCrawlerServiceImpl { db, job_service }
@@ -39,7 +42,7 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
         let mut converted_urls = vec![];
 
         for url in urls {
-            let event = BackgroundJobEvent::WebCrawler(url.url.clone());
+            let event = BackgroundJobEvent::WebCrawler(url.url.clone(), url.id.as_id());
 
             let job_info = self.job_service.get_job_info(event.to_command()).await?;
             converted_urls.push(to_web_crawler_url(url, job_info));
@@ -52,20 +55,18 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
 
         let _ = self
             .job_service
-            .trigger(BackgroundJobEvent::WebCrawler(url).to_command())
+            .trigger(BackgroundJobEvent::WebCrawler(url, id.as_id()).to_command())
             .await;
 
         Ok(id.as_id())
     }
 
     async fn delete_web_crawler_url(&self, id: ID) -> Result<()> {
-        let id = id.as_rowid()?;
+        let rowid = id.as_rowid()?;
 
-        let url = self.db.get_web_crawler_url(id).await?.url;
+        self.db.delete_web_crawler_url(rowid).await?;
 
-        self.db.delete_web_crawler_url(id).await?;
-
-        let source = format_web_source(&url);
+        let source = format_website_source(id);
         let _ = self
             .job_service
             .trigger(BackgroundJobEvent::DeleteIndexedDocumentsBySource(source).to_command())
@@ -100,7 +101,8 @@ mod tests {
         let url = "https://example.com".to_string();
         let id = service.create_web_crawler_url(url.clone()).await.unwrap();
 
-        let command = BackgroundJobEvent::WebCrawler("https://example.com".into()).to_command();
+        let command =
+            BackgroundJobEvent::WebCrawler("https://example.com".into(), id.clone()).to_command();
 
         db.create_job_run("web".into(), command).await.unwrap();
 

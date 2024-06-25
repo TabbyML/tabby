@@ -38,14 +38,11 @@ impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
         document.id.clone()
     }
 
-    async fn build_source(&self, document: &SourceDocument) -> Option<String> {
-        Some(document.source.clone())
-    }
-
     async fn build_attributes(&self, document: &SourceDocument) -> serde_json::Value {
         json!({
             doc::fields::TITLE: document.title,
             doc::fields::LINK: document.link,
+            doc::fields::SOURCE: document.source,
         })
     }
 
@@ -117,7 +114,20 @@ impl From<WebDocument> for SourceDocument {
     }
 }
 
+struct NoEmbedding;
+
+#[async_trait]
+impl Embedding for NoEmbedding {
+    async fn embed(&self, _prompt: &str) -> anyhow::Result<Vec<f32>> {
+        Ok(Default::default())
+    }
+}
+
 impl DocIndexer {
+    pub fn new_no_embedding() -> Self {
+        Self::new(Arc::new(NoEmbedding))
+    }
+
     pub fn new(embedding: Arc<dyn Embedding>) -> Self {
         let indexer = create_web_index(embedding);
         Self { indexer }

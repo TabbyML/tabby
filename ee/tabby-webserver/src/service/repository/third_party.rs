@@ -7,7 +7,6 @@ use juniper::ID;
 use strum::IntoEnumIterator;
 use tabby_common::config::RepositoryConfig;
 use tabby_db::{DbConn, ProvidedRepositoryDAO};
-use tabby_scheduler::format_issue_source;
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
     job::{JobInfo, JobService},
@@ -26,6 +25,10 @@ struct ThirdPartyRepositoryServiceImpl {
     db: DbConn,
     integration: Arc<dyn IntegrationService>,
     job: Arc<dyn JobService>,
+}
+
+pub fn format_issue_source(provider_id: ID, repository_id: ID) -> String {
+    format!("issue:{provider_id}:{repository_id}")
 }
 
 pub fn create(
@@ -142,7 +145,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
                 .trigger(BackgroundJobEvent::SchedulerGithubGitlabRepository(id).to_command())
                 .await;
         } else {
-            let source = format_issue_source(&*integration.id, &*repo.id);
+            let source = format_issue_source(integration.id, repo.id);
             let _ = self
                 .job
                 .trigger(BackgroundJobEvent::DeleteIndexedDocumentsBySource(source).to_command())

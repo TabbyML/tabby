@@ -3,7 +3,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
-use tabby_scheduler::format_issue_source;
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
     job::JobService,
@@ -12,7 +11,7 @@ use tabby_schema::{
 };
 
 use super::graphql_pagination_to_filter;
-use crate::service::background_job::BackgroundJobEvent;
+use crate::service::{background_job::BackgroundJobEvent, repository::format_issue_source};
 
 struct IntegrationServiceImpl {
     db: DbConn,
@@ -67,7 +66,7 @@ impl IntegrationService for IntegrationServiceImpl {
             )
             .await?
         {
-            let source = format_issue_source(&*id, &*repo.id);
+            let source = format_issue_source(id.clone(), repo.id);
             let _ = self
                 .job
                 .trigger(BackgroundJobEvent::DeleteIndexedDocumentsBySource(source).to_command())

@@ -18,6 +18,8 @@ use tabby_schema::{
     Result,
 };
 
+pub use third_party::format_issue_source;
+
 struct RepositoryServiceImpl {
     git: Arc<dyn GitRepositoryService>,
     third_party: Arc<dyn ThirdPartyRepositoryService>,
