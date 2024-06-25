@@ -16,8 +16,6 @@ use tabby_inference::Embedding;
 mod doc;
 use std::sync::Arc;
 
-use tracing::{debug, info};
-
 use crate::doc::SourceDocument;
 
 pub async fn crawl_index_docs<F>(
@@ -30,14 +28,14 @@ where
     F: Future<Output = ()>,
 {
     for url in urls {
-        debug!("Starting doc index pipeline for {url}");
+        logkit::info!("Starting doc index pipeline for {url}");
         let embedding = embedding.clone();
         let mut num_docs = 0;
         let doc_index = create_web_index(embedding.clone());
 
         let mut pipeline = Box::pin(crawl_pipeline(url).await?);
         while let Some(doc) = pipeline.next().await {
-            on_process_url(doc.url.clone()).await;
+            on_process_url(doc.url.clone());
             let source_doc = SourceDocument {
                 id: doc.url.clone(),
                 title: doc.metadata.title.unwrap_or_default(),
@@ -49,7 +47,7 @@ where
             num_docs += 1;
             doc_index.add(source_doc).await;
         }
-        info!("Crawled {} documents from '{}'", num_docs, url);
+        logkit::info!("Crawled {} documents from '{}'", num_docs, url);
         doc_index.commit();
     }
     Ok(())

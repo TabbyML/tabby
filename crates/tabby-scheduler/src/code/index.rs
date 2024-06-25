@@ -5,7 +5,7 @@ use futures::StreamExt;
 use ignore::Walk;
 use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
-use tracing::{debug, warn};
+use tracing::warn;
 
 use super::{
     create_code_index,
@@ -38,7 +38,7 @@ pub async fn garbage_collection() {
             }
         }
 
-        debug!("Finished garbage collection for code index: {num_to_keep} items kept, {num_to_delete} items removed");
+        logkit::info!("Finished garbage collection for code index: {num_to_keep} items kept, {num_to_delete} items removed");
         index.commit();
     }.collect::<()>().await;
 }
@@ -64,6 +64,8 @@ async fn add_changed_documents(repository: &RepositoryConfig, index: Indexer<Sou
             continue;
         }
 
+        logkit::info!("Indexing file: {}", file.path().display());
+
         let Some(code) = intelligence.compute_source_file(repository, file.path()) else {
             continue;
         };
@@ -76,6 +78,24 @@ async fn add_changed_documents(repository: &RepositoryConfig, index: Indexer<Sou
         tokio::spawn(async move {
             index.add(code).await;
         });
+    }
+
+    wait_for_index(index).await;
+}
+
+async fn wait_for_index(index: Arc<Indexer<SourceCode>>) {
+    let mut current_index = Box::new(index);
+    loop {
+        match Arc::try_unwrap(*current_index) {
+            Ok(index) => {
+                index.commit();
+                break;
+            }
+            Err(index) => {
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                *current_index = index;
+            }
+        }
     }
 }
 

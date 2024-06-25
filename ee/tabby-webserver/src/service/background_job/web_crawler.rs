@@ -31,8 +31,7 @@ impl WebCrawlerJob {
     ) -> tabby_schema::Result<()> {
         let source = format_website_source(self.id);
         tabby_scheduler::crawl_index_docs(&[self.url], embedding, source, move |url| {
-            let job_logger = job_logger.clone();
-            async move { cprintln!(job_logger, "Fetching {url}") }
+	        logkit::info!("Fetching {}", url);
         })
         .await?;
         Ok(())

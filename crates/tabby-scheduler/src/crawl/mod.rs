@@ -61,7 +61,7 @@ async fn crawl_url(start_url: &str) -> anyhow::Result<impl Stream<Item = KatanaR
             }
 
             // Skip if the content is larger than 1M.
-            if data.response.raw.len() > 1_000_000 {
+            if data.response.raw.as_ref().is_some_and(|x| x.len() > 1_000_000) {
                 debug!("Skipping {} as the content is larger than 1M", data.request.endpoint);
                 continue;
             }
@@ -138,7 +138,7 @@ mod tests {
                 headers,
                 body: Some("<p>Hello, World!</p>".to_owned()),
                 technologies: Default::default(),
-                raw: "HTTP/1.1 200 OK\nContent-Type: text/html\n".to_owned(),
+                raw: Some("HTTP/1.1 200 OK\nContent-Type: text/html\n".to_owned()),
             },
         };
 

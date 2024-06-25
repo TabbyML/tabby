@@ -1,16 +1,17 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
+import { isNil } from 'lodash-es'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
-import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useMutation } from '@/lib/tabby/gql'
 import { listWebCrawlerUrl } from '@/lib/tabby/query'
-import { Button } from '@/components/ui/button'
-import { IconCirclePlay, IconTrash } from '@/components/ui/icons'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { IconCirclePlay, IconSpinner, IconTrash } from '@/components/ui/icons'
 import {
   Pagination,
   PaginationContent,
@@ -77,8 +78,6 @@ export default function WebCrawlerTable() {
     setBefore(getBeforeCursor(page))
   }
 
-  const delayRefresh = useDebounceCallback(reexecuteQuery, 3000)
-
   const handleNavToPrevPage = () => {
     if (currentPage <= 1) return
     if (fetching) return
@@ -103,7 +102,7 @@ export default function WebCrawlerTable() {
         toast.success(
           'The job has been triggered successfully, it may take a few minutes to process.'
         )
-        delayRefresh.run()
+        reexecuteQuery()
       } else {
         toast.error(res?.error?.message || 'Failed to trigger job')
       }
@@ -128,12 +127,6 @@ export default function WebCrawlerTable() {
     }
   }, [pageNum, currentPage])
 
-  React.useEffect(() => {
-    return () => {
-      delayRefresh.cancel()
-    }
-  }, [currentPage])
-
   return (
     <LoadingWrapper loading={fetching}>
       <Table className="table-fixed border-b">
@@ -154,26 +147,51 @@ export default function WebCrawlerTable() {
           ) : (
             <>
               {currentPageUrls?.map(x => {
+                const lastJobRun = x.node.jobInfo.lastJobRun
+                const hasRunningJob =
+                  !!lastJobRun?.id && isNil(lastJobRun.exitCode)
+
                 return (
                   <TableRow key={x.node.id}>
                     <TableCell className="truncate">{x.node.url}</TableCell>
                     <TableCell>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={e =>
-                              handleTriggerJobRun(x.node.jobInfo?.command)
-                            }
-                          >
-                            <IconCirclePlay />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Run</p>
-                        </TooltipContent>
-                      </Tooltip>
+                      <div className="flex items-center gap-1.5">
+                        {hasRunningJob ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link
+                                href={`/jobs/detail?id=${lastJobRun.id}`}
+                                className={buttonVariants({
+                                  variant: 'ghost',
+                                  size: 'icon'
+                                })}
+                              >
+                                <IconSpinner />
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Navigate to job detail
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() =>
+                                  handleTriggerJobRun(x.node.jobInfo?.command)
+                                }
+                              >
+                                <IconCirclePlay className="h-5 w-5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Run</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="flex justify-end">
                       <div className="flex gap-1">

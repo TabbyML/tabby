@@ -80,17 +80,17 @@ pub async fn start(
                         continue;
                     };
 
-                    let mut job_logger = JobLogger::new(db.clone(), job.id).await;
+                    let logger = JobLogger::new(db.clone(), job.id);
+                    debug!("Background job {} started, command: {}", job.id, job.command);
                     let Ok(event) = serde_json::from_str::<BackgroundJobEvent>(&job.command) else {
-                        cprintln!(job_logger, "Failed to parse background job event, marking it as failed");
-                        job_logger.complete(-1).await;
+                        logkit::info!(exit_code = -1; "Failed to parse background job event, marking it as failed");
                         continue;
                     };
 
                     if let Err(err) = match event {
                         BackgroundJobEvent::SchedulerGitRepository(repository_config) => {
                             let job = SchedulerGitJob::new(repository_config);
-                            job.run(job_logger.clone(), embedding.clone()).await
+                            job.run(embedding.clone()).await
                         },
                         BackgroundJobEvent::SyncThirdPartyRepositories(integration_id) => {
                             let job = SyncIntegrationJob::new(integration_id);
@@ -98,22 +98,19 @@ pub async fn start(
                         }
                         BackgroundJobEvent::SchedulerGithubGitlabRepository(integration_id) => {
                             let job = SchedulerGithubGitlabJob::new(integration_id);
-                            job.run(job_logger.clone(), embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await
+                            job.run(embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await
                         }
-                        BackgroundJobEvent::WebCrawler(url, id) => {
-                            let job = WebCrawlerJob::new(url, id);
-                            job.run(job_logger.clone(), embedding.clone()).await
-                        }
-                        BackgroundJobEvent::DeleteIndexedDocumentsBySource(source) => {
-                            let job = DeleteIndexedDocumentsJob::new(source);
-                            job.run().await
+                        BackgroundJobEvent::WebCrawler(url) => {
+                            let job = WebCrawlerJob::new(url);
+                            job.run(embedding.clone()).await
                         }
                     } {
-                        cprintln!(job_logger, "{:?}", err);
-                        job_logger.complete(-1).await;
+                        logkit::info!(exit_code = 1; "Job failed {}", err);
                     } else {
-                        job_logger.complete(0).await;
+                        logkit::info!(exit_code = 0; "Job completed successfully");
                     }
+                    logger.finalize().await;
+                    debug!("Background job {} completed", job.id);
                 },
                 Some(now) = hourly.next() => {
                     if let Err(err) = DbMaintainanceJob::cron(now, db.clone()).await {
@@ -140,14 +137,3 @@ pub async fn start(
         }
     });
 }
-
-macro_rules! cprintln {
-    ($ctx:expr, $($params:tt)+) => {
-        {
-            tracing::debug!($($params)+);
-            $ctx.r#internal_println(format!($($params)+)).await;
-        }
-    }
-}
-
-use cprintln;

@@ -8,7 +8,6 @@ import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
-import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useMutation } from '@/lib/tabby/gql'
 import { listRepositories } from '@/lib/tabby/query'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -68,8 +67,6 @@ export default function RepositoryTable() {
     setBefore(getBeforeCursor(page))
   }
 
-  const delayRefresh = useDebounceCallback(reexecuteQuery, 3000)
-
   const currentPageRepos = React.useMemo(() => {
     return edges?.slice?.(
       (currentPage - 1) * PAGE_SIZE,
@@ -119,7 +116,7 @@ export default function RepositoryTable() {
         toast.success(
           'The job has been triggered successfully, it may take a few minutes to process.'
         )
-        delayRefresh.run()
+        reexecuteQuery()
       } else {
         toast.error(res?.error?.message || 'Failed to trigger job')
       }
@@ -132,12 +129,6 @@ export default function RepositoryTable() {
       setCurrentPage(pageNum)
     }
   }, [pageNum, currentPage])
-
-  React.useEffect(() => {
-    return () => {
-      delayRefresh.cancel()
-    }
-  }, [currentPage])
 
   return (
     <LoadingWrapper loading={fetching}>

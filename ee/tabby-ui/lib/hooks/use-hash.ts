@@ -1,9 +1,10 @@
 import React from 'react'
-import Router from 'next/router'
+import { useParams } from 'next/navigation'
 
 import { useLatest } from './use-latest'
 
 export function useHash(): [string, (hash: string) => void] {
+  const param = useParams()
   const [hash, setHash] = React.useState<string>('')
   const hashRef = useLatest(hash)
 
@@ -11,22 +12,22 @@ export function useHash(): [string, (hash: string) => void] {
     window.location.hash = hash
   }, [])
 
-  React.useEffect(() => {
-    const handleHashChange = () => {
-      const newHash = window.location.hash
-      if (hashRef.current !== newHash) {
-        setHash(newHash)
-      }
+  const handleHashChange = () => {
+    const newHash = window.location.hash
+    if (hashRef.current !== newHash) {
+      setHash(newHash)
     }
+  }
 
-    handleHashChange()
-
-    Router.events.on('hashChangeComplete', handleHashChange)
-
+  React.useEffect(() => {
+    window.addEventListener('hashchange', handleHashChange)
     return () => {
-      Router.events.off('hashChangeComplete', handleHashChange)
+      window.removeEventListener('hashchange', handleHashChange)
     }
   }, [])
+
+  // Handle hash changes from next/navigation
+  React.useEffect(handleHashChange, [param])
 
   return [hash, changeHash]
 }

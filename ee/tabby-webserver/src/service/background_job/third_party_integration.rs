@@ -6,7 +6,7 @@ use juniper::ID;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
-use tabby_scheduler::DocIndexer;
+use tabby_scheduler::{CodeIndexer, DocIndexer};
 use tabby_schema::{
     integration::{IntegrationKind, IntegrationService},
     job::JobService,
@@ -14,11 +14,7 @@ use tabby_schema::{
 };
 use tracing::debug;
 
-use super::{
-    git::SchedulerGitJob,
-    helper::{Job, JobLogger},
-    BackgroundJobEvent,
-};
+use super::{helper::Job, BackgroundJobEvent};
 
 mod issues;
 
@@ -85,7 +81,6 @@ impl SchedulerGithubGitlabJob {
 
     pub async fn run(
         self,
-        job_logger: JobLogger,
         embedding: Arc<dyn Embedding>,
         repository_service: Arc<dyn ThirdPartyRepositoryService>,
         integration_service: Arc<dyn IntegrationService>,
@@ -101,14 +96,16 @@ impl SchedulerGithubGitlabJob {
             .kind
             .format_authenticated_url(&repository.git_url, &integration.access_token)?;
 
-        let repo = RepositoryConfig::new(authenticated_url);
-
         // First, run the regular scheduler job to sync and index the repository
-        SchedulerGitJob::new(repo)
-            .run(job_logger, embedding.clone())
-            .await?;
+        logkit::info!(
+            "Pulling source code for repository {}",
+            repository.display_name
+        );
+        let mut code = CodeIndexer::default();
+        code.refresh(embedding.clone(), &RepositoryConfig::new(authenticated_url))
+            .await;
 
-        debug!("Indexing issues for repository {}", repository.display_name);
+        logkit::info!("Indexing issues for repository {}", repository.display_name);
 
         let index = DocIndexer::new(embedding);
         match &integration.kind {

@@ -37,6 +37,7 @@ tabby-inference = { path = "../tabby-inference" }
 git2.workspace = true
 insta.workspace = true
 async-trait.workspace = true
+logkit.workspace = true
 
 [dev-dependencies]
 temp_testdir = { workspace = true }
