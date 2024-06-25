@@ -17,6 +17,7 @@ export class Config extends EventEmitter {
     context.subscriptions.push(
       workspace.onDidChangeConfiguration(async (event) => {
         if (event.affectsConfiguration("tabby")) {
+          contextVariables.inlineCompletionTriggerMode = this.inlineCompletionTriggerMode;
           this.emit("updated");
         }
       }),
