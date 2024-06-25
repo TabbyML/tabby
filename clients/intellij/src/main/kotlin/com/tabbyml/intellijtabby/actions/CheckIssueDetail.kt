@@ -10,7 +10,7 @@ import com.tabbyml.intellijtabby.events.CombinedState
 import com.tabbyml.intellijtabby.lsp.ConnectionService
 import com.tabbyml.intellijtabby.lsp.protocol.IssueDetailParams
 import com.tabbyml.intellijtabby.lsp.protocol.IssueName
-import com.tabbyml.intellijtabby.settings.SettingsState
+import com.tabbyml.intellijtabby.settings.SettingsService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.await
@@ -22,7 +22,7 @@ class CheckIssueDetail : AnAction() {
     val combinedState = project.service<CombinedState>()
     val issueName = combinedState.state.agentIssue ?: return
 
-    val settings = project.service<SettingsState>()
+    val settings = service<SettingsService>()
     val connectionService = project.service<ConnectionService>()
     val scope = CoroutineScope(Dispatchers.IO)
 
@@ -110,7 +110,7 @@ class CheckIssueDetail : AnAction() {
     val project = e.getData(CommonDataKeys.PROJECT) ?: return
     val combinedState = project.service<CombinedState>()
 
-    val muted = mutableListOf<IssueName>()
+    val muted = mutableListOf<String>()
     if (combinedState.state.settings.notificationsMuted.contains("completionResponseTimeIssues")) {
       muted += listOf(IssueName.SLOW_COMPLETION_RESPONSE_TIME, IssueName.HIGH_COMPLETION_TIMEOUT_RATE)
     }

@@ -28,7 +28,7 @@ import javax.swing.JButton
 import javax.swing.JPanel
 
 class SettingsPanel(private val project: Project) {
-  private val settings = project.service<SettingsState>()
+  private val settings = service<SettingsService>()
   private suspend fun getServer() = project.service<ConnectionService>().getServerAsync()
 
   private val serverEndpointTextField = JBTextField()
@@ -48,7 +48,7 @@ class SettingsPanel(private val project: Project) {
             indicator.text = "Checking connection..."
             settings.serverEndpoint = serverEndpoint
             settings.serverToken = serverToken
-            settings.notifyChanges()
+            settings.notifyChanges(project)
 
             val server = getServer() ?: return@launch
             val status = server.agentFeature.status().await()
@@ -144,7 +144,7 @@ class SettingsPanel(private val project: Project) {
   private val keymapStyleTabbyStyleRadioButton = JBRadioButton("Tabby style")
   private val keymapStyleCustomRadioButton = JBRadioButton("<html><a href=''>Customize...</a><html>").apply {
     addActionListener {
-      ShowSettingsUtil.getInstance().showSettingsDialog(null, KeymapPanel::class.java) { panel ->
+      ShowSettingsUtil.getInstance().showSettingsDialog(project, KeymapPanel::class.java) { panel ->
         CoroutineScope(Dispatchers.IO).launch {
           Thread.sleep(500) // FIXME: It seems that we need to wait for the KeymapPanel to be ready?
           invokeLater(ModalityState.stateForComponent(panel)) {
@@ -180,7 +180,7 @@ class SettingsPanel(private val project: Project) {
 
   private val resetMutedNotificationsButton = JButton("Reset \"Don't Show Again\" Notifications").apply {
     addActionListener {
-      settings.notificationsMuted = listOf()
+      settings.notificationsMuted = mutableListOf()
       invokeLater(ModalityState.stateForComponent(this@SettingsPanel.mainPanel)) {
         Messages.showInfoMessage("Reset \"Don't Show Again\" notifications successfully.", "Reset Notifications")
       }

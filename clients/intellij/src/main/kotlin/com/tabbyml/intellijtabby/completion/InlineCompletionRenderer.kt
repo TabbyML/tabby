@@ -40,10 +40,7 @@ class InlineCompletionRenderer {
     private set
 
   fun show(
-    editor: Editor,
-    offset: Int,
-    completion: InlineCompletionItem,
-    callback: (context: RenderingContext) -> Unit = {}
+    editor: Editor, offset: Int, completion: InlineCompletionItem, callback: (context: RenderingContext) -> Unit = {}
   ) {
     invokeLater {
       current?.let {
@@ -64,8 +61,8 @@ class InlineCompletionRenderer {
       val displayAt = System.currentTimeMillis()
       val id = "view-${cmplId}-at-${displayAt}"
 
-      val prefixReplaceLength = completion.replaceRange?.let { offset - it.start } ?: 0
-      val suffixReplaceLength = completion.replaceRange?.let { it.end - offset } ?: 0
+      val prefixReplaceLength = offset - completion.replaceRange.start
+      val suffixReplaceLength = completion.replaceRange.end - offset
       val text = completion.insertText.substring(prefixReplaceLength)
       if (text.isEmpty()) {
         // Nothing to display
@@ -185,7 +182,7 @@ class InlineCompletionRenderer {
       }
 
       private fun getFont(editor: Editor): Font {
-        return editor.colorsScheme.getFont(EditorFontType.PLAIN).let {
+        return editor.colorsScheme.getFont(EditorFontType.ITALIC).let {
           UIUtil.getFontWithFallbackIfNeeded(it, text).deriveFont(editor.colorsScheme.editorFontSize)
         }
       }

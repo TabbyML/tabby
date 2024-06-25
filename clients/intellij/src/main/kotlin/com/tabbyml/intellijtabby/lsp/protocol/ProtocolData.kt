@@ -1,7 +1,11 @@
 package com.tabbyml.intellijtabby.lsp.protocol
 
-import com.google.gson.annotations.JsonAdapter
-import com.google.gson.annotations.SerializedName
+import com.tabbyml.intellijtabby.lsp.protocol.ClientProvidedConfig.InlineCompletionConfig.TriggerMode
+import com.tabbyml.intellijtabby.lsp.protocol.ClientProvidedConfig.Keybindings
+import com.tabbyml.intellijtabby.lsp.protocol.EventParams.EventType
+import com.tabbyml.intellijtabby.lsp.protocol.EventParams.SelectKind
+import com.tabbyml.intellijtabby.lsp.protocol.IssueDetailParams.HelpMessageFormat
+import com.tabbyml.intellijtabby.lsp.protocol.ReadFileParams.Format
 import org.eclipse.lsp4j.*
 
 data class InitializeParams(
@@ -9,7 +13,10 @@ data class InitializeParams(
   val clientInfo: ClientInfo? = null,
   val initializationOptions: InitializationOptions? = null,
   val capabilities: ClientCapabilities,
-  val trace: TraceValue? = null,
+  /**
+   * [TraceValue]
+   */
+  val trace: String? = null,
   val workspaceFolders: List<WorkspaceFolder>? = null
 )
 
@@ -35,7 +42,6 @@ data class ClientCapabilities(
   val tabby: TabbyClientCapabilities? = null,
 )
 
-
 data class TextDocumentClientCapabilities(
   val synchronization: SynchronizationCapabilities? = null,
   val completion: CompletionCapabilities? = null,
@@ -52,17 +58,6 @@ data class TabbyClientCapabilities(
   val gitProvider: Boolean? = null,
   val editorOptions: Boolean? = null,
 )
-
-enum class TraceValue {
-  @SerializedName("off")
-  OFF,
-
-  @SerializedName("messages")
-  MESSAGES,
-
-  @SerializedName("verbose")
-  VERBOSE,
-}
 
 data class InitializeResult(
   val capabilities: ServerCapabilities,
@@ -90,7 +85,10 @@ data class TabbyServerCapabilities(
 data class ClientProvidedConfig(
   val server: ServerConfig? = null,
   val inlineCompletion: InlineCompletionConfig? = null,
-  val keybindings: KeybindingsConfig? = null,
+  /**
+   * [Keybindings]
+   */
+  val keybindings: String? = null,
   val anonymousUsageTracking: AnonymousUsageTrackingConfig? = null,
 ) {
   data class ServerConfig(
@@ -99,26 +97,25 @@ data class ClientProvidedConfig(
   )
 
   data class InlineCompletionConfig(
-    val triggerMode: TriggerMode? = null,
+    /**
+     * [TriggerMode]
+     */
+    val triggerMode: String? = null,
   ) {
-    enum class TriggerMode {
-      @SerializedName("auto")
-      AUTO,
-
-      @SerializedName("manual")
-      MANUAL,
+    sealed class TriggerMode {
+      companion object {
+        const val AUTO = "auto"
+        const val MANUAL = "manual"
+      }
     }
   }
 
-  enum class KeybindingsConfig {
-    @SerializedName("default")
-    DEFAULT,
-
-    @SerializedName("tabby-style")
-    TABBY_STYLE,
-
-    @SerializedName("customize")
-    CUSTOMIZE,
+  sealed class Keybindings {
+    companion object {
+      const val DEFAULT = "default"
+      const val TABBY_STYLE = "tabby-style"
+      const val CUSTOMIZE = "customize"
+    }
   }
 
   data class AnonymousUsageTrackingConfig(
@@ -169,8 +166,7 @@ data class InlineCompletionParams(
     val triggerKind: InlineCompletionTriggerKind,
     val selectedCompletionInfo: SelectedCompletionInfo? = null,
   ) {
-    @JsonAdapter(EnumIntTypeAdapter.Factory::class)
-    enum class InlineCompletionTriggerKind(override val value: Int) : EnumInt {
+    enum class InlineCompletionTriggerKind(val value: Int) {
       Invoked(0), Automatic(1);
     }
 
@@ -193,7 +189,6 @@ data class InlineCompletionItem(
   val command: Command? = null,
   val data: Data? = null,
 ) {
-
   data class Data(
     val eventId: CompletionEventId? = null
   )
@@ -205,26 +200,30 @@ data class CompletionEventId(
 )
 
 data class EventParams(
-  val type: EventType,
-  val selectKind: SelectKind? = null,
+  /**
+   * [EventType]
+   */
+  val type: String,
+  /**
+   * [SelectKind]
+   */
+  val selectKind: String? = null,
   val eventId: CompletionEventId? = null,
   val viewId: String? = null,
   val elapsed: Int? = null,
 ) {
-  enum class EventType {
-    @SerializedName("view")
-    VIEW,
-
-    @SerializedName("select")
-    SELECT,
-
-    @SerializedName("dismiss")
-    DISMISS,
+  sealed class EventType {
+    companion object {
+      const val VIEW = "view"
+      const val SELECT = "select"
+      const val DISMISS = "dismiss"
+    }
   }
 
-  enum class SelectKind {
-    @SerializedName("line")
-    LINE,
+  sealed class SelectKind {
+    companion object {
+      const val LINE = "line"
+    }
   }
 }
 
@@ -244,69 +243,77 @@ data class ServerInfo(
 }
 
 data class DidChangeStatusParams(
-  val status: Status,
+  /**
+   * [Status]
+   */
+  val status: String,
 )
 
-enum class Status {
-  @SerializedName("notInitialized")
-  NOT_INITIALIZED,
-
-  @SerializedName("ready")
-  READY,
-
-  @SerializedName("disconnected")
-  DISCONNECTED,
-
-  @SerializedName("unauthorized")
-  UNAUTHORIZED,
-
-  @SerializedName("finalized")
-  FINALIZED
+sealed class Status {
+  companion object {
+    const val NOT_INITIALIZED = "notInitialized"
+    const val READY = "ready"
+    const val DISCONNECTED = "disconnected"
+    const val UNAUTHORIZED = "unauthorized"
+    const val FINALIZED = "finalized"
+  }
 }
 
 typealias DidUpdateIssueParams = IssueList
 
 data class IssueList(
-  val issues: List<IssueName>
+  /**
+   * List of [IssueName]
+   */
+  val issues: List<String>
 )
 
-enum class IssueName {
-  @SerializedName("slowCompletionResponseTime")
-  SLOW_COMPLETION_RESPONSE_TIME,
-
-  @SerializedName("highCompletionTimeoutRate")
-  HIGH_COMPLETION_TIMEOUT_RATE,
-
-  @SerializedName("connectionFailed")
-  CONNECTION_FAILED
+sealed class IssueName {
+  companion object {
+    const val SLOW_COMPLETION_RESPONSE_TIME = "slowCompletionResponseTime"
+    const val HIGH_COMPLETION_TIMEOUT_RATE = "highCompletionTimeoutRate"
+    const val CONNECTION_FAILED = "connectionFailed"
+  }
 }
 
 data class IssueDetailParams(
-  val name: IssueName,
-  val helpMessageFormat: HelpMessageFormat? = null,
+  /**
+   * [IssueName]
+   */
+  val name: String,
+  /**
+   * [HelpMessageFormat]
+   */
+  val helpMessageFormat: String? = null,
 ) {
-  enum class HelpMessageFormat {
-    @SerializedName("markdown")
-    MARKDOWN,
-
-    @SerializedName("html")
-    HTML,
+  sealed class HelpMessageFormat {
+    companion object {
+      const val MARKDOWN = "markdown"
+      const val HTML = "html"
+    }
   }
 }
 
 data class IssueDetailResult(
-  val name: IssueName,
+  /**
+   * [IssueName]
+   */
+  val name: String,
   val helpMessage: String? = null,
 )
 
 data class ReadFileParams(
   val uri: String,
-  val format: Format,
+  /**
+   * [Format]
+   */
+  val format: String,
   val range: Range? = null,
 ) {
-  enum class Format {
-    @SerializedName("text")
-    TEXT,
+  sealed class Format {
+    companion object {
+      const val TEXT = "text"
+    }
   }
 }
 

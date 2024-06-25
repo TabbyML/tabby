@@ -24,6 +24,7 @@ import com.tabbyml.intellijtabby.lsp.offsetInDocument
 import com.tabbyml.intellijtabby.lsp.positionInDocument
 import com.tabbyml.intellijtabby.lsp.protocol.EventParams
 import com.tabbyml.intellijtabby.lsp.protocol.InlineCompletionParams
+import com.tabbyml.intellijtabby.settings.SettingsService
 import com.tabbyml.intellijtabby.settings.SettingsState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -40,13 +41,14 @@ class InlineCompletionService(private val project: Project) : Disposable {
   private val scope = CoroutineScope(Dispatchers.IO)
   private suspend fun getServer() = project.service<ConnectionService>().getServerAsync()
 
-  private val settings = project.service<SettingsState>()
+  private val settings = service<SettingsService>()
   private val renderer = InlineCompletionRenderer()
 
   data class InlineCompletionContext(
     val request: Request,
     val job: Job,
     val response: Response? = null,
+    val partialAccepted: Boolean = false,
   ) {
     data class Request(
       val editor: Editor,
@@ -56,10 +58,11 @@ class InlineCompletionService(private val project: Project) : Disposable {
       val manually: Boolean,
     ) {
       fun withManually(manually: Boolean = true): Request {
-        if (this.manually == manually) {
-          return this
-        }
         return Request(editor, document, modificationStamp, offset, manually)
+      }
+
+      fun isMatch(editor: Editor, offset: Int?): Boolean {
+        return this.editor == editor && this.document == editor.document && this.modificationStamp == editor.document.modificationStamp && offset?.let { this.offset == it } != false
       }
 
       companion object {
@@ -82,10 +85,27 @@ class InlineCompletionService(private val project: Project) : Disposable {
     }
 
     fun withUpdatedItemIndex(itemIndex: Int): InlineCompletionContext {
-      if (response != null) {
-        return withResponse(response.completionList, itemIndex)
-      }
-      return this
+      val response = this.response ?: return this
+      return withResponse(response.completionList, itemIndex)
+    }
+
+    fun withPartialAccepted(acceptedItem: InlineCompletionItem, acceptedLength: Int): InlineCompletionContext {
+      val forwardRequest = Request(
+        request.editor, request.document, request.modificationStamp, request.offset + acceptedLength, request.manually
+      )
+      val response = this.response ?: return this
+      val forwardResponse = Response(
+        completionList = InlineCompletionList(
+          true, listOf(
+            InlineCompletionItem(
+              insertText = acceptedItem.insertText, replaceRange = InlineCompletionItem.Range(
+                acceptedItem.replaceRange.start, acceptedItem.replaceRange.end + acceptedLength
+              ), data = acceptedItem.data
+            )
+          )
+        ), itemIndex = 0
+      )
+      return InlineCompletionContext(forwardRequest, job, forwardResponse, true)
     }
   }
 
@@ -101,16 +121,20 @@ class InlineCompletionService(private val project: Project) : Disposable {
     val offset = renderingContext.offset
     val lineStart = document.getLineStartOffset(document.getLineNumber(offset))
     val linePrefix = document.getText(TextRange(lineStart, offset))
-    val visibleText = completionItem.insertText.substring(completionItem.replaceRange?.let { offset - it.start } ?: 0)
+    val visibleText = completionItem.insertText.substring(offset - completionItem.replaceRange.start)
     return linePrefix.isBlank() && visibleText.matches(Regex("(\\t+| {2,}).*"))
   }
 
   init {
-    if (settings.settings().completionTriggerMode == SettingsState.TriggerMode.AUTOMATIC) {
+    logger.debug("Initialize InlineCompletionService.")
+    val triggerMode = settings.settings().completionTriggerMode
+    logger.debug("TriggerMode: $triggerMode")
+    if (triggerMode == SettingsState.TriggerMode.AUTOMATIC) {
       registerAutoTriggerListener()
     }
-    settingsMessageBusConnection.subscribe(SettingsState.Listener.TOPIC, object : SettingsState.Listener {
-      override fun settingsChanged(settings: SettingsState.Settings) {
+    settingsMessageBusConnection.subscribe(SettingsService.Listener.TOPIC, object : SettingsService.Listener {
+      override fun settingsChanged(settings: SettingsService.Settings) {
+        logger.debug("TriggerMode updated: ${settings.completionTriggerMode}")
         if (settings.completionTriggerMode == SettingsState.TriggerMode.AUTOMATIC) {
           registerAutoTriggerListener()
         } else {
@@ -121,8 +145,9 @@ class InlineCompletionService(private val project: Project) : Disposable {
   }
 
   private var autoTriggerMessageBusConnection: MessageBusConnection? = null
-
+  private var autoTriggerPreparedOffset: Int? = null
   private fun registerAutoTriggerListener() {
+    logger.debug("Register AutoTrigger listener.")
     val connection = project.messageBus.connect()
     autoTriggerMessageBusConnection = connection
     val editorManager = FileEditorManager.getInstance(project)
@@ -130,11 +155,12 @@ class InlineCompletionService(private val project: Project) : Disposable {
     connection.subscribe(DocumentListener.TOPIC, object : DocumentListener {
       override fun documentChanged(document: Document, editor: Editor, event: DocumentEvent) {
         if (editorManager.selectedTextEditor == editor) {
-          val request = InlineCompletionContext.Request.from(editor)
-          if (current?.request == request) {
-            // keep ongoing completion
+          if (event.newFragment.isEmpty()) {
+            // a delete or backspace input, invoke directly
+            provideInlineCompletion(editor, event.offset)
           } else {
-            provideInlineCompletion(editor, request.offset)
+            // otherwise wait for a caret event
+            autoTriggerPreparedOffset = event.offset + event.newFragment.length
           }
         }
       }
@@ -143,10 +169,13 @@ class InlineCompletionService(private val project: Project) : Disposable {
     connection.subscribe(CaretListener.TOPIC, object : CaretListener {
       override fun caretPositionChanged(editor: Editor, event: CaretEvent) {
         if (editorManager.selectedTextEditor == editor) {
-          val request = InlineCompletionContext.Request.from(editor)
-          if (current?.request == request) {
-            // keep ongoing completion
+          val offset = editor.caretModel.offset
+          if (offset == autoTriggerPreparedOffset) {
+            if (current?.request?.isMatch(editor, offset) != true) {
+              provideInlineCompletion(editor, offset)
+            }
           } else {
+            autoTriggerPreparedOffset = null
             dismiss()
           }
         }
@@ -155,12 +184,14 @@ class InlineCompletionService(private val project: Project) : Disposable {
 
     connection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, object : FileEditorManagerListener {
       override fun selectionChanged(event: FileEditorManagerEvent) {
+        autoTriggerPreparedOffset = null
         dismiss()
       }
     })
   }
 
   private fun unregisterAutoTriggerListener() {
+    logger.debug("Unregister AutoTrigger listener.")
     autoTriggerMessageBusConnection?.dispose()
     autoTriggerMessageBusConnection = null
   }
@@ -188,16 +219,17 @@ class InlineCompletionService(private val project: Project) : Disposable {
       InlineCompletionList(
         isIncomplete = list.isIncomplete,
         items = list.items.map { item ->
-          InlineCompletionItem(
-            insertText = item.insertText, replaceRange = item.range?.let {
-              InlineCompletionItem.Range(
-                start = offsetInDocument(requestContext.document, it.start),
-                end = offsetInDocument(requestContext.document, it.end),
-              )
-            }, data = InlineCompletionItem.Data(
-              eventId = item.data?.eventId
+          InlineCompletionItem(insertText = item.insertText, replaceRange = item.range?.let {
+            InlineCompletionItem.Range(
+              start = offsetInDocument(requestContext.document, it.start),
+              end = offsetInDocument(requestContext.document, it.end),
             )
-          )
+          } ?: InlineCompletionItem.Range(
+            start = requestContext.offset,
+            end = requestContext.offset,
+          ), data = InlineCompletionItem.Data(
+            eventId = item.data?.eventId
+          ))
         },
       )
     }
@@ -209,7 +241,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
   ): Job {
     return scope.launch {
       val params = buildInlineCompletionParams(requestContext)
-      logger.debug("Trigger inline completion: $params")
+      logger.debug("Request inline completion: $params")
       publisher.loadingStateChanged(true)
       val server = getServer() ?: return@launch
       val inlineCompletionList = server.textDocumentFeature.inlineCompletion(params).await()
@@ -227,10 +259,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
     val editor = context.request.editor
     val offset = context.request.offset
     val completionItem = context.response?.let {
-      it.completionList.items[it.itemIndex]
-    }
-    renderer.current?.let {
-      telemetryEvent(EventParams.EventType.DISMISS, it)
+      it.completionList.items.getOrNull(it.itemIndex)
     }
     if (completionItem == null) {
       renderer.hide()
@@ -249,9 +278,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
   }
 
   private fun telemetryEvent(
-    type: EventParams.EventType,
-    renderingContext: InlineCompletionRenderer.RenderingContext,
-    acceptType: AcceptType? = null
+    type: String, renderingContext: InlineCompletionRenderer.RenderingContext, acceptType: AcceptType? = null
   ) {
     scope.launch {
       getServer()?.telemetryFeature?.event(
@@ -273,9 +300,12 @@ class InlineCompletionService(private val project: Project) : Disposable {
   }
 
   fun provideInlineCompletion(editor: Editor, offset: Int, manually: Boolean = false) {
+    logger.debug("Provide inline completion at $editor $offset $manually")
     current?.let {
       it.job.cancel()
-      renderer.hide()
+      if (!it.partialAccepted) {
+        renderer.hide()
+      }
       current = null
     }
     val requestContext = InlineCompletionContext.Request.from(editor, offset).withManually(manually)
@@ -290,9 +320,10 @@ class InlineCompletionService(private val project: Project) : Disposable {
     NEXT, PREVIOUS,
   }
 
-  fun cycle(editor: Editor, offset: Int, direction: CycleDirection) {
+  fun cycle(editor: Editor, offset: Int?, direction: CycleDirection) {
+    logger.debug("Cycle inline completion at $editor $offset $direction")
     val context = current ?: return
-    if (context.request.editor != editor || context.request.offset != offset || context.request.modificationStamp != editor.document.modificationStamp) {
+    if (!context.request.isMatch(editor, offset)) {
       return
     }
     val responseContext = context.response ?: return
@@ -318,19 +349,20 @@ class InlineCompletionService(private val project: Project) : Disposable {
     FULL_COMPLETION, NEXT_WORD, NEXT_LINE,
   }
 
-  fun accept(editor: Editor, offset: Int, type: AcceptType) {
+  fun accept(editor: Editor, offset: Int?, type: AcceptType) {
+    logger.debug("Accept inline completion at $editor $offset $type")
     val context = current ?: return
-    if (context.request.editor != editor || context.request.offset != offset || context.request.modificationStamp != editor.document.modificationStamp) {
+    if (!context.request.isMatch(editor, offset)) {
       return
     }
-    logger.debug("Accept inline completion: $type: $context")
+    val originOffset = context.request.offset
     val completionItem = context.response?.let {
-      it.completionList.items[it.itemIndex]
+      it.completionList.items.getOrNull(it.itemIndex)
     }
     if (completionItem == null) {
       return
     }
-    val prefixReplaceLength = completionItem.replaceRange?.let { offset - it.start } ?: 0
+    val prefixReplaceLength = originOffset - completionItem.replaceRange.start
     val completionText = completionItem.insertText.substring(prefixReplaceLength)
     val text = when (type) {
       AcceptType.FULL_COMPLETION -> completionText
@@ -351,23 +383,31 @@ class InlineCompletionService(private val project: Project) : Disposable {
     }
     invokeLater {
       WriteCommandAction.runWriteCommandAction(editor.project) {
-        completionItem.replaceRange?.let { editor.document.deleteString(offset, it.end) }
-        editor.document.insertString(offset, text)
-        editor.caretModel.moveToOffset(offset + text.length)
+        editor.document.replaceString(originOffset, completionItem.replaceRange.end, text)
+        editor.caretModel.moveToOffset(originOffset + text.length)
       }
     }
     renderer.current?.let {
       telemetryEvent(EventParams.EventType.SELECT, it, type)
     }
-    renderer.hide()
-    current = null
+    if (type == AcceptType.FULL_COMPLETION) {
+      renderer.hide()
+      current = null
+    } else {
+      current = context.withPartialAccepted(completionItem, text.length)
+      renderCurrentResponse()
+    }
   }
 
   fun dismiss() {
+    logger.debug("Dismiss inline completion.")
+    renderer.current?.let {
+      telemetryEvent(EventParams.EventType.DISMISS, it)
+      renderer.hide()
+    }
     current?.let {
       it.job.cancel()
       publisher.loadingStateChanged(false)
-      renderer.hide()
       current = null
     }
   }

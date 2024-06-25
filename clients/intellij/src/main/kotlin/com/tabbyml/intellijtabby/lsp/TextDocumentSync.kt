@@ -52,7 +52,7 @@ class TextDocumentSync(private val project: Project) : Disposable {
       return DidOpenTextDocumentParams(
         TextDocumentItem(
           editor.virtualFile.url,
-          editor.virtualFile.let { psiManager.findFile(it) }?.getLanguageId() ?: "plaintext",
+          editor.virtualFile.let { psiManager.findFileWithReadLock(it) }?.getLanguageId() ?: "plaintext",
           editor.document.modificationStamp.toInt(),
           editor.document.text,
         )

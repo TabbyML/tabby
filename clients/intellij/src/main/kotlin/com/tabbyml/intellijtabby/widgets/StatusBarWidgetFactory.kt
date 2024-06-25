@@ -106,7 +106,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
               }
 
               Status.READY -> {
-                val muted = mutableListOf<IssueName>()
+                val muted = mutableListOf<String>()
                 if (combinedState.settings.notificationsMuted.contains("completionResponseTimeIssues")) {
                   muted += listOf(IssueName.SLOW_COMPLETION_RESPONSE_TIME, IssueName.HIGH_COMPLETION_TIMEOUT_RATE)
                 }
@@ -117,6 +117,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
                     IssueName.SLOW_COMPLETION_RESPONSE_TIME -> "Tabby: Completion requests appear to take too much time"
                     IssueName.HIGH_COMPLETION_TIMEOUT_RATE -> "Tabby: Most completion requests timed out"
                     IssueName.CONNECTION_FAILED -> "Tabby: Cannot connect to Server, please check settings"
+                    else -> "Tabby: Please check issues"
                   }
                 } else if (combinedState.isInlineCompletionLoading) {
                   icon = AnimatedIcon.Default()

@@ -21,7 +21,10 @@ import com.tabbyml.intellijtabby.lsp.protocol.InitializeParams
 import com.tabbyml.intellijtabby.lsp.protocol.InitializeResult
 import com.tabbyml.intellijtabby.lsp.protocol.TextDocumentClientCapabilities
 import com.tabbyml.intellijtabby.lsp.protocol.server.LanguageServer
-import com.tabbyml.intellijtabby.notifications.notifyAuthRequired
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.future.await
+import kotlinx.coroutines.launch
 import org.eclipse.lsp4j.*
 import java.util.concurrent.CompletableFuture
 
@@ -29,6 +32,7 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
   Disposable {
   private val logger = Logger.getInstance(LanguageClient::class.java)
   private val publisher = project.messageBus.syncPublisher(AgentListener.TOPIC)
+  private val scope = CoroutineScope(Dispatchers.IO)
   private val virtualFileManager = VirtualFileManager.getInstance()
   private val psiManager = PsiManager.getInstance(project)
   private val gitProvider = project.service<GitProvider>()
@@ -36,7 +40,6 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
   private val textDocumentSync = TextDocumentSync(project)
 
   override fun buildInitializeParams(): InitializeParams {
-    logger.info("Building initialize params...")
     val appInfo = ApplicationInfo.getInstance()
     val appVersion = appInfo.fullVersion
     val appName = appInfo.fullApplicationName.replace(appVersion, "").trim()
@@ -69,20 +72,21 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
         ),
       ), workspaceFolders = getWorkspaceFolders()
     )
-    logger.info("Initialize params $params")
+    logger.info("Initialize params: $params")
     return params
   }
 
   override fun processInitializeResult(server: LanguageServer, result: InitializeResult?) {
     configurationSync.startSync(server)
     textDocumentSync.startSync(server)
+    scope.launch {
+      publisher.agentStatusChanged(server.agentFeature.status().await())
+      publisher.agentIssueUpdated(server.agentFeature.issues().await())
+    }
   }
 
   override fun didChangeStatus(params: DidChangeStatusParams) {
     publisher.agentStatusChanged(params.status)
-    if (params.status == Status.UNAUTHORIZED) {
-      notifyAuthRequired()
-    }
   }
 
   override fun didUpdateIssues(params: DidUpdateIssueParams) {
@@ -128,6 +132,16 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
     }
   }
 
+  override fun registerCapability(params: RegistrationParams): CompletableFuture<Void> {
+    // nothing to do for now
+    return CompletableFuture<Void>().apply { complete(null) }
+  }
+
+  override fun unregisterCapability(params: UnregistrationParams): CompletableFuture<Void> {
+    // nothing to do for now
+    return CompletableFuture<Void>().apply { complete(null) }
+  }
+
   override fun configuration(params: Any): CompletableFuture<List<ClientProvidedConfig>?> {
     return CompletableFuture<List<ClientProvidedConfig>?>().apply {
       complete(listOf(configurationSync.getConfiguration()))
@@ -160,7 +174,7 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
   }
 
   private fun findPsiFile(fileUri: String): PsiFile? {
-    return virtualFileManager.findFileByUrl(fileUri)?.let { psiManager.findFile(it) }
+    return virtualFileManager.findFileByUrl(fileUri)?.let { psiManager.findFileWithReadLock(it) }
   }
 
   private fun getWorkspaceFolders(): List<WorkspaceFolder> {
@@ -170,7 +184,7 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
   }
 
   interface AgentListener {
-    fun agentStatusChanged(status: Status) {}
+    fun agentStatusChanged(status: String) {}
     fun agentIssueUpdated(issueList: IssueList) {}
 
     companion object {

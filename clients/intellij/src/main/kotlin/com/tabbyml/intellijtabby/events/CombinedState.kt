@@ -9,9 +9,9 @@ import com.tabbyml.intellijtabby.completion.InlineCompletionService
 import com.tabbyml.intellijtabby.lsp.ConnectionService
 import com.tabbyml.intellijtabby.lsp.LanguageClient
 import com.tabbyml.intellijtabby.lsp.protocol.IssueList
-import com.tabbyml.intellijtabby.lsp.protocol.IssueName
 import com.tabbyml.intellijtabby.lsp.protocol.Status
-import com.tabbyml.intellijtabby.settings.SettingsState
+import com.tabbyml.intellijtabby.notifications.notifyAuthRequired
+import com.tabbyml.intellijtabby.settings.SettingsService
 
 @Service(Service.Level.PROJECT)
 class CombinedState(private val project: Project) : Disposable {
@@ -20,13 +20,13 @@ class CombinedState(private val project: Project) : Disposable {
   private val publisher = project.messageBus.syncPublisher(Listener.TOPIC)
 
   data class State(
-    val settings: SettingsState.Settings,
+    val settings: SettingsService.Settings,
     val connectionState: ConnectionService.State,
-    val agentStatus: Status,
-    val agentIssue: IssueName?,
+    val agentStatus: String,
+    val agentIssue: String?,
     val isInlineCompletionLoading: Boolean,
   ) {
-    fun withSettings(settings: SettingsState.Settings): State {
+    fun withSettings(settings: SettingsService.Settings): State {
       return State(settings, connectionState, agentStatus, agentIssue, isInlineCompletionLoading)
     }
 
@@ -34,11 +34,11 @@ class CombinedState(private val project: Project) : Disposable {
       return State(settings, connectionState, agentStatus, agentIssue, isInlineCompletionLoading)
     }
 
-    fun withAgentStatus(agentStatus: Status): State {
+    fun withAgentStatus(agentStatus: String): State {
       return State(settings, connectionState, agentStatus, agentIssue, isInlineCompletionLoading)
     }
 
-    fun withAgentIssue(currentIssue: IssueName?): State {
+    fun withAgentIssue(currentIssue: String?): State {
       return State(settings, connectionState, agentStatus, currentIssue, isInlineCompletionLoading)
     }
 
@@ -52,7 +52,7 @@ class CombinedState(private val project: Project) : Disposable {
   }
 
   var state = State(
-    project.service<SettingsState>().settings(),
+    service<SettingsService>().settings(),
     ConnectionService.State.INITIALIZING,
     Status.NOT_INITIALIZED,
     null,
@@ -61,8 +61,8 @@ class CombinedState(private val project: Project) : Disposable {
     private set
 
   init {
-    messageBusConnection.subscribe(SettingsState.Listener.TOPIC, object : SettingsState.Listener {
-      override fun settingsChanged(settings: SettingsState.Settings) {
+    messageBusConnection.subscribe(SettingsService.Listener.TOPIC, object : SettingsService.Listener {
+      override fun settingsChanged(settings: SettingsService.Settings) {
         state = state.withSettings(settings)
         publisher.stateChanged(state)
       }
@@ -74,9 +74,13 @@ class CombinedState(private val project: Project) : Disposable {
       }
     })
     messageBusConnection.subscribe(LanguageClient.AgentListener.TOPIC, object : LanguageClient.AgentListener {
-      override fun agentStatusChanged(status: Status) {
+      override fun agentStatusChanged(status: String) {
         state = state.withAgentStatus(status)
         publisher.stateChanged(state)
+
+        if (status == Status.UNAUTHORIZED) {
+          notifyAuthRequired()
+        }
       }
 
       override fun agentIssueUpdated(issueList: IssueList) {

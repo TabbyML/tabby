@@ -77,7 +77,7 @@ class KeymapSettings(private val project: Project) {
       "Tabby.TriggerInlineCompletion" to listOf(
         KeyboardShortcut.fromString("ctrl BACK_SLASH"), KeyboardShortcut.fromString("alt BACK_SLASH")
       ),
-      "Tabby.InlineCompletion.Accept" to listOf(KeyboardShortcut.fromString("TAB")),
+      "Tabby.InlineCompletion.TabAccept" to listOf(KeyboardShortcut.fromString("TAB")),
       "Tabby.InlineCompletion.AcceptNextLine" to listOf(KeyboardShortcut.fromString("ctrl TAB")),
       "Tabby.InlineCompletion.AcceptNextWord" to listOf(KeyboardShortcut.fromString("ctrl RIGHT")),
       "Tabby.InlineCompletion.Dismiss" to listOf(KeyboardShortcut.fromString("ESCAPE")),
@@ -86,7 +86,7 @@ class KeymapSettings(private val project: Project) {
       "Tabby.TriggerInlineCompletion" to listOf(
         KeyboardShortcut.fromString("ctrl BACK_SLASH"), KeyboardShortcut.fromString("alt BACK_SLASH")
       ),
-      "Tabby.InlineCompletion.Accept" to listOf(KeyboardShortcut.fromString("ctrl TAB")),
+      "Tabby.InlineCompletion.TabAccept" to listOf(KeyboardShortcut.fromString("ctrl TAB")),
       "Tabby.InlineCompletion.AcceptNextLine" to listOf(KeyboardShortcut.fromString("TAB")),
       "Tabby.InlineCompletion.AcceptNextWord" to listOf(KeyboardShortcut.fromString("ctrl RIGHT")),
       "Tabby.InlineCompletion.Dismiss" to listOf(KeyboardShortcut.fromString("ESCAPE")),

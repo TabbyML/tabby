@@ -9,7 +9,7 @@ data class InlineCompletionList(
 
 data class InlineCompletionItem(
   val insertText: String,
-  val replaceRange: Range? = null,
+  val replaceRange: Range,
   val data: Data? = null,
 ) {
   data class Range(

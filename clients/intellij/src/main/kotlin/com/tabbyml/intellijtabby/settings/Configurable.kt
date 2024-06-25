@@ -5,17 +5,13 @@ import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.project.Project
 import javax.swing.JComponent
 
-class Configurable(private val project: Project) : Configurable, Configurable.VariableProjectAppLevel {
+class Configurable(private val project: Project) : Configurable {
+  private val settings = service<SettingsService>()
   private var settingsPanel: SettingsPanel? = null
-  private val settings = project.service<SettingsState>()
   private val keymapSettings = project.service<KeymapSettings>()
 
   override fun getDisplayName(): String {
     return "Tabby"
-  }
-
-  override fun isProjectLevel(): Boolean {
-    return false
   }
 
   override fun createComponent(): JComponent {
@@ -26,13 +22,7 @@ class Configurable(private val project: Project) : Configurable, Configurable.Va
 
   override fun isModified(): Boolean {
     val panel = settingsPanel ?: return false
-    return panel.completionTriggerMode != settings.completionTriggerMode ||
-        panel.serverEndpoint != settings.serverEndpoint ||
-        panel.serverToken != settings.serverToken ||
-        panel.nodeBinary != settings.nodeBinary ||
-        panel.isAnonymousUsageTrackingDisabled != settings.isAnonymousUsageTrackingDisabled ||
-        (panel.keymapStyle != keymapSettings.getCurrentKeymapStyle() &&
-            panel.keymapStyle != KeymapSettings.KeymapStyle.CUSTOMIZE)
+    return panel.completionTriggerMode != settings.completionTriggerMode || panel.serverEndpoint != settings.serverEndpoint || panel.serverToken != settings.serverToken || panel.nodeBinary != settings.nodeBinary || panel.isAnonymousUsageTrackingDisabled != settings.isAnonymousUsageTrackingDisabled || (panel.keymapStyle != keymapSettings.getCurrentKeymapStyle() && panel.keymapStyle != KeymapSettings.KeymapStyle.CUSTOMIZE)
   }
 
   override fun apply() {
@@ -42,7 +32,7 @@ class Configurable(private val project: Project) : Configurable, Configurable.Va
     settings.serverToken = panel.serverToken
     settings.nodeBinary = panel.nodeBinary
     settings.isAnonymousUsageTrackingDisabled = panel.isAnonymousUsageTrackingDisabled
-    settings.notifyChanges()
+    settings.notifyChanges(project)
 
     keymapSettings.applyKeymapStyle(panel.keymapStyle)
   }

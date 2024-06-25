@@ -1,6 +1,9 @@
 package com.tabbyml.intellijtabby.lsp.protocol.server
 
-import com.tabbyml.intellijtabby.lsp.protocol.*
+import com.tabbyml.intellijtabby.lsp.protocol.IssueDetailParams
+import com.tabbyml.intellijtabby.lsp.protocol.IssueDetailResult
+import com.tabbyml.intellijtabby.lsp.protocol.IssueList
+import com.tabbyml.intellijtabby.lsp.protocol.ServerInfo
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
 import org.eclipse.lsp4j.jsonrpc.services.JsonSegment
 import java.util.concurrent.CompletableFuture
@@ -11,7 +14,7 @@ interface AgentFeature {
   fun serverInfo(): CompletableFuture<ServerInfo>
 
   @JsonRequest
-  fun status(): CompletableFuture<Status>
+  fun status(): CompletableFuture<String>
 
   @JsonRequest
   fun issues(): CompletableFuture<IssueList>

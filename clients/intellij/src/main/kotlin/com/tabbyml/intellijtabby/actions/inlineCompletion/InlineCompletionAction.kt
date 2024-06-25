@@ -13,8 +13,7 @@ abstract class InlineCompletionAction(private val inlineCompletionHandler: Inlin
   EditorAction(object : EditorActionHandler() {
     override fun doExecute(editor: Editor, caret: Caret?, dataContext: DataContext?) {
       val inlineCompletionService = editor.project?.service<InlineCompletionService>() ?: return
-      val offset = caret?.offset ?: return
-      inlineCompletionHandler.doExecute(editor, offset, inlineCompletionService)
+      inlineCompletionHandler.doExecute(editor, caret, inlineCompletionService)
     }
 
     override fun isEnabledForCaret(editor: Editor, caret: Caret, dataContext: DataContext?): Boolean {
@@ -22,7 +21,7 @@ abstract class InlineCompletionAction(private val inlineCompletionHandler: Inlin
       return inlineCompletionService.isInlineCompletionVisibleAt(
         editor,
         caret.offset
-      ) && inlineCompletionHandler.isEnabled(editor, caret.offset, inlineCompletionService)
+      ) && inlineCompletionHandler.isEnabled(editor, caret, inlineCompletionService)
     }
   }), HasPriority {
   override val priority: Int = 1

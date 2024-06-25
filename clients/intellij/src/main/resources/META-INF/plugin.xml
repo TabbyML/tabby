@@ -34,7 +34,7 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-        <postStartupActivity implementation="com.tabbyml.intellijtabby.lsp.ConnectionStartupActivity"/>
+        <postStartupActivity implementation="com.tabbyml.intellijtabby.events.StartupActivity"/>
         <editorFactoryListener implementation="com.tabbyml.intellijtabby.events.EditorFactoryListener"/>
         <statusBarWidgetFactory id="com.tabbyml.intellijtabby.status.StatusBarWidgetFactory"
                                 implementation="com.tabbyml.intellijtabby.widgets.StatusBarWidgetFactory"/>
@@ -93,14 +93,14 @@
                 </action>
                 <action id="Tabby.InlineCompletion.CycleNext"
                         class="com.tabbyml.intellijtabby.actions.inlineCompletion.CycleNext"
-                        text="Accept Next Line"
-                        description="Accept the next line of shown suggestions.">
+                        text="Cycle Next"
+                        description="Cycle to next suggestion.">
                     <keyboard-shortcut first-keystroke="alt OPEN_BRACKET" keymap="$default"/>
                 </action>
                 <action id="Tabby.InlineCompletion.CyclePrevious"
                         class="com.tabbyml.intellijtabby.actions.inlineCompletion.CyclePrevious"
-                        text="Accept Next Word"
-                        description="Accept the next word of shown suggestions.">
+                        text="Cycle Previous"
+                        description="Cycle to previous suggestion.">
                     <keyboard-shortcut first-keystroke="alt CLOSE_BRACKET" keymap="$default"/>
                 </action>
                 <action id="Tabby.InlineCompletion.Dismiss"

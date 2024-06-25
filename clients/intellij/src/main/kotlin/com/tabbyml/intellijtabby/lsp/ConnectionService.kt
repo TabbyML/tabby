@@ -14,7 +14,7 @@ import com.intellij.util.messages.Topic
 import com.intellij.util.progress.sleepCancellable
 import com.tabbyml.intellijtabby.lsp.protocol.server.LanguageServer
 import com.tabbyml.intellijtabby.notifications.notifyInitializationFailed
-import com.tabbyml.intellijtabby.settings.SettingsState
+import com.tabbyml.intellijtabby.settings.SettingsService
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.runBlocking
 import org.eclipse.lsp4j.InitializedParams
@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit
 class ConnectionService(private val project: Project) : Disposable {
   private val logger = Logger.getInstance(ConnectionService::class.java)
   private val publisher = project.messageBus.syncPublisher(Listener.TOPIC)
-  private val settings = project.service<SettingsState>()
+  private val settings = service<SettingsService>()
   private val client = LanguageClient(project)
   private var process: Process? = null
   private var listening: Future<Void>? = null
@@ -59,7 +59,7 @@ class ConnectionService(private val project: Project) : Disposable {
 
   private suspend fun initialize(retry: Int = 0) {
     try {
-      logger.info("Creating agent process...")
+      logger.info("Creating tabby-agent process...")
       publisher.connectionStateChanged(State.INITIALIZING)
       val node = getNodeBinary()
       val script = getNodeScript()
@@ -73,16 +73,16 @@ class ConnectionService(private val project: Project) : Disposable {
         Launcher.Builder<LanguageServer>().setLocalService(client).setRemoteInterface(LanguageServer::class.java)
           .setInput(process.inputStream).setOutput(process.outputStream).traceMessages(PrintWriter(Tracer())).create()
       val server = launcher.remoteProxy
-      logger.info("Created agent process, listening to stdio.")
+      logger.info("Created tabby-agent process, listening to stdio.")
+
+      this.process = process
+      this.server = server
+      this.listening = launcher.startListening()
 
       val initializeParams = client.buildInitializeParams()
       val initializeResult = server.initialize(initializeParams).await()
       client.processInitializeResult(server, initializeResult)
       server.initialized(InitializedParams())
-
-      this.process = process
-      this.server = server
-      this.listening = launcher.startListening()
       publisher.connectionStateChanged(State.READY)
     } catch (e: InitializationException) {
       logger.warn("Failed to initialize connection.", e)
@@ -121,12 +121,14 @@ class ConnectionService(private val project: Project) : Disposable {
   }
 
   private fun getNodeBinary(): File {
-    val node = if (settings.nodeBinary.isNotBlank()) {
-      val path = settings.nodeBinary.replaceFirst(Regex("^~"), System.getProperty("user.home"))
-      File(path)
-    } else {
-      logger.info("Environment variables: PATH: ${EnvironmentUtil.getValue("PATH")}")
-      PathEnvironmentVariableUtil.findExecutableInPathOnAnyOS("node")
+    val node = settings.nodeBinary.let {
+      if (!it.isNullOrBlank()) {
+        val path = it.replaceFirst(Regex("^~"), System.getProperty("user.home"))
+        File(path)
+      } else {
+        logger.info("Environment variables: PATH: ${EnvironmentUtil.getValue("PATH")}")
+        PathEnvironmentVariableUtil.findExecutableInPathOnAnyOS("node")
+      }
     }
 
     if (node?.exists() == true) {
