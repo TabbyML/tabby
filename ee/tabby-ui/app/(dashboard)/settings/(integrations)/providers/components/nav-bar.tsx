@@ -59,7 +59,12 @@ export default function NavBar({ className }: { className?: string }) {
       })}
       <SidebarButton href="/settings/providers/web">
         Web
-        <Badge className="h-4 px-1.5 text-[10px]">Beta</Badge>
+        <Badge
+          variant="outline"
+          className="h-3.5 px-1.5 text-[10px] border-secondary-foreground/60 text-secondary-foreground/60"
+        >
+          Beta
+        </Badge>
       </SidebarButton>
     </div>
   )
@@ -74,7 +79,7 @@ function SidebarButton({ href, children }: SidebarButtonProps) {
 
   const state = isSelected ? 'selected' : 'not-selected'
   return (
-    <Link className={cn('relative', linkVariants({ state }))} href={href}>
+    <Link className={linkVariants({ state })} href={href}>
       {children}
     </Link>
   )
