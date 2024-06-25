@@ -3,7 +3,7 @@ import { Metadata } from 'next'
 import RepositoryTabsHeader from './components/tabs-header'
 
 export const metadata: Metadata = {
-  title: 'Providers'
+  title: 'Context Providers'
 }
 
 export default function ProvidersLayout({
