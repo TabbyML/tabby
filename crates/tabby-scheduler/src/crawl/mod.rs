@@ -138,7 +138,7 @@ mod tests {
                 headers,
                 body: Some("<p>Hello, World!</p>".to_owned()),
                 technologies: Default::default(),
-                raw: "HTTP/1.1 200 OK\nContent-Type: text/html\n".to_owned(),
+                raw: Some("HTTP/1.1 200 OK\nContent-Type: text/html\n".to_owned()),
             },
         };
 

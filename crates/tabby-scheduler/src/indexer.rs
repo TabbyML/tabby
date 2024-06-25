@@ -8,7 +8,7 @@ use tantivy::{
     schema::{self, IndexRecordOption, Value},
     DocAddress, DocSet, IndexWriter, Searcher, TantivyDocument, Term, TERMINATED,
 };
-use tracing::debug;
+
 
 use crate::tantivy_utils::open_or_create_index;
 

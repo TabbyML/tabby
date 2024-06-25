@@ -1,11 +1,11 @@
-use std::{sync::Arc, thread::current};
+use std::{sync::Arc};
 
 use async_stream::stream;
 use futures::StreamExt;
 use ignore::Walk;
 use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
-use tracing::{debug, warn};
+use tracing::{warn};
 
 use super::{
     create_code_index,

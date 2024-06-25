@@ -37,12 +37,18 @@ impl DbTarget {
 }
 
 impl DbTarget {
-    fn create_logging_thread(db: DbConn, id: i64, mut rx: tokio::sync::mpsc::Receiver<Record>) -> tokio::task::JoinHandle<()> {
+    fn create_logging_thread(
+        db: DbConn,
+        id: i64,
+        mut rx: tokio::sync::mpsc::Receiver<Record>,
+    ) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
             while let Some(record) = rx.recv().await {
                 let stdout = format!(
                     "{} [{}]: {}\n",
-                    record.time, record.level.to_uppercase(), record.msg
+                    record.time,
+                    record.level.to_uppercase(),
+                    record.msg
                 );
 
                 match db.update_job_stdout(id, stdout).await {

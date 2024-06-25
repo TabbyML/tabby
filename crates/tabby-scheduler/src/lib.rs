@@ -9,7 +9,7 @@ pub use code::CodeIndexer;
 use crawl::crawl_pipeline;
 use doc::create_web_index;
 pub use doc::{DocIndexer, WebDocument};
-use futures::{StreamExt};
+use futures::StreamExt;
 use indexer::{IndexAttributeBuilder, Indexer};
 use tabby_inference::Embedding;
 
