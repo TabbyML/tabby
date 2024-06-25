@@ -9,7 +9,7 @@ use tabby_common::{
     index::{code, corpus},
 };
 use tabby_inference::Embedding;
-use tracing::{warn};
+use tracing::warn;
 
 use self::intelligence::SourceCode;
 use crate::{code::intelligence::CodeIntelligence, IndexAttributeBuilder, Indexer};

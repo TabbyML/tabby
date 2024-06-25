@@ -9,7 +9,6 @@ use tantivy::{
     DocAddress, DocSet, IndexWriter, Searcher, TantivyDocument, Term, TERMINATED,
 };
 
-
 use crate::tantivy_utils::open_or_create_index;
 
 #[async_trait::async_trait]
