@@ -8,7 +8,6 @@ use tantivy::{
     schema::{self, IndexRecordOption, Value},
     DocAddress, DocSet, IndexWriter, Searcher, TantivyDocument, Term, TERMINATED,
 };
-use tracing::debug;
 
 use crate::tantivy_utils::open_or_create_index;
 
@@ -122,7 +121,7 @@ impl<T: Send + 'static> Indexer<T> {
     }
 
     pub fn commit(mut self) {
-        debug!("Committing changes to index...");
+        logkit::info!("Committing changes to index...");
         self.writer.commit().expect("Failed to commit changes");
         self.writer
             .wait_merging_threads()

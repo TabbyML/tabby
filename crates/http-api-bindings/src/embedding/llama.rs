@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use tabby_inference::Embedding;
-use tracing::debug;
 
 pub struct LlamaCppEngine {
     client: reqwest::Client,
@@ -34,13 +33,6 @@ struct EmbeddingResponse {
 #[async_trait]
 impl Embedding for LlamaCppEngine {
     async fn embed(&self, prompt: &str) -> anyhow::Result<Vec<f32>> {
-        // Workaround for https://github.com/ggerganov/llama.cpp/issues/6722
-        // When prompt is super short, we just return an empty embedding vector.
-        if prompt.len() < 8 {
-            debug!("Prompt length is {:?}, which is too short for llama.cpp embedding, returning empty embedding vector.", prompt.len());
-            return Ok(vec![]);
-        }
-
         let request = EmbeddingRequest {
             content: prompt.to_owned(),
         };

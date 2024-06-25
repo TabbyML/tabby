@@ -174,7 +174,7 @@ impl Default for ServerConfig {
 fn default_embedding_config() -> ModelConfig {
     ModelConfig::Local(LocalModelConfig {
         model_id: "Nomic-Embed-Text".into(),
-        parallelism: 4,
+        parallelism: 1,
         num_gpu_layers: 9999,
     })
 }

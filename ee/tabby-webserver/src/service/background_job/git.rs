@@ -8,11 +8,7 @@ use tabby_inference::Embedding;
 use tabby_scheduler::CodeIndexer;
 use tabby_schema::{job::JobService, repository::GitRepositoryService};
 
-use super::{
-    cprintln,
-    helper::{Job, JobLogger},
-    BackgroundJobEvent,
-};
+use super::{helper::Job, BackgroundJobEvent};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SchedulerGitJob {
@@ -30,19 +26,10 @@ impl Job for SchedulerGitJob {
 }
 
 impl SchedulerGitJob {
-    pub async fn run(
-        self,
-        job_logger: JobLogger,
-        embedding: Arc<dyn Embedding>,
-    ) -> tabby_schema::Result<()> {
+    pub async fn run(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
         let repository = self.repository.clone();
         tokio::spawn(async move {
             let mut code = CodeIndexer::default();
-            cprintln!(
-                job_logger,
-                "Refreshing repository {}",
-                repository.canonical_git_url()
-            );
             code.refresh(embedding, &repository).await;
         })
         .await
