@@ -5,10 +5,7 @@ use tabby_inference::Embedding;
 
 use crate::service::web_crawler::format_website_source;
 
-use super::{
-    cprintln,
-    helper::{Job, JobLogger},
-};
+use super::helper::Job;
 
 pub struct WebCrawlerJob {
     url: String,
@@ -24,14 +21,10 @@ impl WebCrawlerJob {
         Self { url, id }
     }
 
-    pub async fn run(
-        self,
-        job_logger: JobLogger,
-        embedding: Arc<dyn Embedding>,
-    ) -> tabby_schema::Result<()> {
+    pub async fn run(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
         let source = format_website_source(self.id);
         tabby_scheduler::crawl_index_docs(&[self.url], embedding, source, move |url| {
-	        logkit::info!("Fetching {}", url);
+            logkit::info!("Fetching {}", url);
         })
         .await?;
         Ok(())

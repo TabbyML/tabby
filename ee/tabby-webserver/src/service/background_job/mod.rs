@@ -22,7 +22,7 @@ use tabby_schema::{
     repository::{GitRepositoryService, ThirdPartyRepositoryService},
 };
 use third_party_integration::SchedulerGithubGitlabJob;
-use tracing::warn;
+use tracing::{debug, warn};
 use web_crawler::WebCrawlerJob;
 
 use self::{
@@ -100,9 +100,13 @@ pub async fn start(
                             let job = SchedulerGithubGitlabJob::new(integration_id);
                             job.run(embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await
                         }
-                        BackgroundJobEvent::WebCrawler(url) => {
-                            let job = WebCrawlerJob::new(url);
+                        BackgroundJobEvent::WebCrawler(url, id) => {
+                            let job = WebCrawlerJob::new(url, id);
                             job.run(embedding.clone()).await
+                        }
+                        BackgroundJobEvent::DeleteIndexedDocumentsBySource(source) => {
+                            let job = DeleteIndexedDocumentsJob::new(source);
+                            job.run().await
                         }
                     } {
                         logkit::info!(exit_code = 1; "Job failed {}", err);
