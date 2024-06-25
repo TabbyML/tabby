@@ -5109,6 +5109,7 @@ dependencies = [
  "juniper_graphql_ws",
  "lazy_static",
  "lettre",
+ "log",
  "mime_guess",
  "octocrab",
  "pin-project",

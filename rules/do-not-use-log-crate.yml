@@ -1,0 +1,8 @@
+id: do-not-use-log-crate
+message: Don't use log crate with use statement to avoid conflicts with the tracing crate. log crate is only used for background job logging to enrich the jobs output in admin UI.
+severity: error
+language: rust
+files:
+- ./**
+rule:
+  pattern: use log::$$$; 

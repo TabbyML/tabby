@@ -9,7 +9,7 @@ pub use code::CodeIndexer;
 use crawl::crawl_pipeline;
 use doc::create_web_index;
 pub use doc::{DocIndexer, WebDocument};
-use futures::{Future, StreamExt};
+use futures::{StreamExt};
 use indexer::{IndexAttributeBuilder, Indexer};
 use tabby_inference::Embedding;
 
@@ -20,14 +20,11 @@ use tracing::{debug, info};
 
 use crate::doc::SourceDocument;
 
-pub async fn crawl_index_docs<F>(
+pub async fn crawl_index_docs(
     urls: &[String],
     embedding: Arc<dyn Embedding>,
-    on_process_url: impl Fn(String) -> F,
-) -> anyhow::Result<()>
-where
-    F: Future<Output = ()>,
-{
+    on_process_url: impl Fn(String),
+) -> anyhow::Result<()> {
     for url in urls {
         debug!("Starting doc index pipeline for {url}");
         let embedding = embedding.clone();
@@ -36,7 +33,7 @@ where
 
         let mut pipeline = Box::pin(crawl_pipeline(url).await?);
         while let Some(doc) = pipeline.next().await {
-            on_process_url(doc.url.clone()).await;
+            on_process_url(doc.url.clone());
             let source_doc = SourceDocument {
                 id: doc.url.clone(),
                 title: doc.metadata.title.unwrap_or_default(),

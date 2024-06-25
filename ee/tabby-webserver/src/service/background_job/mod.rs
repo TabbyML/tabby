@@ -9,7 +9,7 @@ use std::{str::FromStr, sync::Arc};
 use cron::Schedule;
 use futures::StreamExt;
 use git::SchedulerGitJob;
-use helper::{CronStream, Job, JobLogger};
+use helper::{CronStream, Job, JobLoggerGuard};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::RepositoryConfig;
@@ -72,17 +72,16 @@ pub async fn start(
                         continue;
                     };
 
-                    let mut job_logger = JobLogger::new(db.clone(), job.id).await;
+                    let _ = JobLoggerGuard::new(db.clone(), job.id);
                     let Ok(event) = serde_json::from_str::<BackgroundJobEvent>(&job.command) else {
-                        cprintln!(job_logger, "Failed to parse background job event, marking it as failed");
-                        job_logger.complete(-1).await;
+                        log::info!("Failed to parse background job event, marking it as failed");
                         continue;
                     };
 
                     if let Err(err) = match event {
                         BackgroundJobEvent::SchedulerGitRepository(repository_config) => {
                             let job = SchedulerGitJob::new(repository_config);
-                            job.run(job_logger.clone(), embedding.clone()).await
+                            job.run(embedding.clone()).await
                         },
                         BackgroundJobEvent::SyncThirdPartyRepositories(integration_id) => {
                             let job = SyncIntegrationJob::new(integration_id);
@@ -90,17 +89,14 @@ pub async fn start(
                         }
                         BackgroundJobEvent::SchedulerGithubGitlabRepository(integration_id) => {
                             let job = SchedulerGithubGitlabJob::new(integration_id);
-                            job.run(job_logger.clone(), embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await
+                            job.run(embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await
                         }
                         BackgroundJobEvent::WebCrawler(url) => {
                             let job = WebCrawlerJob::new(url);
-                            job.run(job_logger.clone(), embedding.clone()).await
+                            job.run(embedding.clone()).await
                         }
                     } {
-                        cprintln!(job_logger, "{:?}", err);
-                        job_logger.complete(-1).await;
-                    } else {
-                        job_logger.complete(0).await;
+                        log::error!("{:?}", err);
                     }
                 },
                 Some(now) = hourly.next() => {
@@ -128,14 +124,3 @@ pub async fn start(
         }
     });
 }
-
-macro_rules! cprintln {
-    ($ctx:expr, $($params:tt)+) => {
-        {
-            tracing::debug!($($params)+);
-            $ctx.r#internal_println(format!($($params)+)).await;
-        }
-    }
-}
-
-use cprintln;
