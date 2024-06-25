@@ -129,7 +129,7 @@
       "commandPalette": [
         {
           "command": "tabby.inlineCompletion.trigger",
-          "when": "config.tabby.inlineCompletion.triggerMode === 'manual' && !editorHasSelection && !inlineSuggestionsVisible"
+          "when": "tabby.inlineCompletionTriggerMode === 'manual' && !editorHasSelection && !inlineSuggestionsVisible"
         },
         {
           "command": "tabby.openTabbyAgentSettings",
@@ -234,25 +234,12 @@
       {
         "title": "Tabby",
         "properties": {
-          "tabby.api.endpoint": {
+          "tabby.endpoint": {
             "type": "string",
             "default": "",
             "pattern": "(^$)|(^https?:\\/\\/\\S+$)",
             "patternErrorMessage": "Please enter a validate http or https URL.",
             "markdownDescription": "Specify the API endpoint for the Tabby server.  \nIf authentication is required, please [Set Credentials](command:tabby.setApiToken).  \nIf left empty, the server endpoint specified in the [Tabby Agent Settings](command:tabby.openTabbyAgentSettings) will be used."
-          },
-          "tabby.inlineCompletion.triggerMode": {
-            "type": "string",
-            "enum": [
-              "automatic",
-              "manual"
-            ],
-            "default": "automatic",
-            "description": "Select the code completion trigger mode.",
-            "enumDescriptions": [
-              "Automatic trigger when you stop typing",
-              "Manual trigger by pressing `Alt + \\`"
-            ]
           },
           "tabby.keybindings": {
             "type": "string",
@@ -263,14 +250,28 @@
             "default": "vscode-style",
             "markdownDescription": "Select the keybinding profile to accept inline completion. You can also customize it in [Keyboard Shortcuts](command:tabby.openKeybindings). \n | | Next Line | Full Completion | Next Word | \n |:---|:---|:---|:---| \n | _vscode-style_ | - | `Tab` | `Ctrl + RightArrow` (macOS: `Cmd + RightArrow`) | \n | _tabby-style_  _(experimental)_ | `Tab` | `Ctrl + Tab` | `Ctrl + RightArrow` (macOS: `Cmd + RightArrow`) | \n"
           },
-          "tabby.usage.anonymousUsageTracking": {
+          "tabby.config.telemetry": {
             "type": "boolean",
             "default": false,
             "markdownDescription": "**Disable anonymous usage tracking**  \nTabby collects aggregated anonymous usage data and sends it to the Tabby team to help improve our products.  \nYour code, generated completions, or any identifying information is never tracked or transmitted.  \nFor more details on data collection, please check our [online documentation](https://tabby.tabbyml.com/docs/extensions/configurations#usage-collection)."
           },
-          "tabby.experimental": {
+          "tabby.settings.advanced": {
             "default": {},
-            "properties": {}
+            "properties": {
+              "inlineCompletion.triggerMode": {
+                "type": "string",
+                "enum": [
+                  "automatic",
+                  "manual"
+                ],
+                "default": "automatic",
+                "description": "Select the code completion trigger mode.",
+                "enumDescriptions": [
+                  "Automatic trigger when you stop typing",
+                  "Manual trigger by pressing `Alt + \\`"
+                ]
+              }
+            }
           }
         }
       }
@@ -279,7 +280,7 @@
       {
         "key": "alt+\\",
         "command": "tabby.inlineCompletion.trigger",
-        "when": "config.tabby.inlineCompletion.triggerMode === 'manual' && editorTextFocus && !editorHasSelection && !inlineSuggestionsVisible"
+        "when": "tabby.inlineCompletionTriggerMode === 'manual' && editorTextFocus && !editorHasSelection && !inlineSuggestionsVisible"
       },
       {
         "command": "tabby.inlineCompletion.accept",
