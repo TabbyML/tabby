@@ -314,7 +314,7 @@ pub async fn create_gitlab_client(
     let url = url::Url::parse(api_base)?;
     let api_base = url.authority();
     let mut builder = gitlab::Gitlab::builder(api_base.to_owned(), access_token);
-    if url.scheme() == "http"{
+    if url.scheme() == "http" {
         builder.insecure();
     };
     Ok(builder.build_async().await?)
