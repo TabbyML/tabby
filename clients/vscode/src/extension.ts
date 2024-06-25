@@ -48,8 +48,8 @@ export async function activate(context: ExtensionContext) {
     const languageClient = new NodeLanguageClient("Tabby", serverOptions, clientOptions);
     client = new Client(context, languageClient);
   }
-  const contextVariables = new ContextVariables(client);
-  const config = new Config(context, contextVariables);
+  const config = new Config(context);
+  const contextVariables = new ContextVariables(client, config);
   const inlineCompletionProvider = new InlineCompletionProvider(client, config);
   const gitProvider = new GitProvider();
 

@@ -1,23 +1,17 @@
 import { EventEmitter } from "events";
 import { workspace, ExtensionContext, WorkspaceConfiguration, ConfigurationTarget, Memento } from "vscode";
 import { ClientProvidedConfig } from "tabby-agent";
-import { ContextVariables } from "./ContextVariables";
 
 interface AdvancedSettings {
   "inlineCompletion.triggerMode"?: "automatic" | "manual";
 }
 
 export class Config extends EventEmitter {
-  constructor(
-    private readonly context: ExtensionContext,
-    private contextVariables: ContextVariables,
-  ) {
+  constructor(private readonly context: ExtensionContext) {
     super();
-    contextVariables.inlineCompletionTriggerMode = this.inlineCompletionTriggerMode;
     context.subscriptions.push(
       workspace.onDidChangeConfiguration(async (event) => {
         if (event.affectsConfiguration("tabby")) {
-          contextVariables.inlineCompletionTriggerMode = this.inlineCompletionTriggerMode;
           this.emit("updated");
         }
       }),
@@ -63,7 +57,7 @@ export class Config extends EventEmitter {
       const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
       const updatedValue = { ...advancedSettings, "inlineCompletion.triggerMode": value };
       this.workspace.update("settings.advanced", updatedValue, ConfigurationTarget.Global);
-      this.contextVariables.inlineCompletionTriggerMode = value;
+      this.emit("updated");
     }
   }
 

@@ -1,5 +1,6 @@
 import { commands, window, workspace, Range } from "vscode";
 import { Client } from "./lsp/Client";
+import { Config } from "./Config";
 
 export class ContextVariables {
   private chatEnabledValue = false;
@@ -7,10 +8,17 @@ export class ContextVariables {
   private chatEditResolvingValue = false;
   private inlineCompletionTriggerModeValue: "automatic" | "manual" = "automatic";
 
-  constructor(private readonly client: Client) {
+  constructor(
+    private readonly client: Client,
+    private readonly config: Config,
+  ) {
     this.chatEnabled = this.client.chat.isAvailable;
+    this.inlineCompletionTriggerMode = config.inlineCompletionTriggerMode;
     this.client.chat.on("didChangeAvailability", (params: boolean) => {
       this.chatEnabled = params;
+    });
+    this.config.on("updated", () => {
+      this.inlineCompletionTriggerMode = config.inlineCompletionTriggerMode;
     });
     this.updateChatEditResolving();
     window.onDidChangeTextEditorSelection((params) => {
