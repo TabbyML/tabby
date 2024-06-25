@@ -28,6 +28,15 @@ impl IntegrationKind {
         }
         Ok(url.to_string())
     }
+
+    pub fn is_self_hosted(&self) -> bool {
+        match self {
+            IntegrationKind::Github => false,
+            IntegrationKind::Gitlab => false,
+            IntegrationKind::GithubSelfHosted => true,
+            IntegrationKind::GitlabSelfHosted => true,
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Debug, GraphQLEnum)]

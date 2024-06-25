@@ -10,7 +10,7 @@ use tabby_schema::{
 };
 
 use super::graphql_pagination_to_filter;
-use crate::service::background_job::BackgroundJobEvent;
+use crate::{bail, service::background_job::BackgroundJobEvent};
 
 struct IntegrationServiceImpl {
     db: DbConn,
@@ -30,6 +30,10 @@ impl IntegrationService for IntegrationServiceImpl {
         access_token: String,
         api_base: Option<String>,
     ) -> Result<ID> {
+        if kind.is_self_hosted() && api_base.is_none() {
+            bail!("Self-hosted integrations must specify an API base");
+        }
+
         let id = self
             .db
             .create_integration(
@@ -62,6 +66,10 @@ impl IntegrationService for IntegrationServiceImpl {
         access_token: Option<String>,
         api_base: Option<String>,
     ) -> Result<()> {
+        if kind.is_self_hosted() && api_base.is_none() {
+            bail!("Self-hosted integrations must specify an API base");
+        }
+
         let integration = self.get_integration(id.clone()).await?;
         let access_token_is_changed = access_token
             .as_ref()
@@ -304,5 +312,41 @@ mod tests {
             )
             .await
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_api_base() {
+        let (integration, _, _) = create_services().await;
+
+        assert!(integration
+            .create_integration(
+                IntegrationKind::GithubSelfHosted,
+                "github".into(),
+                "token".into(),
+                None
+            )
+            .await
+            .is_err());
+
+        let id = integration
+            .create_integration(
+                IntegrationKind::GithubSelfHosted,
+                "github".into(),
+                "token".into(),
+                Some("https://github.com".into()),
+            )
+            .await
+            .unwrap();
+
+        assert!(integration
+            .update_integration(
+                id,
+                IntegrationKind::GithubSelfHosted,
+                "github".into(),
+                None,
+                None
+            )
+            .await
+            .is_err());
     }
 }
