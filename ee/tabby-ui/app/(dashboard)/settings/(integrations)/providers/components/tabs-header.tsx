@@ -41,7 +41,7 @@ export default function NavBar({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'sticky top-16 space-y-1 border-r pr-4 text-sm font-medium overflow-y-auto',
+        'sticky top-16 space-y-1 overflow-y-auto border-r pr-4 text-sm font-medium',
         className
       )}
       style={style}
