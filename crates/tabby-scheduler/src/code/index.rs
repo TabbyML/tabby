@@ -31,16 +31,21 @@ pub async fn index_repository(embedding: Arc<dyn Embedding>, repository: &Reposi
             yield file;
         }
     }
-    // Commit every 200 files
-    .chunks(200);
+    // Commit every 500 files
+    .chunks(500);
 
     let mut file_stream = pin!(file_stream);
+    let intelligence = Arc::new(CodeIntelligence::default());
 
     let mut count_files = 0;
     while let Some(files) = file_stream.next().await {
         count_files += files.len();
-        add_changed_documents(repository, embedding.clone(), files).await;
-        logkit::info!("{}/{} files has been processed...", count_files, total_files);
+        add_changed_documents(repository, embedding.clone(), intelligence.clone(), files).await;
+        logkit::info!(
+            "{}/{} files has been processed...",
+            count_files,
+            total_files
+        );
     }
 }
 
@@ -68,10 +73,10 @@ pub async fn garbage_collection() {
 async fn add_changed_documents(
     repository: &RepositoryConfig,
     embedding: Arc<dyn Embedding>,
+    intelligence: Arc<CodeIntelligence>,
     files: Vec<DirEntry>,
 ) {
     let index = Arc::new(create_code_index(Some(embedding)));
-    let intelligence = CodeIntelligence::default();
     let cloned_index = index.clone();
     stream! {
         for file in files {
@@ -84,19 +89,18 @@ async fn add_changed_documents(
                 continue;
             }
 
-            let Some(code) = intelligence.compute_source_file(repository, file.path()) else {
-                continue;
-            };
-
-            if !is_valid_file(&code) {
-                continue;
-            }
-
+            let repository = repository.clone();
             let index = cloned_index.clone();
-
+            let intelligence = intelligence.clone();
             // yield is lazy, that means only when the stream is polled, the task will be spawned.
             yield tokio::spawn(async move {
-                index.add(code).await;
+                let Some(code) = intelligence.compute_source_file(&repository, file.path()) else {
+                    return;
+                };
+
+                if is_valid_file(&code) {
+                    index.add(code).await;
+                }
             });
         }
     }
