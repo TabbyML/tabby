@@ -1,10 +1,19 @@
 import { EventEmitter } from "events";
 import { workspace, ExtensionContext, WorkspaceConfiguration, ConfigurationTarget, Memento } from "vscode";
 import { ClientProvidedConfig } from "tabby-agent";
+import { ContextVariables } from "./ContextVariables";
+
+interface AdvancedSettings {
+  "inlineCompletion.triggerMode"?: "automatic" | "manual";
+}
 
 export class Config extends EventEmitter {
-  constructor(private readonly context: ExtensionContext) {
+  constructor(
+    private readonly context: ExtensionContext,
+    private contextVariables: ContextVariables,
+  ) {
     super();
+    contextVariables.inlineCompletionTriggerMode = this.inlineCompletionTriggerMode;
     context.subscriptions.push(
       workspace.onDidChangeConfiguration(async (event) => {
         if (event.affectsConfiguration("tabby")) {
@@ -23,12 +32,12 @@ export class Config extends EventEmitter {
   }
 
   get serverEndpoint(): string {
-    return this.workspace.get("api.endpoint", "");
+    return this.workspace.get("endpoint", "");
   }
 
   set serverEndpoint(value: string) {
     if (value !== this.serverEndpoint) {
-      this.workspace.update("api.endpoint", value, ConfigurationTarget.Global);
+      this.workspace.update("endpoint", value, ConfigurationTarget.Global);
     }
   }
 
@@ -44,12 +53,16 @@ export class Config extends EventEmitter {
   }
 
   get inlineCompletionTriggerMode(): "automatic" | "manual" {
-    return this.workspace.get("inlineCompletion.triggerMode", "automatic");
+    const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
+    return advancedSettings["inlineCompletion.triggerMode"] || "automatic";
   }
 
   set inlineCompletionTriggerMode(value: "automatic" | "manual") {
     if (value !== this.inlineCompletionTriggerMode) {
-      this.workspace.update("inlineCompletion.triggerMode", value, ConfigurationTarget.Global);
+      const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
+      const updatedValue = { ...advancedSettings, "inlineCompletion.triggerMode": value };
+      this.workspace.update("settings.advanced", updatedValue, ConfigurationTarget.Global);
+      this.contextVariables.inlineCompletionTriggerMode = value;
     }
   }
 
@@ -68,7 +81,7 @@ export class Config extends EventEmitter {
   }
 
   get anonymousUsageTrackingDisabled(): boolean {
-    return this.workspace.get("usage.anonymousUsageTracking", false);
+    return this.workspace.get("config.telemetry", false);
   }
 
   get mutedNotifications(): string[] {

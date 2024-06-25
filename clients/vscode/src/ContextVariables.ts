@@ -5,6 +5,7 @@ export class ContextVariables {
   private chatEnabledValue = false;
   private chatEditInProgressValue = false;
   private chatEditResolvingValue = false;
+  private inlineCompletionTriggerModeValue: "automatic" | "manual" = "automatic";
 
   constructor(private readonly client: Client) {
     this.chatEnabled = this.client.chat.isAvailable;
@@ -65,5 +66,14 @@ export class ContextVariables {
   set chatEditResolving(value: boolean) {
     commands.executeCommand("setContext", "tabby.chatEditResolving", value);
     this.chatEditResolvingValue = value;
+  }
+
+  get inlineCompletionTriggerMode(): "automatic" | "manual" {
+    return this.inlineCompletionTriggerModeValue;
+  }
+
+  set inlineCompletionTriggerMode(value: "automatic" | "manual") {
+    commands.executeCommand("setContext", "tabby.inlineCompletionTriggerMode", value);
+    this.inlineCompletionTriggerModeValue = value;
   }
 }

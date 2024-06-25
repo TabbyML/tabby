@@ -48,7 +48,8 @@ export async function activate(context: ExtensionContext) {
     const languageClient = new NodeLanguageClient("Tabby", serverOptions, clientOptions);
     client = new Client(context, languageClient);
   }
-  const config = new Config(context);
+  const contextVariables = new ContextVariables(client);
+  const config = new Config(context, contextVariables);
   const inlineCompletionProvider = new InlineCompletionProvider(client, config);
   const gitProvider = new GitProvider();
 
@@ -67,7 +68,6 @@ export async function activate(context: ExtensionContext) {
   );
 
   const issues = new Issues(client, config);
-  const contextVariables = new ContextVariables(client);
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ /* @ts-expect-error noUnusedLocals */
   const statusBarItem = new StatusBarItem(context, client, config, issues, inlineCompletionProvider);
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ /* @ts-expect-error noUnusedLocals */
