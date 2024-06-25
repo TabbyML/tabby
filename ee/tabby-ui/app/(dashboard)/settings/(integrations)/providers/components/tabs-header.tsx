@@ -1,79 +1,81 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { cva } from 'class-variance-authority'
 
-import { IntegrationKind } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
-import { IconFileText, IconGitHub, IconGitLab } from '@/components/ui/icons'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
+import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 
 import { PROVIDER_KIND_METAS } from '../constants'
 
-export default function GitTabsHeader() {
-  const pathname = usePathname()
-  const defaultValue = React.useMemo(() => {
-    const matcher = pathname.match(/^\/settings\/providers\/([\w-]+)/)?.[1]
-    return matcher?.toLowerCase() ?? 'git'
-  }, [pathname])
-  const [tab, setTab] = useState(defaultValue || '')
+const linkVariants = cva(
+  'flex items-center gap-1 rounded-lg px-3 py-2 transition-all hover:bg-accent',
+  {
+    variants: {
+      state: {
+        selected: 'bg-accent',
+        'not-selected': ''
+      }
+    },
+    defaultVariants: {
+      state: 'not-selected'
+    }
+  }
+)
+
+interface SidebarButtonProps {
+  href: string
+  children: React.ReactNode
+}
+
+export default function NavBar({ className }: { className?: string }) {
+  const [isShowDemoBanner] = useShowDemoBanner()
+
+  const style = isShowDemoBanner
+    ? { height: `calc(100vh - ${BANNER_HEIGHT} - 4rem)` }
+    : { height: 'calc(100vh - 4rem)' }
 
   return (
-    <Tabs value={defaultValue} onValueChange={setTab}>
-      <div className="sticky top-0 mb-4 flex">
-        <TabsList className="grid h-20 grid-cols-3 lg:h-10 lg:grid-cols-6">
-          <TabsTrigger value="git" asChild>
-            <Link href="/settings/providers/git">
-              <span className="ml-2">Git</span>
-            </Link>
-          </TabsTrigger>
-          {PROVIDER_KIND_METAS.map(provider => {
-            return (
-              <TabsTrigger value={provider.name} asChild key={provider.name}>
-                <Link href={`/settings/providers/${provider.name}`}>
-                  <ProviderIcon kind={provider.enum} />
-                  <span className="ml-2">{provider.meta.displayName}</span>
-                </Link>
-              </TabsTrigger>
-            )
-          })}
-          <TabsTrigger value="web" asChild>
-            <Link
-              href="/settings/providers/web"
-              className="relative overflow-hidden"
-            >
-              <IconFileText />
-              <span className="ml-2">Web</span>
-              <span
-                className={cn(
-                  'absolute -right-8 top-1 mr-3 rotate-45 rounded-none border-none bg-muted py-0.5 pl-6 pr-5 text-xs text-muted-foreground',
-                  {
-                    'opacity-100': tab === 'web',
-                    'opacity-0': tab !== 'web'
-                  }
-                )}
-                style={{ transition: 'opacity 0.35s ease-out 0.15s' }}
-              >
-                Beta
-              </span>
-            </Link>
-          </TabsTrigger>
-        </TabsList>
-      </div>
-    </Tabs>
+    <div
+      className={cn(
+        'space-y-1 border-r pr-4 text-sm font-medium sticky top-16',
+        className
+      )}
+      style={style}
+    >
+      <SidebarButton href="/settings/providers/git">Git</SidebarButton>
+      {PROVIDER_KIND_METAS.map(provider => {
+        return (
+          <SidebarButton
+            href={`/settings/providers/${provider.name}`}
+            key={provider.name}
+          >
+            {provider.meta.displayName}
+          </SidebarButton>
+        )
+      })}
+      <SidebarButton href="/settings/providers/web">
+        Web
+        <Badge className="text-[10px] h-4 px-1.5">Beta</Badge>
+      </SidebarButton>
+    </div>
   )
 }
 
-function ProviderIcon({ kind }: { kind: IntegrationKind }) {
-  switch (kind) {
-    case IntegrationKind.Github:
-    case IntegrationKind.GithubSelfHosted:
-      return <IconGitHub />
-    case IntegrationKind.Gitlab:
-    case IntegrationKind.GitlabSelfHosted:
-      return <IconGitLab />
-    default:
-      return null
-  }
+function SidebarButton({ href, children }: SidebarButtonProps) {
+  const pathname = usePathname()
+  const isSelected = React.useMemo(() => {
+    const matcher = pathname.match(/^(\/settings\/providers\/[\w-]+)/)?.[1]
+    return matcher === href
+  }, [pathname, href])
+
+  const state = isSelected ? 'selected' : 'not-selected'
+  return (
+    <Link className={cn('relative', linkVariants({ state }))} href={href}>
+      {children}
+    </Link>
+  )
 }

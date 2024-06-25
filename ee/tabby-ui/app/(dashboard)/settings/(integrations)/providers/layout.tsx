@@ -1,6 +1,8 @@
 import { Metadata } from 'next'
 
-import RepositoryTabsHeader from './components/tabs-header'
+import { ScrollArea } from '@/components/ui/scroll-area'
+
+import ProviderNavBar from './components/tabs-header'
 
 export const metadata: Metadata = {
   title: 'Context Providers'
@@ -12,9 +14,9 @@ export default function ProvidersLayout({
   children: React.ReactNode
 }) {
   return (
-    <>
-      <RepositoryTabsHeader />
-      <div className="mt-8">{children}</div>
-    </>
+    <div className="flex -m-4 lg:-m-10">
+      <ProviderNavBar className="w-[220px] pl-4 pt-4" />
+      <ScrollArea className="flex-1 p-4">{children}</ScrollArea>
+    </div>
   )
 }
