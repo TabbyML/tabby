@@ -1,4 +1,3 @@
-
 use tabby_scheduler::DocIndexer;
 use tabby_schema::Result;
 use tracing::debug;
