@@ -61,7 +61,7 @@ export default function NavBar({ className }: { className?: string }) {
         Web
         <Badge
           variant="outline"
-          className="h-3.5 px-1.5 text-[10px] border-secondary-foreground/60 text-secondary-foreground/60"
+          className="h-3.5 border-secondary-foreground/60 px-1.5 text-[10px] text-secondary-foreground/60"
         >
           Beta
         </Badge>
