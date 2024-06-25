@@ -271,15 +271,13 @@ const ActiveRepoTable: React.FC<{
     loadPage(page)
   }
 
-  const delayLoadPage = useDebounceCallback(() => handleLoadPage(page), 3000)
-
   const handleTriggerJobRun = (command: string) => {
     return triggerJobRun({ command }).then(res => {
       if (res?.data?.triggerJobRun) {
         toast.success(
           'The job has been triggered successfully, it may take a few minutes to process.'
         )
-        delayLoadPage.run()
+        handleLoadPage(page)
       } else {
         toast.error(res?.error?.message || 'Failed to trigger job')
       }
@@ -291,10 +289,6 @@ const ActiveRepoTable: React.FC<{
 
     return () => clearRecentlyActivated.cancel()
   }, [])
-
-  React.useEffect(() => {
-    return () => delayLoadPage.cancel()
-  }, [page])
 
   return (
     <LoadingWrapper loading={fetching}>
