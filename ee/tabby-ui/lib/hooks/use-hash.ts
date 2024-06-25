@@ -1,10 +1,10 @@
 import React from 'react'
-
-import { useLatest } from './use-latest'
 import { useParams } from 'next/navigation'
 
+import { useLatest } from './use-latest'
+
 export function useHash(): [string, (hash: string) => void] {
-  const param = useParams();
+  const param = useParams()
   const [hash, setHash] = React.useState<string>('')
   const hashRef = useLatest(hash)
 
@@ -27,7 +27,7 @@ export function useHash(): [string, (hash: string) => void] {
   }, [])
 
   // Handle hash changes from next/navigation
-  React.useEffect(handleHashChange, [param]);
+  React.useEffect(handleHashChange, [param])
 
   return [hash, changeHash]
 }
