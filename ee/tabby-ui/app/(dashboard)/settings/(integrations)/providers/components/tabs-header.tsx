@@ -41,7 +41,7 @@ export default function NavBar({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'space-y-1 border-r pr-4 text-sm font-medium sticky top-16',
+        'sticky top-16 space-y-1 border-r pr-4 text-sm font-medium',
         className
       )}
       style={style}
@@ -59,7 +59,7 @@ export default function NavBar({ className }: { className?: string }) {
       })}
       <SidebarButton href="/settings/providers/web">
         Web
-        <Badge className="text-[10px] h-4 px-1.5">Beta</Badge>
+        <Badge className="h-4 px-1.5 text-[10px]">Beta</Badge>
       </SidebarButton>
     </div>
   )

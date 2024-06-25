@@ -14,7 +14,7 @@ export default function ProvidersLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex -m-4 lg:-m-10">
+    <div className="-m-4 flex lg:-m-10">
       <ProviderNavBar className="w-[220px] pl-4 pt-4" />
       <ScrollArea className="flex-1 p-4">{children}</ScrollArea>
     </div>
