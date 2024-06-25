@@ -11,10 +11,13 @@ use super::{
     create_code_index,
     intelligence::{CodeIntelligence, SourceCode},
 };
+use crate::indexer::Indexer;
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
+static MIN_ALPHA_NUM_FRACTION: f32 = 0.25f32;
+static MAX_NUMBER_OF_LINES: usize = 100000;
 
 pub async fn index_repository(embedding: Arc<dyn Embedding>, repository: &RepositoryConfig) {
     let total_files = Walk::new(repository.dir()).count();
@@ -99,7 +102,21 @@ async fn add_changed_documents(
                 };
 
                 if is_valid_file(&code) {
-                    index.add(code).await;
+                    const WARNING_EVERY_SECS: u64 = 30;
+
+                    let mut handle = pin!(index.add(code));
+                    let mut total_secs = 0;
+                    loop {
+                        tokio::select! {
+                            _ = &mut handle => {
+                                break
+                            },
+                            _ = tokio::time::sleep(std::time::Duration::from_secs(WARNING_EVERY_SECS)) => {
+                                total_secs += WARNING_EVERY_SECS;
+                                logkit::warn!("File {} is taking too long to index, {} seconds elapsed", file.path().display(), total_secs);
+                            }
+                        };
+                    }
                 }
             });
         }
@@ -112,17 +129,30 @@ async fn add_changed_documents(
     .collect::<()>()
     .await;
 
-    match Arc::try_unwrap(index) {
-        Ok(index) => index.commit(),
-        Err(_) => {
-            panic!("Failed to commit code index");
+    wait_for_index(index).await;
+}
+
+async fn wait_for_index(index: Arc<Indexer<SourceCode>>) {
+    let mut current_index = Box::new(index);
+    loop {
+        match Arc::try_unwrap(*current_index) {
+            Ok(index) => {
+                index.commit();
+                break;
+            }
+            Err(index) => {
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                *current_index = index;
+            }
         }
-    };
+    }
 }
 
 fn is_valid_file(file: &SourceCode) -> bool {
     file.max_line_length <= MAX_LINE_LENGTH_THRESHOLD
         && file.avg_line_length <= AVG_LINE_LENGTH_THRESHOLD
+        && file.alphanum_fraction >= MIN_ALPHA_NUM_FRACTION
+        && file.num_lines <= MAX_NUMBER_OF_LINES
 }
 
 #[cfg(test)]

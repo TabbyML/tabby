@@ -127,6 +127,7 @@ impl CodeIntelligence {
             avg_line_length: metrics::avg_line_length(&contents),
             alphanum_fraction: metrics::alphanum_fraction(&contents),
             tags: self.find_tags(language, &contents),
+            num_lines: contents.lines().count(),
             language: language.into(),
         };
         Some(source_file)
