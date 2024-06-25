@@ -3,9 +3,8 @@ use std::sync::Arc;
 use juniper::ID;
 use tabby_inference::Embedding;
 
-use crate::service::web_crawler::format_website_source;
-
 use super::helper::Job;
+use crate::service::web_crawler::format_website_source;
 
 pub struct WebCrawlerJob {
     url: String,

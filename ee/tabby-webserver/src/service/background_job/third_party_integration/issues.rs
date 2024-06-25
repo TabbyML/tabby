@@ -1,4 +1,3 @@
-use crate::service::repository::format_issue_source;
 use anyhow::{anyhow, Result};
 use gitlab::api::{issues::ProjectIssues, projects::merge_requests::MergeRequests, AsyncQuery};
 use juniper::ID;
@@ -6,7 +5,7 @@ use octocrab::Octocrab;
 use serde::Deserialize;
 use tabby_scheduler::{DocIndexer, WebDocument};
 
-use crate::service::create_gitlab_client;
+use crate::service::{create_gitlab_client, repository::format_issue_source};
 
 pub async fn index_github_issues(
     api_base: &str,

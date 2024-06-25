@@ -17,7 +17,6 @@ use tabby_schema::{
     },
     Result,
 };
-
 pub use third_party::format_issue_source;
 
 struct RepositoryServiceImpl {
