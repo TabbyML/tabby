@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::{pin::pin, sync::Arc};
 
 use async_stream::stream;
 use futures::StreamExt;
-use ignore::Walk;
+use ignore::{DirEntry, Walk};
 use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
 use tracing::warn;
@@ -11,15 +11,37 @@ use super::{
     create_code_index,
     intelligence::{CodeIntelligence, SourceCode},
 };
-use crate::Indexer;
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 
 pub async fn index_repository(embedding: Arc<dyn Embedding>, repository: &RepositoryConfig) {
-    let index = create_code_index(Some(embedding));
-    add_changed_documents(repository, index).await;
+    let total_files = Walk::new(repository.dir()).count();
+    let file_stream = stream! {
+        for file in Walk::new(repository.dir()) {
+            let file = match file {
+                Ok(file) => file,
+                Err(e) => {
+                    warn!("Failed to walk file tree for indexing: {e}");
+                    continue;
+                }
+            };
+
+            yield file;
+        }
+    }
+    // Commit every 200 files
+    .chunks(200);
+
+    let mut file_stream = pin!(file_stream);
+
+    let mut count_files = 0;
+    while let Some(files) = file_stream.next().await {
+        count_files += files.len();
+        add_changed_documents(repository, embedding.clone(), files).await;
+        logkit::info!("{}/{} files has been processed...", count_files, total_files);
+    }
 }
 
 pub async fn garbage_collection() {
@@ -43,21 +65,16 @@ pub async fn garbage_collection() {
     }.collect::<()>().await;
 }
 
-async fn add_changed_documents(repository: &RepositoryConfig, index: Indexer<SourceCode>) {
-    let index = Arc::new(index);
+async fn add_changed_documents(
+    repository: &RepositoryConfig,
+    embedding: Arc<dyn Embedding>,
+    files: Vec<DirEntry>,
+) {
+    let index = Arc::new(create_code_index(Some(embedding)));
+    let intelligence = CodeIntelligence::default();
     let cloned_index = index.clone();
-
     stream! {
-        let intelligence = CodeIntelligence::default();
-        for file in Walk::new(repository.dir()) {
-            let file = match file {
-                Ok(file) => file,
-                Err(e) => {
-                    warn!("Failed to walk file tree for indexing: {e}");
-                    continue;
-                }
-            };
-
+        for file in files {
             let Some(key) = CodeIntelligence::compute_source_file_id(file.path()) else {
                 continue;
             };
@@ -66,8 +83,6 @@ async fn add_changed_documents(repository: &RepositoryConfig, index: Indexer<Sou
                 // Skip if already indexed
                 continue;
             }
-
-            logkit::info!("Indexing file: {}", file.path().display());
 
             let Some(code) = intelligence.compute_source_file(repository, file.path()) else {
                 continue;

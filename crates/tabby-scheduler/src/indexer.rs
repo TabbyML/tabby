@@ -121,7 +121,6 @@ impl<T: Send + 'static> Indexer<T> {
     }
 
     pub fn commit(mut self) {
-        logkit::info!("Committing changes to index...");
         self.writer.commit().expect("Failed to commit changes");
         self.writer
             .wait_merging_threads()
