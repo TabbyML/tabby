@@ -46,12 +46,13 @@ pub async fn index_github_issues(
     }
 
     for issue in issues {
+        let source = format_issue_source(integration_id.clone(), repository_id.clone());
         let doc = WebDocument {
             id: issue.html_url.to_string(),
             link: issue.html_url.to_string(),
             title: issue.title,
             body: issue.body.unwrap_or_default(),
-            source: format_issue_source(integration_id.clone(), repository_id.clone()),
+            source,
         };
         index.add(doc).await;
     }

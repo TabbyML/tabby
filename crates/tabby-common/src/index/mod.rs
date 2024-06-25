@@ -23,6 +23,7 @@ pub struct IndexSchema {
 
     // === Fields for document ===
     pub field_attributes: Field,
+    pub field_source: Field,
 
     // === Fields for chunk ===
     pub field_chunk_id: Field,
@@ -65,6 +66,7 @@ impl IndexSchema {
                 ),
         );
 
+        let field_source = builder.add_text_field("source", STRING | STORED);
         let field_chunk_tokens = builder.add_text_field("chunk_tokens", STRING);
         let schema = builder.build();
 
@@ -74,6 +76,7 @@ impl IndexSchema {
             field_corpus,
             field_updated_at,
             field_attributes,
+            field_source,
 
             field_chunk_id,
             field_chunk_attributes,
