@@ -16,9 +16,9 @@ impl DeleteIndexedDocumentsJob {
         Self { source }
     }
 
-    pub async fn run(self, embedding: Arc<dyn Embedding>) -> Result<()> {
+    pub async fn run(self) -> Result<()> {
         debug!("Deleting documents for {}", self.source);
-        let index = DocIndexer::new(embedding);
+        let index = DocIndexer::new_no_embedding();
         index.delete(self.source).await;
         index.commit();
         Ok(())

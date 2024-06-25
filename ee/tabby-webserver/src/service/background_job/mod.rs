@@ -106,7 +106,7 @@ pub async fn start(
                         }
                         BackgroundJobEvent::DeleteIndexedDocumentsBySource(source) => {
                             let job = DeleteIndexedDocumentsJob::new(source);
-                            job.run(embedding.clone()).await
+                            job.run().await
                         }
                     } {
                         logkit::info!(exit_code = 1; "Job failed {}", err);
