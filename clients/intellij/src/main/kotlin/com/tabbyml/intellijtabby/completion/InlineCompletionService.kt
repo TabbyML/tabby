@@ -122,7 +122,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
     val lineStart = document.getLineStartOffset(document.getLineNumber(offset))
     val linePrefix = document.getText(TextRange(lineStart, offset))
     val visibleText = completionItem.insertText.substring(offset - completionItem.replaceRange.start)
-    return linePrefix.isBlank() && visibleText.matches(Regex("(\\t+| {2,}).*"))
+    return linePrefix.isBlank() && visibleText.matches(Regex("(\\t+| {2,}).*", RegexOption.DOT_MATCHES_ALL))
   }
 
   init {
@@ -145,7 +145,6 @@ class InlineCompletionService(private val project: Project) : Disposable {
   }
 
   private var autoTriggerMessageBusConnection: MessageBusConnection? = null
-  private var autoTriggerPreparedOffset: Int? = null
   private fun registerAutoTriggerListener() {
     logger.debug("Register AutoTrigger listener.")
     val connection = project.messageBus.connect()
@@ -155,13 +154,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
     connection.subscribe(DocumentListener.TOPIC, object : DocumentListener {
       override fun documentChanged(document: Document, editor: Editor, event: DocumentEvent) {
         if (editorManager.selectedTextEditor == editor) {
-          if (event.newFragment.isEmpty()) {
-            // a delete or backspace input, invoke directly
-            provideInlineCompletion(editor, event.offset)
-          } else {
-            // otherwise wait for a caret event
-            autoTriggerPreparedOffset = event.offset + event.newFragment.length
-          }
+          provideInlineCompletion(editor, event.offset + event.newFragment.length)
         }
       }
     })
@@ -170,12 +163,9 @@ class InlineCompletionService(private val project: Project) : Disposable {
       override fun caretPositionChanged(editor: Editor, event: CaretEvent) {
         if (editorManager.selectedTextEditor == editor) {
           val offset = editor.caretModel.offset
-          if (offset == autoTriggerPreparedOffset) {
-            if (current?.request?.isMatch(editor, offset) != true) {
-              provideInlineCompletion(editor, offset)
-            }
+          if (current?.request?.isMatch(editor, offset) == true) {
+            // keep the current request if it is still valid
           } else {
-            autoTriggerPreparedOffset = null
             dismiss()
           }
         }
@@ -184,7 +174,6 @@ class InlineCompletionService(private val project: Project) : Disposable {
 
     connection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, object : FileEditorManagerListener {
       override fun selectionChanged(event: FileEditorManagerEvent) {
-        autoTriggerPreparedOffset = null
         dismiss()
       }
     })

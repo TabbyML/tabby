@@ -21,7 +21,7 @@ abstract class InlineCompletionAction(private val inlineCompletionHandler: Inlin
       return inlineCompletionService.isInlineCompletionVisibleAt(
         editor,
         caret.offset
-      ) && inlineCompletionHandler.isEnabled(editor, caret, inlineCompletionService)
+      ) && inlineCompletionHandler.isEnabledForCaret(editor, caret, inlineCompletionService)
     }
   }), HasPriority {
   override val priority: Int = 1

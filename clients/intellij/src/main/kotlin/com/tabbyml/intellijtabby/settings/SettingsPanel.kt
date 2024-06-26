@@ -181,6 +181,7 @@ class SettingsPanel(private val project: Project) {
   private val resetMutedNotificationsButton = JButton("Reset \"Don't Show Again\" Notifications").apply {
     addActionListener {
       settings.notificationsMuted = mutableListOf()
+      settings.notifyChanges(project)
       invokeLater(ModalityState.stateForComponent(this@SettingsPanel.mainPanel)) {
         Messages.showInfoMessage("Reset \"Don't Show Again\" notifications successfully.", "Reset Notifications")
       }

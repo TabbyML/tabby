@@ -10,11 +10,12 @@ class TabAccept : InlineCompletionAction(object : InlineCompletionActionHandler 
     inlineCompletionService.accept(editor, caret?.offset, InlineCompletionService.AcceptType.FULL_COMPLETION)
   }
 
-  override fun isEnabled(editor: Editor, caret: Caret, inlineCompletionService: InlineCompletionService): Boolean {
+  override fun isEnabledForCaret(editor: Editor, caret: Caret, inlineCompletionService: InlineCompletionService): Boolean {
     return !inlineCompletionService.isInlineCompletionStartWithIndentation()
   }
 }) {
   override fun update(e: AnActionEvent) {
+    super.update(e)
     e.presentation.isVisible = false
   }
 }

@@ -6,7 +6,7 @@ import com.tabbyml.intellijtabby.completion.InlineCompletionService
 
 interface InlineCompletionActionHandler {
   fun doExecute(editor: Editor, caret: Caret?, inlineCompletionService: InlineCompletionService)
-  fun isEnabled(editor: Editor, caret: Caret, inlineCompletionService: InlineCompletionService): Boolean {
+  fun isEnabledForCaret(editor: Editor, caret: Caret, inlineCompletionService: InlineCompletionService): Boolean {
     return true
   }
 }

@@ -80,6 +80,7 @@ class CheckIssueDetail : AnAction() {
             2 -> {
               // Don't Show Again
               settings.notificationsMuted += listOf("completionResponseTimeIssues")
+              settings.notifyChanges(project)
             }
           }
         }

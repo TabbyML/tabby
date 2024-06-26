@@ -15,6 +15,7 @@ class ToggleInlineCompletionTriggerMode : AnAction() {
       SettingsState.TriggerMode.AUTOMATIC -> SettingsState.TriggerMode.MANUAL
       SettingsState.TriggerMode.MANUAL -> SettingsState.TriggerMode.AUTOMATIC
     }
+    e.project?.let { settings.notifyChanges(it) }
   }
 
   override fun update(e: AnActionEvent) {
