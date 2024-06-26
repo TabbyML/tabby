@@ -48,16 +48,6 @@ export async function activate(context: ExtensionContext) {
     const languageClient = new NodeLanguageClient("Tabby", serverOptions, clientOptions);
     client = new Client(context, languageClient);
   }
-  const config = new Config(context);
-  const inlineCompletionProvider = new InlineCompletionProvider(client, config);
-  const gitProvider = new GitProvider();
-
-  client.registerConfigManager(config);
-  client.registerInlineCompletionProvider(inlineCompletionProvider);
-  client.registerGitProvider(gitProvider);
-
-  await client.start();
-
   // Register chat panel
   const chatViewProvider = new ChatViewProvider(context, client.agent, logger);
   context.subscriptions.push(
@@ -65,6 +55,15 @@ export async function activate(context: ExtensionContext) {
       webviewOptions: { retainContextWhenHidden: true },
     }),
   );
+
+  const config = new Config(context);
+  const inlineCompletionProvider = new InlineCompletionProvider(client, config);
+  const gitProvider = new GitProvider();
+  client.registerConfigManager(config);
+  client.registerInlineCompletionProvider(inlineCompletionProvider);
+  client.registerGitProvider(gitProvider);
+
+  await client.start();
 
   const issues = new Issues(client, config);
   const contextVariables = new ContextVariables(client, config);

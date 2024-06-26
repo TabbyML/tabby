@@ -1,13 +1,25 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
+import tabbyUrl from '@/assets/tabby.png'
 import Color from 'color'
-import type { ChatMessage, Context, FetcherOptions } from 'tabby-chat-panel'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import type {
+  ChatMessage,
+  Context,
+  ErrorMessage,
+  FetcherOptions,
+  InitRequest
+} from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
 
-import { nanoid } from '@/lib/utils'
+import { cn, nanoid } from '@/lib/utils'
+import { IconSpinner } from '@/components/ui/icons'
 import { Chat, ChatRef } from '@/components/chat/chat'
+import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './page.css'
 
@@ -33,12 +45,16 @@ export default function ChatPage() {
   )
   const [activeChatId, setActiveChatId] = useState('')
   const [pendingMessages, setPendingMessages] = useState<ChatMessage[]>([])
+  const [isThemeSynced, setIsThemeSynced] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<ErrorMessage | null>(null)
 
   const chatRef = useRef<ChatRef>(null)
 
   const searchParams = useSearchParams()
-  const from = searchParams.get('from') || undefined
-  const isFromVSCode = from === 'vscode'
+  const client = searchParams.get('client') || undefined
+  const initialTheme = searchParams.get('theme') || undefined
+
+  const isFromVSCode = client === 'vscode'
   const maxWidth = isFromVSCode ? '5xl' : undefined
 
   useEffect(() => {
@@ -66,6 +82,7 @@ export default function ChatPage() {
           })
           .join(';')
         document.documentElement.style.cssText = styleWithHslValue
+        setIsThemeSynced(true)
       }
 
       // Sync with edit theme
@@ -114,7 +131,7 @@ export default function ChatPage() {
   }
 
   const server = useServer({
-    init: request => {
+    init: (request: InitRequest) => {
       if (chatRef.current) return
       setActiveChatId(nanoid())
       setIsInit(true)
@@ -122,6 +139,9 @@ export default function ChatPage() {
     },
     sendMessage: (message: ChatMessage) => {
       return sendMessage(message)
+    },
+    showError: (errorMessage: ErrorMessage) => {
+      setErrorMessage(errorMessage)
     }
   })
 
@@ -144,7 +164,59 @@ export default function ChatPage() {
     )
   }
 
-  if (!isInit || !fetcherOptions) return <></>
+  function StaticContent({ children }: { children: React.ReactNode }) {
+    return (
+      <div
+        className={cn(
+          'h-screen w-screen px-4 py-2',
+          !isThemeSynced && `${initialTheme} ${initialTheme}-foreground`
+        )}
+        style={{ fontSize: '12px' }}
+      >
+        <div className="mb-2 flex items-center">
+          <Image
+            src={tabbyUrl}
+            alt="logo"
+            className="mr-1.5 rounded-full border p-0.5"
+            style={{ background: 'rgb(232, 226, 210)' }}
+            width={18}
+          />
+          <p className="font-semibold">Tabby</p>
+        </div>
+        {children}
+      </div>
+    )
+  }
+
+  if (errorMessage) {
+    // FIXME: refresh button
+    return (
+      <StaticContent>
+        <>
+          <MemoizedReactMarkdown
+            className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
+            remarkPlugins={[remarkGfm, remarkMath]}
+          >
+            {errorMessage.content}
+          </MemoizedReactMarkdown>
+        </>
+      </StaticContent>
+    )
+  }
+
+  if (!isInit || !fetcherOptions) {
+    return (
+      <StaticContent>
+        <>
+          <p className="opacity-80">
+            Welcome to Tabby Chat! Just a moment while we get things ready...
+          </p>
+          <IconSpinner className="mx-auto mt-5" />
+        </>
+      </StaticContent>
+    )
+  }
+
   const headers = {
     Authorization: `Bearer ${fetcherOptions.authorization}`
   }
@@ -158,8 +230,8 @@ export default function ChatPage() {
       onNavigateToContext={onNavigateToContext}
       onLoaded={onChatLoaded}
       maxWidth={maxWidth}
-      onCopyContent={from === 'vscode' ? onCopyContent : undefined}
-      from={from}
+      onCopyContent={client === 'vscode' ? onCopyContent : undefined}
+      from={client}
     />
   )
 }

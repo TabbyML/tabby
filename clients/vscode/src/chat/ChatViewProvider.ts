@@ -20,7 +20,8 @@ export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
   private pendingMessages: ChatMessage[] = [];
-  private isReady = false;
+  private isServerReady = false;
+  private isRendered = false;
 
   constructor(
     private readonly context: ExtensionContext,
@@ -76,21 +77,16 @@ export class ChatViewProvider implements WebviewViewProvider {
     };
   }
 
+  // The method is called when the chat panel first opened
   public async resolveWebviewView(webviewView: WebviewView) {
     this.webview = webviewView;
-    this.isReady = this.agent.status === "ready";
+    this.isServerReady = this.agent.status === "ready";
     const extensionUri = this.context.extensionUri;
 
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [extensionUri],
     };
-
-    if (this.isReady) {
-      await this.renderChatPage();
-    } else {
-      webviewView.webview.html = this.getWelcomeContent();
-    }
 
     this.client = createClient(webviewView, {
       navigate: async (context: Context) => {
@@ -114,28 +110,30 @@ export class ChatViewProvider implements WebviewViewProvider {
       },
     });
 
+    this.renderChatPage();
+
     this.agent.on("didChangeStatus", async (status) => {
-      if (status === "ready" && !this.isReady) {
-        this.isReady = true;
-        await this.renderChatPage();
+      if (status === "ready") {
+        this.isServerReady = true;
+        this.initChatPage();
       }
     });
 
-    this.agent.on("didUpdateServerInfo", async (serverInfo: ServerInfo) => {
-      await this.renderChatPage(serverInfo);
+    this.agent.on("didUpdateServerInfo", () => {
+      this.renderChatPage();
     });
 
     // The event will not be triggered during the initial rendering.
-    webviewView.onDidChangeVisibility(async () => {
+    webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
-        await this.initChatPage();
+        this.initChatPage();
       }
     });
 
-    webviewView.webview.onDidReceiveMessage(async (message) => {
+    webviewView.webview.onDidReceiveMessage((message) => {
       switch (message.action) {
         case "rendered": {
-          await this.initChatPage();
+          this.initChatPage();
           return;
         }
         case "copy": {
@@ -150,15 +148,6 @@ export class ChatViewProvider implements WebviewViewProvider {
         this.webview?.webview.postMessage({ action: "sync-theme" });
       }
     });
-  }
-
-  private async renderChatPage(serverInfo?: ServerInfo) {
-    if (!serverInfo) {
-      serverInfo = await this.agent.fetchServerInfo();
-    }
-    if (this.webview) {
-      this.webview.webview.html = this.getWebviewContent(serverInfo);
-    }
   }
 
   private isChatPanelAvailable(serverInfo: ServerInfo): boolean {
@@ -184,27 +173,42 @@ export class ChatViewProvider implements WebviewViewProvider {
   }
 
   private async initChatPage() {
-    this.webview?.webview.postMessage({ action: "sync-theme" });
-    this.pendingMessages.forEach((message) => this.sendMessageToChatPanel(message));
+    if (!this.isServerReady) return;
+
     const serverInfo = await this.agent.fetchServerInfo();
+    if (!this.isChatPanelAvailable(serverInfo)) {
+      this.client?.showError({
+        title: "Tabby is not available",
+        content:
+          "Please update to the latest release of the Tabby server.\n\nYou also need to launch the server with the chat model enabled; for example, use `--chat-model Mistral-7B`.",
+      });
+      return;
+    }
+
+    this.pendingMessages.forEach((message) => this.sendMessageToChatPanel(message));
     if (serverInfo.config.token) {
       this.client?.init({
         fetcherOptions: {
           authorization: serverInfo.config.token,
         },
       });
+
+      this.isServerReady = true;
+    }
+  }
+
+  private async renderChatPage() {
+    if (this.isRendered) return;
+
+    // FIXME: is it correct fetch endpoint by this way?
+    const serverInfo = await this.agent.fetchServerInfo();
+    if (serverInfo.config.endpoint && this.webview) {
+      this.webview.webview.html = this.getWebviewContent(serverInfo);
+      this.isRendered = true;
     }
   }
 
   private getWebviewContent(serverInfo: ServerInfo) {
-    if (!this.isChatPanelAvailable(serverInfo)) {
-      return this.getStaticContent(`
-        <h4 class='title'>Tabby is not available</h4>
-        <p>Please update to <a href="https://github.com/TabbyML/tabby/releases" target="_blank">the latest version</a> of the Tabby server.</p>
-        <p>You also need to launch the server with the chat model enabled; for example, use <code>--chat-model Mistral-7B</code>.</p>
-      `);
-    }
-
     const endpoint = serverInfo.config.endpoint;
     const styleUri = this.webview?.webview.asWebviewUri(
       Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
@@ -218,26 +222,51 @@ export class ChatViewProvider implements WebviewViewProvider {
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
           <link href="${endpoint}" rel="preconnect">
           <link href="${styleUri}" rel="stylesheet">
+      
           <script defer>
             const vscode = acquireVsCodeApi();
+
+            function getTheme () {
+              return document.body.className === 'vscode-dark' ? 'dark' : 'light'
+            }
+
+            function getCssVariableValue(variableName) {
+              const root = document.documentElement;
+              return getComputedStyle(root).getPropertyValue(variableName).trim();
+            }
+
+            const syncTheme = () => {
+              const chatIframe = document.getElementById("chat");
+              if (!chatIframe) return
+        
+              const parentHtmlStyle = document.documentElement.getAttribute('style');
+              chatIframe.contentWindow.postMessage({ style: parentHtmlStyle }, "${endpoint}");
           
-            function iframeLoaded () {
-              vscode.postMessage({ action: 'rendered' });
+              let themeClass = getTheme()
+              themeClass += ' vscode'
+              chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${endpoint}");
             }
 
             window.onload = function () {
               const chatIframe = document.getElementById("chat");
-        
-              const syncTheme = () => {
-                const parentHtmlStyle = document.documentElement.getAttribute('style');
-                chatIframe.contentWindow.postMessage({ style: parentHtmlStyle }, "${endpoint}");
-            
-                let themeClass = document.body.className === 'vscode-dark' ? 'dark' : 'light'
-                themeClass += ' vscode'
-                chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${endpoint}");
+
+              if (chatIframe) {
+                const fontSize = getCssVariableValue('--vscode-font-size');
+                const theme = getTheme()
+
+                const clientQuery = "&client=vscode"
+                const themeQuery = "&theme=" + theme
+
+                chatIframe.addEventListener('load', function() {
+                  vscode.postMessage({ action: 'rendered' });
+                  syncTheme()
+                });
+
+                chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery + themeQuery)
               }
-        
+              
               window.addEventListener("message", (event) => {
+                if (!chatIframe) return
                 if (event.data) {
                   if (event.data.action === 'sync-theme') {
                     syncTheme();
@@ -249,6 +278,7 @@ export class ChatViewProvider implements WebviewViewProvider {
                   }
 
                   if (event.data.data) {
+                  console.log(chatIframe.src)
                     chatIframe.contentWindow.postMessage(event.data.data[0], "${endpoint}");
                   } else {
                     vscode.postMessage(event.data);
@@ -261,43 +291,7 @@ export class ChatViewProvider implements WebviewViewProvider {
         <body>
           <iframe
             id="chat"
-            src="${endpoint}/chat?from=vscode"
-            allow="clipboard-read; clipboard-write"
-            onload="iframeLoaded(this)" />
-        </body>
-      </html>
-    `;
-  }
-
-  // The content is displayed before the server is ready
-  private getWelcomeContent() {
-    return this.getStaticContent(`
-      <h4 class='title'>Welcome to Tabby Chat!</h4>
-      <p>Before you can start chatting, please take a moment to set up your credentials to connect to the Tabby server.</p>
-    `);
-  }
-
-  private getStaticContent(htmlContent: string) {
-    const logoUri = this.webview?.webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"));
-    const styleUri = this.webview?.webview.asWebviewUri(
-      Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
-    );
-    return `
-      <!DOCTYPE html>
-      <html lang="en">
-        <head>
-          <meta charset="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <link href="${styleUri}" rel="stylesheet">
-        </head>
-        <body>
-          <main class='static-content'>
-            <div class='avatar'>
-              <img src="${logoUri}" />
-              <p>Tabby</p>
-            </div>
-            ${htmlContent}
-          </main>
+            allow="clipboard-read; clipboard-write" />
         </body>
       </html>
     `;

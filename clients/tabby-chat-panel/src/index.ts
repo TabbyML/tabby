@@ -23,10 +23,15 @@ export interface InitRequest {
   fetcherOptions: FetcherOptions
 }
 
+export interface ErrorMessage {
+  title?: string
+  content: string
+}
+
 export interface ServerApi {
   init: (request: InitRequest) => void
   sendMessage: (message: ChatMessage) => void
-
+  showError: (error: ErrorMessage) => void
 }
 
 export interface ClientApi {
@@ -52,6 +57,7 @@ export function createServer(api: ServerApi): ClientApi {
     expose: {
       init: api.init,
       sendMessage: api.sendMessage,
+      showError: api.showError,
     },
   })
 }
