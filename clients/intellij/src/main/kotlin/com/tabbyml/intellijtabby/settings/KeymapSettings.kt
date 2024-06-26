@@ -1,26 +1,19 @@
 package com.tabbyml.intellijtabby.settings
 
-import com.google.gson.annotations.SerializedName
 import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.keymap.Keymap
 import com.intellij.openapi.keymap.ex.KeymapManagerEx
+import com.intellij.openapi.project.Project
 
-@Service
-class KeymapSettings {
+@Service(Service.Level.PROJECT)
+class KeymapSettings(private val project: Project) {
   private val logger = Logger.getInstance(KeymapSettings::class.java)
   private val manager = KeymapManagerEx.getInstanceEx()
 
   enum class KeymapStyle {
-    @SerializedName("default")
-    DEFAULT,
-
-    @SerializedName("tabby-style")
-    TABBY_STYLE,
-
-    @SerializedName("customize")
-    CUSTOMIZE,
+    DEFAULT, TABBY_STYLE, CUSTOMIZE,
   }
 
   fun getCurrentKeymapStyle(): KeymapStyle {
@@ -81,24 +74,22 @@ class KeymapSettings {
 
   companion object {
     private val DEFAULT_KEYMAP_SCHEMA = mapOf(
-      "Tabby.TriggerCompletion" to listOf(
-        KeyboardShortcut.fromString("ctrl BACK_SLASH"),
-        KeyboardShortcut.fromString("alt BACK_SLASH")
+      "Tabby.TriggerInlineCompletion" to listOf(
+        KeyboardShortcut.fromString("ctrl BACK_SLASH"), KeyboardShortcut.fromString("alt BACK_SLASH")
       ),
-      "Tabby.AcceptCompletion" to listOf(KeyboardShortcut.fromString("TAB")),
-      "Tabby.AcceptCompletionNextLine" to listOf(KeyboardShortcut.fromString("ctrl TAB")),
-      "Tabby.AcceptCompletionNextWord" to listOf(KeyboardShortcut.fromString("ctrl RIGHT")),
-      "Tabby.DismissCompletion" to listOf(KeyboardShortcut.fromString("ESCAPE")),
+      "Tabby.InlineCompletion.TabAccept" to listOf(KeyboardShortcut.fromString("TAB")),
+      "Tabby.InlineCompletion.AcceptNextLine" to listOf(KeyboardShortcut.fromString("ctrl TAB")),
+      "Tabby.InlineCompletion.AcceptNextWord" to listOf(KeyboardShortcut.fromString("ctrl RIGHT")),
+      "Tabby.InlineCompletion.Dismiss" to listOf(KeyboardShortcut.fromString("ESCAPE")),
     )
     private val TABBY_STYLE_KEYMAP_SCHEMA = mapOf(
-      "Tabby.TriggerCompletion" to listOf(
-        KeyboardShortcut.fromString("ctrl BACK_SLASH"),
-        KeyboardShortcut.fromString("alt BACK_SLASH")
+      "Tabby.TriggerInlineCompletion" to listOf(
+        KeyboardShortcut.fromString("ctrl BACK_SLASH"), KeyboardShortcut.fromString("alt BACK_SLASH")
       ),
-      "Tabby.AcceptCompletion" to listOf(KeyboardShortcut.fromString("ctrl TAB")),
-      "Tabby.AcceptCompletionNextLine" to listOf(KeyboardShortcut.fromString("TAB")),
-      "Tabby.AcceptCompletionNextWord" to listOf(KeyboardShortcut.fromString("ctrl RIGHT")),
-      "Tabby.DismissCompletion" to listOf(KeyboardShortcut.fromString("ESCAPE")),
+      "Tabby.InlineCompletion.TabAccept" to listOf(KeyboardShortcut.fromString("ctrl TAB")),
+      "Tabby.InlineCompletion.AcceptNextLine" to listOf(KeyboardShortcut.fromString("TAB")),
+      "Tabby.InlineCompletion.AcceptNextWord" to listOf(KeyboardShortcut.fromString("ctrl RIGHT")),
+      "Tabby.InlineCompletion.Dismiss" to listOf(KeyboardShortcut.fromString("ESCAPE")),
     )
   }
 }
