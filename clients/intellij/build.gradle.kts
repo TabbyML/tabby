@@ -46,7 +46,7 @@ tasks {
 
   register("buildAgent") {
     exec {
-      commandLine("turbo", "build")
+      commandLine("pnpm", "turbo", "build")
     }
   }
 

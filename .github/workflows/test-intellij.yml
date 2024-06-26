@@ -5,6 +5,7 @@ on:
     branches: [ main ]
     paths:
       - '.github/workflows/test-intellij.yml'
+      - 'clients/tabby-agent/**'
       - 'clients/intellij/**'
 
 concurrency:
