@@ -2,7 +2,7 @@
 
 import React, { PropsWithChildren } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { createRequest } from '@urql/core'
 import { compact, isEmpty, isNil, toNumber } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
@@ -38,6 +38,7 @@ import { DirectoryView } from './file-directory-view'
 import { mapToFileTree, sortFileTree, type TFileTreeNode } from './file-tree'
 import { FileTreePanel } from './file-tree-panel'
 import { RawFileView } from './raw-file-view'
+import { SourceCodeSearch } from './source-code-search'
 import { SourceCodeSearchResults } from './source-code-search-results'
 import { TextFileView } from './text-file-view'
 import {
@@ -360,7 +361,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const isBlobMode = activeEntryInfo?.viewMode === 'blob'
 
   const shouldFetchSearchResults = activeEntryInfo?.viewMode === 'search'
-
   const shouldFetchTree =
     !!isPathInitialized &&
     !isEmpty(repoMap) &&
@@ -378,14 +378,20 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }>(
     shouldFetchSearchResults ? activePath : null,
     (path: string) => {
+      console.log('it ran')
       const { repositorySpecifier } = resolveRepositoryInfoFromPath(path)
 
       const currentURL = new URL(window.location.href)
 
       const query = currentURL.searchParams.get('q') ?? ''
 
+      // If the path has a `q` query param, split it and use the first part as the path
+      // since we're going to add the new query param to the path
+      // TODO: improve this
+      const _path = path.split('?q=')[0]
+
       return fetchSearchResultsFromPath(
-        path,
+        _path ?? path,
         query,
         repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined
       ).then(data => {
@@ -534,7 +540,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   React.useEffect(() => {
     if (!entriesResponse || shouldFetchSearchResults) return
-    console.log('entriesResponse', entriesResponse)
 
     const { entries, requestPathname } = entriesResponse
 
@@ -583,7 +588,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   React.useEffect(() => {
     if (!globalSearchResponse || shouldFetchTree) return
-    console.log('globalSearchResponse', globalSearchResponse)
   })
 
   React.useEffect(() => {
@@ -673,15 +677,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       </ResizablePanel>
       <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
       <ResizablePanel defaultSize={80} minSize={30}>
-        <Link
-          // PLACEHOLDER URL
-          // TODO: make this dynamic
-          href="/files/github/jeffdaley/next-humansource/-/search/main/?q=query"
-        >
-          Search "query"
-        </Link>
-        <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
-          <FileDirectoryBreadcrumb className="py-4" />
+        <div className="flex h-full flex-col overflow-y-auto px-4 pb-4 pt-3.5">
+          <SourceCodeSearch />
+          {!showSearchView && <FileDirectoryBreadcrumb className="py-4" />}
           {!initialized ? (
             <ListSkeleton className="rounded-lg border p-4" />
           ) : showErrorView ? (
@@ -692,7 +690,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           ) : (
             <div>
               {showSearchView && (
-                // <div loading={fetchingSearchResults}>Fetchin search res</div>
                 <SourceCodeSearchResults
                   repoId={activeRepo?.id}
                   repositoryKind={activeEntryInfo?.repositoryKind}

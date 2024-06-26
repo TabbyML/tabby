@@ -96,10 +96,14 @@
   display: none;
 }
 
-[data-aos][data-aos=fade-down] {
+[data-aos][data-aos='fade-down'] {
   transform: translate3d(0, -20px, 0);
 }
 
-[data-aos][data-aos=fade-up] {
+[data-aos][data-aos='fade-up'] {
   transform: translate3d(0, 20px, 0);
+}
+
+[type='search']::-webkit-search-cancel-button {
+  appearance: none;
 }

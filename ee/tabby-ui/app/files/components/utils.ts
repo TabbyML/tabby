@@ -215,17 +215,17 @@ function generateEntryPath(
     | { kind: RepositoryKind | undefined; name: string | undefined }
     | undefined,
   rev: string | undefined,
-  basename: string,
-  kind: 'dir' | 'file' | 'search'
+  basename: string | undefined,
+  kind: 'dir' | 'file' | 'search',
+  query?: string
 ) {
   const specifier = resolveRepoSpecifierFromRepoInfo(repo)
-
   const kindSegment =
     kind === 'dir' ? 'tree' : kind === 'file' ? 'blob' : 'search'
 
-  return `${specifier}/-/${kindSegment}/${
-    rev ?? ''
-  }/${encodeURIComponentIgnoringSlash(basename ?? '')}`
+  return `${specifier}/-/${kindSegment}/${rev ?? ''}${
+    basename ? encodeURIComponentIgnoringSlash(`/${basename ?? ''}`) : ''
+  }${query ? `?q=${query}` : ''}`
 }
 
 function toEntryRequestUrl(

@@ -3,20 +3,16 @@
 import React from 'react'
 import Link from 'next/link'
 
-import { GrepFile } from '@/lib/gql/generates/graphql'
 import { filename2prism } from '@/lib/language-utils'
 import { IconFile } from '@/components/ui/icons'
 
 import CodeEditorView from './code-editor-view'
 import { SourceCodeBrowserContext } from './source-code-browser'
+import { SourceCodeSearchResult as SourceCodeSearchResultType } from './source-code-search-results'
 import { generateEntryPath } from './utils'
 
-export interface SourceCodeSearchResult extends GrepFile {
-  blob: string
-}
-
 interface SourceCodeSearchResultProps {
-  result: SourceCodeSearchResult
+  result: SourceCodeSearchResultType
   query: string
 }
 

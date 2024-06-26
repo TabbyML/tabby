@@ -12,6 +12,10 @@ import {
   getProviderVariantFromKind
 } from './utils'
 
+export interface SourceCodeSearchResult extends GrepFile {
+  blob: string
+}
+
 interface SourceCodeSearchResultsProps {
   results?: GrepFile[]
   repoId?: string
@@ -27,8 +31,7 @@ export const SourceCodeSearchResults = ({
   /**
    *
    */
-  // TODO: Rename?
-  const [results, setResults] = React.useState<any[]>() // FIXME: Add type
+  const [results, setResults] = React.useState<SourceCodeSearchResult[]>()
 
   /**
    * Match count. The tally of the lines across all results.
@@ -47,7 +50,7 @@ export const SourceCodeSearchResults = ({
   )
 
   // TODO: Share this globally
-  const multiFetcher = urls => {
+  const multiFetcher = (urls: string[]) => {
     return Promise.all(
       urls.map(url => {
         return fetcher(url, {
@@ -83,7 +86,7 @@ export const SourceCodeSearchResults = ({
         return (
           acc + result.lines.filter(line => line.subMatches.length > 0).length
         )
-      }, 0)
+      }, 0) ?? 0
     )
   }, [results])
 
@@ -114,7 +117,6 @@ export const SourceCodeSearchResults = ({
           {results.map((result, i) => (
             // FIXME: This key should be unique
             <li key={i} className="">
-              result
               <SourceCodeSearchResult result={result} query={query} />
             </li>
           ))}

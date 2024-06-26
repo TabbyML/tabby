@@ -1,7 +1,16 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 import { foldGutter } from '@codemirror/language'
 import { Extension } from '@codemirror/state'
-import { drawSelection, EditorView } from '@codemirror/view'
+import {
+  Decoration,
+  DecorationSet,
+  drawSelection,
+  EditorView,
+  lineNumbers,
+  MatchDecorator,
+  ViewPlugin,
+  ViewUpdate
+} from '@codemirror/view'
 import { isNaN, isNil } from 'lodash-es'
 import { useTheme } from 'next-themes'
 
@@ -29,9 +38,29 @@ import './line-menu-extension/line-menu.css'
 interface CodeEditorViewProps {
   value: string
   language: string
+  stringToMatch?: string
+  lineRange?: { start: number; end: number } // TODO: Make type
+  onSelectLine?: (lineNumber: number) => void
 }
 
-const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
+/**
+ * Get blob at range
+ */
+const getBlobAtRange = (
+  blob: string,
+  range: { start: number; end: number }
+) => {
+  const lineArray = blob.split('\n')
+  return lineArray.slice(range.start - 1, range.end).join('\n')
+}
+
+const CodeEditorView: React.FC<CodeEditorViewProps> = ({
+  value,
+  language,
+  stringToMatch,
+  lineRange,
+  onSelectLine
+}) => {
   const { theme } = useTheme()
   const tags: TCodeTag[] = React.useMemo(() => {
     return []
@@ -46,6 +75,55 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const { basename } = activeEntryInfo
   const gitUrl = activeRepo?.gitUrl ?? ''
 
+  /**
+   * Special Character highlighting
+   */
+  const matchDecorator = new MatchDecorator({
+    regexp: new RegExp(stringToMatch ?? '', 'g'),
+    decoration: Decoration.mark({
+      tagName: 'mark',
+      class: 'bg-muted outline outline-offset-1'
+    })
+  })
+
+  /**
+   *
+   */
+  const matchExtension = ViewPlugin.fromClass(
+    class {
+      matches: DecorationSet
+      constructor(view: EditorView) {
+        this.matches = matchDecorator.createDeco(view)
+      }
+      update(update: ViewUpdate) {
+        // Do something?
+        this.matches = matchDecorator.updateDeco(update, this.matches)
+      }
+    },
+    {
+      decorations: instance => instance.matches,
+      provide: plugin =>
+        EditorView.decorations.of(view => {
+          return view.plugin(plugin)?.matches || Decoration.none
+        })
+    }
+  )
+
+  /**
+   *
+   */
+  const modifyStartingLineNumber = useCallback(
+    (lineNumber: number) => {
+      if (lineRange) {
+        return lineNumber + lineRange.start - 1
+      }
+      return lineNumber
+    },
+    [lineRange]
+  )
+
+  // TODO: snippet line numbers should be clickable to the full file
+
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
       EditorView.baseTheme({
@@ -57,6 +135,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
           borderRight: 'none'
         }
       }),
+
       selectLinesGutter({
         onSelectLine: v => {
           if (v === -1 || isNaN(v)) return
@@ -98,8 +177,36 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
       )
     }
 
+    if (stringToMatch) {
+      result.push(matchExtension)
+    }
+
+    if (lineRange) {
+      // Update the blob to just be the blob at range
+      // Push the lineNumber offset
+      result.push(
+        lineNumbers({
+          formatNumber: (lineNumber: number) =>
+            modifyStartingLineNumber(lineNumber).toString()
+        })
+      )
+    }
+
     return result
-  }, [value, tags, language])
+  }, [
+    isChatEnabled,
+    activePath,
+    basename,
+    value,
+    tags,
+    stringToMatch,
+    lineRange,
+    updateHash,
+    language,
+    gitUrl,
+    matchExtension,
+    modifyStartingLineNumber
+  ])
 
   React.useEffect(() => {
     const onClickLineMenu = (data: LineMenuActionEventPayload) => {
@@ -146,7 +253,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
 
   return (
     <CodeEditor
-      value={value}
+      value={lineRange ? getBlobAtRange(value, lineRange) : value}
       theme={theme}
       language={language}
       readonly
