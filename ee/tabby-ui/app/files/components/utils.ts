@@ -67,7 +67,7 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
   let viewMode: ViewMode | undefined
   let rev: string | undefined
 
-  // Why aren't these subroutes of the repo/branch directory
+  // Can these subroutes of the repo/branch directory
   const treeSeparatorIndex = path.indexOf('/-/tree/')
   const blobSeparatorIndex = path.indexOf('/-/blob/')
   const searchSeparatorIndex = path.indexOf('/-/search/')

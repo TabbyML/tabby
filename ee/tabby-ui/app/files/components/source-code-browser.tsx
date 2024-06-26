@@ -9,12 +9,16 @@ import { ImperativePanelHandle } from 'react-resizable-panels'
 import useSWR from 'swr'
 
 import { graphql } from '@/lib/gql/generates'
-import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
+import {
+  GrepTextOrBase64,
+  RepositoryListQuery
+} from '@/lib/gql/generates/graphql'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { filename2prism } from '@/lib/language-utils'
 import fetcher from '@/lib/tabby/fetcher'
 import { client } from '@/lib/tabby/gql'
+import { querySourceCode } from '@/lib/tabby/query'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
 import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
 import {
@@ -86,6 +90,23 @@ const repositoryListQuery = graphql(/* GraphQL */ `
     }
   }
 `)
+
+interface GrepFile {
+  path: string
+  lines: GrepLine[]
+}
+
+interface GrepLine {
+  line: GrepTextOrBase64
+  byteOffset: number
+  lineNumber: number
+  subMatches: GrepSubMatch[]
+}
+
+interface GrepSubMatch {
+  byteStart: number
+  byteEnd: number
+}
 
 type SourceCodeBrowserContextValue = {
   activePath: string | undefined
@@ -336,8 +357,46 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const [fileViewType, setFileViewType] = React.useState<FileDisplayType>()
 
   const isBlobMode = activeEntryInfo?.viewMode === 'blob'
+
+  const shouldFetchSearchResults = activeEntryInfo?.viewMode === 'search'
+
   const shouldFetchTree =
-    !!isPathInitialized && !isEmpty(repoMap) && !!activePath
+    !!isPathInitialized &&
+    !isEmpty(repoMap) &&
+    !!activePath &&
+    !shouldFetchSearchResults
+
+  // fetch search results
+  // FIXME: when hard-refreshing the page, the file tree is not fetched
+  const {
+    data: globalSearchResponse,
+    isLoading: fetchingSearchResults,
+    error: searchError
+  } = useSWR<{
+    results: GrepFile[]
+  }>(
+    shouldFetchSearchResults ? activePath : null,
+    (path: string) => {
+      const { repositorySpecifier } = resolveRepositoryInfoFromPath(path)
+
+      const currentURL = new URL(window.location.href)
+
+      const query = currentURL.searchParams.get('q') ?? ''
+
+      return fetchSearchResultsFromPath(
+        path,
+        query,
+        repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined
+      ).then(data => {
+        return { results: data }
+      })
+    },
+    {
+      revalidateOnFocus: false,
+      shouldRetryOnError: false
+    }
+  )
+  //
 
   // fetch tree
   const {
@@ -473,9 +532,11 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [activePath, initialized, isPathInitialized])
 
   React.useEffect(() => {
-    if (!entriesResponse) return
+    if (!entriesResponse || shouldFetchSearchResults) return
+    console.log('entriesResponse', entriesResponse)
 
     const { entries, requestPathname } = entriesResponse
+
     const { repositorySpecifier, viewMode, basename, rev } =
       resolveRepositoryInfoFromPath(requestPathname)
     const { repositorySpecifier: prevRepositorySpecifier, rev: prevRev } =
@@ -520,13 +581,32 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [entriesResponse])
 
   React.useEffect(() => {
+    if (!globalSearchResponse || shouldFetchTree) return
+    console.log('globalSearchResponse', globalSearchResponse)
+  })
+
+  React.useEffect(() => {
     if (!initialized) return
-    if (!progress && (fetchingRawFile || fetchingTreeEntries)) {
+    if (
+      !progress &&
+      (fetchingRawFile || fetchingTreeEntries || fetchingSearchResults)
+    ) {
       setProgress(true)
-    } else if (!fetchingRawFile && !fetchingTreeEntries) {
+    } else if (
+      !fetchingRawFile &&
+      !fetchingTreeEntries &&
+      !fetchingSearchResults
+    ) {
       setProgress(false)
     }
-  }, [fetchingRawFile, fetchingTreeEntries])
+  }, [
+    fetchingRawFile,
+    fetchingSearchResults,
+    fetchingTreeEntries,
+    initialized,
+    progress,
+    setProgress
+  ])
 
   React.useEffect(() => {
     const calculateViewType = async () => {
@@ -551,7 +631,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [chatSideBarVisible])
 
   React.useEffect(() => {
-    if (!(fetchingRawFile || fetchingTreeEntries)) return
+    if (!(fetchingRawFile || fetchingTreeEntries || fetchingSearchResults))
+      return
 
     const { repositorySpecifier, rev } = activeEntryInfo
     const { repositorySpecifier: prevRepositorySpecifier, rev: prevRev } =
@@ -594,13 +675,12 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         <Link
           // PLACEHOLDER URL
           // TODO: make this dynamic
-          href="/files/github/jeffdaley/next-humansource/-/search/main/?q=hello"
+          href="/files/github/jeffdaley/next-humansource/-/search/main/?q=query"
         >
-          Search "hello"
+          Search "query"
         </Link>
         <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
           <FileDirectoryBreadcrumb className="py-4" />
-          {showSearchView && <div>Search View</div>}
           {!initialized ? (
             <ListSkeleton className="rounded-lg border p-4" />
           ) : showErrorView ? (
@@ -610,6 +690,10 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
             />
           ) : (
             <div>
+              {showSearchView && (
+                // <div loading={fetchingSearchResults}>Fetchin search res</div>
+                <div>Fetchin search res</div>
+              )}
               {showDirectoryView && (
                 <DirectoryView
                   loading={fetchingTreeEntries}
@@ -720,6 +804,31 @@ async function getFileViewType(
 
   const isReadableText = await isReadableTextFile(blob)
   return isReadableText ? 'text' : 'raw'
+}
+
+async function fetchSearchResultsFromPath(
+  path: string | undefined,
+  query: string,
+  repository: RepositoryListQuery['repositoryList'][0] | undefined
+) {
+  if (!path) return [] // TODO: Handle
+  if (!repository) {
+    throw new Error(CodeBrowserError.REPOSITORY_NOT_FOUND)
+  }
+  const { repositoryKind } = resolveRepositoryInfoFromPath(path)
+
+  if (!repositoryKind) return []
+
+  const { data } = (await client
+    .query(querySourceCode, {
+      id: repository.id,
+      kind: repositoryKind,
+      query,
+      pause: !repository.id || !repositoryKind
+    })
+    .toPromise()) as unknown as { data: { repositoryGrep: GrepFile[] } }
+
+  return data?.repositoryGrep || []
 }
 
 async function fetchEntriesFromPath(
