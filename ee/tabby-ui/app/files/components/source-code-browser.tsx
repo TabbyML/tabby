@@ -1,6 +1,7 @@
 'use client'
 
 import React, { PropsWithChildren } from 'react'
+import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createRequest } from '@urql/core'
 import { compact, isEmpty, isNil, toNumber } from 'lodash-es'
@@ -44,6 +45,7 @@ import {
   resolveFileNameFromPath,
   resolveRepoRef,
   resolveRepositoryInfoFromPath,
+  resolveRepoSpecifierFromRepoInfo,
   toEntryRequestUrl
 } from './utils'
 
@@ -352,7 +354,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       return fetchEntriesFromPath(
         path,
         repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined
-      ).then(data => ({ entries: data, requestPathname: path }))
+      ).then(data => {
+        return { entries: data, requestPathname: path }
+      })
     },
     {
       revalidateOnFocus: false,
@@ -402,6 +406,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const error = rawFileError || entriesError
 
   const showErrorView = !!error
+
+  const showSearchView = activeEntryInfo?.viewMode === 'search'
 
   const showDirectoryView =
     activeEntryInfo?.viewMode === 'tree' || !activeEntryInfo?.viewMode
@@ -585,8 +591,16 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       </ResizablePanel>
       <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
       <ResizablePanel defaultSize={80} minSize={30}>
+        <Link
+          // PLACEHOLDER URL
+          // TODO: make this dynamic
+          href="/files/github/jeffdaley/next-humansource/-/search/main/?q=hello"
+        >
+          Search "hello"
+        </Link>
         <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
           <FileDirectoryBreadcrumb className="py-4" />
+          {showSearchView && <div>Search View</div>}
           {!initialized ? (
             <ListSkeleton className="rounded-lg border p-4" />
           ) : showErrorView ? (
