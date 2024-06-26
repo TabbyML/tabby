@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import { isNil } from 'lodash-es'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
@@ -142,13 +141,11 @@ export default function WebCrawlerTable() {
           ) : (
             <>
               {currentPageUrls?.map(x => {
-                const lastJobRun = x.node.jobInfo.lastJobRun
-                const hasRunningJob =
-                  !!lastJobRun?.id && isNil(lastJobRun.exitCode)
-
                 return (
                   <TableRow key={x.node.id}>
-                    <TableCell className="truncate">{x.node.url}</TableCell>
+                    <TableCell className="break-all lg:break-words">
+                      {x.node.url}
+                    </TableCell>
                     <TableCell>
                       <JobInfoView
                         jobInfo={x.node.jobInfo}
@@ -157,21 +154,19 @@ export default function WebCrawlerTable() {
                         }
                       />
                     </TableCell>
-                    <TableCell className="flex justify-end">
-                      <div className="flex gap-1">
-                        <Button
-                          size="icon"
-                          variant="hover-destructive"
-                          onClick={() =>
-                            handleDeleteWebCrawler(
-                              x.node.id,
-                              currentPageUrls.length === 1
-                            )
-                          }
-                        >
-                          <IconTrash />
-                        </Button>
-                      </div>
+                    <TableCell className="text-right">
+                      <Button
+                        size="icon"
+                        variant="hover-destructive"
+                        onClick={() =>
+                          handleDeleteWebCrawler(
+                            x.node.id,
+                            currentPageUrls.length === 1
+                          )
+                        }
+                      >
+                        <IconTrash />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 )

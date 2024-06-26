@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import { isNil } from 'lodash-es'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
@@ -146,14 +145,21 @@ export default function RepositoryTable() {
           ) : (
             <>
               {currentPageRepos?.map(x => {
-                const lastJobRun = x.node.jobInfo.lastJobRun
-                const hasRunningJob =
-                  !!lastJobRun?.id && isNil(lastJobRun.exitCode)
                 return (
                   <TableRow key={x.node.id}>
-                    <TableCell className="truncate">{x.node.name}</TableCell>
-                    <TableCell className="truncate">{x.node.gitUrl}</TableCell>
-                    <TableCell className="truncate">
+                    <TableCell
+                      className="break-all lg:break-words"
+                      title={x.node.name}
+                    >
+                      {x.node.name}
+                    </TableCell>
+                    <TableCell
+                      className="break-all lg:break-words"
+                      title={x.node.gitUrl}
+                    >
+                      {x.node.gitUrl}
+                    </TableCell>
+                    <TableCell>
                       <JobInfoView
                         jobInfo={x.node.jobInfo}
                         onTrigger={() =>
@@ -161,21 +167,19 @@ export default function RepositoryTable() {
                         }
                       />
                     </TableCell>
-                    <TableCell className="flex justify-end">
-                      <div className="flex gap-1">
-                        <Button
-                          size="icon"
-                          variant="hover-destructive"
-                          onClick={() =>
-                            handleDeleteRepository(
-                              x.node.id,
-                              currentPageRepos.length === 1
-                            )
-                          }
-                        >
-                          <IconTrash />
-                        </Button>
-                      </div>
+                    <TableCell className="text-right">
+                      <Button
+                        size="icon"
+                        variant="hover-destructive"
+                        onClick={() =>
+                          handleDeleteRepository(
+                            x.node.id,
+                            currentPageRepos.length === 1
+                          )
+                        }
+                      >
+                        <IconTrash />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 )
