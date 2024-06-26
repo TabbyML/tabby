@@ -1,3 +1,18 @@
+## 1.7.0
+
+### Breaking Changes
+
+- The tabby-agent will only support running as a language server starting from version 1.7.0.
+
+### Features
+
+- Added support for collecting relative code snippets to enhance code completion.
+- Extended the protocol by adding a new method to support inline chat editing.
+
+### Fixes & Improvements
+
+- Fixed a bug that caused unexpected logging output and the generation of an audit.json file in the working directory.
+
 ## 1.6.0
 
 ### Features
