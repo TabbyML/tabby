@@ -20,6 +20,8 @@ async fn crawl_url(start_url: &str) -> anyhow::Result<impl Stream<Item = KatanaR
         .arg(format!("starts_with(endpoint, \"{start_url}\")"))
         .arg("-depth")
         .arg("9999")
+        .arg("-kf")
+        .arg("sitemapxml")
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
         .spawn()?;
