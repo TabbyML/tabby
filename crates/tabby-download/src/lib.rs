@@ -56,9 +56,16 @@ async fn download_model_impl(
         return Err(anyhow!("No valid url for model <{}>", model_info.name));
     };
 
+    // Replace the huggingface.co domain with the mirror host if it is set.
+    let model_url = if let Ok(host) = std::env::var("TABBY_HUGGINGFACE_HOST_OVERRIDE") {
+        model_url.replace("huggingface.co", &host)
+    } else {
+        model_url.to_owned()
+    };
+
     let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
     let download_job = Retry::spawn(strategy, || {
-        download_file(model_url, model_path.as_path(), &model_info.sha256)
+        download_file(&model_url, model_path.as_path(), &model_info.sha256)
     });
     download_job.await?;
     Ok(())
