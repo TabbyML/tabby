@@ -4,7 +4,7 @@ pub mod https;
 
 mod address;
 mod consts;
-mod hash;
+pub mod hash;
 mod io;
 mod netrc;
 mod untildify;
