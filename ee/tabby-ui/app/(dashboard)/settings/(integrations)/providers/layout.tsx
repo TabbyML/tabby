@@ -15,7 +15,7 @@ export default function ProvidersLayout({
 }) {
   return (
     <div className="-m-4 flex lg:-m-10">
-      <ProviderNavBar className="w-[250px] pl-4 pt-4" />
+      <ProviderNavBar className="w-[200px] pl-4 pt-4 lg:w-[250px]" />
       <ScrollArea className="flex-1 p-4 lg:p-10">{children}</ScrollArea>
     </div>
   )
