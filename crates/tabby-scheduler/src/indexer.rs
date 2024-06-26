@@ -11,6 +11,7 @@ use tantivy::{
     schema::{self, IndexRecordOption, Value},
     DocAddress, DocSet, IndexWriter, Searcher, TantivyDocument, Term, TERMINATED,
 };
+use tokio::task::JoinHandle;
 
 use crate::tantivy_utils::open_or_create_index;
 
@@ -21,65 +22,32 @@ pub trait IndexAttributeBuilder<T>: Send + Sync {
     async fn build_chunk_attributes(
         &self,
         document: &T,
-    ) -> BoxStream<(Vec<String>, serde_json::Value)>;
+    ) -> BoxStream<JoinHandle<(Vec<String>, serde_json::Value)>>;
 }
 
-pub struct Indexer<T> {
+pub struct TantivyDocBuilder<T> {
     kind: &'static str,
     builder: Box<dyn IndexAttributeBuilder<T>>,
-    searcher: Searcher,
-    writer: IndexWriter,
-    pub recreated: bool,
 }
 
-impl<T: Send + 'static> Indexer<T> {
+impl<T> TantivyDocBuilder<T> {
     pub fn new(kind: &'static str, builder: impl IndexAttributeBuilder<T> + 'static) -> Self {
-        let doc = IndexSchema::instance();
-        let (recreated, index) = open_or_create_index(&doc.schema, &path::index_dir());
-        let writer = index
-            .writer(150_000_000)
-            .expect("Failed to create index writer");
-        let reader = index.reader().expect("Failed to create index reader");
-
         Self {
             kind,
             builder: Box::new(builder),
-            searcher: reader.searcher(),
-            writer,
-            recreated,
         }
     }
 
-    pub async fn add(&self, document: T) {
-        self.build_doc(document)
-            .await
-            .for_each(|doc| {
-                self.writer
-                    .add_document(doc)
-                    .expect("Failed to add document");
-                async {}
-            })
-            .await;
-    }
-
-    pub async fn delete_from_source(&self, source: String) {
-        let mut term = Term::from_field_json_path(
-            IndexSchema::instance().field_attributes,
-            doc::fields::SOURCE,
-            false,
-        );
-        term.append_type_and_str(&source);
-        dbg!(&term);
-        self.writer.delete_term(term);
-    }
-
-    async fn build_doc(&self, document: T) -> impl Stream<Item = TantivyDocument> + '_ {
+    pub async fn build(
+        &self,
+        document: T,
+    ) -> (
+        String,
+        impl Stream<Item = JoinHandle<Option<TantivyDocument>>> + '_,
+    ) {
         let schema = IndexSchema::instance();
-        let id = self.format_id(&self.builder.build_id(&document).await);
-
-        // Delete the document if it already exists
-        self.writer
-            .delete_term(Term::from_field_text(schema.field_id, &id));
+        let raw_id = self.builder.build_id(&document).await;
+        let id = self.format_id(&raw_id);
 
         let now = tantivy::time::OffsetDateTime::now_utc();
         let updated_at = tantivy::DateTime::from_utc(now);
@@ -91,8 +59,15 @@ impl<T: Send + 'static> Indexer<T> {
             schema.field_updated_at => updated_at,
         };
 
-        futures::stream::once(async { doc })
-            .chain(self.build_chunks(id, updated_at, document).await)
+        let s = stream! {
+            yield tokio::spawn(async move { Some(doc) });
+
+            for await doc in self.build_chunks(id, updated_at, document).await {
+                yield doc;
+            }
+        };
+
+        (raw_id, s)
     }
 
     async fn build_chunks(
@@ -100,27 +75,79 @@ impl<T: Send + 'static> Indexer<T> {
         id: String,
         updated_at: tantivy::DateTime,
         document: T,
-    ) -> impl Stream<Item = TantivyDocument> + '_ {
-        let schema = IndexSchema::instance();
-        self.builder
-            .build_chunk_attributes(&document)
-            .await
-            .enumerate()
-            .map(move |(chunk_id, (tokens, chunk_attributes))| {
-                let mut doc = doc! {
-                    schema.field_id => id,
-                    schema.field_corpus => self.kind,
-                    schema.field_updated_at => updated_at,
-                    schema.field_chunk_id => format!("{}-{}", id, chunk_id),
-                    schema.field_chunk_attributes => chunk_attributes,
-                };
+    ) -> impl Stream<Item = JoinHandle<Option<TantivyDocument>>> + '_ {
+        let kind = self.kind;
+        stream! {
+            let schema = IndexSchema::instance();
+            for await (chunk_id, task) in self.builder.build_chunk_attributes(&document).await.enumerate() {
+                let id = id.clone();
 
-                for token in tokens {
-                    doc.add_text(schema.field_chunk_tokens, token);
-                }
+                yield tokio::spawn(async move {
+                    let Ok((tokens, chunk_attributes)) = task.await else {
+                        return None;
+                    };
 
-                doc
-            })
+                    let mut doc = doc! {
+                        schema.field_id => id,
+                        schema.field_corpus => kind,
+                        schema.field_updated_at => updated_at,
+                        schema.field_chunk_id => format!("{}-{}", id, chunk_id),
+                        schema.field_chunk_attributes => chunk_attributes,
+                    };
+
+                    for token in tokens {
+                        doc.add_text(schema.field_chunk_tokens, token);
+                    }
+
+                    Some(doc)
+                });
+            }
+        }
+    }
+
+    fn format_id(&self, id: &str) -> String {
+        format!("{}:{}", self.kind, id)
+    }
+}
+
+pub struct Indexer {
+    kind: &'static str,
+    searcher: Searcher,
+    writer: IndexWriter,
+    pub recreated: bool,
+}
+
+impl Indexer {
+    pub fn new(kind: &'static str) -> Self {
+        let doc = IndexSchema::instance();
+        let (recreated, index) = open_or_create_index(&doc.schema, &path::index_dir());
+        let writer = index
+            .writer(150_000_000)
+            .expect("Failed to create index writer");
+        let reader = index.reader().expect("Failed to create index reader");
+
+        Self {
+            kind,
+            searcher: reader.searcher(),
+            writer,
+            recreated,
+        }
+    }
+
+    pub async fn add(&self, document: TantivyDocument) {
+        self.writer
+            .add_document(document)
+            .expect("Failed to add document");
+    }
+
+    pub async fn delete_from_source(&self, source: &str) {
+        let mut term = Term::from_field_json_path(
+            IndexSchema::instance().field_attributes,
+            doc::fields::SOURCE,
+            false,
+        );
+        term.append_type_and_str(source);
+        self.writer.delete_term(term);
     }
 
     pub fn delete(&self, id: &str) {
@@ -135,7 +162,6 @@ impl<T: Send + 'static> Indexer<T> {
     }
 
     pub fn commit(mut self) {
-        logkit::info!("Committing changes to index...");
         self.writer.commit().expect("Failed to commit changes");
         self.writer
             .wait_merging_threads()

@@ -16,7 +16,7 @@ impl DeleteIndexedDocumentsJob {
     pub async fn run(self) -> Result<()> {
         debug!("Deleting documents for {}", self.source);
         let index = DocIndexer::new_no_embedding();
-        index.delete(self.source).await;
+        index.delete(&self.source).await;
         index.commit();
         Ok(())
     }

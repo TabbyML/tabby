@@ -2,15 +2,16 @@ use std::sync::Arc;
 
 use async_stream::stream;
 use async_trait::async_trait;
-use futures::stream::BoxStream;
+use futures::{stream::BoxStream, StreamExt};
 use serde_json::json;
 use tabby_common::index::{self, corpus, doc};
 use tabby_inference::Embedding;
 use tantivy::doc;
 use text_splitter::TextSplitter;
+use tokio::task::JoinHandle;
 use tracing::warn;
 
-use crate::{IndexAttributeBuilder, Indexer};
+use crate::{indexer::TantivyDocBuilder, IndexAttributeBuilder, Indexer};
 
 pub struct SourceDocument {
     pub id: String,
@@ -51,7 +52,7 @@ impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
     async fn build_chunk_attributes(
         &self,
         document: &SourceDocument,
-    ) -> BoxStream<(Vec<String>, serde_json::Value)> {
+    ) -> BoxStream<JoinHandle<(Vec<String>, serde_json::Value)>> {
         let embedding = self.embedding.clone();
         let chunks: Vec<_> = TextSplitter::new(CHUNK_SIZE)
             .chunks(&document.body)
@@ -60,24 +61,15 @@ impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
 
         let s = stream! {
             for chunk_text in chunks {
-                let embedding = match embedding.embed(&chunk_text).await {
-                    Ok(embedding) => embedding,
-                    Err(err) => {
-                        warn!("Failed to embed chunk text: {}", err);
-                        continue;
-                    }
-                };
+                let embedding = embedding.clone();
+                yield tokio::spawn(async move {
+                    let chunk_embedding_tokens = build_tokens(embedding.clone(), &chunk_text).await;
+                    let chunk = json!({
+                        doc::fields::CHUNK_TEXT: chunk_text,
+                    });
 
-                let mut chunk_embedding_tokens = vec![];
-                for token in index::binarize_embedding(embedding.iter()) {
-                    chunk_embedding_tokens.push(token);
-                }
-
-                let chunk = json!({
-                    doc::fields::CHUNK_TEXT: chunk_text,
+                    (chunk_embedding_tokens, chunk)
                 });
-
-                yield (chunk_embedding_tokens, chunk)
             }
         };
 
@@ -85,13 +77,31 @@ impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
     }
 }
 
-pub fn create_web_index(embedding: Arc<dyn Embedding>) -> Indexer<SourceDocument> {
+async fn build_tokens(embedding: Arc<dyn Embedding>, text: &str) -> Vec<String> {
+    let embedding = match embedding.embed(text).await {
+        Ok(embedding) => embedding,
+        Err(err) => {
+            warn!("Failed to embed chunk text: {}", err);
+            return vec![];
+        }
+    };
+
+    let mut chunk_embedding_tokens = vec![];
+    for token in index::binarize_embedding(embedding.iter()) {
+        chunk_embedding_tokens.push(token);
+    }
+
+    chunk_embedding_tokens
+}
+
+pub fn create_web_builder(embedding: Arc<dyn Embedding>) -> TantivyDocBuilder<SourceDocument> {
     let builder = DocBuilder::new(embedding);
-    Indexer::new(corpus::WEB, builder)
+    TantivyDocBuilder::new(corpus::WEB, builder)
 }
 
 pub struct DocIndexer {
-    indexer: Indexer<SourceDocument>,
+    builder: TantivyDocBuilder<SourceDocument>,
+    indexer: Indexer,
 }
 
 pub struct WebDocument {
@@ -129,16 +139,25 @@ impl DocIndexer {
     }
 
     pub fn new(embedding: Arc<dyn Embedding>) -> Self {
-        let indexer = create_web_index(embedding);
-        Self { indexer }
+        let builder = create_web_builder(embedding);
+        let indexer = Indexer::new(corpus::WEB);
+        Self { indexer, builder }
     }
 
     pub async fn add(&self, document: WebDocument) {
-        self.indexer.add(document.into()).await;
+        stream! {
+            let (id, s) = self.builder.build(document.into()).await;
+            self.indexer.delete(&id);
+            for await doc in s.buffer_unordered(std::cmp::max(std::thread::available_parallelism().unwrap().get() * 2, 32)) {
+                if let Ok(Some(doc)) = doc {
+                    self.indexer.add(doc).await;
+                }
+            }
+        }.collect::<()>().await;
     }
 
-    pub async fn delete(&self, source: String) {
-        self.indexer.delete_from_source(source).await;
+    pub async fn delete(&self, source: &str) {
+        self.indexer.delete_from_source(&source).await;
     }
 
     pub fn commit(self) {

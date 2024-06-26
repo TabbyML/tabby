@@ -1,29 +1,61 @@
-use std::sync::Arc;
+use std::{pin::pin, sync::Arc};
 
 use async_stream::stream;
 use futures::StreamExt;
-use ignore::Walk;
-use tabby_common::config::RepositoryConfig;
+use ignore::{DirEntry, Walk};
+use tabby_common::{config::RepositoryConfig, index::corpus};
 use tabby_inference::Embedding;
 use tracing::warn;
 
 use super::{
-    create_code_index,
+    create_code_builder,
     intelligence::{CodeIntelligence, SourceCode},
 };
-use crate::Indexer;
+use crate::indexer::Indexer;
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
+static MIN_ALPHA_NUM_FRACTION: f32 = 0.25f32;
+static MAX_NUMBER_OF_LINES: usize = 100000;
+static MAX_NUMBER_FRACTION: f32 = 0.5f32;
 
 pub async fn index_repository(embedding: Arc<dyn Embedding>, repository: &RepositoryConfig) {
-    let index = create_code_index(Some(embedding));
-    add_changed_documents(repository, index).await;
+    let total_files = Walk::new(repository.dir()).count();
+    let file_stream = stream! {
+        for file in Walk::new(repository.dir()) {
+            let file = match file {
+                Ok(file) => file,
+                Err(e) => {
+                    warn!("Failed to walk file tree for indexing: {e}");
+                    continue;
+                }
+            };
+
+            yield file;
+        }
+    }
+    // Commit every 100 files
+    .chunks(100);
+
+    let mut file_stream = pin!(file_stream);
+
+    let mut count_files = 0;
+    let mut count_chunks = 0;
+    while let Some(files) = file_stream.next().await {
+        count_files += files.len();
+        count_chunks += add_changed_documents(repository, embedding.clone(), files).await;
+        logkit::info!(
+            "{}/{} files has been processed, {} docs has been indexed",
+            count_files,
+            total_files,
+            count_chunks
+        );
+    }
 }
 
 pub async fn garbage_collection() {
-    let index = create_code_index(None);
+    let index = Indexer::new(corpus::CODE);
     stream! {
         let mut num_to_keep = 0;
         let mut num_to_delete = 0;
@@ -43,111 +75,109 @@ pub async fn garbage_collection() {
     }.collect::<()>().await;
 }
 
-async fn add_changed_documents(repository: &RepositoryConfig, index: Indexer<SourceCode>) {
-    let index = Arc::new(index);
-    let intelligence = CodeIntelligence::default();
-    for file in Walk::new(repository.dir()) {
-        let file = match file {
-            Ok(file) => file,
-            Err(e) => {
-                warn!("Failed to walk file tree for indexing: {e}");
+async fn add_changed_documents(
+    repository: &RepositoryConfig,
+    embedding: Arc<dyn Embedding>,
+    files: Vec<DirEntry>,
+) -> usize {
+    let concurrency = std::cmp::max(std::thread::available_parallelism().unwrap().get() * 4, 64);
+    let builder = Arc::new(create_code_builder(Some(embedding)));
+    let index = Arc::new(Indexer::new(corpus::CODE));
+    let cloned_index = index.clone();
+    let repository = repository.clone();
+
+    let mut count_docs = 0;
+    stream! {
+        for file in files {
+            let Some(key) = CodeIntelligence::compute_source_file_id(file.path()) else {
+                continue;
+            };
+
+            if cloned_index.is_indexed(&key) {
+                // Skip if already indexed
                 continue;
             }
-        };
 
-        let Some(key) = CodeIntelligence::compute_source_file_id(file.path()) else {
-            continue;
-        };
+            let Some(code) = CodeIntelligence::compute_source_file(&repository, file.path()) else {
+                continue;
+            };
 
-        if index.is_indexed(&key) {
-            // Skip if already indexed
-            continue;
-        }
-
-        logkit::info!("Indexing file: {}", file.path().display());
-
-        let Some(code) = intelligence.compute_source_file(repository, file.path()) else {
-            continue;
-        };
-
-        if !is_valid_file(&code) {
-            continue;
-        }
-
-        let index = index.clone();
-        tokio::spawn(async move {
-            index.add(code).await;
-        });
-    }
-
-    wait_for_index(index).await;
-}
-
-async fn wait_for_index(index: Arc<Indexer<SourceCode>>) {
-    let mut current_index = Box::new(index);
-    loop {
-        match Arc::try_unwrap(*current_index) {
-            Ok(index) => {
-                index.commit();
-                break;
+            if !is_valid_file(&code) {
+                continue;
             }
-            Err(index) => {
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                *current_index = index;
+
+            let (_, s) = builder.build(code).await;
+            for await task in s {
+                yield task;
             }
         }
     }
+    .buffer_unordered(concurrency)
+    .filter_map(|x| async { x.ok().flatten() })
+    .for_each(|x| {
+        count_docs += 1;
+        index.add(x)
+    })
+    .await;
+
+    match Arc::try_unwrap(index) {
+        Ok(index) => index.commit(),
+        Err(_) => {
+            panic!("Failed to commit code index");
+        }
+    };
+
+    count_docs
 }
 
 fn is_valid_file(file: &SourceCode) -> bool {
     file.max_line_length <= MAX_LINE_LENGTH_THRESHOLD
         && file.avg_line_length <= AVG_LINE_LENGTH_THRESHOLD
+        && file.alphanum_fraction >= MIN_ALPHA_NUM_FRACTION
+        && file.num_lines <= MAX_NUMBER_OF_LINES
+        && file.number_fraction <= MAX_NUMBER_FRACTION
 }
 
 #[cfg(test)]
 mod tests {
+    use futures::StreamExt;
     use insta::assert_snapshot;
 
     use crate::code::intelligence::CodeIntelligence;
 
-    #[test]
-    fn test_code_splitter() {
-        let intelligence = CodeIntelligence::default();
+    #[tokio::test]
+    async fn test_code_splitter() {
         // First file, chat/openai_chat.rs
         let file_contents = include_str!("../../../http-api-bindings/src/chat/openai_chat.rs");
 
-        let rust_chunks = intelligence
-            .chunks(file_contents, "rust")
-            .into_iter()
+        let rust_chunks = CodeIntelligence::chunks(file_contents, "rust")
             .map(|(_, chunk)| chunk)
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+            .await;
 
         assert_snapshot!(format!("{:#?}", rust_chunks));
 
-        let text_chunks = intelligence
-            .chunks(file_contents, "unknown")
-            .into_iter()
+        let text_chunks = CodeIntelligence::chunks(file_contents, "unknown")
             .map(|(_, chunk)| chunk)
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+            .await;
 
         assert_snapshot!(format!("{:#?}", text_chunks));
 
         // Second file, tabby-db/src/cache.rs
         let file_contents2 = include_str!("../../../../ee/tabby-db/src/cache.rs");
 
-        let rust_chunks2 = intelligence
-            .chunks(file_contents2, "rust")
-            .into_iter()
+        let rust_chunks2 = CodeIntelligence::chunks(file_contents2, "rust")
             .map(|(_, chunk)| chunk)
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+            .await;
 
         assert_snapshot!(format!("{:#?}", rust_chunks2));
 
-        let text_chunks2 = intelligence
-            .chunks(file_contents2, "unknown")
-            .into_iter()
+        let text_chunks2 = CodeIntelligence::chunks(file_contents2, "unknown")
             .map(|(_, chunk)| chunk)
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+            .await;
 
         assert_snapshot!(format!("{:#?}", text_chunks2));
     }

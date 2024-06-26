@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use tantivy::tokenizer::{RegexTokenizer, RemoveLongFilter, TextAnalyzer, TokenStream};
 
 pub fn tokenize_code(text: &str) -> Vec<String> {
@@ -12,10 +13,16 @@ pub fn tokenize_code(text: &str) -> Vec<String> {
     tokens
 }
 
+lazy_static! {
+    static ref CODE_TOKENIZER: TextAnalyzer = {
+        TextAnalyzer::builder(RegexTokenizer::new(r"(?:\w+)").unwrap())
+            .filter(RemoveLongFilter::limit(64))
+            .build()
+    };
+}
+
 fn make_code_tokenizer() -> TextAnalyzer {
-    TextAnalyzer::builder(RegexTokenizer::new(r"(?:\w+)").unwrap())
-        .filter(RemoveLongFilter::limit(64))
-        .build()
+    CODE_TOKENIZER.clone()
 }
 
 #[cfg(test)]

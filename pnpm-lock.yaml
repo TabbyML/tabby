@@ -33,15 +33,9 @@ importers:
 
   clients/intellij:
     devDependencies:
-      cpy-cli:
-        specifier: ^4.2.0
-        version: 4.2.0
-      rimraf:
-        specifier: ^5.0.1
-        version: 5.0.7
       tabby-agent:
-        specifier: 1.5.0
-        version: 1.5.0
+        specifier: workspace:*
+        version: link:../tabby-agent
 
   clients/tabby-agent:
     devDependencies:

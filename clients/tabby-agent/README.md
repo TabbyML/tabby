@@ -1,38 +1,60 @@
 # Tabby Agent
 
-The Tabby Agent is an agent used for communication with the Tabby server. It is based on Node.js v18 and implements several common features to enhance code completion, including caching, debouncing, and post-processing.
+The [tabby-agent](https://www.npmjs.com/package/tabby-agent) is an agent used for communication with the [Tabby](https://tabby.tabbyml.com) server. It is based on Node.js v18 and runs as a language server.
 
-This package exports both libraries and a CLI tool.
+**Breaking Changes**: The tabby-agent will only support running as a language server since version 1.7.0.
 
-## Language Server
+The tabby-agent mainly supports the following features of LSP:
 
-To run the agent as a language server, you can pass the argument `--lsp` and an additional IO option to the CLI tool. The available IO options are `--stdio`, `--node-ipc` or `--socket=<PORT>`.
+- Completion (textDocument/completion)
+- Inline Completion (textDocument/inlineCompletion, since LSP v3.18.0)
+
+For collecting more context to enhance the completion quality or providing more features like inline chat editing, the tabby-agent extends the protocol with some custom methods starting with `tabby/*`. These methods are used in Tabby-provided editor extensions.
+
+## Usage
+
+**Note**: For VSCode, IntelliJ Platform IDEs, and Vim/NeoVim, it is recommended to use the Tabby-provided extensions, which run the Tabby Agent underlying.
+
+- [VSCode](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby)
+- [IntelliJ Platform IDEs](https://plugins.jetbrains.com/plugin/22379-tabby/edit)
+- [Vim/NeoVim](https://github.com/TabbyML/vim-tabby)
+
+The following guide is only for users who want to set up the tabby-agent as a language server manually.
+
+### Start the Language Server
 
 ```bash
-npx tabby-agent --lsp --stdio
+npx tabby-agent --stdio
 ```
 
-The language server provides the following features:
+### Connect the IDE to the tabby-agent
 
-- Completion
-- Inline Completion (WIP, upcoming LSP v3.18 feature)
+Since most text editors have their built-in LSP clients or popular LSP client plugins, you can easily connect to the tabby-agent from your editor. Here are some example configurations for popular editors.
 
-Since most text editors have their built-in LSP clients or popular LSP client plugins, you can easily connect to the Tabby agent language server from your editor. Here are some example configurations for popular editors.
+#### Vim/Neovim (coc.nvim)
 
-### VSCode
+There are several Vim plugins that provide LSP support. One of them is [coc.nvim](https://github.com/neoclide/coc.nvim). To use the tabby-agent as a language server, you can add the following code to your `:CocConfig`.
 
-A common way to add a new language server to VSCode is by creating a new extension. We provide an example extension for VSCode in [example-vscode-lsp](https://github.com/tabbyml/tabby/blob/master/clients/example-vscode-lsp).
+```json
+{
+  "languageserver": {
+    "tabby-agent": {
+      "command": "npx",
+      "args": ["tabby-agent", "--stdio"],
+      "filetypes": ["*"]
+    }
+  }
+}
+```
 
-**Note**: Tabby provides an official extension for VSCode, you can install it from [marketplace](https://marketplace.visualstudio.com/items?itemName=tabbyml.vscode-tabby). The example provided here is just for reference on how to use the Tabby agent as a language server.
+#### Emacs
 
-### Emacs
-
-The package [lsp-mode](https://github.com/emacs-lsp/lsp-mode) provides an LSP client for Emacs. You can add the following code to your Emacs configuration script to use the Tabby agent as a language server.
+The package [lsp-mode](https://github.com/emacs-lsp/lsp-mode) provides an LSP client for Emacs. You can add the following code to your Emacs configuration script to use the tabby-agent as a language server.
 
 ```emacs-lisp
 (with-eval-after-load 'lsp-mode
   (lsp-register-client
-    (make-lsp-client  :new-connection (lsp-stdio-connection '("npx" "tabby-agent" "--lsp" "--stdio"))
+    (make-lsp-client  :new-connection (lsp-stdio-connection '("npx" "tabby-agent" "--stdio"))
                       ;; you can select languages to enable Tabby language server
                       :activation-fn (lsp-activate-on "typescript" "javascript" "toml")
                       :priority 1
@@ -40,30 +62,14 @@ The package [lsp-mode](https://github.com/emacs-lsp/lsp-mode) provides an LSP cl
                       :server-id 'tabby-agent)))
 ```
 
-### Vim/Neovim
+#### Helix
 
-There are several Vim/Neovim plugins that provide LSP support. One of them is [coc.nvim](https://github.com/neoclide/coc.nvim). To use the Tabby agent as a language server, you can add the following code to your :CocConfig.
-
-```json
-{
-  "languageserver": {
-    "tabby-agent": {
-      "command": "npx",
-      "args": ["tabby-agent", "--lsp", "--stdio"],
-      "filetypes": ["*"]
-    }
-  }
-}
-```
-
-### Helix
-
-[Helix](https://helix-editor.com/) has built-in LSP support. To use the Tabby agent as a language server, you can add the following code to your `languages.toml`.
+[Helix](https://helix-editor.com/) has built-in LSP support. To use the tabby-agent as a language server, you can add the following code to your `languages.toml`.
 
 ```toml
 [language-server.tabby]
 command = "npx"
-args = ["tabby-agent", "--lsp", "--stdio"]
+args = ["tabby-agent", "--stdio"]
 
 # Add Tabby as the second language server for your specific languages
 [[languages]]
@@ -75,9 +81,13 @@ name = "toml"
 language-servers = ["taplo", "tabby"]
 ```
 
-### More Editors
+#### More Editors
 
 You are welcome to contribute by adding example configurations for your favorite editor. Please submit a PR with your additions.
+
+### Configurations
+
+Please refer to the [configuration documentation](https://tabby.tabbyml.com/docs/extensions/configurations/) for more details.
 
 ## License
 
