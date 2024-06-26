@@ -6,3 +6,7 @@ node_modules
 local/
 __pycache__
 .turbo
+
+# ignore cargo flamegraph temp files
+flamegraph.svg
+cargo-flamegraph.stacks

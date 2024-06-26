@@ -7,10 +7,11 @@ mod indexer;
 
 pub use code::CodeIndexer;
 use crawl::crawl_pipeline;
-use doc::create_web_index;
+use doc::create_web_builder;
 pub use doc::{DocIndexer, WebDocument};
 use futures::StreamExt;
 use indexer::{IndexAttributeBuilder, Indexer};
+use tabby_common::index::corpus;
 use tabby_inference::Embedding;
 
 mod doc;
@@ -27,7 +28,8 @@ pub async fn crawl_index_docs(
         logkit::info!("Starting doc index pipeline for {url}");
         let embedding = embedding.clone();
         let mut num_docs = 0;
-        let doc_index = create_web_index(embedding.clone());
+        let builder = create_web_builder(embedding.clone());
+        let indexer = Indexer::new(corpus::WEB);
 
         let mut pipeline = Box::pin(crawl_pipeline(url).await?);
         while let Some(doc) = pipeline.next().await {
@@ -40,10 +42,22 @@ pub async fn crawl_index_docs(
             };
 
             num_docs += 1;
-            doc_index.add(source_doc).await;
+
+            let (id, s) = builder.build(source_doc).await;
+            indexer.delete(&id);
+            s.buffer_unordered(std::cmp::max(
+                std::thread::available_parallelism().unwrap().get() * 2,
+                32,
+            ))
+            .for_each(|doc| async {
+                if let Ok(Some(doc)) = doc {
+                    indexer.add(doc).await;
+                }
+            })
+            .await;
         }
         logkit::info!("Crawled {} documents from '{}'", num_docs, url);
-        doc_index.commit();
+        indexer.commit();
     }
     Ok(())
 }
