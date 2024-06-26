@@ -15,6 +15,7 @@ pub struct SourceCode {
     pub max_line_length: usize,
     pub avg_line_length: f32,
     pub alphanum_fraction: f32,
+    pub number_fraction: f32,
     pub num_lines: usize,
     pub tags: Vec<Tag>,
 }

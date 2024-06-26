@@ -1,41 +1,24 @@
 mod id;
 
-use std::{collections::HashMap, fs::read_to_string, path::Path};
+use std::{fs::read_to_string, path::Path};
 
+use async_stream::stream;
+use futures::Stream;
 use id::SourceFileId;
 use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext};
-use text_splitter::{Characters, CodeSplitter, TextSplitter};
+use text_splitter::{CodeSplitter, TextSplitter};
 use tracing::warn;
 use tree_sitter_tags::TagsContext;
 
-use super::languages;
+use super::languages::{self};
 pub use super::types::{Point, SourceCode, Tag};
 
-pub struct CodeIntelligence {
-    splitter: TextSplitter<Characters>,
-    code_splitters: HashMap<String, CodeSplitter<Characters>>,
-}
+pub struct CodeIntelligence;
 
 const CHUNK_SIZE: usize = 256;
 
-impl Default for CodeIntelligence {
-    fn default() -> Self {
-        Self {
-            splitter: TextSplitter::new(CHUNK_SIZE),
-            code_splitters: super::languages::all()
-                .map(|(name, config)| {
-                    let name = name.to_string();
-                    let splitter = CodeSplitter::new(config.0.language.clone(), CHUNK_SIZE)
-                        .expect("Failed to create code splitter");
-                    (name, splitter)
-                })
-                .collect(),
-        }
-    }
-}
-
 impl CodeIntelligence {
-    fn find_tags(&self, language: &str, content: &str) -> Vec<Tag> {
+    fn find_tags(language: &str, content: &str) -> Vec<Tag> {
         let config = languages::get(language);
         let empty = Vec::new();
 
@@ -86,11 +69,7 @@ impl CodeIntelligence {
         file_key.to_string() == item_key
     }
 
-    pub fn compute_source_file(
-        &self,
-        config: &RepositoryConfig,
-        path: &Path,
-    ) -> Option<SourceCode> {
+    pub fn compute_source_file(config: &RepositoryConfig, path: &Path) -> Option<SourceCode> {
         let id = Self::compute_source_file_id(path)?;
 
         if path.is_dir() || !path.exists() {
@@ -118,45 +97,91 @@ impl CodeIntelligence {
                 return None;
             }
         };
+
+        let metrics::Metrics {
+            max_line_length,
+            avg_line_length,
+            alphanum_fraction,
+            num_lines,
+            number_fraction,
+        } = metrics::compute_metrics(&contents);
+
         let source_file = SourceCode {
             id,
             git_url: config.canonical_git_url(),
             basedir: config.dir().display().to_string(),
             filepath: relative_path.display().to_string(),
-            max_line_length: metrics::max_line_length(&contents),
-            avg_line_length: metrics::avg_line_length(&contents),
-            alphanum_fraction: metrics::alphanum_fraction(&contents),
-            tags: self.find_tags(language, &contents),
-            num_lines: contents.lines().count(),
+            max_line_length,
+            avg_line_length,
+            alphanum_fraction,
+            number_fraction,
+            tags: Self::find_tags(language, &contents),
+            num_lines,
             language: language.into(),
         };
         Some(source_file)
     }
 
-    pub fn chunks(&self, text: &str, language: &str) -> Vec<(usize, String)> {
-        if let Some(splitter) = self.code_splitters.get(language) {
-            splitter
-                .chunk_indices(text)
-                .map(|(offset, chunk)| {
-                    (line_number_from_byte_offset(text, offset), chunk.to_owned())
-                })
-                .collect()
-        } else {
-            self.splitter
-                .chunk_indices(text)
-                .map(|(offset, chunk)| {
-                    (line_number_from_byte_offset(text, offset), chunk.to_owned())
-                })
-                .collect()
+    fn stream_text_chunks(text: &str) -> impl Stream<Item = (usize, String)> {
+        let text = text.to_owned();
+        let splitter = TextSplitter::new(CHUNK_SIZE);
+        stream! {
+            for (offset, chunk) in splitter.chunk_indices(&text) {
+                yield (offset, chunk.to_owned());
+            }
+        }
+    }
+
+    fn stream_code_chunks(
+        text: &str,
+        language: &str,
+    ) -> Option<impl Stream<Item = (usize, String)>> {
+        let Some(config) = languages::get(language) else {
+            return None;
+        };
+        let text = text.to_owned();
+        let splitter = CodeSplitter::new(config.0.language.clone(), CHUNK_SIZE)
+            .expect("Failed to create code splitter");
+        Some(stream! {
+            for (offset, chunk) in splitter.chunk_indices(&text) {
+                yield (offset, chunk.to_owned());
+            }
+        })
+    }
+
+    pub fn chunks(text: &str, language: &str) -> impl Stream<Item = (usize, String)> {
+        let text = text.to_owned();
+        let language = language.to_owned();
+        stream! {
+            let mut last_offset = 0;
+            let mut last_line_number = 1;
+            if let Some(stream) = Self::stream_code_chunks(&text, &language) {
+                for await (offset, chunk) in stream {
+                    last_line_number = line_number_from_byte_offset(&text, last_offset, last_line_number, offset);
+                    last_offset = offset;
+                    yield (last_line_number, chunk);
+                }
+            } else {
+                for await (offset, chunk) in Self::stream_text_chunks(&text) {
+                    last_line_number = line_number_from_byte_offset(&text, last_offset, last_line_number, offset);
+                    last_offset = offset;
+                    yield (last_line_number, chunk);
+                }
+            }
         }
     }
 }
 
-fn line_number_from_byte_offset(s: &str, byte_offset: usize) -> usize {
-    let mut line_number = 1; // Start counting from line 1
-    let mut current_offset = 0;
+fn line_number_from_byte_offset(
+    s: &str,
+    last_offset: usize,
+    last_line_number: usize,
+    byte_offset: usize,
+) -> usize {
+    let mut line_number = last_line_number; // Start counting from line 1
+    let mut current_offset = last_offset;
 
-    for c in s.chars() {
+    for c in s[last_offset..].chars() {
         if c == '\n' {
             line_number += 1;
         }
@@ -172,35 +197,43 @@ fn line_number_from_byte_offset(s: &str, byte_offset: usize) -> usize {
 mod metrics {
     use std::cmp::max;
 
-    pub fn max_line_length(content: &str) -> usize {
-        content.lines().map(|x| x.len()).reduce(max).unwrap_or(0)
+    pub struct Metrics {
+        pub max_line_length: usize,
+        pub avg_line_length: f32,
+        pub alphanum_fraction: f32,
+        pub number_fraction: f32,
+        pub num_lines: usize,
     }
 
-    pub fn avg_line_length(content: &str) -> f32 {
-        let mut total = 0;
-        let mut len = 0;
+    pub fn compute_metrics(content: &str) -> Metrics {
+        let mut metrics = Metrics {
+            max_line_length: 0,
+            avg_line_length: 0.0,
+            alphanum_fraction: 0.0,
+            number_fraction: 0.0,
+            num_lines: 0,
+        };
+        // Compute metrics in single loop.
         for x in content.lines() {
-            len += 1;
-            total += x.len();
+            metrics.num_lines += 1;
+            let line_length = x.len();
+            metrics.max_line_length = max(metrics.max_line_length, line_length);
+            metrics.avg_line_length += line_length as f32;
+            for c in x.chars() {
+                if c.is_alphanumeric() {
+                    metrics.alphanum_fraction += 1.0;
+                }
+                if c.is_numeric() {
+                    metrics.number_fraction += 1.0;
+                }
+            }
         }
 
-        if len > 0 {
-            total as f32 / len as f32
-        } else {
-            0.0
-        }
-    }
+        metrics.avg_line_length /= metrics.num_lines as f32;
+        metrics.alphanum_fraction /= content.len() as f32;
+        metrics.number_fraction /= content.len() as f32;
 
-    pub fn alphanum_fraction(content: &str) -> f32 {
-        let num_alphanumn: f32 = content
-            .chars()
-            .map(|x| f32::from(u8::from(x.is_alphanumeric())))
-            .sum();
-        if !content.is_empty() {
-            num_alphanumn / content.len() as f32
-        } else {
-            0.0
-        }
+        metrics
     }
 }
 
@@ -236,9 +269,7 @@ mod tests {
     fn test_create_source_file() {
         set_tabby_root(get_tabby_root());
         let config = get_repository_config();
-        let code = CodeIntelligence::default();
-        let source_file = code
-            .compute_source_file(&config, &get_rust_source_file())
+        let source_file = CodeIntelligence::compute_source_file(&config, &get_rust_source_file())
             .expect("Failed to create source file");
 
         // check source_file properties
