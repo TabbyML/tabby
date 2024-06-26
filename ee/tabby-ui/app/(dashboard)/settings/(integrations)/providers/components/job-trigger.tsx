@@ -69,7 +69,7 @@ function LastJobRunInfo({ jobInfo }: Pick<JobInfoProps, 'jobInfo'>) {
   return (
     <Link
       href={`/jobs/detail?id=${jobInfo.lastJobRun.id}`}
-      className="hover:text-foreground/50 flex items-center gap-1 underline"
+      className="flex items-center gap-1 underline hover:text-foreground/50"
     >
       {moment(jobInfo.lastJobRun.createdAt).format('YYYY-MM-DD HH:mm')}
     </Link>
