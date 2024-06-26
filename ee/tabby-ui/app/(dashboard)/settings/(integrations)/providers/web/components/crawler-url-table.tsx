@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import Link from 'next/link'
 import { isNil } from 'lodash-es'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
@@ -10,8 +9,8 @@ import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
 import { listWebCrawlerUrl } from '@/lib/tabby/query'
-import { Button, buttonVariants } from '@/components/ui/button'
-import { IconCirclePlay, IconSpinner, IconTrash } from '@/components/ui/icons'
+import { Button } from '@/components/ui/button'
+import { IconTrash } from '@/components/ui/icons'
 import {
   Pagination,
   PaginationContent,
@@ -27,13 +26,9 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@/components/ui/tooltip'
 import LoadingWrapper from '@/components/loading-wrapper'
 
+import { JobInfoView } from '../../components/job-trigger'
 import { triggerJobRunMutation } from '../../query'
 
 const deleteWebCrawlerUrlMutation = graphql(/* GraphQL */ `
@@ -155,43 +150,12 @@ export default function WebCrawlerTable() {
                   <TableRow key={x.node.id}>
                     <TableCell className="truncate">{x.node.url}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        {hasRunningJob ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Link
-                                href={`/jobs/detail?id=${lastJobRun.id}`}
-                                className={buttonVariants({
-                                  variant: 'ghost',
-                                  size: 'icon'
-                                })}
-                              >
-                                <IconSpinner />
-                              </Link>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              Navigate to job detail
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() =>
-                                  handleTriggerJobRun(x.node.jobInfo?.command)
-                                }
-                              >
-                                <IconCirclePlay className="h-5 w-5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Run</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
+                      <JobInfoView
+                        jobInfo={x.node.jobInfo}
+                        onTrigger={() =>
+                          handleTriggerJobRun(x.node.jobInfo.command)
+                        }
+                      />
                     </TableCell>
                     <TableCell className="flex justify-end">
                       <div className="flex gap-1">
