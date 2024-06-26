@@ -38,6 +38,7 @@ import { DirectoryView } from './file-directory-view'
 import { mapToFileTree, sortFileTree, type TFileTreeNode } from './file-tree'
 import { FileTreePanel } from './file-tree-panel'
 import { RawFileView } from './raw-file-view'
+import { SourceCodeSearchResults } from './source-code-search-results'
 import { TextFileView } from './text-file-view'
 import {
   CodeBrowserError,
@@ -692,7 +693,11 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
             <div>
               {showSearchView && (
                 // <div loading={fetchingSearchResults}>Fetchin search res</div>
-                <div>Fetchin search res</div>
+                <SourceCodeSearchResults
+                  repoId={activeRepo?.id}
+                  repositoryKind={activeEntryInfo?.repositoryKind}
+                  results={globalSearchResponse?.results}
+                />
               )}
               {showDirectoryView && (
                 <DirectoryView
