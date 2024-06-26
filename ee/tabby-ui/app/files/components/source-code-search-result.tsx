@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import LazyLoad from 'react-lazy-load'
 
 import { filename2prism } from '@/lib/language-utils'
 import { IconFile } from '@/components/ui/icons'
@@ -80,13 +81,17 @@ export const SourceCodeSearchResult = ({
       </Link>
       <div className="overflow-hidden grid border divide-y divide-y-border border-border rounded">
         {ranges.map((range, i) => (
-          <CodeEditorView
-            key={`${props.result.path}-${i}`}
-            value={props.result.blob}
-            language={language}
-            stringToMatch={props.query}
-            lineRange={range}
-          />
+          // TODO: these should lazy load
+          // FIXME: this key should be unique
+          <LazyLoad key={range.start} threshold={0.1}>
+            <CodeEditorView
+              key={`${props.result.path}-${i}`}
+              value={props.result.blob}
+              language={language}
+              stringToMatch={props.query}
+              lineRange={range}
+            />
+          </LazyLoad>
         ))}
       </div>
     </div>

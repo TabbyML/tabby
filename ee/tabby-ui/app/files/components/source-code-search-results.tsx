@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { Suspense } from 'react'
 import useSWRImmutable from 'swr/immutable'
 
 import { GrepFile, RepositoryKind } from '@/lib/gql/generates/graphql'
@@ -27,6 +27,7 @@ export const SourceCodeSearchResults = ({
 }: SourceCodeSearchResultsProps) => {
   const currentURL = new URL(window.location.href)
 
+  // FIXME: this feels semi fragile somehow?
   const query = currentURL.searchParams.get('q') ?? ''
   /**
    *
