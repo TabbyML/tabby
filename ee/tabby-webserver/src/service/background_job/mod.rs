@@ -72,6 +72,11 @@ pub async fn start(
                         continue;
                     };
 
+                    if let Err(err) = db.update_job_started(job.id).await {
+                        warn!("Failed to mark job status to started: {:?}", err);
+                        continue;
+                    }
+
                     let logger = JobLogger::new(db.clone(), job.id);
                     debug!("Background job {} started, command: {}", job.id, job.command);
                     let Ok(event) = serde_json::from_str::<BackgroundJobEvent>(&job.command) else {

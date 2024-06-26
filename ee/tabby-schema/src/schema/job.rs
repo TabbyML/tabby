@@ -16,6 +16,7 @@ pub struct JobRun {
     pub job: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub started_at: Option<DateTime<Utc>>,
     pub finished_at: Option<DateTime<Utc>>,
     pub exit_code: Option<i32>,
     pub stdout: String,

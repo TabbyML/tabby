@@ -13,6 +13,7 @@ impl JobLogger {
         let (target, handle) = DbTarget::new(db, id);
         logger.route(target);
         logkit::set_default_logger(logger);
+
         Self { handle }
     }
 
