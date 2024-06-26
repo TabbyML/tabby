@@ -23,7 +23,6 @@ pub struct IndexSchema {
 
     // === Fields for document ===
     pub field_attributes: Field,
-    pub field_source: Field,
 
     // === Fields for chunk ===
     pub field_chunk_id: Field,
@@ -50,7 +49,18 @@ impl IndexSchema {
         let field_id = builder.add_text_field("id", STRING | STORED);
         let field_corpus = builder.add_text_field("corpus", STRING | FAST);
         let field_updated_at = builder.add_date_field("updated_at", INDEXED);
-        let field_attributes = builder.add_text_field("attributes", STORED);
+
+        let field_attributes = builder.add_json_field(
+            "attributes",
+            JsonObjectOptions::default()
+                .set_stored()
+                .set_indexing_options(
+                    TextFieldIndexing::default()
+                        .set_tokenizer("raw")
+                        .set_fieldnorms(true)
+                        .set_index_option(tantivy::schema::IndexRecordOption::Basic),
+                ),
+        );
 
         let field_chunk_id = builder.add_text_field(FIELD_CHUNK_ID, STRING | FAST | STORED);
         let field_chunk_attributes = builder.add_json_field(
@@ -61,8 +71,7 @@ impl IndexSchema {
                     TextFieldIndexing::default()
                         .set_tokenizer("raw")
                         .set_fieldnorms(true)
-                        .set_index_option(tantivy::schema::IndexRecordOption::Basic)
-                        .set_fieldnorms(true),
+                        .set_index_option(tantivy::schema::IndexRecordOption::Basic),
                 ),
         );
 
@@ -76,7 +85,6 @@ impl IndexSchema {
             field_corpus,
             field_updated_at,
             field_attributes,
-            field_source,
 
             field_chunk_id,
             field_chunk_attributes,

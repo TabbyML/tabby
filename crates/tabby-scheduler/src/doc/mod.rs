@@ -38,14 +38,11 @@ impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
         document.id.clone()
     }
 
-    async fn build_source(&self, document: &SourceDocument) -> Option<String> {
-        Some(document.source.clone())
-    }
-
     async fn build_attributes(&self, document: &SourceDocument) -> serde_json::Value {
         json!({
             doc::fields::TITLE: document.title,
             doc::fields::LINK: document.link,
+            doc::fields::SOURCE: document.source
         })
     }
 
