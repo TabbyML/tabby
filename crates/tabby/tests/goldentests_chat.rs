@@ -74,7 +74,7 @@ async fn wait_for_server(gpu_device: Option<&str>) {
 
     loop {
         println!("Waiting for server to start...");
-        let is_ok = reqwest::get("http://localhost:9090/v1/health")
+        let is_ok = reqwest::get("http://127.0.0.1:9090/v1/health")
             .await
             .is_ok();
         if is_ok {
@@ -88,7 +88,7 @@ async fn wait_for_server(gpu_device: Option<&str>) {
 async fn golden_test(body: serde_json::Value) -> String {
     let mut es = EventSource::new(
         CLIENT
-            .post("http://localhost:9090/v1/chat/completions")
+            .post("http://127.0.0.1:9090/v1/chat/completions")
             .json(&body),
     )
     .unwrap();
