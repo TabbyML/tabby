@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use tabby_common::index::corpus;
+use tabby_scheduler::run_index_garbage_collection;
 use tabby_schema::{repository::RepositoryService, web_crawler::WebCrawlerService};
 
 use super::helper::Job;
@@ -27,6 +28,6 @@ impl IndexGarbageCollection {
                 .map(|url| (corpus::WEB.into(), url.source_id())),
         );
 
-        Ok(())
+        run_index_garbage_collection(sources).map_err(tabby_schema::CoreError::Other)
     }
 }

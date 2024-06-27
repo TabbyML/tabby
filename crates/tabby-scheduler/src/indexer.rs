@@ -1,13 +1,23 @@
+use std::collections::HashSet;
+
+use anyhow::bail;
 use async_stream::stream;
 use futures::{stream::BoxStream, Stream, StreamExt};
+use serde_json::json;
 use tabby_common::{index::IndexSchema, path};
 use tantivy::{
+    aggregation::{
+        agg_req::Aggregation,
+        agg_result::{AggregationResult, BucketResult},
+        AggregationCollector,
+    },
     collector::TopDocs,
     doc,
     schema::{self, Value},
     DocAddress, DocSet, IndexWriter, Searcher, TantivyDocument, Term, TERMINATED,
 };
 use tokio::task::JoinHandle;
+use tracing::debug;
 
 use crate::tantivy_utils::open_or_create_index;
 
@@ -151,7 +161,7 @@ impl Indexer {
             .delete_query(Box::new(schema.doc_query_with_chunks(&self.corpus, id)));
     }
 
-    pub fn delete_by_source_id(&self, source_id: &str) {
+    fn delete_by_source_id(&self, source_id: &str) {
         let schema = IndexSchema::instance();
         let _ = self
             .writer
@@ -209,6 +219,43 @@ impl Indexer {
                 }
             }
         }
+    }
+
+    pub fn garbage_collect(&self, active_source_ids: &[String]) -> anyhow::Result<()> {
+        let source_ids: HashSet<_> = active_source_ids.iter().collect();
+        let schema = IndexSchema::instance();
+
+        let count_aggregation: Aggregation = serde_json::from_value(json!({
+            "count": {
+                "source_id": "source_id"
+            }
+        }))
+        .unwrap();
+
+        let collector = AggregationCollector::from_aggs(
+            vec![("count".to_owned(), count_aggregation)]
+                .into_iter()
+                .collect(),
+            Default::default(),
+        );
+
+        let res = self
+            .searcher
+            .search(&schema.corpus_query(&self.corpus), &collector)?;
+        let Some(AggregationResult::BucketResult(BucketResult::Terms { buckets, .. })) =
+            res.0.get("count")
+        else {
+            bail!("Failed to get source_id count");
+        };
+
+        for source_id in buckets.iter().filter_map(|x| x.key_as_string.to_owned()) {
+            if !source_ids.contains(&source_id) {
+                debug!("Deleting documents for source_id: {}", source_id);
+                self.delete_by_source_id(&source_id);
+            }
+        }
+
+        Ok(())
     }
 }
 
