@@ -37,7 +37,8 @@ import org.eclipse.lsp4j.TextDocumentIdentifier
 class InlineCompletionService(private val project: Project) : Disposable {
   private val logger = Logger.getInstance(InlineCompletionService::class.java)
   private val publisher = project.messageBus.syncPublisher(Listener.TOPIC)
-  private val settingsMessageBusConnection = project.messageBus.connect()
+  private val messageBusConnection = project.messageBus.connect()
+  private val editorManager = FileEditorManager.getInstance(project)
   private val scope = CoroutineScope(Dispatchers.IO)
   private suspend fun getServer() = project.service<ConnectionService>().getServerAsync()
 
@@ -132,7 +133,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
     if (triggerMode == SettingsState.TriggerMode.AUTOMATIC) {
       registerAutoTriggerListener()
     }
-    settingsMessageBusConnection.subscribe(SettingsService.Listener.TOPIC, object : SettingsService.Listener {
+    messageBusConnection.subscribe(SettingsService.Listener.TOPIC, object : SettingsService.Listener {
       override fun settingsChanged(settings: SettingsService.Settings) {
         logger.debug("TriggerMode updated: ${settings.completionTriggerMode}")
         if (settings.completionTriggerMode == SettingsState.TriggerMode.AUTOMATIC) {
@@ -142,24 +143,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
         }
       }
     })
-  }
-
-  private var autoTriggerMessageBusConnection: MessageBusConnection? = null
-  private fun registerAutoTriggerListener() {
-    logger.debug("Register AutoTrigger listener.")
-    val connection = project.messageBus.connect()
-    autoTriggerMessageBusConnection = connection
-    val editorManager = FileEditorManager.getInstance(project)
-
-    connection.subscribe(DocumentListener.TOPIC, object : DocumentListener {
-      override fun documentChanged(document: Document, editor: Editor, event: DocumentEvent) {
-        if (editorManager.selectedTextEditor == editor) {
-          provideInlineCompletion(editor, event.offset + event.newFragment.length)
-        }
-      }
-    })
-
-    connection.subscribe(CaretListener.TOPIC, object : CaretListener {
+    messageBusConnection.subscribe(CaretListener.TOPIC, object : CaretListener {
       override fun caretPositionChanged(editor: Editor, event: CaretEvent) {
         if (editorManager.selectedTextEditor == editor) {
           val offset = editor.caretModel.offset
@@ -171,10 +155,23 @@ class InlineCompletionService(private val project: Project) : Disposable {
         }
       }
     })
-
-    connection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, object : FileEditorManagerListener {
+    messageBusConnection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, object : FileEditorManagerListener {
       override fun selectionChanged(event: FileEditorManagerEvent) {
         dismiss()
+      }
+    })
+  }
+
+  private var autoTriggerMessageBusConnection: MessageBusConnection? = null
+  private fun registerAutoTriggerListener() {
+    logger.debug("Register AutoTrigger listener.")
+    val connection = project.messageBus.connect()
+    autoTriggerMessageBusConnection = connection
+    connection.subscribe(DocumentListener.TOPIC, object : DocumentListener {
+      override fun documentChanged(document: Document, editor: Editor, event: DocumentEvent) {
+        if (editorManager.selectedTextEditor == editor) {
+          provideInlineCompletion(editor, event.offset + event.newFragment.length)
+        }
       }
     })
   }
@@ -404,7 +401,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
   override fun dispose() {
     dismiss()
     unregisterAutoTriggerListener()
-    settingsMessageBusConnection.dispose()
+    messageBusConnection.dispose()
   }
 
   interface Listener {
