@@ -24,6 +24,7 @@ pub async fn crawl_index_docs(
     start_url: &str,
     embedding: Arc<dyn Embedding>,
     on_process_url: impl Fn(String),
+    on_stderr_line: impl Fn(String) + Send + 'static,
 ) -> anyhow::Result<()> {
     logkit::info!("Starting doc index pipeline for {}", start_url);
     let embedding = embedding.clone();
@@ -31,7 +32,7 @@ pub async fn crawl_index_docs(
     let builder = create_web_builder(embedding.clone());
     let indexer = Indexer::new(corpus::WEB);
 
-    let mut pipeline = Box::pin(crawl_pipeline(start_url).await?);
+    let mut pipeline = Box::pin(crawl_pipeline(start_url, on_stderr_line).await?);
     while let Some(doc) = pipeline.next().await {
         on_process_url(doc.url.clone());
         let source_doc = SourceDocument {
