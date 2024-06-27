@@ -24,6 +24,8 @@ The repository context is used to connect Tabby with a source code repository fr
 
     <img src={GitUrl} alt="Git" width="700" />
 
+    Local repositories are supported via the file:// protocol, but if running from a Docker container, you need to make it accessible with the [`--volume` flag](https://docs.docker.com/reference/cli/docker/container/run/#volume) and use the internal Docker path.
+
   - For GitHub / GitLab, a personal access token is required to access private repositories.
     * Check the instructions in the corresponding tab to create a token.
 
