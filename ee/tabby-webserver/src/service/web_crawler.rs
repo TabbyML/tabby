@@ -38,8 +38,10 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
         let mut converted_urls = vec![];
 
         for url in urls {
-            let event =
-                BackgroundJobEvent::WebCrawler(to_source_id(url.id.as_id()), url.url.clone());
+            let event = BackgroundJobEvent::WebCrawler(
+                WebCrawlerUrl::format_source_id(&url.id.as_id()),
+                url.url.clone(),
+            );
 
             let job_info = self.job_service.get_job_info(event.to_command()).await?;
             converted_urls.push(to_web_crawler_url(url, job_info));
@@ -52,7 +54,10 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
 
         let _ = self
             .job_service
-            .trigger(BackgroundJobEvent::WebCrawler(to_source_id(id.as_id()), url).to_command())
+            .trigger(
+                BackgroundJobEvent::WebCrawler(WebCrawlerUrl::format_source_id(&id.as_id()), url)
+                    .to_command(),
+            )
             .await;
 
         Ok(id.as_id())
@@ -62,10 +67,6 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
         self.db.delete_web_crawler_url(id.as_rowid()?).await?;
         Ok(())
     }
-}
-
-fn to_source_id(id: ID) -> String {
-    format!("web_crawler:{}", id)
 }
 
 fn to_web_crawler_url(value: WebCrawlerUrlDAO, job_info: JobInfo) -> WebCrawlerUrl {

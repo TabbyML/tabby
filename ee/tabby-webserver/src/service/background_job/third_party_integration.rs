@@ -108,11 +108,10 @@ impl SchedulerGithubGitlabJob {
         logkit::info!("Indexing issues for repository {}", repository.display_name);
 
         let index = DocIndexer::new(embedding);
-        let source_id = format!("{}:{}", integration.kind, integration.id);
         match &integration.kind {
             IntegrationKind::Github | IntegrationKind::GithubSelfHosted => {
                 index_github_issues(
-                    &source_id,
+                    &repository.source_id(),
                     integration.api_base(),
                     &repository.display_name,
                     &integration.access_token,
@@ -122,7 +121,7 @@ impl SchedulerGithubGitlabJob {
             }
             IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => {
                 index_gitlab_issues(
-                    &source_id,
+                    &repository.source_id(),
                     integration.api_base(),
                     &repository.display_name,
                     &integration.access_token,

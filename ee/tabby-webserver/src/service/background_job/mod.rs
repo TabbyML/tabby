@@ -1,7 +1,7 @@
 mod db;
 mod git;
 mod helper;
-mod remove_source_from_index;
+mod index_garbage_collection;
 mod third_party_integration;
 mod web_crawler;
 
@@ -11,8 +11,8 @@ use cron::Schedule;
 use futures::StreamExt;
 use git::SchedulerGitJob;
 use helper::{CronStream, Job, JobLogger};
+use index_garbage_collection::IndexGarbageCollection;
 use juniper::ID;
-use remove_source_from_index::RemoveSourceFromIndex;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
@@ -20,7 +20,8 @@ use tabby_inference::Embedding;
 use tabby_schema::{
     integration::IntegrationService,
     job::JobService,
-    repository::{GitRepositoryService, ThirdPartyRepositoryService},
+    repository::{GitRepositoryService, RepositoryService, ThirdPartyRepositoryService},
+    web_crawler::WebCrawlerService,
 };
 use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::{debug, warn};
@@ -28,13 +29,13 @@ use web_crawler::WebCrawlerJob;
 
 use self::{db::DbMaintainanceJob, third_party_integration::SyncIntegrationJob};
 
-#[derive(PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum BackgroundJobEvent {
     SchedulerGitRepository(RepositoryConfig),
     SchedulerGithubGitlabRepository(ID),
     SyncThirdPartyRepositories(ID),
     WebCrawler(String, String),
-    RemoveSourceFromIndex(String, String),
+    IndexGarbageCollection,
 }
 
 impl BackgroundJobEvent {
@@ -46,7 +47,7 @@ impl BackgroundJobEvent {
             }
             BackgroundJobEvent::SyncThirdPartyRepositories(_) => SyncIntegrationJob::NAME,
             BackgroundJobEvent::WebCrawler(_, _) => WebCrawlerJob::NAME,
-            BackgroundJobEvent::RemoveSourceFromIndex(_, _) => RemoveSourceFromIndex::NAME,
+            BackgroundJobEvent::IndexGarbageCollection => IndexGarbageCollection::NAME,
         }
     }
 
@@ -61,6 +62,8 @@ pub async fn start(
     git_repository_service: Arc<dyn GitRepositoryService>,
     third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
     integration_service: Arc<dyn IntegrationService>,
+    repository_service: Arc<dyn RepositoryService>,
+    web_crawler_service: Arc<dyn WebCrawlerService>,
     embedding: Arc<dyn Embedding>,
 ) {
     let mut hourly =
@@ -100,9 +103,9 @@ pub async fn start(
                             let job = WebCrawlerJob::new(source_id, url);
                             job.run(embedding.clone()).await
                         }
-                        BackgroundJobEvent::RemoveSourceFromIndex(corpus, source_id) => {
-                            let job = RemoveSourceFromIndex::new(corpus, source_id);
-                            job.run().await
+                        BackgroundJobEvent::IndexGarbageCollection => {
+                            let job = IndexGarbageCollection;
+                            job.run(repository_service.clone(), web_crawler_service.clone()).await
                         }
                     } {
                         logkit::info!(exit_code = 1; "Job failed {}", err);
@@ -128,6 +131,11 @@ pub async fn start(
                     if let Err(err) = SchedulerGithubGitlabJob::cron(now, third_party_repository_service.clone(), job_service.clone()).await {
                         warn!("Index issues job failed: {err:?}");
                     }
+
+                    if let Err(err) = IndexGarbageCollection.run(repository_service.clone(), web_crawler_service.clone()).await {
+                        warn!("Index garbage collection job failed: {err:?}");
+                    }
+
                 },
                 else => {
                     warn!("Background job channel closed");
