@@ -17,18 +17,29 @@ pub struct IndexSchema {
     pub schema: Schema,
 
     // === Fields for both document and chunk ===
-    pub field_id: Field,
+    /// Corpus for the document, each corpus comes with its own schema for json fields (field_attributes / field_chunk_attributes)
+    /// See ./doc or ./code as an example
     pub field_corpus: Field,
+
+    /// Unique identifier for the document, each document could have multiple chunks indexed.
+    pub field_id: Field,
+
+    /// Last updated time for the document in index.
     pub field_updated_at: Field,
+    // ==========================================
 
     // === Fields for document ===
+    /// JSON attributes for the document, it's only stored but not indexed.
     pub field_attributes: Field,
+    // ===========================
 
     // === Fields for chunk ===
     pub field_chunk_id: Field,
+    /// JSON attributes for the chunk, it's indexed (thus can be used as filter in query) and stored.
     pub field_chunk_attributes: Field,
-
+    /// Matching tokens for the chunk, it's indexed but not stored..
     pub field_chunk_tokens: Field,
+    // =========================
 }
 
 const FIELD_CHUNK_ID: &str = "chunk_id";
