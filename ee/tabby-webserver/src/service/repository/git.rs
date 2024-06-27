@@ -66,7 +66,13 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
     }
 
     async fn delete(&self, id: &ID) -> Result<bool> {
-        Ok(self.db.delete_repository(id.as_rowid()?).await?)
+        let success = self.db.delete_repository(id.as_rowid()?).await?;
+        if success {
+            self.job_service
+                .trigger(BackgroundJobEvent::IndexGarbageCollection.to_command())
+                .await?;
+        }
+        Ok(success)
     }
 
     async fn update(&self, id: &ID, name: String, git_url: String) -> Result<bool> {

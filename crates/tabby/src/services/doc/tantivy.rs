@@ -89,7 +89,7 @@ impl DocSearchImpl {
                         doc::fields::CHUNK_TEXT,
                     );
 
-                    let doc_query = schema.doc_query(doc_id);
+                    let doc_query = schema.doc_query(corpus::WEB, doc_id);
                     let top_docs = match searcher.search(&doc_query, &TopDocs::with_limit(1)) {
                         Err(err) => {
                             warn!("Failed to search doc `{}`: `{}`", doc_id, err);

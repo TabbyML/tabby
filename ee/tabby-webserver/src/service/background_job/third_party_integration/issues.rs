@@ -7,6 +7,7 @@ use tabby_scheduler::{DocIndexer, WebDocument};
 use crate::service::create_gitlab_client;
 
 pub async fn index_github_issues(
+    source_id: &str,
     api_base: &str,
     full_name: &str,
     access_token: &str,
@@ -44,6 +45,7 @@ pub async fn index_github_issues(
 
     for issue in issues {
         let doc = WebDocument {
+            source_id: source_id.to_string(),
             id: issue.html_url.to_string(),
             link: issue.html_url.to_string(),
             title: issue.title,
@@ -63,6 +65,7 @@ struct GitlabIssue {
 }
 
 pub async fn index_gitlab_issues(
+    source_id: &str,
     api_base: &str,
     full_name: &str,
     access_token: &str,
@@ -79,6 +82,7 @@ pub async fn index_gitlab_issues(
 
     for issue in issues {
         let doc = WebDocument {
+            source_id: source_id.to_owned(),
             id: issue.web_url.clone(),
             link: issue.web_url,
             title: issue.title,
@@ -96,6 +100,7 @@ pub async fn index_gitlab_issues(
 
     for merge_request in merge_requests {
         let doc = WebDocument {
+            source_id: source_id.to_owned(),
             id: merge_request.web_url.clone(),
             link: merge_request.web_url,
             title: merge_request.title,

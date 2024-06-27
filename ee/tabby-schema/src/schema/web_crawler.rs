@@ -14,6 +14,16 @@ pub struct WebCrawlerUrl {
     pub job_info: JobInfo,
 }
 
+impl WebCrawlerUrl {
+    pub fn source_id(&self) -> String {
+        Self::format_source_id(&self.id)
+    }
+
+    pub fn format_source_id(id: &ID) -> String {
+        format!("web_crawler:{}", id)
+    }
+}
+
 #[derive(Validate, GraphQLInputObject)]
 pub struct CreateWebCrawlerUrlInput {
     #[validate(url(code = "url", message = "Invalid URL"))]

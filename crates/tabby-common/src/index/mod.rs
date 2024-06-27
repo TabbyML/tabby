@@ -17,18 +17,32 @@ pub struct IndexSchema {
     pub schema: Schema,
 
     // === Fields for both document and chunk ===
-    pub field_id: Field,
+    /// Corpus for the document, each corpus comes with its own schema for json fields (field_attributes / field_chunk_attributes)
+    /// See ./doc or ./code as an example
     pub field_corpus: Field,
+
+    /// Unique identifier (within corpus) for a group of documents.
+    pub field_source_id: Field,
+
+    /// Unique identifier (within corpus) for the document, each document could have multiple chunks indexed.
+    pub field_id: Field,
+
+    /// Last updated time for the document in index.
     pub field_updated_at: Field,
+    // ==========================================
 
     // === Fields for document ===
+    /// JSON attributes for the document, it's only stored but not indexed.
     pub field_attributes: Field,
+    // ===========================
 
     // === Fields for chunk ===
     pub field_chunk_id: Field,
+    /// JSON attributes for the chunk, it's indexed (thus can be used as filter in query) and stored.
     pub field_chunk_attributes: Field,
-
+    /// Matching tokens for the chunk, it's indexed but not stored..
     pub field_chunk_tokens: Field,
+    // =========================
 }
 
 const FIELD_CHUNK_ID: &str = "chunk_id";
@@ -46,8 +60,10 @@ impl IndexSchema {
     fn new() -> Self {
         let mut builder = Schema::builder();
 
-        let field_id = builder.add_text_field("id", STRING | STORED);
         let field_corpus = builder.add_text_field("corpus", STRING | FAST);
+        let field_source_id = builder.add_text_field("source_id", STRING | FAST);
+        let field_id = builder.add_text_field("id", STRING | STORED);
+
         let field_updated_at = builder.add_date_field("updated_at", INDEXED);
         let field_attributes = builder.add_text_field("attributes", STORED);
 
@@ -71,6 +87,7 @@ impl IndexSchema {
         Self {
             schema,
             field_id,
+            field_source_id,
             field_corpus,
             field_updated_at,
             field_attributes,
@@ -81,14 +98,30 @@ impl IndexSchema {
         }
     }
 
+    pub fn source_query(&self, corpus: &str, source_id: &str) -> impl Query {
+        let source_id_query = TermQuery::new(
+            Term::from_field_text(self.field_source_id, source_id),
+            tantivy::schema::IndexRecordOption::Basic,
+        );
+
+        BooleanQuery::new(vec![
+            // Must match the corpus
+            (Occur::Must, self.corpus_query(corpus)),
+            // Must match the source id
+            (Occur::Must, Box::new(source_id_query)),
+        ])
+    }
+
     /// Build a query to find the document with the given `doc_id`.
-    pub fn doc_query(&self, doc_id: &str) -> BooleanQuery {
+    pub fn doc_query(&self, corpus: &str, doc_id: &str) -> impl Query {
         let doc_id_query = TermQuery::new(
             Term::from_field_text(self.field_id, doc_id),
             tantivy::schema::IndexRecordOption::Basic,
         );
 
         BooleanQuery::new(vec![
+            // Must match the corpus
+            (Occur::Must, self.corpus_query(corpus)),
             // Must match the doc id
             (Occur::Must, Box::new(doc_id_query)),
             // Exclude chunk documents
@@ -99,9 +132,24 @@ impl IndexSchema {
         ])
     }
 
-    pub fn corpus_query(&self, kind: &str) -> Box<dyn Query> {
+    /// Build a query to find the document with the given `doc_id`, include chunks.
+    pub fn doc_query_with_chunks(&self, corpus: &str, doc_id: &str) -> impl Query {
+        let doc_id_query = TermQuery::new(
+            Term::from_field_text(self.field_id, doc_id),
+            tantivy::schema::IndexRecordOption::Basic,
+        );
+
+        BooleanQuery::new(vec![
+            // Must match the corpus
+            (Occur::Must, self.corpus_query(corpus)),
+            // Must match the doc id
+            (Occur::Must, Box::new(doc_id_query)),
+        ])
+    }
+
+    pub fn corpus_query(&self, corpus: &str) -> Box<dyn Query> {
         Box::new(TermQuery::new(
-            Term::from_field_text(self.field_corpus, kind),
+            Term::from_field_text(self.field_corpus, corpus),
             tantivy::schema::IndexRecordOption::Basic,
         ))
     }

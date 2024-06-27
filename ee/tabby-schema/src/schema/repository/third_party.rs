@@ -24,6 +24,16 @@ pub struct ProvidedRepository {
     pub job_info: JobInfo,
 }
 
+impl ProvidedRepository {
+    pub fn source_id(&self) -> String {
+        Self::format_source_id(&self.id)
+    }
+
+    pub fn format_source_id(id: &ID) -> String {
+        format!("provided_repository:{}", id)
+    }
+}
+
 impl NodeType for ProvidedRepository {
     type Cursor = String;
 
