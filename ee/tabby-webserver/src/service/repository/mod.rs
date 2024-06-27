@@ -4,7 +4,6 @@ mod third_party;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-
 use futures::StreamExt;
 use juniper::ID;
 use tabby_common::{

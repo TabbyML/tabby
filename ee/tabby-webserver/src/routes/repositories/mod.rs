@@ -11,7 +11,6 @@ use axum::{
     routing, Router,
 };
 use resolve::{ResolveParams, ResolveState};
-
 use tabby_schema::{auth::AuthenticationService, repository::RepositoryService};
 use tracing::instrument;
 

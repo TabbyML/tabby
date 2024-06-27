@@ -5,7 +5,6 @@ use axum::{body::Body, response::Response};
 use hyper::StatusCode;
 use juniper::ID;
 use serde::Deserialize;
-
 use tabby_schema::repository::{RepositoryKind, RepositoryService};
 
 #[derive(Deserialize, Debug)]
