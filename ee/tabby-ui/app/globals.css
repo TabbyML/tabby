@@ -86,10 +86,6 @@
   body {
     @apply bg-background text-foreground; 
   }
-
-  body .dark.dark-foreground {
-    @apply text-foreground;
-  }
 }
 
 .prose-full-width {

@@ -17,6 +17,7 @@ import type {
 import { useServer } from 'tabby-chat-panel/react'
 
 import { cn, nanoid } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { IconSpinner } from '@/components/ui/icons'
 import { Chat, ChatRef } from '@/components/chat/chat'
 import { MemoizedReactMarkdown } from '@/components/markdown'
@@ -47,12 +48,16 @@ export default function ChatPage() {
   const [pendingMessages, setPendingMessages] = useState<ChatMessage[]>([])
   const [isThemeSynced, setIsThemeSynced] = useState(false)
   const [errorMessage, setErrorMessage] = useState<ErrorMessage | null>(null)
+  const [isRefreshLoading, setIsRefreshLoading] = useState(false)
 
   const chatRef = useRef<ChatRef>(null)
 
   const searchParams = useSearchParams()
   const client = searchParams.get('client') || undefined
-  const initialTheme = searchParams.get('theme') || undefined
+  const initialFontSize = searchParams.get('font-size') || undefined
+  const initialForeground = searchParams.get('foreground')
+    ? `#${searchParams.get('foreground')}`
+    : undefined
 
   const isFromVSCode = client === 'vscode'
   const maxWidth = isFromVSCode ? '5xl' : undefined
@@ -142,6 +147,9 @@ export default function ChatPage() {
     },
     showError: (errorMessage: ErrorMessage) => {
       setErrorMessage(errorMessage)
+    },
+    cleanError: () => {
+      setErrorMessage(null)
     }
   })
 
@@ -164,21 +172,36 @@ export default function ChatPage() {
     )
   }
 
+  const refresh = async () => {
+    setIsRefreshLoading(true)
+    await server?.refresh?.()
+    setIsRefreshLoading(false)
+  }
+
   function StaticContent({ children }: { children: React.ReactNode }) {
     return (
       <div
         className={cn(
-          'h-screen w-screen px-4 py-2',
-          !isThemeSynced && `${initialTheme} ${initialTheme}-foreground`
+          'h-screen w-screen'
+          // !isThemeSynced && `${initialTheme} ${initialTheme}-foreground`
         )}
-        style={{ fontSize: '12px' }}
+        style={{
+          fontSize: initialFontSize,
+          color: initialForeground,
+          padding: '5px 18px'
+        }}
       >
-        <div className="mb-2 flex items-center">
+        <div className="flex items-center" style={{ marginBottom: '0.5em' }}>
           <Image
             src={tabbyUrl}
             alt="logo"
-            className="mr-1.5 rounded-full border p-0.5"
-            style={{ background: 'rgb(232, 226, 210)' }}
+            className="rounded-full border"
+            style={{
+              background: 'rgb(232, 226, 210)',
+              marginRight: '0.375em',
+              padding: '0.125em',
+              borderColor: initialForeground
+            }}
             width={18}
           />
           <p className="font-semibold">Tabby</p>
@@ -189,16 +212,23 @@ export default function ChatPage() {
   }
 
   if (errorMessage) {
-    // FIXME: refresh button
     return (
       <StaticContent>
         <>
+          <p className="mb-1.5 mt-2 font-semibold">{errorMessage.title}</p>
           <MemoizedReactMarkdown
             className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
             remarkPlugins={[remarkGfm, remarkMath]}
           >
             {errorMessage.content}
           </MemoizedReactMarkdown>
+          <Button
+            className="mt-3 flex items-center gap-x-2 text-sm leading-none"
+            onClick={refresh}
+          >
+            {isRefreshLoading && <IconSpinner />}
+            Refresh
+          </Button>
         </>
       </StaticContent>
     )
@@ -209,9 +239,16 @@ export default function ChatPage() {
       <StaticContent>
         <>
           <p className="opacity-80">
-            Welcome to Tabby Chat! Just a moment while we get things ready...
+            Welcome to Tabby Chat! Just a moment while we get thins ready...
           </p>
-          <IconSpinner className="mx-auto mt-5" />
+          <IconSpinner
+            className="mx-auto"
+            style={{
+              marginTop: '1.25em',
+              width: '0.875em',
+              height: '0.875em'
+            }}
+          />
         </>
       </StaticContent>
     )

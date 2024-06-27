@@ -9,7 +9,7 @@ import {
   TextEditor,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
-import hashObject from "object-hash";
+// import hashObject from "object-hash";
 import * as semver from "semver";
 import type { ServerInfo } from "tabby-agent";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
@@ -20,7 +20,6 @@ export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
   private pendingMessages: ChatMessage[] = [];
-  private isServerReady = false;
   private isRendered = false;
 
   constructor(
@@ -80,7 +79,6 @@ export class ChatViewProvider implements WebviewViewProvider {
   // The method is called when the chat panel first opened
   public async resolveWebviewView(webviewView: WebviewView) {
     this.webview = webviewView;
-    this.isServerReady = this.agent.status === "ready";
     const extensionUri = this.context.extensionUri;
 
     webviewView.webview.options = {
@@ -108,32 +106,39 @@ export class ChatViewProvider implements WebviewViewProvider {
           await env.openExternal(Uri.parse(url.toString()));
         }
       },
+      refresh: async () => {
+        await this.reloadChatPage();
+        await new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(null);
+          }, 1000);
+        });
+        return;
+      },
     });
 
-    this.renderChatPage();
+    const serverInfo = await this.agent.fetchServerInfo();
+    this.renderChatPage(serverInfo.config.endpoint);
 
-    this.agent.on("didChangeStatus", async (status) => {
-      if (status === "ready") {
-        this.isServerReady = true;
-        this.initChatPage();
-      }
+    this.agent.on("didChangeStatus", async () => {
+      this.reloadChatPage();
     });
 
-    this.agent.on("didUpdateServerInfo", () => {
-      this.renderChatPage();
+    this.agent.on("didUpdateServerInfo", (serverInfo: ServerInfo) => {
+      this.renderChatPage(serverInfo.config.endpoint);
     });
 
     // The event will not be triggered during the initial rendering.
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
-        this.initChatPage();
+        this.reloadChatPage();
       }
     });
 
     webviewView.webview.onDidReceiveMessage((message) => {
       switch (message.action) {
         case "rendered": {
-          this.initChatPage();
+          this.reloadChatPage();
           return;
         }
         case "copy": {
@@ -172,10 +177,18 @@ export class ChatViewProvider implements WebviewViewProvider {
     return true;
   }
 
-  private async initChatPage() {
-    if (!this.isServerReady) return;
-
+  private async reloadChatPage() {
+    const agentStatus = this.agent.status;
     const serverInfo = await this.agent.fetchServerInfo();
+
+    if (agentStatus === "unauthorized") {
+      return this.client?.showError({
+        title: "Tabby is not available",
+        content:
+          "Before you can start chatting, please take a moment to set up your credentials to connect to the Tabby server.",
+      });
+    }
+
     if (!this.isChatPanelAvailable(serverInfo)) {
       this.client?.showError({
         title: "Tabby is not available",
@@ -187,114 +200,111 @@ export class ChatViewProvider implements WebviewViewProvider {
 
     this.pendingMessages.forEach((message) => this.sendMessageToChatPanel(message));
     if (serverInfo.config.token) {
+      this.client?.cleanError();
+      // Duplicate init won't break or reload the current chat page
       this.client?.init({
         fetcherOptions: {
           authorization: serverInfo.config.token,
         },
       });
-
-      this.isServerReady = true;
     }
   }
 
-  private async renderChatPage() {
-    if (this.isRendered) return;
+  private async renderChatPage(endpoint: string) {
+    if (this.isRendered || !endpoint) return;
 
-    // FIXME: is it correct fetch endpoint by this way?
-    const serverInfo = await this.agent.fetchServerInfo();
-    if (serverInfo.config.endpoint && this.webview) {
-      this.webview.webview.html = this.getWebviewContent(serverInfo);
+    if (this.webview) {
+      const styleUri = this.webview?.webview.asWebviewUri(
+        Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
+      );
+
       this.isRendered = true;
-    }
-  }
 
-  private getWebviewContent(serverInfo: ServerInfo) {
-    const endpoint = serverInfo.config.endpoint;
-    const styleUri = this.webview?.webview.asWebviewUri(
-      Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
-    );
-    return `
-      <!DOCTYPE html>
-      <html lang="en">
-        <!--hash: ${hashObject(serverInfo)}-->
-        <head>
-          <meta charset="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <link href="${endpoint}" rel="preconnect">
-          <link href="${styleUri}" rel="stylesheet">
-      
-          <script defer>
-            const vscode = acquireVsCodeApi();
-
-            function getTheme () {
-              return document.body.className === 'vscode-dark' ? 'dark' : 'light'
-            }
-
-            function getCssVariableValue(variableName) {
-              const root = document.documentElement;
-              return getComputedStyle(root).getPropertyValue(variableName).trim();
-            }
-
-            const syncTheme = () => {
-              const chatIframe = document.getElementById("chat");
-              if (!chatIframe) return
+      // FIXME: <!--hash: ${hashObject(serverInfo)}--> not needed?
+      this.webview.webview.html = `
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <link href="${endpoint}" rel="preconnect">
+            <link href="${styleUri}" rel="stylesheet">
         
-              const parentHtmlStyle = document.documentElement.getAttribute('style');
-              chatIframe.contentWindow.postMessage({ style: parentHtmlStyle }, "${endpoint}");
-          
-              let themeClass = getTheme()
-              themeClass += ' vscode'
-              chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${endpoint}");
-            }
+            <script defer>
+              const vscode = acquireVsCodeApi();
 
-            window.onload = function () {
-              const chatIframe = document.getElementById("chat");
-
-              if (chatIframe) {
-                const fontSize = getCssVariableValue('--vscode-font-size');
-                const theme = getTheme()
-
-                const clientQuery = "&client=vscode"
-                const themeQuery = "&theme=" + theme
-
-                chatIframe.addEventListener('load', function() {
-                  vscode.postMessage({ action: 'rendered' });
-                  syncTheme()
-                });
-
-                chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery + themeQuery)
+              function getTheme () {
+                return document.body.className === 'vscode-dark' ? 'dark' : 'light'
               }
-              
-              window.addEventListener("message", (event) => {
-                if (!chatIframe) return
-                if (event.data) {
-                  if (event.data.action === 'sync-theme') {
-                    syncTheme();
-                    return;
-                  }
-                  if (event.data.action === 'copy') {
-                    vscode.postMessage(event.data);
-                    return;
-                  }
 
-                  if (event.data.data) {
-                  console.log(chatIframe.src)
-                    chatIframe.contentWindow.postMessage(event.data.data[0], "${endpoint}");
-                  } else {
-                    vscode.postMessage(event.data);
-                  }
+              function getCssVariableValue(variableName) {
+                const root = document.documentElement;
+                return getComputedStyle(root).getPropertyValue(variableName).trim();
+              }
+
+              const syncTheme = () => {
+                const chatIframe = document.getElementById("chat");
+                if (!chatIframe) return
+          
+                const parentHtmlStyle = document.documentElement.getAttribute('style');
+                chatIframe.contentWindow.postMessage({ style: parentHtmlStyle }, "${endpoint}");
+            
+                let themeClass = getTheme()
+                themeClass += ' vscode'
+                chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${endpoint}");
+              }
+
+              window.onload = function () {
+                const chatIframe = document.getElementById("chat");
+
+                if (chatIframe) {
+                  const fontSize = getCssVariableValue('--vscode-font-size');
+                  const foreground = getCssVariableValue('--vscode-editor-foreground');
+                  const theme = getTheme()
+
+                  const clientQuery = "&client=vscode"
+                  const themeQuery = "&theme=" + theme
+                  const fontSizeQuery = "&font-size=" + fontSize
+                  const foregroundQuery = "&foreground=" + foreground.replace('#', '')
+      
+                  chatIframe.addEventListener('load', function() {
+                    vscode.postMessage({ action: 'rendered' });
+                    syncTheme()
+                  });
+
+                  chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery + themeQuery + fontSizeQuery + foregroundQuery)
                 }
-              });
-            }
-          </script>
-        </head>
-        <body>
-          <iframe
-            id="chat"
-            allow="clipboard-read; clipboard-write" />
-        </body>
-      </html>
-    `;
+                
+                window.addEventListener("message", (event) => {
+                  if (!chatIframe) return
+                  if (event.data) {
+                    if (event.data.action === 'sync-theme') {
+                      syncTheme();
+                      return;
+                    }
+                    if (event.data.action === 'copy') {
+                      vscode.postMessage(event.data);
+                      return;
+                    }
+
+                    if (event.data.data) {
+                      chatIframe.contentWindow.postMessage(event.data.data[0], "${endpoint}");
+                    } else {
+                      vscode.postMessage(event.data);
+                    }
+                  }
+                });
+              }
+            </script>
+          </head>
+          <body>
+            <iframe
+              id="chat"
+              allow="clipboard-read; clipboard-write" />
+          </body>
+        </html>
+      `;
+    }
   }
 
   public getWebview() {
