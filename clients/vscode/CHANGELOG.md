@@ -1,3 +1,67 @@
+## 1.7.4
+
+**stable**
+
+### Fixes
+
+- Fixed a bug causing the chat view failed to display due to trailing slash in the endpoint config.
+
+## 1.7.3
+
+**stable**
+
+### Fixes & Improvements
+
+- Updated the walkthrough guides.
+- Fixed bugs causing the web extension initialization to fail.
+
+## 1.7.2
+
+**pre-release**
+
+### Improvements
+
+- Added a set of commands in the command palette to interact with the chat view.
+- Added some preset chat commands for chat editing.
+- Improved prompts used in generating commit messages and chat editing.
+
+## 1.7.1
+
+**pre-release**
+
+### Features
+
+- Introducing a new experimental feature for editing documents using a chat command. Select some text in the editor and press `Ctrl + i` to start.
+
+## 1.7.0
+
+**pre-release**
+
+### Features
+
+- Introducing a new chat view feature that allows users to engage in conversations with their AI assistant. Access the chat view conveniently from the activity bar.
+
+## 1.6.3
+
+### Fixes
+
+- Fixed a bug that caused unexpected logging output and the generation of an `audit.json` file in the working directory.
+
+## 1.6.2
+
+**stable**
+
+Stable release for 1.6.1.
+
+## 1.6.1
+
+**pre-release**
+
+### Fixes & Improvements
+
+- Fixed a bug causing the chat stream parsing to fail.
+- Improved the message extraction when generating commit messages.
+
 ## 1.6.0
 
 **pre-release**
