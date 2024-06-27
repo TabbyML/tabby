@@ -4,6 +4,7 @@ import React, { PropsWithChildren } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createRequest } from '@urql/core'
+import { set } from 'date-fns'
 import { compact, isEmpty, isNil, toNumber } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import useSWR from 'swr'
@@ -51,7 +52,6 @@ import {
   resolveFileNameFromPath,
   resolveRepoRef,
   resolveRepositoryInfoFromPath,
-  resolveRepoSpecifierFromRepoInfo,
   toEntryRequestUrl
 } from './utils'
 
@@ -174,33 +174,41 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   const prevActivePath = React.useRef<string | undefined>()
 
   const updateActivePath: SourceCodeBrowserContextValue['updateActivePath'] =
-    React.useCallback(async (path, options) => {
-      const replace = options?.replace
-      if (!path) {
-        // To maintain compatibility with older versions, remove the path params
-        updateUrlComponents({
-          pathname: '/files',
-          searchParams: {
-            del: ['path', 'plain', 'line']
-          },
-          hash: options?.hash,
-          replace
-        })
-      } else {
-        const setParams: Record<string, string> = {}
-        let delList = ['plain', 'redirect_filepath', 'redirect_git_url', 'line']
-
-        updateUrlComponents({
-          pathname: `/files/${path}`,
-          searchParams: {
-            set: setParams,
-            del: delList
-          },
-          replace,
-          hash: options?.hash
-        })
-      }
-    }, [])
+    React.useCallback(
+      async (path, options) => {
+        const replace = options?.replace
+        if (!path) {
+          // To maintain compatibility with older versions, remove the path params
+          updateUrlComponents({
+            pathname: '/files',
+            searchParams: {
+              del: ['path', 'plain', 'line']
+            },
+            hash: options?.hash,
+            replace
+          })
+        } else {
+          const setParams: Record<string, string> = {}
+          let delList = [
+            'plain',
+            'redirect_filepath',
+            'redirect_git_url',
+            'line',
+            'q'
+          ]
+          updateUrlComponents({
+            pathname: `/files/${path}`,
+            searchParams: {
+              set: setParams,
+              del: delList
+            },
+            replace,
+            hash: options?.hash
+          })
+        }
+      },
+      [updateUrlComponents]
+    )
 
   const updateFileMap = (map: TFileMap, replace?: boolean) => {
     if (!map) return
@@ -269,7 +277,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
       result.push(fileMap?.[p])
     }
     return compact(result)
-  }, [activePath, fileMap, activeEntryInfo])
+  }, [activePath, activeEntryInfo, activeRepo, fileMap])
 
   React.useEffect(() => {
     const regex = /^\/files\/(.*)/
@@ -279,7 +287,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
     if (!isPathInitialized) {
       setIsPathInitialized(true)
     }
-  }, [pathname])
+  }, [activePath, isPathInitialized, pathname])
 
   return (
     <SourceCodeBrowserContext.Provider
@@ -361,11 +369,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const isBlobMode = activeEntryInfo?.viewMode === 'blob'
 
   const shouldFetchSearchResults = activeEntryInfo?.viewMode === 'search'
+
   const shouldFetchTree =
-    !!isPathInitialized &&
-    !isEmpty(repoMap) &&
-    !!activePath &&
-    !shouldFetchSearchResults
+    !!isPathInitialized && !isEmpty(repoMap) && !!activePath
 
   // fetch search results
   // FIXME: when hard-refreshing the page, the file tree is not fetched
@@ -378,7 +384,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }>(
     shouldFetchSearchResults ? activePath : null,
     (path: string) => {
-      console.log('it ran')
+      console.log('fetching search....')
       const { repositorySpecifier } = resolveRepositoryInfoFromPath(path)
 
       const currentURL = new URL(window.location.href)
@@ -389,6 +395,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       // since we're going to add the new query param to the path
       // TODO: improve this
       const _path = path.split('?q=')[0]
+
+      console.log('paths', { path, _path })
 
       return fetchSearchResultsFromPath(
         _path ?? path,
@@ -536,7 +544,15 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     if (!initialized && isPathInitialized) {
       init()
     }
-  }, [activePath, initialized, isPathInitialized])
+  }, [
+    activePath,
+    initialized,
+    isPathInitialized,
+    searchParams,
+    setInitialized,
+    setRepoMap,
+    updateActivePath
+  ])
 
   React.useEffect(() => {
     if (!entriesResponse || shouldFetchSearchResults) return
@@ -584,11 +600,12 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         })
       }
     }
-  }, [entriesResponse])
-
-  React.useEffect(() => {
-    if (!globalSearchResponse || shouldFetchTree) return
-  })
+  }, [
+    entriesResponse,
+    shouldFetchSearchResults,
+    setExpandedKeys,
+    prevActivePath
+  ])
 
   React.useEffect(() => {
     if (!initialized) return
@@ -647,7 +664,15 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       updateFileMap({}, true)
       setExpandedKeys(new Set())
     }
-  }, [activeEntryInfo])
+  }, [
+    activeEntryInfo,
+    fetchingRawFile,
+    fetchingSearchResults,
+    fetchingTreeEntries,
+    prevActivePath,
+    setExpandedKeys,
+    updateFileMap
+  ])
 
   React.useEffect(() => {
     const onCallCompletion = (data: QuickActionEventPayload) => {

@@ -31,6 +31,9 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
   viewMode?: string
   rev?: string
 } {
+  console.log('resolving repository info from path', {
+    path
+  })
   const emptyResult = {}
 
   if (!path) return emptyResult

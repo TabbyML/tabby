@@ -49,11 +49,7 @@ export const SourceCodeSearch = ({ ...props }: SourceCodeSearchProps) => {
   /**
    *
    */
-  const onSubmit = async (
-    event:
-      | React.FormEvent<HTMLFormElement>
-      | ReactKeyboardEvent<HTMLInputElement>
-  ) => {
+  const onSubmit = async () => {
     const searchPath = generateEntryPath(
       ctx.activeRepo,
       ctx.activeRepoRef?.name,
@@ -62,22 +58,28 @@ export const SourceCodeSearch = ({ ...props }: SourceCodeSearchProps) => {
       query
     )
 
-    await ctx.updateActivePath(searchPath, {
-      replace: true // what does this do
-    }) // FIXME: this doesn't update the layout
+    await ctx.updateActivePath(searchPath)
   }
 
   const onInput = (event: React.FormEvent<HTMLInputElement>) => {
     setQuery(event.currentTarget.value)
   }
 
-  const onFocus = () => {
-    // maybe show results
-  }
-
   const clearInput = () => {
     setQuery('')
-    inputRef.current?.focus()
+
+    // Focus after the state is updated
+    // TODO: Improve this. Is there a more idiomatic way to do this?
+    setTimeout(() => {
+      inputRef.current?.focus()
+    }, 0)
+  }
+
+  const onFocus = () => {
+    if (query) {
+      // Temporarily disabled until the router kinks are worked out
+      // onSubmit()
+    }
   }
 
   const onKeydown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -87,7 +89,7 @@ export const SourceCodeSearch = ({ ...props }: SourceCodeSearchProps) => {
 
     if (event.key === 'Enter') {
       event.preventDefault()
-      onSubmit(event)
+      onSubmit()
     }
   }
 
