@@ -80,22 +80,27 @@ export const SourceCodeSearchResult = ({
           {props.result.path}
         </Link>
       </div>
-      <div className="overflow-hidden grid border divide-y divide-y-border border-border rounded">
+      <div className="grid border divide-y divide-y-border border-border">
         {ranges.map((range, i) => (
-          <LazyLoad key={`${props.result.path}-${i}`} threshold={0.1}>
+          <LazyLoad key={`${props.result.path}-${i}`}>
             <Link
               href={{
                 pathname,
+                // Account for the contextual lines provided by the backend
                 hash: `L${range.start + 3}`
               }}
+              className="group relative"
             >
-              <CodeEditorView
-                value={props.result.blob}
-                language={language}
-                stringToMatch={props.query}
-                lineRange={range}
-                interactionsAreDisabled={true}
-              />
+              <div className="absolute left-0 w-full h-full top-0 hidden group-hover:block group-focus:block bg-accent"></div>
+              <div className="group-hover:opacity-75 group-focus:opacity-75">
+                <CodeEditorView
+                  value={props.result.blob}
+                  language={language}
+                  stringToMatch={props.query}
+                  lineRange={range}
+                  interactionsAreDisabled={true}
+                />
+              </div>
             </Link>
           </LazyLoad>
         ))}
