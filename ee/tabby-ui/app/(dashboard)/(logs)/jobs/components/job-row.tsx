@@ -123,6 +123,7 @@ export default function JobRow({ name }: { name: string }) {
           <div className="grid grid-cols-5 flex-wrap gap-1.5  xl:flex">
             {displayJobs?.map(job => {
               const { createdAt, finishedAt, startedAt } = job.node
+              const isJobRunning = !finishedAt && !!startedAt
               const createAt =
                 createdAt && moment(createdAt).format('YYYY-MM-DD HH:mm')
               const duration: string | null =
@@ -182,7 +183,7 @@ export default function JobRow({ name }: { name: string }) {
                         )}
                       >
                         {displayedDuration}
-                        {!displayedDuration && <IconSpinner />}
+                        {isJobRunning && <IconSpinner />}
                       </Link>
                     </TooltipTrigger>
                     <TooltipContent>
