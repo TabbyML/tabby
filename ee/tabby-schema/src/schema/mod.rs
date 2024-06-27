@@ -350,10 +350,12 @@ impl Query {
 
     // FIXME(meng): This is a temporary solution to expose the list of jobs, we should consider switching to a enum based approach.
     async fn jobs() -> Result<Vec<String>> {
-        Ok(vec!["scheduler_git", "scheduler_github_gitlab", "web"]
-            .into_iter()
-            .map(Into::into)
-            .collect())
+        Ok(
+            vec!["scheduler_git", "scheduler_github_gitlab", "web_crawler"]
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
     }
 
     async fn daily_stats_in_past_year(

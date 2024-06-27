@@ -11,7 +11,6 @@ use axum::{
     routing, Router,
 };
 use resolve::{ResolveParams, ResolveState};
-use tabby_common::config::RepositoryConfig;
 use tabby_schema::{auth::AuthenticationService, repository::RepositoryService};
 use tracing::instrument;
 
@@ -20,7 +19,6 @@ use super::require_login_middleware;
 pub fn routes(
     repository: Arc<dyn RepositoryService>,
     auth: Arc<dyn AuthenticationService>,
-    config: Vec<RepositoryConfig>,
 ) -> Router {
     Router::new()
         .route("/:kind/:id/resolve/", routing::get(resolve_path))
@@ -28,7 +26,7 @@ pub fn routes(
         // Routes support viewing a specific revision of a repository
         .route("/:kind/:id/rev/:rev/", routing::get(resolve_path))
         .route("/:kind/:id/rev/:rev/*path", routing::get(resolve_path))
-        .with_state(Arc::new(ResolveState::new(repository, config)))
+        .with_state(Arc::new(ResolveState::new(repository)))
         .fallback(not_found)
         .layer(from_fn_with_state(auth, require_login_middleware))
 }
