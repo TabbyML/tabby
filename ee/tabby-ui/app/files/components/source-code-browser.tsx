@@ -677,44 +677,47 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       </ResizablePanel>
       <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
       <ResizablePanel defaultSize={80} minSize={30}>
-        <div className="flex h-full flex-col overflow-y-auto px-4 pb-4 pt-3.5">
+        <div className="flex flex-col h-full">
           <SourceCodeSearch />
-          {!showSearchView && <FileDirectoryBreadcrumb className="py-4" />}
-          {!initialized ? (
-            <ListSkeleton className="rounded-lg border p-4" />
-          ) : showErrorView ? (
-            <ErrorView
-              className={`rounded-lg border p-4`}
-              error={entriesError || rawFileError}
-            />
-          ) : (
-            <div>
-              {showSearchView && (
-                <SourceCodeSearchResults
-                  repoId={activeRepo?.id}
-                  repositoryKind={activeEntryInfo?.repositoryKind}
-                  results={globalSearchResponse?.results}
-                />
-              )}
-              {showDirectoryView && (
-                <DirectoryView
-                  loading={fetchingTreeEntries}
-                  initialized={initialized}
-                  className={`rounded-lg border`}
-                />
-              )}
-              {showTextFileView && (
-                <TextFileView blob={fileBlob} contentLength={contentLength} />
-              )}
-              {showRawFileView && (
-                <RawFileView
-                  blob={fileBlob}
-                  isImage={fileViewType === 'image'}
-                  contentLength={contentLength}
-                />
-              )}
-            </div>
-          )}
+
+          <div className="flex h-full w-full flex-col overflow-y-auto px-4 pb-6">
+            {!showSearchView && <FileDirectoryBreadcrumb className="py-4" />}
+            {!initialized ? (
+              <ListSkeleton className="rounded-lg border p-4" />
+            ) : showErrorView ? (
+              <ErrorView
+                className={`rounded-lg border p-4`}
+                error={entriesError || rawFileError}
+              />
+            ) : (
+              <div>
+                {showSearchView && (
+                  <SourceCodeSearchResults
+                    repoId={activeRepo?.id}
+                    repositoryKind={activeEntryInfo?.repositoryKind}
+                    results={globalSearchResponse?.results}
+                  />
+                )}
+                {showDirectoryView && (
+                  <DirectoryView
+                    loading={fetchingTreeEntries}
+                    initialized={initialized}
+                    className={`rounded-lg border`}
+                  />
+                )}
+                {showTextFileView && (
+                  <TextFileView blob={fileBlob} contentLength={contentLength} />
+                )}
+                {showRawFileView && (
+                  <RawFileView
+                    blob={fileBlob}
+                    isImage={fileViewType === 'image'}
+                    contentLength={contentLength}
+                  />
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </ResizablePanel>
       <>

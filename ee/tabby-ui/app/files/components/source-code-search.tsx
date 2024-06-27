@@ -92,7 +92,10 @@ export const SourceCodeSearch = ({ ...props }: SourceCodeSearchProps) => {
   }
 
   return (
-    <form onSubmit={onSubmit} className="w-full flex items-center">
+    <form
+      onSubmit={onSubmit}
+      className="w-full  bg-background py-3.5 px-4 shrink-0 flex items-center"
+    >
       <div className="relative w-full">
         <Input
           type="search"

@@ -69,22 +69,20 @@ export const SourceCodeSearchResult = ({
 
   return (
     <div>
-      <Link
-        href={{
-          pathname,
-          // FIXME: this doesn't work when clicking a different line on the active file
-          hash: `L${firstLineWithSubMatch}`
-        }}
-        className="mb-2 inline-flex items-center gap-2"
-      >
-        <IconFile />
-        {/* TODO: this should highlight the first line subMatches */}
-        {props.result.path}
-      </Link>
+      <div className="sticky top-0 bg-background z-10">
+        <Link
+          href={{
+            pathname,
+            hash: `L${firstLineWithSubMatch}`
+          }}
+          className="mb-2 font-medium inline-flex text-primary hover:underline"
+        >
+          {props.result.path}
+        </Link>
+      </div>
       <div className="overflow-hidden grid border divide-y divide-y-border border-border rounded">
         {ranges.map((range, i) => (
           <LazyLoad key={`${props.result.path}-${i}`} threshold={0.1}>
-            {/* TODO: disable interior interactions */}
             <Link
               href={{
                 pathname,

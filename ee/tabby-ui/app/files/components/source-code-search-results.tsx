@@ -93,35 +93,21 @@ export const SourceCodeSearchResults = ({
 
   return (
     <>
-      <div className="flex justify-between w-full items-start gap-16 my-4">
-        {/* FIXME: This shouldn't update on type */}
-        <div>
-          <h1 className="text-xl font-semibold mb-0.5">
-            Results for “{query}”
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {matchCount} {matchCount === 1 ? 'match' : 'matches'}
-          </p>
-        </div>
-        <button
-          onClick={() => alert('placeholder')}
-          className="flex mt-1 gap-2 items-center shrink-0"
-        >
-          {/* TODO: Use form component */}
-          {/* TODO: Semantics */}
-          <input type="checkbox" />
-          <label className="text-sm">Ignore case</label>
-        </button>
+      <div className="mt-5 mb-7">
+        <h1 className="font-semibold">Results for “{query}”</h1>
+        <p className="text-sm text-muted-foreground">
+          {matchCount} {matchCount === 1 ? 'match' : 'matches'}
+        </p>
       </div>
       {results && results.length > 0 && (
-        <ul className="grid gap-5">
+        <ol className="grid gap-8">
           {results.map((result, i) => (
             // FIXME: This key should be unique
             <li key={i} className="">
               <SourceCodeSearchResult result={result} query={query} />
             </li>
           ))}
-        </ul>
+        </ol>
       )}
     </>
   )
