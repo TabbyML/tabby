@@ -1,5 +1,5 @@
 use serde_json::json;
-use tantivy::{doc, schema::*, Index, IndexWriter};
+use tantivy::{collector::TopDocs, doc, query::TermQuery, schema::*, Index, IndexWriter};
 
 const JSON: &str = "json";
 
@@ -49,11 +49,18 @@ fn main() -> tantivy::Result<()> {
 
     let mut term = Term::from_field_json_path(field_json, "title", false);
     term.append_type_and_str("Frankenstein");
-    writer.delete_term(term);
+    writer.delete_term(term.clone());
     writer.commit()?;
     writer.wait_merging_threads()?;
 
     let reader = index.reader()?;
+
+    let searcher = reader.searcher();
+    let search_results = searcher.search(
+        &TermQuery::new(term, IndexRecordOption::Basic),
+        &TopDocs::with_limit(1),
+    )?;
+    dbg!(search_results);
 
     for segment in reader.searcher().segment_readers() {
         let Ok(field) = segment.inverted_index(field_json) else {
