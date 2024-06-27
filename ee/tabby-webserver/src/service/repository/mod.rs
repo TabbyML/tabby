@@ -4,10 +4,11 @@ mod third_party;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+
 use futures::StreamExt;
 use juniper::ID;
 use tabby_common::{
-    config::{config_index_to_id, Config, RepositoryConfig},
+    config::{config_id_to_index, config_index_to_id, Config, RepositoryConfig},
     index::corpus,
 };
 use tabby_db::DbConn;
@@ -97,16 +98,7 @@ impl RepositoryService for RepositoryServiceImpl {
             self.config
                 .iter()
                 .enumerate()
-                .map(|(index, repo)| {
-                    Ok(Repository {
-                        id: ID::new(config_index_to_id(index)),
-                        name: repo.dir_name(),
-                        kind: RepositoryKind::Git,
-                        dir: repo.dir(),
-                        refs: tabby_git::list_refs(&repo.dir())?,
-                        git_url: repo.git_url.clone(),
-                    })
-                })
+                .map(|(index, repo)| repository_config_to_repository(index, repo))
                 .collect::<Result<Vec<_>>>()?,
         );
 
@@ -114,6 +106,13 @@ impl RepositoryService for RepositoryServiceImpl {
     }
 
     async fn resolve_repository(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository> {
+        if let RepositoryKind::Git = kind {
+            if let Ok(index) = config_id_to_index(id) {
+                let config = &self.config[index];
+                return repository_config_to_repository(index, config);
+            }
+        }
+
         match kind {
             RepositoryKind::Git => self.git().get_repository(id).await,
             RepositoryKind::Github
@@ -180,10 +179,6 @@ impl RepositoryService for RepositoryServiceImpl {
 
         Ok(ret)
     }
-
-    fn configured_repositories(&self) -> Vec<RepositoryConfig> {
-        self.config.clone()
-    }
 }
 
 fn to_grep_file(file: tabby_git::GrepFile) -> tabby_schema::repository::GrepFile {
@@ -231,6 +226,17 @@ fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
         git_url: config.canonical_git_url(),
         refs: list_refs(&repo.git_url),
     }
+}
+
+fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> Result<Repository> {
+    Ok(Repository {
+        id: ID::new(config_index_to_id(index)),
+        name: config.dir_name(),
+        kind: RepositoryKind::Git,
+        dir: config.dir(),
+        refs: tabby_git::list_refs(&config.dir())?,
+        git_url: config.git_url.clone(),
+    })
 }
 
 #[cfg(test)]
