@@ -27,7 +27,7 @@ impl WebCrawlerJob {
                 logkit::info!("Fetching {}", url);
             },
             |stderr_line| {
-                logkit::warn!("{stderr_line}");
+                logkit::info!("{stderr_line}");
             },
         )
         .await?;
