@@ -183,7 +183,6 @@ export class ChatViewProvider implements WebviewViewProvider {
 
     if (agentStatus === "unauthorized") {
       return this.client?.showError({
-        title: "Tabby is not available",
         content:
           "Before you can start chatting, please take a moment to set up your credentials to connect to the Tabby server.",
       });
@@ -191,7 +190,6 @@ export class ChatViewProvider implements WebviewViewProvider {
 
     if (!this.isChatPanelAvailable(serverInfo)) {
       this.client?.showError({
-        title: "Tabby is not available",
         content:
           "Please update to the latest release of the Tabby server.\n\nYou also need to launch the server with the chat model enabled; for example, use `--chat-model Mistral-7B`.",
       });

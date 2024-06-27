@@ -181,17 +181,14 @@ export default function ChatPage() {
   function StaticContent({ children }: { children: React.ReactNode }) {
     return (
       <div
-        className={cn(
-          'h-screen w-screen'
-          // !isThemeSynced && `${initialTheme} ${initialTheme}-foreground`
-        )}
+        className='h-screen w-screen'
         style={{
-          fontSize: initialFontSize,
-          color: initialForeground,
+          fontSize: isThemeSynced ? 'inherit' : initialFontSize,
+          color: isThemeSynced ? 'inherit' : initialForeground,
           padding: '5px 18px'
         }}
       >
-        <div className="flex items-center" style={{ marginBottom: '0.5em' }}>
+        <div className="flex items-center" style={{ marginBottom: '0.55em' }}>
           <Image
             src={tabbyUrl}
             alt="logo"
@@ -200,7 +197,7 @@ export default function ChatPage() {
               background: 'rgb(232, 226, 210)',
               marginRight: '0.375em',
               padding: '0.125em',
-              borderColor: initialForeground
+              borderColor: isThemeSynced ? 'inherit' : initialForeground
             }}
             width={18}
           />
@@ -223,7 +220,7 @@ export default function ChatPage() {
             {errorMessage.content}
           </MemoizedReactMarkdown>
           <Button
-            className="mt-3 flex items-center gap-x-2 text-sm leading-none"
+            className="mt-5 flex items-center gap-x-2 text-sm leading-none"
             onClick={refresh}
           >
             {isRefreshLoading && <IconSpinner />}
