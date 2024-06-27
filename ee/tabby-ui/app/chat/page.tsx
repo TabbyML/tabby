@@ -16,7 +16,7 @@ import type {
 } from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
 
-import { cn, nanoid } from '@/lib/utils'
+import { nanoid } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconSpinner } from '@/components/ui/icons'
 import { Chat, ChatRef } from '@/components/chat/chat'
@@ -181,7 +181,7 @@ export default function ChatPage() {
   function StaticContent({ children }: { children: React.ReactNode }) {
     return (
       <div
-        className='h-screen w-screen'
+        className="h-screen w-screen"
         style={{
           fontSize: isThemeSynced ? 'inherit' : initialFontSize,
           color: isThemeSynced ? 'inherit' : initialForeground,
