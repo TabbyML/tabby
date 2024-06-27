@@ -35,6 +35,7 @@ For an actual example of an issue or pull request adding the above support, plea
 * [Solidity](https://soliditylang.org/): Since v0.10.0
 * [R](https://www.r-project.org/): Since v0.12.0
 * [Dart](https://dart.dev/): Since v0.12.0
+* [Lua](https://www.lua.org): Since 0.14.0
 
 ## Languages Missing Certain Support
 
@@ -43,6 +44,5 @@ For an actual example of an issue or pull request adding the above support, plea
 |   CSS    |                    🚫                    |                       🚫                        |
 | Haskell  |                    🚫                    |                       🚫                        |
 |  Julia   |                    🚫                    |                       🚫                        |
-|   Lua    |                    🚫                    |                       🚫                        |
 |   Perl   |                    🚫                    |                       🚫                        |
 |  Scala   |                    🚫                    |                       🚫                        |
