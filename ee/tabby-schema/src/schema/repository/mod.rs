@@ -290,7 +290,4 @@ pub trait RepositoryService: Send + Sync {
 
     async fn list_all_repository_urls(&self) -> Result<Vec<RepositoryConfig>>;
     async fn list_all_sources(&self) -> Result<Vec<(String, String)>>;
-
-    // FIXME(meng): refactor this into repository_list / resolve_repository
-    fn configured_repositories(&self) -> Vec<RepositoryConfig>;
 }

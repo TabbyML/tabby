@@ -47,8 +47,6 @@ impl SyncIntegrationJob {
         integration: Arc<dyn IntegrationService>,
         job: Arc<dyn JobService>,
     ) -> tabby_schema::Result<()> {
-        // FIXME(boxbeam): Find a way to clean up issues from the index
-        // if the repository was set to inactive or the issue was deleted upstream
         debug!("Syncing all github and gitlab repositories");
 
         for integration in integration

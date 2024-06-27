@@ -53,9 +53,4 @@ pub fn events_dir() -> PathBuf {
     tabby_root().join("events")
 }
 
-// FIXME: migrate to /corpus/code/cache
-pub fn cache_dir() -> PathBuf {
-    tabby_root().join("cache")
-}
-
 mod registry {}
