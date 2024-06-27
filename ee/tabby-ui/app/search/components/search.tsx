@@ -758,7 +758,13 @@ function MessageMarkdown({
 
           if (children.length) {
             return (
-              <div className="mb-2 inline-block leading-relaxed last:mb-0">
+              <div
+                className="mb-2 inline-block leading-relaxed last:mb-0"
+                // To ensure the list marker aligns with the top of the <li> when a <p> element is inside it, apply vertical-align: top
+                style={{
+                  verticalAlign: 'top'
+                }}
+              >
                 {children.map((childrenItem, index) => {
                   if (typeof childrenItem === 'string') {
                     return renderTextWithCitation(childrenItem, index)
