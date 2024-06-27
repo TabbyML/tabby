@@ -40,6 +40,7 @@ interface CodeEditorViewProps {
   language: string
   stringToMatch?: string
   lineRange?: { start: number; end: number } // TODO: Make type
+  interactionsAreDisabled?: boolean
   onSelectLine?: (lineNumber: number) => void
 }
 
@@ -59,6 +60,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
   language,
   stringToMatch,
   lineRange,
+  interactionsAreDisabled,
   onSelectLine
 }) => {
   const { theme } = useTheme()
@@ -122,9 +124,9 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
     [lineRange]
   )
 
-  // TODO: snippet line numbers should be clickable to the full file
-
   const extensions = React.useMemo(() => {
+    const emptyExtension = ViewPlugin.fromClass(class {}, {})
+
     let result: Extension[] = [
       EditorView.baseTheme({
         '.cm-scroller': {
@@ -136,13 +138,15 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
         }
       }),
 
-      selectLinesGutter({
-        onSelectLine: v => {
-          if (v === -1 || isNaN(v)) return
-          // todo support multi lines
-          updateHash(formatLineHashForCodeBrowser({ start: v }))
-        }
-      }),
+      !interactionsAreDisabled
+        ? selectLinesGutter({
+            onSelectLine: v => {
+              if (v === -1 || isNaN(v)) return
+              // todo support multi lines
+              updateHash(formatLineHashForCodeBrowser({ start: v }))
+            }
+          })
+        : emptyExtension,
       foldGutter({
         markerDOM(open) {
           const dom = document.createElement('div')
@@ -214,6 +218,9 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
       if (data.action === 'copy_permalink') {
         copyToClipboard(window.location.href)
         return
+      }
+      if (data.action === 'view_file') {
+        alert('should view file')
       }
       if (data.action === 'copy_line') {
         const lineObject = editorView?.state?.doc?.line(lineNumber)

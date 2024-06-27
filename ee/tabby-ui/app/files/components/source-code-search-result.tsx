@@ -60,16 +60,18 @@ export const SourceCodeSearchResult = ({
     setRanges(newRanges)
   }, [props.result.lines])
 
+  const pathname = `/files/${generateEntryPath(
+    activeRepo,
+    activeRepoRef?.name as string,
+    props.result.path,
+    'file'
+  )}`
+
   return (
     <div>
       <Link
         href={{
-          pathname: `/files/${generateEntryPath(
-            activeRepo,
-            activeRepoRef?.name as string,
-            props.result.path,
-            'file'
-          )}`,
+          pathname,
           // FIXME: this doesn't work when clicking a different line on the active file
           hash: `L${firstLineWithSubMatch}`
         }}
@@ -81,16 +83,22 @@ export const SourceCodeSearchResult = ({
       </Link>
       <div className="overflow-hidden grid border divide-y divide-y-border border-border rounded">
         {ranges.map((range, i) => (
-          // TODO: these should lazy load
-          // FIXME: this key should be unique
-          <LazyLoad key={range.start} threshold={0.1}>
-            <CodeEditorView
-              key={`${props.result.path}-${i}`}
-              value={props.result.blob}
-              language={language}
-              stringToMatch={props.query}
-              lineRange={range}
-            />
+          <LazyLoad key={`${props.result.path}-${i}`} threshold={0.1}>
+            {/* TODO: disable interior interactions */}
+            <Link
+              href={{
+                pathname,
+                hash: `L${range.start + 3}`
+              }}
+            >
+              <CodeEditorView
+                value={props.result.blob}
+                language={language}
+                stringToMatch={props.query}
+                lineRange={range}
+                interactionsAreDisabled={true}
+              />
+            </Link>
           </LazyLoad>
         ))}
       </div>
