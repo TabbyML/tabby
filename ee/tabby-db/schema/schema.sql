@@ -47,7 +47,8 @@ CREATE TABLE job_runs(
   created_at TIMESTAMP DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP DEFAULT(DATETIME('now'))
   ,
-  command TEXT
+  command TEXT,
+  started_at TIMESTAMP
 );
 CREATE TABLE repositories(
   id INTEGER PRIMARY KEY AUTOINCREMENT,

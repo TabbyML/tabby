@@ -1,0 +1,1 @@
+ALTER TABLE job_runs DROP COLUMN started_at;

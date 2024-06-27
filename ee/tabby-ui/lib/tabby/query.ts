@@ -90,6 +90,7 @@ export const listJobRuns = graphql(/* GraphQL */ `
           id
           job
           createdAt
+          startedAt
           finishedAt
           exitCode
           stdout
@@ -245,6 +246,7 @@ export const listIntegratedRepositories = graphql(/* GraphQL */ `
               job
               createdAt
               finishedAt
+              startedAt
               exitCode
             }
             command

@@ -18,8 +18,25 @@ pub struct JobRunDAO {
     pub created_at: DateTimeUtc,
     pub updated_at: DateTimeUtc,
 
+    /// The time when the job was started.
+    pub started_at: DbOption<DateTimeUtc>,
+
     #[sqlx(rename = "end_ts")]
     pub finished_at: DbOption<DateTimeUtc>,
+}
+
+impl JobRunDAO {
+    pub fn is_running(&self) -> bool {
+        self.started_at.0.is_some() && self.finished_at.0.is_none()
+    }
+
+    pub fn is_pending(&self) -> bool {
+        self.started_at.0.is_none()
+    }
+
+    pub fn is_finished(&self) -> bool {
+        self.finished_at.0.is_some()
+    }
 }
 
 #[derive(FromRow)]
@@ -42,7 +59,7 @@ impl DbConn {
 
     pub async fn get_next_job_to_execute(&self) -> Option<JobRunDAO> {
         sqlx::query_as(
-            r#"SELECT * FROM job_runs WHERE exit_code IS NULL ORDER BY created_at ASC LIMIT 1"#,
+            r#"SELECT * FROM job_runs WHERE exit_code IS NULL AND started_at is NULL ORDER BY created_at ASC LIMIT 1"#,
         )
         .fetch_optional(&self.pool)
         .await
@@ -72,6 +89,14 @@ impl DbConn {
         query!(
             r#"UPDATE job_runs SET end_ts = datetime('now'), exit_code = ?, updated_at = datetime('now') WHERE id = ?"#,
             exit_code,
+            job_id,
+        ).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    pub async fn update_job_started(&self, job_id: i64) -> Result<()> {
+        query!(
+            r#"UPDATE job_runs SET started_at = datetime('now'), updated_at = datetime('now') WHERE id = ?"#,
             job_id,
         ).execute(&self.pool).await?;
         Ok(())
@@ -123,6 +148,7 @@ impl DbConn {
                 "command"!,
                 "created_at"!,
                 "updated_at"!,
+                "started_at",
                 "end_ts" as "finished_at"
             ],
             limit,
@@ -162,7 +188,7 @@ impl DbConn {
     }
 
     pub async fn finalize_stale_job_runs(&self) -> Result<()> {
-        query!("UPDATE job_runs SET exit_code = -1, end_ts = datetime('now'), updated_at = datetime('now') WHERE exit_code IS NULL;")
+        query!("UPDATE job_runs SET exit_code = -1, started_at = datetime('now'), end_ts = datetime('now'), updated_at = datetime('now') WHERE exit_code IS NULL;")
             .execute(&self.pool)
             .await?;
         Ok(())
