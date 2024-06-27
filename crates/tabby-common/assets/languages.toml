@@ -274,6 +274,30 @@ exts = ["jl"]
 [[config]]
 languages = ["lua"]
 exts = ["lua"]
+line_comment = "--"
+top_level_keywords = [
+    "and",
+    "break",
+    "do",
+    "else",
+    "elseif",
+    "end",
+    "false",
+    "for",
+    "function",
+    "if",
+    "in",
+    "local",
+    "nil",
+    "not",
+    "or",
+    "repeat",
+    "return",
+    "then",
+    "true",
+    "until",
+    "while"
+]
 
 [[config]]
 languages = ["makefile"]
