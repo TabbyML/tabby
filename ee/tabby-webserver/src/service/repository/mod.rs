@@ -75,7 +75,7 @@ impl RepositoryService for RepositoryServiceImpl {
                 .list_repositories_with_filter(None, None, Some(true), None, None, None, None)
                 .await?
                 .into_iter()
-                .map(|repo| (corpus::CODE.into(), repo.source_id())),
+                .map(|repo| (corpus::WEB.into(), repo.source_id())),
         );
 
         Ok(sources)
