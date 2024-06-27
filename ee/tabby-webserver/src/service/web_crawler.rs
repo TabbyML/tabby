@@ -38,7 +38,8 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
         let mut converted_urls = vec![];
 
         for url in urls {
-            let event = BackgroundJobEvent::WebCrawler(url.url.clone());
+            let event =
+                BackgroundJobEvent::WebCrawler(to_source_id(url.id.as_id()), url.url.clone());
 
             let job_info = self.job_service.get_job_info(event.to_command()).await?;
             converted_urls.push(to_web_crawler_url(url, job_info));
@@ -51,7 +52,7 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
 
         let _ = self
             .job_service
-            .trigger(BackgroundJobEvent::WebCrawler(url).to_command())
+            .trigger(BackgroundJobEvent::WebCrawler(to_source_id(id.as_id()), url).to_command())
             .await;
 
         Ok(id.as_id())
@@ -61,6 +62,10 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
         self.db.delete_web_crawler_url(id.as_rowid()?).await?;
         Ok(())
     }
+}
+
+fn to_source_id(id: ID) -> String {
+    format!("web:{}", id)
 }
 
 fn to_web_crawler_url(value: WebCrawlerUrlDAO, job_info: JobInfo) -> WebCrawlerUrl {
@@ -88,7 +93,8 @@ mod tests {
         let url = "https://example.com".to_string();
         let id = service.create_web_crawler_url(url.clone()).await.unwrap();
 
-        let command = BackgroundJobEvent::WebCrawler("https://example.com".into()).to_command();
+        let command =
+            BackgroundJobEvent::WebCrawler("id".into(), "https://example.com".into()).to_command();
 
         db.create_job_run("web".into(), command).await.unwrap();
 

@@ -11,13 +11,26 @@ use text_splitter::TextSplitter;
 use tokio::task::JoinHandle;
 use tracing::warn;
 
-use crate::{indexer::TantivyDocBuilder, IndexAttributeBuilder, Indexer};
+use crate::{
+    indexer::{IndexId, TantivyDocBuilder, ToIndexId},
+    IndexAttributeBuilder, Indexer,
+};
 
 pub struct SourceDocument {
+    pub source_id: String,
     pub id: String,
     pub title: String,
     pub link: String,
     pub body: String,
+}
+
+impl ToIndexId for SourceDocument {
+    fn to_index_id(&self) -> IndexId {
+        IndexId {
+            source_id: self.source_id.clone(),
+            id: self.id.clone(),
+        }
+    }
 }
 
 const CHUNK_SIZE: usize = 2048;
@@ -34,10 +47,6 @@ impl DocBuilder {
 
 #[async_trait]
 impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
-    async fn build_id(&self, document: &SourceDocument) -> String {
-        document.id.clone()
-    }
-
     async fn build_attributes(&self, document: &SourceDocument) -> serde_json::Value {
         json!({
             doc::fields::TITLE: document.title,
@@ -104,6 +113,7 @@ pub struct DocIndexer {
 
 pub struct WebDocument {
     pub id: String,
+    pub source_id: String,
     pub link: String,
     pub title: String,
     pub body: String,
@@ -113,6 +123,7 @@ impl From<WebDocument> for SourceDocument {
     fn from(value: WebDocument) -> Self {
         Self {
             id: value.id,
+            source_id: value.source_id,
             link: value.link,
             title: value.title,
             body: value.body,

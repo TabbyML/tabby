@@ -31,7 +31,7 @@ pub enum BackgroundJobEvent {
     SchedulerGitRepository(RepositoryConfig),
     SchedulerGithubGitlabRepository(ID),
     SyncThirdPartyRepositories(ID),
-    WebCrawler(String),
+    WebCrawler(String, String),
 }
 
 impl BackgroundJobEvent {
@@ -42,7 +42,7 @@ impl BackgroundJobEvent {
                 SchedulerGithubGitlabJob::NAME
             }
             BackgroundJobEvent::SyncThirdPartyRepositories(_) => SyncIntegrationJob::NAME,
-            BackgroundJobEvent::WebCrawler(_) => WebCrawlerJob::NAME,
+            BackgroundJobEvent::WebCrawler(_, _) => WebCrawlerJob::NAME,
         }
     }
 
@@ -92,8 +92,8 @@ pub async fn start(
                             let job = SchedulerGithubGitlabJob::new(integration_id);
                             job.run(embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await
                         }
-                        BackgroundJobEvent::WebCrawler(url) => {
-                            let job = WebCrawlerJob::new(url);
+                        BackgroundJobEvent::WebCrawler(source_id, url) => {
+                            let job = WebCrawlerJob::new(source_id, url);
                             job.run(embedding.clone()).await
                         }
                     } {

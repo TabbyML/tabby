@@ -6,7 +6,7 @@ use url::Url;
 
 use crate::{juniper::relay::NodeType, Context, CoreError, Result};
 
-#[derive(Clone, EnumIter, GraphQLEnum)]
+#[derive(Clone, EnumIter, strum::Display, GraphQLEnum)]
 pub enum IntegrationKind {
     Github,
     Gitlab,
