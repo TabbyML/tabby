@@ -74,7 +74,7 @@ const lineMenuMarker = new (class extends GutterMarker {
               })
             }}
           >
-            Copy permalink
+            Copy link
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

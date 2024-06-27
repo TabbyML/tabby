@@ -1,24 +1,27 @@
 plugins {
   id("java")
   id("org.jetbrains.kotlin.jvm") version "1.8.21"
-  id("org.jetbrains.intellij") version "1.13.3"
+  id("org.jetbrains.intellij") version "1.17.4"
   id("org.jetbrains.changelog") version "2.2.0"
 }
 
 group = "com.tabbyml"
-version = "1.4.0"
+version = "1.6.0-dev"
 
 repositories {
   mavenCentral()
 }
 
+dependencies {
+  implementation("org.eclipse.lsp4j:org.eclipse.lsp4j:0.23.1")
+}
+
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
-  version.set("2022.2.5")
+  version.set("2024.1")
   type.set("IC") // Target IDE Platform
-
-  plugins.set(listOf("git4idea"))
+  plugins.set(listOf("Git4Idea"))
 }
 
 tasks {
@@ -33,7 +36,6 @@ tasks {
 
   patchPluginXml {
     sinceBuild.set("222")
-    untilBuild.set("233.*")
     changeNotes.set(provider {
       changelog.renderItem(
         changelog.getLatest(),
@@ -42,18 +44,22 @@ tasks {
     })
   }
 
-  val copyNodeScripts by register<Copy>("copyNodeScripts") {
-    dependsOn(prepareSandbox)
-    from("node_scripts")
-    into("build/idea-sandbox/plugins/intellij-tabby/node_scripts")
+  register("buildAgent") {
+    exec {
+      commandLine("pnpm", "turbo", "build")
+    }
   }
 
-  buildSearchableOptions {
-    dependsOn(copyNodeScripts)
-  }
-
-  runIde {
-    dependsOn(copyNodeScripts)
+  prepareSandbox {
+    dependsOn("buildAgent")
+    from(
+      fileTree("node_modules/tabby-agent/dist/") {
+        include("node/**/*")
+        exclude("**/*.js.map")
+      }
+    ) {
+      into("intellij-tabby/tabby-agent/")
+    }
   }
 
   signPlugin {

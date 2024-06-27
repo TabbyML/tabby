@@ -55,6 +55,9 @@ impl IntegrationService for IntegrationServiceImpl {
         self.db
             .delete_integration(id.as_rowid()?, kind.as_enum_str())
             .await?;
+        self.job
+            .trigger(BackgroundJobEvent::IndexGarbageCollection.to_command())
+            .await?;
         Ok(())
     }
 

@@ -135,6 +135,11 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
                 .job
                 .trigger(BackgroundJobEvent::SchedulerGithubGitlabRepository(id).to_command())
                 .await;
+        } else {
+            let _ = self
+                .job
+                .trigger(BackgroundJobEvent::IndexGarbageCollection.to_command())
+                .await;
         }
 
         Ok(())
@@ -195,10 +200,16 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         integration_id: ID,
         before: DateTime<Utc>,
     ) -> Result<usize> {
-        Ok(self
+        let usize = self
             .db
             .delete_outdated_provided_repositories(integration_id.as_rowid()?, before.into())
-            .await?)
+            .await?;
+
+        self.job
+            .trigger(BackgroundJobEvent::IndexGarbageCollection.to_command())
+            .await?;
+
+        Ok(usize)
     }
 
     async fn list_repository_configs(&self) -> Result<Vec<RepositoryConfig>> {

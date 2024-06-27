@@ -1,6 +1,7 @@
 mod db;
 mod git;
 mod helper;
+mod index_garbage_collection;
 mod third_party_integration;
 mod web_crawler;
 
@@ -10,6 +11,7 @@ use cron::Schedule;
 use futures::StreamExt;
 use git::SchedulerGitJob;
 use helper::{CronStream, Job, JobLogger};
+use index_garbage_collection::IndexGarbageCollection;
 use juniper::ID;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::RepositoryConfig;
@@ -18,7 +20,8 @@ use tabby_inference::Embedding;
 use tabby_schema::{
     integration::IntegrationService,
     job::JobService,
-    repository::{GitRepositoryService, ThirdPartyRepositoryService},
+    repository::{GitRepositoryService, RepositoryService, ThirdPartyRepositoryService},
+    web_crawler::WebCrawlerService,
 };
 use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::{debug, warn};
@@ -26,12 +29,13 @@ use web_crawler::WebCrawlerJob;
 
 use self::{db::DbMaintainanceJob, third_party_integration::SyncIntegrationJob};
 
-#[derive(PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum BackgroundJobEvent {
     SchedulerGitRepository(RepositoryConfig),
     SchedulerGithubGitlabRepository(ID),
     SyncThirdPartyRepositories(ID),
-    WebCrawler(String),
+    WebCrawler(String, String),
+    IndexGarbageCollection,
 }
 
 impl BackgroundJobEvent {
@@ -42,7 +46,8 @@ impl BackgroundJobEvent {
                 SchedulerGithubGitlabJob::NAME
             }
             BackgroundJobEvent::SyncThirdPartyRepositories(_) => SyncIntegrationJob::NAME,
-            BackgroundJobEvent::WebCrawler(_) => WebCrawlerJob::NAME,
+            BackgroundJobEvent::WebCrawler(_, _) => WebCrawlerJob::NAME,
+            BackgroundJobEvent::IndexGarbageCollection => IndexGarbageCollection::NAME,
         }
     }
 
@@ -57,6 +62,8 @@ pub async fn start(
     git_repository_service: Arc<dyn GitRepositoryService>,
     third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
     integration_service: Arc<dyn IntegrationService>,
+    repository_service: Arc<dyn RepositoryService>,
+    web_crawler_service: Arc<dyn WebCrawlerService>,
     embedding: Arc<dyn Embedding>,
 ) {
     let mut hourly =
@@ -71,6 +78,11 @@ pub async fn start(
                         tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
                         continue;
                     };
+
+                    if let Err(err) = db.update_job_started(job.id).await {
+                        warn!("Failed to mark job status to started: {:?}", err);
+                        continue;
+                    }
 
                     let logger = JobLogger::new(db.clone(), job.id);
                     debug!("Background job {} started, command: {}", job.id, job.command);
@@ -92,9 +104,13 @@ pub async fn start(
                             let job = SchedulerGithubGitlabJob::new(integration_id);
                             job.run(embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await
                         }
-                        BackgroundJobEvent::WebCrawler(url) => {
-                            let job = WebCrawlerJob::new(url);
+                        BackgroundJobEvent::WebCrawler(source_id, url) => {
+                            let job = WebCrawlerJob::new(source_id, url);
                             job.run(embedding.clone()).await
+                        }
+                        BackgroundJobEvent::IndexGarbageCollection => {
+                            let job = IndexGarbageCollection;
+                            job.run(repository_service.clone(), web_crawler_service.clone()).await
                         }
                     } {
                         logkit::info!(exit_code = 1; "Job failed {}", err);
@@ -120,6 +136,11 @@ pub async fn start(
                     if let Err(err) = SchedulerGithubGitlabJob::cron(now, third_party_repository_service.clone(), job_service.clone()).await {
                         warn!("Index issues job failed: {err:?}");
                     }
+
+                    if let Err(err) = IndexGarbageCollection.run(repository_service.clone(), web_crawler_service.clone()).await {
+                        warn!("Index garbage collection job failed: {err:?}");
+                    }
+
                 },
                 else => {
                     warn!("Background job channel closed");

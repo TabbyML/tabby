@@ -279,6 +279,7 @@ type JobRun {
   job: String!
   createdAt: DateTime!
   updatedAt: DateTime!
+  startedAt: DateTime
   finishedAt: DateTime
   exitCode: Int
   stdout: String!

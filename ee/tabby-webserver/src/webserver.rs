@@ -19,10 +19,8 @@ use crate::{
     path::db_file,
     routes,
     service::{
-        background_job::{self},
-        create_service_locator,
-        event_logger::create_event_logger,
-        integration, job, repository, web_crawler,
+        background_job, create_service_locator, event_logger::create_event_logger, integration,
+        job, repository, web_crawler,
     },
 };
 
@@ -80,6 +78,8 @@ impl Webserver {
             repository.git(),
             repository.third_party(),
             integration.clone(),
+            repository.clone(),
+            web_crawler.clone(),
             embedding,
         )
         .await;

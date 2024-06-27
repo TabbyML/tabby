@@ -59,7 +59,7 @@ async fn wait_for_server(device: Option<&str>) {
 
     loop {
         println!("Waiting for server to start...");
-        let is_ok = reqwest::get("http://localhost:9090/v1/health")
+        let is_ok = reqwest::get("http://127.0.0.1:9090/v1/health")
             .await
             .is_ok();
         if is_ok {
@@ -80,7 +80,7 @@ async fn golden_test(body: serde_json::Value) -> serde_json::Value {
     );
 
     let actual: serde_json::Value = CLIENT
-        .post("http://localhost:9090/v1/completions")
+        .post("http://127.0.0.1:9090/v1/completions")
         .json(&body)
         .send()
         .await

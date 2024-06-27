@@ -22,7 +22,7 @@ pub async fn create(db: DbConn) -> impl JobService {
 impl JobService for JobControllerImpl {
     async fn trigger(&self, command: String) -> Result<ID> {
         if let Some(job) = self.db.get_latest_job_run(command.clone()).await {
-            if job.exit_code.is_none() {
+            if job.is_pending() {
                 // When there's pending job, return the existing job id
                 return Ok(job.id.as_id());
             }

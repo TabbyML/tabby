@@ -1045,28 +1045,33 @@ export class Server {
     };
   }
 
-  private buildHelpMessage(issueDetail: AgentIssue, format?: "markdown"): string | undefined {
-    if (format !== "markdown") {
-      return undefined;
-    }
+  private buildHelpMessage(issueDetail: AgentIssue, format?: "markdown" | "html"): string | undefined {
+    const outputFormat = format ?? "markdown";
+
+    // "connectionFailed"
     if (issueDetail.name == "connectionFailed") {
-      return issueDetail.message;
+      if (outputFormat == "html") {
+        return issueDetail.message?.replace(/\n/g, "<br/>");
+      } else {
+        return issueDetail.message;
+      }
     }
 
+    // "slowCompletionResponseTime" or "highCompletionTimeoutRate"
     let statsMessage = "";
     if (issueDetail.name == "slowCompletionResponseTime") {
       const stats = issueDetail.completionResponseStats;
       if (stats && stats["responses"] && stats["averageResponseTime"]) {
         statsMessage = `The average response time of recent ${stats["responses"]} completion requests is ${Number(
           stats["averageResponseTime"],
-        ).toFixed(0)}ms.\n\n`;
+        ).toFixed(0)}ms.<br/><br/>`;
       }
     }
 
     if (issueDetail.name == "highCompletionTimeoutRate") {
       const stats = issueDetail.completionResponseStats;
       if (stats && stats["total"] && stats["timeouts"]) {
-        statsMessage = `${stats["timeouts"]} of ${stats["total"]} completion requests timed out.\n\n`;
+        statsMessage = `${stats["timeouts"]} of ${stats["total"]} completion requests timed out.<br/><br/>`;
       }
     }
 
@@ -1074,35 +1079,43 @@ export class Server {
     const serverHealthState = this.agent.getServerHealthState();
     if (serverHealthState?.device === "cpu" && serverHealthState?.model?.match(/[0-9.]+B$/)) {
       helpMessageForRunningLargeModelOnCPU +=
-        `Your Tabby server is running model ${serverHealthState?.model} on CPU. ` +
+        `Your Tabby server is running model <i>${serverHealthState?.model}</i> on CPU. ` +
         "This model may be performing poorly due to its large parameter size, please consider trying smaller models or switch to GPU. " +
-        "You can find a list of recommend models in the online documentation.\n";
+        "You can find a list of recommend models in the <a href='https://tabby.tabbyml.com/'>online documentation</a>.<br/>";
     }
     let commonHelpMessage = "";
     if (helpMessageForRunningLargeModelOnCPU.length == 0) {
-      commonHelpMessage += ` - The running model ${
+      commonHelpMessage += `<li>The running model ${
         serverHealthState?.model ?? ""
       } may be performing poorly due to its large parameter size. `;
       commonHelpMessage +=
-        "Please consider trying smaller models. You can find a list of recommend models in the online documentation.\n";
+        "Please consider trying smaller models. You can find a list of recommend models in the <a href='https://tabby.tabbyml.com/'>online documentation</a>.</li>";
     }
     const host = new URL(this.serverInfo?.config.endpoint ?? "http://localhost:8080").host;
     if (!(host.startsWith("localhost") || host.startsWith("127.0.0.1") || host.startsWith("0.0.0.0"))) {
-      commonHelpMessage += " - A poor network connection. Please check your network and proxy settings.\n";
-      commonHelpMessage += " - Server overload. Please contact your Tabby server administrator for assistance.\n";
+      commonHelpMessage += "<li>A poor network connection. Please check your network and proxy settings.</li>";
+      commonHelpMessage += "<li>Server overload. Please contact your Tabby server administrator for assistance.</li>";
     }
     let helpMessage = "";
     if (helpMessageForRunningLargeModelOnCPU.length > 0) {
-      helpMessage += helpMessageForRunningLargeModelOnCPU + "\n";
+      helpMessage += helpMessageForRunningLargeModelOnCPU + "<br/>";
       if (commonHelpMessage.length > 0) {
-        helpMessage += "Other possible causes of this issue: \n";
-        helpMessage += commonHelpMessage;
+        helpMessage += "Other possible causes of this issue: <br/><ul>" + commonHelpMessage + "</ul>";
       }
     } else {
       // commonHelpMessage should not be empty here
-      helpMessage += "Possible causes of this issue: \n";
-      helpMessage += commonHelpMessage;
+      helpMessage += "Possible causes of this issue: <br/><ul>" + commonHelpMessage + "</ul>";
     }
-    return statsMessage + helpMessage;
+
+    if (outputFormat == "html") {
+      return statsMessage + helpMessage;
+    } else {
+      return (statsMessage + helpMessage)
+        .replace("<br/>", " \n")
+        .replace(/<i>(.*?)<\/i>/g, "$1")
+        .replace(/<a[^>]*>(.*?)<\/a>/g, "$1")
+        .replace(/<ul[^>]*>(.*?)<\/ul>/g, "$1")
+        .replace(/<li[^>]*>(.*?)<\/li>/g, "- $1 \n");
+    }
   }
 }

@@ -1,20 +1,37 @@
+use std::collections::HashSet;
+
+use anyhow::bail;
 use async_stream::stream;
 use futures::{stream::BoxStream, Stream, StreamExt};
+use serde_json::json;
 use tabby_common::{index::IndexSchema, path};
 use tantivy::{
+    aggregation::{
+        agg_req::Aggregation,
+        agg_result::{AggregationResult, BucketResult},
+        AggregationCollector, Key,
+    },
     collector::TopDocs,
     doc,
-    query::TermQuery,
-    schema::{self, IndexRecordOption, Value},
+    schema::{self, Value},
     DocAddress, DocSet, IndexWriter, Searcher, TantivyDocument, Term, TERMINATED,
 };
 use tokio::task::JoinHandle;
+use tracing::{debug, warn};
 
 use crate::tantivy_utils::open_or_create_index;
 
+pub struct IndexId {
+    pub source_id: String,
+    pub id: String,
+}
+
+pub trait ToIndexId {
+    fn to_index_id(&self) -> IndexId;
+}
+
 #[async_trait::async_trait]
 pub trait IndexAttributeBuilder<T>: Send + Sync {
-    async fn build_id(&self, document: &T) -> String;
     async fn build_attributes(&self, document: &T) -> serde_json::Value;
     async fn build_chunk_attributes(
         &self,
@@ -23,14 +40,14 @@ pub trait IndexAttributeBuilder<T>: Send + Sync {
 }
 
 pub struct TantivyDocBuilder<T> {
-    kind: &'static str,
+    corpus: &'static str,
     builder: Box<dyn IndexAttributeBuilder<T>>,
 }
 
-impl<T> TantivyDocBuilder<T> {
-    pub fn new(kind: &'static str, builder: impl IndexAttributeBuilder<T> + 'static) -> Self {
+impl<T: ToIndexId> TantivyDocBuilder<T> {
+    pub fn new(corpus: &'static str, builder: impl IndexAttributeBuilder<T> + 'static) -> Self {
         Self {
-            kind,
+            corpus,
             builder: Box::new(builder),
         }
     }
@@ -43,41 +60,44 @@ impl<T> TantivyDocBuilder<T> {
         impl Stream<Item = JoinHandle<Option<TantivyDocument>>> + '_,
     ) {
         let schema = IndexSchema::instance();
-        let raw_id = self.builder.build_id(&document).await;
-        let id = self.format_id(&raw_id);
+        let IndexId { source_id, id } = document.to_index_id();
 
         let now = tantivy::time::OffsetDateTime::now_utc();
         let updated_at = tantivy::DateTime::from_utc(now);
 
         let doc = doc! {
             schema.field_id => id,
-            schema.field_corpus => self.kind,
+            schema.field_source_id => source_id,
+            schema.field_corpus => self.corpus,
             schema.field_attributes => self.builder.build_attributes(&document).await,
             schema.field_updated_at => updated_at,
         };
 
+        let cloned_id = id.clone();
         let s = stream! {
             yield tokio::spawn(async move { Some(doc) });
 
-            for await doc in self.build_chunks(id, updated_at, document).await {
+            for await doc in self.build_chunks(cloned_id, source_id, updated_at, document).await {
                 yield doc;
             }
         };
 
-        (raw_id, s)
+        (id, s)
     }
 
     async fn build_chunks(
         &self,
         id: String,
+        source_id: String,
         updated_at: tantivy::DateTime,
         document: T,
     ) -> impl Stream<Item = JoinHandle<Option<TantivyDocument>>> + '_ {
-        let kind = self.kind;
+        let kind = self.corpus;
         stream! {
             let schema = IndexSchema::instance();
             for await (chunk_id, task) in self.builder.build_chunk_attributes(&document).await.enumerate() {
                 let id = id.clone();
+                let source_id = source_id.clone();
 
                 yield tokio::spawn(async move {
                     let Ok((tokens, chunk_attributes)) = task.await else {
@@ -86,6 +106,7 @@ impl<T> TantivyDocBuilder<T> {
 
                     let mut doc = doc! {
                         schema.field_id => id,
+                        schema.field_source_id => source_id,
                         schema.field_corpus => kind,
                         schema.field_updated_at => updated_at,
                         schema.field_chunk_id => format!("{}-{}", id, chunk_id),
@@ -101,21 +122,17 @@ impl<T> TantivyDocBuilder<T> {
             }
         }
     }
-
-    fn format_id(&self, id: &str) -> String {
-        format!("{}:{}", self.kind, id)
-    }
 }
 
 pub struct Indexer {
-    kind: &'static str,
+    corpus: String,
     searcher: Searcher,
     writer: IndexWriter,
     pub recreated: bool,
 }
 
 impl Indexer {
-    pub fn new(kind: &'static str) -> Self {
+    pub fn new(corpus: &str) -> Self {
         let doc = IndexSchema::instance();
         let (recreated, index) = open_or_create_index(&doc.schema, &path::index_dir());
         let writer = index
@@ -124,7 +141,7 @@ impl Indexer {
         let reader = index.reader().expect("Failed to create index reader");
 
         Self {
-            kind,
+            corpus: corpus.to_owned(),
             searcher: reader.searcher(),
             writer,
             recreated,
@@ -138,14 +155,17 @@ impl Indexer {
     }
 
     pub fn delete(&self, id: &str) {
-        self.writer.delete_term(Term::from_field_text(
-            IndexSchema::instance().field_id,
-            &self.format_id(id),
-        ));
+        let schema = IndexSchema::instance();
+        let _ = self
+            .writer
+            .delete_query(Box::new(schema.doc_query_with_chunks(&self.corpus, id)));
     }
 
-    fn format_id(&self, id: &str) -> String {
-        format!("{}:{}", self.kind, id)
+    fn delete_by_source_id(&self, source_id: &str) {
+        let schema = IndexSchema::instance();
+        let _ = self
+            .writer
+            .delete_query(Box::new(schema.source_query(&self.corpus, source_id)));
     }
 
     pub fn commit(mut self) {
@@ -158,10 +178,7 @@ impl Indexer {
     // Check whether the document ID presents in the corpus.
     pub fn is_indexed(&self, id: &str) -> bool {
         let schema = IndexSchema::instance();
-        let query = TermQuery::new(
-            Term::from_field_text(schema.field_id, &self.format_id(id)),
-            IndexRecordOption::Basic,
-        );
+        let query = schema.doc_query(&self.corpus, id);
         let Ok(docs) = self.searcher.search(&query, &TopDocs::with_limit(1)) else {
             return false;
         };
@@ -179,12 +196,12 @@ impl Indexer {
                     continue;
                 };
 
-                let term_corpus = Term::from_field_text(schema.field_corpus, self.kind);
+                let term_corpus = Term::from_field_text(schema.field_corpus, &self.corpus);
                 let Ok(Some(mut postings)) = inverted_index.read_postings(&term_corpus, tantivy::schema::IndexRecordOption::Basic) else {
                     continue;
                 };
 
-                let prefix_to_strip = format!("{}:", self.kind);
+                let prefix_to_strip = format!("{}:", self.corpus);
                 let mut doc_id = postings.doc();
                 while doc_id != TERMINATED {
                     if !segment_reader.is_deleted(doc_id) {
@@ -202,6 +219,50 @@ impl Indexer {
                 }
             }
         }
+    }
+
+    pub fn garbage_collect(&self, active_source_ids: &[String]) -> anyhow::Result<()> {
+        let source_ids: HashSet<_> = active_source_ids.iter().collect();
+        let schema = IndexSchema::instance();
+
+        let count_aggregation: Aggregation = serde_json::from_value(json!({
+            "terms": {
+                "field": "source_id"
+            }
+        }))
+        .unwrap();
+
+        let collector = AggregationCollector::from_aggs(
+            vec![("count".to_owned(), count_aggregation)]
+                .into_iter()
+                .collect(),
+            Default::default(),
+        );
+
+        let res = self
+            .searcher
+            .search(&schema.corpus_query(&self.corpus), &collector)?;
+        let Some(AggregationResult::BucketResult(BucketResult::Terms { buckets, .. })) =
+            res.0.get("count")
+        else {
+            bail!("Failed to get source_id count");
+        };
+        for source_id in buckets {
+            let Key::Str(source_id) = &source_id.key else {
+                warn!("Failed to get source_id key as string");
+                continue;
+            };
+
+            if !source_ids.contains(source_id) {
+                debug!(
+                    "Deleting documents for source_id: {} in corpus: {}",
+                    source_id, self.corpus
+                );
+                self.delete_by_source_id(source_id);
+            }
+        }
+
+        Ok(())
     }
 }
 

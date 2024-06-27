@@ -55,10 +55,6 @@ impl CodeBuilder {
 
 #[async_trait]
 impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
-    async fn build_id(&self, source_code: &SourceCode) -> String {
-        source_code.id.clone()
-    }
-
     async fn build_attributes(&self, _source_code: &SourceCode) -> serde_json::Value {
         json!({})
     }

@@ -111,6 +111,7 @@ impl SchedulerGithubGitlabJob {
         match &integration.kind {
             IntegrationKind::Github | IntegrationKind::GithubSelfHosted => {
                 index_github_issues(
+                    &repository.source_id(),
                     integration.api_base(),
                     &repository.display_name,
                     &integration.access_token,
@@ -120,6 +121,7 @@ impl SchedulerGithubGitlabJob {
             }
             IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => {
                 index_gitlab_issues(
+                    &repository.source_id(),
                     integration.api_base(),
                     &repository.display_name,
                     &integration.access_token,

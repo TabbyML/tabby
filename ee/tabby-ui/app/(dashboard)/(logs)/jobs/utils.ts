@@ -1,5 +1,7 @@
 import { isNil } from 'lodash-es'
 
+import { JobRun } from '@/lib/gql/generates/graphql'
+
 const JOB_DISPLAY_NAME_MAPPINGS = {
   scheduler_git: 'Git',
   scheduler_github_gitlab: 'Github / Gitlab',
@@ -16,6 +18,13 @@ export function getJobDisplayName(name: string): string {
   }
 }
 
-export function getLabelByExitCode(exitCode?: number | null) {
-  return isNil(exitCode) ? 'Pending' : exitCode === 0 ? 'Success' : 'Failed'
+// status: pending, running, success, failed
+export function getLabelByJobRun(
+  info?: Pick<JobRun, 'exitCode' | 'createdAt' | 'startedAt'>
+) {
+  if (!info) return 'Pending'
+  if (isNil(info.exitCode)) {
+    return info.startedAt ? 'Running' : 'Pending'
+  }
+  return info.exitCode === 0 ? 'Success' : 'Failed'
 }

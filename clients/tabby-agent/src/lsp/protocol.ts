@@ -79,8 +79,9 @@ export type ClientCapabilities = LspClientCapabilities & {
   tabby?: {
     /**
      * The client supports:
+     * - `tabby/agent/didUpdateServerInfo`
      * - `tabby/agent/didChangeStatus`
-     * - `tabby/agent/didUpdateIssue`
+     * - `tabby/agent/didUpdateIssues`
      * This capability indicates that client support receiving agent notifications.
      */
     agent?: boolean;
@@ -494,7 +495,7 @@ export type EventParams = {
  * [Tabby] DidUpdateServerInfo Notification(⬅️)
  *
  * This method is sent from the server to the client to notify the current Tabby server info has changed.
- * - method: `tabby/agent/didChangeServerInfo`
+ * - method: `tabby/agent/didUpdateServerInfo`
  * - params: {@link DidUpdateServerInfoParams}
  * - result: void
  */
@@ -612,12 +613,12 @@ export namespace AgentIssuesRequest {
 export namespace AgentIssueDetailRequest {
   export const method = "tabby/agent/issue/detail";
   export const messageDirection = MessageDirection.clientToServer;
-  export const type = new ProtocolRequestType<IssueDetailParams, IssueDetailResult, never, void, void>(method);
+  export const type = new ProtocolRequestType<IssueDetailParams, IssueDetailResult | null, never, void, void>(method);
 }
 
 export type IssueDetailParams = {
   name: IssueName;
-  helpMessageFormat?: "markdown";
+  helpMessageFormat?: "markdown" | "html";
 };
 
 export type IssueDetailResult = {

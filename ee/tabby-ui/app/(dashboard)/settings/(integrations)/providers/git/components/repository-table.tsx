@@ -1,8 +1,6 @@
 'use client'
 
 import React from 'react'
-import Link from 'next/link'
-import { isNil } from 'lodash-es'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
@@ -10,8 +8,8 @@ import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
 import { listRepositories } from '@/lib/tabby/query'
-import { Button, buttonVariants } from '@/components/ui/button'
-import { IconCirclePlay, IconSpinner, IconTrash } from '@/components/ui/icons'
+import { Button } from '@/components/ui/button'
+import { IconTrash } from '@/components/ui/icons'
 import {
   Pagination,
   PaginationContent,
@@ -27,13 +25,9 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@/components/ui/tooltip'
 import LoadingWrapper from '@/components/loading-wrapper'
 
+import { JobInfoView } from '../../components/job-trigger'
 import { triggerJobRunMutation } from '../../query'
 
 const deleteRepositoryMutation = graphql(/* GraphQL */ `
@@ -151,67 +145,41 @@ export default function RepositoryTable() {
           ) : (
             <>
               {currentPageRepos?.map(x => {
-                const lastJobRun = x.node.jobInfo.lastJobRun
-                const hasRunningJob =
-                  !!lastJobRun?.id && isNil(lastJobRun.exitCode)
                 return (
                   <TableRow key={x.node.id}>
-                    <TableCell className="truncate">{x.node.name}</TableCell>
-                    <TableCell className="truncate">{x.node.gitUrl}</TableCell>
-                    <TableCell className="truncate">
-                      <div className="flex items-center gap-1.5">
-                        {hasRunningJob ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Link
-                                href={`/jobs/detail?id=${lastJobRun.id}`}
-                                className={buttonVariants({
-                                  variant: 'ghost',
-                                  size: 'icon'
-                                })}
-                              >
-                                <IconSpinner />
-                              </Link>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              Navigate to job detail
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() =>
-                                  handleTriggerJobRun(x.node.jobInfo?.command)
-                                }
-                              >
-                                <IconCirclePlay className="h-5 w-5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Run</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
+                    <TableCell
+                      className="break-all lg:break-words"
+                      title={x.node.name}
+                    >
+                      {x.node.name}
                     </TableCell>
-                    <TableCell className="flex justify-end">
-                      <div className="flex gap-1">
-                        <Button
-                          size="icon"
-                          variant="hover-destructive"
-                          onClick={() =>
-                            handleDeleteRepository(
-                              x.node.id,
-                              currentPageRepos.length === 1
-                            )
-                          }
-                        >
-                          <IconTrash />
-                        </Button>
-                      </div>
+                    <TableCell
+                      className="break-all lg:break-words"
+                      title={x.node.gitUrl}
+                    >
+                      {x.node.gitUrl}
+                    </TableCell>
+                    <TableCell>
+                      <JobInfoView
+                        jobInfo={x.node.jobInfo}
+                        onTrigger={() =>
+                          handleTriggerJobRun(x.node.jobInfo.command)
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="icon"
+                        variant="hover-destructive"
+                        onClick={() =>
+                          handleDeleteRepository(
+                            x.node.id,
+                            currentPageRepos.length === 1
+                          )
+                        }
+                      >
+                        <IconTrash />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 )

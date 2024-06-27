@@ -6,7 +6,10 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use futures::StreamExt;
 use juniper::ID;
-use tabby_common::config::{config_index_to_id, Config, RepositoryConfig};
+use tabby_common::{
+    config::{config_index_to_id, Config, RepositoryConfig},
+    index::corpus,
+};
 use tabby_db::DbConn;
 use tabby_schema::{
     integration::IntegrationService,
@@ -57,6 +60,25 @@ impl RepositoryService for RepositoryServiceImpl {
         );
 
         Ok(repos)
+    }
+
+    async fn list_all_sources(&self) -> Result<Vec<(String, String)>> {
+        let mut sources: Vec<_> = self
+            .list_all_repository_urls()
+            .await?
+            .into_iter()
+            .map(|config| (corpus::CODE.into(), config.canonical_git_url()))
+            .collect();
+
+        sources.extend(
+            self.third_party()
+                .list_repositories_with_filter(None, None, Some(true), None, None, None, None)
+                .await?
+                .into_iter()
+                .map(|repo| (corpus::WEB.into(), repo.source_id())),
+        );
+
+        Ok(sources)
     }
 
     fn git(&self) -> Arc<dyn GitRepositoryService> {

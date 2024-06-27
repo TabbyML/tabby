@@ -5,6 +5,8 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+use crate::indexer::{IndexId, ToIndexId};
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SourceCode {
     pub id: String,
@@ -18,6 +20,15 @@ pub struct SourceCode {
     pub number_fraction: f32,
     pub num_lines: usize,
     pub tags: Vec<Tag>,
+}
+
+impl ToIndexId for SourceCode {
+    fn to_index_id(&self) -> IndexId {
+        IndexId {
+            source_id: self.git_url.clone(),
+            id: self.id.clone(),
+        }
+    }
 }
 
 impl SourceCode {
