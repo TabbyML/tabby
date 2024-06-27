@@ -243,7 +243,6 @@ impl Indexer {
         let res = self
             .searcher
             .search(&schema.corpus_query(&self.corpus), &collector)?;
-        debug!("Sources in index: {:?}", res);
         let Some(AggregationResult::BucketResult(BucketResult::Terms { buckets, .. })) =
             res.0.get("count")
         else {
@@ -256,8 +255,11 @@ impl Indexer {
             };
 
             if !source_ids.contains(source_id) {
-                debug!("Deleting documents for source_id: {}", source_id);
-                self.delete_by_source_id(&source_id);
+                debug!(
+                    "Deleting documents for source_id: {} in corpus: {}",
+                    source_id, self.corpus
+                );
+                self.delete_by_source_id(source_id);
             }
         }
 
