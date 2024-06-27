@@ -192,12 +192,11 @@ export default function ChatPage() {
           <Image
             src={tabbyUrl}
             alt="logo"
-            className="rounded-full border"
+            className="rounded-full"
             style={{
               background: 'rgb(232, 226, 210)',
               marginRight: '0.375em',
-              padding: '0.125em',
-              borderColor: isThemeSynced ? 'inherit' : initialForeground
+              padding: '0.15em'
             }}
             width={18}
           />
