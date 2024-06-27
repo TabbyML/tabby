@@ -65,6 +65,7 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
 
     async fn delete_web_crawler_url(&self, id: ID) -> Result<()> {
         self.db.delete_web_crawler_url(id.as_rowid()?).await?;
+        self.job_service.trigger(BackgroundJobEvent::IndexGarbageCollection.to_command()).await?;
         Ok(())
     }
 }

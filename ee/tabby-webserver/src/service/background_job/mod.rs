@@ -71,6 +71,8 @@ pub async fn start(
             .into_stream();
 
     tokio::spawn(async move {
+        let _ = IndexGarbageCollection.run(repository_service.clone(), web_crawler_service.clone()).await;
+
         loop {
             tokio::select! {
                 job = db.get_next_job_to_execute() => {

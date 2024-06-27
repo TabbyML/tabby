@@ -3,13 +3,14 @@ use std::collections::HashSet;
 use anyhow::bail;
 use async_stream::stream;
 use futures::{stream::BoxStream, Stream, StreamExt};
+use logkit::warn;
 use serde_json::json;
 use tabby_common::{index::IndexSchema, path};
 use tantivy::{
     aggregation::{
         agg_req::Aggregation,
         agg_result::{AggregationResult, BucketResult},
-        AggregationCollector,
+        AggregationCollector, Key,
     },
     collector::TopDocs,
     doc,
@@ -226,8 +227,8 @@ impl Indexer {
         let schema = IndexSchema::instance();
 
         let count_aggregation: Aggregation = serde_json::from_value(json!({
-            "count": {
-                "source_id": "source_id"
+            "terms": {
+                "field": "source_id"
             }
         }))
         .unwrap();
@@ -242,14 +243,19 @@ impl Indexer {
         let res = self
             .searcher
             .search(&schema.corpus_query(&self.corpus), &collector)?;
+        debug!("Sources in index: {:?}", res);
         let Some(AggregationResult::BucketResult(BucketResult::Terms { buckets, .. })) =
             res.0.get("count")
         else {
             bail!("Failed to get source_id count");
         };
+        for source_id in buckets {
+            let Key::Str(source_id) = &source_id.key else {
+                warn!("Failed to get source_id key as string");
+                continue;
+            };
 
-        for source_id in buckets.iter().filter_map(|x| x.key_as_string.to_owned()) {
-            if !source_ids.contains(&source_id) {
+            if !source_ids.contains(source_id) {
                 debug!("Deleting documents for source_id: {}", source_id);
                 self.delete_by_source_id(&source_id);
             }
