@@ -65,7 +65,7 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
 }
 
 fn to_source_id(id: ID) -> String {
-    format!("web:{}", id)
+    format!("web_crawler:{}", id)
 }
 
 fn to_web_crawler_url(value: WebCrawlerUrlDAO, job_info: JobInfo) -> WebCrawlerUrl {
