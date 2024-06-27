@@ -1,4 +1,3 @@
-import { exitCode } from 'process'
 import { isNil } from 'lodash-es'
 
 import { JobRun } from '@/lib/gql/generates/graphql'
@@ -27,5 +26,5 @@ export function getLabelByJobRun(
   if (isNil(info.exitCode)) {
     return info.startedAt ? 'Running' : 'Pending'
   }
-  return exitCode === 0 ? 'Success' : 'Failed'
+  return info.exitCode === 0 ? 'Success' : 'Failed'
 }
