@@ -5,10 +5,11 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.components.service
+import com.tabbyml.intellijtabby.actionPromoter.HasPriority
 import com.tabbyml.intellijtabby.completion.InlineCompletionService
 
 
-class TriggerInlineCompletion : AnAction() {
+class TriggerInlineCompletion : AnAction(), HasPriority {
   override fun actionPerformed(e: AnActionEvent) {
     val inlineCompletionService = e.getRequiredData(CommonDataKeys.PROJECT).service<InlineCompletionService>()
     val editor = e.getRequiredData(CommonDataKeys.EDITOR)
@@ -24,4 +25,6 @@ class TriggerInlineCompletion : AnAction() {
   override fun getActionUpdateThread(): ActionUpdateThread {
     return ActionUpdateThread.BGT
   }
+
+  override val priority: Int = 1
 }
