@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use anyhow::bail;
 use async_stream::stream;
 use futures::{stream::BoxStream, Stream, StreamExt};
-use logkit::warn;
 use serde_json::json;
 use tabby_common::{index::IndexSchema, path};
 use tantivy::{
@@ -18,7 +17,7 @@ use tantivy::{
     DocAddress, DocSet, IndexWriter, Searcher, TantivyDocument, Term, TERMINATED,
 };
 use tokio::task::JoinHandle;
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::tantivy_utils::open_or_create_index;
 
