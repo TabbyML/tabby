@@ -1,7 +1,7 @@
+use serde_json::json;
 use tantivy::{doc, schema::*, Index, IndexWriter};
 
 const JSON: &str = "json";
-const TITLE: &str = "title";
 
 // # Document from json
 //
@@ -13,7 +13,17 @@ fn main() -> tantivy::Result<()> {
     // first we need to define a schema ...
     let mut schema_builder = Schema::builder();
 
-    let field_json = schema_builder.add_json_field(JSON, JsonObjectOptions::default().set_stored());
+    let field_json = schema_builder.add_json_field(
+        JSON,
+        JsonObjectOptions::default()
+            .set_stored()
+            .set_indexing_options(
+                TextFieldIndexing::default()
+                    .set_tokenizer("raw")
+                    .set_fieldnorms(true)
+                    .set_index_option(tantivy::schema::IndexRecordOption::Basic),
+            ),
+    );
 
     let schema = schema_builder.build();
 
@@ -22,10 +32,10 @@ fn main() -> tantivy::Result<()> {
     // Multi-valued field are allowed, they are
     // expressed in JSON by an array.
     // The following document has two titles.
-    let frankenstein_json = r#"{
+    let frankenstein_json = json! { {
        "title": "Frankenstein",
        "year": 1818
-    }"#;
+    }};
     let _frankenstein_doc = doc!(
        field_json => frankenstein_json
     );
@@ -37,11 +47,11 @@ fn main() -> tantivy::Result<()> {
 
     let mut writer: IndexWriter<TantivyDocument> = index.writer(15000000)?;
 
-    let mut term = Term::from_field_json_path(field_json, TITLE, false);
+    let mut term = Term::from_field_json_path(field_json, "title", false);
     term.append_type_and_str("Frankenstein");
     writer.delete_term(term);
     writer.commit()?;
-    drop(writer);
+    writer.wait_merging_threads()?;
 
     let reader = index.reader()?;
 
