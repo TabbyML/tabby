@@ -5,7 +5,6 @@ import Link from 'next/link'
 import LazyLoad from 'react-lazy-load'
 
 import { filename2prism } from '@/lib/language-utils'
-import { IconFile } from '@/components/ui/icons'
 
 import CodeEditorView from './code-editor-view'
 import { SourceCodeBrowserContext } from './source-code-browser'
@@ -37,10 +36,12 @@ export const SourceCodeSearchResult = ({
   React.useEffect(() => {
     const newRanges: { start: number; end: number }[] = []
     let currentRange: { start: number; end: number } = { start: 0, end: 0 }
+    let firstLineSet = false
 
     props.result.lines.forEach((line, index) => {
-      if (line.subMatches.length > 0) {
+      if (line.subMatches.length > 0 && firstLineSet === false) {
         setFirstLineWithSubMatch(line.lineNumber)
+        firstLineSet = true
       }
       if (index === 0) {
         currentRange.start = line.lineNumber
@@ -58,7 +59,7 @@ export const SourceCodeSearchResult = ({
     newRanges.push(currentRange)
 
     setRanges(newRanges)
-  }, [props.result.lines])
+  }, [firstLineWithSubMatch, props.result.lines])
 
   const pathname = `/files/${generateEntryPath(
     activeRepo,
@@ -66,6 +67,21 @@ export const SourceCodeSearchResult = ({
     props.result.path,
     'file'
   )}`
+
+  /**
+   * We need to contextually offset the line number based on the additional
+   * lines provided by the backend. If the `range.start` is greater than 1, we
+   * need to add 3 in order to highlight the subMatch. Otherwise, we can just use the
+   * `range.start` as is.
+   */
+  const getHash = (range: { start: number; end: number }, index: number) => {
+    if (range.start > 1) {
+      // Handle the default offset
+      return `L${range.start + 3}`
+    } else {
+      return `L${firstLineWithSubMatch}`
+    }
+  }
 
   return (
     <div>
@@ -86,8 +102,7 @@ export const SourceCodeSearchResult = ({
             <Link
               href={{
                 pathname,
-                // Account for the contextual lines provided by the backend
-                hash: `L${range.start + 3}`
+                hash: getHash(range, i)
               }}
               className="group relative"
             >
