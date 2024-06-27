@@ -1,6 +1,7 @@
 mod db;
 mod git;
 mod helper;
+mod remove_source_from_index;
 mod third_party_integration;
 mod web_crawler;
 
@@ -11,6 +12,7 @@ use futures::StreamExt;
 use git::SchedulerGitJob;
 use helper::{CronStream, Job, JobLogger};
 use juniper::ID;
+use remove_source_from_index::RemoveSourceFromIndex;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
@@ -32,6 +34,7 @@ pub enum BackgroundJobEvent {
     SchedulerGithubGitlabRepository(ID),
     SyncThirdPartyRepositories(ID),
     WebCrawler(String, String),
+    RemoveSourceFromIndex(String, String),
 }
 
 impl BackgroundJobEvent {
@@ -43,6 +46,7 @@ impl BackgroundJobEvent {
             }
             BackgroundJobEvent::SyncThirdPartyRepositories(_) => SyncIntegrationJob::NAME,
             BackgroundJobEvent::WebCrawler(_, _) => WebCrawlerJob::NAME,
+            BackgroundJobEvent::RemoveSourceFromIndex(_, _) => RemoveSourceFromIndex::NAME,
         }
     }
 
@@ -95,6 +99,10 @@ pub async fn start(
                         BackgroundJobEvent::WebCrawler(source_id, url) => {
                             let job = WebCrawlerJob::new(source_id, url);
                             job.run(embedding.clone()).await
+                        }
+                        BackgroundJobEvent::RemoveSourceFromIndex(corpus, source_id) => {
+                            let job = RemoveSourceFromIndex::new(corpus, source_id);
+                            job.run().await
                         }
                     } {
                         logkit::info!(exit_code = 1; "Job failed {}", err);

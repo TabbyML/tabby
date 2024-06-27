@@ -98,8 +98,22 @@ impl IndexSchema {
         }
     }
 
+    pub fn source_query(&self, corpus: &str, source_id: &str) -> impl Query {
+        let source_id_query = TermQuery::new(
+            Term::from_field_text(self.field_source_id, source_id),
+            tantivy::schema::IndexRecordOption::Basic,
+        );
+
+        BooleanQuery::new(vec![
+            // Must match the corpus
+            (Occur::Must, self.corpus_query(corpus)),
+            // Must match the source id
+            (Occur::Must, Box::new(source_id_query)),
+        ])
+    }
+
     /// Build a query to find the document with the given `doc_id`.
-    pub fn doc_query(&self, corpus: &'static str, doc_id: &str) -> impl Query {
+    pub fn doc_query(&self, corpus: &str, doc_id: &str) -> impl Query {
         let doc_id_query = TermQuery::new(
             Term::from_field_text(self.field_id, doc_id),
             tantivy::schema::IndexRecordOption::Basic,
@@ -119,7 +133,7 @@ impl IndexSchema {
     }
 
     /// Build a query to find the document with the given `doc_id`, include chunks.
-    pub fn doc_query_with_chunks(&self, corpus: &'static str, doc_id: &str) -> impl Query {
+    pub fn doc_query_with_chunks(&self, corpus: &str, doc_id: &str) -> impl Query {
         let doc_id_query = TermQuery::new(
             Term::from_field_text(self.field_id, doc_id),
             tantivy::schema::IndexRecordOption::Basic,

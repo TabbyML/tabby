@@ -115,14 +115,14 @@ impl<T: ToIndexId> TantivyDocBuilder<T> {
 }
 
 pub struct Indexer {
-    corpus: &'static str,
+    corpus: String,
     searcher: Searcher,
     writer: IndexWriter,
     pub recreated: bool,
 }
 
 impl Indexer {
-    pub fn new(corpus: &'static str) -> Self {
+    pub fn new(corpus: &str) -> Self {
         let doc = IndexSchema::instance();
         let (recreated, index) = open_or_create_index(&doc.schema, &path::index_dir());
         let writer = index
@@ -131,7 +131,7 @@ impl Indexer {
         let reader = index.reader().expect("Failed to create index reader");
 
         Self {
-            corpus,
+            corpus: corpus.to_owned(),
             searcher: reader.searcher(),
             writer,
             recreated,
@@ -148,7 +148,14 @@ impl Indexer {
         let schema = IndexSchema::instance();
         let _ = self
             .writer
-            .delete_query(Box::new(schema.doc_query_with_chunks(self.corpus, id)));
+            .delete_query(Box::new(schema.doc_query_with_chunks(&self.corpus, id)));
+    }
+
+    pub fn delete_by_source_id(&self, source_id: &str) {
+        let schema = IndexSchema::instance();
+        let _ = self
+            .writer
+            .delete_query(Box::new(schema.source_query(&self.corpus, source_id)));
     }
 
     pub fn commit(mut self) {
@@ -161,7 +168,7 @@ impl Indexer {
     // Check whether the document ID presents in the corpus.
     pub fn is_indexed(&self, id: &str) -> bool {
         let schema = IndexSchema::instance();
-        let query = schema.doc_query(self.corpus, id);
+        let query = schema.doc_query(&self.corpus, id);
         let Ok(docs) = self.searcher.search(&query, &TopDocs::with_limit(1)) else {
             return false;
         };
@@ -179,7 +186,7 @@ impl Indexer {
                     continue;
                 };
 
-                let term_corpus = Term::from_field_text(schema.field_corpus, self.corpus);
+                let term_corpus = Term::from_field_text(schema.field_corpus, &self.corpus);
                 let Ok(Some(mut postings)) = inverted_index.read_postings(&term_corpus, tantivy::schema::IndexRecordOption::Basic) else {
                     continue;
                 };

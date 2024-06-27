@@ -10,7 +10,7 @@ pub struct WebCrawlerJob {
 }
 
 impl Job for WebCrawlerJob {
-    const NAME: &'static str = "web";
+    const NAME: &'static str = "web_crawler";
 }
 
 impl WebCrawlerJob {

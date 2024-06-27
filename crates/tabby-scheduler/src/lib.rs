@@ -62,6 +62,12 @@ pub async fn crawl_index_docs(
     Ok(())
 }
 
+pub fn remove_source_from_index(corpus: &str, source_id: &str) {
+    let indexer = Indexer::new(corpus);
+    indexer.delete_by_source_id(source_id);
+    indexer.commit();
+}
+
 mod tantivy_utils {
     use std::{fs, path::Path};
 
