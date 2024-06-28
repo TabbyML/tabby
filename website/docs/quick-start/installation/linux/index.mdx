@@ -31,15 +31,15 @@ Running Tabby on Linux using Tabby's standalone executable distribution.
 ## Find the Linux executable file
 * Unzip the file you downloaded. The `tabby` executable will be in a subdirectory of dist.
 * Change to this subdirectory or relocate `tabby` to a folder of your choice.
-* Make it executable: `chmod +x tabby.exe`
+* Make it executable: `chmod +x tabby`
 
 Run the following command:
 ```
 # For CPU-only environments
-.\tabby.exe serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct
+./tabby serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct
 
 # For GPU-enabled environments (where DEVICE is cuda or vulkan)
-.\tabby.exe serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct --device $DEVICE
+./tabby serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct --device $DEVICE
 ```
 You can choose different models, as shown in [the model registry](https://tabby.tabbyml.com/docs/models/)
 
