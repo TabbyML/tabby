@@ -36,7 +36,7 @@ For an actual example of an issue or pull request adding the above support, plea
 * [R](https://www.r-project.org/): Since v0.12.0
 * [Dart](https://dart.dev/): Since v0.12.0
 * [Lua](https://www.lua.org): Since v0.14.0
-* [Bash shell](https://www.gnu.org/software/bash/): Since v0.14.0
+* [Bash / shellscript](https://www.gnu.org/software/bash/): Since v0.14.0
 
 ## Languages Missing Certain Support
 

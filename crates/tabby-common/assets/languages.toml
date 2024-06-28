@@ -316,8 +316,8 @@ languages = ["powershell"]
 exts = ["ps1", "psd1", "psm1"]
 
 [[config]]
-languages = ["bash"]
-exts = ["sh"]
+languages = ["shellscript"]
+exts = ["sh", "bash", "command", "zsh"]
 line_comment = "#"
 top_level_keywords = [
     "break",
@@ -355,10 +355,6 @@ exts = ["sql"]
 [[config]]
 languages = ["scala"]
 exts = ["scala"]
-
-[[config]]
-languages = ["shellscript"]
-exts = ["sh", "bash", "command", "zsh"]
 
 [[config]]
 languages = ["tex"]
