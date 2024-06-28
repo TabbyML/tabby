@@ -5,7 +5,7 @@ import {
   RepositoryListQuery
 } from '@/lib/gql/generates/graphql'
 
-export type ViewMode = 'tree' | 'blob'
+export type ViewMode = 'tree' | 'blob' | 'search'
 type RepositoryItem = RepositoryListQuery['repositoryList'][0]
 
 export enum CodeBrowserError {
@@ -31,6 +31,9 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
   viewMode?: string
   rev?: string
 } {
+  console.log('resolving repository info from path', {
+    path
+  })
   const emptyResult = {}
 
   if (!path) return emptyResult
@@ -67,8 +70,10 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
   let viewMode: ViewMode | undefined
   let rev: string | undefined
 
+  // Can these subroutes of the repo/branch directory
   const treeSeparatorIndex = path.indexOf('/-/tree/')
   const blobSeparatorIndex = path.indexOf('/-/blob/')
+  const searchSeparatorIndex = path.indexOf('/-/search/')
 
   if (treeSeparatorIndex > -1) {
     viewMode = 'tree'
@@ -84,6 +89,14 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
     const tempSegments = temp.split('/')
     rev = tempSegments[0]
     basename = trimEnd(tempSegments.slice(1).join('/'), '/')
+  }
+
+  if (searchSeparatorIndex > -1) {
+    viewMode = 'search'
+    const temp = path.slice(searchSeparatorIndex + '/-/search/'.length)
+    const tempSegments = temp.split('/')
+    rev = tempSegments[0]
+    basename = tempSegments.slice(1).join('/')
   }
 
   const repositorySpecifier = path.split('/-/')[0]
@@ -205,13 +218,17 @@ function generateEntryPath(
     | { kind: RepositoryKind | undefined; name: string | undefined }
     | undefined,
   rev: string | undefined,
-  basename: string,
-  kind: 'dir' | 'file'
+  basename: string | undefined,
+  kind: 'dir' | 'file' | 'search',
+  query?: string
 ) {
   const specifier = resolveRepoSpecifierFromRepoInfo(repo)
-  return `${specifier}/-/${kind === 'file' ? 'blob' : 'tree'}/${
-    rev ?? ''
-  }/${encodeURIComponentIgnoringSlash(basename ?? '')}`
+  const kindSegment =
+    kind === 'dir' ? 'tree' : kind === 'file' ? 'blob' : 'search'
+
+  return `${specifier}/-/${kindSegment}/${rev ?? ''}${
+    basename ? encodeURIComponentIgnoringSlash(`/${basename ?? ''}`) : ''
+  }${query ? `?q=${query}` : ''}`
 }
 
 function toEntryRequestUrl(

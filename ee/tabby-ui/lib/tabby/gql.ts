@@ -95,7 +95,11 @@ const client = new Client({
         CompletionStats: () => null,
         ServerInfo: () => null,
         RepositorySearch: () => null,
-        RepositoryList: () => null
+        RepositoryList: () => null,
+        GrepLine: () => null,
+        GrepFile: () => null,
+        GrepTextOrBase64: () => null,
+        GrepSubMatch: () => null
       },
       resolvers: {
         Query: {

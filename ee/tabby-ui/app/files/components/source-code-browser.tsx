@@ -1,19 +1,25 @@
 'use client'
 
 import React, { PropsWithChildren } from 'react'
-import { usePathname } from 'next/navigation'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import { createRequest } from '@urql/core'
+import { set } from 'date-fns'
 import { compact, isEmpty, isNil, toNumber } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import useSWR from 'swr'
 
 import { graphql } from '@/lib/gql/generates'
-import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
+import {
+  GrepTextOrBase64,
+  RepositoryListQuery
+} from '@/lib/gql/generates/graphql'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { filename2prism } from '@/lib/language-utils'
 import fetcher from '@/lib/tabby/fetcher'
 import { client } from '@/lib/tabby/gql'
+import { querySourceCode } from '@/lib/tabby/query'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
 import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
 import {
@@ -33,6 +39,8 @@ import { DirectoryView } from './file-directory-view'
 import { mapToFileTree, sortFileTree, type TFileTreeNode } from './file-tree'
 import { FileTreePanel } from './file-tree-panel'
 import { RawFileView } from './raw-file-view'
+import { SourceCodeSearch } from './source-code-search'
+import { SourceCodeSearchResults } from './source-code-search-results'
 import { TextFileView } from './text-file-view'
 import {
   CodeBrowserError,
@@ -84,6 +92,23 @@ const repositoryListQuery = graphql(/* GraphQL */ `
     }
   }
 `)
+
+interface GrepFile {
+  path: string
+  lines: GrepLine[]
+}
+
+interface GrepLine {
+  line: GrepTextOrBase64
+  byteOffset: number
+  lineNumber: number
+  subMatches: GrepSubMatch[]
+}
+
+interface GrepSubMatch {
+  byteStart: number
+  byteEnd: number
+}
 
 type SourceCodeBrowserContextValue = {
   activePath: string | undefined
@@ -149,33 +174,41 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   const prevActivePath = React.useRef<string | undefined>()
 
   const updateActivePath: SourceCodeBrowserContextValue['updateActivePath'] =
-    React.useCallback(async (path, options) => {
-      const replace = options?.replace
-      if (!path) {
-        // To maintain compatibility with older versions, remove the path params
-        updateUrlComponents({
-          pathname: '/files',
-          searchParams: {
-            del: ['path', 'plain', 'line']
-          },
-          hash: options?.hash,
-          replace
-        })
-      } else {
-        const setParams: Record<string, string> = {}
-        let delList = ['plain', 'redirect_filepath', 'redirect_git_url', 'line']
-
-        updateUrlComponents({
-          pathname: `/files/${path}`,
-          searchParams: {
-            set: setParams,
-            del: delList
-          },
-          replace,
-          hash: options?.hash
-        })
-      }
-    }, [])
+    React.useCallback(
+      async (path, options) => {
+        const replace = options?.replace
+        if (!path) {
+          // To maintain compatibility with older versions, remove the path params
+          updateUrlComponents({
+            pathname: '/files',
+            searchParams: {
+              del: ['path', 'plain', 'line']
+            },
+            hash: options?.hash,
+            replace
+          })
+        } else {
+          const setParams: Record<string, string> = {}
+          let delList = [
+            'plain',
+            'redirect_filepath',
+            'redirect_git_url',
+            'line',
+            'q'
+          ]
+          updateUrlComponents({
+            pathname: `/files/${path}`,
+            searchParams: {
+              set: setParams,
+              del: delList
+            },
+            replace,
+            hash: options?.hash
+          })
+        }
+      },
+      [updateUrlComponents]
+    )
 
   const updateFileMap = (map: TFileMap, replace?: boolean) => {
     if (!map) return
@@ -244,7 +277,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
       result.push(fileMap?.[p])
     }
     return compact(result)
-  }, [activePath, fileMap, activeEntryInfo])
+  }, [activePath, activeEntryInfo, activeRepo, fileMap])
 
   React.useEffect(() => {
     const regex = /^\/files\/(.*)/
@@ -254,7 +287,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
     if (!isPathInitialized) {
       setIsPathInitialized(true)
     }
-  }, [pathname])
+  }, [activePath, isPathInitialized, pathname])
 
   return (
     <SourceCodeBrowserContext.Provider
@@ -334,8 +367,51 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const [fileViewType, setFileViewType] = React.useState<FileDisplayType>()
 
   const isBlobMode = activeEntryInfo?.viewMode === 'blob'
+
+  const shouldFetchSearchResults = activeEntryInfo?.viewMode === 'search'
+
   const shouldFetchTree =
     !!isPathInitialized && !isEmpty(repoMap) && !!activePath
+
+  // fetch search results
+  // FIXME: when hard-refreshing the page, the file tree is not fetched
+  const {
+    data: globalSearchResponse,
+    isLoading: fetchingSearchResults,
+    error: searchError
+  } = useSWR<{
+    results: GrepFile[]
+  }>(
+    shouldFetchSearchResults ? activePath : null,
+    (path: string) => {
+      console.log('fetching search....')
+      const { repositorySpecifier } = resolveRepositoryInfoFromPath(path)
+
+      const currentURL = new URL(window.location.href)
+
+      const query = currentURL.searchParams.get('q') ?? ''
+
+      // If the path has a `q` query param, split it and use the first part as the path
+      // since we're going to add the new query param to the path
+      // TODO: improve this
+      const _path = path.split('?q=')[0]
+
+      console.log('paths', { path, _path })
+
+      return fetchSearchResultsFromPath(
+        _path ?? path,
+        query,
+        repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined
+      ).then(data => {
+        return { results: data }
+      })
+    },
+    {
+      revalidateOnFocus: false,
+      shouldRetryOnError: false
+    }
+  )
+  //
 
   // fetch tree
   const {
@@ -352,7 +428,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       return fetchEntriesFromPath(
         path,
         repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined
-      ).then(data => ({ entries: data, requestPathname: path }))
+      ).then(data => {
+        return { entries: data, requestPathname: path }
+      })
     },
     {
       revalidateOnFocus: false,
@@ -402,6 +480,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const error = rawFileError || entriesError
 
   const showErrorView = !!error
+
+  const showSearchView = activeEntryInfo?.viewMode === 'search'
 
   const showDirectoryView =
     activeEntryInfo?.viewMode === 'tree' || !activeEntryInfo?.viewMode
@@ -464,12 +544,21 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     if (!initialized && isPathInitialized) {
       init()
     }
-  }, [activePath, initialized, isPathInitialized])
+  }, [
+    activePath,
+    initialized,
+    isPathInitialized,
+    searchParams,
+    setInitialized,
+    setRepoMap,
+    updateActivePath
+  ])
 
   React.useEffect(() => {
-    if (!entriesResponse) return
+    if (!entriesResponse || shouldFetchSearchResults) return
 
     const { entries, requestPathname } = entriesResponse
+
     const { repositorySpecifier, viewMode, basename, rev } =
       resolveRepositoryInfoFromPath(requestPathname)
     const { repositorySpecifier: prevRepositorySpecifier, rev: prevRev } =
@@ -511,16 +600,35 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         })
       }
     }
-  }, [entriesResponse])
+  }, [
+    entriesResponse,
+    shouldFetchSearchResults,
+    setExpandedKeys,
+    prevActivePath
+  ])
 
   React.useEffect(() => {
     if (!initialized) return
-    if (!progress && (fetchingRawFile || fetchingTreeEntries)) {
+    if (
+      !progress &&
+      (fetchingRawFile || fetchingTreeEntries || fetchingSearchResults)
+    ) {
       setProgress(true)
-    } else if (!fetchingRawFile && !fetchingTreeEntries) {
+    } else if (
+      !fetchingRawFile &&
+      !fetchingTreeEntries &&
+      !fetchingSearchResults
+    ) {
       setProgress(false)
     }
-  }, [fetchingRawFile, fetchingTreeEntries])
+  }, [
+    fetchingRawFile,
+    fetchingSearchResults,
+    fetchingTreeEntries,
+    initialized,
+    progress,
+    setProgress
+  ])
 
   React.useEffect(() => {
     const calculateViewType = async () => {
@@ -545,7 +653,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [chatSideBarVisible])
 
   React.useEffect(() => {
-    if (!(fetchingRawFile || fetchingTreeEntries)) return
+    if (!(fetchingRawFile || fetchingTreeEntries || fetchingSearchResults))
+      return
 
     const { repositorySpecifier, rev } = activeEntryInfo
     const { repositorySpecifier: prevRepositorySpecifier, rev: prevRev } =
@@ -555,7 +664,15 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       updateFileMap({}, true)
       setExpandedKeys(new Set())
     }
-  }, [activeEntryInfo])
+  }, [
+    activeEntryInfo,
+    fetchingRawFile,
+    fetchingSearchResults,
+    fetchingTreeEntries,
+    prevActivePath,
+    setExpandedKeys,
+    updateFileMap
+  ])
 
   React.useEffect(() => {
     const onCallCompletion = (data: QuickActionEventPayload) => {
@@ -585,36 +702,47 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       </ResizablePanel>
       <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
       <ResizablePanel defaultSize={80} minSize={30}>
-        <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
-          <FileDirectoryBreadcrumb className="py-4" />
-          {!initialized ? (
-            <ListSkeleton className="rounded-lg border p-4" />
-          ) : showErrorView ? (
-            <ErrorView
-              className={`rounded-lg border p-4`}
-              error={entriesError || rawFileError}
-            />
-          ) : (
-            <div>
-              {showDirectoryView && (
-                <DirectoryView
-                  loading={fetchingTreeEntries}
-                  initialized={initialized}
-                  className={`rounded-lg border`}
-                />
-              )}
-              {showTextFileView && (
-                <TextFileView blob={fileBlob} contentLength={contentLength} />
-              )}
-              {showRawFileView && (
-                <RawFileView
-                  blob={fileBlob}
-                  isImage={fileViewType === 'image'}
-                  contentLength={contentLength}
-                />
-              )}
-            </div>
-          )}
+        <div className="flex flex-col h-full">
+          <SourceCodeSearch />
+
+          <div className="flex h-full w-full flex-col overflow-y-auto px-4 pb-6">
+            {!showSearchView && <FileDirectoryBreadcrumb className="py-4" />}
+            {!initialized ? (
+              <ListSkeleton className="rounded-lg border p-4" />
+            ) : showErrorView ? (
+              <ErrorView
+                className={`rounded-lg border p-4`}
+                error={entriesError || rawFileError}
+              />
+            ) : (
+              <div>
+                {showSearchView && (
+                  <SourceCodeSearchResults
+                    repoId={activeRepo?.id}
+                    repositoryKind={activeEntryInfo?.repositoryKind}
+                    results={globalSearchResponse?.results}
+                  />
+                )}
+                {showDirectoryView && (
+                  <DirectoryView
+                    loading={fetchingTreeEntries}
+                    initialized={initialized}
+                    className={`rounded-lg border`}
+                  />
+                )}
+                {showTextFileView && (
+                  <TextFileView blob={fileBlob} contentLength={contentLength} />
+                )}
+                {showRawFileView && (
+                  <RawFileView
+                    blob={fileBlob}
+                    isImage={fileViewType === 'image'}
+                    contentLength={contentLength}
+                  />
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </ResizablePanel>
       <>
@@ -706,6 +834,31 @@ async function getFileViewType(
 
   const isReadableText = await isReadableTextFile(blob)
   return isReadableText ? 'text' : 'raw'
+}
+
+async function fetchSearchResultsFromPath(
+  path: string | undefined,
+  query: string,
+  repository: RepositoryListQuery['repositoryList'][0] | undefined
+) {
+  if (!path) return [] // TODO: Handle
+  if (!repository) {
+    throw new Error(CodeBrowserError.REPOSITORY_NOT_FOUND)
+  }
+  const { repositoryKind } = resolveRepositoryInfoFromPath(path)
+
+  if (!repositoryKind) return []
+
+  const { data } = (await client
+    .query(querySourceCode, {
+      id: repository.id,
+      kind: repositoryKind,
+      query,
+      pause: !repository.id || !repositoryKind
+    })
+    .toPromise()) as unknown as { data: { repositoryGrep: GrepFile[] } }
+
+  return data?.repositoryGrep || []
 }
 
 async function fetchEntriesFromPath(

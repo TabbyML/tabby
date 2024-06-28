@@ -11,6 +11,7 @@ import {
 import { isNil } from 'lodash-es'
 import ReactDOM from 'react-dom/client'
 
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -183,6 +184,7 @@ const selectLinesGutter = ({ onSelectLine }: SelectLInesGutterOptions) => {
       initialSpacer: () => lineMenuMarker,
       domEventHandlers: {
         mousedown(view, line) {
+          // this only fires when the gutter is clicked, not the line number
           const lineNumber = setSelectedLines(view, line.from)
           onSelectLine?.(lineNumber)
           return true

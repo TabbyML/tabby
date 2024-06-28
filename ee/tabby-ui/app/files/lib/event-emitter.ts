@@ -1,7 +1,7 @@
 import mitt from 'mitt'
 
 type CodeBrowserQuickAction = 'explain' | 'generate_unittest' | 'generate_doc'
-type LineMenuAction = 'copy_line' | 'copy_permalink'
+type LineMenuAction = 'copy_line' | 'copy_permalink' | 'view_file'
 
 type QuickActionEventPayload = {
   action: CodeBrowserQuickAction

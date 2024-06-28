@@ -68,6 +68,26 @@ export const listRepositories = graphql(/* GraphQL */ `
   }
 `)
 
+export const querySourceCode = graphql(/* GraphQL */ `
+  query GlobalSearch($id: ID!, $kind: RepositoryKind!, $query: String!) {
+    repositoryGrep(kind: $kind, id: $id, query: $query) {
+      path
+      lines {
+        line {
+          text
+          base64
+        }
+        byteOffset
+        lineNumber
+        subMatches {
+          bytesStart
+          bytesEnd
+        }
+      }
+    }
+  }
+`)
+
 export const listJobRuns = graphql(/* GraphQL */ `
   query ListJobRuns(
     $ids: [ID!]
