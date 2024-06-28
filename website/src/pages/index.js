@@ -41,7 +41,7 @@ export default function Home() {
   return (
     <Layout
       title={`Home`}
-      description="Description will go into a meta tag in <head />">
+      description="Tabby is a self-hosted AI coding assistant, offering an open-source and on-premises alternative to GitHub Copilot">
       <HomepageHeader />
       <main>
         <HomepageFeatures />
