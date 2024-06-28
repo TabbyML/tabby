@@ -63,9 +63,9 @@ For `local` configuration, use:
 model_id = "StarCoder2-3B"
 ```
 
-#### http
+#### openai/chat
 
-For `HTTP` configuration, the settings are as follows:
+To configure Tabby's chat functionality with an OpenAI-compatible chat model (`/v1/chat/completions`), apply the settings below. This example uses the API platform of DeepSeek. Similar configurations can be applied for other LLM vendors such as Mistral, OpenAI, etc.
 
 ```toml
 [model.chat.http]
