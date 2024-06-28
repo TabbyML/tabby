@@ -54,6 +54,10 @@ async fn crawl_url(start_url: &str) -> anyhow::Result<impl Stream<Item = KatanaR
                 }
             };
 
+            if data.response.status_code == Some(429) {
+                logkit::warn!("429 Too Many Requests, consider adjust your rate limit settings...");
+            }
+
             // Skip if the status code is not 200
             if data.response.status_code != Some(200) {
                 continue;
