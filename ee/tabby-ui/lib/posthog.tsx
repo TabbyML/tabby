@@ -35,6 +35,9 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && isDemoMode) {
+      const isInIframe = window.self !== window.top
+      if (isInIframe) return
+
       const postHogInstance = posthog.init(POSTHOG_KEY, {
         api_host: POSTHOG_HOST,
         person_profiles: 'identified_only',
