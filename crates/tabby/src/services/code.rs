@@ -23,6 +23,7 @@ use tantivy::{
     IndexReader, TantivyDocument,
 };
 use tokio::sync::Mutex;
+use tracing::debug;
 
 use super::tantivy::IndexReaderProvider;
 
@@ -77,6 +78,8 @@ impl CodeSearchImpl {
         let Some(git_url) = closest_match(&query.git_url, repos.iter()) else {
             return Ok(CodeSearchResponse::default());
         };
+
+        debug!("query.git_url: {}, matched git_url{:?}", query.git_url, git_url);
 
         query.git_url = git_url.to_owned();
 
@@ -385,6 +388,14 @@ mod tests {
         assert_match_first!(
             "https://custom-git.com/tabby",
             ["https://custom-git.com/TabbyML/tabby"]
+        );
+    }
+
+    #[test]
+    fn test_closest_match_local_url() {
+        assert_match_first!(
+            "git@github.com:TabbyML/tabby.git",
+            ["file:///home/TabbyML/tabby"]
         );
     }
 }
