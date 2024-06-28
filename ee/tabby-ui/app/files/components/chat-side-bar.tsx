@@ -69,7 +69,15 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   }
 
   const client = useClient(iframeRef, {
-    navigate: onNavigate
+    navigate: onNavigate,
+    refresh: async () => {
+      window.location.reload()
+
+      // Ensure the loading effect is maintained
+      await new Promise(resolve => {
+        setTimeout(() => resolve(null), 1000)
+      })
+    }
   })
 
   const getPrompt = ({ action }: QuickActionEventPayload) => {

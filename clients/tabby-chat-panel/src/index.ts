@@ -37,7 +37,7 @@ export interface ServerApi {
 
 export interface ClientApi {
   navigate: (context: Context) => void
-  refresh?: () => Promise<void>
+  refresh: () => Promise<void>
 }
 
 export interface ChatMessage {

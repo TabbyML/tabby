@@ -595,6 +595,9 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
+      react-error-boundary:
+        specifier: ^4.0.13
+        version: 4.0.13(react@18.2.0)
       react-hook-form:
         specifier: ^7.48.2
         version: 7.48.2(react@18.2.0)
@@ -8465,6 +8468,11 @@ packages:
     resolution: {integrity: sha512-Lm6nxt2IsbTatJM+kSPWKvTPpMYfg3SFLJa8WqnaZ91ZRPz4wedZL++P3i59XxgOHGqejt2kN/a8MYiBZP3Mgw==}
     engines: {node: '>=18.0.0'}
     hasBin: true
+
+  react-error-boundary@4.0.13:
+    resolution: {integrity: sha512-b6PwbdSv8XeOSYvjt8LpgpKrZ0yGdtZokYwkwV2wlcZbxgopHX/hgPl5VgpnoVOWd868n1hktM8Qm4b+02MiLQ==}
+    peerDependencies:
+      react: '>=16.13.1'
 
   react-hook-form@7.48.2:
     resolution: {integrity: sha512-H0T2InFQb1hX7qKtDIZmvpU1Xfn/bdahWBN1fH19gSe4bBEqTfmlr7H3XWTaVtiK4/tpPaI1F3355GPMZYge+A==}
@@ -19763,6 +19771,11 @@ snapshots:
       - uglify-js
       - utf-8-validate
       - webpack-cli
+
+  react-error-boundary@4.0.13(react@18.2.0):
+    dependencies:
+      '@babel/runtime': 7.24.4
+      react: 18.2.0
 
   react-hook-form@7.48.2(react@18.2.0):
     dependencies:
