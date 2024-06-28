@@ -11,10 +11,7 @@ use url::Url;
 
 use self::types::{CrawledDocument, KatanaRequestResponse};
 
-async fn crawl_url(
-    start_url: &str,
-    on_stderr_line: impl Fn(String) + Send + 'static,
-) -> anyhow::Result<impl Stream<Item = KatanaRequestResponse>> {
+async fn crawl_url(start_url: &str) -> anyhow::Result<impl Stream<Item = KatanaRequestResponse>> {
     let mut child = tokio::process::Command::new("katana")
         .arg("-u")
         .arg(start_url)
@@ -43,7 +40,7 @@ async fn crawl_url(
 
     tokio::spawn(async move {
         while let Ok(Some(line)) = stderr.next_line().await {
-            on_stderr_line(line);
+            logkit::info!("{line}");
         }
     });
 
@@ -118,9 +115,8 @@ fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
 
 pub async fn crawl_pipeline(
     start_url: &str,
-    on_stderr_line: impl Fn(String) + Send + 'static,
 ) -> anyhow::Result<impl Stream<Item = CrawledDocument>> {
-    Ok(crawl_url(start_url, on_stderr_line)
+    Ok(crawl_url(start_url)
         .await?
         .filter_map(move |data| async move { to_document(data) }))
 }
