@@ -79,7 +79,10 @@ impl CodeSearchImpl {
             return Ok(CodeSearchResponse::default());
         };
 
-        debug!("query.git_url: {:?}, matched git_url: {:?}", query.git_url, git_url);
+        debug!(
+            "query.git_url: {:?}, matched git_url: {:?}",
+            query.git_url, git_url
+        );
 
         query.git_url = git_url.to_owned();
 
