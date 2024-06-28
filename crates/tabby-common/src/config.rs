@@ -334,5 +334,10 @@ mod tests {
             RepositoryConfig::canonicalize_url("https://github.com/TabbyML/tabby.git"),
             "https://github.com/TabbyML/tabby"
         );
+
+        assert_eq!(
+            RepositoryConfig::canonicalize_url("file:///home/TabbyML/tabby"),
+            "file:///home/TabbyML/tabby"
+        );
     }
 }
