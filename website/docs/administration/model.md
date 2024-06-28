@@ -33,6 +33,7 @@ For setting up the `ollama` model, apply the configuration below:
 ```toml
 [model.completion.http]
 kind = "ollama/completion"
+model_name = "codellama:7b"
 api_endpoint = "http://localhost:8888"
 prompt_template = "<PRE> {prefix} <SUF>{suffix} <MID>"  # Example prompt template for CodeLlama model series.
 ```
