@@ -16,7 +16,8 @@ export default function TextAreaSearch({
   isLoading,
   autoFocus,
   loadingWithSpinning,
-  cleanAfterSearch = true
+  cleanAfterSearch = true,
+  inSearchPage
 }: {
   onSearch: (value: string) => void
   className?: string
@@ -26,6 +27,7 @@ export default function TextAreaSearch({
   autoFocus?: boolean
   loadingWithSpinning?: boolean
   cleanAfterSearch?: boolean
+  inSearchPage?: boolean
 }) {
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
@@ -58,8 +60,11 @@ export default function TextAreaSearch({
       className={cn(
         'relative flex w-full items-center overflow-hidden rounded-lg border border-muted-foreground bg-background px-4 transition-all hover:border-muted-foreground/60',
         {
-          '!border-primary': isFocus,
-          'py-0': showBetaBadge
+          '!border-zinc-400': isFocus && inSearchPage && theme !== 'dark',
+          '!border-primary': isFocus && (!inSearchPage || theme === 'dark'),
+          'py-0': showBetaBadge,
+          'border-2 dark:border border-zinc-400 hover:border-zinc-400/60 dark:border-muted-foreground dark:hover:border-muted-foreground/60':
+            inSearchPage
         },
         className
       )}
