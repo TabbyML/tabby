@@ -191,7 +191,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     if (!this.isChatPanelAvailable(serverInfo)) {
       this.client?.showError({
         content:
-          "Please update to the latest release of the Tabby server.\n\nYou also need to launch the server with the chat model enabled; for example, use `--chat-model Mistral-7B`.",
+          "Please update to the latest release of the Tabby server.\n\nYou also need to launch the server with the chat model enabled; for example, use `--chat-model Qwen2-1.5B-Instruct`.",
       });
       return;
     }
