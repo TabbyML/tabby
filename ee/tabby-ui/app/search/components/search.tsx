@@ -427,7 +427,7 @@ export function Search() {
 
           <div
             className={cn(
-              'fixed bottom-5 left-0 flex min-h-[5rem] w-full flex-col items-center gap-y-2',
+              'fixed bottom-5 left-0 z-30 flex min-h-[5rem] w-full flex-col items-center gap-y-2',
               {
                 'opacity-100 translate-y-0': showSearchInput,
                 'opacity-0 translate-y-10': !showSearchInput
