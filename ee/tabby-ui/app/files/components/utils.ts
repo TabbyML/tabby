@@ -93,9 +93,9 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
     repositorySpecifier: path.split('/-/')[0],
     repositoryName,
     repositoryKind: kind,
-    rev,
+    rev: !isNil(rev) ? decodeURIComponent(rev) : undefined,
     viewMode,
-    basename
+    basename: !isNil(basename) ? decodeURIComponent(basename) : undefined
   }
 }
 
@@ -171,7 +171,7 @@ function resolveRepoRef(ref: string | undefined): {
     const kind = match[1] === 'tags' ? 'tag' : 'branch'
     return {
       kind,
-      name: encodeURIComponent(match[2]),
+      name: match[2],
       ref
     }
   }
@@ -209,9 +209,11 @@ function generateEntryPath(
   kind: 'dir' | 'file'
 ) {
   const specifier = resolveRepoSpecifierFromRepoInfo(repo)
-  return `${specifier}/-/${kind === 'file' ? 'blob' : 'tree'}/${
-    rev ?? ''
-  }/${encodeURIComponentIgnoringSlash(basename ?? '')}`
+  return `${specifier}/-/${
+    kind === 'file' ? 'blob' : 'tree'
+  }/${encodeURIComponent(rev ?? '')}/${encodeURIComponentIgnoringSlash(
+    basename ?? ''
+  )}`
 }
 
 function toEntryRequestUrl(
@@ -225,7 +227,9 @@ function toEntryRequestUrl(
 
   const activeRepoIdentity = `${getProviderVariantFromKind(kind)}/${repoId}`
 
-  return `/repositories/${activeRepoIdentity}/rev/${rev}/${basename ?? ''}`
+  return `/repositories/${activeRepoIdentity}/rev/${encodeURIComponent(
+    rev
+  )}/${encodeURIComponentIgnoringSlash(basename ?? '')}`
 }
 
 function parseLineFromSearchParam(line: string | undefined): {
