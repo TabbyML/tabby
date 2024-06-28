@@ -337,7 +337,7 @@ mod tests {
 
         assert_eq!(
             RepositoryConfig::canonicalize_url("file:///home/TabbyML/tabby"),
-            "file:///github.com/TabbyML/tabby"
+            "file:///home/TabbyML/tabby"
         );
     }
 }
