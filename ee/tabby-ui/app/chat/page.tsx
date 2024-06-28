@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import tabbyUrl from '@/assets/tabby.png'
 import Color from 'color'
+import { ErrorBoundary } from 'react-error-boundary'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import type {
@@ -174,7 +175,7 @@ export default function ChatPage() {
 
   const refresh = async () => {
     setIsRefreshLoading(true)
-    await server?.refresh?.()
+    await server?.refresh()
     setIsRefreshLoading(false)
   }
 
@@ -207,11 +208,29 @@ export default function ChatPage() {
     )
   }
 
+  function ErrorBoundaryFallback({ error }: { error: Error }) {
+    return (
+      <StaticContent>
+        <p className="mb-1.5 mt-2 font-semibold">Something went wrong</p>
+        <p>{error.message}</p>
+        <Button
+          className="mt-5 flex items-center gap-x-2 text-sm leading-none"
+          onClick={refresh}
+        >
+          {isRefreshLoading && <IconSpinner />}
+          Refresh
+        </Button>
+      </StaticContent>
+    )
+  }
+
   if (errorMessage) {
     return (
       <StaticContent>
         <>
-          <p className="mb-1.5 mt-2 font-semibold">{errorMessage.title}</p>
+          {errorMessage.title && (
+            <p className="mb-1.5 mt-2 font-semibold">{errorMessage.title}</p>
+          )}
           <MemoizedReactMarkdown
             className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
             remarkPlugins={[remarkGfm, remarkMath]}
@@ -254,17 +273,19 @@ export default function ChatPage() {
     Authorization: `Bearer ${fetcherOptions.authorization}`
   }
   return (
-    <Chat
-      chatId={activeChatId}
-      key={activeChatId}
-      ref={chatRef}
-      headers={headers}
-      onThreadUpdates={() => {}}
-      onNavigateToContext={onNavigateToContext}
-      onLoaded={onChatLoaded}
-      maxWidth={maxWidth}
-      onCopyContent={client === 'vscode' ? onCopyContent : undefined}
-      from={client}
-    />
+    <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+      <Chat
+        chatId={activeChatId}
+        key={activeChatId}
+        ref={chatRef}
+        headers={headers}
+        onThreadUpdates={() => {}}
+        onNavigateToContext={onNavigateToContext}
+        onLoaded={onChatLoaded}
+        maxWidth={maxWidth}
+        onCopyContent={client === 'vscode' ? onCopyContent : undefined}
+        from={client}
+      />
+    </ErrorBoundary>
   )
 }

@@ -9,7 +9,7 @@ import {
   TextEditor,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
-// import hashObject from "object-hash";
+import hashObject from "object-hash";
 import * as semver from "semver";
 import type { ServerInfo } from "tabby-agent";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
@@ -107,12 +107,9 @@ export class ChatViewProvider implements WebviewViewProvider {
         }
       },
       refresh: async () => {
-        await this.reloadChatPage();
-        await new Promise((resolve) => {
-          setTimeout(() => {
-            resolve(null);
-          }, 1000);
-        });
+        this.isRendered = false;
+        const serverInfo = await this.agent.fetchServerInfo();
+        await this.renderChatPage(serverInfo.config.endpoint);
         return;
       },
     });
@@ -217,11 +214,10 @@ export class ChatViewProvider implements WebviewViewProvider {
       );
 
       this.isRendered = true;
-
-      // FIXME: <!--hash: ${hashObject(serverInfo)}--> not needed?
       this.webview.webview.html = `
         <!DOCTYPE html>
         <html lang="en">
+          <!--hash: ${hashObject({ renderDate: new Date().toString() })}-->
           <head>
             <meta charset="UTF-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
