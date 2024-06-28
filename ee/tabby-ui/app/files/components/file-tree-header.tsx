@@ -138,8 +138,6 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
       id: repoId as string,
       pattern: repositorySearchPattern ?? '',
       rev: activeRepoRef?.name
-        ? decodeURIComponent(activeRepoRef.name)
-        : undefined
     },
     pause: !repoId || !repositoryKind || !repositorySearchPattern
   })
@@ -296,11 +294,13 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
               {!!activeRepoRef && (
                 <>
                   {activeRepoRef.kind === 'branch' ? (
-                    <IconGitFork />
+                    <IconGitFork className="shrink-0" />
                   ) : (
-                    <IconTag />
+                    <IconTag className="shrink-0" />
                   )}
-                  {decodeURIComponent(activeRepoRef.name ?? '')}
+                  <span className="truncate" title={activeRepoRef.name}>
+                    {activeRepoRef.name ?? ''}
+                  </span>
                 </>
               )}
             </Button>
@@ -339,13 +339,15 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                     >
                       <IconCheck
                         className={cn(
-                          'mr-2',
+                          'mr-2 shrink-0',
                           !!ref?.name && ref.name === activeRepoRef?.name
                             ? 'opacity-100'
                             : 'opacity-0'
                         )}
                       />
-                      {decodeURIComponent(ref.name ?? '')}
+                      <span className="truncate" title={ref.name}>
+                        {ref.name ?? ''}
+                      </span>
                     </CommandItem>
                   ))}
                 </CommandGroup>
