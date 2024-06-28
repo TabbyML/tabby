@@ -21,17 +21,26 @@ async fn crawl_url(start_url: &str) -> anyhow::Result<impl Stream<Item = KatanaR
         .arg("-depth")
         .arg("9999")
         .stdout(Stdio::piped())
-        .stderr(Stdio::inherit())
+        .stderr(Stdio::piped())
         .spawn()?;
 
     let stdout = child.stdout.take().expect("Failed to acquire stdout");
     let mut stdout = tokio::io::BufReader::new(stdout).lines();
+
+    let stderr = child.stderr.take().expect("Failed to acquire stderr");
+    let mut stderr = tokio::io::BufReader::new(stderr).lines();
 
     tokio::spawn(async move {
         if let Some(exit_code) = child.wait().await.ok().and_then(|s| s.code()) {
             if exit_code != 0 {
                 warn!("Katana exited with code {}", exit_code);
             }
+        }
+    });
+
+    tokio::spawn(async move {
+        while let Ok(Some(line)) = stderr.next_line().await {
+            logkit::info!("{line}");
         }
     });
 

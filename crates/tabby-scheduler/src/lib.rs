@@ -23,7 +23,6 @@ pub async fn crawl_index_docs(
     source_id: &str,
     start_url: &str,
     embedding: Arc<dyn Embedding>,
-    on_process_url: impl Fn(String),
 ) -> anyhow::Result<()> {
     logkit::info!("Starting doc index pipeline for {}", start_url);
     let embedding = embedding.clone();
@@ -33,7 +32,7 @@ pub async fn crawl_index_docs(
 
     let mut pipeline = Box::pin(crawl_pipeline(start_url).await?);
     while let Some(doc) = pipeline.next().await {
-        on_process_url(doc.url.clone());
+        logkit::info!("Fetching {}", doc.url);
         let source_doc = SourceDocument {
             source_id: source_id.to_owned(),
             id: doc.url.clone(),
