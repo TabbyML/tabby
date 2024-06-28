@@ -1,13 +1,26 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
+import tabbyUrl from '@/assets/tabby.png'
 import Color from 'color'
-import type { ChatMessage, Context, FetcherOptions } from 'tabby-chat-panel'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import type {
+  ChatMessage,
+  Context,
+  ErrorMessage,
+  FetcherOptions,
+  InitRequest
+} from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
 
 import { nanoid } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { IconSpinner } from '@/components/ui/icons'
 import { Chat, ChatRef } from '@/components/chat/chat'
+import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './page.css'
 
@@ -33,12 +46,20 @@ export default function ChatPage() {
   )
   const [activeChatId, setActiveChatId] = useState('')
   const [pendingMessages, setPendingMessages] = useState<ChatMessage[]>([])
+  const [isThemeSynced, setIsThemeSynced] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<ErrorMessage | null>(null)
+  const [isRefreshLoading, setIsRefreshLoading] = useState(false)
 
   const chatRef = useRef<ChatRef>(null)
 
   const searchParams = useSearchParams()
-  const from = searchParams.get('from') || undefined
-  const isFromVSCode = from === 'vscode'
+  const client = searchParams.get('client') || undefined
+  const initialFontSize = searchParams.get('font-size') || undefined
+  const initialForeground = searchParams.get('foreground')
+    ? `#${searchParams.get('foreground')}`
+    : undefined
+
+  const isFromVSCode = client === 'vscode'
   const maxWidth = isFromVSCode ? '5xl' : undefined
 
   useEffect(() => {
@@ -66,6 +87,7 @@ export default function ChatPage() {
           })
           .join(';')
         document.documentElement.style.cssText = styleWithHslValue
+        setIsThemeSynced(true)
       }
 
       // Sync with edit theme
@@ -114,7 +136,7 @@ export default function ChatPage() {
   }
 
   const server = useServer({
-    init: request => {
+    init: (request: InitRequest) => {
       if (chatRef.current) return
       setActiveChatId(nanoid())
       setIsInit(true)
@@ -122,6 +144,12 @@ export default function ChatPage() {
     },
     sendMessage: (message: ChatMessage) => {
       return sendMessage(message)
+    },
+    showError: (errorMessage: ErrorMessage) => {
+      setErrorMessage(errorMessage)
+    },
+    cleanError: () => {
+      setErrorMessage(null)
     }
   })
 
@@ -144,7 +172,84 @@ export default function ChatPage() {
     )
   }
 
-  if (!isInit || !fetcherOptions) return <></>
+  const refresh = async () => {
+    setIsRefreshLoading(true)
+    await server?.refresh?.()
+    setIsRefreshLoading(false)
+  }
+
+  function StaticContent({ children }: { children: React.ReactNode }) {
+    return (
+      <div
+        className="h-screen w-screen"
+        style={{
+          fontSize: isThemeSynced ? 'inherit' : initialFontSize,
+          color: isThemeSynced ? 'inherit' : initialForeground,
+          padding: '5px 18px'
+        }}
+      >
+        <div className="flex items-center" style={{ marginBottom: '0.55em' }}>
+          <Image
+            src={tabbyUrl}
+            alt="logo"
+            className="rounded-full"
+            style={{
+              background: 'rgb(232, 226, 210)',
+              marginRight: '0.375em',
+              padding: '0.15em'
+            }}
+            width={18}
+          />
+          <p className="font-semibold">Tabby</p>
+        </div>
+        {children}
+      </div>
+    )
+  }
+
+  if (errorMessage) {
+    return (
+      <StaticContent>
+        <>
+          <p className="mb-1.5 mt-2 font-semibold">{errorMessage.title}</p>
+          <MemoizedReactMarkdown
+            className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
+            remarkPlugins={[remarkGfm, remarkMath]}
+          >
+            {errorMessage.content}
+          </MemoizedReactMarkdown>
+          <Button
+            className="mt-5 flex items-center gap-x-2 text-sm leading-none"
+            onClick={refresh}
+          >
+            {isRefreshLoading && <IconSpinner />}
+            Refresh
+          </Button>
+        </>
+      </StaticContent>
+    )
+  }
+
+  if (!isInit || !fetcherOptions) {
+    return (
+      <StaticContent>
+        <>
+          <p className="opacity-80">
+            Welcome to Tabby Chat! Just a moment while we get thins ready...
+          </p>
+          <IconSpinner
+            className="mx-auto"
+            style={{
+              marginTop: '1.25em',
+              width: '0.875em',
+              height: '0.875em'
+            }}
+          />
+        </>
+      </StaticContent>
+    )
+  }
+
   const headers = {
     Authorization: `Bearer ${fetcherOptions.authorization}`
   }
@@ -158,8 +263,8 @@ export default function ChatPage() {
       onNavigateToContext={onNavigateToContext}
       onLoaded={onChatLoaded}
       maxWidth={maxWidth}
-      onCopyContent={from === 'vscode' ? onCopyContent : undefined}
-      from={from}
+      onCopyContent={client === 'vscode' ? onCopyContent : undefined}
+      from={client}
     />
   )
 }

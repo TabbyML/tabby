@@ -29,6 +29,7 @@ export function createClient(webview: WebviewView, api: ClientApi): ServerApi {
   return createThreadFromWebview(webview, {
     expose: {
       navigate: api.navigate,
+      refresh: api.refresh,
     },
   });
 }
