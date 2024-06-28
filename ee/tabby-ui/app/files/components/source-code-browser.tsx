@@ -213,7 +213,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
 
   const activeRepoRef = React.useMemo(() => {
     if (!activeEntryInfo || !activeRepo) return undefined
-    const rev = decodeURIComponent(activeEntryInfo?.rev ?? '')
+    const rev = activeEntryInfo?.rev ?? ''
     const activeRepoRef = activeRepo.refs?.find(
       ref => ref === `refs/heads/${rev}` || ref === `refs/tags/${rev}`
     )
