@@ -129,7 +129,7 @@ fn to_local_config(model: &str, parallelism: u8, device: &Device) -> ModelConfig
             .flatten()
             .unwrap_or(9999)
     } else {
-        9999
+        0
     };
     ModelConfig::Local(LocalModelConfig {
         model_id: model.to_owned(),
