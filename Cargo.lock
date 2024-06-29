@@ -5186,6 +5186,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "tracing-test",
+ "tree-sitter-bash",
  "tree-sitter-c",
  "tree-sitter-c-sharp",
  "tree-sitter-cpp",
@@ -5919,6 +5920,15 @@ checksum = "df7cc499ceadd4dcdf7ec6d4cbc34ece92c3fa07821e287aedecd4416c516dca"
 dependencies = [
  "cc",
  "regex",
+]
+
+[[package]]
+name = "tree-sitter-bash"
+version = "0.21.0"
+source = "git+https://github.com/tree-sitter/tree-sitter-bash?rev=2fbd860#2fbd860f802802ca76a6661ce025b3a3bca2d3ed"
+dependencies = [
+ "cc",
+ "tree-sitter",
 ]
 
 [[package]]
