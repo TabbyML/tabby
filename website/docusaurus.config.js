@@ -237,7 +237,7 @@ export default {
             from: '/docs/administration'
           },
           {
-            to: '/docs/getting-started',
+            to: '/docs/welcome',
             from: '/docs',
           },
           {
