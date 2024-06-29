@@ -237,8 +237,8 @@ export default {
             from: '/docs/administration'
           },
           {
-            to: '/docs',
-            from: '/docs/getting-started'
+            to: '/docs/getting-started',
+            from: '/docs',
           },
           {
             to: '/docs/quick-start/installation/docker',
