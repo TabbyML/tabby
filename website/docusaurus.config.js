@@ -235,7 +235,15 @@ export default {
           {
             to: '/docs/administration/upgrade',
             from: '/docs/administration'
-          }
+          },
+          {
+            to: '/docs',
+            from: '/docs/getting-started'
+          },
+          {
+            to: '/docs/quick-start/installation/docker',
+            from: '/docs/quick-start/installation'
+          },
         ],
         createRedirects(existingPath) {
           // Create redirection from /docs/installation/* to /docs/quick-start/installation/*
