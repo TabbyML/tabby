@@ -83,8 +83,6 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then  \
 
 COPY --from=build /opt/tabby /opt/tabby
 
-# Fix llama-server libcuda.so.1: cannot open shared object file
-ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/cuda/compat"
 ENV PATH="$PATH:/opt/tabby/bin"
 ENV TABBY_ROOT=/data
 
