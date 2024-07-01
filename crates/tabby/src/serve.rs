@@ -387,10 +387,16 @@ impl Modify for SecurityAddon {
 fn merge_args(config: &Config, args: &ServeArgs) -> Config {
     let mut config = (*config).clone();
     if let Some(model) = &args.model {
+        if config.model.completion.is_some() {
+            warn!("Overriding completion model from config.toml. The overriding behavior might surprise you. Consider setting the model in config.toml directly.");
+        }
         config.model.completion = Some(to_local_config(model, args.parallelism, &args.device));
     };
 
     if let Some(chat_model) = &args.chat_model {
+        if config.model.chat.is_some() {
+            warn!("Overriding chat model from config.toml. The overriding behavior might surprise you. Consider setting the model in config.toml directly.");
+        }
         config.model.chat = Some(to_local_config(
             chat_model,
             args.parallelism,
