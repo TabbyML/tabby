@@ -6,7 +6,7 @@ use async_openai::types::{
     ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs,
 };
 use async_stream::stream;
-use futures::{stream::BoxStream, StreamExt};
+use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 use tabby_common::api::{
     code::{CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchQuery},
@@ -357,22 +357,17 @@ pub fn create(
 
 fn get_content(message: &ChatCompletionRequestMessage) -> &str {
     match message {
-        ChatCompletionRequestMessage::User(x) => match &x.content {
-            ChatCompletionRequestUserMessageContent::Text(x) => x,
-            _ => {
-                panic!("Unexpected content in user message");
-            }
-        },
+        ChatCompletionRequestMessage::System(x) => &x.content,
         _ => {
-            panic!("Unexpected message type");
+            panic!("Unexpected message type, {:?}", message);
         }
     }
 }
 
 fn set_content(message: &mut ChatCompletionRequestMessage, content: String) {
     match message {
-        ChatCompletionRequestMessage::User(x) => {
-            x.content = ChatCompletionRequestUserMessageContent::Text(content)
+        ChatCompletionRequestMessage::System(x) => {
+            x.content = content
         }
         _ => {
             panic!("Unexpected message type");
