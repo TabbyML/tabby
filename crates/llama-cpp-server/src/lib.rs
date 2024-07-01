@@ -3,18 +3,16 @@ mod supervisor;
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
+use async_openai::config::OpenAIConfig;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use serde::Deserialize;
 use supervisor::LlamaCppSupervisor;
 use tabby_common::{
-    api::chat::Message,
     config::{HttpModelConfigBuilder, LocalModelConfig, ModelConfig},
     registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH},
 };
-use tabby_inference::{
-    ChatCompletionOptions, ChatCompletionStream, CompletionOptions, CompletionStream, Embedding,
-};
+use tabby_inference::{ChatCompletionStream, CompletionOptions, CompletionStream, Embedding};
 
 fn api_endpoint(port: u16) -> String {
     format!("http://127.0.0.1:{port}")
@@ -141,16 +139,9 @@ impl ChatCompletionServer {
     }
 }
 
-#[async_trait]
 impl ChatCompletionStream for ChatCompletionServer {
-    async fn chat_completion(
-        &self,
-        messages: &[Message],
-        options: ChatCompletionOptions,
-    ) -> Result<BoxStream<String>> {
-        self.chat_completion
-            .chat_completion(messages, options)
-            .await
+    fn get(&self) -> async_openai::Chat<'_, OpenAIConfig> {
+        self.chat_completion.get()
     }
 }
 

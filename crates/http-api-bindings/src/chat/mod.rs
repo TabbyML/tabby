@@ -1,20 +1,13 @@
-mod openai_chat;
-
 use std::sync::Arc;
 
-use openai_chat::OpenAIChatEngine;
+use async_openai::config::OpenAIConfig;
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::ChatCompletionStream;
 
 pub async fn create(model: &HttpModelConfig) -> Arc<dyn ChatCompletionStream> {
-    match model.kind.as_str() {
-        "openai/chat" => Arc::new(OpenAIChatEngine::create(
-            &model.api_endpoint,
-            model.model_name.as_deref().unwrap_or_default(),
-            model.api_key.clone(),
-        )),
-        "ollama/chat" => ollama_api_bindings::create_chat(model).await,
+    let config = OpenAIConfig::default()
+        .with_api_base(model.api_endpoint.clone())
+        .with_api_key(model.api_key.clone().unwrap_or_default());
 
-        unsupported_kind => panic!("Unsupported kind for http chat: {}", unsupported_kind),
-    }
+    Arc::new(async_openai::Client::with_config(config))
 }
