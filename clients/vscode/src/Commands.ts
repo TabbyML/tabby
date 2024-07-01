@@ -57,7 +57,7 @@ export class Commands {
       const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
       if (!fileContext) {
         window.showInformationMessage("No selected codes");
-        return
+        return;
       }
 
       this.chatViewProvider.sendMessage({
