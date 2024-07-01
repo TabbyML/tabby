@@ -24,6 +24,7 @@ impl LlamaCppSupervisor {
         model_path: &str,
         parallelism: u8,
         chat_template: Option<String>,
+        enable_fast_attention: bool,
     ) -> LlamaCppSupervisor {
         let Some(binary_name) = find_binary_name() else {
             panic!("Failed to locate llama-server binary, please make sure you have llama-server binary locates in the same directory as the current executable.");
@@ -75,6 +76,10 @@ impl LlamaCppSupervisor {
                 if let Some(chat_template) = chat_template.as_ref() {
                     command.arg("--chat-template").arg(chat_template);
                 }
+
+                if enable_fast_attention {
+                    command.arg("-fa");
+                };
 
                 let mut process = command.spawn().unwrap_or_else(|e| {
                     panic!(

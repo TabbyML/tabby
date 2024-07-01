@@ -135,5 +135,6 @@ fn to_local_config(model: &str, parallelism: u8, device: &Device) -> ModelConfig
         model_id: model.to_owned(),
         parallelism,
         num_gpu_layers,
+        enable_fast_attention: false,
     })
 }

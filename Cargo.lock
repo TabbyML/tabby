@@ -2596,6 +2596,8 @@ dependencies = [
  "http-api-bindings",
  "omnicopy_to_output",
  "reqwest",
+ "serde",
+ "serdeconv",
  "tabby-common",
  "tabby-inference",
  "tokio",
