@@ -26,14 +26,14 @@ import { ListSkeleton } from '@/components/skeleton'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
 import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
+import { BlobModeView } from './blob-mode-view'
 import { ChatSideBar } from './chat-side-bar'
 import { ErrorView } from './error-view'
 import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
-import { DirectoryView } from './file-directory-view'
 import { mapToFileTree, sortFileTree, type TFileTreeNode } from './file-tree'
 import { FileTreePanel } from './file-tree-panel'
-import { RawFileView } from './raw-file-view'
-import { TextFileView } from './text-file-view'
+import { TreeModeView } from './tree-mode-view'
+import type { FileDisplayType } from './types'
 import {
   CodeBrowserError,
   generateEntryPath,
@@ -293,8 +293,6 @@ interface SourceCodeBrowserProps {
   className?: string
 }
 
-type FileDisplayType = 'image' | 'text' | 'raw' | ''
-
 const ENTRY_CONTENT_TYPE = 'application/vnd.directory+json'
 
 const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
@@ -331,8 +329,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   const activeBasename = parsedEntryInfo?.basename
 
-  const [fileViewType, setFileViewType] = React.useState<FileDisplayType>()
-
   const isBlobMode = activeEntryInfo?.viewMode === 'blob'
   const shouldFetchTree =
     !!isPathInitialized && !isEmpty(repoMap) && !!activePath
@@ -368,11 +364,15 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   } = useSWR<{
     blob?: Blob
     contentLength?: number
+    fileDisplayType: FileDisplayType
   }>(
     isBlobMode && activeRepo
-      ? toEntryRequestUrl(activeRepo, activeRepoRef?.name, activeBasename)
+      ? [
+          toEntryRequestUrl(activeRepo, activeRepoRef?.name, activeBasename),
+          activeBasename
+        ]
       : null,
-    (url: string) =>
+    ([url, basename]: [string, string]) =>
       fetcher(url, {
         responseFormatter: async response => {
           const contentType = response.headers.get('Content-Type')
@@ -380,11 +380,13 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
             throw new Error(CodeBrowserError.INVALID_URL)
           }
           const contentLength = toNumber(response.headers.get('Content-Length'))
-          // todo abort big size request and truncate
+          // FIXME(jueliang) abort big size request and truncate the response data
           const blob = await response.blob()
+          const fileDisplayType = await getFileViewType(basename ?? '', blob)
           return {
             contentLength,
-            blob
+            blob,
+            fileDisplayType
           }
         },
         errorHandler() {
@@ -399,17 +401,13 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   const fileBlob = rawFileResponse?.blob
   const contentLength = rawFileResponse?.contentLength
+  const fileDisplayType = rawFileResponse?.fileDisplayType
   const error = rawFileError || entriesError
 
   const showErrorView = !!error
 
-  const showDirectoryView =
+  const isTreeMode =
     activeEntryInfo?.viewMode === 'tree' || !activeEntryInfo?.viewMode
-
-  const showTextFileView = isBlobMode && fileViewType === 'text'
-
-  const showRawFileView =
-    isBlobMode && (fileViewType === 'image' || fileViewType === 'raw')
 
   const onPanelLayout = (sizes: number[]) => {
     if (sizes?.[2]) {
@@ -523,19 +521,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [fetchingRawFile, fetchingTreeEntries])
 
   React.useEffect(() => {
-    const calculateViewType = async () => {
-      const displayType = await getFileViewType(activePath ?? '', fileBlob)
-      setFileViewType(displayType)
-    }
-
-    if (isBlobMode) {
-      calculateViewType()
-    } else {
-      setFileViewType('')
-    }
-  }, [activePath, isBlobMode, fileBlob])
-
-  React.useEffect(() => {
     if (chatSideBarVisible) {
       chatSideBarPanelRef.current?.expand()
       chatSideBarPanelRef.current?.resize(chatSideBarPanelSize)
@@ -596,21 +581,19 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
             />
           ) : (
             <div>
-              {showDirectoryView && (
-                <DirectoryView
+              {isTreeMode && (
+                <TreeModeView
                   loading={fetchingTreeEntries}
                   initialized={initialized}
                   className={`rounded-lg border`}
                 />
               )}
-              {showTextFileView && (
-                <TextFileView blob={fileBlob} contentLength={contentLength} />
-              )}
-              {showRawFileView && (
-                <RawFileView
+              {isBlobMode && (
+                <BlobModeView
                   blob={fileBlob}
-                  isImage={fileViewType === 'image'}
                   contentLength={contentLength}
+                  fileDisplayType={fileDisplayType}
+                  loading={fetchingRawFile || fetchingTreeEntries}
                 />
               )}
             </div>
@@ -696,8 +679,9 @@ function isReadableTextFile(blob: Blob) {
 async function getFileViewType(
   path: string,
   blob: Blob | undefined
-): Promise<FileDisplayType> {
-  if (!blob) return ''
+): Promise<FileDisplayType | undefined> {
+  if (!blob) return undefined
+
   const mimeType = blob?.type
   const detectedLanguage = filename2prism(path)?.[0]
 

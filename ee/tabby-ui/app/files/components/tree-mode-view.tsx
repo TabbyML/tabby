@@ -20,12 +20,12 @@ import {
   resolveRepositoryInfoFromPath
 } from './utils'
 
-interface DirectoryViewProps extends React.HTMLAttributes<HTMLDivElement> {
+interface TreeModeViewProps extends React.HTMLAttributes<HTMLDivElement> {
   loading: boolean
   initialized: boolean
 }
 
-const DirectoryView: React.FC<DirectoryViewProps> = ({
+const TreeModeView: React.FC<TreeModeViewProps> = ({
   className,
   loading: propsLoading,
   initialized
@@ -37,8 +37,7 @@ const DirectoryView: React.FC<DirectoryViewProps> = ({
     activeRepo,
     activeRepoRef,
     repoMap,
-    activeEntryInfo,
-    fileMap
+    activeEntryInfo
   } = React.useContext(SourceCodeBrowserContext)
 
   const files: TFileTreeNode[] = React.useMemo(() => {
@@ -197,4 +196,4 @@ function getCurrentDirFromTree(
   }
 }
 
-export { DirectoryView }
+export { TreeModeView }
