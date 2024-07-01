@@ -176,6 +176,7 @@ fn default_embedding_config() -> ModelConfig {
         model_id: "Nomic-Embed-Text".into(),
         parallelism: 1,
         num_gpu_layers: 9999,
+        enable_fast_attention: false,
     })
 }
 
@@ -242,6 +243,9 @@ pub struct LocalModelConfig {
 
     #[serde(default = "default_num_gpu_layers")]
     pub num_gpu_layers: u16,
+
+    #[serde(default)]
+    pub enable_fast_attention: bool,
 }
 
 fn default_parallelism() -> u8 {
