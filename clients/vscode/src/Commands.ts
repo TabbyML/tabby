@@ -56,7 +56,8 @@ export class Commands {
       commands.executeCommand("tabby.chatView.focus");
       const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
       if (!fileContext) {
-        return window.showInformationMessage("No selected codes");
+        window.showInformationMessage("No selected codes");
+        return
       }
 
       this.chatViewProvider.sendMessage({
