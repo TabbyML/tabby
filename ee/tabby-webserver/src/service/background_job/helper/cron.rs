@@ -35,6 +35,10 @@ where
                 match next {
                     Some(next) => {
                         let to_sleep = next.clone() - timezone.from_utc_datetime(&Utc::now().naive_utc());
+                        if to_sleep.num_seconds() < 0 {
+                            // If the next time is in the past, skip it and get the next one.
+                            continue
+                        }
                         let to_sleep = match to_sleep.to_std() {
                             Ok(to_sleep) => to_sleep,
                             Err(err) => {
