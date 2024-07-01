@@ -22,13 +22,12 @@ use crate::{
     routes::{self, run_app},
     services::{
         self, answer,
-        chat::{self, create_chat_service},
         code::create_code_search,
         completion::{self, create_completion_service},
         embedding,
         event::create_event_logger,
         health,
-        model::download_model_if_needed,
+        model::{self, download_model_if_needed},
         tantivy::IndexReaderProvider,
     },
     to_local_config, Device,
@@ -62,11 +61,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         completion::Snippet,
         completion::DebugOptions,
         completion::DebugData,
-        chat::ChatCompletionRequest,
-        chat::ChatCompletionChoice,
-        chat::ChatCompletionDelta,
         api::chat::Message,
-        chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,
         api::code::CodeSearchDocument,
@@ -225,7 +220,7 @@ async fn api_router(
     };
 
     let chat_state = if let Some(chat) = &model.chat {
-        Some(Arc::new(create_chat_service(logger.clone(), chat).await))
+        Some(model::load_chat_completion(chat).await)
     } else {
         None
     };

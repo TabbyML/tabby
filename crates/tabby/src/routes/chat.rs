@@ -7,10 +7,11 @@ use axum::{
 };
 use axum_extra::TypedHeader;
 use futures::{Stream, StreamExt};
-use tracing::instrument;
+use hyper::StatusCode;
+use tabby_inference::ChatCompletionStream;
+use tracing::{instrument, warn};
 
 use super::MaybeUser;
-use crate::services::chat::{ChatCompletionRequest, ChatService};
 
 #[utoipa::path(
     post,
@@ -29,18 +30,27 @@ use crate::services::chat::{ChatCompletionRequest, ChatService};
 )]
 #[instrument(skip(state, request))]
 pub async fn chat_completions(
-    State(state): State<Arc<ChatService>>,
+    State(state): State<Arc<dyn ChatCompletionStream>>,
     TypedHeader(MaybeUser(user)): TypedHeader<MaybeUser>,
-    Json(mut request): Json<ChatCompletionRequest>,
-) -> Sse<impl Stream<Item = Result<Event, serde_json::Error>>> {
+    Json(mut request): Json<async_openai::types::CreateChatCompletionRequest>,
+) -> Result<Sse<impl Stream<Item = Result<Event, anyhow::Error>>>, StatusCode> {
     if let Some(user) = user {
         request.user.replace(user);
     }
 
-    let stream = state.generate(request).await;
-    Sse::new(stream.map(|chunk| match serde_json::to_string(&chunk) {
-        Ok(s) => Ok(Event::default().data(s)),
-        Err(err) => Err(err),
-    }))
-    .keep_alive(KeepAlive::default())
+    let s = match state.get().create_stream(request).await {
+        Ok(s) => s,
+        Err(err) => {
+            warn!("Error happens during chat completion: {}", err);
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    let s = s.map(|chunk| {
+        let chunk = chunk?;
+        let json = serde_json::to_string(&chunk)?;
+        Ok(Event::default().data(json))
+    });
+
+    Ok(Sse::new(s).keep_alive(KeepAlive::default()))
 }

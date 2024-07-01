@@ -1,5 +1,4 @@
 pub mod answer;
-pub mod chat;
 pub mod code;
 pub mod completion;
 pub mod doc;
