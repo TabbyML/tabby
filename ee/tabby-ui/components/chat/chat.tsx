@@ -122,6 +122,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   onCopyContent?: (value: string) => void
   isReferenceClickable?: boolean
   from?: string
+  onSubmitMessage?: (msg: string) => Promise<void>
 }
 
 function ChatRenderer(
@@ -143,7 +144,8 @@ function ChatRenderer(
     promptFormClassname,
     onCopyContent,
     isReferenceClickable = true,
-    from
+    from,
+    onSubmitMessage
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -345,6 +347,7 @@ function ChatRenderer(
   }
 
   const handleSubmit = async (value: string) => {
+    if (onSubmitMessage) return onSubmitMessage(value)
     return sendUserChat({
       message: value
     })

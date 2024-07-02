@@ -30,6 +30,7 @@ export function createClient(webview: WebviewView, api: ClientApi): ServerApi {
     expose: {
       navigate: api.navigate,
       refresh: api.refresh,
+      onSubmitMessage: api.onSubmitMessage,
     },
   });
 }

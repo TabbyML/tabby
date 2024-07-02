@@ -38,6 +38,7 @@ export interface ServerApi {
 export interface ClientApi {
   navigate: (context: Context) => void
   refresh: () => Promise<void>
+  onSubmitMessage?: (msg: string) => Promise<void>
 }
 
 export interface ChatMessage {
@@ -51,6 +52,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerA
     expose: {
       navigate: api.navigate,
       refresh: api.refresh,
+      onSubmitMessage: api.onSubmitMessage,
     },
   })
 }
