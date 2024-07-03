@@ -5,6 +5,7 @@ import TopBarProgress from 'react-topbar-progress-indicator'
 
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
+import { useLatest } from '@/lib/hooks/use-latest'
 
 interface TopbarProgressProviderProps {
   children: React.ReactNode
@@ -22,9 +23,12 @@ const TopbarProgressContext = React.createContext<TopbarProgressContextValue>(
 const TopbarProgressProvider: React.FC<TopbarProgressProviderProps> = ({
   children
 }) => {
+  const { theme } = useCurrentTheme()
+
   const [progress, setProgress] = React.useState(false)
   const [debouncedProgress] = useDebounceValue(progress, 200, { leading: true })
-  const { theme } = useCurrentTheme()
+  const latestProgress = useLatest(progress)
+
   React.useEffect(() => {
     TopBarProgress.config({
       barColors: {
@@ -34,9 +38,15 @@ const TopbarProgressProvider: React.FC<TopbarProgressProviderProps> = ({
     })
   }, [])
 
+  const updateProgress = React.useCallback((v: boolean) => {
+    if (!!v && v === latestProgress.current) return
+
+    setProgress(v)
+  }, [])
+
   return (
     <TopbarProgressContext.Provider
-      value={{ progress: debouncedProgress, setProgress }}
+      value={{ progress: debouncedProgress, setProgress: updateProgress }}
     >
       {debouncedProgress && <TopBarProgress />}
       {children}
