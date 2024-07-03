@@ -7,7 +7,6 @@ homepage.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-async-openai = "0.20"
 async-stream.workspace = true
 async-trait.workspace = true
 futures.workspace = true
@@ -18,7 +17,7 @@ serde_json = { workspace = true }
 tabby-common = { path = "../tabby-common" }
 tabby-inference = { path = "../tabby-inference" }
 ollama-api-bindings = { path = "../ollama-api-bindings" }
-tracing.workspace = true
+async-openai.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros"] }

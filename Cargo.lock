@@ -1923,7 +1923,6 @@ dependencies = [
  "tabby-common",
  "tabby-inference",
  "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -2590,6 +2589,7 @@ name = "llama-cpp-server"
 version = "0.13.0-dev.0"
 dependencies = [
  "anyhow",
+ "async-openai",
  "async-trait",
  "cmake",
  "futures",
@@ -5022,6 +5022,7 @@ version = "0.13.0-dev.0"
 dependencies = [
  "anyhow",
  "assert-json-diff",
+ "async-openai",
  "async-stream",
  "async-trait",
  "axum",
@@ -5031,7 +5032,6 @@ dependencies = [
  "chrono",
  "clap",
  "color-eyre",
- "derive_builder 0.12.0",
  "futures",
  "http-api-bindings",
  "hyper 1.3.1",
@@ -5153,6 +5153,7 @@ name = "tabby-inference"
 version = "0.13.0-dev.0"
 dependencies = [
  "anyhow",
+ "async-openai",
  "async-stream",
  "async-trait",
  "dashmap",

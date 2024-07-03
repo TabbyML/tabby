@@ -1,29 +1,32 @@
+use core::panic;
 use std::sync::Arc;
 
+use async_openai::types::{
+    ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
+    CreateChatCompletionRequestArgs,
+};
 use async_stream::stream;
-use futures::{stream::BoxStream, StreamExt};
+use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 use tabby_common::api::{
-    chat::Message,
     code::{CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchQuery},
     doc::{DocSearch, DocSearchDocument, DocSearchError},
 };
+use tabby_inference::ChatCompletionStream;
 use tracing::{debug, warn};
 use utoipa::ToSchema;
-
-use crate::services::chat::{ChatCompletionRequestBuilder, ChatService};
 
 #[derive(Deserialize, ToSchema)]
 #[schema(example=json!({
     "messages": [
-        Message { role: "user".to_owned(), content: "What is tail recursion?".to_owned()},
+        ChatCompletionRequestUserMessageArgs::default().content("What is tail recursion?".to_owned()).build().unwrap(),
     ],
 }))]
 pub struct AnswerRequest {
     #[serde(default)]
     pub(crate) user: Option<String>,
 
-    messages: Vec<Message>,
+    messages: Vec<ChatCompletionRequestMessage>,
 
     #[serde(default)]
     code_query: Option<CodeSearchQuery>,
@@ -44,7 +47,7 @@ pub enum AnswerResponseChunk {
     AnswerDelta(String),
 }
 pub struct AnswerService {
-    chat: Arc<ChatService>,
+    chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
     serper: Option<Box<dyn DocSearch>>,
@@ -54,7 +57,11 @@ pub struct AnswerService {
 const PRESENCE_PENALTY: f32 = 0.5;
 
 impl AnswerService {
-    fn new(chat: Arc<ChatService>, code: Arc<dyn CodeSearch>, doc: Arc<dyn DocSearch>) -> Self {
+    fn new(
+        chat: Arc<dyn ChatCompletionStream>,
+        code: Arc<dyn CodeSearch>,
+        doc: Arc<dyn DocSearch>,
+    ) -> Self {
         let serper: Option<Box<dyn DocSearch>> =
             if let Ok(api_key) = std::env::var("SERPER_API_KEY") {
                 debug!("Serper API key found, enabling serper...");
@@ -76,7 +83,7 @@ impl AnswerService {
     ) -> BoxStream<'a, AnswerResponseChunk> {
         let s = stream! {
             // 0. Collect sources given query, for now we only use the last message
-            let query: &mut Message = match req.messages.last_mut() {
+            let query: &mut _ = match req.messages.last_mut() {
                 Some(query) => query,
                 None => {
                     warn!("No query found in the request");
@@ -99,7 +106,7 @@ impl AnswerService {
 
             // 2. Collect relevant docs if needed.
             let relevant_docs = if req.doc_query {
-                self.collect_relevant_docs(&query.content).await
+                self.collect_relevant_docs(get_content(query)).await
             } else {
                 vec![]
             };
@@ -111,27 +118,47 @@ impl AnswerService {
             if !relevant_code.is_empty() || !relevant_docs.is_empty() {
                 if req.generate_relevant_questions {
                     // 3. Generate relevant questions from the query
-                    let relevant_questions = self.generate_relevant_questions(&relevant_code, &relevant_docs, &query.content).await;
+                    let relevant_questions = self.generate_relevant_questions(&relevant_code, &relevant_docs, get_content(query)).await;
                     yield AnswerResponseChunk::RelevantQuestions(relevant_questions);
                 }
 
 
                 // 4. Generate override prompt from the query
-                query.content = self.generate_prompt(&relevant_code, &relevant_docs, &query.content).await;
+                set_content(query, self.generate_prompt(&relevant_code, &relevant_docs, get_content(query)).await);
             }
 
 
             // 5. Generate answer from the query
-            let s = self.chat.clone().generate(ChatCompletionRequestBuilder::default()
-                .messages(req.messages)
-                .user(req.user)
-                .presence_penalty(Some(PRESENCE_PENALTY))
-                .build()
-                .expect("Failed to create ChatCompletionRequest"))
-                .await;
+            let request = {
+                let mut builder = CreateChatCompletionRequestArgs::default();
+                builder.messages(req.messages).presence_penalty(PRESENCE_PENALTY);
+                if let Some(user) = req.user {
+                    builder.user(user);
+                };
+
+                builder.build().expect("Failed to create ChatCompletionRequest")
+            };
+
+            let s = match self.chat.get().create_stream(request).await {
+                Ok(s) => s,
+                Err(err) => {
+                    warn!("Failed to create chat completion stream: {:?}", err);
+                    return;
+                }
+            };
 
             for await chunk in s {
-                yield AnswerResponseChunk::AnswerDelta(chunk.choices[0].delta.content.clone());
+                let chunk = match chunk {
+                    Ok(chunk) => chunk,
+                    Err(err) => {
+                        debug!("Failed to get chat completion chunk: {:?}", err);
+                        break;
+                    }
+                };
+
+                if let Some(content) = chunk.choices[0].delta.content.as_deref() {
+                    yield AnswerResponseChunk::AnswerDelta(content.to_owned());
+                }
             }
         };
 
@@ -228,35 +255,43 @@ Remember, based on the original question and related contexts, suggest three suc
 "#
         );
 
-        let request = ChatCompletionRequestBuilder::default()
-            .messages(vec![Message {
-                role: "user".to_owned(),
-                content: prompt,
-            }])
+        let request = CreateChatCompletionRequestArgs::default()
+            .messages(vec![ChatCompletionRequestMessage::User(
+                ChatCompletionRequestUserMessageArgs::default()
+                    .content(prompt)
+                    .build()
+                    .expect("Failed to create ChatCompletionRequestUserMessage"),
+            )])
             .build()
             .expect("Failed to create ChatCompletionRequest");
 
         let chat = self.chat.clone();
-        let s = chat.generate(request).await;
-
-        let mut content = String::default();
-        s.for_each(|chunk| {
-            content += &chunk.choices[0].delta.content;
-            futures::future::ready(())
-        })
-        .await;
-
+        let s = chat
+            .get()
+            .create(request)
+            .await
+            .expect("Failed to create chat completion stream");
+        let content = s.choices[0]
+            .message
+            .content
+            .as_deref()
+            .expect("Failed to get content from chat completion");
         content.lines().map(remove_bullet_prefix).collect()
     }
 
     async fn override_query_with_code_query(
         &self,
-        query: &mut Message,
+        query: &mut ChatCompletionRequestMessage,
         code_query: &CodeSearchQuery,
     ) {
-        query.content = format!(
-            "{}\n\n```{}\n{}\n```",
-            query.content, code_query.language, code_query.content
+        set_content(
+            query,
+            format!(
+                "{}\n\n```{}\n{}\n```",
+                get_content(query),
+                code_query.language,
+                code_query.content
+            ),
         )
     }
 
@@ -313,9 +348,27 @@ fn remove_bullet_prefix(s: &str) -> String {
 }
 
 pub fn create(
-    chat: Arc<ChatService>,
+    chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
 ) -> AnswerService {
     AnswerService::new(chat, code, doc)
+}
+
+fn get_content(message: &ChatCompletionRequestMessage) -> &str {
+    match message {
+        ChatCompletionRequestMessage::System(x) => &x.content,
+        _ => {
+            panic!("Unexpected message type, {:?}", message);
+        }
+    }
+}
+
+fn set_content(message: &mut ChatCompletionRequestMessage, content: String) {
+    match message {
+        ChatCompletionRequestMessage::System(x) => x.content = content,
+        _ => {
+            panic!("Unexpected message type");
+        }
+    }
 }
