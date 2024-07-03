@@ -22,7 +22,7 @@ fn main() {
         println!("cargo:rustc-link-lib=framework=MetalKit");
     }
     if cfg!(feature = "cuda") {
-        config.define("LLAMA_CUBLAS", "ON");
+        config.define("GGML_CUDA", "ON");
         config.define("CMAKE_POSITION_INDEPENDENT_CODE", "ON");
     }
     if cfg!(feature = "rocm") {
