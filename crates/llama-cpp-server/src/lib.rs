@@ -140,8 +140,11 @@ impl ChatCompletionServer {
 }
 
 impl ChatCompletionStream for ChatCompletionServer {
-    fn get(&self) -> async_openai::Chat<'_, OpenAIConfig> {
-        self.chat_completion.get()
+    async fn chat_stream(
+        &self,
+        request: async_openai::types::CreateChatCompletionRequest,
+    ) -> Result<async_openai::types::ChatCompletionResponseStream> {
+        self.chat_completion.chat_stream(request).await
     }
 }
 

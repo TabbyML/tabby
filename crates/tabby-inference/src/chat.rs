@@ -1,11 +1,28 @@
-use async_openai::config::OpenAIConfig;
+use async_openai::{
+    config::OpenAIConfig,
+    error::OpenAIError,
+    types::{ChatCompletionResponseStream, CreateChatCompletionRequest},
+};
+use async_trait::async_trait;
 
+#[async_trait]
 pub trait ChatCompletionStream: Sync + Send {
-    fn get(&self) -> async_openai::Chat<'_, OpenAIConfig>;
+    async fn chat_stream(
+        &self,
+        request: CreateChatCompletionRequest,
+    ) -> Result<ChatCompletionResponseStream, OpenAIError>;
 }
 
+pub struct ExtendedOpenAIConfig {
+    base: OpenAIConfig,
+}
+
+#[async_trait]
 impl ChatCompletionStream for async_openai::Client<OpenAIConfig> {
-    fn get(&self) -> async_openai::Chat<'_, OpenAIConfig> {
-        self.chat()
+    async fn chat_stream(
+        &self,
+        request: CreateChatCompletionRequest,
+    ) -> Result<ChatCompletionResponseStream, OpenAIError> {
+        self.chat().create_stream(request).await
     }
 }
