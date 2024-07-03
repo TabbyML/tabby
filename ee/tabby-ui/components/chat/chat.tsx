@@ -81,14 +81,14 @@ function userMessageToMessage(
     id,
     role: 'user',
     content: includeTransformedSelectContext
-      ? message + selectContextToMessageContent(userMessage.selectContext)
+      ? message +
+        selectContextToMessageContent(userMessage.selectContext) +
+        userMessage.relevantContext?.map(selectContextToMessageContent).join('')
       : message
   }
 }
 
-function selectContextToMessageContent(
-  context: UserMessage['selectContext']
-): string {
+function selectContextToMessageContent(context?: Context): string {
   if (!context || !context.content) return ''
   const { content, filepath } = context
   const language = filename2prism(filepath)?.[0]
