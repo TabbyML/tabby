@@ -2,8 +2,7 @@ use core::panic;
 use std::sync::Arc;
 
 use async_openai::types::{
-    ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
-    ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs,
+    ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs,
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
@@ -366,9 +365,7 @@ fn get_content(message: &ChatCompletionRequestMessage) -> &str {
 
 fn set_content(message: &mut ChatCompletionRequestMessage, content: String) {
     match message {
-        ChatCompletionRequestMessage::System(x) => {
-            x.content = content
-        }
+        ChatCompletionRequestMessage::System(x) => x.content = content,
         _ => {
             panic!("Unexpected message type");
         }
