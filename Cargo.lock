@@ -5160,6 +5160,8 @@ dependencies = [
  "dashmap",
  "derive_builder 0.12.0",
  "futures",
+ "reqwest",
+ "secrecy",
  "tabby-common",
  "trie-rs",
 ]

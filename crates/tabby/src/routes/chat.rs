@@ -41,7 +41,7 @@ pub async fn chat_completions(
         request.user.replace(user);
     }
 
-    let s = match state.get().create_stream(request).await {
+    let s = match state.chat_stream(request).await {
         Ok(s) => s,
         Err(err) => {
             warn!("Error happens during chat completion: {}", err);

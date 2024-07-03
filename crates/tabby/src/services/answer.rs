@@ -139,7 +139,7 @@ impl AnswerService {
                 builder.build().expect("Failed to create ChatCompletionRequest")
             };
 
-            let s = match self.chat.get().create_stream(request).await {
+            let s = match self.chat.chat_stream(request).await {
                 Ok(s) => s,
                 Err(err) => {
                     warn!("Failed to create chat completion stream: {:?}", err);
@@ -267,8 +267,7 @@ Remember, based on the original question and related contexts, suggest three suc
 
         let chat = self.chat.clone();
         let s = chat
-            .get()
-            .create(request)
+            .chat(request)
             .await
             .expect("Failed to create chat completion stream");
         let content = s.choices[0]
