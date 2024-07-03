@@ -34,7 +34,6 @@ type ChatContextValue = {
   onClearMessages: () => void
   container?: HTMLDivElement
   onCopyContent?: (value: string) => void
-  isReferenceClickable: boolean
   from?: string
 }
 
@@ -120,8 +119,8 @@ interface ChatProps extends React.ComponentProps<'div'> {
   welcomeMessage?: string
   promptFormClassname?: string
   onCopyContent?: (value: string) => void
-  isReferenceClickable?: boolean
   from?: string
+  onSubmitMessage?: (msg: string) => Promise<void>
 }
 
 function ChatRenderer(
@@ -142,8 +141,8 @@ function ChatRenderer(
     welcomeMessage,
     promptFormClassname,
     onCopyContent,
-    isReferenceClickable = true,
-    from
+    from,
+    onSubmitMessage
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -291,17 +290,21 @@ function ChatRenderer(
     qaPairs: QuestionAnswerPair[]
   ): AnswerRequest => {
     const userMessage = qaPairs[qaPairs.length - 1].user
-    const selectContext = userMessage?.selectContext
-    const code_query: AnswerRequest['code_query'] | undefined = selectContext
-      ? {
-          content: selectContext.content ?? '',
-          filepath: selectContext.filepath,
-          language: selectContext.filepath
-            ? filename2prism(selectContext.filepath)[0] || 'text'
-            : 'text',
-          git_url: selectContext?.git_url ?? ''
-        }
-      : undefined
+    // FIXME(wwayne): The first context in relevantContext is currently sent as the code query.
+    //                Review and update the logic to ensure the appropriate api attribute is used.
+    const contextForCodeQuery =
+      userMessage?.selectContext || userMessage?.relevantContext?.[0]
+    const code_query: AnswerRequest['code_query'] | undefined =
+      contextForCodeQuery
+        ? {
+            content: contextForCodeQuery.content ?? '',
+            filepath: contextForCodeQuery.filepath,
+            language: contextForCodeQuery.filepath
+              ? filename2prism(contextForCodeQuery.filepath)[0] || 'text'
+              : 'text',
+            git_url: contextForCodeQuery?.git_url ?? ''
+          }
+        : undefined
 
     return {
       messages: toMessages(qaPairs).slice(0, -1),
@@ -345,6 +348,7 @@ function ChatRenderer(
   }
 
   const handleSubmit = async (value: string) => {
+    if (onSubmitMessage) return onSubmitMessage(value)
     return sendUserChat({
       message: value
     })
@@ -391,7 +395,6 @@ function ChatRenderer(
         onClearMessages,
         container,
         onCopyContent,
-        isReferenceClickable,
         from
       }}
     >

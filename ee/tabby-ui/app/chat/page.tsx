@@ -59,8 +59,11 @@ export default function ChatPage() {
   const initialForeground = searchParams.get('foreground')
     ? `#${searchParams.get('foreground')}`
     : undefined
+  const handleMessageSubmit =
+    searchParams.get('handle-message-submit') || undefined
 
   const isFromVSCode = client === 'vscode'
+  const isOnSubmitMessage = handleMessageSubmit === 'true'
   const maxWidth = isFromVSCode ? '5xl' : undefined
 
   useEffect(() => {
@@ -179,6 +182,10 @@ export default function ChatPage() {
     setIsRefreshLoading(false)
   }
 
+  const onSubmitMessage = async (msg: string) => {
+    return server?.onSubmitMessage?.(msg)
+  }
+
   function StaticContent({ children }: { children: React.ReactNode }) {
     return (
       <div
@@ -285,6 +292,7 @@ export default function ChatPage() {
         maxWidth={maxWidth}
         onCopyContent={client === 'vscode' ? onCopyContent : undefined}
         from={client}
+        onSubmitMessage={isOnSubmitMessage ? onSubmitMessage : undefined}
       />
     </ErrorBoundary>
   )

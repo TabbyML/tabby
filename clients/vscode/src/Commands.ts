@@ -50,6 +50,25 @@ export class Commands {
     this.context.subscriptions.push(...notNullRegistrations);
   }
 
+  private sendMessageToChatPanel(msg: string) {
+    const editor = window.activeTextEditor;
+    if (editor) {
+      commands.executeCommand("tabby.chatView.focus");
+      const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+      if (!fileContext) {
+        window.showInformationMessage("No selected codes");
+        return;
+      }
+
+      this.chatViewProvider.sendMessage({
+        message: msg,
+        selectContext: fileContext,
+      });
+    } else {
+      window.showInformationMessage("No active editor");
+    }
+  }
+
   commands: Record<string, (...args: never[]) => void> = {
     applyCallback: (callback: (() => void) | undefined) => {
       callback?.();
@@ -216,56 +235,16 @@ export class Commands {
       }
     },
     "chat.explainCodeBlock": async () => {
-      const editor = window.activeTextEditor;
-      if (editor) {
-        commands.executeCommand("tabby.chatView.focus");
-        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
-        this.chatViewProvider.sendMessage({
-          message: "Explain the selected code:",
-          selectContext: fileContext,
-        });
-      } else {
-        window.showInformationMessage("No active editor");
-      }
+      this.sendMessageToChatPanel("Explain the selected code:");
     },
     "chat.fixCodeBlock": async () => {
-      const editor = window.activeTextEditor;
-      if (editor) {
-        commands.executeCommand("tabby.chatView.focus");
-        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
-        this.chatViewProvider.sendMessage({
-          message: "Identify and fix potential bugs in the selected code:",
-          selectContext: fileContext,
-        });
-      } else {
-        window.showInformationMessage("No active editor");
-      }
+      this.sendMessageToChatPanel("Identify and fix potential bugs in the selected code:");
     },
     "chat.generateCodeBlockDoc": async () => {
-      const editor = window.activeTextEditor;
-      if (editor) {
-        commands.executeCommand("tabby.chatView.focus");
-        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
-        this.chatViewProvider.sendMessage({
-          message: "Generate documentation for the selected code:",
-          selectContext: fileContext,
-        });
-      } else {
-        window.showInformationMessage("No active editor");
-      }
+      this.sendMessageToChatPanel("Generate documentation for the selected code:");
     },
     "chat.generateCodeBlockTest": async () => {
-      const editor = window.activeTextEditor;
-      if (editor) {
-        commands.executeCommand("tabby.chatView.focus");
-        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
-        this.chatViewProvider.sendMessage({
-          message: "Generate a unit test for the selected code:",
-          selectContext: fileContext,
-        });
-      } else {
-        window.showInformationMessage("No active editor");
-      }
+      this.sendMessageToChatPanel("Generate a unit test for the selected code:");
     },
     "chat.edit.start": async () => {
       const editor = window.activeTextEditor;

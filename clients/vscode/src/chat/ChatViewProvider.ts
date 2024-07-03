@@ -7,6 +7,7 @@ import {
   env,
   LogOutputChannel,
   TextEditor,
+  window,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -26,6 +27,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     private readonly context: ExtensionContext,
     private readonly agent: Agent,
     private readonly logger: LogOutputChannel,
+    private readonly gitProvider: GitProvider,
   ) {}
 
   static getFileContextFromSelection({
@@ -34,7 +36,7 @@ export class ChatViewProvider implements WebviewViewProvider {
   }: {
     editor: TextEditor;
     gitProvider: GitProvider;
-  }): Context {
+  }): Context | null {
     const alignIndent = (text: string) => {
       const lines = text.split("\n");
       const subsequentLines = lines.slice(1);
@@ -54,6 +56,8 @@ export class ChatViewProvider implements WebviewViewProvider {
 
     const uri = editor.document.uri;
     const text = editor.document.getText(editor.selection);
+    if (!text) return null;
+
     const workspaceFolder = workspace.getWorkspaceFolder(uri);
     const repo = gitProvider.getRepository(uri);
     const remoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
@@ -111,6 +115,18 @@ export class ChatViewProvider implements WebviewViewProvider {
         const serverInfo = await this.agent.fetchServerInfo();
         await this.renderChatPage(serverInfo.config.endpoint);
         return;
+      },
+      onSubmitMessage: async (msg: string) => {
+        const editor = window.activeTextEditor;
+        const chatMessage: ChatMessage = {
+          message: msg,
+        };
+        if (editor) {
+          const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+          if (fileContext) chatMessage.relevantContext = [fileContext];
+        }
+
+        this.sendMessage(chatMessage);
       },
     });
 
@@ -260,13 +276,14 @@ export class ChatViewProvider implements WebviewViewProvider {
                   const themeQuery = "&theme=" + theme
                   const fontSizeQuery = "&font-size=" + fontSize
                   const foregroundQuery = "&foreground=" + foreground.replace('#', '')
+                  const handlSubmitMessageQuery = "&handle-message-submit=true"
       
                   chatIframe.addEventListener('load', function() {
                     vscode.postMessage({ action: 'rendered' });
                     syncTheme()
                   });
 
-                  chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery + themeQuery + fontSizeQuery + foregroundQuery)
+                  chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery + themeQuery + fontSizeQuery + foregroundQuery + handlSubmitMessageQuery)
                 }
                 
                 window.addEventListener("message", (event) => {

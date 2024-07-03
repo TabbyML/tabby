@@ -83,6 +83,7 @@ function QuestionAnswerItem({ message, isLoading }: QuestionAnswerItemProps) {
           <Separator className="my-4 md:my-8" />
           <AssistantMessageCard
             message={assistant}
+            userMessage={user}
             isLoading={isLoading}
             userMessageId={user.id}
           />
@@ -204,6 +205,7 @@ interface AssistantMessageCardProps {
   userMessageId: string
   isLoading: boolean
   message: AssistantMessage
+  userMessage: UserMessage
 }
 
 interface AssistantMessageActionProps {
@@ -212,7 +214,7 @@ interface AssistantMessageActionProps {
 }
 
 function AssistantMessageCard(props: AssistantMessageCardProps) {
-  const { message, isLoading, userMessageId, ...rest } = props
+  const { message, userMessage, isLoading, userMessageId, ...rest } = props
 
   const contexts: Array<Context> = React.useMemo(() => {
     return (
@@ -259,7 +261,10 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       </div>
 
       <div className="w-full flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
-        <CodeReferences contexts={contexts} />
+        <CodeReferences
+          contexts={contexts}
+          userContexts={userMessage.relevantContext}
+        />
         {isLoading && !message?.message ? (
           <MessagePendingIndicator />
         ) : (
@@ -426,13 +431,13 @@ function ChatMessageActionsWrapper({
 
 interface ContextReferencesProps {
   contexts: Context[]
+  userContexts?: Context[]
 }
-const CodeReferences = ({ contexts }: ContextReferencesProps) => {
-  const { onNavigateToContext, isReferenceClickable } =
-    React.useContext(ChatContext)
-  const isMultipleReferences = contexts?.length > 1
+const CodeReferences = ({ contexts, userContexts }: ContextReferencesProps) => {
+  const totalContextLength = (userContexts?.length || 0) + contexts.length
+  const isMultipleReferences = totalContextLength > 1
 
-  if (!contexts?.length) return null
+  if (totalContextLength === 0) return null
 
   return (
     <Accordion
@@ -442,57 +447,68 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
     >
       <AccordionItem value="references" className="my-0 border-0">
         <AccordionTrigger className="my-0 py-2">
-          <span className="mr-2">{`Read ${contexts.length} file${
+          <span className="mr-2">{`Read ${totalContextLength} file${
             isMultipleReferences ? 's' : ''
           }`}</span>
         </AccordionTrigger>
         <AccordionContent className="space-y-2">
-          {contexts?.map((item, index) => {
-            const isMultiLine =
-              !isNil(item.range?.start) &&
-              !isNil(item.range?.end) &&
-              item.range.start < item.range.end
-            const pathSegments = item.filepath.split('/')
-            const fileName = pathSegments[pathSegments.length - 1]
-            const path = pathSegments
-              .slice(0, pathSegments.length - 1)
-              .join('/')
+          {userContexts?.map((item, index) => {
             return (
-              <div
-                className={cn('rounded-md border p-2 hover:bg-accent', {
-                  'cursor-pointer': isReferenceClickable,
-                  'cursor-default pointer-events-auto': !isReferenceClickable
-                })}
-                key={index}
-                onClick={e =>
-                  isReferenceClickable && onNavigateToContext?.(item)
-                }
-              >
-                <div className="flex items-center gap-1 overflow-hidden">
-                  <IconFile className="shrink-0" />
-                  <div className="flex-1 truncate" title={item.filepath}>
-                    <span>{fileName}</span>
-                    {item.range?.start && (
-                      <span className="text-muted-foreground">
-                        :{item.range.start}
-                      </span>
-                    )}
-                    {isMultiLine && (
-                      <span className="text-muted-foreground">
-                        -{item.range.end}
-                      </span>
-                    )}
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      {path}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <ContextItem
+                key={`user-${index}`}
+                context={item}
+                clickable={false}
+              />
             )
+          })}
+          {contexts.map((item, index) => {
+            return <ContextItem key={`assistant-${index}`} context={item} />
           })}
         </AccordionContent>
       </AccordionItem>
     </Accordion>
+  )
+}
+
+function ContextItem({
+  context,
+  clickable = true
+}: {
+  context: Context
+  clickable?: boolean
+}) {
+  const { onNavigateToContext } = React.useContext(ChatContext)
+  const isMultiLine =
+    !isNil(context.range?.start) &&
+    !isNil(context.range?.end) &&
+    context.range.start < context.range.end
+  const pathSegments = context.filepath.split('/')
+  const fileName = pathSegments[pathSegments.length - 1]
+  const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
+  return (
+    <div
+      className={cn('rounded-md border p-2', {
+        'cursor-pointer hover:bg-accent': clickable,
+        'cursor-default pointer-events-auto': !clickable
+      })}
+      onClick={e => clickable && onNavigateToContext?.(context)}
+    >
+      <div className="flex items-center gap-1 overflow-hidden">
+        <IconFile className="shrink-0" />
+        <div className="flex-1 truncate" title={context.filepath}>
+          <span>{fileName}</span>
+          {context.range?.start && (
+            <span className="text-muted-foreground">
+              :{context.range.start}
+            </span>
+          )}
+          {isMultiLine && (
+            <span className="text-muted-foreground">-{context.range.end}</span>
+          )}
+          <span className="ml-2 text-xs text-muted-foreground">{path}</span>
+        </div>
+      </div>
+    </div>
   )
 }
 
