@@ -27,6 +27,7 @@ RUN apt-get update && \
 # setup rust.
 RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain ${RUST_TOOLCHAIN} -y
 ENV PATH="/root/.cargo/bin:${PATH}"
+ENV LD_LIBRARY_PATH="/usr/local/cuda/compat/:${LD_LIBRARY_PATH}"
 
 WORKDIR /root/workspace
 
