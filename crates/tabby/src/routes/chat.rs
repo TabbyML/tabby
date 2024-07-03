@@ -16,11 +16,10 @@ use super::MaybeUser;
 #[utoipa::path(
     post,
     path = "/v1/chat/completions",
-    request_body = ChatCompletionRequest,
     operation_id = "chat_completions",
     tag = "v1",
     responses(
-        (status = 200, description = "Success", body = ChatCompletionChunk, content_type = "text/event-stream"),
+        (status = 200, description = "Success", content_type = "text/event-stream"),
         (status = 405, description = "When chat model is not specified, the endpoint returns 405 Method Not Allowed"),
         (status = 422, description = "When the prompt is malformed, the endpoint returns 422 Unprocessable Entity")
     ),
@@ -28,6 +27,10 @@ use super::MaybeUser;
         ("token" = [])
     )
 )]
+pub async fn chat_completions_utoipa(request: Json<serde_json::Value>) -> StatusCode {
+    unimplemented!()
+}
+
 #[instrument(skip(state, request))]
 pub async fn chat_completions(
     State(state): State<Arc<dyn ChatCompletionStream>>,

@@ -50,7 +50,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "/", description = "Server"),
     ),
-    paths(routes::log_event, routes::completions, routes::chat_completions, routes::health, routes::answer, routes::setting),
+    paths(routes::log_event, routes::completions, routes::chat_completions_utoipa, routes::health, routes::answer, routes::setting),
     components(schemas(
         api::event::LogEventRequest,
         completion::CompletionRequest,
@@ -61,7 +61,6 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         completion::Snippet,
         completion::DebugOptions,
         completion::DebugData,
-        api::chat::Message,
         health::HealthState,
         health::Version,
         api::code::CodeSearchDocument,

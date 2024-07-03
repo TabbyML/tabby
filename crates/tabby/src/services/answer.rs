@@ -151,7 +151,7 @@ impl AnswerService {
                 let chunk = match chunk {
                     Ok(chunk) => chunk,
                     Err(err) => {
-                        warn!("Failed to get chat completion chunk: {:?}", err);
+                        debug!("Failed to get chat completion chunk: {:?}", err);
                         break;
                     }
                 };
