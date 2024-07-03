@@ -11,6 +11,7 @@ fn main() {
     let mut config = Config::new("./llama.cpp");
     config.profile("Release");
     config.define("LLAMA_NATIVE", "OFF");
+    config.define("BUILD_SHARED_LIBS", "OFF");
     config.define("INS_ENB", "ON");
 
     if cfg!(target_os = "macos") {
