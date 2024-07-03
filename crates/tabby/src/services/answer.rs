@@ -2,7 +2,8 @@ use core::panic;
 use std::sync::Arc;
 
 use async_openai::types::{
-    ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs,
+    ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
+    CreateChatCompletionRequestArgs,
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
