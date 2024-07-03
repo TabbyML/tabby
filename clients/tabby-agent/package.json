@@ -86,6 +86,7 @@
     "tsc-watch": "^6.2.0",
     "tsup": "^8.0.2",
     "typescript": "^5.3.2",
+    "uri-js": "^4.4.1",
     "uuid": "^9.0.0",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-protocol": "^3.17.5",
