@@ -41,7 +41,7 @@ dependencies = [
 
 [[package]]
 name = "aim-downloader"
-version = "0.13.1-rc.2"
+version = "0.13.1-rc.3"
 dependencies = [
  "async-stream",
  "clap",
@@ -1908,7 +1908,7 @@ dependencies = [
 
 [[package]]
 name = "http-api-bindings"
-version = "0.13.1-rc.2"
+version = "0.13.1-rc.3"
 dependencies = [
  "anyhow",
  "async-openai",
@@ -2587,7 +2587,7 @@ checksum = "78b3ae25bc7c8c38cec158d1f2757ee79e9b3740fbc7ccf0e59e4b08d793fa89"
 
 [[package]]
 name = "llama-cpp-server"
-version = "0.13.1-rc.2"
+version = "0.13.1-rc.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3108,7 +3108,7 @@ dependencies = [
 
 [[package]]
 name = "ollama-api-bindings"
-version = "0.13.1-rc.2"
+version = "0.13.1-rc.3"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -5018,7 +5018,7 @@ dependencies = [
 
 [[package]]
 name = "tabby"
-version = "0.13.1-rc.2"
+version = "0.13.1-rc.3"
 dependencies = [
  "anyhow",
  "assert-json-diff",
@@ -5069,7 +5069,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-common"
-version = "0.13.1-rc.2"
+version = "0.13.1-rc.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5093,7 +5093,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-db"
-version = "0.13.1-rc.2"
+version = "0.13.1-rc.3"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -5110,7 +5110,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-db-macros"
-version = "0.13.1-rc.2"
+version = "0.13.1-rc.3"
 dependencies = [
  "quote",
  "syn 2.0.66",
@@ -5118,7 +5118,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-download"
-version = "0.13.1-rc.2"
+version = "0.13.1-rc.3"
 dependencies = [
  "aim-downloader",
  "anyhow",
@@ -5129,7 +5129,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-git"
-version = "0.13.1-rc.2"
+version = "0.13.1-rc.3"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -5150,7 +5150,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-inference"
-version = "0.13.1-rc.2"
+version = "0.13.1-rc.3"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -5164,7 +5164,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-scheduler"
-version = "0.13.1-rc.2"
+version = "0.13.1-rc.3"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -5205,7 +5205,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-schema"
-version = "0.13.1-rc.2"
+version = "0.13.1-rc.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5230,7 +5230,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-webserver"
-version = "0.13.1-rc.2"
+version = "0.13.1-rc.3"
 dependencies = [
  "anyhow",
  "argon2",
