@@ -1,4 +1,6 @@
 import { spawn } from "child_process";
+import * as path from "path";
+import * as fs from "fs-extra";
 import { parse as uriParse, serialize as uriSerialize } from "uri-js";
 import { CancellationToken } from "vscode-languageserver-protocol";
 import { GitRepositoryParams, GitRepository, GitDiffParams, GitDiffResult } from "./protocol";
@@ -24,13 +26,19 @@ async function executeGitCommand(cwd?: string, args: string[] = [], token?: Canc
       result += data.toString();
     });
 
-    git.on("close", (code) => {
+    git.on("error", (error) => {
+      reject(`Git command error: ${error}, cwd: ${cwd}, args: ${args.join(" ")}`);
+    })
+
+    const exitHandler = (code: number | null) => {
       if (code === 0) {
-        resolve(result);
+        resolve(result.trim());
       } else {
-        reject(`Git command failed, code: ${code}, args: ${args.join(" ")}`);
+        reject(`Git command failed, code: ${code}, cwd: ${cwd}, args: ${args.join(" ")}`);
       }
-    });
+    };
+    git.on("exit", exitHandler);
+    git.on("close", exitHandler);
 
     if (token?.isCancellationRequested) {
       reject("The request is canceled.");
@@ -41,9 +49,24 @@ async function executeGitCommand(cwd?: string, args: string[] = [], token?: Canc
   });
 }
 
+async function ensureCwd(filepath: string): Promise<string> {
+  const stats = await fs.stat(filepath);
+  if (stats.isDirectory()) {
+    return filepath;
+  }
+  return path.dirname(filepath);
+}
+
+function replaceUriPath(uri: string, path: string): string {
+  const uriComponents = uriParse(uri);
+  uriComponents.path = path;
+  return uriSerialize(uriComponents);
+}
+
 async function isGitCommandAvailable(): Promise<boolean> {
   try {
-    await executeGitCommand(undefined, ["--version"]);
+    const version = await executeGitCommand(undefined, ["--version"]);
+    logger.debug(`Git command is available, ${version}.`);
     return true;
   } catch (e) {
     logger.debug(`Git command is not available. ${e}`);
@@ -53,14 +76,16 @@ async function isGitCommandAvailable(): Promise<boolean> {
 
 async function getRepository(params: GitRepositoryParams, token?: CancellationToken): Promise<GitRepository | null> {
   try {
-    const uri = uriParse(params.uri);
-    if (uri.scheme !== "file") {
+    logger.trace("Get repository: ", { params });
+    const { scheme, path: filepath } = uriParse(params.uri);
+    if (scheme !== "file" || !filepath) {
       return null;
     }
-    const root = await executeGitCommand(uri.path, ["rev-parse", "--show-toplevel"], token);
-    uri.path = root;
-    const remoteVerbose = await executeGitCommand(root, ["remote", "-v"], token);
-    const remotes = remoteVerbose
+    const cwd = await ensureCwd(filepath);
+    const rootPath = await executeGitCommand(cwd, ["rev-parse", "--show-toplevel"], token);
+    const root = replaceUriPath(params.uri, rootPath);
+    const remoteOutput = await executeGitCommand(rootPath, ["remote", "-v"], token);
+    const remotes = remoteOutput
       .split("\n")
       .map((remoteLine) => {
         const [name, url] = remoteLine.trim().split(/\s+/);
@@ -70,28 +95,33 @@ async function getRepository(params: GitRepositoryParams, token?: CancellationTo
         return !!remote.name && !!remote.url;
       })
       .distinct((item) => item.name);
-    return { root: uriSerialize(uri), remotes };
+    const result = { root, remotes };
+    logger.trace("Get repository result: ", { result });
+    return result;
   } catch (e) {
-    logger.debug(`Failed to get repository for ${params}. ${e}`);
+    logger.debug(`Failed to get repository for ${params.uri}. ${e}`);
     return null;
   }
 }
 
 async function diff(params: GitDiffParams, token?: CancellationToken): Promise<GitDiffResult | null> {
   try {
+    logger.trace("Get diff: ", { params });
     const { repository, cached } = params;
-    const uri = uriParse(repository);
-    if (uri.scheme !== "file") {
+    const { scheme, path: rootPath } = uriParse(repository);
+    if (scheme !== "file" || !rootPath) {
       return null;
     }
     const args = ["diff"];
     if (cached) {
       args.push("--cached");
     }
-    const diff = await executeGitCommand(uri.path, args, token);
-    return { diff };
+    const diff = await executeGitCommand(rootPath, args, token);
+    const result = { diff };
+    logger.trace("Get diff result: ", { result });
+    return result;
   } catch (e) {
-    logger.debug(`Failed to get diff for ${params}. ${e}`);
+    logger.debug(`Failed to get diff for ${params.repository}. ${e}`);
     return null;
   }
 }
