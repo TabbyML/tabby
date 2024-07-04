@@ -27,7 +27,7 @@ use super::MaybeUser;
         ("token" = [])
     )
 )]
-pub async fn chat_completions_utoipa(request: Json<serde_json::Value>) -> StatusCode {
+pub async fn chat_completions_utoipa(_request: Json<serde_json::Value>) -> StatusCode {
     unimplemented!()
 }
 
