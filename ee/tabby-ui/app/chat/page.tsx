@@ -293,7 +293,7 @@ export default function ChatPage() {
         onLoaded={onChatLoaded}
         maxWidth={maxWidth}
         onCopyContent={client === 'vscode' ? onCopyContent : undefined}
-        from={client}
+        client={client}
         onSubmitMessage={isOnSubmitMessage ? onSubmitMessage : undefined}
       />
     </ErrorBoundary>

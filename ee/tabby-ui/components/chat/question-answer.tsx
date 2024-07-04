@@ -97,7 +97,7 @@ function UserMessageCard(props: { message: UserMessage }) {
   const { message } = props
   const [{ data }] = useMe()
   const selectContext = message.selectContext
-  const { onNavigateToContext, from } = React.useContext(ChatContext)
+  const { onNavigateToContext, client } = React.useContext(ChatContext)
   const selectCodeSnippet = React.useMemo(() => {
     if (!selectContext?.content) return ''
     const language = selectContext?.filepath
@@ -156,7 +156,7 @@ function UserMessageCard(props: { message: UserMessage }) {
             <UserMessageCardActions {...props} />
           </div>
 
-          {selectCode && message.selectContext && from !== 'vscode' && (
+          {selectCode && message.selectContext && client !== 'vscode' && (
             <div
               className="flex cursor-pointer items-center gap-1 overflow-x-auto text-xs text-muted-foreground hover:underline"
               onClick={() => onNavigateToContext?.(message.selectContext!)}
