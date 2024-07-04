@@ -2,6 +2,7 @@ use std::{collections::HashSet, sync::Arc};
 
 use async_stream::stream;
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use futures::{stream::BoxStream, StreamExt};
 use serde_json::json;
 use tabby_common::index::{self, corpus, doc};
@@ -147,7 +148,13 @@ impl DocIndexer {
         Self { indexer, builder }
     }
 
-    pub async fn add(&self, document: WebDocument) {
+    pub async fn add(&self, updated_at: DateTime<Utc>, document: WebDocument) {
+        if let Some(dt) = self.indexer.read_updated_at(&document.id) {
+            if dt >= updated_at {
+                return;
+            }
+        };
+
         stream! {
             let (id, s) = self.builder.build(document.into()).await;
             self.indexer.delete(&id);

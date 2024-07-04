@@ -39,6 +39,7 @@ git2.workspace = true
 insta.workspace = true
 async-trait.workspace = true
 logkit.workspace = true
+chrono.workspace = true
 
 [dev-dependencies]
 temp_testdir = { workspace = true }

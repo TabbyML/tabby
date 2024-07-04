@@ -5170,6 +5170,7 @@ dependencies = [
  "anyhow",
  "async-stream",
  "async-trait",
+ "chrono",
  "futures",
  "git2",
  "htmd",

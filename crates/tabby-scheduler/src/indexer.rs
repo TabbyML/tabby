@@ -264,8 +264,34 @@ impl Indexer {
 
         Ok(())
     }
+
+    pub fn read_updated_at(&self, id: &str) -> Option<chrono::DateTime<chrono::Utc>> {
+        let schema = IndexSchema::instance();
+        let query = schema.doc_query(&self.corpus, id);
+        let Ok(docs) = self.searcher.search(&query, &TopDocs::with_limit(1)) else {
+            return None;
+        };
+
+        docs.first().and_then(|(_, doc_addr)| {
+            let doc: TantivyDocument = self
+                .searcher
+                .doc(*doc_addr)
+                .expect("Failed to read document");
+            get_datetime(&doc, schema.field_updated_at)
+        })
+    }
 }
 
 fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
     doc.get_first(field).unwrap().as_str().unwrap()
+}
+
+fn get_datetime(
+    doc: &TantivyDocument,
+    field: schema::Field,
+) -> Option<chrono::DateTime<chrono::Utc>> {
+    doc.get_first(field)
+        .unwrap()
+        .as_datetime()
+        .map(|dt| chrono::DateTime::from_timestamp_nanos(dt.into_timestamp_nanos()))
 }
