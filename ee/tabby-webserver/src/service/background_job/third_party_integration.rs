@@ -130,8 +130,8 @@ impl SchedulerGithubGitlabJob {
 
         s.enumerate()
             .for_each(|(count, doc)| {
-                if count % 10 == 0 {
-                    logkit::info!("{} documents indexed", count);
+                if (count + 1) % 10 == 0 {
+                    logkit::info!("{} documents indexed", count + 1);
                 }
                 index.add(doc)
             })
