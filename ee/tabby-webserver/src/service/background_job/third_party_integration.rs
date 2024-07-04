@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
-use issues::{index_github_issues, index_gitlab_issues};
+use futures::StreamExt;
+use issues::{list_github_issues, list_gitlab_issues};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::RepositoryConfig;
@@ -103,33 +104,40 @@ impl SchedulerGithubGitlabJob {
         code.refresh(embedding.clone(), &RepositoryConfig::new(authenticated_url))
             .await;
 
-        logkit::info!("Indexing issues for repository {}", repository.display_name);
-
+        logkit::info!(
+            "Indexing documents for repository {}",
+            repository.display_name
+        );
         let index = DocIndexer::new(embedding);
-        match &integration.kind {
-            IntegrationKind::Github | IntegrationKind::GithubSelfHosted => {
-                index_github_issues(
-                    &repository.source_id(),
-                    integration.api_base(),
-                    &repository.display_name,
-                    &integration.access_token,
-                    &index,
-                )
-                .await?;
-            }
-            IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => {
-                index_gitlab_issues(
-                    &repository.source_id(),
-                    integration.api_base(),
-                    &repository.display_name,
-                    &integration.access_token,
-                    &index,
-                )
-                .await?;
-            }
-        }
-        index.commit();
+        let s = match &integration.kind {
+            IntegrationKind::Github | IntegrationKind::GithubSelfHosted => list_github_issues(
+                &repository.source_id(),
+                integration.api_base(),
+                &repository.display_name,
+                &integration.access_token,
+            )
+            .await?
+            .boxed(),
+            IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => list_gitlab_issues(
+                &repository.source_id(),
+                integration.api_base(),
+                &repository.display_name,
+                &integration.access_token,
+            )
+            .await?
+            .boxed(),
+        };
 
+        s.enumerate()
+            .for_each(|(count, doc)| {
+                if (count + 1) % 10 == 0 {
+                    logkit::info!("{} documents indexed", count + 1);
+                }
+                index.add(doc)
+            })
+            .await;
+
+        index.commit();
         Ok(())
     }
 
