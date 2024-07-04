@@ -91,11 +91,12 @@ jobs:
       SCCACHE_GHA_ENABLED: true
       RUSTC_WRAPPER: sccache
       CARGO_INCREMENTAL: 0
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
         with:
           submodules: recursive
 
