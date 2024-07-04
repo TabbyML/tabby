@@ -91,11 +91,9 @@ jobs:
       SCCACHE_GHA_ENABLED: true
       RUSTC_WRAPPER: sccache
       CARGO_INCREMENTAL: 0
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     steps:
-      - name: Switch to node16
-        run: cd $RUNNER_HOME/actions-runner/externals && rm -rf node20 && ln -s node16 node20
-
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -192,6 +190,7 @@ jobs:
       SCCACHE_GHA_ENABLED: true
       RUSTC_WRAPPER: sccache
       CARGO_INCREMENTAL: 0
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     steps:
       - name: Checkout
