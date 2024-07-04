@@ -28,7 +28,7 @@ export class GitProviderFeature implements StaticFeature {
   fillClientCapabilities(capabilities: ClientCapabilities): void {
     capabilities.tabby = {
       ...capabilities.tabby,
-      gitProvider: true,
+      gitProvider: this.gitProvider.isApiAvailable(),
     };
   }
 
