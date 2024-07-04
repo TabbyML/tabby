@@ -28,7 +28,7 @@ async function executeGitCommand(cwd?: string, args: string[] = [], token?: Canc
 
     git.on("error", (error) => {
       reject(`Git command error: ${error}, cwd: ${cwd}, args: ${args.join(" ")}`);
-    })
+    });
 
     const exitHandler = (code: number | null) => {
       if (code === 0) {
@@ -126,7 +126,7 @@ async function diff(params: GitDiffParams, token?: CancellationToken): Promise<G
   }
 }
 
-var gitContextProvider: GitContextProvider | null | undefined = undefined;
+let gitContextProvider: GitContextProvider | null | undefined = undefined;
 
 export async function getGitContextProvider(): Promise<GitContextProvider | null> {
   if (isBrowser) {
