@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use async_stream::stream;
 use async_trait::async_trait;
@@ -66,8 +66,10 @@ impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
             .map(|x| x.to_owned())
             .collect();
 
+        let title_embedding_tokens = build_tokens(embedding.clone(), &document.title).await;
         let s = stream! {
             for chunk_text in chunks {
+                let title_embedding_tokens = title_embedding_tokens.clone();
                 let embedding = embedding.clone();
                 yield tokio::spawn(async move {
                     let chunk_embedding_tokens = build_tokens(embedding.clone(), &chunk_text).await;
@@ -75,7 +77,9 @@ impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
                         doc::fields::CHUNK_TEXT: chunk_text,
                     });
 
-                    (chunk_embedding_tokens, chunk)
+                    // Title embedding tokens are merged with chunk embedding tokens to enhance the search results.
+                    let tokens = merge_tokens(vec![title_embedding_tokens, chunk_embedding_tokens]);
+                    (tokens, chunk)
                 });
             }
         };
@@ -104,6 +108,11 @@ async fn build_tokens(embedding: Arc<dyn Embedding>, text: &str) -> Vec<String> 
 pub fn create_web_builder(embedding: Arc<dyn Embedding>) -> TantivyDocBuilder<SourceDocument> {
     let builder = DocBuilder::new(embedding);
     TantivyDocBuilder::new(corpus::WEB, builder)
+}
+
+pub fn merge_tokens(tokens: Vec<Vec<String>>) -> Vec<String> {
+    let tokens = tokens.into_iter().flatten().collect::<HashSet<_>>();
+    tokens.into_iter().collect()
 }
 
 pub struct DocIndexer {
