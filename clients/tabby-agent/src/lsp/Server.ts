@@ -98,6 +98,7 @@ import { splitLines, isBlank } from "../utils";
 import { ChatEditProvider } from "./ChatEditProvider";
 import { CodeLensProvider } from "./CodeLensProvider";
 import { CommandProvider } from "./CommandProvider";
+import { getGitContextProvider } from "./GitContextProvider";
 
 export class Server {
   private readonly logger = getLogger("LspServer");
@@ -465,21 +466,26 @@ export class Server {
     token.onCancellationRequested(() => abortController.abort());
     const { repository } = params;
     let diffResult: GitDiffResult | undefined | null = undefined;
-    if (this.clientCapabilities?.tabby?.gitProvider) {
-      const params: GitDiffParams = { repository, cached: true };
-      diffResult = await this.connection.sendRequest(GitDiffRequest.type, params);
-      if (
-        !diffResult?.diff ||
-        (typeof diffResult.diff === "string" && isBlank(diffResult.diff)) ||
-        (Array.isArray(diffResult.diff) && isBlank(diffResult.diff.join("")))
-      ) {
-        // Use uncached diff if cached diff is empty
-        const params: GitDiffParams = { repository, cached: false };
-        diffResult = await this.connection.sendRequest(GitDiffRequest.type, params);
+    const getDiff = async (getDiffParams: GitDiffParams): Promise<GitDiffResult | null> => {
+      if (this.clientCapabilities?.tabby?.gitProvider) {
+        return await this.connection.sendRequest(GitDiffRequest.type, getDiffParams, token);
       }
-    } else {
-      //FIXME: fallback to system `git` command
+      const gitContextProvider = await getGitContextProvider();
+      if (gitContextProvider) {
+        return await gitContextProvider.diff(getDiffParams, token);
+      }
+      return null;
+    };
+    diffResult = await getDiff({ repository, cached: true });
+    if (
+      !diffResult?.diff ||
+      (typeof diffResult.diff === "string" && isBlank(diffResult.diff)) ||
+      (Array.isArray(diffResult.diff) && isBlank(diffResult.diff.join("")))
+    ) {
+      // Use uncached diff if cached diff is empty
+      diffResult = await getDiff({ repository, cached: false });
     }
+
     if (!diffResult || !diffResult.diff) {
       return null;
     }
@@ -653,17 +659,22 @@ export class Server {
       const workspaceFolders = await this.connection.workspace.getWorkspaceFolders();
       request.workspace = workspaceFolders?.find((folder) => document.uri.startsWith(folder.uri))?.uri;
     }
-    if (this.clientCapabilities?.tabby?.gitProvider) {
-      const params: GitRepositoryParams = { uri: document.uri };
-      const repo: GitRepository | null = await this.connection.sendRequest(GitRepositoryRequest.type, params, token);
-      if (repo) {
-        request.git = {
-          root: repo.root,
-          remotes: repo.remoteUrl ? [{ name: "", url: repo.remoteUrl }] : repo.remotes ?? [],
-        };
+    const getGitRepo = async (getRepoParams: GitRepositoryParams): Promise<GitRepository | null> => {
+      if (this.clientCapabilities?.tabby?.gitProvider) {
+        return await this.connection.sendRequest(GitRepositoryRequest.type, getRepoParams, token);
       }
-    } else {
-      //FIXME: fallback to system `git` command
+      const gitContextProvider = await getGitContextProvider();
+      if (gitContextProvider) {
+        return await gitContextProvider.getRepository(getRepoParams, token);
+      }
+      return null;
+    };
+    const repo: GitRepository | null = await getGitRepo({ uri: document.uri });
+    if (repo) {
+      request.git = {
+        root: repo.root,
+        remotes: repo.remoteUrl ? [{ name: "", url: repo.remoteUrl }] : repo.remotes ?? [],
+      };
     }
     if (this.clientCapabilities?.tabby?.languageSupport) {
       request.declarations = await this.collectDeclarationSnippets(document, position, token);
