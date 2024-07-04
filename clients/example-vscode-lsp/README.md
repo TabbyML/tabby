@@ -1,9 +1,6 @@
-# Example VSCode client for Tabby agent (LSP)
+This example has been outdated and removed.  
 
-This is an example of a VSCode extension for the Tabby agent. It runs the Tabby agent as a language server and creates a client connecting to it.
-
-![Demo](./demo.png)
-
-For more information about Tabby agent, please refer to [Tabby agent](https://github.com/TabbyML/tabby/tree/main/clients/tabby-agent).
-
-For more information about developing a VSCode LSP extension, please refer to [VSCode Language Extensions Guide](https://code.visualstudio.com/api/language-extensions/overview).
+As of tabby-agent v1.7, the Language Server Protocol (LSP) has become the only supported method to connect to tabby-agent.  
+For examples of creating IDE extensions that connect with tabby-agent using LSP, please refer to the source code of our IDE extensions:
+- [VSCode Extension](https://github.com/TabbyML/tabby/tree/main/clients/vscode)
+- [IntelliJ Platform Plugin](https://github.com/TabbyML/tabby/tree/main/clients/intellij)
