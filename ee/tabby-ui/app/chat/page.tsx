@@ -40,6 +40,8 @@ const convertToHSLColor = (style: string) => {
     .join('')
 }
 
+const CLIENT_TO_HANDLE_MESSAGE_SUBMIT = ['vscode']
+
 export default function ChatPage() {
   const [isInit, setIsInit] = useState(false)
   const [fetcherOptions, setFetcherOptions] = useState<FetcherOptions | null>(
@@ -59,11 +61,11 @@ export default function ChatPage() {
   const initialForeground = searchParams.get('foreground')
     ? `#${searchParams.get('foreground')}`
     : undefined
-  const handleMessageSubmit =
-    searchParams.get('handle-message-submit') || undefined
 
   const isFromVSCode = client === 'vscode'
-  const isOnSubmitMessage = handleMessageSubmit === 'true'
+  const isOnSubmitMessage = CLIENT_TO_HANDLE_MESSAGE_SUBMIT.includes(
+    client || ''
+  )
   const maxWidth = isFromVSCode ? '5xl' : undefined
 
   useEffect(() => {

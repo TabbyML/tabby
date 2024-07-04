@@ -276,14 +276,13 @@ export class ChatViewProvider implements WebviewViewProvider {
                   const themeQuery = "&theme=" + theme
                   const fontSizeQuery = "&font-size=" + fontSize
                   const foregroundQuery = "&foreground=" + foreground.replace('#', '')
-                  const handlSubmitMessageQuery = "&handle-message-submit=true"
       
                   chatIframe.addEventListener('load', function() {
                     vscode.postMessage({ action: 'rendered' });
                     syncTheme()
                   });
 
-                  chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery + themeQuery + fontSizeQuery + foregroundQuery + handlSubmitMessageQuery)
+                  chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery + themeQuery + fontSizeQuery + foregroundQuery)
                 }
                 
                 window.addEventListener("message", (event) => {
