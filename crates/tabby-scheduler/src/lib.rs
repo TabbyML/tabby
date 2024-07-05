@@ -8,7 +8,6 @@ mod indexer;
 pub use code::CodeIndexer;
 use crawl::crawl_pipeline;
 use doc::create_web_builder;
-pub use doc::{DocIndexer, WebDocument};
 use futures::StreamExt;
 use indexer::{IndexAttributeBuilder, Indexer};
 use tabby_common::index::corpus;
@@ -16,6 +15,13 @@ use tabby_inference::Embedding;
 
 mod doc;
 use std::sync::Arc;
+
+pub mod public {
+    pub use super::{
+        code::CodeIndexer,
+        doc::public::{DocIndexer, WebDocument},
+    };
+}
 
 use crate::doc::SourceDocument;
 

@@ -1,8 +1,13 @@
+<<<<<<< HEAD
 use std::{collections::HashSet, sync::Arc};
+=======
+pub mod public;
+
+use std::sync::Arc;
+>>>>>>> 3f128be1c (refactor: extract doc.public)
 
 use async_stream::stream;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 use futures::{stream::BoxStream, StreamExt};
 use serde_json::json;
 use tabby_common::index::{self, corpus, doc};
@@ -14,7 +19,7 @@ use tracing::warn;
 
 use crate::{
     indexer::{IndexId, TantivyDocBuilder, ToIndexId},
-    IndexAttributeBuilder, Indexer,
+    IndexAttributeBuilder,
 };
 
 pub struct SourceDocument {
@@ -114,59 +119,4 @@ pub fn create_web_builder(embedding: Arc<dyn Embedding>) -> TantivyDocBuilder<So
 pub fn merge_tokens(tokens: Vec<Vec<String>>) -> Vec<String> {
     let tokens = tokens.into_iter().flatten().collect::<HashSet<_>>();
     tokens.into_iter().collect()
-}
-
-pub struct DocIndexer {
-    builder: TantivyDocBuilder<SourceDocument>,
-    indexer: Indexer,
-}
-
-pub struct WebDocument {
-    pub id: String,
-    pub source_id: String,
-    pub link: String,
-    pub title: String,
-    pub body: String,
-}
-
-impl From<WebDocument> for SourceDocument {
-    fn from(value: WebDocument) -> Self {
-        Self {
-            id: value.id,
-            source_id: value.source_id,
-            link: value.link,
-            title: value.title,
-            body: value.body,
-        }
-    }
-}
-
-impl DocIndexer {
-    pub fn new(embedding: Arc<dyn Embedding>) -> Self {
-        let builder = create_web_builder(embedding);
-        let indexer = Indexer::new(corpus::WEB);
-        Self { indexer, builder }
-    }
-
-    pub async fn add(&self, updated_at: DateTime<Utc>, document: WebDocument) {
-        if let Some(dt) = self.indexer.read_updated_at(&document.id) {
-            if dt >= updated_at {
-                return;
-            }
-        };
-
-        stream! {
-            let (id, s) = self.builder.build(document.into()).await;
-            self.indexer.delete(&id);
-            for await doc in s.buffer_unordered(std::cmp::max(std::thread::available_parallelism().unwrap().get() * 2, 32)) {
-                if let Ok(Some(doc)) = doc {
-                    self.indexer.add(doc).await;
-                }
-            }
-        }.collect::<()>().await;
-    }
-
-    pub fn commit(self) {
-        self.indexer.commit();
-    }
 }
