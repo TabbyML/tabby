@@ -43,8 +43,8 @@ export interface ClientApi {
 
 export interface ChatMessage {
   message: string
-  selectContext?: Context // Explicitly displayed context on the client side
-  relevantContext?: Array<Context> // Array of relevant contexts on the client side
+  selectContext?: Context // Client side context - displayed in user message
+  relevantContext?: Array<Context> // Client side contexts - displayed in assistant message
 }
 
 export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerApi {
