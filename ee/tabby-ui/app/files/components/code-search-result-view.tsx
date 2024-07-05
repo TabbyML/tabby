@@ -57,7 +57,7 @@ export const CodeSearchResultView = (props: CodeSearchResultViewProps) => {
         <ListSkeleton className="mt-2" />
       ) : (
         <>
-          <p className="text-sm text-muted-foreground mb-7">
+          <p className="mb-7 text-sm text-muted-foreground">
             {matchCount} {matchCount === 1 ? 'match' : 'matches'}
           </p>
           {results && results.length > 0 && (

@@ -43,7 +43,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
     <form
       onSubmit={onSubmit}
       className={cn(
-        'w-full bg-background py-3.5 px-4 shrink-0 flex items-center transition ease-in-out duration-500',
+        'flex w-full shrink-0 items-center bg-background px-4 py-3.5 transition duration-500 ease-in-out',
         className
       )}
     >
@@ -77,7 +77,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
               s
             </kbd>
           )}
-          <div className="border-l-border border-l flex items-center ml-2 pl-2">
+          <div className="ml-2 flex items-center border-l border-l-border pl-2">
             <Button
               variant="ghost"
               className="h-6 w-6 "
