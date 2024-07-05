@@ -35,6 +35,7 @@ type ChatContextValue = {
   container?: HTMLDivElement
   onCopyContent?: (value: string) => void
   client?: string
+  onApplyInEditor?: (value: string) => void
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -121,6 +122,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   onCopyContent?: (value: string) => void
   client?: string
   onSubmitMessage?: (msg: string) => Promise<void>
+  onApplyInEditor?: (value: string) => void
 }
 
 function ChatRenderer(
@@ -142,7 +144,8 @@ function ChatRenderer(
     promptFormClassname,
     onCopyContent,
     client,
-    onSubmitMessage
+    onSubmitMessage,
+    onApplyInEditor
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -395,7 +398,8 @@ function ChatRenderer(
         onClearMessages,
         container,
         onCopyContent,
-        client
+        client,
+        onApplyInEditor
       }}
     >
       <div className="flex justify-center overflow-x-hidden">

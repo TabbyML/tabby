@@ -128,6 +128,66 @@ export class ChatViewProvider implements WebviewViewProvider {
 
         this.sendMessage(chatMessage);
       },
+      onApplyInEditor: (content: string) => {
+        const editor = window.activeTextEditor;
+        if (editor) {
+          const document = editor.document;
+          const selection = editor.selection;
+          const text = editor.document.getText(selection);
+
+          // Replace the selected text in the editor if the user has made a selection
+          if (text.length > 0) {
+            const selectedLines = text.split("\n");
+
+            // Extract the indentation of the first line of the current selection
+            // Note: The indentation of the first line might not align with the indentation of subsequent lines
+            // due to the nature of the user's selection
+            const firstLineMatch = selectedLines[0] && selectedLines[0].match(/^\s*/);
+            const firstLineIndentation = firstLineMatch ? firstLineMatch[0] : "";
+
+            // Determine the minimum indent for subsequent lines
+            let subsequentLinesMinIndent = "";
+            let subsequentLinesMinIndentLength = Infinity;
+            selectedLines.slice(1).forEach((line) => {
+              const match = line.match(/^(\s*)/);
+              const indent = match ? match[0] : "";
+              if (indent.length < subsequentLinesMinIndentLength) {
+                subsequentLinesMinIndent = indent;
+                subsequentLinesMinIndentLength = indent.length;
+              }
+            });
+
+            const indentedContent = content
+              .split("\n")
+              .map((line, idx) => {
+                if (idx === 0) return firstLineIndentation + line;
+                return subsequentLinesMinIndent + line;
+              })
+              .join("\n");
+
+            editor.edit((editBuilder) => {
+              editBuilder.replace(selection, indentedContent);
+            });
+          } else {
+            // Insert at the cursor position if the user has not selected any text
+            const cursorPosition = selection.start;
+            const lineText = document.lineAt(cursorPosition.line).text;
+
+            // Extract the indentation from the line
+            const indentMatch = lineText.match(/^\s*/);
+            const indent = indentMatch ? indentMatch[0] : "";
+            // Adjust the code to match the current indentation
+            const indentedContent = content
+              .split("\n")
+              .map((line, index) => (index === 0 ? line : indent + line))
+              .join("\n");
+
+            editor.edit((editBuilder) => {
+              editBuilder.insert(cursorPosition, indentedContent);
+            });
+          }
+        }
+      },
     });
 
     const serverInfo = await this.agent.fetchServerInfo();

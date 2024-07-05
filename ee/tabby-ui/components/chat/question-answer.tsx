@@ -309,7 +309,7 @@ function AssistantMessageCardActions(props: AssistantMessageActionProps) {
 }
 
 function MessageMarkdown({ message }: { message: string }) {
-  const { onCopyContent } = React.useContext(ChatContext)
+  const { onCopyContent, onApplyInEditor } = React.useContext(ChatContext)
   return (
     <MemoizedReactMarkdown
       className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
@@ -351,6 +351,7 @@ function MessageMarkdown({ message }: { message: string }) {
               language={(match && match[1]) || ''}
               value={String(children).replace(/\n$/, '')}
               onCopyContent={onCopyContent}
+              onApplyInEditor={onApplyInEditor}
               {...props}
             />
           )

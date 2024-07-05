@@ -31,6 +31,7 @@ export function createClient(webview: WebviewView, api: ClientApi): ServerApi {
       navigate: api.navigate,
       refresh: api.refresh,
       onSubmitMessage: api.onSubmitMessage,
+      onApplyInEditor: api.onApplyInEditor,
     },
   });
 }
