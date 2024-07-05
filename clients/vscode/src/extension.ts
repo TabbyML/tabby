@@ -63,6 +63,7 @@ export async function activate(context: ExtensionContext) {
     }),
   );
 
+  await gitProvider.init();
   await client.start();
 
   const issues = new Issues(client, config);
