@@ -42,10 +42,8 @@ impl DocIndexer {
     }
 
     pub async fn add(&self, updated_at: DateTime<Utc>, document: WebDocument) -> bool {
-        if let Some(dt) = self.indexer.read_updated_at(&document.id) {
-            if dt >= updated_at {
-                return false;
-            }
+        if self.indexer.is_indexed_after(&document.id, updated_at) {
+            return false;
         };
 
         stream! {
@@ -112,7 +110,7 @@ mod tests {
         assert!(!indexer.add(updated_at, create_testing_document()).await);
 
         // For document with the same id, and the updated_at is newer, it should be added.
-        let updated_at = Utc::now();
+        let updated_at = updated_at + chrono::Duration::seconds(1);
         assert!(indexer.add(updated_at, create_testing_document()).await);
     }
 }
