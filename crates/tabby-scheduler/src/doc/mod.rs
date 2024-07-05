@@ -1,10 +1,6 @@
-<<<<<<< HEAD
-use std::{collections::HashSet, sync::Arc};
-=======
 pub mod public;
 
-use std::sync::Arc;
->>>>>>> 3f128be1c (refactor: extract doc.public)
+use std::{collections::HashSet, sync::Arc};
 
 use async_stream::stream;
 use async_trait::async_trait;
