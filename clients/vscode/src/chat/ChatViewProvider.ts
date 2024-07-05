@@ -168,15 +168,16 @@ export class ChatViewProvider implements WebviewViewProvider {
             editor.edit((editBuilder) => {
               editBuilder.replace(selection, indentedContent);
             });
-          } else {
-            // Insert at the cursor position if the user has not selected any text
+          }
+
+          // Insert at the cursor position if the user has not selected any text
+          if (text.length === 0) {
             const cursorPosition = selection.start;
             const lineText = document.lineAt(cursorPosition.line).text;
 
-            // Extract the indentation from the line
+            // Extract the indentation from the position of the cursor
             const indentMatch = lineText.match(/^\s*/);
             const indent = indentMatch ? indentMatch[0] : "";
-            // Adjust the code to match the current indentation
             const indentedContent = content
               .split("\n")
               .map((line, index) => (index === 0 ? line : indent + line))
