@@ -21,7 +21,7 @@ if [[ "$OSTYPE" == "linux"* ]]; then
     apt-get -y install protobuf-compiler libopenblas-dev sqlite3 graphviz libcurl4-openssl-dev
   else
     # Build from manylinux2014 container
-    yum -y install openblas-devel perl-IPC-Cmd unzip curl openssl-devel
+    yum -y install openblas-devel perl-IPC-Cmd unzip curl openssl-devel openssl
 
     # Disable safe directory in docker
     git config --system --add safe.directory "*"
