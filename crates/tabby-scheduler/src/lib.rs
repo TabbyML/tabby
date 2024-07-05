@@ -7,8 +7,7 @@ mod indexer;
 
 use chrono::Utc;
 use crawl::crawl_pipeline;
-use doc::create_web_builder;
-pub use doc::{DocIndexer, WebDocument};
+pub use doc::public::{DocIndexer, WebDocument};
 use futures::StreamExt;
 use indexer::{IndexAttributeBuilder, Indexer};
 use tabby_common::index::corpus;
@@ -23,8 +22,6 @@ pub mod public {
         doc::public::{DocIndexer, WebDocument},
     };
 }
-
-use crate::doc::public::WebDocument;
 
 pub async fn crawl_index_docs(
     source_id: &str,
