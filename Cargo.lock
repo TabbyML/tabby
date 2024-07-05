@@ -5073,6 +5073,7 @@ version = "0.13.0-dev.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "chrono",
  "derive_builder 0.12.0",
  "hash-ids",
  "home",
@@ -5170,6 +5171,7 @@ dependencies = [
  "anyhow",
  "async-stream",
  "async-trait",
+ "chrono",
  "futures",
  "git2",
  "htmd",
@@ -5180,6 +5182,7 @@ dependencies = [
  "readable-readability",
  "serde",
  "serde_json",
+ "serial_test 3.1.1",
  "tabby-common",
  "tabby-inference",
  "tantivy",

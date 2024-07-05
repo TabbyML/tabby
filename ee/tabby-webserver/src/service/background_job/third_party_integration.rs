@@ -7,7 +7,7 @@ use juniper::ID;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
-use tabby_scheduler::{CodeIndexer, DocIndexer};
+use tabby_scheduler::public::{CodeIndexer, DocIndexer};
 use tabby_schema::{
     integration::{IntegrationKind, IntegrationService},
     job::JobService,
@@ -129,12 +129,14 @@ impl SchedulerGithubGitlabJob {
         };
 
         s.enumerate()
-            .for_each(|(count, doc)| {
+            .map(|(count, (updated_at, doc))| {
                 if (count + 1) % 10 == 0 {
                     logkit::info!("{} documents indexed", count + 1);
                 }
-                index.add(doc)
+
+                index.add(updated_at, doc)
             })
+            .count()
             .await;
 
         index.commit();

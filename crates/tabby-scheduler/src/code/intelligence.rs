@@ -241,6 +241,7 @@ mod metrics {
 mod tests {
     use std::path::PathBuf;
 
+    use serial_test::serial;
     use tabby_common::path::set_tabby_root;
     use tracing_test::traced_test;
 
@@ -266,6 +267,7 @@ mod tests {
 
     #[test]
     #[traced_test]
+    #[serial(set_tabby_root)]
     fn test_create_source_file() {
         set_tabby_root(get_tabby_root());
         let config = get_repository_config();

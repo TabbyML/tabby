@@ -5,12 +5,12 @@ use std::borrow::Cow;
 
 use lazy_static::lazy_static;
 use tantivy::{
-    query::{BooleanQuery, ConstScoreQuery, ExistsQuery, Occur, Query, TermQuery},
+    query::{BooleanQuery, ConstScoreQuery, ExistsQuery, Occur, Query, RangeQuery, TermQuery},
     schema::{
         Field, IndexRecordOption, JsonObjectOptions, Schema, TextFieldIndexing, FAST, INDEXED,
         STORED, STRING,
     },
-    Term,
+    DateTime, Term,
 };
 
 pub struct IndexSchema {
@@ -46,6 +46,7 @@ pub struct IndexSchema {
 }
 
 const FIELD_CHUNK_ID: &str = "chunk_id";
+const FIELD_UPDATED_AT: &str = "updated_at";
 
 pub mod corpus {
     pub const CODE: &str = "code";
@@ -64,7 +65,7 @@ impl IndexSchema {
         let field_source_id = builder.add_text_field("source_id", STRING | FAST);
         let field_id = builder.add_text_field("id", STRING | STORED);
 
-        let field_updated_at = builder.add_date_field("updated_at", INDEXED);
+        let field_updated_at = builder.add_date_field(FIELD_UPDATED_AT, INDEXED);
         let field_attributes = builder.add_text_field("attributes", STORED);
 
         let field_chunk_id = builder.add_text_field(FIELD_CHUNK_ID, STRING | FAST | STORED);
@@ -124,6 +125,42 @@ impl IndexSchema {
             (Occur::Must, self.corpus_query(corpus)),
             // Must match the doc id
             (Occur::Must, Box::new(doc_id_query)),
+            // Exclude chunk documents
+            (
+                Occur::MustNot,
+                Box::new(ExistsQuery::new_exists_query(FIELD_CHUNK_ID.into())),
+            ),
+        ])
+    }
+
+    pub fn doc_indexed_after(
+        &self,
+        corpus: &str,
+        doc_id: &str,
+        updated_at: chrono::DateTime<chrono::Utc>,
+    ) -> impl Query {
+        let doc_id_query = TermQuery::new(
+            Term::from_field_text(self.field_id, doc_id),
+            tantivy::schema::IndexRecordOption::Basic,
+        );
+
+        let updated_at = DateTime::from_timestamp_nanos(
+            updated_at.timestamp_nanos_opt().expect("valid timestamp"),
+        );
+
+        BooleanQuery::new(vec![
+            // Must match the corpus
+            (Occur::Must, self.corpus_query(corpus)),
+            // Must match the doc id
+            (Occur::Must, Box::new(doc_id_query)),
+            // Must match the updated_at
+            (
+                Occur::Must,
+                Box::new(RangeQuery::new_date(
+                    FIELD_UPDATED_AT.to_owned(),
+                    updated_at..DateTime::MAX,
+                )),
+            ),
             // Exclude chunk documents
             (
                 Occur::MustNot,

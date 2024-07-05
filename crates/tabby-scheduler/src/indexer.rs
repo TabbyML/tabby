@@ -264,6 +264,16 @@ impl Indexer {
 
         Ok(())
     }
+
+    pub fn is_indexed_after(&self, id: &str, time: chrono::DateTime<chrono::Utc>) -> bool {
+        let schema = IndexSchema::instance();
+        let query = schema.doc_indexed_after(&self.corpus, id, time);
+        let Ok(docs) = self.searcher.search(&query, &TopDocs::with_limit(1)) else {
+            return false;
+        };
+
+        !docs.is_empty()
+    }
 }
 
 fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {

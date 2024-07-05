@@ -1,10 +1,11 @@
 use anyhow::{anyhow, Result};
 use async_stream::stream;
+use chrono::{DateTime, Utc};
 use futures::Stream;
 use gitlab::api::{issues::ProjectIssues, projects::merge_requests::MergeRequests, AsyncQuery};
 use octocrab::Octocrab;
 use serde::Deserialize;
-use tabby_scheduler::WebDocument;
+use tabby_scheduler::public::WebDocument;
 
 use crate::service::create_gitlab_client;
 
@@ -13,7 +14,7 @@ pub async fn list_github_issues(
     api_base: &str,
     full_name: &str,
     access_token: &str,
-) -> Result<impl Stream<Item = WebDocument>> {
+) -> Result<impl Stream<Item = (DateTime<Utc>, WebDocument)>> {
     let octocrab = Octocrab::builder()
         .personal_token(access_token.to_string())
         .base_uri(api_base)?
@@ -46,15 +47,15 @@ pub async fn list_github_issues(
             let pages = response.number_of_pages().unwrap_or_default();
 
             for issue in response.items {
-            let doc = WebDocument {
-                source_id: source_id.to_string(),
-                id: issue.html_url.to_string(),
-                link: issue.html_url.to_string(),
-                title: issue.title,
-                body: issue.body.unwrap_or_default(),
-            };
-            yield doc;
-        }
+                let doc = WebDocument {
+                    source_id: source_id.to_string(),
+                    id: issue.html_url.to_string(),
+                    link: issue.html_url.to_string(),
+                    title: issue.title,
+                    body: issue.body.unwrap_or_default(),
+                };
+                yield (issue.updated_at, doc);
+            }
 
             page += 1;
             if page > pages {
@@ -71,6 +72,7 @@ struct GitlabIssue {
     title: String,
     description: String,
     web_url: String,
+    updated_at: DateTime<Utc>,
 }
 
 pub async fn list_gitlab_issues(
@@ -78,7 +80,7 @@ pub async fn list_gitlab_issues(
     api_base: &str,
     full_name: &str,
     access_token: &str,
-) -> Result<impl Stream<Item = WebDocument>> {
+) -> Result<impl Stream<Item = (DateTime<Utc>, WebDocument)>> {
     let gitlab = create_gitlab_client(api_base, access_token).await?;
 
     let source_id = source_id.to_owned();
@@ -106,7 +108,7 @@ pub async fn list_gitlab_issues(
                 title: issue.title,
                 body: issue.description,
             };
-            yield doc;
+            yield (issue.updated_at, doc);
         }
 
         let merge_requests: Vec<GitlabIssue> = match gitlab::api::paged(
@@ -130,7 +132,7 @@ pub async fn list_gitlab_issues(
                 title: merge_request.title,
                 body: merge_request.description,
             };
-            yield doc;
+            yield (merge_request.updated_at, doc);
         }
 
     };
