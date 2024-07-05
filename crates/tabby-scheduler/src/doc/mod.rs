@@ -88,8 +88,7 @@ async fn build_tokens(embedding: Arc<dyn Embedding>, text: &str) -> Vec<String> 
     chunk_embedding_tokens
 }
 
-// FIXME(meng): make this private interface, always prefer using public::DocIndexer for web doc building.
-pub fn create_web_builder(embedding: Arc<dyn Embedding>) -> TantivyDocBuilder<WebDocument> {
+fn create_web_builder(embedding: Arc<dyn Embedding>) -> TantivyDocBuilder<WebDocument> {
     let builder = DocBuilder::new(embedding);
     TantivyDocBuilder::new(corpus::WEB, builder)
 }

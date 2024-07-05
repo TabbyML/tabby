@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
-use tabby_scheduler::CodeIndexer;
+use tabby_scheduler::public::CodeIndexer;
 use tabby_schema::{job::JobService, repository::GitRepositoryService};
 
 use super::{helper::Job, BackgroundJobEvent};
