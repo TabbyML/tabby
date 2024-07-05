@@ -8,7 +8,6 @@ use std::sync::Arc;
 
 use async_stream::stream;
 use async_trait::async_trait;
-
 use futures::{stream::BoxStream, StreamExt};
 use public::WebDocument;
 use serde_json::json;
@@ -19,10 +18,7 @@ use text_splitter::TextSplitter;
 use tokio::task::JoinHandle;
 use tracing::warn;
 
-use crate::{
-    indexer::{TantivyDocBuilder},
-    IndexAttributeBuilder,
-};
+use crate::{indexer::TantivyDocBuilder, IndexAttributeBuilder};
 
 const CHUNK_SIZE: usize = 2048;
 

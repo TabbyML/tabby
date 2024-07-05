@@ -41,10 +41,10 @@ impl DocIndexer {
         Self { indexer, builder }
     }
 
-    pub async fn add(&self, updated_at: DateTime<Utc>, document: WebDocument) {
+    pub async fn add(&self, updated_at: DateTime<Utc>, document: WebDocument) -> bool {
         if let Some(dt) = self.indexer.read_updated_at(&document.id) {
             if dt >= updated_at {
-                return;
+                return false;
             }
         };
 
@@ -56,10 +56,63 @@ impl DocIndexer {
                     self.indexer.add(doc).await;
                 }
             }
-        }.collect::<()>().await;
+        }.count().await;
+
+        true
     }
 
     pub fn commit(self) {
         self.indexer.commit();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use async_trait::async_trait;
+    use tabby_common::path::set_tabby_root;
+    use temp_testdir::TempDir;
+
+    use super::*;
+
+    struct FakeEmbedding;
+
+    #[async_trait]
+    impl Embedding for FakeEmbedding {
+        async fn embed(&self, _prompt: &str) -> anyhow::Result<Vec<f32>> {
+            Ok(vec![0.0; 16])
+        }
+    }
+
+    fn create_testing_document() -> WebDocument {
+        WebDocument {
+            id: "1".to_string(),
+            source_id: "1".to_string(),
+            link: "https://example.com".to_string(),
+            title: "Example".to_string(),
+            body: "Hello, world!".to_string(),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_add() {
+        let tmp_dir = TempDir::default();
+        set_tabby_root(tmp_dir.to_path_buf());
+        let embedding = Arc::new(FakeEmbedding);
+        let indexer = DocIndexer::new(embedding.clone());
+        let updated_at = Utc::now();
+
+        // Insert a new document
+        assert!(indexer.add(updated_at, create_testing_document()).await);
+        indexer.commit();
+
+        // For document with the same id, and the updated_at is not newer, it should not be added.
+        let indexer = DocIndexer::new(embedding);
+        assert!(!indexer.add(updated_at, create_testing_document()).await);
+
+        // For document with the same id, and the updated_at is newer, it should be added.
+        let updated_at = Utc::now();
+        assert!(indexer.add(updated_at, create_testing_document()).await);
     }
 }

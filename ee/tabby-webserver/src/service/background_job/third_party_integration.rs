@@ -129,13 +129,14 @@ impl SchedulerGithubGitlabJob {
         };
 
         s.enumerate()
-            .for_each(|(count, (updated_at, doc))| {
+            .map(|(count, (updated_at, doc))| {
                 if (count + 1) % 10 == 0 {
                     logkit::info!("{} documents indexed", count + 1);
                 }
 
                 index.add(updated_at, doc)
             })
+            .count()
             .await;
 
         index.commit();

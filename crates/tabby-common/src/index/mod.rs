@@ -64,7 +64,7 @@ impl IndexSchema {
         let field_source_id = builder.add_text_field("source_id", STRING | FAST);
         let field_id = builder.add_text_field("id", STRING | STORED);
 
-        let field_updated_at = builder.add_date_field("updated_at", INDEXED);
+        let field_updated_at = builder.add_date_field("updated_at", INDEXED | STORED);
         let field_attributes = builder.add_text_field("attributes", STORED);
 
         let field_chunk_id = builder.add_text_field(FIELD_CHUNK_ID, STRING | FAST | STORED);
