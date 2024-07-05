@@ -69,6 +69,7 @@ mod tests {
     use std::sync::Arc;
 
     use async_trait::async_trait;
+    use serial_test::serial;
     use tabby_common::path::set_tabby_root;
     use temp_testdir::TempDir;
 
@@ -94,6 +95,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial(set_tabby_root)]
     async fn test_add() {
         let tmp_dir = TempDir::default();
         set_tabby_root(tmp_dir.to_path_buf());

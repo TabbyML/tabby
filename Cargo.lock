@@ -5182,6 +5182,7 @@ dependencies = [
  "readable-readability",
  "serde",
  "serde_json",
+ "serial_test 3.1.1",
  "tabby-common",
  "tabby-inference",
  "tantivy",
