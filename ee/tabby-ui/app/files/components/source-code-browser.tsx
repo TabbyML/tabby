@@ -5,10 +5,10 @@ import { usePathname } from 'next/navigation'
 import { createRequest } from '@urql/core'
 import { compact, isEmpty, isNil, toNumber } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
-import useSWR from 'swr'
+import useSWR, { SWRResponse } from 'swr'
 
 import { graphql } from '@/lib/gql/generates'
-import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
+import { GrepFile, RepositoryListQuery } from '@/lib/gql/generates/graphql'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { filename2prism } from '@/lib/language-utils'
@@ -28,6 +28,8 @@ import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
 import { BlobModeView } from './blob-mode-view'
 import { ChatSideBar } from './chat-side-bar'
+import { CodeSearchBar } from './code-search-bar'
+import { CodeSearchResultView } from './code-search-result-view'
 import { ErrorView } from './error-view'
 import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
 import { mapToFileTree, sortFileTree, type TFileTreeNode } from './file-tree'
@@ -81,6 +83,26 @@ const repositoryListQuery = graphql(/* GraphQL */ `
       kind
       gitUrl
       refs
+    }
+  }
+`)
+
+const repositoryGrepQuery = graphql(/* GraphQL */ `
+  query RepositoryGrep($id: ID!, $kind: RepositoryKind!, $query: String!) {
+    repositoryGrep(kind: $kind, id: $id, query: $query) {
+      path
+      lines {
+        line {
+          text
+          base64
+        }
+        byteOffset
+        lineNumber
+        subMatches {
+          bytesStart
+          bytesEnd
+        }
+      }
     }
   }
 `)
@@ -322,6 +344,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const { progress, setProgress } = useTopbarProgress()
   const chatSideBarPanelRef = React.useRef<ImperativePanelHandle>(null)
   const [chatSideBarPanelSize, setChatSideBarPanelSize] = React.useState(35)
+  const searchQuery = searchParams.get('q')?.toString()
 
   const parsedEntryInfo = React.useMemo(() => {
     return resolveRepositoryInfoFromPath(activePath)
@@ -330,8 +353,12 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const activeBasename = parsedEntryInfo?.basename
 
   const isBlobMode = activeEntryInfo?.viewMode === 'blob'
+  const isSearchMode = activeEntryInfo?.viewMode === 'search'
+
   const shouldFetchTree =
-    !!isPathInitialized && !isEmpty(repoMap) && !!activePath
+    !!isPathInitialized && !isEmpty(repoMap) && !!activePath && !isSearchMode
+  const shouldFetchRepositoryGrep =
+    !!isPathInitialized && !isEmpty(repoMap) && !!activePath && isSearchMode
 
   // fetch tree
   const {
@@ -393,6 +420,25 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           throw new Error(CodeBrowserError.NOT_FOUND)
         }
       }),
+    {
+      revalidateOnFocus: false,
+      shouldRetryOnError: false
+    }
+  )
+
+  const {
+    data: repositoryGreps,
+    isLoading: fetchingRepositoryGrep,
+    error: repositoryGrepError
+  }: SWRResponse<Array<GrepFile> | undefined> = useSWR(
+    shouldFetchRepositoryGrep && searchQuery ? [activePath, searchQuery] : null,
+    ([activePath, searchQuery]) => {
+      const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
+      return fetchRepositoryGreps(
+        searchQuery,
+        repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined
+      )
+    },
     {
       revalidateOnFocus: false,
       shouldRetryOnError: false
@@ -570,34 +616,49 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       </ResizablePanel>
       <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
       <ResizablePanel defaultSize={80} minSize={30}>
-        <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
-          <FileDirectoryBreadcrumb className="py-4" />
-          {!initialized ? (
-            <ListSkeleton className="rounded-lg border p-4" />
-          ) : showErrorView ? (
-            <ErrorView
-              className={`rounded-lg border p-4`}
-              error={entriesError || rawFileError}
-            />
-          ) : (
-            <div>
-              {isTreeMode && (
-                <TreeModeView
-                  loading={fetchingTreeEntries}
-                  initialized={initialized}
-                  className={`rounded-lg border`}
-                />
-              )}
-              {isBlobMode && (
-                <BlobModeView
-                  blob={fileBlob}
-                  contentLength={contentLength}
-                  fileDisplayType={fileDisplayType}
-                  loading={fetchingRawFile || fetchingTreeEntries}
-                />
-              )}
-            </div>
-          )}
+        <div className="flex flex-col h-full">
+          <CodeSearchBar
+            className={
+              !!activeEntryInfo?.repositorySpecifier ? 'block' : 'hidden'
+            }
+          />
+          <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
+            {(isTreeMode || isBlobMode) && (
+              <FileDirectoryBreadcrumb className="py-4" />
+            )}
+            {!initialized ? (
+              <ListSkeleton className="rounded-lg border p-4" />
+            ) : showErrorView ? (
+              <ErrorView
+                className={`rounded-lg border p-4`}
+                error={entriesError || rawFileError}
+              />
+            ) : (
+              <div>
+                {isTreeMode && (
+                  <TreeModeView
+                    loading={fetchingTreeEntries}
+                    initialized={initialized}
+                    className={`rounded-lg border`}
+                  />
+                )}
+                {isBlobMode && (
+                  <BlobModeView
+                    blob={fileBlob}
+                    contentLength={contentLength}
+                    fileDisplayType={fileDisplayType}
+                    loading={fetchingRawFile || fetchingTreeEntries}
+                  />
+                )}
+                {isSearchMode && (
+                  <CodeSearchResultView
+                    results={repositoryGreps}
+                    loading={fetchingRepositoryGrep}
+                  />
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </ResizablePanel>
       <>
@@ -738,6 +799,31 @@ async function fetchEntriesFromPath(
     }
   }
   return result
+}
+
+async function fetchRepositoryGreps(
+  query: string,
+  repository: RepositoryListQuery['repositoryList'][0] | undefined
+) {
+  if (!repository) {
+    throw new Error(CodeBrowserError.REPOSITORY_NOT_FOUND)
+  }
+
+  const result = client
+    .query(repositoryGrepQuery, {
+      id: repository.id,
+      kind: repository.kind,
+      query,
+      pause: !repository
+    })
+    .toPromise()
+
+  return result?.then(res => {
+    if (res?.error) {
+      throw new Error(res.error.message)
+    }
+    return res?.data?.repositoryGrep
+  })
 }
 
 export type { TFileMap, TFileMapItem }

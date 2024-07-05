@@ -368,9 +368,9 @@ const FileTreeRenderer: React.FC = () => {
       return <FileTreeSkeleton />
     }
 
-    return (
-      <div className="flex h-full items-center justify-center">No Data</div>
-    )
+    // return (
+    //   <div className="flex h-full items-center justify-center">No Data</div>
+    // )
   }
 
   return (

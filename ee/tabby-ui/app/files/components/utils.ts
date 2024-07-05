@@ -5,7 +5,7 @@ import {
   RepositoryListQuery
 } from '@/lib/gql/generates/graphql'
 
-export type ViewMode = 'tree' | 'blob'
+export type ViewMode = 'tree' | 'blob' | 'search'
 type RepositoryItem = RepositoryListQuery['repositoryList'][0]
 
 export enum CodeBrowserError {
@@ -69,6 +69,7 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
 
   const treeSeparatorIndex = path.indexOf('/-/tree/')
   const blobSeparatorIndex = path.indexOf('/-/blob/')
+  const searchSeparatorIndex = path.indexOf('/-/search/')
 
   if (treeSeparatorIndex > -1) {
     viewMode = 'tree'
@@ -84,6 +85,14 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
     const tempSegments = temp.split('/')
     rev = tempSegments[0]
     basename = trimEnd(tempSegments.slice(1).join('/'), '/')
+  }
+
+  if (searchSeparatorIndex > -1) {
+    viewMode = 'search'
+    const temp = path.slice(searchSeparatorIndex + '/-/search/'.length)
+    const tempSegments = temp.split('/')
+    rev = tempSegments[0]
+    basename = ''
   }
 
   const repositorySpecifier = path.split('/-/')[0]
@@ -206,14 +215,14 @@ function generateEntryPath(
     | undefined,
   rev: string | undefined,
   basename: string,
-  kind: 'dir' | 'file'
+  kind: 'dir' | 'file' | 'search'
 ) {
+  const viewModeStr =
+    kind === 'file' ? 'blob' : kind === 'search' ? 'search' : 'tree'
   const specifier = resolveRepoSpecifierFromRepoInfo(repo)
-  return `${specifier}/-/${
-    kind === 'file' ? 'blob' : 'tree'
-  }/${encodeURIComponent(rev ?? '')}/${encodeURIComponentIgnoringSlash(
-    basename ?? ''
-  )}`
+  return `${specifier}/-/${viewModeStr}/${encodeURIComponent(
+    rev ?? ''
+  )}/${encodeURIComponentIgnoringSlash(basename ?? '')}`
 }
 
 function toEntryRequestUrl(
