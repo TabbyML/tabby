@@ -8,7 +8,9 @@ use std::sync::Arc;
 
 use async_stream::stream;
 use async_trait::async_trait;
+
 use futures::{stream::BoxStream, StreamExt};
+use public::WebDocument;
 use serde_json::json;
 use tabby_common::index::{self, corpus, doc};
 use tabby_inference::Embedding;
@@ -18,26 +20,9 @@ use tokio::task::JoinHandle;
 use tracing::warn;
 
 use crate::{
-    indexer::{IndexId, TantivyDocBuilder, ToIndexId},
+    indexer::{TantivyDocBuilder},
     IndexAttributeBuilder,
 };
-
-pub struct SourceDocument {
-    pub source_id: String,
-    pub id: String,
-    pub title: String,
-    pub link: String,
-    pub body: String,
-}
-
-impl ToIndexId for SourceDocument {
-    fn to_index_id(&self) -> IndexId {
-        IndexId {
-            source_id: self.source_id.clone(),
-            id: self.id.clone(),
-        }
-    }
-}
 
 const CHUNK_SIZE: usize = 2048;
 
@@ -52,8 +37,8 @@ impl DocBuilder {
 }
 
 #[async_trait]
-impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
-    async fn build_attributes(&self, document: &SourceDocument) -> serde_json::Value {
+impl IndexAttributeBuilder<WebDocument> for DocBuilder {
+    async fn build_attributes(&self, document: &WebDocument) -> serde_json::Value {
         json!({
             doc::fields::TITLE: document.title,
             doc::fields::LINK: document.link,
@@ -64,7 +49,7 @@ impl IndexAttributeBuilder<SourceDocument> for DocBuilder {
     /// into binarized tokens by thresholding on zero.
     async fn build_chunk_attributes(
         &self,
-        document: &SourceDocument,
+        document: &WebDocument,
     ) -> BoxStream<JoinHandle<(Vec<String>, serde_json::Value)>> {
         let embedding = self.embedding.clone();
         let chunks: Vec<_> = TextSplitter::new(CHUNK_SIZE)
@@ -111,7 +96,8 @@ async fn build_tokens(embedding: Arc<dyn Embedding>, text: &str) -> Vec<String> 
     chunk_embedding_tokens
 }
 
-pub fn create_web_builder(embedding: Arc<dyn Embedding>) -> TantivyDocBuilder<SourceDocument> {
+// FIXME(meng): make this private interface, always prefer using public::DocIndexer for web doc building.
+pub fn create_web_builder(embedding: Arc<dyn Embedding>) -> TantivyDocBuilder<WebDocument> {
     let builder = DocBuilder::new(embedding);
     TantivyDocBuilder::new(corpus::WEB, builder)
 }

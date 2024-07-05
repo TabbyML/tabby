@@ -6,11 +6,14 @@ use futures::StreamExt;
 use tabby_common::index::corpus;
 use tabby_inference::Embedding;
 
-use super::{create_web_builder, SourceDocument};
-use crate::{indexer::TantivyDocBuilder, Indexer};
+use super::create_web_builder;
+use crate::{
+    indexer::{IndexId, TantivyDocBuilder, ToIndexId},
+    Indexer,
+};
 
 pub struct DocIndexer {
-    builder: TantivyDocBuilder<SourceDocument>,
+    builder: TantivyDocBuilder<WebDocument>,
     indexer: Indexer,
 }
 
@@ -22,14 +25,11 @@ pub struct WebDocument {
     pub body: String,
 }
 
-impl From<WebDocument> for SourceDocument {
-    fn from(value: WebDocument) -> Self {
-        Self {
-            id: value.id,
-            source_id: value.source_id,
-            link: value.link,
-            title: value.title,
-            body: value.body,
+impl ToIndexId for WebDocument {
+    fn to_index_id(&self) -> IndexId {
+        IndexId {
+            source_id: self.source_id.clone(),
+            id: self.id.clone(),
         }
     }
 }
@@ -49,7 +49,7 @@ impl DocIndexer {
         };
 
         stream! {
-            let (id, s) = self.builder.build(document.into()).await;
+            let (id, s) = self.builder.build(document).await;
             self.indexer.delete(&id);
             for await doc in s.buffer_unordered(std::cmp::max(std::thread::available_parallelism().unwrap().get() * 2, 32)) {
                 if let Ok(Some(doc)) = doc {

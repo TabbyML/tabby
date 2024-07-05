@@ -23,7 +23,7 @@ pub mod public {
     };
 }
 
-use crate::doc::SourceDocument;
+use crate::doc::public::WebDocument;
 
 pub async fn crawl_index_docs(
     source_id: &str,
@@ -39,7 +39,7 @@ pub async fn crawl_index_docs(
     let mut pipeline = Box::pin(crawl_pipeline(start_url).await?);
     while let Some(doc) = pipeline.next().await {
         logkit::info!("Fetching {}", doc.url);
-        let source_doc = SourceDocument {
+        let source_doc = WebDocument {
             source_id: source_id.to_owned(),
             id: doc.url.clone(),
             title: doc.metadata.title.unwrap_or_default(),
