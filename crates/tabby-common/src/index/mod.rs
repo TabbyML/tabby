@@ -144,7 +144,9 @@ impl IndexSchema {
             tantivy::schema::IndexRecordOption::Basic,
         );
 
-        let updated_at = DateTime::from_timestamp_micros(updated_at.timestamp_micros());
+        let updated_at = DateTime::from_timestamp_nanos(
+            updated_at.timestamp_nanos_opt().expect("valid timestamp")
+        );
 
         BooleanQuery::new(vec![
             // Must match the corpus

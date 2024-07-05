@@ -107,7 +107,7 @@ mod tests {
 
         // For document with the same id, and the updated_at is not newer, it should not be added.
         let indexer = DocIndexer::new(embedding);
-        assert!(!indexer.add(updated_at - chrono::Duration::seconds(1), create_testing_document()).await, "Updated at: {}", updated_at);
+        assert!(!indexer.add(updated_at - chrono::Duration::seconds(1), create_testing_document()).await);
 
         // For document with the same id, and the updated_at is newer, it should be added.
         assert!(indexer.add(updated_at + chrono::Duration::seconds(1), create_testing_document()).await);
