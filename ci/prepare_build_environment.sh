@@ -21,6 +21,9 @@ if [[ "$OSTYPE" == "linux"* ]]; then
     apt-get -y install protobuf-compiler libopenblas-dev sqlite3 graphviz
   else
     # Build from manylinux2014 container
+
+    # CentOS 7 is EOL after 2024 06, need to update to vault.centos.org
+    sed -i -e 's/mirrorlist/#mirrorlist/g' -e 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
     yum -y install openblas-devel perl-IPC-Cmd unzip curl openssl-devel
 
     # Disable safe directory in docker
