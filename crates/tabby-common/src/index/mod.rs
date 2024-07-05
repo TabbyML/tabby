@@ -145,7 +145,7 @@ impl IndexSchema {
         );
 
         let updated_at = DateTime::from_timestamp_nanos(
-            updated_at.timestamp_nanos_opt().expect("valid timestamp")
+            updated_at.timestamp_nanos_opt().expect("valid timestamp"),
         );
 
         BooleanQuery::new(vec![
