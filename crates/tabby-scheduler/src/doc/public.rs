@@ -110,7 +110,7 @@ mod tests {
         assert!(
             !indexer
                 .add(
-                    updated_at - chrono::Duration::seconds(1),
+                    updated_at,
                     create_testing_document()
                 )
                 .await
