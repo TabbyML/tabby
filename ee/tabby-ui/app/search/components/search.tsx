@@ -460,7 +460,7 @@ export function Search() {
                 className="lg:max-w-4xl"
                 placeholder="Ask a follow up question"
                 isLoading={isLoading}
-                inSearchPage
+                isFollowup
               />
             </div>
           </div>

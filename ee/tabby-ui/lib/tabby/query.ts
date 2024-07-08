@@ -299,3 +299,15 @@ export const listWebCrawlerUrl = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const repositoryListQuery = graphql(/* GraphQL */ `
+  query RepositoryList {
+    repositoryList {
+      id
+      name
+      kind
+      gitUrl
+      refs
+    }
+  }
+`)

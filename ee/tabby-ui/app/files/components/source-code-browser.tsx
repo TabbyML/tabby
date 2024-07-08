@@ -14,6 +14,7 @@ import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { filename2prism } from '@/lib/language-utils'
 import fetcher from '@/lib/tabby/fetcher'
 import { client } from '@/lib/tabby/gql'
+import { repositoryListQuery } from '@/lib/tabby/query'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
 import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
 import {
@@ -74,18 +75,6 @@ type TFileMapItem = {
 }
 type TFileMap = Record<string, TFileMapItem>
 type RepositoryItem = RepositoryListQuery['repositoryList'][0]
-
-const repositoryListQuery = graphql(/* GraphQL */ `
-  query RepositoryList {
-    repositoryList {
-      id
-      name
-      kind
-      gitUrl
-      refs
-    }
-  }
-`)
 
 const repositoryGrepQuery = graphql(/* GraphQL */ `
   query RepositoryGrep($id: ID!, $kind: RepositoryKind!, $query: String!) {
