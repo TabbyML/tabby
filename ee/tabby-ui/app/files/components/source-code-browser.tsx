@@ -820,8 +820,9 @@ async function fetchRepositoryGreps(
 
   return result?.then(res => {
     if (res?.error) {
-      throw new Error(res.error.message)
+      throw new Error(CodeBrowserError.FAILED_TO_FETCH)
     }
+
     return res?.data?.repositoryGrep
   })
 }

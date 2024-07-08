@@ -15,7 +15,7 @@ import CodeEditor from '@/components/codemirror/codemirror'
 import { lineClickExtension } from '@/components/codemirror/line-click-extension'
 
 import { SourceCodeSearchResult as SourceCodeSearchResultType } from './code-search-result-view'
-import { searchMatchExtension } from './search-match-extension/search-match-extension'
+import { searchMatchExtension } from './search-match-extension'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { generateEntryPath } from './utils'
 
@@ -89,7 +89,7 @@ export const SourceCodeSearchResult = ({
         {ranges.map((range, i) => {
           const lines = props.result.lines.slice(range.start, range.end + 1)
           return (
-            <LazyLoad key={`${props.result.path}-${range.start}`}>
+            <LazyLoad key={`${props.result.path}-${range.start}`} offset={300}>
               <CodeSearchSnippet
                 language={language}
                 theme={theme}

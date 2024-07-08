@@ -9,6 +9,7 @@ export type ViewMode = 'tree' | 'blob' | 'search'
 type RepositoryItem = RepositoryListQuery['repositoryList'][0]
 
 export enum CodeBrowserError {
+  FAILED_TO_FETCH = 'FAILED_TO_FETCH',
   INVALID_URL = 'INVALID_URL',
   NOT_FOUND = 'NOT_FOUND',
   REPOSITORY_NOT_FOUND = 'REPOSITORY_NOT_FOUND',

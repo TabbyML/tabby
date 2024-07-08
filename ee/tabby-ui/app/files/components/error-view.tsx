@@ -24,6 +24,9 @@ export const ErrorView: React.FC<ErrorViewProps> = ({ className, error }) => {
     case CodeBrowserError.INVALID_URL:
       errorComponent = <InvalidUrlError />
       break
+    case CodeBrowserError.FAILED_TO_FETCH:
+      errorComponent = <FailToFetchError />
+      break
   }
 
   return (
@@ -100,6 +103,17 @@ function InvalidUrlError() {
         <span>Back to repositories</span>
         <IconArrowRight />
       </Link>
+    </>
+  )
+}
+
+function FailToFetchError() {
+  return (
+    <>
+      <div className="flex items-center gap-2">
+        <IconFileSearch className="h-6 w-6" />
+        <div className="text-xl font-semibold">Failed to fetch</div>
+      </div>
     </>
   )
 }
