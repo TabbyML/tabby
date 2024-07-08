@@ -112,6 +112,7 @@ export default function TextAreaSearch({
         className={cn(
           'text-area-autosize flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
           {
+            'w-full': !isFollowup,
             '!h-[48px]': !isShow,
             'pt-4': !showBetaBadge,
             'pt-5': showBetaBadge,
@@ -131,8 +132,8 @@ export default function TextAreaSearch({
         minRows={isFollowup ? 1 : 2}
       />
       <div
-        className={cn('flex justify-between', {
-          'pb-4': !isFollowup
+        className={cn('flex justify-between items-center', {
+          'pb-2': !isFollowup
         })}
       >
         {!isFollowup && (
@@ -147,7 +148,7 @@ export default function TextAreaSearch({
               '!bg-muted !text-primary !cursor-default':
                 isLoading || value.length === 0,
               'mr-1.5': !showBetaBadge,
-              'h-8 w-8': !isFollowup
+              'h-6 w-6': !isFollowup
               // 'mr-6': showBetaBadge,
             }
           )}
