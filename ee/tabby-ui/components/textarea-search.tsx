@@ -303,7 +303,7 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
                       onChange(undefined)
                       setCommandVisible(false)
                     }}
-                    className="!pointer-events-auto cursor-pointer justify-center text-center !opacity-100 mt-1"
+                    className="!pointer-events-auto mt-1 cursor-pointer justify-center text-center !opacity-100"
                   >
                     Clear
                   </CommandItem>
