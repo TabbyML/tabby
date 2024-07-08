@@ -186,12 +186,6 @@ const FEATURES: FeatureGroup[] = [
         enterprise: checked
       },
       {
-        name: 'Admin Controls',
-        community: dashed,
-        team: checked,
-        enterprise: checked
-      },
-      {
         name: 'Toggle IDE / Extensions telemetry',
         community: dashed,
         team: dashed,
