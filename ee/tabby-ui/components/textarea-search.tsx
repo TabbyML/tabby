@@ -298,17 +298,15 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
               {!!value && (
                 <>
                   <CommandSeparator />
-                  <CommandGroup>
-                    <CommandItem
-                      onSelect={() => {
-                        onChange(undefined)
-                        setCommandVisible(false)
-                      }}
-                      className="!pointer-events-auto cursor-pointer justify-center text-center !opacity-100"
-                    >
-                      Clear
-                    </CommandItem>
-                  </CommandGroup>
+                  <CommandItem
+                    onSelect={() => {
+                      onChange(undefined)
+                      setCommandVisible(false)
+                    }}
+                    className="!pointer-events-auto cursor-pointer justify-center text-center !opacity-100 mt-1"
+                  >
+                    Clear
+                  </CommandItem>
                 </>
               )}
             </Command>
