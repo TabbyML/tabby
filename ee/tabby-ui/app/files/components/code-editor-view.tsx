@@ -49,7 +49,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
       selectLinesGutter({
-        onSelectLine: v => {
+        onSelectLine: (v, isShiftDown) => {
           if (v === -1 || isNaN(v)) return
           // todo support multi lines
           updateHash(formatLineHashForCodeBrowser({ start: v }))

@@ -8,7 +8,7 @@ import {
   GutterMarker,
   lineNumbers
 } from '@codemirror/view'
-import { isNil } from 'lodash-es'
+import { compact, isNil } from 'lodash-es'
 import ReactDOM from 'react-dom/client'
 
 import { Button } from '@/components/ui/button'
@@ -97,14 +97,14 @@ const selectableLineNumberTheme = EditorView.theme({
   }
 })
 
-function setSelectedLines(view: EditorView, pos: number): number {
+function setSelectedLines(view: EditorView, pos: number, endLinePos?: number): number[] {
   const selectedLines = view.state.field(selectedLinesState)
   let hasSelectedLines = false
   selectedLines.between(pos, pos + 1, () => {
     hasSelectedLines = true
   })
   if (hasSelectedLines) {
-    return -1
+    return [-1]
   } else {
     const line = view.state.doc.lineAt(pos)
     view.dispatch({
@@ -113,7 +113,7 @@ function setSelectedLines(view: EditorView, pos: number): number {
         lineHighlightEffect.of({ line: line.number, highlight: true })
       ]
     })
-    return line.number
+    return [line.number]
   }
 }
 
@@ -128,9 +128,11 @@ function clearSelectedLines(view: EditorView) {
 
 const lineHighlightEffect = StateEffect.define<{
   line?: number
+  endLine?: number
   highlight: boolean
 }>()
-const lineHighlineField = StateField.define<DecorationSet>({
+
+const lineHighlightField = StateField.define<DecorationSet>({
   create() {
     return Decoration.none
   },
@@ -141,8 +143,16 @@ const lineHighlineField = StateField.define<DecorationSet>({
         if (effect.value.highlight && !isNil(effect.value.line)) {
           const deco = Decoration.line({ class: 'cm-selectedLine' })
           const line = tr.state.doc.line(effect.value.line)
+          // todo
+          // const endLine = !isNil(effect.value.endLine) ? tr.state.doc.line(effect.value.endLine) : null
+          const endLine = tr.state.doc.line(effect.value.line + 1)
+          const thirdLine = tr.state.doc.line(effect.value.line + 2)
           highlights = Decoration.none.update({
-            add: [deco.range(line.from)]
+            add: compact([
+              deco.range(line.from),
+              endLine ? deco.range(endLine?.from) : null,
+              thirdLine ? deco.range(thirdLine?.from) : null
+            ])
           })
         } else {
           highlights = Decoration.none
@@ -170,20 +180,29 @@ const selectedLinesGutterHighlighter = gutterLineClass.compute(
 )
 
 type SelectLInesGutterOptions = {
-  onSelectLine?: (v: number) => void
+  onSelectLine?: (v: number, isShift?: boolean) => void
 }
 const selectLinesGutter = ({ onSelectLine }: SelectLInesGutterOptions) => {
   return [
     selectableLineNumberTheme,
     selectedLinesState,
-    lineHighlineField,
+    lineHighlightField,
     gutter({
       class: 'cm-lineMenuGutter',
       markers: v => v.state.field(selectedLinesState),
       initialSpacer: () => lineMenuMarker,
       domEventHandlers: {
-        mousedown(view, line) {
-          const lineNumber = setSelectedLines(view, line.from)
+        mousedown(view, line, event) {
+          const mouseEvent = event as MouseEvent
+          // todo check if shift-key is down
+          //   view.dispatch({
+          //     effects: mouseEvent.shiftKey ? setEndLine.of(line) : setSelectedLines.of({ line }),
+          //     annotations: lineSelectionSource.of('gutter'),
+          //     // Collapse/reset text selection
+          //     selection: { anchor: view.state.selection.main.anchor },
+          // })
+
+          const [lineNumber] = setSelectedLines(view, line.from)
           onSelectLine?.(lineNumber)
           return true
         }
@@ -193,7 +212,7 @@ const selectLinesGutter = ({ onSelectLine }: SelectLInesGutterOptions) => {
       domEventHandlers: {
         mousedown(view, line) {
           // const lineNumber = view.state.doc.lineAt(line.from).number
-          const lineNumber = setSelectedLines(view, line.from)
+          const [lineNumber] = setSelectedLines(view, line.from)
           onSelectLine?.(lineNumber)
           return false
         }
