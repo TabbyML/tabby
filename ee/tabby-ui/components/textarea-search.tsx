@@ -284,7 +284,7 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
                           onChange({ ...repo, allCode: false })
                           setCommandVisible(false)
                         }}
-                        className="flex gap-2 items-center cursor-pointer"
+                        className="flex cursor-pointer items-center gap-2"
                       >
                         <div className="h-4 w-4 shrink-0">
                           {isSelected && <IconCheck className="shrink-0" />}
