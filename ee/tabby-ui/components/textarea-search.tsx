@@ -132,7 +132,7 @@ export default function TextAreaSearch({
         minRows={isFollowup ? 1 : 2}
       />
       <div
-        className={cn('flex justify-between items-center', {
+        className={cn('flex items-center justify-between', {
           'pb-2': !isFollowup
         })}
       >
@@ -141,7 +141,7 @@ export default function TextAreaSearch({
         )}
         <div
           className={cn(
-            'flex justify-center items-center rounded-lg p-1 transition-all',
+            'flex items-center justify-center rounded-lg p-1 transition-all',
             {
               'bg-primary text-primary-foreground cursor-pointer':
                 value.length > 0,
@@ -181,7 +181,7 @@ function RepoSelect({ value, onChange }: RepoSelectProps) {
   const emptyText = useMemo(() => {
     if (!repos?.length)
       return (
-        <div className="py-2 space-y-4">
+        <div className="space-y-4 py-2">
           <p className="font-semibold">No indexed repositories</p>
           <Link
             href="/settings/providers/git"
@@ -206,7 +206,7 @@ function RepoSelect({ value, onChange }: RepoSelectProps) {
             <div
               className={cn(
                 buttonVariants({ variant: 'ghost' }),
-                'rounded-full cursor-pointer px-2 -ml-2'
+                '-ml-2 cursor-pointer rounded-full px-2'
               )}
             >
               <div className="flex items-center gap-1">
