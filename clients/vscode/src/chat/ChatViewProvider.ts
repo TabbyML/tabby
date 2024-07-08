@@ -8,6 +8,8 @@ import {
   LogOutputChannel,
   TextEditor,
   window,
+  Range,
+  Position,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -61,7 +63,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     const workspaceFolder = workspace.getWorkspaceFolder(uri);
     const repo = gitProvider.getRepository(uri);
     const remoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
-    let filePath = uri.toString();
+    let filePath = decodeURIComponent(uri.toString());
     if (repo) {
       filePath = filePath.replace(repo.rootUri.toString(), "");
     } else if (workspaceFolder) {
@@ -134,59 +136,42 @@ export class ChatViewProvider implements WebviewViewProvider {
           const document = editor.document;
           const selection = editor.selection;
           const text = editor.document.getText(selection);
+          const { start } = selection;
 
-          // Replace the selected text in the editor if the user has made a selection
-          if (text.length > 0) {
-            const selectedLines = text.split("\n");
+          // Find the minimum indent
+          const lineText = document.lineAt(start.line).text;
+          const selectedLines = text.split("\n");
+          const allLines = [lineText].concat(selectedLines.slice(1));
+          let subsequentLinesMinIndent = "";
+          let subsequentLinesMinIndentLength = Infinity;
+          allLines.forEach((line) => {
+            const match = line.match(/^(\s*)/);
+            const indent = match ? match[0] : "";
+            if (indent.length < subsequentLinesMinIndentLength) {
+              subsequentLinesMinIndent = indent;
+              subsequentLinesMinIndentLength = indent.length;
+            }
+          });
 
-            // Extract the indentation of the first line of the current selection
-            // Note: The indentation of the first line might not align with the indentation of subsequent lines
-            // due to the nature of the user's selection
-            const firstLineMatch = selectedLines[0] && selectedLines[0].match(/^\s*/);
-            const firstLineIndentation = firstLineMatch ? firstLineMatch[0] : "";
+          // Add the indent at the beginning of the content
+          const indentedContent = content
+            .split("\n")
+            .map((line) => subsequentLinesMinIndent + line)
+            .join("\n");
 
-            // Determine the minimum indent for subsequent lines
-            let subsequentLinesMinIndent = "";
-            let subsequentLinesMinIndentLength = Infinity;
-            selectedLines.slice(1).forEach((line) => {
-              const match = line.match(/^(\s*)/);
-              const indent = match ? match[0] : "";
-              if (indent.length < subsequentLinesMinIndentLength) {
-                subsequentLinesMinIndent = indent;
-                subsequentLinesMinIndentLength = indent.length;
-              }
-            });
+          // Apply into the editor
+          editor.edit((editBuilder) => {
+            const { start, end } = selection;
+            const startBeginPosition = new Position(start.line, 0);
+            const hasSelectionInEditor = text.length > 0;
 
-            const indentedContent = content
-              .split("\n")
-              .map((line, idx) => {
-                if (idx === 0) return firstLineIndentation + line;
-                return subsequentLinesMinIndent + line;
-              })
-              .join("\n");
-
-            editor.edit((editBuilder) => {
-              editBuilder.replace(selection, indentedContent);
-            });
-          }
-
-          // Insert at the cursor position if the user has not selected any text
-          if (text.length === 0) {
-            const cursorPosition = selection.start;
-            const lineText = document.lineAt(cursorPosition.line).text;
-
-            // Extract the indentation from the position of the cursor
-            const indentMatch = lineText.match(/^\s*/);
-            const indent = indentMatch ? indentMatch[0] : "";
-            const indentedContent = content
-              .split("\n")
-              .map((line, index) => (index === 0 ? line : indent + line))
-              .join("\n");
-
-            editor.edit((editBuilder) => {
-              editBuilder.insert(cursorPosition, indentedContent);
-            });
-          }
+            if (hasSelectionInEditor) {
+              const adjustedRange = new Range(startBeginPosition, end);
+              editBuilder.replace(adjustedRange, indentedContent);
+            } else {
+              editBuilder.insert(startBeginPosition, indentedContent);
+            }
+          });
         }
       },
     });
