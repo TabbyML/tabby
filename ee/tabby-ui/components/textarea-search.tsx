@@ -2,11 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { findIndex } from 'lodash-es'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useQuery } from 'urql'
 
-import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
+import { Repository } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { repositoryListQuery } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
@@ -58,9 +57,7 @@ export default function TextAreaSearch({
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
   const [value, setValue] = useState('')
-  const [selectedRepos, setSelectRepos] = useState<
-    RepositoryListQuery['repositoryList']
-  >([])
+  const [selectedRepo, setSelectRepo] = useState<RepoItem | undefined>()
   const { theme } = useCurrentTheme()
 
   useEffect(() => {
@@ -132,12 +129,16 @@ export default function TextAreaSearch({
         minRows={isFollowup ? 1 : 2}
       />
       <div
-        className={cn('flex items-center justify-between', {
+        className={cn('flex items-center justify-between gap-2', {
           'pb-2': !isFollowup
         })}
       >
         {!isFollowup && (
-          <RepoSelect value={selectedRepos} onChange={setSelectRepos} />
+          <RepoSelect
+            className="overflow-hidden"
+            value={selectedRepo}
+            onChange={setSelectRepo}
+          />
         )}
         <div
           className={cn(
@@ -166,17 +167,21 @@ export default function TextAreaSearch({
   )
 }
 
+type RepoItem = Pick<Partial<Repository>, 'id' | 'kind' | 'name'> & {
+  allCode?: boolean
+}
+
 interface RepoSelectProps {
-  value: RepositoryListQuery['repositoryList']
-  onChange: (val: RepositoryListQuery['repositoryList']) => void
+  value: RepoItem | undefined
+  onChange: (val: RepoItem | undefined) => void
   className?: string
 }
-function RepoSelect({ value, onChange }: RepoSelectProps) {
+function RepoSelect({ value, onChange, className }: RepoSelectProps) {
+  const [commandVisible, setCommandVisible] = useState(false)
   const [{ data, fetching }] = useQuery({
     query: repositoryListQuery
   })
   const repos = data?.repositoryList
-  // const repos: any[] = []
 
   const emptyText = useMemo(() => {
     if (!repos?.length)
@@ -196,42 +201,39 @@ function RepoSelect({ value, onChange }: RepoSelectProps) {
     return 'No results found'
   }, [repos])
 
-  const isAllSelected = !!repos?.length && value?.length === repos.length
+  const isAllSelected = !!repos?.length && value?.allCode
 
   return (
     <Tooltip delayDuration={0}>
-      <Popover>
+      <Popover open={commandVisible} onOpenChange={e => setCommandVisible(e)}>
         <PopoverTrigger asChild>
           <TooltipTrigger asChild>
             <div
               className={cn(
                 buttonVariants({ variant: 'ghost' }),
-                '-ml-2 cursor-pointer rounded-full px-2'
+                '-ml-2 cursor-pointer rounded-full px-2',
+                className
               )}
             >
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2 overflow-hidden">
                 <IconCode
                   className={cn(
                     'shrink-0',
-                    value?.length ? 'text-foreground/70' : 'text-foreground/50'
+                    value ? 'text-foreground/70' : 'text-foreground/50'
                   )}
                 />
-                <p
+                <span
                   className={cn(
-                    'w-full overflow-hidden text-ellipsis',
-                    value?.length ? 'text-foreground/70' : 'text-foreground/50'
+                    'flex-1 truncate',
+                    value ? 'text-foreground/70' : 'text-foreground/50'
                   )}
                 >
                   {isAllSelected
                     ? 'All Repositories'
-                    : !value?.length
-                    ? 'Select repositories'
-                    : value?.length === 1
-                    ? value[0].name
-                    : `${value.length} ${
-                        value.length > 1 ? 'repositories' : 'repository'
-                      } selected`}
-                </p>
+                    : value
+                    ? value.name
+                    : 'Select repositories'}
+                </span>
               </div>
             </div>
           </TooltipTrigger>
@@ -240,7 +242,7 @@ function RepoSelect({ value, onChange }: RepoSelectProps) {
           <PopoverContent className="min-w-[300px]" align="start" side="bottom">
             <Command>
               <CommandInput placeholder="Search repositories" />
-              <CommandList>
+              <CommandList className="max-h-[200px]">
                 <CommandEmpty>
                   {fetching ? (
                     <div className="flex justify-center">
@@ -256,23 +258,17 @@ function RepoSelect({ value, onChange }: RepoSelectProps) {
                       <CommandItem
                         key="all"
                         onSelect={e => {
-                          if (value?.length === repos.length) {
-                            onChange([])
+                          if (isAllSelected) {
+                            onChange(undefined)
                           } else {
-                            onChange(repos.slice())
+                            onChange({ allCode: true })
                           }
+                          setCommandVisible(false)
                         }}
-                        className="!pointer-events-auto cursor-pointer !opacity-100"
+                        className="flex items-center gap-2"
                       >
-                        <div
-                          className={cn(
-                            'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
-                            isAllSelected
-                              ? 'bg-primary text-primary-foreground'
-                              : 'opacity-50 [&_svg]:invisible'
-                          )}
-                        >
-                          <IconCheck className={cn('h-4 w-4')} />
+                        <div className="w-4 shrink-0">
+                          {isAllSelected && <IconCheck className="shrink-0" />}
                         </div>
                         <span>All indexed repositories</span>
                       </CommandItem>
@@ -280,54 +276,41 @@ function RepoSelect({ value, onChange }: RepoSelectProps) {
                     </>
                   )}
                   {repos?.map(repo => {
-                    const isSelected =
-                      findIndex(value, v => v.id === repo.id) > -1
+                    const isSelected = repo.id === value?.id
                     return (
                       <CommandItem
                         key={repo.id}
                         onSelect={() => {
-                          const newSelect = [...value]
-                          if (isSelected) {
-                            const idx = newSelect.findIndex(
-                              item => item.id === repo.id
-                            )
-                            if (idx !== -1) newSelect.splice(idx, 1)
-                          } else {
-                            newSelect.push(repo)
-                          }
-                          onChange(newSelect)
+                          onChange({ ...repo, allCode: false })
+                          setCommandVisible(false)
                         }}
-                        className="!pointer-events-auto cursor-pointer !opacity-100"
+                        className="flex gap-2 items-center cursor-pointer"
                       >
-                        <div
-                          className={cn(
-                            'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
-                            isSelected
-                              ? 'bg-primary text-primary-foreground'
-                              : 'opacity-50 [&_svg]:invisible'
-                          )}
-                        >
-                          <IconCheck className={cn('h-4 w-4')} />
+                        <div className="h-4 w-4 shrink-0">
+                          {isSelected && <IconCheck className="shrink-0" />}
                         </div>
                         <span>{repo.name}</span>
                       </CommandItem>
                     )
                   })}
                 </CommandGroup>
-                {value.length > 0 && (
-                  <>
-                    <CommandSeparator />
-                    <CommandGroup>
-                      <CommandItem
-                        onSelect={() => onChange([])}
-                        className="!pointer-events-auto cursor-pointer justify-center text-center !opacity-100"
-                      >
-                        Clear
-                      </CommandItem>
-                    </CommandGroup>
-                  </>
-                )}
               </CommandList>
+              {!!value && (
+                <>
+                  <CommandSeparator />
+                  <CommandGroup>
+                    <CommandItem
+                      onSelect={() => {
+                        onChange(undefined)
+                        setCommandVisible(false)
+                      }}
+                      className="!pointer-events-auto cursor-pointer justify-center text-center !opacity-100"
+                    >
+                      Clear
+                    </CommandItem>
+                  </CommandGroup>
+                </>
+              )}
             </Command>
           </PopoverContent>
         </PopoverPortal>
