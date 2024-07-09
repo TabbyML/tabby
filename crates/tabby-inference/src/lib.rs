@@ -5,7 +5,7 @@ mod completion;
 mod decoding;
 mod embedding;
 
-pub use chat::ChatCompletionStream;
+pub use chat::{ChatCompletionStream, ExtendedOpenAIConfig};
 pub use code::{CodeGeneration, CodeGenerationOptions, CodeGenerationOptionsBuilder};
 pub use completion::{CompletionOptions, CompletionOptionsBuilder, CompletionStream};
 pub use embedding::Embedding;

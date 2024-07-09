@@ -3,7 +3,7 @@ mod supervisor;
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
-use async_openai::config::OpenAIConfig;
+use async_openai::error::OpenAIError;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use serde::Deserialize;
@@ -139,9 +139,20 @@ impl ChatCompletionServer {
     }
 }
 
+#[async_trait]
 impl ChatCompletionStream for ChatCompletionServer {
-    fn get(&self) -> async_openai::Chat<'_, OpenAIConfig> {
-        self.chat_completion.get()
+    async fn chat(
+        &self,
+        request: async_openai::types::CreateChatCompletionRequest,
+    ) -> Result<async_openai::types::CreateChatCompletionResponse, OpenAIError> {
+        self.chat_completion.chat(request).await
+    }
+
+    async fn chat_stream(
+        &self,
+        request: async_openai::types::CreateChatCompletionRequest,
+    ) -> Result<async_openai::types::ChatCompletionResponseStream, OpenAIError> {
+        self.chat_completion.chat_stream(request).await
     }
 }
 
