@@ -192,7 +192,7 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
             href="/settings/providers/git"
             className={cn(buttonVariants({ size: 'sm' }), 'gap-1')}
           >
-            Add repositories
+    Connect
             <IconArrowRight />
           </Link>
         </div>
