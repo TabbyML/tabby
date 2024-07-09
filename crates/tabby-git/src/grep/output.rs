@@ -1,4 +1,7 @@
-use std::{io::BufRead, path::{Path, PathBuf}};
+use std::{
+    io::BufRead,
+    path::{Path, PathBuf},
+};
 
 use grep::{matcher::Matcher, regex::RegexMatcher, searcher::Sink};
 use tracing::debug;
@@ -107,7 +110,7 @@ impl GrepOutput {
 }
 
 fn read_lines(content: &[u8]) -> anyhow::Result<Vec<GrepLine>> {
-    let reader= std::io::BufReader::new(content);
+    let reader = std::io::BufReader::new(content);
     let line_reader = reader.lines().take(5);
 
     let mut lines = vec![];
