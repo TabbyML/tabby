@@ -18,6 +18,8 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn ChatCompletionStream> {
         // Do nothing
     } else if model.kind == "mistral/chat" {
         builder.fields_to_remove(ExtendedOpenAIConfig::mistral_fields_to_remove());
+    } else {
+        panic!("Unsupported model kind: {}", model.kind);
     }
 
     let config = builder.build().expect("Failed to build config");
