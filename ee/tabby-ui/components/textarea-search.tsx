@@ -187,7 +187,7 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
     if (!repos?.length)
       return (
         <div className="space-y-4 py-2">
-          <p className="font-semibold">No indexed repositories</p>
+          <p className="font-semibold">No repositories</p>
           <Link
             href="/settings/providers/git"
             className={cn(buttonVariants({ size: 'sm' }), 'gap-1')}
