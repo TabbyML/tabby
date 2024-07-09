@@ -3,6 +3,7 @@
 import React from 'react'
 import { useSearchParams } from 'next/navigation'
 import humanizerDuration from 'humanize-duration'
+import numeral from 'numeral'
 
 import { GrepFile } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
@@ -36,9 +37,9 @@ export const CodeSearchResultView = (props: CodeSearchResultViewProps) => {
     )
   }, [props.results])
 
-  const matchCount: number = React.useMemo(() => {
+  const matchCount: string = React.useMemo(() => {
     let count = 0
-    if (!props.results) return count
+    if (!props.results) return '0'
 
     for (const result of props.results) {
       const curCount = result.lines.reduce((sum, cur) => {
@@ -48,7 +49,8 @@ export const CodeSearchResultView = (props: CodeSearchResultViewProps) => {
 
       count += curCount
     }
-    return count
+    const format = count < 1000 ? '0' : '0.0a'
+    return numeral(count).format(format)
   }, [props.results])
 
   const duration = humanizerDuration.humanizer({
