@@ -232,7 +232,7 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
                     ? 'All Repositories'
                     : value
                     ? value.name
-                    : 'Select repositories'}
+                    : 'Select repository'}
                 </span>
               </div>
             </div>
