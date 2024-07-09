@@ -12,6 +12,7 @@ from modal import Image, App, asgi_app, gpu, Volume
 IMAGE_NAME = "tabbyml/tabby"
 MODEL_ID = "TabbyML/StarCoder-1B"
 CHAT_MODEL_ID = "TabbyML/Qwen2-1.5B-Instruct"
+EMBEDDING_MODEL_ID = "TabbyML/Nomic-Embed-Text"
 GPU_CONFIG = gpu.L4()
 
 TABBY_BIN = "/opt/tabby/bin/tabby"
@@ -47,6 +48,20 @@ def download_chat_model():
     )
 
 
+def download_embedding_model():
+    import subprocess
+
+    subprocess.run(
+        [
+            TABBY_BIN,
+            "download",
+            "--model",
+            EMBEDDING_MODEL_ID,
+        ],
+        env=TABBY_ENV,
+    )
+
+
 image = (
     Image.from_registry(
         IMAGE_NAME,
@@ -55,6 +70,7 @@ image = (
     .dockerfile_commands("ENTRYPOINT []")
     .run_function(download_model)
     .run_function(download_chat_model)
+    .run_function(download_embedding_model)
     .pip_install("asgi-proxy-lib")
 )
 
