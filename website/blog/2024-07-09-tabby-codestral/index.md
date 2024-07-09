@@ -1,0 +1,32 @@
+---
+authors: [gyxlucy]
+tags: [partnership, product]
+---
+
+# Introducing the Codestral Model in Tabby
+We are excited to share the integration of ***Codestral*** model into Tabby! Codestral has demonstrated exceptional performance across various coding tasks, and we are delighted to support our users in both self-hosting and accessing Codestral through its cloud API. This addition aims to enhance your coding experience with precision and efficiency, setting a new standard for AI-enhanced developer experience.
+
+<video width="520" height="340" 
+   src="./tabby_codestral.mp4" type="video/mp4" controls>
+</video>
+
+
+## What's great about Codestral?
+Unlike most existing coding LLMs, Codestral stands out with its **shared instruction and completion API endpoint**. This dual capability allows the same model to perform excellently in both code completion and chat tasks, greatly simplifying the developer AI stack and highlighting an important research direction we're extremly excited about. 
+
+Besides, Codestral is trained on a diverse dataset of **80+ programming languages**, ensuring a high-quality experience for developers working with a wide range of languages.
+
+
+## Get started with Codestral in Tabby
+
+### Self-hosting Codestral
+Codestral-22B is available for both Tabby completion and chat models [link](https://tabby.tabbyml.com/docs/models/). Please follow [Tabby Installation](https://tabby.tabbyml.com/docs/quick-start/installation/) to host Tabby and set `--model Codestral-22B --chat-model Codestral-22B`.
+
+### Access via Mistal AI API
+Since [v0.12.0](https://github.com/TabbyML/tabby/releases/tag/v0.12.0), Tabby has supported HTTP API, including Mistral's Codestral API. To use Codestral via Mistral's API, you need to first sign up for an API key from [Mistral AI](https://mistral.ai/). Then in Tabby, set your model configuration as below in `~/.tabby/config.toml` file ([see more](https://tabby.tabbyml.com/docs/administration/model/#mistral--codestral)).
+
+![Codestral API in Tabby](./codestral_api.jpeg)
+
+
+
+
