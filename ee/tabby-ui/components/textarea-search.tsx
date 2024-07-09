@@ -241,7 +241,7 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
         <PopoverPortal>
           <PopoverContent className="min-w-[300px]" align="start" side="bottom">
             <Command>
-              <CommandInput placeholder="Search repositories" />
+              <CommandInput placeholder="Search" />
               <CommandList className="max-h-[200px]">
                 <CommandEmpty>
                   {fetching ? (
