@@ -231,7 +231,7 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
           </TooltipTrigger>
         </PopoverTrigger>
         <PopoverPortal>
-          <PopoverContent className="min-w-[300px]" align="start" side="bottom">
+          <PopoverContent className="min-w-[300px] lg:max-w-[60vw]" align="start" side="bottom">
             <Command>
               <CommandInput placeholder="Search" />
               <CommandList className="max-h-[200px]">
@@ -254,12 +254,12 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
                           onChange({ ...repo })
                           setCommandVisible(false)
                         }}
-                        className="flex cursor-pointer items-center gap-2"
+                        className="flex cursor-pointer items-center gap-2 overflow-hidden"
                       >
                         <div className="h-4 w-4 shrink-0">
                           {isSelected && <IconCheck className="shrink-0" />}
                         </div>
-                        <span>{repo.name}</span>
+                        <span className='truncate'>{repo.name}</span>
                       </CommandItem>
                     )
                   })}
