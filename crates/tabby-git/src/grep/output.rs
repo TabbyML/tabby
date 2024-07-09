@@ -1,7 +1,7 @@
 use std::{io::BufRead, path::{Path, PathBuf}};
 
 use grep::{matcher::Matcher, regex::RegexMatcher, searcher::Sink};
-use tracing::warn;
+use tracing::debug;
 
 use super::{GrepFile, GrepLine, GrepSubMatch, GrepTextOrBase64};
 
@@ -86,7 +86,7 @@ impl GrepOutput {
             match read_lines(content) {
                 Ok(lines) => lines,
                 Err(e) => {
-                    warn!("Failed to read file: {:?}", e);
+                    debug!("Failed to read file: {:?}", e);
                     vec![]
                 }
             }
