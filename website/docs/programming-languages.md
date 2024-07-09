@@ -32,9 +32,9 @@ For an actual example of an issue or pull request adding the above support, plea
 * [C/C++](https://cplusplus.com/)
 * [PHP](https://www.php.net/)
 * [C#](https://learn.microsoft.com/en-us/dotnet/csharp/)
-* [Solidity](https://soliditylang.org/): Since v0.10.0
-* [R](https://www.r-project.org/): Since v0.12.0
-* [Dart](https://dart.dev/): Since v0.12.0
+* [Solidity](https://soliditylang.org/)
+* [R](https://www.r-project.org/)
+* [Dart](https://dart.dev/)
 * [Lua](https://www.lua.org): Since 0.14.0
 
 ## Languages Missing Certain Support
