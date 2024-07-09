@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use grep::{matcher::Matcher, regex::RegexMatcher, searcher::Sink};
+use tracing::debug;
 
 use super::{GrepFile, GrepLine, GrepSubMatch, GrepTextOrBase64};
 
@@ -83,7 +84,13 @@ impl GrepOutput {
             path: self.path.clone(),
             lines: std::mem::take(&mut self.lines),
         };
-        self.tx.blocking_send(file).expect("Send file");
+
+        match self.tx.blocking_send(file) {
+            Ok(_) => {}
+            Err(_) => {
+                // Request got cancelled, we can safely ignore the error.
+            }
+        }
     }
 }
 
