@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
 
 use grep::{matcher::Matcher, regex::RegexMatcher, searcher::Sink};
-use tracing::debug;
 
 use super::{GrepFile, GrepLine, GrepSubMatch, GrepTextOrBase64};
 
