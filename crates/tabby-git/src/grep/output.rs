@@ -83,7 +83,13 @@ impl GrepOutput {
             path: self.path.clone(),
             lines: std::mem::take(&mut self.lines),
         };
-        self.tx.blocking_send(file).expect("Send file");
+
+        match self.tx.blocking_send(file) {
+            Ok(_) => {}
+            Err(_) => {
+                // Request got cancelled, we can safely ignore the error.
+            }
+        }
     }
 }
 
