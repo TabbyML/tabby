@@ -78,6 +78,15 @@ const CodeMirrorEditor = React.forwardRef<
   const extensions = [
     defaultThemeOption,
     basicSetup,
+    EditorView.baseTheme({
+      '.cm-scroller': {
+        fontSize: '14px'
+      },
+      '.cm-gutters': {
+        backgroundColor: 'transparent',
+        borderRight: 'none'
+      }
+    }),
     EditorState.readOnly.of(readonly)
   ]
 

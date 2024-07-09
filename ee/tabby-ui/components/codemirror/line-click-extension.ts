@@ -1,6 +1,6 @@
 import { EditorView } from '@codemirror/view'
 
-const lineClickTheme = EditorView.baseTheme({
+const lineClickTheme = EditorView.theme({
   '.cm-line': {
     cursor: 'pointer'
   },

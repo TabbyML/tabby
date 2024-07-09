@@ -7,12 +7,14 @@ import {
   ViewUpdate
 } from '@codemirror/view'
 
+import './style.css'
+
 const searchMark = Decoration.mark({ class: 'search-match-mark' })
-const searchMarkTheme = EditorView.baseTheme({
+const searchMarkTheme = EditorView.theme({
   '.search-match-mark': {
-    backgroundColor: 'hsl(var(--muted))',
-    outlineStyle: 'solid',
-    outlineOffset: '1px'
+    backgroundColor: 'hsl(var(--mark-bg))'
+    // backgroundColor: '#eeee4e',
+    // backgroundColor: '#b59f3b',
   }
 })
 

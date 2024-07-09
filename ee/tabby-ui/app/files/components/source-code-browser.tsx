@@ -634,7 +634,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
                 error={entriesError || rawFileError}
               />
             ) : (
-              <div>
+              <>
                 {isTreeMode && (
                   <TreeModeView
                     loading={fetchingTreeEntries}
@@ -656,7 +656,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
                     loading={fetchingRepositoryGrep}
                   />
                 )}
-              </div>
+              </>
             )}
           </div>
         </div>

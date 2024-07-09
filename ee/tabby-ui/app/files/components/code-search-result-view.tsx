@@ -4,7 +4,8 @@ import React from 'react'
 import { useSearchParams } from 'next/navigation'
 
 import { GrepFile } from '@/lib/gql/generates/graphql'
-import { ListSkeleton } from '@/components/skeleton'
+import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 import { SourceCodeSearchResult } from './code-search-result'
 
@@ -33,44 +34,39 @@ export const CodeSearchResultView = (props: CodeSearchResultViewProps) => {
     )
   }, [props.results])
 
-  const matchCount: number = React.useMemo(() => {
-    let count = 0
-    if (!props.results) return count
-
-    for (const result of props.results) {
-      const curCount = result.lines.reduce((sum, cur) => {
-        const _matchCount = cur.subMatches.length
-        return sum + _matchCount
-      }, 0)
-
-      count += curCount
-    }
-    return count
-  }, [props.results])
-
   return (
     <>
-      <div className="mt-5">
-        <h1 className="font-semibold">Results for “{query}”</h1>
-      </div>
       {props.loading ? (
-        <ListSkeleton className="mt-2" />
+        <CodeSearchSkeleton className="mt-3" />
       ) : (
         <>
-          <p className="mb-7 text-sm text-muted-foreground">
-            {matchCount} {matchCount === 1 ? 'match' : 'matches'}
-          </p>
-          {results && results.length > 0 && (
-            <ol className="grid gap-8">
+          <h1 className="font-semibold mb-2 mt-1">
+            {results?.length || 0} files
+          </h1>
+          {results?.length > 0 ? (
+            <>
               {results.map((result, i) => (
-                <li key={`${result.path}-${i}`}>
+                <div key={`${result.path}-${i}`}>
                   <SourceCodeSearchResult result={result} query={query} />
-                </li>
+                </div>
               ))}
-            </ol>
+            </>
+          ) : (
+            // FIXME
+            <div>not found</div>
           )}
         </>
       )}
     </>
+  )
+}
+
+function CodeSearchSkeleton({ className }: React.ComponentProps<'div'>) {
+  return (
+    <div className={cn('flex flex-col gap-3', className)}>
+      <Skeleton className="h-4 w-[20%]" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-8 w-full" />
+    </div>
   )
 }
