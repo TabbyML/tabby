@@ -24,6 +24,32 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
     inputRef.current?.focus()
   }
 
+  // shortcut 's'
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as Element
+      const tagName = target?.tagName?.toLowerCase()
+      if (
+        tagName === 'input' ||
+        tagName === 'textarea' ||
+        tagName === 'select'
+      ) {
+        return
+      }
+
+      if (event.key === 's') {
+        event.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
   const onSubmit: React.FormEventHandler<HTMLFormElement> = e => {
     e.preventDefault()
 
@@ -50,7 +76,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
       <div className="relative w-full">
         <Input
           ref={inputRef}
-          placeholder="Search repository..."
+          placeholder="Search for code..."
           className="w-full"
           autoComplete="off"
           value={query}
