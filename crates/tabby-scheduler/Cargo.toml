@@ -31,9 +31,6 @@ serde.workspace = true
 serde_json.workspace = true
 futures.workspace = true
 async-stream.workspace = true
-htmd = "0.1"
-readable-readability = "0.4.0"
-url.workspace = true
 tabby-inference = { path = "../tabby-inference" }
 git2.workspace = true
 insta.workspace = true
@@ -44,7 +41,7 @@ chrono.workspace = true
 [dev-dependencies]
 temp_testdir = { workspace = true }
 tabby-common = { path = "../tabby-common", features = [ "testutils" ] }
-tracing-test = "0.2"
+tracing-test.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "rt-multi-thread"] }
 serde_json = { workspace = true }
 async-trait = { workspace = true }

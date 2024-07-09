@@ -2,54 +2,20 @@
 //! Includes syncing respositories and updating indices.
 
 mod code;
-mod crawl;
 mod indexer;
 
-use chrono::Utc;
-use crawl::crawl_pipeline;
 pub use doc::public::{DocIndexer, WebDocument};
 use futures::StreamExt;
 use indexer::{IndexAttributeBuilder, Indexer};
 use tabby_common::index::corpus;
-use tabby_inference::Embedding;
 
 mod doc;
-use std::sync::Arc;
 
 pub mod public {
     pub use super::{
         code::CodeIndexer,
         doc::public::{DocIndexer, WebDocument},
     };
-}
-
-pub async fn crawl_index_docs(
-    source_id: &str,
-    start_url: &str,
-    embedding: Arc<dyn Embedding>,
-) -> anyhow::Result<()> {
-    logkit::info!("Starting doc index pipeline for {}", start_url);
-    let embedding = embedding.clone();
-    let mut num_docs = 0;
-    let indexer = public::DocIndexer::new(embedding.clone());
-
-    let mut pipeline = Box::pin(crawl_pipeline(start_url).await?);
-    while let Some(doc) = pipeline.next().await {
-        logkit::info!("Fetching {}", doc.url);
-        let source_doc = WebDocument {
-            source_id: source_id.to_owned(),
-            id: doc.url.clone(),
-            title: doc.metadata.title.unwrap_or_default(),
-            link: doc.url,
-            body: doc.markdown,
-        };
-
-        num_docs += 1;
-        indexer.add(Utc::now(), source_doc).await;
-    }
-    logkit::info!("Crawled {} documents from '{}'", num_docs, start_url);
-    indexer.commit();
-    Ok(())
 }
 
 pub fn run_index_garbage_collection(active_sources: Vec<(String, String)>) -> anyhow::Result<()> {
