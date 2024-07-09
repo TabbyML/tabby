@@ -4,15 +4,12 @@
 mod code;
 mod indexer;
 
-
 pub use doc::public::{DocIndexer, WebDocument};
 use futures::StreamExt;
 use indexer::{IndexAttributeBuilder, Indexer};
 use tabby_common::index::corpus;
 
-
 mod doc;
-
 
 pub mod public {
     pub use super::{
