@@ -13,7 +13,7 @@ IMAGE_NAME = "tabbyml/tabby"
 MODEL_ID = "TabbyML/StarCoder-1B"
 CHAT_MODEL_ID = "TabbyML/Qwen2-1.5B-Instruct"
 EMBEDDING_MODEL_ID = "TabbyML/Nomic-Embed-Text"
-GPU_CONFIG = gpu.L4()
+GPU_CONFIG = gpu.T4()
 
 TABBY_BIN = "/opt/tabby/bin/tabby"
 TABBY_ENV = os.environ.copy()

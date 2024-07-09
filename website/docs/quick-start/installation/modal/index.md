@@ -11,14 +11,14 @@ import os
 from modal import Image, App, asgi_app, gpu, Volume
 ```
 
-Next, we set the base Docker image version and specify which model to serve. Initially, we considered using the `T4` GPU configuration for its cost-effectiveness. However, during testing, we encountered a significant number of HTTP 204 responses, indicating potential limitations with the T4's capabilities for our needs. As a result, we are now using the `L4` GPU configuration to efficiently utilize VRAM, which offers a better balance between performance and cost for our application.
+Next, we set the base docker image version, which model to serve, taking care to specify the GPU configuration required to fit the model into VRAM.
 
 ```python
 IMAGE_NAME = "tabbyml/tabby"
 MODEL_ID = "TabbyML/StarCoder-1B"
 CHAT_MODEL_ID = "TabbyML/Qwen2-1.5B-Instruct"
 EMBEDDING_MODEL_ID = "TabbyML/Nomic-Embed-Text"
-GPU_CONFIG = gpu.L4()
+GPU_CONFIG = gpu.T4()
 
 TABBY_BIN = "/opt/tabby/bin/tabby"
 TABBY_ENV = os.environ.copy()
