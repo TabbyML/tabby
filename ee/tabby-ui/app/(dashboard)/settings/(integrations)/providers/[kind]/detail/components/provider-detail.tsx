@@ -381,7 +381,7 @@ const ActiveRepoTable: React.FC<{
           ) : (
             <TableRow>
               <TableCell colSpan={4} className="h-[100px] text-center">
-                No repositories yet.
+                No repositories
               </TableCell>
             </TableRow>
           )}

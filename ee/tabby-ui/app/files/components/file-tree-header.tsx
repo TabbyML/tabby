@@ -259,7 +259,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
           <SelectContent className="max-h-[50vh] overflow-y-auto">
             {noIndexedRepo ? (
               <SelectItem isPlaceHolder value="" disabled>
-                No indexed repository
+                No repositories
               </SelectItem>
             ) : (
               <>

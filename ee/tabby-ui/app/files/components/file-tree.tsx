@@ -352,13 +352,6 @@ const FileTreeRenderer: React.FC = () => {
 
   if (!initialized) return <FileTreeSkeleton />
 
-  if (isEmpty(repoMap))
-    return (
-      <div className="flex h-full items-center justify-center">
-        No Indexed repository
-      </div>
-    )
-
   if (!hasSelectedRepo) {
     return null
   }

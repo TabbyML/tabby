@@ -167,9 +167,7 @@ export default function TextAreaSearch({
   )
 }
 
-type RepoItem = Pick<Partial<Repository>, 'id' | 'kind' | 'name'> & {
-  allCode?: boolean
-}
+type RepoItem = Pick<Partial<Repository>, 'id' | 'kind' | 'name'>
 
 interface RepoSelectProps {
   value: RepoItem | undefined
@@ -201,8 +199,6 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
     return 'No results found'
   }, [repos])
 
-  const isAllSelected = !!repos?.length && value?.allCode
-
   return (
     <Tooltip delayDuration={0}>
       <Popover open={commandVisible} onOpenChange={e => setCommandVisible(e)}>
@@ -228,11 +224,7 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
                     value ? 'text-foreground/70' : 'text-foreground/50'
                   )}
                 >
-                  {isAllSelected
-                    ? 'All Repositories'
-                    : value
-                    ? value.name
-                    : 'Select repository'}
+                  {value?.name ?? 'Select repository'}
                 </span>
               </div>
             </div>
@@ -253,35 +245,13 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
                   )}
                 </CommandEmpty>
                 <CommandGroup>
-                  {!!repos?.length && (
-                    <>
-                      <CommandItem
-                        key="all"
-                        onSelect={e => {
-                          if (isAllSelected) {
-                            onChange(undefined)
-                          } else {
-                            onChange({ allCode: true })
-                          }
-                          setCommandVisible(false)
-                        }}
-                        className="flex items-center gap-2"
-                      >
-                        <div className="w-4 shrink-0">
-                          {isAllSelected && <IconCheck className="shrink-0" />}
-                        </div>
-                        <span>All indexed repositories</span>
-                      </CommandItem>
-                      <CommandSeparator className="my-2" />
-                    </>
-                  )}
                   {repos?.map(repo => {
                     const isSelected = repo.id === value?.id
                     return (
                       <CommandItem
                         key={repo.id}
                         onSelect={() => {
-                          onChange({ ...repo, allCode: false })
+                          onChange({ ...repo })
                           setCommandVisible(false)
                         }}
                         className="flex cursor-pointer items-center gap-2"
