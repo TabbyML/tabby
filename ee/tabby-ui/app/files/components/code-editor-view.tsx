@@ -48,15 +48,6 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
 
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
-      EditorView.baseTheme({
-        '.cm-scroller': {
-          fontSize: '14px'
-        },
-        '.cm-gutters': {
-          backgroundColor: 'transparent',
-          borderRight: 'none'
-        }
-      }),
       selectLinesGutter({
         onSelectLine: v => {
           if (v === -1 || isNaN(v)) return

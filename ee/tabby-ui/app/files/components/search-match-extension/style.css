@@ -1,0 +1,12 @@
+@tailwind utilities;
+
+@layer utilities {
+  :root {
+    --mark-bg: 60 82% 62%;
+   
+  }
+
+  .dark {
+    --mark-bg: 40, 40%, 25%;
+  }
+}

@@ -88,7 +88,6 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   ...props
 }) => {
   const {
-    activePath,
     updateActivePath,
     initialized,
     activeRepo,
