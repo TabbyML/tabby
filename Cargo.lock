@@ -196,7 +196,7 @@ dependencies = [
  "backoff",
  "base64 0.22.1",
  "bytes",
- "derive_builder 0.20.0",
+ "derive_builder",
  "futures",
  "rand 0.8.5",
  "reqwest",
@@ -981,32 +981,11 @@ dependencies = [
 
 [[package]]
 name = "derive_builder"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d67778784b508018359cbc8696edb3db78160bab2c2a28ba7f56ef6932997f8"
-dependencies = [
- "derive_builder_macro 0.12.0",
-]
-
-[[package]]
-name = "derive_builder"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0350b5cb0331628a5916d6c5c0b72e97393b8b6b03b47a9284f4e7f5a405ffd7"
 dependencies = [
- "derive_builder_macro 0.20.0",
-]
-
-[[package]]
-name = "derive_builder_core"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c11bdc11a0c47bc7d37d582b5285da6849c96681023680b906673c5707af7b0f"
-dependencies = [
- "darling 0.14.4",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
+ "derive_builder_macro",
 ]
 
 [[package]]
@@ -1023,21 +1002,11 @@ dependencies = [
 
 [[package]]
 name = "derive_builder_macro"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebcda35c7a396850a55ffeac740804b40ffec779b98fffbb1738f4033f0ee79e"
-dependencies = [
- "derive_builder_core 0.12.0",
- "syn 1.0.109",
-]
-
-[[package]]
-name = "derive_builder_macro"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "206868b8242f27cecce124c19fd88157fbd0dd334df2587f36417bafbc85097b"
 dependencies = [
- "derive_builder_core 0.20.0",
+ "derive_builder_core",
  "syn 2.0.66",
 ]
 
@@ -1526,7 +1495,7 @@ dependencies = [
  "bytes",
  "chrono",
  "cron",
- "derive_builder 0.20.0",
+ "derive_builder",
  "futures-util",
  "graphql_client",
  "http 1.1.0",
@@ -5074,7 +5043,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
- "derive_builder 0.12.0",
+ "derive_builder",
  "hash-ids",
  "home",
  "lazy_static",
@@ -5158,7 +5127,7 @@ dependencies = [
  "async-stream",
  "async-trait",
  "dashmap",
- "derive_builder 0.12.0",
+ "derive_builder",
  "futures",
  "reqwest",
  "secrecy",

@@ -4,7 +4,7 @@ use std::{collections::HashSet, sync::Arc};
 
 use async_stream::stream;
 use async_trait::async_trait;
-use futures::{stream::BoxStream, StreamExt};
+use futures::stream::BoxStream;
 use public::WebDocument;
 use serde_json::json;
 use tabby_common::index::{self, corpus, doc};

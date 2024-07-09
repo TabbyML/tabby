@@ -6,6 +6,7 @@ use async_openai::{
     },
 };
 use async_trait::async_trait;
+use derive_builder::Builder;
 
 #[async_trait]
 pub trait ChatCompletionStream: Sync + Send {
@@ -21,17 +22,52 @@ pub trait ChatCompletionStream: Sync + Send {
 }
 
 #[derive(Clone)]
+pub enum OpenAIRequestFieldEnum {
+    PresencePenalty,
+    User,
+}
+
+#[derive(Builder, Clone)]
 pub struct ExtendedOpenAIConfig {
     base: OpenAIConfig,
-    default_model: String,
+
+    #[builder(setter(into))]
+    model_name: String,
+
+    #[builder(default)]
+    fields_to_remove: Vec<OpenAIRequestFieldEnum>,
 }
 
 impl ExtendedOpenAIConfig {
-    pub fn new(base: OpenAIConfig, default_model: String) -> Self {
-        Self {
-            base,
-            default_model,
+    pub fn builder() -> ExtendedOpenAIConfigBuilder {
+        ExtendedOpenAIConfigBuilder::default()
+    }
+
+    pub fn mistral_fields_to_remove() -> Vec<OpenAIRequestFieldEnum> {
+        vec![
+            OpenAIRequestFieldEnum::PresencePenalty,
+            OpenAIRequestFieldEnum::User,
+        ]
+    }
+
+    fn process_request(
+        &self,
+        mut request: CreateChatCompletionRequest,
+    ) -> CreateChatCompletionRequest {
+        request.model = self.model_name.clone();
+
+        for field in &self.fields_to_remove {
+            match field {
+                OpenAIRequestFieldEnum::PresencePenalty => {
+                    request.presence_penalty = None;
+                }
+                OpenAIRequestFieldEnum::User => {
+                    request.user = None;
+                }
+            }
         }
+
+        request
     }
 }
 
@@ -61,17 +97,18 @@ impl async_openai::config::Config for ExtendedOpenAIConfig {
 impl ChatCompletionStream for async_openai::Client<ExtendedOpenAIConfig> {
     async fn chat(
         &self,
-        mut request: CreateChatCompletionRequest,
+        request: CreateChatCompletionRequest,
     ) -> Result<CreateChatCompletionResponse, OpenAIError> {
-        request.model = self.config().default_model.clone();
+        let request = self.config().process_request(request);
         self.chat().create(request).await
     }
 
     async fn chat_stream(
         &self,
-        mut request: CreateChatCompletionRequest,
+        request: CreateChatCompletionRequest,
     ) -> Result<ChatCompletionResponseStream, OpenAIError> {
-        request.model = self.config().default_model.clone();
+        let request = self.config().process_request(request);
+        eprintln!("Creating chat stream: {:?}", request);
         self.chat().create_stream(request).await
     }
 }
