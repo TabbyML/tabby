@@ -117,7 +117,6 @@ The endpoint function is represented with Modal's `@app.function`. Here, we:
 2. Create an ASGI proxy to tunnel requests from the Modal web endpoint to the local Tabby server.
 3. Specify that each container is allowed to handle up to 10 requests simultaneously.
 4. Keep idle containers for 2 minutes before spinning them down.
-5. Use a Volume to efficiently manage the persistent storage of the "/data" directory, these data are persisted between restart of the instance.
 
 ```python
 app = App("tabby-server", image=image)
