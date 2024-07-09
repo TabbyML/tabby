@@ -11,7 +11,7 @@ import os
 from modal import Image, App, asgi_app, gpu, Volume
 ```
 
-Next, we set the base Docker image version and specify which model to serve, using the `L4` GPU configuration to efficiently utilize VRAM.
+Next, we set the base Docker image version and specify which model to serve. Initially, we considered using the `T4` GPU configuration for its cost-effectiveness. However, during testing, we encountered a significant number of HTTP 204 responses, indicating potential limitations with the T4's capabilities for our needs. As a result, we are now using the `L4` GPU configuration to efficiently utilize VRAM, which offers a better balance between performance and cost for our application.
 
 ```python
 IMAGE_NAME = "tabbyml/tabby"
