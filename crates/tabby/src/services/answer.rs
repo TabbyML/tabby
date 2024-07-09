@@ -36,6 +36,9 @@ pub struct AnswerRequest {
 
     #[serde(default)]
     generate_relevant_questions: bool,
+
+    #[serde(default)]
+    collect_relevant_code_using_user_message: bool,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -92,8 +95,14 @@ impl AnswerService {
             };
 
             // 1. Collect relevant code if needed.
-            let relevant_code = if let Some(code_query)  = req.code_query  {
-                self.override_query_with_code_query(query, &code_query).await;
+            let relevant_code = if let Some(mut code_query)  = req.code_query  {
+                if req.collect_relevant_code_using_user_message {
+                    // Natural language content from query is used to search for relevant code.
+                    code_query.content = get_content(query).to_owned();
+                } else {
+                    // Code snippet is extended to the query.
+                    self.override_query_with_code_query(query, &code_query).await;
+                }
                 self.collect_relevant_code(code_query).await
             } else {
                 vec![]
@@ -288,7 +297,7 @@ Remember, based on the original question and related contexts, suggest three suc
             format!(
                 "{}\n\n```{}\n{}\n```",
                 get_content(query),
-                code_query.language,
+                code_query.language.as_deref().unwrap_or_default(),
                 code_query.content
             ),
         )
