@@ -8,8 +8,6 @@ import {
   LogOutputChannel,
   TextEditor,
   window,
-  Range,
-  Position,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -63,7 +61,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     const workspaceFolder = workspace.getWorkspaceFolder(uri);
     const repo = gitProvider.getRepository(uri);
     const remoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
-    let filePath = decodeURIComponent(uri.toString());
+    let filePath = uri.toString();
     if (repo) {
       filePath = filePath.replace(repo.rootUri.toString(), "");
     } else if (workspaceFolder) {
@@ -135,42 +133,27 @@ export class ChatViewProvider implements WebviewViewProvider {
         if (editor) {
           const document = editor.document;
           const selection = editor.selection;
-          const text = editor.document.getText(selection);
-          const { start } = selection;
 
-          // Find the minimum indent
-          const lineText = document.lineAt(start.line).text;
-          const selectedLines = text.split("\n");
-          const allLines = [lineText].concat(selectedLines.slice(1));
-          let subsequentLinesMinIndent = "";
-          let subsequentLinesMinIndentLength = Infinity;
-          allLines.forEach((line) => {
-            const match = line.match(/^(\s*)/);
-            const indent = match ? match[0] : "";
-            if (indent.length < subsequentLinesMinIndentLength) {
-              subsequentLinesMinIndent = indent;
-              subsequentLinesMinIndentLength = indent.length;
-            }
-          });
+          // Determine the indentation for the content
+          // The calculation is based solely on the indentation of the first line
+          const lineText = document.lineAt(selection.start.line).text;
+          const match = lineText.match(/^(\s*)/);
+          const indent = match ? match[0] : "";
 
-          // Add the indent at the beginning of the content
-          const indentedContent = content
-            .split("\n")
-            .map((line) => subsequentLinesMinIndent + line)
-            .join("\n");
+          // Determine the indentation for the content's first line
+          // Note:
+          // If using spaces, selection.start.character = 1 means 1 space
+          // If using tabs, selection.start.character = 1 means 1 tab
+          const indentUnit = indent[0];
+          const indentAmountForTheFirstLine = Math.max(indent.length - selection.start.character, 0);
+          const indentForTheFirstLine = indentUnit?.repeat(indentAmountForTheFirstLine) || "";
+
+          // Indent the content
+          const indentedContent = indentForTheFirstLine + content.replaceAll("\n", "\n" + indent);
 
           // Apply into the editor
           editor.edit((editBuilder) => {
-            const { start, end } = selection;
-            const startBeginPosition = new Position(start.line, 0);
-            const hasSelectionInEditor = text.length > 0;
-
-            if (hasSelectionInEditor) {
-              const adjustedRange = new Range(startBeginPosition, end);
-              editBuilder.replace(adjustedRange, indentedContent);
-            } else {
-              editBuilder.insert(startBeginPosition, indentedContent);
-            }
+            editBuilder.replace(selection, indentedContent);
           });
         }
       },
