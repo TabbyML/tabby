@@ -5062,6 +5062,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "tabby-crawler"
+version = "0.13.0-dev.0"
+dependencies = [
+ "anyhow",
+ "async-stream",
+ "futures",
+ "htmd",
+ "logkit",
+ "readable-readability",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-test",
+ "url",
+]
+
+[[package]]
 name = "tabby-db"
 version = "0.13.0-dev.0"
 dependencies = [
@@ -5145,12 +5163,10 @@ dependencies = [
  "chrono",
  "futures",
  "git2",
- "htmd",
  "ignore",
  "insta",
  "lazy_static",
  "logkit",
- "readable-readability",
  "serde",
  "serde_json",
  "serial_test 3.1.1",
@@ -5176,7 +5192,6 @@ dependencies = [
  "tree-sitter-solidity",
  "tree-sitter-tags",
  "tree-sitter-typescript",
- "url",
 ]
 
 [[package]]
@@ -5240,6 +5255,7 @@ dependencies = [
  "serial_test 3.1.1",
  "strum 0.24.1",
  "tabby-common",
+ "tabby-crawler",
  "tabby-db",
  "tabby-git",
  "tabby-inference",
