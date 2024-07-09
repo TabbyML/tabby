@@ -108,7 +108,7 @@ def app_serve():
             "--device",
             "cuda",
             "--parallelism",
-            "4",
+            "1",
         ],
         env=TABBY_ENV,
     )
