@@ -75,7 +75,7 @@ export const SourceCodeSearchResult = ({
 
   return (
     <>
-      <div className="sticky top-0 z-10 bg-secondary text-secondary-foreground p-2 border">
+      <div className="sticky top-0 z-10 border bg-secondary p-2 text-secondary-foreground">
         <Link
           href={{
             pathname
@@ -85,7 +85,7 @@ export const SourceCodeSearchResult = ({
           {props.result.path}
         </Link>
       </div>
-      <div className="divide-y-border grid divide-y border border-t-0 mb-6 overflow-x-auto">
+      <div className="divide-y-border mb-6 grid divide-y overflow-x-auto border border-t-0">
         {ranges.map((range, index) => {
           const lines = props.result.lines.slice(range.start, range.end + 1)
           return (

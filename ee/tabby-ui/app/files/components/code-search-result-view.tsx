@@ -40,7 +40,7 @@ export const CodeSearchResultView = (props: CodeSearchResultViewProps) => {
         <CodeSearchSkeleton className="mt-3" />
       ) : (
         <>
-          <h1 className="font-semibold mb-2 mt-1">
+          <h1 className="mb-2 mt-1 font-semibold">
             {results?.length || 0} files
           </h1>
           {results?.length > 0 ? (
