@@ -192,7 +192,7 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
             href="/settings/providers/git"
             className={cn(buttonVariants({ size: 'sm' }), 'gap-1')}
           >
-    Connect
+            Connect
             <IconArrowRight />
           </Link>
         </div>
@@ -314,7 +314,8 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
         </PopoverPortal>
       </Popover>
       <TooltipContent>
-    Effortlessly interact with your repositories for contextualized search and assistance.
+        Effortlessly interact with your repositories for contextualized search
+        and assistance.
       </TooltipContent>
     </Tooltip>
   )
