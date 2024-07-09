@@ -627,7 +627,11 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           />
           <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
             {(isTreeMode || isBlobMode) && (
-              <FileDirectoryBreadcrumb className="py-4" />
+              <FileDirectoryBreadcrumb
+                className={cn('pb-4', {
+                  'pt-4': !activeEntryInfo?.repositorySpecifier
+                })}
+              />
             )}
             {!initialized ? (
               <ListSkeleton className="rounded-lg border p-4" />
