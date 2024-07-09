@@ -59,7 +59,7 @@ export const SourceCodeSearchResult = ({
       }
     })
 
-    if (!newRanges?.length) {
+    if (end !== lines?.length) {
       newRanges.push({ start, end })
     }
 
@@ -75,7 +75,7 @@ export const SourceCodeSearchResult = ({
 
   return (
     <>
-      <div className="sticky top-0 z-10 border bg-secondary p-2 text-secondary-foreground">
+      <div className="sticky top-9 z-10 border bg-secondary p-2 text-secondary-foreground">
         <Link
           href={{
             pathname

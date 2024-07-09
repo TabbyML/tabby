@@ -13,8 +13,6 @@ const searchMark = Decoration.mark({ class: 'search-match-mark' })
 const searchMarkTheme = EditorView.theme({
   '.search-match-mark': {
     backgroundColor: 'hsl(var(--mark-bg))'
-    // backgroundColor: '#eeee4e',
-    // backgroundColor: '#b59f3b',
   }
 })
 

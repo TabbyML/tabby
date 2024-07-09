@@ -430,7 +430,10 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     data: repositoryGreps,
     isLoading: fetchingRepositoryGrep,
     error: repositoryGrepError
-  }: SWRResponse<Array<GrepFile> | undefined> = useSWR(
+  }: SWRResponse<{
+    greps: Array<GrepFile> | undefined
+    requestDuration: number
+  }> = useSWR(
     shouldFetchRepositoryGrep && searchQuery ? [activePath, searchQuery] : null,
     ([activePath, searchQuery]) => {
       const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
@@ -652,7 +655,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
                 )}
                 {isSearchMode && (
                   <CodeSearchResultView
-                    results={repositoryGreps}
+                    results={repositoryGreps?.greps}
+                    requestDuration={repositoryGreps?.requestDuration}
                     loading={fetchingRepositoryGrep}
                   />
                 )}
@@ -808,7 +812,7 @@ async function fetchRepositoryGreps(
   if (!repository) {
     throw new Error(CodeBrowserError.REPOSITORY_NOT_FOUND)
   }
-
+  const startTime = Date.now()
   const result = client
     .query(repositoryGrepQuery, {
       id: repository.id,
@@ -823,7 +827,10 @@ async function fetchRepositoryGreps(
       throw new Error(CodeBrowserError.FAILED_TO_FETCH)
     }
 
-    return res?.data?.repositoryGrep
+    return {
+      greps: res?.data?.repositoryGrep,
+      requestDuration: Date.now() - startTime
+    }
   })
 }
 
