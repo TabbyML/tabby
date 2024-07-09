@@ -70,7 +70,7 @@ export const CodeSearchResultView = (props: CodeSearchResultViewProps) => {
         <CodeSearchSkeleton className="mt-3" />
       ) : (
         <>
-          <h1 className="pb-2 pt-1 font-semibold sticky top-0 z-20 bg-background">
+          <h1 className="sticky top-0 z-20 bg-background pb-2 pt-1 font-semibold">
             {matchCount} results in {duration}
           </h1>
           {results?.map((result, i) => (
