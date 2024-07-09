@@ -76,7 +76,7 @@ image = (
 
 app = App("tabby-server", image=image)
 
-data_volume = Volume.from_name("tabby-data-vol", create_if_missing=True)
+data_volume = Volume.from_name("tabby-data", create_if_missing=True)
 data_dir = "/data"
 
 @app.function(
@@ -121,9 +121,9 @@ def app_serve():
         except (socket.timeout, ConnectionRefusedError):
             # Check if a launcher webservice process has exited.
             # If so, a connection can never be made.
-            ret_code = launcher.poll()
-            if ret_code is not None:
-                raise RuntimeError(f"launcher exited unexpectedly with code {ret_code}")
+            retcode = launcher.poll()
+            if retcode is not None:
+                raise RuntimeError(f"launcher exited unexpectedly with code {retcode}")
             return False
 
     while not tabby_ready():
