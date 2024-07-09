@@ -314,7 +314,7 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
         </PopoverPortal>
       </Popover>
       <TooltipContent>
-        Select indexed repositories to enhance the answer engine
+    Effortlessly interact with your repositories for contextualized search and assistance.
       </TooltipContent>
     </Tooltip>
   )
