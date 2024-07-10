@@ -7,8 +7,7 @@
 First we import the components we need from `modal`.
 
 ```python
-import os
-from modal import Image, App, asgi_app, gpu, Volume
+from modal import Image, App, asgi_app, gpu
 ```
 
 Next, we set the base docker image version, which model to serve, taking care to specify the GPU configuration required to fit the model into VRAM.
@@ -21,8 +20,6 @@ EMBEDDING_MODEL_ID = "TabbyML/Nomic-Embed-Text"
 GPU_CONFIG = gpu.T4()
 
 TABBY_BIN = "/opt/tabby/bin/tabby"
-TABBY_ENV = os.environ.copy()
-TABBY_ENV['TABBY_MODEL_CACHE_ROOT'] = '/models'
 ```
 
 Currently supported GPUs in Modal:
@@ -38,9 +35,9 @@ For detailed usage, please check official [Modal GPU reference](https://modal.co
 
 ## Define the container image
 
-We want to create a Modal image which has the Tabby model cache pre-populated.
+We want to create a Modal image which has the Tabby model cache pre-populated. The benefit of this is that the container no longer has to re-download the model - instead, it will take advantage of Modal’s internal filesystem for faster cold starts.
 
-### Download the models
+### Download the weights
 
 ```python
 def download_model():
@@ -52,10 +49,8 @@ def download_model():
             "download",
             "--model",
             MODEL_ID,
-        ],
-        env=TABBY_ENV,
+        ]
     )
-
 
 def download_chat_model():
     import subprocess
@@ -66,8 +61,7 @@ def download_chat_model():
             "download",
             "--model",
             CHAT_MODEL_ID,
-        ],
-        env=TABBY_ENV,
+        ]
     )
 
 
@@ -80,18 +74,18 @@ def download_embedding_model():
             "download",
             "--model",
             EMBEDDING_MODEL_ID,
-        ],
-        env=TABBY_ENV,
+        ]
     )
 ```
+
 
 ### Image definition
 
 We’ll start from an image by tabby, and override the default ENTRYPOINT for Modal to run its own which enables seamless serverless deployments.
 
-Next, we run the download step to pre-populate the image with our model weights.
+Next we run the download step to pre-populate the image with our model weights.
 
-Finally, we install the `asgi-proxy-lib` to interface with Modal's ASGI webserver over localhost.
+Finally, we install the `asgi-proxy-lib` to interface with modal's asgi webserver over localhost.
 
 ```python
 image = (
@@ -118,18 +112,11 @@ The endpoint function is represented with Modal's `@app.function`. Here, we:
 
 ```python
 app = App("tabby-server", image=image)
-
-data_volume = Volume.from_name("tabby-data", create_if_missing=True)
-data_dir = "/data"
-
 @app.function(
     gpu=GPU_CONFIG,
     allow_concurrent_inputs=10,
     container_idle_timeout=120,
     timeout=360,
-    volumes={data_dir: data_volume},
-    _allow_background_volume_commits=True,
-    concurrency_limit=1,
 )
 @asgi_app()
 def app_serve():
@@ -152,8 +139,7 @@ def app_serve():
             "cuda",
             "--parallelism",
             "1",
-        ],
-        env=TABBY_ENV,
+        ]
     )
 
     # Poll until webserver at 127.0.0.1:8000 accepts connections before running inputs.
@@ -162,7 +148,7 @@ def app_serve():
             socket.create_connection(("127.0.0.1", 8000), timeout=1).close()
             return True
         except (socket.timeout, ConnectionRefusedError):
-            # Check if a launcher webservice process has exited.
+            # Check if launcher webserving process has exited.
             # If so, a connection can never be made.
             retcode = launcher.poll()
             if retcode is not None:
@@ -178,11 +164,11 @@ def app_serve():
 
 ### Serve the app
 
-Once we deploy this model with `modal serve app.py`, it will output the URL of the web endpoint, in the form of `https://<USERNAME>--tabby-server-app-serve-dev.modal.run`.
+Once we deploy this model with `modal serve app.py`, it will output the url of the web endpoint, in a form of `https://<USERNAME>--tabby-server-app-serve-dev.modal.run`.
 
 If you encounter any issues, particularly related to caching, you can force a rebuild by running `MODAL_FORCE_BUILD=1 modal serve app.py`. This ensures that the latest image tag is used by ignoring cached layers.
 
 ![App Running](./app-running.png)
 
-Now it can be used as a tabby server URL in Tabby editor extensions!
+Now it can be used as tabby server url in tabby editor extensions!
 See [app.py](https://github.com/TabbyML/tabby/blob/main/website/docs/quick-start/installation/modal/app.py) for the full code used in this tutorial.
