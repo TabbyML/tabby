@@ -47,7 +47,7 @@ export const CodeSearchResultView = (props: CodeSearchResultViewProps) => {
         return sum + _matchCount
       }, 0)
 
-      count += curCount
+      count += Math.max(curCount, 1)
     }
     const format = count < 1000 ? '0' : '0.0a'
     return numeral(count).format(format)
