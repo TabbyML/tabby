@@ -1,5 +1,5 @@
 ---
-source: crates/tabby-scheduler/src/code/index.rs
+source: crates/tabby-index/src/code/index.rs
 expression: "format!(\"{:#?}\", text_chunks2)"
 ---
 [

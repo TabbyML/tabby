@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use tabby_common::index::corpus;
-use tabby_scheduler::run_index_garbage_collection;
+use tabby_index::public::run_index_garbage_collection;
 use tabby_schema::{repository::RepositoryService, web_crawler::WebCrawlerService};
 
 use super::helper::Job;

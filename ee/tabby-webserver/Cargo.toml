@@ -32,7 +32,7 @@ rust-embed = "8.0.0"
 serde.workspace = true
 serde_json.workspace = true
 tabby-common = { path = "../../crates/tabby-common" }
-tabby-scheduler = { path = "../../crates/tabby-scheduler" }
+tabby-index = { path = "../../crates/tabby-index" }
 tabby-inference = { path = "../../crates/tabby-inference" }
 tabby-schema = { path = "../../ee/tabby-schema" }
 tabby-db = { path = "../../ee/tabby-db" }

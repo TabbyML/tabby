@@ -5,7 +5,7 @@ use futures::Stream;
 use gitlab::api::{issues::ProjectIssues, projects::merge_requests::MergeRequests, AsyncQuery};
 use octocrab::Octocrab;
 use serde::Deserialize;
-use tabby_scheduler::public::WebDocument;
+use tabby_index::public::WebDocument;
 
 use crate::service::create_gitlab_client;
 
