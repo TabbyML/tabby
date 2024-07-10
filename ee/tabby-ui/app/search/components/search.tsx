@@ -263,7 +263,7 @@ export function Search() {
           strict: true // Remove special characters
         })
 
-        // FIXME: should add threadId into the condition
+        // FIXME(wwayne): should add threadId into the condition
         if (isSearchPending) {
           const normalizedTitle = slugify(title, {
             lower: true,
@@ -584,7 +584,7 @@ export function Search() {
                               idx === conversation.length - 1
                             }
                             showRegenerateButton={
-                              idx === conversation.length - 1
+                              idx === conversation.length - 1 && isAuthor
                             }
                             blockIndex={blockIndex}
                           />
