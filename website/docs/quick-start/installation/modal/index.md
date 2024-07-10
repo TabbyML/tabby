@@ -52,6 +52,7 @@ def download_model():
         ]
     )
 
+
 def download_chat_model():
     import subprocess
 
@@ -112,6 +113,8 @@ The endpoint function is represented with Modal's `@app.function`. Here, we:
 
 ```python
 app = App("tabby-server", image=image)
+
+
 @app.function(
     gpu=GPU_CONFIG,
     allow_concurrent_inputs=10,

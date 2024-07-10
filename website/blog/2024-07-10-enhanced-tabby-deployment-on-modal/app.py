@@ -5,7 +5,9 @@ To force a rebuild by pulling the latest image tag, use:
 MODAL_FORCE_BUILD=1 modal serve app.py
 """
 
-from modal import Image, App, asgi_app, gpu
+import os
+
+from modal import Image, App, asgi_app, gpu, Volume
 
 IMAGE_NAME = "tabbyml/tabby"
 MODEL_ID = "TabbyML/StarCoder-1B"
@@ -14,6 +16,8 @@ EMBEDDING_MODEL_ID = "TabbyML/Nomic-Embed-Text"
 GPU_CONFIG = gpu.T4()
 
 TABBY_BIN = "/opt/tabby/bin/tabby"
+TABBY_ENV = os.environ.copy()
+TABBY_ENV['TABBY_MODEL_CACHE_ROOT'] = '/models'
 
 
 def download_model():
@@ -25,7 +29,8 @@ def download_model():
             "download",
             "--model",
             MODEL_ID,
-        ]
+        ],
+        env=TABBY_ENV,
     )
 
 
@@ -38,7 +43,8 @@ def download_chat_model():
             "download",
             "--model",
             CHAT_MODEL_ID,
-        ]
+        ],
+        env=TABBY_ENV,
     )
 
 
@@ -51,7 +57,8 @@ def download_embedding_model():
             "download",
             "--model",
             EMBEDDING_MODEL_ID,
-        ]
+        ],
+        env=TABBY_ENV,
     )
 
 
@@ -69,12 +76,17 @@ image = (
 
 app = App("tabby-server", image=image)
 
+data_volume = Volume.from_name("tabby-data", create_if_missing=True)
+data_dir = "/data"
 
 @app.function(
     gpu=GPU_CONFIG,
     allow_concurrent_inputs=10,
     container_idle_timeout=120,
     timeout=360,
+    volumes={data_dir: data_volume},
+    _allow_background_volume_commits=True,
+    concurrency_limit=1,
 )
 @asgi_app()
 def app_serve():
@@ -97,7 +109,8 @@ def app_serve():
             "cuda",
             "--parallelism",
             "1",
-        ]
+        ],
+        env=TABBY_ENV,
     )
 
     # Poll until webserver at 127.0.0.1:8000 accepts connections before running inputs.
