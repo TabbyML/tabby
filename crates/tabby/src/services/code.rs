@@ -84,7 +84,7 @@ impl CodeSearchImpl {
             query.git_url, git_url
         );
 
-        query.git_url = git_url.to_owned();
+        query.git_url = RepositoryConfig::canonicalize_url(&git_url);
 
         let docs_from_embedding = {
             let embedding = self.embedding.embed(&query.content).await?;
