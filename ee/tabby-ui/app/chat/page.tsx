@@ -41,6 +41,7 @@ const convertToHSLColor = (style: string) => {
 }
 
 const CLIENT_TO_HANDLE_MESSAGE_SUBMIT = ['vscode']
+const CLIENT_HAS_APPLT_IN_EDITOR = ['vscode']
 
 export default function ChatPage() {
   const [isInit, setIsInit] = useState(false)
@@ -66,6 +67,7 @@ export default function ChatPage() {
   const isOnSubmitMessage = CLIENT_TO_HANDLE_MESSAGE_SUBMIT.includes(
     client || ''
   )
+  const isOnApplyInEditor = CLIENT_HAS_APPLT_IN_EDITOR.includes(client || '')
   const maxWidth = isFromVSCode ? '5xl' : undefined
 
   useEffect(() => {
@@ -188,6 +190,10 @@ export default function ChatPage() {
     return server?.onSubmitMessage?.(msg)
   }
 
+  const onApplyInEditor = async (content: string) => {
+    return server?.onApplyInEditor?.(content)
+  }
+
   function StaticContent({ children }: { children: React.ReactNode }) {
     return (
       <div
@@ -293,8 +299,9 @@ export default function ChatPage() {
         onLoaded={onChatLoaded}
         maxWidth={maxWidth}
         onCopyContent={client === 'vscode' ? onCopyContent : undefined}
-        from={client}
+        client={client}
         onSubmitMessage={isOnSubmitMessage ? onSubmitMessage : undefined}
+        onApplyInEditor={isOnApplyInEditor ? onApplyInEditor : undefined}
       />
     </ErrorBoundary>
   )

@@ -9,12 +9,18 @@ import { coldarkDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { Button } from '@/components/ui/button'
-import { IconCheck, IconCopy } from '@/components/ui/icons'
+import { IconApplyInEditor, IconCheck, IconCopy } from '@/components/ui/icons'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 
 interface Props {
   language: string
   value: string
   onCopyContent?: (value: string) => void
+  onApplyInEditor?: (value: string) => void
 }
 
 interface languageMap {
@@ -57,59 +63,86 @@ export const generateRandomString = (length: number, lowercase = false) => {
   return lowercase ? result.toLowerCase() : result
 }
 
-const CodeBlock: FC<Props> = memo(({ language, value, onCopyContent }) => {
-  const { isCopied, copyToClipboard } = useCopyToClipboard({
-    timeout: 2000,
-    onCopyContent
-  })
+const CodeBlock: FC<Props> = memo(
+  ({ language, value, onCopyContent, onApplyInEditor }) => {
+    const { isCopied, copyToClipboard } = useCopyToClipboard({
+      timeout: 2000,
+      onCopyContent
+    })
 
-  const onCopy = () => {
-    if (isCopied) return
-    copyToClipboard(value)
-  }
+    const onCopy = () => {
+      if (isCopied) return
+      copyToClipboard(value)
+    }
 
-  // react-syntax-highlighter does not render .toml files correctly
-  // using bash syntax as a workaround for better display
-  const languageForSyntax = language === 'toml' ? 'bash' : language
-  return (
-    <div className="codeblock relative w-full bg-zinc-950 font-sans">
-      <div className="flex w-full items-center justify-between bg-zinc-800 px-6 py-2 pr-4 text-zinc-100">
-        <span className="text-xs lowercase">{language}</span>
-        <div className="flex items-center space-x-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-            onClick={onCopy}
-          >
-            {isCopied ? <IconCheck /> : <IconCopy />}
-            <span className="sr-only">Copy code</span>
-          </Button>
+    // react-syntax-highlighter does not render .toml files correctly
+    // using bash syntax as a workaround for better display
+    const languageForSyntax = language === 'toml' ? 'bash' : language
+    return (
+      <div className="codeblock relative w-full bg-zinc-950 font-sans">
+        <div className="flex w-full items-center justify-between bg-zinc-800 px-6 py-2 pr-4 text-zinc-100">
+          <span className="text-xs lowercase">{language}</span>
+          <div className="flex items-center space-x-1">
+            {onApplyInEditor && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
+                    onClick={onApplyInEditor.bind(null, value)}
+                  >
+                    <IconApplyInEditor />
+                    <span className="sr-only">Insert or Replace in editor</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="m-0">Insert or Replace in editor</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
+                  onClick={onCopy}
+                >
+                  {isCopied ? <IconCheck /> : <IconCopy />}
+                  <span className="sr-only">Copy code</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="m-0">Copy</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
+        <SyntaxHighlighter
+          language={languageForSyntax}
+          style={coldarkDark}
+          PreTag="div"
+          showLineNumbers
+          customStyle={{
+            margin: 0,
+            width: '100%',
+            background: 'transparent',
+            padding: '1.5rem 1rem'
+          }}
+          codeTagProps={{
+            style: {
+              fontSize: '0.9rem',
+              fontFamily: 'var(--font-mono)'
+            }
+          }}
+        >
+          {value}
+        </SyntaxHighlighter>
       </div>
-      <SyntaxHighlighter
-        language={languageForSyntax}
-        style={coldarkDark}
-        PreTag="div"
-        showLineNumbers
-        customStyle={{
-          margin: 0,
-          width: '100%',
-          background: 'transparent',
-          padding: '1.5rem 1rem'
-        }}
-        codeTagProps={{
-          style: {
-            fontSize: '0.9rem',
-            fontFamily: 'var(--font-mono)'
-          }
-        }}
-      >
-        {value}
-      </SyntaxHighlighter>
-    </div>
-  )
-})
+    )
+  }
+)
 CodeBlock.displayName = 'CodeBlock'
 
 export { CodeBlock }

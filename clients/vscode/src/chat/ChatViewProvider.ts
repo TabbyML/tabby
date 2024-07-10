@@ -128,6 +128,35 @@ export class ChatViewProvider implements WebviewViewProvider {
 
         this.sendMessage(chatMessage);
       },
+      onApplyInEditor: (content: string) => {
+        const editor = window.activeTextEditor;
+        if (editor) {
+          const document = editor.document;
+          const selection = editor.selection;
+
+          // Determine the indentation for the content
+          // The calculation is based solely on the indentation of the first line
+          const lineText = document.lineAt(selection.start.line).text;
+          const match = lineText.match(/^(\s*)/);
+          const indent = match ? match[0] : "";
+
+          // Determine the indentation for the content's first line
+          // Note:
+          // If using spaces, selection.start.character = 1 means 1 space
+          // If using tabs, selection.start.character = 1 means 1 tab
+          const indentUnit = indent[0];
+          const indentAmountForTheFirstLine = Math.max(indent.length - selection.start.character, 0);
+          const indentForTheFirstLine = indentUnit?.repeat(indentAmountForTheFirstLine) || "";
+
+          // Indent the content
+          const indentedContent = indentForTheFirstLine + content.replaceAll("\n", "\n" + indent);
+
+          // Apply into the editor
+          editor.edit((editBuilder) => {
+            editBuilder.replace(selection, indentedContent);
+          });
+        }
+      },
     });
 
     const serverInfo = await this.agent.fetchServerInfo();
