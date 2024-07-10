@@ -522,7 +522,7 @@ export function Search() {
                 </Button>
               </div>
               <div className="flex items-center gap-x-1">
-                {isFirstAnswerLoaded && (
+                {isFirstAnswerLoaded && threadId && (
                   <Tooltip delayDuration={300}>
                     <TooltipTrigger asChild>
                       <Button
