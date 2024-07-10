@@ -116,7 +116,7 @@ The `create_if_missing=True` parameter lazily creates a volume if it doesn’t e
 
 ## The Complete App.py
 
-The `app.py` script centralizes all configurations, model management, and service functionalities, making it a core component of our Modal deployment, you can see it in [Tabby GitHub repository](https://github.com/TabbyML/tabby/blob/main/blog/2024-07-10-enhanced-tabby-deployment-on-modal/app.py).
+The `app.py` script centralizes all configurations, model management, and service functionalities, making it a core component of our Modal deployment, you can see it in [Tabby GitHub repository](https://github.com/TabbyML/tabby/blob/main/website/blog/2024-07-10-enhanced-tabby-deployment-on-modal/app.py).
 
 ## Conclusion
 
