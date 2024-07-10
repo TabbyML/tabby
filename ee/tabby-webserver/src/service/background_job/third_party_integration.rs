@@ -6,8 +6,8 @@ use issues::{list_github_issues, list_gitlab_issues};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::RepositoryConfig;
-use tabby_inference::Embedding;
 use tabby_index::public::{CodeIndexer, DocIndexer};
+use tabby_inference::Embedding;
 use tabby_schema::{
     integration::{IntegrationKind, IntegrationService},
     job::JobService,
