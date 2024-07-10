@@ -1,6 +1,10 @@
-use std::path::{Path, PathBuf};
+use std::{
+    io::BufRead,
+    path::{Path, PathBuf},
+};
 
 use grep::{matcher::Matcher, regex::RegexMatcher, searcher::Sink};
+use tracing::debug;
 
 use super::{GrepFile, GrepLine, GrepSubMatch, GrepTextOrBase64};
 
@@ -65,7 +69,7 @@ impl GrepOutput {
         self.lines.push(line);
     }
 
-    pub fn flush(&mut self, require_file_match: bool, require_content_match: bool) {
+    pub fn flush(&mut self, require_file_match: bool, require_content_match: bool, content: &[u8]) {
         // If file or content is negated, we don't want to send the file.
         if self.file_negated || self.content_negated {
             return;
@@ -79,9 +83,21 @@ impl GrepOutput {
             return;
         }
 
+        let lines = if self.content_matched {
+            std::mem::take(&mut self.lines)
+        } else {
+            match read_lines(content) {
+                Ok(lines) => lines,
+                Err(e) => {
+                    debug!("Failed to read file: {:?}", e);
+                    vec![]
+                }
+            }
+        };
+
         let file = GrepFile {
             path: self.path.clone(),
-            lines: std::mem::take(&mut self.lines),
+            lines,
         };
 
         match self.tx.blocking_send(file) {
@@ -91,6 +107,30 @@ impl GrepOutput {
             }
         }
     }
+}
+
+fn read_lines(content: &[u8]) -> anyhow::Result<Vec<GrepLine>> {
+    let reader = std::io::BufReader::new(content);
+    let line_reader = reader.lines().take(5);
+
+    let mut lines = vec![];
+    let mut line_number = 1;
+    let mut byte_offset = 0;
+    for line in line_reader {
+        let line = line? + "\n";
+        let bytes_length = line.as_bytes().len();
+        lines.push(GrepLine {
+            line: GrepTextOrBase64::Text(line),
+            byte_offset,
+            line_number,
+            sub_matches: vec![],
+        });
+
+        byte_offset += bytes_length;
+        line_number += 1;
+    }
+
+    Ok(lines)
 }
 
 pub struct GrepMatchSink<'output, 'a> {

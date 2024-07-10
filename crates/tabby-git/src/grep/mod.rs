@@ -108,7 +108,11 @@ fn grep_file(
 
     let mut output = output::GrepOutput::new(path.clone(), tx.clone());
     searcher.search(content, &mut output)?;
-    output.flush(searcher.require_file_match, searcher.require_content_match);
+    output.flush(
+        searcher.require_file_match,
+        searcher.require_content_match,
+        content,
+    );
 
     Ok(())
 }
