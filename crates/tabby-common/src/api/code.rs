@@ -60,7 +60,7 @@ pub enum CodeSearchError {
 pub struct CodeSearchQuery {
     pub git_url: String,
     pub filepath: Option<String>,
-    pub language: String,
+    pub language: Option<String>,
     pub content: String,
 }
 

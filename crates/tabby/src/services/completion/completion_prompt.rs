@@ -184,7 +184,7 @@ async fn collect_snippets(
     let query = CodeSearchQuery {
         git_url: git_url.to_owned(),
         filepath: filepath.map(|x| x.to_owned()),
-        language: language.to_owned(),
+        language: Some(language.to_owned()),
         content: content.to_owned(),
     };
 

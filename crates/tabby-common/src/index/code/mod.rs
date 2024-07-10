@@ -70,7 +70,6 @@ pub fn code_search_query(
 ) -> BooleanQuery {
     let schema = IndexSchema::instance();
     let corpus_query = schema.corpus_query(corpus::CODE);
-    let language_query = language_query(&query.language);
     let git_url_query = git_url_query(&query.git_url);
 
     // language / git_url / filepath field shouldn't contribute to the score, mark them to 0.0.
@@ -79,16 +78,19 @@ pub fn code_search_query(
             Occur::Must,
             Box::new(ConstScoreQuery::new(corpus_query, 0.0)),
         ),
-        (
-            Occur::Must,
-            Box::new(ConstScoreQuery::new(language_query, 0.0)),
-        ),
         (Occur::Must, Box::new(chunk_tokens_query)),
         (
             Occur::Must,
             Box::new(ConstScoreQuery::new(git_url_query, 0.0)),
         ),
     ];
+
+    if let Some(language) = query.language.as_deref() {
+        subqueries.push((
+            Occur::Must,
+            Box::new(ConstScoreQuery::new(language_query(language), 0.0)),
+        ));
+    }
 
     // When filepath presents, we exclude the file from the search.
     if let Some(filepath) = &query.filepath {
