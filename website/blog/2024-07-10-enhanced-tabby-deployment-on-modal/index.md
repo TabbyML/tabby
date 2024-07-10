@@ -24,6 +24,48 @@ Model caching is a key upgrade in our deployment strategy, offering substantial 
 Here’s how we utilize Modal’s image caching to expedite deployment and service scaling:
 
 ```python
+def download_model():
+    import subprocess
+
+    subprocess.run(
+        [
+            TABBY_BIN,
+            "download",
+            "--model",
+            MODEL_ID,
+        ],
+        env=TABBY_ENV,
+    )
+
+
+def download_chat_model():
+    import subprocess
+
+    subprocess.run(
+        [
+            TABBY_BIN,
+            "download",
+            "--model",
+            CHAT_MODEL_ID,
+        ],
+        env=TABBY_ENV,
+    )
+
+
+def download_embedding_model():
+    import subprocess
+
+    subprocess.run(
+        [
+            TABBY_BIN,
+            "download",
+            "--model",
+            EMBEDDING_MODEL_ID,
+        ],
+        env=TABBY_ENV,
+    )
+
+
 image = (
     Image.from_registry(
         IMAGE_NAME,
