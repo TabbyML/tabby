@@ -4,7 +4,7 @@ use chrono::Utc;
 use futures::StreamExt;
 use tabby_crawler::crawl_pipeline;
 use tabby_inference::Embedding;
-use tabby_scheduler::{DocIndexer, WebDocument};
+use tabby_index::public::{DocIndexer, WebDocument};
 
 use super::helper::Job;
 

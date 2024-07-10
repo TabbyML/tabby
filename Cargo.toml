@@ -6,7 +6,7 @@ members = [
     "crates/tabby-download",
     "crates/tabby-git",
     "crates/tabby-inference",
-    "crates/tabby-scheduler",
+    "crates/tabby-index",
     "crates/tabby-crawler",
 
     "crates/aim-downloader",

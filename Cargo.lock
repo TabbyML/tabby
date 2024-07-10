@@ -5137,24 +5137,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tabby-inference"
-version = "0.13.0-dev.0"
-dependencies = [
- "anyhow",
- "async-openai",
- "async-stream",
- "async-trait",
- "dashmap",
- "derive_builder",
- "futures",
- "reqwest",
- "secrecy",
- "tabby-common",
- "trie-rs",
-]
-
-[[package]]
-name = "tabby-scheduler"
+name = "tabby-index"
 version = "0.13.0-dev.0"
 dependencies = [
  "anyhow",
@@ -5192,6 +5175,23 @@ dependencies = [
  "tree-sitter-solidity",
  "tree-sitter-tags",
  "tree-sitter-typescript",
+]
+
+[[package]]
+name = "tabby-inference"
+version = "0.13.0-dev.0"
+dependencies = [
+ "anyhow",
+ "async-openai",
+ "async-stream",
+ "async-trait",
+ "dashmap",
+ "derive_builder",
+ "futures",
+ "reqwest",
+ "secrecy",
+ "tabby-common",
+ "trie-rs",
 ]
 
 [[package]]
@@ -5258,8 +5258,8 @@ dependencies = [
  "tabby-crawler",
  "tabby-db",
  "tabby-git",
+ "tabby-index",
  "tabby-inference",
- "tabby-scheduler",
  "tabby-schema",
  "tarpc",
  "temp_testdir",

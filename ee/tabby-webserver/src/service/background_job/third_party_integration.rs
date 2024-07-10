@@ -7,7 +7,7 @@ use juniper::ID;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::RepositoryConfig;
 use tabby_inference::Embedding;
-use tabby_scheduler::public::{CodeIndexer, DocIndexer};
+use tabby_index::public::{CodeIndexer, DocIndexer};
 use tabby_schema::{
     integration::{IntegrationKind, IntegrationService},
     job::JobService,
