@@ -129,6 +129,7 @@ impl ChatCompletionServer {
         let config = HttpModelConfigBuilder::default()
             .api_endpoint(api_endpoint(server.port()))
             .kind("openai/chat".to_string())
+            .model_name(Some("local".into()))
             .build()
             .expect("Failed to create HttpModelConfig");
         let chat_completion = http_api_bindings::create_chat(&config).await;
