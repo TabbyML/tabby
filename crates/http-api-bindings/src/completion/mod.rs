@@ -1,10 +1,12 @@
 mod llama;
 mod mistral;
+mod openai;
 
 use std::sync::Arc;
 
 use llama::LlamaCppEngine;
 use mistral::MistralFIMEngine;
+use openai::OpenAICompletionEngine;
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::CompletionStream;
 
@@ -21,6 +23,14 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
                 &model.api_endpoint,
                 model.api_key.clone(),
                 model.model_name.clone(),
+            );
+            Arc::new(engine)
+        }
+        "openai/completion" => {
+            let engine = OpenAICompletionEngine::create(
+                model.model_name.clone(),
+                &model.api_endpoint,
+                model.api_key.clone(),
             );
             Arc::new(engine)
         }

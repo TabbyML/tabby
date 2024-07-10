@@ -49,6 +49,18 @@ api_endpoint = "https://api.mistral.ai"
 api_key = "secret-api-key"
 ```
 
+#### [openai completion](https://platform.openai.com/docs/api-reference/completions)
+
+Configure Tabby with an OpenAI-compatible completion model (`/v1/completions`) using an online service or a self-hosted backend (vLLM, Nvidia NIM, LocalAI, ...) as follows:
+
+```toml
+[model.completion.http]
+kind = "openai/completion"
+model_name = "your_model"
+api_endpoint = "https://url_to_your_backend_or_service"
+api_key = "secret-api-key"
+```
+
 ### Chat Model
 
 Chat models adhere to the standard interface specified by OpenAI's `/chat/completions` API.
