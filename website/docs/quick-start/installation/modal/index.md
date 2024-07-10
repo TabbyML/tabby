@@ -39,10 +39,8 @@ For detailed usage, please check official [Modal GPU reference](https://modal.co
 ## Define the container image
 
 We want to create a Modal image which has the Tabby model cache pre-populated.
-The benefit of this is that the container no longer has to re-download the model—instead,
-it will take advantage of Modal’s internal filesystem for faster cold starts.
 
-### Download the weights
+### Download the models
 
 ```python
 def download_model():
