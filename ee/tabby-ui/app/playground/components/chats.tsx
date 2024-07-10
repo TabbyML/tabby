@@ -75,7 +75,12 @@ export default function Chats() {
         updateMessages(chatId, messages)
       }
     },
-    1000
+    500,
+    {
+      onUnmount(debounced) {
+        debounced.flush()
+      }
+    }
   )
 
   const onThreadUpdates = (messages: QuestionAnswerPair[]) => {
@@ -121,10 +126,6 @@ export default function Chats() {
       shouldConsumeInitialMessage.current = false
     }
   }
-
-  React.useEffect(() => {
-    return () => persistChat.flush()
-  }, [])
 
   const style = isShowDemoBanner
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
