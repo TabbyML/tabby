@@ -596,7 +596,7 @@ function AnswerBlock({
           >
             {answer.relevant_code.map((code, index) => (
               <RelevantCodeCard
-                key={code.filepath + code.git_url}
+                key={code.filepath + code.git_url + index}
                 code={code}
                 showMore={showMoreCode}
               />
