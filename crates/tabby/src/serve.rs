@@ -3,6 +3,8 @@ use std::{net::IpAddr, sync::Arc, time::Duration};
 use axum::{routing, Router};
 use clap::Args;
 use hyper::StatusCode;
+use spinners::{Spinner, Spinners, Stream};
+use tokio::sync::oneshot::Sender;
 use tabby_common::{
     api::{self, code::CodeSearch, event::EventLogger},
     config::{Config, ConfigAccess, ModelConfig, StaticConfigAccess},
@@ -118,7 +120,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     load_model(&config).await;
 
-    debug!("Starting server, this might take a few minutes...");
+    let tx = try_run_spinner();
 
     #[cfg(feature = "ee")]
     #[allow(deprecated)]
@@ -182,6 +184,9 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         ui = new_ui;
     };
 
+    if let Some(tx) = tx {
+        tx.send(()).unwrap_or_else(|_| warn!("Spinner channel is closed"));
+    }
     start_heartbeat(args, &config, webserver);
     run_app(api, Some(ui), args.host, args.port).await
 }
@@ -399,4 +404,23 @@ fn merge_args(config: &Config, args: &ServeArgs) -> Config {
     }
 
     config
+}
+
+fn try_run_spinner() -> Option<Sender<()>> {
+    if cfg!(feature = "prod") {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        tokio::task::spawn(async move {
+            let mut sp = Spinner::with_timer_and_stream(
+                Spinners::Dots,
+                "Starting...".into(),
+                Stream::Stdout,
+            );
+            let _ = rx.await;
+            sp.stop_with_symbol("\x1b[32m🗸\x1b[0m");
+        });
+        Some(tx)
+    } else {
+        debug!("Starting server, this might take a few minutes...");
+        None
+    }
 }
