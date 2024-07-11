@@ -49,7 +49,7 @@ api_endpoint = "https://api.mistral.ai"
 api_key = "secret-api-key"
 ```
 
-#### [openai completion](https://platform.openai.com/docs/api-reference/completions)
+#### [openai completion](https://platform.openai.com/docs/api-reference/completions) (since 0.14)
 
 Configure Tabby with an OpenAI-compatible completion model (`/v1/completions`) using an online service or a self-hosted backend (vLLM, Nvidia NIM, LocalAI, ...) as follows:
 
