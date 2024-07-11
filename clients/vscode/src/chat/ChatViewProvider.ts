@@ -8,8 +8,14 @@ import {
   LogOutputChannel,
   TextEditor,
   window,
+  Position,
+  Range,
+  Selection,
+  TextEditorRevealType,
 } from "vscode";
-import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
+import fs from "fs";
+import path from "path";
+import type { ServerApi, ChatMessage, Context, NavigateOpts } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
 import type { ServerInfo } from "tabby-agent";
@@ -91,7 +97,43 @@ export class ChatViewProvider implements WebviewViewProvider {
     };
 
     this.client = createClient(webviewView, {
-      navigate: async (context: Context) => {
+      navigate: async (context: Context, opts?: NavigateOpts) => {
+        console.log("context", context);
+        if (opts?.inCurrentWorkspace) {
+          const { filepath } = context;
+
+          // Try to find the completed file path with worksplace folder
+          let completedFilPath = "";
+          const currentActiveWorkspaceFolder =
+            (window.activeTextEditor &&
+              workspace.getWorkspaceFolder(window.activeTextEditor.document.uri)?.uri.fsPath) ||
+            "";
+          const allWorkspaceFolders = workspace.workspaceFolders?.map((ws) => ws.uri.fsPath) || [];
+          [currentActiveWorkspaceFolder].concat(allWorkspaceFolders).some((workspaceFolder) => {
+            if (workspace) {
+              const fullPath = path.join(workspaceFolder, filepath);
+              if (fs.existsSync(fullPath)) {
+                completedFilPath = fullPath;
+                return true;
+              }
+            }
+            return false;
+          });
+
+          if (completedFilPath) {
+            const document = await workspace.openTextDocument(completedFilPath);
+            const newEditor = await window.showTextDocument(document);
+
+            // Move the cursor to the specified line
+            const start = new Position(Math.max(0, context.range.start - 1), 0);
+            const end = new Position(context.range.end, 0);
+            newEditor.selection = new Selection(start, end);
+            newEditor.revealRange(new Range(start, end), TextEditorRevealType.InCenter);
+          }
+
+          return;
+        }
+
         if (context?.filepath && context?.git_url) {
           const serverInfo = await this.agent.fetchServerInfo();
 
@@ -177,7 +219,7 @@ export class ChatViewProvider implements WebviewViewProvider {
       }
     });
 
-    webviewView.webview.onDidReceiveMessage((message) => {
+    webviewView.webview.onDidReceiveMessage(async (message) => {
       switch (message.action) {
         case "rendered": {
           this.reloadChatPage();

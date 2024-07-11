@@ -1,7 +1,7 @@
 import React from 'react'
 import { Message } from 'ai'
 import { findIndex } from 'lodash-es'
-import type { Context } from 'tabby-chat-panel'
+import type { Context, NavigateOpts } from 'tabby-chat-panel'
 
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
@@ -30,7 +30,7 @@ type ChatContextValue = {
     userMessageId: string,
     action: MessageActionType
   ) => void
-  onNavigateToContext?: (context: Context) => void
+  onNavigateToContext?: (context: Context, opts?: NavigateOpts) => void
   onClearMessages: () => void
   container?: HTMLDivElement
   onCopyContent?: (value: string) => void
@@ -112,7 +112,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   initialMessages?: QuestionAnswerPair[]
   onLoaded?: () => void
   onThreadUpdates: (messages: QuestionAnswerPair[]) => void
-  onNavigateToContext: (context: Context) => void
+  onNavigateToContext: (context: Context, opts?: NavigateOpts) => void
   container?: HTMLDivElement
   docQuery?: boolean
   generateRelevantQuestions?: boolean

@@ -13,7 +13,8 @@ import type {
   Context,
   ErrorMessage,
   FetcherOptions,
-  InitRequest
+  InitRequest,
+  NavigateOpts
 } from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
 
@@ -166,8 +167,8 @@ export default function ChatPage() {
     setPendingMessages([])
   }
 
-  const onNavigateToContext = (context: Context) => {
-    server?.navigate(context)
+  const onNavigateToContext = (context: Context, opts?: NavigateOpts) => {
+    server?.navigate(context, opts)
   }
 
   const onCopyContent = (value: string) => {
