@@ -86,3 +86,14 @@ model_name = "deepseek-chat"
 api_endpoint = "https://api.deepseek.com/v1"
 api_key = "secret-api-key"
 ```
+
+#### [mistral / codestral](https://docs.mistral.ai/api/#operation/createFIMCompletion) (since 0.14)
+
+Configure the `mistral/codestral` model as follows:
+
+```toml
+[model.completion.http]
+kind = "mistral/chat"
+api_endpoint = "https://api.mistral.ai"
+api_key = "secret-api-key"
+```
