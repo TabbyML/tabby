@@ -5,6 +5,10 @@ export type AgentConfig = {
     requestHeaders: Record<string, string | number | boolean | null | undefined>;
     requestTimeout: number;
   };
+  proxy: {
+    url: string;
+    authorization: string;
+  };
   completion: {
     prompt: {
       maxPrefixLines: number;
@@ -117,6 +121,10 @@ export const defaultAgentConfig: AgentConfig = {
     token: "",
     requestHeaders: {},
     requestTimeout: 2 * 60 * 1000, // 2 minutes
+  },
+  proxy: {
+    url: "",
+    authorization: "",
   },
   completion: {
     prompt: {
