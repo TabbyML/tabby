@@ -251,11 +251,13 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
                 </CommandEmpty>
                 <CommandGroup>
                   {repos?.map(repo => {
-                    const isSelected = !!value?.id && repo.id === value.id
+                    const isSelected =
+                      !!value?.id &&
+                      `${repo.kind}_${repo.id}` === `${value.kind}_${value.id}`
                     return (
                       <CommandItem
-                        value={repo.id}
-                        key={repo.id}
+                        value={`${repo.kind}_${repo.id}`}
+                        key={`${repo.kind}_${repo.id}`}
                         onSelect={() => {
                           onChange({ ...repo })
                           setCommandVisible(false)
