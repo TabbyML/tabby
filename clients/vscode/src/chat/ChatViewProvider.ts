@@ -203,7 +203,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     const serverInfo = await this.agent.fetchServerInfo();
     this.renderChatPage(serverInfo.config.endpoint);
 
-    this.agent.on("didChangeStatus", async () => {
+    this.agent.on("didChangeStatus", () => {
       this.reloadChatPage();
     });
 
@@ -218,7 +218,7 @@ export class ChatViewProvider implements WebviewViewProvider {
       }
     });
 
-    webviewView.webview.onDidReceiveMessage(async (message) => {
+    webviewView.webview.onDidReceiveMessage((message) => {
       switch (message.action) {
         case "rendered": {
           this.reloadChatPage();
