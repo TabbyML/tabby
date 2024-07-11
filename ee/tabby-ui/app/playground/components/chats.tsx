@@ -79,7 +79,8 @@ export default function Chats() {
     {
       onUnmount(debounced) {
         debounced.flush()
-      }
+      },
+      leading: true
     }
   )
 
