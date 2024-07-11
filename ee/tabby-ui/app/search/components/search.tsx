@@ -115,6 +115,11 @@ export function Search() {
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [title, setTitle] = useState('')
   const [isReady, setIsReady] = useState(false)
+  const [extraRequestPayload, setExtraRequestPayload] = useState<Omit<AnswerRequest, 'user' | 'messages'>>({
+    doc_query: true,
+    generate_relevant_questions: true,
+    collect_relevant_code_using_user_message: true
+  })
   const [currentLoadindId, setCurrentLoadingId] = useState<string>('')
   const contentContainerRef = useRef<HTMLDivElement>(null)
   const [showSearchInput, setShowSearchInput] = useState(false)
@@ -148,6 +153,7 @@ export function Search() {
       sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
       sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA)
       setIsReady(true)
+      setExtraRequestPayload(p => ({...p, code_query: initialExtraInfo?.code_query}))
       onSubmitSearch(initialMessage, initialExtraInfo?.code_query)
       return
     }
@@ -300,10 +306,8 @@ export function Search() {
 
     const answerRequest: AnswerRequest = {
       messages: [...previousMessages, newUserMessage],
-      code_query,
-      doc_query: true,
-      generate_relevant_questions: true,
-      collect_relevant_code_using_user_message: true
+      ...extraRequestPayload,
+      code_query: code_query || extraRequestPayload.code_query,
     }
 
     setCurrentLoadingId(newAssistantId)
