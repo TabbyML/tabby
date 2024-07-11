@@ -4,14 +4,13 @@ use axum::{routing, Router};
 use clap::Args;
 use hyper::StatusCode;
 use spinners::{Spinner, Spinners, Stream};
-use tokio::sync::oneshot::Sender;
 use tabby_common::{
     api::{self, code::CodeSearch, event::EventLogger},
     config::{Config, ConfigAccess, ModelConfig, StaticConfigAccess},
     usage,
 };
 use tabby_inference::Embedding;
-use tokio::time::sleep;
+use tokio::{sync::oneshot::Sender, time::sleep};
 use tower_http::timeout::TimeoutLayer;
 use tracing::{debug, warn};
 use utoipa::{
@@ -185,7 +184,8 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     };
 
     if let Some(tx) = tx {
-        tx.send(()).unwrap_or_else(|_| warn!("Spinner channel is closed"));
+        tx.send(())
+            .unwrap_or_else(|_| warn!("Spinner channel is closed"));
     }
     start_heartbeat(args, &config, webserver);
     run_app(api, Some(ui), args.host, args.port).await
