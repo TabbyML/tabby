@@ -98,11 +98,10 @@ export class ChatViewProvider implements WebviewViewProvider {
 
     this.client = createClient(webviewView, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
-        console.log("context", context);
         if (opts?.inCurrentWorkspace) {
           const { filepath } = context;
 
-          // Try to find the completed file path with worksplace folder
+          // Construct the full file path using the workspace folder and filepath
           let completedFilPath = "";
           const currentActiveWorkspaceFolder =
             (window.activeTextEditor &&
