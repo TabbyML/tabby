@@ -41,6 +41,7 @@ import Stats from './components/stats'
 
 import 'aos/dist/aos.css'
 
+import { AnswerRequest } from '@/lib/types'
 import { Separator } from '@/components/ui/separator'
 
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
@@ -82,10 +83,19 @@ function MainPanel() {
 
   if (!healthInfo || !data?.me) return <></>
 
-  const onSearch = (question: string) => {
+  const onSearch = (
+    question: string,
+    code_query?: AnswerRequest['code_query']
+  ) => {
     setIsLoading(true)
     sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_LATEST_MSG)
     sessionStorage.setItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG, question)
+    sessionStorage.setItem(
+      SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA,
+      JSON.stringify({
+        code_query
+      })
+    )
     router.push('/search')
   }
 

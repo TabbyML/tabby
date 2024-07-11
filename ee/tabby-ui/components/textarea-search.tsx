@@ -8,6 +8,7 @@ import { useQuery } from 'urql'
 import { Repository } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { repositoryListQuery } from '@/lib/tabby/query'
+import { AnswerRequest } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import {
   Command,
@@ -44,7 +45,7 @@ export default function TextAreaSearch({
   cleanAfterSearch = true,
   isFollowup
 }: {
-  onSearch: (value: string) => void
+  onSearch: (value: string, code_query?: AnswerRequest['code_query']) => void
   className?: string
   placeholder?: string
   showBetaBadge?: boolean
@@ -57,7 +58,7 @@ export default function TextAreaSearch({
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
   const [value, setValue] = useState('')
-  const [selectedRepo, setSelectRepo] = useState<RepoItem | undefined>()
+  const [selectedRepo, setSelectedRepo] = useState<RepoItem | undefined>()
   const { theme } = useCurrentTheme()
 
   useEffect(() => {
@@ -77,7 +78,10 @@ export default function TextAreaSearch({
 
   const search = () => {
     if (!value || isLoading) return
-    onSearch(value)
+    const code_query: AnswerRequest['code_query'] = selectedRepo
+      ? { git_url: selectedRepo.gitUrl, content: '' }
+      : undefined
+    onSearch(value, code_query)
     if (cleanAfterSearch) setValue('')
   }
 
@@ -137,7 +141,7 @@ export default function TextAreaSearch({
           <RepoSelect
             className="overflow-hidden"
             value={selectedRepo}
-            onChange={setSelectRepo}
+            onChange={setSelectedRepo}
           />
         )}
         <div
@@ -167,7 +171,7 @@ export default function TextAreaSearch({
   )
 }
 
-type RepoItem = Pick<Partial<Repository>, 'id' | 'kind' | 'name'>
+type RepoItem = Pick<Repository, 'gitUrl' | 'name'>
 
 interface RepoSelectProps {
   value: RepoItem | undefined
@@ -231,7 +235,11 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
           </TooltipTrigger>
         </PopoverTrigger>
         <PopoverPortal>
-          <PopoverContent className="min-w-[300px] lg:max-w-[60vw]" align="start" side="bottom">
+          <PopoverContent
+            className="min-w-[300px] lg:max-w-[60vw]"
+            align="start"
+            side="bottom"
+          >
             <Command>
               <CommandInput placeholder="Search" />
               <CommandList className="max-h-[200px]">
@@ -246,7 +254,7 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
                 </CommandEmpty>
                 <CommandGroup>
                   {repos?.map(repo => {
-                    const isSelected = repo.id === value?.id
+                    const isSelected = repo.gitUrl === value?.gitUrl
                     return (
                       <CommandItem
                         key={repo.id}
@@ -259,7 +267,7 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
                         <div className="h-4 w-4 shrink-0">
                           {isSelected && <IconCheck className="shrink-0" />}
                         </div>
-                        <span className='truncate'>{repo.name}</span>
+                        <span className="truncate">{repo.name}</span>
                       </CommandItem>
                     )
                   })}

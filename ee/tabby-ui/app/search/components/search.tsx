@@ -75,6 +75,7 @@ type ConversationMessage = Message & {
     snippet: string
   }[]
   relevant_questions?: string[]
+  code_query?: AnswerRequest['code_query']
   isLoading?: boolean
   error?: string
 }
@@ -137,10 +138,17 @@ export function Search() {
     const initialMessage = sessionStorage.getItem(
       SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
     )
+    const initialExtraInfoStr = sessionStorage.getItem(
+      SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA
+    )
+    const initialExtraInfo = initialExtraInfoStr
+      ? JSON.parse(initialExtraInfoStr)
+      : undefined
     if (initialMessage) {
       sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
+      sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA)
       setIsReady(true)
-      onSubmitSearch(initialMessage)
+      onSubmitSearch(initialMessage, initialExtraInfo?.code_query)
       return
     }
 
@@ -267,8 +275,10 @@ export function Search() {
     )
   }, [conversation])
 
-  const onSubmitSearch = (question: string) => {
-    // FIXME: code query? extra from user's input?
+  const onSubmitSearch = (
+    question: string,
+    code_query?: AnswerRequest['code_query']
+  ) => {
     const previousMessages = conversation.map(message => ({
       role: message.role,
       id: message.id,
@@ -290,8 +300,10 @@ export function Search() {
 
     const answerRequest: AnswerRequest = {
       messages: [...previousMessages, newUserMessage],
+      code_query,
       doc_query: true,
-      generate_relevant_questions: true
+      generate_relevant_questions: true,
+      collect_relevant_code_using_user_message: true
     }
 
     setCurrentLoadingId(newAssistantId)
@@ -317,17 +329,21 @@ export function Search() {
     const previousMessages = data.slice(0, targetQuestionIdx).map(message => ({
       role: message.role,
       id: message.id,
-      content: message.content
+      content: message.content,
+      code_query: message.code_query
     }))
     const newUserMessage: ConversationMessage = {
       role: 'user',
       id: targetQuestion.id,
-      content: targetQuestion.content
+      content: targetQuestion.content,
+      code_query: targetQuestion.code_query
     }
     const answerRequest: AnswerRequest = {
       messages: [...previousMessages, newUserMessage],
+      code_query: targetQuestion.code_query,
       doc_query: true,
-      generate_relevant_questions: true
+      generate_relevant_questions: true,
+      collect_relevant_code_using_user_message: true
     }
 
     const newConversation = [...data]
