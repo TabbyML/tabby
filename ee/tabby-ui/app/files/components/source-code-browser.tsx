@@ -345,9 +345,10 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const isSearchMode = activeEntryInfo?.viewMode === 'search'
 
   const shouldFetchTree =
-    !!isPathInitialized && !isEmpty(repoMap) && !!activePath && !isSearchMode
+    !!initialized && !isEmpty(repoMap) && !!activePath && !isSearchMode
   const shouldFetchRepositoryGrep =
-    !!isPathInitialized && !isEmpty(repoMap) && !!activePath && isSearchMode
+    !!initialized && !isEmpty(repoMap) && !!activePath && isSearchMode
+  const shouldFetchRawFile = !!initialized && isBlobMode && activeRepo
 
   // fetch tree
   const {
@@ -382,7 +383,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     contentLength?: number
     fileDisplayType: FileDisplayType
   }>(
-    isBlobMode && activeRepo
+    shouldFetchRawFile
       ? [
           toEntryRequestUrl(activeRepo, activeRepoRef?.name, activeBasename),
           activeBasename
