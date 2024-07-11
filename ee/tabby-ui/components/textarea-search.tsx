@@ -58,7 +58,7 @@ export default function TextAreaSearch({
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
   const [value, setValue] = useState('')
-  const [selectedRepo, setSelectedRepo] = useState<RepoItem | undefined>()
+  const [selectedRepo, setSelectedRepo] = useState<Repository | undefined>()
   const { theme } = useCurrentTheme()
 
   useEffect(() => {
@@ -78,10 +78,10 @@ export default function TextAreaSearch({
 
   const search = () => {
     if (!value || isLoading) return
-    const code_query: AnswerRequest['code_query'] = selectedRepo
-      ? { git_url: selectedRepo.gitUrl, content: '' }
-      : undefined
-    onSearch(value, code_query)
+    onSearch(
+      value,
+      selectedRepo ? { git_url: selectedRepo.gitUrl, content: '' } : undefined
+    )
     if (cleanAfterSearch) setValue('')
   }
 
@@ -170,12 +170,9 @@ export default function TextAreaSearch({
     </div>
   )
 }
-
-type RepoItem = Pick<Repository, 'gitUrl' | 'name'>
-
 interface RepoSelectProps {
-  value: RepoItem | undefined
-  onChange: (val: RepoItem | undefined) => void
+  value: Repository | undefined
+  onChange: (val: Repository | undefined) => void
   className?: string
 }
 function RepoSelect({ value, onChange, className }: RepoSelectProps) {

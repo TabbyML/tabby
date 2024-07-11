@@ -27,8 +27,8 @@ import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useTabbyAnswer } from '@/lib/hooks/use-tabby-answer'
 import fetcher from '@/lib/tabby/fetcher'
-import { AnswerRequest } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { AnswerRequest, AnswerResponse, ArrayElementType } from '@/lib/types'
+import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { CodeBlock } from '@/components/ui/codeblock'
 import {
@@ -40,6 +40,7 @@ import {
   IconBlocks,
   IconChevronLeft,
   IconChevronRight,
+  IconCode,
   IconLayers,
   IconPlus,
   IconRefresh,
@@ -62,6 +63,12 @@ import UserPanel from '@/components/user-panel'
 
 import './search.css'
 
+import { isNil } from 'lodash-es'
+import { useQuery } from 'urql'
+
+import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
+import { repositoryListQuery } from '@/lib/tabby/query'
+
 interface Source {
   title: string
   link: string
@@ -69,6 +76,7 @@ interface Source {
 }
 
 type ConversationMessage = Message & {
+  relevant_code?: AnswerResponse['relevant_code']
   relevant_documents?: {
     title: string
     link: string
@@ -84,6 +92,12 @@ type SearchContextValue = {
   isLoading: boolean
   onRegenerateResponse: (id: string) => void
   onSubmitSearch: (question: string) => void
+  extraRequestContext: Record<string, any>
+  repositoryList: RepositoryListQuery['repositoryList'] | undefined
+}
+
+type ExtraContext = {
+  code_query?: AnswerRequest['code_query']
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -115,13 +129,7 @@ export function Search() {
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [title, setTitle] = useState('')
   const [isReady, setIsReady] = useState(false)
-  const [extraRequestPayload, setExtraRequestPayload] = useState<
-    Omit<AnswerRequest, 'user' | 'messages'>
-  >({
-    doc_query: true,
-    generate_relevant_questions: true,
-    collect_relevant_code_using_user_message: true
-  })
+  const [extraContext, setExtraContext] = useState<ExtraContext>({})
   const [currentLoadindId, setCurrentLoadingId] = useState<string>('')
   const contentContainerRef = useRef<HTMLDivElement>(null)
   const [showSearchInput, setShowSearchInput] = useState(false)
@@ -129,6 +137,11 @@ export function Search() {
   const router = useRouter()
   const initCheckRef = useRef(false)
   const { theme } = useCurrentTheme()
+
+  const [{ data }] = useQuery({
+    query: repositoryListQuery
+  })
+  const repositoryList = data?.repositoryList
 
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
     fetcher: tabbyFetcher
@@ -145,20 +158,21 @@ export function Search() {
     const initialMessage = sessionStorage.getItem(
       SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
     )
-    const initialExtraInfoStr = sessionStorage.getItem(
+    const initialExtraContextStr = sessionStorage.getItem(
       SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA
     )
-    const initialExtraInfo = initialExtraInfoStr
-      ? JSON.parse(initialExtraInfoStr)
+    const initialExtraInfo = initialExtraContextStr
+      ? JSON.parse(initialExtraContextStr)
       : undefined
     if (initialMessage) {
       sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
       sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA)
       setIsReady(true)
-      setExtraRequestPayload(p => ({
+      setExtraContext(p => ({
         ...p,
         code_query: initialExtraInfo?.code_query
       }))
+      // FIXME(jueliang) just use the value in context
       onSubmitSearch(initialMessage, initialExtraInfo?.code_query)
       return
     }
@@ -166,11 +180,21 @@ export function Search() {
     const latesConversation = sessionStorage.getItem(
       SESSION_STORAGE_KEY.SEARCH_LATEST_MSG
     )
+    const latestConversationContext = sessionStorage.getItem(
+      SESSION_STORAGE_KEY.SEARCH_LATEST_CONTEXT
+    )
     if (latesConversation) {
       const conversation = JSON.parse(
         latesConversation
       ) as ConversationMessage[]
       setConversation(conversation)
+
+      if (latestConversationContext) {
+        const conversationContext = JSON.parse(
+          latesConversation
+        ) as ExtraContext
+        setExtraContext(conversationContext)
+      }
 
       // Set title
       if (conversation[0]) setTitle(conversation[0].content)
@@ -219,6 +243,7 @@ export function Search() {
 
     if (!currentAnswer) return
     currentAnswer.content = answer?.answer_delta || ''
+    currentAnswer.relevant_code = answer?.relevant_code
     currentAnswer.relevant_documents = answer?.relevant_documents
     currentAnswer.relevant_questions = answer?.relevant_questions
     currentAnswer.isLoading = isLoading
@@ -286,6 +311,14 @@ export function Search() {
     )
   }, [conversation])
 
+  // Save conversation context into sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem(
+      SESSION_STORAGE_KEY.SEARCH_LATEST_CONTEXT,
+      JSON.stringify(extraContext)
+    )
+  }, [extraContext])
+
   const onSubmitSearch = (
     question: string,
     code_query?: AnswerRequest['code_query']
@@ -309,10 +342,13 @@ export function Search() {
       isLoading: true
     }
 
+    const _code_query = code_query || extraContext?.code_query
     const answerRequest: AnswerRequest = {
       messages: [...previousMessages, newUserMessage],
-      ...extraRequestPayload,
-      code_query: code_query || extraRequestPayload.code_query
+      doc_query: true,
+      generate_relevant_questions: true,
+      collect_relevant_code_using_user_message: true,
+      code_query: _code_query
     }
 
     setCurrentLoadingId(newAssistantId)
@@ -344,12 +380,11 @@ export function Search() {
     const newUserMessage: ConversationMessage = {
       role: 'user',
       id: targetQuestion.id,
-      content: targetQuestion.content,
-      code_query: targetQuestion.code_query
+      content: targetQuestion.content
     }
     const answerRequest: AnswerRequest = {
       messages: [...previousMessages, newUserMessage],
-      code_query: targetQuestion.code_query,
+      code_query: extraContext.code_query,
       doc_query: true,
       generate_relevant_questions: true,
       collect_relevant_code_using_user_message: true
@@ -358,6 +393,7 @@ export function Search() {
     const newConversation = [...data]
     let newTargetAnswer = newConversation[targetAnswerIdx]
     newTargetAnswer.content = ''
+    newTargetAnswer.relevant_code = undefined
     newTargetAnswer.relevant_documents = undefined
     newTargetAnswer.error = undefined
     newTargetAnswer.isLoading = true
@@ -374,12 +410,15 @@ export function Search() {
   const style = isShowDemoBanner
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
+
   return (
     <SearchContext.Provider
       value={{
         isLoading: isLoading,
         onRegenerateResponse: onRegenerateResponse,
-        onSubmitSearch: onSubmitSearch
+        onSubmitSearch: onSubmitSearch,
+        extraRequestContext: extraContext,
+        repositoryList
       }}
     >
       <div className="transition-all" style={style}>
@@ -504,7 +543,9 @@ function AnswerBlock({
 }) {
   const { onRegenerateResponse, onSubmitSearch, isLoading } =
     useContext(SearchContext)
-  const [showMore, setShowMore] = useState(false)
+
+  const [showMoreSource, setShowMoreSource] = useState(false)
+  const [showMoreCode, setShowMoreCode] = useState(false)
 
   const getCopyContent = (answer: ConversationMessage) => {
     if (!answer.relevant_documents) return answer.content
@@ -529,8 +570,53 @@ function AnswerBlock({
         SOURCE_CARD_STYLE.expand +
       0.5 * Math.floor(answer.relevant_documents.length / 4)
     : 0
+
+  const totalCodeHeightInRem = answer.relevant_code
+    ? Math.ceil(answer.relevant_code.length / 4) * SOURCE_CARD_STYLE.expand +
+      0.5 * Math.floor(answer.relevant_code.length / 4)
+    : 0
+
   return (
     <div className="flex flex-col gap-y-5">
+      {/* Relevant code */}
+      {answer.relevant_code && answer.relevant_code.length > 0 && (
+        <div>
+          <div className="mb-1 flex items-center gap-x-2">
+            <IconCode className="relative" style={{ top: '-0.04rem' }} />
+            <p className="text-sm font-bold leading-normal">Code</p>
+          </div>
+          <div
+            className="gap-sm grid grid-cols-3 gap-2 overflow-hidden md:grid-cols-4"
+            style={{
+              transition: 'height 0.25s ease-out',
+              height: showMoreCode
+                ? `${totalCodeHeightInRem}rem`
+                : `${SOURCE_CARD_STYLE.compress}rem`
+            }}
+          >
+            {answer.relevant_code.map((code, index) => (
+              <RelevantCodeCard
+                key={code.filepath + code.git_url}
+                code={code}
+                showMore={showMoreCode}
+              />
+            ))}
+          </div>
+          <Button
+            variant="ghost"
+            className="-ml-1.5 mt-1 flex items-center gap-x-1 px-1 py-2 text-sm font-normal text-muted-foreground"
+            onClick={() => setShowMoreCode(!showMoreCode)}
+          >
+            <IconChevronRight
+              className={cn({
+                '-rotate-90': showMoreCode,
+                'rotate-90': !showMoreCode
+              })}
+            />
+            <p>{showMoreCode ? 'Show less' : 'Show more'}</p>
+          </Button>
+        </div>
+      )}
       {/* Relevant documents */}
       {answer.relevant_documents && answer.relevant_documents.length > 0 && (
         <div>
@@ -542,7 +628,7 @@ function AnswerBlock({
             className="gap-sm grid grid-cols-3 gap-2 overflow-hidden md:grid-cols-4"
             style={{
               transition: 'height 0.25s ease-out',
-              height: showMore
+              height: showMoreSource
                 ? `${totalHeightInRem}rem`
                 : `${SOURCE_CARD_STYLE.compress}rem`
             }}
@@ -551,22 +637,22 @@ function AnswerBlock({
               <SourceCard
                 key={source.link + index}
                 source={source}
-                showMore={showMore}
+                showMore={showMoreSource}
               />
             ))}
           </div>
           <Button
             variant="ghost"
             className="-ml-1.5 mt-1 flex items-center gap-x-1 px-1 py-2 text-sm font-normal text-muted-foreground"
-            onClick={() => setShowMore(!showMore)}
+            onClick={() => setShowMoreSource(!showMoreSource)}
           >
             <IconChevronRight
               className={cn({
-                '-rotate-90': showMore,
-                'rotate-90': !showMore
+                '-rotate-90': showMoreSource,
+                'rotate-90': !showMoreSource
               })}
             />
-            <p>{showMore ? 'Show less' : 'Show more'}</p>
+            <p>{showMoreSource ? 'Show less' : 'Show more'}</p>
           </Button>
         </div>
       )}
@@ -700,6 +786,88 @@ function SourceCard({
   )
 }
 
+function RelevantCodeCard({
+  code,
+  showMore
+}: {
+  code: ArrayElementType<AnswerResponse['relevant_code']>
+  showMore: boolean
+}) {
+  const { repositoryList } = useContext(SearchContext)
+  const repo = repositoryList?.find(r => r.gitUrl === code.git_url)
+  const start_line = code.start_line ?? 0
+  const lineCount = code.body.split('\n').length
+  const end_line = start_line + lineCount - 1
+  const isMultiLine =
+    !isNil(start_line) && !isNil(end_line) && start_line < end_line
+  const pathSegments = code.filepath.split('/')
+  const fileName = pathSegments[pathSegments.length - 1]
+  const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
+
+  const onJumpToCodeBrowser = () => {
+    if (!code.filepath) return
+    const url = new URL(`${window.location.origin}/files`)
+    const searchParams = new URLSearchParams()
+    searchParams.append('redirect_filepath', code.filepath)
+    searchParams.append('redirect_git_url', code.git_url)
+    url.search = searchParams.toString()
+
+    const lineHash = formatLineHashForCodeBrowser({
+      start: start_line,
+      end: end_line
+    })
+    if (lineHash) {
+      url.hash = lineHash
+    }
+
+    window.open(url.toString())
+  }
+
+  return (
+    <div
+      className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card p-3 hover:bg-card/60"
+      style={{
+        height: showMore
+          ? `${SOURCE_CARD_STYLE.expand}rem`
+          : `${SOURCE_CARD_STYLE.compress}rem`,
+        transition: 'all 0.25s ease-out'
+      }}
+      onClick={onJumpToCodeBrowser}
+    >
+      <div className="flex flex-col gap-y-0.5">
+        <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
+          {fileName}
+          {start_line && (
+            <span className="text-muted-foreground">:{start_line}</span>
+          )}
+          {isMultiLine && (
+            <span className="text-muted-foreground">-{end_line}</span>
+          )}
+        </p>
+        <p
+          className={cn(
+            ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
+            {
+              'line-clamp-2': showMore,
+              'line-clamp-1': !showMore
+            }
+          )}
+        >
+          {path}
+        </p>
+      </div>
+      {!!repo?.name && (
+        <div className="flex items-center text-xs text-muted-foreground">
+          <div className="flex w-full flex-1 items-center">
+            <IconCode />
+            <p className="ml-1 overflow-hidden text-ellipsis">{repo?.name}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function MessageMarkdown({
   message,
   headline = false,
@@ -708,6 +876,7 @@ function MessageMarkdown({
   message: string
   headline?: boolean
   sources?: Source[]
+  relevant_code?: AnswerResponse['relevant_code']
 }) {
   const renderTextWithCitation = (nodeStr: string, index: number) => {
     const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
@@ -925,3 +1094,45 @@ function ErrorMessageBlock({ error = 'Fail to fetch' }: { error?: string }) {
     </MemoizedReactMarkdown>
   )
 }
+
+// function ContextItem({
+//   context,
+//   clickable = true
+// }: {
+//   context: Context
+//   clickable?: boolean
+// }) {
+//   const { onNavigateToContext } = React.useContext(ChatContext)
+//   const isMultiLine =
+//     !isNil(context.range?.start) &&
+//     !isNil(context.range?.end) &&
+//     context.range.start < context.range.end
+//   const pathSegments = context.filepath.split('/')
+//   const fileName = pathSegments[pathSegments.length - 1]
+//   const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
+//   return (
+//     <div
+//       className={cn('rounded-md border p-2', {
+//         'cursor-pointer hover:bg-accent': clickable,
+//         'cursor-default pointer-events-auto': !clickable
+//       })}
+//       onClick={e => clickable && onNavigateToContext?.(context)}
+//     >
+//       <div className="flex items-center gap-1 overflow-hidden">
+//         <IconFile className="shrink-0" />
+//         <div className="flex-1 truncate" title={context.filepath}>
+//           <span>{fileName}</span>
+//           {context.range?.start && (
+//             <span className="text-muted-foreground">
+//               :{context.range.start}
+//             </span>
+//           )}
+//           {isMultiLine && (
+//             <span className="text-muted-foreground">-{context.range.end}</span>
+//           )}
+//           <span className="ml-2 text-xs text-muted-foreground">{path}</span>
+//         </div>
+//       </div>
+//     </div>
+//   )
+// }

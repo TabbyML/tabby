@@ -89,12 +89,11 @@ function MainPanel() {
   ) => {
     setIsLoading(true)
     sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_LATEST_MSG)
+    sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_LATEST_CONTEXT)
     sessionStorage.setItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG, question)
     sessionStorage.setItem(
       SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA,
-      JSON.stringify({
-        code_query
-      })
+      JSON.stringify({ code_query })
     )
     router.push('/search')
   }
