@@ -62,10 +62,6 @@ class InlineCompletionService(private val project: Project) : Disposable {
         return Request(editor, document, modificationStamp, offset, manually)
       }
 
-      fun isMatch(editor: Editor, offset: Int?): Boolean {
-        return this.editor == editor && this.document == editor.document && this.modificationStamp == editor.document.modificationStamp && offset?.let { this.offset == it } != false
-      }
-
       companion object {
         fun from(editor: Editor, offset: Int? = null): Request {
           val document = editor.document
@@ -81,6 +77,10 @@ class InlineCompletionService(private val project: Project) : Disposable {
       val itemIndex: Int,
     )
 
+    fun isMatch(editor: Editor, offset: Int?): Boolean {
+      return this.request.editor == editor && this.request.document == editor.document && (this.partialAccepted || this.request.modificationStamp == editor.document.modificationStamp) && offset?.let { this.request.offset == it } != false
+    }
+
     fun withResponse(completionList: InlineCompletionList?, itemIndex: Int = 0): InlineCompletionContext {
       return InlineCompletionContext(request, job, completionList?.let { Response(it, itemIndex) })
     }
@@ -94,7 +94,6 @@ class InlineCompletionService(private val project: Project) : Disposable {
       val forwardRequest = Request(
         request.editor, request.document, request.modificationStamp, request.offset + acceptedLength, request.manually
       )
-      val response = this.response ?: return this
       val forwardResponse = Response(
         completionList = InlineCompletionList(
           true, listOf(
@@ -143,11 +142,20 @@ class InlineCompletionService(private val project: Project) : Disposable {
         }
       }
     })
+    messageBusConnection.subscribe(DocumentListener.TOPIC, object : DocumentListener {
+      override fun documentChanged(document: Document, editor: Editor, event: DocumentEvent) {
+        if (editorManager.selectedTextEditor == editor && event.newFragment.isEmpty()) {
+          // newFragment is empty, so this is a delete or backspace, which do not trigger caret position changed
+          // so we should handle dismiss here
+          dismiss()
+        }
+      }
+    })
     messageBusConnection.subscribe(CaretListener.TOPIC, object : CaretListener {
       override fun caretPositionChanged(editor: Editor, event: CaretEvent) {
         if (editorManager.selectedTextEditor == editor) {
           val offset = editor.caretModel.offset
-          if (current?.request?.isMatch(editor, offset) == true) {
+          if (current?.isMatch(editor, offset) == true) {
             // keep the current request if it is still valid
           } else {
             dismiss()
@@ -287,9 +295,12 @@ class InlineCompletionService(private val project: Project) : Disposable {
 
   fun provideInlineCompletion(editor: Editor, offset: Int, manually: Boolean = false) {
     logger.debug("Provide inline completion at $editor $offset $manually")
+    var partialAcceptedResponse: InlineCompletionContext.Response? = null
     current?.let {
       it.job.cancel()
-      if (!it.partialAccepted) {
+      if (it.partialAccepted) {
+        partialAcceptedResponse = it.response
+      } else {
         renderer.hide()
       }
       current = null
@@ -299,7 +310,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
       current = current?.withResponse(convertInlineCompletionList(inlineCompletionList, requestContext))
       renderCurrentResponse()
     }
-    current = InlineCompletionContext(requestContext, job)
+    current = InlineCompletionContext(requestContext, job, partialAcceptedResponse)
   }
 
   enum class CycleDirection {
@@ -309,7 +320,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
   fun cycle(editor: Editor, offset: Int?, direction: CycleDirection) {
     logger.debug("Cycle inline completion at $editor $offset $direction")
     val context = current ?: return
-    if (!context.request.isMatch(editor, offset)) {
+    if (!context.isMatch(editor, offset)) {
       return
     }
     val responseContext = context.response ?: return
@@ -338,7 +349,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
   fun accept(editor: Editor, offset: Int?, type: AcceptType) {
     logger.debug("Accept inline completion at $editor $offset $type")
     val context = current ?: return
-    if (!context.request.isMatch(editor, offset)) {
+    if (!context.isMatch(editor, offset)) {
       return
     }
     val originOffset = context.request.offset
@@ -367,20 +378,20 @@ class InlineCompletionService(private val project: Project) : Disposable {
         }
       }
     }
+    renderer.current?.let {
+      telemetryEvent(EventParams.EventType.SELECT, it, type)
+    }
+    if (type == AcceptType.FULL_COMPLETION) {
+      current = null
+      renderer.hide()
+    } else {
+      current = context.withPartialAccepted(completionItem, text.length)
+    }
     invokeLater {
       WriteCommandAction.runWriteCommandAction(editor.project) {
         editor.document.replaceString(originOffset, completionItem.replaceRange.end, text)
         editor.caretModel.moveToOffset(originOffset + text.length)
       }
-    }
-    renderer.current?.let {
-      telemetryEvent(EventParams.EventType.SELECT, it, type)
-    }
-    if (type == AcceptType.FULL_COMPLETION) {
-      renderer.hide()
-      current = null
-    } else {
-      current = context.withPartialAccepted(completionItem, text.length)
       renderCurrentResponse()
     }
   }
