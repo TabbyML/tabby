@@ -159,14 +159,16 @@ export function Search() {
       SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
     )
     const initialExtraContextStr = sessionStorage.getItem(
-      SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA
+      SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
     )
     const initialExtraInfo = initialExtraContextStr
       ? JSON.parse(initialExtraContextStr)
       : undefined
     if (initialMessage) {
       sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
-      sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA)
+      sessionStorage.removeItem(
+        SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
+      )
       setIsReady(true)
       setExtraContext(p => ({
         ...p,
@@ -181,7 +183,7 @@ export function Search() {
       SESSION_STORAGE_KEY.SEARCH_LATEST_MSG
     )
     const latestConversationContext = sessionStorage.getItem(
-      SESSION_STORAGE_KEY.SEARCH_LATEST_CONTEXT
+      SESSION_STORAGE_KEY.SEARCH_LATEST_EXTRA_CONTEXT
     )
     if (latesConversation) {
       const conversation = JSON.parse(
@@ -191,7 +193,7 @@ export function Search() {
 
       if (latestConversationContext) {
         const conversationContext = JSON.parse(
-          latesConversation
+          latestConversationContext
         ) as ExtraContext
         setExtraContext(conversationContext)
       }
@@ -314,7 +316,7 @@ export function Search() {
   // Save conversation context into sessionStorage
   useEffect(() => {
     sessionStorage.setItem(
-      SESSION_STORAGE_KEY.SEARCH_LATEST_CONTEXT,
+      SESSION_STORAGE_KEY.SEARCH_LATEST_EXTRA_CONTEXT,
       JSON.stringify(extraContext)
     )
   }, [extraContext])
@@ -712,7 +714,7 @@ function AnswerBlock({
                 <div
                   key={index}
                   className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
-                  onClick={onSubmitSearch.bind(null, related)}
+                  onClick={() => onSubmitSearch(related)}
                 >
                   <p className="w-full overflow-hidden text-ellipsis text-sm">
                     {related}
