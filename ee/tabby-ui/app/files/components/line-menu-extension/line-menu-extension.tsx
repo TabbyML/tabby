@@ -1,14 +1,17 @@
-import { RangeSet, StateEffect, StateField } from '@codemirror/state'
+import {
+  RangeSet,
+  RangeSetBuilder,
+  StateEffect,
+  StateField
+} from '@codemirror/state'
 import {
   Decoration,
-  DecorationSet,
   EditorView,
   gutter,
   gutterLineClass,
   GutterMarker,
   lineNumbers
 } from '@codemirror/view'
-import { compact, isNil } from 'lodash-es'
 import ReactDOM from 'react-dom/client'
 
 import { Button } from '@/components/ui/button'
@@ -21,30 +24,18 @@ import {
 import { IconMore } from '@/components/ui/icons'
 import { emitter } from '@/app/files/lib/event-emitter'
 
-const selectLinesEffect = StateEffect.define<{ pos: number }>()
+type SelectedLinesRange = {
+  // line number
+  line: number
+  // line number
+  endLine?: number
+} | null
 
-const selectedLinesState = StateField.define<RangeSet<GutterMarker>>({
-  create() {
-    return RangeSet.empty
-  },
-  update(set, transaction) {
-    set = set.map(transaction.changes)
-    for (let e of transaction.effects) {
-      if (e.is(selectLinesEffect)) {
-        if (e.value.pos === -1) {
-          set = RangeSet.empty
-        } else {
-          set = RangeSet.empty.update({
-            add: [lineMenuMarker.range(e.value.pos)]
-          })
-        }
-      }
-    }
-    return set
-  }
-})
+const selectedLineGutterMarker = new (class extends GutterMarker {
+  elementClass = 'cm-selectedLineGutter'
+})()
 
-const lineMenuMarker = new (class extends GutterMarker {
+const selectedLineMenuButton = new (class extends GutterMarker {
   toDOM() {
     const dom = document.createElement('div')
     const root = ReactDOM.createRoot(dom)
@@ -83,6 +74,79 @@ const lineMenuMarker = new (class extends GutterMarker {
   }
 })()
 
+const selectLinesEffect = StateEffect.define<SelectedLinesRange>()
+
+const selectedLinesField = StateField.define<SelectedLinesRange>({
+  create() {
+    return null
+  },
+  update(value, tr) {
+    for (const effect of tr.effects) {
+      if (effect.is(selectLinesEffect)) {
+        return effect.value
+      }
+      if (effect.is(setEndLine)) {
+        if (!value?.line) {
+          value = { line: effect.value }
+        }
+        return { ...value, endLine: effect.value }
+      }
+    }
+    return value
+  },
+  provide(field) {
+    return [
+      selectedLinesHighlighter(field),
+      selectedLinesGutterHighlighter(field)
+    ]
+  }
+})
+
+function selectedLinesHighlighter(field: StateField<SelectedLinesRange>) {
+  return EditorView.decorations.compute([field], state => {
+    const range = state.field(field)
+    if (!range) {
+      return Decoration.none
+    }
+    const endLine = range.endLine ?? range.line
+    const from = Math.min(range.line, endLine)
+    const to = Math.min(
+      state.doc.lines,
+      from === endLine ? range.line : endLine
+    )
+
+    const builder = new RangeSetBuilder<Decoration>()
+
+    for (let lineNumber = from; lineNumber <= to; lineNumber++) {
+      const from = state.doc.line(lineNumber).from
+      builder.add(from, from, Decoration.line({ class: 'cm-selectedLine' }))
+    }
+
+    return builder.finish()
+  })
+}
+
+function selectedLinesGutterHighlighter(field: StateField<SelectedLinesRange>) {
+  return gutterLineClass.compute([field], state => {
+    let marks: any[] = []
+    const range = state.field(field)
+    if (!range) {
+      return RangeSet.empty
+    }
+    const endLine = range.endLine ?? range.line
+    const from = Math.min(range.line, endLine)
+    const to = Math.min(
+      state.doc.lines,
+      from === endLine ? range.line : endLine
+    )
+    for (let lineNumber = from; lineNumber <= to; lineNumber++) {
+      const from = state.doc.line(lineNumber).from
+      marks.push(selectedLineGutterMarker.range(from))
+    }
+    return RangeSet.of(marks)
+  })
+}
+
 const selectableLineNumberTheme = EditorView.theme({
   '.cm-lineMenuGutter': {
     width: '40px'
@@ -97,113 +161,59 @@ const selectableLineNumberTheme = EditorView.theme({
   }
 })
 
-function setSelectedLines(view: EditorView, pos: number, endLinePos?: number): number[] {
-  const selectedLines = view.state.field(selectedLinesState)
-  let hasSelectedLines = false
-  selectedLines.between(pos, pos + 1, () => {
-    hasSelectedLines = true
+function setSelectedLines(
+  view: EditorView,
+  newRange: SelectedLinesRange
+): SelectedLinesRange {
+  // FIXME check if the range is valid
+  view.dispatch({
+    effects: selectLinesEffect.of(newRange)
   })
-  if (hasSelectedLines) {
-    return [-1]
-  } else {
-    const line = view.state.doc.lineAt(pos)
-    view.dispatch({
-      effects: [
-        selectLinesEffect.of({ pos }),
-        lineHighlightEffect.of({ line: line.number, highlight: true })
-      ]
-    })
-    return [line.number]
-  }
+  return newRange
 }
 
 function clearSelectedLines(view: EditorView) {
   view.dispatch({
-    effects: [
-      selectLinesEffect.of({ pos: -1 }),
-      lineHighlightEffect.of({ highlight: false })
-    ]
+    effects: [selectLinesEffect.of({ line: -1 })]
   })
 }
 
-const lineHighlightEffect = StateEffect.define<{
-  line?: number
-  endLine?: number
-  highlight: boolean
-}>()
-
-const lineHighlightField = StateField.define<DecorationSet>({
-  create() {
-    return Decoration.none
-  },
-  update(highlights, tr) {
-    highlights = highlights.map(tr.changes)
-    for (let effect of tr.effects) {
-      if (effect.is(lineHighlightEffect)) {
-        if (effect.value.highlight && !isNil(effect.value.line)) {
-          const deco = Decoration.line({ class: 'cm-selectedLine' })
-          const line = tr.state.doc.line(effect.value.line)
-          // todo
-          // const endLine = !isNil(effect.value.endLine) ? tr.state.doc.line(effect.value.endLine) : null
-          const endLine = tr.state.doc.line(effect.value.line + 1)
-          const thirdLine = tr.state.doc.line(effect.value.line + 2)
-          highlights = Decoration.none.update({
-            add: compact([
-              deco.range(line.from),
-              endLine ? deco.range(endLine?.from) : null,
-              thirdLine ? deco.range(thirdLine?.from) : null
-            ])
-          })
-        } else {
-          highlights = Decoration.none
-        }
-      }
-    }
-    return highlights
-  },
-  provide: field => EditorView.decorations.from(field)
-})
-
-const selectedLineGutterMarker = new (class extends GutterMarker {
-  elementClass = 'cm-selectedLineGutter'
-})()
-
-const selectedLinesGutterHighlighter = gutterLineClass.compute(
-  [selectedLinesState],
-  state => {
-    let marks: any[] = []
-    state.field(selectedLinesState).between(0, state.doc.length, (from, to) => {
-      marks.push(selectedLineGutterMarker.range(from))
-    })
-    return RangeSet.of(marks)
-  }
-)
+const setEndLine = StateEffect.define<number>()
 
 type SelectLInesGutterOptions = {
   onSelectLine?: (v: number, isShift?: boolean) => void
 }
+
+function getMarkersFromSelectedLinesField(view: EditorView) {
+  const range = view.state.field(selectedLinesField)
+  // FIXME compare line and endLine
+  if (range?.line) {
+    const pos = view.state.doc.line(range.line).from
+    return RangeSet.empty.update({
+      add: [selectedLineMenuButton.range(pos)]
+    })
+  }
+  return RangeSet.empty
+}
+
 const selectLinesGutter = ({ onSelectLine }: SelectLInesGutterOptions) => {
   return [
     selectableLineNumberTheme,
-    selectedLinesState,
-    lineHighlightField,
+    selectedLinesField,
     gutter({
       class: 'cm-lineMenuGutter',
-      markers: v => v.state.field(selectedLinesState),
-      initialSpacer: () => lineMenuMarker,
+      markers: v => getMarkersFromSelectedLinesField(v),
+      initialSpacer: () => selectedLineMenuButton,
       domEventHandlers: {
         mousedown(view, line, event) {
           const mouseEvent = event as MouseEvent
-          // todo check if shift-key is down
-          //   view.dispatch({
-          //     effects: mouseEvent.shiftKey ? setEndLine.of(line) : setSelectedLines.of({ line }),
-          //     annotations: lineSelectionSource.of('gutter'),
-          //     // Collapse/reset text selection
-          //     selection: { anchor: view.state.selection.main.anchor },
-          // })
-
-          const [lineNumber] = setSelectedLines(view, line.from)
-          onSelectLine?.(lineNumber)
+          const lineInfo = view.state.doc.lineAt(line.from)
+          const lineNumber = lineInfo.number
+          view.dispatch({
+            effects: mouseEvent.shiftKey
+              ? setEndLine.of(lineNumber)
+              : selectLinesEffect.of({ line: lineNumber })
+          })
           return true
         }
       }
@@ -211,15 +221,13 @@ const selectLinesGutter = ({ onSelectLine }: SelectLInesGutterOptions) => {
     lineNumbers({
       domEventHandlers: {
         mousedown(view, line) {
-          // const lineNumber = view.state.doc.lineAt(line.from).number
-          const [lineNumber] = setSelectedLines(view, line.from)
+          const lineNumber = view.state.doc.lineAt(line.from).number
+          setSelectedLines(view, { line: lineNumber })
           onSelectLine?.(lineNumber)
           return false
         }
       }
-    }),
-    selectedLinesGutterHighlighter
-    // selectedLineTheme,
+    })
   ]
 }
 

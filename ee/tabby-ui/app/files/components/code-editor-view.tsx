@@ -39,6 +39,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const { copyToClipboard } = useCopyToClipboard({})
   const [hash, updateHash] = useHash()
   const lineNumber = parseLineNumberFromHash(hash)?.start
+  const endLineNumber = parseLineNumberFromHash(hash)?.end
   const [editorView, setEditorView] = React.useState<EditorView | null>(null)
 
   const { isChatEnabled, activePath, activeEntryInfo, activeRepo } =
@@ -111,21 +112,28 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
     return () => {
       emitter.off('line_menu_action', onClickLineMenu)
     }
-  }, [value, lineNumber])
+  }, [value, lineNumber, endLineNumber])
 
   React.useEffect(() => {
     if (!isNil(lineNumber) && editorView && value) {
       try {
         const lineInfo = editorView?.state?.doc?.line(lineNumber)
+        const endLineInfo = !isNil(endLineNumber)
+          ? editorView?.state?.doc?.line(endLineNumber)
+          : null
 
         if (lineInfo) {
-          const pos = lineInfo.from
-          setSelectedLines(editorView, pos)
-          if (isPositionInView(editorView, pos, 90)) {
+          const lineNumber = lineInfo.number
+          const endLineNumber = endLineInfo?.number
+          setSelectedLines(editorView, {
+            line: lineNumber,
+            endLine: endLineNumber
+          })
+          if (isPositionInView(editorView, lineNumber, 90)) {
             return
           }
           editorView.dispatch({
-            effects: EditorView.scrollIntoView(pos, {
+            effects: EditorView.scrollIntoView(lineNumber, {
               y: 'start',
               yMargin: 200
             })
