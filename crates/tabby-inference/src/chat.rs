@@ -108,7 +108,6 @@ impl ChatCompletionStream for async_openai::Client<ExtendedOpenAIConfig> {
         request: CreateChatCompletionRequest,
     ) -> Result<ChatCompletionResponseStream, OpenAIError> {
         let request = self.config().process_request(request);
-        eprintln!("Creating chat stream: {:?}", request);
         self.chat().create_stream(request).await
     }
 }
