@@ -1,3 +1,21 @@
+## 1.6.0
+
+### Features
+
+- Added support for multiple choices in inline completion. Completion choices can be cycled by shortcuts `Alt + [` and `Alt +]`.
+- Added support to collect workspace info and git context to enhance inline completion. Credits to Vladimir (#2044).
+
+### Fixes & Improvements
+
+- Updated the underlay protocol to connect to tabby-agent to use LSP.
+- Improved interaction when partially accepting a completion.
+
+## 1.4.1
+
+### Fixes:
+
+- Added support for IntelliJ Platform IDEs version 2024.1.
+
 ## 1.4.0
 
 ### Features
