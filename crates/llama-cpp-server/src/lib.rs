@@ -164,19 +164,13 @@ pub async fn create_chat_completion(config: &LocalModelConfig) -> Arc<dyn ChatCo
         .chat_template
         .unwrap_or_else(|| panic!("Chat model requires specifying prompt template"));
 
-    let mut enable_fast_attention = config.enable_fast_attention;
-    // FIXME(wsxiaoys): Explicitly enable fast attention for Qwen2-1.5B-Instruct, as it has been our recommended default since version 0.13. However, it presents some problems in certain CUDA environments. For details, see https://github.com/TabbyML/tabby/issues/2550.
-    // Once upstream issues are resolved, we should remove this workaround.
-    if config.model_id.ends_with("Qwen2-1.5B-Instruct") {
-        enable_fast_attention = Some(true);
-    }
     Arc::new(
         ChatCompletionServer::new(
             config.num_gpu_layers,
             &model_path,
             config.parallelism,
             chat_template,
-            enable_fast_attention.unwrap_or_default(),
+            config.enable_fast_attention.unwrap_or_default(),
         )
         .await,
     )
