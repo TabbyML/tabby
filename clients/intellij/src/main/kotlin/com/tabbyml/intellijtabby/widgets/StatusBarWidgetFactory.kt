@@ -5,7 +5,7 @@ import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.application.invokeLater
-import com.intellij.openapi.components.service
+import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.ListPopup
@@ -38,7 +38,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
       var tooltip = "Tabby: Initializing"
 
       init {
-        updateRendering(project.service<CombinedState>().state)
+        project.serviceOrNull<CombinedState>()?.state?.let { updateRendering(it) }
         messageBusConnection.subscribe(CombinedState.Listener.TOPIC, object : CombinedState.Listener {
           override fun stateChanged(state: CombinedState.State) {
             updateRendering(state)

@@ -8,13 +8,14 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.PluginId
+import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.util.EnvironmentUtil
 import com.intellij.util.messages.Topic
-import com.intellij.util.progress.sleepCancellable
 import com.tabbyml.intellijtabby.lsp.protocol.server.LanguageServer
 import com.tabbyml.intellijtabby.notifications.notifyInitializationFailed
 import com.tabbyml.intellijtabby.settings.SettingsService
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.runBlocking
 import org.eclipse.lsp4j.InitializedParams
@@ -87,7 +88,11 @@ class ConnectionService(private val project: Project) : Disposable {
     } catch (e: InitializationException) {
       logger.warn("Failed to initialize connection.", e)
       if (retry < 5) {
-        sleepCancellable(1000)
+        val initRetryDelay: Long = 1000
+        @Suppress("UnstableApiUsage")
+        runBlockingCancellable {
+          delay(initRetryDelay)
+        }
         initialize(retry + 1)
       } else {
         publisher.connectionStateChanged(State.INITIALIZATION_FAILED)
@@ -122,7 +127,7 @@ class ConnectionService(private val project: Project) : Disposable {
 
   private fun getNodeBinary(): File {
     val node = settings.nodeBinary.let {
-      if (!it.isNullOrBlank()) {
+      if (it.isNotBlank()) {
         val path = it.replaceFirst(Regex("^~"), System.getProperty("user.home"))
         File(path)
       } else {

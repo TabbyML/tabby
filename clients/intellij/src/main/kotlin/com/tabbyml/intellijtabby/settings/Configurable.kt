@@ -1,6 +1,7 @@
 package com.tabbyml.intellijtabby.settings
 
 import com.intellij.openapi.components.service
+import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.project.Project
 import javax.swing.JComponent
@@ -8,7 +9,7 @@ import javax.swing.JComponent
 class Configurable(private val project: Project) : Configurable {
   private val settings = service<SettingsService>()
   private var settingsPanel: SettingsPanel? = null
-  private val keymapSettings = project.service<KeymapSettings>()
+  private val keymapSettings = project.serviceOrNull<KeymapSettings>()
 
   override fun getDisplayName(): String {
     return "Tabby"
@@ -22,7 +23,12 @@ class Configurable(private val project: Project) : Configurable {
 
   override fun isModified(): Boolean {
     val panel = settingsPanel ?: return false
-    return panel.completionTriggerMode != settings.completionTriggerMode || panel.serverEndpoint != settings.serverEndpoint || panel.serverToken != settings.serverToken || panel.nodeBinary != settings.nodeBinary || panel.isAnonymousUsageTrackingDisabled != settings.isAnonymousUsageTrackingDisabled || (panel.keymapStyle != keymapSettings.getCurrentKeymapStyle() && panel.keymapStyle != KeymapSettings.KeymapStyle.CUSTOMIZE)
+    return panel.completionTriggerMode != settings.completionTriggerMode ||
+        panel.serverEndpoint != settings.serverEndpoint ||
+        panel.serverToken != settings.serverToken ||
+        panel.nodeBinary != settings.nodeBinary ||
+        panel.isAnonymousUsageTrackingDisabled != settings.isAnonymousUsageTrackingDisabled ||
+        (panel.keymapStyle != keymapSettings?.getCurrentKeymapStyle() && panel.keymapStyle != KeymapSettings.KeymapStyle.CUSTOMIZE)
   }
 
   override fun apply() {
@@ -34,7 +40,7 @@ class Configurable(private val project: Project) : Configurable {
     settings.isAnonymousUsageTrackingDisabled = panel.isAnonymousUsageTrackingDisabled
     settings.notifyChanges(project)
 
-    keymapSettings.applyKeymapStyle(panel.keymapStyle)
+    keymapSettings?.applyKeymapStyle(panel.keymapStyle)
   }
 
   override fun reset() {
@@ -44,7 +50,8 @@ class Configurable(private val project: Project) : Configurable {
     panel.serverToken = settings.serverToken
     panel.nodeBinary = settings.nodeBinary
     panel.isAnonymousUsageTrackingDisabled = settings.isAnonymousUsageTrackingDisabled
-    panel.keymapStyle = keymapSettings.getCurrentKeymapStyle()
+
+    keymapSettings?.let { panel.keymapStyle = it.getCurrentKeymapStyle() }
   }
 
   override fun disposeUIResources() {

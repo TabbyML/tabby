@@ -3,6 +3,7 @@ package com.tabbyml.intellijtabby.settings
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.service
+import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.keymap.impl.ui.KeymapPanel
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.progress.ProgressIndicator
@@ -29,7 +30,7 @@ import javax.swing.JPanel
 
 class SettingsPanel(private val project: Project) {
   private val settings = service<SettingsService>()
-  private suspend fun getServer() = project.service<ConnectionService>().getServerAsync()
+  private suspend fun getServer() = project.serviceOrNull<ConnectionService>()?.getServerAsync()
 
   private val serverEndpointTextField = JBTextField()
   private val serverTokenPasswordField = JBPasswordField()
