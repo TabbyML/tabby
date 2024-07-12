@@ -1,6 +1,8 @@
 import type { ChatMessage } from 'tabby-chat-panel'
 import type { components as TabbyOpenApiComponents } from 'tabby-openapi'
 
+import { Repository } from '../gql/generates/graphql'
+
 export interface UserMessage extends ChatMessage {
   id: string
 }
@@ -62,3 +64,7 @@ type MergeUnionType<T> = {
 export type AnswerResponse = MergeUnionType<
   TabbyOpenApiComponents['schemas']['AnswerResponseChunk']
 >
+
+export type AnswerEngineExtraContext = {
+  repository?: Omit<Repository, 'refs'>
+}

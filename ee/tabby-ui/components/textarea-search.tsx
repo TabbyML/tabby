@@ -5,10 +5,9 @@ import Link from 'next/link'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useQuery } from 'urql'
 
-import { Repository } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { repositoryListQuery } from '@/lib/tabby/query'
-import { AnswerRequest } from '@/lib/types'
+import { AnswerEngineExtraContext } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import {
   Command,
@@ -43,9 +42,10 @@ export default function TextAreaSearch({
   autoFocus,
   loadingWithSpinning,
   cleanAfterSearch = true,
-  isFollowup
+  isFollowup,
+  extraContext
 }: {
-  onSearch: (value: string, code_query?: AnswerRequest['code_query']) => void
+  onSearch: (value: string, extraContext: AnswerEngineExtraContext) => void
   className?: string
   placeholder?: string
   showBetaBadge?: boolean
@@ -54,11 +54,14 @@ export default function TextAreaSearch({
   loadingWithSpinning?: boolean
   cleanAfterSearch?: boolean
   isFollowup?: boolean
+  extraContext?: AnswerEngineExtraContext
 }) {
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
   const [value, setValue] = useState('')
-  const [selectedRepo, setSelectedRepo] = useState<Repository | undefined>()
+  const [selectedRepo, setSelectedRepo] = useState<
+    AnswerEngineExtraContext['repository'] | undefined
+  >()
   const { theme } = useCurrentTheme()
 
   useEffect(() => {
@@ -78,20 +81,27 @@ export default function TextAreaSearch({
 
   const search = () => {
     if (!value || isLoading) return
-    onSearch(
-      value,
-      selectedRepo ? { git_url: selectedRepo.gitUrl, content: '' } : undefined
-    )
+    onSearch(value, { repository: selectedRepo })
     if (cleanAfterSearch) setValue('')
   }
+
+  useEffect(() => {
+    if (extraContext?.repository) {
+      setSelectedRepo(extraContext?.repository)
+    } else {
+      setSelectedRepo(undefined)
+    }
+  }, [extraContext])
+
+  const showRepoSelect = !isFollowup || !!extraContext?.repository
 
   return (
     <div
       className={cn(
         'relative overflow-hidden rounded-lg border border-muted-foreground bg-background px-4 transition-all hover:border-muted-foreground/60',
         {
-          'flex-col gap-1 w-full': !isFollowup,
-          'flex w-full items-center ': isFollowup,
+          'flex-col gap-1 w-full': showRepoSelect,
+          'flex w-full items-center ': !showRepoSelect,
           '!border-zinc-400': isFocus && isFollowup && theme !== 'dark',
           '!border-primary': isFocus && (!isFollowup || theme === 'dark'),
           'py-0': showBetaBadge,
@@ -117,8 +127,8 @@ export default function TextAreaSearch({
             '!h-[48px]': !isShow,
             'pt-4': !showBetaBadge,
             'pt-5': showBetaBadge,
-            'pb-4': isFollowup && !showBetaBadge,
-            'pb-5': isFollowup && showBetaBadge
+            'pb-4': !showRepoSelect && !showBetaBadge,
+            'pb-5': !showRepoSelect && showBetaBadge
           }
         )}
         placeholder={placeholder || 'Ask anything...'}
@@ -134,14 +144,15 @@ export default function TextAreaSearch({
       />
       <div
         className={cn('flex items-center justify-between gap-2', {
-          'pb-2': !isFollowup
+          'pb-2': showRepoSelect
         })}
       >
-        {!isFollowup && (
+        {showRepoSelect && (
           <RepoSelect
             className="overflow-hidden"
             value={selectedRepo}
             onChange={setSelectedRepo}
+            disabled={isFollowup}
           />
         )}
         <div
@@ -171,11 +182,12 @@ export default function TextAreaSearch({
   )
 }
 interface RepoSelectProps {
-  value: Repository | undefined
-  onChange: (val: Repository | undefined) => void
+  value: AnswerEngineExtraContext['repository'] | undefined
+  onChange: (val: AnswerEngineExtraContext['repository'] | undefined) => void
   className?: string
+  disabled?: boolean
 }
-function RepoSelect({ value, onChange, className }: RepoSelectProps) {
+function RepoSelect({ value, onChange, className, disabled }: RepoSelectProps) {
   const [commandVisible, setCommandVisible] = useState(false)
   const [{ data, fetching }] = useQuery({
     query: repositoryListQuery
@@ -202,13 +214,22 @@ function RepoSelect({ value, onChange, className }: RepoSelectProps) {
 
   return (
     <Tooltip delayDuration={0}>
-      <Popover open={commandVisible} onOpenChange={e => setCommandVisible(e)}>
+      <Popover
+        open={commandVisible}
+        onOpenChange={e => {
+          if (disabled) return
+          setCommandVisible(e)
+        }}
+      >
         <PopoverTrigger asChild>
           <TooltipTrigger asChild>
             <div
               className={cn(
                 buttonVariants({ variant: 'ghost' }),
                 '-ml-2 cursor-pointer rounded-full px-2',
+                {
+                  'cursor-default': disabled
+                },
                 className
               )}
             >

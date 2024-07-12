@@ -27,7 +27,12 @@ import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useTabbyAnswer } from '@/lib/hooks/use-tabby-answer'
 import fetcher from '@/lib/tabby/fetcher'
-import { AnswerRequest, AnswerResponse, ArrayElementType } from '@/lib/types'
+import {
+  AnswerEngineExtraContext,
+  AnswerRequest,
+  AnswerResponse,
+  ArrayElementType
+} from '@/lib/types'
 import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { CodeBlock } from '@/components/ui/codeblock'
@@ -96,10 +101,6 @@ type SearchContextValue = {
   repositoryList: RepositoryListQuery['repositoryList'] | undefined
 }
 
-type ExtraContext = {
-  code_query?: AnswerRequest['code_query']
-}
-
 export const SearchContext = createContext<SearchContextValue>(
   {} as SearchContextValue
 )
@@ -129,7 +130,7 @@ export function Search() {
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [title, setTitle] = useState('')
   const [isReady, setIsReady] = useState(false)
-  const [extraContext, setExtraContext] = useState<ExtraContext>({})
+  const [extraContext, setExtraContext] = useState<AnswerEngineExtraContext>({})
   const [currentLoadindId, setCurrentLoadingId] = useState<string>('')
   const contentContainerRef = useRef<HTMLDivElement>(null)
   const [showSearchInput, setShowSearchInput] = useState(false)
@@ -172,10 +173,12 @@ export function Search() {
       setIsReady(true)
       setExtraContext(p => ({
         ...p,
-        code_query: initialExtraInfo?.code_query
+        repository: initialExtraInfo?.repository
       }))
       // FIXME(jueliang) just use the value in context
-      onSubmitSearch(initialMessage, initialExtraInfo?.code_query)
+      onSubmitSearch(initialMessage, {
+        repository: initialExtraInfo?.repository
+      })
       return
     }
 
@@ -194,7 +197,7 @@ export function Search() {
       if (latestConversationContext) {
         const conversationContext = JSON.parse(
           latestConversationContext
-        ) as ExtraContext
+        ) as AnswerEngineExtraContext
         setExtraContext(conversationContext)
       }
 
@@ -321,10 +324,7 @@ export function Search() {
     )
   }, [extraContext])
 
-  const onSubmitSearch = (
-    question: string,
-    code_query?: AnswerRequest['code_query']
-  ) => {
+  const onSubmitSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
     const previousMessages = conversation.map(message => ({
       role: message.role,
       id: message.id,
@@ -344,13 +344,16 @@ export function Search() {
       isLoading: true
     }
 
-    const _code_query = code_query || extraContext?.code_query
+    const _repository = ctx?.repository || extraContext?.repository
+    const code_query: AnswerRequest['code_query'] = _repository
+      ? { git_url: _repository.gitUrl, content: '' }
+      : undefined
     const answerRequest: AnswerRequest = {
       messages: [...previousMessages, newUserMessage],
       doc_query: true,
       generate_relevant_questions: true,
       collect_relevant_code_using_user_message: true,
-      code_query: _code_query
+      code_query
     }
 
     setCurrentLoadingId(newAssistantId)
@@ -386,7 +389,9 @@ export function Search() {
     }
     const answerRequest: AnswerRequest = {
       messages: [...previousMessages, newUserMessage],
-      code_query: extraContext.code_query,
+      code_query: extraContext?.repository
+        ? { git_url: extraContext.repository.gitUrl, content: '' }
+        : undefined,
       doc_query: true,
       generate_relevant_questions: true,
       collect_relevant_code_using_user_message: true
@@ -527,6 +532,7 @@ export function Search() {
                 placeholder="Ask a follow up question"
                 isLoading={isLoading}
                 isFollowup
+                extraContext={extraContext}
               />
             </div>
           </div>

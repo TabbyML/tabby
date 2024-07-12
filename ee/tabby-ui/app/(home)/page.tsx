@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
 import AOS from 'aos'
-import { noop } from 'lodash-es'
+import { noop, omit } from 'lodash-es'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableSearch } from '@/lib/experiment-flags'
@@ -41,7 +41,7 @@ import Stats from './components/stats'
 
 import 'aos/dist/aos.css'
 
-import { AnswerRequest } from '@/lib/types'
+import { AnswerEngineExtraContext } from '@/lib/types'
 import { Separator } from '@/components/ui/separator'
 
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
@@ -83,17 +83,16 @@ function MainPanel() {
 
   if (!healthInfo || !data?.me) return <></>
 
-  const onSearch = (
-    question: string,
-    code_query?: AnswerRequest['code_query']
-  ) => {
+  const onSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
     setIsLoading(true)
     sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_LATEST_MSG)
     sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_LATEST_EXTRA_CONTEXT)
     sessionStorage.setItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG, question)
     sessionStorage.setItem(
       SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT,
-      JSON.stringify({ code_query })
+      JSON.stringify({
+        repository: ctx?.repository ? omit(ctx.repository, 'refs') : undefined
+      })
     )
     router.push('/search')
   }
