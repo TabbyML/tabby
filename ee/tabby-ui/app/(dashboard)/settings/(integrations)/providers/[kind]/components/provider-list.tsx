@@ -45,8 +45,8 @@ function RepositoryProvidersView({
     <LoadingWrapper loading={fetching}>
       {providers?.length ? (
         <>
-          <GitProvidersList data={providers} />
           <CreateRepositoryProvider />
+          <GitProvidersList data={providers} />
         </>
       ) : (
         <GitProvidersPlaceholder />
@@ -98,7 +98,7 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
 const CreateRepositoryProvider = () => {
   const params = useParams()
   return (
-    <div className="mt-4 flex justify-end">
+    <div className="my-4 flex justify-end">
       <Link href={`./${params.kind}/new`} className={buttonVariants()}>
         Create
       </Link>
