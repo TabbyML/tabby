@@ -23,7 +23,7 @@ pub struct ChatCompletionChoice {
 
 #[derive(Deserialize)]
 pub struct ChatCompletionDelta {
-    content: String,
+    content: Option<String>,
 }
 
 lazy_static! {
@@ -99,9 +99,11 @@ async fn golden_test(body: serde_json::Value) -> String {
             Ok(Event::Open) => {}
             Ok(Event::Message(message)) => {
                 let x: ChatCompletionChunk = serde_json::from_str(&message.data).unwrap();
-                actual += &x.choices[0].delta.content;
+                if let Some(content) = &x.choices[0].delta.content {
+                    actual += content
+                }
             }
-            Err(_) => {
+            Err(e) => {
                 // StreamEnd
                 break;
             }
@@ -125,6 +127,7 @@ async fn run_chat_golden_tests() {
 
     assert_golden!(json!({
             "seed": 0,
+            "model": "default",
             "messages": [
                 {
                     "role": "user",
@@ -135,6 +138,7 @@ async fn run_chat_golden_tests() {
 
     assert_golden!(json!({
             "seed": 0,
+            "model": "default",
             "messages": [
                 {
                     "role": "user",
@@ -151,6 +155,7 @@ async fn run_chat_golden_tests_cpu() {
 
     assert_golden!(json!({
             "seed": 0,
+            "model": "default",
             "messages": [
                 {
                     "role": "user",

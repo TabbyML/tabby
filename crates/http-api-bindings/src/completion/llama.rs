@@ -25,6 +25,7 @@ impl LlamaCppEngine {
 
 #[derive(Serialize)]
 struct CompletionRequest {
+    seed: u64,
     prompt: String,
     n_predict: i32,
     temperature: f32,
@@ -43,6 +44,7 @@ struct CompletionResponseChunk {
 impl CompletionStream for LlamaCppEngine {
     async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
         let request = CompletionRequest {
+            seed: options.seed,
             prompt: prompt.to_owned(),
             n_predict: options.max_decoding_tokens,
             temperature: options.sampling_temperature,
