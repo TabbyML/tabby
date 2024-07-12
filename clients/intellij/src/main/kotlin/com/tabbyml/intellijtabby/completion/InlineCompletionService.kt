@@ -146,6 +146,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
       override fun documentChanged(document: Document, editor: Editor, event: DocumentEvent) {
         if (editorManager.selectedTextEditor == editor && event.newFragment.isEmpty()) {
           // newFragment is empty, so this is a delete or backspace, which do not trigger caret position changed
+          // so we should handle dismiss here
           dismiss()
         }
       }
@@ -294,9 +295,12 @@ class InlineCompletionService(private val project: Project) : Disposable {
 
   fun provideInlineCompletion(editor: Editor, offset: Int, manually: Boolean = false) {
     logger.debug("Provide inline completion at $editor $offset $manually")
+    var partialAcceptedResponse: InlineCompletionContext.Response? = null
     current?.let {
       it.job.cancel()
-      if (!it.partialAccepted) {
+      if (it.partialAccepted) {
+        partialAcceptedResponse = it.response
+      } else {
         renderer.hide()
       }
       current = null
@@ -306,7 +310,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
       current = current?.withResponse(convertInlineCompletionList(inlineCompletionList, requestContext))
       renderCurrentResponse()
     }
-    current = InlineCompletionContext(requestContext, job)
+    current = InlineCompletionContext(requestContext, job, partialAcceptedResponse)
   }
 
   enum class CycleDirection {
@@ -378,8 +382,8 @@ class InlineCompletionService(private val project: Project) : Disposable {
       telemetryEvent(EventParams.EventType.SELECT, it, type)
     }
     if (type == AcceptType.FULL_COMPLETION) {
-      renderer.hide()
       current = null
+      renderer.hide()
     } else {
       current = context.withPartialAccepted(completionItem, text.length)
     }
