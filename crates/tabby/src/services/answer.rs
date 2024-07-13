@@ -284,7 +284,7 @@ Remember, based on the original question and related contexts, suggest three suc
             .content
             .as_deref()
             .expect("Failed to get content from chat completion");
-        content.lines().map(remove_bullet_prefix).collect()
+        content.lines().map(remove_bullet_prefix).filter(|x| !x.is_empty()).collect()
     }
 
     async fn override_query_with_code_query(
