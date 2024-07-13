@@ -34,5 +34,18 @@ export async function parseChatResponse(response: Response, signal?: AbortSignal
     return "";
   }
   const readableStream = readChatStream(response.body, signal);
-  return readableStream.reduce<string>((text, delta) => text + delta, "", { signal });
+  // FIXME(@icycodes): use openai for nodejs instead of tabby-openapi schema
+  let output = "";
+  try {
+    for await (const delta of readableStream) {
+      output += delta;
+    }
+  } catch (error) {
+    if (error instanceof TypeError && error.message.startsWith("terminated")) {
+      // ignore server side close error
+    } else {
+      throw error;
+    }
+  }
+  return output;
 }

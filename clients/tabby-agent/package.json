@@ -73,7 +73,6 @@
     "mocha": "^10.2.0",
     "object-hash": "^3.0.0",
     "openapi-fetch": "^0.7.6",
-    "openapi-typescript": "^6.6.1",
     "pino": "^8.14.1",
     "prettier": "^3.0.0",
     "readable-from-web": "^1.0.0",
