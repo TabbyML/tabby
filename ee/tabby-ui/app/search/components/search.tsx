@@ -319,7 +319,7 @@ export function Search() {
       id: message.id,
       content: message.content
     }))
-    const newUserMessage = {
+    const newUserMessage: ConversationMessage = {
       role: 'user',
       id: targetQuestion.id,
       content: targetQuestion.content
