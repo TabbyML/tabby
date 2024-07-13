@@ -416,7 +416,7 @@ fn try_run_spinner() -> Option<Sender<()>> {
                 Stream::Stdout,
             );
             let _ = rx.await;
-            sp.stop_with_symbol("\x1b[32m🗸\x1b[0m");
+            sp.stop_with_message("".into());
         });
         Some(tx)
     } else {
