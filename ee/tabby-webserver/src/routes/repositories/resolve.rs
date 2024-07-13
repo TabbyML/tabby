@@ -30,7 +30,7 @@ impl ResolveState {
             .resolve_repository(&params.kind, &params.id)
             .await
             .ok()?;
-        Some(repository.dir)
+        Some(repository.dir())
     }
 
     pub async fn resolve(&self, params: ResolveParams) -> Result<Response<Body>, StatusCode> {

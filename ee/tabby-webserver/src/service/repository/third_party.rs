@@ -640,13 +640,13 @@ mod tests {
         let repos = repository.repository_list().await.unwrap();
         assert_eq!(repos.len(), 2);
 
-        assert_eq!(repos[0].name, "repo1");
-        assert_eq!(repos[0].kind, RepositoryKind::Github);
-        assert_eq!(repos[0].git_url, "https://github.com/test/repo1");
+        assert_eq!(repos[0].name(), "repo1");
+        assert_eq!(repos[0].kind(), RepositoryKind::Github);
+        assert_eq!(repos[0].git_url(), "https://github.com/test/repo1");
 
-        assert_eq!(repos[1].name, "repo2");
-        assert_eq!(repos[1].kind, RepositoryKind::GithubSelfHosted);
-        assert_eq!(repos[1].git_url, "https://my.github.com/test/repo2");
+        assert_eq!(repos[1].name(), "repo2");
+        assert_eq!(repos[1].kind(), RepositoryKind::GithubSelfHosted);
+        assert_eq!(repos[1].git_url(), "https://my.github.com/test/repo2");
     }
 
     #[tokio::test]
@@ -668,8 +668,8 @@ mod tests {
             .unwrap();
 
         let repo = repository.get_repository(&repo_id).await.unwrap();
-        assert_eq!(repo.kind, RepositoryKind::Github);
-        assert_eq!(repo.name, "name");
-        assert_eq!(repo.git_url, "https://github.com/TabbyML/tabby");
+        assert_eq!(repo.kind(), RepositoryKind::Github);
+        assert_eq!(repo.name(), "name");
+        assert_eq!(repo.git_url(), "https://github.com/TabbyML/tabby");
     }
 }

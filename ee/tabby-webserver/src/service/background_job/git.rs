@@ -49,7 +49,7 @@ impl SchedulerGitJob {
 
         let repositories: Vec<_> = repositories
             .into_iter()
-            .map(|repo| RepositoryConfig::new(repo.git_url))
+            .map(|repo| RepositoryConfig::new(repo.git_url()))
             .collect();
 
         let mut code = CodeIndexer::default();
