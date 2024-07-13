@@ -24,7 +24,7 @@ tabby-inference = { path = "../tabby-inference" }
 axum.workspace = true
 axum-extra = {workspace = true, features = ["typed-header"]}
 hyper = { workspace = true }
-tokio = { workspace = true, features = ["sync"] }
+tokio = { workspace = true }
 utoipa = { workspace = true, features = ["axum_extras", "preserve_order"] }
 utoipa-swagger-ui = { version = "6", features = ["axum"] }
 serde = { workspace = true }
