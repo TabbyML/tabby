@@ -56,6 +56,7 @@ parse-git-url = "0.5.1"
 color-eyre = { version = "0.6.3" }
 reqwest.workspace = true
 async-openai.workspace = true
+spinners = "4.1.1"
 
 [dependencies.openssl]
 optional = true
