@@ -831,14 +831,19 @@ export class TabbyAgent extends EventEmitter implements Agent {
         throw new Error("http client not initialized");
       }
       const requestPath = options?.useBetaVersion ? "/v1beta/chat/completions" : "/v1/chat/completions";
-      const messages = [
+      // FIXME(@icycodes): use openai for nodejs instead of tabby-openapi schema
+      const messages: { role: "user"; content: string }[] = [
         {
           role: "user",
           content: promptTemplate.replace("{{diff}}", selectedDiff),
         },
       ];
       const requestOptions = {
-        body: { messages },
+        body: {
+          messages,
+          model: "",
+          stream: true,
+        },
         signal: this.createAbortSignal(options),
         parseAs: "stream" as ParseAs,
       };
@@ -930,7 +935,8 @@ export class TabbyAgent extends EventEmitter implements Agent {
         throw new Error("http client not initialized");
       }
       const requestPath = options?.useBetaVersion ? "/v1beta/chat/completions" : "/v1/chat/completions";
-      const messages = [
+      // FIXME(@icycodes): use openai for nodejs instead of tabby-openapi schema
+      const messages: { role: "user"; content: string }[] = [
         {
           role: "user",
           content: promptTemplate.replace(
@@ -957,7 +963,11 @@ export class TabbyAgent extends EventEmitter implements Agent {
         },
       ];
       const requestOptions = {
-        body: { messages },
+        body: {
+          messages,
+          model: "",
+          stream: true,
+        },
         signal: this.createAbortSignal(options),
         parseAs: "stream" as ParseAs,
       };

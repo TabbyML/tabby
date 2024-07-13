@@ -52,12 +52,13 @@ export type MessageActionType = 'delete' | 'regenerate'
 
 export type AnswerRequest = TabbyOpenApiComponents['schemas']['AnswerRequest']
 
-type AnswerResponseChunk =
-  TabbyOpenApiComponents['schemas']['AnswerResponseChunk']
-
-export type AnswerResponse = {
-  relevant_code?: AnswerResponseChunk['relevant_code']
-  relevant_documents?: AnswerResponseChunk['relevant_documents']
-  relevant_questions?: AnswerResponseChunk['relevant_questions']
-  answer_delta?: AnswerResponseChunk['answer_delta']
+type Keys<T> = T extends any ? keyof T : never
+type Pick<T, K extends Keys<T>> = T extends { [k in K]?: any }
+  ? T[K]
+  : undefined
+type MergeUnionType<T> = {
+  [k in Keys<T>]?: Pick<T, k>
 }
+export type AnswerResponse = MergeUnionType<
+  TabbyOpenApiComponents['schemas']['AnswerResponseChunk']
+>

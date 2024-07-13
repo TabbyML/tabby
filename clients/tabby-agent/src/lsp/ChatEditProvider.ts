@@ -356,7 +356,12 @@ export class ChatEditProvider {
       }
     } catch (error) {
       await finalize("stopped");
-      throw error;
+      // FIXME(@icycodes): use openai for nodejs instead of tabby-openapi schema
+      if (error instanceof TypeError && error.message.startsWith("terminated")) {
+        // ignore server side close error
+      } else {
+        throw error;
+      }
     }
     await finalize("completed");
   }
