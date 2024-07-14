@@ -35,45 +35,6 @@ const selectedLineGutterMarker = new (class extends GutterMarker {
   elementClass = 'cm-selectedLineGutter'
 })()
 
-const selectedLineMenuButton = new (class extends GutterMarker {
-  toDOM() {
-    const dom = document.createElement('div')
-    const root = ReactDOM.createRoot(dom)
-    root.render(
-      <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
-          <Button className="ml-1 h-5" size="icon" variant="secondary">
-            <IconMore />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onSelect={e => {
-              emitter.emit('line_menu_action', {
-                action: 'copy_line'
-              })
-            }}
-          >
-            Copy line
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onSelect={e => {
-              emitter.emit('line_menu_action', {
-                action: 'copy_permalink'
-              })
-            }}
-          >
-            Copy link
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    )
-    return dom
-  }
-})()
-
 const selectLinesEffect = StateEffect.define<SelectedLinesRange>()
 
 const selectedLinesField = StateField.define<SelectedLinesRange>({
@@ -101,6 +62,52 @@ const selectedLinesField = StateField.define<SelectedLinesRange>({
     ]
   }
 })
+
+const selectedLineMenuButton = new (class extends GutterMarker {
+  // eq(other: GutterMarker): boolean {
+  //   other.
+  // }
+  toDOM(view: EditorView) {
+    const range = view.state.field(selectedLinesField)
+    const dom = document.createElement('div')
+    const root = ReactDOM.createRoot(dom)
+
+    const isMulti = !!range?.endLine
+
+    root.render(
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button className="ml-1 h-5" size="icon" variant="secondary">
+            <IconMore />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onSelect={e => {
+              emitter.emit('line_menu_action', {
+                action: 'copy_line'
+              })
+            }}
+          >
+            {isMulti ? 'Copy lines' : 'Copy line'}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onSelect={e => {
+              emitter.emit('line_menu_action', {
+                action: 'copy_permalink'
+              })
+            }}
+          >
+            Copy link
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+    return dom
+  }
+})()
 
 function selectedLinesHighlighter(field: StateField<SelectedLinesRange>) {
   return EditorView.decorations.compute([field], state => {
@@ -204,6 +211,9 @@ const selectLinesGutter = ({ onSelectLine }: SelectLInesGutterOptions) => {
       class: 'cm-lineMenuGutter',
       markers: v => getMarkersFromSelectedLinesField(v),
       initialSpacer: () => selectedLineMenuButton,
+      updateSpacer(spacer, update) {
+          return selectedLineMenuButton
+      },
       domEventHandlers: {
         mousedown(view, line, event) {
           const mouseEvent = event as MouseEvent
