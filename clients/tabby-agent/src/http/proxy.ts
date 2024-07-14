@@ -11,7 +11,7 @@ export type ProxyConfig =
     }
   | { fromEnv: true };
 
-const logger = getLogger("proxy")
+const logger = getLogger("proxy");
 
 export function createProxyForUrl(url: string, configs: ProxyConfig[]): Dispatcher | null {
   if (isBrowser) {
