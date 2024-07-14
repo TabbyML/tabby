@@ -4,7 +4,13 @@ import { find, isEmpty, omit } from 'lodash-es'
 
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { cn } from '@/lib/utils'
-import { IconDirectorySolid, IconFile } from '@/components/ui/icons'
+import { buttonVariants } from '@/components/ui/button'
+import {
+  IconArrowRight,
+  IconDirectorySolid,
+  IconFile,
+  IconFileSearch
+} from '@/components/ui/icons'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 
@@ -150,8 +156,20 @@ const TreeModeView: React.FC<TreeModeViewProps> = ({
           </TableBody>
         </Table>
       ) : isEmpty(repoMap) ? (
-        <div className="flex justify-center py-8">
-          No indexed repository yet
+        <div className="flex min-h-[30vh] items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex items-center gap-2">
+              <IconFileSearch className="h-6 w-6" />
+              <div className="text-xl font-semibold">No repositories</div>
+            </div>
+            <Link
+              href="/settings/providers/git"
+              className={cn(buttonVariants(), 'gap-2')}
+            >
+              <span>Connect</span>
+              <IconArrowRight />
+            </Link>
+          </div>
         </div>
       ) : null}
     </div>

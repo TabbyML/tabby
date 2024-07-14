@@ -100,7 +100,8 @@ const client = new Client({
         GrepLine: () => null,
         GrepFile: () => null,
         GrepTextOrBase64: () => null,
-        GrepSubMatch: () => null
+        GrepSubMatch: () => null,
+        Repository: (data: any) => (data ? `${data.kind}_${data.id}` : null)
       },
       resolvers: {
         Query: {

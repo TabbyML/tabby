@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import { isEmpty } from 'lodash-es'
 import { useInView } from 'react-intersection-observer'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
@@ -351,13 +350,6 @@ const FileTreeRenderer: React.FC = () => {
   const hasNoRepoEntries = hasSelectedRepo && !fileTreeData?.length
 
   if (!initialized) return <FileTreeSkeleton />
-
-  if (isEmpty(repoMap))
-    return (
-      <div className="flex h-full items-center justify-center">
-        No Indexed repository
-      </div>
-    )
 
   if (!hasSelectedRepo) {
     return null
