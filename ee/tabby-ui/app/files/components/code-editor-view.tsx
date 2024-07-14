@@ -52,7 +52,8 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
       selectLinesGutter({
         onSelectLine: (v, isShiftDown) => {
           if (v === -1 || isNaN(v)) return
-          // todo support multi lines
+          // FIXME support multi lines
+          // todo setEndLine()
           updateHash(formatLineHashForCodeBrowser({ start: v }))
         }
       }),
@@ -155,6 +156,12 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
           })
         }
       } catch (e) {}
+    }
+
+    return () => {
+      if (editorView) {
+        setSelectedLines(editorView, null)
+      }
     }
   }, [value, lineNumber, editorView])
 
