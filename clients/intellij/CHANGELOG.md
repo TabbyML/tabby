@@ -1,4 +1,8 @@
-## 1.6.0
+## 1.6.1
+
+### Breaking Changes
+
+- The minimum required IDE version has been increased to >= 2023.1.
 
 ### Features
 
