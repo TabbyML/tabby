@@ -1,6 +1,6 @@
 import React from 'react'
 import { foldGutter } from '@codemirror/language'
-import { Extension } from '@codemirror/state'
+import { Extension, Line } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
 import { isNaN, isNil } from 'lodash-es'
 import { useTheme } from 'next-themes'
@@ -101,9 +101,24 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
         return
       }
       if (data.action === 'copy_line') {
-        const lineObject = editorView?.state?.doc?.line(lineNumber)
-        if (lineObject) {
-          copyToClipboard(lineObject.text)
+        if (!editorView) return
+        const line = editorView.state.doc.line(lineNumber)
+        let endLine: Line | undefined = undefined
+        let content: string | undefined
+
+        if (endLineNumber) {
+          endLine = editorView.state.doc.line(endLineNumber)
+        }
+        // check if line and endLine are valid
+        if (line && endLine && line.number <= endLine.number) {
+          const startPos = line.from
+          const endPos = endLine.to
+          content = editorView.state.doc.slice(startPos, endPos).toString()
+        } else if (line) {
+          content = line.text
+        }
+        if (content) {
+          copyToClipboard(content)
         }
       }
     }
@@ -112,7 +127,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
     return () => {
       emitter.off('line_menu_action', onClickLineMenu)
     }
-  }, [value, lineNumber, endLineNumber])
+  }, [value, lineNumber, endLineNumber, editorView])
 
   React.useEffect(() => {
     if (!isNil(lineNumber) && editorView && value) {
@@ -133,7 +148,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
             return
           }
           editorView.dispatch({
-            effects: EditorView.scrollIntoView(lineNumber, {
+            effects: EditorView.scrollIntoView(lineInfo.from, {
               y: 'start',
               yMargin: 200
             })
