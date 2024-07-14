@@ -3,7 +3,7 @@ package com.tabbyml.intellijtabby.lsp
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationInfo
-import com.intellij.openapi.components.service
+import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.Project
@@ -35,7 +35,7 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
   private val scope = CoroutineScope(Dispatchers.IO)
   private val virtualFileManager = VirtualFileManager.getInstance()
   private val psiManager = PsiManager.getInstance(project)
-  private val gitProvider = project.service<GitProvider>()
+  private val gitProvider = project.serviceOrNull<GitProvider>()
   private val configurationSync = ConfigurationSync(project)
   private val textDocumentSync = TextDocumentSync(project)
 
@@ -67,7 +67,7 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
         },
         tabby = TabbyClientCapabilities(
           agent = true,
-          gitProvider = true,
+          gitProvider = gitProvider?.isSupported(),
           editorOptions = true,
         ),
       ), workspaceFolders = getWorkspaceFolders()
@@ -110,7 +110,7 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
   }
 
   override fun gitRepository(params: GitRepositoryParams): CompletableFuture<GitRepository?> {
-    val repository = gitProvider.getRepository(params.uri)?.let { repo ->
+    val repository = gitProvider?.getRepository(params.uri)?.let { repo ->
       GitRepository(root = repo.root, remotes = repo.remotes?.map {
         GitRepository.Remote(
           name = it.name,
@@ -124,7 +124,7 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
   }
 
   override fun gitDiff(params: GitDiffParams): CompletableFuture<GitDiffResult?> {
-    val result = gitProvider.diff(params.repository, params.cached)?.let {
+    val result = gitProvider?.diff(params.repository, params.cached)?.let {
       GitDiffResult(diff = it)
     }
     return CompletableFuture<GitDiffResult?>().apply {

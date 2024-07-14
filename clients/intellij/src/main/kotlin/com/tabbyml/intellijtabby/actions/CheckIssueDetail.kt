@@ -4,6 +4,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.service
+import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.tabbyml.intellijtabby.events.CombinedState
@@ -19,11 +20,11 @@ import kotlinx.coroutines.launch
 class CheckIssueDetail : AnAction() {
   override fun actionPerformed(e: AnActionEvent) {
     val project = e.getRequiredData(CommonDataKeys.PROJECT)
-    val combinedState = project.service<CombinedState>()
+    val combinedState = project.serviceOrNull<CombinedState>() ?: return
     val issueName = combinedState.state.agentIssue ?: return
 
     val settings = service<SettingsService>()
-    val connectionService = project.service<ConnectionService>()
+    val connectionService = project.serviceOrNull<ConnectionService>() ?: return
     val scope = CoroutineScope(Dispatchers.IO)
 
     scope.launch {
@@ -109,7 +110,7 @@ class CheckIssueDetail : AnAction() {
   override fun update(e: AnActionEvent) {
     e.presentation.isEnabled = e.project != null && e.getData(CommonDataKeys.PROJECT) != null
     val project = e.getData(CommonDataKeys.PROJECT) ?: return
-    val combinedState = project.service<CombinedState>()
+    val combinedState = project.serviceOrNull<CombinedState>() ?: return
 
     val muted = mutableListOf<String>()
     if (combinedState.state.settings.notificationsMuted.contains("completionResponseTimeIssues")) {
