@@ -280,13 +280,16 @@ function formatSelectedLinesRange(
   }
 }
 
-function isValidLinesRange (range: SelectedLinesRange, doc: Text): boolean {
+function isValidLinesRange(range: SelectedLinesRange, doc: Text): boolean {
   if (!doc) return false
   const { lines } = doc
-  if (range?.line && range.line > lines || range?.endLine && range.endLine > lines) {
+  if (
+    (range?.line && range.line > lines) ||
+    (range?.endLine && range.endLine > lines)
+  ) {
     return false
   }
-  
+
   return true
 }
 

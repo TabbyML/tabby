@@ -65,7 +65,8 @@ const CodeMirrorEditor = React.forwardRef<
       outline: 'none !important'
     },
     '& .cm-scroller': {
-      height: '100% !important'
+      height: '100% !important',
+      outline: 'none'
     },
     '& .cm-gutters': {
       background: 'hsl(var(--background))'
