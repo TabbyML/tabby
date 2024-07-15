@@ -2,7 +2,8 @@ import {
   RangeSet,
   RangeSetBuilder,
   StateEffect,
-  StateField
+  StateField,
+  Text
 } from '@codemirror/state'
 import {
   Decoration,
@@ -180,9 +181,9 @@ function setSelectedLines(
   view: EditorView,
   newRange: SelectedLinesRange
 ): SelectedLinesRange {
-  // FIXME check if the range is valid
+  const isValid = isValidLinesRange(newRange, view.state.doc)
   view.dispatch({
-    effects: selectLinesEffect.of(newRange)
+    effects: selectLinesEffect.of(isValid ? newRange : null)
   })
   return newRange
 }
@@ -195,8 +196,12 @@ type SelectLInesGutterOptions = {
 
 function getMarkersFromSelectedLinesField(view: EditorView) {
   const range = view.state.field(selectedLinesField)
-  // FIXME compare line and endLine from range
-  // FIXME check if range is valid
+
+  // check if range is valid
+  if (!isValidLinesRange(range, view.state.doc)) {
+    return RangeSet.empty
+  }
+
   if (range?.line) {
     const isMulti = !!range.endLine && range.line !== range.endLine
     const lineNumber = range.endLine
@@ -273,6 +278,16 @@ function formatSelectedLinesRange(
   } else if (line) {
     return { line }
   }
+}
+
+function isValidLinesRange (range: SelectedLinesRange, doc: Text): boolean {
+  if (!doc) return false
+  const { lines } = doc
+  if (range?.line && range.line > lines || range?.endLine && range.endLine > lines) {
+    return false
+  }
+  
+  return true
 }
 
 export { selectLinesGutter, setSelectedLines, formatSelectedLinesRange }
