@@ -1,8 +1,8 @@
 import React from 'react'
 import { foldGutter } from '@codemirror/language'
-import { Extension } from '@codemirror/state'
+import { Extension, Line } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
-import { isNaN, isNil } from 'lodash-es'
+import { isNil } from 'lodash-es'
 import { useTheme } from 'next-themes'
 
 import { EXP_enable_code_browser_quick_action_bar } from '@/lib/experiment-flags'
@@ -39,6 +39,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const { copyToClipboard } = useCopyToClipboard({})
   const [hash, updateHash] = useHash()
   const lineNumber = parseLineNumberFromHash(hash)?.start
+  const endLineNumber = parseLineNumberFromHash(hash)?.end
   const [editorView, setEditorView] = React.useState<EditorView | null>(null)
 
   const { isChatEnabled, activePath, activeEntryInfo, activeRepo } =
@@ -49,10 +50,18 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
       selectLinesGutter({
-        onSelectLine: v => {
-          if (v === -1 || isNaN(v)) return
-          // todo support multi lines
-          updateHash(formatLineHashForCodeBrowser({ start: v }))
+        onSelectLine: range => {
+          if (!range) {
+            updateHash('')
+            return
+          }
+
+          updateHash(
+            formatLineHashForCodeBrowser({
+              start: range.line,
+              end: range.endLine
+            })
+          )
         }
       }),
       foldGutter({
@@ -100,9 +109,24 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
         return
       }
       if (data.action === 'copy_line') {
-        const lineObject = editorView?.state?.doc?.line(lineNumber)
-        if (lineObject) {
-          copyToClipboard(lineObject.text)
+        if (!editorView) return
+        const line = editorView.state.doc.line(lineNumber)
+        let endLine: Line | undefined = undefined
+        let content: string | undefined
+
+        if (endLineNumber) {
+          endLine = editorView.state.doc.line(endLineNumber)
+        }
+        // check if line and endLine are valid
+        if (line && endLine && line.number <= endLine.number) {
+          const startPos = line.from
+          const endPos = endLine.to
+          content = editorView.state.doc.slice(startPos, endPos).toString()
+        } else if (line) {
+          content = line.text
+        }
+        if (content) {
+          copyToClipboard(content)
         }
       }
     }
@@ -111,27 +135,40 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
     return () => {
       emitter.off('line_menu_action', onClickLineMenu)
     }
-  }, [value, lineNumber])
+  }, [value, lineNumber, endLineNumber, editorView])
 
   React.useEffect(() => {
     if (!isNil(lineNumber) && editorView && value) {
       try {
         const lineInfo = editorView?.state?.doc?.line(lineNumber)
+        const endLineInfo = !isNil(endLineNumber)
+          ? editorView?.state?.doc?.line(endLineNumber)
+          : null
 
         if (lineInfo) {
-          const pos = lineInfo.from
-          setSelectedLines(editorView, pos)
-          if (isPositionInView(editorView, pos, 90)) {
+          const lineNumber = lineInfo.number
+          const endLineNumber = endLineInfo?.number
+          setSelectedLines(editorView, {
+            line: lineNumber,
+            endLine: endLineNumber
+          })
+          if (isPositionInView(editorView, lineInfo.from, 90)) {
             return
           }
           editorView.dispatch({
-            effects: EditorView.scrollIntoView(pos, {
+            effects: EditorView.scrollIntoView(lineInfo.from, {
               y: 'start',
               yMargin: 200
             })
           })
         }
       } catch (e) {}
+    }
+
+    return () => {
+      if (editorView) {
+        setSelectedLines(editorView, null)
+      }
     }
   }, [value, lineNumber, editorView])
 
