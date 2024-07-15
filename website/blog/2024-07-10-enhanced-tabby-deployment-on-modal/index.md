@@ -33,7 +33,8 @@ def download_model(model_id: str):
             "download",
             "--model",
             model_id,
-        ]
+        ],
+        env=TABBY_ENV,
     )
 
 
@@ -42,7 +43,6 @@ image = (
         IMAGE_NAME,
         add_python="3.11",
     )
-    .env(TABBY_ENV)
     .dockerfile_commands("ENTRYPOINT []")
     .run_function(download_model, kwargs={"model_id": EMBEDDING_MODEL_ID})
     .run_function(download_model, kwargs={"model_id": CHAT_MODEL_ID})
