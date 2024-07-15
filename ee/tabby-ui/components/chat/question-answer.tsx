@@ -449,7 +449,6 @@ export const CodeReferences = ({
   const isMultipleReferences = totalContextLength > 1
 
   if (totalContextLength === 0) return null
-
   return (
     <Accordion
       type="single"
@@ -475,7 +474,13 @@ export const CodeReferences = ({
             )
           })}
           {contexts.map((item, index) => {
-            return <ContextItem key={`assistant-${index}`} context={item} />
+            return (
+              <ContextItem
+                key={`assistant-${index}`}
+                context={item}
+                onContextClick={onContextClick}
+              />
+            )
           })}
         </AccordionContent>
       </AccordionItem>
