@@ -237,8 +237,7 @@ function RepoSelect({ value, onChange, className, disabled }: RepoSelectProps) {
                 buttonVariants({ variant: 'ghost' }),
                 '-ml-2 cursor-pointer rounded-full px-2',
                 {
-                  'cursor-default': disabled,
-                  'hover:bg-transparent': disabled
+                  'cursor-default hover:bg-transparent': disabled
                 },
                 className
               )}
