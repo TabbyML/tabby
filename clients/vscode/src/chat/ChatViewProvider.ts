@@ -99,18 +99,20 @@ export class ChatViewProvider implements WebviewViewProvider {
     this.client = createClient(webviewView, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
         if (opts?.inCurrentWorkspace) {
-          const document = await workspace.openTextDocument(context.abs_filepath);
-          const newEditor = await window.showTextDocument(document, {
-            viewColumn: ViewColumn.Active,
-            preview: false,
-            preserveFocus: true,
-          });
+          if (context.abs_filepath) {
+            const document = await workspace.openTextDocument(context.abs_filepath);
+            const newEditor = await window.showTextDocument(document, {
+              viewColumn: ViewColumn.Active,
+              preview: false,
+              preserveFocus: true,
+            });
 
-          // Move the cursor to the specified line
-          const start = new Position(Math.max(0, context.range.start - 1), 0);
-          const end = new Position(context.range.end, 0);
-          newEditor.selection = new Selection(start, end);
-          newEditor.revealRange(new Range(start, end), TextEditorRevealType.InCenter);
+            // Move the cursor to the specified line
+            const start = new Position(Math.max(0, context.range.start - 1), 0);
+            const end = new Position(context.range.end, 0);
+            newEditor.selection = new Selection(start, end);
+            newEditor.revealRange(new Range(start, end), TextEditorRevealType.InCenter);
+          }
 
           return;
         }
