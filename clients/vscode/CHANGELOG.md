@@ -1,3 +1,16 @@
+## 1.8.0
+
+**pre-release**
+
+### Features
+
+- Added support for HTTP proxy configuration. Users can now set up an HTTP proxy either through environment variables or in the config file.
+
+### Fixes & Improvements
+
+- Enhanced the chat side panel interaction with various improvements. The chat panel improvements require the latest version of the Tabby server to fully function.
+- Updated and optimized the Tabby configurations in the VSCode Settings page.
+
 ## 1.7.4
 
 **stable**
