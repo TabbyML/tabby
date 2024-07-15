@@ -98,28 +98,20 @@ const LineMenuButton = ({ isMulti }: { isMulti?: boolean }) => {
 
 // for single line
 const selectedLineMenuButton = new (class extends GutterMarker {
-  toDOM(view: EditorView) {
-    const range = view.state.field(selectedLinesField)
+  toDOM() {
     const dom = document.createElement('div')
     const root = ReactDOM.createRoot(dom)
-
-    const isMulti = !!range?.endLine
-
-    root.render(<LineMenuButton isMulti={isMulti} />)
+    root.render(<LineMenuButton isMulti={false} />)
     return dom
   }
 })()
 
 // for multi lines
 const selectedLinesMenuButton = new (class extends GutterMarker {
-  toDOM(view: EditorView) {
-    const range = view.state.field(selectedLinesField)
+  toDOM() {
     const dom = document.createElement('div')
     const root = ReactDOM.createRoot(dom)
-
-    const isMulti = !!range?.endLine
-
-    root.render(<LineMenuButton isMulti={isMulti} />)
+    root.render(<LineMenuButton isMulti />)
     return dom
   }
 })()
@@ -174,6 +166,7 @@ const selectableLineNumberTheme = EditorView.theme({
     width: '40px'
   },
   '.cm-lineNumbers': {
+    userSelect: 'none',
     cursor: 'pointer',
     color: 'var(--line-number-color)',
 
@@ -194,12 +187,6 @@ function setSelectedLines(
   return newRange
 }
 
-function clearSelectedLines(view: EditorView) {
-  view.dispatch({
-    effects: [selectLinesEffect.of({ line: -1 })]
-  })
-}
-
 const setEndLine = StateEffect.define<number>()
 
 type SelectLInesGutterOptions = {
@@ -211,8 +198,11 @@ function getMarkersFromSelectedLinesField(view: EditorView) {
   // FIXME compare line and endLine from range
   // FIXME check if range is valid
   if (range?.line) {
-    const pos = view.state.doc.line(range.line).from
-    const isMulti = !!range.endLine
+    const isMulti = !!range.endLine && range.line !== range.endLine
+    const lineNumber = range.endLine
+      ? Math.min(range.line, range.endLine)
+      : range.line
+    const pos = view.state.doc.line(lineNumber).from
     return RangeSet.empty.update({
       add: [
         isMulti
@@ -285,9 +275,4 @@ function formatSelectedLinesRange(
   }
 }
 
-export {
-  selectLinesGutter,
-  setSelectedLines,
-  clearSelectedLines,
-  formatSelectedLinesRange
-}
+export { selectLinesGutter, setSelectedLines, formatSelectedLinesRange }

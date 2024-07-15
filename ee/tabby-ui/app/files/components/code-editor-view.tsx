@@ -152,7 +152,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
             line: lineNumber,
             endLine: endLineNumber
           })
-          if (isPositionInView(editorView, lineNumber, 90)) {
+          if (isPositionInView(editorView, lineInfo.from, 90)) {
             return
           }
           editorView.dispatch({
