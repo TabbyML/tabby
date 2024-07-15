@@ -2,7 +2,7 @@ import React from 'react'
 import { foldGutter } from '@codemirror/language'
 import { Extension, Line } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
-import { isNaN, isNil } from 'lodash-es'
+import { isNil } from 'lodash-es'
 import { useTheme } from 'next-themes'
 
 import { EXP_enable_code_browser_quick_action_bar } from '@/lib/experiment-flags'
@@ -50,11 +50,18 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
       selectLinesGutter({
-        onSelectLine: (v, isShiftDown) => {
-          if (v === -1 || isNaN(v)) return
-          // FIXME support multi lines
-          // todo setEndLine()
-          updateHash(formatLineHashForCodeBrowser({ start: v }))
+        onSelectLine: range => {
+          if (!range) {
+            updateHash('')
+            return
+          }
+
+          updateHash(
+            formatLineHashForCodeBrowser({
+              start: range.line,
+              end: range.endLine
+            })
+          )
         }
       }),
       foldGutter({

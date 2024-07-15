@@ -203,7 +203,7 @@ function clearSelectedLines(view: EditorView) {
 const setEndLine = StateEffect.define<number>()
 
 type SelectLInesGutterOptions = {
-  onSelectLine?: (v: number, isShift?: boolean) => void
+  onSelectLine?: (range: SelectedLinesRange | undefined) => void
 }
 
 function getMarkersFromSelectedLinesField(view: EditorView) {
@@ -248,10 +248,17 @@ const selectLinesGutter = ({ onSelectLine }: SelectLInesGutterOptions) => {
     }),
     lineNumbers({
       domEventHandlers: {
-        mousedown(view, line) {
+        mousedown(view, line, event) {
+          const mouseEvent = event as MouseEvent
           const lineNumber = view.state.doc.lineAt(line.from).number
-          setSelectedLines(view, { line: lineNumber })
-          onSelectLine?.(lineNumber)
+          view.dispatch({
+            effects: mouseEvent.shiftKey
+              ? setEndLine.of(lineNumber)
+              : selectLinesEffect.of({ line: lineNumber })
+          })
+          onSelectLine?.(
+            formatSelectedLinesRange(view.state.field(selectedLinesField))
+          )
           return false
         }
       }
@@ -259,4 +266,28 @@ const selectLinesGutter = ({ onSelectLine }: SelectLInesGutterOptions) => {
   ]
 }
 
-export { selectLinesGutter, setSelectedLines, clearSelectedLines }
+function formatSelectedLinesRange(
+  range: SelectedLinesRange
+): SelectedLinesRange | undefined {
+  if (!range) return undefined
+
+  const { line, endLine } = range
+
+  if (line && endLine) {
+    return line === endLine
+      ? { line }
+      : {
+          line: Math.min(line, endLine),
+          endLine: Math.max(line, endLine)
+        }
+  } else if (line) {
+    return { line }
+  }
+}
+
+export {
+  selectLinesGutter,
+  setSelectedLines,
+  clearSelectedLines,
+  formatSelectedLinesRange
+}
