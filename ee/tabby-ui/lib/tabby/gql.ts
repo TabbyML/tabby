@@ -17,11 +17,12 @@ import {
 
 import {
   GitRepositoriesQueryVariables,
+  ListIntegrationsQueryVariables,
   ListInvitationsQueryVariables,
   WebCrawlerUrlsQueryVariables
 } from '../gql/generates/graphql'
 import { refreshTokenMutation } from './auth'
-import { listInvitations, listRepositories, listWebCrawlerUrl } from './query'
+import { listIntegrations, listInvitations, listRepositories, listWebCrawlerUrl } from './query'
 import { getAuthToken, isTokenExpired, tokenManager } from './token-management'
 
 interface ValidationError {
@@ -107,7 +108,8 @@ const client = new Client({
         Query: {
           invitations: relayPagination(),
           gitRepositories: relayPagination(),
-          webCrawlerUrls: relayPagination()
+          webCrawlerUrls: relayPagination(),
+          integrations: relayPagination()
         }
       },
       updates: {
@@ -184,7 +186,31 @@ const client = new Client({
                   )
                 })
             }
-          }
+          },
+          deleteIntegration(result, args, cache, info) {
+            if (result.deleteIntegration) {
+              cache
+                .inspectFields('Query')
+                .filter(field => field.fieldName === 'integrations')
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listIntegrations,
+                      variables: field.arguments as ListIntegrationsQueryVariables
+                    },
+                    data => {
+                      if (data?.integrations) {
+                        data.integrations.edges =
+                          data.integrations.edges.filter(
+                            e => e.node.id !== args.id
+                          )
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          },
         }
       }
     }),

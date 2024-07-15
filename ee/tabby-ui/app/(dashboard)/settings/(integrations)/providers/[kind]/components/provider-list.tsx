@@ -29,18 +29,6 @@ function ProviderList() {
 
   const providers = data?.integrations?.edges
 
-  return <RepositoryProvidersView fetching={fetching} providers={providers} />
-}
-
-interface RepositoryProvidersViewProps {
-  fetching: boolean
-  providers: ListIntegrationsQuery['integrations']['edges'] | undefined
-}
-
-function RepositoryProvidersView({
-  fetching,
-  providers
-}: RepositoryProvidersViewProps) {
   return (
     <LoadingWrapper loading={fetching}>
       {providers?.length ? (
@@ -56,7 +44,7 @@ function RepositoryProvidersView({
 }
 
 interface GitProvidersTableProps {
-  data: RepositoryProvidersViewProps['providers']
+  data: ListIntegrationsQuery['integrations']['edges'] | undefined
 }
 const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
   const params = useParams()
