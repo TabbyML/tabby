@@ -130,7 +130,7 @@ export default function TextAreaSearch({
       )}
       <TextareaAutosize
         className={cn(
-          'w-full text-area-autosize flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0 mr-1',
+          'text-area-autosize mr-1 w-full flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
           {
             '!h-[48px]': !isShow,
             'pt-4': !showBetaBadge,
