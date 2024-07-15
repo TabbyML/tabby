@@ -28,6 +28,10 @@ export interface ErrorMessage {
   content: string
 }
 
+export interface NavigateOpts {
+  openInEditor?: boolean
+}
+
 export interface ServerApi {
   init: (request: InitRequest) => void
   sendMessage: (message: ChatMessage) => void
@@ -36,7 +40,7 @@ export interface ServerApi {
 }
 
 export interface ClientApi {
-  navigate: (context: Context) => void
+  navigate: (context: Context, opts?: NavigateOpts) => void
   refresh: () => Promise<void>
   onSubmitMessage?: (msg: string) => Promise<void>
   onApplyInEditor?: (content: string) => void

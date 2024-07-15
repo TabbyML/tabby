@@ -8,8 +8,13 @@ import {
   LogOutputChannel,
   TextEditor,
   window,
+  Position,
+  Range,
+  Selection,
+  TextEditorRevealType,
+  ViewColumn,
 } from "vscode";
-import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
+import type { ServerApi, ChatMessage, Context, NavigateOpts } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
 import type { ServerInfo } from "tabby-agent";
@@ -91,7 +96,27 @@ export class ChatViewProvider implements WebviewViewProvider {
     };
 
     this.client = createClient(webviewView, {
-      navigate: async (context: Context) => {
+      navigate: async (context: Context, opts?: NavigateOpts) => {
+        if (opts?.openInEditor) {
+          const files = await workspace.findFiles(context.filepath, null, 1);
+          if (files[0]) {
+            const document = await workspace.openTextDocument(files[0].path);
+            const newEditor = await window.showTextDocument(document, {
+              viewColumn: ViewColumn.Active,
+              preview: false,
+              preserveFocus: true,
+            });
+
+            // Move the cursor to the specified line
+            const start = new Position(Math.max(0, context.range.start - 1), 0);
+            const end = new Position(context.range.end, 0);
+            newEditor.selection = new Selection(start, end);
+            newEditor.revealRange(new Range(start, end), TextEditorRevealType.InCenter);
+          }
+
+          return;
+        }
+
         if (context?.filepath && context?.git_url) {
           const serverInfo = await this.agent.fetchServerInfo();
 
@@ -162,7 +187,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     const serverInfo = await this.agent.fetchServerInfo();
     this.renderChatPage(serverInfo.config.endpoint);
 
-    this.agent.on("didChangeStatus", async () => {
+    this.agent.on("didChangeStatus", () => {
       this.reloadChatPage();
     });
 
