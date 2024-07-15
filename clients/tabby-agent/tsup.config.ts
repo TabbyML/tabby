@@ -108,6 +108,7 @@ export default defineConfig(async () => {
         "win-ca",
         "mac-ca",
         "vscode-languageserver/node",
+        "undici",
       ],
       esbuildPlugins: [
         processWinCa(),

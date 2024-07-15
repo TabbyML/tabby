@@ -45,6 +45,7 @@ import { preCacheProcess, postCacheProcess } from "./postprocess";
 import { getLogger, logDestinations, fileLogger } from "./logger";
 import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
 import { loadTlsCaCerts } from "./loadCaCerts";
+import { createProxyForUrl, ProxyConfig } from "./http/proxy";
 
 export class TabbyAgent extends EventEmitter implements Agent {
   private readonly logger = getLogger("TabbyAgent");
@@ -119,8 +120,11 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.auth = undefined;
     }
 
+    const isServerConnectionChanged =
+      !deepEqual(oldConfig.server, this.config.server) || !deepEqual(oldConfig.proxy, this.config.proxy);
+
     // If server config changed, clear server related state
-    if (!deepEqual(oldConfig.server, this.config.server)) {
+    if (isServerConnectionChanged) {
       this.serverHealthState = undefined;
       this.completionRequestStats.reset();
       this.popIssue("slowCompletionResponseTime");
@@ -129,18 +133,14 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.connectionErrorMessage = undefined;
     }
 
-    if (!this.api || !deepEqual(oldConfig.server, this.config.server)) {
+    if (!this.api || isServerConnectionChanged) {
       await this.setupApi();
     }
 
     this.logger.info("Completed applying updated config.");
     const event: AgentEvent = { event: "configUpdated", config: this.config };
     super.emit("configUpdated", event);
-    if (
-      !deepEqual(oldConfig.server, this.config.server) &&
-      oldStatus === "unauthorized" &&
-      this.status === "unauthorized"
-    ) {
+    if (isServerConnectionChanged && oldStatus === "unauthorized" && this.status === "unauthorized") {
       // If server config changed and status remain `unauthorized`, we want to emit `authRequired` again.
       // but `changeStatus` will not emit `authRequired` if status is not changed, so we emit it manually here.
       this.emitAuthRequired();
@@ -148,17 +148,25 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   private async setupApi() {
+    const endpoint = this.config.server.endpoint;
     const auth = !isBlank(this.config.server.token)
       ? `Bearer ${this.config.server.token}`
       : this.auth?.token
         ? `Bearer ${this.auth.token}`
         : undefined;
+    const proxyConfigs: ProxyConfig[] = [{ fromEnv: true }];
+    if (!isBlank(this.config.proxy.url)) {
+      proxyConfigs.unshift(this.config.proxy);
+    }
     this.api = createClient<TabbyApi>({
-      baseUrl: this.config.server.endpoint,
+      baseUrl: endpoint,
       headers: {
         Authorization: auth,
         ...this.config.server.requestHeaders,
       },
+      /** dispatcher do not exist in {@link RequestInit} in browser env. */
+      /* @ts-expect-error TS-2353 */
+      dispatcher: createProxyForUrl(endpoint, proxyConfigs),
     });
     await this.healthCheck();
   }
