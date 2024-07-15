@@ -29,7 +29,7 @@ export interface ErrorMessage {
 }
 
 export interface NavigateOpts {
-  inCurrentWorkspace?: boolean
+  openInEditor?: boolean
 }
 
 export interface ServerApi {

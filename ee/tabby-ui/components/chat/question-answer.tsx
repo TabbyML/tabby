@@ -161,7 +161,7 @@ function UserMessageCard(props: { message: UserMessage }) {
               className="flex cursor-pointer items-center gap-1 overflow-x-auto text-xs text-muted-foreground hover:underline"
               onClick={() =>
                 onNavigateToContext?.(message.selectContext!, {
-                  inCurrentWorkspace: client === 'vscode'
+                  openInEditor: client === 'vscode'
                 })
               }
             >

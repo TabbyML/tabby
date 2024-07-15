@@ -97,7 +97,7 @@ export class ChatViewProvider implements WebviewViewProvider {
 
     this.client = createClient(webviewView, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
-        if (opts?.inCurrentWorkspace) {
+        if (opts?.openInEditor) {
           const files = await workspace.findFiles(context.filepath, null, 1);
           if (files[0]) {
             const document = await workspace.openTextDocument(files[0].path);
