@@ -70,6 +70,7 @@ image = (
     )
     .dockerfile_commands("ENTRYPOINT []")
     .run_function(download_model, kwargs={"model_id": EMBEDDING_MODEL_ID})
+    .run_function(download_model, kwargs={"model_id": CHAT_MODEL_ID})
     .run_function(download_model, kwargs={"model_id": MODEL_ID})
     .pip_install("asgi-proxy-lib")
 )
