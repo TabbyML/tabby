@@ -31,7 +31,6 @@ const configTomlTemplate = `## Tabby agent configuration file
 ## You can specify an optional http/https proxy when required, overrides environment variable settings.
 # [proxy]
 # url = "http://your-proxy-server" # the URL of the proxy
-# authorization = "" # if set, request header Proxy-Authorization = "$proxyAuthorization" will be added
 
 ## Logs
 ## You can set the log level here. The log file is located at ~/.tabby-client/agent/logs/.
@@ -56,7 +55,6 @@ const typeCheckSchema: Record<string, string> = {
   "server.requestTimeout": "number",
   proxy: "object",
   "proxy.url": "string",
-  "proxy.authorization": "string",
   completion: "object",
   "completion.prompt": "object",
   "completion.prompt.maxPrefixLines": "number",

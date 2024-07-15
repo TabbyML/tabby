@@ -7,7 +7,6 @@ export type AgentConfig = {
   };
   proxy: {
     url: string;
-    authorization: string;
   };
   completion: {
     prompt: {
@@ -124,7 +123,6 @@ export const defaultAgentConfig: AgentConfig = {
   },
   proxy: {
     url: "",
-    authorization: "",
   },
   completion: {
     prompt: {
