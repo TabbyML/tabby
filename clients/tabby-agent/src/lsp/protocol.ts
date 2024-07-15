@@ -618,7 +618,7 @@ export namespace AgentIssueDetailRequest {
 
 export type IssueDetailParams = {
   name: IssueName;
-  helpMessageFormat?: "markdown" | "html";
+  helpMessageFormat?: "plaintext" | "markdown" | "html";
 };
 
 export type IssueDetailResult = {

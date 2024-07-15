@@ -1056,8 +1056,8 @@ export class Server {
     };
   }
 
-  private buildHelpMessage(issueDetail: AgentIssue, format?: "markdown" | "html"): string | undefined {
-    const outputFormat = format ?? "markdown";
+  private buildHelpMessage(issueDetail: AgentIssue, format?: "plaintext" | "markdown" | "html"): string | undefined {
+    const outputFormat = format ?? "plaintext";
 
     // "connectionFailed"
     if (issueDetail.name == "connectionFailed") {
@@ -1096,9 +1096,9 @@ export class Server {
     }
     let commonHelpMessage = "";
     if (helpMessageForRunningLargeModelOnCPU.length == 0) {
-      commonHelpMessage += `<li>The running model ${
+      commonHelpMessage += `<li>The running model <i>${
         serverHealthState?.model ?? ""
-      } may be performing poorly due to its large parameter size. `;
+      }</i> may be performing poorly due to its large parameter size. `;
       commonHelpMessage +=
         "Please consider trying smaller models. You can find a list of recommend models in the <a href='https://tabby.tabbyml.com/'>online documentation</a>.</li>";
     }
@@ -1120,9 +1120,17 @@ export class Server {
 
     if (outputFormat == "html") {
       return statsMessage + helpMessage;
+    }
+    if (outputFormat == "markdown") {
+      return (statsMessage + helpMessage)
+        .replace(/<br\/>/g, " \n")
+        .replace(/<i>(.*?)<\/i>/g, "*$1*")
+        .replace(/<a\s+(?:[^>]*?\s+)?href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/g, "[$2]($1)")
+        .replace(/<ul[^>]*>(.*?)<\/ul>/g, "$1")
+        .replace(/<li[^>]*>(.*?)<\/li>/g, "- $1 \n");
     } else {
       return (statsMessage + helpMessage)
-        .replace("<br/>", " \n")
+        .replace(/<br\/>/g, " \n")
         .replace(/<i>(.*?)<\/i>/g, "$1")
         .replace(/<a[^>]*>(.*?)<\/a>/g, "$1")
         .replace(/<ul[^>]*>(.*?)<\/ul>/g, "$1")
