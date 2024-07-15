@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { MouseEvent, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useQuery } from 'urql'
@@ -63,6 +63,7 @@ export default function TextAreaSearch({
     AnswerEngineExtraContext['repository'] | undefined
   >()
   const { theme } = useCurrentTheme()
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     // Ensure the textarea height remains consistent during rendering
@@ -79,10 +80,17 @@ export default function TextAreaSearch({
     }
   }
 
-  const search = () => {
+  const search = (e?: MouseEvent<HTMLDivElement>) => {
     if (!value || isLoading) return
+    e?.stopPropagation()
     onSearch(value, { repository: selectedRepo })
     if (cleanAfterSearch) setValue('')
+  }
+
+  const onWrapperClick = () => {
+    if (isFollowup) {
+      textareaRef.current?.focus()
+    }
   }
 
   useEffect(() => {
@@ -110,6 +118,7 @@ export default function TextAreaSearch({
         },
         className
       )}
+      onClick={onWrapperClick}
     >
       {showBetaBadge && (
         <span
@@ -121,9 +130,8 @@ export default function TextAreaSearch({
       )}
       <TextareaAutosize
         className={cn(
-          'text-area-autosize flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
+          'text-area-autosize mr-1 w-full flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
           {
-            'w-full': !isFollowup,
             '!h-[48px]': !isShow,
             'pt-4': !showBetaBadge,
             'pt-5': showBetaBadge,
@@ -141,6 +149,7 @@ export default function TextAreaSearch({
         value={value}
         autoFocus={autoFocus}
         minRows={isFollowup ? 1 : 2}
+        ref={textareaRef}
       />
       <div
         className={cn('flex items-center justify-between gap-2', {
@@ -228,7 +237,7 @@ function RepoSelect({ value, onChange, className, disabled }: RepoSelectProps) {
                 buttonVariants({ variant: 'ghost' }),
                 '-ml-2 cursor-pointer rounded-full px-2',
                 {
-                  'cursor-default': disabled
+                  'cursor-default hover:bg-transparent': disabled
                 },
                 className
               )}
