@@ -82,7 +82,6 @@ export class ChatViewProvider implements WebviewViewProvider {
       },
       filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
       git_url: remoteUrl ?? "",
-      abs_filepath: uri.toString(true).replace(/^file:\/\//, ""),
     };
   }
 
@@ -99,8 +98,9 @@ export class ChatViewProvider implements WebviewViewProvider {
     this.client = createClient(webviewView, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
         if (opts?.inCurrentWorkspace) {
-          if (context.abs_filepath) {
-            const document = await workspace.openTextDocument(context.abs_filepath);
+          const files = await workspace.findFiles(context.filepath, null, 1);
+          if (files[0]) {
+            const document = await workspace.openTextDocument(files[0].path);
             const newEditor = await window.showTextDocument(document, {
               viewColumn: ViewColumn.Active,
               preview: false,
