@@ -11,6 +11,7 @@ export interface FileContext {
   filepath: string
   content: string
   git_url: string
+  abs_filepath: string
 }
 
 export type Context = FileContext

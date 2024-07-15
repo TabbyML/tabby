@@ -12,9 +12,8 @@ import {
   Range,
   Selection,
   TextEditorRevealType,
+  ViewColumn,
 } from "vscode";
-import fs from "fs";
-import path from "path";
 import type { ServerApi, ChatMessage, Context, NavigateOpts } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
@@ -83,6 +82,7 @@ export class ChatViewProvider implements WebviewViewProvider {
       },
       filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
       git_url: remoteUrl ?? "",
+      abs_filepath: uri.toString(true).replace(/^file:\/\//, ""),
     };
   }
 
@@ -99,36 +99,18 @@ export class ChatViewProvider implements WebviewViewProvider {
     this.client = createClient(webviewView, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
         if (opts?.inCurrentWorkspace) {
-          const { filepath } = context;
-
-          // Construct the full file path using the workspace folder and filepath
-          let completedFilPath = "";
-          const currentActiveWorkspaceFolder =
-            (window.activeTextEditor &&
-              workspace.getWorkspaceFolder(window.activeTextEditor.document.uri)?.uri.fsPath) ||
-            "";
-          const allWorkspaceFolders = workspace.workspaceFolders?.map((ws) => ws.uri.fsPath) || [];
-          [currentActiveWorkspaceFolder].concat(allWorkspaceFolders).some((workspaceFolder) => {
-            if (workspace) {
-              const fullPath = path.join(workspaceFolder, filepath);
-              if (fs.existsSync(fullPath)) {
-                completedFilPath = fullPath;
-                return true;
-              }
-            }
-            return false;
+          const document = await workspace.openTextDocument(context.abs_filepath);
+          const newEditor = await window.showTextDocument(document, {
+            viewColumn: ViewColumn.Active,
+            preview: false,
+            preserveFocus: true,
           });
 
-          if (completedFilPath) {
-            const document = await workspace.openTextDocument(completedFilPath);
-            const newEditor = await window.showTextDocument(document);
-
-            // Move the cursor to the specified line
-            const start = new Position(Math.max(0, context.range.start - 1), 0);
-            const end = new Position(context.range.end, 0);
-            newEditor.selection = new Selection(start, end);
-            newEditor.revealRange(new Range(start, end), TextEditorRevealType.InCenter);
-          }
+          // Move the cursor to the specified line
+          const start = new Position(Math.max(0, context.range.start - 1), 0);
+          const end = new Position(context.range.end, 0);
+          newEditor.selection = new Selection(start, end);
+          newEditor.revealRange(new Range(start, end), TextEditorRevealType.InCenter);
 
           return;
         }

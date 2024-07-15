@@ -42,7 +42,7 @@ const convertToHSLColor = (style: string) => {
 }
 
 const CLIENT_TO_HANDLE_MESSAGE_SUBMIT = ['vscode']
-const CLIENT_HAS_APPLT_IN_EDITOR = ['vscode']
+const CLIENT_HAS_APPLY_IN_EDITOR = ['vscode']
 
 export default function ChatPage() {
   const [isInit, setIsInit] = useState(false)
@@ -68,7 +68,7 @@ export default function ChatPage() {
   const isOnSubmitMessage = CLIENT_TO_HANDLE_MESSAGE_SUBMIT.includes(
     client || ''
   )
-  const isOnApplyInEditor = CLIENT_HAS_APPLT_IN_EDITOR.includes(client || '')
+  const isOnApplyInEditor = CLIENT_HAS_APPLY_IN_EDITOR.includes(client || '')
   const maxWidth = isFromVSCode ? '5xl' : undefined
 
   useEffect(() => {
