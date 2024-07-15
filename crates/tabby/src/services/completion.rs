@@ -230,6 +230,7 @@ pub struct CompletionService {
     engine: Arc<CodeGeneration>,
     logger: Arc<dyn EventLogger>,
     prompt_builder: completion_prompt::PromptBuilder,
+    generation_max_input_length: usize,
 }
 
 impl CompletionService {
@@ -238,11 +239,13 @@ impl CompletionService {
         code: Arc<dyn CodeSearch>,
         logger: Arc<dyn EventLogger>,
         prompt_template: Option<String>,
+        generation_max_input_length: usize,
     ) -> Self {
         Self {
             engine,
             prompt_builder: completion_prompt::PromptBuilder::new(prompt_template, Some(code)),
             logger,
+            generation_max_input_length,
         }
     }
 
@@ -263,10 +266,11 @@ impl CompletionService {
         language: &str,
         temperature: Option<f32>,
         seed: Option<u64>,
+        max_input_length: usize,
     ) -> CodeGenerationOptions {
         let mut builder = CodeGenerationOptionsBuilder::default();
         builder
-            .max_input_length(1024 + 512)
+            .max_input_length(max_input_length)
             .max_decoding_tokens(64)
             .language(Some(get_language(language)));
         temperature.inspect(|x| {
@@ -286,8 +290,12 @@ impl CompletionService {
     ) -> Result<CompletionResponse, CompletionError> {
         let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
         let language = request.language_or_unknown();
-        let options =
-            Self::text_generation_options(language.as_str(), request.temperature, request.seed);
+        let options = Self::text_generation_options(
+            language.as_str(),
+            request.temperature,
+            request.seed,
+            self.generation_max_input_length,
+        );
 
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
             (prompt, None, vec![])
@@ -350,9 +358,16 @@ pub async fn create_completion_service(
         model::PromptInfo {
             prompt_template, ..
         },
+        generation_max_input_length,
     ) = model::load_code_generation(model).await;
 
-    CompletionService::new(engine.clone(), code, logger, prompt_template)
+    CompletionService::new(
+        engine.clone(),
+        code,
+        logger,
+        prompt_template,
+        generation_max_input_length,
+    )
 }
 
 #[cfg(test)]
@@ -404,6 +419,7 @@ mod tests {
             Arc::new(MockCodeSearch),
             Arc::new(MockEventLogger),
             Some("<pre>{prefix}<mid>{suffix}<end>".into()),
+            1024 + 512,
         )
     }
 

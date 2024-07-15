@@ -177,6 +177,7 @@ fn default_embedding_config() -> ModelConfig {
         parallelism: 1,
         num_gpu_layers: 9999,
         enable_fast_attention: None,
+        max_input_length: 1024 + 512,
     })
 }
 
@@ -232,6 +233,9 @@ pub struct HttpModelConfig {
     /// Used by Completion API to construct a chat model.
     #[builder(default)]
     pub chat_template: Option<String>,
+
+    #[builder(default)]
+    pub max_input_length: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -246,6 +250,9 @@ pub struct LocalModelConfig {
 
     #[serde(default)]
     pub enable_fast_attention: Option<bool>,
+
+    #[serde(default = "default_max_input_length")]
+    pub max_input_length: usize,
 }
 
 fn default_parallelism() -> u8 {
@@ -254,6 +261,10 @@ fn default_parallelism() -> u8 {
 
 fn default_num_gpu_layers() -> u16 {
     9999
+}
+
+fn default_max_input_length() -> usize {
+    1024 + 512
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
