@@ -215,7 +215,7 @@ interface AssistantMessageActionProps {
 
 function AssistantMessageCard(props: AssistantMessageCardProps) {
   const { message, userMessage, isLoading, userMessageId, ...rest } = props
-
+  const { onNavigateToContext } = React.useContext(ChatContext)
   const contexts: Array<Context> = React.useMemo(() => {
     return (
       message?.relevant_code?.map(code => {
@@ -264,6 +264,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
         <CodeReferences
           contexts={contexts}
           userContexts={userMessage.relevantContext}
+          onContextClick={onNavigateToContext}
         />
         {isLoading && !message?.message ? (
           <MessagePendingIndicator />
@@ -433,8 +434,17 @@ function ChatMessageActionsWrapper({
 interface ContextReferencesProps {
   contexts: Context[]
   userContexts?: Context[]
+  className?: string
+  onContextClick?: (context: Context) => void
+  defaultOpen?: boolean
 }
-const CodeReferences = ({ contexts, userContexts }: ContextReferencesProps) => {
+export const CodeReferences = ({
+  contexts,
+  userContexts,
+  className,
+  onContextClick,
+  defaultOpen
+}: ContextReferencesProps) => {
   const totalContextLength = (userContexts?.length || 0) + contexts.length
   const isMultipleReferences = totalContextLength > 1
 
@@ -444,10 +454,11 @@ const CodeReferences = ({ contexts, userContexts }: ContextReferencesProps) => {
     <Accordion
       type="single"
       collapsible
-      className="bg-transparent text-foreground"
+      className={cn('bg-transparent text-foreground', className)}
+      defaultValue={defaultOpen ? 'references' : undefined}
     >
       <AccordionItem value="references" className="my-0 border-0">
-        <AccordionTrigger className="my-0 py-2">
+        <AccordionTrigger className="my-0 py-2 font-semibold">
           <span className="mr-2">{`Read ${totalContextLength} file${
             isMultipleReferences ? 's' : ''
           }`}</span>
@@ -459,6 +470,7 @@ const CodeReferences = ({ contexts, userContexts }: ContextReferencesProps) => {
                 key={`user-${index}`}
                 context={item}
                 clickable={false}
+                onContextClick={onContextClick}
               />
             )
           })}
@@ -473,12 +485,13 @@ const CodeReferences = ({ contexts, userContexts }: ContextReferencesProps) => {
 
 function ContextItem({
   context,
-  clickable = true
+  clickable = true,
+  onContextClick
 }: {
   context: Context
   clickable?: boolean
+  onContextClick?: (context: Context) => void
 }) {
-  const { onNavigateToContext } = React.useContext(ChatContext)
   const isMultiLine =
     !isNil(context.range?.start) &&
     !isNil(context.range?.end) &&
@@ -492,7 +505,7 @@ function ContextItem({
         'cursor-pointer hover:bg-accent': clickable,
         'cursor-default pointer-events-auto': !clickable
       })}
-      onClick={e => clickable && onNavigateToContext?.(context)}
+      onClick={e => clickable && onContextClick?.(context)}
     >
       <div className="flex items-center gap-1 overflow-hidden">
         <IconFile className="shrink-0" />
