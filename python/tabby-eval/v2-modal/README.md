@@ -4,7 +4,7 @@
 
 This directory contains three Python scripts for evaluating code completion quality:
 
-* `eval_code_completion.py`: Evaluates code completion quality using parameters.
+* `compute_code_completion.py`: Evaluates code completion quality using parameters.
 * `eval_code_completion_jsonl.py`: Evaluates code completion quality using a results file.
 * `app.py`: A standalone Modal Tabby Serve service.
 
