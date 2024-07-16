@@ -62,7 +62,7 @@ impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
     async fn build_chunk_attributes(
         &self,
         source_code: &SourceCode,
-    ) -> BoxStream<JoinHandle<(Vec<String>, serde_json::Value)>> {
+    ) -> BoxStream<JoinHandle<(Vec<String>, Vec<u8>, serde_json::Value)>> {
         let text = match source_code.read_content() {
             Ok(content) => content,
             Err(e) => {
@@ -93,8 +93,8 @@ impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
 
                 let embedding = embedding.clone();
                 yield tokio::spawn(async move {
-                    let tokens = build_binarize_embedding_tokens(embedding.clone(), &body).await;
-                    (tokens, attributes)
+                    let (tokens, embedding_values) = build_binarize_embedding_tokens(embedding.clone(), &body).await;
+                    (tokens, embedding_values, attributes)
                 });
             }
         };
@@ -103,21 +103,26 @@ impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
     }
 }
 
-async fn build_binarize_embedding_tokens(embedding: Arc<dyn Embedding>, body: &str) -> Vec<String> {
+async fn build_binarize_embedding_tokens(embedding: Arc<dyn Embedding>, body: &str) -> (Vec<String>, Vec<u8>) {
     let embedding = match embedding.embed(body).await {
         Ok(x) => x,
         Err(err) => {
             warn!("Failed to embed chunk text: {}", err);
-            return Vec::new();
+            return (Vec::new(), Vec::new());
         }
     };
+    let mut embedding_values = Vec::with_capacity(embedding.len());
 
     let mut tokens = code::tokenize_code(body);
     for token in tabby_common::index::binarize_embedding(embedding.iter()) {
         tokens.push(token);
     }
 
-    tokens
+    for v in embedding {
+        embedding_values.push(tabby_common::index::approximate_embedding(v));
+    }
+
+    (tokens, embedding_values)
 }
 
 fn create_code_builder(embedding: Option<Arc<dyn Embedding>>) -> TantivyDocBuilder<SourceCode> {
