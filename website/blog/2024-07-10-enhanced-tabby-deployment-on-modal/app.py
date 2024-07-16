@@ -5,8 +5,6 @@ To force a rebuild by pulling the latest image tag, use:
 MODAL_FORCE_BUILD=1 modal serve app.py
 """
 
-import os
-
 from modal import Image, App, asgi_app, gpu, Volume
 
 IMAGE_NAME = "tabbyml/tabby"
@@ -16,8 +14,6 @@ EMBEDDING_MODEL_ID = "TabbyML/Nomic-Embed-Text"
 GPU_CONFIG = gpu.T4()
 
 TABBY_BIN = "/opt/tabby/bin/tabby"
-TABBY_ENV = os.environ.copy()
-TABBY_ENV["TABBY_MODEL_CACHE_ROOT"] = "/models"
 
 
 def download_model(model_id: str):
@@ -29,8 +25,7 @@ def download_model(model_id: str):
             "download",
             "--model",
             model_id,
-        ],
-        env=TABBY_ENV,
+        ]
     )
 
 
@@ -39,6 +34,7 @@ image = (
         IMAGE_NAME,
         add_python="3.11",
     )
+    .env({"TABBY_MODEL_CACHE_ROOT": "/models"})
     .dockerfile_commands("ENTRYPOINT []")
     .run_function(download_model, kwargs={"model_id": EMBEDDING_MODEL_ID})
     .run_function(download_model, kwargs={"model_id": CHAT_MODEL_ID})
@@ -81,8 +77,7 @@ def app_serve():
             "cuda",
             "--parallelism",
             "1",
-        ],
-        env=TABBY_ENV,
+        ]
     )
 
     # Poll until webserver at 127.0.0.1:8000 accepts connections before running inputs.
