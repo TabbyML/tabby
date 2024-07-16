@@ -18,24 +18,26 @@ def evaluation(prediction_jsonl_file, output_evaluation_jsonl_file):
     results = []
 
     for index, row in df.iterrows():
-        groundtruth = row['groundtruth'].split('\n')
-        prediction = row['prediction'].split('\n')
+        groundtruth = row['groundtruth']
+        prediction = row['prediction']
 
-        line_accuracy = sum(1 for gt, pred in zip(groundtruth, prediction) if gt == pred) / len(
-            groundtruth) if groundtruth else 0
+        block_accuracy = 1 if groundtruth == prediction else 0
+        block_edit_distance = ratio(groundtruth, prediction)
 
-        block_accuracy = 1 if '\n'.join(groundtruth) == '\n'.join(prediction) else 0
+        groundtruth_lines = groundtruth.split('\n')
+        prediction_lines = prediction.split('\n')
 
-        line_edit_distances = [ratio(gt, pred) for gt, pred in zip(groundtruth, prediction)]
+        line_accuracy = sum(1 for gt, pred in zip(groundtruth_lines, prediction_lines) if gt == pred) / len(
+            groundtruth_lines) if groundtruth_lines else 0
+
+        line_edit_distances = [ratio(gt, pred) for gt, pred in zip(groundtruth_lines, prediction_lines)]
         avg_line_edit_distance = sum(line_edit_distances) / len(line_edit_distances) if line_edit_distances else 0
 
-        block_edit_distance = ratio('\n'.join(groundtruth), '\n'.join(prediction))
-
         results.append({
-            "line_accuracy": line_accuracy,
             "block_accuracy": block_accuracy,
+            "block_edit_distance": block_edit_distance,
+            "line_accuracy": line_accuracy,
             "avg_line_edit_distance": avg_line_edit_distance,
-            "block_edit_distance": block_edit_distance
         })
 
     df = pd.concat([df, pd.DataFrame(results)], axis=1)

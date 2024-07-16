@@ -14,10 +14,10 @@ def avg_compute(evaluation_jsonl_file):
     df = pd.read_json(evaluation_jsonl_file, lines=True)
 
     avg_results = {
-        "line_accuracy": df["line_accuracy"].mean(),
         "block_accuracy": df["block_accuracy"].mean(),
+        "block_edit_distance": df["block_edit_distance"].mean(),
+        "line_accuracy": df["line_accuracy"].mean(),
         "avg_line_edit_distance": df["avg_line_edit_distance"].mean(),
-        "block_edit_distance": df["block_edit_distance"].mean()
     }
 
     logging.info(f"Average results: {avg_results}")
