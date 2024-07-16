@@ -136,6 +136,6 @@ fn to_local_config(model: &str, parallelism: u8, device: &Device) -> ModelConfig
         parallelism,
         num_gpu_layers,
         enable_fast_attention: None,
-        max_input_length: 1024 + 512,
+        context_size: 4096,
     })
 }

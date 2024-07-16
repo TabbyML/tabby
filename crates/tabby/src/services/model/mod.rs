@@ -17,16 +17,12 @@ pub async fn load_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {
     llama_cpp_server::create_embedding(config).await
 }
 
-pub async fn load_code_generation(model: &ModelConfig) -> (Arc<CodeGeneration>, PromptInfo, usize) {
-    let (engine, prompt_info, generation_max_input_length) = load_completion(model).await;
-    (
-        Arc::new(CodeGeneration::new(engine)),
-        prompt_info,
-        generation_max_input_length,
-    )
+pub async fn load_code_generation(model: &ModelConfig) -> (Arc<CodeGeneration>, PromptInfo) {
+    let (engine, prompt_info) = load_completion(model).await;
+    (Arc::new(CodeGeneration::new(engine)), prompt_info)
 }
 
-async fn load_completion(model: &ModelConfig) -> (Arc<dyn CompletionStream>, PromptInfo, usize) {
+async fn load_completion(model: &ModelConfig) -> (Arc<dyn CompletionStream>, PromptInfo) {
     match model {
         ModelConfig::Http(http) => {
             let engine = http_api_bindings::create(http).await;
@@ -37,13 +33,9 @@ async fn load_completion(model: &ModelConfig) -> (Arc<dyn CompletionStream>, Pro
                     prompt_template,
                     chat_template,
                 },
-                http.max_input_length,
             )
         }
-        ModelConfig::Local(llama) => {
-            let (engine, info) = llama_cpp_server::create_completion(llama).await;
-            (engine, info, llama.max_input_length)
-        }
+        ModelConfig::Local(llama) => llama_cpp_server::create_completion(llama).await,
     }
 }
 

@@ -230,7 +230,7 @@ pub struct CompletionService {
     engine: Arc<CodeGeneration>,
     logger: Arc<dyn EventLogger>,
     prompt_builder: completion_prompt::PromptBuilder,
-    generation_max_input_length: usize,
+    complete_max_input_length: usize,
 }
 
 impl CompletionService {
@@ -239,13 +239,13 @@ impl CompletionService {
         code: Arc<dyn CodeSearch>,
         logger: Arc<dyn EventLogger>,
         prompt_template: Option<String>,
-        generation_max_input_length: usize,
+        complete_max_input_length: usize,
     ) -> Self {
         Self {
             engine,
             prompt_builder: completion_prompt::PromptBuilder::new(prompt_template, Some(code)),
             logger,
-            generation_max_input_length,
+            complete_max_input_length,
         }
     }
 
@@ -294,7 +294,7 @@ impl CompletionService {
             language.as_str(),
             request.temperature,
             request.seed,
-            self.generation_max_input_length,
+            self.complete_max_input_length,
         );
 
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
@@ -352,13 +352,13 @@ pub async fn create_completion_service(
     code: Arc<dyn CodeSearch>,
     logger: Arc<dyn EventLogger>,
     model: &ModelConfig,
+    complete_max_input_length: usize,
 ) -> CompletionService {
     let (
         engine,
         model::PromptInfo {
             prompt_template, ..
         },
-        generation_max_input_length,
     ) = model::load_code_generation(model).await;
 
     CompletionService::new(
@@ -366,7 +366,7 @@ pub async fn create_completion_service(
         code,
         logger,
         prompt_template,
-        generation_max_input_length,
+        complete_max_input_length,
     )
 }
 

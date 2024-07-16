@@ -177,7 +177,7 @@ fn default_embedding_config() -> ModelConfig {
         parallelism: 1,
         num_gpu_layers: 9999,
         enable_fast_attention: None,
-        max_input_length: 1024 + 512,
+        context_size: default_context_size(),
     })
 }
 
@@ -187,6 +187,8 @@ pub struct ModelConfigGroup {
     pub chat: Option<ModelConfig>,
     #[serde(default = "default_embedding_config")]
     pub embedding: ModelConfig,
+
+    pub completion_max_input_length: usize,
 }
 
 impl Default for ModelConfigGroup {
@@ -195,6 +197,7 @@ impl Default for ModelConfigGroup {
             completion: None,
             chat: None,
             embedding: default_embedding_config(),
+            completion_max_input_length: 1025 + 512,
         }
     }
 }
@@ -251,8 +254,8 @@ pub struct LocalModelConfig {
     #[serde(default)]
     pub enable_fast_attention: Option<bool>,
 
-    #[serde(default = "default_max_input_length")]
-    pub max_input_length: usize,
+    #[serde(default = "default_context_size")]
+    pub context_size: usize,
 }
 
 fn default_parallelism() -> u8 {
@@ -263,8 +266,8 @@ fn default_num_gpu_layers() -> u16 {
     9999
 }
 
-fn default_max_input_length() -> usize {
-    1024 + 512
+fn default_context_size() -> usize {
+    4096
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
