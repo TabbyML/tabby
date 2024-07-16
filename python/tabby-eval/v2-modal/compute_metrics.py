@@ -4,6 +4,8 @@ import logging
 import pandas as pd
 from Levenshtein import ratio
 
+from avg_metrics import avg_compute
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(message)s',
@@ -11,34 +13,43 @@ logging.basicConfig(
 )
 
 
-def evaluation(prediction_jsonl_file):
+def evaluation(prediction_jsonl_file, output_evaluation_jsonl_file):
     df = pd.read_json(prediction_jsonl_file, lines=True)
-    total_score = 0
+    results = []
 
     for index, row in df.iterrows():
         groundtruth = row['groundtruth'].split('\n')
         prediction = row['prediction'].split('\n')
 
-        # Get the first non-empty line
-        groundtruth_first_non_empty = next((s for s in groundtruth if s.strip()), "")
-        prediction_first_non_empty = next((s for s in prediction if s.strip()), "")
+        line_accuracy = sum(1 for gt, pred in zip(groundtruth, prediction) if gt == pred) / len(
+            groundtruth) if groundtruth else 0
 
-        # Calculate the ratio between the two
-        score = ratio(groundtruth_first_non_empty, prediction_first_non_empty)
+        block_accuracy = 1 if '\n'.join(groundtruth) == '\n'.join(prediction) else 0
 
-        # Add the score to the total score
-        total_score += score
+        line_edit_distances = [ratio(gt, pred) for gt, pred in zip(groundtruth, prediction)]
+        avg_line_edit_distance = sum(line_edit_distances) / len(line_edit_distances) if line_edit_distances else 0
 
-    # Calculate the average score
-    average_score = total_score / len(df) if len(df) > 0 else 0
-    logging.info(f"Evaluation result: file {prediction_jsonl_file}, score: {average_score}")
+        block_edit_distance = ratio('\n'.join(groundtruth), '\n'.join(prediction))
 
-    return average_score
+        results.append({
+            "line_accuracy": line_accuracy,
+            "block_accuracy": block_accuracy,
+            "avg_line_edit_distance": avg_line_edit_distance,
+            "block_edit_distance": block_edit_distance
+        })
+
+    df = pd.concat([df, pd.DataFrame(results)], axis=1)
+
+    df.to_json(output_evaluation_jsonl_file, orient='records', lines=True, force_ascii=False)
+    logging.info(f"Evaluation result written to {output_evaluation_jsonl_file}")
+
+    avg_compute(output_evaluation_jsonl_file)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="eval tabby code completion jsonl.")
     parser.add_argument("--prediction_jsonl_file", type=str, help="prediction jsonl file.")
+    parser.add_argument("--output_evaluation_jsonl_file", type=str, help="output evaluation jsonl file.")
 
     args = parser.parse_args()
-    evaluation(args.prediction_jsonl_file)
+    evaluation(args.prediction_jsonl_file, args.output_evaluation_jsonl_file)

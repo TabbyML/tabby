@@ -2,10 +2,11 @@
 
 ## Introduction
 
-This directory contains three Python scripts for evaluating code completion quality:
+This directory contains four Python scripts for evaluating code completion quality:
 
 * `compute_code_completion.py`: Evaluates code completion quality using parameters.
 * `compute_metrics.py`: Evaluates code completion quality given prediction / groundtruth
+* `avg_metrics.py`: Averages the evaluation results of multiple JSONL files.
 * `app.py`: A standalone Modal Tabby Serve service.
 
 ## Usage
@@ -60,7 +61,9 @@ python compute_code_completion.py \
 If you have a JSONL file with code completion results, you can use the `compute_metrics.py` script. Example:
 
 ```bash
-python compute_metrics.py --prediction_jsonl_file 20240714204945-TabbyML-StarCoder-1B.jsonl
+python compute_metrics.py \
+  --prediction_jsonl_file 20240716-StarCoder-1B.jsonl \
+  --output_evaluation_jsonl_file 20240716-StarCoder-1B-evaluation.jsonl
 ```
 
 The script’s parameters are as follows:
@@ -68,6 +71,7 @@ The script’s parameters are as follows:
 ```bash
 python compute_metrics.py -h
 usage: compute_metrics.py [-h] [--prediction_jsonl_file PREDICTION_JSONL_FILE]
+                          [--output_evaluation_jsonl_file OUTPUT_EVALUATION_JSONL_FILE]
 
 eval tabby code completion jsonl.
 
@@ -75,6 +79,28 @@ options:
   -h, --help            show this help message and exit
   --prediction_jsonl_file PREDICTION_JSONL_FILE
                         prediction jsonl file.
+  --output_evaluation_jsonl_file OUTPUT_EVALUATION_JSONL_FILE
+                        output evaluation jsonl file.
+```
+
+If you have a JSONL file with evaluation results, you can use the `avg_metrics.py` script. Example:
+
+```bash
+python avg_metrics.py --evaluation_jsonl_file 20240716-StarCoder-1B-evaluation.jsonl
+```
+
+The script’s parameters are as follows:
+
+```bash
+python avg_metrics.py -h
+usage: avg_metrics.py [-h] [--evaluation_jsonl_file EVALUATION_JSONL_FILE]
+
+avg tabby code completion metrics.
+
+options:
+  -h, --help            show this help message and exit
+  --evaluation_jsonl_file EVALUATION_JSONL_FILE
+                        evaluation jsonl file.
 ```
 
 Feel free to reach out if you have any questions or need further assistance!
