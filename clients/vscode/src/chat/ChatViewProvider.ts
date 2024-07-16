@@ -26,7 +26,7 @@ export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
   private pendingMessages: ChatMessage[] = [];
-  private isChatPageInitialized = false;
+  private isChatPageDisplayed = false;
 
   constructor(
     private readonly context: ExtensionContext,
@@ -137,7 +137,7 @@ export class ChatViewProvider implements WebviewViewProvider {
       },
       refresh: async () => {
         const serverInfo = await this.agent.fetchServerInfo();
-        await this.initializeChatPage(serverInfo.config.endpoint, { force: true });
+        await this.displayChatPage(serverInfo.config.endpoint, { force: true });
         return;
       },
       onSubmitMessage: async (msg: string) => {
@@ -183,21 +183,23 @@ export class ChatViewProvider implements WebviewViewProvider {
       },
     });
 
+    // At this point, if the server instance is not set up, agent.status is 'notInitialized'.
+    // We check for the presence of the server instance by verifying serverInfo.health["webserver"].
     const serverInfo = await this.agent.fetchServerInfo();
     if (serverInfo.health && serverInfo.health["webserver"]) {
       const serverInfo = await this.agent.fetchServerInfo();
-      this.initializeChatPage(serverInfo.config.endpoint);
+      this.displayChatPage(serverInfo.config.endpoint);
     } else {
-      this.displayDisconnectedContent();
+      this.displayDisconnectedPage();
     }
 
     this.agent.on("didChangeStatus", async (status) => {
       if (status !== "disconnected") {
         const serverInfo = await this.agent.fetchServerInfo();
-        this.initializeChatPage(serverInfo.config.endpoint);
+        this.displayChatPage(serverInfo.config.endpoint);
         this.refreshChatPage();
-      } else if (this.isChatPageInitialized) {
-        this.displayDisconnectedContent();
+      } else if (this.isChatPageDisplayed) {
+        this.displayDisconnectedPage();
       }
     });
 
@@ -287,12 +289,12 @@ export class ChatViewProvider implements WebviewViewProvider {
     }
   }
 
-  private async initializeChatPage(endpoint: string, opts?: { force: boolean }) {
+  private async displayChatPage(endpoint: string, opts?: { force: boolean }) {
     if (!endpoint) return;
-    if (this.isChatPageInitialized && !opts?.force) return;
+    if (this.isChatPageDisplayed && !opts?.force) return;
 
     if (this.webview) {
-      this.isChatPageInitialized = true;
+      this.isChatPageDisplayed = true;
       const styleUri = this.webview?.webview.asWebviewUri(
         Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
       );
@@ -386,9 +388,9 @@ export class ChatViewProvider implements WebviewViewProvider {
     }
   }
 
-  private displayDisconnectedContent() {
+  private displayDisconnectedPage() {
     if (this.webview) {
-      this.isChatPageInitialized = false;
+      this.isChatPageDisplayed = false;
 
       const logoUri = this.webview?.webview.asWebviewUri(
         Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"),
