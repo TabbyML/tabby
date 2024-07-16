@@ -6,7 +6,6 @@ use grep::{
     searcher::{BinaryDetection, SearcherBuilder},
 };
 use ignore::types::TypesBuilder;
-use tracing::debug;
 
 use super::searcher::GrepSearcher;
 
