@@ -21,24 +21,28 @@ const PAGE_SIZE = DEFAULT_PAGE_SIZE
 export default function RepositoryProvidersPage() {
   const kind = useIntegrationKind()
   const params = useParams()
-  const [lastCursor, setLastCursor] = React.useState<string | undefined>()
+  const [lastCursor, setLastCursor] = React.useState<string | undefined>(
+    undefined
+  )
   const [{ data, fetching }] = useQuery({
     query: listIntegrations,
-    variables: { kind, first: PAGE_SIZE, after: lastCursor }
+    variables: { kind, last: PAGE_SIZE, before: lastCursor }
   })
 
-  const edges = data?.integrations?.edges
+  const edges = React.useMemo(() => {
+    return data?.integrations?.edges?.slice().reverse()
+  }, [data?.integrations?.edges])
   const pageInfo = data?.integrations?.pageInfo
 
   const loadMore = () => {
-    if (pageInfo?.endCursor) {
-      setLastCursor(pageInfo.endCursor)
+    if (pageInfo?.startCursor) {
+      setLastCursor(pageInfo.startCursor)
     }
   }
 
   return (
     <LoadingWrapper loading={fetching} fallback={<FetchingSkeletion />}>
-      {data?.integrations?.edges?.length ? (
+      {edges?.length ? (
         <>
           <CreateRepositoryProvider />
           <div className="space-y-8">
@@ -71,8 +75,8 @@ export default function RepositoryProvidersPage() {
                 </Card>
               )
             })}
-            {!!pageInfo?.hasNextPage && (
-              <LoadMoreIndicator onLoading={loadMore}>
+            {!!pageInfo?.hasPreviousPage && (
+              <LoadMoreIndicator onLoad={loadMore} isFetching={fetching}>
                 <FetchingSkeletion />
               </LoadMoreIndicator>
             )}

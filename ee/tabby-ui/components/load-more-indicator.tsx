@@ -6,23 +6,23 @@ import { useInView } from 'react-intersection-observer'
 import { cn } from '@/lib/utils'
 
 interface Props {
-  onLoading: () => void
+  onLoad: () => void
+  isFetching: boolean | undefined
   className?: string
 }
 
 const LoadMoreIndicatorRender: React.FC<React.PropsWithChildren<Props>> = ({
-  onLoading,
+  onLoad,
+  isFetching,
   children,
   className
 }) => {
   const { ref, inView } = useInView()
-  const [isLoaded, setIsLoaded] = React.useState(false)
   React.useEffect(() => {
-    if (inView && !isLoaded) {
-      setIsLoaded(true)
-      onLoading?.()
+    if (inView && !isFetching) {
+      onLoad?.()
     }
-  }, [inView])
+  }, [inView, isFetching])
 
   return (
     <div className={cn('w-full', className)} ref={ref}>

@@ -216,6 +216,22 @@ const client = new Client({
                   )
                 })
             }
+          },
+          createIntegration(result, args, cache, info) {
+            const key = 'Query'
+            cache
+              .inspectFields(key)
+              .filter(field => {
+                // @ts-ignore
+                return (
+                  field.fieldName === 'integrations' &&
+                  !!field.arguments?.kind &&
+                  field.arguments?.kind === args?.input?.kind
+                )
+              })
+              .forEach(field => {
+                cache.invalidate(key, field.fieldName, field.arguments)
+              })
           }
         }
       }
