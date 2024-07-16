@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use anyhow::bail;
 use grep::{
-    regex::RegexMatcher,
+    regex::{RegexMatcher, RegexMatcherBuilder},
     searcher::{BinaryDetection, SearcherBuilder},
 };
 use ignore::types::TypesBuilder;
@@ -31,7 +31,14 @@ impl GrepQuery {
         let pattern_matcher = if self.patterns.is_empty() {
             None
         } else {
-            Some(RegexMatcher::new_line_matcher(&self.patterns.join("|"))?)
+            let pattern = self.patterns.join("|");
+            let case_insensitive = !has_uppercase_literal(&pattern);
+            Some(
+                RegexMatcherBuilder::new()
+                    .case_insensitive(case_insensitive)
+                    .line_terminator(Some(b'\n'))
+                    .build(&self.patterns.join("|"))?,
+            )
         };
 
         let negative_pattern_matcher = if self.negative_patterns.is_empty() {
@@ -180,6 +187,10 @@ impl GrepQueryBuilder {
     pub fn build(self) -> GrepQuery {
         self.query
     }
+}
+
+fn has_uppercase_literal(expr: &str) -> bool {
+    expr.chars().any(|c| c.is_ascii_uppercase())
 }
 
 #[cfg(test)]
