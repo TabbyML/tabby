@@ -26,7 +26,7 @@ export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
   private pendingMessages: ChatMessage[] = [];
-  private isRendered = false;
+  private isChatPageInitialized = false;
 
   constructor(
     private readonly context: ExtensionContext,
@@ -136,9 +136,8 @@ export class ChatViewProvider implements WebviewViewProvider {
         }
       },
       refresh: async () => {
-        this.isRendered = false;
         const serverInfo = await this.agent.fetchServerInfo();
-        await this.renderChatPage(serverInfo.config.endpoint);
+        await this.initializeChatPage(serverInfo.config.endpoint, { force: true });
         return;
       },
       onSubmitMessage: async (msg: string) => {
@@ -185,27 +184,40 @@ export class ChatViewProvider implements WebviewViewProvider {
     });
 
     const serverInfo = await this.agent.fetchServerInfo();
-    this.renderChatPage(serverInfo.config.endpoint);
+    if (serverInfo.health && serverInfo.health["webserver"]) {
+      const serverInfo = await this.agent.fetchServerInfo();
+      this.initializeChatPage(serverInfo.config.endpoint);
+    } else {
+      this.displayDisconnectedContent();
+    }
+    
+    this.agent.on("didChangeStatus", async (status) => {
+      if (status !== 'disconnected') {
+        const serverInfo = await this.agent.fetchServerInfo();
+        this.initializeChatPage(serverInfo.config.endpoint); 
+        this.refreshChatPage();
+      } else if (this.isChatPageInitialized) {
+        this.displayDisconnectedContent();
+      }
+    }); 
 
-    this.agent.on("didChangeStatus", () => {
-      this.reloadChatPage();
-    });
-
-    this.agent.on("didUpdateServerInfo", (serverInfo: ServerInfo) => {
-      this.renderChatPage(serverInfo.config.endpoint);
+    this.agent.on("didUpdateServerInfo", () => {
+      this.refreshChatPage();
     });
 
     // The event will not be triggered during the initial rendering.
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
-        this.reloadChatPage();
+        this.refreshChatPage();
       }
     });
 
     webviewView.webview.onDidReceiveMessage((message) => {
       switch (message.action) {
         case "rendered": {
-          this.reloadChatPage();
+          setTimeout(() => {
+            this.refreshChatPage();
+          }, 300)
           return;
         }
         case "copy": {
@@ -244,7 +256,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     return true;
   }
 
-  private async reloadChatPage() {
+  private async refreshChatPage() {
     const agentStatus = this.agent.status;
     const serverInfo = await this.agent.fetchServerInfo();
 
@@ -275,16 +287,17 @@ export class ChatViewProvider implements WebviewViewProvider {
     }
   }
 
-  private async renderChatPage(endpoint: string) {
-    if (this.isRendered || !endpoint) return;
+    private async initializeChatPage(endpoint: string, opts?: { force: boolean }) {
+      if (!endpoint) return
+      if (this.isChatPageInitialized && !opts?.force) return;
 
-    if (this.webview) {
-      const styleUri = this.webview?.webview.asWebviewUri(
-        Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
-      );
+      if (this.webview) {
+        this.isChatPageInitialized = true;
+        const styleUri = this.webview?.webview.asWebviewUri(
+          Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
+        );
 
-      this.isRendered = true;
-      this.webview.webview.html = `
+        this.webview.webview.html = `
         <!DOCTYPE html>
         <html lang="en">
           <!--hash: ${hashObject({ renderDate: new Date().toString() })}-->
@@ -309,10 +322,10 @@ export class ChatViewProvider implements WebviewViewProvider {
               const syncTheme = () => {
                 const chatIframe = document.getElementById("chat");
                 if (!chatIframe) return
-          
+
                 const parentHtmlStyle = document.documentElement.getAttribute('style');
                 chatIframe.contentWindow.postMessage({ style: parentHtmlStyle }, "${endpoint}");
-            
+
                 let themeClass = getTheme()
                 themeClass += ' vscode'
                 chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${endpoint}");
@@ -333,7 +346,9 @@ export class ChatViewProvider implements WebviewViewProvider {
       
                   chatIframe.addEventListener('load', function() {
                     vscode.postMessage({ action: 'rendered' });
-                    syncTheme()
+                    setTimeout(() => {
+                      syncTheme()
+                    }, 300)
                   });
 
                   chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery + themeQuery + fontSizeQuery + foregroundQuery)
@@ -369,6 +384,38 @@ export class ChatViewProvider implements WebviewViewProvider {
         </html>
       `;
     }
+  }
+
+  private displayDisconnectedContent() {
+    if (this.webview) {
+      this.isChatPageInitialized = false;
+
+      const logoUri = this.webview?.webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"));
+      const styleUri = this.webview?.webview.asWebviewUri(
+        Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
+      );
+      this.webview.webview.html = `
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <link href="${styleUri}" rel="stylesheet">
+          </head>
+          <body>
+            <main class='static-content'>
+              <div class='avatar'>
+                <img src="${logoUri}" />
+                <p>Tabby</p>
+              </div>
+              <h4 class='title'>Welcome to Tabby Chat!</h4>
+              <p>Before you can start chatting, please take a moment to set up your credentials to connect to the Tabby server.</p>
+            </main>
+          </body>
+        </html>
+      `;
+    }
+    
   }
 
   public getWebview() {
