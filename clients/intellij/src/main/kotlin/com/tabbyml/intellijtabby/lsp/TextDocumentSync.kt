@@ -48,11 +48,12 @@ class TextDocumentSync(private val project: Project) : Disposable {
 
   companion object {
     fun buildDidOpenTextDocumentParams(editor: Editor): DidOpenTextDocumentParams? {
+      val virtualFile = editor.virtualFile ?: return null
       val psiManager = editor.project?.let { PsiManager.getInstance(it) } ?: return null
       return DidOpenTextDocumentParams(
         TextDocumentItem(
-          editor.virtualFile.url,
-          editor.virtualFile.let { psiManager.findFileWithReadLock(it) }?.getLanguageId() ?: "plaintext",
+          virtualFile.url,
+          virtualFile.let { psiManager.findFileWithReadLock(it) }?.getLanguageId() ?: "plaintext",
           editor.document.modificationStamp.toInt(),
           editor.document.text,
         )
