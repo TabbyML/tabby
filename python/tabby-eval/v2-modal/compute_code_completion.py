@@ -11,7 +11,7 @@ import httpx
 import pandas as pd
 from pandas import json_normalize
 
-from eval_code_completion_jsonl import evaluation
+from compute_metrics import evaluation
 
 EMBEDDING_MODEL_ID = "TabbyML/Nomic-Embed-Text"
 

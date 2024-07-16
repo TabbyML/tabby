@@ -10,10 +10,10 @@ This directory contains three Python scripts for evaluating code completion qual
 
 ## Usage
 
-Run the `eval_code_completion.py` script directly. Here’s an example:
+Run the `compute_code_completion.py` script directly. Here’s an example:
 
 ```bash
-python eval_code_completion.py \
+python compute_code_completion.py \
   --endpoint https://moqimoqidea--tabby-server-app-serve-dev.modal.run \
   --token auth_a51a5e20bcd9478d83e4f26fb87055d1 \
   --model TabbyML/StarCoder-1B \
@@ -23,8 +23,8 @@ python eval_code_completion.py \
 This script will call the Tabby service and evaluate the quality of code completion. The script’s parameters are as follows:
 
 ```bash
-python eval_code_completion.py -h
-usage: eval_code_completion.py [-h] --endpoint ENDPOINT --token TOKEN --model MODEL
+python compute_code_completion.py -h
+usage: compute_code_completion.py [-h] --endpoint ENDPOINT --token TOKEN --model MODEL
                                [--jsonl_file JSONL_FILE] [--need_manager_modal NEED_MANAGER_MODAL]
 
 eval tabby code completion.
@@ -43,7 +43,7 @@ options:
 If you already have a Tabby service running, you can set the `need_manager_modal` parameter to 0 to avoid starting a standalone Tabby service. Example:
 
 ```bash
-python eval_code_completion.py \
+python compute_code_completion.py \
   --endpoint https://moqimoqidea--tabby-server-app-serve-dev.modal.run \
   --token auth_a51a5e20bcd9478d83e4f26fb87055d1 \
   --model TabbyML/StarCoder-1B \
@@ -51,17 +51,17 @@ python eval_code_completion.py \
   --need_manager_modal 0
 ```
 
-If you have a JSONL file with code completion results, you can use the `eval_code_completion_jsonl.py` script. Example:
+If you have a JSONL file with code completion results, you can use the `compute_metrics.py` script. Example:
 
 ```bash
-python eval_code_completion_jsonl.py --prediction_jsonl_file 20240714204945-TabbyML-StarCoder-1B.jsonl
+python compute_metrics.py --prediction_jsonl_file 20240714204945-TabbyML-StarCoder-1B.jsonl
 ```
 
 The script’s parameters are as follows:
 
 ```bash
-python eval_code_completion_jsonl.py -h
-usage: eval_code_completion_jsonl.py [-h] [--prediction_jsonl_file PREDICTION_JSONL_FILE]
+python compute_metrics.py -h
+usage: compute_metrics.py [-h] [--prediction_jsonl_file PREDICTION_JSONL_FILE]
 
 eval tabby code completion JSONL.
 
