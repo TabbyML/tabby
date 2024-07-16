@@ -126,7 +126,7 @@ function ProvidersPlaceholder() {
 
 function CardSkeleton() {
   return (
-    <Card className="bg-transparent w-full">
+    <Card className="w-full bg-transparent">
       <CardHeader className="border-b px-6 py-4">
         <CardTitle>
           <Skeleton className="w-[20%]" />
