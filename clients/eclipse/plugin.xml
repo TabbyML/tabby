@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+	<extension point="org.eclipse.ui.startup">
+		<startup class="com.tabbyml.tabby4eclipse.Startup" />
+	</extension>
+
+	<extension point="org.eclipse.lsp4e.languageServer">
+		<server
+			id="com.tabbyml.tabby4eclipse.languageServer"
+			label="Tabby"
+			class="com.tabbyml.tabby4eclipse.lsp.ConnectionProvider"
+			clientImpl="com.tabbyml.tabby4eclipse.lsp.LanguageClientImpl"
+			serverInterface="com.tabbyml.tabby4eclipse.lsp.ILanguageServer"
+			singleton="true"
+			lastDocumentDisconnectedTimeout="600">
+		</server>
+		<contentTypeMapping
+		    id="com.tabbyml.tabby4eclipse.languageServer"
+            contentType="com.tabbyml.tabby4eclipse.contentType">
+        </contentTypeMapping>
+	</extension>
+	
+	<extension point="org.eclipse.core.contenttype.contentTypes">
+	   <content-type
+            id="com.tabbyml.tabby4eclipse.contentType"
+            name="All types supported by Tabby"
+            priority="normal" />
+	</extension>
+</plugin>
