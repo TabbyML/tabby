@@ -5,85 +5,87 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useQuery } from 'urql'
 
-import {
-  IntegrationStatus,
-  ListIntegrationsQuery
-} from '@/lib/gql/generates/graphql'
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
+import { IntegrationStatus } from '@/lib/gql/generates/graphql'
 import { listIntegrations } from '@/lib/tabby/query'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { LoadMoreIndicator } from '@/components/load-more-indicator'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 import { useIntegrationKind } from '../hooks/use-repository-kind'
 
-export default function RepositoryProvidersPage() {
-  return <ProviderList />
-}
+const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
-function ProviderList() {
+export default function RepositoryProvidersPage() {
   const kind = useIntegrationKind()
+  const params = useParams()
+  const [lastCursor, setLastCursor] = React.useState<string | undefined>()
   const [{ data, fetching }] = useQuery({
     query: listIntegrations,
-    variables: { kind }
+    variables: { kind, first: PAGE_SIZE, after: lastCursor }
   })
 
-  const providers = data?.integrations?.edges
+  const edges = data?.integrations?.edges
+  const pageInfo = data?.integrations?.pageInfo
+
+  const loadMore = () => {
+    if (pageInfo?.endCursor) {
+      setLastCursor(pageInfo.endCursor)
+    }
+  }
 
   return (
-    <LoadingWrapper loading={fetching}>
-      {providers?.length ? (
+    <LoadingWrapper loading={fetching} fallback={<FetchingSkeletion />}>
+      {data?.integrations?.edges?.length ? (
         <>
           <CreateRepositoryProvider />
-          <GitProvidersList data={providers} />
+          <div className="space-y-8">
+            {edges?.map(item => {
+              return (
+                <Card key={item.node.id}>
+                  <CardHeader className="border-b px-6 py-4">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-xl">
+                        <div className="flex items-center gap-2">
+                          {item.node.displayName}
+                        </div>
+                      </CardTitle>
+                      <Link
+                        href={`${params.kind}/detail?id=${item.node.id}`}
+                        className={buttonVariants({ variant: 'secondary' })}
+                      >
+                        View
+                      </Link>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0 text-sm">
+                    <div className="flex px-6 py-4">
+                      <span className="w-[30%] shrink-0 text-muted-foreground">
+                        Status
+                      </span>
+                      <span>{toStatusMessage(item.node.status)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+            {!!pageInfo?.hasNextPage && (
+              <LoadMoreIndicator onLoading={loadMore}>
+                <FetchingSkeletion />
+              </LoadMoreIndicator>
+            )}
+          </div>
         </>
       ) : (
-        <GitProvidersPlaceholder />
+        <ProvidersPlaceholder />
       )}
     </LoadingWrapper>
   )
 }
 
-interface GitProvidersTableProps {
-  data: ListIntegrationsQuery['integrations']['edges'] | undefined
-}
-const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
-  const params = useParams()
-  return (
-    <div className="space-y-8">
-      {data?.map(item => {
-        return (
-          <Card key={item.node.id}>
-            <CardHeader className="border-b px-6 py-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl">
-                  <div className="flex items-center gap-2">
-                    {item.node.displayName}
-                  </div>
-                </CardTitle>
-                <Link
-                  href={`${params.kind}/detail?id=${item.node.id}`}
-                  className={buttonVariants({ variant: 'secondary' })}
-                >
-                  View
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0 text-sm">
-              <div className="flex px-6 py-4">
-                <span className="w-[30%] shrink-0 text-muted-foreground">
-                  Status
-                </span>
-                <span>{toStatusMessage(item.node.status)}</span>
-              </div>
-            </CardContent>
-          </Card>
-        )
-      })}
-    </div>
-  )
-}
-
-const CreateRepositoryProvider = () => {
+function CreateRepositoryProvider() {
   const params = useParams()
   return (
     <div className="my-4 flex justify-end">
@@ -105,7 +107,7 @@ function toStatusMessage(status: IntegrationStatus) {
   }
 }
 
-const GitProvidersPlaceholder = () => {
+function ProvidersPlaceholder() {
   const params = useParams()
   return (
     <div className="flex flex-col items-center gap-4 rounded-lg border-4 border-dashed py-8">
@@ -118,6 +120,30 @@ const GitProvidersPlaceholder = () => {
           Create
         </Link>
       </div>
+    </div>
+  )
+}
+
+function CardSkeleton() {
+  return (
+    <Card className="bg-transparent w-full">
+      <CardHeader className="border-b px-6 py-4">
+        <CardTitle>
+          <Skeleton className="w-[20%]" />
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="px-6 py-4">
+        <Skeleton className="w-[80%]" />
+      </CardContent>
+    </Card>
+  )
+}
+
+function FetchingSkeletion() {
+  return (
+    <div className="space-y-4">
+      <CardSkeleton />
+      <CardSkeleton />
     </div>
   )
 }

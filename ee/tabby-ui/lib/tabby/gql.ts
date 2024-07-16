@@ -22,7 +22,12 @@ import {
   WebCrawlerUrlsQueryVariables
 } from '../gql/generates/graphql'
 import { refreshTokenMutation } from './auth'
-import { listIntegrations, listInvitations, listRepositories, listWebCrawlerUrl } from './query'
+import {
+  listIntegrations,
+  listInvitations,
+  listRepositories,
+  listWebCrawlerUrl
+} from './query'
 import { getAuthToken, isTokenExpired, tokenManager } from './token-management'
 
 interface ValidationError {
@@ -196,7 +201,8 @@ const client = new Client({
                   cache.updateQuery(
                     {
                       query: listIntegrations,
-                      variables: field.arguments as ListIntegrationsQueryVariables
+                      variables:
+                        field.arguments as ListIntegrationsQueryVariables
                     },
                     data => {
                       if (data?.integrations) {
@@ -210,7 +216,7 @@ const client = new Client({
                   )
                 })
             }
-          },
+          }
         }
       }
     }),
