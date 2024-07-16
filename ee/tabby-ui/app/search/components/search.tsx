@@ -451,7 +451,7 @@ export function Search() {
 
         <main className="h-[calc(100%-4rem)] overflow-auto pb-8 lg:pb-0">
           <ScrollArea className="h-full" ref={contentContainerRef}>
-            <div className="mx-auto px-4 pb-24 lg:max-w-4xl lg:px-0">
+            <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
               <div className="flex flex-col">
                 {conversation.map((item, idx) => {
                   if (item.role === 'user') {
@@ -482,7 +482,7 @@ export function Search() {
 
           {container && (
             <ButtonScrollToBottom
-              className="!fixed !bottom-[5.4rem] !right-4 !top-auto border-muted-foreground lg:!bottom-[2.85rem]"
+              className="!fixed !bottom-[5.4rem] !right-4 !top-auto z-40 border-muted-foreground lg:!bottom-[2.85rem]"
               container={container}
               offset={100}
               // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
