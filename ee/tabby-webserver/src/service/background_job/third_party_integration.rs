@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use async_stream::stream;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use issues::{list_github_issues, list_gitlab_issues};
@@ -128,18 +129,24 @@ impl SchedulerGithubGitlabJob {
             .boxed(),
         };
 
-        s.enumerate()
-            .map(|(count, (updated_at, doc))| {
-                if (count + 1) % 50 == 0 {
-                    logkit::info!("{} documents indexed", count + 1);
+        stream! {
+            let mut count = 0;
+            let mut num_updated = 0;
+            for await (updated_at, doc) in s {
+                if index.add(updated_at, doc).await {
+                    num_updated += 1
                 }
 
-                index.add(updated_at, doc)
-            })
-            .count()
-            .await;
+                count += 1;
+                if count % 100 == 0 {
+                    logkit::info!("{} documents has been processed, {} has been updated", count, num_updated);
+                };
+            }
+            
+            logkit::info!("{} documents has been processed, {} has been updated", count, num_updated);
+            index.commit();
+        }.count().await;
 
-        index.commit();
         Ok(())
     }
 
