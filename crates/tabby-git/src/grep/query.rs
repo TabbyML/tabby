@@ -6,6 +6,7 @@ use grep::{
     searcher::{BinaryDetection, SearcherBuilder},
 };
 use ignore::types::TypesBuilder;
+use tracing::debug;
 
 use super::searcher::GrepSearcher;
 
@@ -32,7 +33,7 @@ impl GrepQuery {
             None
         } else {
             let pattern = self.patterns.join("|");
-            let case_insensitive = has_uppercase_literal(&pattern);
+            let case_insensitive = !has_uppercase_literal(&pattern);
             Some(
                 RegexMatcherBuilder::new()
                     .case_insensitive(case_insensitive)
