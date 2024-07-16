@@ -1,3 +1,9 @@
+## 1.6.3
+
+### Fixes & Improvements
+
+- Fixed a bug that caused the Tabby plugin to get stuck in initialization when an editor has no related virtual file.
+
 ## 1.6.2
 
 ### Breaking Changes
