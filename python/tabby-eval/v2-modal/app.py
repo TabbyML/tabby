@@ -17,10 +17,6 @@ MODEL_ID = os.getenv("MODEL_ID")
 GPU_CONFIG = gpu.T4()
 
 TABBY_BIN = "/opt/tabby/bin/tabby"
-TABBY_ENV = os.environ.copy()
-TABBY_ENV["TABBY_MODEL_CACHE_ROOT"] = "/models"
-TABBY_ENV["MODEL_ID"] = MODEL_ID
-TABBY_ENV["EMBEDDING_MODEL_ID"] = EMBEDDING_MODEL_ID
 
 
 def download_model(model_id: str):
@@ -41,7 +37,11 @@ image = (
         IMAGE_NAME,
         add_python="3.11",
     )
-    .env(TABBY_ENV)
+    .env({
+        "TABBY_MODEL_CACHE_ROOT": "/models",
+        "MODEL_ID": MODEL_ID,
+        "EMBEDDING_MODEL_ID": EMBEDDING_MODEL_ID
+    })
     .dockerfile_commands("ENTRYPOINT []")
     .run_function(download_model, kwargs={"model_id": EMBEDDING_MODEL_ID})
     .run_function(download_model, kwargs={"model_id": MODEL_ID})
@@ -52,6 +52,7 @@ app = App("tabby-server", image=image)
 
 data_volume = Volume.from_name("tabby-data", create_if_missing=True)
 data_dir = "/data"
+
 
 @app.function(
     gpu=GPU_CONFIG,
