@@ -482,7 +482,7 @@ export function Search() {
 
           {container && (
             <ButtonScrollToBottom
-              className="!fixed !bottom-[5.4rem] !right-4 !top-auto border-muted-foreground lg:!bottom-[2.85rem] z-40"
+              className="!fixed !bottom-[5.4rem] !right-4 !top-auto z-40 border-muted-foreground lg:!bottom-[2.85rem]"
               container={container}
               offset={100}
               // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
