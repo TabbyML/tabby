@@ -190,16 +190,16 @@ export class ChatViewProvider implements WebviewViewProvider {
     } else {
       this.displayDisconnectedContent();
     }
-    
+
     this.agent.on("didChangeStatus", async (status) => {
-      if (status !== 'disconnected') {
+      if (status !== "disconnected") {
         const serverInfo = await this.agent.fetchServerInfo();
-        this.initializeChatPage(serverInfo.config.endpoint); 
+        this.initializeChatPage(serverInfo.config.endpoint);
         this.refreshChatPage();
       } else if (this.isChatPageInitialized) {
         this.displayDisconnectedContent();
       }
-    }); 
+    });
 
     this.agent.on("didUpdateServerInfo", () => {
       this.refreshChatPage();
@@ -217,7 +217,7 @@ export class ChatViewProvider implements WebviewViewProvider {
         case "rendered": {
           setTimeout(() => {
             this.refreshChatPage();
-          }, 300)
+          }, 300);
           return;
         }
         case "copy": {
@@ -287,17 +287,17 @@ export class ChatViewProvider implements WebviewViewProvider {
     }
   }
 
-    private async initializeChatPage(endpoint: string, opts?: { force: boolean }) {
-      if (!endpoint) return
-      if (this.isChatPageInitialized && !opts?.force) return;
+  private async initializeChatPage(endpoint: string, opts?: { force: boolean }) {
+    if (!endpoint) return;
+    if (this.isChatPageInitialized && !opts?.force) return;
 
-      if (this.webview) {
-        this.isChatPageInitialized = true;
-        const styleUri = this.webview?.webview.asWebviewUri(
-          Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
-        );
+    if (this.webview) {
+      this.isChatPageInitialized = true;
+      const styleUri = this.webview?.webview.asWebviewUri(
+        Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
+      );
 
-        this.webview.webview.html = `
+      this.webview.webview.html = `
         <!DOCTYPE html>
         <html lang="en">
           <!--hash: ${hashObject({ renderDate: new Date().toString() })}-->
@@ -390,7 +390,9 @@ export class ChatViewProvider implements WebviewViewProvider {
     if (this.webview) {
       this.isChatPageInitialized = false;
 
-      const logoUri = this.webview?.webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"));
+      const logoUri = this.webview?.webview.asWebviewUri(
+        Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"),
+      );
       const styleUri = this.webview?.webview.asWebviewUri(
         Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
       );
@@ -409,13 +411,12 @@ export class ChatViewProvider implements WebviewViewProvider {
                 <p>Tabby</p>
               </div>
               <h4 class='title'>Welcome to Tabby Chat!</h4>
-              <p>Before you can start chatting, please take a moment to set up your credentials to connect to the Tabby server.</p>
+              <p>To start chatting, please set up your Tabby server. Ensure that your Tabby server is properly configured and connected.</p>
             </main>
           </body>
         </html>
       `;
     }
-    
   }
 
   public getWebview() {
