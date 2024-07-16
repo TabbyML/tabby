@@ -217,15 +217,15 @@ const client = new Client({
                 })
             }
           },
-          createIntegration(result, args, cache, info) {
+          createIntegration(result, args, cache) {
             const key = 'Query'
             cache
               .inspectFields(key)
               .filter(field => {
-                // @ts-ignore
                 return (
                   field.fieldName === 'integrations' &&
                   !!field.arguments?.kind &&
+                  // @ts-ignore
                   field.arguments?.kind === args?.input?.kind
                 )
               })
