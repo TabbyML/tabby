@@ -15,9 +15,10 @@ Run the `compute_code_completion.py` script directly. Here’s an example:
 ```bash
 python compute_code_completion.py \
   --endpoint https://moqimoqidea--tabby-server-app-serve-dev.modal.run \
-  --token auth_a51a5e20bcd9478d83e4f26fb87055d1 \
+  --token auth_f1bd0151d4ff4dc6b0ea56cfc82a8b82 \
   --model TabbyML/StarCoder-1B \
-  --jsonl_file data.jsonl
+  --jsonl_file data.jsonl \
+  --output_prediction_jsonl_file 20240716-StarCoder-1B.jsonl
 ```
 
 This script will call the Tabby service and evaluate the quality of code completion. The script’s parameters are as follows:
@@ -25,17 +26,21 @@ This script will call the Tabby service and evaluate the quality of code complet
 ```bash
 python compute_code_completion.py -h
 usage: compute_code_completion.py [-h] --endpoint ENDPOINT --token TOKEN --model MODEL
-                               [--jsonl_file JSONL_FILE] [--need_manager_modal NEED_MANAGER_MODAL]
+                                  [--jsonl_file JSONL_FILE]
+                                  [--output_prediction_jsonl_file OUTPUT_PREDICTION_JSONL_FILE]
+                                  [--need_manager_modal NEED_MANAGER_MODAL]
 
 eval tabby code completion.
 
 options:
   -h, --help            show this help message and exit
-  --endpoint ENDPOINT   Tabby server endpoint.
-  --token TOKEN         Tabby server token.
-  --model MODEL         Evaluation model.
+  --endpoint ENDPOINT   tabby server endpoint.
+  --token TOKEN         tabby server token.
+  --model MODEL         evaluation model.
   --jsonl_file JSONL_FILE
-                        Evaluation JSONL file.
+                        evaluation jsonl file.
+  --output_prediction_jsonl_file OUTPUT_PREDICTION_JSONL_FILE
+                        output prediction jsonl file.
   --need_manager_modal NEED_MANAGER_MODAL
                         Whether a manager modal is needed. Accepts 1 or another.
 ```
@@ -45,9 +50,10 @@ If you already have a Tabby service running, you can set the `need_manager_modal
 ```bash
 python compute_code_completion.py \
   --endpoint https://moqimoqidea--tabby-server-app-serve-dev.modal.run \
-  --token auth_a51a5e20bcd9478d83e4f26fb87055d1 \
+  --token auth_f1bd0151d4ff4dc6b0ea56cfc82a8b82 \
   --model TabbyML/StarCoder-1B \
   --jsonl_file data.jsonl \
+  --output_prediction_jsonl_file 20240716-StarCoder-1B.jsonl \
   --need_manager_modal 0
 ```
 
@@ -63,12 +69,12 @@ The script’s parameters are as follows:
 python compute_metrics.py -h
 usage: compute_metrics.py [-h] [--prediction_jsonl_file PREDICTION_JSONL_FILE]
 
-eval tabby code completion JSONL.
+eval tabby code completion jsonl.
 
 options:
   -h, --help            show this help message and exit
   --prediction_jsonl_file PREDICTION_JSONL_FILE
-                        Prediction JSONL file.
+                        prediction jsonl file.
 ```
 
 Feel free to reach out if you have any questions or need further assistance!
