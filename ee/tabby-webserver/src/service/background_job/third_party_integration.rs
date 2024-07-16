@@ -130,7 +130,7 @@ impl SchedulerGithubGitlabJob {
 
         s.enumerate()
             .map(|(count, (updated_at, doc))| {
-                if (count + 1) % 10 == 0 {
+                if (count + 1) % 50 == 0 {
                     logkit::info!("{} documents indexed", count + 1);
                 }
 
