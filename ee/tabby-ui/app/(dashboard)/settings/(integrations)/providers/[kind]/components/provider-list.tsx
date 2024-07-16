@@ -141,7 +141,7 @@ function CardSkeleton() {
 
 function FetchingSkeletion() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <CardSkeleton />
       <CardSkeleton />
     </div>
