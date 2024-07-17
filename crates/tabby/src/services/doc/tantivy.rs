@@ -57,8 +57,11 @@ impl DocSearchImpl {
                 .filter_map(|(score, chunk_address)| {
                     let chunk: TantivyDocument = searcher.doc(*chunk_address).ok()?;
                     let doc_id = get_text(&chunk, schema.field_id).to_owned();
+                    let token_values = get_bytes(&chunk, schema.field_token_values);
+                    let mut chunk_embedding: Vec<f32> = token_values.iter().map(|v| index::convert_to_embedding(*v)).collect::<Vec<_>>();
+                    let score = index::cosine_similarity(&embedding, &chunk_embedding);
                     Some(ScoredChunk {
-                        score: *score,
+                        score,
                         chunk,
                         doc_id,
                     })
@@ -124,6 +127,10 @@ impl DocSearchImpl {
 
 fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
     doc.get_first(field).unwrap().as_str().unwrap()
+}
+
+fn get_bytes(doc: &TantivyDocument, field: schema::Field) -> &[u8] {
+    doc.get_first(field).unwrap().as_bytes().unwrap()
 }
 
 fn get_json_text_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name: &str) -> &'a str {
