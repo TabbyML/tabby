@@ -8,7 +8,7 @@ mod serve;
 use std::os::unix::fs::PermissionsExt;
 
 use clap::{Parser, Subcommand};
-use tabby_common::config::{Config, LocalModelConfig, ModelConfig};
+use tabby_common::config::{Config, ModelConfig};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 

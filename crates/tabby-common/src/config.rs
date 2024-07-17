@@ -2,7 +2,6 @@ use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
-use chrono::Local;
 use derive_builder::Builder;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
