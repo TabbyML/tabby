@@ -126,7 +126,7 @@ export default function RepositoryTable() {
 
   return (
     <LoadingWrapper loading={fetching}>
-      <Table className="table-fixed border-b">
+      <Table className="table-fixed border-t">
         <TableHeader>
           <TableRow>
             <TableHead className="w-[25%]">Name</TableHead>

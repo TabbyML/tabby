@@ -92,6 +92,10 @@
   max-width: none !important;
 }
 
+.prose {
+  overflow-wrap: anywhere;
+}
+
 .dialog-without-close-btn > button {
   display: none;
 }

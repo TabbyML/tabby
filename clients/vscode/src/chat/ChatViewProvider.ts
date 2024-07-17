@@ -8,8 +8,13 @@ import {
   LogOutputChannel,
   TextEditor,
   window,
+  Position,
+  Range,
+  Selection,
+  TextEditorRevealType,
+  ViewColumn,
 } from "vscode";
-import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
+import type { ServerApi, ChatMessage, Context, NavigateOpts } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
 import type { ServerInfo } from "tabby-agent";
@@ -21,7 +26,7 @@ export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
   private pendingMessages: ChatMessage[] = [];
-  private isRendered = false;
+  private isChatPageDisplayed = false;
 
   constructor(
     private readonly context: ExtensionContext,
@@ -91,7 +96,27 @@ export class ChatViewProvider implements WebviewViewProvider {
     };
 
     this.client = createClient(webviewView, {
-      navigate: async (context: Context) => {
+      navigate: async (context: Context, opts?: NavigateOpts) => {
+        if (opts?.openInEditor) {
+          const files = await workspace.findFiles(context.filepath, null, 1);
+          if (files[0]) {
+            const document = await workspace.openTextDocument(files[0].path);
+            const newEditor = await window.showTextDocument(document, {
+              viewColumn: ViewColumn.Active,
+              preview: false,
+              preserveFocus: true,
+            });
+
+            // Move the cursor to the specified line
+            const start = new Position(Math.max(0, context.range.start - 1), 0);
+            const end = new Position(context.range.end, 0);
+            newEditor.selection = new Selection(start, end);
+            newEditor.revealRange(new Range(start, end), TextEditorRevealType.InCenter);
+          }
+
+          return;
+        }
+
         if (context?.filepath && context?.git_url) {
           const serverInfo = await this.agent.fetchServerInfo();
 
@@ -111,9 +136,8 @@ export class ChatViewProvider implements WebviewViewProvider {
         }
       },
       refresh: async () => {
-        this.isRendered = false;
         const serverInfo = await this.agent.fetchServerInfo();
-        await this.renderChatPage(serverInfo.config.endpoint);
+        await this.displayChatPage(serverInfo.config.endpoint, { force: true });
         return;
       },
       onSubmitMessage: async (msg: string) => {
@@ -159,28 +183,43 @@ export class ChatViewProvider implements WebviewViewProvider {
       },
     });
 
+    // At this point, if the server instance is not set up, agent.status is 'notInitialized'.
+    // We check for the presence of the server instance by verifying serverInfo.health["webserver"].
     const serverInfo = await this.agent.fetchServerInfo();
-    this.renderChatPage(serverInfo.config.endpoint);
+    if (serverInfo.health && serverInfo.health["webserver"]) {
+      const serverInfo = await this.agent.fetchServerInfo();
+      this.displayChatPage(serverInfo.config.endpoint);
+    } else {
+      this.displayDisconnectedPage();
+    }
 
-    this.agent.on("didChangeStatus", async () => {
-      this.reloadChatPage();
+    this.agent.on("didChangeStatus", async (status) => {
+      if (status !== "disconnected") {
+        const serverInfo = await this.agent.fetchServerInfo();
+        this.displayChatPage(serverInfo.config.endpoint);
+        this.refreshChatPage();
+      } else if (this.isChatPageDisplayed) {
+        this.displayDisconnectedPage();
+      }
     });
 
-    this.agent.on("didUpdateServerInfo", (serverInfo: ServerInfo) => {
-      this.renderChatPage(serverInfo.config.endpoint);
+    this.agent.on("didUpdateServerInfo", () => {
+      this.refreshChatPage();
     });
 
     // The event will not be triggered during the initial rendering.
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
-        this.reloadChatPage();
+        this.refreshChatPage();
       }
     });
 
     webviewView.webview.onDidReceiveMessage((message) => {
       switch (message.action) {
         case "rendered": {
-          this.reloadChatPage();
+          setTimeout(() => {
+            this.refreshChatPage();
+          }, 300);
           return;
         }
         case "copy": {
@@ -219,7 +258,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     return true;
   }
 
-  private async reloadChatPage() {
+  private async refreshChatPage() {
     const agentStatus = this.agent.status;
     const serverInfo = await this.agent.fetchServerInfo();
 
@@ -250,15 +289,16 @@ export class ChatViewProvider implements WebviewViewProvider {
     }
   }
 
-  private async renderChatPage(endpoint: string) {
-    if (this.isRendered || !endpoint) return;
+  private async displayChatPage(endpoint: string, opts?: { force: boolean }) {
+    if (!endpoint) return;
+    if (this.isChatPageDisplayed && !opts?.force) return;
 
     if (this.webview) {
+      this.isChatPageDisplayed = true;
       const styleUri = this.webview?.webview.asWebviewUri(
         Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
       );
 
-      this.isRendered = true;
       this.webview.webview.html = `
         <!DOCTYPE html>
         <html lang="en">
@@ -284,10 +324,10 @@ export class ChatViewProvider implements WebviewViewProvider {
               const syncTheme = () => {
                 const chatIframe = document.getElementById("chat");
                 if (!chatIframe) return
-          
+
                 const parentHtmlStyle = document.documentElement.getAttribute('style');
                 chatIframe.contentWindow.postMessage({ style: parentHtmlStyle }, "${endpoint}");
-            
+
                 let themeClass = getTheme()
                 themeClass += ' vscode'
                 chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${endpoint}");
@@ -308,7 +348,9 @@ export class ChatViewProvider implements WebviewViewProvider {
       
                   chatIframe.addEventListener('load', function() {
                     vscode.postMessage({ action: 'rendered' });
-                    syncTheme()
+                    setTimeout(() => {
+                      syncTheme()
+                    }, 300)
                   });
 
                   chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery + themeQuery + fontSizeQuery + foregroundQuery)
@@ -340,6 +382,39 @@ export class ChatViewProvider implements WebviewViewProvider {
             <iframe
               id="chat"
               allow="clipboard-read; clipboard-write" />
+          </body>
+        </html>
+      `;
+    }
+  }
+
+  private displayDisconnectedPage() {
+    if (this.webview) {
+      this.isChatPageDisplayed = false;
+
+      const logoUri = this.webview?.webview.asWebviewUri(
+        Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"),
+      );
+      const styleUri = this.webview?.webview.asWebviewUri(
+        Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
+      );
+      this.webview.webview.html = `
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <link href="${styleUri}" rel="stylesheet">
+          </head>
+          <body>
+            <main class='static-content'>
+              <div class='avatar'>
+                <img src="${logoUri}" />
+                <p>Tabby</p>
+              </div>
+              <h4 class='title'>Welcome to Tabby Chat!</h4>
+              <p>To start chatting, please set up your Tabby server. Ensure that your Tabby server is properly configured and connected.</p>
+            </main>
           </body>
         </html>
       `;

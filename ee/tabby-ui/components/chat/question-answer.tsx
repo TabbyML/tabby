@@ -156,10 +156,14 @@ function UserMessageCard(props: { message: UserMessage }) {
             <UserMessageCardActions {...props} />
           </div>
 
-          {selectCode && message.selectContext && client !== 'vscode' && (
+          {selectCode && message.selectContext && (
             <div
               className="flex cursor-pointer items-center gap-1 overflow-x-auto text-xs text-muted-foreground hover:underline"
-              onClick={() => onNavigateToContext?.(message.selectContext!)}
+              onClick={() =>
+                onNavigateToContext?.(message.selectContext!, {
+                  openInEditor: client === 'vscode'
+                })
+              }
             >
               <IconFile className="h-3 w-3" />
               <p className="flex-1 truncate pr-1">

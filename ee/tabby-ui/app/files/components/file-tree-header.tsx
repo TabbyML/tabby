@@ -117,6 +117,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     if (!refs?.length) return []
     return refs.map(ref => resolveRepoRef(ref))
   }, [refs])
+
   const branches = formattedRefs.filter(o => o.kind === 'branch')
   const tags = formattedRefs.filter(o => o.kind === 'tag')
   const commandOptions = activeRefKind === 'tag' ? tags : branches
@@ -226,9 +227,24 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     }
   }, [])
 
+  const onClickFilesTitle = () => {
+    if (!activeRepo) return
+    updateActivePath(
+      generateEntryPath(activeRepo, activeEntryInfo?.rev, '', 'dir')
+    )
+  }
+
   return (
     <div className={cn(className)} {...props}>
-      <div className="py-4 font-bold leading-8">Files</div>
+      <div className="py-4 font-bold leading-8" onClick={onClickFilesTitle}>
+        <span
+          className={cn('py-1', {
+            'hover:underline cursor-pointer': !!activeRepo
+          })}
+        >
+          Files
+        </span>
+      </div>
       <div className="space-y-3">
         {/* Repository select */}
         <Select
@@ -283,196 +299,202 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
             )}
           </SelectContent>
         </Select>
-        {/* branch select */}
-        <Popover open={refSelectVisible} onOpenChange={setRefSelectVisible}>
-          <PopoverTrigger asChild>
-            <Button
-              className="w-full justify-start gap-2 px-3"
-              variant="outline"
-            >
-              {!!activeRepoRef && (
-                <>
-                  {activeRepoRef.kind === 'branch' ? (
-                    <IconGitFork className="shrink-0" />
-                  ) : (
-                    <IconTag className="shrink-0" />
-                  )}
-                  <span className="truncate" title={activeRepoRef.name}>
-                    {activeRepoRef.name ?? ''}
-                  </span>
-                </>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-[var(--radix-popover-trigger-width)] p-0"
-            align="start"
-            side="bottom"
-          >
-            <Command className="transition-all">
-              <CommandInput
-                placeholder={
-                  activeRefKind === 'tag' ? 'Find a tag' : 'Find a branch'
-                }
-              />
-              <Tabs
-                className="my-1 border-b"
-                value={activeRefKind}
-                onValueChange={v => setActiveRefKind(v as RepositoryRefKind)}
-              >
-                <TabsList className="bg-popover py-0">
-                  <TabsTrigger value="branch">Branches</TabsTrigger>
-                  <TabsTrigger value="tag">Tags</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              <CommandList className="max-h-[30vh]">
-                <CommandEmpty>Nothing to show</CommandEmpty>
-                <CommandGroup>
-                  {commandOptions.map((ref, refIndex) => (
-                    <CommandItem
-                      key={ref.ref ?? refIndex}
-                      onSelect={() => {
-                        setRefSelectVisible(false)
-                        onSelectRef(ref.ref)
-                      }}
-                    >
-                      <IconCheck
-                        className={cn(
-                          'mr-2 shrink-0',
-                          !!ref?.name && ref.name === activeRepoRef?.name
-                            ? 'opacity-100'
-                            : 'opacity-0'
-                        )}
-                      />
-                      <span className="truncate" title={ref.name}>
-                        {ref.name ?? ''}
-                      </span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-        {/* Go to file */}
-        <SearchableSelect
-          stayOpenOnInputClick
-          options={options}
-          onSelect={onSelectFile}
-          open={optionsVisible}
-          onOpenChange={v => {
-            if ((input || options?.length) && v) {
-              setOptionsVisible(true)
-            } else {
-              setOptionsVisible(false)
-            }
-          }}
-        >
-          {({ highlightedIndex }) => {
-            return (
-              <>
-                <SearchableSelectAnchor>
-                  <div className="relative">
-                    <SearchableSelectInput
-                      className="pr-8"
-                      placeholder="Go to file"
-                      spellCheck={false}
-                      value={input}
-                      ref={inputRef}
-                      disabled={!repositoryName}
-                      onClick={e => {
-                        if (repositorySearchPattern && !optionsVisible) {
-                          setOptionsVisible(true)
-                        }
-                      }}
-                      onChange={e => {
-                        let value = e.target.value
-                        setInput(value)
-                        if (!value) {
-                          onClearInput()
-                        } else {
-                          onInputValueChange.run(value)
-                        }
-                      }}
-                    />
-                    <div className="absolute right-2 top-0 flex h-full items-center">
-                      {input ? (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 cursor-pointer"
-                          onClick={e => {
-                            setInput('')
-                            onClearInput()
-                            inputRef.current?.focus()
-                          }}
-                        >
-                          <IconClose />
-                        </Button>
-                      ) : (
-                        <kbd
-                          className="rounded-md border bg-secondary/50 px-1.5 text-xs leading-4 text-muted-foreground shadow-[inset_-0.5px_-1.5px_0_hsl(var(--muted))]"
-                          onClick={e => {
-                            inputRef.current?.focus()
-                          }}
-                        >
-                          t
-                        </kbd>
-                      )}
-                    </div>
-                  </div>
-                </SearchableSelectAnchor>
-                <SearchableSelectContent
-                  align="start"
-                  side="bottom"
-                  onOpenAutoFocus={e => e.preventDefault()}
-                  style={{ width: '50vw', maxWidth: 700 }}
-                  className="max-h-[50vh] overflow-y-auto"
+        {!!activeRepo && (
+          <>
+            {/* branch select */}
+            <Popover open={refSelectVisible} onOpenChange={setRefSelectVisible}>
+              <PopoverTrigger asChild>
+                <Button
+                  className="w-full justify-start gap-2 px-3"
+                  variant="outline"
                 >
-                  <>
-                    {options?.length ? (
-                      options?.map((item, index) => (
-                        <SearchableSelectOption
-                          item={item}
-                          index={index}
-                          key={item?.id}
-                          className="flex w-full items-center gap-2 overflow-x-hidden"
+                  {!!activeRepoRef && (
+                    <>
+                      {activeRepoRef.kind === 'branch' ? (
+                        <IconGitFork className="shrink-0" />
+                      ) : (
+                        <IconTag className="shrink-0" />
+                      )}
+                      <span className="truncate" title={activeRepoRef.name}>
+                        {activeRepoRef.name ?? ''}
+                      </span>
+                    </>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-[var(--radix-popover-trigger-width)] p-0"
+                align="start"
+                side="bottom"
+              >
+                <Command className="transition-all">
+                  <CommandInput
+                    placeholder={
+                      activeRefKind === 'tag' ? 'Find a tag' : 'Find a branch'
+                    }
+                  />
+                  <Tabs
+                    className="my-1 border-b"
+                    value={activeRefKind}
+                    onValueChange={v =>
+                      setActiveRefKind(v as RepositoryRefKind)
+                    }
+                  >
+                    <TabsList className="bg-popover py-0">
+                      <TabsTrigger value="branch">Branches</TabsTrigger>
+                      <TabsTrigger value="tag">Tags</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                  <CommandList className="max-h-[30vh]">
+                    <CommandEmpty>Nothing to show</CommandEmpty>
+                    <CommandGroup>
+                      {commandOptions.map((ref, refIndex) => (
+                        <CommandItem
+                          key={ref.ref ?? refIndex}
+                          onSelect={() => {
+                            setRefSelectVisible(false)
+                            onSelectRef(ref.ref)
+                          }}
                         >
-                          <div className="shrink-0">
-                            {item.type === 'dir' ? (
-                              <IconDirectorySolid
-                                style={{ color: 'rgb(84, 174, 255)' }}
-                              />
-                            ) : (
-                              <IconFile />
+                          <IconCheck
+                            className={cn(
+                              'mr-2 shrink-0',
+                              !!ref?.name && ref.name === activeRepoRef?.name
+                                ? 'opacity-100'
+                                : 'opacity-0'
                             )}
-                          </div>
-                          <div className="flex-1 break-all">
-                            <HighlightMatches
-                              text={item.path}
-                              indices={item.indices}
-                            />
-                          </div>
-                          {highlightedIndex === index && (
-                            <div className="shrink-0`">
-                              {item.type === 'dir'
-                                ? 'Go to folder'
-                                : 'Go to file'}
-                            </div>
+                          />
+                          <span className="truncate" title={ref.name}>
+                            {ref.name ?? ''}
+                          </span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {/* Go to file */}
+            <SearchableSelect
+              stayOpenOnInputClick
+              options={options}
+              onSelect={onSelectFile}
+              open={optionsVisible}
+              onOpenChange={v => {
+                if ((input || options?.length) && v) {
+                  setOptionsVisible(true)
+                } else {
+                  setOptionsVisible(false)
+                }
+              }}
+            >
+              {({ highlightedIndex }) => {
+                return (
+                  <>
+                    <SearchableSelectAnchor>
+                      <div className="relative">
+                        <SearchableSelectInput
+                          className="pr-8"
+                          placeholder="Go to file"
+                          spellCheck={false}
+                          value={input}
+                          ref={inputRef}
+                          disabled={!repositoryName}
+                          onClick={e => {
+                            if (repositorySearchPattern && !optionsVisible) {
+                              setOptionsVisible(true)
+                            }
+                          }}
+                          onChange={e => {
+                            let value = e.target.value
+                            setInput(value)
+                            if (!value) {
+                              onClearInput()
+                            } else {
+                              onInputValueChange.run(value)
+                            }
+                          }}
+                        />
+                        <div className="absolute right-2 top-0 flex h-full items-center">
+                          {input ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 cursor-pointer"
+                              onClick={e => {
+                                setInput('')
+                                onClearInput()
+                                inputRef.current?.focus()
+                              }}
+                            >
+                              <IconClose />
+                            </Button>
+                          ) : (
+                            <kbd
+                              className="rounded-md border bg-secondary/50 px-1.5 text-xs leading-4 text-muted-foreground shadow-[inset_-0.5px_-1.5px_0_hsl(var(--muted))]"
+                              onClick={e => {
+                                inputRef.current?.focus()
+                              }}
+                            >
+                              t
+                            </kbd>
                           )}
-                        </SearchableSelectOption>
-                      ))
-                    ) : (
-                      <div className="flex h-24 items-center justify-center">
-                        No matches found
+                        </div>
                       </div>
-                    )}
+                    </SearchableSelectAnchor>
+                    <SearchableSelectContent
+                      align="start"
+                      side="bottom"
+                      onOpenAutoFocus={e => e.preventDefault()}
+                      style={{ width: '50vw', maxWidth: 700 }}
+                      className="max-h-[50vh] overflow-y-auto"
+                    >
+                      <>
+                        {options?.length ? (
+                          options?.map((item, index) => (
+                            <SearchableSelectOption
+                              item={item}
+                              index={index}
+                              key={item?.id}
+                              className="flex w-full items-center gap-2 overflow-x-hidden"
+                            >
+                              <div className="shrink-0">
+                                {item.type === 'dir' ? (
+                                  <IconDirectorySolid
+                                    style={{ color: 'rgb(84, 174, 255)' }}
+                                  />
+                                ) : (
+                                  <IconFile />
+                                )}
+                              </div>
+                              <div className="flex-1 break-all">
+                                <HighlightMatches
+                                  text={item.path}
+                                  indices={item.indices}
+                                />
+                              </div>
+                              {highlightedIndex === index && (
+                                <div className="shrink-0`">
+                                  {item.type === 'dir'
+                                    ? 'Go to folder'
+                                    : 'Go to file'}
+                                </div>
+                              )}
+                            </SearchableSelectOption>
+                          ))
+                        ) : (
+                          <div className="flex h-24 items-center justify-center">
+                            No matches found
+                          </div>
+                        )}
+                      </>
+                    </SearchableSelectContent>
                   </>
-                </SearchableSelectContent>
-              </>
-            )
-          }}
-        </SearchableSelect>
+                )
+              }}
+            </SearchableSelect>
+          </>
+        )}
       </div>
     </div>
   )

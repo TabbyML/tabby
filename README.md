@@ -2,7 +2,7 @@
   
 # 🐾 Tabby
 
-[📚 Docs](https://tabby.tabbyml.com) • [💬 Slack](https://links.tabbyml.com/join-slack) • [✨ Live Demo](https://links.tabbyml.com/live-demo)
+[📚 Docs](https://tabby.tabbyml.com) • [💬 Slack](https://links.tabbyml.com/join-slack) • [✨ Live Demo](https://tally.so/embed/mZJ10o?dynamicHeight=1)
 
 [![latest release](https://shields.io/github/v/release/TabbyML/tabby?sort=semver)](https://github.com/TabbyML/tabby/releases/latest)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://makeapullrequest.com)
@@ -73,7 +73,7 @@ The easiest way to start a Tabby server is by using the following Docker command
 docker run -it \
   --gpus all -p 8080:8080 -v $HOME/.tabby:/data \
   tabbyml/tabby \
-  serve --model TabbyML/StarCoder-1B --device cuda
+  serve --model StarCoder-1B --device cuda --chat-model Qwen2-1.5B-Instruct
 ```
 For additional options (e.g inference type, parallelism), please refer to the [documentation page](https://tabbyml.github.io/tabby).
 
