@@ -230,7 +230,7 @@ pub struct CompletionService {
     engine: Arc<CodeGeneration>,
     logger: Arc<dyn EventLogger>,
     prompt_builder: completion_prompt::PromptBuilder,
-    complete_max_input_length: usize,
+    max_input_length: usize,
 }
 
 impl CompletionService {
