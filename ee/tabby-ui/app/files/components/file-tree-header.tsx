@@ -227,9 +227,24 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     }
   }, [])
 
+  const onClickFilesTitle = () => {
+    if (!activeRepo) return
+    updateActivePath(
+      generateEntryPath(activeRepo, activeEntryInfo?.rev, '', 'dir')
+    )
+  }
+
   return (
     <div className={cn(className)} {...props}>
-      <div className="py-4 font-bold leading-8">Files</div>
+      <div className="py-4 font-bold leading-8" onClick={onClickFilesTitle}>
+        <span
+          className={cn('py-1', {
+            'hover:underline cursor-pointer': !!activeRepo
+          })}
+        >
+          Files
+        </span>
+      </div>
       <div className="space-y-3">
         {/* Repository select */}
         <Select
