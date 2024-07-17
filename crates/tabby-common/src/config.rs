@@ -2,6 +2,7 @@ use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
+use chrono::Local;
 use derive_builder::Builder;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
@@ -209,6 +210,18 @@ pub enum ModelConfig {
     Local(LocalModelConfig),
 }
 
+impl ModelConfig {
+    pub fn new_local(model_id: &str, parallelism: u8, num_gpu_layers: u16) -> Self {
+        Self::Local(LocalModelConfig {
+            model_id: model_id.to_owned(),
+            parallelism,
+            num_gpu_layers,
+            enable_fast_attention: None,
+            context_size: default_context_size(),
+        })
+    }
+}
+
 #[derive(Serialize, Deserialize, Builder, Debug, Clone)]
 pub struct HttpModelConfig {
     /// The kind of model, we have three group of models:
@@ -266,7 +279,7 @@ fn default_num_gpu_layers() -> u16 {
     9999
 }
 
-pub fn default_context_size() -> usize {
+fn default_context_size() -> usize {
     4096
 }
 

@@ -131,11 +131,6 @@ fn to_local_config(model: &str, parallelism: u8, device: &Device) -> ModelConfig
     } else {
         0
     };
-    ModelConfig::Local(LocalModelConfig {
-        model_id: model.to_owned(),
-        parallelism,
-        num_gpu_layers,
-        enable_fast_attention: None,
-        context_size: default_context_size(),
-    })
+
+    ModelConfig::new_local(model, parallelism, num_gpu_layers)
 }
