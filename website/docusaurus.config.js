@@ -256,4 +256,11 @@ export default {
       },
     ],
   ],
+
+  scripts: [
+    {
+      src: "https://tally.so/widgets/embed.js",
+      async: true
+    }
+  ]
 };
