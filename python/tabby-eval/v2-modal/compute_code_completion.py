@@ -184,14 +184,17 @@ def cross_file_data_function(row, prompt_template):
     crossfile_context_list = row['segments.crossfile_context.list']
     sorted_list = sorted(crossfile_context_list, key=lambda x: x['score'])
 
+    # TODO: The added prefix comments should be consistent with the language, for the time being use "//" for all
     combined_context = "\n".join(
-        f"// {item['filename']}\n// {item['retrieved_chunk']}" for item in sorted_list
+        f"// Path: {item['filename']}\n" + "\n".join(f"// {line}" for line in item['retrieved_chunk'].split("\n"))
+        for item in sorted_list
     ) + "\n"
+    logging.debug(f"Combined context in cross_file_data_function: {combined_context}")
 
     return {
         "debug_options": {
-            "raw_prompt": combined_context + prompt_template.format(
-                prefix=row['segments.prefix'],
+            "raw_prompt": prompt_template.format(
+                prefix=combined_context + row['segments.prefix'],
                 suffix=row['segments.suffix'])
         }
     }
