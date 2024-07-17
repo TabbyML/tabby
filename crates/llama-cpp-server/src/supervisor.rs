@@ -1,8 +1,4 @@
-use std::{
-    env::{self, var},
-    net::TcpListener,
-    process::Stdio,
-};
+use std::{env::var, net::TcpListener, process::Stdio};
 
 use tokio::{io::AsyncBufReadExt, task::JoinHandle};
 use tracing::{debug, warn};

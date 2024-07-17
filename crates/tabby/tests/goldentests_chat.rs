@@ -103,7 +103,7 @@ async fn golden_test(body: serde_json::Value) -> String {
                     actual += content
                 }
             }
-            Err(e) => {
+            Err(_e) => {
                 // StreamEnd
                 break;
             }
