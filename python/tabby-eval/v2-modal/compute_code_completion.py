@@ -196,23 +196,10 @@ def default_data_function(row):
 
 
 def cross_file_data_function(row, prompt_template):
-    crossfile_context_list = row['segments.crossfile_context.list']
-    sorted_list = sorted(crossfile_context_list, key=lambda x: x['score'])
-    combined_context = ""
-
-    for item in sorted_list:
-        combined_context += f"// Path: {item['filename']}\n"
-        retrieved_chunk = item['retrieved_chunk']
-
-        for line in retrieved_chunk.split("\n"):
-            combined_context += f"// {line}\n"
-
-    logging.debug(f"Combined context in cross_file_data_function: {combined_context}")
-
     return {
         "debug_options": {
             "raw_prompt": prompt_template.format(
-                prefix=combined_context + row['segments.prefix'],
+                prefix=row['segments.crossfile_context.text'] + row['segments.prefix'],
                 suffix=row['segments.suffix'])
         }
     }
