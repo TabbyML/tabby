@@ -152,10 +152,10 @@ def eval_code_completion(endpoint: str,
                          jsonl_file: str,
                          output_prediction_jsonl_file: str,
                          output_evaluation_jsonl_file: str,
-                         need_manager_modal: bool):
+                         start_tabby_server_on_modal: bool):
     # Start modal tabby server
     process = None
-    if need_manager_modal:
+    if start_tabby_server_on_modal:
         process = start_tabby_server(model)
 
     # Check the service health
@@ -173,7 +173,7 @@ def eval_code_completion(endpoint: str,
     logging.info("Evaluation completed")
 
     # Stop the server
-    if need_manager_modal and process:
+    if start_tabby_server_on_modal and process:
         logging.info("Stopping server...")
         send_sigint_to_process(process)
         logging.info("Server stopped!")
@@ -187,15 +187,15 @@ if __name__ == "__main__":
     parser.add_argument("--jsonl_file", type=str, default="data.jsonl", help="evaluation jsonl file.")
     parser.add_argument("--output_prediction_jsonl_file", type=str, help="output prediction jsonl file.")
     parser.add_argument("--output_evaluation_jsonl_file", type=str, help="output evaluation jsonl file.")
-    parser.add_argument("--need_manager_modal", type=str, default="1",
-                        help="Whether a manager modal is needed. Accepts 1 or another.")
+    parser.add_argument("--start_tabby_server_on_modal", type=str, default="1",
+                        help="start tabby server on modal manager, accepts 1 or another.")
 
     args = parser.parse_args()
-    bool_need_manager_modal = True if args.need_manager_modal == "1" else False
+    bool_start_tabby_server_on_modal = True if args.start_tabby_server_on_modal == "1" else False
     eval_code_completion(args.endpoint,
                          args.token,
                          args.model,
                          args.jsonl_file,
                          args.output_prediction_jsonl_file,
                          args.output_evaluation_jsonl_file,
-                         bool_need_manager_modal)
+                         bool_start_tabby_server_on_modal)

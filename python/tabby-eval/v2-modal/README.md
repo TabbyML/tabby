@@ -27,11 +27,10 @@ This script will call the Tabby service and evaluate the quality of code complet
 
 ```bash
 python compute_code_completion.py -h
-usage: compute_code_completion.py [-h] --endpoint ENDPOINT --token TOKEN --model MODEL
-                                  [--jsonl_file JSONL_FILE]
+usage: compute_code_completion.py [-h] --endpoint ENDPOINT --token TOKEN --model MODEL [--jsonl_file JSONL_FILE]
                                   [--output_prediction_jsonl_file OUTPUT_PREDICTION_JSONL_FILE]
                                   [--output_evaluation_jsonl_file OUTPUT_EVALUATION_JSONL_FILE]
-                                  [--need_manager_modal NEED_MANAGER_MODAL]
+                                  [--start_tabby_server_on_modal START_TABBY_SERVER_ON_MODAL]
 
 eval tabby code completion.
 
@@ -46,11 +45,11 @@ options:
                         output prediction jsonl file.
   --output_evaluation_jsonl_file OUTPUT_EVALUATION_JSONL_FILE
                         output evaluation jsonl file.
-  --start_tabby_server_on_modal NEED_MANAGER_MODAL
-                        Whether a manager modal is needed. Accepts 1 or another.
+  --start_tabby_server_on_modal START_TABBY_SERVER_ON_MODAL
+                        start tabby server on modal manager, accepts 1 or another.
 ```
 
-If you already have a Tabby service running, you can set the `need_manager_modal` parameter to 0 to avoid starting a standalone Tabby service. Example:
+If you already have a Tabby service running, you can set the `start_tabby_server_on_modal` parameter to 0 to avoid starting a standalone Tabby service. Example:
 
 ```bash
 python compute_code_completion.py \
@@ -60,7 +59,7 @@ python compute_code_completion.py \
   --jsonl_file data.jsonl \
   --output_prediction_jsonl_file 20240717-StarCoder-1B.jsonl \
   --output_evaluation_jsonl_file 20240717-StarCoder-1B-evaluation.jsonl \
-  --need_manager_modal 0
+  --start_tabby_server_on_modal 0
 ```
 
 If you have a JSONL file with code completion results, you can use the `compute_metrics.py` script. Example:
