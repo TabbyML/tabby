@@ -188,6 +188,7 @@ pub struct ModelConfigGroup {
     #[serde(default = "default_embedding_config")]
     pub embedding: ModelConfig,
 
+    #[serde(default = "default_completion_max_input_length")]
     pub completion_max_input_length: usize,
 }
 
@@ -197,7 +198,7 @@ impl Default for ModelConfigGroup {
             completion: None,
             chat: None,
             embedding: default_embedding_config(),
-            completion_max_input_length: 1025 + 512,
+            completion_max_input_length: default_completion_max_input_length(),
         }
     }
 }
@@ -266,8 +267,12 @@ fn default_num_gpu_layers() -> u16 {
     9999
 }
 
-fn default_context_size() -> usize {
+pub fn default_context_size() -> usize {
     4096
+}
+
+fn default_completion_max_input_length() -> usize {
+    1024 + 512
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]

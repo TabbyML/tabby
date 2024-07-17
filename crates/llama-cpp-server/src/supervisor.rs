@@ -25,7 +25,7 @@ impl LlamaCppSupervisor {
         parallelism: u8,
         chat_template: Option<String>,
         enable_fast_attention: bool,
-        llama_context_size: usize,
+        context_size: usize,
     ) -> LlamaCppSupervisor {
         let Some(binary_name) = find_binary_name() else {
             panic!("Failed to locate llama-server binary, please make sure you have llama-server binary locates in the same directory as the current executable.");
@@ -54,7 +54,7 @@ impl LlamaCppSupervisor {
                     .arg(parallelism.to_string())
                     .arg("--log-disable")
                     .arg("--ctx-size")
-                    .arg(llama_context_size.to_string())
+                    .arg(context_size.to_string())
                     .kill_on_drop(true)
                     .stderr(Stdio::piped())
                     .stdout(Stdio::null());
