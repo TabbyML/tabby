@@ -46,7 +46,7 @@ options:
                         output prediction jsonl file.
   --output_evaluation_jsonl_file OUTPUT_EVALUATION_JSONL_FILE
                         output evaluation jsonl file.
-  --need_manager_modal NEED_MANAGER_MODAL
+  --start_tabby_server_on_modal NEED_MANAGER_MODAL
                         Whether a manager modal is needed. Accepts 1 or another.
 ```
 
