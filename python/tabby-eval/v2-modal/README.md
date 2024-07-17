@@ -19,7 +19,8 @@ python compute_code_completion.py \
   --token auth_f1bd0151d4ff4dc6b0ea56cfc82a8b82 \
   --model TabbyML/StarCoder-1B \
   --jsonl_file data.jsonl \
-  --output_prediction_jsonl_file 20240716-StarCoder-1B.jsonl
+  --output_prediction_jsonl_file 20240717-StarCoder-1B.jsonl \
+  --output_evaluation_jsonl_file 20240717-StarCoder-1B-evaluation.jsonl
 ```
 
 This script will call the Tabby service and evaluate the quality of code completion. The script’s parameters are as follows:
@@ -29,6 +30,7 @@ python compute_code_completion.py -h
 usage: compute_code_completion.py [-h] --endpoint ENDPOINT --token TOKEN --model MODEL
                                   [--jsonl_file JSONL_FILE]
                                   [--output_prediction_jsonl_file OUTPUT_PREDICTION_JSONL_FILE]
+                                  [--output_evaluation_jsonl_file OUTPUT_EVALUATION_JSONL_FILE]
                                   [--need_manager_modal NEED_MANAGER_MODAL]
 
 eval tabby code completion.
@@ -42,6 +44,8 @@ options:
                         evaluation jsonl file.
   --output_prediction_jsonl_file OUTPUT_PREDICTION_JSONL_FILE
                         output prediction jsonl file.
+  --output_evaluation_jsonl_file OUTPUT_EVALUATION_JSONL_FILE
+                        output evaluation jsonl file.
   --need_manager_modal NEED_MANAGER_MODAL
                         Whether a manager modal is needed. Accepts 1 or another.
 ```
@@ -54,7 +58,8 @@ python compute_code_completion.py \
   --token auth_f1bd0151d4ff4dc6b0ea56cfc82a8b82 \
   --model TabbyML/StarCoder-1B \
   --jsonl_file data.jsonl \
-  --output_prediction_jsonl_file 20240716-StarCoder-1B.jsonl \
+  --output_prediction_jsonl_file 20240717-StarCoder-1B.jsonl \
+  --output_evaluation_jsonl_file 20240717-StarCoder-1B-evaluation.jsonl \
   --need_manager_modal 0
 ```
 
@@ -62,8 +67,8 @@ If you have a JSONL file with code completion results, you can use the `compute_
 
 ```bash
 python compute_metrics.py \
-  --prediction_jsonl_file 20240716-StarCoder-1B.jsonl \
-  --output_evaluation_jsonl_file 20240716-StarCoder-1B-evaluation.jsonl
+  --prediction_jsonl_file 20240717-StarCoder-1B.jsonl \
+  --output_evaluation_jsonl_file 20240717-StarCoder-1B-evaluation.jsonl
 ```
 
 The script’s parameters are as follows:
@@ -86,7 +91,7 @@ options:
 If you have a JSONL file with evaluation results, you can use the `avg_metrics.py` script. Example:
 
 ```bash
-python avg_metrics.py --evaluation_jsonl_file 20240716-StarCoder-1B-evaluation.jsonl
+python avg_metrics.py --evaluation_jsonl_file 20240717-StarCoder-1B-evaluation.jsonl
 ```
 
 The script’s parameters are as follows:

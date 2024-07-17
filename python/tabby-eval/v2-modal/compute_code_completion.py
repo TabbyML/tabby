@@ -151,6 +151,7 @@ def eval_code_completion(endpoint: str,
                          model: str,
                          jsonl_file: str,
                          output_prediction_jsonl_file: str,
+                         output_evaluation_jsonl_file: str,
                          need_manager_modal: bool):
     # Start modal tabby server
     process = None
@@ -168,7 +169,7 @@ def eval_code_completion(endpoint: str,
 
     # Run the evaluation
     logging.info("Running evaluation...")
-    evaluation(output_prediction_jsonl_file)
+    evaluation(output_prediction_jsonl_file, output_evaluation_jsonl_file)
     logging.info("Evaluation completed")
 
     # Stop the server
@@ -185,6 +186,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, required=True, help="evaluation model.")
     parser.add_argument("--jsonl_file", type=str, default="data.jsonl", help="evaluation jsonl file.")
     parser.add_argument("--output_prediction_jsonl_file", type=str, help="output prediction jsonl file.")
+    parser.add_argument("--output_evaluation_jsonl_file", type=str, help="output evaluation jsonl file.")
     parser.add_argument("--need_manager_modal", type=str, default="1",
                         help="Whether a manager modal is needed. Accepts 1 or another.")
 
@@ -195,4 +197,5 @@ if __name__ == "__main__":
                          args.model,
                          args.jsonl_file,
                          args.output_prediction_jsonl_file,
+                         args.output_evaluation_jsonl_file,
                          bool_need_manager_modal)
