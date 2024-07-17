@@ -22,17 +22,23 @@ logging.basicConfig(
 )
 
 
+def generate_headers(token):
+    headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+    }
+    if token:
+        headers["Authorization"] = f'Bearer {token}'
+
+    return headers
+
+
 def check_service_health(endpoint, token):
     def modal_tabby_ready():
-        url = "{}/v1/health".format(endpoint)
-        headers = {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "Authorization": f'Bearer {token}'
-        }
-
         try:
-            response = httpx.get(url=url, headers=headers, timeout=5)
+            response = httpx.get(url=("{}/v1/health".format(endpoint)),
+                                 headers=generate_headers(token),
+                                 timeout=5)
             if response.status_code == 200:
                 logging.info("Server details: {}".format(response.json()))
                 return True
@@ -45,7 +51,7 @@ def check_service_health(endpoint, token):
     while not modal_tabby_ready():
         time.sleep(5)
 
-    logging.info("Modal tabby server ready!")
+    logging.info("Tabby server ready!\n\n")
 
 
 def monitor_serve_output(process):
@@ -82,19 +88,22 @@ def send_sigint_to_process(process):
         logging.error(f"Failed to send SIGINT signal: {e}")
 
 
-def send_request_with_retry(url, headers, payload, timeout=10, max_retries=10):
+def send_request_with_retry(url, headers, data, timeout=10, max_retries=10):
     retries = 0
     response = None
 
     while retries < max_retries:
         try:
-            response = httpx.post(url=url, headers=headers, content=json.dumps(payload), timeout=timeout)
+            response = httpx.post(url=url,
+                                  headers=headers,
+                                  content=json.dumps(data),
+                                  timeout=timeout)
             if response.status_code == 200:
                 return response
             else:
                 retries += 1
                 time.sleep(1)
-        except httpx.RequestError as e:
+        except Exception as e:
             logging.error(f"Get code completion failed: {e}")
             retries += 1
             time.sleep(1)
@@ -116,12 +125,15 @@ def get_model_prompt_template(model_id: str):
     registry, model_name = parse_model_id(model_id)
     url = f"https://raw.githubusercontent.com/{registry}/registry-tabby/main/models.json"
 
-    response = httpx.get(url=url)
-    response.raise_for_status()
+    try:
+        response = httpx.get(url=url)
+        response.raise_for_status()
 
-    for model in response.json():
-        if model["name"] == model_name:
-            return model.get("prompt_template", None)
+        for model in response.json():
+            if model["name"] == model_name:
+                return model.get("prompt_template", None)
+    except Exception as e:
+        logging.error(f"Failed to get model prompt template: {e}")
 
     return None
 
@@ -132,30 +144,32 @@ def generate_predictions(endpoint: str,
                          prediction_jsonl_file: str,
                          data_function,
                          prompt_template: str = None):
-    logging.info(f"Generating predictions to {prediction_jsonl_file}...")
+    logging.info(f"{prediction_jsonl_file} Start generating predictions ...")
     df = pd.read_json(jsonl_file, lines=True)
     df_flat = json_normalize(df.to_dict(orient="records"))
-
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': f'Bearer {token}'
-    }
 
     predictions = []
     prediction_status = []
     for index, row in df_flat.iterrows():
+        url = f"{endpoint}/v1/completions"
         data = data_function(row, prompt_template) if prompt_template else data_function(row)
 
-        # TODO: Add parallelism support
-        url = f"{endpoint}/v1/completions"
-        response = send_request_with_retry(url, headers, data, timeout=10, max_retries=10)
-
-        if response.status_code == 200:
-            predictions.append(response.json()['choices'][0]['text'])
-            prediction_status.append("success")
-        else:
-            predictions.append("Request failed after retry.")
+        try:
+            # TODO: Add parallelism support
+            response = send_request_with_retry(url=url,
+                                               headers=generate_headers(token),
+                                               data=data,
+                                               timeout=10,
+                                               max_retries=1)
+            if response.status_code == 200:
+                predictions.append(response.json()['choices'][0]['text'])
+                prediction_status.append("success")
+            else:
+                predictions.append("Request get status code: {}".format(response.status_code))
+                prediction_status.append("failed")
+        except Exception as e:
+            logging.error(f"Failed to get prediction: {e}")
+            predictions.append("Request get exception: {}".format(e))
             prediction_status.append("failed")
 
     df_flat['prediction'] = predictions
@@ -165,9 +179,10 @@ def generate_predictions(endpoint: str,
     total_records = len(df_flat)
     success_count = len(df_success)
     failed_count = total_records - success_count
-    logging.info(f"Total predictions: {total_records}, Success: {success_count}, Failed: {failed_count}")
+    logging.info(f"{prediction_jsonl_file} Total predictions: {total_records}, "
+                 f"Success: {success_count}, Failed: {failed_count}\n\n")
 
-    df_success.to_json(prediction_jsonl_file, orient='records', lines=True)
+    df_success.to_json(prediction_jsonl_file, orient='records', lines=True, force_ascii=False)
 
 
 def default_data_function(row):
@@ -183,12 +198,15 @@ def default_data_function(row):
 def cross_file_data_function(row, prompt_template):
     crossfile_context_list = row['segments.crossfile_context.list']
     sorted_list = sorted(crossfile_context_list, key=lambda x: x['score'])
+    combined_context = ""
 
-    # TODO: The added prefix comments should be consistent with the language, for the time being use "//" for all
-    combined_context = "\n".join(
-        f"// Path: {item['filename']}\n" + "\n".join(f"// {line}" for line in item['retrieved_chunk'].split("\n"))
-        for item in sorted_list
-    ) + "\n"
+    for item in sorted_list:
+        combined_context += f"// Path: {item['filename']}\n"
+        retrieved_chunk = item['retrieved_chunk']
+
+        for line in retrieved_chunk.split("\n"):
+            combined_context += f"// {line}\n"
+
     logging.debug(f"Combined context in cross_file_data_function: {combined_context}")
 
     return {
@@ -243,7 +261,7 @@ def eval_code_completion(endpoint: str,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="eval tabby code completion.")
     parser.add_argument("--endpoint", type=str, required=True, help="tabby server endpoint.")
-    parser.add_argument("--token", type=str, required=True, default="", help="tabby server token.")
+    parser.add_argument("--token", type=str, required=False, default="", help="tabby server token.")
     parser.add_argument("--model", type=str, required=True, help="evaluation model.")
     parser.add_argument("--jsonl_file", type=str, default="data.jsonl", help="evaluation jsonl file.")
     parser.add_argument("--output_jsonl_file_prefix", type=str, help="""

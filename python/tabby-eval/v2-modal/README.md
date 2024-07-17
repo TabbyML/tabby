@@ -18,7 +18,7 @@ python compute_code_completion.py \
   --endpoint https://moqimoqidea--tabby-server-app-serve-dev.modal.run \
   --token auth_f1bd0151d4ff4dc6b0ea56cfc82a8b82 \
   --model TabbyML/StarCoder-1B \
-  --jsonl_file data/one-record.jsonl \
+  --jsonl_file data/data-1.jsonl \
   --output_jsonl_file_prefix data/20240717-StarCoder-1B
 ```
 
