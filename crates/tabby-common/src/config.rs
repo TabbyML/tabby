@@ -23,6 +23,9 @@ pub struct Config {
 
     #[serde(default)]
     pub model: ModelConfigGroup,
+
+    #[serde(default)]
+    pub completion: CompletionConfig,
 }
 
 impl Config {
@@ -187,9 +190,6 @@ pub struct ModelConfigGroup {
     pub chat: Option<ModelConfig>,
     #[serde(default = "default_embedding_config")]
     pub embedding: ModelConfig,
-
-    #[serde(default = "default_completion_max_input_length")]
-    pub completion_max_input_length: usize,
 }
 
 impl Default for ModelConfigGroup {
@@ -198,7 +198,6 @@ impl Default for ModelConfigGroup {
             completion: None,
             chat: None,
             embedding: default_embedding_config(),
-            completion_max_input_length: default_completion_max_input_length(),
         }
     }
 }
@@ -271,8 +270,17 @@ pub fn default_context_size() -> usize {
     4096
 }
 
-fn default_completion_max_input_length() -> usize {
-    1024 + 512
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CompletionConfig {
+    pub max_input_length: usize,
+}
+
+impl Default for CompletionConfig {
+    fn default() -> Self {
+        Self {
+            max_input_length: 1024 + 512,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]

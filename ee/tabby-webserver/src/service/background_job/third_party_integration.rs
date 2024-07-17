@@ -142,7 +142,7 @@ impl SchedulerGithubGitlabJob {
                     logkit::info!("{} documents has been processed, {} has been updated", count, num_updated);
                 };
             }
-            
+
             logkit::info!("{} documents has been processed, {} has been updated", count, num_updated);
             index.commit();
         }.count().await;

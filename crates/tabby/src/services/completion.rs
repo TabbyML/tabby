@@ -9,7 +9,7 @@ use tabby_common::{
         code::CodeSearch,
         event::{Event, EventLogger},
     },
-    config::ModelConfig,
+    config::{CompletionConfig, ModelConfig},
     languages::get_language,
 };
 use tabby_inference::{CodeGeneration, CodeGenerationOptions, CodeGenerationOptionsBuilder};
@@ -227,25 +227,25 @@ pub struct DebugData {
 }
 
 pub struct CompletionService {
+    config: CompletionConfig,
     engine: Arc<CodeGeneration>,
     logger: Arc<dyn EventLogger>,
     prompt_builder: completion_prompt::PromptBuilder,
-    max_input_length: usize,
 }
 
 impl CompletionService {
     fn new(
+        config: CompletionConfig,
         engine: Arc<CodeGeneration>,
         code: Arc<dyn CodeSearch>,
         logger: Arc<dyn EventLogger>,
         prompt_template: Option<String>,
-        complete_max_input_length: usize,
     ) -> Self {
         Self {
+            config,
             engine,
             prompt_builder: completion_prompt::PromptBuilder::new(prompt_template, Some(code)),
             logger,
-            complete_max_input_length,
         }
     }
 
@@ -294,7 +294,7 @@ impl CompletionService {
             language.as_str(),
             request.temperature,
             request.seed,
-            self.complete_max_input_length,
+            self.config.max_input_length,
         );
 
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
@@ -349,10 +349,10 @@ impl CompletionService {
 }
 
 pub async fn create_completion_service(
+    config: &CompletionConfig,
     code: Arc<dyn CodeSearch>,
     logger: Arc<dyn EventLogger>,
     model: &ModelConfig,
-    complete_max_input_length: usize,
 ) -> CompletionService {
     let (
         engine,
@@ -362,11 +362,11 @@ pub async fn create_completion_service(
     ) = model::load_code_generation(model).await;
 
     CompletionService::new(
+        config.to_owned(),
         engine.clone(),
         code,
         logger,
         prompt_template,
-        complete_max_input_length,
     )
 }
 
@@ -415,11 +415,11 @@ mod tests {
     fn mock_completion_service() -> CompletionService {
         let generation = CodeGeneration::new(Arc::new(MockCompletionStream));
         CompletionService::new(
+            CompletionConfig::default(),
             Arc::new(generation),
             Arc::new(MockCodeSearch),
             Arc::new(MockEventLogger),
             Some("<pre>{prefix}<mid>{suffix}<end>".into()),
-            1024 + 512,
         )
     }
 
