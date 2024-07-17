@@ -13,7 +13,7 @@ logging.basicConfig(
 )
 
 
-def evaluation(prediction_jsonl_file, output_evaluation_jsonl_file):
+def evaluation(prediction_jsonl_file, evaluation_jsonl_file):
     df = pd.read_json(prediction_jsonl_file, lines=True)
     results = []
 
@@ -42,10 +42,10 @@ def evaluation(prediction_jsonl_file, output_evaluation_jsonl_file):
 
     df = pd.concat([df, pd.DataFrame(results)], axis=1)
 
-    df.to_json(output_evaluation_jsonl_file, orient='records', lines=True, force_ascii=False)
-    logging.info(f"Evaluation result written to {output_evaluation_jsonl_file}")
+    df.to_json(evaluation_jsonl_file, orient='records', lines=True, force_ascii=False)
+    logging.info(f"Evaluation result written to {evaluation_jsonl_file}")
 
-    avg_compute(output_evaluation_jsonl_file)
+    avg_compute(evaluation_jsonl_file)
 
 
 if __name__ == "__main__":

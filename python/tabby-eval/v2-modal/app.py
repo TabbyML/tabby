@@ -14,7 +14,7 @@ EMBEDDING_MODEL_ID = os.getenv("EMBEDDING_MODEL_ID")
 MODEL_ID = os.getenv("MODEL_ID")
 
 # TODO: If you're testing large datasets, consider using a better GPU and higher parallelism
-GPU_CONFIG = gpu.T4()
+GPU_CONFIG = gpu.A10G()
 
 TABBY_BIN = "/opt/tabby/bin/tabby"
 
@@ -63,7 +63,8 @@ data_dir = "/data"
     _allow_background_volume_commits=True,
     concurrency_limit=1,
     cpu=20.0,
-    memory=16 * 1024,
+    memory=24 * 1024,
+    keep_warm=1,
 )
 @asgi_app()
 def app_serve():

@@ -102,7 +102,37 @@ def send_request_with_retry(url, headers, payload, timeout=10, max_retries=10):
     return response
 
 
-def generate_predictions(endpoint: str, token: str, jsonl_file: str, output_prediction_jsonl_file: str):
+def parse_model_id(model_id: str):
+    parts = model_id.split('/')
+    if len(parts) == 1:
+        return "TabbyML", parts[0]
+    elif len(parts) == 2:
+        return parts[0], parts[1]
+    else:
+        raise ValueError(f"Invalid model id {model_id}")
+
+
+def get_model_prompt_template(model_id: str):
+    registry, model_name = parse_model_id(model_id)
+    url = f"https://raw.githubusercontent.com/{registry}/registry-tabby/main/models.json"
+
+    response = httpx.get(url=url)
+    response.raise_for_status()
+
+    for model in response.json():
+        if model["name"] == model_name:
+            return model.get("prompt_template", None)
+
+    return None
+
+
+def generate_predictions(endpoint: str,
+                         token: str,
+                         jsonl_file: str,
+                         prediction_jsonl_file: str,
+                         data_function,
+                         prompt_template: str = None):
+    logging.info(f"Generating predictions to {prediction_jsonl_file}...")
     df = pd.read_json(jsonl_file, lines=True)
     df_flat = json_normalize(df.to_dict(orient="records"))
 
@@ -115,17 +145,11 @@ def generate_predictions(endpoint: str, token: str, jsonl_file: str, output_pred
     predictions = []
     prediction_status = []
     for index, row in df_flat.iterrows():
-        payload = {
-            "language": row['language'],
-            "segments": {
-                "prefix": row['segments.prefix'],
-                "suffix": row['segments.suffix']
-            }
-        }
+        data = data_function(row, prompt_template) if prompt_template else data_function(row)
 
         # TODO: Add parallelism support
         url = f"{endpoint}/v1/completions"
-        response = send_request_with_retry(url, headers, payload, timeout=10, max_retries=10)
+        response = send_request_with_retry(url, headers, data, timeout=10, max_retries=10)
 
         if response.status_code == 200:
             predictions.append(response.json()['choices'][0]['text'])
@@ -143,15 +167,44 @@ def generate_predictions(endpoint: str, token: str, jsonl_file: str, output_pred
     failed_count = total_records - success_count
     logging.info(f"Total predictions: {total_records}, Success: {success_count}, Failed: {failed_count}")
 
-    df_success.to_json(output_prediction_jsonl_file, orient='records', lines=True)
+    df_success.to_json(prediction_jsonl_file, orient='records', lines=True)
+
+
+def default_data_function(row):
+    return {
+        "language": row['language'],
+        "segments": {
+            "prefix": row['segments.prefix'],
+            "suffix": row['segments.suffix']
+        }
+    }
+
+
+def cross_file_data_function(row, prompt_template):
+    crossfile_context_list = row['segments.crossfile_context.list']
+    sorted_list = sorted(crossfile_context_list, key=lambda x: x['score'])
+
+    combined_context = "\n".join(
+        f"// {item['filename']}\n// {item['retrieved_chunk']}" for item in sorted_list
+    ) + "\n"
+
+    return {
+        "debug_options": {
+            "raw_prompt": combined_context + prompt_template.format(
+                prefix=row['segments.prefix'],
+                suffix=row['segments.suffix'])
+        }
+    }
 
 
 def eval_code_completion(endpoint: str,
                          token: str,
                          model: str,
                          jsonl_file: str,
-                         output_prediction_jsonl_file: str,
-                         output_evaluation_jsonl_file: str,
+                         prediction_jsonl_file: str,
+                         evaluation_jsonl_file: str,
+                         cross_file_content_prediction_jsonl_file: str,
+                         cross_file_content_evaluation_jsonl_file: str,
                          start_tabby_server_on_modal: bool):
     # Start modal tabby server
     process = None
@@ -164,12 +217,17 @@ def eval_code_completion(endpoint: str,
 
     # Generate predictions
     logging.info("Generating predictions...")
-    generate_predictions(endpoint, token, jsonl_file, output_prediction_jsonl_file)
+    generate_predictions(endpoint, token, jsonl_file, prediction_jsonl_file, default_data_function)
+    generate_predictions(endpoint, token, jsonl_file,
+                         cross_file_content_prediction_jsonl_file,
+                         cross_file_data_function,
+                         get_model_prompt_template(model))
     logging.info("Predictions generated!")
 
     # Run the evaluation
     logging.info("Running evaluation...")
-    evaluation(output_prediction_jsonl_file, output_evaluation_jsonl_file)
+    evaluation(prediction_jsonl_file, evaluation_jsonl_file)
+    evaluation(cross_file_content_prediction_jsonl_file, cross_file_content_evaluation_jsonl_file)
     logging.info("Evaluation completed")
 
     # Stop the server
@@ -185,17 +243,23 @@ if __name__ == "__main__":
     parser.add_argument("--token", type=str, required=True, default="", help="tabby server token.")
     parser.add_argument("--model", type=str, required=True, help="evaluation model.")
     parser.add_argument("--jsonl_file", type=str, default="data.jsonl", help="evaluation jsonl file.")
-    parser.add_argument("--output_prediction_jsonl_file", type=str, help="output prediction jsonl file.")
-    parser.add_argument("--output_evaluation_jsonl_file", type=str, help="output evaluation jsonl file.")
+    parser.add_argument("--output_jsonl_file_prefix", type=str, help="""
+    output jsonl file prefix, it will generate four files: 
+    prediction, evaluation, cross_file_content_prediction, cross_file_content_evaluation.
+    """)
     parser.add_argument("--start_tabby_server_on_modal", type=str, default="1",
                         help="start tabby server on modal manager, accepts 1 or another.")
 
     args = parser.parse_args()
+    output_jsonl_file_prefix = args.output_jsonl_file_prefix
     bool_start_tabby_server_on_modal = True if args.start_tabby_server_on_modal == "1" else False
+
     eval_code_completion(args.endpoint,
                          args.token,
                          args.model,
                          args.jsonl_file,
-                         args.output_prediction_jsonl_file,
-                         args.output_evaluation_jsonl_file,
+                         f"{output_jsonl_file_prefix}-prediction.jsonl",
+                         f"{output_jsonl_file_prefix}-evaluation.jsonl",
+                         f"{output_jsonl_file_prefix}-cross-file-content-prediction.jsonl",
+                         f"{output_jsonl_file_prefix}-cross-file-content-evaluation.jsonl",
                          bool_start_tabby_server_on_modal)
