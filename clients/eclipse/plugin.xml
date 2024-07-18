@@ -16,15 +16,16 @@
 			lastDocumentDisconnectedTimeout="600">
 		</server>
 		<contentTypeMapping
-		    id="com.tabbyml.tabby4eclipse.languageServer"
-            contentType="com.tabbyml.tabby4eclipse.contentType">
-        </contentTypeMapping>
+			id="com.tabbyml.tabby4eclipse.languageServer"
+			contentType="org.eclipse.core.runtime.text">
+		</contentTypeMapping>
 	</extension>
-	
-	<extension point="org.eclipse.core.contenttype.contentTypes">
-	   <content-type
-            id="com.tabbyml.tabby4eclipse.contentType"
-            name="All types supported by Tabby"
-            priority="normal" />
+
+	<extension
+		point="org.eclipse.ui.genericeditor.contentAssistProcessors">
+		<contentAssistProcessor
+			class="com.tabbyml.tabby4eclipse.editor.ContentAssistProcessor"
+			contentType="org.eclipse.core.runtime.text">
+		</contentAssistProcessor>
 	</extension>
 </plugin>

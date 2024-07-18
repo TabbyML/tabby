@@ -27,6 +27,9 @@ public class Logger {
         logStatus(IStatus.WARNING, message, throwable);
     }
 
+    public void error(String message) {
+        logStatus(IStatus.ERROR, message, null);
+    }
 
     public void error(String message, Throwable throwable) {
         logStatus(IStatus.ERROR, message, throwable);
