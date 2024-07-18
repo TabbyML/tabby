@@ -23,8 +23,10 @@ class TabbyBrowser(private val project: Project) {
 			.setOffScreenRendering(false)
 			.build()
 
+		// FIXME: how to get the endpoint
 		displayChatPage(browser, "http://localhost:8080")
 
+		// Listen to the message sent from the web page
 		val jsQuery = JBCefJSQuery.create(browser)
 		jsQuery.addHandler { message: String ->
 			val parser = JsonParser()
@@ -32,17 +34,16 @@ class TabbyBrowser(private val project: Project) {
 
 			val action = json.get("action")?.asString
 			if (action == "rendered") {
+				// FIXME: how to get the server token
 				sendMessageToServer("init", listOf(mapOf("fetcherOptions" to mapOf("authorization" to "auth_95e5a81225a84b9f8c3ae1659c890856"))))
 				return@addHandler  JBCefJSQuery.Response("")
 			}
 
-			// Handle the message from JavaScript here
-			println("Received message: $message")
 			JBCefJSQuery.Response("")
 		}
 
-		// Inject the window.postMessageToIntellij function into the browser's JavaScript context after the HTML has loaded.
-		// This function will be used to send messages from the web page to the IntelliJ client.
+		// Inject the window.onReceiveMessage function into the browser's JavaScript context after the HTML has loaded
+		// This function will be used to send messages from the web page to the IntelliJ client
 		browser.jbCefClient.addLoadHandler(object : CefLoadHandlerAdapter() {
 			override fun onLoadingStateChange(
 				browser: CefBrowser?,
@@ -51,7 +52,7 @@ class TabbyBrowser(private val project: Project) {
 				canGoForward: Boolean
 			) {
 				if (!isLoading) {
-					val script = """window.postMessageToIntellij = function(message) {
+					val script = """window.onReceiveMessage = function(message) {
 						${jsQuery.inject("message")}
 					}""".trimIndent()
 					browser?.executeJavaScript(
@@ -82,7 +83,7 @@ class TabbyBrowser(private val project: Project) {
 		  
 					  chatIframe.addEventListener('load', function() {
 					  	setTimeout(() => {
-					  		window.postMessageToIntellij(JSON.stringify({ action: 'rendered' }));
+					  		window.onReceiveMessage(JSON.stringify({ action: 'rendered' }));
 					  	}, 1000)
 					  });
 	
@@ -92,7 +93,11 @@ class TabbyBrowser(private val project: Project) {
 					window.addEventListener("message", (event) => {
 					  if (!chatIframe) return
 					  if (event.data) {
-						if (event.data === "quilt.threads.pong") return
+						 if (event.data === "quilt.threads.pong") return // @quilted/threads message
+						 
+						 
+						 // FIXME: how to distinguish the message from client to html and from html to client
+						 
 						console.log("window.addEventListener event.data", event.data)
 						
 						chatIframe.contentWindow.postMessage(JSON.parse(event.data), "${endpoint}");
