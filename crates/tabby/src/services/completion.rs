@@ -267,11 +267,12 @@ impl CompletionService {
         temperature: Option<f32>,
         seed: Option<u64>,
         max_input_length: usize,
+        max_output_tokens: usize,
     ) -> CodeGenerationOptions {
         let mut builder = CodeGenerationOptionsBuilder::default();
         builder
             .max_input_length(max_input_length)
-            .max_decoding_tokens(64)
+            .max_decoding_tokens(max_output_tokens as i32)
             .language(Some(get_language(language)));
         temperature.inspect(|x| {
             builder.sampling_temperature(*x);
@@ -295,6 +296,7 @@ impl CompletionService {
             request.temperature,
             request.seed,
             self.config.max_input_length,
+            self.config.max_decoding_tokens,
         );
 
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
