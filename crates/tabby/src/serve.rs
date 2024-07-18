@@ -217,7 +217,8 @@ async fn api_router(
     let model = &config.model;
     let completion_state = if let Some(completion) = &model.completion {
         Some(Arc::new(
-            create_completion_service(code.clone(), logger.clone(), completion).await,
+            create_completion_service(&config.completion, code.clone(), logger.clone(), completion)
+                .await,
         ))
     } else {
         None

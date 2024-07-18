@@ -30,6 +30,7 @@ impl EmbeddingServer {
         model_path: &str,
         parallelism: u8,
         enable_fast_attention: bool,
+        context_size: usize,
     ) -> EmbeddingServer {
         let server = LlamaCppSupervisor::new(
             "embedding",
@@ -39,6 +40,7 @@ impl EmbeddingServer {
             parallelism,
             None,
             enable_fast_attention,
+            context_size,
         );
         server.start().await;
 
@@ -74,6 +76,7 @@ impl CompletionServer {
         model_path: &str,
         parallelism: u8,
         enable_fast_attention: bool,
+        context_size: usize,
     ) -> Self {
         let server = LlamaCppSupervisor::new(
             "completion",
@@ -83,6 +86,7 @@ impl CompletionServer {
             parallelism,
             None,
             enable_fast_attention,
+            context_size,
         );
         server.start().await;
         let config = HttpModelConfigBuilder::default()
@@ -115,6 +119,7 @@ impl ChatCompletionServer {
         parallelism: u8,
         chat_template: String,
         enable_fast_attention: bool,
+        context_size: usize,
     ) -> Self {
         let server = LlamaCppSupervisor::new(
             "chat",
@@ -124,6 +129,7 @@ impl ChatCompletionServer {
             parallelism,
             Some(chat_template),
             enable_fast_attention,
+            context_size,
         );
         server.start().await;
         let config = HttpModelConfigBuilder::default()
@@ -171,6 +177,7 @@ pub async fn create_chat_completion(config: &LocalModelConfig) -> Arc<dyn ChatCo
             config.parallelism,
             chat_template,
             config.enable_fast_attention.unwrap_or_default(),
+            config.context_size,
         )
         .await,
     )
@@ -187,6 +194,7 @@ pub async fn create_completion(
             &model_path,
             config.parallelism,
             config.enable_fast_attention.unwrap_or_default(),
+            config.context_size,
         )
         .await,
     );
@@ -205,6 +213,7 @@ pub async fn create_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {
                     &model_path,
                     llama.parallelism,
                     llama.enable_fast_attention.unwrap_or_default(),
+                    llama.context_size,
                 )
                 .await,
             )
