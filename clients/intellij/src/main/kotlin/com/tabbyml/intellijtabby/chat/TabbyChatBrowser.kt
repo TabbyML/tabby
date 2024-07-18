@@ -10,6 +10,10 @@ import org.cef.callback.CefCallback
 import org.cef.handler.CefLoadHandler
 import org.cef.network.CefRequest
 import com.intellij.ui.jcef.JBCefJSQuery
+import com.google.gson.Gson
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
+import java.util.UUID
 
 class TabbyBrowser(private val project: Project) {
 	private val browser: JBCefBrowser
@@ -22,10 +26,19 @@ class TabbyBrowser(private val project: Project) {
 		displayChatPage(browser, "http://localhost:8080")
 
 		val jsQuery = JBCefJSQuery.create(browser)
-		jsQuery.addHandler { message ->
+		jsQuery.addHandler { message: String ->
+			val parser = JsonParser()
+			val json: JsonObject = parser.parse(message).asJsonObject
+
+			val action = json.get("action")?.asString
+			if (action == "rendered") {
+				sendMessageToServer("init", listOf(mapOf("fetcherOptions" to mapOf("authorization" to "auth_95e5a81225a84b9f8c3ae1659c890856"))))
+				return@addHandler  JBCefJSQuery.Response("")
+			}
+
 			// Handle the message from JavaScript here
 			println("Received message: $message")
-			JBCefJSQuery.Response("") // Respond back to JS (optional)
+			JBCefJSQuery.Response("")
 		}
 
 		// Inject the window.postMessageToIntellij function into the browser's JavaScript context after the HTML has loaded.
@@ -70,7 +83,7 @@ class TabbyBrowser(private val project: Project) {
 					  chatIframe.addEventListener('load', function() {
 					  	setTimeout(() => {
 					  		window.postMessageToIntellij(JSON.stringify({ action: 'rendered' }));
-					  	}, 300)
+					  	}, 1000)
 					  });
 	
 					  chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery)
@@ -79,10 +92,13 @@ class TabbyBrowser(private val project: Project) {
 					window.addEventListener("message", (event) => {
 					  if (!chatIframe) return
 					  if (event.data) {
-						
+						if (event.data === "quilt.threads.pong") return
 						console.log("window.addEventListener event.data", event.data)
+						
+						chatIframe.contentWindow.postMessage(JSON.parse(event.data), "${endpoint}");
+						
 //						if (event.data.data) {
-//						  chatIframe.contentWindow.postMessage(event.data.data[0], "${endpoint}");
+//						  chatIframe.contentWindow.postMessage(event.data, "${endpoint}");
 //						} else {
 //						  vscode.postMessage(event.data);
 //						}
@@ -102,10 +118,26 @@ class TabbyBrowser(private val project: Project) {
 		browser.loadHTML(htmlContent)
 	}
 
-	fun sendMessageToBrowser(message: String) {
-		val jsCode = "window.postMessage('$message', '*');"
+	fun sendMessageToChat(message: Any) {
+		val gson = Gson()
+		val jsonString = gson.toJson(message)
+		val jsCode = "window.postMessage('$jsonString', '*');"
 		browser.cefBrowser.executeJavaScript(jsCode, null, 0)
 	}
 
 	fun getBrowserComponent() = browser.component
+
+	// FIXME: refactory into a class
+	fun sendMessageToServer(methodName: String, params: List<Any?>) {
+		val uuid = UUID.randomUUID()
+		val threadMessage = listOf(
+			0,
+			listOf(
+				uuid.toString(),
+				methodName,
+				params
+			)
+		)
+		sendMessageToChat(threadMessage)
+	}
 }
