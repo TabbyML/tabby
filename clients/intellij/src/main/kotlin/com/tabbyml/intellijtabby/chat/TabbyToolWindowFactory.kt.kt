@@ -11,10 +11,11 @@ class TabbyToolWindowFactory : ToolWindowFactory, DumbAware {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val tabbyBrowser = TabbyBrowser(project)
         val browserComponent = tabbyBrowser.getBrowserComponent()
-
-        val content = ContentFactory.SERVICE.getInstance().createContent(browserComponent, "", false)
+        val content = ContentFactory.getInstance().createContent(browserComponent, "", false)
         toolWindow.contentManager.addContent(content)
     }
+
+    override fun shouldBeAvailable(project: Project) = true
 
     init {
         System.setProperty("ide.browser.jcef.contextMenu.devTools.enabled", "true")

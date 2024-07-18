@@ -9,36 +9,27 @@ import org.cef.handler.CefLoadHandlerAdapter
 import org.cef.callback.CefCallback
 import org.cef.handler.CefLoadHandler
 import org.cef.network.CefRequest
+import com.intellij.ui.jcef.JBCefJSQuery
 
 class TabbyBrowser(private val project: Project) {
 	private val browser: JBCefBrowser
 
 	init {
-		val htmlContent = """
-            <!DOCTYPE html>
-            <html style="width: 100vw; height: 100vh; margin: 0; padding: 0">
-            <head>
-                <title>Tabby Browser</title>
-            </head>
-            <body style="width: 100vw; height: 100vh">
-                <iframe src="http://localhost:8080" width="100%" height="100%"></iframe>
-                
-                <script>
-                    window.addEventListener('message', function(event) {
-                        var message = event.data;
-                         console.log('Received message from plugin:', message);
-                    });
-                </script>
-            </body>
-            </html>
-        """.trimIndent()
-
 		browser = JBCefBrowser.createBuilder()
 			.setOffScreenRendering(false)
 			.build()
 
-		browser.loadHTML(htmlContent)
+		displayChatPage(browser, "http://localhost:8080")
 
+		val jsQuery = JBCefJSQuery.create(browser)
+		jsQuery.addHandler { message ->
+			// Handle the message from JavaScript here
+			println("Received message: $message")
+			JBCefJSQuery.Response("") // Respond back to JS (optional)
+		}
+
+		// Inject the window.postMessageToIntellij function into the browser's JavaScript context after the HTML has loaded.
+		// This function will be used to send messages from the web page to the IntelliJ client.
 		browser.jbCefClient.addLoadHandler(object : CefLoadHandlerAdapter() {
 			override fun onLoadingStateChange(
 				browser: CefBrowser?,
@@ -47,26 +38,68 @@ class TabbyBrowser(private val project: Project) {
 				canGoForward: Boolean
 			) {
 				if (!isLoading) {
-					// The page has finished loading
-					println("Page loaded successfully")
-
-					// Post a message to the browser
-					sendMessageToBrowser("Hello from the IntelliJ plugin!")
+					val script = """window.postMessageToIntellij = function(message) {
+						${jsQuery.inject("message")}
+					}""".trimIndent()
+					browser?.executeJavaScript(
+						script,
+						browser.url,
+						0
+					)
 				}
 			}
-
-			// ...
 		}, browser.cefBrowser)
 
 		Disposer.register(project, browser)
+	}
 
-
-		// Register the browser with the application
-		ApplicationManager.getApplication().invokeLater {
-			browser.component.apply {
-				// Set any additional properties or configurations for the browser component
-			}
-		}
+	fun displayChatPage(browser: JBCefBrowser, endpoint: String) {
+		val htmlContent = """
+            <!DOCTYPE html>
+            <html  lang="en" style="width: 100vw; height: 100vh; margin: 0; padding: 0">
+            <head>
+                <meta charset="UTF-8" />
+            	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+			
+				<script defer>
+				  window.onload = function () {
+					const chatIframe = document.getElementById("chat");
+					if (chatIframe) {
+					  const clientQuery = "&client=intellij"
+		  
+					  chatIframe.addEventListener('load', function() {
+					  	setTimeout(() => {
+					  		window.postMessageToIntellij(JSON.stringify({ action: 'rendered' }));
+					  	}, 300)
+					  });
+	
+					  chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery)
+					}
+					
+					window.addEventListener("message", (event) => {
+					  if (!chatIframe) return
+					  if (event.data) {
+						
+						console.log("window.addEventListener event.data", event.data)
+//						if (event.data.data) {
+//						  chatIframe.contentWindow.postMessage(event.data.data[0], "${endpoint}");
+//						} else {
+//						  vscode.postMessage(event.data);
+//						}
+					  }
+					});
+				  }
+				</script>
+            </head>
+            <body style="width: 100vw; height: 100vh">
+                <iframe
+					id="chat"
+              		allow="clipboard-read; clipboard-write"
+			   		style="height: 100%; width: 100%" />
+            </body>
+            </html>
+        """.trimIndent()
+		browser.loadHTML(htmlContent)
 	}
 
 	fun sendMessageToBrowser(message: String) {
