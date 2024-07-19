@@ -39,6 +39,18 @@ class TabbyBrowser(private val project: Project) {
 				return@addHandler  JBCefJSQuery.Response("")
 			}
 
+			// FIXME: refactory into @quilt/thread implemtation
+			// Detect if the message is a CALL message from the /chat page
+			if (json.isJsonArray) {
+				val jsonArray = json.asJsonArray
+				if (jsonArray.size() > 0 && jsonArray[0].isJsonPrimitive && jsonArray[0].asJsonPrimitive.isNumber) {
+					val firstElement = jsonArray[0].asInt
+					if (firstElement == 0) {
+						println("The JSON is an array and the first element is the number 1.")
+					}
+				}
+			}
+
 			JBCefJSQuery.Response("")
 		}
 
@@ -94,19 +106,11 @@ class TabbyBrowser(private val project: Project) {
 					  if (!chatIframe) return
 					  if (event.data) {
 						 if (event.data === "quilt.threads.pong") return // @quilted/threads message
-						 
-						 
-						 // FIXME: how to distinguish the message from client to html and from html to client
-						 
-						console.log("window.addEventListener event.data", event.data)
-						
-						chatIframe.contentWindow.postMessage(JSON.parse(event.data), "${endpoint}");
-						
-//						if (event.data.data) {
-//						  chatIframe.contentWindow.postMessage(event.data, "${endpoint}");
-//						} else {
-//						  vscode.postMessage(event.data);
-//						}
+						 if (event.data.fromClient) {
+						 	chatIframe.contentWindow.postMessage(event.data.fromClient, "${endpoint}");
+						 } else {
+						 	window.onReceiveMessage(event.data);
+						 }
 					  }
 					});
 				  }
@@ -126,17 +130,23 @@ class TabbyBrowser(private val project: Project) {
 	fun sendMessageToChat(message: Any) {
 		val gson = Gson()
 		val jsonString = gson.toJson(message)
-		val jsCode = "window.postMessage('$jsonString', '*');"
+		val jsCode = """
+			(function() {
+				var message = JSON.parse('$jsonString');
+				window.postMessage({ fromClient: message }, '*');
+			})();
+		""".trimIndent()
 		browser.cefBrowser.executeJavaScript(jsCode, null, 0)
 	}
 
 	fun getBrowserComponent() = browser.component
 
-	// FIXME: refactory into a class
+	// FIXME: refactor into a class to implement @quilt/thread behaviour
+	// @reference: https://github.com/lemonmade/quilt/blob/main/packages/threads/source/targets/target.ts#L89
 	fun sendMessageToServer(methodName: String, params: List<Any?>) {
 		val uuid = UUID.randomUUID()
 		val threadMessage = listOf(
-			0,
+			0, // 0 means CALL in @thread protocal
 			listOf(
 				uuid.toString(),
 				methodName,
