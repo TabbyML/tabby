@@ -78,3 +78,16 @@ features = [
 
 [profile.dev.package]
 insta.opt-level = 3
+
+
+## Add the private repository
+[[repositories]]
+name = "tabby"
+git_url = "https://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
+@github.com/icycodes/tabby.git"
+
+## More repositories can be added like this
+[[repositories]]
+name = "tabbys"
+git_url = "https://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
+@github.com/sgriggs3/tabbys/tabbys.git"
