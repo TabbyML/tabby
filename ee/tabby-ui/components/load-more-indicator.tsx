@@ -22,7 +22,7 @@ const LoadMoreIndicatorRender: React.FC<React.PropsWithChildren<Props>> = ({
     if (inView && !isFetching) {
       onLoad?.()
     }
-  }, [inView, isFetching])
+  }, [inView])
 
   return (
     <div className={cn('w-full', className)} ref={ref}>
