@@ -80,13 +80,16 @@ class TabbyBrowser(private val project: Project) {
 	}
 
 	fun displayChatPage(browser: JBCefBrowser, endpoint: String) {
+		val cssContent = this::class.java.getResource("/chat/chat-panel.css")?.readText() ?: ""
 		val htmlContent = """
             <!DOCTYPE html>
-            <html  lang="en" style="width: 100vw; height: 100vh; margin: 0; padding: 0">
+            <html  lang="en">
             <head>
                 <meta charset="UTF-8" />
             	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-			
+				<style>
+					$cssContent
+				</style>
 				<script defer>
 				  window.onload = function () {
 					const chatIframe = document.getElementById("chat");
@@ -116,11 +119,10 @@ class TabbyBrowser(private val project: Project) {
 				  }
 				</script>
             </head>
-            <body style="width: 100vw; height: 100vh">
+            <body>
                 <iframe
 					id="chat"
-              		allow="clipboard-read; clipboard-write"
-			   		style="height: 100%; width: 100%" />
+              		allow="clipboard-read; clipboard-write" />
             </body>
             </html>
         """.trimIndent()
