@@ -63,6 +63,9 @@ export default function ChatPage() {
   const initialForeground = searchParams.get('foreground')
     ? `#${searchParams.get('foreground')}`
     : undefined
+  const initialBackground = searchParams.get('background')
+    ? `#${searchParams.get('background')}`
+    : undefined
 
   const isFromVSCode = client === 'vscode'
   const isOnSubmitMessage = CLIENT_TO_HANDLE_MESSAGE_SUBMIT.includes(
@@ -80,7 +83,7 @@ export default function ChatPage() {
         themeClass?: string
       }
     }) => {
-      // Sync with VSCode CSS variable
+      // Sync with Editor's CSS variable
       if (data.style) {
         const styleWithHslValue = data.style
           .split(';')
@@ -202,6 +205,7 @@ export default function ChatPage() {
         style={{
           fontSize: isThemeSynced ? 'inherit' : initialFontSize,
           color: isThemeSynced ? 'inherit' : initialForeground,
+          background: isThemeSynced ? 'inherit' : initialBackground,
           padding: '5px 18px'
         }}
       >

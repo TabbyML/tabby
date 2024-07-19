@@ -1,26 +1,26 @@
 package com.tabbyml.intellijtabby.chat
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.jcef.JBCefBrowser
 import org.cef.browser.CefBrowser
 import org.cef.handler.CefLoadHandlerAdapter
-import org.cef.callback.CefCallback
-import org.cef.handler.CefLoadHandler
-import org.cef.network.CefRequest
 import com.intellij.ui.jcef.JBCefJSQuery
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import java.util.UUID
+import com.intellij.util.ui.UIUtil
+import com.intellij.openapi.editor.colors.EditorColorsManager
+import com.intellij.openapi.editor.colors.EditorColorsScheme
+import java.awt.Color
 
 class TabbyBrowser(private val project: Project) {
 	private val browser: JBCefBrowser
 
 	init {
 		browser = JBCefBrowser.createBuilder()
-			.setOffScreenRendering(false)
+			.setOffScreenRendering(true) // FIXME: based on the platform? On mac, false will leave a white flash when opening the window
 			.build()
 
 		// FIXME: how to get the endpoint
@@ -81,6 +81,15 @@ class TabbyBrowser(private val project: Project) {
 
 	fun displayChatPage(browser: JBCefBrowser, endpoint: String) {
 		val cssContent = this::class.java.getResource("/chat/chat-panel.css")?.readText() ?: ""
+		val theme = if (UIUtil.isUnderDarcula()) "dark" else "light"
+		val editorColorsScheme: EditorColorsScheme = EditorColorsManager.getInstance().globalScheme
+		val fontSize = editorColorsScheme.editorFontSize
+		val backgroundColor = colorToHex(editorColorsScheme.defaultBackground)
+		val foregroundColor = colorToHex(editorColorsScheme.defaultForeground)
+		val borderColor = if (theme == "dark") "444444" else "B9B9B9"
+
+		println("foregroundColor: $foregroundColor")
+		println("backgroundColor: $backgroundColor")
 		val htmlContent = """
             <!DOCTYPE html>
             <html  lang="en">
@@ -91,41 +100,58 @@ class TabbyBrowser(private val project: Project) {
 					$cssContent
 				</style>
 				<script defer>
-				  window.onload = function () {
-					const chatIframe = document.getElementById("chat");
-					if (chatIframe) {
-					  const clientQuery = "&client=intellij"
-		  
-					  chatIframe.addEventListener('load', function() {
-					  	setTimeout(() => {
-					  		window.onReceiveMessage(JSON.stringify({ action: 'rendered' }));
-					  	}, 1000)
-					  });
+					const syncTheme = () => {
+						const chatIframe = document.getElementById("chat");
+						if (!chatIframe) return
 	
-					  chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery)
+						const style = "--intellij-editor-background: #${backgroundColor}; --intellij-editor-foreground: #${foregroundColor}; --intellij-font-size: ${fontSize}px; --intellij-editor-border: #${borderColor};"
+						chatIframe.contentWindow.postMessage({ style }, "${endpoint}");
+		
+						const themeClass = 'intellij ${theme}'
+						chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${endpoint}");
+				 	}
+			  
+				 	window.onload = function () {
+						const chatIframe = document.getElementById("chat");
+						if (chatIframe) {
+						  const clientQuery = "&client=intellij"
+						  const themeQuery = "&theme=${theme}"
+						  const fontSizeQuery = "&font-size=${fontSize}px"
+						  const foregroundQuery = "&foreground=${foregroundColor}"
+						  const backgroundQuery = "&background=${backgroundColor}"
+			  
+						  chatIframe.addEventListener('load', function() {
+							setTimeout(() => {
+								syncTheme()
+								window.onReceiveMessage(JSON.stringify({ action: 'rendered' }));
+							}, 1000)
+						  });
+	
+					 	chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery + themeQuery + fontSizeQuery + foregroundQuery + backgroundQuery)
 					}
 					
 					window.addEventListener("message", (event) => {
-					  if (!chatIframe) return
-					  if (event.data) {
-						 if (event.data === "quilt.threads.pong") return // @quilted/threads message
-						 if (event.data.fromClient) {
-						 	chatIframe.contentWindow.postMessage(event.data.fromClient, "${endpoint}");
-						 } else {
-						 	window.onReceiveMessage(event.data);
-						 }
-					  }
+						  if (!chatIframe) return
+						  if (event.data) {
+							 if (event.data === "quilt.threads.pong") return // @quilted/threads message
+							 if (event.data.fromClient) {
+								chatIframe.contentWindow.postMessage(event.data.fromClient, "${endpoint}");
+							 } else {
+								window.onReceiveMessage(event.data);
+							 }
+						  }
 					});
 				  }
 				</script>
             </head>
-            <body>
+            <body >
                 <iframe
 					id="chat"
               		allow="clipboard-read; clipboard-write" />
             </body>
             </html>
         """.trimIndent()
+
 		browser.loadHTML(htmlContent)
 	}
 
@@ -141,8 +167,6 @@ class TabbyBrowser(private val project: Project) {
 		browser.cefBrowser.executeJavaScript(jsCode, null, 0)
 	}
 
-	fun getBrowserComponent() = browser.component
-
 	// FIXME: refactor into a class to implement @quilt/thread behaviour
 	// @reference: https://github.com/lemonmade/quilt/blob/main/packages/threads/source/targets/target.ts#L89
 	fun sendMessageToServer(methodName: String, params: List<Any?>) {
@@ -156,5 +180,11 @@ class TabbyBrowser(private val project: Project) {
 			)
 		)
 		sendMessageToChat(threadMessage)
+	}
+
+	fun getBrowserComponent() = browser.component
+
+	fun colorToHex(color: Color): String {
+		return String.format("%02x%02x%02x", color.red, color.green, color.blue)
 	}
 }
