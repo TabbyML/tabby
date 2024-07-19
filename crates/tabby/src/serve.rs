@@ -1,4 +1,4 @@
-use std::{net::IpAddr, sync::Arc, time::Duration};
+use std::{any::Any, net::IpAddr, sync::Arc, time::Duration};
 
 use axum::{routing, Router};
 use clap::Args;
@@ -10,7 +10,7 @@ use tabby_common::{
     usage,
 };
 use tabby_inference::Embedding;
-use tokio::{sync::oneshot::Sender, time::sleep};
+use tokio::{sync::oneshot::Sender, time::sleep, task::JoinHandle};
 use tower_http::timeout::TimeoutLayer;
 use tracing::{debug, warn};
 use utoipa::{
@@ -215,17 +215,34 @@ async fn api_router(
     webserver: Option<bool>,
 ) -> Router {
     let model = &config.model;
-    let completion_state = if let Some(completion) = &model.completion {
-        Some(Arc::new(
-            create_completion_service(&config.completion, code.clone(), logger.clone(), completion)
-                .await,
-        ))
+
+    // Check if chat and model are the same model
+    let chat_model_id = match model.chat {
+        Some(ModelConfig::Local(ref model)) => model.model_id.clone(),
+         _ => String::new(),
+    };
+    let completion_model_id = match model.completion {
+        Some(ModelConfig::Local(ref model)) => model.model_id.clone(),
+         _ => String::new(),
+    };
+    let same_model = chat_model_id == completion_model_id;
+
+    let (completion_state, completion_handle) = if let Some(completion) = &model.completion {
+        let (completion_service, handle) = create_completion_service(&config.completion, code.clone(), logger.clone(), completion);
+        (
+            Some(Arc::new(completion_service)),
+            Some(handle),
+        )
     } else {
         None
     };
 
     let chat_state = if let Some(chat) = &model.chat {
-        Some(model::load_chat_completion(chat).await)
+        if same_model {
+            Some(model::load_chat_completion(chat, completion_handle).await)
+        } else {
+            Some(model::load_chat_completion(chat, None).await)
+        }
     } else {
         None
     };

@@ -15,6 +15,7 @@ use tabby_common::{
 use tabby_inference::{CodeGeneration, CodeGenerationOptions, CodeGenerationOptionsBuilder};
 use thiserror::Error;
 use utoipa::ToSchema;
+use tokio::task::JoinHandle;
 
 use super::model;
 
@@ -355,21 +356,23 @@ pub async fn create_completion_service(
     code: Arc<dyn CodeSearch>,
     logger: Arc<dyn EventLogger>,
     model: &ModelConfig,
-) -> CompletionService {
+) -> (CompletionService, Option<JoinHandle<()>>) {
     let (
         engine,
         model::PromptInfo {
             prompt_template, ..
         },
+        handle,
     ) = model::load_code_generation(model).await;
 
-    CompletionService::new(
+    let service = CompletionService::new(
         config.to_owned(),
         engine.clone(),
         code,
         logger,
         prompt_template,
-    )
+    );
+    (service, handle)
 }
 
 #[cfg(test)]

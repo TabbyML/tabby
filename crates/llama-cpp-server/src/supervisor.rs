@@ -9,7 +9,7 @@ use crate::api_endpoint;
 pub struct LlamaCppSupervisor {
     name: &'static str,
     port: u16,
-    handle: JoinHandle<()>,
+    pub handle: JoinHandle<()>,
 }
 
 impl LlamaCppSupervisor {
@@ -22,6 +22,7 @@ impl LlamaCppSupervisor {
         chat_template: Option<String>,
         enable_fast_attention: bool,
         context_size: usize,
+        handle: Option<JoinHandle<()>>,
     ) -> LlamaCppSupervisor {
         let Some(binary_name) = find_binary_name() else {
             panic!("Failed to locate llama-server binary, please make sure you have llama-server binary locates in the same directory as the current executable.");
@@ -29,7 +30,9 @@ impl LlamaCppSupervisor {
 
         let model_path = model_path.to_owned();
         let port = get_available_port();
-        let handle = tokio::spawn(async move {
+        let handle = if let Some(_handle) = handle {
+            _handle
+        } else { tokio::spawn(async move {
             loop {
                 let server_binary = std::env::current_exe()
                     .expect("Failed to get current executable path")
@@ -109,9 +112,10 @@ impl LlamaCppSupervisor {
                     }
 
                     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    }
                 }
-            }
-        });
+            })
+        };
 
         Self { name, handle, port }
     }
