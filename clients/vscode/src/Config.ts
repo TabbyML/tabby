@@ -4,6 +4,7 @@ import { ClientProvidedConfig } from "tabby-agent";
 
 interface AdvancedSettings {
   "inlineCompletion.triggerMode"?: "automatic" | "manual";
+  numRecentlyCommandsHistory?: number;
 }
 
 export class Config extends EventEmitter {
@@ -57,6 +58,28 @@ export class Config extends EventEmitter {
       const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
       const updatedValue = { ...advancedSettings, "inlineCompletion.triggerMode": value };
       this.workspace.update("settings.advanced", updatedValue, ConfigurationTarget.Global);
+      this.emit("updated");
+    }
+  }
+
+  get numRecentlyCommandsHistory(): number {
+    const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
+    const numHistory =
+      advancedSettings.numRecentlyCommandsHistory === undefined ? 20 : advancedSettings.numRecentlyCommandsHistory;
+    if (numHistory < 0) {
+      return 20;
+    } else if (numHistory === 0) {
+      return 0;
+    } else {
+      return numHistory;
+    }
+  }
+
+  set numRecentlyCommandsHistory(value: number) {
+    if (value != this.numRecentlyCommandsHistory) {
+      const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
+      const updateValue = { ...advancedSettings, numRecentlyCommandsHistory: value };
+      this.workspace.update("settings.advanced", updateValue, ConfigurationTarget.Global);
       this.emit("updated");
     }
   }
