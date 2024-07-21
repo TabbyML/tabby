@@ -294,6 +294,11 @@ export class Commands {
               value: item,
               iconPath: new ThemeIcon("history"),
               description: "History",
+              buttons: [
+                {
+                  iconPath: new ThemeIcon("settings-remove"),
+                },
+              ],
             };
           }),
         );
@@ -365,6 +370,22 @@ export class Commands {
           );
         }
       });
+      //delete chosen command
+      quickPick.onDidTriggerItemButton((event) => {
+        const item = event.item;
+        const button = event.button;
+
+        if (button.iconPath instanceof ThemeIcon && button.iconPath.id === "settings-remove") {
+          const index = recentlyCommand.indexOf(item.value);
+          if (index !== -1) {
+            recentlyCommand.splice(index, 1);
+            this.config.chatEditRecentlyCommand = recentlyCommand;
+            updateQuickPickList();
+            window.showInformationMessage(`Removed command: ${item.label}`);
+          }
+        }
+      });
+
       quickPick.show();
     },
     "chat.edit.stop": async () => {
