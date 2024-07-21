@@ -202,7 +202,7 @@ impl AnswerService {
     async fn collect_relevant_docs(&self, query: &str) -> Vec<DocSearchDocument> {
         // 1. Collect relevant docs from the tantivy doc search.
         let mut hits = vec![];
-        let doc_hits = match self.doc.search(query, 5).await {
+        let doc_hits = match self.doc.search(&[], query, 5).await {
             Ok(docs) => docs.hits,
             Err(err) => {
                 if let DocSearchError::NotReady = err {
@@ -217,7 +217,7 @@ impl AnswerService {
 
         // 2. If serper is available, we also collect from serper
         if let Some(serper) = self.serper.as_ref() {
-            let serper_hits = match serper.search(query, 5).await {
+            let serper_hits = match serper.search(&[], query, 5).await {
                 Ok(docs) => docs.hits,
                 Err(err) => {
                     warn!("Failed to search serper: {:?}", err);
