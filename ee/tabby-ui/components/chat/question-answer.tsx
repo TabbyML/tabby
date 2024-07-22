@@ -1,7 +1,7 @@
 // Inspired by Chatbot-UI and modified to fit the needs of this project
 // @see https://github.com/mckaywrigley/chatbot-ui/blob/main/components/Chat/ChatMessage.tsx
 
-import React from 'react'
+import React, { ReactNode, useState } from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
 import { isNil } from 'lodash-es'
@@ -18,6 +18,11 @@ import {
 } from '@/lib/types/chat'
 import { cn } from '@/lib/utils'
 import { CodeBlock } from '@/components/ui/codeblock'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import { CopyButton } from '../copy-button'
@@ -441,13 +446,17 @@ interface ContextReferencesProps {
   className?: string
   onContextClick?: (context: Context) => void
   defaultOpen?: boolean
+  enableTooltip?: boolean
+  onTooltipClick?: () => void
 }
 export const CodeReferences = ({
   contexts,
   userContexts,
   className,
   onContextClick,
-  defaultOpen
+  defaultOpen,
+  enableTooltip,
+  onTooltipClick
 }: ContextReferencesProps) => {
   const totalContextLength = (userContexts?.length || 0) + contexts.length
   const isMultipleReferences = totalContextLength > 1
@@ -483,6 +492,17 @@ export const CodeReferences = ({
                 key={`assistant-${index}`}
                 context={item}
                 onContextClick={onContextClick}
+                enableTooltip={enableTooltip}
+                tooltipContent={
+                  enableTooltip ? (
+                    <div>
+                      <div className="mb-2">Code info</div>
+                      <p>Score: xxxx</p>
+                      <p>Ranking: xxxx</p>
+                    </div>
+                  ) : null
+                }
+                onTooltipClick={onTooltipClick}
               />
             )
           })}
@@ -495,12 +515,19 @@ export const CodeReferences = ({
 function ContextItem({
   context,
   clickable = true,
-  onContextClick
+  onContextClick,
+  enableTooltip,
+  tooltipContent,
+  onTooltipClick
 }: {
   context: Context
   clickable?: boolean
   onContextClick?: (context: Context) => void
+  enableTooltip?: boolean
+  tooltipContent?: ReactNode
+  onTooltipClick?: () => void
 }) {
+  const [tooltipOpen, setTooltipOpen] = useState(false)
   const isMultiLine =
     !isNil(context.range?.start) &&
     !isNil(context.range?.end) &&
@@ -508,30 +535,50 @@ function ContextItem({
   const pathSegments = context.filepath.split('/')
   const fileName = pathSegments[pathSegments.length - 1]
   const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
+
+  const onTooltipOpenChange = (v: boolean) => {
+    if (!enableTooltip || !tooltipContent) return
+
+    setTooltipOpen(v)
+  }
+
   return (
-    <div
-      className={cn('rounded-md border p-2', {
-        'cursor-pointer hover:bg-accent': clickable,
-        'cursor-default pointer-events-auto': !clickable
-      })}
-      onClick={e => clickable && onContextClick?.(context)}
+    <Tooltip
+      open={tooltipOpen}
+      onOpenChange={onTooltipOpenChange}
+      delayDuration={0}
     >
-      <div className="flex items-center gap-1 overflow-hidden">
-        <IconFile className="shrink-0" />
-        <div className="flex-1 truncate" title={context.filepath}>
-          <span>{fileName}</span>
-          {context.range?.start && (
-            <span className="text-muted-foreground">
-              :{context.range.start}
-            </span>
-          )}
-          {isMultiLine && (
-            <span className="text-muted-foreground">-{context.range.end}</span>
-          )}
-          <span className="ml-2 text-xs text-muted-foreground">{path}</span>
+      <TooltipTrigger asChild>
+        <div
+          className={cn('rounded-md border p-2', {
+            'cursor-pointer hover:bg-accent': clickable,
+            'cursor-default pointer-events-auto': !clickable
+          })}
+          onClick={e => clickable && onContextClick?.(context)}
+        >
+          <div className="flex items-center gap-1 overflow-hidden">
+            <IconFile className="shrink-0" />
+            <div className="flex-1 truncate" title={context.filepath}>
+              <span>{fileName}</span>
+              {context.range?.start && (
+                <span className="text-muted-foreground">
+                  :{context.range.start}
+                </span>
+              )}
+              {isMultiLine && (
+                <span className="text-muted-foreground">
+                  -{context.range.end}
+                </span>
+              )}
+              <span className="ml-2 text-xs text-muted-foreground">{path}</span>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </TooltipTrigger>
+      <TooltipContent align="start" onClick={onTooltipClick}>
+        {tooltipContent}
+      </TooltipContent>
+    </Tooltip>
   )
 }
 

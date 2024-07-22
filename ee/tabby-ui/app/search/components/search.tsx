@@ -3,6 +3,7 @@
 import {
   createContext,
   CSSProperties,
+  MouseEventHandler,
   useContext,
   useEffect,
   useMemo,
@@ -21,7 +22,10 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
-import { useEnableSearch } from '@/lib/experiment-flags'
+import {
+  useEnableAnswerEngineDebugMode,
+  useEnableSearch
+} from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
@@ -42,6 +46,7 @@ import {
 } from '@/components/ui/hover-card'
 import {
   IconBlocks,
+  IconBug,
   IconChevronLeft,
   IconChevronRight,
   IconLayers,
@@ -66,12 +71,20 @@ import UserPanel from '@/components/user-panel'
 
 import './search.css'
 
+import { pick } from 'lodash-es'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
 import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
 import { repositoryListQuery } from '@/lib/tabby/query'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import { CodeReferences } from '@/components/chat/question-answer'
+
+import { DebugDrawer } from './debug-drawer'
 
 interface Source {
   title: string
@@ -98,6 +111,8 @@ type SearchContextValue = {
   onSubmitSearch: (question: string) => void
   extraRequestContext: Record<string, any>
   repositoryList: RepositoryListQuery['repositoryList'] | undefined
+  setDebugDrawerOpen: (v: boolean) => void
+  setConversationIdForDebug: (v: string | undefined) => void
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -137,6 +152,10 @@ export function Search() {
   const router = useRouter()
   const initCheckRef = useRef(false)
   const { theme } = useCurrentTheme()
+  const [debugDrawerOpen, setDebugDrawerOpen] = useState(false)
+  const [conversationIdForDebug, setConversationIdForDebug] = useState<
+    string | undefined
+  >()
 
   const [{ data }] = useQuery({
     query: repositoryListQuery
@@ -148,6 +167,15 @@ export function Search() {
   })
 
   const isLoadingRef = useLatest(isLoading)
+
+  const debugValue = useMemo(() => {
+    const _conversation = conversation.find(
+      item => item.id === conversationIdForDebug
+    )
+    return _conversation
+      ? pick(_conversation, 'relevant_documents', 'relevant_code')
+      : undefined
+  }, [conversationIdForDebug, conversation])
 
   // Check sessionStorage for initial message or most recent conversation
   useEffect(() => {
@@ -420,11 +448,13 @@ export function Search() {
   return (
     <SearchContext.Provider
       value={{
-        isLoading: isLoading,
-        onRegenerateResponse: onRegenerateResponse,
-        onSubmitSearch: onSubmitSearch,
+        isLoading,
+        onRegenerateResponse,
+        onSubmitSearch,
         extraRequestContext: extraContext,
-        repositoryList
+        repositoryList,
+        setDebugDrawerOpen,
+        setConversationIdForDebug
       }}
     >
       <div className="transition-all" style={style}>
@@ -537,6 +567,11 @@ export function Search() {
           </div>
         </main>
       </div>
+      <DebugDrawer
+        open={debugDrawerOpen}
+        onOpenChange={setDebugDrawerOpen}
+        value={debugValue}
+      />
     </SearchContext.Provider>
   )
 }
@@ -548,8 +583,14 @@ function AnswerBlock({
   answer: ConversationMessage
   showRelatedQuestion: boolean
 }) {
-  const { onRegenerateResponse, onSubmitSearch, isLoading } =
-    useContext(SearchContext)
+  const {
+    onRegenerateResponse,
+    onSubmitSearch,
+    isLoading,
+    setDebugDrawerOpen,
+    setConversationIdForDebug
+  } = useContext(SearchContext)
+  const [enableDebug] = useEnableAnswerEngineDebugMode()
 
   const [showMoreSource, setShowMoreSource] = useState(false)
 
@@ -638,8 +679,10 @@ function AnswerBlock({
             {answer.relevant_documents.map((source, index) => (
               <SourceCard
                 key={source.link + index}
+                conversationId={answer.id}
                 source={source}
                 showMore={showMoreSource}
+                showDebugTooltip={enableDebug.value}
               />
             ))}
           </div>
@@ -668,6 +711,18 @@ function AnswerBlock({
             })}
           />
           <p className="text-sm font-bold leading-none">Answer</p>
+          {enableDebug && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setConversationIdForDebug(answer.id)
+                setDebugDrawerOpen(true)
+              }}
+            >
+              <IconBug />
+            </Button>
+          )}
         </div>
 
         {/* Relevant code */}
@@ -677,6 +732,7 @@ function AnswerBlock({
             className="mt-1 text-sm"
             onContextClick={onCodeContextClick}
             defaultOpen
+            enableTooltip={enableDebug.value}
           />
         )}
 
@@ -753,49 +809,85 @@ const normalizedText = (input: string) => {
 }
 
 function SourceCard({
+  conversationId,
   source,
-  showMore
+  showMore,
+  showDebugTooltip
 }: {
+  conversationId: string
   source: Source
   showMore: boolean
+  showDebugTooltip?: boolean
 }) {
+  const { setDebugDrawerOpen, setConversationIdForDebug } =
+    useContext(SearchContext)
   const { hostname } = new URL(source.link)
+  const [debugTooltipOpen, setDebugTooltipOpen] = useState(false)
+
+  const onOpenChange = (v: boolean) => {
+    if (!showDebugTooltip) return
+    setDebugTooltipOpen(v)
+  }
+
+  const onTootipClick: MouseEventHandler<HTMLDivElement> = e => {
+    e.stopPropagation()
+    setConversationIdForDebug(conversationId)
+    setDebugDrawerOpen(true)
+  }
+
   return (
-    <div
-      className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card p-3 hover:bg-card/60"
-      style={{
-        height: showMore
-          ? `${SOURCE_CARD_STYLE.expand}rem`
-          : `${SOURCE_CARD_STYLE.compress}rem`,
-        transition: 'all 0.25s ease-out'
-      }}
-      onClick={() => window.open(source.link)}
+    <Tooltip
+      open={debugTooltipOpen}
+      onOpenChange={onOpenChange}
+      delayDuration={0}
     >
-      <div className="flex flex-col gap-y-0.5">
-        <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-          {source.title}
-        </p>
-        <p
-          className={cn(
-            ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
-            {
-              'line-clamp-2': showMore,
-              'line-clamp-1': !showMore
-            }
-          )}
+      <TooltipTrigger asChild>
+        <div
+          className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card p-3 hover:bg-card/60"
+          style={{
+            height: showMore
+              ? `${SOURCE_CARD_STYLE.expand}rem`
+              : `${SOURCE_CARD_STYLE.compress}rem`,
+            transition: 'all 0.25s ease-out'
+          }}
+          onClick={() => window.open(source.link)}
         >
-          {normalizedText(source.snippet)}
-        </p>
-      </div>
-      <div className="flex items-center text-xs text-muted-foreground">
-        <div className="flex w-full flex-1 items-center">
-          <SiteFavicon hostname={hostname} />
-          <p className="ml-1 overflow-hidden text-ellipsis">
-            {hostname.replace('www.', '').split('/')[0]}
-          </p>
+          <div className="flex flex-col gap-y-0.5">
+            <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
+              {source.title}
+            </p>
+            <p
+              className={cn(
+                ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
+                {
+                  'line-clamp-2': showMore,
+                  'line-clamp-1': !showMore
+                }
+              )}
+            >
+              {normalizedText(source.snippet)}
+            </p>
+          </div>
+          <div className="flex items-center text-xs text-muted-foreground">
+            <div className="flex w-full flex-1 items-center">
+              <SiteFavicon hostname={hostname} />
+              <p className="ml-1 overflow-hidden text-ellipsis">
+                {hostname.replace('www.', '').split('/')[0]}
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </TooltipTrigger>
+      <TooltipContent
+        align="start"
+        className="cursor-pointer p-2"
+        onClick={onTootipClick}
+      >
+        <div className="mb-2">Source info</div>
+        <p>Score: xxxx</p>
+        <p>Ranking: xxxx</p>
+      </TooltipContent>
+    </Tooltip>
   )
 }
 
