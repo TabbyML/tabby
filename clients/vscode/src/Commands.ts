@@ -262,21 +262,21 @@ export class Commands {
           },
         },
       };
-      const recentlyCommand = this.config.chatEditRecentlyCommand;
+      //ensure max length
+      const recentlyCommand = this.config.chatEditRecentlyCommand.slice(0, this.config.chatEditHistory);
       const suggestedCommand: ChatEditCommand[] = [];
       const quickPick = window.createQuickPick<QuickPickItem & { value: string }>();
+
       const updateQuickPickList = () => {
         const input = quickPick.value;
         const list: (QuickPickItem & { value: string })[] = [];
         list.push(
-          ...suggestedCommand.map((item) => {
-            return {
-              label: item.label,
-              value: item.command,
-              iconPath: item.source === "preset" ? new ThemeIcon("edit") : new ThemeIcon("spark"),
-              description: item.source === "preset" ? item.command : "Suggested",
-            };
-          }),
+          ...suggestedCommand.map((item) => ({
+            label: item.label,
+            value: item.command,
+            iconPath: item.source === "preset" ? new ThemeIcon("edit") : new ThemeIcon("spark"),
+            description: item.source === "preset" ? item.command : "Suggested",
+          })),
         );
         if (list.length > 0) {
           list.push({
@@ -288,14 +288,17 @@ export class Commands {
         }
         const recentlyCommandToAdd = recentlyCommand.filter((item) => !list.find((i) => i.value === item));
         list.push(
-          ...recentlyCommandToAdd.map((item) => {
-            return {
-              label: item,
-              value: item,
-              iconPath: new ThemeIcon("history"),
-              description: "History",
-            };
-          }),
+          ...recentlyCommandToAdd.map((item) => ({
+            label: item,
+            value: item,
+            iconPath: new ThemeIcon("history"),
+            description: "History",
+            buttons: [
+              {
+                iconPath: new ThemeIcon("settings-remove"),
+              },
+            ],
+          })),
         );
         if (input.length > 0 && !list.find((i) => i.value === input)) {
           list.unshift({
@@ -308,12 +311,14 @@ export class Commands {
         }
         quickPick.items = list;
       };
+
       const fetchingSuggestedCommandCancellationTokenSource = new CancellationTokenSource();
       this.client.chat.provideEditCommands(
         { location: editLocation },
         { commands: suggestedCommand, callback: () => updateQuickPickList() },
         fetchingSuggestedCommandCancellationTokenSource.token,
       );
+
       quickPick.placeholder = "Enter the command for editing";
       quickPick.matchOnDescription = true;
       quickPick.onDidChangeValue(() => updateQuickPickList());
@@ -324,9 +329,11 @@ export class Commands {
         quickPick.hide();
         const command = quickPick.selectedItems[0]?.value;
         if (command) {
-          this.config.chatEditRecentlyCommand = [command]
+          const updatedRecentlyCommand = [command]
             .concat(recentlyCommand.filter((item) => item !== command))
-            .slice(0, 20);
+            .slice(0, this.config.chatEditHistory);
+          this.config.chatEditRecentlyCommand = updatedRecentlyCommand;
+
           window.withProgress(
             {
               location: ProgressLocation.Notification,
@@ -365,6 +372,20 @@ export class Commands {
           );
         }
       });
+
+      quickPick.onDidTriggerItemButton((event) => {
+        const item = event.item;
+        const button = event.button;
+        if (button.iconPath instanceof ThemeIcon && button.iconPath.id === "settings-remove") {
+          const index = recentlyCommand.indexOf(item.value);
+          if (index !== -1) {
+            recentlyCommand.splice(index, 1);
+            this.config.chatEditRecentlyCommand = recentlyCommand;
+            updateQuickPickList();
+          }
+        }
+      });
+
       quickPick.show();
     },
     "chat.edit.stop": async () => {
