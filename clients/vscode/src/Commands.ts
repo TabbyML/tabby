@@ -263,7 +263,7 @@ export class Commands {
         },
       };
       //ensure max length
-      const recentlyCommand = this.config.chatEditRecentlyCommand.slice(0, this.config.numRecentlyCommandsHistory);
+      const recentlyCommand = this.config.chatEditRecentlyCommand.slice(0, this.config.chatEditHistory);
       const suggestedCommand: ChatEditCommand[] = [];
       const quickPick = window.createQuickPick<QuickPickItem & { value: string }>();
 
@@ -286,9 +286,7 @@ export class Commands {
             alwaysShow: true,
           });
         }
-        const recentlyCommandToAdd = recentlyCommand
-          .filter((item) => !list.find((i) => i.value === item))
-          .slice(0, this.config.numRecentlyCommandsHistory);
+        const recentlyCommandToAdd = recentlyCommand.filter((item) => !list.find((i) => i.value === item));
         list.push(
           ...recentlyCommandToAdd.map((item) => ({
             label: item,
@@ -333,7 +331,7 @@ export class Commands {
         if (command) {
           const updatedRecentlyCommand = [command]
             .concat(recentlyCommand.filter((item) => item !== command))
-            .slice(0, this.config.numRecentlyCommandsHistory);
+            .slice(0, this.config.chatEditHistory);
           this.config.chatEditRecentlyCommand = updatedRecentlyCommand;
 
           window.withProgress(
@@ -384,7 +382,6 @@ export class Commands {
             recentlyCommand.splice(index, 1);
             this.config.chatEditRecentlyCommand = recentlyCommand;
             updateQuickPickList();
-            window.showInformationMessage(`Removed command: ${item.label}`);
           }
         }
       });
