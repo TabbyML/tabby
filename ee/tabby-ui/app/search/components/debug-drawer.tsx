@@ -28,10 +28,10 @@ export const DebugDrawer: React.FC<DebugDrawerProps> = ({
   if (!enable) return null
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
+    <Drawer open={open} onOpenChange={onOpenChange} shouldScaleBackground>
       <DrawerContent className="h-[60vh]">
         <DrawerHeader>
-          <DrawerTitle>Sources information</DrawerTitle>
+          <DrawerTitle>Debug information</DrawerTitle>
         </DrawerHeader>
         {value ? (
           <div className="overflow-y-auto">

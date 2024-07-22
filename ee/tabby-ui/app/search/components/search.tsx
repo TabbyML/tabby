@@ -77,6 +77,7 @@ import { useQuery } from 'urql'
 
 import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
 import { repositoryListQuery } from '@/lib/tabby/query'
+import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
@@ -113,6 +114,7 @@ type SearchContextValue = {
   repositoryList: RepositoryListQuery['repositoryList'] | undefined
   setDebugDrawerOpen: (v: boolean) => void
   setConversationIdForDebug: (v: string | undefined) => void
+  showDebugInfo: boolean
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -136,9 +138,12 @@ const SOURCE_CARD_STYLE = {
   expand: 6.3
 }
 
+const DEBUG_INFO_HEIGHT = 3
+
 export function Search() {
   const isChatEnabled = useIsChatEnabled()
   const [searchFlag] = useEnableSearch()
+  const [enableDebug] = useEnableAnswerEngineDebugMode()
   const [conversation, setConversation] = useState<ConversationMessage[]>([])
   const [showStop, setShowStop] = useState(true)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
@@ -156,6 +161,7 @@ export function Search() {
   const [conversationIdForDebug, setConversationIdForDebug] = useState<
     string | undefined
   >()
+  const [showDebugInfo, setShowDebugInfo] = useState(false)
 
   const [{ data }] = useQuery({
     query: repositoryListQuery
@@ -172,9 +178,14 @@ export function Search() {
     const _conversation = conversation.find(
       item => item.id === conversationIdForDebug
     )
-    return _conversation
-      ? pick(_conversation, 'relevant_documents', 'relevant_code')
-      : undefined
+    if (_conversation) {
+      return pick(_conversation, 'relevant_documents', 'relevant_code')
+    }
+    return {
+      answers: conversation
+        .filter(o => o.role === 'assistant')
+        .map(o => pick(o, 'relevant_documents', 'relevant_code'))
+    }
   }, [conversationIdForDebug, conversation])
 
   // Check sessionStorage for initial message or most recent conversation
@@ -454,7 +465,8 @@ export function Search() {
         extraRequestContext: extraContext,
         repositoryList,
         setDebugDrawerOpen,
-        setConversationIdForDebug
+        setConversationIdForDebug,
+        showDebugInfo
       }}
     >
       <div className="transition-all" style={style}>
@@ -468,6 +480,29 @@ export function Search() {
               <IconChevronLeft className="mr-1 h-5 w-5" />
               Home
             </Button>
+            {enableDebug && (
+              <div className="flex items-center gap-4 text-sm px-2 border rounded-lg">
+                <div className="flex items-center gap-1">
+                  <span>Toggle debug:</span>
+                  <Switch
+                    checked={showDebugInfo}
+                    onCheckedChange={setShowDebugInfo}
+                  />
+                </div>
+                <div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setConversationIdForDebug(undefined)
+                      setDebugDrawerOpen(true)
+                    }}
+                  >
+                    <IconBug />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-x-6">
             <ClientOnly>
@@ -588,7 +623,8 @@ function AnswerBlock({
     onSubmitSearch,
     isLoading,
     setDebugDrawerOpen,
-    setConversationIdForDebug
+    setConversationIdForDebug,
+    showDebugInfo
   } = useContext(SearchContext)
   const [enableDebug] = useEnableAnswerEngineDebugMode()
 
@@ -612,9 +648,10 @@ function AnswerBlock({
 
   const IconAnswer = answer.isLoading ? IconSpinner : IconSparkles
 
+  const debugInfoHeight = showDebugInfo ? DEBUG_INFO_HEIGHT : 0
   const totalHeightInRem = answer.relevant_documents
     ? Math.ceil(answer.relevant_documents.length / 4) *
-        SOURCE_CARD_STYLE.expand +
+        (SOURCE_CARD_STYLE.expand + debugInfoHeight) +
       0.5 * Math.floor(answer.relevant_documents.length / 4)
     : 0
 
@@ -673,7 +710,7 @@ function AnswerBlock({
               transition: 'height 0.25s ease-out',
               height: showMoreSource
                 ? `${totalHeightInRem}rem`
-                : `${SOURCE_CARD_STYLE.compress}rem`
+                : `${SOURCE_CARD_STYLE.compress + debugInfoHeight}rem`
             }}
           >
             {answer.relevant_documents.map((source, index) => (
@@ -819,7 +856,7 @@ function SourceCard({
   showMore: boolean
   showDebugTooltip?: boolean
 }) {
-  const { setDebugDrawerOpen, setConversationIdForDebug } =
+  const { setDebugDrawerOpen, setConversationIdForDebug, showDebugInfo } =
     useContext(SearchContext)
   const { hostname } = new URL(source.link)
   const [debugTooltipOpen, setDebugTooltipOpen] = useState(false)
@@ -835,6 +872,8 @@ function SourceCard({
     setDebugDrawerOpen(true)
   }
 
+  const debugInfoHeight = showDebugInfo ? DEBUG_INFO_HEIGHT : 0
+
   return (
     <Tooltip
       open={debugTooltipOpen}
@@ -843,39 +882,50 @@ function SourceCard({
     >
       <TooltipTrigger asChild>
         <div
-          className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card p-3 hover:bg-card/60"
+          className="flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 hover:bg-card/60"
           style={{
             height: showMore
-              ? `${SOURCE_CARD_STYLE.expand}rem`
-              : `${SOURCE_CARD_STYLE.compress}rem`,
+              ? `${SOURCE_CARD_STYLE.expand + debugInfoHeight}rem`
+              : `${SOURCE_CARD_STYLE.compress + debugInfoHeight}rem`,
             transition: 'all 0.25s ease-out'
           }}
           onClick={() => window.open(source.link)}
         >
-          <div className="flex flex-col gap-y-0.5">
-            <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-              {source.title}
-            </p>
-            <p
-              className={cn(
-                ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
-                {
-                  'line-clamp-2': showMore,
-                  'line-clamp-1': !showMore
-                }
-              )}
-            >
-              {normalizedText(source.snippet)}
-            </p>
-          </div>
-          <div className="flex items-center text-xs text-muted-foreground">
-            <div className="flex w-full flex-1 items-center">
-              <SiteFavicon hostname={hostname} />
-              <p className="ml-1 overflow-hidden text-ellipsis">
-                {hostname.replace('www.', '').split('/')[0]}
+          <div className="flex flex-col gap-y-1 justify-between flex-1">
+            <div className="flex flex-col gap-y-0.5">
+              <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
+                {source.title}
+              </p>
+              <p
+                className={cn(
+                  ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
+                  {
+                    'line-clamp-2': showMore,
+                    'line-clamp-1': !showMore
+                  }
+                )}
+              >
+                {normalizedText(source.snippet)}
               </p>
             </div>
+            <div className="flex items-center text-xs text-muted-foreground">
+              <div className="flex w-full flex-1 items-center">
+                <SiteFavicon hostname={hostname} />
+                <p className="ml-1 overflow-hidden text-ellipsis">
+                  {hostname.replace('www.', '').split('/')[0]}
+                </p>
+              </div>
+            </div>
           </div>
+          {showDebugInfo && (
+            <div className="h-12">
+              <Separator className="my-2" />
+              <div className="text-xs overflow-y-auto">
+                <p>Score: xxxx</p>
+                <p>Ranking: xxxx</p>
+              </div>
+            </div>
+          )}
         </div>
       </TooltipTrigger>
       <TooltipContent
