@@ -22,10 +22,10 @@ export const DebugDrawer: React.FC<DebugDrawerProps> = ({
   onOpenChange,
   value
 }) => {
-  const [enable] = useEnableAnswerEngineDebugMode()
+  const [enableDebug] = useEnableAnswerEngineDebugMode()
   const { theme } = useCurrentTheme()
 
-  if (!enable) return null
+  if (!enableDebug?.value) return null
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} shouldScaleBackground>

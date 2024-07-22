@@ -480,7 +480,7 @@ export function Search() {
               <IconChevronLeft className="mr-1 h-5 w-5" />
               Home
             </Button>
-            {enableDebug && (
+            {enableDebug.value && (
               <div className="flex items-center gap-4 rounded-lg border px-2 text-sm">
                 <div className="flex items-center gap-1">
                   <span>Toggle debug:</span>
@@ -748,7 +748,7 @@ function AnswerBlock({
             })}
           />
           <p className="text-sm font-bold leading-none">Answer</p>
-          {enableDebug && (
+          {enableDebug.value && (
             <Button
               variant="ghost"
               size="icon"
