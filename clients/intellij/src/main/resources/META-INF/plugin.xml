@@ -54,8 +54,11 @@
                            key="tabby.warning"/>
         <projectService serviceInterface="com.tabbyml.intellijtabby.git.GitProvider"
                         serviceImplementation="com.tabbyml.intellijtabby.git.DummyGitProvider"/>
-        <toolWindow id="Tabby" anchor="right" icon="/chat/chat.svg"
-                    factoryClass="com.tabbyml.intellijtabby.chat.TabbyToolWindowFactory"/>
+        <toolWindow
+                id="Tabby"
+                anchor="right"
+                icon="/chat/chat.svg"
+                factoryClass="com.tabbyml.intellijtabby.chat.TabbyToolWindowFactory" />
     </extensions>
 
     <actions>
