@@ -188,9 +188,7 @@ impl RepositoryService for RepositoryServiceImpl {
             .list_repositories_with_filter(None, None, Some(true), None, None, None, None)
             .await?;
         repos
-            .iter()
-            .filter(|r| RepositoryConfig::canonicalize_url(&r.git_url) == git_url)
-            .next()
+            .iter().find(|r| RepositoryConfig::canonicalize_url(&r.git_url) == git_url)
             .map(|r| r.source_id())
             .ok_or_else(|| anyhow::anyhow!("No web source found for git_url: {}", git_url).into())
     }
