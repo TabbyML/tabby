@@ -481,7 +481,7 @@ export function Search() {
               Home
             </Button>
             {enableDebug && (
-              <div className="flex items-center gap-4 text-sm px-2 border rounded-lg">
+              <div className="flex items-center gap-4 rounded-lg border px-2 text-sm">
                 <div className="flex items-center gap-1">
                   <span>Toggle debug:</span>
                   <Switch
@@ -891,7 +891,7 @@ function SourceCard({
           }}
           onClick={() => window.open(source.link)}
         >
-          <div className="flex flex-col gap-y-1 justify-between flex-1">
+          <div className="flex flex-1 flex-col justify-between gap-y-1">
             <div className="flex flex-col gap-y-0.5">
               <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
                 {source.title}
@@ -920,7 +920,7 @@ function SourceCard({
           {showDebugInfo && (
             <div className="h-12">
               <Separator className="my-2" />
-              <div className="text-xs overflow-y-auto">
+              <div className="overflow-y-auto text-xs">
                 <p>Score: xxxx</p>
                 <p>Ranking: xxxx</p>
               </div>
