@@ -13,6 +13,7 @@ use tabby_common::{
     registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH},
 };
 use tabby_inference::{ChatCompletionStream, CompletionOptions, CompletionStream, Embedding};
+use tokio::task::JoinHandle;
 
 fn api_endpoint(port: u16) -> String {
     format!("http://127.0.0.1:{port}")
@@ -41,6 +42,7 @@ impl EmbeddingServer {
             None,
             enable_fast_attention,
             context_size,
+            None,
         );
         server.start().await;
 
@@ -66,7 +68,7 @@ impl Embedding for EmbeddingServer {
 
 struct CompletionServer {
     #[allow(unused)]
-    server: LlamaCppSupervisor,
+    pub server: LlamaCppSupervisor,
     completion: Arc<dyn CompletionStream>,
 }
 
@@ -87,6 +89,7 @@ impl CompletionServer {
             None,
             enable_fast_attention,
             context_size,
+            None,
         );
         server.start().await;
         let config = HttpModelConfigBuilder::default()
@@ -120,6 +123,7 @@ impl ChatCompletionServer {
         chat_template: String,
         enable_fast_attention: bool,
         context_size: usize,
+        handle: Option<JoinHandle<()>>,
     ) -> Self {
         let server = LlamaCppSupervisor::new(
             "chat",
@@ -130,6 +134,7 @@ impl ChatCompletionServer {
             Some(chat_template),
             enable_fast_attention,
             context_size,
+            handle,
         );
         server.start().await;
         let config = HttpModelConfigBuilder::default()
@@ -163,7 +168,7 @@ impl ChatCompletionStream for ChatCompletionServer {
     }
 }
 
-pub async fn create_chat_completion(config: &LocalModelConfig) -> Arc<dyn ChatCompletionStream> {
+pub async fn create_chat_completion(config: &LocalModelConfig, handle: Option<JoinHandle<()>>) -> Arc<dyn ChatCompletionStream> {
     let model_path = resolve_model_path(&config.model_id).await;
     let info = resolve_prompt_info(&config.model_id).await;
     let chat_template = info
@@ -178,6 +183,7 @@ pub async fn create_chat_completion(config: &LocalModelConfig) -> Arc<dyn ChatCo
             chat_template,
             config.enable_fast_attention.unwrap_or_default(),
             config.context_size,
+            handle,
         )
         .await,
     )
@@ -185,10 +191,10 @@ pub async fn create_chat_completion(config: &LocalModelConfig) -> Arc<dyn ChatCo
 
 pub async fn create_completion(
     config: &LocalModelConfig,
-) -> (Arc<dyn CompletionStream>, PromptInfo) {
+) -> (Arc<dyn CompletionStream>, PromptInfo, JoinHandle<()>) {
     let model_path = resolve_model_path(&config.model_id).await;
     let prompt_info = resolve_prompt_info(&config.model_id).await;
-    let stream = Arc::new(
+    let stream: Arc<CompletionServer> = Arc::new(
         CompletionServer::new(
             config.num_gpu_layers,
             &model_path,
@@ -199,7 +205,7 @@ pub async fn create_completion(
         .await,
     );
 
-    (stream, prompt_info)
+    (stream, prompt_info, stream.server.handle)
 }
 
 pub async fn create_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {

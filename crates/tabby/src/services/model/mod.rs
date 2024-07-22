@@ -5,11 +5,12 @@ use tabby_common::config::ModelConfig;
 use tabby_download::download_model;
 use tabby_inference::{ChatCompletionStream, CodeGeneration, CompletionStream, Embedding};
 use tracing::info;
+use tokio::task::JoinHandle;
 
-pub async fn load_chat_completion(chat: &ModelConfig) -> Arc<dyn ChatCompletionStream> {
+pub async fn load_chat_completion(chat: &ModelConfig, handle: Option<JoinHandle<()>>) -> Arc<dyn ChatCompletionStream> {
     match chat {
         ModelConfig::Http(http) => http_api_bindings::create_chat(http).await,
-        ModelConfig::Local(llama) => llama_cpp_server::create_chat_completion(llama).await,
+        ModelConfig::Local(llama) => llama_cpp_server::create_chat_completion(llama, handle).await,
     }
 }
 
@@ -17,12 +18,12 @@ pub async fn load_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {
     llama_cpp_server::create_embedding(config).await
 }
 
-pub async fn load_code_generation(model: &ModelConfig) -> (Arc<CodeGeneration>, PromptInfo) {
-    let (engine, prompt_info) = load_completion(model).await;
-    (Arc::new(CodeGeneration::new(engine)), prompt_info)
+pub async fn load_code_generation(model: &ModelConfig) -> (Arc<CodeGeneration>, PromptInfo, Option<JoinHandle<()>>) {
+    let (engine, prompt_info, handle) = load_completion(model).await;
+    (Arc::new(CodeGeneration::new(engine)), prompt_info, handle)
 }
 
-async fn load_completion(model: &ModelConfig) -> (Arc<dyn CompletionStream>, PromptInfo) {
+async fn load_completion(model: &ModelConfig) -> (Arc<dyn CompletionStream>, PromptInfo, Option<JoinHandle<()>>) {
     match model {
         ModelConfig::Http(http) => {
             let engine = http_api_bindings::create(http).await;
@@ -33,9 +34,17 @@ async fn load_completion(model: &ModelConfig) -> (Arc<dyn CompletionStream>, Pro
                     prompt_template,
                     chat_template,
                 },
+                None,
             )
         }
-        ModelConfig::Local(llama) => llama_cpp_server::create_completion(llama).await,
+        ModelConfig::Local(llama) => {
+            let (server, prompt_info) = llama_cpp_server::create_completion(llama);
+            (
+                server.await,
+                prompt_info,
+                server.server.handle
+            )
+        }
     }
 }
 
