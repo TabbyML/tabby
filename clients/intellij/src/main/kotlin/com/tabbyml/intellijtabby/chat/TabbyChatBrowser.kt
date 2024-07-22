@@ -12,7 +12,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceOrNull
 import java.util.UUID
 import com.intellij.util.ui.UIUtil
-import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorColorsScheme
 import com.tabbyml.intellijtabby.settings.SettingsService
 import java.awt.Color
@@ -20,6 +19,7 @@ import com.tabbyml.intellijtabby.lsp.LanguageClient
 import com.tabbyml.intellijtabby.events.CombinedState
 import com.tabbyml.intellijtabby.lsp.protocol.Status
 import java.util.Base64
+import com.intellij.openapi.editor.colors.EditorColorsManager
 
 class TabbyBrowser(private val project: Project) {
 	private var isChatPageDisplayed = false
@@ -54,9 +54,6 @@ class TabbyBrowser(private val project: Project) {
 				self.refreshChatPage();
 			}
 		})
-
-		// Show loading screen; agentStatusChanged will update display based on status
-		this.displayChatPage(self.settings.serverEndpoint)
 
 		// Listen to the message sent from the web page
 		val jsQuery = JBCefJSQuery.create(browser)
@@ -124,6 +121,9 @@ class TabbyBrowser(private val project: Project) {
 		Disposer.register(project, browser)
 	}
 
+	// FIXME
+	// listen to edit theme change and send sync-theme message to the HTML
+
 	fun refreshChatPage () {
 		if (this.combinedState?.state?.agentStatus == Status.UNAUTHORIZED || this.combinedState?.state?.agentStatus == Status.NOT_INITIALIZED) {
 			return sendMessageToServer("showError", listOf(mapOf("content" to "Before you can start chatting, please take a moment to set up your credentials to connect to the Tabby server.")))
@@ -162,15 +162,27 @@ class TabbyBrowser(private val project: Project) {
 					$cssContent
 				</style>
 				<script defer>
-					const syncTheme = () => {
+					const syncTheme = (data = {}) => {
 						const chatIframe = document.getElementById("chat");
 						if (!chatIframe) return
+						
+						const backgroundColor = data.backgroundColor || "#${backgroundColor}"
+						const foregroundColor = data.foregroundColor || "#${foregroundColor}"
+						const fontSize = data.fontSize || "${fontSize}px"
+						const borderColor = data.borderColor || "#${borderColor}"
+						
+						const varBackgroundColor = "--intellij-editor-background:" + backgroundColor
+						const varForegroundColor = "--intellij-editor-foreground:" + foregroundColor
+						const varFontSize = "--intellij-font-size:" + fontSize
+						const varBorderColor = "--intellij-editor-border:" + borderColor
 	
-						const style = "--intellij-editor-background: #${backgroundColor}; --intellij-editor-foreground: #${foregroundColor}; --intellij-font-size: ${fontSize}px; --intellij-editor-border: #${borderColor};"
+						const style = [varBackgroundColor, varForegroundColor, varFontSize, varBorderColor].join(";")
 						chatIframe.contentWindow.postMessage({ style }, "${endpoint}");
-		
-						const themeClass = 'intellij ${theme}'
-						chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${endpoint}");
+						
+						const theme = data.theme || "${theme}"
+						const themeClass = "intellij " + theme
+						console.log('themeClass', themeClass)
+						chatIframe.contentWindow.postMessage({ themeClass }, "${endpoint}");
 				 	}
 			  
 				 	window.onload = function () {
@@ -185,8 +197,10 @@ class TabbyBrowser(private val project: Project) {
 						  chatIframe.addEventListener('load', function() {
 							setTimeout(() => {
 								syncTheme()
-								window.onReceiveMessage(JSON.stringify({ action: 'rendered' }));
-							}, 1000)
+								setTimeout(() => {
+									window.onReceiveMessage(JSON.stringify({ action: 'rendered' }));
+								}, 800)
+							}, 300)
 						  });
 	
 					 	chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery + themeQuery + fontSizeQuery + foregroundQuery + backgroundQuery)
@@ -195,14 +209,16 @@ class TabbyBrowser(private val project: Project) {
 					window.addEventListener("message", (event) => {
 						  if (!chatIframe) return
 						  if (event.data) {
-							 if (event.data === "quilt.threads.pong") return // @quilted/threads message
-							 console.log("event.data", event.data)
-							 console.log("typeof event.data", typeof event.data)
-							 if (event.data.fromClient) {
+							if (event.data === "quilt.threads.pong") return // @quilted/threads message
+							if (event.data.fromClient) {
+							 	if (event.data.action === 'sync-theme') {
+								  syncTheme(event.data.data);
+								  return;
+								}
 								chatIframe.contentWindow.postMessage(event.data.fromClient, "${endpoint}");
-							 } else {
+							} else {
 								window.onReceiveMessage(JSON.stringify(event.data));
-							 }
+							}
 						  }
 					});
 				  }
