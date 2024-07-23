@@ -9,7 +9,7 @@ use tabby_common::{
 use tabby_inference::Embedding;
 use tantivy::{
     collector::TopDocs,
-    query::{BooleanQuery, ConstScoreQuery, Occur},
+    query::{BooleanQuery, ConstScoreQuery, Occur, Query},
     schema::{self, Value},
     IndexReader, TantivyDocument,
 };
@@ -30,22 +30,33 @@ impl DocSearchImpl {
 
     async fn search(
         &self,
+        source_ids: &[String],
         reader: &IndexReader,
         q: &str,
         limit: usize,
     ) -> Result<DocSearchResponse, DocSearchError> {
         let schema = index::IndexSchema::instance();
-        let embedding = self.embedding.embed(q).await?;
-        let embedding_tokens_query =
-            index::embedding_tokens_query(embedding.len(), embedding.iter());
-        let corpus_query = schema.corpus_query(corpus::WEB);
-        let query = BooleanQuery::new(vec![
-            (
-                Occur::Must,
-                Box::new(ConstScoreQuery::new(corpus_query, 0.0)),
-            ),
-            (Occur::Must, Box::new(embedding_tokens_query)),
-        ]);
+        let query = {
+            let embedding = self.embedding.embed(q).await?;
+            let embedding_tokens_query =
+                index::embedding_tokens_query(embedding.len(), embedding.iter());
+            let corpus_query = schema.corpus_query(corpus::WEB);
+
+            let mut query_clauses: Vec<(Occur, Box<dyn Query>)> = vec![
+                (
+                    Occur::Must,
+                    Box::new(ConstScoreQuery::new(corpus_query, 0.0)),
+                ),
+                (Occur::Must, Box::new(embedding_tokens_query)),
+            ];
+
+            if !source_ids.is_empty() {
+                let source_ids_query = Box::new(schema.source_ids_query(source_ids));
+                let source_ids_query = ConstScoreQuery::new(source_ids_query, 0.0);
+                query_clauses.push((Occur::Must, Box::new(source_ids_query)));
+            }
+            BooleanQuery::new(query_clauses)
+        };
 
         let searcher = reader.searcher();
         let top_chunks = searcher.search(&query, &TopDocs::with_limit(limit * 2))?;
@@ -160,9 +171,14 @@ impl DocSearchService {
 
 #[async_trait]
 impl DocSearch for DocSearchService {
-    async fn search(&self, q: &str, limit: usize) -> Result<DocSearchResponse, DocSearchError> {
+    async fn search(
+        &self,
+        source_ids: &[String],
+        q: &str,
+        limit: usize,
+    ) -> Result<DocSearchResponse, DocSearchError> {
         if let Some(reader) = self.provider.reader().await.as_ref() {
-            self.imp.search(reader, q, limit).await
+            self.imp.search(source_ids, reader, q, limit).await
         } else {
             Err(DocSearchError::NotReady)
         }

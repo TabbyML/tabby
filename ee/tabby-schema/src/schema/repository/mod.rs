@@ -290,4 +290,6 @@ pub trait RepositoryService: Send + Sync {
 
     async fn list_all_repository_urls(&self) -> Result<Vec<RepositoryConfig>>;
     async fn list_all_sources(&self) -> Result<Vec<(String, String)>>;
+
+    async fn resolve_web_source_id_by_git_url(&self, git_url: &str) -> Result<String>;
 }

@@ -190,6 +190,23 @@ impl IndexSchema {
             tantivy::schema::IndexRecordOption::Basic,
         ))
     }
+
+    pub fn source_ids_query(&self, source_ids: &[String]) -> impl Query {
+        BooleanQuery::new(
+            source_ids
+                .iter()
+                .map(|source_id| -> (Occur, Box<(dyn Query)>) {
+                    (
+                        Occur::Should,
+                        Box::new(TermQuery::new(
+                            Term::from_field_text(self.field_source_id, source_id),
+                            tantivy::schema::IndexRecordOption::Basic,
+                        )),
+                    )
+                })
+                .collect::<Vec<_>>(),
+        )
+    }
 }
 
 lazy_static! {
