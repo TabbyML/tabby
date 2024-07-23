@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState } from 'react'
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react'
 
 import { useEnableAnswerEngineDebugMode } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
@@ -24,6 +24,16 @@ export const DebugPanel: React.FC<DebugDrawerProps> = ({
   const [enableDebug] = useEnableAnswerEngineDebugMode()
   const { theme } = useCurrentTheme()
   const [fullScreen, setFullScreen] = useState(false)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (value) {
+      scrollAreaRef.current?.children?.[1]?.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      })
+    }
+  }, [value])
 
   if (!enableDebug?.value) return null
 
@@ -50,7 +60,7 @@ export const DebugPanel: React.FC<DebugDrawerProps> = ({
       </div>
       <Suspense fallback={<ListSkeleton className="p-2" />}>
         {value ? (
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1" ref={scrollAreaRef}>
             <ReactJsonView
               theme={theme === 'dark' ? 'tomorrow' : 'rjv-default'}
               src={value}
