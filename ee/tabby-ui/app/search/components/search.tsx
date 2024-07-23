@@ -56,6 +56,11 @@ import {
   IconSpinner,
   IconStop
 } from '@/components/ui/icons'
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup
+} from '@/components/ui/resizable'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -72,12 +77,12 @@ import UserPanel from '@/components/user-panel'
 import './search.css'
 
 import { pick } from 'lodash-es'
+import { ImperativePanelHandle } from 'react-resizable-panels'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
 import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
 import { repositoryListQuery } from '@/lib/tabby/query'
-import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
@@ -85,7 +90,7 @@ import {
 } from '@/components/ui/tooltip'
 import { CodeReferences } from '@/components/chat/question-answer'
 
-import { DebugDrawer } from './debug-drawer'
+import { DebugPanel } from './debug-panel'
 
 interface Source {
   title: string
@@ -114,7 +119,6 @@ type SearchContextValue = {
   repositoryList: RepositoryListQuery['repositoryList'] | undefined
   setDebugDrawerOpen: (v: boolean) => void
   setConversationIdForDebug: (v: string | undefined) => void
-  showDebugInfo: boolean
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -161,7 +165,8 @@ export function Search() {
   const [conversationIdForDebug, setConversationIdForDebug] = useState<
     string | undefined
   >()
-  const [showDebugInfo, setShowDebugInfo] = useState(false)
+  const debugPanelRef = useRef<ImperativePanelHandle>(null)
+  const [debugPanelSize, setDebugPanelSize] = useState(45)
 
   const [{ data }] = useQuery({
     query: repositoryListQuery
@@ -187,6 +192,12 @@ export function Search() {
         .map(o => pick(o, 'relevant_documents', 'relevant_code'))
     }
   }, [conversationIdForDebug, conversation])
+
+  const onPanelLayout = (sizes: number[]) => {
+    if (sizes?.[2]) {
+      setDebugPanelSize(sizes[2])
+    }
+  }
 
   // Check sessionStorage for initial message or most recent conversation
   useEffect(() => {
@@ -362,6 +373,15 @@ export function Search() {
     )
   }, [extraContext])
 
+  useEffect(() => {
+    if (debugDrawerOpen) {
+      debugPanelRef.current?.expand()
+      debugPanelRef.current?.resize(debugPanelSize)
+    } else {
+      debugPanelRef.current?.collapse()
+    }
+  }, [debugDrawerOpen])
+
   const onSubmitSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
     const previousMessages = conversation.map(message => ({
       role: message.role,
@@ -465,148 +485,155 @@ export function Search() {
         extraRequestContext: extraContext,
         repositoryList,
         setDebugDrawerOpen,
-        setConversationIdForDebug,
-        showDebugInfo
+        setConversationIdForDebug
       }}
     >
       <div className="transition-all" style={style}>
-        <header className="flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-x-6">
-            <Button
-              variant="ghost"
-              className="-ml-1 pl-0 text-sm text-muted-foreground"
-              onClick={() => router.back()}
-            >
-              <IconChevronLeft className="mr-1 h-5 w-5" />
-              Home
-            </Button>
-            {enableDebug.value && (
-              <div className="flex items-center gap-4 rounded-lg border px-2 text-sm">
-                <div className="flex items-center gap-1">
-                  <span>Toggle debug:</span>
-                  <Switch
-                    checked={showDebugInfo}
-                    onCheckedChange={setShowDebugInfo}
-                  />
+        <ResizablePanelGroup direction="vertical" onLayout={onPanelLayout}>
+          <ResizablePanel>
+            <header className="flex h-16 items-center justify-between px-4">
+              <div className="flex items-center gap-x-6">
+                <Button
+                  variant="ghost"
+                  className="-ml-1 pl-0 text-sm text-muted-foreground"
+                  onClick={() => router.back()}
+                >
+                  <IconChevronLeft className="mr-1 h-5 w-5" />
+                  Home
+                </Button>
+              </div>
+              <div className="flex items-center gap-x-6">
+                <ClientOnly>
+                  <ThemeToggle />
+                </ClientOnly>
+                <UserPanel showHome={false} showSetting>
+                  <UserAvatar className="h-10 w-10 border" />
+                </UserPanel>
+              </div>
+            </header>
+
+            <main className="h-[calc(100%-4rem)] overflow-auto pb-8 lg:pb-0">
+              <ScrollArea className="h-full" ref={contentContainerRef}>
+                <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
+                  <div className="flex flex-col">
+                    {conversation.map((item, idx) => {
+                      if (item.role === 'user') {
+                        return (
+                          <div key={item.id + idx}>
+                            {idx !== 0 && <Separator />}
+                            <div className="pb-2 pt-8">
+                              <MessageMarkdown
+                                message={item.content}
+                                headline
+                              />
+                            </div>
+                          </div>
+                        )
+                      }
+                      if (item.role === 'assistant') {
+                        return (
+                          <div key={item.id + idx} className="pb-8 pt-2">
+                            <AnswerBlock
+                              answer={item}
+                              showRelatedQuestion={
+                                idx === conversation.length - 1
+                              }
+                            />
+                          </div>
+                        )
+                      }
+                      return <></>
+                    })}
+                  </div>
                 </div>
-                <div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setConversationIdForDebug(undefined)
-                      setDebugDrawerOpen(true)
-                    }}
+              </ScrollArea>
+
+              {container && (
+                <ButtonScrollToBottom
+                  className="!fixed !bottom-[5.4rem] !right-4 !top-auto z-40 border-muted-foreground lg:!bottom-[2.85rem]"
+                  container={container}
+                  offset={100}
+                  // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
+                  // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
+                  style={
+                    theme === 'dark'
+                      ? ({ '--background': '0 0% 12%' } as CSSProperties)
+                      : {}
+                  }
+                />
+              )}
+
+              <div
+                className={cn(
+                  'fixed bottom-5 left-0 z-30 flex min-h-[5rem] w-full flex-col items-center gap-y-2',
+                  {
+                    'opacity-100 translate-y-0': showSearchInput,
+                    'opacity-0 translate-y-10': !showSearchInput
+                  }
+                )}
+                style={Object.assign(
+                  { transition: 'all 0.35s ease-out' },
+                  theme === 'dark'
+                    ? ({ '--background': '0 0% 12%' } as CSSProperties)
+                    : {}
+                )}
+              >
+                <Button
+                  className={cn('bg-background', {
+                    'opacity-0 pointer-events-none': !showStop,
+                    'opacity-100': showStop
+                  })}
+                  style={{
+                    transition: 'opacity 0.55s ease-out'
+                  }}
+                  variant="outline"
+                  onClick={stop}
+                >
+                  <IconStop className="mr-2" />
+                  Stop generating
+                </Button>
+                {!debugDrawerOpen && (
+                  <div
+                    className={cn(
+                      'relative z-20 flex justify-center self-stretch px-4'
+                    )}
                   >
-                    <IconBug />
-                  </Button>
-                </div>
+                    <TextAreaSearch
+                      onSearch={onSubmitSearch}
+                      className="lg:max-w-4xl"
+                      placeholder="Ask a follow up question"
+                      isLoading={isLoading}
+                      isFollowup
+                      extraContext={extraContext}
+                    />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <div className="flex items-center gap-x-6">
-            <ClientOnly>
-              <ThemeToggle />
-            </ClientOnly>
-            <UserPanel showHome={false} showSetting>
-              <UserAvatar className="h-10 w-10 border" />
-            </UserPanel>
-          </div>
-        </header>
-
-        <main className="h-[calc(100%-4rem)] overflow-auto pb-8 lg:pb-0">
-          <ScrollArea className="h-full" ref={contentContainerRef}>
-            <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
-              <div className="flex flex-col">
-                {conversation.map((item, idx) => {
-                  if (item.role === 'user') {
-                    return (
-                      <div key={item.id + idx}>
-                        {idx !== 0 && <Separator />}
-                        <div className="pb-2 pt-8">
-                          <MessageMarkdown message={item.content} headline />
-                        </div>
-                      </div>
-                    )
-                  }
-                  if (item.role === 'assistant') {
-                    return (
-                      <div key={item.id + idx} className="pb-8 pt-2">
-                        <AnswerBlock
-                          answer={item}
-                          showRelatedQuestion={idx === conversation.length - 1}
-                        />
-                      </div>
-                    )
-                  }
-                  return <></>
-                })}
-              </div>
-            </div>
-          </ScrollArea>
-
-          {container && (
-            <ButtonScrollToBottom
-              className="!fixed !bottom-[5.4rem] !right-4 !top-auto z-40 border-muted-foreground lg:!bottom-[2.85rem]"
-              container={container}
-              offset={100}
-              // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
-              // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
-              style={
-                theme === 'dark'
-                  ? ({ '--background': '0 0% 12%' } as CSSProperties)
-                  : {}
-              }
-            />
-          )}
-
-          <div
+            </main>
+          </ResizablePanel>
+          <ResizableHandle
             className={cn(
-              'fixed bottom-5 left-0 z-30 flex min-h-[5rem] w-full flex-col items-center gap-y-2',
-              {
-                'opacity-100 translate-y-0': showSearchInput,
-                'opacity-0 translate-y-10': !showSearchInput
-              }
+              'hidden !h-[4px] border-none bg-background hover:bg-blue-500 active:bg-blue-500 shadow-[0px_-4px_4px_rgba(0,0,0,0.2)] dark:shadow-[0px_-4px_4px_rgba(255,255,255,0.2)]',
+              debugDrawerOpen && 'block'
             )}
-            style={Object.assign(
-              { transition: 'all 0.35s ease-out' },
-              theme === 'dark'
-                ? ({ '--background': '0 0% 12%' } as CSSProperties)
-                : {}
-            )}
+          />
+          <ResizablePanel
+            collapsible
+            collapsedSize={0}
+            defaultSize={0}
+            ref={debugPanelRef}
+            onCollapse={() => setDebugDrawerOpen(false)}
+            className="z-50"
           >
-            <Button
-              className={cn('bg-background', {
-                'opacity-0 pointer-events-none': !showStop,
-                'opacity-100': showStop
-              })}
-              style={{
-                transition: 'opacity 0.55s ease-out'
-              }}
-              variant="outline"
-              onClick={stop}
-            >
-              <IconStop className="mr-2" />
-              Stop generating
-            </Button>
-            <div className="relative z-20 flex justify-center self-stretch px-4">
-              <TextAreaSearch
-                onSearch={onSubmitSearch}
-                className="lg:max-w-4xl"
-                placeholder="Ask a follow up question"
-                isLoading={isLoading}
-                isFollowup
-                extraContext={extraContext}
-              />
-            </div>
-          </div>
-        </main>
+            <DebugPanel
+              open={debugDrawerOpen}
+              // FIXME donot use onopenchange
+              onOpenChange={setDebugDrawerOpen}
+              value={debugValue}
+            />
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
-      <DebugDrawer
-        open={debugDrawerOpen}
-        onOpenChange={setDebugDrawerOpen}
-        value={debugValue}
-      />
     </SearchContext.Provider>
   )
 }
@@ -623,8 +650,7 @@ function AnswerBlock({
     onSubmitSearch,
     isLoading,
     setDebugDrawerOpen,
-    setConversationIdForDebug,
-    showDebugInfo
+    setConversationIdForDebug
   } = useContext(SearchContext)
   const [enableDebug] = useEnableAnswerEngineDebugMode()
 
@@ -648,10 +674,9 @@ function AnswerBlock({
 
   const IconAnswer = answer.isLoading ? IconSpinner : IconSparkles
 
-  const debugInfoHeight = showDebugInfo ? DEBUG_INFO_HEIGHT : 0
   const totalHeightInRem = answer.relevant_documents
     ? Math.ceil(answer.relevant_documents.length / 4) *
-        (SOURCE_CARD_STYLE.expand + debugInfoHeight) +
+        SOURCE_CARD_STYLE.expand +
       0.5 * Math.floor(answer.relevant_documents.length / 4)
     : 0
 
@@ -710,7 +735,7 @@ function AnswerBlock({
               transition: 'height 0.25s ease-out',
               height: showMoreSource
                 ? `${totalHeightInRem}rem`
-                : `${SOURCE_CARD_STYLE.compress + debugInfoHeight}rem`
+                : `${SOURCE_CARD_STYLE.compress}rem`
             }}
           >
             {answer.relevant_documents.map((source, index) => (
@@ -856,7 +881,7 @@ function SourceCard({
   showMore: boolean
   showDebugTooltip?: boolean
 }) {
-  const { setDebugDrawerOpen, setConversationIdForDebug, showDebugInfo } =
+  const { setDebugDrawerOpen, setConversationIdForDebug } =
     useContext(SearchContext)
   const { hostname } = new URL(source.link)
   const [debugTooltipOpen, setDebugTooltipOpen] = useState(false)
@@ -872,8 +897,6 @@ function SourceCard({
     setDebugDrawerOpen(true)
   }
 
-  const debugInfoHeight = showDebugInfo ? DEBUG_INFO_HEIGHT : 0
-
   return (
     <Tooltip
       open={debugTooltipOpen}
@@ -885,8 +908,8 @@ function SourceCard({
           className="flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 hover:bg-card/60"
           style={{
             height: showMore
-              ? `${SOURCE_CARD_STYLE.expand + debugInfoHeight}rem`
-              : `${SOURCE_CARD_STYLE.compress + debugInfoHeight}rem`,
+              ? `${SOURCE_CARD_STYLE.expand}rem`
+              : `${SOURCE_CARD_STYLE.compress}rem`,
             transition: 'all 0.25s ease-out'
           }}
           onClick={() => window.open(source.link)}
@@ -917,15 +940,6 @@ function SourceCard({
               </div>
             </div>
           </div>
-          {showDebugInfo && (
-            <div className="h-12">
-              <Separator className="my-2" />
-              <div className="overflow-y-auto text-xs">
-                <p>Score: xxxx</p>
-                <p>Ranking: xxxx</p>
-              </div>
-            </div>
-          )}
         </div>
       </TooltipTrigger>
       <TooltipContent
