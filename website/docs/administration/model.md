@@ -49,7 +49,7 @@ api_endpoint = "https://api.mistral.ai"
 api_key = "secret-api-key"
 ```
 
-#### [openai completion](https://platform.openai.com/docs/api-reference/completions) (since 0.14)
+#### [openai completion](https://platform.openai.com/docs/api-reference/completions)
 
 Configure Tabby with an OpenAI-compatible completion model (`/v1/completions`) using an online service or a self-hosted backend (vLLM, Nvidia NIM, LocalAI, ...) as follows:
 
@@ -87,7 +87,7 @@ api_endpoint = "https://api.deepseek.com/v1"
 api_key = "secret-api-key"
 ```
 
-#### [mistral / codestral](https://docs.mistral.ai/api/#operation/createFIMCompletion) (since 0.14)
+#### [mistral / codestral](https://docs.mistral.ai/api/#operation/createFIMCompletion)
 
 Configure the `mistral/codestral` model as follows:
 

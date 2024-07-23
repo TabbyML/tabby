@@ -35,7 +35,7 @@ For an actual example of an issue or pull request adding the above support, plea
 * [Solidity](https://soliditylang.org/)
 * [R](https://www.r-project.org/)
 * [Dart](https://dart.dev/)
-* [Lua](https://www.lua.org): Since 0.14.0
+* [Lua](https://www.lua.org)
 
 ## Languages Missing Certain Support
 
