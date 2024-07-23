@@ -94,6 +94,7 @@ function MainPanel() {
         repository: ctx?.repository ? omit(ctx.repository, 'refs') : undefined
       })
     )
+
     router.push('/search?q=pending')
   }
 

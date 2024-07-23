@@ -221,6 +221,7 @@ export function Search() {
       const initialExtraInfo = initialExtraContextStr
         ? JSON.parse(initialExtraContextStr)
         : undefined
+
       if (initialMessage) {
         sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
         sessionStorage.removeItem(
@@ -237,10 +238,25 @@ export function Search() {
         })
         setIsAuthor(true)
         setIsReady(true)
-        return
       } else {
         router.replace('/')
       }
+    }
+  }, [pathname])
+
+  // Handling /search/{subPath}
+  useEffect(() => {
+    const regex = /^\/search\/(.*)/
+    const subPath = pathname.match(regex)?.[1]
+    if (subPath) {
+      const title = subPath.split('/')[0]
+      const titleSplit = title.split('-')
+      const threadId = titleSplit[titleSplit.length - 1]
+      setThreadId(threadId)
+      setIsLoadingThread(true)
+      setIsReady(true)
+      // FIXME: go fetch thread from server, set isAuthor
+      // FIXME: after load thread, if blockIndex existed, scrolling to the block
     }
   }, [pathname])
 
@@ -421,7 +437,7 @@ export function Search() {
     )
     triggerRequest(answerRequest)
 
-    // FIXME(wwayne): update thread in server
+    // FIXME: update thread in server
   }
 
   const onRegenerateResponse = (
@@ -467,7 +483,7 @@ export function Search() {
     setConversation(newConversation)
     triggerRequest(answerRequest)
 
-    // FIXME(wwayne): update thread in server
+    // FIXME: update thread in server
   }
 
   const onCopy = () => {
