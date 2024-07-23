@@ -270,7 +270,7 @@ export default function ChatPage() {
       <StaticContent>
         <>
           <p className="opacity-80">
-            Welcome to Tabby Chat! Just a moment while we get thins ready...
+            Welcome to Tabby Chat! Just a moment while we get things ready...
           </p>
           <IconSpinner
             className="mx-auto"
