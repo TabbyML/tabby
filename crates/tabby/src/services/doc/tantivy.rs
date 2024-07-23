@@ -51,7 +51,8 @@ impl DocSearchImpl {
             ];
 
             if !source_ids.is_empty() {
-                let source_ids_query = schema.source_ids_query(source_ids);
+                let source_ids_query = Box::new(schema.source_ids_query(source_ids));
+                let source_ids_query = ConstScoreQuery::new(source_ids_query, 0.0);
                 query_clauses.push((Occur::Must, Box::new(source_ids_query)));
             }
             BooleanQuery::new(query_clauses)
