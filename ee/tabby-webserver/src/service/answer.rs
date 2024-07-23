@@ -13,6 +13,7 @@ use tabby_common::api::{
     doc::{DocSearch, DocSearchDocument, DocSearchError},
 };
 use tabby_inference::ChatCompletionStream;
+use tabby_schema::{repository::RepositoryService, web_crawler::WebCrawlerService};
 use tracing::{debug, warn};
 use utoipa::ToSchema;
 
@@ -53,6 +54,8 @@ pub struct AnswerService {
     chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
+    web: Arc<dyn WebCrawlerService>,
+    repository: Arc<dyn RepositoryService>,
     serper: Option<Box<dyn DocSearch>>,
 }
 
@@ -64,6 +67,8 @@ impl AnswerService {
         chat: Arc<dyn ChatCompletionStream>,
         code: Arc<dyn CodeSearch>,
         doc: Arc<dyn DocSearch>,
+        web: Arc<dyn WebCrawlerService>,
+        repository: Arc<dyn RepositoryService>,
         serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
     ) -> Self {
         let serper: Option<Box<dyn DocSearch>> =
@@ -77,6 +82,8 @@ impl AnswerService {
             chat,
             code,
             doc,
+            web,
+            repository,
             serper,
         }
     }
@@ -94,6 +101,8 @@ impl AnswerService {
                     return;
                 }
             };
+
+            let git_url = req.code_query.as_ref().map(|x| x.git_url.clone());
 
             // 1. Collect relevant code if needed.
             let relevant_code = if let Some(mut code_query)  = req.code_query  {
@@ -116,7 +125,7 @@ impl AnswerService {
 
             // 2. Collect relevant docs if needed.
             let relevant_docs = if req.doc_query {
-                self.collect_relevant_docs(get_content(query)).await
+                self.collect_relevant_docs(git_url.as_deref(), get_content(query)).await
             } else {
                 vec![]
             };
@@ -199,10 +208,39 @@ impl AnswerService {
             .collect()
     }
 
-    async fn collect_relevant_docs(&self, query: &str) -> Vec<DocSearchDocument> {
+    async fn collect_relevant_docs(
+        &self,
+        code_query_git_url: Option<&str>,
+        content: &str,
+    ) -> Vec<DocSearchDocument> {
+        let source_ids = {
+            // 1. By default only web sources are considered.
+            let mut source_ids: Vec<_> = self
+                .web
+                .list_web_crawler_urls(None, None, None, None)
+                .await
+                .unwrap_or_default()
+                .into_iter()
+                .map(|url| url.source_id())
+                .collect();
+
+            // 2. If code_query is available, we also issues / PRs coming from the source.
+            if let Some(git_url) = code_query_git_url {
+                if let Ok(git_source_id) = self
+                    .repository
+                    .resolve_web_source_id_by_git_url(git_url)
+                    .await
+                {
+                    source_ids.push(git_source_id);
+                }
+            }
+
+            source_ids
+        };
+
         // 1. Collect relevant docs from the tantivy doc search.
         let mut hits = vec![];
-        let doc_hits = match self.doc.search(&[], query, 5).await {
+        let doc_hits = match self.doc.search(&source_ids, content, 5).await {
             Ok(docs) => docs.hits,
             Err(err) => {
                 if let DocSearchError::NotReady = err {
@@ -217,7 +255,7 @@ impl AnswerService {
 
         // 2. If serper is available, we also collect from serper
         if let Some(serper) = self.serper.as_ref() {
-            let serper_hits = match serper.search(&[], query, 5).await {
+            let serper_hits = match serper.search(&[], content, 5).await {
                 Ok(docs) => docs.hits,
                 Err(err) => {
                     warn!("Failed to search serper: {:?}", err);
@@ -364,9 +402,11 @@ pub fn create(
     chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
+    web: Arc<dyn WebCrawlerService>,
+    repository: Arc<dyn RepositoryService>,
     serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
 ) -> AnswerService {
-    AnswerService::new(chat, code, doc, serper_factory_fn)
+    AnswerService::new(chat, code, doc, web, repository, serper_factory_fn)
 }
 
 fn get_content(message: &ChatCompletionRequestMessage) -> &str {
