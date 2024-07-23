@@ -97,3 +97,26 @@ kind = "mistral/chat"
 api_endpoint = "https://api.mistral.ai"
 api_key = "secret-api-key"
 ```
+
+### Embedding Model
+
+Tabby utilize embedding models to convert documents and queries into vectors for efficient context retrieval. The default embedding model is `Nomic-Embed-Text`, which is a high-performing open embedding model with a large token context window. Currently, `Nomic-Embed-Text` is the only supported local embedding model.
+
+### Using a remote embedding model provider
+
+You can add also a remote embedding model provider by adding a new section to the `~/.tabby/config.toml` file.
+
+```toml
+[model.embedding.http]
+kind = "openai/embedding"
+api_endpoint = "https://api.openai.com"
+api_key = "sk-..."
+model_name = "text-embedding-3-small"
+```
+
+Following embedding model providers are supported:
+
+* `openai/embedding`
+* `voyageai/embedding`
+* `llama.cpp/embedding`
+* `ollama/embedding`

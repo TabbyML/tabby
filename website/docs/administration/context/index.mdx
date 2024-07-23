@@ -62,32 +62,3 @@ Once connected, the indexing job will start automatically. You can check the sta
 Additionally, you can also visit the **Code Browser** page to view the connected repository.
 
 <img src={CodeBrowserUrl} alt="code browser" width="800" />'
-
-## Internal: Vector Index
-
-When adding a document, it is converted into vectors that help quickly find relevant context. During searches or chats, queries and messages are also converted into vectors to locate the most similar documents.
-
-### Use the default embedding model
-
-The default embedding model is "Nomic-Embed-Text", which is a high-performing open embedding model with a large token context window.
-
-Currently, "Nomic-Embed-Text" is the only supported local embedding model.
-
-### Using a remote embedding model provider
-
-You can add also a remote embedding model provider by adding a new section to the `~/.tabby/config.toml` file.
-
-```toml
-[model.embedding.http]
-kind = "openai/embedding"
-api_endpoint = "https://api.openai.com"
-api_key = "sk-..."
-model_name = "text-embedding-3-small"
-```
-
-Following embedding model providers are supported:
-
-* `openai/embedding`
-* `voyageai/embedding`
-* `llama.cpp/embedding`
-* `ollama/embedding`
