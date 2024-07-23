@@ -140,16 +140,21 @@ export class ChatViewProvider implements WebviewViewProvider {
         await this.displayChatPage(serverInfo.config.endpoint, { force: true });
         return;
       },
-      onSubmitMessage: async (msg: string) => {
+      onSubmitMessage: async (msg: string, relevantContext?: Context[]) => {
         const editor = window.activeTextEditor;
         const chatMessage: ChatMessage = {
           message: msg,
+          relevantContext: [],
         };
         if (editor) {
           const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
-          if (fileContext) chatMessage.relevantContext = [fileContext];
+          if (fileContext) chatMessage.relevantContext?.push(fileContext);
+        }
+        if (relevantContext) {
+          chatMessage.relevantContext = chatMessage.relevantContext?.concat(relevantContext);
         }
 
+        // FIXME: maybe deduplicate on chatMessage.relevantContext
         this.sendMessage(chatMessage);
       },
       onApplyInEditor: (content: string) => {
@@ -431,6 +436,10 @@ export class ChatViewProvider implements WebviewViewProvider {
     } else {
       this.sendMessageToChatPanel(message);
     }
+  }
+
+  public addClientSelectedContext(context: Context) {
+    this.client?.addClientSelectedContext(context);
   }
 
   private sendMessageToChatPanel(message: ChatMessage) {

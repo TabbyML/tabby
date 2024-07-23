@@ -36,6 +36,8 @@ type ChatContextValue = {
   onCopyContent?: (value: string) => void
   client?: string
   onApplyInEditor?: (value: string) => void
+  clientSelectedContext: Context[]
+  removeClientSelectedContext: (index: number) => void
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -102,6 +104,7 @@ export interface ChatRef {
   ) => Promise<string | null | undefined>
   stop: () => void
   isLoading: boolean
+  addClientSelectedContext: (context: Context) => void
 }
 
 interface ChatProps extends React.ComponentProps<'div'> {
@@ -121,7 +124,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   promptFormClassname?: string
   onCopyContent?: (value: string) => void
   client?: string
-  onSubmitMessage?: (msg: string) => Promise<void>
+  onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
   onApplyInEditor?: (value: string) => void
 }
 
@@ -153,6 +156,9 @@ function ChatRenderer(
   const isOnLoadExecuted = React.useRef(false)
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
   const [input, setInput] = React.useState<string>('')
+  const [clientSelectedContext, setClientSelectedContext] = React.useState<
+    Context[]
+  >([])
 
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
     api,
@@ -351,10 +357,29 @@ function ChatRenderer(
   }
 
   const handleSubmit = async (value: string) => {
-    if (onSubmitMessage) return onSubmitMessage(value)
-    return sendUserChat({
-      message: value
-    })
+    if (onSubmitMessage) {
+      onSubmitMessage(value, clientSelectedContext)
+    } else {
+      sendUserChat({
+        message: value,
+        relevantContext: clientSelectedContext
+      })
+    }
+    setClientSelectedContext([])
+  }
+
+  const handleAddClientSelectedContext = useLatest((context: Context) => {
+    setClientSelectedContext(clientSelectedContext.concat([context]))
+  })
+
+  const addClientSelectedContext = (context: Context) => {
+    handleAddClientSelectedContext.current?.(context)
+  }
+
+  const removeClientSelectedContext = (index: number) => {
+    const newSelectedContext = [...clientSelectedContext]
+    newSelectedContext.splice(index, 1)
+    setClientSelectedContext(newSelectedContext)
   }
 
   React.useEffect(() => {
@@ -368,7 +393,8 @@ function ChatRenderer(
       return {
         sendUserChat,
         stop,
-        isLoading
+        isLoading,
+        addClientSelectedContext
       }
     },
     []
@@ -399,11 +425,14 @@ function ChatRenderer(
         container,
         onCopyContent,
         client,
-        onApplyInEditor
+        onApplyInEditor,
+        clientSelectedContext,
+        removeClientSelectedContext
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
         <div className={`w-full px-4 ${chatMaxWidthClass}`}>
+          {/* FIXME: pb-[200px] might not enough when adding a large number of clientSelectedContext */}
           <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
             {qaPairs?.length ? (
               <QuestionAnswerList

@@ -37,12 +37,13 @@ export interface ServerApi {
   sendMessage: (message: ChatMessage) => void
   showError: (error: ErrorMessage) => void
   cleanError: () => void
+  addClientSelectedContext: (context: Context) => void
 }
 
 export interface ClientApi {
   navigate: (context: Context, opts?: NavigateOpts) => void
   refresh: () => Promise<void>
-  onSubmitMessage?: (msg: string) => Promise<void>
+  onSubmitMessage?: (msg: string, onSubmitMessage?: Context[]) => Promise<void>
   onApplyInEditor?: (content: string) => void
 }
 
@@ -70,6 +71,7 @@ export function createServer(api: ServerApi): ClientApi {
       sendMessage: api.sendMessage,
       showError: api.showError,
       cleanError: api.cleanError,
+      addClientSelectedContext: api.addClientSelectedContext,
     },
   })
 }
