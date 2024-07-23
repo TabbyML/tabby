@@ -64,11 +64,12 @@ impl AnswerService {
         chat: Arc<dyn ChatCompletionStream>,
         code: Arc<dyn CodeSearch>,
         doc: Arc<dyn DocSearch>,
+        serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
     ) -> Self {
         let serper: Option<Box<dyn DocSearch>> =
             if let Ok(api_key) = std::env::var("SERPER_API_KEY") {
                 debug!("Serper API key found, enabling serper...");
-                Some(Box::new(super::doc::create_serper(api_key.as_str())))
+                Some(serper_factory_fn(&api_key))
             } else {
                 None
             };
@@ -363,8 +364,9 @@ pub fn create(
     chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
+    serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
 ) -> AnswerService {
-    AnswerService::new(chat, code, doc)
+    AnswerService::new(chat, code, doc, serper_factory_fn)
 }
 
 fn get_content(message: &ChatCompletionRequestMessage) -> &str {

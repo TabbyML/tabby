@@ -23,6 +23,8 @@ derive_builder.workspace = true
 hash-ids.workspace = true
 tracing.workspace = true
 chrono.workspace = true
+axum.workspace = true
+axum-extra = { workspace = true, features = ["typed-header"] }
 
 [dev-dependencies]
 temp_testdir = { workspace = true }

@@ -3,9 +3,9 @@ use std::sync::Arc;
 use axum::{extract::State, Json};
 use axum_extra::TypedHeader;
 use hyper::StatusCode;
+use tabby_common::axum::MaybeUser;
 use tracing::{instrument, warn};
 
-use super::MaybeUser;
 use crate::services::completion::{CompletionRequest, CompletionResponse, CompletionService};
 
 #[utoipa::path(

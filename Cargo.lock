@@ -5060,6 +5060,8 @@ version = "0.15.0-dev.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "axum",
+ "axum-extra",
  "chrono",
  "derive_builder",
  "hash-ids",
@@ -5244,6 +5246,7 @@ dependencies = [
  "anyhow",
  "argon2",
  "assert_matches",
+ "async-openai",
  "async-stream",
  "async-trait",
  "axum",
@@ -5287,6 +5290,7 @@ dependencies = [
  "tracing",
  "url",
  "urlencoding",
+ "utoipa",
  "uuid",
 ]
 
