@@ -613,7 +613,7 @@ export function Search() {
           </ResizablePanel>
           <ResizableHandle
             className={cn(
-              'hidden !h-[4px] border-none bg-background hover:bg-blue-500 active:bg-blue-500 shadow-[0px_-4px_4px_rgba(0,0,0,0.2)] dark:shadow-[0px_-4px_4px_rgba(255,255,255,0.2)]',
+              'hidden !h-[4px] border-none bg-background shadow-[0px_-4px_4px_rgba(0,0,0,0.2)] hover:bg-blue-500 active:bg-blue-500 dark:shadow-[0px_-4px_4px_rgba(255,255,255,0.2)]',
               debugDrawerOpen && 'block'
             )}
           />

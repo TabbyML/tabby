@@ -30,7 +30,7 @@ export const DebugPanel: React.FC<DebugDrawerProps> = ({
   if (!open) return null
 
   return (
-    <div className="h-full flex flex-col pt-2 px-3">
+    <div className="flex h-full flex-col px-3 pt-2">
       <div className="flex items-center justify-between pb-2">
         <span className="font-semibold">Debug</span>
         <div className="flex items-center gap-2">
