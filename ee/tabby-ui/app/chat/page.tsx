@@ -68,6 +68,7 @@ export default function ChatPage() {
     : undefined
 
   const isFromVSCode = client === 'vscode'
+  const isFromIntellij = client === 'intellij'
   const isOnSubmitMessage = CLIENT_TO_HANDLE_MESSAGE_SUBMIT.includes(
     client || ''
   )
@@ -206,7 +207,7 @@ export default function ChatPage() {
           fontSize: isThemeSynced ? 'inherit' : initialFontSize,
           color: isThemeSynced ? 'inherit' : initialForeground,
           background: isThemeSynced ? 'inherit' : initialBackground,
-          padding: '5px 18px'
+          padding: isFromIntellij ? '20px' : '5px 18px'
         }}
       >
         <div className="flex items-center" style={{ marginBottom: '0.55em' }}>

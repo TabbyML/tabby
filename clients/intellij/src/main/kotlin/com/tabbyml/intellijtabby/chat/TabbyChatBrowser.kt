@@ -50,7 +50,6 @@ class TabbyBrowser(private val project: Project) {
 
 		messageBusConnection.subscribe(SettingsService.Listener.TOPIC, object : SettingsService.Listener {
 			override fun settingsChanged(settings: SettingsService.Settings) {
-				print("settingsChanged: ${settings}")
 				self.refreshChatPage();
 			}
 		})
@@ -117,6 +116,10 @@ class TabbyBrowser(private val project: Project) {
 				}
 			}
 		}, browser.cefBrowser)
+
+		// FIXME: Implement web server health detection to display the disconnected page if the server is down.
+		// Note: Currently, this.combinedState.state.agentStatus is always NOT_INITIALIZED at this point.
+		self.displayChatPage(self.settings.serverEndpoint)
 
 		Disposer.register(project, browser)
 	}
