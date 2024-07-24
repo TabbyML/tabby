@@ -1,3 +1,12 @@
+## 1.8.1
+
+**pre-release**
+
+### Fixes & Improvements
+
+- Resolved compatibility issue with chat panel on connections to an older version of the Tabby server.
+- Users can now manually remove the history of chat edit commands. The maximum number of history entries can be configured in the advanced settings.
+
 ## 1.8.0
 
 **pre-release**
