@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useEffect, useRef } from 'react'
 
-import { useEnableAnswerEngineDebugMode } from '@/lib/experiment-flags'
+import { useEnableAnswerEngineDeveloperMode } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -10,20 +10,20 @@ import { ListSkeleton } from '@/components/skeleton'
 
 const ReactJsonView = lazy(() => import('react-json-view'))
 
-interface DebugPanelProps {
+interface DevPanelProps {
   isFullScreen: boolean
   onToggleFullScreen: (fullScreen: boolean) => void
   value: object | undefined
   onClose: () => void
 }
 
-export const DebugPanel: React.FC<DebugPanelProps> = ({
+export const DevPanel: React.FC<DevPanelProps> = ({
   value,
   isFullScreen,
   onToggleFullScreen,
   onClose
 }) => {
-  const [enableDebug] = useEnableAnswerEngineDebugMode()
+  const [enableDev] = useEnableAnswerEngineDeveloperMode()
   const { theme } = useCurrentTheme()
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
@@ -36,14 +36,13 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
     }
   }, [value])
 
-  if (!enableDebug?.value) return null
+  if (!enableDev?.value) return null
 
   if (!open) return null
 
   return (
     <div className="flex h-full flex-col px-3 pt-2">
-      <div className="flex items-center justify-between pb-2">
-        <span className="font-semibold">Debug</span>
+      <div className="flex items-center justify-end pb-2">
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"

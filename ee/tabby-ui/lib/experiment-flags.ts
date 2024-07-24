@@ -115,14 +115,14 @@ const enableSearchFactory = new ExperimentFlagFactory(
 export const EXP_enable_search = enableSearchFactory.defineGlobalVar()
 export const useEnableSearch = enableSearchFactory.defineHook()
 
-const enableAnswerEngineDebugModeFactory = new ExperimentFlagFactory(
+const enableAnswerEngineDeveloperModeFactory = new ExperimentFlagFactory(
   'enable_developer_mode',
-  'Debug mode of Answer Engine',
-  'Enable the debug mode of the answer engine to facilitate easier viewing of more information about the returned answers.',
+  'Developer mode of Answer Engine',
+  'Enable the developer mode of the answer engine to facilitate easier viewing of more information about the returned answers.',
   false
 )
 
-export const EXP_enable_answer_engine_debug_mode =
-  enableAnswerEngineDebugModeFactory.defineGlobalVar()
-export const useEnableAnswerEngineDebugMode =
-  enableAnswerEngineDebugModeFactory.defineHook()
+export const EXP_enable_answer_engine_developer_mode =
+  enableAnswerEngineDeveloperModeFactory.defineGlobalVar()
+export const useEnableAnswerEngineDeveloperMode =
+  enableAnswerEngineDeveloperModeFactory.defineHook()
