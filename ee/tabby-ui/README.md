@@ -1,21 +1,15 @@
 # Tabby UI
 
 ## 🤝 Contribuing
-Thank you for your interest in contributing to Tabby! We appreciate all contributions. For a better experience and support, join us on [Slack](https://links.tabbyml.com/join-slack)!
 
 ### Local Setup
 Full guide at [CONTRIBUTING.md](https://github.com/TabbyML/tabby/blob/main/CONTRIBUTING.md#local-setup)
 
-### Get the Code
-To begin contributing to Tabby, first clone the repository locally:
-
-```
-git clone --recurse-submodules https://github.com/TabbyML/tabby
-```
-
-If you have already cloned the repository, you could run the git submodule update --recursive --init command to fetch all submodules.
-
 ### Running
+During local development, we use Caddy to orchestrate Tabby-UI and local Tabby. We run both the Tabby-UI server and the local Tabby server simultaneously, using Caddy to forward frontend and backend requests to their respective servers, reducing the need for host and port configuration and taking advantage of the hot-reload feature of tabby-ui. 
+The Caddy configuration file is located [here](https://github.com/TabbyML/tabby/blob/main/ee/tabby-webserver/development/Caddyfile).
+
+Regarding the Tabby binary in production distribution, we do not start the tabby-ui server and Caddy server. Instead, tabby-ui is solely built and outputs static assets. Routing is configured within Tabby to distribute the static assets produced by tabby-ui.
 
 #### 1. Start the development frontend server
 
@@ -35,8 +29,6 @@ cargo run serve --port 8081
 ```
 make caddy
 ```
-
-To enhance the local development experience, we use Caddy as a reverse proxy to forward requests during development, and the configuration file is located [here](https://github.com/TabbyML/tabby/blob/main/ee/tabby-webserver/development/Caddyfile)
 
 #### 4. Start hacking
 Now, you can open `http://localhost:8080` to see the tabby webserver!
