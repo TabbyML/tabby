@@ -1,7 +1,7 @@
 package com.tabbyml.tabby4eclipse.editor;
 
 public class InlineCompletionItem {
-	
+
 	public static class Range {
 		private int start;
 		private int end;
@@ -19,7 +19,7 @@ public class InlineCompletionItem {
 			return end;
 		}
 	}
-	
+
 	private String insertText;
 	private Range replaceRange;
 
@@ -27,11 +27,11 @@ public class InlineCompletionItem {
 		this.insertText = insertText;
 		this.replaceRange = replaceRange;
 	}
-	
+
 	public String getInsertText() {
 		return insertText;
 	}
-	
+
 	public Range getReplaceRange() {
 		return replaceRange;
 	}

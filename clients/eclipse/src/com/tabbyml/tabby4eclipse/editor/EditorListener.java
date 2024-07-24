@@ -1,10 +1,9 @@
 package com.tabbyml.tabby4eclipse.editor;
 
+import org.eclipse.jface.text.IDocument;
+import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4e.LanguageServerWrapper;
-import org.eclipse.jface.text.IDocument;
-import org.eclipse.jface.text.ITextOperationTarget;
-import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IEditorReference;
 import org.eclipse.ui.IPartListener;
@@ -28,14 +27,6 @@ public class EditorListener implements IPartListener {
 
 	private Logger logger = new Logger("EditorListener");
 
-	private LanguageServerWrapper getLanguageServerWrapper() {
-		LanguageServerWrapper server = LanguageServerService.getInstance().getServer();
-		if (server == null) {
-			logger.error("Cannot initialize EditorManager. Language server is not available.");
-		}
-		return server;
-	}
-
 	public void init() {
 		try {
 			IWorkbenchWindow[] windows = PlatformUI.getWorkbench().getWorkbenchWindows();
@@ -53,11 +44,8 @@ public class EditorListener implements IPartListener {
 							getLanguageServerWrapper().connectDocument(document);
 							logger.info(
 									"Connect document: " + LSPEclipseUtils.toUri(document) + " to server when init.");
-
-							ITextViewer textViewer = (ITextViewer) editorPart.getAdapter(ITextViewer.class);
-							if (textViewer != null) {
-								logger.info("Create listener for TextViewer.");
-							}
+							
+							getInlineCompletionService().register((ITextEditor) editorPart);
 						}
 					}
 				}
@@ -72,10 +60,12 @@ public class EditorListener implements IPartListener {
 		try {
 			if (part != null) {
 				IEditorPart editorPart = (IEditorPart) part.getAdapter(IEditorPart.class);
-				if (editorPart != null) {
+				if (editorPart instanceof ITextEditor) {
 					IDocument document = LSPEclipseUtils.getDocument(editorPart.getEditorInput());
 					getLanguageServerWrapper().connectDocument(document);
 					logger.info("Connect document: " + LSPEclipseUtils.toUri(document) + " to server when opened.");
+					
+					getInlineCompletionService().register((ITextEditor) editorPart);
 				}
 			}
 		} catch (Exception e) {
@@ -88,10 +78,12 @@ public class EditorListener implements IPartListener {
 		try {
 			if (part != null) {
 				IEditorPart editorPart = (IEditorPart) part.getAdapter(IEditorPart.class);
-				if (editorPart != null) {
+				if (editorPart instanceof ITextEditor) {
 					IDocument document = LSPEclipseUtils.getDocument(editorPart.getEditorInput());
 					getLanguageServerWrapper().disconnect(LSPEclipseUtils.toUri(document));
 					logger.info("Disconnect document: " + LSPEclipseUtils.toUri(document));
+					
+					getInlineCompletionService().unregister((ITextEditor) editorPart);
 				}
 			}
 		} catch (Exception e) {
@@ -109,5 +101,17 @@ public class EditorListener implements IPartListener {
 
 	@Override
 	public void partBroughtToTop(IWorkbenchPart part) {
+	}
+	
+	private LanguageServerWrapper getLanguageServerWrapper() {
+		LanguageServerWrapper server = LanguageServerService.getInstance().getServer();
+		if (server == null) {
+			logger.error("Cannot initialize EditorManager. Language server is not available.");
+		}
+		return server;
+	}
+	
+	private InlineCompletionService getInlineCompletionService() {
+		return InlineCompletionService.getInstance();
 	}
 }

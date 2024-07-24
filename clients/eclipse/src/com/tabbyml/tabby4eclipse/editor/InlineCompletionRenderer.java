@@ -25,19 +25,26 @@ import org.eclipse.swt.widgets.Display;
 import com.tabbyml.tabby4eclipse.Logger;
 
 public class InlineCompletionRenderer {
-	public static InlineCompletionRenderer getInstance() {
-		return LazyHolder.INSTANCE;
-	}
-
-	private static class LazyHolder {
-		private static final InlineCompletionRenderer INSTANCE = new InlineCompletionRenderer();
-	}
-
 	private Logger logger = new Logger("InlineCompletionRenderer");
 	private Map<ITextViewer, InlineCompletionItemPainter> painters = new HashMap<>();
+	private ITextViewer currentTextViewer = null;
+	private InlineCompletionItem currentCompletionItem = null;
 
-	public void show(ITextViewer viewer, InlineCompletionItem completion) {
-		getPainter(viewer).setItem(completion);
+	public void show(ITextViewer viewer, int offset, InlineCompletionItem completion) {
+		if (currentTextViewer != null) {
+			getPainter(currentTextViewer).update(null, 0);
+		}
+		currentTextViewer = viewer;
+		currentCompletionItem = completion;
+		getPainter(viewer).update(completion, offset);
+	}
+	
+	public void hide() {
+		if (currentTextViewer != null) {
+			getPainter(currentTextViewer).update(null, 0);
+			currentTextViewer = null;
+			currentCompletionItem = null;
+		}
 	}
 
 	private InlineCompletionItemPainter getPainter(ITextViewer viewer) {
@@ -53,6 +60,8 @@ public class InlineCompletionRenderer {
 		private ITextViewer viewer;
 
 		private InlineCompletionItem item;
+		private int offset;
+		
 		private Font font;
 		private Map<Integer, Integer> originLinesVerticalIndent = new HashMap<>();
 		private List<StyleRange> originStyleRanges = new ArrayList<>();
@@ -65,12 +74,12 @@ public class InlineCompletionRenderer {
 			});
 		}
 
-		public InlineCompletionItem getItem() {
-			return item;
-		}
-
-		public void setItem(InlineCompletionItem item) {
-			this.item = item;
+		public void update(InlineCompletionItem item, int offset) {
+			if (this.item != item || this.offset != offset) {
+				this.item = item;
+				this.offset = offset;
+				getWidget().redraw();
+			}
 		}
 
 		@Override
@@ -123,14 +132,15 @@ public class InlineCompletionRenderer {
 		}
 		
 		private void render(GC gc) {
+			if (item == null) {
+				return;
+			}
 			StyledText widget = getWidget();
-			int offset = getWidget().getCaretOffset();
 
 			int prefixReplaceLength = offset - item.getReplaceRange().getStart();
 			int suffixReplaceLength = item.getReplaceRange().getEnd() - offset;
 			String text = item.getInsertText().substring(prefixReplaceLength);
 			if (text.isEmpty()) {
-			    // Nothing to display
 			    return;
 			}
 			
@@ -145,9 +155,6 @@ public class InlineCompletionRenderer {
 			if (offset < currentLineEndOffset && offset < widget.getCharCount()) {
 				currentLineSuffix = widget.getText(offset, currentLineEndOffset);
 			}
-			logger.debug("offset: " + offset);
-			logger.debug("currentLineEndOffset: " + currentLineEndOffset);
-			logger.debug("currentLineSuffix: " + currentLineSuffix);
 			
 			String textCurrentLine;
 			String textSuffixLines;
