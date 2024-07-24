@@ -118,7 +118,7 @@ export const useEnableSearch = enableSearchFactory.defineHook()
 const enableDeveloperModeFactory = new ExperimentFlagFactory(
   'enable_developer_mode',
   'Developer Mode',
-  'Enable the developer mode. The features involved include the Answer Engine',
+  'Enable the developer mode. The features involved include the Answer Engine.',
   false
 )
 
