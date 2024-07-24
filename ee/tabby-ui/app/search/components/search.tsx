@@ -3,6 +3,7 @@
 import {
   createContext,
   CSSProperties,
+  MouseEventHandler,
   useContext,
   useEffect,
   useMemo,
@@ -21,7 +22,7 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
-import { useEnableSearch } from '@/lib/experiment-flags'
+import { useEnableDeveloperMode, useEnableSearch } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
@@ -42,6 +43,7 @@ import {
 } from '@/components/ui/hover-card'
 import {
   IconBlocks,
+  IconBug,
   IconChevronLeft,
   IconChevronRight,
   IconLayers,
@@ -51,6 +53,11 @@ import {
   IconSpinner,
   IconStop
 } from '@/components/ui/icons'
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup
+} from '@/components/ui/resizable'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -66,12 +73,21 @@ import UserPanel from '@/components/user-panel'
 
 import './search.css'
 
+import { pick } from 'lodash-es'
+import { ImperativePanelHandle } from 'react-resizable-panels'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
 import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
 import { repositoryListQuery } from '@/lib/tabby/query'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import { CodeReferences } from '@/components/chat/question-answer'
+
+import { DevPanel } from './dev-panel'
 
 interface Source {
   title: string
@@ -98,6 +114,8 @@ type SearchContextValue = {
   onSubmitSearch: (question: string) => void
   extraRequestContext: Record<string, any>
   repositoryList: RepositoryListQuery['repositoryList'] | undefined
+  setDevPanelOpen: (v: boolean) => void
+  setConversationIdForDev: (v: string | undefined) => void
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -137,6 +155,13 @@ export function Search() {
   const router = useRouter()
   const initCheckRef = useRef(false)
   const { theme } = useCurrentTheme()
+  const [devPanelOpen, setDevPanelOpen] = useState(false)
+  const [conversationIdForDev, setConversationIdForDev] = useState<
+    string | undefined
+  >()
+  const devPanelRef = useRef<ImperativePanelHandle>(null)
+  const [devPanelSize, setDevPanelSize] = useState(45)
+  const prevDevPanelSize = useRef(devPanelSize)
 
   const [{ data }] = useQuery({
     query: repositoryListQuery
@@ -148,6 +173,26 @@ export function Search() {
   })
 
   const isLoadingRef = useLatest(isLoading)
+
+  const valueForDev = useMemo(() => {
+    const _conversation = conversation.find(
+      item => item.id === conversationIdForDev
+    )
+    if (_conversation) {
+      return pick(_conversation, 'relevant_documents', 'relevant_code')
+    }
+    return {
+      answers: conversation
+        .filter(o => o.role === 'assistant')
+        .map(o => pick(o, 'relevant_documents', 'relevant_code'))
+    }
+  }, [conversationIdForDev, conversation])
+
+  const onPanelLayout = (sizes: number[]) => {
+    if (sizes?.[1]) {
+      setDevPanelSize(sizes[1])
+    }
+  }
 
   // Check sessionStorage for initial message or most recent conversation
   useEffect(() => {
@@ -323,6 +368,15 @@ export function Search() {
     )
   }, [extraContext])
 
+  useEffect(() => {
+    if (devPanelOpen) {
+      devPanelRef.current?.expand()
+      devPanelRef.current?.resize(devPanelSize)
+    } else {
+      devPanelRef.current?.collapse()
+    }
+  }, [devPanelOpen])
+
   const onSubmitSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
     const previousMessages = conversation.map(message => ({
       role: message.role,
@@ -409,6 +463,18 @@ export function Search() {
     triggerRequest(answerRequest)
   }
 
+  const onToggleFullScreen = (fullScreen: boolean) => {
+    let nextSize = prevDevPanelSize.current
+    if (fullScreen) {
+      nextSize = 100
+    } else if (nextSize === 100) {
+      nextSize = 45
+    }
+    devPanelRef.current?.resize(nextSize)
+    setDevPanelSize(nextSize)
+    prevDevPanelSize.current = devPanelSize
+  }
+
   if (!searchFlag.value || !isChatEnabled || !isReady) {
     return <></>
   }
@@ -420,122 +486,160 @@ export function Search() {
   return (
     <SearchContext.Provider
       value={{
-        isLoading: isLoading,
-        onRegenerateResponse: onRegenerateResponse,
-        onSubmitSearch: onSubmitSearch,
+        isLoading,
+        onRegenerateResponse,
+        onSubmitSearch,
         extraRequestContext: extraContext,
-        repositoryList
+        repositoryList,
+        setDevPanelOpen,
+        setConversationIdForDev
       }}
     >
       <div className="transition-all" style={style}>
-        <header className="flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-x-6">
-            <Button
-              variant="ghost"
-              className="-ml-1 pl-0 text-sm text-muted-foreground"
-              onClick={() => router.back()}
-            >
-              <IconChevronLeft className="mr-1 h-5 w-5" />
-              Home
-            </Button>
-          </div>
-          <div className="flex items-center gap-x-6">
-            <ClientOnly>
-              <ThemeToggle />
-            </ClientOnly>
-            <UserPanel showHome={false} showSetting>
-              <UserAvatar className="h-10 w-10 border" />
-            </UserPanel>
-          </div>
-        </header>
-
-        <main className="h-[calc(100%-4rem)] overflow-auto pb-8 lg:pb-0">
-          <ScrollArea className="h-full" ref={contentContainerRef}>
-            <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
-              <div className="flex flex-col">
-                {conversation.map((item, idx) => {
-                  if (item.role === 'user') {
-                    return (
-                      <div key={item.id + idx}>
-                        {idx !== 0 && <Separator />}
-                        <div className="pb-2 pt-8">
-                          <MessageMarkdown message={item.content} headline />
-                        </div>
-                      </div>
-                    )
-                  }
-                  if (item.role === 'assistant') {
-                    return (
-                      <div key={item.id + idx} className="pb-8 pt-2">
-                        <AnswerBlock
-                          answer={item}
-                          showRelatedQuestion={idx === conversation.length - 1}
-                        />
-                      </div>
-                    )
-                  }
-                  return <></>
-                })}
+        <ResizablePanelGroup direction="vertical" onLayout={onPanelLayout}>
+          <ResizablePanel>
+            <header className="flex h-16 items-center justify-between px-4">
+              <div className="flex items-center gap-x-6">
+                <Button
+                  variant="ghost"
+                  className="-ml-1 pl-0 text-sm text-muted-foreground"
+                  onClick={() => router.back()}
+                >
+                  <IconChevronLeft className="mr-1 h-5 w-5" />
+                  Home
+                </Button>
               </div>
-            </div>
-          </ScrollArea>
+              <div className="flex items-center gap-x-6">
+                <ClientOnly>
+                  <ThemeToggle />
+                </ClientOnly>
+                <UserPanel showHome={false} showSetting>
+                  <UserAvatar className="h-10 w-10 border" />
+                </UserPanel>
+              </div>
+            </header>
 
-          {container && (
-            <ButtonScrollToBottom
-              className="!fixed !bottom-[5.4rem] !right-4 !top-auto z-40 border-muted-foreground lg:!bottom-[2.85rem]"
-              container={container}
-              offset={100}
-              // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
-              // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
-              style={
-                theme === 'dark'
-                  ? ({ '--background': '0 0% 12%' } as CSSProperties)
-                  : {}
-              }
-            />
-          )}
+            <main className="h-[calc(100%-4rem)] overflow-auto pb-8 lg:pb-0">
+              <ScrollArea className="h-full" ref={contentContainerRef}>
+                <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
+                  <div className="flex flex-col">
+                    {conversation.map((item, idx) => {
+                      if (item.role === 'user') {
+                        return (
+                          <div key={item.id + idx}>
+                            {idx !== 0 && <Separator />}
+                            <div className="pb-2 pt-8">
+                              <MessageMarkdown
+                                message={item.content}
+                                headline
+                              />
+                            </div>
+                          </div>
+                        )
+                      }
+                      if (item.role === 'assistant') {
+                        return (
+                          <div key={item.id + idx} className="pb-8 pt-2">
+                            <AnswerBlock
+                              answer={item}
+                              showRelatedQuestion={
+                                idx === conversation.length - 1
+                              }
+                            />
+                          </div>
+                        )
+                      }
+                      return <></>
+                    })}
+                  </div>
+                </div>
+              </ScrollArea>
 
-          <div
+              {container && (
+                <ButtonScrollToBottom
+                  className="!fixed !bottom-[5.4rem] !right-4 !top-auto z-40 border-muted-foreground lg:!bottom-[2.85rem]"
+                  container={container}
+                  offset={100}
+                  // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
+                  // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
+                  style={
+                    theme === 'dark'
+                      ? ({ '--background': '0 0% 12%' } as CSSProperties)
+                      : {}
+                  }
+                />
+              )}
+
+              <div
+                className={cn(
+                  'fixed bottom-5 left-0 z-30 flex min-h-[5rem] w-full flex-col items-center gap-y-2',
+                  {
+                    'opacity-100 translate-y-0': showSearchInput,
+                    'opacity-0 translate-y-10': !showSearchInput
+                  }
+                )}
+                style={Object.assign(
+                  { transition: 'all 0.35s ease-out' },
+                  theme === 'dark'
+                    ? ({ '--background': '0 0% 12%' } as CSSProperties)
+                    : {}
+                )}
+              >
+                <Button
+                  className={cn('bg-background', {
+                    'opacity-0 pointer-events-none': !showStop,
+                    'opacity-100': showStop
+                  })}
+                  style={{
+                    transition: 'opacity 0.55s ease-out'
+                  }}
+                  variant="outline"
+                  onClick={stop}
+                >
+                  <IconStop className="mr-2" />
+                  Stop generating
+                </Button>
+                {!devPanelOpen && (
+                  <div
+                    className={cn(
+                      'relative z-20 flex justify-center self-stretch px-4'
+                    )}
+                  >
+                    <TextAreaSearch
+                      onSearch={onSubmitSearch}
+                      className="lg:max-w-4xl"
+                      placeholder="Ask a follow up question"
+                      isLoading={isLoading}
+                      isFollowup
+                      extraContext={extraContext}
+                    />
+                  </div>
+                )}
+              </div>
+            </main>
+          </ResizablePanel>
+          <ResizableHandle
             className={cn(
-              'fixed bottom-5 left-0 z-30 flex min-h-[5rem] w-full flex-col items-center gap-y-2',
-              {
-                'opacity-100 translate-y-0': showSearchInput,
-                'opacity-0 translate-y-10': !showSearchInput
-              }
+              'hidden !h-[4px] border-none bg-background shadow-[0px_-4px_4px_rgba(0,0,0,0.2)] hover:bg-blue-500 active:bg-blue-500 dark:shadow-[0px_-4px_4px_rgba(255,255,255,0.2)]',
+              devPanelOpen && 'block'
             )}
-            style={Object.assign(
-              { transition: 'all 0.35s ease-out' },
-              theme === 'dark'
-                ? ({ '--background': '0 0% 12%' } as CSSProperties)
-                : {}
-            )}
+          />
+          <ResizablePanel
+            collapsible
+            collapsedSize={0}
+            defaultSize={0}
+            ref={devPanelRef}
+            onCollapse={() => setDevPanelOpen(false)}
+            className="z-50"
           >
-            <Button
-              className={cn('bg-background', {
-                'opacity-0 pointer-events-none': !showStop,
-                'opacity-100': showStop
-              })}
-              style={{
-                transition: 'opacity 0.55s ease-out'
-              }}
-              variant="outline"
-              onClick={stop}
-            >
-              <IconStop className="mr-2" />
-              Stop generating
-            </Button>
-            <div className="relative z-20 flex justify-center self-stretch px-4">
-              <TextAreaSearch
-                onSearch={onSubmitSearch}
-                className="lg:max-w-4xl"
-                placeholder="Ask a follow up question"
-                isLoading={isLoading}
-                isFollowup
-                extraContext={extraContext}
-              />
-            </div>
-          </div>
-        </main>
+            <DevPanel
+              onClose={() => setDevPanelOpen(false)}
+              value={valueForDev}
+              isFullScreen={devPanelSize === 100}
+              onToggleFullScreen={onToggleFullScreen}
+            />
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </SearchContext.Provider>
   )
@@ -548,8 +652,14 @@ function AnswerBlock({
   answer: ConversationMessage
   showRelatedQuestion: boolean
 }) {
-  const { onRegenerateResponse, onSubmitSearch, isLoading } =
-    useContext(SearchContext)
+  const {
+    onRegenerateResponse,
+    onSubmitSearch,
+    isLoading,
+    setDevPanelOpen,
+    setConversationIdForDev
+  } = useContext(SearchContext)
+  const [enableDeveloperMode] = useEnableDeveloperMode()
 
   const [showMoreSource, setShowMoreSource] = useState(false)
 
@@ -638,8 +748,10 @@ function AnswerBlock({
             {answer.relevant_documents.map((source, index) => (
               <SourceCard
                 key={source.link + index}
+                conversationId={answer.id}
                 source={source}
                 showMore={showMoreSource}
+                // showDevTooltip={enableDev.value}
               />
             ))}
           </div>
@@ -668,6 +780,18 @@ function AnswerBlock({
             })}
           />
           <p className="text-sm font-bold leading-none">Answer</p>
+          {enableDeveloperMode.value && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setConversationIdForDev(answer.id)
+                setDevPanelOpen(true)
+              }}
+            >
+              <IconBug />
+            </Button>
+          )}
         </div>
 
         {/* Relevant code */}
@@ -677,6 +801,7 @@ function AnswerBlock({
             className="mt-1 text-sm"
             onContextClick={onCodeContextClick}
             defaultOpen
+            // enableTooltip={enableDev.value}
           />
         )}
 
@@ -753,49 +878,86 @@ const normalizedText = (input: string) => {
 }
 
 function SourceCard({
+  conversationId,
   source,
-  showMore
+  showMore,
+  showDevTooltip
 }: {
+  conversationId: string
   source: Source
   showMore: boolean
+  showDevTooltip?: boolean
 }) {
+  const { setDevPanelOpen, setConversationIdForDev } = useContext(SearchContext)
   const { hostname } = new URL(source.link)
+  const [devTooltipOpen, setDevTooltipOpen] = useState(false)
+
+  const onOpenChange = (v: boolean) => {
+    if (!showDevTooltip) return
+    setDevTooltipOpen(v)
+  }
+
+  const onTootipClick: MouseEventHandler<HTMLDivElement> = e => {
+    e.stopPropagation()
+    setConversationIdForDev(conversationId)
+    setDevPanelOpen(true)
+  }
+
   return (
-    <div
-      className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card p-3 hover:bg-card/60"
-      style={{
-        height: showMore
-          ? `${SOURCE_CARD_STYLE.expand}rem`
-          : `${SOURCE_CARD_STYLE.compress}rem`,
-        transition: 'all 0.25s ease-out'
-      }}
-      onClick={() => window.open(source.link)}
+    <Tooltip
+      open={devTooltipOpen}
+      onOpenChange={onOpenChange}
+      delayDuration={0}
     >
-      <div className="flex flex-col gap-y-0.5">
-        <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-          {source.title}
-        </p>
-        <p
-          className={cn(
-            ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
-            {
-              'line-clamp-2': showMore,
-              'line-clamp-1': !showMore
-            }
-          )}
+      <TooltipTrigger asChild>
+        <div
+          className="flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 hover:bg-card/60"
+          style={{
+            height: showMore
+              ? `${SOURCE_CARD_STYLE.expand}rem`
+              : `${SOURCE_CARD_STYLE.compress}rem`,
+            transition: 'all 0.25s ease-out'
+          }}
+          onClick={() => window.open(source.link)}
         >
-          {normalizedText(source.snippet)}
-        </p>
-      </div>
-      <div className="flex items-center text-xs text-muted-foreground">
-        <div className="flex w-full flex-1 items-center">
-          <SiteFavicon hostname={hostname} />
-          <p className="ml-1 overflow-hidden text-ellipsis">
-            {hostname.replace('www.', '').split('/')[0]}
-          </p>
+          <div className="flex flex-1 flex-col justify-between gap-y-1">
+            <div className="flex flex-col gap-y-0.5">
+              <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
+                {source.title}
+              </p>
+              <p
+                className={cn(
+                  ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
+                  {
+                    'line-clamp-2': showMore,
+                    'line-clamp-1': !showMore
+                  }
+                )}
+              >
+                {normalizedText(source.snippet)}
+              </p>
+            </div>
+            <div className="flex items-center text-xs text-muted-foreground">
+              <div className="flex w-full flex-1 items-center">
+                <SiteFavicon hostname={hostname} />
+                <p className="ml-1 overflow-hidden text-ellipsis">
+                  {hostname.replace('www.', '').split('/')[0]}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </TooltipTrigger>
+      <TooltipContent
+        align="start"
+        className="cursor-pointer p-2"
+        onClick={onTootipClick}
+      >
+        <div className="mb-2">Source info</div>
+        <p>Score: xxxx</p>
+        <p>Ranking: xxxx</p>
+      </TooltipContent>
+    </Tooltip>
   )
 }
 

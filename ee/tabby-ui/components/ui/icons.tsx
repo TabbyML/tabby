@@ -6,6 +6,7 @@ import {
   Blocks,
   BookOpenText,
   Box,
+  Bug,
   ChevronsDownUp,
   CirclePlay,
   FileText,
@@ -1522,6 +1523,10 @@ function IconApplyInEditor({
   return <IndentIncrease className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconBug({ className, ...props }: React.ComponentProps<typeof Bug>) {
+  return <Bug className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1606,5 +1611,6 @@ export {
   IconBox,
   IconTag,
   IconFileText,
-  IconApplyInEditor
+  IconApplyInEditor,
+  IconBug
 }
