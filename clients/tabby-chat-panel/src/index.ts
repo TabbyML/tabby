@@ -43,7 +43,7 @@ export interface ServerApi {
 export interface ClientApi {
   navigate: (context: Context, opts?: NavigateOpts) => void
   refresh: () => Promise<void>
-  onSubmitMessage?: (msg: string, onSubmitMessage?: Context[]) => Promise<void>
+  onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
   onApplyInEditor?: (content: string) => void
 }
 
