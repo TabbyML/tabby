@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import React, { lazy, Suspense, useEffect, useRef } from 'react'
 
 import { useEnableAnswerEngineDebugMode } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
@@ -10,20 +10,21 @@ import { ListSkeleton } from '@/components/skeleton'
 
 const ReactJsonView = lazy(() => import('react-json-view'))
 
-interface DebugDrawerProps {
-  open: boolean
-  onOpenChange: (v: boolean) => void
+interface DebugPanelProps {
+  isFullScreen: boolean
+  onToggleFullScreen: (fullScreen: boolean) => void
   value: object | undefined
+  onClose: () => void
 }
 
-export const DebugPanel: React.FC<DebugDrawerProps> = ({
-  open,
-  onOpenChange,
-  value
+export const DebugPanel: React.FC<DebugPanelProps> = ({
+  value,
+  isFullScreen,
+  onToggleFullScreen,
+  onClose
 }) => {
   const [enableDebug] = useEnableAnswerEngineDebugMode()
   const { theme } = useCurrentTheme()
-  const [fullScreen, setFullScreen] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -44,16 +45,16 @@ export const DebugPanel: React.FC<DebugDrawerProps> = ({
       <div className="flex items-center justify-between pb-2">
         <span className="font-semibold">Debug</span>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon">
-            <IconChevronDown
-              className={cn('transition-all', fullScreen ? '' : 'rotate-180')}
-            />
-          </Button>
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => onOpenChange(false)}
+            onClick={e => onToggleFullScreen(!isFullScreen)}
           >
+            <IconChevronDown
+              className={cn('transition-all', isFullScreen ? '' : 'rotate-180')}
+            />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onClose}>
             <IconClose />
           </Button>
         </div>

@@ -117,7 +117,7 @@ type SearchContextValue = {
   onSubmitSearch: (question: string) => void
   extraRequestContext: Record<string, any>
   repositoryList: RepositoryListQuery['repositoryList'] | undefined
-  setDebugDrawerOpen: (v: boolean) => void
+  setDebugPanelOpen: (v: boolean) => void
   setConversationIdForDebug: (v: string | undefined) => void
 }
 
@@ -161,12 +161,13 @@ export function Search() {
   const router = useRouter()
   const initCheckRef = useRef(false)
   const { theme } = useCurrentTheme()
-  const [debugDrawerOpen, setDebugDrawerOpen] = useState(false)
+  const [debugPanelOpen, setDebugPanelOpen] = useState(false)
   const [conversationIdForDebug, setConversationIdForDebug] = useState<
     string | undefined
   >()
   const debugPanelRef = useRef<ImperativePanelHandle>(null)
   const [debugPanelSize, setDebugPanelSize] = useState(45)
+  const prevDebugPanelSize = useRef(debugPanelSize)
 
   const [{ data }] = useQuery({
     query: repositoryListQuery
@@ -194,8 +195,8 @@ export function Search() {
   }, [conversationIdForDebug, conversation])
 
   const onPanelLayout = (sizes: number[]) => {
-    if (sizes?.[2]) {
-      setDebugPanelSize(sizes[2])
+    if (sizes?.[1]) {
+      setDebugPanelSize(sizes[1])
     }
   }
 
@@ -374,13 +375,13 @@ export function Search() {
   }, [extraContext])
 
   useEffect(() => {
-    if (debugDrawerOpen) {
+    if (debugPanelOpen) {
       debugPanelRef.current?.expand()
       debugPanelRef.current?.resize(debugPanelSize)
     } else {
       debugPanelRef.current?.collapse()
     }
-  }, [debugDrawerOpen])
+  }, [debugPanelOpen])
 
   const onSubmitSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
     const previousMessages = conversation.map(message => ({
@@ -468,6 +469,18 @@ export function Search() {
     triggerRequest(answerRequest)
   }
 
+  const onToggleFullScreen = (fullScreen: boolean) => {
+    let nextSize = prevDebugPanelSize.current
+    if (fullScreen) {
+      nextSize = 100
+    } else if (nextSize === 100) {
+      nextSize = 45
+    }
+    debugPanelRef.current?.resize(nextSize)
+    setDebugPanelSize(nextSize)
+    prevDebugPanelSize.current = debugPanelSize
+  }
+
   if (!searchFlag.value || !isChatEnabled || !isReady) {
     return <></>
   }
@@ -484,7 +497,7 @@ export function Search() {
         onSubmitSearch,
         extraRequestContext: extraContext,
         repositoryList,
-        setDebugDrawerOpen,
+        setDebugPanelOpen,
         setConversationIdForDebug
       }}
     >
@@ -592,7 +605,7 @@ export function Search() {
                   <IconStop className="mr-2" />
                   Stop generating
                 </Button>
-                {!debugDrawerOpen && (
+                {!debugPanelOpen && (
                   <div
                     className={cn(
                       'relative z-20 flex justify-center self-stretch px-4'
@@ -614,7 +627,7 @@ export function Search() {
           <ResizableHandle
             className={cn(
               'hidden !h-[4px] border-none bg-background shadow-[0px_-4px_4px_rgba(0,0,0,0.2)] hover:bg-blue-500 active:bg-blue-500 dark:shadow-[0px_-4px_4px_rgba(255,255,255,0.2)]',
-              debugDrawerOpen && 'block'
+              debugPanelOpen && 'block'
             )}
           />
           <ResizablePanel
@@ -622,14 +635,14 @@ export function Search() {
             collapsedSize={0}
             defaultSize={0}
             ref={debugPanelRef}
-            onCollapse={() => setDebugDrawerOpen(false)}
+            onCollapse={() => setDebugPanelOpen(false)}
             className="z-50"
           >
             <DebugPanel
-              open={debugDrawerOpen}
-              // FIXME donot use onopenchange
-              onOpenChange={setDebugDrawerOpen}
+              onClose={() => setDebugPanelOpen(false)}
               value={debugValue}
+              isFullScreen={debugPanelSize === 100}
+              onToggleFullScreen={onToggleFullScreen}
             />
           </ResizablePanel>
         </ResizablePanelGroup>
@@ -649,7 +662,7 @@ function AnswerBlock({
     onRegenerateResponse,
     onSubmitSearch,
     isLoading,
-    setDebugDrawerOpen,
+    setDebugPanelOpen,
     setConversationIdForDebug
   } = useContext(SearchContext)
   const [enableDebug] = useEnableAnswerEngineDebugMode()
@@ -744,7 +757,7 @@ function AnswerBlock({
                 conversationId={answer.id}
                 source={source}
                 showMore={showMoreSource}
-                showDebugTooltip={enableDebug.value}
+                // showDebugTooltip={enableDebug.value}
               />
             ))}
           </div>
@@ -779,7 +792,7 @@ function AnswerBlock({
               size="icon"
               onClick={() => {
                 setConversationIdForDebug(answer.id)
-                setDebugDrawerOpen(true)
+                setDebugPanelOpen(true)
               }}
             >
               <IconBug />
@@ -794,7 +807,7 @@ function AnswerBlock({
             className="mt-1 text-sm"
             onContextClick={onCodeContextClick}
             defaultOpen
-            enableTooltip={enableDebug.value}
+            // enableTooltip={enableDebug.value}
           />
         )}
 
@@ -881,7 +894,7 @@ function SourceCard({
   showMore: boolean
   showDebugTooltip?: boolean
 }) {
-  const { setDebugDrawerOpen, setConversationIdForDebug } =
+  const { setDebugPanelOpen, setConversationIdForDebug } =
     useContext(SearchContext)
   const { hostname } = new URL(source.link)
   const [debugTooltipOpen, setDebugTooltipOpen] = useState(false)
@@ -894,7 +907,7 @@ function SourceCard({
   const onTootipClick: MouseEventHandler<HTMLDivElement> = e => {
     e.stopPropagation()
     setConversationIdForDebug(conversationId)
-    setDebugDrawerOpen(true)
+    setDebugPanelOpen(true)
   }
 
   return (
