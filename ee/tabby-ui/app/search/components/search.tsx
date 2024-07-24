@@ -22,10 +22,7 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
-import {
-  useEnableAnswerEngineDeveloperMode,
-  useEnableSearch
-} from '@/lib/experiment-flags'
+import { useEnableDeveloperMode, useEnableSearch } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
@@ -162,7 +159,7 @@ export function Search() {
   const [conversationIdForDev, setConversationIdForDev] = useState<
     string | undefined
   >()
-  const developerPanelRef = useRef<ImperativePanelHandle>(null)
+  const devPanelRef = useRef<ImperativePanelHandle>(null)
   const [devPanelSize, setDevPanelSize] = useState(45)
   const prevDevPanelSize = useRef(devPanelSize)
 
@@ -373,10 +370,10 @@ export function Search() {
 
   useEffect(() => {
     if (devPanelOpen) {
-      developerPanelRef.current?.expand()
-      developerPanelRef.current?.resize(devPanelSize)
+      devPanelRef.current?.expand()
+      devPanelRef.current?.resize(devPanelSize)
     } else {
-      developerPanelRef.current?.collapse()
+      devPanelRef.current?.collapse()
     }
   }, [devPanelOpen])
 
@@ -473,7 +470,7 @@ export function Search() {
     } else if (nextSize === 100) {
       nextSize = 45
     }
-    developerPanelRef.current?.resize(nextSize)
+    devPanelRef.current?.resize(nextSize)
     setDevPanelSize(nextSize)
     prevDevPanelSize.current = devPanelSize
   }
@@ -631,7 +628,7 @@ export function Search() {
             collapsible
             collapsedSize={0}
             defaultSize={0}
-            ref={developerPanelRef}
+            ref={devPanelRef}
             onCollapse={() => setDevPanelOpen(false)}
             className="z-50"
           >
@@ -662,7 +659,7 @@ function AnswerBlock({
     setDevPanelOpen,
     setConversationIdForDev
   } = useContext(SearchContext)
-  const [enableDev] = useEnableAnswerEngineDeveloperMode()
+  const [enableDeveloperMode] = useEnableDeveloperMode()
 
   const [showMoreSource, setShowMoreSource] = useState(false)
 
@@ -783,7 +780,7 @@ function AnswerBlock({
             })}
           />
           <p className="text-sm font-bold leading-none">Answer</p>
-          {enableDev.value && (
+          {enableDeveloperMode.value && (
             <Button
               variant="ghost"
               size="icon"

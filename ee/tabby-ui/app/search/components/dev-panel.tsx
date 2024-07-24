@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useEffect, useRef } from 'react'
 
-import { useEnableAnswerEngineDeveloperMode } from '@/lib/experiment-flags'
+import { useEnableDeveloperMode } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -23,7 +23,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
   onToggleFullScreen,
   onClose
 }) => {
-  const [enableDev] = useEnableAnswerEngineDeveloperMode()
+  const [enableDeveloperMode] = useEnableDeveloperMode()
   const { theme } = useCurrentTheme()
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
@@ -36,7 +36,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
     }
   }, [value])
 
-  if (!enableDev?.value) return null
+  if (!enableDeveloperMode?.value) return null
 
   if (!open) return null
 

@@ -1,8 +1,8 @@
 'use client'
 
 import {
-  useEnableAnswerEngineDeveloperMode,
   useEnableCodeBrowserQuickActionBar,
+  useEnableDeveloperMode,
   useEnableSearch
 } from '@/lib/experiment-flags'
 import { Switch } from '@/components/ui/switch'
@@ -11,8 +11,7 @@ export default function FeatureList() {
   const [quickActionBar, toggleQuickActionBar] =
     useEnableCodeBrowserQuickActionBar()
   const [search, toggleSearch] = useEnableSearch()
-  const [answerEngineDevMode, toggleAnswerEngineDevMode] =
-    useEnableAnswerEngineDeveloperMode()
+  const [developerMode, toggleDeveloperMode] = useEnableDeveloperMode()
   return (
     <>
       {!quickActionBar.loading && (
@@ -42,19 +41,19 @@ export default function FeatureList() {
           <Switch checked={search.value} onCheckedChange={toggleSearch} />
         </div>
       )}
-      {!answerEngineDevMode.loading && (
+      {!developerMode.loading && (
         <div className="flex items-center space-x-4 rounded-md border p-4">
           <div className="flex-1 space-y-1">
             <p className="text-sm font-medium leading-none">
-              {answerEngineDevMode.title}
+              {developerMode.title}
             </p>
             <p className="text-sm text-muted-foreground">
-              {answerEngineDevMode.description}
+              {developerMode.description}
             </p>
           </div>
           <Switch
-            checked={answerEngineDevMode.value}
-            onCheckedChange={toggleAnswerEngineDevMode}
+            checked={developerMode.value}
+            onCheckedChange={toggleDeveloperMode}
           />
         </div>
       )}
