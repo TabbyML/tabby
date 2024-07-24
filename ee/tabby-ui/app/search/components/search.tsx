@@ -562,57 +562,60 @@ export function Search() {
               </div>
             </header>
 
-        <main className="h-[calc(100%-4rem)] overflow-auto pb-8 lg:pb-0">
-          <ScrollArea className="h-full" ref={contentContainerRef}>
-            <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
-              <LoadingWrapper
-                loading={isLoadingThread}
-                fallback={
-                  <>
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="mt-5 h-64 w-full" />
-                  </>
-                }
-              >
-                <div className="flex flex-col">
-                  {conversation.map((item, idx) => {
-                    if (item.role === 'user') {
-                      const blockIndex = Math.ceil((idx + 1) / 2)
-                      return (
-                        <div
-                          key={item.id + idx}
-                          id={getBlockIdByIndex(blockIndex)}
-                        >
-                          {idx !== 0 && <Separator />}
-                          <div className="pb-2 pt-8">
-                            <MessageMarkdown message={item.content} headline />
-                          </div>
-                        </div>
-                      )
+            <main className="h-[calc(100%-4rem)] overflow-auto pb-8 lg:pb-0">
+              <ScrollArea className="h-full" ref={contentContainerRef}>
+                <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
+                  <LoadingWrapper
+                    loading={isLoadingThread}
+                    fallback={
+                      <>
+                        <Skeleton className="h-20 w-full" />
+                        <Skeleton className="mt-5 h-64 w-full" />
+                      </>
                     }
-                    if (item.role === 'assistant') {
-                      const blockIndex = Math.ceil(idx / 2)
-                      return (
-                        <div key={item.id + idx} className="pb-8 pt-2">
-                          <AnswerBlock
-                            answer={item}
-                            showRelatedQuestion={
-                              idx === conversation.length - 1
-                            }
-                            showRegenerateButton={
-                              idx === conversation.length - 1 && isAuthor
-                            }
-                            blockIndex={blockIndex}
-                          />
-                        </div>
-                      )
-                    }
-                    return <></>
-                  })}
+                  >
+                    <div className="flex flex-col">
+                      {conversation.map((item, idx) => {
+                        if (item.role === 'user') {
+                          const blockIndex = Math.ceil((idx + 1) / 2)
+                          return (
+                            <div
+                              key={item.id + idx}
+                              id={getBlockIdByIndex(blockIndex)}
+                            >
+                              {idx !== 0 && <Separator />}
+                              <div className="pb-2 pt-8">
+                                <MessageMarkdown
+                                  message={item.content}
+                                  headline
+                                />
+                              </div>
+                            </div>
+                          )
+                        }
+                        if (item.role === 'assistant') {
+                          const blockIndex = Math.ceil(idx / 2)
+                          return (
+                            <div key={item.id + idx} className="pb-8 pt-2">
+                              <AnswerBlock
+                                answer={item}
+                                showRelatedQuestion={
+                                  idx === conversation.length - 1
+                                }
+                                showRegenerateButton={
+                                  idx === conversation.length - 1 && isAuthor
+                                }
+                                blockIndex={blockIndex}
+                              />
+                            </div>
+                          )
+                        }
+                        return <></>
+                      })}
+                    </div>
+                  </LoadingWrapper>
                 </div>
-              </LoadingWrapper>
-            </div>
-          </ScrollArea>
+              </ScrollArea>
 
               {container && (
                 <ButtonScrollToBottom
