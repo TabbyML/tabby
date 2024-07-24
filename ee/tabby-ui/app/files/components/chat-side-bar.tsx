@@ -23,17 +23,11 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   ...props
 }) => {
   const [{ data }] = useMe()
-  const {
-    pendingEvent,
-    setPendingEvent,
-    repoMap,
-    activeRepoRef,
-    updateActivePath
-  } = React.useContext(SourceCodeBrowserContext)
+  const { pendingEvent, setPendingEvent, repoMap, updateActivePath } =
+    React.useContext(SourceCodeBrowserContext)
   const activeChatId = useStore(useChatStore, state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
   const repoMapRef = useLatest(repoMap)
-  const latestRepoRef = useLatest(activeRepoRef)
   const onNavigate = async (context: Context) => {
     if (context?.filepath && context?.git_url) {
       const lineHash = formatLineHashForCodeBrowser(context?.range)
@@ -46,10 +40,8 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
         const targetRepo = repoMap[matchedRepositoryKey]
         if (targetRepo) {
           const defaultRef = getDefaultRepoRef(targetRepo.refs)
-          // use curernt rev, and use defaultRev as fallback
-          const refName =
-            latestRepoRef?.current?.name ||
-            resolveRepoRef(defaultRef ?? '')?.name
+          // navigate to files of the default branch
+          const refName = resolveRepoRef(defaultRef ?? '')?.name
           updateActivePath(
             generateEntryPath(
               targetRepo,

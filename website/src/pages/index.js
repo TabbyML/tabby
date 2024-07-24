@@ -19,7 +19,7 @@ function HomepageHeader() {
           <Link
             rel="noopener"
             className="button button--secondary button--lg"
-            to="https://links.tabbyml.com/live-demo">
+            to="#tally-open=mZJ10o&tally-layout=modal&tally-width=720&tally-hide-title=0&tally-emoji-text=👋&tally-emoji-animation=wave">
             View Live Demo 🚀
           </Link>
           <Link

@@ -8,10 +8,9 @@ use axum::{
 use axum_extra::TypedHeader;
 use futures::{Stream, StreamExt};
 use hyper::StatusCode;
+use tabby_common::axum::MaybeUser;
 use tabby_inference::ChatCompletionStream;
 use tracing::{instrument, warn};
-
-use super::MaybeUser;
 
 #[utoipa::path(
     post,

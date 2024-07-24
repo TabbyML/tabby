@@ -270,6 +270,11 @@
                   "Automatic trigger when you stop typing",
                   "Manual trigger by pressing `Alt + \\`"
                 ]
+              },
+              "chatEdit.history": {
+                "type": "integer",
+                "default": 20,
+                "description": "The maximum number of recently used commands to keep. Set to 0 to disable recording."
               }
             }
           }

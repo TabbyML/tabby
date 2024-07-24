@@ -9,7 +9,7 @@ use tabby_common::{
         code::CodeSearch,
         event::{Event, EventLogger},
     },
-    config::ModelConfig,
+    config::{CompletionConfig, ModelConfig},
     languages::get_language,
 };
 use tabby_inference::{CodeGeneration, CodeGenerationOptions, CodeGenerationOptionsBuilder};
@@ -227,6 +227,7 @@ pub struct DebugData {
 }
 
 pub struct CompletionService {
+    config: CompletionConfig,
     engine: Arc<CodeGeneration>,
     logger: Arc<dyn EventLogger>,
     prompt_builder: completion_prompt::PromptBuilder,
@@ -234,12 +235,14 @@ pub struct CompletionService {
 
 impl CompletionService {
     fn new(
+        config: CompletionConfig,
         engine: Arc<CodeGeneration>,
         code: Arc<dyn CodeSearch>,
         logger: Arc<dyn EventLogger>,
         prompt_template: Option<String>,
     ) -> Self {
         Self {
+            config,
             engine,
             prompt_builder: completion_prompt::PromptBuilder::new(prompt_template, Some(code)),
             logger,
@@ -263,11 +266,13 @@ impl CompletionService {
         language: &str,
         temperature: Option<f32>,
         seed: Option<u64>,
+        max_input_length: usize,
+        max_output_tokens: usize,
     ) -> CodeGenerationOptions {
         let mut builder = CodeGenerationOptionsBuilder::default();
         builder
-            .max_input_length(1024 + 512)
-            .max_decoding_tokens(64)
+            .max_input_length(max_input_length)
+            .max_decoding_tokens(max_output_tokens as i32)
             .language(Some(get_language(language)));
         temperature.inspect(|x| {
             builder.sampling_temperature(*x);
@@ -286,8 +291,13 @@ impl CompletionService {
     ) -> Result<CompletionResponse, CompletionError> {
         let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
         let language = request.language_or_unknown();
-        let options =
-            Self::text_generation_options(language.as_str(), request.temperature, request.seed);
+        let options = Self::text_generation_options(
+            language.as_str(),
+            request.temperature,
+            request.seed,
+            self.config.max_input_length,
+            self.config.max_decoding_tokens,
+        );
 
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
             (prompt, None, vec![])
@@ -341,6 +351,7 @@ impl CompletionService {
 }
 
 pub async fn create_completion_service(
+    config: &CompletionConfig,
     code: Arc<dyn CodeSearch>,
     logger: Arc<dyn EventLogger>,
     model: &ModelConfig,
@@ -352,7 +363,13 @@ pub async fn create_completion_service(
         },
     ) = model::load_code_generation(model).await;
 
-    CompletionService::new(engine.clone(), code, logger, prompt_template)
+    CompletionService::new(
+        config.to_owned(),
+        engine.clone(),
+        code,
+        logger,
+        prompt_template,
+    )
 }
 
 #[cfg(test)]
@@ -400,6 +417,7 @@ mod tests {
     fn mock_completion_service() -> CompletionService {
         let generation = CodeGeneration::new(Arc::new(MockCompletionStream));
         CompletionService::new(
+            CompletionConfig::default(),
             Arc::new(generation),
             Arc::new(MockCodeSearch),
             Arc::new(MockEventLogger),

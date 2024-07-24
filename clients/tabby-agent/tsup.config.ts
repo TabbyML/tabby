@@ -9,14 +9,14 @@ function processWinCa(copyRootsExe: boolean = false): Plugin {
   return {
     name: "processWinCa",
     setup: (build: PluginBuild) => {
-      build.onLoad({ filter: /win-ca\/lib\/crypt32-\w*.node$/ }, async () => {
+      build.onLoad({ filter: /win-ca[\\/]lib[\\/]crypt32-\w*.node$/ }, async () => {
         // As win-ca fallback is used, skip not required `.node` binaries
         return {
           contents: "",
           loader: "empty",
         };
       });
-      build.onLoad({ filter: /win-ca\/lib\/fallback.js$/ }, async (args) => {
+      build.onLoad({ filter: /win-ca[\\/]lib[\\/]fallback.js$/ }, async (args) => {
         if (copyRootsExe) {
           // Copy `roots.exe` binary to `dist/win-ca`, and the LICENSE
           const binaryName = "roots.exe";

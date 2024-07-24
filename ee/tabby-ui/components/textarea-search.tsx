@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { MouseEvent, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { omit } from 'lodash-es'
 import TextareaAutosize from 'react-textarea-autosize'
 import { useQuery } from 'urql'
 
+import { SESSION_STORAGE_KEY } from '@/lib/constants'
+import { Repository } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { repositoryListQuery } from '@/lib/tabby/query'
 import { AnswerEngineExtraContext } from '@/lib/types'
@@ -63,10 +66,27 @@ export default function TextAreaSearch({
     AnswerEngineExtraContext['repository'] | undefined
   >()
   const { theme } = useCurrentTheme()
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const getPreviouslySelectedRepo = () => {
+    try {
+      const selectedRepoValue = sessionStorage.getItem(
+        SESSION_STORAGE_KEY.SEARCH_SELECTED_REPO
+      )
+      if (selectedRepoValue) {
+        const temp = JSON.parse(selectedRepoValue)
+        if (temp) {
+          setSelectedRepo(temp)
+        }
+      }
+    } catch (e) {}
+  }
 
   useEffect(() => {
     // Ensure the textarea height remains consistent during rendering
     setIsShow(true)
+    // try to load cached repo selection
+    getPreviouslySelectedRepo()
   }, [])
 
   const onSearchKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -79,17 +99,22 @@ export default function TextAreaSearch({
     }
   }
 
-  const search = () => {
+  const search = (e?: MouseEvent<HTMLDivElement>) => {
     if (!value || isLoading) return
+    e?.stopPropagation()
     onSearch(value, { repository: selectedRepo })
     if (cleanAfterSearch) setValue('')
+  }
+
+  const onWrapperClick = () => {
+    if (isFollowup) {
+      textareaRef.current?.focus()
+    }
   }
 
   useEffect(() => {
     if (extraContext?.repository) {
       setSelectedRepo(extraContext?.repository)
-    } else {
-      setSelectedRepo(undefined)
     }
   }, [extraContext])
 
@@ -110,6 +135,7 @@ export default function TextAreaSearch({
         },
         className
       )}
+      onClick={onWrapperClick}
     >
       {showBetaBadge && (
         <span
@@ -121,9 +147,8 @@ export default function TextAreaSearch({
       )}
       <TextareaAutosize
         className={cn(
-          'text-area-autosize flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
+          'text-area-autosize mr-1 w-full flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
           {
-            'w-full': !isFollowup,
             '!h-[48px]': !isShow,
             'pt-4': !showBetaBadge,
             'pt-5': showBetaBadge,
@@ -141,6 +166,7 @@ export default function TextAreaSearch({
         value={value}
         autoFocus={autoFocus}
         minRows={isFollowup ? 1 : 2}
+        ref={textareaRef}
       />
       <div
         className={cn('flex items-center justify-between gap-2', {
@@ -212,6 +238,15 @@ function RepoSelect({ value, onChange, className, disabled }: RepoSelectProps) {
     return 'No results found'
   }, [repos])
 
+  const onSelectRepo = (repo: Repository) => {
+    onChange(repo)
+    setCommandVisible(false)
+    sessionStorage.setItem(
+      SESSION_STORAGE_KEY.SEARCH_SELECTED_REPO,
+      JSON.stringify(omit(repo, 'refs'))
+    )
+  }
+
   return (
     <Tooltip delayDuration={0}>
       <Popover
@@ -228,7 +263,7 @@ function RepoSelect({ value, onChange, className, disabled }: RepoSelectProps) {
                 buttonVariants({ variant: 'ghost' }),
                 '-ml-2 cursor-pointer rounded-full px-2',
                 {
-                  'cursor-default': disabled
+                  'cursor-default hover:bg-transparent': disabled
                 },
                 className
               )}
@@ -279,10 +314,7 @@ function RepoSelect({ value, onChange, className, disabled }: RepoSelectProps) {
                       <CommandItem
                         value={`${repo.kind}_${repo.id}`}
                         key={`${repo.kind}_${repo.id}`}
-                        onSelect={() => {
-                          onChange({ ...repo })
-                          setCommandVisible(false)
-                        }}
+                        onSelect={() => onSelectRepo(repo)}
                         className="flex cursor-pointer items-center gap-2 overflow-hidden"
                       >
                         <div className="h-4 w-4 shrink-0">
@@ -301,6 +333,9 @@ function RepoSelect({ value, onChange, className, disabled }: RepoSelectProps) {
                     onSelect={() => {
                       onChange(undefined)
                       setCommandVisible(false)
+                      sessionStorage.removeItem(
+                        SESSION_STORAGE_KEY.SEARCH_SELECTED_REPO
+                      )
                     }}
                     className="!pointer-events-auto mt-1 cursor-pointer justify-center text-center !opacity-100"
                   >

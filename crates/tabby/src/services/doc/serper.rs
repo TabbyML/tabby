@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use tabby_common::api::doc::{
     DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse,
 };
+use tracing::warn;
 
 #[derive(Debug, Serialize)]
 struct SerperRequest {
@@ -45,7 +46,16 @@ impl SerperService {
 
 #[async_trait]
 impl DocSearch for SerperService {
-    async fn search(&self, q: &str, limit: usize) -> Result<DocSearchResponse, DocSearchError> {
+    async fn search(
+        &self,
+        source_ids: &[String],
+        q: &str,
+        limit: usize,
+    ) -> Result<DocSearchResponse, DocSearchError> {
+        if !source_ids.is_empty() {
+            warn!("Serper does not support source filtering");
+        }
+
         let request = SerperRequest {
             q: q.to_string(),
             num: limit,

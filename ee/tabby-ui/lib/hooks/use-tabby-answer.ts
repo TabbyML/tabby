@@ -98,6 +98,9 @@ export function useTabbyAnswer({
       while (true) {
         const { done, value } = await eventStream.read()
         if (done) break
+        if (abortController.signal?.aborted) {
+          break
+        }
 
         onUpdate(value)
       }

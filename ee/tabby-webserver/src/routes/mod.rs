@@ -1,3 +1,4 @@
+mod answer;
 mod hub;
 mod oauth;
 mod repositories;
@@ -23,16 +24,32 @@ use self::hub::HubState;
 use crate::{
     axum::{extract::AuthBearer, graphql, FromAuth},
     jwt::validate_jwt,
+    service::answer::AnswerService,
 };
 
-pub fn create(ctx: Arc<dyn ServiceLocator>, api: Router, ui: Router) -> (Router, Router) {
+pub fn create(
+    ctx: Arc<dyn ServiceLocator>,
+    api: Router,
+    ui: Router,
+    answer: Option<Arc<AnswerService>>,
+) -> (Router, Router) {
     let schema = Arc::new(create_schema());
 
-    let api = api
-        .route(
-            "/v1beta/server_setting",
-            routing::get(server_setting).with_state(ctx.clone()),
+    let api = api.route(
+        "/v1beta/server_setting",
+        routing::get(server_setting).with_state(ctx.clone()),
+    );
+
+    let api = if let Some(answer) = answer {
+        api.route(
+            "/v1beta/answer",
+            routing::post(answer::answer).with_state(answer),
         )
+    } else {
+        api.route("/v1beta/answer", routing::post(StatusCode::NOT_IMPLEMENTED))
+    };
+
+    let api = api
         // Routes before `distributed_tabby_layer` are protected by authentication middleware for following routes:
         // 1. /v1/*
         // 2. /v1beta/*

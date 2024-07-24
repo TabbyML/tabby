@@ -95,7 +95,6 @@ export default {
             position: 'left',
             label: 'Docs',
           },
-          { to: '/playground', label: 'Playground', position: 'left' },
           { to: '/blog', label: 'Blog', position: 'left' },
           { to: '/api', label: 'API', position: 'left' },
           {
@@ -116,10 +115,6 @@ export default {
               {
                 label: 'Docs',
                 to: '/docs/welcome',
-              },
-              {
-                label: 'Playground',
-                to: '/playground',
               },
               {
                 label: 'API',
@@ -256,4 +251,11 @@ export default {
       },
     ],
   ],
+
+  scripts: [
+    {
+      src: "https://tally.so/widgets/embed.js",
+      async: true
+    }
+  ]
 };

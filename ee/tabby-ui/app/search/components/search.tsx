@@ -30,8 +30,7 @@ import fetcher from '@/lib/tabby/fetcher'
 import {
   AnswerEngineExtraContext,
   AnswerRequest,
-  AnswerResponse,
-  ArrayElementType
+  AnswerResponse
 } from '@/lib/types'
 import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -45,7 +44,6 @@ import {
   IconBlocks,
   IconChevronLeft,
   IconChevronRight,
-  IconCode,
   IconLayers,
   IconPlus,
   IconRefresh,
@@ -68,11 +66,12 @@ import UserPanel from '@/components/user-panel'
 
 import './search.css'
 
-import { isNil } from 'lodash-es'
+import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
 import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
 import { repositoryListQuery } from '@/lib/tabby/query'
+import { CodeReferences } from '@/components/chat/question-answer'
 
 interface Source {
   title: string
@@ -452,7 +451,7 @@ export function Search() {
 
         <main className="h-[calc(100%-4rem)] overflow-auto pb-8 lg:pb-0">
           <ScrollArea className="h-full" ref={contentContainerRef}>
-            <div className="mx-auto px-4 pb-24 lg:max-w-4xl lg:px-0">
+            <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
               <div className="flex flex-col">
                 {conversation.map((item, idx) => {
                   if (item.role === 'user') {
@@ -483,7 +482,7 @@ export function Search() {
 
           {container && (
             <ButtonScrollToBottom
-              className="!fixed !bottom-[5.4rem] !right-4 !top-auto border-muted-foreground lg:!bottom-[2.85rem]"
+              className="!fixed !bottom-[5.4rem] !right-4 !top-auto z-40 border-muted-foreground lg:!bottom-[2.85rem]"
               container={container}
               offset={100}
               // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
@@ -553,7 +552,6 @@ function AnswerBlock({
     useContext(SearchContext)
 
   const [showMoreSource, setShowMoreSource] = useState(false)
-  const [showMoreCode, setShowMoreCode] = useState(false)
 
   const getCopyContent = (answer: ConversationMessage) => {
     if (!answer.relevant_documents) return answer.content
@@ -579,52 +577,48 @@ function AnswerBlock({
       0.5 * Math.floor(answer.relevant_documents.length / 4)
     : 0
 
-  const totalCodeHeightInRem = answer.relevant_code
-    ? Math.ceil(answer.relevant_code.length / 4) * SOURCE_CARD_STYLE.expand +
-      0.5 * Math.floor(answer.relevant_code.length / 4)
-    : 0
+  const relevantCodeContexts: Context[] = useMemo(() => {
+    return (
+      answer?.relevant_code?.map(code => {
+        const start_line = code?.start_line ?? 0
+        const lineCount = code.body.split('\n').length
+        const end_line = start_line + lineCount - 1
+
+        return {
+          kind: 'file',
+          range: {
+            start: start_line,
+            end: end_line
+          },
+          filepath: code.filepath,
+          content: code.body,
+          git_url: code.git_url
+        }
+      }) ?? []
+    )
+  }, [answer?.relevant_code])
+
+  const onCodeContextClick = (ctx: Context) => {
+    if (!ctx.filepath) return
+    const url = new URL(`${window.location.origin}/files`)
+    const searchParams = new URLSearchParams()
+    searchParams.append('redirect_filepath', ctx.filepath)
+    searchParams.append('redirect_git_url', ctx.git_url)
+    url.search = searchParams.toString()
+
+    const lineHash = formatLineHashForCodeBrowser({
+      start: ctx.range.start,
+      end: ctx.range.end
+    })
+    if (lineHash) {
+      url.hash = lineHash
+    }
+
+    window.open(url.toString())
+  }
 
   return (
     <div className="flex flex-col gap-y-5">
-      {/* Relevant code */}
-      {answer.relevant_code && answer.relevant_code.length > 0 && (
-        <div>
-          <div className="mb-1 flex items-center gap-x-2">
-            <IconCode className="relative" style={{ top: '-0.04rem' }} />
-            <p className="text-sm font-bold leading-normal">Code</p>
-          </div>
-          <div
-            className="gap-sm grid grid-cols-3 gap-2 overflow-hidden md:grid-cols-4"
-            style={{
-              transition: 'height 0.25s ease-out',
-              height: showMoreCode
-                ? `${totalCodeHeightInRem}rem`
-                : `${SOURCE_CARD_STYLE.compress}rem`
-            }}
-          >
-            {answer.relevant_code.map((code, index) => (
-              <RelevantCodeCard
-                key={code.filepath + code.git_url + index}
-                code={code}
-                showMore={showMoreCode}
-              />
-            ))}
-          </div>
-          <Button
-            variant="ghost"
-            className="-ml-1.5 mt-1 flex items-center gap-x-1 px-1 py-2 text-sm font-normal text-muted-foreground"
-            onClick={() => setShowMoreCode(!showMoreCode)}
-          >
-            <IconChevronRight
-              className={cn({
-                '-rotate-90': showMoreCode,
-                'rotate-90': !showMoreCode
-              })}
-            />
-            <p>{showMoreCode ? 'Show less' : 'Show more'}</p>
-          </Button>
-        </div>
-      )}
       {/* Relevant documents */}
       {answer.relevant_documents && answer.relevant_documents.length > 0 && (
         <div>
@@ -675,6 +669,17 @@ function AnswerBlock({
           />
           <p className="text-sm font-bold leading-none">Answer</p>
         </div>
+
+        {/* Relevant code */}
+        {answer.relevant_code && answer.relevant_code.length > 0 && (
+          <CodeReferences
+            contexts={relevantCodeContexts}
+            className="mt-1 text-sm"
+            onContextClick={onCodeContextClick}
+            defaultOpen
+          />
+        )}
+
         {answer.isLoading && !answer.content && (
           <Skeleton className="mt-1 h-40 w-full" />
         )}
@@ -720,7 +725,7 @@ function AnswerBlock({
                 <div
                   key={index}
                   className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
-                  onClick={() => onSubmitSearch(related)}
+                  onClick={onSubmitSearch.bind(null, related)}
                 >
                   <p className="w-full overflow-hidden text-ellipsis text-sm">
                     {related}
@@ -790,88 +795,6 @@ function SourceCard({
           </p>
         </div>
       </div>
-    </div>
-  )
-}
-
-function RelevantCodeCard({
-  code,
-  showMore
-}: {
-  code: ArrayElementType<AnswerResponse['relevant_code']>
-  showMore: boolean
-}) {
-  const { repositoryList } = useContext(SearchContext)
-  const repo = repositoryList?.find(r => r.gitUrl === code.git_url)
-  const start_line = code.start_line ?? 0
-  const lineCount = code.body.split('\n').length
-  const end_line = start_line + lineCount - 1
-  const isMultiLine =
-    !isNil(start_line) && !isNil(end_line) && start_line < end_line
-  const pathSegments = code.filepath.split('/')
-  const fileName = pathSegments[pathSegments.length - 1]
-  const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
-
-  const onJumpToCodeBrowser = () => {
-    if (!code.filepath) return
-    const url = new URL(`${window.location.origin}/files`)
-    const searchParams = new URLSearchParams()
-    searchParams.append('redirect_filepath', code.filepath)
-    searchParams.append('redirect_git_url', code.git_url)
-    url.search = searchParams.toString()
-
-    const lineHash = formatLineHashForCodeBrowser({
-      start: start_line,
-      end: end_line
-    })
-    if (lineHash) {
-      url.hash = lineHash
-    }
-
-    window.open(url.toString())
-  }
-
-  return (
-    <div
-      className="flex cursor-pointer flex-col justify-between gap-y-1 rounded-lg border bg-card p-3 hover:bg-card/60"
-      style={{
-        height: showMore
-          ? `${SOURCE_CARD_STYLE.expand}rem`
-          : `${SOURCE_CARD_STYLE.compress}rem`,
-        transition: 'all 0.25s ease-out'
-      }}
-      onClick={onJumpToCodeBrowser}
-    >
-      <div className="flex flex-col gap-y-0.5">
-        <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-          {fileName}
-          {start_line && (
-            <span className="text-muted-foreground">:{start_line}</span>
-          )}
-          {isMultiLine && (
-            <span className="text-muted-foreground">-{end_line}</span>
-          )}
-        </p>
-        <p
-          className={cn(
-            ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
-            {
-              'line-clamp-2': showMore,
-              'line-clamp-1': !showMore
-            }
-          )}
-        >
-          {path}
-        </p>
-      </div>
-      {!!repo?.name && (
-        <div className="flex items-center text-xs text-muted-foreground">
-          <div className="flex w-full flex-1 items-center">
-            <IconCode />
-            <p className="ml-1 overflow-hidden text-ellipsis">{repo?.name}</p>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

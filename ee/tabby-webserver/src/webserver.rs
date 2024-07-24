@@ -4,12 +4,13 @@ use axum::Router;
 use tabby_common::{
     api::{
         code::CodeSearch,
+        doc::DocSearch,
         event::{ComposedLogger, EventLogger},
     },
     config::{Config, ConfigAccess, RepositoryConfig},
 };
 use tabby_db::DbConn;
-use tabby_inference::Embedding;
+use tabby_inference::{ChatCompletionStream, Embedding};
 use tabby_schema::{
     integration::IntegrationService, job::JobService, repository::RepositoryService,
     web_crawler::WebCrawlerService,
@@ -96,11 +97,14 @@ impl Webserver {
         api: Router,
         ui: Router,
         code: Arc<dyn CodeSearch>,
-        is_chat_enabled: bool,
+        chat: Option<Arc<dyn ChatCompletionStream>>,
+        docsearch: Arc<dyn DocSearch>,
+        serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
     ) -> (Router, Router) {
+        let is_chat_enabled = chat.is_some();
         let ctx = create_service_locator(
             self.logger(),
-            code,
+            code.clone(),
             self.repository.clone(),
             self.integration.clone(),
             self.web_crawler.clone(),
@@ -110,6 +114,17 @@ impl Webserver {
         )
         .await;
 
-        routes::create(ctx, api, ui)
+        let answer = chat.as_ref().map(|chat| {
+            Arc::new(crate::service::answer::create(
+                chat.clone(),
+                code.clone(),
+                docsearch.clone(),
+                ctx.web_crawler().clone(),
+                ctx.repository().clone(),
+                serper_factory_fn,
+            ))
+        });
+
+        routes::create(ctx, api, ui, answer)
     }
 }

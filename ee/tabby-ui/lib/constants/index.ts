@@ -7,5 +7,6 @@ export const SESSION_STORAGE_KEY = {
   SEARCH_INITIAL_MSG: '_tabby_search_initial_msg',
   SEARCH_INITIAL_EXTRA_CONTEXT: '_tabby_search_initial_extra_context',
   SEARCH_LATEST_MSG: '_tabby_search_latest_msg',
-  SEARCH_LATEST_EXTRA_CONTEXT: '_tabby_search_latest_extra_context'
+  SEARCH_LATEST_EXTRA_CONTEXT: '_tabby_search_latest_extra_context',
+  SEARCH_SELECTED_REPO: '_tabby_search_selected_repo'
 }

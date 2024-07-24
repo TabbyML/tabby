@@ -13,7 +13,8 @@ import type {
   Context,
   ErrorMessage,
   FetcherOptions,
-  InitRequest
+  InitRequest,
+  NavigateOpts
 } from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
 
@@ -41,7 +42,7 @@ const convertToHSLColor = (style: string) => {
 }
 
 const CLIENT_TO_HANDLE_MESSAGE_SUBMIT = ['vscode']
-const CLIENT_HAS_APPLT_IN_EDITOR = ['vscode']
+const CLIENT_HAS_APPLY_IN_EDITOR = ['vscode']
 
 export default function ChatPage() {
   const [isInit, setIsInit] = useState(false)
@@ -67,7 +68,7 @@ export default function ChatPage() {
   const isOnSubmitMessage = CLIENT_TO_HANDLE_MESSAGE_SUBMIT.includes(
     client || ''
   )
-  const isOnApplyInEditor = CLIENT_HAS_APPLT_IN_EDITOR.includes(client || '')
+  const isOnApplyInEditor = CLIENT_HAS_APPLY_IN_EDITOR.includes(client || '')
   const maxWidth = isFromVSCode ? '5xl' : undefined
 
   useEffect(() => {
@@ -166,8 +167,8 @@ export default function ChatPage() {
     setPendingMessages([])
   }
 
-  const onNavigateToContext = (context: Context) => {
-    server?.navigate(context)
+  const onNavigateToContext = (context: Context, opts?: NavigateOpts) => {
+    server?.navigate(context, opts)
   }
 
   const onCopyContent = (value: string) => {
@@ -269,7 +270,7 @@ export default function ChatPage() {
       <StaticContent>
         <>
           <p className="opacity-80">
-            Welcome to Tabby Chat! Just a moment while we get thins ready...
+            Welcome to Tabby Chat! Just a moment while we get things ready...
           </p>
           <IconSpinner
             className="mx-auto"

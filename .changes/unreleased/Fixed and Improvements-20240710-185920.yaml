@@ -1,3 +1,0 @@
-kind: Fixed and Improvements
-body: Canonicalize the git_url before performing a relevant code search. Previously, for git_urls with credentials, the canonicalized git_url was used in the index, but the query still used the raw git_url.
-time: 2024-07-10T18:59:20.774068+09:00

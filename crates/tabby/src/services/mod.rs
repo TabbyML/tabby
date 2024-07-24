@@ -1,4 +1,3 @@
-pub mod answer;
 pub mod code;
 pub mod completion;
 pub mod doc;

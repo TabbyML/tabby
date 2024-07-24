@@ -29,7 +29,7 @@ impl RepositoryExt for RepositoryConfig {
                 .arg(&self.git_url)
                 .arg(&dir)
                 .status()
-                .expect("Failed to read status");
+                .unwrap_or_else(|_| panic!("Failed to clone into dir {}", dir.display()));
 
             if let Some(code) = status.code() {
                 if code != 0 {

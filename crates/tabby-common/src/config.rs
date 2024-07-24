@@ -23,6 +23,9 @@ pub struct Config {
 
     #[serde(default)]
     pub model: ModelConfigGroup,
+
+    #[serde(default)]
+    pub completion: CompletionConfig,
 }
 
 impl Config {
@@ -177,6 +180,7 @@ fn default_embedding_config() -> ModelConfig {
         parallelism: 1,
         num_gpu_layers: 9999,
         enable_fast_attention: None,
+        context_size: default_context_size(),
     })
 }
 
@@ -203,6 +207,18 @@ impl Default for ModelConfigGroup {
 pub enum ModelConfig {
     Http(HttpModelConfig),
     Local(LocalModelConfig),
+}
+
+impl ModelConfig {
+    pub fn new_local(model_id: &str, parallelism: u8, num_gpu_layers: u16) -> Self {
+        Self::Local(LocalModelConfig {
+            model_id: model_id.to_owned(),
+            parallelism,
+            num_gpu_layers,
+            enable_fast_attention: None,
+            context_size: default_context_size(),
+        })
+    }
 }
 
 #[derive(Serialize, Deserialize, Builder, Debug, Clone)]
@@ -232,6 +248,9 @@ pub struct HttpModelConfig {
     /// Used by Completion API to construct a chat model.
     #[builder(default)]
     pub chat_template: Option<String>,
+
+    #[builder(default)]
+    pub max_input_length: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -246,6 +265,9 @@ pub struct LocalModelConfig {
 
     #[serde(default)]
     pub enable_fast_attention: Option<bool>,
+
+    #[serde(default = "default_context_size")]
+    pub context_size: usize,
 }
 
 fn default_parallelism() -> u8 {
@@ -254,6 +276,25 @@ fn default_parallelism() -> u8 {
 
 fn default_num_gpu_layers() -> u16 {
     9999
+}
+
+fn default_context_size() -> usize {
+    4096
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CompletionConfig {
+    pub max_input_length: usize,
+    pub max_decoding_tokens: usize,
+}
+
+impl Default for CompletionConfig {
+    fn default() -> Self {
+        Self {
+            max_input_length: 1024 + 512,
+            max_decoding_tokens: 64,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]

@@ -1,23 +1,30 @@
 """Usage:
 modal serve app.py
+
+To force a rebuild by pulling the latest image tag, use:
+MODAL_FORCE_BUILD=1 modal serve app.py
 """
 
-from modal import Image, Stub, asgi_app, gpu
+from modal import Image, App, asgi_app, gpu
 
 IMAGE_NAME = "tabbyml/tabby"
 MODEL_ID = "TabbyML/StarCoder-1B"
+CHAT_MODEL_ID = "TabbyML/Qwen2-1.5B-Instruct"
+EMBEDDING_MODEL_ID = "TabbyML/Nomic-Embed-Text"
 GPU_CONFIG = gpu.T4()
 
+TABBY_BIN = "/opt/tabby/bin/tabby"
 
-def download_model():
+
+def download_model(model_id: str):
     import subprocess
 
     subprocess.run(
         [
-            "/opt/tabby/bin/tabby-cpu",
+            TABBY_BIN,
             "download",
             "--model",
-            MODEL_ID,
+            model_id,
         ]
     )
 
@@ -28,21 +35,23 @@ image = (
         add_python="3.11",
     )
     .dockerfile_commands("ENTRYPOINT []")
-    .run_function(download_model)
+    .run_function(download_model, kwargs={"model_id": EMBEDDING_MODEL_ID})
+    .run_function(download_model, kwargs={"model_id": CHAT_MODEL_ID})
+    .run_function(download_model, kwargs={"model_id": MODEL_ID})
     .pip_install("asgi-proxy-lib")
 )
 
-stub = Stub("tabby-server-" + MODEL_ID.split("/")[-1], image=image)
+app = App("tabby-server", image=image)
 
 
-@stub.function(
+@app.function(
     gpu=GPU_CONFIG,
     allow_concurrent_inputs=10,
     container_idle_timeout=120,
     timeout=360,
 )
 @asgi_app()
-def app():
+def app_serve():
     import socket
     import subprocess
     import time
@@ -50,16 +59,18 @@ def app():
 
     launcher = subprocess.Popen(
         [
-            "/opt/tabby/bin/tabby",
+            TABBY_BIN,
             "serve",
             "--model",
             MODEL_ID,
+            "--chat-model",
+            CHAT_MODEL_ID,
             "--port",
             "8000",
             "--device",
             "cuda",
             "--parallelism",
-            "4",
+            "1",
         ]
     )
 

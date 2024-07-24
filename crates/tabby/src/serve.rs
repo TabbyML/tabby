@@ -9,7 +9,7 @@ use tabby_common::{
     config::{Config, ConfigAccess, ModelConfig, StaticConfigAccess},
     usage,
 };
-use tabby_inference::Embedding;
+use tabby_inference::ChatCompletionStream;
 use tokio::{sync::oneshot::Sender, time::sleep};
 use tower_http::timeout::TimeoutLayer;
 use tracing::{debug, warn};
@@ -22,7 +22,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::{
     routes::{self, run_app},
     services::{
-        self, answer,
+        self,
         code::create_code_search,
         completion::{self, create_completion_service},
         embedding,
@@ -51,7 +51,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "/", description = "Server"),
     ),
-    paths(routes::log_event, routes::completions, routes::chat_completions_utoipa, routes::health, routes::answer, routes::setting),
+    paths(routes::log_event, routes::completions, routes::chat_completions_utoipa, routes::health, routes::setting),
     components(schemas(
         api::event::LogEventRequest,
         completion::CompletionRequest,
@@ -67,8 +67,6 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         api::code::CodeSearchDocument,
         api::code::CodeSearchQuery,
         api::doc::DocSearchDocument,
-        answer::AnswerRequest,
-        answer::AnswerResponseChunk,
         api::server_setting::ServerSetting
     )),
     modifiers(&SecurityAddon),
@@ -156,19 +154,29 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     }
 
     let index_reader_provider = Arc::new(IndexReaderProvider::default());
+    let docsearch = Arc::new(services::doc::create(
+        embedding.clone(),
+        index_reader_provider.clone(),
+    ));
 
     let code = Arc::new(create_code_search(
         config_access,
         embedding.clone(),
         index_reader_provider.clone(),
     ));
+
+    let chat = if let Some(chat) = &config.model.chat {
+        Some(model::load_chat_completion(chat).await)
+    } else {
+        None
+    };
+
     let mut api = api_router(
         args,
         &config,
         logger.clone(),
         code.clone(),
-        embedding,
-        index_reader_provider,
+        chat.clone(),
         webserver,
     )
     .await;
@@ -178,7 +186,11 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     #[cfg(feature = "ee")]
     if let Some(ws) = &ws {
-        let (new_api, new_ui) = ws.attach(api, ui, code, config.model.chat.is_some()).await;
+        let (new_api, new_ui) = ws
+            .attach(api, ui, code, chat, docsearch, |x| {
+                Box::new(services::doc::create_serper(x))
+            })
+            .await;
         api = new_api;
         ui = new_ui;
     };
@@ -210,34 +222,18 @@ async fn api_router(
     config: &Config,
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
-    embedding: Arc<dyn Embedding>,
-    index_reader_provider: Arc<IndexReaderProvider>,
+    chat_state: Option<Arc<dyn ChatCompletionStream>>,
     webserver: Option<bool>,
 ) -> Router {
     let model = &config.model;
     let completion_state = if let Some(completion) = &model.completion {
         Some(Arc::new(
-            create_completion_service(code.clone(), logger.clone(), completion).await,
+            create_completion_service(&config.completion, code.clone(), logger.clone(), completion)
+                .await,
         ))
     } else {
         None
     };
-
-    let chat_state = if let Some(chat) = &model.chat {
-        Some(model::load_chat_completion(chat).await)
-    } else {
-        None
-    };
-
-    let docsearch_state = Arc::new(services::doc::create(embedding, index_reader_provider));
-
-    let answer_state = chat_state.as_ref().map(|chat| {
-        Arc::new(services::answer::create(
-            chat.clone(),
-            code.clone(),
-            docsearch_state.clone(),
-        ))
-    });
 
     let mut routers = vec![];
 
@@ -314,19 +310,6 @@ async fn api_router(
                 "/v1beta/chat/completions",
                 routing::post(StatusCode::NOT_IMPLEMENTED),
             )
-        });
-    }
-
-    if let Some(answer_state) = answer_state {
-        routers.push({
-            Router::new().route(
-                "/v1beta/answer",
-                routing::post(routes::answer).with_state(answer_state),
-            )
-        });
-    } else {
-        routers.push({
-            Router::new().route("/v1beta/answer", routing::post(StatusCode::NOT_IMPLEMENTED))
         });
     }
 
