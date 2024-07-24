@@ -103,6 +103,7 @@ type SourceCodeBrowserContextValue = {
     options?: {
       hash?: string
       replace?: boolean
+      plain?: boolean
     }
   ) => Promise<void>
   repoMap: Record<string, RepositoryItem>
@@ -174,7 +175,12 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         })
       } else {
         const setParams: Record<string, string> = {}
-        let delList = ['plain', 'redirect_filepath', 'redirect_git_url', 'line']
+        let delList = ['redirect_filepath', 'redirect_git_url', 'line']
+        if (options?.plain) {
+          setParams['plain'] = '1'
+        } else {
+          delList.push('plain')
+        }
 
         updateUrlComponents({
           pathname: `/files/${path}`,
@@ -482,11 +488,17 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
             ? window.location.hash
             : formatLineHashForCodeBrowser({ start: startLineNumber })
 
+          const detectedLanguage = redirect_filepath
+            ? filename2prism(redirect_filepath)[0]
+            : undefined
+          const isMarkdown = detectedLanguage === 'markdown'
+
           updateActivePath(
             generateEntryPath(targetRepo, refName, redirect_filepath, 'file'),
             {
               replace: true,
-              hash: nextHash
+              hash: nextHash,
+              plain: isMarkdown
             }
           )
           initializing.current = false
