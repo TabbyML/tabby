@@ -498,7 +498,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
             {
               replace: true,
               hash: nextHash,
-              plain: isMarkdown
+              plain: isMarkdown && !!nextHash
             }
           )
           initializing.current = false

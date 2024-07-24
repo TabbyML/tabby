@@ -57,7 +57,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
             {
               hash: lineHash,
               replace: false,
-              plain: isMarkdown
+              plain: isMarkdown && !!lineHash
             }
           )
           return
