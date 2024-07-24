@@ -7,15 +7,15 @@ import org.eclipse.lsp4e.LanguageServiceAccessor;
 
 import com.tabbyml.tabby4eclipse.Logger;
 
-public class LanguageServerManager {
+public class LanguageServerService {
 	public static final String LANGUAGE_SERVER_ID = "com.tabbyml.tabby4eclipse.languageServer";
 
-	public static LanguageServerManager getInstance() {
+	public static LanguageServerService getInstance() {
 		return LazyHolder.INSTANCE;
 	}
 
 	private static class LazyHolder {
-		private static final LanguageServerManager INSTANCE = new LanguageServerManager();
+		private static final LanguageServerService INSTANCE = new LanguageServerService();
 	}
 
 	public static LanguageServerDefinition getLanguageServerDefinition() {
@@ -23,10 +23,10 @@ public class LanguageServerManager {
 		return def;
 	}
 
-	private Logger logger = new Logger("LanguageServerConnection");
+	private Logger logger = new Logger("LanguageServerService");
 	private LanguageServerWrapper serverWrapper;
 
-	public LanguageServerManager() {
+	public LanguageServerService() {
 	}
 
 	public void init() {

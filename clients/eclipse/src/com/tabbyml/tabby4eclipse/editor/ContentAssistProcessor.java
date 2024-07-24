@@ -66,7 +66,7 @@ import org.eclipse.lsp4j.jsonrpc.ResponseErrorException;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.ui.texteditor.ITextEditor;
 
-import com.tabbyml.tabby4eclipse.lsp.LanguageServerManager;
+import com.tabbyml.tabby4eclipse.lsp.LanguageServerService;
 
 public class ContentAssistProcessor implements IContentAssistProcessor {
 
@@ -164,7 +164,7 @@ public class ContentAssistProcessor implements IContentAssistProcessor {
 			// - completionLanguageServersFuture
 			CancellationSupport cancellationSupport = new CancellationSupport();
 			this.completionLanguageServersFuture = LanguageServers.forDocument(document)
-					.withPreferredServer(LanguageServerManager.getLanguageServerDefinition())
+					.withPreferredServer(LanguageServerService.getLanguageServerDefinition())
 					.withFilter(capabilities -> capabilities.getCompletionProvider() != null) //
 					.collectAll((w, ls) -> cancellationSupport.execute(ls.getTextDocumentService().completion(param)) //
 							.thenAccept(completion -> {
@@ -241,7 +241,7 @@ public class ContentAssistProcessor implements IContentAssistProcessor {
 			this.contextTriggerChars = new char[0];
 
 			this.completionLanguageServersFuture = LanguageServers.forDocument(document)
-					.withPreferredServer(LanguageServerManager.getLanguageServerDefinition())
+					.withPreferredServer(LanguageServerService.getLanguageServerDefinition())
 					.withFilter(capabilities -> capabilities.getCompletionProvider() != null).collectAll((w, ls) -> {
 						CompletionOptions provider = w.getServerCapabilities().getCompletionProvider();
 						synchronized (completionTriggerCharsSemaphore) {
@@ -251,7 +251,7 @@ public class ContentAssistProcessor implements IContentAssistProcessor {
 						return CompletableFuture.completedFuture(null);
 					});
 			this.contextInformationLanguageServersFuture = LanguageServers.forDocument(document)
-					.withPreferredServer(LanguageServerManager.getLanguageServerDefinition())
+					.withPreferredServer(LanguageServerService.getLanguageServerDefinition())
 					.withFilter(capabilities -> capabilities.getSignatureHelpProvider() != null).collectAll((w, ls) -> {
 						SignatureHelpOptions provider = w.getServerCapabilities().getSignatureHelpProvider();
 						synchronized (contextTriggerCharsSemaphore) {
@@ -312,7 +312,7 @@ public class ContentAssistProcessor implements IContentAssistProcessor {
 		List<IContextInformation> contextInformations = Collections.synchronizedList(new ArrayList<>());
 		try {
 			this.contextInformationLanguageServersFuture = LanguageServers.forDocument(document)
-					.withPreferredServer(LanguageServerManager.getLanguageServerDefinition())
+					.withPreferredServer(LanguageServerService.getLanguageServerDefinition())
 					.withFilter(capabilities -> capabilities.getSignatureHelpProvider() != null)
 					.collectAll(ls -> ls.getTextDocumentService().signatureHelp(param).thenAccept(signatureHelp -> {
 						if (signatureHelp != null) {
