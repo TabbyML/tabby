@@ -41,7 +41,7 @@ use self::{
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
     repository::{
-        CreateIntegrationInput, FileEntrySearchResult, GrepFile, ProvidedRepository, Repository,
+        CreateIntegrationInput, FileEntrySearchResult, ProvidedRepository, Repository,
         RepositoryKind, RepositoryService, UpdateIntegrationInput,
     },
     setting::{
@@ -325,10 +325,7 @@ impl Query {
             .await?;
         let end_time = chrono::offset::Utc::now();
         let elapsed_ms = (end_time - start_time).num_milliseconds() as i32;
-        Ok(RepositoryGrepOutput {
-            files,
-            elapsed_ms,
-        })
+        Ok(RepositoryGrepOutput { files, elapsed_ms })
     }
 
     async fn oauth_credential(

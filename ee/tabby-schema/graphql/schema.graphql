@@ -419,7 +419,7 @@ type Query {
     * `f:schema -lang:rust fn`
     * `func_name lang:go`
   """
-  repositoryGrep(kind: RepositoryKind!, id: ID!, rev: String, query: String!): [GrepFile!]!
+  repositoryGrep(kind: RepositoryKind!, id: ID!, rev: String, query: String!): RepositoryGrepOutput!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
   serverInfo: ServerInfo!
@@ -462,6 +462,12 @@ type RepositoryConnection {
 type RepositoryEdge {
   node: GitRepository!
   cursor: String!
+}
+
+type RepositoryGrepOutput {
+  files: [GrepFile!]!
+  "Elapsed time in milliseconds for grep search."
+  elapsedMs: Int!
 }
 
 type SecuritySetting {
