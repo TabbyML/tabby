@@ -6,6 +6,7 @@ import { useClient } from 'tabby-chat-panel/react'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useMe } from '@/lib/hooks/use-me'
 import { useStore } from '@/lib/hooks/use-store'
+import { filename2prism } from '@/lib/language-utils'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -42,6 +43,10 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
           const defaultRef = getDefaultRepoRef(targetRepo.refs)
           // navigate to files of the default branch
           const refName = resolveRepoRef(defaultRef ?? '')?.name
+          const detectedLanguage = context.filepath
+            ? filename2prism(context.filepath)[0]
+            : undefined
+          const isMarkdown = detectedLanguage === 'markdown'
           updateActivePath(
             generateEntryPath(
               targetRepo,
@@ -51,7 +56,8 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
             ),
             {
               hash: lineHash,
-              replace: false
+              replace: false,
+              plain: isMarkdown && !!lineHash
             }
           )
           return
