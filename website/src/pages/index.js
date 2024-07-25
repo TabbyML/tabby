@@ -40,7 +40,6 @@ export default function Home() {
   const { siteConfig } = useDocusaurusContext();
   return (
     <Layout
-      title={`Home`}
       description="Tabby is a self-hosted AI coding assistant, offering an open-source and on-premises alternative to GitHub Copilot">
       <HomepageHeader />
       <main>
