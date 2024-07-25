@@ -208,6 +208,14 @@ impl NodeType for GithubRepositoryProvider {
 }
 
 #[derive(GraphQLObject)]
+pub struct RepositoryGrepOutput {
+    pub files: Vec<GrepFile>,
+
+    /// Elapsed time in milliseconds for grep search.
+    pub elapsed_ms: i32,
+}
+
+#[derive(GraphQLObject)]
 pub struct GrepFile {
     pub path: String,
     pub lines: Vec<GrepLine>,

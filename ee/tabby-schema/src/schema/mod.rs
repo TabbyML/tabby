@@ -24,6 +24,7 @@ use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLObject, IntoFieldError,
     Object, RootNode, ScalarValue, Value, ID,
 };
+use repository::RepositoryGrepOutput;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use tracing::error;
 use validator::{Validate, ValidationErrors};
@@ -313,12 +314,21 @@ impl Query {
         id: ID,
         rev: Option<String>,
         query: String,
-    ) -> Result<Vec<GrepFile>> {
+    ) -> Result<RepositoryGrepOutput> {
         check_claims(ctx)?;
-        ctx.locator
+
+        let start_time = chrono::offset::Utc::now();
+        let files = ctx
+            .locator
             .repository()
             .grep(&kind, &id, rev.as_deref(), &query, 40)
-            .await
+            .await?;
+        let end_time = chrono::offset::Utc::now();
+        let search_time_elapsed_ms = (end_time - start_time).num_milliseconds() as i32;
+        Ok(RepositoryGrepOutput {
+            files,
+            elapsed_ms,
+        })
     }
 
     async fn oauth_credential(
