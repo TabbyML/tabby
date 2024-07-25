@@ -9,6 +9,7 @@ import org.eclipse.jface.text.IPaintPositionManager;
 import org.eclipse.jface.text.IPainter;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.ITextViewerExtension2;
+import org.eclipse.jface.text.Position;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyleRange;
 import org.eclipse.swt.custom.StyledText;
@@ -46,6 +47,14 @@ public class InlineCompletionRenderer {
 			currentCompletionItem = null;
 		}
 	}
+	
+	public ITextViewer getCurrentTextViewer() {
+		return currentTextViewer;
+	}
+	
+	public InlineCompletionItem getCurrentCompletionItem() {
+        return currentCompletionItem;
+    }
 
 	private InlineCompletionItemPainter getPainter(ITextViewer viewer) {
 		InlineCompletionItemPainter painter = painters.get(viewer);
@@ -62,8 +71,9 @@ public class InlineCompletionRenderer {
 		private InlineCompletionItem item;
 		private int offset;
 		
+		private IPaintPositionManager positionManager;
 		private Font font;
-		private Map<Integer, Integer> originLinesVerticalIndent = new HashMap<>();
+		private Map<Position, Integer> originLinesVerticalIndent = new HashMap<>();
 		private List<StyleRange> originStyleRanges = new ArrayList<>();
 
 		public InlineCompletionItemPainter(ITextViewer viewer) {
@@ -110,6 +120,7 @@ public class InlineCompletionRenderer {
 
 		@Override
 		public void setPositionManager(IPaintPositionManager manager) {
+			this.positionManager = manager;
 		}
 		
 		private StyledText getWidget() {
@@ -121,8 +132,10 @@ public class InlineCompletionRenderer {
 		}
 
 		private void cleanup() {
-			originLinesVerticalIndent.forEach((line, indent) -> {
+			originLinesVerticalIndent.forEach((position, indent) -> {
+				int line = getWidget().getLineAtOffset(position.getOffset());
                 getWidget().setLineVerticalIndent(line, indent);
+                positionManager.unmanagePosition(position);
             });
 			originLinesVerticalIndent.clear();
 			originStyleRanges.forEach(range -> {
@@ -269,7 +282,9 @@ public class InlineCompletionRenderer {
 			if (nextLineNumber < widget.getLineCount()) {
 				int lineCount = (int) text.lines().count();
 				int originVerticalIndent = widget.getLineVerticalIndent(nextLineNumber);
-				originLinesVerticalIndent.put(nextLineNumber, originVerticalIndent);
+				Position position = new Position(widget.getOffsetAtLine(nextLineNumber), 0);
+				originLinesVerticalIndent.put(position, originVerticalIndent);
+                positionManager.managePosition(position);
 				widget.setLineVerticalIndent(nextLineNumber, originVerticalIndent + lineHeight * lineCount);
 			}
 			

@@ -14,7 +14,9 @@ import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IDocumentExtension4;
 import org.eclipse.jface.text.IDocumentListener;
+import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.text.ITextViewer;
+import org.eclipse.jface.text.TextSelection;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4j.Position;
@@ -139,8 +141,54 @@ public class InlineCompletionService {
 		current = context;
 	}
 
+	public boolean isInlineCompletionVisible() {
+		return isInlineCompletionVisible(getActiveEditor());
+	}
+	
+	public boolean isInlineCompletionVisible(ITextEditor textEditor) {
+		ITextViewer textViewer = (ITextViewer) textEditor.getAdapter(ITextViewer.class);
+		return current != null
+				&& current.request != null
+				&& current.request.textEditor == textEditor
+				&& current.response != null
+				&& textViewer != null
+				&& textViewer == renderer.getCurrentTextViewer()
+				&& renderer.getCurrentCompletionItem() != null
+				&& renderer.getCurrentCompletionItem() == current.response.getActiveCompletionItem();
+	}
+	
+
+	public void accept() {
+		accept(getActiveEditor());
+	}
+	
 	public void accept(ITextEditor textEditor) {
-		//
+		if (current == null || current.request == null || current.response == null) {
+			return;
+		}
+		ITextViewer textViewer = (ITextViewer) textEditor.getAdapter(ITextViewer.class);
+		IDocument document = LSPEclipseUtils.getDocument(textEditor.getEditorInput());
+		int offset = current.request.offset;
+		InlineCompletionItem item = current.response.getActiveCompletionItem();
+		
+		int prefixReplaceLength = offset - item.getReplaceRange().getStart();
+		int suffixReplaceLength = item.getReplaceRange().getEnd() - offset;
+		String text = item.getInsertText().substring(prefixReplaceLength);
+		if (text.isEmpty()) {
+		    return;
+		}
+		
+		textViewer.getTextWidget().getDisplay().syncExec(() -> {
+			try {
+				document.replace(offset, suffixReplaceLength, text);
+				ITextSelection selection = new TextSelection(offset + text.length(), 0);
+				textEditor.getSelectionProvider().setSelection(selection);
+			} catch (BadLocationException e) {
+				logger.error("Failed to accept inline completion.", e);
+			}
+		});
+		
+		renderer.hide();
 	}
 
 	public void dismiss() {
@@ -171,19 +219,23 @@ public class InlineCompletionService {
 			provideInlineCompletion(textEditor, event.getOffset() + event.getText().length());
 		}
 	}
-
-	private boolean isActiveEditor(ITextEditor textEditor) {
+	
+	private ITextEditor getActiveEditor() {
 		IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
 		if (window != null) {
 			IWorkbenchPage page = window.getActivePage();
 			if (page != null) {
 				IEditorPart activeEditor = page.getActiveEditor();
 				if (activeEditor instanceof ITextEditor) {
-					return activeEditor == textEditor;
+					return (ITextEditor)activeEditor;
 				}
 			}
 		}
-		return false;
+		return null;
+	}
+	
+	private boolean isActiveEditor(ITextEditor textEditor) {
+		return textEditor == getActiveEditor();
 	}
 
 	private class InlineCompletionContext {
@@ -235,16 +287,11 @@ public class InlineCompletionService {
 									: InlineCompletionParams.InlineCompletionTriggerKind.Automatic,
 							null);
 					TextDocumentIdentifier documentIdentifier = LSPEclipseUtils.toTextDocumentIdentifier(document);
-
-					logger.debug("Offset: " + offset);
-					logger.debug("Document: " + document);
 					Position position = LSPEclipseUtils.toPosition(offset, document);
-					logger.debug("Position: " + position.toString());
 					InlineCompletionParams params = new InlineCompletionParams(context, documentIdentifier, position);
 					return params;
 				} catch (BadLocationException e) {
 					logger.debug("Failed to create InlineCompletionParams.");
-					e.printStackTrace();
 					return null;
 				}
 			}

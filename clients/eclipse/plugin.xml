@@ -20,4 +20,47 @@
 			contentType="org.eclipse.core.runtime.text">
 		</contentTypeMapping>
 	</extension>
+	
+	<extension point="org.eclipse.ui.commands">
+		<category
+			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion"
+			name="Tabby">
+		</category>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands"
+			name="Accept"
+			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion.accept">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands"
+			name="Dismiss"
+			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion.dismiss">
+		</command>
+	</extension>
+	
+	<extension point="org.eclipse.ui.handlers">
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.inlineCompletion.Accept"
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.accept">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.inlineCompletion.Dismiss"
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.dismiss">
+		</handler>
+	</extension>
+	
+    <extension point="org.eclipse.ui.bindings">
+         <key
+            commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.accept"
+            contextId="org.eclipse.ui.textEditorScope"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            sequence="TAB">
+         </key>
+         <key
+            commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.dismiss"
+            contextId="org.eclipse.ui.textEditorScope"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            sequence="ESC">
+         </key>
+     </extension>
 </plugin>
