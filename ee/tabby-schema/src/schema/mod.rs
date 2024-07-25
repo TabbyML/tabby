@@ -324,7 +324,7 @@ impl Query {
             .grep(&kind, &id, rev.as_deref(), &query, 40)
             .await?;
         let end_time = chrono::offset::Utc::now();
-        let search_time_elapsed_ms = (end_time - start_time).num_milliseconds() as i32;
+        let elapsed_ms = (end_time - start_time).num_milliseconds() as i32;
         Ok(RepositoryGrepOutput {
             files,
             elapsed_ms,
