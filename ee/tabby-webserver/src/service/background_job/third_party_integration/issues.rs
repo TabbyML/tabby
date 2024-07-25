@@ -70,7 +70,7 @@ pub async fn list_github_issues(
 #[derive(Deserialize)]
 struct GitlabIssue {
     title: String,
-    description: String,
+    description: Option<String>,
     web_url: String,
     updated_at: DateTime<Utc>,
 }
@@ -106,7 +106,7 @@ pub async fn list_gitlab_issues(
                 id: issue.web_url.clone(),
                 link: issue.web_url,
                 title: issue.title,
-                body: issue.description,
+                body: issue.description.unwrap_or_default(),
             };
             yield (issue.updated_at, doc);
         }
@@ -130,7 +130,7 @@ pub async fn list_gitlab_issues(
                 id: merge_request.web_url.clone(),
                 link: merge_request.web_url,
                 title: merge_request.title,
-                body: merge_request.description,
+                body: merge_request.description.unwrap_or_default(),
             };
             yield (merge_request.updated_at, doc);
         }
