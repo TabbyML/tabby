@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 import org.eclipse.core.resources.IFile;
@@ -18,10 +17,9 @@ import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.TextSelection;
 import org.eclipse.lsp4e.LSPEclipseUtils;
-import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4j.Position;
-import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
+import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.swt.custom.CaretEvent;
 import org.eclipse.swt.custom.CaretListener;
 import org.eclipse.swt.custom.StyledText;
@@ -32,11 +30,10 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.tabbyml.tabby4eclipse.Logger;
-import com.tabbyml.tabby4eclipse.editor.InlineCompletionItem.Range;
 import com.tabbyml.tabby4eclipse.lsp.LanguageServerService;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ILanguageServer;
-import com.tabbyml.tabby4eclipse.lsp.protocol.TextDocumentServiceExt;
 import com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionParams;
+import com.tabbyml.tabby4eclipse.lsp.protocol.TextDocumentServiceExt;
 
 public class InlineCompletionService {
 	public static InlineCompletionService getInstance() {
