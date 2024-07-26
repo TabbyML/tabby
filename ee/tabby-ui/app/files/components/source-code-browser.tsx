@@ -611,9 +611,10 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       <ResizablePanel defaultSize={80} minSize={30}>
         <div className="flex h-full flex-col">
           <CodeSearchBar
-            className={
+            className={cn(
+              'z-40',
               !!activeEntryInfo?.repositorySpecifier ? 'block' : 'hidden'
-            }
+            )}
           />
           <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
             {(isTreeMode || isBlobMode) && (

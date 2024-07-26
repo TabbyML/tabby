@@ -311,3 +311,18 @@ export const repositoryListQuery = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const repositorySearch = graphql(/* GraphQL */ `
+  query RepositorySearch(
+    $kind: RepositoryKind!
+    $id: ID!
+    $rev: String
+    $pattern: String!
+  ) {
+    repositorySearch(kind: $kind, id: $id, rev: $rev, pattern: $pattern) {
+      type
+      path
+      indices
+    }
+  }
+`)

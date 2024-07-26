@@ -1,27 +1,144 @@
-import React from 'react'
+import React, { ReactNode } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useCombobox } from 'downshift'
+import { trim } from 'lodash-es'
+import { useQuery } from 'urql'
 
+import {
+  RepositoryKind,
+  RepositorySearchQuery
+} from '@/lib/gql/generates/graphql'
+import { useDebounceValue } from '@/lib/hooks/use-debounce'
+import { repositorySearch } from '@/lib/tabby/query'
+import { ArrayElementType } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { IconClose, IconSearch } from '@/components/ui/icons'
+import {
+  IconClose,
+  IconDirectorySolid,
+  IconFile,
+  IconSearch
+} from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
 
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { generateEntryPath } from './utils'
 
 interface CodeSearchBarProps extends React.OlHTMLAttributes<HTMLDivElement> {}
 
+type RepositorySearchItem = ArrayElementType<
+  RepositorySearchQuery['repositorySearch']
+>
+type OptionItem = {
+  label: string | ReactNode
+  value: string
+  disabled?: boolean
+  type: 'file' | 'pattern' | 'tips'
+  repositorySearch?: RepositorySearchItem
+}
+
 export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { activeEntryInfo, activeRepo } = React.useContext(
-    SourceCodeBrowserContext
-  )
+  const { activeEntryInfo, activeRepo, activeRepoRef, updateActivePath } =
+    React.useContext(SourceCodeBrowserContext)
   const [query, setQuery] = React.useState(searchParams.get('q')?.toString())
+  const [debouncedQuery] = useDebounceValue(query, 300)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const clearInput = () => {
     setQuery('')
     inputRef.current?.focus()
+  }
+
+  const repositoryKind = activeRepo?.kind
+  const repoId = activeRepo?.id
+
+  const repositorySearchPattern = React.useMemo(() => {
+    const regex = /^f:(.+)/
+    const matches = trim(debouncedQuery).match(regex)
+    if (matches) return matches[1] || undefined
+    return debouncedQuery
+  }, [debouncedQuery])
+
+  const [{ data: repositorySearchData }] = useQuery({
+    query: repositorySearch,
+    variables: {
+      kind: repositoryKind as RepositoryKind,
+      id: repoId as string,
+      pattern: repositorySearchPattern ?? '',
+      rev: activeRepoRef?.name
+    },
+    pause: !repoId || !repositoryKind || !repositorySearchPattern
+  })
+
+  const repositorySearchOptions: Array<OptionItem> = React.useMemo(() => {
+    if (!repositorySearchPattern) return []
+    return (
+      repositorySearchData?.repositorySearch?.map(option => ({
+        repositorySearch: option,
+        value: option.path,
+        label: option.path,
+        type: 'file'
+      })) ?? []
+    )
+  }, [repositorySearchData?.repositorySearch, repositorySearchPattern])
+
+  const options: Array<OptionItem> = React.useMemo(() => {
+    if (!activeRepo?.id) return []
+    const repoName = activeRepo?.name
+    return [
+      {
+        label: `${repoName}: ${query ?? ''}`,
+        value: query ?? '',
+        type: 'pattern'
+      }
+    ]
+  }, [query, activeRepo])
+
+  const {
+    isOpen,
+    getMenuProps,
+    getInputProps,
+    highlightedIndex,
+    getItemProps,
+    openMenu
+  } = useCombobox({
+    items: [...options, ...repositorySearchOptions],
+    onSelectedItemChange({ selectedItem }) {
+      if (selectedItem?.type === 'file' && selectedItem.repositorySearch) {
+        const path = generateEntryPath(
+          activeRepo,
+          activeRepoRef?.name,
+          selectedItem.repositorySearch.path,
+          selectedItem.repositorySearch.type as 'file' | 'dir'
+        )
+        updateActivePath(path)
+        return
+      }
+
+      onSubmit(selectedItem?.value)
+    },
+    stateReducer(_state, actionAndChanges) {
+      const { type, changes } = actionAndChanges
+      switch (type) {
+        case useCombobox.stateChangeTypes.InputClick:
+          return {
+            ...changes,
+            highlightedIndex: undefined,
+            isOpen: true
+          }
+        default:
+          return changes
+      }
+    }
+  })
+
+  const onInputValueChange = (val: string) => {
+    if (!isOpen) {
+      openMenu()
+    }
+    setQuery(val)
   }
 
   // shortcut 's'
@@ -40,6 +157,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
       if (event.key === 's') {
         event.preventDefault()
         inputRef.current?.focus()
+        openMenu()
       }
     }
 
@@ -50,10 +168,8 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
     }
   }, [])
 
-  const onSubmit: React.FormEventHandler<HTMLFormElement> = e => {
-    e.preventDefault()
-
-    if (!query) return
+  const onSubmit = (pattern: string | undefined) => {
+    if (!pattern) return
 
     const pathname = generateEntryPath(
       activeRepo,
@@ -62,30 +178,45 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
       'search'
     )
 
-    router.push(`/files/${pathname}?q=${encodeURIComponent(query)}`)
+    router.push(`/files/${pathname}?q=${encodeURIComponent(pattern)}`)
   }
 
   return (
-    <form
-      onSubmit={onSubmit}
+    <div
       className={cn(
         'flex w-full shrink-0 items-center bg-background px-4 py-3.5 transition duration-500 ease-in-out',
         className
       )}
     >
-      <div className="relative w-full">
-        <Input
-          ref={inputRef}
-          placeholder="Search for code..."
-          className="w-full"
-          autoComplete="off"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-        />
-        <div className="absolute right-2 top-0 flex h-full items-center">
+      <div className={cn('relative w-full')}>
+        <div className="h-9">
+          <div
+            className={cn({
+              'absolute z-10 bg-white dark:bg-popover dark:text-secondary-foreground inset-0':
+                isOpen
+            })}
+          >
+            <Input
+              placeholder="Search for code or files..."
+              className="w-full"
+              // autoComplete="off"
+              {...getInputProps({
+                onKeyDown: e => {
+                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                    e.preventDefault()
+                    onSubmit(query)
+                  }
+                },
+                ref: inputRef
+              })}
+              value={query}
+              onChange={e => onInputValueChange(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="absolute right-2 top-0 flex h-full items-center z-20">
           {query ? (
             <Button
-              type="button"
               variant="ghost"
               size="icon"
               className="h-6 w-6 cursor-pointer"
@@ -103,18 +234,137 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
               s
             </kbd>
           )}
-          <div className="ml-2 flex items-center border-l border-l-border pl-2">
-            <Button
-              variant="ghost"
-              className="h-6 w-6 "
-              size="icon"
-              type="submit"
-            >
-              <IconSearch />
-            </Button>
+          <div className="ml-2 flex items-center border-l border-l-border pl-2 z-20">
+            <IconSearch />
           </div>
         </div>
+        {isOpen && (
+          <div
+            className="absolute -left-3 -right-3 -top-2 bg-white dark:bg-popover dark:text-secondary-foreground py-4 shadow-2xl border rounded-lg px-4 max-h-[60vh] overflow-hidden flex flex-col"
+            {...getMenuProps()}
+          >
+            <div className="h-12 shrink-0" />
+            <div className="flex-1 overflow-y-auto">
+              {options?.map((option, index) => {
+                const highlighted = highlightedIndex === index
+                // const selected = !!selectedItem && selectedItem.value === option.value
+                return (
+                  <div
+                    key={option.value}
+                    className={cn(
+                      'relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none gap-1',
+                      highlighted &&
+                        'bg-accent text-accent-foreground cursor-pointer'
+                    )}
+                    {...getItemProps({
+                      item: option,
+                      index,
+                      onMouseLeave: e => e.preventDefault(),
+                      onMouseOut: e => e.preventDefault()
+                    })}
+                  >
+                    <div className="shrink-0">
+                      <IconSearch />
+                    </div>
+                    <div className="flex-1 truncate">{option.label}</div>
+                  </div>
+                )
+              })}
+              {!!repositorySearchOptions?.length && (
+                <>
+                  <Separator className="my-2" />
+                  <div className="font-semibold pl-2 mb-1 text-md">
+                    Files or Directories
+                  </div>
+                  {repositorySearchOptions.map((item, i) => {
+                    const index = (options?.length || 0) + i
+                    const repositorySearch =
+                      item.repositorySearch as RepositorySearchItem
+                    const highlighted = highlightedIndex === index
+                    return (
+                      <div
+                        key={item.repositorySearch?.path}
+                        className={cn(
+                          'relative cursor-default select-none flex items-center rounded-sm px-2 py-1.5 text-sm outline-none gap-1',
+                          highlighted &&
+                            'bg-accent text-accent-foreground cursor-pointer'
+                        )}
+                        {...getItemProps({
+                          item,
+                          index,
+                          onMouseLeave: e => e.preventDefault(),
+                          onMouseOut: e => e.preventDefault()
+                        })}
+                      >
+                        <div className="shrink-0">
+                          {item?.repositorySearch?.type === 'dir' ? (
+                            <IconDirectorySolid
+                              style={{ color: 'rgb(84, 174, 255)' }}
+                            />
+                          ) : (
+                            <IconFile />
+                          )}
+                        </div>
+                        <div className="flex-1 break-all">
+                          <HighlightMatches
+                            text={repositorySearch.path}
+                            indices={repositorySearch.indices}
+                          />
+                        </div>
+                        <div className="shrink-0 text-muted-foreground text-sm">
+                          Jump to
+                        </div>
+                      </div>
+                    )
+                  })}
+                </>
+              )}
+              <Separator className="my-2" />
+              <div className="font-semibold pl-2 mb-1 text-md">
+                Refine scope
+              </div>
+              <div className="flex items-center px-2 gap-1 text-sm">
+                <div className="text-secondary-foreground">
+                  <span className="px-1 py-0.5 bg-secondary text-secondary-foreground mr-0.5">
+                    f:
+                  </span>
+                  Include only results from file path matching the given search
+                  pattern.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </form>
+    </div>
+  )
+}
+
+function HighlightMatches({
+  text,
+  indices
+}: {
+  text: string
+  indices: number[]
+}) {
+  const indicesSet = React.useMemo(() => {
+    return new Set(indices)
+  }, [indices])
+
+  return (
+    <p className="text-muted-foreground">
+      {text.split('').map((char, index) => {
+        return indicesSet.has(index) ? (
+          <span
+            className="font-semibold text-foreground"
+            key={`${char}_${index}`}
+          >
+            {char}
+          </span>
+        ) : (
+          char
+        )
+      })}
+    </p>
   )
 }
