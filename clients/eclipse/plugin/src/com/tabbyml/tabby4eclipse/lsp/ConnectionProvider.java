@@ -18,9 +18,20 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 	private Logger logger = new Logger("ConnectionProvider");
 	
 	public ConnectionProvider() {
-		List<String> commands = List.of("npx", "tabby-agent@1.7.0", "--stdio");
-		logger.info("Will use command " + commands.toString() + " to start Tabby language server.");
-		this.setCommands(commands);
+		try {
+			Bundle bundle = Platform.getBundle(Activator.PLUGIN_ID);
+			URL agentScriptUrl = FileLocator.find(bundle, new Path("tabby-agent/dist/node/index.js"));
+			if (agentScriptUrl == null) {
+	            logger.error("Cannot find tabby-agent script.");
+	            return;
+	        }
+			File agentScriptFile = new File(FileLocator.toFileURL(agentScriptUrl).getPath());
+			List<String> commands = List.of("node", agentScriptFile.getAbsolutePath(), "--stdio");
+			logger.info("Will use command " + commands.toString() + " to start Tabby language server.");
+			this.setCommands(commands);
+		} catch (IOException e) {
+			logger.error("Failed to setup command to start Tabby language server.", e);
+		}
 	}
 	
 	@Override
