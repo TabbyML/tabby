@@ -18,4 +18,3 @@ Require-Bundle: org.eclipse.ui,
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Automatic-Module-Name: com.tabbyml.tabby4eclipse
 Bundle-ActivationPolicy: lazy
-Import-Package: org.eclipse.jface.text

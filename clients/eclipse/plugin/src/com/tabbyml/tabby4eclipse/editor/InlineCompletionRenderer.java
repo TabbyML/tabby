@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
+import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IPaintPositionManager;
 import org.eclipse.jface.text.IPainter;
 import org.eclipse.jface.text.ITextViewer;
@@ -31,30 +33,30 @@ public class InlineCompletionRenderer {
 	private ITextViewer currentTextViewer = null;
 	private InlineCompletionItem currentCompletionItem = null;
 
-	public void show(ITextViewer viewer, int offset, InlineCompletionItem completion) {
+	public void show(ITextViewer viewer, int offset, InlineCompletionItem item, int offsetInDocument) {
 		if (currentTextViewer != null) {
-			getPainter(currentTextViewer).update(null, 0);
+			getPainter(currentTextViewer).update(null, 0, 0);
 		}
 		currentTextViewer = viewer;
-		currentCompletionItem = completion;
-		getPainter(viewer).update(completion, offset);
+		currentCompletionItem = item;
+		getPainter(viewer).update(item, offset, offsetInDocument);
 	}
-	
+
 	public void hide() {
 		if (currentTextViewer != null) {
-			getPainter(currentTextViewer).update(null, 0);
+			getPainter(currentTextViewer).update(null, 0, 0);
 			currentTextViewer = null;
 			currentCompletionItem = null;
 		}
 	}
-	
+
 	public ITextViewer getCurrentTextViewer() {
 		return currentTextViewer;
 	}
-	
+
 	public InlineCompletionItem getCurrentCompletionItem() {
-        return currentCompletionItem;
-    }
+		return currentCompletionItem;
+	}
 
 	private InlineCompletionItemPainter getPainter(ITextViewer viewer) {
 		InlineCompletionItemPainter painter = painters.get(viewer);
@@ -70,11 +72,13 @@ public class InlineCompletionRenderer {
 
 		private InlineCompletionItem item;
 		private int offset;
-		
+		private int offsetInDocument;
+
 		private IPaintPositionManager positionManager;
 		private Font font;
 		private Map<Position, Integer> originLinesVerticalIndent = new HashMap<>();
-		private List<StyleRange> originStyleRanges = new ArrayList<>();
+		private Map<Position, StyleRange> originStyleRanges = new HashMap<>();
+		private List<Consumer<GC>> paintFunctions = new ArrayList<>();
 
 		public InlineCompletionItemPainter(ITextViewer viewer) {
 			this.viewer = viewer;
@@ -84,33 +88,37 @@ public class InlineCompletionRenderer {
 			});
 		}
 
-		public void update(InlineCompletionItem item, int offset) {
+		public void update(InlineCompletionItem item, int offset, int offsetInDocument) {
 			if (this.item != item || this.offset != offset) {
 				this.item = item;
 				this.offset = offset;
-				getWidget().redraw();
+				this.offsetInDocument = offsetInDocument;
+				getDisplay().syncExec(() -> {
+					cleanup();
+					setupPainting();
+					getWidget().redraw();
+				});
 			}
 		}
 
 		@Override
 		public void paintControl(PaintEvent event) {
-			cleanup();
-			render(event.gc);
+			paintFunctions.forEach((fn) -> {
+				fn.accept(event.gc);
+			});
 		}
 
 		@Override
 		public void paint(int reason) {
-			logger.debug("[Painter] paint called.");
 		}
 
 		@Override
 		public void deactivate(boolean redraw) {
-			logger.debug("[Painter] deactivate called.");
 		}
 
 		@Override
 		public void dispose() {
-			logger.debug("[Painter] dispose called.");
+			logger.debug("Painter dispose called.");
 			getWidget().removePaintListener(this);
 			if (font != null) {
 				font.dispose();
@@ -122,7 +130,7 @@ public class InlineCompletionRenderer {
 		public void setPositionManager(IPaintPositionManager manager) {
 			this.positionManager = manager;
 		}
-		
+
 		private StyledText getWidget() {
 			return viewer.getTextWidget();
 		}
@@ -132,168 +140,213 @@ public class InlineCompletionRenderer {
 		}
 
 		private void cleanup() {
-			originLinesVerticalIndent.forEach((position, indent) -> {
-				int line = getWidget().getLineAtOffset(position.getOffset());
-                getWidget().setLineVerticalIndent(line, indent);
-                positionManager.unmanagePosition(position);
-            });
-			originLinesVerticalIndent.clear();
-			originStyleRanges.forEach(range -> {
-				getWidget().setStyleRange(range);
-			});
-			originStyleRanges.clear();
+			try {
+				paintFunctions.clear();
+
+				originLinesVerticalIndent.forEach((position, indent) -> {
+					int line = getWidget().getLineAtOffset(position.getOffset());
+					positionManager.unmanagePosition(position);
+					getWidget().setLineVerticalIndent(line, indent);
+				});
+				originLinesVerticalIndent.clear();
+
+				originStyleRanges.forEach((position, styleRange) -> {
+					styleRange.start = position.offset;
+					positionManager.unmanagePosition(position);
+					getWidget().setStyleRange(styleRange);
+					logger.info("Restore style Range:" + styleRange.start + "," + styleRange.length + ","
+							+ styleRange.metrics);
+				});
+				originStyleRanges.clear();
+			} catch (Exception e) {
+				logger.error("Error when renderer cleanup.", e);
+			}
 		}
-		
-		private void render(GC gc) {
+
+		private void setupPainting() {
 			if (item == null) {
 				return;
 			}
 			StyledText widget = getWidget();
 
-			int prefixReplaceLength = offset - item.getReplaceRange().getStart();
-			int suffixReplaceLength = item.getReplaceRange().getEnd() - offset;
+			int prefixReplaceLength = offsetInDocument - item.getReplaceRange().getStart();
+			int suffixReplaceLength = item.getReplaceRange().getEnd() - offsetInDocument;
 			String text = item.getInsertText().substring(prefixReplaceLength);
 			if (text.isEmpty()) {
-			    return;
+				return;
 			}
-			
+			logger.info("Begin setupPainting...");
+
 			int currentLineEndOffset;
 			int nextLineNumber = widget.getLineAtOffset(offset) + 1;
 			if (nextLineNumber < widget.getLineCount()) {
-				currentLineEndOffset = widget.getOffsetAtLine(widget.getLineAtOffset(offset) + 1) - 1;
+				currentLineEndOffset = widget.getOffsetAtLine(nextLineNumber) - 1;
 			} else {
 				currentLineEndOffset = widget.getCharCount() - 1;
 			}
 			String currentLineSuffix = "";
-			if (offset < currentLineEndOffset && offset < widget.getCharCount()) {
+			if (offset < widget.getCharCount() && offset < currentLineEndOffset) {
 				currentLineSuffix = widget.getText(offset, currentLineEndOffset);
 			}
-			
+
 			String textCurrentLine;
 			String textSuffixLines;
-	        int firstLineBreakIndex = text.indexOf("\n");
-	        if (firstLineBreakIndex == -1) {
-	        	textCurrentLine = text;
-	        	textSuffixLines = "";
-	        } else {
-	        	textCurrentLine = text.substring(0, firstLineBreakIndex);
-            	textSuffixLines = text.substring(firstLineBreakIndex + 1);
-	        }
+			int firstLineBreakIndex = text.indexOf("\n");
+			if (firstLineBreakIndex == -1) {
+				textCurrentLine = text;
+				textSuffixLines = "";
+			} else {
+				textCurrentLine = text.substring(0, firstLineBreakIndex);
+				textSuffixLines = text.substring(firstLineBreakIndex + 1);
+			}
 
-	        if (suffixReplaceLength == 0 || currentLineSuffix.isEmpty()) {
-	            // No replace range to handle
-	        	if (textSuffixLines.isEmpty()) {
-	        		drawInsertPartText(gc, offset, textCurrentLine);
-	        	} else {
-	        		if (!textCurrentLine.isEmpty()) {
-	        			drawCurrentLineText(gc, offset, textCurrentLine);
-	        		}
-	        		drawSuffixLines(gc, offset, textSuffixLines + currentLineSuffix);
-	        	}
-	        } else if (suffixReplaceLength == 1) {
-	            // Replace range contains one char
-	        	char replaceChar = currentLineSuffix.charAt(0);
-		        int replaceCharIndex = textCurrentLine.indexOf(replaceChar);
-		        if (replaceCharIndex > 0) {
-		            // If textCurrentLine contain the replaceChar
-		            // InsertPart is substring of textCurrentLine that before the replaceChar
-		            // AppendPart is substring of textCurrentLine that after the replaceChar
-			        String insertPart = textCurrentLine.substring(0, replaceCharIndex);
-			        String appendPart = textCurrentLine.substring(replaceCharIndex + 1);
-			        if (!insertPart.isEmpty()) {
-			        	drawInsertPartText(gc, offset, insertPart);
-			        }
-					if (!appendPart.isEmpty()) {
-						drawCurrentLineText(gc, offset + 1, appendPart);
+			if (suffixReplaceLength == 0 || currentLineSuffix.isEmpty()) {
+				// No replace range to handle
+				if (textSuffixLines.isEmpty()) {
+					drawInsertPartText(offset, textCurrentLine);
+				} else {
+					if (!textCurrentLine.isEmpty()) {
+						drawCurrentLineText(offset, textCurrentLine);
 					}
-		        } else {
-		        	drawInsertPartText(gc, offset, textCurrentLine, currentLineSuffix.substring(0, 1));
-		        }
-	        	if (!textSuffixLines.isEmpty()) {
-	        		drawSuffixLines(gc, offset, textSuffixLines + currentLineSuffix.substring(1));
-	        	}
-	        } else {
-	            // Replace range contains multiple chars
-	        	if (textSuffixLines.isEmpty()) {
-	        		drawInsertPartText(gc, offset, textCurrentLine, currentLineSuffix.substring(0, suffixReplaceLength));
-	        	} else {
-	        		if (!textCurrentLine.isEmpty()) {
-	        			drawCurrentLineText(gc, offset, textCurrentLine);
-	        		}
-	        		drawSuffixLines(gc, offset, textSuffixLines + currentLineSuffix.substring(suffixReplaceLength));
-	        	}
-	        }
+					drawSuffixLines(offset, textSuffixLines + currentLineSuffix);
+				}
+			} else if (suffixReplaceLength == 1) {
+				// Replace range contains one char
+				char replaceChar = currentLineSuffix.charAt(0);
+				int replaceCharIndex = textCurrentLine.indexOf(replaceChar);
+				if (replaceCharIndex > 0) {
+					// If textCurrentLine contain the replaceChar
+					// InsertPart is substring of textCurrentLine that before the replaceChar
+					// AppendPart is substring of textCurrentLine that after the replaceChar
+					String insertPart = textCurrentLine.substring(0, replaceCharIndex);
+					String appendPart = textCurrentLine.substring(replaceCharIndex + 1);
+					if (!insertPart.isEmpty()) {
+						drawInsertPartText(offset, insertPart);
+					}
+					if (!appendPart.isEmpty()) {
+						if (textSuffixLines.isEmpty()) {
+							drawInsertPartText(offset + 1, appendPart);
+						} else {
+							drawCurrentLineText(offset + 1, appendPart);
+						}
+					}
+				} else {
+					drawInsertPartText(offset, textCurrentLine, currentLineSuffix.substring(0, 1));
+				}
+				if (!textSuffixLines.isEmpty()) {
+					drawSuffixLines(offset, textSuffixLines + currentLineSuffix.substring(1));
+				}
+			} else {
+				// Replace range contains multiple chars
+				if (textSuffixLines.isEmpty()) {
+					drawInsertPartText(offset, textCurrentLine, currentLineSuffix.substring(0, suffixReplaceLength));
+				} else {
+					if (!textCurrentLine.isEmpty()) {
+						drawCurrentLineText(offset, textCurrentLine);
+					}
+					drawSuffixLines(offset, textSuffixLines + currentLineSuffix.substring(suffixReplaceLength));
+				}
+			}
+			logger.info("End setupPainting.");
 		}
-		
-		private void drawCurrentLineText(GC gc, int offset, String text) {
+
+		private void drawCurrentLineText(int offset, String text) {
+			logger.info("drawCurrentLineText:" + offset + ":" + text);
 			StyledText widget = getWidget();
 
-			// Draw ghost text
-			setStyleToGhostText(gc);
-			Point location = widget.getLocationAtOffset(offset);
-			gc.drawString(text, location.x, location.y);
+			paintFunctions.add((gc) -> {
+				// Draw ghost text
+				setStyleToGhostText(gc);
+				Point location = widget.getLocationAtOffset(offset);
+				gc.drawString(text, location.x, location.y);
+			});
 		}
-		
-		private void drawInsertPartText(GC gc, int offset, String text) {
-			drawInsertPartText(gc, offset, text, "");
+
+		private void drawInsertPartText(int offset, String text) {
+			drawInsertPartText(offset, text, "");
 		}
-		
-		private void drawInsertPartText(GC gc, int offset, String text, String replaced) {
+
+		private void drawInsertPartText(int offset, String text, String replaced) {
+			logger.debug("drawInsertPartText:" + offset + ":" + text + ":" + replaced);
 			StyledText widget = getWidget();
 
-			// Leave the space for the ghost text
-			int spaceWidth = gc.stringExtent(text).x - gc.stringExtent(replaced).x;
 			int targetOffset = offset + replaced.length();
 			String targetChar = widget.getText(targetOffset, targetOffset);
-			int charWidth = gc.stringExtent(targetChar).x;
-			StyleRange styleRange;
-			StyleRange originStyleRange = widget.getStyleRangeAtOffset(targetOffset);
-			if (originStyleRange == null) {
+			StyleRange originStyleRange;
+			if (widget.getStyleRangeAtOffset(targetOffset) != null) {
+				originStyleRange = widget.getStyleRangeAtOffset(targetOffset);
+				logger.info("Origin styleRange Range:" + originStyleRange.start + "," + originStyleRange.length + ","
+						+ originStyleRange.metrics);
+			} else {
 				originStyleRange = new StyleRange();
 				originStyleRange.start = targetOffset;
 				originStyleRange.length = 1;
+				logger.info("Create styleRange Range:" + originStyleRange.start + "," + originStyleRange.length + ","
+						+ originStyleRange.metrics);
 			}
-			originStyleRanges.add(originStyleRange);
-			styleRange = (StyleRange) originStyleRange.clone();
-			styleRange.start = targetOffset;
-			styleRange.length = 1;
-			FontMetrics fontMetrics = gc.getFontMetrics();
-			GlyphMetrics glyphMetrics = new GlyphMetrics(fontMetrics.getAscent(), fontMetrics.getDescent(), spaceWidth + charWidth);
-			styleRange.metrics = glyphMetrics;
-			widget.setStyleRange(styleRange);
+			Position position = new Position(targetOffset, 0);
+			positionManager.managePosition(position);
+			originStyleRanges.put(position, originStyleRange);
 
-			// Draw the moved char
-			setStyle(gc, styleRange);
-			Point targetCharLocation = widget.getLocationAtOffset(targetOffset);
-			gc.drawString(targetChar, targetCharLocation.x + spaceWidth, targetCharLocation.y, true);
-			
-			// Draw ghost text
-			setStyleToGhostText(gc);
-			Point location = widget.getLocationAtOffset(offset);
-			gc.drawString(text, location.x, location.y);
+			paintFunctions.add((gc) -> {
+				// Leave the space for the ghost text
+				setStyle(gc, originStyleRange);
+
+				int spaceWidth = gc.stringExtent(text).x - gc.stringExtent(replaced).x;
+				int charWidth = gc.stringExtent(targetChar).x;
+
+				StyleRange currentStyleRange = widget.getStyleRangeAtOffset(targetOffset);
+				if (currentStyleRange != null && currentStyleRange.metrics != null
+						&& currentStyleRange.metrics.width == spaceWidth + charWidth) {
+					// nothing to do
+				} else {
+					StyleRange styleRange = (StyleRange) originStyleRange.clone();
+					styleRange.start = targetOffset;
+					styleRange.length = 1;
+					FontMetrics fontMetrics = gc.getFontMetrics();
+					GlyphMetrics glyphMetrics = new GlyphMetrics(fontMetrics.getAscent(), fontMetrics.getDescent(),
+							spaceWidth + charWidth);
+					styleRange.metrics = glyphMetrics;
+					widget.setStyleRange(styleRange);
+					logger.info(
+							"Style Range:" + styleRange.start + "," + styleRange.length + "," + styleRange.metrics);
+				}
+				
+				// Draw the moved char
+				Point targetCharLocation = widget.getLocationAtOffset(targetOffset);
+				gc.drawString(targetChar, targetCharLocation.x + spaceWidth, targetCharLocation.y, true);
+
+				// Draw ghost text
+				setStyleToGhostText(gc);
+				Point location = widget.getLocationAtOffset(offset);
+				gc.drawString(text, location.x, location.y);
+			});
 		}
-		
-		private void drawSuffixLines(GC gc, int offset, String text) {
+
+		private void drawSuffixLines(int offset, String text) {
+			logger.debug("drawSuffixLines:" + offset + ":" + text);
 			StyledText widget = getWidget();
 			int lineHeight = widget.getLineHeight();
-			
+
 			// Leave the space for the ghost text
 			int nextLineNumber = widget.getLineAtOffset(offset) + 1;
 			if (nextLineNumber < widget.getLineCount()) {
 				int lineCount = (int) text.lines().count();
 				int originVerticalIndent = widget.getLineVerticalIndent(nextLineNumber);
 				Position position = new Position(widget.getOffsetAtLine(nextLineNumber), 0);
+				positionManager.managePosition(position);
 				originLinesVerticalIndent.put(position, originVerticalIndent);
-                positionManager.managePosition(position);
 				widget.setLineVerticalIndent(nextLineNumber, originVerticalIndent + lineHeight * lineCount);
 			}
-			
-			// Draw ghost text
-			setStyleToGhostText(gc);
-			Point location = widget.getLocationAtOffset(offset);
-			int x = widget.getLeftMargin();
-			int y = location.y + lineHeight;
-			gc.drawText(text, x, y, true);
+
+			paintFunctions.add((gc) -> {
+				// Draw ghost text
+				setStyleToGhostText(gc);
+				Point location = widget.getLocationAtOffset(offset);
+				int x = widget.getLeftMargin();
+				int y = location.y + lineHeight;
+				gc.drawText(text, x, y, true);
+			});
 		}
 
 		private void setStyle(GC gc, StyleRange styleRange) {
@@ -302,18 +355,13 @@ public class InlineCompletionRenderer {
 			} else {
 				gc.setForeground(getWidget().getForeground());
 			}
-			if (styleRange.background != null) {
-				gc.setBackground(styleRange.background);
-			} else {
-				gc.setBackground(getWidget().getBackground());
-			}
 			if (styleRange.font != null) {
 				gc.setFont(styleRange.font);
 			} else {
 				gc.setFont(getWidget().getFont());
 			}
 		}
-		
+
 		private void setStyleToGhostText(GC gc) {
 			gc.setForeground(getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
 			if (font == null || font.isDisposed()) {

@@ -45,5 +45,4 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 		super.stop();
 		logger.info("Tabby language server stopped.");
 	}
-
 }
