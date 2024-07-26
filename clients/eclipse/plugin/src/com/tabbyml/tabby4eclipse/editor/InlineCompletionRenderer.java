@@ -24,6 +24,7 @@ import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.GlyphMetrics;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.IWorkbenchWindow;
 
 import com.tabbyml.tabby4eclipse.Logger;
 
@@ -77,7 +78,7 @@ public class InlineCompletionRenderer {
 		private IPaintPositionManager positionManager;
 		private Font font;
 		private Map<Position, Integer> originLinesVerticalIndent = new HashMap<>();
-		private Map<Position, StyleRange> originStyleRanges = new HashMap<>();
+		private List<GlyphMetrics> modifiedGlyphMetrics = new ArrayList<>();
 		private List<Consumer<GC>> paintFunctions = new ArrayList<>();
 
 		public InlineCompletionItemPainter(ITextViewer viewer) {
@@ -150,14 +151,16 @@ public class InlineCompletionRenderer {
 				});
 				originLinesVerticalIndent.clear();
 
-				originStyleRanges.forEach((position, styleRange) -> {
-					styleRange.start = position.offset;
-					positionManager.unmanagePosition(position);
-					getWidget().setStyleRange(styleRange);
-					logger.info("Restore style Range:" + styleRange.start + "," + styleRange.length + ","
-							+ styleRange.metrics);
-				});
-				originStyleRanges.clear();
+				StyleRange[] styleRanges = getWidget().getStyleRanges();
+				for (StyleRange styleRange : styleRanges) {
+					if (modifiedGlyphMetrics.contains(styleRange.metrics)) {
+						styleRange.metrics = null;
+						getWidget().setStyleRange(styleRange);
+						logger.debug("Restore style Range:" + styleRange.start + "," + styleRange.length + ","
+								+ styleRange.metrics);
+					}
+				}
+				modifiedGlyphMetrics.clear();
 			} catch (Exception e) {
 				logger.error("Error when renderer cleanup.", e);
 			}
@@ -175,7 +178,7 @@ public class InlineCompletionRenderer {
 			if (text.isEmpty()) {
 				return;
 			}
-			logger.info("Begin setupPainting...");
+			logger.debug("Begin setupPainting...");
 
 			int currentLineEndOffset;
 			int nextLineNumber = widget.getLineAtOffset(offset) + 1;
@@ -206,7 +209,7 @@ public class InlineCompletionRenderer {
 					drawInsertPartText(offset, textCurrentLine);
 				} else {
 					if (!textCurrentLine.isEmpty()) {
-						drawCurrentLineText(offset, textCurrentLine);
+						drawOverwriteText(offset, textCurrentLine);
 					}
 					drawSuffixLines(offset, textSuffixLines + currentLineSuffix);
 				}
@@ -227,11 +230,11 @@ public class InlineCompletionRenderer {
 						if (textSuffixLines.isEmpty()) {
 							drawInsertPartText(offset + 1, appendPart);
 						} else {
-							drawCurrentLineText(offset + 1, appendPart);
+							drawOverwriteText(offset + 1, appendPart);
 						}
 					}
 				} else {
-					drawInsertPartText(offset, textCurrentLine, currentLineSuffix.substring(0, 1));
+					drawReplacePartText(offset, textCurrentLine, currentLineSuffix.substring(0, 1));
 				}
 				if (!textSuffixLines.isEmpty()) {
 					drawSuffixLines(offset, textSuffixLines + currentLineSuffix.substring(1));
@@ -239,19 +242,19 @@ public class InlineCompletionRenderer {
 			} else {
 				// Replace range contains multiple chars
 				if (textSuffixLines.isEmpty()) {
-					drawInsertPartText(offset, textCurrentLine, currentLineSuffix.substring(0, suffixReplaceLength));
+					drawReplacePartText(offset, textCurrentLine, currentLineSuffix.substring(0, suffixReplaceLength));
 				} else {
 					if (!textCurrentLine.isEmpty()) {
-						drawCurrentLineText(offset, textCurrentLine);
+						drawOverwriteText(offset, textCurrentLine);
 					}
 					drawSuffixLines(offset, textSuffixLines + currentLineSuffix.substring(suffixReplaceLength));
 				}
 			}
-			logger.info("End setupPainting.");
+			logger.debug("End setupPainting.");
 		}
 
-		private void drawCurrentLineText(int offset, String text) {
-			logger.info("drawCurrentLineText:" + offset + ":" + text);
+		private void drawOverwriteText(int offset, String text) {
+			logger.debug("drawCurrentLineText:" + offset + ":" + text);
 			StyledText widget = getWidget();
 
 			paintFunctions.add((gc) -> {
@@ -263,36 +266,33 @@ public class InlineCompletionRenderer {
 		}
 
 		private void drawInsertPartText(int offset, String text) {
-			drawInsertPartText(offset, text, "");
+			drawReplacePartText(offset, text, "");
 		}
 
-		private void drawInsertPartText(int offset, String text, String replaced) {
-			logger.debug("drawInsertPartText:" + offset + ":" + text + ":" + replaced);
+		private void drawReplacePartText(int offset, String text, String replacedText) {
+			logger.debug("drawInsertPartText:" + offset + ":" + text + ":" + replacedText);
 			StyledText widget = getWidget();
 
-			int targetOffset = offset + replaced.length();
+			int targetOffset = offset + replacedText.length();
 			String targetChar = widget.getText(targetOffset, targetOffset);
 			StyleRange originStyleRange;
 			if (widget.getStyleRangeAtOffset(targetOffset) != null) {
 				originStyleRange = widget.getStyleRangeAtOffset(targetOffset);
-				logger.info("Origin styleRange Range:" + originStyleRange.start + "," + originStyleRange.length + ","
+				logger.debug("Origin styleRange Range:" + originStyleRange.start + "," + originStyleRange.length + ","
 						+ originStyleRange.metrics);
 			} else {
 				originStyleRange = new StyleRange();
 				originStyleRange.start = targetOffset;
 				originStyleRange.length = 1;
-				logger.info("Create styleRange Range:" + originStyleRange.start + "," + originStyleRange.length + ","
+				logger.debug("Create styleRange Range:" + originStyleRange.start + "," + originStyleRange.length + ","
 						+ originStyleRange.metrics);
 			}
-			Position position = new Position(targetOffset, 0);
-			positionManager.managePosition(position);
-			originStyleRanges.put(position, originStyleRange);
 
 			paintFunctions.add((gc) -> {
 				// Leave the space for the ghost text
 				setStyle(gc, originStyleRange);
 
-				int spaceWidth = gc.stringExtent(text).x - gc.stringExtent(replaced).x;
+				int spaceWidth = gc.stringExtent(text).x - gc.stringExtent(replacedText).x;
 				int charWidth = gc.stringExtent(targetChar).x;
 
 				StyleRange currentStyleRange = widget.getStyleRangeAtOffset(targetOffset);
@@ -306,12 +306,13 @@ public class InlineCompletionRenderer {
 					FontMetrics fontMetrics = gc.getFontMetrics();
 					GlyphMetrics glyphMetrics = new GlyphMetrics(fontMetrics.getAscent(), fontMetrics.getDescent(),
 							spaceWidth + charWidth);
+					modifiedGlyphMetrics.add(glyphMetrics);
 					styleRange.metrics = glyphMetrics;
 					widget.setStyleRange(styleRange);
-					logger.info(
+					logger.debug(
 							"Style Range:" + styleRange.start + "," + styleRange.length + "," + styleRange.metrics);
 				}
-				
+
 				// Draw the moved char
 				Point targetCharLocation = widget.getLocationAtOffset(targetOffset);
 				gc.drawString(targetChar, targetCharLocation.x + spaceWidth, targetCharLocation.y, true);
