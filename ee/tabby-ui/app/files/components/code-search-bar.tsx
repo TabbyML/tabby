@@ -214,7 +214,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
             />
           </div>
         </div>
-        <div className="absolute right-2 top-0 flex h-full items-center z-20">
+        <div className="absolute right-2 top-0 z-20 flex h-full items-center">
           {query ? (
             <Button
               variant="ghost"
@@ -234,13 +234,13 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
               s
             </kbd>
           )}
-          <div className="ml-2 flex items-center border-l border-l-border pl-2 z-20">
+          <div className="z-20 ml-2 flex items-center border-l border-l-border pl-2">
             <IconSearch />
           </div>
         </div>
         {isOpen && (
           <div
-            className="absolute -left-3 -right-3 -top-2 bg-white dark:bg-popover dark:text-secondary-foreground py-4 shadow-2xl border rounded-lg px-4 max-h-[60vh] overflow-hidden flex flex-col"
+            className="absolute -inset-x-3 -top-2 flex max-h-[60vh] flex-col overflow-hidden rounded-lg border bg-white p-4 shadow-2xl dark:bg-popover dark:text-secondary-foreground"
             {...getMenuProps()}
           >
             <div className="h-12 shrink-0" />
@@ -252,9 +252,9 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
                   <div
                     key={option.value}
                     className={cn(
-                      'relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none gap-1',
+                      'relative flex cursor-default select-none items-center gap-1 rounded-sm px-2 py-1.5 text-sm outline-none',
                       highlighted &&
-                        'bg-accent text-accent-foreground cursor-pointer'
+                        'cursor-pointer bg-accent text-accent-foreground'
                     )}
                     {...getItemProps({
                       item: option,
@@ -273,7 +273,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
               {!!repositorySearchOptions?.length && (
                 <>
                   <Separator className="my-2" />
-                  <div className="font-semibold pl-2 mb-1 text-md">
+                  <div className="text-md mb-1 pl-2 font-semibold">
                     Files or Directories
                   </div>
                   {repositorySearchOptions.map((item, i) => {
@@ -285,9 +285,9 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
                       <div
                         key={item.repositorySearch?.path}
                         className={cn(
-                          'relative cursor-default select-none flex items-center rounded-sm px-2 py-1.5 text-sm outline-none gap-1',
+                          'relative flex cursor-default select-none items-center gap-1 rounded-sm px-2 py-1.5 text-sm outline-none',
                           highlighted &&
-                            'bg-accent text-accent-foreground cursor-pointer'
+                            'cursor-pointer bg-accent text-accent-foreground'
                         )}
                         {...getItemProps({
                           item,
@@ -311,7 +311,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
                             indices={repositorySearch.indices}
                           />
                         </div>
-                        <div className="shrink-0 text-muted-foreground text-sm">
+                        <div className="shrink-0 text-sm text-muted-foreground">
                           Jump to
                         </div>
                       </div>
@@ -320,12 +320,12 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
                 </>
               )}
               <Separator className="my-2" />
-              <div className="font-semibold pl-2 mb-1 text-md">
+              <div className="text-md mb-1 pl-2 font-semibold">
                 Refine scope
               </div>
-              <div className="flex items-center px-2 gap-1 text-sm">
+              <div className="flex items-center gap-1 px-2 text-sm">
                 <div className="text-secondary-foreground">
-                  <span className="px-1 py-0.5 bg-secondary text-secondary-foreground mr-0.5">
+                  <span className="mr-0.5 bg-secondary px-1 py-0.5 text-secondary-foreground">
                     f:
                   </span>
                   Include only results from file path matching the given search
