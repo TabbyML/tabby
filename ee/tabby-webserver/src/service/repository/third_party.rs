@@ -10,7 +10,10 @@ use tabby_db::{DbConn, ProvidedRepositoryDAO};
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
     job::{JobInfo, JobService},
-    repository::{ProvidedRepository, Repository, RepositoryProvider, ThirdPartyRepositoryService},
+    repository::{
+        GitReference, ProvidedRepository, Repository, RepositoryProvider,
+        ThirdPartyRepositoryService,
+    },
     AsID, AsRowid, DbEnum, Result,
 };
 use tracing::{debug, error};
@@ -284,7 +287,13 @@ fn to_provided_repository(value: ProvidedRepositoryDAO, job_info: JobInfo) -> Pr
         created_at: *value.created_at,
         updated_at: *value.updated_at,
         refs: tabby_git::list_refs(&RepositoryConfig::new(&value.git_url).dir())
-            .unwrap_or_default(),
+            .unwrap_or_default()
+            .into_iter()
+            .map(|r| GitReference {
+                name: r.name,
+                commit: r.commit,
+            })
+            .collect(),
         git_url: value.git_url,
         job_info,
     }

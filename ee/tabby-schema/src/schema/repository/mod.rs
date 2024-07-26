@@ -46,7 +46,13 @@ pub struct Repository {
     pub dir: PathBuf,
 
     pub git_url: String,
-    pub refs: Vec<String>,
+    pub refs: Vec<GitReference>,
+}
+
+#[derive(GraphQLObject, Debug)]
+pub struct GitReference {
+    pub name: String,
+    pub commit: String,
 }
 
 impl From<GitRepository> for Repository {
@@ -72,7 +78,7 @@ pub struct GithubProvidedRepository {
     pub name: String,
     pub git_url: String,
     pub active: bool,
-    pub refs: Vec<String>,
+    pub refs: Vec<GitReference>,
 }
 
 impl NodeType for GithubProvidedRepository {
@@ -100,7 +106,7 @@ pub struct GitlabProvidedRepository {
     pub name: String,
     pub git_url: String,
     pub active: bool,
-    pub refs: Vec<String>,
+    pub refs: Vec<GitReference>,
 }
 
 impl NodeType for GitlabProvidedRepository {

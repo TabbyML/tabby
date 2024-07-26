@@ -40,14 +40,23 @@ pub fn serve_file(
     serve_git::serve(&repository, commit, path)
 }
 
-pub fn list_refs(root: &Path) -> anyhow::Result<Vec<String>> {
+pub struct GitReference {
+    pub name: String,
+    pub commit: String,
+}
+
+pub fn list_refs(root: &Path) -> anyhow::Result<Vec<GitReference>> {
     let repository = git2::Repository::open(root)?;
     let refs = repository.references()?;
     Ok(refs
         .filter_map(|r| r.ok())
-        .map(|r| r.name().unwrap().to_string())
+        .filter_map(|r| {
+            let name = r.name()?.to_string();
+            let commit = r.target()?.to_string();
+            Some(GitReference { name, commit })
+        })
         // Filter out remote refs
-        .filter(|r| !r.starts_with("refs/remotes/"))
+        .filter(|r| !r.name.starts_with("refs/remotes/"))
         .collect())
 }
 
@@ -85,8 +94,11 @@ mod testutils {
 
     impl TempGitRepository {
         pub fn repository(&self) -> git2::Repository {
-            let path = self.tempdir.join("interview-questions");
-            git2::Repository::open(path).unwrap()
+            git2::Repository::open(self.path()).unwrap()
+        }
+
+        pub fn path(&self) -> std::path::PathBuf {
+            self.tempdir.join("interview-questions")
         }
     }
 
@@ -106,5 +118,17 @@ mod testutils {
 
             Self { tempdir }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{list_refs, testutils::TempGitRepository};
+
+    #[test]
+    fn test_list_refs() {
+        let root = TempGitRepository::default();
+        let refs = list_refs(&root.path()).unwrap();
+        assert_eq!(refs.len(), 1);
     }
 }
