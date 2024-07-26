@@ -6,7 +6,9 @@ use tabby_common::config::RepositoryConfig;
 use tabby_db::{DbConn, RepositoryDAO};
 use tabby_schema::{
     job::{JobInfo, JobService},
-    repository::{GitReference, GitRepository, GitRepositoryService, Repository, RepositoryProvider},
+    repository::{
+        GitReference, GitRepository, GitRepositoryService, Repository, RepositoryProvider,
+    },
     AsID, AsRowid, Result,
 };
 
