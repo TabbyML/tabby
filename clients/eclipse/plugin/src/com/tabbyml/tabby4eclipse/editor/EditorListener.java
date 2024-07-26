@@ -42,8 +42,7 @@ public class EditorListener implements IPartListener {
 
 					for (IEditorReference editorRef : editorReferences) {
 						IEditorPart editorPart = editorRef.getEditor(false);
-						if (editorPart instanceof ITextEditor) {
-							ITextEditor textEditor = (ITextEditor) editorPart;
+						if (editorPart instanceof ITextEditor textEditor) {
 							if (textEditor.isEditable()) {
 								IDocument document = LSPEclipseUtils.getDocument(textEditor.getEditorInput());
 								getLanguageServerWrapper().connectDocument(document);

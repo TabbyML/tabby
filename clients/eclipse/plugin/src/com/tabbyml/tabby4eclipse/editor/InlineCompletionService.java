@@ -16,6 +16,7 @@ import org.eclipse.jface.text.IDocumentListener;
 import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.TextSelection;
+import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
@@ -48,7 +49,8 @@ public class InlineCompletionService {
 	private Map<ITextEditor, CaretListener> caretListeners = new HashMap<>();
 	private Map<ITextEditor, IDocumentListener> documentListeners = new HashMap<>();
 	private InlineCompletionRenderer renderer = new InlineCompletionRenderer();
-	private PendingEvent pendingEvent;
+	private TriggerEvent lastEvent;
+	private TriggerEvent pendingEvent;
 	private InlineCompletionContext current;
 
 	public void register(ITextEditor textEditor) {
@@ -212,9 +214,15 @@ public class InlineCompletionService {
 		long modificationStamp = getDocumentModificationStamp(textEditor);
 		if (pendingEvent != null && pendingEvent.textEditor == textEditor) {
 			if (pendingEvent.documentEvent != null && pendingEvent.modificationStamp == modificationStamp) {
-				int offset = pendingEvent.documentEvent.getOffset() + pendingEvent.documentEvent.getText().length();
 				int offsetInWidget = event.caretOffset;
+				int offsetDelta = 0;
+				if (lastEvent != null && lastEvent.textEditor == pendingEvent.textEditor) {
+					offsetDelta = offsetInWidget - lastEvent.caretEvent.caretOffset;
+				}
+				int offset = getDocumentOffset(textEditor, pendingEvent.documentEvent, offsetDelta);
 				provideInlineCompletion(textEditor, offset, offsetInWidget);
+				pendingEvent.caretEvent = event;
+				lastEvent = pendingEvent;
 				pendingEvent = null;
 			} else {
 				pendingEvent.caretEvent = event;
@@ -230,7 +238,7 @@ public class InlineCompletionService {
 			return;
 		}
 		logger.debug("handleDocumentAboutToBeChanged offset:" + event.getOffset());
-		pendingEvent = new PendingEvent();
+		pendingEvent = new TriggerEvent();
 		pendingEvent.textEditor = textEditor;
 	}
 
@@ -242,9 +250,15 @@ public class InlineCompletionService {
 		long modificationStamp = getDocumentModificationStamp(textEditor);
 		if (pendingEvent != null && pendingEvent.textEditor == textEditor) {
 			if (pendingEvent.caretEvent != null && pendingEvent.modificationStamp == modificationStamp) {
-				int offset = event.getOffset() + event.getText().length();
 				int offsetInWidget = pendingEvent.caretEvent.caretOffset;
+				int offsetDelta = 0;
+				if (lastEvent != null && lastEvent.textEditor == pendingEvent.textEditor) {
+					offsetDelta = offsetInWidget - lastEvent.caretEvent.caretOffset;
+				}
+				int offset = getDocumentOffset(textEditor, event, offsetDelta);
 				provideInlineCompletion(textEditor, offset, offsetInWidget);
+				pendingEvent.documentEvent = event;
+				lastEvent = pendingEvent;
 				pendingEvent = null;
 			} else {
 				pendingEvent.documentEvent = event;
@@ -259,8 +273,8 @@ public class InlineCompletionService {
 			IWorkbenchPage page = window.getActivePage();
 			if (page != null) {
 				IEditorPart activeEditor = page.getActiveEditor();
-				if (activeEditor instanceof ITextEditor) {
-					return (ITextEditor) activeEditor;
+				if (activeEditor instanceof ITextEditor textEditor) {
+					return textEditor;
 				}
 			}
 		}
@@ -271,7 +285,7 @@ public class InlineCompletionService {
 		return textEditor == getActiveEditor();
 	}
 	
-	private class PendingEvent {
+	private class TriggerEvent {
 		private ITextEditor textEditor;
 		private long modificationStamp;
 		private DocumentEvent documentEvent;
@@ -354,11 +368,20 @@ public class InlineCompletionService {
 			this.response = response;
 		}
 	}
+
+	private static int getDocumentOffset(ITextEditor textEditor, DocumentEvent event, int delta) {
+		int newLength = event.getText().length();
+		if (newLength >= 2 && delta > 0) {
+			return event.getOffset() + delta;
+		} else {
+			return event.getOffset() + event.getText().length();
+		}
+	}
 	
 	private static long getDocumentModificationStamp(ITextEditor textEditor) {
 		IDocument document = LSPEclipseUtils.getDocument(textEditor.getEditorInput());
-		if (document instanceof IDocumentExtension4 ext) {
-			return ext.getModificationStamp();
+		if (document instanceof IDocumentExtension4 documentExt) {
+			return documentExt.getModificationStamp();
 		} else if (document != null) {
 			IFile file = LSPEclipseUtils.getFile(document);
 			if (file != null) {
