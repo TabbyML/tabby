@@ -1,1 +1,3 @@
 dist
+node_modules
+plugin/tabby-agent

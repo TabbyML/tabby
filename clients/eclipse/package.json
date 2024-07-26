@@ -1,0 +1,11 @@
+{
+  "name": "tabby4eclipse",
+  "private": true,
+  "scripts": {
+    "postinstall": "node scripts/copy-tabby-agent.js"
+  },
+  "devDependencies": {
+    "tabby-agent": "workspace:*",
+    "fs-extra": "^11.1.1"
+  }
+}
