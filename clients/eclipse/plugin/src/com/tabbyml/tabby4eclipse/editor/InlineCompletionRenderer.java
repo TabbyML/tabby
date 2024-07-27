@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.jface.text.IPaintPositionManager;
 import org.eclipse.jface.text.IPainter;
@@ -276,12 +278,15 @@ public class InlineCompletionRenderer {
 		private void drawOverwriteText(int offset, String text) {
 			logger.debug("drawCurrentLineText:" + offset + ":" + text);
 			StyledText widget = getWidget();
+			TextWithTabs textWithTabs = splitLeadingTabs(text);
 
 			paintFunctions.add((gc) -> {
 				// Draw ghost text
 				setStyleToGhostText(gc);
+				int spaceWidth = gc.textExtent(" ").x;
+				int tabWidth = textWithTabs.tabs * widget.getTabs() * spaceWidth;
 				Point location = widget.getLocationAtOffset(offset);
-				gc.drawString(text, location.x, location.y);
+				gc.drawString(textWithTabs.text, location.x + tabWidth, location.y);
 			});
 		}
 
@@ -292,6 +297,7 @@ public class InlineCompletionRenderer {
 		private void drawReplacePartText(int offset, String text, String replacedText) {
 			logger.debug("drawInsertPartText:" + offset + ":" + text + ":" + replacedText);
 			StyledText widget = getWidget();
+			TextWithTabs textWithTabs = splitLeadingTabs(text);
 
 			int targetOffset = offset + replacedText.length();
 			String targetChar = widget.getText(targetOffset, targetOffset);
@@ -307,15 +313,22 @@ public class InlineCompletionRenderer {
 			}
 
 			paintFunctions.add((gc) -> {
+				// Draw ghost text
+				setStyleToGhostText(gc);
+				int spaceWidth = gc.textExtent(" ").x;
+				int tabWidth = textWithTabs.tabs * widget.getTabs() * spaceWidth;
+				int ghostTextWidth = tabWidth + gc.stringExtent(textWithTabs.text).x;
+				Point location = widget.getLocationAtOffset(offset);
+				gc.drawString(textWithTabs.text, location.x + tabWidth, location.y);
+
 				// Leave the space for the ghost text
 				setStyle(gc, originStyleRange);
-
-				int spaceWidth = gc.stringExtent(text).x - gc.stringExtent(replacedText).x;
-				int charWidth = gc.stringExtent(targetChar).x;
+				int shiftWidth = ghostTextWidth - gc.stringExtent(replacedText).x;
+				int targetCharWidth = gc.stringExtent(targetChar).x;
 
 				StyleRange currentStyleRange = widget.getStyleRangeAtOffset(targetOffset);
 				if (currentStyleRange != null && currentStyleRange.metrics != null
-						&& currentStyleRange.metrics.width == spaceWidth + charWidth) {
+						&& currentStyleRange.metrics.width == shiftWidth + targetCharWidth) {
 					// nothing to do
 				} else {
 					StyleRange styleRange = (StyleRange) originStyleRange.clone();
@@ -323,7 +336,7 @@ public class InlineCompletionRenderer {
 					styleRange.length = 1;
 					FontMetrics fontMetrics = gc.getFontMetrics();
 					GlyphMetrics glyphMetrics = new GlyphMetrics(fontMetrics.getAscent(), fontMetrics.getDescent(),
-							spaceWidth + charWidth);
+							shiftWidth + targetCharWidth);
 					modifiedGlyphMetrics.add(glyphMetrics);
 					styleRange.metrics = glyphMetrics;
 					widget.setStyleRange(styleRange);
@@ -332,12 +345,7 @@ public class InlineCompletionRenderer {
 
 				// Draw the moved char
 				Point targetCharLocation = widget.getLocationAtOffset(targetOffset);
-				gc.drawString(targetChar, targetCharLocation.x + spaceWidth, targetCharLocation.y, true);
-
-				// Draw ghost text
-				setStyleToGhostText(gc);
-				Point location = widget.getLocationAtOffset(offset);
-				gc.drawString(text, location.x, location.y);
+				gc.drawString(targetChar, targetCharLocation.x + shiftWidth, targetCharLocation.y, true);
 			});
 		}
 
@@ -345,11 +353,12 @@ public class InlineCompletionRenderer {
 			logger.debug("drawSuffixLines:" + offset + ":" + text);
 			StyledText widget = getWidget();
 			int lineHeight = widget.getLineHeight();
+			List<String> lines = text.lines().toList();
 
 			// Leave the space for the ghost text
 			int nextLine = widget.getLineAtOffset(offset) + 1;
 			if (nextLine < widget.getLineCount()) {
-				int lineCount = (int) text.lines().count();
+				int lineCount = lines.size();
 				int originVerticalIndent = widget.getLineVerticalIndent(nextLine);
 				Position position = new Position(widget.getOffsetAtLine(nextLine), 0);
 				positionManager.managePosition(position);
@@ -360,13 +369,22 @@ public class InlineCompletionRenderer {
 				logger.debug("Set LineVerticalIndent:" + nextLine + " -> " + modifiedVerticalIndent);
 			}
 
+			List<TextWithTabs> linesTextWithTab = new ArrayList<>();
+			for (String line : lines) {
+				linesTextWithTab.add(splitLeadingTabs(line));
+			}
+
 			paintFunctions.add((gc) -> {
 				// Draw ghost text
 				setStyleToGhostText(gc);
+				int spaceWidth = gc.textExtent(" ").x;
 				Point location = widget.getLocationAtOffset(offset);
-				int x = widget.getLeftMargin();
-				int y = location.y + lineHeight;
-				gc.drawText(text, x, y, true);
+				int y = location.y;
+				for (TextWithTabs textWithTabs : linesTextWithTab) {
+					int x = widget.getLeftMargin() + textWithTabs.tabs * widget.getTabs() * spaceWidth;
+					y += lineHeight;
+					gc.drawString(textWithTabs.text, x, y, true);
+				}
 			});
 		}
 
@@ -395,6 +413,16 @@ public class InlineCompletionRenderer {
 			gc.setFont(font);
 		}
 
+		static final Pattern leadingTabsPattern = Pattern.compile("^(\\t*)(.*)$");
+		private static TextWithTabs splitLeadingTabs(String text) {
+			Matcher matcher = leadingTabsPattern.matcher(text);
+			if (matcher.matches()) {
+				return new TextWithTabs(matcher.group(1).length(), matcher.group(2));
+			} else {
+				return new TextWithTabs(0, text);
+			}
+		}
+
 		private static class ModifiedLineVerticalIndent {
 			private Position position;
 			private int indent;
@@ -404,6 +432,16 @@ public class InlineCompletionRenderer {
 				this.position = position;
 				this.indent = indent;
 				this.modifiedIndent = modifiedIndent;
+			}
+		}
+		
+		private static class TextWithTabs {
+			private int tabs;
+			private String text;
+			
+			public TextWithTabs(int tabs, String text) {
+				this.tabs = tabs;
+				this.text = text;
 			}
 		}
 	}
