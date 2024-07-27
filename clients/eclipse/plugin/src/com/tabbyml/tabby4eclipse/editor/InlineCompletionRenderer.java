@@ -75,7 +75,7 @@ public class InlineCompletionRenderer {
 
 		private IPaintPositionManager positionManager;
 		private Font font;
-		private Map<Position, Integer> originLinesVerticalIndent = new HashMap<>();
+		private List<ModifiedLineVerticalIndent> modifiedLinesVerticalIndent = new ArrayList<>();
 		private List<GlyphMetrics> modifiedGlyphMetrics = new ArrayList<>();
 		private List<Consumer<GC>> paintFunctions = new ArrayList<>();
 
@@ -142,20 +142,42 @@ public class InlineCompletionRenderer {
 			try {
 				paintFunctions.clear();
 
-				originLinesVerticalIndent.forEach((position, indent) -> {
-					int line = getWidget().getLineAtOffset(position.getOffset());
+				StyledText widget = getWidget();
+				modifiedLinesVerticalIndent.forEach((modifiedLineVerticalIndent) -> {
+					Position position = modifiedLineVerticalIndent.position;
+					int line = widget.getLineAtOffset(position.getOffset());
 					positionManager.unmanagePosition(position);
-					getWidget().setLineVerticalIndent(line, indent);
+					int indent = modifiedLineVerticalIndent.indent;
+					int modifiedIndent = modifiedLineVerticalIndent.modifiedIndent;
+					// Find the line to restore the indent
+					int lineToRestore = -1;
+					int delta = 0;
+					while (delta < widget.getLineCount()) {
+						lineToRestore = line + delta;
+						if (lineToRestore >= 0 && lineToRestore < widget.getLineCount()
+								&& widget.getLineVerticalIndent(lineToRestore) == modifiedIndent) {
+							break;
+						}
+						lineToRestore = line - delta;
+						if (lineToRestore >= 0 && lineToRestore < widget.getLineCount()
+								&& widget.getLineVerticalIndent(lineToRestore) == modifiedIndent) {
+							break;
+						}
+						delta++;
+					}
+					if (lineToRestore >= 0 && lineToRestore < widget.getLineCount()) {
+						widget.setLineVerticalIndent(lineToRestore, indent);
+						logger.debug("Restore LineVerticalIndent: " + lineToRestore + " -> " + indent);
+					}
 				});
-				originLinesVerticalIndent.clear();
+				modifiedLinesVerticalIndent.clear();
 
 				StyleRange[] styleRanges = getWidget().getStyleRanges();
 				for (StyleRange styleRange : styleRanges) {
 					if (modifiedGlyphMetrics.contains(styleRange.metrics)) {
 						styleRange.metrics = null;
 						getWidget().setStyleRange(styleRange);
-						logger.debug("Restore style Range:" + styleRange.start + "," + styleRange.length + ","
-								+ styleRange.metrics);
+						logger.debug("Restore StyleRange:" + styleRange.start + " -> " + styleRange.metrics);
 					}
 				}
 				modifiedGlyphMetrics.clear();
@@ -276,14 +298,12 @@ public class InlineCompletionRenderer {
 			StyleRange originStyleRange;
 			if (widget.getStyleRangeAtOffset(targetOffset) != null) {
 				originStyleRange = widget.getStyleRangeAtOffset(targetOffset);
-				logger.debug("Origin styleRange Range:" + originStyleRange.start + "," + originStyleRange.length + ","
-						+ originStyleRange.metrics);
+				logger.debug("Find origin StyleRange:" + originStyleRange.start + " -> " + originStyleRange.metrics);
 			} else {
 				originStyleRange = new StyleRange();
 				originStyleRange.start = targetOffset;
 				originStyleRange.length = 1;
-				logger.debug("Create styleRange Range:" + originStyleRange.start + "," + originStyleRange.length + ","
-						+ originStyleRange.metrics);
+				logger.debug("Create StyleRange:" + originStyleRange.start + " -> " + originStyleRange.metrics);
 			}
 
 			paintFunctions.add((gc) -> {
@@ -307,8 +327,7 @@ public class InlineCompletionRenderer {
 					modifiedGlyphMetrics.add(glyphMetrics);
 					styleRange.metrics = glyphMetrics;
 					widget.setStyleRange(styleRange);
-					logger.debug(
-							"Style Range:" + styleRange.start + "," + styleRange.length + "," + styleRange.metrics);
+					logger.debug("Set StyleRange:" + styleRange.start + " -> " + styleRange.metrics);
 				}
 
 				// Draw the moved char
@@ -328,14 +347,17 @@ public class InlineCompletionRenderer {
 			int lineHeight = widget.getLineHeight();
 
 			// Leave the space for the ghost text
-			int nextLineNumber = widget.getLineAtOffset(offset) + 1;
-			if (nextLineNumber < widget.getLineCount()) {
+			int nextLine = widget.getLineAtOffset(offset) + 1;
+			if (nextLine < widget.getLineCount()) {
 				int lineCount = (int) text.lines().count();
-				int originVerticalIndent = widget.getLineVerticalIndent(nextLineNumber);
-				Position position = new Position(widget.getOffsetAtLine(nextLineNumber), 0);
+				int originVerticalIndent = widget.getLineVerticalIndent(nextLine);
+				Position position = new Position(widget.getOffsetAtLine(nextLine), 0);
 				positionManager.managePosition(position);
-				originLinesVerticalIndent.put(position, originVerticalIndent);
-				widget.setLineVerticalIndent(nextLineNumber, originVerticalIndent + lineHeight * lineCount);
+				int modifiedVerticalIndent = originVerticalIndent + lineCount * lineHeight;
+				modifiedLinesVerticalIndent
+						.add(new ModifiedLineVerticalIndent(position, originVerticalIndent, modifiedVerticalIndent));
+				widget.setLineVerticalIndent(nextLine, modifiedVerticalIndent);
+				logger.debug("Set LineVerticalIndent:" + nextLine + " -> " + modifiedVerticalIndent);
 			}
 
 			paintFunctions.add((gc) -> {
@@ -371,6 +393,18 @@ public class InlineCompletionRenderer {
 				font = new Font(getDisplay(), fontData);
 			}
 			gc.setFont(font);
+		}
+
+		private static class ModifiedLineVerticalIndent {
+			private Position position;
+			private int indent;
+			private int modifiedIndent;
+
+			public ModifiedLineVerticalIndent(Position position, int indent, int modifiedIndent) {
+				this.position = position;
+				this.indent = indent;
+				this.modifiedIndent = modifiedIndent;
+			}
 		}
 	}
 }
