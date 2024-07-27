@@ -27,12 +27,12 @@
 			name="Tabby">
 		</category>
 		<command
-			categoryId="com.tabbyml.tabby4eclipse.commands"
+			categoryId="com.tabbyml.tabby4eclipse.commands.inlineCompletion"
 			name="Accept"
 			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion.accept">
 		</command>
 		<command
-			categoryId="com.tabbyml.tabby4eclipse.commands"
+			categoryId="com.tabbyml.tabby4eclipse.commands.inlineCompletion"
 			name="Dismiss"
 			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion.dismiss">
 		</command>
