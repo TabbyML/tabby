@@ -122,7 +122,7 @@ impl LlamaCppSupervisor {
 
     pub async fn start(&self) {
         debug!("Waiting for llama-server <{}> to start...", self.name);
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder().no_proxy().build().unwrap();
         loop {
             let Ok(resp) = client.get(api_endpoint(self.port) + "/health").send().await else {
                 continue;
