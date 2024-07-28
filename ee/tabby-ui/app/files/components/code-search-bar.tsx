@@ -227,7 +227,9 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
         {isOpen && (
           <div
             className="absolute -inset-x-3 -top-2 flex max-h-[60vh] flex-col overflow-hidden rounded-lg border bg-white p-4 shadow-2xl dark:bg-popover dark:text-secondary-foreground"
-            {...getMenuProps()}
+            {...getMenuProps({
+              suppressRefError: true
+            })}
           >
             <div className="h-12 shrink-0" />
             <div className="flex-1 overflow-y-auto">
