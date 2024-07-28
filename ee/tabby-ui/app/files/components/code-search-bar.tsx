@@ -197,7 +197,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
             })}
           >
             <Input
-              placeholder="Search for code or files..."
+              placeholder="Type [/] to search"
               className="w-full"
               // autoComplete="off"
               {...getInputProps({
