@@ -274,7 +274,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
                 <>
                   <Separator className="my-2" />
                   <div className="text-md mb-1 pl-2 font-semibold">
-                    Files or Directories
+                    Code
                   </div>
                   {repositorySearchOptions.map((item, i) => {
                     const index = (options?.length || 0) + i
