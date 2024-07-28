@@ -321,7 +321,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
               )}
               <Separator className="my-2" />
               <div className="text-md mb-1 pl-2 font-semibold">
-                Refine scope
+                Narrow your search
               </div>
               <div className="flex items-center gap-1 px-2 text-sm">
                 <div className="text-secondary-foreground">
