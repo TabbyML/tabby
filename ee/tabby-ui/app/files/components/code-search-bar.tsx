@@ -84,18 +84,6 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
     )
   }, [repositorySearchData?.repositorySearch, repositorySearchPattern])
 
-  const options: Array<OptionItem> = React.useMemo(() => {
-    if (!activeRepo?.id) return []
-    const repoName = activeRepo?.name
-    return [
-      {
-        label: `${repoName}: ${query ?? ''}`,
-        value: query ?? '',
-        type: 'pattern'
-      }
-    ]
-  }, [query, activeRepo])
-
   const {
     isOpen,
     getMenuProps,
@@ -104,7 +92,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
     getItemProps,
     openMenu
   } = useCombobox({
-    items: [...options, ...repositorySearchOptions],
+    items: repositorySearchOptions,
     onSelectedItemChange({ selectedItem }) {
       if (selectedItem?.type === 'file' && selectedItem.repositorySearch) {
         const path = generateEntryPath(
@@ -141,7 +129,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
     setQuery(val)
   }
 
-  // shortcut 's'
+  // shortcut '[/]'
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as Element
@@ -154,7 +142,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
         return
       }
 
-      if (event.key === 's') {
+      if (event.key === '/') {
         event.preventDefault()
         inputRef.current?.focus()
         openMenu()
@@ -224,18 +212,16 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
             >
               <IconClose />
             </Button>
-          ) : (
-            <kbd
-              className="rounded-md border bg-secondary/50 px-1.5 text-xs leading-4 text-muted-foreground shadow-[inset_-0.5px_-1.5px_0_hsl(var(--muted))]"
-              onClick={() => {
-                inputRef.current?.focus()
-              }}
-            >
-              s
-            </kbd>
-          )}
+          ) : null}
           <div className="z-20 ml-2 flex items-center border-l border-l-border pl-2">
-            <IconSearch />
+            <Button
+              variant="ghost"
+              className="h-6 w-6 "
+              size="icon"
+              onClick={() => onSubmit(query)}
+            >
+              <IconSearch />
+            </Button>
           </div>
         </div>
         {isOpen && (
@@ -245,37 +231,10 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
           >
             <div className="h-12 shrink-0" />
             <div className="flex-1 overflow-y-auto">
-              {options?.map((option, index) => {
-                const highlighted = highlightedIndex === index
-                // const selected = !!selectedItem && selectedItem.value === option.value
-                return (
-                  <div
-                    key={option.value}
-                    className={cn(
-                      'relative flex cursor-default select-none items-center gap-1 rounded-sm px-2 py-1.5 text-sm outline-none',
-                      highlighted &&
-                        'cursor-pointer bg-accent text-accent-foreground'
-                    )}
-                    {...getItemProps({
-                      item: option,
-                      index,
-                      onMouseLeave: e => e.preventDefault(),
-                      onMouseOut: e => e.preventDefault()
-                    })}
-                  >
-                    <div className="shrink-0">
-                      <IconSearch />
-                    </div>
-                    <div className="flex-1 truncate">{option.label}</div>
-                  </div>
-                )
-              })}
               {!!repositorySearchOptions?.length && (
                 <>
-                  <Separator className="my-2" />
                   <div className="text-md mb-1 pl-2 font-semibold">Code</div>
-                  {repositorySearchOptions.map((item, i) => {
-                    const index = (options?.length || 0) + i
+                  {repositorySearchOptions.map((item, index) => {
                     const repositorySearch =
                       item.repositorySearch as RepositorySearchItem
                     const highlighted = highlightedIndex === index
@@ -315,9 +274,9 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
                       </div>
                     )
                   })}
+                  <Separator className="my-2" />
                 </>
               )}
-              <Separator className="my-2" />
               <div className="text-md mb-1 pl-2 font-semibold">
                 Narrow your search
               </div>
