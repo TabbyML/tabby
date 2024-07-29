@@ -55,8 +55,11 @@ mod tests {
     #[ignore]
     async fn test_jina_embedding() {
         let api_key = std::env::var("JINA_API_KEY").expect("JINA_API_KEY must be set");
-        let engine =
-            OpenAIEmbeddingEngine::create("https://api.jina.ai/v1", "jina-embeddings-v2-base-en", Some(&api_key));
+        let engine = OpenAIEmbeddingEngine::create(
+            "https://api.jina.ai/v1",
+            "jina-embeddings-v2-base-en",
+            Some(&api_key),
+        );
         let embedding = engine.embed("Hello, world!").await.unwrap();
         assert_eq!(embedding.len(), 768);
     }
