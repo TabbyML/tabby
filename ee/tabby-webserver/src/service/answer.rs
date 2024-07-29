@@ -185,8 +185,6 @@ impl AnswerService {
     }
 
     async fn collect_relevant_code(&self, query: CodeSearchQuery) -> Vec<CodeSearchHit> {
-        
-
         match self.code.search_in_language(query, 20).await {
             Ok(docs) => docs.hits,
             Err(err) => {
