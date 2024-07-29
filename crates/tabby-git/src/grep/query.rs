@@ -71,6 +71,8 @@ impl GrepQuery {
             && negative_pattern_matcher.is_none()
             && file_pattern_matcher.is_empty()
             && negative_file_pattern_matcher.is_none()
+            && self.file_types.is_empty()
+            && self.negative_file_types.is_empty()
         {
             bail!("No patterns specified")
         }
