@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Extension } from '@codemirror/state'
 import { lineNumbers } from '@codemirror/view'
-import { isNil } from 'lodash-es'
+import { escapeRegExp, isNil } from 'lodash-es'
 import { useTheme } from 'next-themes'
 import LazyLoad from 'react-lazy-load'
 
@@ -24,22 +24,48 @@ interface SourceCodeSearchResultProps {
   query: string
 }
 
+const MemoizedFilePathView = React.memo(
+  ({ path, pattern }: { path: string; pattern?: string }) => {
+    if (!pattern) return path
+
+    const regex = new RegExp(escapeRegExp(pattern), 'gi')
+    let matches: Array<{ start: number; end: number }> = []
+    let match: RegExpExecArray | null
+
+    while ((match = regex.exec(path)) !== null) {
+      const start = match.index
+      const end = start + match[0].length
+      matches.push({
+        start,
+        end
+      })
+    }
+
+    return <HighlightText text={path} matches={matches} />
+  }
+)
+MemoizedFilePathView.displayName = 'FilePathView'
+
 export const SourceCodeSearchResult = ({
-  ...props
+  result,
+  query
 }: SourceCodeSearchResultProps) => {
   const { theme } = useTheme()
   const { activeRepo, activeRepoRef } = React.useContext(
     SourceCodeBrowserContext
   )
+  const fileFilter = React.useMemo(() => {
+    return query?.match(/f:(\S+)/)?.[1]
+  }, [query])
 
-  const language = filename2prism(props.result.path)[0]
+  const language = filename2prism(result.path)[0]
 
   const ranges = React.useMemo(() => {
     const newRanges: { start: number; end: number }[] = []
     let start: number = 0
     let end: number = 0
     let lastLineNumber: number | undefined
-    const lines = props.result.lines ?? []
+    const lines = result.lines ?? []
     lines.forEach((line, index) => {
       if (index === 0) {
         start = index
@@ -64,12 +90,12 @@ export const SourceCodeSearchResult = ({
     }
 
     return newRanges
-  }, [props.result.lines])
+  }, [result.lines])
 
   const pathname = `/files/${generateEntryPath(
     activeRepo,
     activeRepoRef?.name as string,
-    props.result.path,
+    result.path,
     'file'
   )}`
 
@@ -82,19 +108,19 @@ export const SourceCodeSearchResult = ({
           }}
           className="inline-flex font-medium text-primary hover:underline"
         >
-          {props.result.path}
+          <MemoizedFilePathView path={result.path} pattern={fileFilter} />
         </Link>
       </div>
       <div className="divide-y-border mb-6 grid divide-y overflow-x-auto border border-t-0">
         {ranges.map((range, index) => {
-          const lines = props.result.lines.slice(range.start, range.end + 1)
+          const lines = result.lines.slice(range.start, range.end + 1)
           return (
-            <LazyLoad key={`${props.result.path}-${range.start}`} offset={300}>
+            <LazyLoad key={`${result.path}-${range.start}`} offset={300}>
               <CodeSearchSnippet
                 language={language}
                 theme={theme}
                 lines={lines}
-                path={props.result.path}
+                path={result.path}
               />
             </LazyLoad>
           )
@@ -102,6 +128,43 @@ export const SourceCodeSearchResult = ({
       </div>
     </>
   )
+}
+
+function HighlightText({
+  text,
+  matches
+}: {
+  text: string
+  matches?: Array<{ start: number; end: number }>
+}) {
+  if (!matches || matches.length === 0) {
+    return <span>{text}</span>
+  }
+
+  const highlighted = []
+  let lastIndex = 0
+
+  matches.forEach((match, index) => {
+    if (match.start > lastIndex) {
+      highlighted.push(
+        <span key={`text-${index}`}>
+          {text.substring(lastIndex, match.start)}
+        </span>
+      )
+    }
+    highlighted.push(
+      <span key={`match-${index}`} className="bg-[hsl(var(--mark-bg))]">
+        {text.substring(match.start, match.end)}
+      </span>
+    )
+    lastIndex = match.end
+  })
+
+  if (lastIndex < text.length) {
+    highlighted.push(<span key="last">{text.substring(lastIndex)}</span>)
+  }
+
+  return <span>{highlighted}</span>
 }
 
 interface CodeSearchSnippetProps {
