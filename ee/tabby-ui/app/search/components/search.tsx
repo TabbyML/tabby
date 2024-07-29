@@ -11,7 +11,7 @@ import {
   useState
 } from 'react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import defaultFavicon from '@/assets/default-favicon.png'
 import { Message } from 'ai'
 import DOMPurify from 'dompurify'
@@ -20,9 +20,11 @@ import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
+import slugify from 'slugify'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableDeveloperMode, useEnableSearch } from '@/lib/experiment-flags'
+import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
@@ -44,9 +46,11 @@ import {
 import {
   IconBlocks,
   IconBug,
+  IconCheck,
   IconChevronLeft,
   IconChevronRight,
   IconLayers,
+  IconLink,
   IconPlus,
   IconRefresh,
   IconSparkles,
@@ -61,15 +65,17 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
-import { ClientOnly } from '@/components/client-only'
 import { CopyButton } from '@/components/copy-button'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
+import LoadingWrapper from '@/components/loading-wrapper'
 import { MemoizedReactMarkdown } from '@/components/markdown'
 import TextAreaSearch from '@/components/textarea-search'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { UserAvatar } from '@/components/user-avatar'
-import UserPanel from '@/components/user-panel'
 
 import './search.css'
 
@@ -80,11 +86,6 @@ import { useQuery } from 'urql'
 
 import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
 import { repositoryListQuery } from '@/lib/tabby/query'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@/components/ui/tooltip'
 import { CodeReferences } from '@/components/chat/question-answer'
 
 import { DevPanel } from './dev-panel'
@@ -141,11 +142,11 @@ const SOURCE_CARD_STYLE = {
 
 export function Search() {
   const isChatEnabled = useIsChatEnabled()
+  const searchParams = useSearchParams()
   const [searchFlag] = useEnableSearch()
   const [conversation, setConversation] = useState<ConversationMessage[]>([])
   const [showStop, setShowStop] = useState(true)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
-  const [title, setTitle] = useState('')
   const [isReady, setIsReady] = useState(false)
   const [extraContext, setExtraContext] = useState<AnswerEngineExtraContext>({})
   const [currentLoadindId, setCurrentLoadingId] = useState<string>('')
@@ -167,6 +168,17 @@ export function Search() {
     query: repositoryListQuery
   })
   const repositoryList = data?.repositoryList
+  const pathname = usePathname()
+  const { isCopied, copyToClipboard } = useCopyToClipboard({
+    timeout: 2000
+  })
+  const [threadId, setThreadId] = useState('')
+  const [isAuthor, setIsAuthor] = useState(false)
+  const [isFirstAnswerLoaded, setIsFirstAnswerLoaded] = useState(false)
+  const [blockIndex, setBlockIndex] = useState(0)
+  const [isLoadingThread, setIsLoadingThread] = useState(false)
+
+  const isSearchPending = searchParams.get('q') === 'pending'
 
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
     fetcher: tabbyFetcher
@@ -194,87 +206,103 @@ export function Search() {
     }
   }
 
-  // Check sessionStorage for initial message or most recent conversation
+  // Handling /search?q=pending
   useEffect(() => {
-    if (initCheckRef.current) return
+    if (isSearchPending) {
+      if (initCheckRef.current) return
+      initCheckRef.current = true
 
-    initCheckRef.current = true
-
-    const initialMessage = sessionStorage.getItem(
-      SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
-    )
-    const initialExtraContextStr = sessionStorage.getItem(
-      SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
-    )
-    const initialExtraInfo = initialExtraContextStr
-      ? JSON.parse(initialExtraContextStr)
-      : undefined
-    if (initialMessage) {
-      sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
-      sessionStorage.removeItem(
+      const initialMessage = sessionStorage.getItem(
+        SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
+      )
+      const initialExtraContextStr = sessionStorage.getItem(
         SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
       )
-      setIsReady(true)
-      setExtraContext(p => ({
-        ...p,
-        repository: initialExtraInfo?.repository
-      }))
-      // FIXME(jueliang) just use the value in context
-      onSubmitSearch(initialMessage, {
-        repository: initialExtraInfo?.repository
-      })
-      return
-    }
+      const initialExtraInfo = initialExtraContextStr
+        ? JSON.parse(initialExtraContextStr)
+        : undefined
 
-    const latesConversation = sessionStorage.getItem(
-      SESSION_STORAGE_KEY.SEARCH_LATEST_MSG
-    )
-    const latestConversationContext = sessionStorage.getItem(
-      SESSION_STORAGE_KEY.SEARCH_LATEST_EXTRA_CONTEXT
-    )
-    if (latesConversation) {
-      const conversation = JSON.parse(
-        latesConversation
-      ) as ConversationMessage[]
-      setConversation(conversation)
-
-      if (latestConversationContext) {
-        const conversationContext = JSON.parse(
-          latestConversationContext
-        ) as AnswerEngineExtraContext
-        setExtraContext(conversationContext)
+      if (initialMessage) {
+        sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
+        sessionStorage.removeItem(
+          SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
+        )
+        setIsReady(true)
+        setExtraContext(p => ({
+          ...p,
+          repository: initialExtraInfo?.repository
+        }))
+        // FIXME(jueliang) just use the value in context
+        onSubmitSearch(initialMessage, {
+          repository: initialExtraInfo?.repository
+        })
+        setIsAuthor(true)
+        setIsReady(true)
+      } else {
+        router.replace('/')
       }
-
-      // Set title
-      if (conversation[0]) setTitle(conversation[0].content)
-
-      // Check if any answer is loading
-      const loadingIndex = conversation.findIndex(item => item.isLoading)
-      if (loadingIndex !== -1) {
-        const loadingAnswer = conversation[loadingIndex]
-        if (loadingAnswer) onRegenerateResponse(loadingAnswer.id, conversation)
-      }
-
-      setIsReady(true)
-      return
     }
+  }, [pathname])
 
-    router.replace('/')
+  // Handling /search/{subPath}
+  useEffect(() => {
+    const regex = /^\/search\/(.*)/
+    const subPath = pathname.match(regex)?.[1]
+    if (subPath) {
+      const title = subPath.split('/')[0]
+      const titleSplit = title.split('-')
+      const threadId = titleSplit[titleSplit.length - 1]
+      setThreadId(threadId)
+      setIsLoadingThread(true)
+      setIsReady(true)
+      // FIXME: go fetch thread from server, set isAuthor
+      // FIXME: after load thread, if blockIndex existed, scrolling to the block
+    }
+  }, [pathname])
+
+  // Update blockIndex
+  useEffect(() => {
+    if (window.location.hash) {
+      setBlockIndex(parseInt(window.location.hash.replace('#', ''), 10))
+    }
   }, [])
 
-  // Set page title to the value of the first quesiton
+  // Update page title
+  // Update page url if needed
   useEffect(() => {
-    if (title) document.title = title
-  }, [title])
+    if (isFirstAnswerLoaded) {
+      const title = conversation[0]?.content
+      if (title) {
+        document.title = slugify(title, {
+          replacement: ' ',
+          lower: false,
+          strict: true // Remove special characters
+        })
 
-  // Display the input field with a delayed animatio
+        // FIXME(wwayne): should add threadId into the condition
+        if (isSearchPending) {
+          const normalizedTitle = slugify(title, {
+            lower: true,
+            strict: true
+          })
+            .split('-')
+            .slice(0, 10)
+            .join('-')
+          // FIXME(wwayne): add threadId in the end
+          window.history.replaceState(null, '', `/search/${normalizedTitle}`)
+        }
+      }
+    }
+  }, [isFirstAnswerLoaded])
+
+  // Display the input field with a delayed animation
   useEffect(() => {
-    if (isReady) {
+    if (isReady && isAuthor) {
       setTimeout(() => {
         setShowSearchInput(true)
       }, 300)
     }
-  }, [isReady])
+  }, [isReady, isAuthor])
 
   // Initialize the reference to the ScrollArea used for scrolling to the bottom
   useEffect(() => {
@@ -298,6 +326,14 @@ export function Search() {
     currentAnswer.isLoading = isLoading
     setConversation(newConversation)
   }, [isLoading, answer])
+
+  // Update isFirstAnswerLoaded based on conversation data
+  useEffect(() => {
+    if (isFirstAnswerLoaded) return
+    if (conversation[1]?.isLoading === false) {
+      setIsFirstAnswerLoaded(true)
+    }
+  }, [conversation])
 
   // Handling the error response from useTabbyAnswer
   useEffect(() => {
@@ -352,21 +388,7 @@ export function Search() {
     }
   }, [])
 
-  // Save conversation into sessionStorage
-  useEffect(() => {
-    sessionStorage.setItem(
-      SESSION_STORAGE_KEY.SEARCH_LATEST_MSG,
-      JSON.stringify(conversation)
-    )
-  }, [conversation])
-
-  // Save conversation context into sessionStorage
-  useEffect(() => {
-    sessionStorage.setItem(
-      SESSION_STORAGE_KEY.SEARCH_LATEST_EXTRA_CONTEXT,
-      JSON.stringify(extraContext)
-    )
-  }, [extraContext])
+  const getBlockIdByIndex = (index: number) => `block-${index}`
 
   useEffect(() => {
     if (devPanelOpen) {
@@ -415,8 +437,7 @@ export function Search() {
     )
     triggerRequest(answerRequest)
 
-    // Update HTML page title
-    if (!title) setTitle(question)
+    // FIXME: update thread in server
   }
 
   const onRegenerateResponse = (
@@ -461,6 +482,13 @@ export function Search() {
     setCurrentLoadingId(newTargetAnswer.id)
     setConversation(newConversation)
     triggerRequest(answerRequest)
+
+    // FIXME: update thread in server
+  }
+
+  const onCopy = () => {
+    if (isCopied) return
+    copyToClipboard(window.location.href)
   }
 
   const onToggleFullScreen = (fullScreen: boolean) => {
@@ -509,49 +537,83 @@ export function Search() {
                   Home
                 </Button>
               </div>
-              <div className="flex items-center gap-x-6">
-                <ClientOnly>
-                  <ThemeToggle />
-                </ClientOnly>
-                <UserPanel showHome={false} showSetting>
-                  <UserAvatar className="h-10 w-10 border" />
-                </UserPanel>
+              <div className="flex items-center gap-x-1">
+                {isFirstAnswerLoaded && threadId && (
+                  <Tooltip delayDuration={300}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="gap-x-2 text-sm text-muted-foreground"
+                        onClick={onCopy}
+                      >
+                        {isCopied ? (
+                          <IconCheck className="text-green-600" />
+                        ) : (
+                          <IconLink />
+                        )}
+                        Share
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent align="end">
+                      <p>Copy Thread Link</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </div>
             </header>
 
             <main className="h-[calc(100%-4rem)] overflow-auto pb-8 lg:pb-0">
               <ScrollArea className="h-full" ref={contentContainerRef}>
                 <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
-                  <div className="flex flex-col">
-                    {conversation.map((item, idx) => {
-                      if (item.role === 'user') {
-                        return (
-                          <div key={item.id + idx}>
-                            {idx !== 0 && <Separator />}
-                            <div className="pb-2 pt-8">
-                              <MessageMarkdown
-                                message={item.content}
-                                headline
+                  <LoadingWrapper
+                    loading={isLoadingThread}
+                    fallback={
+                      <>
+                        <Skeleton className="h-20 w-full" />
+                        <Skeleton className="mt-5 h-64 w-full" />
+                      </>
+                    }
+                  >
+                    <div className="flex flex-col">
+                      {conversation.map((item, idx) => {
+                        if (item.role === 'user') {
+                          const blockIndex = Math.ceil((idx + 1) / 2)
+                          return (
+                            <div
+                              key={item.id + idx}
+                              id={getBlockIdByIndex(blockIndex)}
+                            >
+                              {idx !== 0 && <Separator />}
+                              <div className="pb-2 pt-8">
+                                <MessageMarkdown
+                                  message={item.content}
+                                  headline
+                                />
+                              </div>
+                            </div>
+                          )
+                        }
+                        if (item.role === 'assistant') {
+                          const blockIndex = Math.ceil(idx / 2)
+                          return (
+                            <div key={item.id + idx} className="pb-8 pt-2">
+                              <AnswerBlock
+                                answer={item}
+                                showRelatedQuestion={
+                                  idx === conversation.length - 1
+                                }
+                                showRegenerateButton={
+                                  idx === conversation.length - 1 && isAuthor
+                                }
+                                blockIndex={blockIndex}
                               />
                             </div>
-                          </div>
-                        )
-                      }
-                      if (item.role === 'assistant') {
-                        return (
-                          <div key={item.id + idx} className="pb-8 pt-2">
-                            <AnswerBlock
-                              answer={item}
-                              showRelatedQuestion={
-                                idx === conversation.length - 1
-                              }
-                            />
-                          </div>
-                        )
-                      }
-                      return <></>
-                    })}
-                  </div>
+                          )
+                        }
+                        return <></>
+                      })}
+                    </div>
+                  </LoadingWrapper>
                 </div>
               </ScrollArea>
 
@@ -647,11 +709,18 @@ export function Search() {
 
 function AnswerBlock({
   answer,
-  showRelatedQuestion
+  showRelatedQuestion,
+  showRegenerateButton,
+  blockIndex
 }: {
   answer: ConversationMessage
   showRelatedQuestion: boolean
+  showRegenerateButton: boolean
+  blockIndex: number
 }) {
+  const { isCopied, copyToClipboard } = useCopyToClipboard({
+    timeout: 2000
+  })
   const {
     onRegenerateResponse,
     onSubmitSearch,
@@ -677,6 +746,11 @@ function AnswerBlock({
       .map((relevent, idx) => `[${idx + 1}] ${relevent.link}`)
       .join('\n')
     return `${content}\n\nCitations:\n${citations}`
+  }
+
+  const onCopy = () => {
+    if (isCopied) return
+    copyToClipboard(`${window.location.href}#${blockIndex}`)
   }
 
   const IconAnswer = answer.isLoading ? IconSpinner : IconSparkles
@@ -821,7 +895,7 @@ function AnswerBlock({
               value={getCopyContent(answer)}
               text="Copy"
             />
-            {!isLoading && (
+            {!isLoading && showRegenerateButton && (
               <Button
                 className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
                 variant="ghost"
@@ -831,6 +905,25 @@ function AnswerBlock({
                 <p>Regenerate</p>
               </Button>
             )}
+            <Tooltip delayDuration={300}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
+                  onClick={onCopy}
+                >
+                  {isCopied ? (
+                    <IconCheck className="text-green-600" />
+                  ) : (
+                    <IconLink />
+                  )}
+                  Share
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Copy Link</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         )}
       </div>

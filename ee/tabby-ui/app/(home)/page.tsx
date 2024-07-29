@@ -94,7 +94,8 @@ function MainPanel() {
         repository: ctx?.repository ? omit(ctx.repository, 'refs') : undefined
       })
     )
-    router.push('/search')
+
+    router.push('/search?q=pending')
   }
 
   const style = isShowDemoBanner
