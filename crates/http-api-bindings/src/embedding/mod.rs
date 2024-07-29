@@ -21,7 +21,7 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
             let engine = OpenAIEmbeddingEngine::create(
                 &config.api_endpoint,
                 config.model_name.as_deref().unwrap_or_default(),
-                config.api_key.clone(),
+                config.api_key.as_deref(),
             );
             Arc::new(engine)
         }
