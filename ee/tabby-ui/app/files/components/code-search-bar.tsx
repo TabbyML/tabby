@@ -246,7 +246,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
           </div>
           {!query && (
             <div
-              className="absolute top-1.5 left-3 text-muted-foreground select-none"
+              className="absolute left-3 top-1.5 select-none text-muted-foreground"
               onClick={e => {
                 e.preventDefault()
                 inputRef.current?.focus()
@@ -254,7 +254,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
               }}
             >
               Type{' '}
-              <kbd className="border rounded border-muted-foreground px-0.5">
+              <kbd className="rounded border border-muted-foreground px-0.5">
                 /
               </kbd>{' '}
               to search
@@ -393,7 +393,7 @@ function NarrowSearchItem({ data }: { data: OptionItem }) {
     <div className="flex items-center gap-1 px-2 text-sm">
       <IconFilter className="shrink-0" />
       <div className="text-secondary-foreground">
-        <span className="mr-0.5 bg-secondary px-1 py-0.5 text-secondary-foreground rounded">
+        <span className="mr-0.5 rounded bg-secondary px-1 py-0.5 text-secondary-foreground">
           {value}:
         </span>
         <span>{label}</span>
