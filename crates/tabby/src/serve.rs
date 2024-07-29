@@ -64,9 +64,6 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         completion::DebugData,
         health::HealthState,
         health::Version,
-        api::code::CodeSearchDocument,
-        api::code::CodeSearchQuery,
-        api::doc::DocSearchDocument,
         api::server_setting::ServerSetting
     )),
     modifiers(&SecurityAddon),
