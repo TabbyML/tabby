@@ -120,3 +120,4 @@ Following embedding model providers are supported:
 * `voyageai/embedding`
 * `llama.cpp/embedding`
 * `ollama/embedding`
+* `jina/embedding`: since v0.15

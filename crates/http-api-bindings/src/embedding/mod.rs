@@ -21,7 +21,7 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
             let engine = OpenAIEmbeddingEngine::create(
                 &config.api_endpoint,
                 config.model_name.as_deref().unwrap_or_default(),
-                config.api_key.clone(),
+                config.api_key.as_deref(),
             );
             Arc::new(engine)
         }
@@ -39,7 +39,7 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
                     .expect("api_key must be set for voyage/embedding"),
             );
             Arc::new(engine)
-        }
+        },
         unsupported_kind => panic!(
             "Unsupported kind for http embedding model: {}",
             unsupported_kind
