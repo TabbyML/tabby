@@ -39,7 +39,7 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
                     .expect("api_key must be set for voyage/embedding"),
             );
             Arc::new(engine)
-        },
+        }
         unsupported_kind => panic!(
             "Unsupported kind for http embedding model: {}",
             unsupported_kind
