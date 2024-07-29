@@ -10,6 +10,7 @@ import {
   ChevronsDownUp,
   CirclePlay,
   FileText,
+  Filter,
   GitFork,
   IndentIncrease,
   Layers2,
@@ -1527,6 +1528,13 @@ function IconBug({ className, ...props }: React.ComponentProps<typeof Bug>) {
   return <Bug className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconFilter({
+  className,
+  ...props
+}: React.ComponentProps<typeof Filter>) {
+  return <Filter className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1612,5 +1620,6 @@ export {
   IconTag,
   IconFileText,
   IconApplyInEditor,
-  IconBug
+  IconBug,
+  IconFilter
 }

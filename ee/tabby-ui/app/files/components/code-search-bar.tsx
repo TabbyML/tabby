@@ -17,6 +17,7 @@ import {
   IconClose,
   IconDirectorySolid,
   IconFile,
+  IconFilter,
   IconSearch
 } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
@@ -44,7 +45,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
   const { activeEntryInfo, activeRepo, activeRepoRef, updateActivePath } =
     React.useContext(SourceCodeBrowserContext)
   const [query, setQuery] = React.useState(searchParams.get('q')?.toString())
-  const [debouncedQuery] = useDebounceValue(query, 300)
+  const [debouncedQuery] = useDebounceValue(query, 500)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const clearInput = () => {
     setQuery('')
@@ -55,7 +56,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
   const repoId = activeRepo?.id
 
   const repositorySearchPattern = React.useMemo(() => {
-    const regex = /^f:(.+)/
+    const regex = /-?f:(\S+)$/
     const matches = trim(debouncedQuery).match(regex)
     if (matches) return matches[1] || undefined
     return debouncedQuery
@@ -74,8 +75,9 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
 
   const repositorySearchOptions: Array<OptionItem> = React.useMemo(() => {
     if (!repositorySearchPattern) return []
+    const _options = repositorySearchData?.repositorySearch?.slice(0, 5)
     return (
-      repositorySearchData?.repositorySearch?.map(option => ({
+      _options?.map(option => ({
         repositorySearch: option,
         value: option.path,
         label: option.path,
@@ -83,6 +85,49 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
       })) ?? []
     )
   }, [repositorySearchData?.repositorySearch, repositorySearchPattern])
+
+  const filerOptions: Array<OptionItem> = React.useMemo(() => {
+    const _options: Array<OptionItem> = [
+      {
+        label:
+          'Include only results from file path matching the given search pattern.',
+        value: 'f',
+        type: 'tips'
+      },
+      {
+        label:
+          'Exclude results from file path matching the given search pattern.',
+        value: '-f',
+        type: 'tips'
+      },
+      {
+        label: 'Include only results from the given language.',
+        value: 'lang',
+        type: 'tips'
+      },
+      {
+        label: 'Exclude results from the given language.',
+        value: '-lang',
+        type: 'tips'
+      }
+    ]
+    if (!query) return _options
+
+    let fileRegx = /(^|\s)-?f:?/
+    let langRegx = /(^|\s)-?l(a(n(g)?)?)?:?/
+
+    const fileRegxMatches = query.match(fileRegx)
+    const langRegxMatches = query.match(langRegx)
+
+    if (!fileRegxMatches && !langRegxMatches) return _options
+    if (fileRegxMatches) {
+      return _options.slice(0, 2)
+    }
+    if (langRegxMatches) {
+      return _options.slice(2)
+    }
+    return []
+  }, [query])
 
   const {
     isOpen,
@@ -185,9 +230,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
             })}
           >
             <Input
-              placeholder="Type [/] to search"
               className="w-full"
-              // autoComplete="off"
               {...getInputProps({
                 onKeyDown: e => {
                   if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
@@ -201,6 +244,22 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
               onChange={e => onInputValueChange(e.target.value)}
             />
           </div>
+          {!query && (
+            <div
+              className="absolute top-1.5 left-3 text-muted-foreground select-none"
+              onClick={e => {
+                e.preventDefault()
+                inputRef.current?.focus()
+                openMenu()
+              }}
+            >
+              Type{' '}
+              <kbd className="border rounded border-muted-foreground px-0.5">
+                /
+              </kbd>{' '}
+              to search
+            </div>
+          )}
         </div>
         <div className="absolute right-2 top-0 z-20 flex h-full items-center">
           {query ? (
@@ -233,8 +292,21 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
           >
             <div className="h-12 shrink-0" />
             <div className="flex-1 overflow-y-auto">
+              {!!filerOptions?.length && (
+                <>
+                  <div className="text-md mb-2 pl-2 font-semibold">
+                    Narrow your search
+                  </div>
+                  <div className="space-y-2">
+                    {filerOptions.map(item => {
+                      return <NarrowSearchItem data={item} key={item.value} />
+                    })}
+                  </div>
+                </>
+              )}
               {!!repositorySearchOptions?.length && (
                 <>
+                  <Separator className="my-2" />
                   <div className="text-md mb-1 pl-2 font-semibold">Code</div>
                   {repositorySearchOptions.map((item, index) => {
                     const repositorySearch =
@@ -276,21 +348,8 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
                       </div>
                     )
                   })}
-                  <Separator className="my-2" />
                 </>
               )}
-              <div className="text-md mb-1 pl-2 font-semibold">
-                Narrow your search
-              </div>
-              <div className="flex items-center gap-1 px-2 text-sm">
-                <div className="text-secondary-foreground">
-                  <span className="mr-0.5 bg-secondary px-1 py-0.5 text-secondary-foreground">
-                    f:
-                  </span>
-                  Include only results from file path matching the given search
-                  pattern.
-                </div>
-              </div>
             </div>
           </div>
         )}
@@ -325,5 +384,20 @@ function HighlightMatches({
         )
       })}
     </p>
+  )
+}
+
+function NarrowSearchItem({ data }: { data: OptionItem }) {
+  const { label, value } = data
+  return (
+    <div className="flex items-center gap-1 px-2 text-sm">
+      <IconFilter className="shrink-0" />
+      <div className="text-secondary-foreground">
+        <span className="mr-0.5 bg-secondary px-1 py-0.5 text-secondary-foreground rounded">
+          {value}:
+        </span>
+        <span>{label}</span>
+      </div>
+    </div>
   )
 }
