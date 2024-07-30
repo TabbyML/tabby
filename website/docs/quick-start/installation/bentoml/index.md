@@ -121,4 +121,4 @@ Deploying the model with `bentoml deploy -f bentodeploy.yaml` will establish a B
 
 Once the deployment is operational, you can access the service via the provided URL, e.g., `https://$YOUR_DEPLOYMENT_SLUG.mt-guc1.bentoml.ai`.
 
-For the full code of this tutorial, please refer to [bentofile.yaml](./bentofile.yaml), [service.py](./service.py), [setup-docker.sh](./setup-docker.sh), and [bentodeploy.yaml](./bentodeploy.yaml).
+For the complete code of this tutorial, please refer to the [GitHub repository](https://github.com/TabbyML/tabby/tree/main/website/docs/quick-start/installation/bentoml).
