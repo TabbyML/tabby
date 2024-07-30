@@ -19,6 +19,26 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 
 	public ConnectionProvider() {
 		try {
+			// Find node executable
+			File nodeExecutableFile = null;
+			String systemPath = System.getenv("PATH");
+			logger.info("System env PATH: " + systemPath);
+			if (systemPath != null) {
+				String[] paths = systemPath.split(File.pathSeparator);
+				for (String p : paths) {
+					File file = new File(p, "node");
+					if (file.exists() && file.canExecute()) {
+						nodeExecutableFile = file;
+						logger.info("Node executable: " + file.getAbsolutePath());
+						break;
+					}
+				}
+			}
+			if (nodeExecutableFile == null) {
+				logger.error("Cannot find node executable.");
+				return;
+			}
+			// Find tabby-agent script
 			Bundle bundle = Platform.getBundle(Activator.PLUGIN_ID);
 			URL agentScriptUrl = FileLocator.find(bundle, new Path("tabby-agent/dist/node/index.js"));
 			if (agentScriptUrl == null) {
@@ -26,7 +46,8 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 				return;
 			}
 			File agentScriptFile = new File(FileLocator.toFileURL(agentScriptUrl).getPath());
-			List<String> commands = List.of("node", agentScriptFile.getAbsolutePath(), "--stdio");
+			// Setup command to start tabby-agent
+			List<String> commands = List.of(nodeExecutableFile.getAbsolutePath(), agentScriptFile.getAbsolutePath(), "--stdio");
 			logger.info("Will use command " + commands.toString() + " to start Tabby language server.");
 			this.setCommands(commands);
 		} catch (IOException e) {
