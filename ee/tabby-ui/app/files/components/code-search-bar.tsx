@@ -45,7 +45,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
   const { activeEntryInfo, activeRepo, activeRepoRef, updateActivePath } =
     React.useContext(SourceCodeBrowserContext)
   const [query, setQuery] = React.useState(searchParams.get('q')?.toString())
-  const [debouncedQuery] = useDebounceValue(query, 500)
+  const [debouncedQuery] = useDebounceValue(query, 300)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const clearInput = () => {
     setQuery('')
@@ -111,15 +111,17 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
         type: 'tips'
       }
     ]
-    if (!query) return _options
+    if (!query) return [_options[0], _options[2]]
+    let negativeRuleRegex = /(^|\s)-$/
+    let fileRegx = /(^|\s)-?f$/
+    let langRegx = /(^|\s)-?l(a(n(g)?)?)?$/
 
-    let fileRegx = /(^|\s)-?f:?/
-    let langRegx = /(^|\s)-?l(a(n(g)?)?)?:?/
-
+    const negativeRuleMatches = query.match(negativeRuleRegex)
     const fileRegxMatches = query.match(fileRegx)
     const langRegxMatches = query.match(langRegx)
 
-    if (!fileRegxMatches && !langRegxMatches) return _options
+    if (negativeRuleMatches) return [_options[1], _options[3]]
+    if (!fileRegxMatches && !langRegxMatches) return []
     if (fileRegxMatches) {
       return _options.slice(0, 2)
     }
@@ -174,7 +176,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
     setQuery(val)
   }
 
-  // shortcut '[/]'
+  // shortcut '/'
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as Element
@@ -214,6 +216,8 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
     router.push(`/files/${pathname}?q=${encodeURIComponent(pattern)}`)
   }
 
+  const noOptions = !filerOptions?.length && !repositorySearchOptions?.length
+
   return (
     <div
       className={cn(
@@ -225,8 +229,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
         <div className="h-9">
           <div
             className={cn({
-              'absolute z-10 bg-white dark:bg-popover dark:text-secondary-foreground inset-0':
-                isOpen
+              'absolute z-10 inset-0': isOpen
             })}
           >
             <Input
@@ -285,12 +288,17 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
         </div>
         {isOpen && (
           <div
-            className="absolute -inset-x-3 -top-2 flex max-h-[60vh] flex-col overflow-hidden rounded-lg border bg-white p-4 shadow-2xl dark:bg-popover dark:text-secondary-foreground"
+            className={cn(
+              'absolute -inset-x-3 -top-2 flex max-h-[60vh] flex-col overflow-hidden rounded-lg border bg-popover p-4 shadow-2xl',
+              {
+                'pb-0.5': noOptions
+              }
+            )}
             {...getMenuProps({
               suppressRefError: true
             })}
           >
-            <div className="h-12 shrink-0" />
+            <div className={cn('shrink-0', noOptions ? 'h-9' : 'h-12')} />
             <div className="flex-1 overflow-y-auto">
               {!!filerOptions?.length && (
                 <>
@@ -306,7 +314,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
               )}
               {!!repositorySearchOptions?.length && (
                 <>
-                  <Separator className="my-2" />
+                  {!!filerOptions?.length && <Separator className="my-2" />}
                   <div className="text-md mb-1 pl-2 font-semibold">Code</div>
                   {repositorySearchOptions.map((item, index) => {
                     const repositorySearch =
