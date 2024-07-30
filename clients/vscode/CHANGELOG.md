@@ -1,3 +1,31 @@
+## 1.8.2
+
+**stable**
+
+Stable release for 1.8.1.
+
+## 1.8.1
+
+**pre-release**
+
+### Fixes & Improvements
+
+- Resolved compatibility issue with chat panel on connections to an older version of the Tabby server.
+- Users can now manually remove the history of chat edit commands. The maximum number of history entries can be configured in the advanced settings.
+
+## 1.8.0
+
+**pre-release**
+
+### Features
+
+- Added support for HTTP proxy configuration. Users can now set up an HTTP proxy either through environment variables or in the config file.
+
+### Fixes & Improvements
+
+- Enhanced the chat side panel interaction with various improvements. The chat panel improvements require the latest version of the Tabby server to fully function.
+- Updated and optimized the Tabby configurations in the VSCode Settings page.
+
 ## 1.7.4
 
 **stable**
