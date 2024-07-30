@@ -1,5 +1,5 @@
 ---
-image: ./twitter-img.jpg
+image: ./twitter-img.png
 ---
 
 # BentoCloud
