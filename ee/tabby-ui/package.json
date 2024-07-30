@@ -57,6 +57,7 @@
     "aos": "^2.3.4",
     "class-variance-authority": "^0.4.0",
     "clsx": "^1.2.1",
+    "cm6-graphql": "^0.0.15",
     "cmdk": "^1.0.0",
     "color": "^4.2.3",
     "compare-versions": "^6.1.0",

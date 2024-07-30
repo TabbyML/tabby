@@ -1,5 +1,9 @@
 import React from 'react'
-import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import {
+  defaultHighlightStyle,
+  LanguageSupport,
+  syntaxHighlighting
+} from '@codemirror/language'
 import {
   Annotation,
   EditorState,
@@ -12,6 +16,7 @@ import {
   loadLanguage,
   type LanguageName
 } from '@uiw/codemirror-extensions-langs'
+import { graphqlLanguage } from 'cm6-graphql'
 import { compact } from 'lodash-es'
 
 import { basicSetup } from '@/components/codemirror/basic-setup'
@@ -94,8 +99,15 @@ const CodeMirrorEditor = React.forwardRef<
     EditorState.readOnly.of(readonly)
   ]
 
+  const languageHandler = (language: string) => {
+    if (language === 'graphql') {
+      return new LanguageSupport(graphqlLanguage)
+    }
+    return loadLanguage(getLanguage(language))
+  }
+
   const getExtensions = (): Extension[] => {
-    let result = compact([...extensions, loadLanguage(getLanguage(language))])
+    let result = compact([...extensions, languageHandler(language)])
     if (theme === 'dark') {
       result.push(oneDarkTheme)
       result.push(syntaxHighlighting(oneDarkHighlightStyle))
