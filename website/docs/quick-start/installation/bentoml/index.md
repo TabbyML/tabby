@@ -1,5 +1,8 @@
-# BentoCloud
+---
+image: ./twitter-img.jpg
+---
 
+# BentoCloud
 [BentoCloud](https://cloud.bentoml.com/) provides a serverless infrastructure tailored for GPU workloads, enabling seamless deployment, management, and scaling of models in the cloud.
 
 ## Setup
