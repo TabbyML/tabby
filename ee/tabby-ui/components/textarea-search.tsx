@@ -138,12 +138,19 @@ export default function TextAreaSearch({
       onClick={onWrapperClick}
     >
       {showBetaBadge && (
-        <span
-          className="absolute -right-8 top-1 mr-3 rotate-45 rounded-none border-none py-0.5 pl-6 pr-5 text-xs text-primary"
-          style={{ background: theme === 'dark' ? '#333' : '#e8e1d3' }}
-        >
-          Beta
-        </span>
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>
+            <span
+              className="absolute -right-8 top-1 mr-3 rotate-45 rounded-none border-none py-0.5 pl-6 pr-5 text-xs text-primary"
+              style={{ background: theme === 'dark' ? '#333' : '#e8e1d3' }}
+            >
+              Beta
+            </span>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={-8}>
+            <p>Beta</p>
+          </TooltipContent>
+        </Tooltip>
       )}
       <TextareaAutosize
         className={cn(
