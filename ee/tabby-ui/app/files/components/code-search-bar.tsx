@@ -56,10 +56,8 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
   const repoId = activeRepo?.id
 
   const repositorySearchPattern = React.useMemo(() => {
-    const regex = /-?f:(\S+)$/
-    const matches = trim(debouncedQuery).match(regex)
-    if (matches) return matches[1] || undefined
-    return debouncedQuery
+    const prefixRegex = /-?[f|lang]:(\S+)/g
+    return trim(debouncedQuery).replace(prefixRegex, '')
   }, [debouncedQuery])
 
   const [{ data: repositorySearchData }] = useQuery({
