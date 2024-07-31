@@ -87,8 +87,7 @@ mod tests {
     #[ignore]
     async fn test_voyage_embedding() {
         let api_key = std::env::var("VOYAGE_API_KEY").expect("VOYAGE_API_KEY must be set");
-        let engine =
-            VoyageEmbeddingEngine::create(None, "voyage-code-2", api_key);
+        let engine = VoyageEmbeddingEngine::create(None, "voyage-code-2", api_key);
         let embedding = engine.embed("Hello, world!").await.unwrap();
         assert_eq!(embedding.len(), 1536);
     }

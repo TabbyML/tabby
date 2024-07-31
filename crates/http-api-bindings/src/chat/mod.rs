@@ -7,7 +7,10 @@ use tabby_inference::{ChatCompletionStream, ExtendedOpenAIConfig};
 use crate::create_reqwest_client;
 
 pub async fn create(model: &HttpModelConfig) -> Arc<dyn ChatCompletionStream> {
-    let api_endpoint = model.api_endpoint.as_deref().expect("api_endpoint is required");
+    let api_endpoint = model
+        .api_endpoint
+        .as_deref()
+        .expect("api_endpoint is required");
     let config = OpenAIConfig::default()
         .with_api_base(api_endpoint)
         .with_api_key(model.api_key.clone().unwrap_or_default());

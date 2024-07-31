@@ -77,7 +77,7 @@ impl CodeIntelligence {
             return None;
         }
         let relative_path = path
-            .strip_prefix(&config.dir())
+            .strip_prefix(config.dir())
             .expect("Paths always begin with the prefix");
 
         let Some(ext) = relative_path.extension() else {
