@@ -144,7 +144,7 @@ export default function TextAreaSearch({
               className="absolute -right-8 top-1 mr-3 rotate-45 rounded-none border-none py-0.5 pl-6 pr-5 text-xs text-primary"
               style={{ background: theme === 'dark' ? '#333' : '#e8e1d3' }}
             >
-              Beta
+              Please note that the answer engine is still in its early stages, and certain functionalities, such as finding the correct code context and the quality of summarizations, still have room for improvement. If you encounter an issue and believe it can be enhanced, consider sharing it in our Slack community!
             </span>
           </TooltipTrigger>
           <TooltipContent sideOffset={-8}>
