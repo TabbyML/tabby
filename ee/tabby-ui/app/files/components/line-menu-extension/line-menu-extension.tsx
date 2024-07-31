@@ -90,7 +90,7 @@ const LineMenuButton = ({ isMulti }: { isMulti?: boolean }) => {
             })
           }}
         >
-          Copy link
+          Copy permalink
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

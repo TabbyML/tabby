@@ -42,7 +42,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
         if (targetRepo) {
           const defaultRef = getDefaultRepoRef(targetRepo.refs)
           // navigate to files of the default branch
-          const refName = resolveRepoRef(defaultRef ?? '')?.name
+          const refName = resolveRepoRef(defaultRef)?.name
           const detectedLanguage = context.filepath
             ? filename2prism(context.filepath)[0]
             : undefined

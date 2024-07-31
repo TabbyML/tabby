@@ -41,7 +41,6 @@ const TreeModeView: React.FC<TreeModeViewProps> = ({
     currentFileRoutes,
     fileTreeData,
     activeRepo,
-    activeRepoRef,
     repoMap,
     activeEntryInfo
   } = React.useContext(SourceCodeBrowserContext)
@@ -89,7 +88,7 @@ const TreeModeView: React.FC<TreeModeViewProps> = ({
                   <Link
                     href={`/files/${generateEntryPath(
                       activeRepo,
-                      activeRepoRef?.name as string,
+                      activeEntryInfo.rev,
                       parentNode?.file?.basename,
                       parentNode?.file?.kind
                     )}`}
@@ -138,7 +137,7 @@ const TreeModeView: React.FC<TreeModeViewProps> = ({
                               ? `/files/${file.fullPath}`
                               : `/files/${generateEntryPath(
                                   activeRepo ?? file.repository,
-                                  activeRepoRef?.name as string,
+                                  activeEntryInfo.rev,
                                   file.file.basename,
                                   file.file.kind
                                 )}`

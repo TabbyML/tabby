@@ -5,7 +5,7 @@ import { isNil } from 'lodash-es'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
-import { RepositoryKind } from '@/lib/gql/generates/graphql'
+import { GitReference, RepositoryKind } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -49,6 +49,7 @@ import {
 
 import { RepositoryKindIcon } from './repository-kind-icon'
 import { SourceCodeBrowserContext } from './source-code-browser'
+import { RepositoryRefKind } from './types'
 import {
   generateEntryPath,
   getDefaultRepoRef,
@@ -65,8 +66,6 @@ type SearchOption = {
   indices: number[]
   id: string
 }
-
-type RepositoryRefKind = 'branch' | 'tag'
 
 const repositorySearch = graphql(/* GraphQL */ `
   query RepositorySearch(
@@ -137,12 +136,12 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
       kind: repositoryKind as RepositoryKind,
       id: repoId as string,
       pattern: repositorySearchPattern ?? '',
-      rev: activeRepoRef?.name
+      rev: activeEntryInfo.rev
     },
     pause: !repoId || !repositoryKind || !repositorySearchPattern
   })
 
-  const onSelectRef = (ref: string) => {
+  const onSelectRef = (ref: GitReference | undefined) => {
     if (isNil(ref)) return
     const nextRev = resolveRepoRef(ref)?.name ?? ''
     const { basename = '' } = activeEntryInfo
@@ -310,13 +309,15 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                 >
                   {!!activeRepoRef && (
                     <>
-                      {activeRepoRef.kind === 'branch' ? (
-                        <IconGitFork className="shrink-0" />
-                      ) : (
+                      {activeRepoRef.kind === 'tag' ? (
                         <IconTag className="shrink-0" />
+                      ) : (
+                        <IconGitFork className="shrink-0" />
                       )}
                       <span className="truncate" title={activeRepoRef.name}>
-                        {activeRepoRef.name ?? ''}
+                        {activeRepoRef.kind === 'commit'
+                          ? activeRepoRef.ref?.commit?.substring(0, 7)
+                          : activeRepoRef.name}
                       </span>
                     </>
                   )}
@@ -350,7 +351,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                     <CommandGroup>
                       {commandOptions.map((ref, refIndex) => (
                         <CommandItem
-                          key={ref.ref ?? refIndex}
+                          key={ref?.ref?.name ?? refIndex}
                           onSelect={() => {
                             setRefSelectVisible(false)
                             onSelectRef(ref.ref)

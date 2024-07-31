@@ -229,7 +229,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   level,
   root
 }) => {
-  const { activeRepo, activeRepoRef, activeEntryInfo } = React.useContext(
+  const { activeRepo, activeEntryInfo } = React.useContext(
     SourceCodeBrowserContext
   )
   const {
@@ -253,7 +253,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   const { data, isLoading }: SWRResponse<ResolveEntriesResponse> =
     useSWRImmutable(
       shouldFetchChildren
-        ? toEntryRequestUrl(activeRepo, activeRepoRef?.name, basename)
+        ? toEntryRequestUrl(activeRepo, activeEntryInfo.rev, basename)
         : null,
       fetcher,
       {
@@ -266,7 +266,6 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
 
     if (data?.entries?.length) {
       const patchMap: TFileMap = data.entries.reduce((sum, cur) => {
-        // const path = `${repositorySpecifier}/${rev}/${cur.basename}`
         const path = cur.basename
         return {
           ...sum,

@@ -14,8 +14,9 @@ interface FileDirectoryBreadcrumbProps
 const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
   className
 }) => {
-  const { currentFileRoutes, activeRepo, activeRepoRef, activeEntryInfo } =
-    React.useContext(SourceCodeBrowserContext)
+  const { currentFileRoutes, activeRepo, activeEntryInfo } = React.useContext(
+    SourceCodeBrowserContext
+  )
   const basename = activeEntryInfo?.basename
   const routes: Array<{
     name: string
@@ -26,7 +27,7 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
     let result = [
       {
         name: activeEntryInfo?.repositoryName ?? '',
-        href: generateEntryPath(activeRepo, activeRepoRef?.name, '', 'dir')
+        href: generateEntryPath(activeRepo, activeEntryInfo.rev, '', 'dir')
       }
     ]
 
@@ -37,13 +38,13 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
         const name = resolveFileNameFromPath(p)
         result.push({
           name: decodeURIComponent(name),
-          href: generateEntryPath(activeRepo, activeRepoRef?.name, p, 'dir')
+          href: generateEntryPath(activeRepo, activeEntryInfo.rev, p, 'dir')
         })
       }
     }
 
     return result
-  }, [activeEntryInfo, activeRepo, activeRepoRef])
+  }, [activeEntryInfo, activeRepo])
 
   return (
     <div className={cn('flex flex-nowrap items-center gap-1', className)}>
