@@ -2,19 +2,23 @@ package com.tabbyml.intellijtabby.chat
 
 import com.google.gson.Gson
 import com.google.gson.JsonParser
-import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorColorsScheme
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.jcef.JBCefBrowser
+import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
 import com.intellij.util.ui.UIUtil
-import com.tabbyml.intellijtabby.events.CombinedState
+import com.tabbyml.intellijtabby.lsp.ConnectionService
 import com.tabbyml.intellijtabby.lsp.LanguageClient
 import com.tabbyml.intellijtabby.lsp.protocol.Status
 import com.tabbyml.intellijtabby.settings.SettingsService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.future.await
+import kotlinx.coroutines.launch
 import org.cef.browser.CefBrowser
 import org.cef.handler.CefLoadHandlerAdapter
 import java.awt.Color
@@ -24,8 +28,9 @@ class TabbyBrowser(private val project: Project) {
   private var isChatPageDisplayed = false
   private val browser: JBCefBrowser
   private val messageBusConnection = project.messageBus.connect()
-  private val settings = service<SettingsService>()
-  private val combinedState = project.serviceOrNull<CombinedState>()
+  private val scope = CoroutineScope(Dispatchers.IO)
+
+  private suspend fun getServer() = project.serviceOrNull<ConnectionService>()?.getServerAsync()
 
   data class DisplayChatPageOptions(val force: Boolean = false)
 
@@ -41,8 +46,12 @@ class TabbyBrowser(private val project: Project) {
         if (status == Status.DISCONNECTED) {
           self.displayDisconnectedPage()
         } else {
-          self.displayChatPage(self.settings.serverEndpoint)
-          self.refreshChatPage()
+          scope.launch {
+            val server = getServer() ?: return@launch
+            val serverInfo = server.agentFeature.serverInfo().await()
+            self.displayChatPage(serverInfo.config.endpoint)
+            self.refreshChatPage()
+          }
         }
       }
     })
@@ -54,7 +63,7 @@ class TabbyBrowser(private val project: Project) {
     })
 
     // Listen to the message sent from the web page
-    val jsQuery = JBCefJSQuery.create(browser)
+    val jsQuery = JBCefJSQuery.create(browser as JBCefBrowserBase)
     jsQuery.addHandler { message: String ->
       val jsonElement = JsonParser.parseString(message)
       when {
@@ -118,7 +127,11 @@ class TabbyBrowser(private val project: Project) {
 
     // FIXME: Implement web server health detection to display the disconnected page if the server is down.
     // Note: Currently, this.combinedState.state.agentStatus is always NOT_INITIALIZED at this point.
-    self.displayChatPage(self.settings.serverEndpoint)
+    scope.launch {
+      val server = getServer() ?: return@launch
+      val serverInfo = server.agentFeature.serverInfo().await()
+      self.displayChatPage(serverInfo.config.endpoint)
+    }
 
     Disposer.register(project, browser)
   }
@@ -127,20 +140,27 @@ class TabbyBrowser(private val project: Project) {
   // listen to edit theme change and send sync-theme message to the HTML
 
   fun refreshChatPage() {
-    if (this.combinedState?.state?.agentStatus == Status.UNAUTHORIZED || this.combinedState?.state?.agentStatus == Status.NOT_INITIALIZED) {
-      return sendMessageToServer(
-        "showError",
-        listOf(mapOf("content" to "Before you can start chatting, please take a moment to set up your credentials to connect to the Tabby server."))
-      )
+    scope.launch {
+      val server = getServer() ?: return@launch
+      val agentStatus = server.agentFeature.status().await()
+      val serverInfo = server.agentFeature.serverInfo().await()
+
+      if (agentStatus == Status.UNAUTHORIZED || agentStatus == Status.NOT_INITIALIZED) {
+        sendMessageToServer(
+          "showError",
+          listOf(mapOf("content" to "Before you can start chatting, please take a moment to set up your credentials to connect to the Tabby server."))
+        )
+        return@launch
+      }
+
+      // FIXME
+      // Check for chat panel availability
+      // If the panel is not available, display an error message to the user
+
+      // FIXME: Refactor thread-sending implementation
+      sendMessageToServer("cleanError")
+      sendMessageToServer("init", listOf(mapOf("fetcherOptions" to mapOf("authorization" to serverInfo.config.token))))
     }
-
-    // FIXME
-    // Check for chat panel availability
-    // If the panel is not available, display an error message to the user
-
-    // FIXME: Refactor thread-sending implementation
-    sendMessageToServer("cleanError")
-    sendMessageToServer("init", listOf(mapOf("fetcherOptions" to mapOf("authorization" to this.settings.serverToken))))
   }
 
   fun displayChatPage(chatEndpoint: String, opts: DisplayChatPageOptions? = null) {
