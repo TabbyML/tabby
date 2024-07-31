@@ -57,7 +57,7 @@
         <toolWindow
                 id="Tabby"
                 anchor="right"
-                icon="/chat/chat.svg"
+                icon="/icons/chat.svg"
                 factoryClass="com.tabbyml.intellijtabby.chat.TabbyToolWindowFactory" />
     </extensions>
 
