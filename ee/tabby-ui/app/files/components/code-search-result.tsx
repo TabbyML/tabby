@@ -28,7 +28,7 @@ export const SourceCodeSearchResult = ({
   ...props
 }: SourceCodeSearchResultProps) => {
   const { theme } = useTheme()
-  const { activeRepo, activeRepoRef } = React.useContext(
+  const { activeRepo, activeEntryInfo } = React.useContext(
     SourceCodeBrowserContext
   )
 
@@ -68,7 +68,7 @@ export const SourceCodeSearchResult = ({
 
   const pathname = `/files/${generateEntryPath(
     activeRepo,
-    activeRepoRef?.name as string,
+    activeEntryInfo.rev,
     props.result.path,
     'file'
   )}`
@@ -118,7 +118,7 @@ function CodeSearchSnippet({
   path
 }: CodeSearchSnippetProps) {
   const router = useRouter()
-  const { activeRepo, activeRepoRef } = React.useContext(
+  const { activeRepo, activeEntryInfo } = React.useContext(
     SourceCodeBrowserContext
   )
   const value = React.useMemo(() => {
@@ -152,7 +152,7 @@ function CodeSearchSnippet({
         lineClickExtension((lineNo: number) => {
           const pathname = `/files/${generateEntryPath(
             activeRepo,
-            activeRepoRef?.name as string,
+            activeEntryInfo.rev,
             path,
             'file'
           )}`
