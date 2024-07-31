@@ -1,12 +1,11 @@
-use async_openai::types::{
-    ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
-};
+use async_openai::types::{ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, warn};
 use utoipa::ToSchema;
 
-use super::{code::{CodeSearchHit, CodeSearchQuery}, doc::DocSearchHit};
-
+use super::{
+    code::{CodeSearchHit, CodeSearchQuery},
+    doc::DocSearchHit,
+};
 
 #[derive(Deserialize, ToSchema)]
 #[schema(example=json!({

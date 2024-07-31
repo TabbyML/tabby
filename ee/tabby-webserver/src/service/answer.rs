@@ -7,14 +7,14 @@ use async_openai::types::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
-use serde::{Deserialize, Serialize};
 use tabby_common::api::{
-    answer::{AnswerRequest, AnswerResponseChunk}, code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchQuery}, doc::{DocSearch, DocSearchError, DocSearchHit}
+    answer::{AnswerRequest, AnswerResponseChunk},
+    code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchQuery},
+    doc::{DocSearch, DocSearchError, DocSearchHit},
 };
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{repository::RepositoryService, web_crawler::WebCrawlerService};
 use tracing::{debug, warn};
-use utoipa::ToSchema;
 
 pub struct AnswerService {
     chat: Arc<dyn ChatCompletionStream>,
