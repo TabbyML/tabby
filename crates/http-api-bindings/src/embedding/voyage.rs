@@ -14,16 +14,12 @@ pub struct VoyageEmbeddingEngine {
 }
 
 impl VoyageEmbeddingEngine {
-    pub fn create(api_endpoint: &str, model_name: &str, api_key: String) -> Self {
-        let endpoint = if api_endpoint.is_empty() {
-            DEFAULT_VOYAGE_API_ENDPOINT
-        } else {
-            api_endpoint
-        };
+    pub fn create(api_endpoint: Option<&str>, model_name: &str, api_key: String) -> Self {
+        let api_endpoint = api_endpoint.unwrap_or(DEFAULT_VOYAGE_API_ENDPOINT);
         let client = Client::new();
         Self {
             client,
-            api_endpoint: format!("{}/v1/embeddings", endpoint),
+            api_endpoint: format!("{}/v1/embeddings", api_endpoint),
             api_key,
             model_name: model_name.to_owned(),
         }
@@ -62,9 +58,10 @@ impl Embedding for VoyageEmbeddingEngine {
             .bearer_auth(&self.api_key);
 
         let response = request_builder.send().await?;
-        if response.status().is_server_error() {
+        if !response.status().is_success() {
+            let status = response.status();
             let error = response.text().await?;
-            return Err(anyhow::anyhow!("Error from server: {}", error));
+            return Err(anyhow::anyhow!("Error {}: {}", status.as_u16(), error));
         }
 
         let response_body = response
@@ -85,13 +82,12 @@ impl Embedding for VoyageEmbeddingEngine {
 mod tests {
     use super::*;
 
-    /// Make sure you have set the VOYAGE_API_KEY environment variable before running the test
+    /// VOYAGE_API_KEY=xxx cargo test test_voyage_embedding -- --ignored
     #[tokio::test]
     #[ignore]
     async fn test_voyage_embedding() {
         let api_key = std::env::var("VOYAGE_API_KEY").expect("VOYAGE_API_KEY must be set");
-        let engine =
-            VoyageEmbeddingEngine::create(DEFAULT_VOYAGE_API_ENDPOINT, "voyage-code-2", api_key);
+        let engine = VoyageEmbeddingEngine::create(None, "voyage-code-2", api_key);
         let embedding = engine.embed("Hello, world!").await.unwrap();
         assert_eq!(embedding.len(), 1536);
     }

@@ -14,12 +14,21 @@ use self::{openai::OpenAIEmbeddingEngine, voyage::VoyageEmbeddingEngine};
 pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
     match config.kind.as_str() {
         "llama.cpp/embedding" => {
-            let engine = LlamaCppEngine::create(&config.api_endpoint, config.api_key.clone());
+            let engine = LlamaCppEngine::create(
+                config
+                    .api_endpoint
+                    .as_deref()
+                    .expect("api_endpoint is required"),
+                config.api_key.clone(),
+            );
             Arc::new(engine)
         }
         "openai/embedding" => {
             let engine = OpenAIEmbeddingEngine::create(
-                &config.api_endpoint,
+                config
+                    .api_endpoint
+                    .as_deref()
+                    .expect("api_endpoint is required"),
                 config.model_name.as_deref().unwrap_or_default(),
                 config.api_key.as_deref(),
             );
@@ -28,7 +37,7 @@ pub async fn create(config: &HttpModelConfig) -> Arc<dyn Embedding> {
         "ollama/embedding" => ollama_api_bindings::create_embedding(config).await,
         "voyage/embedding" => {
             let engine = VoyageEmbeddingEngine::create(
-                &config.api_endpoint,
+                config.api_endpoint.as_deref(),
                 config
                     .model_name
                     .as_deref()

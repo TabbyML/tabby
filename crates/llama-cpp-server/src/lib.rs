@@ -45,7 +45,7 @@ impl EmbeddingServer {
         server.start().await;
 
         let config = HttpModelConfigBuilder::default()
-            .api_endpoint(api_endpoint(server.port()))
+            .api_endpoint(Some(api_endpoint(server.port())))
             .kind("llama.cpp/embedding".to_string())
             .build()
             .expect("Failed to create HttpModelConfig");
@@ -90,7 +90,7 @@ impl CompletionServer {
         );
         server.start().await;
         let config = HttpModelConfigBuilder::default()
-            .api_endpoint(api_endpoint(server.port()))
+            .api_endpoint(Some(api_endpoint(server.port())))
             .kind("llama.cpp/completion".to_string())
             .build()
             .expect("Failed to create HttpModelConfig");
@@ -133,7 +133,7 @@ impl ChatCompletionServer {
         );
         server.start().await;
         let config = HttpModelConfigBuilder::default()
-            .api_endpoint(api_endpoint(server.port()))
+            .api_endpoint(Some(api_endpoint(server.port())))
             .kind("openai/chat".to_string())
             .model_name(Some("local".into()))
             .build()
