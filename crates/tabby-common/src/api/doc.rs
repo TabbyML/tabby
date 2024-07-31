@@ -1,18 +1,19 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use utoipa::ToSchema;
 
 pub struct DocSearchResponse {
     pub hits: Vec<DocSearchHit>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
 pub struct DocSearchHit {
     pub score: f32,
     pub doc: DocSearchDocument,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
 pub struct DocSearchDocument {
     pub title: String,
     pub link: String,

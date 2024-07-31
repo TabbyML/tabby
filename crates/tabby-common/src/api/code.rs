@@ -9,13 +9,13 @@ pub struct CodeSearchResponse {
     pub hits: Vec<CodeSearchHit>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default, ToSchema)]
 pub struct CodeSearchHit {
     pub scores: CodeSearchScores,
     pub doc: CodeSearchDocument,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default, ToSchema)]
 pub struct CodeSearchScores {
     /// Reciprocal rank fusion score: https://www.elastic.co/guide/en/elasticsearch/reference/current/rrf.html
     pub rrf: f32,
@@ -23,7 +23,7 @@ pub struct CodeSearchScores {
     pub embedding: f32,
 }
 
-#[derive(Serialize, Deserialize, Debug, Builder, Clone, Default)]
+#[derive(Serialize, Deserialize, Debug, Builder, Clone, Default, ToSchema)]
 pub struct CodeSearchDocument {
     /// Unique identifier for the file in the repository, stringified SourceFileKey.
     ///

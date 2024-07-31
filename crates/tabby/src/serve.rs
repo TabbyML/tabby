@@ -53,6 +53,14 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     ),
     paths(routes::log_event, routes::completions, routes::chat_completions_utoipa, routes::health, routes::setting),
     components(schemas(
+        api::answer::AnswerRequest,
+        api::answer::AnswerResponseChunk,
+        api::code::CodeSearchHit,
+        api::code::CodeSearchQuery,
+        api::code::CodeSearchScores,
+        api::code::CodeSearchDocument,
+        api::doc::DocSearchHit,
+        api::doc::DocSearchDocument,
         api::event::LogEventRequest,
         completion::CompletionRequest,
         completion::CompletionResponse,
@@ -64,7 +72,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         completion::DebugData,
         health::HealthState,
         health::Version,
-        api::server_setting::ServerSetting
+        api::server_setting::ServerSetting,
     )),
     modifiers(&SecurityAddon),
 )]
