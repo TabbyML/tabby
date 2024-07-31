@@ -165,7 +165,7 @@ class TabbyBrowser(private val project: Project) {
 
   fun displayChatPage(chatEndpoint: String, opts: DisplayChatPageOptions? = null) {
     val endpoint = if (chatEndpoint.isBlank()) "http://localhost:8080" else chatEndpoint
-    val cssContent = this::class.java.getResource("/chat/chat-panel.css")?.readText() ?: ""
+    val cssContent = this::class.java.getResource("/styles/chat-panel.css")?.readText() ?: ""
 
     val theme = if (UIUtil.isUnderDarcula()) "dark" else "light"
     val editorColorsScheme: EditorColorsScheme = EditorColorsManager.getInstance().globalScheme
@@ -262,7 +262,7 @@ class TabbyBrowser(private val project: Project) {
   fun displayDisconnectedPage() {
     this.isChatPageDisplayed = false
 
-    val cssContent = this::class.java.getResource("/chat/chat-panel.css")?.readText() ?: ""
+    val cssContent = this::class.java.getResource("/styles/chat-panel.css")?.readText() ?: ""
     val logoContent = this::class.java.getResource("/META-INF/pluginIcon.svg")?.readText() ?: ""
     val encodedLogo = Base64.getEncoder().encodeToString(logoContent.toByteArray())
     val logoDataUrl = "data:image/svg+xml;base64,$encodedLogo"
