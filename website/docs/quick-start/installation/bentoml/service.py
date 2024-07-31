@@ -81,7 +81,7 @@ def download_tabby_dir(username: str) -> None:
 
 def upload_tabby_dir(username: str) -> None:
     """Upload the tabby directory for the given user."""
-    if os.system(f"rclone sync ~/.tabby r2:/tabby-cloud-managed/users/{username}") == 0:
+    if os.system(f"rclone sync --links ~/.tabby r2:/tabby-cloud-managed/users/{username}") == 0:
         print("Tabby directory uploaded successfully.")
     else:
         raise RuntimeError("Failed to upload tabby directory")
