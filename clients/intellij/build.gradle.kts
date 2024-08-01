@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.tabbyml"
-version = "1.7.0-dev"
+version = "1.7.0"
 
 repositories {
   mavenCentral()
@@ -36,7 +36,7 @@ tasks {
 
   patchPluginXml {
     sinceBuild.set("231")
-    untilBuild.set("241.*")
+    untilBuild.set("242.*")
     changeNotes.set(provider {
       changelog.renderItem(
         changelog.getLatest(),
