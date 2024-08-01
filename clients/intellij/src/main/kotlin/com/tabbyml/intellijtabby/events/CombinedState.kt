@@ -11,13 +11,12 @@ import com.tabbyml.intellijtabby.lsp.LanguageClient
 import com.tabbyml.intellijtabby.lsp.protocol.IssueList
 import com.tabbyml.intellijtabby.lsp.protocol.Status
 import com.tabbyml.intellijtabby.notifications.notifyAuthRequired
+import com.tabbyml.intellijtabby.safeSyncPublisher
 import com.tabbyml.intellijtabby.settings.SettingsService
 
 @Service(Service.Level.PROJECT)
 class CombinedState(private val project: Project) : Disposable {
-
   private val messageBusConnection = project.messageBus.connect()
-  private val publisher = project.messageBus.syncPublisher(Listener.TOPIC)
 
   data class State(
     val settings: SettingsService.Settings,
@@ -64,19 +63,19 @@ class CombinedState(private val project: Project) : Disposable {
     messageBusConnection.subscribe(SettingsService.Listener.TOPIC, object : SettingsService.Listener {
       override fun settingsChanged(settings: SettingsService.Settings) {
         state = state.withSettings(settings)
-        publisher.stateChanged(state)
+        project.safeSyncPublisher(Listener.TOPIC)?.stateChanged(state)
       }
     })
     messageBusConnection.subscribe(ConnectionService.Listener.TOPIC, object : ConnectionService.Listener {
       override fun connectionStateChanged(state: ConnectionService.State) {
         this@CombinedState.state = this@CombinedState.state.withConnectionState(state)
-        publisher.stateChanged(this@CombinedState.state)
+        project.safeSyncPublisher(Listener.TOPIC)?.stateChanged(this@CombinedState.state)
       }
     })
     messageBusConnection.subscribe(LanguageClient.AgentListener.TOPIC, object : LanguageClient.AgentListener {
       override fun agentStatusChanged(status: String) {
         state = state.withAgentStatus(status)
-        publisher.stateChanged(state)
+        project.safeSyncPublisher(Listener.TOPIC)?.stateChanged(state)
 
         if (status == Status.UNAUTHORIZED) {
           notifyAuthRequired()
@@ -87,14 +86,14 @@ class CombinedState(private val project: Project) : Disposable {
         state = issueList.issues.firstOrNull()?.let {
           state.withAgentIssue(it)
         } ?: state.withoutAgentIssue()
-        publisher.stateChanged(state)
+        project.safeSyncPublisher(Listener.TOPIC)?.stateChanged(state)
       }
     })
 
     messageBusConnection.subscribe(InlineCompletionService.Listener.TOPIC, object : InlineCompletionService.Listener {
       override fun loadingStateChanged(loading: Boolean) {
         state = state.withInlineCompletionLoading(loading)
-        publisher.stateChanged(state)
+        project.safeSyncPublisher(Listener.TOPIC)?.stateChanged(state)
       }
     })
   }

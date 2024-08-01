@@ -25,19 +25,16 @@ import com.tabbyml.intellijtabby.lsp.offsetInDocument
 import com.tabbyml.intellijtabby.lsp.positionInDocument
 import com.tabbyml.intellijtabby.lsp.protocol.EventParams
 import com.tabbyml.intellijtabby.lsp.protocol.InlineCompletionParams
+import com.tabbyml.intellijtabby.safeSyncPublisher
 import com.tabbyml.intellijtabby.settings.SettingsService
 import com.tabbyml.intellijtabby.settings.SettingsState
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.*
 import kotlinx.coroutines.future.await
-import kotlinx.coroutines.launch
 import org.eclipse.lsp4j.TextDocumentIdentifier
 
 @Service(Service.Level.PROJECT)
 class InlineCompletionService(private val project: Project) : Disposable {
   private val logger = Logger.getInstance(InlineCompletionService::class.java)
-  private val publisher = project.messageBus.syncPublisher(Listener.TOPIC)
   private val messageBusConnection = project.messageBus.connect()
   private val editorManager = FileEditorManager.getInstance(project)
   private val scope = CoroutineScope(Dispatchers.IO)
@@ -111,6 +108,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
   }
 
   private var current: InlineCompletionContext? = null
+  private var currentContextWriteLock = Object()
 
   fun isInlineCompletionVisibleAt(editor: Editor, offset: Int): Boolean =
     renderer.current?.editor == editor && renderer.current?.offset == offset
@@ -172,6 +170,7 @@ class InlineCompletionService(private val project: Project) : Disposable {
   }
 
   private var autoTriggerMessageBusConnection: MessageBusConnection? = null
+  private var autoTriggerJob: Job? = null
   private fun registerAutoTriggerListener() {
     logger.debug("Register AutoTrigger listener.")
     val connection = project.messageBus.connect()
@@ -179,7 +178,14 @@ class InlineCompletionService(private val project: Project) : Disposable {
     connection.subscribe(DocumentListener.TOPIC, object : DocumentListener {
       override fun documentChanged(document: Document, editor: Editor, event: DocumentEvent) {
         if (editorManager.selectedTextEditor == editor) {
-          provideInlineCompletion(editor, event.offset + event.newFragment.length)
+          val offset = editor.caretModel.offset
+          autoTriggerJob?.cancel()
+          autoTriggerJob = scope.launch {
+            // debounce for multiple documentChanged events triggered at one stroke
+            // such as input `(`, and `)` will be auto added, this will trigger two events
+            delay(10)
+            provideInlineCompletion(editor, offset)
+          }
         }
       }
     })
@@ -236,16 +242,18 @@ class InlineCompletionService(private val project: Project) : Disposable {
   ): Job {
     return scope.launch {
       val params = buildInlineCompletionParams(requestContext)
-      logger.debug("Request inline completion: $params")
-      publisher.loadingStateChanged(true)
       val server = getServer() ?: return@launch
+      logger.debug("Request inline completion: $params")
+      project.safeSyncPublisher(Listener.TOPIC)?.loadingStateChanged(true)
       val inlineCompletionList = server.textDocumentFeature.inlineCompletion(params).await()
-      val context = current ?: return@launch
-      if (requestContext != context.request) {
-        return@launch
+      val context = current
+      if (requestContext == context?.request) {
+        logger.debug("Request inline completion done: $inlineCompletionList")
+        project.safeSyncPublisher(Listener.TOPIC)?.loadingStateChanged(false)
+        finishedCallback(inlineCompletionList)
+      } else if (context == null) {
+        project.safeSyncPublisher(Listener.TOPIC)?.loadingStateChanged(false)
       }
-      publisher.loadingStateChanged(false)
-      finishedCallback(inlineCompletionList)
     }
   }
 
@@ -295,23 +303,25 @@ class InlineCompletionService(private val project: Project) : Disposable {
   }
 
   fun provideInlineCompletion(editor: Editor, offset: Int, manually: Boolean = false) {
-    logger.debug("Provide inline completion at $editor $offset $manually")
-    var partialAcceptedResponse: InlineCompletionContext.Response? = null
-    current?.let {
-      it.job.cancel()
-      if (it.partialAccepted) {
-        partialAcceptedResponse = it.response
-      } else {
-        renderer.hide()
+    synchronized(currentContextWriteLock) {
+      logger.debug("Provide inline completion at $editor $offset $manually")
+      var partialAcceptedResponse: InlineCompletionContext.Response? = null
+      current?.let {
+        it.job.cancel()
+        if (it.partialAccepted) {
+          partialAcceptedResponse = it.response
+        } else {
+          renderer.hide()
+        }
+        current = null
       }
-      current = null
+      val requestContext = InlineCompletionContext.Request.from(editor, offset).withManually(manually)
+      val job = launchJobForInlineCompletion(requestContext) { inlineCompletionList ->
+        current = current?.withResponse(convertInlineCompletionList(inlineCompletionList, requestContext))
+        renderCurrentResponse()
+      }
+      current = InlineCompletionContext(requestContext, job, partialAcceptedResponse)
     }
-    val requestContext = InlineCompletionContext.Request.from(editor, offset).withManually(manually)
-    val job = launchJobForInlineCompletion(requestContext) { inlineCompletionList ->
-      current = current?.withResponse(convertInlineCompletionList(inlineCompletionList, requestContext))
-      renderCurrentResponse()
-    }
-    current = InlineCompletionContext(requestContext, job, partialAcceptedResponse)
   }
 
   enum class CycleDirection {
@@ -319,27 +329,29 @@ class InlineCompletionService(private val project: Project) : Disposable {
   }
 
   fun cycle(editor: Editor, offset: Int?, direction: CycleDirection) {
-    logger.debug("Cycle inline completion at $editor $offset $direction")
-    val context = current ?: return
-    if (!context.isMatch(editor, offset)) {
-      return
-    }
-    val responseContext = context.response ?: return
-    val itemIndex = responseContext.itemIndex
-    if (responseContext.completionList.isIncomplete) {
-      val requestContext = context.request.withManually()
-      val job = launchJobForInlineCompletion(requestContext) { inlineCompletionList ->
-        inlineCompletionList?.let {
-          current = current?.withResponse(convertInlineCompletionList(inlineCompletionList, requestContext))
-            ?.withUpdatedItemIndex(calcCycleIndex(itemIndex, it.items.size, direction))
-          renderCurrentResponse()
-        }
+    synchronized(currentContextWriteLock) {
+      logger.debug("Cycle inline completion at $editor $offset $direction")
+      val context = current ?: return
+      if (!context.isMatch(editor, offset)) {
+        return
       }
-      current = InlineCompletionContext(requestContext, job, responseContext)
-    } else {
-      current =
-        current?.withUpdatedItemIndex(calcCycleIndex(itemIndex, responseContext.completionList.items.size, direction))
-      renderCurrentResponse()
+      val responseContext = context.response ?: return
+      val itemIndex = responseContext.itemIndex
+      if (responseContext.completionList.isIncomplete) {
+        val requestContext = context.request.withManually()
+        val job = launchJobForInlineCompletion(requestContext) { inlineCompletionList ->
+          inlineCompletionList?.let {
+            current = current?.withResponse(convertInlineCompletionList(inlineCompletionList, requestContext))
+              ?.withUpdatedItemIndex(calcCycleIndex(itemIndex, it.items.size, direction))
+            renderCurrentResponse()
+          }
+        }
+        current = InlineCompletionContext(requestContext, job, responseContext)
+      } else {
+        current =
+          current?.withUpdatedItemIndex(calcCycleIndex(itemIndex, responseContext.completionList.items.size, direction))
+        renderCurrentResponse()
+      }
     }
   }
 
@@ -348,65 +360,69 @@ class InlineCompletionService(private val project: Project) : Disposable {
   }
 
   fun accept(editor: Editor, offset: Int?, type: AcceptType) {
-    logger.debug("Accept inline completion at $editor $offset $type")
-    val context = current ?: return
-    if (!context.isMatch(editor, offset)) {
-      return
-    }
-    val originOffset = context.request.offset
-    val completionItem = context.response?.let {
-      it.completionList.items.getOrNull(it.itemIndex)
-    }
-    if (completionItem == null) {
-      return
-    }
-    val prefixReplaceLength = originOffset - completionItem.replaceRange.start
-    val completionText = completionItem.insertText.substring(prefixReplaceLength)
-    val text = when (type) {
-      AcceptType.FULL_COMPLETION -> completionText
-      AcceptType.NEXT_WORD -> {
-        Regex("\\w+|\\W+").find(completionText)?.value ?: ""
+    synchronized(currentContextWriteLock) {
+      logger.debug("Accept inline completion at $editor $offset $type")
+      val context = current ?: return
+      if (!context.isMatch(editor, offset)) {
+        return
       }
+      val originOffset = context.request.offset
+      val completionItem = context.response?.let {
+        it.completionList.items.getOrNull(it.itemIndex)
+      }
+      if (completionItem == null) {
+        return
+      }
+      val prefixReplaceLength = originOffset - completionItem.replaceRange.start
+      val completionText = completionItem.insertText.substring(prefixReplaceLength)
+      val text = when (type) {
+        AcceptType.FULL_COMPLETION -> completionText
+        AcceptType.NEXT_WORD -> {
+          Regex("\\w+|\\W+").find(completionText)?.value ?: ""
+        }
 
-      AcceptType.NEXT_LINE -> {
-        val lines = completionText.lines()
-        if (lines.size <= 1) {
-          completionText
-        } else if (lines.first().isEmpty()) {
-          lines.subList(0, 2).joinToString("\n")
-        } else {
-          lines.first()
+        AcceptType.NEXT_LINE -> {
+          val lines = completionText.lines()
+          if (lines.size <= 1) {
+            completionText
+          } else if (lines.first().isEmpty()) {
+            lines.subList(0, 2).joinToString("\n")
+          } else {
+            lines.first()
+          }
         }
       }
-    }
-    renderer.current?.let {
-      telemetryEvent(EventParams.EventType.SELECT, it, type)
-    }
-    if (type == AcceptType.FULL_COMPLETION) {
-      current = null
-      renderer.hide()
-    } else {
-      current = context.withPartialAccepted(completionItem, text.length)
-    }
-    invokeLater {
-      WriteCommandAction.runWriteCommandAction(editor.project) {
-        editor.document.replaceString(originOffset, completionItem.replaceRange.end, text)
-        editor.caretModel.moveToOffset(originOffset + text.length)
+      renderer.current?.let {
+        telemetryEvent(EventParams.EventType.SELECT, it, type)
       }
-      renderCurrentResponse()
+      if (type == AcceptType.FULL_COMPLETION) {
+        current = null
+        renderer.hide()
+      } else {
+        current = context.withPartialAccepted(completionItem, text.length)
+      }
+      invokeLater {
+        WriteCommandAction.runWriteCommandAction(editor.project) {
+          editor.document.replaceString(originOffset, completionItem.replaceRange.end, text)
+          editor.caretModel.moveToOffset(originOffset + text.length)
+        }
+        renderCurrentResponse()
+      }
     }
   }
 
   fun dismiss() {
-    logger.debug("Dismiss inline completion.")
-    renderer.current?.let {
-      telemetryEvent(EventParams.EventType.DISMISS, it)
-      renderer.hide()
-    }
-    current?.let {
-      it.job.cancel()
-      publisher.loadingStateChanged(false)
-      current = null
+    synchronized(currentContextWriteLock) {
+      logger.debug("Dismiss inline completion.")
+      renderer.current?.let {
+        telemetryEvent(EventParams.EventType.DISMISS, it)
+        renderer.hide()
+      }
+      current?.let {
+        it.job.cancel()
+        project.safeSyncPublisher(Listener.TOPIC)?.loadingStateChanged(false)
+        current = null
+      }
     }
   }
 

@@ -33,11 +33,11 @@ class TextDocumentSync(private val project: Project) : Disposable {
       }
 
       override fun documentClosed(document: Document, editor: Editor) {
-        buildDidCloseTextDocumentParams(editor).let { server.textDocumentFeature.didClose(it) }
+        buildDidCloseTextDocumentParams(editor)?.let { server.textDocumentFeature.didClose(it) }
       }
 
       override fun documentChanged(document: Document, editor: Editor, event: DocumentEvent) {
-        buildDidChangeTextDocumentParams(editor, event).let { server.textDocumentFeature.didChange(it) }
+        buildDidChangeTextDocumentParams(editor, event)?.let { server.textDocumentFeature.didChange(it) }
       }
     })
   }
@@ -60,13 +60,15 @@ class TextDocumentSync(private val project: Project) : Disposable {
       )
     }
 
-    fun buildDidCloseTextDocumentParams(editor: Editor): DidCloseTextDocumentParams {
+    fun buildDidCloseTextDocumentParams(editor: Editor): DidCloseTextDocumentParams? {
+      val virtualFile = editor.virtualFile ?: return null
       return DidCloseTextDocumentParams(
-        TextDocumentIdentifier(editor.virtualFile.url)
+        TextDocumentIdentifier(virtualFile.url)
       )
     }
 
-    fun buildDidChangeTextDocumentParams(editor: Editor, event: DocumentEvent): DidChangeTextDocumentParams {
+    fun buildDidChangeTextDocumentParams(editor: Editor, event: DocumentEvent): DidChangeTextDocumentParams? {
+      val virtualFile = editor.virtualFile ?: return null
       val oldLines = event.oldFragment.lines()
       val startPosition = positionInDocument(editor.document, event.offset)
       val endPosition = Position(
@@ -75,7 +77,7 @@ class TextDocumentSync(private val project: Project) : Disposable {
       )
       return DidChangeTextDocumentParams(
         VersionedTextDocumentIdentifier(
-          editor.virtualFile.url,
+          virtualFile.url,
           editor.document.modificationStamp.toInt(),
         ), listOf(
           TextDocumentContentChangeEvent(
