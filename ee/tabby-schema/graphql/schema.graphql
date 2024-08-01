@@ -195,11 +195,16 @@ type FileEntrySearchResult {
   indices: [Int!]!
 }
 
+type GitReference {
+  name: String!
+  commit: String!
+}
+
 type GitRepository {
   id: ID!
   name: String!
   gitUrl: String!
-  refs: [String!]!
+  refs: [GitReference!]!
   jobInfo: JobInfo!
 }
 
@@ -378,7 +383,7 @@ type ProvidedRepository {
   vendorId: String!
   createdAt: DateTime!
   updatedAt: DateTime!
-  refs: [String!]!
+  refs: [GitReference!]!
   jobInfo: JobInfo!
 }
 
@@ -451,7 +456,7 @@ type Repository {
   name: String!
   kind: RepositoryKind!
   gitUrl: String!
-  refs: [String!]!
+  refs: [GitReference!]!
 }
 
 type RepositoryConnection {

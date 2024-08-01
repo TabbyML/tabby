@@ -22,7 +22,11 @@ import {
   setSelectedLines
 } from './line-menu-extension/line-menu-extension'
 import { SourceCodeBrowserContext } from './source-code-browser'
-import { parseLineNumberFromHash } from './utils'
+import {
+  generateEntryPath,
+  parseLineNumberFromHash,
+  viewModelToKind
+} from './utils'
 
 import './line-menu-extension/line-menu.css'
 
@@ -42,8 +46,13 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const endLineNumber = parseLineNumberFromHash(hash)?.end
   const [editorView, setEditorView] = React.useState<EditorView | null>(null)
 
-  const { isChatEnabled, activePath, activeEntryInfo, activeRepo } =
-    React.useContext(SourceCodeBrowserContext)
+  const {
+    isChatEnabled,
+    activePath,
+    activeEntryInfo,
+    activeRepo,
+    activeRepoRef
+  } = React.useContext(SourceCodeBrowserContext)
   const { basename } = activeEntryInfo
   const gitUrl = activeRepo?.gitUrl ?? ''
 
@@ -105,7 +114,16 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
     const onClickLineMenu = (data: LineMenuActionEventPayload) => {
       if (typeof lineNumber !== 'number') return
       if (data.action === 'copy_permalink') {
-        copyToClipboard(window.location.href)
+        const _link = generateEntryPath(
+          activeRepo,
+          activeRepoRef?.ref?.commit ?? activeRepoRef?.name,
+          activeEntryInfo.basename ?? '',
+          viewModelToKind(activeEntryInfo.viewMode)
+        )
+        const link = new URL(`${window.location.origin}/files/${_link}`)
+        link.hash = window.location.hash
+        link.search = window.location.search
+        copyToClipboard(link.toString())
         return
       }
       if (data.action === 'copy_line') {

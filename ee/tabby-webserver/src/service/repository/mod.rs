@@ -15,7 +15,7 @@ use tabby_schema::{
     integration::IntegrationService,
     job::JobService,
     repository::{
-        FileEntrySearchResult, GitRepositoryService, ProvidedRepository, Repository,
+        FileEntrySearchResult, GitReference, GitRepositoryService, ProvidedRepository, Repository,
         RepositoryKind, RepositoryService, ThirdPartyRepositoryService,
     },
     Result,
@@ -225,7 +225,7 @@ fn to_sub_match(m: tabby_git::GrepSubMatch) -> tabby_schema::repository::GrepSub
     }
 }
 
-fn list_refs(git_url: &str) -> Vec<String> {
+fn list_refs(git_url: &str) -> Vec<tabby_git::GitReference> {
     let dir = RepositoryConfig::new(git_url.to_owned()).dir();
     tabby_git::list_refs(&dir).unwrap_or_default()
 }
@@ -238,7 +238,13 @@ fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
         kind,
         dir: config.dir(),
         git_url: config.canonical_git_url(),
-        refs: list_refs(&repo.git_url),
+        refs: list_refs(&repo.git_url)
+            .into_iter()
+            .map(|r| GitReference {
+                name: r.name,
+                commit: r.commit,
+            })
+            .collect(),
     }
 }
 
@@ -248,7 +254,13 @@ fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> R
         name: config.dir_name(),
         kind: RepositoryKind::Git,
         dir: config.dir(),
-        refs: tabby_git::list_refs(&config.dir())?,
+        refs: tabby_git::list_refs(&config.dir())?
+            .into_iter()
+            .map(|r| GitReference {
+                name: r.name,
+                commit: r.commit,
+            })
+            .collect(),
         git_url: config.git_url.clone(),
     })
 }

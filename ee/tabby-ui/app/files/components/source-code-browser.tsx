@@ -8,7 +8,7 @@ import { ImperativePanelHandle } from 'react-resizable-panels'
 import useSWR from 'swr'
 
 import { graphql } from '@/lib/gql/generates'
-import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
+import { GitReference, RepositoryListQuery } from '@/lib/gql/generates/graphql'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { filename2prism } from '@/lib/language-utils'
@@ -36,7 +36,7 @@ import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
 import { mapToFileTree, sortFileTree, type TFileTreeNode } from './file-tree'
 import { FileTreePanel } from './file-tree-panel'
 import { TreeModeView } from './tree-mode-view'
-import type { FileDisplayType } from './types'
+import type { FileDisplayType, RepositoryRefKind } from './types'
 import {
   CodeBrowserError,
   generateEntryPath,
@@ -127,7 +127,11 @@ type SourceCodeBrowserContextValue = {
   isChatEnabled: boolean | undefined
   activeRepo: RepositoryItem | undefined
   activeRepoRef:
-    | { kind?: 'branch' | 'tag'; name?: string; ref: string }
+    | {
+        kind?: 'branch' | 'tag' | 'commit'
+        name?: string
+        ref: GitReference | undefined
+      }
     | undefined
   isPathInitialized: boolean
   activeEntryInfo: ReturnType<typeof resolveRepositoryInfoFromPath>
@@ -234,11 +238,22 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   const activeRepoRef = React.useMemo(() => {
     if (!activeEntryInfo || !activeRepo) return undefined
     const rev = activeEntryInfo?.rev ?? ''
-    const activeRepoRef = activeRepo.refs?.find(
-      ref => ref === `refs/heads/${rev}` || ref === `refs/tags/${rev}`
+    const _activeRepoRef = activeRepo.refs?.find(
+      ref =>
+        ref?.name === `refs/heads/${rev}` ||
+        ref?.name === `refs/tags/${rev}` ||
+        ref?.commit === rev
     )
-    if (activeRepoRef) {
-      return resolveRepoRef(activeRepoRef)
+    if (_activeRepoRef) {
+      let refKind: RepositoryRefKind | undefined
+      if (_activeRepoRef.name === `refs/heads/${rev}`) {
+        refKind = 'branch'
+      } else if (_activeRepoRef.name === `refs/tags/${rev}`) {
+        refKind = 'tag'
+      } else if (_activeRepoRef.commit === rev) {
+        refKind = 'commit'
+      }
+      return resolveRepoRef(_activeRepoRef, refKind)
     }
   }, [activeEntryInfo, activeRepo])
 
@@ -329,7 +344,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     repoMap,
     setRepoMap,
     activeRepo,
-    activeRepoRef,
     isPathInitialized,
     activeEntryInfo,
     prevActivePath,
@@ -394,7 +408,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }>(
     shouldFetchRawFile
       ? [
-          toEntryRequestUrl(activeRepo, activeRepoRef?.name, activeBasename),
+          toEntryRequestUrl(activeRepo, activeEntryInfo.rev, activeBasename),
           activeBasename
         ]
       : null,
@@ -474,7 +488,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         if (targetRepo) {
           // use default rev
           const defaultRef = getDefaultRepoRef(targetRepo.refs)
-          const refName = resolveRepoRef(defaultRef ?? '')?.name || ''
+          const refName = resolveRepoRef(defaultRef)?.name || ''
 
           const lineRangeInHash = parseLineNumberFromHash(window.location.hash)
           const isValidLineHash = !isNil(lineRangeInHash?.start)

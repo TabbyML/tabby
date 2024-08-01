@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use juniper::{GraphQLObject, ID};
 use tabby_common::config::RepositoryConfig;
 
-use super::RepositoryProvider;
+use super::{GitReference, RepositoryProvider};
 use crate::{
     integration::IntegrationKind, job::JobInfo, juniper::relay::NodeType, schema::Result, Context,
 };
@@ -19,7 +19,7 @@ pub struct ProvidedRepository {
     pub vendor_id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub refs: Vec<String>,
+    pub refs: Vec<GitReference>,
 
     pub job_info: JobInfo,
 }

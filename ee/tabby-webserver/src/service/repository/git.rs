@@ -6,7 +6,9 @@ use tabby_common::config::RepositoryConfig;
 use tabby_db::{DbConn, RepositoryDAO};
 use tabby_schema::{
     job::{JobInfo, JobService},
-    repository::{GitRepository, GitRepositoryService, Repository, RepositoryProvider},
+    repository::{
+        GitReference, GitRepository, GitRepositoryService, Repository, RepositoryProvider,
+    },
     AsID, AsRowid, Result,
 };
 
@@ -118,7 +120,14 @@ fn to_git_repository(repo: RepositoryDAO, job_info: JobInfo) -> GitRepository {
     GitRepository {
         id: repo.id.as_id(),
         name: repo.name,
-        refs: tabby_git::list_refs(&config.dir()).unwrap_or_default(),
+        refs: tabby_git::list_refs(&config.dir())
+            .unwrap_or_default()
+            .into_iter()
+            .map(|r| GitReference {
+                name: r.name,
+                commit: r.commit,
+            })
+            .collect(),
         git_url: repo.git_url,
         job_info,
     }

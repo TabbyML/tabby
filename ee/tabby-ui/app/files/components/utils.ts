@@ -1,9 +1,12 @@
 import { isNil, keyBy, map, trimEnd } from 'lodash-es'
 
 import {
+  GitReference,
   RepositoryKind,
   RepositoryListQuery
 } from '@/lib/gql/generates/graphql'
+
+import { RepositoryRefKind } from './types'
 
 export type ViewMode = 'tree' | 'blob' | 'search'
 type RepositoryItem = RepositoryListQuery['repositoryList'][0]
@@ -29,7 +32,7 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
   repositoryName?: string
   basename?: string
   repositorySpecifier?: string
-  viewMode?: string
+  viewMode?: ViewMode
   rev?: string
 } {
   const emptyResult = {}
@@ -164,24 +167,34 @@ function encodeURIComponentIgnoringSlash(str: string) {
     .join('/')
 }
 
-function resolveRepoRef(ref: string | undefined): {
-  kind?: 'branch' | 'tag'
+function resolveRepoRef(
+  ref: GitReference | undefined,
+  targetKind?: RepositoryRefKind
+): {
+  kind?: RepositoryRefKind
   name: string
-  ref: string
+  ref: GitReference | undefined
 } {
   if (!ref)
     return {
       name: '',
-      ref: ''
+      ref: undefined
     }
 
   const regx = /refs\/(\w+)\/(.*)/
-  const match = ref.match(regx)
+  const match = ref.name.match(regx)
   if (match) {
     const kind = match[1] === 'tags' ? 'tag' : 'branch'
     return {
-      kind,
+      kind: targetKind ?? kind,
       name: match[2],
+      ref
+    }
+  }
+  if (targetKind === 'commit') {
+    return {
+      kind: targetKind,
+      name: ref.commit,
       ref
     }
   }
@@ -191,23 +204,35 @@ function resolveRepoRef(ref: string | undefined): {
   }
 }
 
-function getDefaultRepoRef(refs: string[]) {
-  let mainRef: string | undefined
-  let masterRef: string | undefined
-  let firstHeadRef: string | undefined
-  let firstTagRef: string | undefined
+function getDefaultRepoRef(refs: GitReference[]) {
+  let mainRef: GitReference | undefined
+  let masterRef: GitReference | undefined
+  let firstHeadRef: GitReference | undefined
+  let firstTagRef: GitReference | undefined
   for (const ref of refs) {
-    if (ref === 'refs/heads/main') {
+    const { name } = ref
+    if (name === 'refs/heads/main') {
       mainRef = ref
-    } else if (ref === 'refs/heads/master') {
+    } else if (name === 'refs/heads/master') {
       masterRef = ref
-    } else if (!firstHeadRef && ref.startsWith('refs/heads/')) {
+    } else if (!firstHeadRef && name.startsWith('refs/heads/')) {
       firstHeadRef = ref
-    } else if (!firstTagRef && ref.startsWith('refs/tags/')) {
+    } else if (!firstTagRef && name.startsWith('refs/tags/')) {
       firstTagRef = ref
     }
   }
   return mainRef || masterRef || firstHeadRef || firstTagRef
+}
+
+function viewModelToKind(viewMode: ViewMode | undefined) {
+  if (viewMode === 'blob') return 'file'
+  return 'dir'
+}
+
+function kindToViewModel(kind: 'dir' | 'file' | 'search') {
+  if (kind === 'search') return 'search'
+  if (kind === 'file') return 'blob'
+  return 'tree'
 }
 
 function generateEntryPath(
@@ -218,8 +243,7 @@ function generateEntryPath(
   basename: string,
   kind: 'dir' | 'file' | 'search'
 ) {
-  const viewModeStr =
-    kind === 'file' ? 'blob' : kind === 'search' ? 'search' : 'tree'
+  const viewModeStr = kindToViewModel(kind)
   const specifier = resolveRepoSpecifierFromRepoInfo(repo)
   return `${specifier}/-/${viewModeStr}/${encodeURIComponent(
     rev ?? ''
@@ -289,5 +313,7 @@ export {
   generateEntryPath,
   toEntryRequestUrl,
   parseLineFromSearchParam,
-  parseLineNumberFromHash
+  parseLineNumberFromHash,
+  viewModelToKind,
+  kindToViewModel
 }

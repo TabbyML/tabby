@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use juniper::{GraphQLObject, ID};
 use validator::Validate;
 
-use super::RepositoryProvider;
+use super::{GitReference, RepositoryProvider};
 use crate::{
     job::JobInfo,
     juniper::relay::NodeType,
@@ -27,7 +27,7 @@ pub struct GitRepository {
     pub id: juniper::ID,
     pub name: String,
     pub git_url: String,
-    pub refs: Vec<String>,
+    pub refs: Vec<GitReference>,
 
     pub job_info: JobInfo,
 }
