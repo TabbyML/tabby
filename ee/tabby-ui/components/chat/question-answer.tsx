@@ -568,10 +568,10 @@ function ContextItem({
       <TooltipContent
         align="start"
         onClick={onTooltipClick}
-        className="p-2 cursor-pointer"
+        className="cursor-pointer p-2"
       >
         <div>
-          <div className="font-semibold mb-2">Scores</div>
+          <div className="mb-2 font-semibold">Scores</div>
           <div className="space-y-1">
             <div className="flex">
               <span className="w-20">rrf:</span>
