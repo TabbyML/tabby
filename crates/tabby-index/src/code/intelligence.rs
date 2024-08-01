@@ -15,7 +15,7 @@ pub use super::types::{Point, SourceCode, Tag};
 
 pub struct CodeIntelligence;
 
-const CHUNK_SIZE: usize = 256;
+const CHUNK_SIZE: usize = 1024;
 
 impl CodeIntelligence {
     fn find_tags(language: &str, content: &str) -> Vec<Tag> {
