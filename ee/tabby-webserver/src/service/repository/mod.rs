@@ -136,7 +136,7 @@ impl RepositoryService for RepositoryServiceImpl {
         if pattern.trim().is_empty() {
             return Ok(vec![]);
         }
-        let dir = self.resolve_repository(kind, id).await?.dir;
+        let dir = self.resolve_repository(kind, id).await?.dir();
 
         let pattern = pattern.to_owned();
         let matching = tabby_git::search_files(&dir, rev, &pattern, top_n)
@@ -167,7 +167,7 @@ impl RepositoryService for RepositoryServiceImpl {
             return Ok(vec![]);
         }
 
-        let dir = self.resolve_repository(kind, id).await?.dir;
+        let dir = self.resolve_repository(kind, id).await?.dir();
 
         let ret = tabby_git::grep(&dir, rev, query)
             .await?
@@ -232,25 +232,25 @@ fn list_refs(git_url: &str) -> Vec<String> {
 
 fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
     let config = RepositoryConfig::new(&repo.git_url);
-    Repository {
-        id: repo.id,
-        name: repo.display_name,
+    Repository::new(
+        repo.id,
+        repo.display_name,
         kind,
-        dir: config.dir(),
-        git_url: config.canonical_git_url(),
-        refs: list_refs(&repo.git_url),
-    }
+        config.dir(),
+        config.canonical_git_url(),
+        list_refs(&repo.git_url),
+    )
 }
 
 fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> Result<Repository> {
-    Ok(Repository {
-        id: ID::new(config_index_to_id(index)),
-        name: config.dir_name(),
-        kind: RepositoryKind::Git,
-        dir: config.dir(),
-        refs: tabby_git::list_refs(&config.dir())?,
-        git_url: config.git_url.clone(),
-    })
+    Ok(Repository::new(
+        ID::new(config_index_to_id(index)),
+        config.dir_name(),
+        RepositoryKind::Git,
+        config.dir(),
+        config.git_url.clone(),
+        tabby_git::list_refs(&config.dir())?,
+    ))
 }
 
 #[cfg(test)]

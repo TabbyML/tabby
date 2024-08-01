@@ -26,7 +26,7 @@ pub struct FileEntrySearchResult {
     pub indices: Vec<i32>,
 }
 
-#[derive(GraphQLEnum, Debug, Deserialize, Clone, Copy, PartialEq)]
+#[derive(GraphQLEnum, strum::Display, Debug, Deserialize, Clone, Copy, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum RepositoryKind {
     Git,
@@ -38,28 +38,65 @@ pub enum RepositoryKind {
 
 #[derive(GraphQLObject, Debug)]
 pub struct Repository {
-    pub id: ID,
-    pub name: String,
-    pub kind: RepositoryKind,
+    id: ID,
+    name: String,
+    kind: RepositoryKind,
 
     #[graphql(skip)]
-    pub dir: PathBuf,
+    dir: PathBuf,
 
-    pub git_url: String,
-    pub refs: Vec<String>,
+    git_url: String,
+    refs: Vec<String>,
+}
+
+impl Repository {
+    pub fn new(
+        id: ID,
+        name: String,
+        kind: RepositoryKind,
+        dir: PathBuf,
+        git_url: String,
+        refs: Vec<String>,
+    ) -> Self {
+        let id: ID = format!("{}:{}", RepositoryKind::Git, id).into();
+        Self {
+            id,
+            name,
+            kind,
+            dir,
+            git_url,
+            refs,
+        }
+    }
+
+    pub fn dir(&self) -> PathBuf {
+        self.dir.clone()
+    }
+
+    pub fn git_url(&self) -> &str {
+        &self.git_url
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn kind(&self) -> RepositoryKind {
+        self.kind
+    }
 }
 
 impl From<GitRepository> for Repository {
     fn from(value: GitRepository) -> Self {
         let config = RepositoryConfig::new(value.git_url);
-        Self {
-            id: value.id,
-            name: value.name,
-            kind: RepositoryKind::Git,
-            dir: config.dir(),
-            git_url: config.canonical_git_url(),
-            refs: value.refs,
-        }
+        Self::new(
+            value.id,
+            value.name,
+            RepositoryKind::Git,
+            config.dir(),
+            config.canonical_git_url(),
+            value.refs,
+        )
     }
 }
 
