@@ -31,7 +31,8 @@ import fetcher from '@/lib/tabby/fetcher'
 import {
   AnswerEngineExtraContext,
   AnswerRequest,
-  AnswerResponse
+  AnswerResponse,
+  ArrayElementType
 } from '@/lib/types'
 import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -97,11 +98,12 @@ interface Source {
 
 type ConversationMessage = Message & {
   relevant_code?: AnswerResponse['relevant_code']
-  relevant_documents?: {
-    title: string
-    link: string
-    snippet: string
-  }[]
+  relevant_documents?: AnswerResponse['relevant_documents']
+  // relevant_documents?: {
+  //   title: string
+  //   link: string
+  //   snippet: string
+  // }[]
   relevant_questions?: string[]
   code_query?: AnswerRequest['code_query']
   isLoading?: boolean
@@ -674,7 +676,7 @@ function AnswerBlock({
       })
       .trim()
     const citations = answer.relevant_documents
-      .map((relevent, idx) => `[${idx + 1}] ${relevent.link}`)
+      .map((relevent, idx) => `[${idx + 1}] ${relevent.doc.link}`)
       .join('\n')
     return `${content}\n\nCitations:\n${citations}`
   }
@@ -689,9 +691,10 @@ function AnswerBlock({
 
   const relevantCodeContexts: Context[] = useMemo(() => {
     return (
-      answer?.relevant_code?.map(code => {
-        const start_line = code?.start_line ?? 0
-        const lineCount = code.body.split('\n').length
+      answer?.relevant_code?.map(hit => {
+        const { scores, doc } = hit
+        const start_line = doc?.start_line ?? 0
+        const lineCount = doc.body.split('\n').length
         const end_line = start_line + lineCount - 1
 
         return {
@@ -700,9 +703,9 @@ function AnswerBlock({
             start: start_line,
             end: end_line
           },
-          filepath: code.filepath,
-          content: code.body,
-          git_url: code.git_url
+          filepath: doc.filepath,
+          content: doc.body,
+          git_url: doc.git_url
         }
       }) ?? []
     )
@@ -747,11 +750,11 @@ function AnswerBlock({
           >
             {answer.relevant_documents.map((source, index) => (
               <SourceCard
-                key={source.link + index}
+                key={source.doc.link + index}
                 conversationId={answer.id}
                 source={source}
                 showMore={showMoreSource}
-                // showDevTooltip={enableDev.value}
+                showDevTooltip={enableDeveloperMode.value}
               />
             ))}
           </div>
@@ -801,7 +804,7 @@ function AnswerBlock({
             className="mt-1 text-sm"
             onContextClick={onCodeContextClick}
             defaultOpen
-            // enableTooltip={enableDev.value}
+            enableTooltip={enableDeveloperMode.value}
           />
         )}
 
@@ -884,12 +887,12 @@ function SourceCard({
   showDevTooltip
 }: {
   conversationId: string
-  source: Source
+  source: ArrayElementType<AnswerResponse['relevant_documents']>
   showMore: boolean
   showDevTooltip?: boolean
 }) {
   const { setDevPanelOpen, setConversationIdForDev } = useContext(SearchContext)
-  const { hostname } = new URL(source.link)
+  const { hostname } = new URL(source.doc.link)
   const [devTooltipOpen, setDevTooltipOpen] = useState(false)
 
   const onOpenChange = (v: boolean) => {
@@ -918,12 +921,12 @@ function SourceCard({
               : `${SOURCE_CARD_STYLE.compress}rem`,
             transition: 'all 0.25s ease-out'
           }}
-          onClick={() => window.open(source.link)}
+          onClick={() => window.open(source.doc.link)}
         >
           <div className="flex flex-1 flex-col justify-between gap-y-1">
             <div className="flex flex-col gap-y-0.5">
               <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-                {source.title}
+                {source.doc.title}
               </p>
               <p
                 className={cn(
@@ -934,7 +937,7 @@ function SourceCard({
                   }
                 )}
               >
-                {normalizedText(source.snippet)}
+                {normalizedText(source.doc.snippet)}
               </p>
             </div>
             <div className="flex items-center text-xs text-muted-foreground">
@@ -954,8 +957,7 @@ function SourceCard({
         onClick={onTootipClick}
       >
         <div className="mb-2">Source info</div>
-        <p>Score: xxxx</p>
-        <p>Ranking: xxxx</p>
+        <p>Score: {source.score}</p>
       </TooltipContent>
     </Tooltip>
   )
@@ -968,7 +970,7 @@ function MessageMarkdown({
 }: {
   message: string
   headline?: boolean
-  sources?: Source[]
+  sources?: AnswerResponse['relevant_documents']
   relevant_code?: AnswerResponse['relevant_code']
 }) {
   const renderTextWithCitation = (nodeStr: string, index: number) => {
@@ -985,7 +987,7 @@ function MessageMarkdown({
             : null
           const source =
             citationIndex !== null ? sources?.[citationIndex - 1] : null
-          const sourceUrl = source ? new URL(source.link) : null
+          const sourceUrl = source ? new URL(source.doc.link) : null
           return (
             <span key={index}>
               {text && <span>{text}</span>}
@@ -994,7 +996,7 @@ function MessageMarkdown({
                   <HoverCardTrigger>
                     <span
                       className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
-                      onClick={() => window.open(source.link)}
+                      onClick={() => window.open(source.doc.link)}
                     >
                       {citationIndex}
                     </span>
@@ -1012,12 +1014,12 @@ function MessageMarkdown({
                       </div>
                       <p
                         className="m-0 cursor-pointer font-bold leading-none transition-opacity hover:opacity-70"
-                        onClick={() => window.open(source.link)}
+                        onClick={() => window.open(source.doc.link)}
                       >
-                        {source.title}
+                        {source.doc.title}
                       </p>
                       <p className="m-0 line-clamp-4 leading-none">
-                        {normalizedText(source.snippet)}
+                        {normalizedText(source.doc.snippet)}
                       </p>
                     </div>
                   </HoverCardContent>
