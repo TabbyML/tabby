@@ -95,7 +95,7 @@ export const SourceCodeSearchResult = ({
   const pathname = `/files/${generateEntryPath(
     activeRepo,
     activeEntryInfo.rev,
-    props.result.path,
+    result.path,
     'file'
   )}`
 

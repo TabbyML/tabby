@@ -57,8 +57,6 @@ type SearchOption = {
   id: string
 }
 
-type RepositoryRefKind = 'branch' | 'tag'
-
 const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   className,
   ...props
