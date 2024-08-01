@@ -57,7 +57,7 @@
         <toolWindow
                 id="Tabby"
                 anchor="right"
-                icon="/icons/chat.svg"
+                icon="com.tabbyml.intellijtabby.Icons.Chat"
                 factoryClass="com.tabbyml.intellijtabby.widgets.ChatToolWindowFactory" />
     </extensions>
 
@@ -118,7 +118,8 @@
             <separator/>
             <action id="Tabby.OpenChatToolWindow"
                     class="com.tabbyml.intellijtabby.actions.OpenChatToolWindow"
-                    text="Open Chat Tool Window..."
+                    icon="com.tabbyml.intellijtabby.Icons.Chat"
+                    text="Open Tabby Chat..."
                     description="Open a tool window to chat with Tabby.">
             </action>
             <separator/>
