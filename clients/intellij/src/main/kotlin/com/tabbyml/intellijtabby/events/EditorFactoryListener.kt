@@ -6,6 +6,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.CaretEvent
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.EditorFactoryEvent
+import com.tabbyml.intellijtabby.safeSyncPublisher
 
 class EditorFactoryListener : com.intellij.openapi.editor.event.EditorFactoryListener {
   private val logger = Logger.getInstance(EditorFactoryListener::class.java)
@@ -15,21 +16,19 @@ class EditorFactoryListener : com.intellij.openapi.editor.event.EditorFactoryLis
     logger.debug("EditorFactoryListener: editorCreated $event")
     val editor = event.editor
     val project = editor.project ?: return
-    val caretEventPublisher = project.messageBus.syncPublisher(CaretListener.TOPIC)
-    val documentEventPublisher = project.messageBus.syncPublisher(DocumentListener.TOPIC)
-    documentEventPublisher.documentOpened(editor.document, editor)
+    project.safeSyncPublisher(DocumentListener.TOPIC)?.documentOpened(editor.document, editor)
 
     val caretListener = object : com.intellij.openapi.editor.event.CaretListener {
       override fun caretPositionChanged(event: CaretEvent) {
         logger.debug("CaretListener: caretPositionChanged $editor $event")
-        caretEventPublisher.caretPositionChanged(editor, event)
+        project.safeSyncPublisher(CaretListener.TOPIC)?.caretPositionChanged(editor, event)
       }
     }
 
     val documentListener = object : com.intellij.openapi.editor.event.DocumentListener {
       override fun documentChanged(event: DocumentEvent) {
         logger.debug("DocumentListener: documentChanged $editor $event")
-        documentEventPublisher.documentChanged(editor.document, editor, event)
+        project.safeSyncPublisher(DocumentListener.TOPIC)?.documentChanged(editor.document, editor, event)
       }
     }
 
@@ -46,8 +45,7 @@ class EditorFactoryListener : com.intellij.openapi.editor.event.EditorFactoryLis
     logger.debug("EditorFactoryListener: editorReleased $event")
     val editor = event.editor
     val project = editor.project ?: return
-    val documentEventPublisher = project.messageBus.syncPublisher(DocumentListener.TOPIC)
-    documentEventPublisher.documentClosed(editor.document, editor)
+    project.safeSyncPublisher(DocumentListener.TOPIC)?.documentClosed(editor.document, editor)
 
     listeners[event.editor]?.dispose()
     listeners.remove(event.editor)

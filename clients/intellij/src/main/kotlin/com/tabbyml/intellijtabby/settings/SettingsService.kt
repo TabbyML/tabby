@@ -6,6 +6,7 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.project.Project
 import com.intellij.util.messages.Topic
+import com.tabbyml.intellijtabby.safeSyncPublisher
 
 @Service
 @State(
@@ -44,8 +45,7 @@ class SettingsService : SimplePersistentStateComponent<SettingsState>(SettingsSt
     }
 
   fun notifyChanges(project: Project) {
-    val publisher = project.messageBus.syncPublisher(Listener.TOPIC)
-    publisher.settingsChanged(settings())
+    project.safeSyncPublisher(Listener.TOPIC)?.settingsChanged(settings())
   }
 
   data class Settings(

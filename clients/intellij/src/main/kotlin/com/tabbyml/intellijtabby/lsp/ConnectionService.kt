@@ -14,6 +14,7 @@ import com.intellij.util.EnvironmentUtil
 import com.intellij.util.messages.Topic
 import com.tabbyml.intellijtabby.lsp.protocol.server.LanguageServer
 import com.tabbyml.intellijtabby.notifications.notifyInitializationFailed
+import com.tabbyml.intellijtabby.safeSyncPublisher
 import com.tabbyml.intellijtabby.settings.SettingsService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.await
@@ -30,7 +31,6 @@ import java.util.concurrent.TimeUnit
 @Service(Service.Level.PROJECT)
 class ConnectionService(private val project: Project) : Disposable {
   private val logger = Logger.getInstance(ConnectionService::class.java)
-  private val publisher = project.messageBus.syncPublisher(Listener.TOPIC)
   private val settings = service<SettingsService>()
   private val client = LanguageClient(project)
   private var process: Process? = null
@@ -61,7 +61,7 @@ class ConnectionService(private val project: Project) : Disposable {
   private suspend fun initialize(retry: Int = 0) {
     try {
       logger.info("Creating tabby-agent process...")
-      publisher.connectionStateChanged(State.INITIALIZING)
+      project.safeSyncPublisher(Listener.TOPIC)?.connectionStateChanged(State.INITIALIZING)
       val node = getNodeBinary()
       val script = getNodeScript()
       val options = "--stdio"
@@ -84,7 +84,7 @@ class ConnectionService(private val project: Project) : Disposable {
       val initializeResult = server.initialize(initializeParams).await()
       client.processInitializeResult(server, initializeResult)
       server.initialized(InitializedParams())
-      publisher.connectionStateChanged(State.READY)
+      project.safeSyncPublisher(Listener.TOPIC)?.connectionStateChanged(State.READY)
     } catch (e: InitializationException) {
       logger.warn("Failed to initialize connection.", e)
       if (retry < 5) {
@@ -95,7 +95,7 @@ class ConnectionService(private val project: Project) : Disposable {
         }
         initialize(retry + 1)
       } else {
-        publisher.connectionStateChanged(State.INITIALIZATION_FAILED)
+        project.safeSyncPublisher(Listener.TOPIC)?.connectionStateChanged(State.INITIALIZATION_FAILED)
         notifyInitializationFailed(e)
       }
     }
