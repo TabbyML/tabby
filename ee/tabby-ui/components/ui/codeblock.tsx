@@ -93,11 +93,11 @@ const CodeBlock: FC<Props> = memo(
                     onClick={onApplyInEditor.bind(null, value)}
                   >
                     <IconApplyInEditor />
-                    <span className="sr-only">Insert or Replace in editor</span>
+                    <span className="sr-only">Apply in Editor</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="m-0">Insert or Replace in editor</p>
+                  <p className="m-0">Apply in Editor</p>
                 </TooltipContent>
               </Tooltip>
             )}
@@ -110,7 +110,7 @@ const CodeBlock: FC<Props> = memo(
                   onClick={onCopy}
                 >
                   {isCopied ? <IconCheck /> : <IconCopy />}
-                  <span className="sr-only">Copy code</span>
+                  <span className="sr-only">Copy</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
