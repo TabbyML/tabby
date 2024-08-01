@@ -58,7 +58,7 @@
                 id="Tabby"
                 anchor="right"
                 icon="/icons/chat.svg"
-                factoryClass="com.tabbyml.intellijtabby.chat.TabbyToolWindowFactory" />
+                factoryClass="com.tabbyml.intellijtabby.widgets.ChatToolWindowFactory" />
     </extensions>
 
     <actions>
@@ -116,6 +116,12 @@
                 </action>
             </group>
             <separator/>
+            <action id="Tabby.OpenChatToolWindow"
+                    class="com.tabbyml.intellijtabby.actions.OpenChatToolWindow"
+                    text="Open Chat Tool Window..."
+                    description="Open a tool window to chat with Tabby.">
+            </action>
+            <separator/>
             <action id="Tabby.ToggleInlineCompletionTriggerMode"
                     class="com.tabbyml.intellijtabby.actions.ToggleInlineCompletionTriggerMode">
             </action>
@@ -159,6 +165,7 @@
 
         <group id="Tabby.StatusBarPopupMenu">
             <reference id="Tabby.CheckIssueDetail"/>
+            <reference id="Tabby.OpenChatToolWindow"/>
             <reference id="Tabby.OpenSettings"/>
             <reference id="Tabby.OpenOnlineHelp"/>
         </group>

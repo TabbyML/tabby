@@ -14,7 +14,6 @@ import com.intellij.util.ui.UIUtil
 import com.tabbyml.intellijtabby.lsp.ConnectionService
 import com.tabbyml.intellijtabby.lsp.LanguageClient
 import com.tabbyml.intellijtabby.lsp.protocol.Status
-import com.tabbyml.intellijtabby.settings.SettingsService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.await
@@ -24,41 +23,31 @@ import org.cef.handler.CefLoadHandlerAdapter
 import java.awt.Color
 import java.util.*
 
-class TabbyBrowser(private val project: Project) {
+class ChatBrowser(private val project: Project) {
   private var isChatPageDisplayed = false
-  private val browser: JBCefBrowser
   private val messageBusConnection = project.messageBus.connect()
   private val scope = CoroutineScope(Dispatchers.IO)
+  private val browser: JBCefBrowser = JBCefBrowser.createBuilder()
+    .setOffScreenRendering(true) // On Mac, setting false will leave a white flash when opening the window
+    .build()
 
   private suspend fun getServer() = project.serviceOrNull<ConnectionService>()?.getServerAsync()
 
   data class DisplayChatPageOptions(val force: Boolean = false)
 
   init {
-    val self = this
-
-    browser = JBCefBrowser.createBuilder()
-      .setOffScreenRendering(true) // On Mac, setting false will leave a white flash when opening the window
-      .build()
-
     messageBusConnection.subscribe(LanguageClient.AgentListener.TOPIC, object : LanguageClient.AgentListener {
       override fun agentStatusChanged(status: String) {
         if (status == Status.DISCONNECTED) {
-          self.displayDisconnectedPage()
+          displayDisconnectedPage()
         } else {
           scope.launch {
             val server = getServer() ?: return@launch
             val serverInfo = server.agentFeature.serverInfo().await()
-            self.displayChatPage(serverInfo.config.endpoint)
-            self.refreshChatPage()
+            displayChatPage(serverInfo.config.endpoint)
+            refreshChatPage()
           }
         }
-      }
-    })
-
-    messageBusConnection.subscribe(SettingsService.Listener.TOPIC, object : SettingsService.Listener {
-      override fun settingsChanged(settings: SettingsService.Settings) {
-        self.refreshChatPage()
       }
     })
 
@@ -88,7 +77,11 @@ class TabbyBrowser(private val project: Project) {
                   val functionName = commandArray[1].asString
                   when (functionName) {
                     "refresh" -> {
-                      this.displayChatPage("http://localhost:8080", DisplayChatPageOptions(force = true))
+                      scope.launch {
+                        val server = getServer() ?: return@launch
+                        val serverInfo = server.agentFeature.serverInfo().await()
+                        displayChatPage(serverInfo.config.endpoint, DisplayChatPageOptions(force = true))
+                      }
                     }
                   }
                 }
@@ -127,10 +120,11 @@ class TabbyBrowser(private val project: Project) {
 
     // FIXME: Implement web server health detection to display the disconnected page if the server is down.
     // Note: Currently, this.combinedState.state.agentStatus is always NOT_INITIALIZED at this point.
+    displayDisconnectedPage()
     scope.launch {
       val server = getServer() ?: return@launch
       val serverInfo = server.agentFeature.serverInfo().await()
-      self.displayChatPage(serverInfo.config.endpoint)
+      displayChatPage(serverInfo.config.endpoint)
     }
 
     Disposer.register(project, browser)
@@ -163,8 +157,7 @@ class TabbyBrowser(private val project: Project) {
     }
   }
 
-  fun displayChatPage(chatEndpoint: String, opts: DisplayChatPageOptions? = null) {
-    val endpoint = if (chatEndpoint.isBlank()) "http://localhost:8080" else chatEndpoint
+  fun displayChatPage(endpoint: String, opts: DisplayChatPageOptions? = null) {
     val cssContent = this::class.java.getResource("/styles/chat-panel.css")?.readText() ?: ""
 
     val theme = if (UIUtil.isUnderDarcula()) "dark" else "light"
