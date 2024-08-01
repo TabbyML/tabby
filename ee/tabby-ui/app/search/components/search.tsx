@@ -100,11 +100,6 @@ interface Source {
 type ConversationMessage = Message & {
   relevant_code?: AnswerResponse['relevant_code']
   relevant_documents?: AnswerResponse['relevant_documents']
-  // relevant_documents?: {
-  //   title: string
-  //   link: string
-  //   snippet: string
-  // }[]
   relevant_questions?: string[]
   code_query?: AnswerRequest['code_query']
   isLoading?: boolean
@@ -529,7 +524,8 @@ export function Search() {
                   'fixed bottom-5 left-0 z-30 flex min-h-[5rem] w-full flex-col items-center gap-y-2',
                   {
                     'opacity-100 translate-y-0': showSearchInput,
-                    'opacity-0 translate-y-10': !showSearchInput
+                    'opacity-0 translate-y-10': !showSearchInput,
+                    hidden: devPanelOpen
                   }
                 )}
                 style={Object.assign(
@@ -553,22 +549,20 @@ export function Search() {
                   <IconStop className="mr-2" />
                   Stop generating
                 </Button>
-                {!devPanelOpen && (
-                  <div
-                    className={cn(
-                      'relative z-20 flex justify-center self-stretch px-4'
-                    )}
-                  >
-                    <TextAreaSearch
-                      onSearch={onSubmitSearch}
-                      className="lg:max-w-4xl"
-                      placeholder="Ask a follow up question"
-                      isLoading={isLoading}
-                      isFollowup
-                      extraContext={extraContext}
-                    />
-                  </div>
-                )}
+                <div
+                  className={cn(
+                    'relative z-20 flex justify-center self-stretch px-4'
+                  )}
+                >
+                  <TextAreaSearch
+                    onSearch={onSubmitSearch}
+                    className="lg:max-w-4xl"
+                    placeholder="Ask a follow up question"
+                    isLoading={isLoading}
+                    isFollowup
+                    extraContext={extraContext}
+                  />
+                </div>
               </div>
             </main>
           </ResizablePanel>
@@ -760,6 +754,10 @@ function AnswerBlock({
             onContextClick={onCodeContextClick}
             defaultOpen
             enableTooltip={enableDeveloperMode.value}
+            onTooltipClick={() => {
+              setConversationIdForDev(answer.id)
+              setDevPanelOpen(true)
+            }}
           />
         )}
 
@@ -911,7 +909,6 @@ function SourceCard({
         className="cursor-pointer p-2"
         onClick={onTootipClick}
       >
-        <div className="mb-2">Source info</div>
         <p>Score: {source.score}</p>
       </TooltipContent>
     </Tooltip>

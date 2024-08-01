@@ -565,13 +565,26 @@ function ContextItem({
           </div>
         </div>
       </TooltipTrigger>
-      <TooltipContent align="start" onClick={onTooltipClick}>
+      <TooltipContent
+        align="start"
+        onClick={onTooltipClick}
+        className="p-2 cursor-pointer"
+      >
         <div>
           <div className="font-semibold mb-2">Scores</div>
           <div className="space-y-1">
-            <div>rrf: {scores?.bm25}</div>
-            <div>bm25: {scores?.bm25}</div>
-            <div>embedding: {scores?.embedding}</div>
+            <div className="flex">
+              <span className="w-20">rrf:</span>
+              {scores?.rrf}
+            </div>
+            <div className="flex">
+              <span className="w-20">bm25:</span>
+              {scores?.bm25}
+            </div>
+            <div className="flex">
+              <span className="w-20">embedding:</span>
+              {scores?.embedding}
+            </div>
           </div>
         </div>
       </TooltipContent>
