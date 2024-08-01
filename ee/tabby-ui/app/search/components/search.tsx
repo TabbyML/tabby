@@ -32,7 +32,8 @@ import {
   AnswerEngineExtraContext,
   AnswerRequest,
   AnswerResponse,
-  ArrayElementType
+  ArrayElementType,
+  RelevantCodeContext
 } from '@/lib/types'
 import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -228,39 +229,6 @@ export function Search() {
       return
     }
 
-    const latesConversation = sessionStorage.getItem(
-      SESSION_STORAGE_KEY.SEARCH_LATEST_MSG
-    )
-    const latestConversationContext = sessionStorage.getItem(
-      SESSION_STORAGE_KEY.SEARCH_LATEST_EXTRA_CONTEXT
-    )
-    if (latesConversation) {
-      const conversation = JSON.parse(
-        latesConversation
-      ) as ConversationMessage[]
-      setConversation(conversation)
-
-      if (latestConversationContext) {
-        const conversationContext = JSON.parse(
-          latestConversationContext
-        ) as AnswerEngineExtraContext
-        setExtraContext(conversationContext)
-      }
-
-      // Set title
-      if (conversation[0]) setTitle(conversation[0].content)
-
-      // Check if any answer is loading
-      const loadingIndex = conversation.findIndex(item => item.isLoading)
-      if (loadingIndex !== -1) {
-        const loadingAnswer = conversation[loadingIndex]
-        if (loadingAnswer) onRegenerateResponse(loadingAnswer.id, conversation)
-      }
-
-      setIsReady(true)
-      return
-    }
-
     router.replace('/')
   }, [])
 
@@ -353,22 +321,6 @@ export function Search() {
       if (isLoadingRef.current) stop()
     }
   }, [])
-
-  // Save conversation into sessionStorage
-  useEffect(() => {
-    sessionStorage.setItem(
-      SESSION_STORAGE_KEY.SEARCH_LATEST_MSG,
-      JSON.stringify(conversation)
-    )
-  }, [conversation])
-
-  // Save conversation context into sessionStorage
-  useEffect(() => {
-    sessionStorage.setItem(
-      SESSION_STORAGE_KEY.SEARCH_LATEST_EXTRA_CONTEXT,
-      JSON.stringify(extraContext)
-    )
-  }, [extraContext])
 
   useEffect(() => {
     if (devPanelOpen) {
@@ -689,7 +641,7 @@ function AnswerBlock({
       0.5 * Math.floor(answer.relevant_documents.length / 4)
     : 0
 
-  const relevantCodeContexts: Context[] = useMemo(() => {
+  const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
     return (
       answer?.relevant_code?.map(hit => {
         const { scores, doc } = hit
@@ -705,7 +657,10 @@ function AnswerBlock({
           },
           filepath: doc.filepath,
           content: doc.body,
-          git_url: doc.git_url
+          git_url: doc.git_url,
+          extra: {
+            scores
+          }
         }
       }) ?? []
     )

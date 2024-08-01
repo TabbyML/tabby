@@ -1,7 +1,7 @@
 // Inspired by Chatbot-UI and modified to fit the needs of this project
 // @see https://github.com/mckaywrigley/chatbot-ui/blob/main/components/Chat/ChatMessage.tsx
 
-import React, { ReactNode, useState } from 'react'
+import React, { useState } from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
 import { isNil } from 'lodash-es'
@@ -14,6 +14,7 @@ import { filename2prism } from '@/lib/language-utils'
 import {
   AssistantMessage,
   QuestionAnswerPair,
+  RelevantCodeContext,
   UserMessage
 } from '@/lib/types/chat'
 import { cn } from '@/lib/utils'
@@ -228,8 +229,8 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   const contexts: Array<Context> = React.useMemo(() => {
     return (
       message?.relevant_code?.map(code => {
-        const start_line = code?.start_line ?? 0
-        const lineCount = code.body.split('\n').length
+        const start_line = code.doc?.start_line ?? 0
+        const lineCount = code.doc.body.split('\n').length
         const end_line = start_line + lineCount - 1
 
         return {
@@ -238,9 +239,9 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
             start: start_line,
             end: end_line
           },
-          filepath: code.filepath,
-          content: code.body,
-          git_url: code.git_url
+          filepath: code.doc.filepath,
+          content: code.doc.body,
+          git_url: code.doc.git_url
         }
       }) ?? []
     )
@@ -441,10 +442,10 @@ function ChatMessageActionsWrapper({
 }
 
 interface ContextReferencesProps {
-  contexts: Context[]
-  userContexts?: Context[]
+  contexts: RelevantCodeContext[]
+  userContexts?: RelevantCodeContext[]
   className?: string
-  onContextClick?: (context: Context) => void
+  onContextClick?: (context: RelevantCodeContext) => void
   defaultOpen?: boolean
   enableTooltip?: boolean
   onTooltipClick?: () => void
@@ -493,15 +494,6 @@ export const CodeReferences = ({
                 context={item}
                 onContextClick={onContextClick}
                 enableTooltip={enableTooltip}
-                tooltipContent={
-                  enableTooltip ? (
-                    <div>
-                      <div className="mb-2">Code info</div>
-                      <p>Score: xxxx</p>
-                      <p>Ranking: xxxx</p>
-                    </div>
-                  ) : null
-                }
                 onTooltipClick={onTooltipClick}
               />
             )
@@ -517,14 +509,12 @@ function ContextItem({
   clickable = true,
   onContextClick,
   enableTooltip,
-  tooltipContent,
   onTooltipClick
 }: {
-  context: Context
+  context: RelevantCodeContext
   clickable?: boolean
-  onContextClick?: (context: Context) => void
+  onContextClick?: (context: RelevantCodeContext) => void
   enableTooltip?: boolean
-  tooltipContent?: ReactNode
   onTooltipClick?: () => void
 }) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
@@ -535,9 +525,9 @@ function ContextItem({
   const pathSegments = context.filepath.split('/')
   const fileName = pathSegments[pathSegments.length - 1]
   const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
-
+  const scores = context?.extra?.scores
   const onTooltipOpenChange = (v: boolean) => {
-    if (!enableTooltip || !tooltipContent) return
+    if (!enableTooltip || !scores) return
 
     setTooltipOpen(v)
   }
@@ -576,7 +566,14 @@ function ContextItem({
         </div>
       </TooltipTrigger>
       <TooltipContent align="start" onClick={onTooltipClick}>
-        {tooltipContent}
+        <div>
+          <div className="font-semibold mb-2">Scores</div>
+          <div className="space-y-1">
+            <div>rrf: {scores?.bm25}</div>
+            <div>bm25: {scores?.bm25}</div>
+            <div>embedding: {scores?.embedding}</div>
+          </div>
+        </div>
       </TooltipContent>
     </Tooltip>
   )
