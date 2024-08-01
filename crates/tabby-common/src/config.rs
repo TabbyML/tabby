@@ -232,7 +232,7 @@ pub struct HttpModelConfig {
     ///   - llama.cpp/embedding: llama.cpp `/embedding` API.
     pub kind: String,
 
-    pub api_endpoint: String,
+    pub api_endpoint: Option<String>,
 
     #[builder(default)]
     pub api_key: Option<String>,
@@ -248,9 +248,6 @@ pub struct HttpModelConfig {
     /// Used by Completion API to construct a chat model.
     #[builder(default)]
     pub chat_template: Option<String>,
-
-    #[builder(default)]
-    pub max_input_length: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

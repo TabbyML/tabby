@@ -4,9 +4,15 @@ use async_openai::config::OpenAIConfig;
 use tabby_common::config::HttpModelConfig;
 use tabby_inference::{ChatCompletionStream, ExtendedOpenAIConfig};
 
+use crate::create_reqwest_client;
+
 pub async fn create(model: &HttpModelConfig) -> Arc<dyn ChatCompletionStream> {
+    let api_endpoint = model
+        .api_endpoint
+        .as_deref()
+        .expect("api_endpoint is required");
     let config = OpenAIConfig::default()
-        .with_api_base(model.api_endpoint.clone())
+        .with_api_base(api_endpoint)
         .with_api_key(model.api_key.clone().unwrap_or_default());
 
     let mut builder = ExtendedOpenAIConfig::builder();
@@ -24,5 +30,8 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn ChatCompletionStream> {
 
     let config = builder.build().expect("Failed to build config");
 
-    Arc::new(async_openai::Client::with_config(config))
+    Arc::new(
+        async_openai::Client::with_config(config)
+            .with_http_client(create_reqwest_client(api_endpoint)),
+    )
 }

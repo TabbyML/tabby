@@ -4,9 +4,9 @@ import React, { useContext } from 'react'
 import { isNil } from 'lodash-es'
 import { useQuery } from 'urql'
 
-import { graphql } from '@/lib/gql/generates'
 import { GitReference, RepositoryKind } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
+import { repositorySearch } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -19,9 +19,6 @@ import {
 } from '@/components/ui/command'
 import {
   IconCheck,
-  IconClose,
-  IconDirectorySolid,
-  IconFile,
   IconFolderGit,
   IconGitFork,
   IconTag
@@ -39,13 +36,6 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  SearchableSelect,
-  SearchableSelectAnchor,
-  SearchableSelectContent,
-  SearchableSelectInput,
-  SearchableSelectOption
-} from '@/components/searchable-select'
 
 import { RepositoryKindIcon } from './repository-kind-icon'
 import { SourceCodeBrowserContext } from './source-code-browser'
@@ -67,20 +57,7 @@ type SearchOption = {
   id: string
 }
 
-const repositorySearch = graphql(/* GraphQL */ `
-  query RepositorySearch(
-    $kind: RepositoryKind!
-    $id: ID!
-    $rev: String
-    $pattern: String!
-  ) {
-    repositorySearch(kind: $kind, id: $id, rev: $rev, pattern: $pattern) {
-      type
-      path
-      indices
-    }
-  }
-`)
+type RepositoryRefKind = 'branch' | 'tag'
 
 const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   className,
@@ -235,11 +212,12 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
 
   return (
     <div className={cn(className)} {...props}>
-      <div className="py-4 font-bold leading-8" onClick={onClickFilesTitle}>
+      <div className="py-4 font-bold leading-8">
         <span
           className={cn('py-1', {
             'hover:underline cursor-pointer': !!activeRepo
           })}
+          onClick={onClickFilesTitle}
         >
           Files
         </span>
@@ -375,158 +353,10 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                 </Command>
               </PopoverContent>
             </Popover>
-            {/* Go to file */}
-            <SearchableSelect
-              stayOpenOnInputClick
-              options={options}
-              onSelect={onSelectFile}
-              open={optionsVisible}
-              onOpenChange={v => {
-                if ((input || options?.length) && v) {
-                  setOptionsVisible(true)
-                } else {
-                  setOptionsVisible(false)
-                }
-              }}
-            >
-              {({ highlightedIndex }) => {
-                return (
-                  <>
-                    <SearchableSelectAnchor>
-                      <div className="relative">
-                        <SearchableSelectInput
-                          className="pr-8"
-                          placeholder="Go to file"
-                          spellCheck={false}
-                          value={input}
-                          ref={inputRef}
-                          disabled={!repositoryName}
-                          onClick={e => {
-                            if (repositorySearchPattern && !optionsVisible) {
-                              setOptionsVisible(true)
-                            }
-                          }}
-                          onChange={e => {
-                            let value = e.target.value
-                            setInput(value)
-                            if (!value) {
-                              onClearInput()
-                            } else {
-                              onInputValueChange.run(value)
-                            }
-                          }}
-                        />
-                        <div className="absolute right-2 top-0 flex h-full items-center">
-                          {input ? (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 cursor-pointer"
-                              onClick={e => {
-                                setInput('')
-                                onClearInput()
-                                inputRef.current?.focus()
-                              }}
-                            >
-                              <IconClose />
-                            </Button>
-                          ) : (
-                            <kbd
-                              className="rounded-md border bg-secondary/50 px-1.5 text-xs leading-4 text-muted-foreground shadow-[inset_-0.5px_-1.5px_0_hsl(var(--muted))]"
-                              onClick={e => {
-                                inputRef.current?.focus()
-                              }}
-                            >
-                              t
-                            </kbd>
-                          )}
-                        </div>
-                      </div>
-                    </SearchableSelectAnchor>
-                    <SearchableSelectContent
-                      align="start"
-                      side="bottom"
-                      onOpenAutoFocus={e => e.preventDefault()}
-                      style={{ width: '50vw', maxWidth: 700 }}
-                      className="max-h-[50vh] overflow-y-auto"
-                    >
-                      <>
-                        {options?.length ? (
-                          options?.map((item, index) => (
-                            <SearchableSelectOption
-                              item={item}
-                              index={index}
-                              key={item?.id}
-                              className="flex w-full items-center gap-2 overflow-x-hidden"
-                            >
-                              <div className="shrink-0">
-                                {item.type === 'dir' ? (
-                                  <IconDirectorySolid
-                                    style={{ color: 'rgb(84, 174, 255)' }}
-                                  />
-                                ) : (
-                                  <IconFile />
-                                )}
-                              </div>
-                              <div className="flex-1 break-all">
-                                <HighlightMatches
-                                  text={item.path}
-                                  indices={item.indices}
-                                />
-                              </div>
-                              {highlightedIndex === index && (
-                                <div className="shrink-0`">
-                                  {item.type === 'dir'
-                                    ? 'Go to folder'
-                                    : 'Go to file'}
-                                </div>
-                              )}
-                            </SearchableSelectOption>
-                          ))
-                        ) : (
-                          <div className="flex h-24 items-center justify-center">
-                            No matches found
-                          </div>
-                        )}
-                      </>
-                    </SearchableSelectContent>
-                  </>
-                )
-              }}
-            </SearchableSelect>
           </>
         )}
       </div>
     </div>
-  )
-}
-
-const HighlightMatches = ({
-  text,
-  indices
-}: {
-  text: string
-  indices: number[]
-}) => {
-  const indicesSet = React.useMemo(() => {
-    return new Set(indices)
-  }, [indices])
-
-  return (
-    <p className="text-muted-foreground">
-      {text.split('').map((char, index) => {
-        return indicesSet.has(index) ? (
-          <span
-            className="font-semibold text-foreground"
-            key={`${char}_${index}`}
-          >
-            {char}
-          </span>
-        ) : (
-          char
-        )
-      })}
-    </p>
   )
 }
 

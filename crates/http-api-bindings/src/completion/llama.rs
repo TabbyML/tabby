@@ -5,6 +5,8 @@ use reqwest_eventsource::{Event, EventSource};
 use serde::{Deserialize, Serialize};
 use tabby_inference::{CompletionOptions, CompletionStream};
 
+use crate::create_reqwest_client;
+
 pub struct LlamaCppEngine {
     client: reqwest::Client,
     api_endpoint: String,
@@ -13,7 +15,7 @@ pub struct LlamaCppEngine {
 
 impl LlamaCppEngine {
     pub fn create(api_endpoint: &str, api_key: Option<String>) -> Self {
-        let client = reqwest::Client::new();
+        let client = create_reqwest_client(api_endpoint);
 
         Self {
             client,

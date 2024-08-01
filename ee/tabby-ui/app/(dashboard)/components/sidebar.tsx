@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import logoDarkUrl from '@/assets/logo-dark.png'
 import logoUrl from '@/assets/logo.png'
 import { cva } from 'class-variance-authority'
+import { escapeRegExp } from 'lodash-es'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { cn } from '@/lib/utils'
@@ -166,10 +167,6 @@ function shouldPathnameHighlight(
 ) {
   const regex = new RegExp(`^${escapeRegExp(pathToHighlight)}(/|\\?|$)`)
   return regex.test(currentPathname)
-}
-
-function escapeRegExp(string: String) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 interface SidebarCollapsibleProps {

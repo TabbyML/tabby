@@ -13,14 +13,23 @@ use tabby_inference::CompletionStream;
 pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
     match model.kind.as_str() {
         "llama.cpp/completion" => {
-            let engine = LlamaCppEngine::create(&model.api_endpoint, model.api_key.clone());
+            let engine = LlamaCppEngine::create(
+                model
+                    .api_endpoint
+                    .as_deref()
+                    .expect("api_endpoint is required"),
+                model.api_key.clone(),
+            );
             Arc::new(engine)
         }
         "ollama/completion" => ollama_api_bindings::create_completion(model).await,
 
         "mistral/completion" => {
             let engine = MistralFIMEngine::create(
-                &model.api_endpoint,
+                model
+                    .api_endpoint
+                    .as_deref()
+                    .expect("api_endpoint is required"),
                 model.api_key.clone(),
                 model.model_name.clone(),
             );
@@ -29,7 +38,10 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
         "openai/completion" => {
             let engine = OpenAICompletionEngine::create(
                 model.model_name.clone(),
-                &model.api_endpoint,
+                model
+                    .api_endpoint
+                    .as_deref()
+                    .expect("api_endpoint is required"),
                 model.api_key.clone(),
             );
             Arc::new(engine)

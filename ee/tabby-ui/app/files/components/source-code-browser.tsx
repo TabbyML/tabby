@@ -5,12 +5,11 @@ import { usePathname } from 'next/navigation'
 import { createRequest } from '@urql/core'
 import { compact, isEmpty, isNil, toNumber } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
-import useSWR, { SWRResponse } from 'swr'
+import useSWR from 'swr'
 
 import { graphql } from '@/lib/gql/generates'
 import {
   GitReference,
-  GrepFile,
   RepositoryListQuery
 } from '@/lib/gql/generates/graphql'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
@@ -83,19 +82,22 @@ type RepositoryItem = RepositoryListQuery['repositoryList'][0]
 const repositoryGrepQuery = graphql(/* GraphQL */ `
   query RepositoryGrep($id: ID!, $kind: RepositoryKind!, $query: String!) {
     repositoryGrep(kind: $kind, id: $id, query: $query) {
-      path
-      lines {
-        line {
-          text
-          base64
-        }
-        byteOffset
-        lineNumber
-        subMatches {
-          bytesStart
-          bytesEnd
+      files {
+        path
+        lines {
+          line {
+            text
+            base64
+          }
+          byteOffset
+          lineNumber
+          subMatches {
+            bytesStart
+            bytesEnd
+          }
         }
       }
+      elapsedMs
     }
   }
 `)
@@ -444,14 +446,11 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     data: repositoryGreps,
     isLoading: fetchingRepositoryGrep,
     error: repositoryGrepError
-  }: SWRResponse<{
-    greps: Array<GrepFile> | undefined
-    requestDuration: number
-  }> = useSWR(
+  } = useSWR(
     shouldFetchRepositoryGrep && searchQuery ? [activePath, searchQuery] : null,
     ([activePath, searchQuery]) => {
       const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
-      return fetchRepositoryGreps(
+      return fetchRepositoryGrep(
         searchQuery,
         repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined
       )
@@ -641,9 +640,10 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       <ResizablePanel defaultSize={80} minSize={30}>
         <div className="flex h-full flex-col">
           <CodeSearchBar
-            className={
+            className={cn(
+              'z-40',
               !!activeEntryInfo?.repositorySpecifier ? 'block' : 'hidden'
-            }
+            )}
           />
           <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
             {(isTreeMode || isBlobMode) && (
@@ -679,8 +679,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
                 )}
                 {isSearchMode && (
                   <CodeSearchResultView
-                    results={repositoryGreps?.greps}
-                    requestDuration={repositoryGreps?.requestDuration}
+                    results={repositoryGreps?.files}
+                    requestDuration={repositoryGreps?.elapsedMs}
                     loading={fetchingRepositoryGrep}
                   />
                 )}
@@ -829,14 +829,13 @@ async function fetchEntriesFromPath(
   return result
 }
 
-async function fetchRepositoryGreps(
+async function fetchRepositoryGrep(
   query: string,
   repository: RepositoryListQuery['repositoryList'][0] | undefined
 ) {
   if (!repository) {
     throw new Error(CodeBrowserError.REPOSITORY_NOT_FOUND)
   }
-  const startTime = Date.now()
   const result = client
     .query(repositoryGrepQuery, {
       id: repository.id,
@@ -851,10 +850,7 @@ async function fetchRepositoryGreps(
       throw new Error(CodeBrowserError.FAILED_TO_FETCH)
     }
 
-    return {
-      greps: res?.data?.repositoryGrep,
-      requestDuration: Date.now() - startTime
-    }
+    return res?.data?.repositoryGrep
   })
 }
 

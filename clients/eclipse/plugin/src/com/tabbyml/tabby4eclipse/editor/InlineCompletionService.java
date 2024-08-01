@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 import org.eclipse.core.resources.IFile;
@@ -18,10 +17,9 @@ import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.TextSelection;
 import org.eclipse.lsp4e.LSPEclipseUtils;
-import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.lsp4j.Position;
-import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
+import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.swt.custom.CaretEvent;
 import org.eclipse.swt.custom.CaretListener;
 import org.eclipse.swt.custom.StyledText;
@@ -32,11 +30,10 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.tabbyml.tabby4eclipse.Logger;
-import com.tabbyml.tabby4eclipse.editor.InlineCompletionItem.Range;
 import com.tabbyml.tabby4eclipse.lsp.LanguageServerService;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ILanguageServer;
-import com.tabbyml.tabby4eclipse.lsp.protocol.TextDocumentServiceExt;
 import com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionParams;
+import com.tabbyml.tabby4eclipse.lsp.protocol.TextDocumentServiceExt;
 
 public class InlineCompletionService {
 	public static InlineCompletionService getInstance() {
@@ -51,6 +48,8 @@ public class InlineCompletionService {
 	private Map<ITextEditor, CaretListener> caretListeners = new HashMap<>();
 	private Map<ITextEditor, IDocumentListener> documentListeners = new HashMap<>();
 	private InlineCompletionRenderer renderer = new InlineCompletionRenderer();
+	private TriggerEvent lastEvent;
+	private TriggerEvent pendingEvent;
 	private InlineCompletionContext current;
 
 	public void register(ITextEditor textEditor) {
@@ -106,25 +105,32 @@ public class InlineCompletionService {
 		}
 	}
 
-	public void provideInlineCompletion(ITextEditor textEditor, int offset) {
+	public void provideInlineCompletion(ITextEditor textEditor, int offset, int offsetInWidget) {
 		logger.debug("Provide inline completion for TextEditor " + textEditor.toString());
-		ITextViewer textViewer = (ITextViewer) textEditor.getAdapter(ITextViewer.class);
+		renderer.hide();
 		if (current != null) {
-			current.getJob().cancel(true);
+			if (current.job != null && !current.job.isDone()) {
+				current.job.cancel(true);
+			}
 			current = null;
 		}
+		
+		ITextViewer textViewer = (ITextViewer) textEditor.getAdapter(ITextViewer.class);
+		
 		InlineCompletionContext.Request request = new InlineCompletionContext.Request(textEditor, offset);
+		logger.debug("Request request: " + request.offset + "," + offsetInWidget);
 		InlineCompletionParams params = request.toInlineCompletionParams();
 		if (params == null) {
 			logger.debug("Failed to create InlineCompletionParams");
 			return;
 		}
-		logger.debug("Request params: " + params.toString());
-		Function<LanguageServer, CompletableFuture<com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionList>> jobFn = (server) -> {
+		Function<LanguageServer, CompletableFuture<com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionList>> jobFn = (
+				server) -> {
 			TextDocumentServiceExt textDocumentService = ((ILanguageServer) server).getTextDocumentServiceExt();
 			return textDocumentService.inlineCompletion(params);
 		};
-		CompletableFuture<com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionList> job = LanguageServerService.getInstance().getServer().execute(jobFn);
+		CompletableFuture<com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionList> job = LanguageServerService
+				.getInstance().getServer().execute(jobFn);
 		job.thenAccept((completionList) -> {
 			if (completionList == null || request != current.request) {
 				return;
@@ -132,7 +138,7 @@ public class InlineCompletionService {
 			try {
 				InlineCompletionList list = request.convertInlineCompletionList(completionList);
 				current.response = new InlineCompletionContext.Response(list);
-				renderer.show(textViewer, offset, current.response.getActiveCompletionItem());
+				renderer.show(textViewer, offsetInWidget, current.response.getActiveCompletionItem(), request.offset);
 			} catch (BadLocationException e) {
 				logger.error("Failed to show inline completion.", e);
 			}
@@ -144,25 +150,21 @@ public class InlineCompletionService {
 	public boolean isInlineCompletionVisible() {
 		return isInlineCompletionVisible(getActiveEditor());
 	}
-	
+
 	public boolean isInlineCompletionVisible(ITextEditor textEditor) {
 		ITextViewer textViewer = (ITextViewer) textEditor.getAdapter(ITextViewer.class);
-		return current != null
-				&& current.request != null
-				&& current.request.textEditor == textEditor
-				&& current.response != null
-				&& textViewer != null
-				&& textViewer == renderer.getCurrentTextViewer()
+		return current != null && current.request != null && current.request.textEditor == textEditor
+				&& current.response != null && textViewer != null && textViewer == renderer.getCurrentTextViewer()
 				&& renderer.getCurrentCompletionItem() != null
 				&& renderer.getCurrentCompletionItem() == current.response.getActiveCompletionItem();
 	}
-	
 
 	public void accept() {
 		accept(getActiveEditor());
 	}
-	
+
 	public void accept(ITextEditor textEditor) {
+		logger.debug("Accept inline completion in TextEditor " + textEditor.toString());
 		if (current == null || current.request == null || current.response == null) {
 			return;
 		}
@@ -170,14 +172,17 @@ public class InlineCompletionService {
 		IDocument document = LSPEclipseUtils.getDocument(textEditor.getEditorInput());
 		int offset = current.request.offset;
 		InlineCompletionItem item = current.response.getActiveCompletionItem();
-		
+
+		renderer.hide();
+		current = null;
+
 		int prefixReplaceLength = offset - item.getReplaceRange().getStart();
 		int suffixReplaceLength = item.getReplaceRange().getEnd() - offset;
 		String text = item.getInsertText().substring(prefixReplaceLength);
 		if (text.isEmpty()) {
-		    return;
+			return;
 		}
-		
+
 		textViewer.getTextWidget().getDisplay().syncExec(() -> {
 			try {
 				document.replace(offset, suffixReplaceLength, text);
@@ -187,95 +192,117 @@ public class InlineCompletionService {
 				logger.error("Failed to accept inline completion.", e);
 			}
 		});
-		
-		renderer.hide();
 	}
 
 	public void dismiss() {
+		logger.debug("Dismiss inline completion in current TextEditor.");
 		renderer.hide();
+		if (current != null) {
+			if (current.job != null && !current.job.isDone()) {
+				current.job.cancel(true);
+			}
+			current = null;
+		}
 	}
 
 	private void handleCaretMoved(ITextEditor textEditor, CaretEvent event) {
 		if (!isActiveEditor(textEditor)) {
 			return;
 		}
-		if (current != null && current.isMatch(textEditor, event.caretOffset)) {
-			return;
+		logger.debug("handleCaretMoved offset:" + event.caretOffset);
+		long modificationStamp = getDocumentModificationStamp(textEditor);
+		if (pendingEvent != null && pendingEvent.textEditor == textEditor) {
+			if (pendingEvent.documentEvent != null && pendingEvent.modificationStamp == modificationStamp) {
+				int offsetInWidget = event.caretOffset;
+				int offsetDelta = 0;
+				if (lastEvent != null && lastEvent.textEditor == pendingEvent.textEditor) {
+					offsetDelta = offsetInWidget - lastEvent.caretEvent.caretOffset;
+				}
+				int offset = getDocumentOffset(textEditor, pendingEvent.documentEvent, offsetDelta);
+				provideInlineCompletion(textEditor, offset, offsetInWidget);
+				pendingEvent.caretEvent = event;
+				lastEvent = pendingEvent;
+				pendingEvent = null;
+			} else {
+				pendingEvent.caretEvent = event;
+				pendingEvent.modificationStamp = modificationStamp;
+			}
 		} else {
 			dismiss();
 		}
 	}
 
 	private void handleDocumentAboutToBeChanged(ITextEditor textEditor, DocumentEvent event) {
+		if (!isActiveEditor(textEditor)) {
+			return;
+		}
+		logger.debug("handleDocumentAboutToBeChanged offset:" + event.getOffset());
+		pendingEvent = new TriggerEvent();
+		pendingEvent.textEditor = textEditor;
 	}
-	
+
 	private void handleDocumentChanged(ITextEditor textEditor, DocumentEvent event) {
 		if (!isActiveEditor(textEditor)) {
 			return;
 		}
-		if (event.getLength() == 0 || event.getText().isEmpty()) {
-			// A input or delete action
-			dismiss();
-			provideInlineCompletion(textEditor, event.getOffset() + event.getText().length());
+		logger.debug("handleDocumentChanged offset:" + event.getOffset());
+		long modificationStamp = getDocumentModificationStamp(textEditor);
+		if (pendingEvent != null && pendingEvent.textEditor == textEditor) {
+			if (pendingEvent.caretEvent != null && pendingEvent.modificationStamp == modificationStamp) {
+				int offsetInWidget = pendingEvent.caretEvent.caretOffset;
+				int offsetDelta = 0;
+				if (lastEvent != null && lastEvent.textEditor == pendingEvent.textEditor) {
+					offsetDelta = offsetInWidget - lastEvent.caretEvent.caretOffset;
+				}
+				int offset = getDocumentOffset(textEditor, event, offsetDelta);
+				provideInlineCompletion(textEditor, offset, offsetInWidget);
+				pendingEvent.documentEvent = event;
+				lastEvent = pendingEvent;
+				pendingEvent = null;
+			} else {
+				pendingEvent.documentEvent = event;
+				pendingEvent.modificationStamp = modificationStamp;
+			}
 		}
 	}
-	
+
 	private ITextEditor getActiveEditor() {
 		IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
 		if (window != null) {
 			IWorkbenchPage page = window.getActivePage();
 			if (page != null) {
 				IEditorPart activeEditor = page.getActiveEditor();
-				if (activeEditor instanceof ITextEditor) {
-					return (ITextEditor)activeEditor;
+				if (activeEditor instanceof ITextEditor textEditor) {
+					return textEditor;
 				}
 			}
 		}
 		return null;
 	}
-	
+
 	private boolean isActiveEditor(ITextEditor textEditor) {
 		return textEditor == getActiveEditor();
+	}
+	
+	private class TriggerEvent {
+		private ITextEditor textEditor;
+		private long modificationStamp;
+		private DocumentEvent documentEvent;
+		private CaretEvent caretEvent;
 	}
 
 	private class InlineCompletionContext {
 		private static class Request {
 			private ITextEditor textEditor;
 			private IDocument document;
-			private long modificationStamp;
 			private int offset;
 			private boolean manually;
 
-			public Request(ITextEditor textEditor) {
-				this(textEditor, textEditor.getAdapter(ITextViewer.class).getTextWidget().getCaretOffset());
-			}
-			
 			public Request(ITextEditor textEditor, int offset) {
 				this.textEditor = textEditor;
 				this.document = LSPEclipseUtils.getDocument(textEditor.getEditorInput());
-				this.modificationStamp = getDocumentModificationStamp(document);
 				this.offset = offset;
 				this.manually = false;
-			}
-
-			public ITextEditor getTextEditor() {
-				return textEditor;
-			}
-
-			public IDocument getDocument() {
-				return document;
-			}
-
-			public long getModificationStamp() {
-				return modificationStamp;
-			}
-
-			public int getOffset() {
-				return offset;
-			}
-
-			public boolean isManually() {
-				return manually;
 			}
 
 			private Logger logger = new Logger("toInlineCompletionParams");
@@ -321,14 +348,6 @@ public class InlineCompletionService {
 				this.itemIndex = 0;
 			}
 
-			public InlineCompletionList getCompletionList() {
-				return completionList;
-			}
-
-			public int getItemIndex() {
-				return itemIndex;
-			}
-
 			public InlineCompletionItem getActiveCompletionItem() {
 				if (itemIndex >= 0 && itemIndex < completionList.getItems().size()) {
 					return completionList.getItems().get(itemIndex);
@@ -341,41 +360,33 @@ public class InlineCompletionService {
 		private CompletableFuture<com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionList> job;
 		private Response response;
 
-		public InlineCompletionContext(Request request, CompletableFuture<com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionList> job, Response response) {
+		public InlineCompletionContext(Request request,
+				CompletableFuture<com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionList> job, Response response) {
 			this.request = request;
 			this.job = job;
 			this.response = response;
 		}
+	}
 
-		public Request getRequest() {
-			return request;
+	private static int getDocumentOffset(ITextEditor textEditor, DocumentEvent event, int delta) {
+		int newLength = event.getText().length();
+		if (newLength >= 2 && delta > 0) {
+			return event.getOffset() + delta;
+		} else {
+			return event.getOffset() + event.getText().length();
 		}
-
-		public CompletableFuture<com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionList> getJob() {
-			return job;
-		}
-
-		public Response getResponse() {
-			return response;
-		}
-
-		public boolean isMatch(ITextEditor textEditor, int offset) {
-			IDocument document = LSPEclipseUtils.getDocument(textEditor.getEditorInput());
-			long modificationStamp = getDocumentModificationStamp(document);
-			return request.textEditor == textEditor && request.document == document
-					&& request.modificationStamp == modificationStamp && request.offset == offset;
-		}
-
-		private static long getDocumentModificationStamp(IDocument document) {
-			if (document instanceof IDocumentExtension4 ext) {
-				return ext.getModificationStamp();
-			} else if (document != null) {
-				IFile file = LSPEclipseUtils.getFile(document);
-				if (file != null) {
-					return file.getModificationStamp();
-				}
+	}
+	
+	private static long getDocumentModificationStamp(ITextEditor textEditor) {
+		IDocument document = LSPEclipseUtils.getDocument(textEditor.getEditorInput());
+		if (document instanceof IDocumentExtension4 documentExt) {
+			return documentExt.getModificationStamp();
+		} else if (document != null) {
+			IFile file = LSPEclipseUtils.getFile(document);
+			if (file != null) {
+				return file.getModificationStamp();
 			}
-			return IDocumentExtension4.UNKNOWN_MODIFICATION_STAMP;
 		}
+		return IDocumentExtension4.UNKNOWN_MODIFICATION_STAMP;
 	}
 }
