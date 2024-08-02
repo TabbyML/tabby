@@ -67,7 +67,7 @@ jobs:
           arguments: buildPlugin
           build-root-directory: clients/intellij
           
-      - name: Upload Plugin and Verifier Reports
+      - name: Upload Plugin
         uses: actions/upload-artifact@v4
         with:
           retention-days: 1
