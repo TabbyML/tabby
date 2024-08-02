@@ -46,7 +46,7 @@ pub async fn index_repository(embedding: Arc<dyn Embedding>, repository: &Reposi
         count_files += files.len();
         count_chunks += add_changed_documents(repository, embedding.clone(), files).await;
         logkit::info!(
-            "{}/{} files has been processed, {} docs has been indexed",
+            "{}/{} files has been processed, {} has been indexed",
             count_files,
             total_files,
             count_chunks

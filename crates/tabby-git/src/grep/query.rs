@@ -52,11 +52,16 @@ impl GrepQuery {
         let file_pattern_matcher = if self.file_patterns.is_empty() {
             vec![]
         } else {
-            let mut matcher = vec![];
+            let mut matchers = vec![];
             for p in &self.file_patterns {
-                matcher.push(RegexMatcher::new_line_matcher(p)?);
+                let case_insensitive = !has_uppercase_literal(p);
+                let matcher = RegexMatcherBuilder::new()
+                    .case_insensitive(case_insensitive)
+                    .line_terminator(Some(b'\n'))
+                    .build(p)?;
+                matchers.push(matcher);
             }
-            matcher
+            matchers
         };
 
         let negative_file_pattern_matcher = if self.negative_file_patterns.is_empty() {
