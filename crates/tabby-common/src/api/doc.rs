@@ -7,6 +7,7 @@ pub struct DocSearchResponse {
     pub hits: Vec<DocSearchHit>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
 pub struct DocSearchHit {
     pub score: f32,
     pub doc: DocSearchDocument,

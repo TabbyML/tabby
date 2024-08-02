@@ -7,49 +7,15 @@ use async_openai::types::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
-use serde::{Deserialize, Serialize};
 use tabby_common::api::{
-    code::{CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchQuery},
-    doc::{DocSearch, DocSearchDocument, DocSearchError},
+    answer::{AnswerRequest, AnswerResponseChunk},
+    code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchQuery},
+    doc::{DocSearch, DocSearchError, DocSearchHit},
 };
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{repository::RepositoryService, web_crawler::WebCrawlerService};
 use tracing::{debug, warn};
-use utoipa::ToSchema;
 
-#[derive(Deserialize, ToSchema)]
-#[schema(example=json!({
-    "messages": [
-        ChatCompletionRequestUserMessageArgs::default().content("What is tail recursion?".to_owned()).build().unwrap(),
-    ],
-}))]
-pub struct AnswerRequest {
-    #[serde(default)]
-    pub(crate) user: Option<String>,
-
-    messages: Vec<ChatCompletionRequestMessage>,
-
-    #[serde(default)]
-    code_query: Option<CodeSearchQuery>,
-
-    #[serde(default)]
-    doc_query: bool,
-
-    #[serde(default)]
-    generate_relevant_questions: bool,
-
-    #[serde(default)]
-    collect_relevant_code_using_user_message: bool,
-}
-
-#[derive(Serialize, ToSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum AnswerResponseChunk {
-    RelevantCode(Vec<CodeSearchDocument>),
-    RelevantDocuments(Vec<DocSearchDocument>),
-    RelevantQuestions(Vec<String>),
-    AnswerDelta(String),
-}
 pub struct AnswerService {
     chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
@@ -184,8 +150,8 @@ impl AnswerService {
         Box::pin(s)
     }
 
-    async fn collect_relevant_code(&self, query: CodeSearchQuery) -> Vec<CodeSearchDocument> {
-        let hits = match self.code.search_in_language(query, 20).await {
+    async fn collect_relevant_code(&self, query: CodeSearchQuery) -> Vec<CodeSearchHit> {
+        match self.code.search_in_language(query, 20).await {
             Ok(docs) => docs.hits,
             Err(err) => {
                 if let CodeSearchError::NotReady = err {
@@ -195,24 +161,14 @@ impl AnswerService {
                 }
                 vec![]
             }
-        };
-
-        hits.into_iter()
-            .inspect(|hit| {
-                debug!(
-                    "Code search hit: {:?}, score {:?}",
-                    hit.doc.filepath, hit.scores
-                )
-            })
-            .map(|hit| hit.doc)
-            .collect()
+        }
     }
 
     async fn collect_relevant_docs(
         &self,
         code_query_git_url: Option<&str>,
         content: &str,
-    ) -> Vec<DocSearchDocument> {
+    ) -> Vec<DocSearchHit> {
         let source_ids = {
             // 1. By default only web sources are considered.
             let mut source_ids: Vec<_> = self
@@ -265,27 +221,24 @@ impl AnswerService {
             hits.extend(serper_hits);
         }
 
-        hits.into_iter()
-            .inspect(|hit| debug!("Doc search hit: {:?}, score {:?}", hit.doc.link, hit.score))
-            .map(|hit| hit.doc)
-            .collect()
+        hits
     }
 
     async fn generate_relevant_questions(
         &self,
-        relevant_code: &[CodeSearchDocument],
-        relevant_docs: &[DocSearchDocument],
+        relevant_code: &[CodeSearchHit],
+        relevant_docs: &[DocSearchHit],
         question: &str,
     ) -> Vec<String> {
         let snippets: Vec<String> = relevant_code
             .iter()
-            .map(|doc| {
+            .map(|hit| {
                 format!(
                     "```{} title=\"{}\"\n{}\n```",
-                    doc.language, doc.filepath, doc.body
+                    hit.doc.language, hit.doc.filepath, hit.doc.body
                 )
             })
-            .chain(relevant_docs.iter().map(|doc| doc.snippet.to_owned()))
+            .chain(relevant_docs.iter().map(|hit| hit.doc.snippet.to_owned()))
             .collect();
 
         let context: String = snippets.join("\n\n");
@@ -348,19 +301,19 @@ Remember, based on the original question and related contexts, suggest three suc
 
     async fn generate_prompt(
         &self,
-        relevant_code: &[CodeSearchDocument],
-        relevant_docs: &[DocSearchDocument],
+        relevant_code: &[CodeSearchHit],
+        relevant_docs: &[DocSearchHit],
         question: &str,
     ) -> String {
         let snippets: Vec<String> = relevant_code
             .iter()
-            .map(|doc| {
+            .map(|hit| {
                 format!(
                     "```{} title=\"{}\"\n{}\n```",
-                    doc.language, doc.filepath, doc.body
+                    hit.doc.language, hit.doc.filepath, hit.doc.body
                 )
             })
-            .chain(relevant_docs.iter().map(|doc| doc.snippet.to_owned()))
+            .chain(relevant_docs.iter().map(|hit| hit.doc.snippet.to_owned()))
             .collect();
 
         let citations: Vec<String> = snippets

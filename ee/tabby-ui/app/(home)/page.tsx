@@ -85,8 +85,6 @@ function MainPanel() {
 
   const onSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
     setIsLoading(true)
-    sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_LATEST_MSG)
-    sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_LATEST_EXTRA_CONTEXT)
     sessionStorage.setItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG, question)
     sessionStorage.setItem(
       SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT,
