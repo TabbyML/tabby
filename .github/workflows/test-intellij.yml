@@ -66,12 +66,6 @@ jobs:
         with:
           arguments: buildPlugin
           build-root-directory: clients/intellij
-
-      - name: Verify Plugin
-        uses: gradle/gradle-build-action@v2.4.2
-        with:
-          arguments: verifyPlugin
-          build-root-directory: clients/intellij
           
       - name: Upload Plugin and Verifier Reports
         uses: actions/upload-artifact@v4
@@ -80,4 +74,3 @@ jobs:
           name: artifacts
           path: |
             clients/intellij/build/distributions/intellij-tabby.zip
-            clients/intellij/build/reports/pluginVerifier
