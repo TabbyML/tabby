@@ -162,7 +162,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
             isOpen: true
           }
         case useCombobox.stateChangeTypes.InputKeyDownArrowDown: {
-          if (!repositorySearchOptions?.length) return changes
+          if (!repositorySearchOptions?.length || !_state.isOpen) return changes
           const isLastItemHighlighted =
             _state.highlightedIndex === repositorySearchOptions.length - 1
           return {
@@ -173,7 +173,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
           }
         }
         case useCombobox.stateChangeTypes.InputKeyDownArrowUp: {
-          if (!repositorySearchOptions?.length) return changes
+          if (!repositorySearchOptions?.length || !_state.isOpen) return changes
           const isFirstItemHighlighted = _state.highlightedIndex === 0
           return {
             ...changes,
