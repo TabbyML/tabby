@@ -161,6 +161,27 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
             highlightedIndex: undefined,
             isOpen: true
           }
+        case useCombobox.stateChangeTypes.InputKeyDownArrowDown: {
+          if (!repositorySearchOptions?.length || !_state.isOpen) return changes
+          const isLastItemHighlighted =
+            _state.highlightedIndex === repositorySearchOptions.length - 1
+          return {
+            ...changes,
+            highlightedIndex: isLastItemHighlighted
+              ? undefined
+              : changes.highlightedIndex
+          }
+        }
+        case useCombobox.stateChangeTypes.InputKeyDownArrowUp: {
+          if (!repositorySearchOptions?.length || !_state.isOpen) return changes
+          const isFirstItemHighlighted = _state.highlightedIndex === 0
+          return {
+            ...changes,
+            highlightedIndex: isFirstItemHighlighted
+              ? undefined
+              : changes.highlightedIndex
+          }
+        }
         default:
           return changes
       }
