@@ -1,27 +1,29 @@
+// Configure Gradle IntelliJ Plugin
+// Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
+
 plugins {
   id("java")
-  id("org.jetbrains.kotlin.jvm") version "1.8.21"
-  id("org.jetbrains.intellij") version "1.17.4"
+  id("org.jetbrains.kotlin.jvm") version "1.9.25"
+  id("org.jetbrains.intellij.platform") version "2.0.0"
   id("org.jetbrains.changelog") version "2.2.0"
 }
 
-group = "com.tabbyml"
-version = "1.7.0-dev"
-
 repositories {
   mavenCentral()
+  intellijPlatform {
+    defaultRepositories()
+  }
 }
 
 dependencies {
+  intellijPlatform {
+    intellijIdeaCommunity("2023.1")
+    bundledPlugins(listOf("Git4Idea"))
+    pluginVerifier()
+    zipSigner()
+    instrumentationTools()
+  }
   implementation("org.eclipse.lsp4j:org.eclipse.lsp4j:0.23.1")
-}
-
-// Configure Gradle IntelliJ Plugin
-// Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
-intellij {
-  version.set("2023.1")
-  type.set("IC") // Target IDE Platform
-  plugins.set(listOf("Git4Idea"))
 }
 
 tasks {
@@ -34,15 +36,34 @@ tasks {
     kotlinOptions.jvmTarget = "17"
   }
 
-  patchPluginXml {
-    sinceBuild.set("231")
-    untilBuild.set("241.*")
-    changeNotes.set(provider {
-      changelog.renderItem(
-        changelog.getLatest(),
-        org.jetbrains.changelog.Changelog.OutputType.HTML
-      )
-    })
+  intellijPlatform {
+    pluginConfiguration {
+      version.set("1.7.0-dev")
+      changeNotes.set(provider {
+        changelog.renderItem(
+          changelog.getLatest(),
+          org.jetbrains.changelog.Changelog.OutputType.HTML
+        )
+      })
+      ideaVersion {
+        sinceBuild.set("231")
+        untilBuild.set("242.*")
+      }
+    }
+    pluginVerification {
+      ides {
+        recommended()
+      }
+    }
+    signing {
+      certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
+      privateKey.set(System.getenv("PRIVATE_KEY"))
+      password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
+    }
+    publishing {
+      token.set(System.getenv("PUBLISH_TOKEN"))
+      channels.set(listOf(System.getenv("PUBLISH_CHANNEL")))
+    }
   }
 
   register("buildAgent") {
@@ -61,17 +82,6 @@ tasks {
     ) {
       into("intellij-tabby/tabby-agent/")
     }
-  }
-
-  signPlugin {
-    certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
-    privateKey.set(System.getenv("PRIVATE_KEY"))
-    password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
-  }
-
-  publishPlugin {
-    token.set(System.getenv("PUBLISH_TOKEN"))
-    channels.set(listOf("alpha"))
   }
 }
 
