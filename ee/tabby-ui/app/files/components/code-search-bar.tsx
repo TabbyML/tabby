@@ -268,7 +268,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
           </div>
           {!query && (
             <div
-              className="absolute left-3 top-1.5 select-none text-muted-foreground cursor-text"
+              className="absolute left-3 top-1.5 cursor-text select-none text-muted-foreground"
               onClick={e => {
                 e.preventDefault()
                 inputRef.current?.focus()
@@ -308,7 +308,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
         {isOpen && (
           <div
             className={cn(
-              'absolute -inset-x-3 -top-2.5 flex max-h-[60vh] flex-col overflow-hidden rounded-lg border bg-background dark:bg-[hsl(0,0,13.5%)] dark:border-[#33363c] dark:border-2 p-4 shadow-2xl',
+              'absolute -inset-x-3 -top-2.5 flex max-h-[60vh] flex-col overflow-hidden rounded-lg border bg-background p-4 shadow-2xl dark:border-2 dark:border-[#33363c] dark:bg-[hsl(0,0,13.5%)]',
               {
                 'pb-0.5': noOptions
               }
