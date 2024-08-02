@@ -8,7 +8,6 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.PluginId
-import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.util.EnvironmentUtil
 import com.intellij.util.messages.Topic
@@ -89,10 +88,7 @@ class ConnectionService(private val project: Project) : Disposable {
       logger.warn("Failed to initialize connection.", e)
       if (retry < 5) {
         val initRetryDelay: Long = 1000
-        @Suppress("UnstableApiUsage")
-        runBlockingCancellable {
-          delay(initRetryDelay)
-        }
+        delay(initRetryDelay)
         initialize(retry + 1)
       } else {
         project.safeSyncPublisher(Listener.TOPIC)?.connectionStateChanged(State.INITIALIZATION_FAILED)
