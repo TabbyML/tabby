@@ -38,10 +38,10 @@ class InlineCompletionService(private val project: Project) : Disposable {
   private val messageBusConnection = project.messageBus.connect()
   private val editorManager = FileEditorManager.getInstance(project)
   private val scope = CoroutineScope(Dispatchers.IO)
-  private suspend fun getServer() = project.serviceOrNull<ConnectionService>()?.getServerAsync()
-
   private val settings = service<SettingsService>()
   private val renderer = InlineCompletionRenderer()
+
+  private suspend fun getServer() = project.serviceOrNull<ConnectionService>()?.getServerAsync()
 
   data class InlineCompletionContext(
     val request: Request,
@@ -109,6 +109,8 @@ class InlineCompletionService(private val project: Project) : Disposable {
 
   private var current: InlineCompletionContext? = null
   private var currentContextWriteLock = Object()
+  private var shouldAutoTrigger: Boolean
+  private var documentChangedListenerJob: Job? = null
 
   fun isInlineCompletionVisibleAt(editor: Editor, offset: Int): Boolean =
     renderer.current?.editor == editor && renderer.current?.offset == offset
@@ -128,25 +130,23 @@ class InlineCompletionService(private val project: Project) : Disposable {
     logger.debug("Initialize InlineCompletionService.")
     val triggerMode = settings.settings().completionTriggerMode
     logger.debug("TriggerMode: $triggerMode")
-    if (triggerMode == SettingsState.TriggerMode.AUTOMATIC) {
-      registerAutoTriggerListener()
-    }
+    shouldAutoTrigger = triggerMode == SettingsState.TriggerMode.AUTOMATIC
     messageBusConnection.subscribe(SettingsService.Listener.TOPIC, object : SettingsService.Listener {
       override fun settingsChanged(settings: SettingsService.Settings) {
         logger.debug("TriggerMode updated: ${settings.completionTriggerMode}")
-        if (settings.completionTriggerMode == SettingsState.TriggerMode.AUTOMATIC) {
-          registerAutoTriggerListener()
-        } else {
-          unregisterAutoTriggerListener()
-        }
+        shouldAutoTrigger = triggerMode == SettingsState.TriggerMode.AUTOMATIC
       }
     })
     messageBusConnection.subscribe(DocumentListener.TOPIC, object : DocumentListener {
       override fun documentChanged(document: Document, editor: Editor, event: DocumentEvent) {
-        if (editorManager.selectedTextEditor == editor && event.newFragment.isEmpty()) {
-          // newFragment is empty, so this is a delete or backspace, which do not trigger caret position changed
-          // so we should handle dismiss here
-          dismiss()
+        if (editorManager.selectedTextEditor == editor) {
+          documentChangedListenerJob?.cancel()
+          documentChangedListenerJob = scope.launch {
+            // debounce for multiple documentChanged events triggered at one stroke
+            // such as input `(`, and `)` will be auto added, this will trigger two events
+            delay(10)
+            handleDocumentChanged(document, editor, event)
+          }
         }
       }
     })
@@ -154,9 +154,8 @@ class InlineCompletionService(private val project: Project) : Disposable {
       override fun caretPositionChanged(editor: Editor, event: CaretEvent) {
         if (editorManager.selectedTextEditor == editor) {
           val offset = editor.caretModel.offset
-          if (current?.isMatch(editor, offset) == true) {
-            // keep the current request if it is still valid
-          } else {
+          val context = current
+          if (context != null && !context.isMatch(editor, offset)) {
             dismiss()
           }
         }
@@ -169,32 +168,22 @@ class InlineCompletionService(private val project: Project) : Disposable {
     })
   }
 
-  private var autoTriggerMessageBusConnection: MessageBusConnection? = null
-  private var autoTriggerJob: Job? = null
-  private fun registerAutoTriggerListener() {
-    logger.debug("Register AutoTrigger listener.")
-    val connection = project.messageBus.connect()
-    autoTriggerMessageBusConnection = connection
-    connection.subscribe(DocumentListener.TOPIC, object : DocumentListener {
-      override fun documentChanged(document: Document, editor: Editor, event: DocumentEvent) {
-        if (editorManager.selectedTextEditor == editor) {
-          val offset = editor.caretModel.offset
-          autoTriggerJob?.cancel()
-          autoTriggerJob = scope.launch {
-            // debounce for multiple documentChanged events triggered at one stroke
-            // such as input `(`, and `)` will be auto added, this will trigger two events
-            delay(10)
-            provideInlineCompletion(editor, offset)
-          }
-        }
+  private fun handleDocumentChanged(document: Document, editor: Editor, event: DocumentEvent) {
+    if (event.newFragment.isEmpty()) {
+      // newFragment is empty, so this is a delete or backspace, which do not trigger caret position changed,
+      // so we should handle it here
+      val offset = event.offset
+      val context = current
+      if (context != null && !context.isMatch(editor, offset)) {
+        dismiss()
       }
-    })
-  }
-
-  private fun unregisterAutoTriggerListener() {
-    logger.debug("Unregister AutoTrigger listener.")
-    autoTriggerMessageBusConnection?.dispose()
-    autoTriggerMessageBusConnection = null
+    }
+    if (shouldAutoTrigger) {
+      invokeLater {
+        val offset = editor.caretModel.offset
+        provideInlineCompletion(editor, offset)
+      }
+    }
   }
 
   private fun buildInlineCompletionParams(requestContext: InlineCompletionContext.Request): InlineCompletionParams {
@@ -317,8 +306,10 @@ class InlineCompletionService(private val project: Project) : Disposable {
       }
       val requestContext = InlineCompletionContext.Request.from(editor, offset).withManually(manually)
       val job = launchJobForInlineCompletion(requestContext) { inlineCompletionList ->
-        current = current?.withResponse(convertInlineCompletionList(inlineCompletionList, requestContext))
-        renderCurrentResponse()
+        synchronized(currentContextWriteLock) {
+          current = current?.withResponse(convertInlineCompletionList(inlineCompletionList, requestContext))
+          renderCurrentResponse()
+        }
       }
       current = InlineCompletionContext(requestContext, job, partialAcceptedResponse)
     }
@@ -341,9 +332,11 @@ class InlineCompletionService(private val project: Project) : Disposable {
         val requestContext = context.request.withManually()
         val job = launchJobForInlineCompletion(requestContext) { inlineCompletionList ->
           inlineCompletionList?.let {
-            current = current?.withResponse(convertInlineCompletionList(inlineCompletionList, requestContext))
-              ?.withUpdatedItemIndex(calcCycleIndex(itemIndex, it.items.size, direction))
-            renderCurrentResponse()
+            synchronized(currentContextWriteLock) {
+              current = current?.withResponse(convertInlineCompletionList(inlineCompletionList, requestContext))
+                ?.withUpdatedItemIndex(calcCycleIndex(itemIndex, it.items.size, direction))
+              renderCurrentResponse()
+            }
           }
         }
         current = InlineCompletionContext(requestContext, job, responseContext)
@@ -428,7 +421,6 @@ class InlineCompletionService(private val project: Project) : Disposable {
 
   override fun dispose() {
     dismiss()
-    unregisterAutoTriggerListener()
     messageBusConnection.dispose()
   }
 
