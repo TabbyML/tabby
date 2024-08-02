@@ -252,7 +252,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
             })}
           >
             <Input
-              className="w-full"
+              className="w-full bg-background"
               {...getInputProps({
                 onKeyDown: e => {
                   if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
