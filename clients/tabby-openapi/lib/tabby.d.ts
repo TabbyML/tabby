@@ -71,22 +71,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1beta/answer": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["answer"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1beta/server_setting": {
         parameters: {
             query?: never;
@@ -124,9 +108,9 @@ export interface components {
             collect_relevant_code_using_user_message?: boolean;
         };
         AnswerResponseChunk: {
-            relevant_code: components["schemas"]["CodeSearchDocument"][];
+            relevant_code: components["schemas"]["CodeSearchHit"][];
         } | {
-            relevant_documents: components["schemas"]["DocSearchDocument"][];
+            relevant_documents: components["schemas"]["DocSearchHit"][];
         } | {
             relevant_questions: string[];
         } | {
@@ -144,11 +128,26 @@ export interface components {
             language: string;
             start_line: number;
         };
+        CodeSearchHit: {
+            scores: components["schemas"]["CodeSearchScores"];
+            doc: components["schemas"]["CodeSearchDocument"];
+        };
         CodeSearchQuery: {
             git_url: string;
             filepath?: string | null;
             language?: string | null;
             content: string;
+        };
+        CodeSearchScores: {
+            /**
+             * Format: float
+             * @description Reciprocal rank fusion score: https://www.elastic.co/guide/en/elasticsearch/reference/current/rrf.html
+             */
+            rrf: number;
+            /** Format: float */
+            bm25: number;
+            /** Format: float */
+            embedding: number;
         };
         /** @example {
          *       "language": "python",
@@ -225,6 +224,11 @@ export interface components {
             title: string;
             link: string;
             snippet: string;
+        };
+        DocSearchHit: {
+            /** Format: float */
+            score: number;
+            doc: components["schemas"]["DocSearchDocument"];
         };
         HealthState: {
             model?: string | null;
@@ -423,37 +427,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HealthState"];
                 };
-            };
-        };
-    };
-    answer: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AnswerRequest"];
-            };
-        };
-        responses: {
-            /** @description Success */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/event-stream": components["schemas"]["AnswerResponseChunk"];
-                };
-            };
-            /** @description When answer search is not enabled, the endpoint will returns 501 Not Implemented */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };

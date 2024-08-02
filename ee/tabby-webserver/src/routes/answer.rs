@@ -8,10 +8,10 @@ use axum::{
 };
 use axum_extra::TypedHeader;
 use futures::{Stream, StreamExt};
-use tabby_common::axum::MaybeUser;
+use tabby_common::{api::answer::AnswerRequest, axum::MaybeUser};
 use tracing::instrument;
 
-use crate::service::answer::{AnswerRequest, AnswerService};
+use crate::service::answer::AnswerService;
 
 #[utoipa::path(
     post,

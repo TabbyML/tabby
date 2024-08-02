@@ -15,8 +15,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  tests:
+  build:
     runs-on: ubuntu-latest
+    env:
+      CERTIFICATE_CHAIN: ${{ secrets.INTELLIJ_PLUGIN_CERTIFICATE_CHAIN }}
+      PRIVATE_KEY: ${{ secrets.INTELLIJ_PLUGIN_PRIVATE_KEY }}
+      PRIVATE_KEY_PASSWORD: ${{ secrets.INTELLIJ_PLUGIN_PRIVATE_KEY_PASSWORD }}
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -56,8 +61,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Test Build
+      - name: Build Plugin
         uses: gradle/gradle-build-action@v2.4.2
         with:
           arguments: buildPlugin
           build-root-directory: clients/intellij
+          
+      - name: Upload Plugin
+        uses: actions/upload-artifact@v4
+        with:
+          retention-days: 1
+          name: artifacts
+          path: |
+            clients/intellij/build/distributions/intellij-tabby.zip

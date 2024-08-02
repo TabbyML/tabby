@@ -161,6 +161,27 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
             highlightedIndex: undefined,
             isOpen: true
           }
+        case useCombobox.stateChangeTypes.InputKeyDownArrowDown: {
+          if (!repositorySearchOptions?.length || !_state.isOpen) return changes
+          const isLastItemHighlighted =
+            _state.highlightedIndex === repositorySearchOptions.length - 1
+          return {
+            ...changes,
+            highlightedIndex: isLastItemHighlighted
+              ? undefined
+              : changes.highlightedIndex
+          }
+        }
+        case useCombobox.stateChangeTypes.InputKeyDownArrowUp: {
+          if (!repositorySearchOptions?.length || !_state.isOpen) return changes
+          const isFirstItemHighlighted = _state.highlightedIndex === 0
+          return {
+            ...changes,
+            highlightedIndex: isFirstItemHighlighted
+              ? undefined
+              : changes.highlightedIndex
+          }
+        }
         default:
           return changes
       }
@@ -247,7 +268,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
           </div>
           {!query && (
             <div
-              className="absolute left-3 top-1.5 select-none text-muted-foreground"
+              className="absolute left-3 top-1.5 cursor-text select-none text-muted-foreground"
               onClick={e => {
                 e.preventDefault()
                 inputRef.current?.focus()
@@ -287,7 +308,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
         {isOpen && (
           <div
             className={cn(
-              'absolute -inset-x-3 -top-2 flex max-h-[60vh] flex-col overflow-hidden rounded-lg border bg-popover p-4 shadow-2xl',
+              'absolute -inset-x-3 -top-2.5 flex max-h-[60vh] flex-col overflow-hidden rounded-lg border bg-background p-4 shadow-2xl dark:border-2 dark:border-[#33363c] dark:bg-[hsl(0,0,13.5%)]',
               {
                 'pb-0.5': noOptions
               }
@@ -322,7 +343,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
                       <div
                         key={item.repositorySearch?.path}
                         className={cn(
-                          'relative flex cursor-default select-none items-center gap-1 rounded-sm px-2 py-1.5 text-sm outline-none',
+                          'relative flex cursor-default select-none items-center gap-1 rounded-sm px-2 py-1.5 text-sm',
                           highlighted &&
                             'cursor-pointer bg-accent text-accent-foreground'
                         )}

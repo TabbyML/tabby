@@ -1,5 +1,8 @@
-import type { ChatMessage } from 'tabby-chat-panel'
-import type { components as TabbyOpenApiComponents } from 'tabby-openapi'
+import type { ChatMessage, Context } from 'tabby-chat-panel'
+import type {
+  components,
+  components as TabbyOpenApiComponents
+} from 'tabby-openapi'
 
 import { Repository } from '../gql/generates/graphql'
 
@@ -67,4 +70,10 @@ export type AnswerResponse = MergeUnionType<
 
 export type AnswerEngineExtraContext = {
   repository?: Omit<Repository, 'refs'>
+}
+
+export interface RelevantCodeContext extends Context {
+  extra?: {
+    scores?: components['schemas']['CodeSearchScores']
+  }
 }

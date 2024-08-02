@@ -160,11 +160,12 @@ class ChatBrowser(private val project: Project) {
   fun displayChatPage(endpoint: String, opts: DisplayChatPageOptions? = null) {
     val cssContent = this::class.java.getResource("/styles/chat-panel.css")?.readText() ?: ""
 
-    val theme = if (UIUtil.isUnderDarcula()) "dark" else "light"
-    val editorColorsScheme: EditorColorsScheme = EditorColorsManager.getInstance().globalScheme
+    val editorColorsManager = EditorColorsManager.getInstance()
+    val theme = if (editorColorsManager.isDarkEditor) "dark" else "light"
+    val editorColorsScheme = EditorColorsManager.getInstance().schemeForCurrentUITheme
     val fontSize = editorColorsScheme.editorFontSize
-    val backgroundColor = colorToHex(editorColorsScheme.defaultBackground)
-    val foregroundColor = colorToHex(editorColorsScheme.defaultForeground)
+    val backgroundColor = editorColorsScheme.defaultBackground.toHex()
+    val foregroundColor = editorColorsScheme.defaultForeground.toHex()
     val borderColor = if (theme == "dark") "444444" else "B9B9B9"
 
     if (this.isChatPageDisplayed && opts?.force != true) return
@@ -184,8 +185,8 @@ class ChatBrowser(private val project: Project) {
             const chatIframe = document.getElementById("chat");
             if (!chatIframe) return
             
-            const backgroundColor = data.backgroundColor || "#${backgroundColor}"
-            const foregroundColor = data.foregroundColor || "#${foregroundColor}"
+            const backgroundColor = data.backgroundColor || "$backgroundColor"
+            const foregroundColor = data.foregroundColor || "$foregroundColor"
             const fontSize = data.fontSize || "${fontSize}px"
             const borderColor = data.borderColor || "#${borderColor}"
             
@@ -261,7 +262,7 @@ class ChatBrowser(private val project: Project) {
     val logoDataUrl = "data:image/svg+xml;base64,$encodedLogo"
 
     val editorColorsScheme: EditorColorsScheme = EditorColorsManager.getInstance().globalScheme
-    val foregroundColor = colorToHex(editorColorsScheme.defaultForeground)
+    val foregroundColor = editorColorsScheme.defaultForeground.toHex()
     val htmlContent = """
     <!DOCTYPE html>
     <html lang="en">
@@ -273,7 +274,7 @@ class ChatBrowser(private val project: Project) {
       </style>
       <style>
         * {
-          color: #${foregroundColor};
+          color: ${foregroundColor};
         }
       </style>
      </head>
@@ -292,7 +293,24 @@ class ChatBrowser(private val project: Project) {
     this.browser.loadHTML(htmlContent)
   }
 
-  fun sendMessageToChat(message: Any) {
+  fun getBrowserComponent() = browser.component
+
+  // FIXME: Refactor thread-sending implementation
+  // @reference: https://github.com/lemonmade/quilt/blob/main/packages/threads/source/targets/target.ts#L89
+  private fun sendMessageToServer(methodName: String, params: List<Any?>? = null) {
+    val uuid = UUID.randomUUID()
+    val threadMessage = listOf(
+      0, // 0 means CALL in @thread protocol
+      listOf(
+        uuid.toString(),
+        methodName,
+        params ?: emptyList<Any?>()
+      )
+    )
+    sendMessageToChat(threadMessage)
+  }
+
+  private fun sendMessageToChat(message: Any) {
     val gson = Gson()
     val jsonString = gson.toJson(message)
     val jsCode = """
@@ -304,24 +322,7 @@ class ChatBrowser(private val project: Project) {
     browser.cefBrowser.executeJavaScript(jsCode, null, 0)
   }
 
-  fun getBrowserComponent() = browser.component
-
-  fun colorToHex(color: Color): String {
-    return String.format("%02x%02x%02x", color.red, color.green, color.blue)
-  }
-
-  // FIXME: Refactor thread-sending implementation
-  // @reference: https://github.com/lemonmade/quilt/blob/main/packages/threads/source/targets/target.ts#L89
-  fun sendMessageToServer(methodName: String, params: List<Any?>? = null) {
-    val uuid = UUID.randomUUID()
-    val threadMessage = listOf(
-      0, // 0 means CALL in @thread protocol
-      listOf(
-        uuid.toString(),
-        methodName,
-        params ?: emptyList<Any?>()
-      )
-    )
-    sendMessageToChat(threadMessage)
+  private fun Color.toHex(): String {
+    return "#${Integer.toHexString(red).padStart(2, '0')}${Integer.toHexString(green).padStart(2, '0')}${Integer.toHexString(blue).padStart(2, '0')}"
   }
 }

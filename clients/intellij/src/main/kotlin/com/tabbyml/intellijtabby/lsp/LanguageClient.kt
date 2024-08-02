@@ -21,6 +21,7 @@ import com.tabbyml.intellijtabby.lsp.protocol.InitializeParams
 import com.tabbyml.intellijtabby.lsp.protocol.InitializeResult
 import com.tabbyml.intellijtabby.lsp.protocol.TextDocumentClientCapabilities
 import com.tabbyml.intellijtabby.lsp.protocol.server.LanguageServer
+import com.tabbyml.intellijtabby.safeSyncPublisher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.await
@@ -31,7 +32,6 @@ import java.util.concurrent.CompletableFuture
 class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.lsp.protocol.client.LanguageClient(),
   Disposable {
   private val logger = Logger.getInstance(LanguageClient::class.java)
-  private val publisher = project.messageBus.syncPublisher(AgentListener.TOPIC)
   private val scope = CoroutineScope(Dispatchers.IO)
   private val virtualFileManager = VirtualFileManager.getInstance()
   private val psiManager = PsiManager.getInstance(project)
@@ -80,17 +80,17 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
     configurationSync.startSync(server)
     textDocumentSync.startSync(server)
     scope.launch {
-      publisher.agentStatusChanged(server.agentFeature.status().await())
-      publisher.agentIssueUpdated(server.agentFeature.issues().await())
+      project.safeSyncPublisher(AgentListener.TOPIC)?.agentStatusChanged(server.agentFeature.status().await())
+      project.safeSyncPublisher(AgentListener.TOPIC)?.agentIssueUpdated(server.agentFeature.issues().await())
     }
   }
 
   override fun didChangeStatus(params: DidChangeStatusParams) {
-    publisher.agentStatusChanged(params.status)
+    project.safeSyncPublisher(AgentListener.TOPIC)?.agentStatusChanged(params.status)
   }
 
   override fun didUpdateIssues(params: DidUpdateIssueParams) {
-    publisher.agentIssueUpdated(params)
+    project.safeSyncPublisher(AgentListener.TOPIC)?.agentIssueUpdated(params)
   }
 
   override fun editorOptions(params: EditorOptionsParams): CompletableFuture<EditorOptions?> {

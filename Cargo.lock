@@ -5059,6 +5059,7 @@ name = "tabby-common"
 version = "0.15.0-rc.0"
 dependencies = [
  "anyhow",
+ "async-openai",
  "async-trait",
  "axum",
  "axum-extra",
