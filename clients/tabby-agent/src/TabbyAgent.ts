@@ -530,6 +530,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
   public async provideCompletions(
     request: CompletionRequest,
     options?: AbortSignalOption,
+    ideInfo?: string,
   ): Promise<CompletionResponse> {
     if (this.status === "notInitialized") {
       throw new Error("Agent is not initialized");
@@ -601,6 +602,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
             context.buildSegments(this.config.completion.prompt),
             undefined,
             signal,
+            ideInfo,
           );
           const completionItem = CompletionItem.createFromResponse(context, response);
           // postprocess: preCache
@@ -631,6 +633,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
               context.buildSegments(this.config.completion.prompt),
               this.config.completion.solution.temperature,
               signal,
+              ideInfo,
             );
             const completionItem = CompletionItem.createFromResponse(context, response);
             // postprocess: preCache
@@ -678,6 +681,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     segments: TabbyApiComponents["schemas"]["Segments"],
     temperature: number | undefined,
     signal?: AbortSignal,
+    ideInfo?: string,
   ): Promise<TabbyApiComponents["schemas"]["CompletionResponse"]> {
     const requestId = uuid();
     const stats = {
@@ -699,6 +703,9 @@ export class TabbyAgent extends EventEmitter implements Agent {
           temperature,
         },
         signal: this.createAbortSignal({ signal }),
+        headers: {
+          "User-Agent": ideInfo ?? "TabbyAgent: unknown ide",
+        },
       };
       const requestDescription = `POST ${this.config.server.endpoint + requestPath}`;
       this.logger.debug(`Completion request: ${requestDescription}. [${requestId}]`);

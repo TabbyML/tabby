@@ -23,11 +23,9 @@ import {
   CodeLensParams,
   CodeLens as LspCodeLens,
   CompletionRequest as LspCompletionRequest,
-  CompletionParams,
   CompletionList as LspCompletionList,
   CompletionItem as LspCompletionItem,
   InlineCompletionRequest as LspInlineCompletionRequest,
-  InlineCompletionParams,
   InlineCompletionList as LspInlineCompletionList,
   InlineCompletionItem as LspInlineCompletionItem,
   DeclarationParams,
@@ -36,6 +34,11 @@ import {
   SemanticTokensRangeParams,
   SemanticTokens,
   SemanticTokensLegend,
+  CompletionContext,
+  TextDocumentPositionParams,
+  WorkDoneProgressParams,
+  PartialResultParams,
+  InlineCompletionContext,
 } from "vscode-languageserver-protocol";
 
 /**
@@ -490,6 +493,32 @@ export type EventParams = {
   viewId?: string;
   elapsed?: number;
 };
+
+export interface CompletionParams extends TextDocumentPositionParams, WorkDoneProgressParams, PartialResultParams {
+  /**
+   * The completion context. This is only available it the client specifies
+   * to send this using the client capability `textDocument.completion.contextSupport === true`
+   */
+  context?: CompletionContext;
+
+  /**
+   * This is the inline completion ideInfo param. Passing all ide info through LSP.
+   */
+  ideInfo?: string;
+}
+export type InlineCompletionParams = WorkDoneProgressParams &
+  TextDocumentPositionParams & {
+    /**
+     * Additional information about the context in which inline completions were
+     * requested.
+     */
+    context: InlineCompletionContext;
+
+    /**
+     * This is the inline completion ideInfo param. Passing all ide info through LSP.
+     */
+    ideInfo?: string;
+  };
 
 /**
  * [Tabby] DidUpdateServerInfo Notification(⬅️)

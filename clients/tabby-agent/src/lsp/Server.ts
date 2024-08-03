@@ -18,10 +18,8 @@ import {
   NotebookDocument,
   NotebookDocuments,
   NotebookCell,
-  CompletionParams,
   CompletionTriggerKind,
   CompletionItemKind,
-  InlineCompletionParams,
   InlineCompletionTriggerKind,
 } from "vscode-languageserver";
 import {
@@ -72,6 +70,8 @@ import {
   ReadFileParams,
   LanguageSupportDeclarationRequest,
   LanguageSupportSemanticTokensRangeRequest,
+  CompletionParams,
+  InlineCompletionParams,
 } from "./protocol";
 import { TextDocuments } from "./TextDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -423,7 +423,11 @@ export class Server {
       if (!result) {
         return null;
       }
-      const response = await this.agent.provideCompletions(result.request, { signal: abortController.signal });
+      const response = await this.agent.provideCompletions(
+        result.request,
+        { signal: abortController.signal },
+        params.ideInfo,
+      );
       return this.toCompletionList(response, params, result.additionalPrefixLength);
     } catch (error) {
       return null;
@@ -444,7 +448,11 @@ export class Server {
       if (!result) {
         return null;
       }
-      const response = await this.agent.provideCompletions(result.request, { signal: abortController.signal });
+      const response = await this.agent.provideCompletions(
+        result.request,
+        { signal: abortController.signal },
+        params.ideInfo,
+      );
       return this.toInlineCompletionList(response, params, result.additionalPrefixLength);
     } catch (error) {
       return null;
