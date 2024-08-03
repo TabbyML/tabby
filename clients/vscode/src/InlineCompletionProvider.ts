@@ -10,12 +10,12 @@ import {
   Range,
   window,
 } from "vscode";
-import { InlineCompletionParams } from "vscode-languageclient";
-import { InlineCompletionRequest, InlineCompletionList, EventParams } from "tabby-agent";
+import { InlineCompletionRequest, InlineCompletionList, EventParams, InlineCompletionParams } from "tabby-agent";
 import { EventEmitter } from "events";
 import { getLogger } from "./logger";
 import { Client } from "./lsp/Client";
 import { Config } from "./Config";
+import { getCurrentIdeInfo } from "./utils";
 
 interface DisplayedCompletion {
   id: string;
@@ -93,7 +93,10 @@ export class InlineCompletionProvider extends EventEmitter implements InlineComp
         line: position.line,
         character: position.character,
       },
+      ideInfo: getCurrentIdeInfo(),
     };
+    //TODO:test
+    window.showInformationMessage(params.ideInfo ? "IDE: " + params.ideInfo : "IDE: unknown");
     let request: Promise<InlineCompletionList | null> | undefined = undefined;
     try {
       request = this.client.languageClient.sendRequest(InlineCompletionRequest.method, params, token);
