@@ -334,7 +334,10 @@ impl CompletionService {
                     index: 0,
                     text: text.clone(),
                 }],
-                user_agent: request.user_agent.clone().unwrap_or_else(|| "Unknown".to_string()),
+                user_agent: request
+                    .user_agent
+                    .clone()
+                    .unwrap_or_else(|| "Unknown".to_string()),
             },
         );
 
@@ -448,7 +451,7 @@ mod tests {
             debug_options: None,
             temperature: None,
             seed: None,
-            user_agent: None
+            user_agent: None,
         };
 
         let response = completion_service.generate(&request).await.unwrap();
