@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{extract::State, Json};
-use axum_extra::{TypedHeader, headers};
+use axum_extra::{headers, TypedHeader};
 use hyper::StatusCode;
 use tabby_common::axum::MaybeUser;
 use tracing::{instrument, warn};
@@ -33,7 +33,7 @@ pub async fn completions(
         request.user.replace(user);
     }
     request.user_agent = Some(user_agent.to_string());
-    
+
     match state.generate(&request).await {
         Ok(resp) => Ok(Json(resp)),
         Err(err) => {
