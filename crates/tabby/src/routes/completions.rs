@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{extract::State, Json};
-use axum_extra::TypedHeader;
+use axum_extra::{TypedHeader, headers};
 use hyper::StatusCode;
 use tabby_common::axum::MaybeUser;
 use tracing::{instrument, warn};
@@ -26,11 +26,14 @@ use crate::services::completion::{CompletionRequest, CompletionResponse, Complet
 pub async fn completions(
     State(state): State<Arc<CompletionService>>,
     TypedHeader(MaybeUser(user)): TypedHeader<MaybeUser>,
+    TypedHeader(user_agent): TypedHeader<headers::UserAgent>,
     Json(mut request): Json<CompletionRequest>,
 ) -> Result<Json<CompletionResponse>, StatusCode> {
     if let Some(user) = user {
         request.user.replace(user);
     }
+    request.user_agent = Some(user_agent.to_string());
+    
     match state.generate(&request).await {
         Ok(resp) => Ok(Json(resp)),
         Err(err) => {
