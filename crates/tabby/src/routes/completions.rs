@@ -32,7 +32,7 @@ pub async fn completions(
     if let Some(user) = user {
         request.user.replace(user);
     }
-    
+
     match state.generate(&request, &user_agent.to_string()).await {
         Ok(resp) => Ok(Json(resp)),
         Err(err) => {

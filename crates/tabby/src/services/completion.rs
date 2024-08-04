@@ -332,7 +332,7 @@ impl CompletionService {
                     index: 0,
                     text: text.clone(),
                 }],
-                user_agent: user_agent.to_string()
+                user_agent: user_agent.to_string(),
             },
         );
 
@@ -448,7 +448,10 @@ mod tests {
             seed: None,
         };
 
-        let response = completion_service.generate(&request, &("test user agent".to_string())).await.unwrap();
+        let response = completion_service
+            .generate(&request, &("test user agent".to_string()))
+            .await
+            .unwrap();
         assert_eq!(response.choices[0].text, r#""Hello, world!""#);
 
         let prompt = completion_service
