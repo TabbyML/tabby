@@ -52,9 +52,6 @@ pub struct CompletionRequest {
 
     /// The seed used for randomly selecting tokens
     seed: Option<u64>,
-
-    // This is user agent using for store ide version info
-    pub user_agent: Option<String>,
 }
 
 impl CompletionRequest {
@@ -291,6 +288,7 @@ impl CompletionService {
     pub async fn generate(
         &self,
         request: &CompletionRequest,
+        user_agent: &String,
     ) -> Result<CompletionResponse, CompletionError> {
         let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
         let language = request.language_or_unknown();
@@ -334,7 +332,7 @@ impl CompletionService {
                     index: 0,
                     text: text.clone(),
                 }],
-                user_agent: request.user_agent.clone().unwrap_or_else(|| "Unknown".to_string()),
+                user_agent: user_agent.to_string()
             },
         );
 
@@ -448,10 +446,9 @@ mod tests {
             debug_options: None,
             temperature: None,
             seed: None,
-            user_agent: None
         };
 
-        let response = completion_service.generate(&request).await.unwrap();
+        let response = completion_service.generate(&request, &("test user agent".to_string())).await.unwrap();
         assert_eq!(response.choices[0].text, r#""Hello, world!""#);
 
         let prompt = completion_service
