@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{extract::State, Json};
-use axum_extra::{TypedHeader, headers};
+use axum_extra::{headers, TypedHeader};
 use hyper::StatusCode;
 use tabby_common::axum::MaybeUser;
 use tracing::{instrument, warn};
