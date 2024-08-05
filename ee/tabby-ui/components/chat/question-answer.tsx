@@ -285,6 +285,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               openInEditor: client === 'vscode' && isInWorkspace
             })
           }}
+          isExternalLink={!!client}
         />
         {isLoading && !message?.message ? (
           <MessagePendingIndicator />
@@ -462,6 +463,7 @@ interface ContextReferencesProps {
   defaultOpen?: boolean
   enableTooltip?: boolean
   onTooltipClick?: () => void
+  isExternalLink?: boolean
 }
 export const CodeReferences = ({
   contexts,
@@ -470,7 +472,8 @@ export const CodeReferences = ({
   onContextClick,
   defaultOpen,
   enableTooltip,
-  onTooltipClick
+  onTooltipClick,
+  isExternalLink
 }: ContextReferencesProps) => {
   const totalContextLength = (userContexts?.length || 0) + contexts.length
   const isMultipleReferences = totalContextLength > 1
@@ -507,7 +510,7 @@ export const CodeReferences = ({
                 onContextClick={ctx => onContextClick?.(ctx, false)}
                 enableTooltip={enableTooltip}
                 onTooltipClick={onTooltipClick}
-                isServerSide
+                isExternalLink={isExternalLink}
               />
             )
           })}
@@ -523,14 +526,14 @@ function ContextItem({
   onContextClick,
   enableTooltip,
   onTooltipClick,
-  isServerSide
+  isExternalLink
 }: {
   context: RelevantCodeContext
   clickable?: boolean
   onContextClick?: (context: RelevantCodeContext) => void
   enableTooltip?: boolean
   onTooltipClick?: () => void
-  isServerSide?: boolean
+  isExternalLink?: boolean
 }) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const isMultiLine =
@@ -577,7 +580,7 @@ function ContextItem({
               )}
               <span className="ml-2 text-xs text-muted-foreground">{path}</span>
             </div>
-            {isServerSide && (
+            {isExternalLink && (
               <IconExternalLink className="shrink-0 text-muted-foreground" />
             )}
           </div>
