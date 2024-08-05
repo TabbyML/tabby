@@ -40,6 +40,8 @@ impl SyncIntegrationJob {
         self,
         repository_service: Arc<dyn ThirdPartyRepositoryService>,
     ) -> tabby_schema::Result<()> {
+        // Underlying dependencies, e.g octocrab, gitlab might panic when access_token is invalid.
+        // Here we start a new tokio task to handle the panic and return a proper error message.
         let task = tokio::spawn(async move {
             repository_service
                 .sync_repositories(self.integration_id)
