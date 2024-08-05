@@ -288,6 +288,7 @@ impl CompletionService {
     pub async fn generate(
         &self,
         request: &CompletionRequest,
+        user_agent: &str,
     ) -> Result<CompletionResponse, CompletionError> {
         let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
         let language = request.language_or_unknown();
@@ -331,6 +332,7 @@ impl CompletionService {
                     index: 0,
                     text: text.clone(),
                 }],
+                user_agent: user_agent.to_string(),
             },
         );
 
@@ -446,7 +448,10 @@ mod tests {
             seed: None,
         };
 
-        let response = completion_service.generate(&request).await.unwrap();
+        let response = completion_service
+            .generate(&request, &("test user agent".to_string()))
+            .await
+            .unwrap();
         assert_eq!(response.choices[0].text, r#""Hello, world!""#);
 
         let prompt = completion_service
