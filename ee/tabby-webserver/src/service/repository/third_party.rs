@@ -20,7 +20,7 @@ use tracing::{debug, error};
 
 use self::fetch::RepositoryInfo;
 use super::to_repository;
-use crate::service::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
+use crate::{bail, service::{background_job::BackgroundJobEvent, graphql_pagination_to_filter}};
 
 mod fetch;
 
@@ -154,6 +154,10 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             "Refreshing repositories for provider: {}",
             provider.display_name
         );
+
+        if provider.access_token.is_empty() {
+            bail!("Access token is empty for provider: {}", provider.display_name);
+        }
 
         let repos = match fetch_all_repos(
             provider.kind.clone(),
