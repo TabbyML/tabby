@@ -288,7 +288,7 @@ impl CompletionService {
     pub async fn generate(
         &self,
         request: &CompletionRequest,
-        user_agent: &String,
+        user_agent: &str,
     ) -> Result<CompletionResponse, CompletionError> {
         let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
         let language = request.language_or_unknown();
