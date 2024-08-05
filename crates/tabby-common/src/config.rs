@@ -92,12 +92,12 @@ lazy_static! {
 
 pub fn config_index_to_id(index: usize) -> String {
     let id = HASHER.encode(&[index as u64]);
-    format!("config:{id}")
+    format!("config_{id}")
 }
 
 pub fn config_id_to_index(id: &str) -> Result<usize, anyhow::Error> {
     let id = id
-        .strip_prefix("config:")
+        .strip_prefix("config_")
         .ok_or_else(|| anyhow!("Invalid config ID"))?;
 
     HASHER
@@ -109,12 +109,20 @@ pub fn config_id_to_index(id: &str) -> Result<usize, anyhow::Error> {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RepositoryConfig {
-    git_url: String,
+    pub git_url: String,
+    id: String,
 }
 
 impl RepositoryConfig {
-    pub fn git_url(&self) -> &str {
-        &self.git_url
+    pub fn new<T: Into<String>, S: Into<String>>(git_url: T, id: S) -> Self {
+        Self {
+            git_url: git_url.into(),
+            id: id.into()
+        }
+    }
+
+    pub fn canonical_git_url(&self) -> String {
+        Self::canonicalize_url(&self.git_url)
     }
 
     pub fn canonicalize_url(url: &str) -> String {
@@ -147,6 +155,9 @@ impl RepositoryConfig {
 
     pub fn resolve_dir_name(git_url: &str) -> String {
         sanitize_name(&Self::canonicalize_url(git_url))
+    }
+    pub fn dir_name(&self) -> String {
+        sanitize_name(&self.id)
     }
 
     pub fn resolve_is_local_dir(git_url: &str) -> bool {
@@ -385,6 +396,7 @@ mod tests {
     fn it_parses_local_dir() {
         let repo = RepositoryConfig {
             git_url: "file:///home/user".to_owned(),
+            id: "".to_string(),
         };
         let _ = repo.dir();
     }
@@ -393,6 +405,7 @@ mod tests {
     fn test_repository_config_name() {
         let repo = RepositoryConfig {
             git_url: "https://github.com/TabbyML/tabby.git".to_owned(),
+            id: "".to_string(),
         };
         assert!(repo.dir().ends_with("https_github.com_TabbyML_tabby"));
     }
