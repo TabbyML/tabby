@@ -126,8 +126,12 @@ impl FromStr for GrepQuery {
         for (negative, part) in tokenize_query(s) {
             if negative {
                 match part {
-                    _ if part.starts_with("lang:") => builder = builder.negative_file_type(&part[5..]),
-                    _ if part.starts_with("f:") => builder = builder.negative_file_pattern(&part[2..]),
+                    _ if part.starts_with("lang:") => {
+                        builder = builder.negative_file_type(&part[5..])
+                    }
+                    _ if part.starts_with("f:") => {
+                        builder = builder.negative_file_pattern(&part[2..])
+                    }
                     _ => builder = builder.negative_pattern(part),
                 }
             } else {
