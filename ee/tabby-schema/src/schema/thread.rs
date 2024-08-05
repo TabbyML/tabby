@@ -15,7 +15,7 @@ pub struct CreateMessageInput {
     thread_id: ID,
     role: Role,
 
-    #[validate(length(code="content", min = 1, message = "Content must not be empty"))]
+    #[validate(length(code = "content", min = 1, message = "Content must not be empty"))]
     content: String,
 }
 
@@ -31,7 +31,7 @@ pub struct Message {
 pub struct CreateThreadMessageInput {
     role: Role,
 
-    #[validate(length(code="content", min = 1, message = "Content must not be empty"))]
+    #[validate(length(code = "content", min = 1, message = "Content must not be empty"))]
     content: String,
 }
 

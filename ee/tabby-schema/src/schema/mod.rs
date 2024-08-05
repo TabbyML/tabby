@@ -7,10 +7,10 @@ pub mod job;
 pub mod license;
 pub mod repository;
 pub mod setting;
+pub mod thread;
 pub mod user_event;
 pub mod web_crawler;
 pub mod worker;
-pub mod thread;
 
 use std::sync::Arc;
 
