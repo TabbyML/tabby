@@ -34,7 +34,13 @@ import {
   AccordionTrigger
 } from '../ui/accordion'
 import { Button } from '../ui/button'
-import { IconFile, IconRefresh, IconTrash, IconUser } from '../ui/icons'
+import {
+  IconExternalLink,
+  IconFile,
+  IconRefresh,
+  IconTrash,
+  IconUser
+} from '../ui/icons'
 import { Separator } from '../ui/separator'
 import { Skeleton } from '../ui/skeleton'
 import { UserAvatar } from '../user-avatar'
@@ -225,7 +231,7 @@ interface AssistantMessageActionProps {
 
 function AssistantMessageCard(props: AssistantMessageCardProps) {
   const { message, userMessage, isLoading, userMessageId, ...rest } = props
-  const { onNavigateToContext } = React.useContext(ChatContext)
+  const { onNavigateToContext, client } = React.useContext(ChatContext)
   const contexts: Array<Context> = React.useMemo(() => {
     return (
       message?.relevant_code?.map(code => {
@@ -274,7 +280,11 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
         <CodeReferences
           contexts={contexts}
           userContexts={userMessage.relevantContext}
-          onContextClick={onNavigateToContext}
+          onContextClick={(ctx, isInWorkspace) => {
+            onNavigateToContext?.(ctx, {
+              openInEditor: client === 'vscode' && isInWorkspace
+            })
+          }}
         />
         {isLoading && !message?.message ? (
           <MessagePendingIndicator />
@@ -445,7 +455,10 @@ interface ContextReferencesProps {
   contexts: RelevantCodeContext[]
   userContexts?: RelevantCodeContext[]
   className?: string
-  onContextClick?: (context: RelevantCodeContext) => void
+  onContextClick?: (
+    context: RelevantCodeContext,
+    isInWorkspace?: boolean
+  ) => void
   defaultOpen?: boolean
   enableTooltip?: boolean
   onTooltipClick?: () => void
@@ -482,8 +495,7 @@ export const CodeReferences = ({
               <ContextItem
                 key={`user-${index}`}
                 context={item}
-                clickable={false}
-                onContextClick={onContextClick}
+                onContextClick={ctx => onContextClick?.(ctx, true)}
               />
             )
           })}
@@ -492,9 +504,10 @@ export const CodeReferences = ({
               <ContextItem
                 key={`assistant-${index}`}
                 context={item}
-                onContextClick={onContextClick}
+                onContextClick={ctx => onContextClick?.(ctx, false)}
                 enableTooltip={enableTooltip}
                 onTooltipClick={onTooltipClick}
+                isServerSide
               />
             )
           })}
@@ -509,13 +522,15 @@ function ContextItem({
   clickable = true,
   onContextClick,
   enableTooltip,
-  onTooltipClick
+  onTooltipClick,
+  isServerSide
 }: {
   context: RelevantCodeContext
   clickable?: boolean
   onContextClick?: (context: RelevantCodeContext) => void
   enableTooltip?: boolean
   onTooltipClick?: () => void
+  isServerSide?: boolean
 }) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const isMultiLine =
@@ -562,6 +577,9 @@ function ContextItem({
               )}
               <span className="ml-2 text-xs text-muted-foreground">{path}</span>
             </div>
+            {isServerSide && (
+              <IconExternalLink className="shrink-0 text-muted-foreground" />
+            )}
           </div>
         </div>
       </TooltipTrigger>
