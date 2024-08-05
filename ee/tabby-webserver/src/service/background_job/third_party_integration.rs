@@ -16,9 +16,8 @@ use tabby_schema::{
 };
 use tracing::debug;
 
-use crate::bail;
-
 use super::{helper::Job, BackgroundJobEvent};
+use crate::bail;
 
 mod issues;
 
