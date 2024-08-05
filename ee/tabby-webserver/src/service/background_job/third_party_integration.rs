@@ -16,6 +16,8 @@ use tabby_schema::{
 };
 use tracing::debug;
 
+use crate::bail;
+
 use super::{helper::Job, BackgroundJobEvent};
 
 mod issues;
@@ -38,10 +40,19 @@ impl SyncIntegrationJob {
         self,
         repository_service: Arc<dyn ThirdPartyRepositoryService>,
     ) -> tabby_schema::Result<()> {
-        repository_service
-            .sync_repositories(self.integration_id)
-            .await?;
-        Ok(())
+        let task = tokio::spawn(async move {
+            repository_service
+                .sync_repositories(self.integration_id)
+                .await
+        });
+
+        match task.await {
+            Ok(Ok(_)) => Ok(()),
+            Ok(Err(e)) => Err(e),
+            Err(e) => {
+                bail!("Failed to run sync integration job: {}", e)
+            }
+        }
     }
 
     pub async fn cron(
