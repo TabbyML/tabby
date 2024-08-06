@@ -2,17 +2,17 @@ use std::sync::Arc;
 
 use async_stream::stream;
 use chrono::{DateTime, Utc};
-use futures::StreamExt;
+use futures::{stream::BoxStream, StreamExt};
 use issues::{list_github_issues, list_gitlab_issues};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::RepositoryConfig;
-use tabby_index::public::{CodeIndexer, DocIndexer};
+use tabby_index::public::{CodeIndexer, DocIndexer, WebDocument};
 use tabby_inference::Embedding;
 use tabby_schema::{
-    integration::{IntegrationKind, IntegrationService},
+    integration::{Integration, IntegrationKind, IntegrationService},
     job::JobService,
-    repository::ThirdPartyRepositoryService,
+    repository::{ProvidedRepository, ThirdPartyRepositoryService},
 };
 use tracing::debug;
 
@@ -110,23 +110,15 @@ impl SchedulerGithubGitlabJob {
             repository.display_name
         );
         let index = DocIndexer::new(embedding);
-        let s = match &integration.kind {
-            IntegrationKind::Github | IntegrationKind::GithubSelfHosted => list_github_issues(
-                &repository.source_id(),
-                integration.api_base(),
-                &repository.display_name,
-                &integration.access_token,
-            )
-            .await?
-            .boxed(),
-            IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => list_gitlab_issues(
-                &repository.source_id(),
-                integration.api_base(),
-                &repository.display_name,
-                &integration.access_token,
-            )
-            .await?
-            .boxed(),
+        let s = match fetch_all_issues(&integration, &repository).await {
+            Ok(s) => s,
+            Err(e) => {
+                integration_service
+                    .update_integration_sync_status(integration.id, Some(e.to_string()))
+                    .await?;
+                logkit::error!("Failed to fetch issues: {}", e);
+                return Err(e);
+            }
         };
 
         stream! {
@@ -167,4 +159,30 @@ impl SchedulerGithubGitlabJob {
         }
         Ok(())
     }
+}
+
+async fn fetch_all_issues(
+    integration: &Integration,
+    repository: &ProvidedRepository,
+) -> tabby_schema::Result<BoxStream<'static, (DateTime<Utc>, WebDocument)>> {
+    let s: BoxStream<(DateTime<Utc>, WebDocument)> = match &integration.kind {
+        IntegrationKind::Github | IntegrationKind::GithubSelfHosted => list_github_issues(
+            &repository.source_id(),
+            integration.api_base(),
+            &repository.display_name,
+            &integration.access_token,
+        )
+        .await?
+        .boxed(),
+        IntegrationKind::Gitlab | IntegrationKind::GitlabSelfHosted => list_gitlab_issues(
+            &repository.source_id(),
+            integration.api_base(),
+            &repository.display_name,
+            &integration.access_token,
+        )
+        .await?
+        .boxed(),
+    };
+
+    Ok(s)
 }
