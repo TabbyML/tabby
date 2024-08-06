@@ -172,19 +172,28 @@ export function Search() {
 
   const isLoadingRef = useLatest(isLoading)
 
+  const currentConversationForDev = useMemo(() => {
+    return conversation.find(item => item.id === conversationIdForDev)
+  }, [conversationIdForDev, conversation])
+
   const valueForDev = useMemo(() => {
-    const _conversation = conversation.find(
-      item => item.id === conversationIdForDev
-    )
-    if (_conversation) {
-      return pick(_conversation, 'relevant_documents', 'relevant_code')
+    if (currentConversationForDev) {
+      return pick(
+        currentConversationForDev,
+        'relevant_documents',
+        'relevant_code'
+      )
     }
     return {
       answers: conversation
         .filter(o => o.role === 'assistant')
         .map(o => pick(o, 'relevant_documents', 'relevant_code'))
     }
-  }, [conversationIdForDev, conversation])
+  }, [
+    conversationIdForDev,
+    currentConversationForDev?.relevant_documents,
+    currentConversationForDev?.relevant_code
+  ])
 
   const onPanelLayout = (sizes: number[]) => {
     if (sizes?.[1]) {
