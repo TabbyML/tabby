@@ -7,14 +7,13 @@ use axum::{
 };
 use extract::{extract_bearer_token, AuthBearer};
 use futures::future;
-use juniper::{Variables};
+use juniper::Variables;
 use juniper_axum::{
     extract::JuniperRequest,
     response::JuniperResponse,
     subscriptions::{self},
 };
 use juniper_graphql_ws::{ConnectionConfig, Schema};
-
 
 pub trait FromAuth<S> {
     fn build(state: S, bearer: Option<String>) -> Self;

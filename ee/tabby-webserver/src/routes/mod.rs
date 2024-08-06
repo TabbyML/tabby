@@ -16,7 +16,6 @@ use axum::{
 };
 use juniper::ID;
 use juniper_axum::{graphiql, playground};
-
 use tabby_common::api::server_setting::ServerSetting;
 use tabby_schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator};
 use tracing::{error, warn};

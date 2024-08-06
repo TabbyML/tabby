@@ -1,6 +1,7 @@
 schema {
   query: Query
   mutation: Mutation
+  subscription: Subscription
 }
 
 enum AuthMethod {
@@ -486,6 +487,10 @@ type ServerInfo {
   isEmailConfigured: Boolean!
   allowSelfSignup: Boolean!
   isDemoMode: Boolean!
+}
+
+type Subscription {
+  count: Int!
 }
 
 type TokenAuthResponse {

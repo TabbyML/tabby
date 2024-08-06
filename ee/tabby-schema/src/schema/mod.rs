@@ -23,8 +23,8 @@ use chrono::{DateTime, Utc};
 use futures::stream::BoxStream;
 use job::{JobRun, JobService};
 use juniper::{
-    graphql_object, graphql_subscription, graphql_value, FieldError,
-    GraphQLObject, IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
+    graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLObject, IntoFieldError,
+    Object, RootNode, ScalarValue, Value, ID,
 };
 use repository::RepositoryGrepOutput;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
