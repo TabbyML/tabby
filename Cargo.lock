@@ -2309,6 +2309,7 @@ checksum = "1f81e883bc6ffb2e5a3cc7276bfe9519c49108bdc1330d5aab1b79cb088f2f26"
 dependencies = [
  "axum",
  "bytes",
+ "futures",
  "juniper",
  "juniper_graphql_ws",
  "serde",
@@ -5220,6 +5221,7 @@ name = "tabby-schema"
 version = "0.15.0-dev.0"
 dependencies = [
  "anyhow",
+ "async-stream",
  "async-trait",
  "axum",
  "base64 0.22.1",

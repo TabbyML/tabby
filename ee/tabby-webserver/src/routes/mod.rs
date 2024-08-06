@@ -58,7 +58,15 @@ pub fn create(
             "/graphql",
             routing::post(graphql::<Arc<Schema>, Arc<dyn ServiceLocator>>).with_state(ctx.clone()),
         )
-        .route("/graphql", routing::get(playground("/graphql", None)))
+        .route(
+            "/subscriptions",
+            routing::get(crate::axum::subscriptions::<Arc<Schema>, Arc<dyn ServiceLocator>>)
+                .with_state(ctx.clone()),
+        )
+        .route(
+            "/graphql",
+            routing::get(playground("/graphql", "/subscriptions")),
+        )
         .layer(Extension(schema))
         .route(
             "/hub",

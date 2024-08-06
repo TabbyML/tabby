@@ -28,6 +28,7 @@ validator = { version = "0.16.1", features = ["derive"] }
 regex.workspace = true
 hash-ids.workspace = true
 url.workspace = true
+async-stream.workspace = true
 
 [[example]]
 name = "update-schema"

@@ -13,15 +13,17 @@ pub mod worker;
 
 use std::sync::Arc;
 
+use async_stream::stream;
 use auth::{
     AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
     User,
 };
 use base64::Engine;
 use chrono::{DateTime, Utc};
+use futures::stream::BoxStream;
 use job::{JobRun, JobService};
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLObject, IntoFieldError,
+    graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLObject, IntoFieldError,
     Object, RootNode, ScalarValue, Value, ID,
 };
 use repository::RepositoryGrepOutput;
@@ -909,8 +911,30 @@ fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError
     FieldError::new("Invalid input parameters", ext.into())
 }
 
-pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<Context>>;
+#[derive(Clone, Copy, Debug)]
+pub struct Subscription;
+
+type NumberStream = BoxStream<'static, Result<i32, FieldError>>;
+
+#[graphql_subscription]
+impl Subscription {
+    // FIXME(meng): This is a temporary subscription to test the subscription feature, we should remove it later.
+    async fn count(ctx: &Context) -> Result<NumberStream> {
+        check_user(ctx).await?;
+        let mut value = 0;
+        let s = stream! {
+            loop {
+                value += 1;
+                yield Ok(value);
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            }
+        };
+        Ok(Box::pin(s))
+    }
+}
+
+pub type Schema = RootNode<'static, Query, Mutation, Subscription>;
 
 pub fn create_schema() -> Schema {
-    Schema::new(Query, Mutation, EmptySubscription::new())
+    Schema::new(Query, Mutation, Subscription)
 }
