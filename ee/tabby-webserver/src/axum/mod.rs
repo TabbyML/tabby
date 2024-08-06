@@ -50,6 +50,7 @@ where
             let init = move |params: Variables<S::ScalarValue>| -> future::Ready<
                 Result<ConnectionConfig<S::Context>, tabby_schema::CoreError>,
             > {
+                // Extract authorization header from connection init payload
                 let bearer = params
                     .get("authorization")
                     .map(|v| v.as_string_value())
