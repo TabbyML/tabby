@@ -9,7 +9,7 @@ use ignore::types::TypesBuilder;
 
 use super::searcher::GrepSearcher;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct GrepQuery {
     patterns: Vec<String>,
     negative_patterns: Vec<String>,
@@ -123,19 +123,23 @@ impl FromStr for GrepQuery {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut builder = GrepQueryBuilder::default();
-        for part in s.split_whitespace() {
-            if part.starts_with('-') {
-                builder = match part {
-                    _ if part.starts_with("-lang:") => builder.negative_file_type(&part[6..]),
-                    _ if part.starts_with("-f:") => builder.negative_file_pattern(&part[3..]),
-                    _ => builder.negative_pattern(&part[1..]),
-                };
+        for (negative, part) in tokenize_query(s) {
+            if negative {
+                match part {
+                    _ if part.starts_with("lang:") => {
+                        builder = builder.negative_file_type(&part[5..])
+                    }
+                    _ if part.starts_with("f:") => {
+                        builder = builder.negative_file_pattern(&part[2..])
+                    }
+                    _ => builder = builder.negative_pattern(part),
+                }
             } else {
-                builder = match part {
-                    _ if part.starts_with("lang:") => builder.file_type(&part[5..]),
-                    _ if part.starts_with("f:") => builder.file_pattern(&part[2..]),
-                    _ => builder.pattern(part),
-                };
+                match part {
+                    _ if part.starts_with("lang:") => builder = builder.file_type(&part[5..]),
+                    _ if part.starts_with("f:") => builder = builder.file_pattern(&part[2..]),
+                    _ => builder = builder.pattern(part),
+                }
             }
         }
 
@@ -200,6 +204,63 @@ fn has_uppercase_literal(expr: &str) -> bool {
     expr.chars().any(|c| c.is_ascii_uppercase())
 }
 
+/// Tokenize a query string, and respectes quoted strings.
+/// When a token is prefixed with a `-`, it is considered a negative pattern.
+///
+/// Quote characters can be escaped with a backslash.
+/// Returns the list of tokens, and whether they are negative patterns.
+fn tokenize_query(query: &str) -> Vec<(bool, String)> {
+    let mut tokens = vec![];
+    let mut current = String::new();
+    let mut negative = false;
+    let mut quoted = false;
+    let mut escaped = false;
+
+    for c in query.chars() {
+        if escaped {
+            current.push(c);
+            escaped = false;
+            continue;
+        }
+
+        match c {
+            ' ' if !quoted => {
+                if !current.is_empty() {
+                    tokens.push((negative, current.clone()));
+                    current.clear();
+                    negative = false;
+                }
+            }
+            '-' if !quoted => {
+                if !current.is_empty() {
+                    tokens.push((negative, current.clone()));
+                    current.clear();
+                }
+                negative = true;
+            }
+            '"' => {
+                if quoted {
+                    tokens.push((negative, current.clone()));
+                    current.clear();
+                }
+                quoted = !quoted;
+            }
+            '\\' => {
+                escaped = true;
+            }
+            _ => {
+                current.push(c);
+            }
+        }
+    }
+
+    if !current.is_empty() {
+        tokens.push((negative, current));
+    }
+
+    tokens
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -211,5 +272,25 @@ mod tests {
         assert_eq!(query.negative_patterns, vec!["baz"]);
         assert_eq!(query.negative_file_patterns, vec!["*.rs"]);
         assert_eq!(query.file_types, vec!["rust"]);
+    }
+
+    #[test]
+    fn test_tokenize_query() {
+        let query = r#"lang:rust -f:*.rs foo bar -baz "qux quux", -"corge grault" "\"abc\" dd""#;
+        let tokens = tokenize_query(query);
+        assert_eq!(
+            tokens,
+            vec![
+                (false, "lang:rust".to_owned()),
+                (true, "f:*.rs".to_owned()),
+                (false, "foo".to_owned()),
+                (false, "bar".to_owned()),
+                (true, "baz".to_owned()),
+                (false, "qux quux".to_owned()),
+                (false, ",".to_owned()),
+                (true, "corge grault".to_owned()),
+                (true, "\"abc\" dd".to_owned())
+            ]
+        );
     }
 }
