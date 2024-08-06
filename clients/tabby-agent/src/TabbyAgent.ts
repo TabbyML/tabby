@@ -70,6 +70,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private tryingConnectTimer: ReturnType<typeof setInterval>;
   static readonly submitStatsInterval = 1000 * 60 * 60 * 24; // 24h
   private submitStatsTimer: ReturnType<typeof setInterval>;
+  private clientInfoStr: string = "";
 
   constructor() {
     super();
@@ -393,6 +394,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }
     }
     await this.anonymousUsageLogger.init({ dataStore: this.dataStore });
+    this.clientInfoStr = this.clientInfoToString(undefined);
     if (options.clientProperties) {
       if (options.clientProperties.session) {
         Object.entries(options.clientProperties.session).forEach(([key, value]) => {
@@ -404,7 +406,9 @@ export class TabbyAgent extends EventEmitter implements Agent {
           this.anonymousUsageLogger.setUserProperties(key, value);
         });
       }
+      this.clientInfoStr = this.clientInfoToString(options.clientProperties.session);
     }
+
     if (this.dataStore) {
       const localConfig = deepmerge(defaultAgentConfig, this.userConfig, this.clientConfig) as AgentConfig;
       this.serverProvidedConfig = this.dataStore?.data.serverConfig?.[localConfig.server.endpoint] ?? {};
@@ -699,6 +703,9 @@ export class TabbyAgent extends EventEmitter implements Agent {
           temperature,
         },
         signal: this.createAbortSignal({ signal }),
+        headers: {
+          "User-Agent": this.clientInfoStr,
+        },
       };
       const requestDescription = `POST ${this.config.server.endpoint + requestPath}`;
       this.logger.debug(`Completion request: ${requestDescription}. [${requestId}]`);
@@ -1009,5 +1016,16 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.healthCheck(); // schedule a health check
       return null;
     }
+  }
+
+  private clientInfoToString(session: Record<string, any> | undefined): string {
+    const nodeInfo = `Node.js/${process.version}`;
+    if (!session) return nodeInfo;
+
+    const ide = session["ide"] ? `${session["ide"].name.replace(/ /g, "-")}/${session["ide"].version}` : "";
+    const tabbyPlugin = session["tabby_plugin"]
+      ? `${session["tabby_plugin"].name}/${session["tabby_plugin"].version}`
+      : "";
+    return `${nodeInfo} ${ide} ${tabbyPlugin}`.trim();
   }
 }
