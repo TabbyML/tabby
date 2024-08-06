@@ -16,7 +16,7 @@ use axum::{
 };
 use juniper::ID;
 use juniper_axum::{graphiql, playground};
-use juniper_graphql_ws::ConnectionConfig;
+
 use tabby_common::api::server_setting::ServerSetting;
 use tabby_schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator};
 use tracing::{error, warn};
@@ -64,7 +64,10 @@ pub fn create(
             routing::get(crate::axum::subscriptions::<Arc<Schema>, Arc<dyn ServiceLocator>>)
                 .with_state(ctx.clone()),
         )
-        .route("/graphql", routing::get(playground("/graphql", "/subscriptions")))
+        .route(
+            "/graphql",
+            routing::get(playground("/graphql", "/subscriptions")),
+        )
         .layer(Extension(schema))
         .route(
             "/hub",

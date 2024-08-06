@@ -23,7 +23,7 @@ use chrono::{DateTime, Utc};
 use futures::stream::BoxStream;
 use job::{JobRun, JobService};
 use juniper::{
-    graphql_object, graphql_subscription, graphql_value, EmptySubscription, FieldError,
+    graphql_object, graphql_subscription, graphql_value, FieldError,
     GraphQLObject, IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
 };
 use repository::RepositoryGrepOutput;
@@ -918,7 +918,6 @@ type NumberStream = BoxStream<'static, Result<i32, FieldError>>;
 
 #[graphql_subscription]
 impl Subscription {
-
     // FIXME(meng): This is a temporary subscription to test the subscription feature, we should remove it later.
     async fn count(ctx: &Context) -> Result<NumberStream> {
         check_user(ctx).await?;

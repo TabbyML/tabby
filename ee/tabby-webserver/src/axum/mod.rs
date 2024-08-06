@@ -7,14 +7,14 @@ use axum::{
 };
 use extract::{extract_bearer_token, AuthBearer};
 use futures::future;
-use juniper::{DefaultScalarValue, Variables};
+use juniper::{Variables};
 use juniper_axum::{
     extract::JuniperRequest,
     response::JuniperResponse,
-    subscriptions::{self, serve_ws},
+    subscriptions::{self},
 };
-use juniper_graphql_ws::{ConnectionConfig, Init, Schema};
-use logkit::debug;
+use juniper_graphql_ws::{ConnectionConfig, Schema};
+
 
 pub trait FromAuth<S> {
     fn build(state: S, bearer: Option<String>) -> Self;
@@ -53,10 +53,8 @@ where
                 // Extract authorization header from connection init payload
                 let bearer = params
                     .get("authorization")
-                    .map(|v| v.as_string_value())
-                    .flatten()
-                    .map(|v| extract_bearer_token(v))
-                    .flatten();
+                    .and_then(|v| v.as_string_value())
+                    .and_then(extract_bearer_token);
                 let ctx = S::Context::build(state, bearer);
                 future::ready(Ok(ConnectionConfig::new(ctx)))
             };
