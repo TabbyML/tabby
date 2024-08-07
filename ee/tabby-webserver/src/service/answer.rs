@@ -194,6 +194,10 @@ impl AnswerService {
             source_ids
         };
 
+        if source_ids.is_empty() {
+            return vec![];
+        }
+
         // 1. Collect relevant docs from the tantivy doc search.
         let mut hits = vec![];
         let doc_hits = match self.doc.search(&source_ids, content, 5).await {
