@@ -46,6 +46,7 @@ import { getLogger, logDestinations, fileLogger } from "./logger";
 import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
 import { loadTlsCaCerts } from "./loadCaCerts";
 import { createProxyForUrl, ProxyConfig } from "./http/proxy";
+import { name as agentName, version as agentVersion } from "../package.json";
 
 export class TabbyAgent extends EventEmitter implements Agent {
   private readonly logger = getLogger("TabbyAgent");
@@ -1023,9 +1024,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
     if (!session) return nodeInfo;
 
     const ide = session["ide"] ? `${session["ide"].name.replace(/ /g, "-")}/${session["ide"].version}` : "";
+    const tabby = `${agentName}/${agentVersion}`;
     const tabbyPlugin = session["tabby_plugin"]
       ? `${session["tabby_plugin"].name}/${session["tabby_plugin"].version}`
       : "";
-    return `${nodeInfo} ${ide} ${tabbyPlugin}`.trim();
+    return `${nodeInfo} ${tabby} ${ide} ${tabbyPlugin}`.trim();
   }
 }
