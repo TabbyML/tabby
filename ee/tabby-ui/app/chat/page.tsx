@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import tabbyUrl from '@/assets/tabby.png'
+import { useWindowSize } from '@uidotdev/usehooks'
 import Color from 'color'
 import { ErrorBoundary } from 'react-error-boundary'
 import remarkGfm from 'remark-gfm'
@@ -56,6 +57,9 @@ export default function ChatPage() {
   const [isRefreshLoading, setIsRefreshLoading] = useState(false)
 
   const chatRef = useRef<ChatRef>(null)
+  const [chatLoaded, setChatLoaded] = useState(false)
+  const { width } = useWindowSize()
+  const prevWidthRef = useRef(width)
 
   const searchParams = useSearchParams()
   const client = searchParams.get('client') || undefined
@@ -166,9 +170,24 @@ export default function ChatPage() {
     }
   })
 
+  useLayoutEffect(() => {
+    if (!chatLoaded) return
+    if (
+      width &&
+      isInit &&
+      fetcherOptions &&
+      !errorMessage &&
+      !prevWidthRef.current
+    ) {
+      chatRef.current?.focus()
+    }
+    prevWidthRef.current = width
+  }, [width, chatLoaded])
+
   const onChatLoaded = () => {
     pendingMessages.forEach(sendMessage)
     setPendingMessages([])
+    setChatLoaded(true)
   }
 
   const onNavigateToContext = (context: Context, opts?: NavigateOpts) => {

@@ -2,11 +2,8 @@
 
 import React, { useContext } from 'react'
 import { isNil } from 'lodash-es'
-import { useQuery } from 'urql'
 
-import { GitReference, RepositoryKind } from '@/lib/gql/generates/graphql'
-import { useDebounceCallback } from '@/lib/hooks/use-debounce'
-import { repositorySearch } from '@/lib/tabby/query'
+import { GitReference } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -50,13 +47,6 @@ import {
 
 interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
 
-type SearchOption = {
-  path: string
-  type: string
-  indices: number[]
-  id: string
-}
-
 const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   className,
   ...props
@@ -85,7 +75,6 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   )
   const { repositoryKind, repositoryName, repositorySpecifier } =
     activeEntryInfo
-  const repoId = activeRepo?.id
   const refs = activeRepo?.refs
   const formattedRefs = React.useMemo(() => {
     if (!refs?.length) return []
@@ -95,26 +84,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   const branches = formattedRefs.filter(o => o.kind === 'branch')
   const tags = formattedRefs.filter(o => o.kind === 'tag')
   const commandOptions = activeRefKind === 'tag' ? tags : branches
-
-  const inputRef = React.useRef<HTMLInputElement>(null)
-  const [input, setInput] = React.useState<string>()
-  const [repositorySearchPattern, setRepositorySearchPattern] =
-    React.useState<string>()
-  const [options, setOptions] = React.useState<Array<SearchOption>>()
-  const [optionsVisible, setOptionsVisible] = React.useState(false)
-
   const noIndexedRepo = initialized && !repoList?.length
-
-  const [{ data: repositorySearchData }] = useQuery({
-    query: repositorySearch,
-    variables: {
-      kind: repositoryKind as RepositoryKind,
-      id: repoId as string,
-      pattern: repositorySearchPattern ?? '',
-      rev: activeEntryInfo.rev
-    },
-    pause: !repoId || !repositoryKind || !repositorySearchPattern
-  })
 
   const onSelectRef = (ref: GitReference | undefined) => {
     if (isNil(ref)) return
@@ -122,20 +92,8 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     const { basename = '' } = activeEntryInfo
     const kind = fileMap?.[basename]?.file?.kind ?? 'dir'
 
-    // clear repository search
-    setInput(undefined)
     updateActivePath(generateEntryPath(activeRepo, nextRev, basename, kind))
   }
-
-  React.useEffect(() => {
-    const _options =
-      repositorySearchData?.repositorySearch?.map(option => ({
-        ...option,
-        id: option.path
-      })) ?? []
-    setOptions(_options)
-    setOptionsVisible(!!repositorySearchPattern)
-  }, [repositorySearchData?.repositorySearch])
 
   const onSelectRepo = (repoSpecifier: string) => {
     const repo = repoList.find(o => o.repoSpecifier === repoSpecifier)?.repo
@@ -143,63 +101,9 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
       const path = `${repoSpecifier}/-/tree/${
         resolveRepoRef(getDefaultRepoRef(repo.refs)).name
       }`
-      // clear repository search
-      setInput(undefined)
       updateActivePath(path)
     }
   }
-
-  const onInputValueChange = useDebounceCallback((v: string | undefined) => {
-    if (!v) {
-      setRepositorySearchPattern('')
-      setOptionsVisible(false)
-      setOptions([])
-    } else {
-      setRepositorySearchPattern(v)
-    }
-  }, 500)
-
-  const onClearInput = () => {
-    onInputValueChange.run('')
-    onInputValueChange.flush()
-  }
-
-  const onSelectFile = async (value: SearchOption) => {
-    if (!value.path) return
-    const path = generateEntryPath(
-      activeRepo,
-      activeRepoRef?.name,
-      value.path,
-      value.type as any
-    )
-    updateActivePath(path)
-  }
-
-  // shortcut 't'
-  React.useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as Element
-      const tagName = target?.tagName?.toLowerCase()
-      if (
-        tagName === 'input' ||
-        tagName === 'textarea' ||
-        tagName === 'select'
-      ) {
-        return
-      }
-
-      if (event.key === 't') {
-        event.preventDefault()
-        inputRef.current?.focus()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [])
 
   const onClickFilesTitle = () => {
     if (!activeRepo) return
