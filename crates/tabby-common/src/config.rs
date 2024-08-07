@@ -88,12 +88,12 @@ lazy_static! {
 
 pub fn config_index_to_id(index: usize) -> String {
     let id = HASHER.encode(&[index as u64]);
-    format!("config:{id}")
+    format!("config_{id}")
 }
 
 pub fn config_id_to_index(id: &str) -> Result<usize, anyhow::Error> {
     let id = id
-        .strip_prefix("config:")
+        .strip_prefix("config_")
         .ok_or_else(|| anyhow!("Invalid config ID"))?;
 
     HASHER
@@ -106,12 +106,14 @@ pub fn config_id_to_index(id: &str) -> Result<usize, anyhow::Error> {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RepositoryConfig {
     pub git_url: String,
+    dir_name: String,
 }
 
 impl RepositoryConfig {
-    pub fn new<T: Into<String>>(git_url: T) -> Self {
+    pub fn new<T: Into<String>>(git_url: T, kind: &str, id: &str) -> Self {
         Self {
             git_url: git_url.into(),
+            dir_name: format!("{kind}_{id}")
         }
     }
 
@@ -140,7 +142,7 @@ impl RepositoryConfig {
     }
 
     pub fn dir_name(&self) -> String {
-        sanitize_name(&self.canonical_git_url())
+        sanitize_name(&self.dir_name)
     }
 
     pub fn is_local_dir(&self) -> bool {
