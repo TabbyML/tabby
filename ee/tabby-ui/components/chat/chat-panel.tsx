@@ -24,16 +24,22 @@ export interface ChatPanelProps
   chatMaxWidthClass: string
 }
 
-export function ChatPanel({
-  id,
-  stop,
-  reload,
-  input,
-  setInput,
-  className,
-  onSubmit,
-  chatMaxWidthClass
-}: ChatPanelProps) {
+export interface ChatPanelRef {
+  focus: () => void
+}
+
+function ChatPanelRenderer(
+  {
+    stop,
+    reload,
+    input,
+    setInput,
+    className,
+    onSubmit,
+    chatMaxWidthClass
+  }: ChatPanelProps,
+  ref: React.Ref<ChatPanelRef>
+) {
   const promptFormRef = React.useRef<PromptFormRef>(null)
   const {
     container,
@@ -43,9 +49,18 @@ export function ChatPanel({
     clientSelectedContext,
     removeClientSelectedContext
   } = React.useContext(ChatContext)
-  React.useEffect(() => {
-    promptFormRef?.current?.focus()
-  }, [id])
+
+  React.useImperativeHandle(
+    ref,
+    () => {
+      return {
+        focus: () => {
+          promptFormRef.current?.focus()
+        }
+      }
+    },
+    []
+  )
 
   return (
     <div className={className}>
@@ -122,3 +137,7 @@ export function ChatPanel({
     </div>
   )
 }
+
+export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
+  ChatPanelRenderer
+)
