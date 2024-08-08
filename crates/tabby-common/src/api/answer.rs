@@ -39,7 +39,6 @@ pub struct AnswerRequest {
 
 #[derive(Deserialize, ToSchema)]
 pub struct AnswerCodeSnippet {
-    pub language: Option<String>,
     pub filepath: Option<String>,
     pub content: String,
 }
