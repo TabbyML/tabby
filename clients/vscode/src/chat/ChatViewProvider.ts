@@ -148,10 +148,11 @@ export class ChatViewProvider implements WebviewViewProvider {
         };
         if (editor) {
           const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
-          if (fileContext) chatMessage.relevantContext?.push({
-            ...fileContext,
-            isActiveSelection: true,
-          });
+          if (fileContext)
+            chatMessage.relevantContext?.push({
+              ...fileContext,
+              isActiveSelection: true,
+            });
         }
         if (relevantContext) {
           chatMessage.relevantContext = chatMessage.relevantContext?.concat(relevantContext);

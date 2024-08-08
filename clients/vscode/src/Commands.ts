@@ -248,9 +248,9 @@ export class Commands {
     "chat.explainCodeBlock": async () => {
       this.sendMessageToChatPanel("Explain the selected code:");
     },
-    "chat.addRelevantContext": async ()  => {
-      this.addRelevantContext()
-     },
+    "chat.addRelevantContext": async () => {
+      this.addRelevantContext();
+    },
     "chat.fixCodeBlock": async () => {
       this.sendMessageToChatPanel("Identify and fix potential bugs in the selected code:");
     },
