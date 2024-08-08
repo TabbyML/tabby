@@ -18,7 +18,7 @@ import { cn, nanoid } from '@/lib/utils'
 
 import { useTabbyAnswer } from '../../lib/hooks/use-tabby-answer'
 import { ListSkeleton } from '../skeleton'
-import { ChatPanel } from './chat-panel'
+import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
 import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
@@ -102,6 +102,7 @@ export interface ChatRef {
   ) => Promise<string | null | undefined>
   stop: () => void
   isLoading: boolean
+  focus: () => void
 }
 
 interface ChatProps extends React.ComponentProps<'div'> {
@@ -153,6 +154,7 @@ function ChatRenderer(
   const isOnLoadExecuted = React.useRef(false)
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
   const [input, setInput] = React.useState<string>('')
+  const chatPanelRef = React.useRef<ChatPanelRef>(null)
 
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
     api,
@@ -368,7 +370,8 @@ function ChatRenderer(
       return {
         sendUserChat,
         stop,
-        isLoading
+        isLoading,
+        focus: () => chatPanelRef.current?.focus()
       }
     },
     []
@@ -428,6 +431,7 @@ function ChatRenderer(
             input={input}
             setInput={setInput}
             chatMaxWidthClass={chatMaxWidthClass}
+            ref={chatPanelRef}
           />
         </div>
       </div>
