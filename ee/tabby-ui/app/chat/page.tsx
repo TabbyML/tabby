@@ -163,6 +163,11 @@ export default function ChatPage() {
     },
     cleanError: () => {
       setErrorMessage(null)
+    },
+    addRelevantContext: context => {
+      if (chatRef.current) {
+        chatRef.current.addRelevantContext(context)
+      }
     }
   })
 
@@ -191,8 +196,8 @@ export default function ChatPage() {
     setIsRefreshLoading(false)
   }
 
-  const onSubmitMessage = async (msg: string) => {
-    return server?.onSubmitMessage?.(msg)
+  const onSubmitMessage = async (msg: string, relevantContext?: Context[]) => {
+    return server?.onSubmitMessage?.(msg, relevantContext)
   }
 
   const onApplyInEditor = async (content: string) => {

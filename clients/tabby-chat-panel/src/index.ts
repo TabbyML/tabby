@@ -37,19 +37,24 @@ export interface ServerApi {
   sendMessage: (message: ChatMessage) => void
   showError: (error: ErrorMessage) => void
   cleanError: () => void
+  addRelevantContext: (context: Context) => void
 }
 
 export interface ClientApi {
   navigate: (context: Context, opts?: NavigateOpts) => void
   refresh: () => Promise<void>
-  onSubmitMessage?: (msg: string) => Promise<void>
+  onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
   onApplyInEditor?: (content: string) => void
 }
 
 export interface ChatMessage {
   message: string
-  selectContext?: Context // Client side context - displayed in user message
-  relevantContext?: Array<Context> // Client side contexts - displayed in assistant message
+
+  // Client side context - displayed in user message
+  selectContext?: Context
+
+  // Client side contexts - displayed in assistant message
+  relevantContext?: Array<Context>
 }
 
 export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerApi {
@@ -70,6 +75,7 @@ export function createServer(api: ServerApi): ClientApi {
       sendMessage: api.sendMessage,
       showError: api.showError,
       cleanError: api.cleanError,
+      addRelevantContext: api.addRelevantContext,
     },
   })
 }
