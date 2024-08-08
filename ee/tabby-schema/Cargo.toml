@@ -24,7 +24,7 @@ tabby-common = { path = "../../crates/tabby-common" }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["fs", "process"] }
 tracing.workspace = true
-validator = { version = "0.16.1", features = ["derive"] }
+validator = { version = "0.18.1", features = ["derive"] }
 regex.workspace = true
 hash-ids.workspace = true
 url.workspace = true

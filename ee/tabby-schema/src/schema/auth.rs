@@ -58,13 +58,9 @@ pub struct TokenAuthInput {
     pub email: String,
     #[validate(length(
         min = 8,
-        code = "password",
-        message = "Password must be at least 8 characters"
-    ))]
-    #[validate(length(
         max = 20,
         code = "password",
-        message = "Password must be at most 20 characters"
+        message = "Password must be between 8 and 20 characters"
     ))]
     pub password: String,
 }
@@ -85,15 +81,11 @@ pub struct RegisterInput {
     pub email: String,
     #[validate(length(
         min = 8,
-        code = "password1",
-        message = "Password must be at least 8 characters"
-    ))]
-    #[validate(length(
         max = 20,
         code = "password1",
-        message = "Password must be at most 20 characters"
+        message = "Password must be between 8 and 20 characters"
     ))]
-    #[validate(custom = "validate_password")]
+    #[validate(custom(function = "validate_password"))]
     pub password1: String,
     #[validate(must_match(
         code = "password2",
@@ -218,25 +210,17 @@ pub struct PasswordResetInput {
     pub code: String,
     #[validate(length(
         min = 8,
-        code = "password1",
-        message = "Password must be at least 8 characters"
-    ))]
-    #[validate(length(
         max = 20,
         code = "password1",
-        message = "Password must be at most 20 characters"
+        message = "Password must be between 8 and 20 characters"
     ))]
-    #[validate(custom = "validate_password")]
+    #[validate(custom(function="validate_password"))]
     pub password1: String,
     #[validate(length(
         min = 8,
-        code = "password2",
-        message = "Password must be at least 8 characters"
-    ))]
-    #[validate(length(
         max = 20,
         code = "password2",
-        message = "Password must be at most 20 characters"
+        message = "Password must be between 8 and 20 characters"
     ))]
     #[validate(must_match(
         code = "password2",
@@ -252,25 +236,17 @@ pub struct PasswordChangeInput {
 
     #[validate(length(
         min = 8,
-        code = "newPassword1",
-        message = "Password must be at least 8 characters"
-    ))]
-    #[validate(length(
         max = 20,
         code = "newPassword1",
-        message = "Password must be at most 20 characters"
+        message = "Password must be between 8 and 20 characters"
     ))]
-    #[validate(custom = "validate_new_password")]
+    #[validate(custom(function = "validate_new_password"))]
     pub new_password1: String,
     #[validate(length(
         min = 8,
-        code = "newPassword2",
-        message = "Password must be at least 8 characters"
-    ))]
-    #[validate(length(
         max = 20,
         code = "newPassword2",
-        message = "Password must be at most 20 characters"
+        message = "Password must be between 8 and 20 characters"
     ))]
     #[validate(must_match(
         code = "newPassword2",
@@ -282,15 +258,15 @@ pub struct PasswordChangeInput {
 
 #[derive(Validate)]
 pub struct UpdateUserNameInput {
-    #[validate(length(min = 2, code = "name", message = "Name must be at least 2 characters"))]
     #[validate(length(
+        min = 2,
         max = 20,
         code = "name",
-        message = "Name must be at most 20 characters"
+        message = "Name must be between 2 and 20 characters"
     ))]
     #[validate(regex(
         code = "name",
-        path = "crate::schema::constants::USERNAME_REGEX",
+        path = "*crate::schema::constants::USERNAME_REGEX",
         message = "Invalid name, name may contain numbers or special characters which are not supported"
     ))]
     pub name: String,
