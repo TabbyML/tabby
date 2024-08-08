@@ -38,7 +38,7 @@ pub enum DocSearchError {
 #[async_trait]
 pub trait DocSearch: Send + Sync {
     /// Search docs from underlying index.
-    /// 
+    ///
     /// * `source_ids`: Filter documents by source IDs, when empty, search all sources.
     async fn search(
         &self,
