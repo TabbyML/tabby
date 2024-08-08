@@ -100,13 +100,13 @@ If you have already cloned the repository, you could run the `git submodule upda
 brew install protobuf
 
 # For Ubuntu / Debian
-apt-get install protobuf-compiler libopenblas-dev
+apt install protobuf-compiler libopenblas-dev
 ```
 
 3. Install useful tools:
 ```bash
 # For Ubuntu
-sudo apt install make sqlite3 graphviz
+apt install make sqlite3 graphviz
 ```
 
 4. Now, you can build Tabby by running the command `cargo build`.
