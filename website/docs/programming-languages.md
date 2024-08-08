@@ -36,7 +36,7 @@ For an actual example of an issue or pull request adding the above support, plea
 * [R](https://www.r-project.org/)
 * [Dart](https://dart.dev/)
 * [Lua](https://www.lua.org)
-* [Elixir](https://elixir-lang.org)
+* [Elixir](https://elixir-lang.org): since 0.16
 
 ## Languages Missing Certain Support
 
