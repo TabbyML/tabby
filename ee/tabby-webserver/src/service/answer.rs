@@ -1,5 +1,5 @@
 use core::panic;
-use std::sync::Arc;
+use std::{borrow::Borrow, sync::Arc};
 
 use async_openai::types::{
     ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
@@ -316,11 +316,14 @@ Remember, based on the original question and related contexts, suggest three suc
         let snippets: Vec<String> = code_snippets
             .iter()
             .map(|snippet| {
-                format!(
-                    "```{}\n{}\n```",
-                    snippet.language.as_deref().unwrap_or_default(),
-                    snippet.content
-                )
+                if let Some(filepath) = &snippet.filepath {
+                    format!(
+                        "```title=\"{}\"\n{}\n```",
+                        filepath, snippet.content
+                    )
+                } else {
+                    format!("```\n{}\n```", snippet.content)
+                }
             })
             .chain(relevant_code.iter().map(|hit| {
                 format!(
