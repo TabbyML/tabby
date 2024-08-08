@@ -80,6 +80,11 @@
         "category": "Tabby"
       },
       {
+        "command": "tabby.chat.addRelevantContext",
+        "title": "Add selection to chat",
+        "category": "Tabby"
+      },
+      {
         "command": "tabby.chat.explainCodeBlock",
         "title": "Explain This",
         "category": "Tabby"

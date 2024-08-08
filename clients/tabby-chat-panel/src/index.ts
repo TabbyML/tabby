@@ -13,7 +13,10 @@ export interface FileContext {
   git_url: string
 }
 
-export type Context = FileContext
+export type Context = FileContext & {
+  // FIXME: The `isActiveSelection` field is used to differentiate whether it is the active selection or the multi selection added by command.
+  isActiveSelection?: boolean
+}
 
 export interface FetcherOptions {
   authorization: string

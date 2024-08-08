@@ -69,6 +69,16 @@ export class Commands {
     }
   }
 
+  private addRelevantContext() {
+    const editor = window.activeTextEditor;
+    if (editor) {
+      const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+      if (fileContext) {
+        this.chatViewProvider.addRelevantContext(fileContext);
+      }
+    }
+  }
+
   commands: Record<string, (...args: never[]) => void> = {
     applyCallback: (callback: (() => void) | undefined) => {
       callback?.();
@@ -237,6 +247,9 @@ export class Commands {
     "chat.explainCodeBlock": async () => {
       this.sendMessageToChatPanel("Explain the selected code:");
     },
+    "chat.addRelevantContext": async ()  => {
+      this.addRelevantContext()
+     },
     "chat.fixCodeBlock": async () => {
       this.sendMessageToChatPanel("Identify and fix potential bugs in the selected code:");
     },
