@@ -259,6 +259,7 @@ export class ChatViewProvider implements WebviewViewProvider {
       ) {
         version = semver.coerce(serverInfo.health["version"]["git_describe"]);
       }
+      this.logger.info(`version: ${version}`);
       if (version && semver.lt(version, "0.16.0")) {
         return false;
       }

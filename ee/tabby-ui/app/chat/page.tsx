@@ -332,6 +332,7 @@ export default function ChatPage() {
         client={client}
         onSubmitMessage={isOnSubmitMessage ? onSubmitMessage : undefined}
         onApplyInEditor={isOnApplyInEditor ? onApplyInEditor : undefined}
+        collectRelevantCodeUsingUserMessage
       />
     </ErrorBoundary>
   )

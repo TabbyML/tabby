@@ -120,6 +120,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   container?: HTMLDivElement
   docQuery?: boolean
   generateRelevantQuestions?: boolean
+  collectRelevantCodeUsingUserMessage?: boolean
   maxWidth?: string
   welcomeMessage?: string
   promptFormClassname?: string
@@ -143,6 +144,7 @@ function ChatRenderer(
     fetcher,
     docQuery,
     generateRelevantQuestions,
+    collectRelevantCodeUsingUserMessage,
     maxWidth,
     welcomeMessage,
     promptFormClassname,
@@ -303,8 +305,11 @@ function ChatRenderer(
     const userMessage = qaPairs[qaPairs.length - 1].user
     // FIXME(wwayne): The first context in relevantContext is currently sent as the code query.
     //                Review and update the logic to ensure the appropriate api attribute is used.
+    const activeSelectionRelevatContext = userMessage?.relevantContext?.find(
+      o => o.isActiveSelection
+    )
     const contextForCodeQuery =
-      userMessage?.selectContext || userMessage?.relevantContext?.[0]
+      userMessage?.selectContext || activeSelectionRelevatContext
     const code_query: AnswerRequest['code_query'] | undefined =
       contextForCodeQuery
         ? {
@@ -317,11 +322,22 @@ function ChatRenderer(
           }
         : undefined
 
+    const code_snippets = userMessage?.relevantContext
+      ?.filter(o => !o.isActiveSelection)
+      ?.map(o => ({
+        filepath: o.filepath,
+        content: o.content
+      }))
+
     return {
       messages: toMessages(qaPairs).slice(0, -1),
       code_query,
+      // @ts-ignore FIXME
+      code_snippets,
       doc_query: !!docQuery,
-      generate_relevant_questions: !!generateRelevantQuestions
+      generate_relevant_questions: !!generateRelevantQuestions,
+      collect_relevant_code_using_user_message:
+        !!collectRelevantCodeUsingUserMessage
     }
   }
 

@@ -72,6 +72,7 @@ export class Commands {
   private addRelevantContext() {
     const editor = window.activeTextEditor;
     if (editor) {
+      commands.executeCommand("tabby.chatView.focus");
       const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
       if (fileContext) {
         this.chatViewProvider.addRelevantContext(fileContext);
