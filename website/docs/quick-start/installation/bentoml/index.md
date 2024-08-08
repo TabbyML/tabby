@@ -42,6 +42,8 @@ docker:
     system_packages:
         - unzip
         - git
+        - curl
+        - software-properties-common
     setup_script: "./setup-docker.sh"
 ```
 
@@ -97,7 +99,7 @@ class Tabby:
         self.server.wait_until_ready()
 ```
 
-Finally, we draft a deployment configuration file `bentodeploy.yaml` to outline the deployment specifics. Note that we employ rclone to synchronize persisted data with object storage.
+Finally, we draft a deployment configuration file `bentodeploy.yaml` to outline the deployment specifics. Note that we employ rclone to synchronize persisted data with Cloudflare R2 object storage. You can get the values of the following R2 environment variables by referring to the [Cloudfare R2 documentation](https://developers.cloudflare.com/r2/api/s3/tokens/).
 
 ```yaml title="bentodeploy.yaml"
 name: tabby-local

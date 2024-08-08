@@ -73,6 +73,7 @@ class Tabby:
 
 def download_tabby_dir(username: str) -> None:
     """Download the tabby directory for the given user."""
+    # Ensure the bucket `tabby-cloud-managed` and the path `users/tabby-local` exist in your R2 storage
     if os.system(f"rclone sync r2:/tabby-cloud-managed/users/{username} ~/.tabby") == 0:
         print("Tabby directory downloaded successfully.")
     else:

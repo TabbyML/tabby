@@ -9,4 +9,6 @@ docker:
   system_packages:
     - unzip
     - git
+    - curl
+    - software-properties-common
   setup_script: "./setup-docker.sh"
