@@ -164,6 +164,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       baseUrl: endpoint,
       headers: {
         Authorization: auth,
+        "User-Agent": this.clientInfoStr,
         ...this.config.server.requestHeaders,
       },
       /** dispatcher do not exist in {@link RequestInit} in browser env. */
@@ -395,7 +396,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }
     }
     await this.anonymousUsageLogger.init({ dataStore: this.dataStore });
-    this.clientInfoStr = this.clientInfoToString(undefined);
+    this.clientInfoStr = this.clientInfoToString(options.clientProperties?.session);
     if (options.clientProperties) {
       if (options.clientProperties.session) {
         Object.entries(options.clientProperties.session).forEach(([key, value]) => {
@@ -407,7 +408,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
           this.anonymousUsageLogger.setUserProperties(key, value);
         });
       }
-      this.clientInfoStr = this.clientInfoToString(options.clientProperties.session);
     }
 
     if (this.dataStore) {
@@ -704,9 +704,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
           temperature,
         },
         signal: this.createAbortSignal({ signal }),
-        headers: {
-          "User-Agent": this.clientInfoStr,
-        },
       };
       const requestDescription = `POST ${this.config.server.endpoint + requestPath}`;
       this.logger.debug(`Completion request: ${requestDescription}. [${requestId}]`);
@@ -1020,14 +1017,19 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   private clientInfoToString(session: Record<string, any> | undefined): string {
-    const nodeInfo = `Node.js/${process.version}`;
-    if (!session) return nodeInfo;
+    let envInfo = `Node.js/${process.version}`;
+
+    if (typeof navigator !== "undefined" && typeof navigator.userAgent === "string") {
+      envInfo = `${navigator.userAgent}`;
+    }
+
+    if (!session) return envInfo;
 
     const ide = session["ide"] ? `${session["ide"].name.replace(/ /g, "-")}/${session["ide"].version}` : "";
     const tabby = `${agentName}/${agentVersion}`;
     const tabbyPlugin = session["tabby_plugin"]
       ? `${session["tabby_plugin"].name}/${session["tabby_plugin"].version}`
       : "";
-    return `${nodeInfo} ${tabby} ${ide} ${tabbyPlugin}`.trim();
+    return `${envInfo} ${tabby} ${ide} ${tabbyPlugin}`.trim();
   }
 }
