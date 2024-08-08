@@ -76,10 +76,10 @@ lazy_static! {
                     TagsConfiguration::new(
                         tree_sitter_elixir::language(),
                         tree_sitter_elixir::TAGS_QUERY,
-                         "",
-                     )
-                     .unwrap(),
-                 ),
+                        "",
+                    )
+                    .unwrap(),
+                ),
             ),
             (
                 "go",

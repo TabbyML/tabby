@@ -1,5 +1,5 @@
 use core::panic;
-use std::{borrow::Borrow, sync::Arc};
+use std::sync::Arc;
 
 use async_openai::types::{
     ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
@@ -317,10 +317,7 @@ Remember, based on the original question and related contexts, suggest three suc
             .iter()
             .map(|snippet| {
                 if let Some(filepath) = &snippet.filepath {
-                    format!(
-                        "```title=\"{}\"\n{}\n```",
-                        filepath, snippet.content
-                    )
+                    format!("```title=\"{}\"\n{}\n```", filepath, snippet.content)
                 } else {
                     format!("```\n{}\n```", snippet.content)
                 }

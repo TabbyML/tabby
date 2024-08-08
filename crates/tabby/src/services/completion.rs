@@ -449,7 +449,7 @@ mod tests {
         };
 
         let response = completion_service
-            .generate(&request, &("test user agent".to_string()))
+            .generate(&request, "test user agent")
             .await
             .unwrap();
         assert_eq!(response.choices[0].text, r#""Hello, world!""#);
