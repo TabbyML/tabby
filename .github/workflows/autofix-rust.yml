@@ -28,7 +28,7 @@ jobs:
       SCCACHE_GHA_ENABLED: true
       RUSTC_WRAPPER: sccache
       CARGO_INCREMENTAL: 0
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
         with:
