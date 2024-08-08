@@ -246,6 +246,34 @@ top_level_keywords = [
 ]
 
 [[config]]
+languages = ["elixir"]
+exts = ["ex", "exs"]
+line_comment = "#"
+top_level_keywords = [
+    "def",
+    "defp",
+    "defmacro",
+    "defmacrop",
+    "module",
+    "use",
+    "import",
+    "alias",
+    "require",
+    "if",
+    "unless",
+    "case",
+    "cond",
+    "with",
+    "try",
+    "catch",
+    "throw",
+    "receive",
+    "after",
+    "do",
+    "end",
+]
+
+[[config]]
 languages = ["r"]
 exts = ["R", "r"]
 line_comment = "#"
