@@ -6,7 +6,7 @@ on:
     tags:
       - 'v*'
       - 'nightly'
-      - '!*-dev'
+      - "!*-dev.*"
   pull_request:
     branches: [ "main" ]
     paths:
