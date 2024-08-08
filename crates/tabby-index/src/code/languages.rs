@@ -71,6 +71,17 @@ lazy_static! {
                 ),
             ),
             (
+                "elixir",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_elixir::language(),
+                        tree_sitter_elixir::TAGS_QUERY,
+                         "",
+                     )
+                     .unwrap(),
+                 ),
+            ),
+            (
                 "go",
                 TagsConfigurationSync(
                     TagsConfiguration::new(
