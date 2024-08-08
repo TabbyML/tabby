@@ -1,5 +1,5 @@
 use core::panic;
-use std::sync::Arc;
+use std::{borrow::Borrow, sync::Arc};
 
 use async_openai::types::{
     ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
@@ -8,7 +8,7 @@ use async_openai::types::{
 use async_stream::stream;
 use futures::stream::BoxStream;
 use tabby_common::api::{
-    answer::{AnswerRequest, AnswerResponseChunk},
+    answer::{AnswerCodeSnippet, AnswerRequest, AnswerResponseChunk},
     code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchQuery},
     doc::{DocSearch, DocSearchError, DocSearchHit},
 };
@@ -70,6 +70,9 @@ impl AnswerService {
 
             let git_url = req.code_query.as_ref().map(|x| x.git_url.clone());
 
+            // 0. Extract client-provided code snippets
+            let code_snippets = req.code_snippets;
+
             // 1. Collect relevant code if needed.
             let relevant_code = if let Some(mut code_query)  = req.code_query  {
                 if req.collect_relevant_code_using_user_message {
@@ -100,7 +103,7 @@ impl AnswerService {
                 yield AnswerResponseChunk::RelevantDocuments(relevant_docs.clone());
             }
 
-            if !relevant_code.is_empty() || !relevant_docs.is_empty() {
+            if !code_snippets.is_empty() || !relevant_code.is_empty() || !relevant_docs.is_empty() {
                 if req.generate_relevant_questions {
                     // 3. Generate relevant questions from the query
                     let relevant_questions = self.generate_relevant_questions(&relevant_code, &relevant_docs, get_content(query)).await;
@@ -109,7 +112,7 @@ impl AnswerService {
 
 
                 // 4. Generate override prompt from the query
-                set_content(query, self.generate_prompt(&relevant_code, &relevant_docs, get_content(query)).await);
+                set_content(query, self.generate_prompt(&code_snippets, &relevant_code, &relevant_docs, get_content(query)).await);
             }
 
 
@@ -305,18 +308,29 @@ Remember, based on the original question and related contexts, suggest three suc
 
     async fn generate_prompt(
         &self,
+        code_snippets: &[AnswerCodeSnippet],
         relevant_code: &[CodeSearchHit],
         relevant_docs: &[DocSearchHit],
         question: &str,
     ) -> String {
-        let snippets: Vec<String> = relevant_code
+        let snippets: Vec<String> = code_snippets
             .iter()
-            .map(|hit| {
+            .map(|snippet| {
+                if let Some(filepath) = &snippet.filepath {
+                    format!(
+                        "```title=\"{}\"\n{}\n```",
+                        filepath, snippet.content
+                    )
+                } else {
+                    format!("```\n{}\n```", snippet.content)
+                }
+            })
+            .chain(relevant_code.iter().map(|hit| {
                 format!(
                     "```{} title=\"{}\"\n{}\n```",
                     hit.doc.language, hit.doc.filepath, hit.doc.body
                 )
-            })
+            }))
             .chain(relevant_docs.iter().map(|hit| hit.doc.snippet.to_owned()))
             .collect();
 

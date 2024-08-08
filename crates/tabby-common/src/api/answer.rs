@@ -19,8 +19,13 @@ pub struct AnswerRequest {
 
     pub messages: Vec<ChatCompletionRequestMessage>,
 
+    /// Client-provided code snippet to run relevant code search and enrich the LLM request.
     #[serde(default)]
     pub code_query: Option<CodeSearchQuery>,
+
+    /// Client-provided context to enrich the LLM request.
+    #[serde(default)]
+    pub code_snippets: Vec<AnswerCodeSnippet>,
 
     #[serde(default)]
     pub doc_query: bool,
@@ -30,6 +35,12 @@ pub struct AnswerRequest {
 
     #[serde(default)]
     pub collect_relevant_code_using_user_message: bool,
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct AnswerCodeSnippet {
+    pub filepath: Option<String>,
+    pub content: String,
 }
 
 #[derive(Serialize, ToSchema)]
