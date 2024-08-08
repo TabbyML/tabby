@@ -81,7 +81,7 @@
       },
       {
         "command": "tabby.chat.addRelevantContext",
-        "title": "Add selection to chat",
+        "title": "Add Selection to Chat",
         "category": "Tabby"
       },
       {
