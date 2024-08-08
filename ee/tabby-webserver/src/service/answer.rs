@@ -1,5 +1,5 @@
 use core::panic;
-use std::{sync::Arc};
+use std::sync::Arc;
 
 use async_openai::types::{
     ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
