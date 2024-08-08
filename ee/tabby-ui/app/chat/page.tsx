@@ -164,9 +164,9 @@ export default function ChatPage() {
     cleanError: () => {
       setErrorMessage(null)
     },
-    addClientSelectedContext: context => {
+    addRelevantContext: context => {
       if (chatRef.current) {
-        chatRef.current.addClientSelectedContext(context)
+        chatRef.current.addRelevantContext(context)
       }
     }
   })

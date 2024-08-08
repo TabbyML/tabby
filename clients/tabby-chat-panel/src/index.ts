@@ -37,7 +37,7 @@ export interface ServerApi {
   sendMessage: (message: ChatMessage) => void
   showError: (error: ErrorMessage) => void
   cleanError: () => void
-  addClientSelectedContext: (context: Context) => void
+  addRelevantContext: (context: Context) => void
 }
 
 export interface ClientApi {
@@ -75,7 +75,7 @@ export function createServer(api: ServerApi): ClientApi {
       sendMessage: api.sendMessage,
       showError: api.showError,
       cleanError: api.cleanError,
-      addClientSelectedContext: api.addClientSelectedContext,
+      addRelevantContext: api.addRelevantContext,
     },
   })
 }

@@ -438,8 +438,8 @@ export class ChatViewProvider implements WebviewViewProvider {
     }
   }
 
-  public addClientSelectedContext(context: Context) {
-    this.client?.addClientSelectedContext(context);
+  public addRelevantContext(context: Context) {
+    this.client?.addRelevantContext(context);
   }
 
   private sendMessageToChatPanel(message: ChatMessage) {

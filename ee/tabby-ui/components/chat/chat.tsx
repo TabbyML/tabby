@@ -104,7 +104,7 @@ export interface ChatRef {
   ) => Promise<string | null | undefined>
   stop: () => void
   isLoading: boolean
-  addClientSelectedContext: (context: Context) => void
+  addRelevantContext: (context: Context) => void
 }
 
 interface ChatProps extends React.ComponentProps<'div'> {
@@ -372,7 +372,7 @@ function ChatRenderer(
     setClientSelectedContext(clientSelectedContext.concat([context]))
   })
 
-  const addClientSelectedContext = (context: Context) => {
+  const addRelevantContext = (context: Context) => {
     handleAddClientSelectedContext.current?.(context)
   }
 
@@ -394,7 +394,7 @@ function ChatRenderer(
         sendUserChat,
         stop,
         isLoading,
-        addClientSelectedContext
+        addRelevantContext
       }
     },
     []
