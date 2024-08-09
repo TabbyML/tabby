@@ -23,7 +23,7 @@ use tracing::{error, warn};
 use self::hub::HubState;
 use crate::{
     axum::{extract::AuthBearer, graphql, FromAuth},
-    jwt::validate_jwt,
+    jwt::{generate_jwt_payload, validate_jwt},
     service::answer::AnswerService,
 };
 
@@ -157,9 +157,30 @@ async fn avatar(
     Ok(response)
 }
 
+#[async_trait::async_trait]
 impl FromAuth<Arc<dyn ServiceLocator>> for tabby_schema::Context {
-    fn build(locator: Arc<dyn ServiceLocator>, bearer: Option<String>) -> Self {
-        let claims = bearer.and_then(|token| validate_jwt(&token).ok());
+    async fn build(
+        locator: Arc<dyn ServiceLocator>,
+        token: Option<String>,
+        allow_auth_token: bool,
+    ) -> Self {
+        let claims = if let Some(token) = token {
+            let mut claims = validate_jwt(&token).ok();
+
+            if claims.is_none() && allow_auth_token {
+                claims = locator
+                    .auth()
+                    .verify_auth_token(&token, false)
+                    .await
+                    .ok()
+                    .map(|id| generate_jwt_payload(id));
+            }
+
+            claims
+        } else {
+            None
+        };
+
         Self { claims, locator }
     }
 }
