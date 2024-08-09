@@ -7,7 +7,7 @@ use axum::{
     response::Response,
 };
 use extract::{extract_bearer_token, AuthBearer};
-use futures::{future, FutureExt};
+use futures::FutureExt;
 use juniper::{BoxFuture, Variables};
 use juniper_axum::{
     extract::JuniperRequest,

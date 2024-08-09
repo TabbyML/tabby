@@ -173,7 +173,7 @@ impl FromAuth<Arc<dyn ServiceLocator>> for tabby_schema::Context {
                     .verify_auth_token(&token)
                     .await
                     .ok()
-                    .map(|id| generate_jwt_payload(id));
+                    .map(generate_jwt_payload);
             }
 
             claims
