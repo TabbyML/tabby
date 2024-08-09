@@ -29,7 +29,7 @@ use juniper::{
 };
 use repository::RepositoryGrepOutput;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
-use thread::{CreateThreadRunInput, ThreadRunStream, ThreadService};
+use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
 use tracing::error;
 use validator::{Validate, ValidationErrors};
 use worker::WorkerService;
@@ -919,9 +919,9 @@ pub struct Subscription;
 
 #[graphql_subscription]
 impl Subscription {
-    async fn create_thread_run(
+    async fn create_thread_and_run(
         ctx: &Context,
-        input: CreateThreadRunInput,
+        input: CreateThreadAndRunInput,
     ) -> Result<ThreadRunStream> {
         check_user(ctx).await?;
         input.validate()?;
@@ -930,7 +930,17 @@ impl Subscription {
 
         let thread_id = thread.create(&input.thread).await?;
 
-        thread.create_run(thread_id).await
+        thread.create_run(&thread_id).await
+    }
+
+    async fn create_thread_run(ctx: &Context, input: CreateThreadRunInput) -> Result<ThreadRunStream> {
+        check_user(ctx).await?;
+        input.validate()?;
+
+        let thread = ctx.locator.thread();
+        thread.append_messages(&input.thread_id, &input.additional_messages).await?;
+
+        thread.create_run(&input.thread_id).await
     }
 }
 

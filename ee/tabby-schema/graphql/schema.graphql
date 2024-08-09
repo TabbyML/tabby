@@ -96,12 +96,17 @@ input CreateMessageInput {
   attachments: MessageAttachmentInput
 }
 
+input CreateThreadAndRunInput {
+  thread: CreateThreadInput!
+}
+
 input CreateThreadInput {
   messages: [CreateMessageInput!]!
 }
 
 input CreateThreadRunInput {
-  thread: CreateThreadInput!
+  threadId: ID!
+  additionalMessages: [CreateMessageInput!]!
 }
 
 input CreateWebCrawlerUrlInput {
@@ -529,6 +534,7 @@ type ServerInfo {
 }
 
 type Subscription {
+  createThreadAndRun(input: CreateThreadAndRunInput!): ThreadRunItem!
   createThreadRun(input: CreateThreadRunInput!): ThreadRunItem!
 }
 
