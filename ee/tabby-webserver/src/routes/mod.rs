@@ -23,14 +23,9 @@ use self::hub::HubState;
 use crate::{
     axum::{extract::AuthBearer, graphql, FromAuth},
     jwt::validate_jwt,
-    service::answer::AnswerService,
 };
 
-pub fn create(
-    ctx: Arc<dyn ServiceLocator>,
-    api: Router,
-    ui: Router,
-) -> (Router, Router) {
+pub fn create(ctx: Arc<dyn ServiceLocator>, api: Router, ui: Router) -> (Router, Router) {
     let schema = Arc::new(create_schema());
 
     let api = api.route(

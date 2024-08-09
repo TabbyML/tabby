@@ -9,9 +9,9 @@ pub mod job;
 mod license;
 pub mod repository;
 mod setting;
+mod thread;
 mod user_event;
 pub mod web_crawler;
-mod thread;
 
 use std::sync::Arc;
 
