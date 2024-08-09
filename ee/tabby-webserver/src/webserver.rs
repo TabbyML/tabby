@@ -120,12 +120,12 @@ impl Webserver {
             self.integration.clone(),
             self.web_crawler.clone(),
             self.job.clone(),
-            answer,
+            answer.clone(),
             self.db.clone(),
             is_chat_enabled,
         )
         .await;
 
-        routes::create(ctx, api, ui)
+        routes::create(ctx, api, ui, answer)
     }
 }

@@ -5044,6 +5044,7 @@ name = "tabby-common"
 version = "0.16.0-dev.0"
 dependencies = [
  "anyhow",
+ "async-openai",
  "async-trait",
  "axum",
  "axum-extra",
@@ -5276,6 +5277,7 @@ dependencies = [
  "tracing",
  "url",
  "urlencoding",
+ "utoipa",
  "uuid",
 ]
 

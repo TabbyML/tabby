@@ -40,7 +40,7 @@ impl ThreadService for ThreadServiceImpl {
             content: "Hello, world!".to_string(),
             attachments: None,
         }];
-        answer.answer(&messages, options).await
+        answer.answer_v2(&messages, options).await
     }
 
     async fn append_messages(&self, _id: &ID, _messages: &[CreateMessageInput]) -> Result<()> {

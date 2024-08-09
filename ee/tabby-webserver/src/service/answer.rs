@@ -11,8 +11,7 @@ use async_openai::{
 use async_stream::stream;
 use futures::stream::BoxStream;
 use tabby_common::api::{
-    code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchQuery},
-    doc::{DocSearch, DocSearchError, DocSearchHit},
+    answer::{AnswerRequest, AnswerResponseChunk}, code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchQuery}, doc::{DocSearch, DocSearchError, DocSearchHit}
 };
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
@@ -63,7 +62,121 @@ impl AnswerService {
         }
     }
 
+    #[deprecated(note = "This shall be removed after the migration to v2 is done.")]
     pub async fn answer<'a>(
+        self: Arc<Self>,
+        mut req: AnswerRequest,
+    ) -> BoxStream<'a, AnswerResponseChunk> {
+        let s = stream! {
+            // 0. Collect sources given query, for now we only use the last message
+            let query: &mut _ = match req.messages.last_mut() {
+                Some(query) => query,
+                None => {
+                    warn!("No query found in the request");
+                    return;
+                }
+            };
+
+            let git_url = req.code_query.as_ref().map(|x| x.git_url.clone());
+
+            // 0. Extract client-provided code snippets
+            let code_snippets = req.code_snippets;
+
+            // 1. Collect relevant code if needed.
+            let relevant_code = if let Some(mut code_query)  = req.code_query  {
+                if req.collect_relevant_code_using_user_message {
+                    // Natural language content from query is used to search for relevant code.
+                    code_query.content = get_content(query).to_owned();
+                } else {
+                    // Code snippet is extended to the query.
+                    self.override_query_with_code_query(query, &code_query).await;
+                }
+
+                let code_query = CodeQueryInput {
+                    git_url: code_query.git_url,
+                    filepath: code_query.filepath,
+                    language: code_query.language,
+                    content: code_query.content,
+                };
+                self.collect_relevant_code(&code_query).await
+            } else {
+                vec![]
+            };
+
+            if !relevant_code.is_empty() {
+                yield AnswerResponseChunk::RelevantCode(relevant_code.clone());
+            }
+
+
+            // 2. Collect relevant docs if needed.
+            let relevant_docs = if req.doc_query {
+                let query = DocQueryInput {
+                    content: get_content(query).to_owned(),
+                };
+                self.collect_relevant_docs(git_url.as_deref(), &query).await
+            } else {
+                vec![]
+            };
+
+            if !relevant_docs.is_empty() {
+                yield AnswerResponseChunk::RelevantDocuments(relevant_docs.clone());
+            }
+
+            if !code_snippets.is_empty() || !relevant_code.is_empty() || !relevant_docs.is_empty() {
+                if req.generate_relevant_questions {
+                    // 3. Generate relevant questions from the query
+                    let relevant_questions = self.generate_relevant_questions(&relevant_code, &relevant_docs, get_content(query)).await;
+                    yield AnswerResponseChunk::RelevantQuestions(relevant_questions);
+                }
+
+                let code_snippets: Vec<MessageAttachmentCode> = code_snippets.iter().map(|x| MessageAttachmentCode {
+                    filepath: x.filepath.clone(),
+                    content: x.content.clone(),
+                }).collect();
+
+                // 4. Generate override prompt from the query
+                set_content(query, self.generate_prompt(&code_snippets, &relevant_code, &relevant_docs, get_content(query)).await);
+            }
+
+
+            // 5. Generate answer from the query
+            let request = {
+                let mut builder = CreateChatCompletionRequestArgs::default();
+                builder.messages(req.messages).presence_penalty(PRESENCE_PENALTY);
+                if let Some(user) = req.user {
+                    builder.user(user);
+                };
+
+                builder.build().expect("Failed to create ChatCompletionRequest")
+            };
+
+            let s = match self.chat.chat_stream(request).await {
+                Ok(s) => s,
+                Err(err) => {
+                    warn!("Failed to create chat completion stream: {:?}", err);
+                    return;
+                }
+            };
+
+            for await chunk in s {
+                let chunk = match chunk {
+                    Ok(chunk) => chunk,
+                    Err(err) => {
+                        debug!("Failed to get chat completion chunk: {:?}", err);
+                        break;
+                    }
+                };
+
+                if let Some(content) = chunk.choices[0].delta.content.as_deref() {
+                    yield AnswerResponseChunk::AnswerDelta(content.to_owned());
+                }
+            }
+        };
+
+        Box::pin(s)
+    }
+
+    pub async fn answer_v2<'a>(
         self: Arc<Self>,
         messages: &[tabby_schema::thread::Message],
         options: &ThreadRunOptionsInput,
@@ -351,6 +464,22 @@ Remember, based on the original question and related contexts, suggest three suc
             .collect()
     }
 
+    async fn override_query_with_code_query(
+        &self,
+        query: &mut ChatCompletionRequestMessage,
+        code_query: &CodeSearchQuery,
+    ) {
+        set_content(
+            query,
+            format!(
+                "{}\n\n```{}\n{}\n```",
+                get_content(query),
+                code_query.language.as_deref().unwrap_or_default(),
+                code_query.content
+            ),
+        )
+    }
+
     async fn generate_prompt(
         &self,
         code_snippets: &[MessageAttachmentCode],
@@ -420,4 +549,22 @@ pub fn create(
     serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
 ) -> AnswerService {
     AnswerService::new(chat, code, doc, web, repository, serper_factory_fn)
+}
+
+fn get_content(message: &ChatCompletionRequestMessage) -> &str {
+    match message {
+        ChatCompletionRequestMessage::System(x) => &x.content,
+        _ => {
+            panic!("Unexpected message type, {:?}", message);
+        }
+    }
+}
+
+fn set_content(message: &mut ChatCompletionRequestMessage, content: String) {
+    match message {
+        ChatCompletionRequestMessage::System(x) => x.content = content,
+        _ => {
+            panic!("Unexpected message type");
+        }
+    }
 }
