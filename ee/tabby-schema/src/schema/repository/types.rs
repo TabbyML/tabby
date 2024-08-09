@@ -7,7 +7,7 @@ use crate::integration::IntegrationKind;
 pub struct CreateIntegrationInput {
     #[validate(regex(
         code = "displayName",
-        path = "crate::schema::constants::REPOSITORY_NAME_REGEX",
+        path = "*crate::schema::constants::REPOSITORY_NAME_REGEX",
         message = "Invalid repository provider name"
     ))]
     pub display_name: String,
@@ -22,7 +22,7 @@ pub struct CreateIntegrationInput {
 pub struct CreateSelfHostedRepositoryProviderInput {
     #[validate(regex(
         code = "displayName",
-        path = "crate::schema::constants::REPOSITORY_NAME_REGEX",
+        path = "*crate::schema::constants::REPOSITORY_NAME_REGEX",
         message = "Invalid repository provider name"
     ))]
     pub display_name: String,
@@ -37,7 +37,7 @@ pub struct UpdateIntegrationInput {
     pub id: ID,
     #[validate(regex(
         code = "displayName",
-        path = "crate::schema::constants::REPOSITORY_NAME_REGEX",
+        path = "*crate::schema::constants::REPOSITORY_NAME_REGEX",
         message = "Invalid repository provider name"
     ))]
     pub display_name: String,
@@ -53,7 +53,7 @@ pub struct UpdateSelfHostedRepositoryProviderInput {
     pub id: ID,
     #[validate(regex(
         code = "displayName",
-        path = "crate::schema::constants::REPOSITORY_NAME_REGEX",
+        path = "*crate::schema::constants::REPOSITORY_NAME_REGEX",
         message = "Invalid repository provider name"
     ))]
     pub display_name: String,

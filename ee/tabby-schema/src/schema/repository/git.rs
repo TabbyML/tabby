@@ -13,7 +13,7 @@ use crate::{
 pub struct CreateGitRepositoryInput {
     #[validate(regex(
         code = "name",
-        path = "crate::schema::constants::REPOSITORY_NAME_REGEX",
+        path = "*crate::schema::constants::REPOSITORY_NAME_REGEX",
         message = "Invalid repository name"
     ))]
     pub name: String,
