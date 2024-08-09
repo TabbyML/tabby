@@ -36,8 +36,8 @@ type ChatContextValue = {
   onCopyContent?: (value: string) => void
   client?: string
   onApplyInEditor?: (value: string) => void
-  clientSelectedContext: Context[]
-  removeClientSelectedContext: (index: number) => void
+  relevantContext: Context[]
+  removeRelevantContext: (index: number) => void
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -120,6 +120,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   container?: HTMLDivElement
   docQuery?: boolean
   generateRelevantQuestions?: boolean
+  collectRelevantCodeUsingUserMessage?: boolean
   maxWidth?: string
   welcomeMessage?: string
   promptFormClassname?: string
@@ -143,6 +144,7 @@ function ChatRenderer(
     fetcher,
     docQuery,
     generateRelevantQuestions,
+    collectRelevantCodeUsingUserMessage,
     maxWidth,
     welcomeMessage,
     promptFormClassname,
@@ -157,9 +159,7 @@ function ChatRenderer(
   const isOnLoadExecuted = React.useRef(false)
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
   const [input, setInput] = React.useState<string>('')
-  const [clientSelectedContext, setClientSelectedContext] = React.useState<
-    Context[]
-  >([])
+  const [relevantContext, setRelevantContext] = React.useState<Context[]>([])
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
 
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
@@ -301,10 +301,8 @@ function ChatRenderer(
     qaPairs: QuestionAnswerPair[]
   ): AnswerRequest => {
     const userMessage = qaPairs[qaPairs.length - 1].user
-    // FIXME(wwayne): The first context in relevantContext is currently sent as the code query.
-    //                Review and update the logic to ensure the appropriate api attribute is used.
     const contextForCodeQuery =
-      userMessage?.selectContext || userMessage?.relevantContext?.[0]
+      userMessage?.selectContext || userMessage?.activeContext
     const code_query: AnswerRequest['code_query'] | undefined =
       contextForCodeQuery
         ? {
@@ -317,11 +315,19 @@ function ChatRenderer(
           }
         : undefined
 
+    const code_snippets = userMessage?.relevantContext?.map(o => ({
+      filepath: o.filepath,
+      content: o.content
+    }))
+
     return {
       messages: toMessages(qaPairs).slice(0, -1),
       code_query,
+      code_snippets,
       doc_query: !!docQuery,
-      generate_relevant_questions: !!generateRelevantQuestions
+      generate_relevant_questions: !!generateRelevantQuestions,
+      collect_relevant_code_using_user_message:
+        !!collectRelevantCodeUsingUserMessage
     }
   }
 
@@ -360,28 +366,28 @@ function ChatRenderer(
 
   const handleSubmit = async (value: string) => {
     if (onSubmitMessage) {
-      onSubmitMessage(value, clientSelectedContext)
+      onSubmitMessage(value, relevantContext)
     } else {
       sendUserChat({
         message: value,
-        relevantContext: clientSelectedContext
+        relevantContext: relevantContext
       })
     }
-    setClientSelectedContext([])
+    setRelevantContext([])
   }
 
-  const handleAddClientSelectedContext = useLatest((context: Context) => {
-    setClientSelectedContext(clientSelectedContext.concat([context]))
+  const handleAddRelevantContext = useLatest((context: Context) => {
+    setRelevantContext(relevantContext.concat([context]))
   })
 
   const addRelevantContext = (context: Context) => {
-    handleAddClientSelectedContext.current?.(context)
+    handleAddRelevantContext.current?.(context)
   }
 
-  const removeClientSelectedContext = (index: number) => {
-    const newSelectedContext = [...clientSelectedContext]
-    newSelectedContext.splice(index, 1)
-    setClientSelectedContext(newSelectedContext)
+  const removeRelevantContext = (index: number) => {
+    const newRelevantContext = [...relevantContext]
+    newRelevantContext.splice(index, 1)
+    setRelevantContext(newRelevantContext)
   }
 
   React.useEffect(() => {
@@ -429,13 +435,13 @@ function ChatRenderer(
         onCopyContent,
         client,
         onApplyInEditor,
-        clientSelectedContext,
-        removeClientSelectedContext
+        relevantContext,
+        removeRelevantContext
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
         <div className={`w-full px-4 ${chatMaxWidthClass}`}>
-          {/* FIXME: pb-[200px] might not enough when adding a large number of clientSelectedContext */}
+          {/* FIXME: pb-[200px] might not enough when adding a large number of relevantContext */}
           <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
             {qaPairs?.length ? (
               <QuestionAnswerList

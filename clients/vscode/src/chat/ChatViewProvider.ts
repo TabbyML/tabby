@@ -26,6 +26,7 @@ export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
   private pendingMessages: ChatMessage[] = [];
+  private pendingRelevantContexts: Context[] = [];
   private isChatPageDisplayed = false;
 
   constructor(
@@ -148,7 +149,9 @@ export class ChatViewProvider implements WebviewViewProvider {
         };
         if (editor) {
           const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
-          if (fileContext) chatMessage.relevantContext?.push(fileContext);
+          if (fileContext)
+            // active selection
+            chatMessage.activeContext = fileContext;
         }
         if (relevantContext) {
           chatMessage.relevantContext = chatMessage.relevantContext?.concat(relevantContext);
@@ -282,6 +285,7 @@ export class ChatViewProvider implements WebviewViewProvider {
       return;
     }
 
+    this.pendingRelevantContexts.forEach((ctx) => this.addRelevantContext(ctx));
     this.pendingMessages.forEach((message) => this.sendMessageToChatPanel(message));
     if (serverInfo.config.token) {
       this.client?.cleanError();
@@ -439,7 +443,11 @@ export class ChatViewProvider implements WebviewViewProvider {
   }
 
   public addRelevantContext(context: Context) {
-    this.client?.addRelevantContext(context);
+    if (!this.client) {
+      this.pendingRelevantContexts.push(context);
+    } else {
+      this.client?.addRelevantContext(context);
+    }
   }
 
   private sendMessageToChatPanel(message: ChatMessage) {
