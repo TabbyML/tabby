@@ -78,7 +78,7 @@ export function createServer(api: ServerApi): ClientApi {
       sendMessage: api.sendMessage,
       showError: api.showError,
       cleanError: api.cleanError,
-      addRelevantContext: api.addRelevantContext
+      addRelevantContext: api.addRelevantContext,
     },
   })
 }
