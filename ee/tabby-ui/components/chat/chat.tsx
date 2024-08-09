@@ -159,9 +159,7 @@ function ChatRenderer(
   const isOnLoadExecuted = React.useRef(false)
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
   const [input, setInput] = React.useState<string>('')
-  const [clientSelectedContext, setClientSelectedContext] = React.useState<
-    Context[]
-  >([])
+  const [relevantContext, setRelevantContext] = React.useState<Context[]>([])
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
 
   const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
@@ -305,11 +303,10 @@ function ChatRenderer(
     const userMessage = qaPairs[qaPairs.length - 1].user
     // FIXME(wwayne): The first context in relevantContext is currently sent as the code query.
     //                Review and update the logic to ensure the appropriate api attribute is used.
-    const activeSelectionRelevatContext = userMessage?.relevantContext?.find(
-      o => o.isActiveSelection
-    )
+    const relevantContextFromActiveSelection =
+      userMessage?.relevantContext?.find(o => o.isActiveSelection)
     const contextForCodeQuery =
-      userMessage?.selectContext || activeSelectionRelevatContext
+      userMessage?.selectContext || relevantContextFromActiveSelection
     const code_query: AnswerRequest['code_query'] | undefined =
       contextForCodeQuery
         ? {
@@ -375,28 +372,28 @@ function ChatRenderer(
 
   const handleSubmit = async (value: string) => {
     if (onSubmitMessage) {
-      onSubmitMessage(value, clientSelectedContext)
+      onSubmitMessage(value, relevantContext)
     } else {
       sendUserChat({
         message: value,
-        relevantContext: clientSelectedContext
+        relevantContext: relevantContext
       })
     }
-    setClientSelectedContext([])
+    setRelevantContext([])
   }
 
-  const handleAddClientSelectedContext = useLatest((context: Context) => {
-    setClientSelectedContext(clientSelectedContext.concat([context]))
+  const handleAddRelevantContext = useLatest((context: Context) => {
+    setRelevantContext(relevantContext.concat([context]))
   })
 
   const addRelevantContext = (context: Context) => {
-    handleAddClientSelectedContext.current?.(context)
+    handleAddRelevantContext.current?.(context)
   }
 
-  const removeClientSelectedContext = (index: number) => {
-    const newSelectedContext = [...clientSelectedContext]
-    newSelectedContext.splice(index, 1)
-    setClientSelectedContext(newSelectedContext)
+  const removeRelevantContext = (index: number) => {
+    const newRelevantContext = [...relevantContext]
+    newRelevantContext.splice(index, 1)
+    setRelevantContext(newRelevantContext)
   }
 
   React.useEffect(() => {
@@ -444,8 +441,8 @@ function ChatRenderer(
         onCopyContent,
         client,
         onApplyInEditor,
-        clientSelectedContext,
-        removeClientSelectedContext
+        clientSelectedContext: relevantContext,
+        removeClientSelectedContext: removeRelevantContext
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
