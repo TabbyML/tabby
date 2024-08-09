@@ -78,11 +78,30 @@ enum RepositoryKind {
   GITLAB_SELF_HOSTED
 }
 
+enum Role {
+  USER
+  ASSISTANT
+}
+
 input CreateIntegrationInput {
   displayName: String!
   accessToken: String!
   kind: IntegrationKind!
   apiBase: String
+}
+
+input CreateMessageInput {
+  role: Role!
+  content: String!
+  attachments: MessageAttachmentInput
+}
+
+input CreateThreadInput {
+  messages: [CreateMessageInput!]!
+}
+
+input CreateThreadRunInput {
+  thread: CreateThreadInput!
 }
 
 input CreateWebCrawlerUrlInput {
@@ -97,6 +116,15 @@ input EmailSettingInput {
   encryption: Encryption!
   authMethod: AuthMethod!
   smtpPassword: String
+}
+
+input MessageAttachmentCodeInput {
+  filepath: String
+  content: String!
+}
+
+input MessageAttachmentInput {
+  code: [MessageAttachmentCodeInput!]!
 }
 
 input NetworkSettingInput {
@@ -317,6 +345,17 @@ type LicenseInfo {
   expiresAt: DateTime
 }
 
+type MessageAttachmentCode {
+  filepath: String
+  content: String!
+}
+
+type MessageAttachmentDoc {
+  title: String!
+  link: String!
+  content: String!
+}
+
 type Mutation {
   resetRegistrationToken: String!
   requestInvitationEmail(input: RequestInvitationInput!): Invitation!
@@ -490,7 +529,16 @@ type ServerInfo {
 }
 
 type Subscription {
-  count: Int!
+  createThreadRun(input: CreateThreadRunInput!): ThreadRunItem!
+}
+
+type ThreadRunItem {
+  threadCreated: ID
+  threadMessageCreated: ID
+  threadMessageAttachmentsCode: [MessageAttachmentCode!]!
+  threadMessageAttachmentsDoc: [MessageAttachmentDoc!]!
+  threadMessageContentDelta: String
+  threadMessageCompleted: ID
 }
 
 type TokenAuthResponse {

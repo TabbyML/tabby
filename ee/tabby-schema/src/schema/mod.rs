@@ -29,6 +29,7 @@ use juniper::{
 };
 use repository::RepositoryGrepOutput;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
+use thread::{CreateThreadRunInput, ThreadRunItem, ThreadService};
 use tracing::error;
 use validator::{Validate, ValidationErrors};
 use worker::WorkerService;
@@ -72,6 +73,7 @@ pub trait ServiceLocator: Send + Sync {
     fn analytic(&self) -> Arc<dyn AnalyticService>;
     fn user_event(&self) -> Arc<dyn UserEventService>;
     fn web_crawler(&self) -> Arc<dyn WebCrawlerService>;
+    fn thread(&self) -> Arc<dyn ThreadService>;
 }
 
 pub struct Context {
@@ -915,22 +917,18 @@ fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError
 #[derive(Clone, Copy, Debug)]
 pub struct Subscription;
 
-type NumberStream = BoxStream<'static, Result<i32, FieldError>>;
-
 #[graphql_subscription]
 impl Subscription {
-    // FIXME(meng): This is a temporary subscription to test the subscription feature, we should remove it later.
-    async fn count(ctx: &Context) -> Result<NumberStream> {
+    async fn create_thread_run(
+        ctx: &Context,
+        input: CreateThreadRunInput,
+    ) -> Result<BoxStream<'static, Result<ThreadRunItem, CoreError>>> {
         check_user(ctx).await?;
-        let mut value = 0;
-        let s = stream! {
-            loop {
-                value += 1;
-                yield Ok(value);
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            }
-        };
-        Ok(Box::pin(s))
+        input.validate()?;
+
+        let thread_id = ctx.locator.thread().create(&input.thread).await?;
+
+        todo!("create thread run subscription")
     }
 }
 

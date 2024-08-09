@@ -29,19 +29,7 @@ use tabby_common::{
 };
 use tabby_db::DbConn;
 use tabby_schema::{
-    analytic::AnalyticService,
-    auth::AuthenticationService,
-    email::EmailService,
-    integration::IntegrationService,
-    is_demo_mode,
-    job::JobService,
-    license::{IsLicenseValid, LicenseService},
-    repository::RepositoryService,
-    setting::SettingService,
-    user_event::UserEventService,
-    web_crawler::WebCrawlerService,
-    worker::WorkerService,
-    AsID, AsRowid, CoreError, Result, ServiceLocator,
+    analytic::AnalyticService, auth::AuthenticationService, email::EmailService, integration::IntegrationService, is_demo_mode, job::JobService, license::{IsLicenseValid, LicenseService}, repository::RepositoryService, setting::SettingService, thread::ThreadService, user_event::UserEventService, web_crawler::WebCrawlerService, worker::WorkerService, AsID, AsRowid, CoreError, Result, ServiceLocator
 };
 
 use self::{
@@ -251,6 +239,10 @@ impl ServiceLocator for ArcServerContext {
 
     fn web_crawler(&self) -> Arc<dyn WebCrawlerService> {
         self.0.web_crawler.clone()
+    }
+
+    fn thread(&self) -> Arc<dyn ThreadService> {
+        todo!("Not yet implemented")
     }
 }
 

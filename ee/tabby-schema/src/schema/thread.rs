@@ -1,49 +1,18 @@
 use async_trait::async_trait;
-use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, ID};
-use validator::Validate;
+use juniper::ID;
 
 use crate::schema::Result;
 
-#[derive(GraphQLEnum)]
-pub enum Role {
-    User,
-    Assistatnt,
-}
+mod types;
+pub use types::*;
 
-#[derive(GraphQLInputObject, Validate)]
-pub struct CreateMessageInput {
-    thread_id: ID,
-    role: Role,
-
-    #[validate(length(code = "content", min = 1, message = "Content must not be empty"))]
-    content: String,
-}
-
-#[derive(GraphQLObject)]
-pub struct Message {
-    id: ID,
-    thread_id: ID,
-    role: Role,
-    content: String,
-}
-
-#[derive(GraphQLInputObject, Validate)]
-pub struct CreateThreadMessageInput {
-    role: Role,
-
-    #[validate(length(code = "content", min = 1, message = "Content must not be empty"))]
-    content: String,
-}
-
-#[derive(GraphQLInputObject, Validate)]
-pub struct CreateThreadInput {
-    messages: Vec<CreateThreadMessageInput>,
-}
+mod inputs;
+pub use inputs::*;
 
 #[async_trait]
 pub trait ThreadService: Send + Sync {
     /// Create a new thread
-    async fn create(&self, input: CreateThreadInput) -> Result<ID>;
+    async fn create(&self, input: &CreateThreadInput) -> Result<ID>;
 
     /// Delete a thread by ID
     async fn delete(&self, id: ID) -> Result<()>;
