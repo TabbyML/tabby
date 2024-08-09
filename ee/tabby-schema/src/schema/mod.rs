@@ -29,7 +29,7 @@ use juniper::{
 };
 use repository::RepositoryGrepOutput;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
-use thread::{CreateThreadRunInput, ThreadRunItem, ThreadService};
+use thread::{CreateThreadRunInput, ThreadRunItem, ThreadRunStream, ThreadService};
 use tracing::error;
 use validator::{Validate, ValidationErrors};
 use worker::WorkerService;
@@ -922,13 +922,15 @@ impl Subscription {
     async fn create_thread_run(
         ctx: &Context,
         input: CreateThreadRunInput,
-    ) -> Result<BoxStream<'static, Result<ThreadRunItem, CoreError>>> {
+    ) -> Result<ThreadRunStream> {
         check_user(ctx).await?;
         input.validate()?;
 
-        let thread_id = ctx.locator.thread().create(&input.thread).await?;
+        let thread = ctx.locator.thread();
 
-        todo!("create thread run subscription")
+        let thread_id = thread.create(&input.thread).await?;
+
+        thread.create_run(thread_id).await
     }
 }
 

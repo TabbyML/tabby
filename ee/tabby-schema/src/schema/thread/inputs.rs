@@ -45,23 +45,25 @@ pub struct MessageAttachmentCodeInput {
 fn validate_message_input(input: &CreateMessageInput) -> Result<(), ValidationError> {
     if let Role::Assistant = input.role {
         if input.attachments.is_some() {
-            return Err(ValidationError::new("Attachments are not allowed for assistants"));
+            return Err(ValidationError::new(
+                "Attachments are not allowed for assistants",
+            ));
         }
     }
 
     Ok(())
 }
 
-fn validate_thread_input(
-    input: &CreateThreadInput,
-) -> Result<(), ValidationError> {
+fn validate_thread_input(input: &CreateThreadInput) -> Result<(), ValidationError> {
     let messages = &input.messages;
     let length = messages.len();
 
     for (i, message) in messages.iter().enumerate() {
         let is_last = i == length - 1;
         if !is_last && message.attachments.is_some() {
-             return Err(ValidationError::new("Attachments are only allowed on the last message"));
+            return Err(ValidationError::new(
+                "Attachments are only allowed on the last message",
+            ));
         }
     }
 
