@@ -10,9 +10,7 @@ pub use types::*;
 mod inputs;
 pub use inputs::*;
 
-use super::CoreError;
-
-pub type ThreadRunStream = BoxStream<'static, Result<ThreadRunItem, CoreError>>;
+pub type ThreadRunStream = BoxStream<'static, Result<ThreadRunItem>>;
 
 #[async_trait]
 pub trait ThreadService: Send + Sync {
@@ -20,7 +18,7 @@ pub trait ThreadService: Send + Sync {
     async fn create(&self, input: &CreateThreadInput) -> Result<ID>;
 
     /// Create a new thread run
-    async fn create_run(&self, id: &ID) -> Result<ThreadRunStream>;
+    async fn create_run(&self, id: &ID, options: &ThreadRunOptionsInput) -> Result<ThreadRunStream>;
 
     /// Append messages to an existing thread
     async fn append_messages(&self, id: &ID, messages: &[CreateMessageInput]) -> Result<()>;

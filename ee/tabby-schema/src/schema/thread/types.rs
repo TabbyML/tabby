@@ -1,35 +1,37 @@
+use std::thread::Thread;
+
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 use serde::Serialize;
 
-#[derive(GraphQLEnum, Serialize)]
+#[derive(GraphQLEnum, Serialize, Clone)]
 pub enum Role {
     User,
     Assistant,
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Clone)]
 pub struct Message {
-    id: ID,
-    thread_id: ID,
-    role: Role,
-    content: String,
+    pub id: ID,
+    pub thread_id: ID,
+    pub role: Role,
+    pub content: String,
 
-    attachments: Vec<MessageAttachment>,
+    pub attachments: Option<MessageAttachment>,
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Clone)]
 pub struct MessageAttachment {
-    code: Vec<MessageAttachmentCode>,
-    doc: Vec<MessageAttachmentDoc>,
+    pub code: Vec<MessageAttachmentCode>,
+    pub doc: Vec<MessageAttachmentDoc>,
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Clone)]
 pub struct MessageAttachmentCode {
     pub filepath: Option<String>,
     pub content: String,
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Clone)]
 pub struct MessageAttachmentDoc {
     pub title: String,
     pub link: String,
@@ -49,4 +51,54 @@ pub struct ThreadRunItem {
     thread_message_relevant_questions: Option<Vec<String>>,
     thread_message_content_delta: Option<String>,
     thread_message_completed: Option<ID>,
+}
+
+impl ThreadRunItem {
+    pub fn thread_message_attachments_code(code: Vec<MessageAttachmentCode>) -> Self {
+        Self {
+            thread_created: None,
+            thread_message_created: None,
+            thread_message_attachments_code: Some(code),
+            thread_message_attachments_doc: None,
+            thread_message_relevant_questions: None,
+            thread_message_content_delta: None,
+            thread_message_completed: None,
+        }
+    }
+
+    pub fn thread_message_relevant_questions(questions: Vec<String>) -> Self {
+        Self {
+            thread_created: None,
+            thread_message_created: None,
+            thread_message_attachments_code: None,
+            thread_message_attachments_doc: None,
+            thread_message_relevant_questions: Some(questions),
+            thread_message_content_delta: None,
+            thread_message_completed: None,
+        }
+    }
+
+    pub fn thread_message_attachments_doc(doc: Vec<MessageAttachmentDoc>) -> Self {
+        Self {
+            thread_created: None,
+            thread_message_created: None,
+            thread_message_attachments_code: None,
+            thread_message_attachments_doc: Some(doc),
+            thread_message_relevant_questions: None,
+            thread_message_content_delta: None,
+            thread_message_completed: None,
+        }
+    }
+
+    pub fn thread_message_content_delta(delta: String) -> Self {
+        Self {
+            thread_created: None,
+            thread_message_created: None,
+            thread_message_attachments_code: None,
+            thread_message_attachments_doc: None,
+            thread_message_relevant_questions: None,
+            thread_message_content_delta: Some(delta),
+            thread_message_completed: None,
+        }
+    }
 }

@@ -31,12 +31,12 @@ pub struct CreateThreadAndRunInput {
     pub options: ThreadRunOptionsInput,
 }
 
-#[derive(GraphQLInputObject, Validate)]
+#[derive(GraphQLInputObject, Validate, Clone)]
 pub struct DocQueryInput {
-    content: String,
+    pub content: String,
 }
 
-#[derive(GraphQLInputObject, Validate)]
+#[derive(GraphQLInputObject, Validate, Clone)]
 pub struct CodeQueryInput {
     pub git_url: String,
     pub filepath: Option<String>,
@@ -44,7 +44,7 @@ pub struct CodeQueryInput {
     pub content: String,
 }
 
-#[derive(GraphQLInputObject, Validate, Default)]
+#[derive(GraphQLInputObject, Validate, Default, Clone)]
 pub struct ThreadRunOptionsInput {
     #[validate(nested)]
     #[graphql(default)]

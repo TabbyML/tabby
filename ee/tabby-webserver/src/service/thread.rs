@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use juniper::ID;
 use tabby_schema::{
     bail,
-    thread::{CreateMessageInput, CreateThreadInput, ThreadRunStream, ThreadService},
+    thread::{CreateMessageInput, CreateThreadInput, ThreadRunOptionsInput, ThreadRunStream, ThreadService},
     Result,
 };
 
@@ -20,12 +20,14 @@ impl ThreadService for ThreadServiceImpl {
         Ok(ID::new("1"))
     }
 
-    async fn create_run(&self, _id: &ID) -> Result<ThreadRunStream> {
-        let Some(_answer) = self.answer.as_ref() else {
+    async fn create_run(&self, _id: &ID, options: &ThreadRunOptionsInput) -> Result<ThreadRunStream> {
+        let Some(answer) = self.answer.clone() else {
             bail!("Answer service is not available");
         };
 
-        todo!("Create a stream of thread run items");
+        // FIXME(meng): actual lookup messages from database.
+        let messages = vec![];
+        answer.answer(&messages, options).await
     }
 
     async fn append_messages(&self, _id: &ID, _messages: &[CreateMessageInput]) -> Result<()> {

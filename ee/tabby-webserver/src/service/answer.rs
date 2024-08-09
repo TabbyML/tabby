@@ -1,9 +1,10 @@
+use anyhow::anyhow;
 use core::panic;
 use std::sync::Arc;
 
 use async_openai::types::{
-    ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
-    CreateChatCompletionRequestArgs,
+    ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
+    ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, Role,
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
@@ -13,7 +14,15 @@ use tabby_common::api::{
     doc::{DocSearch, DocSearchError, DocSearchHit},
 };
 use tabby_inference::ChatCompletionStream;
-use tabby_schema::{repository::RepositoryService, web_crawler::WebCrawlerService};
+use tabby_schema::{
+    bail,
+    repository::RepositoryService,
+    thread::{
+        self, CodeQueryInput, DocQueryInput, MessageAttachmentCode, ThreadRunItem,
+        ThreadRunOptionsInput,
+    },
+    web_crawler::WebCrawlerService,
+};
 use tracing::{debug, warn};
 
 pub struct AnswerService {
@@ -56,76 +65,117 @@ impl AnswerService {
 
     pub async fn answer<'a>(
         self: Arc<Self>,
-        mut req: AnswerRequest,
-    ) -> BoxStream<'a, AnswerResponseChunk> {
+        messages: &[tabby_schema::thread::Message],
+        options: &ThreadRunOptionsInput,
+    ) -> tabby_schema::Result<BoxStream<'a, tabby_schema::Result<ThreadRunItem>>> {
+        let messages = messages.to_vec();
+        let options = options.clone();
+
         let s = stream! {
-            // 0. Collect sources given query, for now we only use the last message
-            let query: &mut _ = match req.messages.last_mut() {
+            let query = match messages.last() {
                 Some(query) => query,
                 None => {
-                    warn!("No query found in the request");
+                    yield Err(anyhow!("No query found in the request").into());
                     return;
                 }
             };
 
-            let git_url = req.code_query.as_ref().map(|x| x.git_url.clone());
-
-            // 0. Extract client-provided code snippets
-            let code_snippets = req.code_snippets;
+            let git_url = options.code_query.as_ref().map(|x| x.git_url.clone());
 
             // 1. Collect relevant code if needed.
-            let relevant_code = if let Some(mut code_query)  = req.code_query  {
-                if req.collect_relevant_code_using_user_message {
-                    // Natural language content from query is used to search for relevant code.
-                    code_query.content = get_content(query).to_owned();
-                } else {
-                    // Code snippet is extended to the query.
-                    self.override_query_with_code_query(query, &code_query).await;
-                }
+            let relevant_code = if let Some(code_query) = options.code_query.as_ref() {
                 self.collect_relevant_code(code_query).await
             } else {
                 vec![]
             };
 
             if !relevant_code.is_empty() {
-                yield AnswerResponseChunk::RelevantCode(relevant_code.clone());
             }
 
-
             // 2. Collect relevant docs if needed.
-            let relevant_docs = if req.doc_query {
-                self.collect_relevant_docs(git_url.as_deref(), get_content(query)).await
+            let relevant_docs = if let Some(doc_query) = options.doc_query.as_ref() {
+                self.collect_relevant_docs(git_url.as_deref(), doc_query)
+                    .await
             } else {
                 vec![]
             };
 
             if !relevant_docs.is_empty() {
-                yield AnswerResponseChunk::RelevantDocuments(relevant_docs.clone());
+                yield Ok(ThreadRunItem::thread_message_attachments_code(
+                    relevant_code
+                        .iter()
+                        .map(|x| MessageAttachmentCode {
+                            filepath: Some(x.doc.filepath.clone()),
+                            content: x.doc.body.clone(),
+                        })
+                        .collect(),
+                ));
             }
 
-            if !code_snippets.is_empty() || !relevant_code.is_empty() || !relevant_docs.is_empty() {
-                if req.generate_relevant_questions {
-                    // 3. Generate relevant questions from the query
-                    let relevant_questions = self.generate_relevant_questions(&relevant_code, &relevant_docs, get_content(query)).await;
-                    yield AnswerResponseChunk::RelevantQuestions(relevant_questions);
-                }
-
-
-                // 4. Generate override prompt from the query
-                set_content(query, self.generate_prompt(&code_snippets, &relevant_code, &relevant_docs, get_content(query)).await);
+            // 3. Generate relevant questions.
+            if options.generate_relevant_questions {
+                let questions = self
+                    .generate_relevant_questions(&relevant_code, &relevant_docs, &query.content)
+                    .await;
+                yield Ok(ThreadRunItem::thread_message_relevant_questions(questions));
             }
 
-
-            // 5. Generate answer from the query
+            // 4. Prepare requesting LLM
             let request = {
-                let mut builder = CreateChatCompletionRequestArgs::default();
-                builder.messages(req.messages).presence_penalty(PRESENCE_PENALTY);
-                if let Some(user) = req.user {
-                    builder.user(user);
+                let empty = Vec::default();
+                let code_snippets: &[MessageAttachmentCode] = query
+                    .attachments
+                    .as_ref()
+                    .map(|x| &x.code)
+                    .unwrap_or(&empty);
+
+                let override_user_prompt = if !code_snippets.is_empty()
+                    || !relevant_code.is_empty()
+                    || !relevant_docs.is_empty()
+                {
+                    self.generate_prompt(
+                        code_snippets,
+                        &relevant_code,
+                        &relevant_docs,
+                        &query.content,
+                    )
+                    .await
+                } else {
+                    query.content.clone()
                 };
 
-                builder.build().expect("Failed to create ChatCompletionRequest")
+                // Convert `messages` to CreateChatCompletionRequest
+                let chat_messages: Vec<_> = messages
+                    .iter()
+                    .enumerate()
+                    .map(|(i, x)| {
+                        let role = match x.role {
+                            thread::Role::Assistant => Role::Assistant,
+                            thread::Role::User => Role::User,
+                        };
+
+                        let is_last = i == messages.len() - 1;
+                        let content = if is_last {
+                            override_user_prompt.clone()
+                        } else {
+                            x.content.clone()
+                        };
+
+                        ChatCompletionRequestMessage::System(ChatCompletionRequestSystemMessage {
+                            content,
+                            role,
+                            name: None,
+                        })
+                    })
+                    .collect();
+
+                CreateChatCompletionRequestArgs::default()
+                    .messages(chat_messages)
+                    .presence_penalty(PRESENCE_PENALTY)
+                    .build()
+                    .expect("Failed to build chat completion request")
             };
+
 
             let s = match self.chat.chat_stream(request).await {
                 Ok(s) => s,
@@ -145,15 +195,21 @@ impl AnswerService {
                 };
 
                 if let Some(content) = chunk.choices[0].delta.content.as_deref() {
-                    yield AnswerResponseChunk::AnswerDelta(content.to_owned());
+                    yield Ok(ThreadRunItem::thread_message_content_delta(content.to_owned()));
                 }
             }
         };
 
-        Box::pin(s)
+        Ok(Box::pin(s))
     }
 
-    async fn collect_relevant_code(&self, query: CodeSearchQuery) -> Vec<CodeSearchHit> {
+    async fn collect_relevant_code(&self, query: &CodeQueryInput) -> Vec<CodeSearchHit> {
+        let query = CodeSearchQuery {
+            git_url: query.git_url.clone(),
+            filepath: query.filepath.clone(),
+            language: query.language.clone(),
+            content: query.content.clone(),
+        };
         match self.code.search_in_language(query, 20).await {
             Ok(docs) => docs.hits,
             Err(err) => {
@@ -170,7 +226,7 @@ impl AnswerService {
     async fn collect_relevant_docs(
         &self,
         code_query_git_url: Option<&str>,
-        content: &str,
+        doc_query: &DocQueryInput,
     ) -> Vec<DocSearchHit> {
         let source_ids = {
             // 1. By default only web sources are considered.
@@ -203,7 +259,7 @@ impl AnswerService {
 
         // 1. Collect relevant docs from the tantivy doc search.
         let mut hits = vec![];
-        let doc_hits = match self.doc.search(&source_ids, content, 5).await {
+        let doc_hits = match self.doc.search(&source_ids, &doc_query.content, 5).await {
             Ok(docs) => docs.hits,
             Err(err) => {
                 if let DocSearchError::NotReady = err {
@@ -218,7 +274,7 @@ impl AnswerService {
 
         // 2. If serper is available, we also collect from serper
         if let Some(serper) = self.serper.as_ref() {
-            let serper_hits = match serper.search(&[], content, 5).await {
+            let serper_hits = match serper.search(&[], &doc_query.content, 5).await {
                 Ok(docs) => docs.hits,
                 Err(err) => {
                     warn!("Failed to search serper: {:?}", err);
@@ -290,25 +346,9 @@ Remember, based on the original question and related contexts, suggest three suc
             .collect()
     }
 
-    async fn override_query_with_code_query(
-        &self,
-        query: &mut ChatCompletionRequestMessage,
-        code_query: &CodeSearchQuery,
-    ) {
-        set_content(
-            query,
-            format!(
-                "{}\n\n```{}\n{}\n```",
-                get_content(query),
-                code_query.language.as_deref().unwrap_or_default(),
-                code_query.content
-            ),
-        )
-    }
-
     async fn generate_prompt(
         &self,
-        code_snippets: &[AnswerCodeSnippet],
+        code_snippets: &[MessageAttachmentCode],
         relevant_code: &[CodeSearchHit],
         relevant_docs: &[DocSearchHit],
         question: &str,
@@ -375,22 +415,4 @@ pub fn create(
     serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
 ) -> AnswerService {
     AnswerService::new(chat, code, doc, web, repository, serper_factory_fn)
-}
-
-fn get_content(message: &ChatCompletionRequestMessage) -> &str {
-    match message {
-        ChatCompletionRequestMessage::System(x) => &x.content,
-        _ => {
-            panic!("Unexpected message type, {:?}", message);
-        }
-    }
-}
-
-fn set_content(message: &mut ChatCompletionRequestMessage, content: String) {
-    match message {
-        ChatCompletionRequestMessage::System(x) => x.content = content,
-        _ => {
-            panic!("Unexpected message type");
-        }
-    }
 }
