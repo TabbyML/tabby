@@ -24,11 +24,11 @@ use crate::{
     services::{
         self,
         code::create_code_search,
-        completion::{self, create_completion_service},
+        completion::{self, create_completion_service_and_chat, CompletionService},
         embedding,
         event::create_event_logger,
         health,
-        model::{self, download_model_if_needed},
+        model::download_model_if_needed,
         tantivy::IndexReaderProvider,
     },
     to_local_config, Device,
@@ -171,17 +171,22 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         index_reader_provider.clone(),
     ));
 
-    let chat = if let Some(chat) = &config.model.chat {
-        Some(model::load_chat_completion(chat).await)
-    } else {
-        None
-    };
+    let model = &config.model;
+    let (completion, chat) = create_completion_service_and_chat(
+        &config.completion,
+        code.clone(),
+        logger.clone(),
+        model.completion.clone(),
+        model.chat.clone(),
+    )
+    .await;
 
     let mut api = api_router(
         args,
         &config,
         logger.clone(),
         code.clone(),
+        completion,
         chat.clone(),
         webserver,
     )
@@ -228,23 +233,14 @@ async fn api_router(
     config: &Config,
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
+    completion_state: Option<CompletionService>,
     chat_state: Option<Arc<dyn ChatCompletionStream>>,
     webserver: Option<bool>,
 ) -> Router {
-    let model = &config.model;
-    let completion_state = if let Some(completion) = &model.completion {
-        Some(Arc::new(
-            create_completion_service(&config.completion, code.clone(), logger.clone(), completion)
-                .await,
-        ))
-    } else {
-        None
-    };
-
     let mut routers = vec![];
 
     let health_state = Arc::new(health::HealthState::new(
-        model,
+        &config.model,
         &args.device,
         args.chat_model
             .as_deref()
@@ -273,7 +269,7 @@ async fn api_router(
             Router::new()
                 .route(
                     "/v1/completions",
-                    routing::post(routes::completions).with_state(completion_state),
+                    routing::post(routes::completions).with_state(Arc::new(completion_state)),
                 )
                 .layer(TimeoutLayer::new(Duration::from_secs(
                     config.server.completion_timeout,
