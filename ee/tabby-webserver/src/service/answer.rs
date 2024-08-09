@@ -2,14 +2,13 @@ use anyhow::anyhow;
 use core::panic;
 use std::sync::Arc;
 
-use async_openai::types::{
+use async_openai::{error::OpenAIError, types::{
     ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
     ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, Role,
-};
+}};
 use async_stream::stream;
 use futures::stream::BoxStream;
 use tabby_common::api::{
-    answer::{AnswerCodeSnippet, AnswerRequest, AnswerResponseChunk},
     code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchQuery},
     doc::{DocSearch, DocSearchError, DocSearchHit},
 };
@@ -23,7 +22,7 @@ use tabby_schema::{
     },
     web_crawler::WebCrawlerService,
 };
-use tracing::{debug, warn};
+use tracing::{debug, error, warn};
 
 pub struct AnswerService {
     chat: Arc<dyn ChatCompletionStream>,
@@ -189,7 +188,13 @@ impl AnswerService {
                 let chunk = match chunk {
                     Ok(chunk) => chunk,
                     Err(err) => {
-                        debug!("Failed to get chat completion chunk: {:?}", err);
+                        if let OpenAIError::StreamError(content) = err {
+                            if content == "Stream ended" {
+                                break;
+                            }
+                        } else {
+                            error!("Failed to get chat completion chunk: {:?}", err);
+                        }
                         break;
                     }
                 };

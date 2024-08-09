@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use juniper::ID;
 use tabby_schema::{
     bail,
-    thread::{CreateMessageInput, CreateThreadInput, ThreadRunOptionsInput, ThreadRunStream, ThreadService},
+    thread::{self, CreateMessageInput, CreateThreadInput, ThreadRunOptionsInput, ThreadRunStream, ThreadService},
     Result,
 };
 
@@ -17,7 +17,7 @@ struct ThreadServiceImpl {
 #[async_trait]
 impl ThreadService for ThreadServiceImpl {
     async fn create(&self, _input: &CreateThreadInput) -> Result<ID> {
-        Ok(ID::new("1"))
+        Ok(ID::new("message:1"))
     }
 
     async fn create_run(&self, _id: &ID, options: &ThreadRunOptionsInput) -> Result<ThreadRunStream> {
@@ -26,7 +26,13 @@ impl ThreadService for ThreadServiceImpl {
         };
 
         // FIXME(meng): actual lookup messages from database.
-        let messages = vec![];
+        let messages = vec![thread::Message {
+            id: ID::new("message:1"),
+            thread_id: ID::new("thread:1"),
+             role: thread::Role::User,
+             content: "Hello, world!".to_string(),
+             attachments: None,
+        }];
         answer.answer(&messages, options).await
     }
 

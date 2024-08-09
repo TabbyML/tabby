@@ -935,7 +935,7 @@ impl Subscription {
         ctx: &Context,
         input: CreateThreadRunInput,
     ) -> Result<ThreadRunStream> {
-        check_user(ctx).await?;
+        // check_user(ctx).await?;
         input.validate()?;
 
         let thread = ctx.locator.thread();
