@@ -20,7 +20,6 @@ public class StatusbarContribution extends WorkbenchWindowControlContribution {
 	@Override
 	protected Control createControl(Composite parent) {
 		label = new CLabel(parent, 0);
-		label.setImage(Images.getIconCheck());
 		label.setText("Tabby");
 		label.setToolTipText("Tabby");
 		label.addMouseListener(new MouseAdapter() {
