@@ -297,7 +297,7 @@ fn default_max_decoding_tokens() -> usize {
 }
 
 impl Default for CompletionConfig {
-     fn default() -> Self {
+    fn default() -> Self {
         Self {
             max_input_length: default_max_input_length(),
             max_decoding_tokens: default_max_decoding_tokens(),
