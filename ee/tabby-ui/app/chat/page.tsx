@@ -52,6 +52,9 @@ export default function ChatPage() {
   )
   const [activeChatId, setActiveChatId] = useState('')
   const [pendingMessages, setPendingMessages] = useState<ChatMessage[]>([])
+  const [pendingRelevantContexts, setPendingRelevantContexts] = useState<
+    Context[]
+  >([])
   const [isThemeSynced, setIsThemeSynced] = useState(false)
   const [errorMessage, setErrorMessage] = useState<ErrorMessage | null>(null)
   const [isRefreshLoading, setIsRefreshLoading] = useState(false)
@@ -152,6 +155,16 @@ export default function ChatPage() {
     }
   }
 
+  const addRelevantContext = (ctx: Context) => {
+    if (chatRef.current) {
+      chatRef.current.addRelevantContext(ctx)
+    } else {
+      const newPendingRelevantContexts = [...pendingRelevantContexts]
+      newPendingRelevantContexts.push(ctx)
+      setPendingRelevantContexts(newPendingRelevantContexts)
+    }
+  }
+
   const server = useServer({
     init: (request: InitRequest) => {
       if (chatRef.current) return
@@ -169,9 +182,7 @@ export default function ChatPage() {
       setErrorMessage(null)
     },
     addRelevantContext: context => {
-      if (chatRef.current) {
-        chatRef.current.addRelevantContext(context)
-      }
+      return addRelevantContext(context)
     }
   })
 
@@ -190,7 +201,9 @@ export default function ChatPage() {
   }, [width, chatLoaded])
 
   const onChatLoaded = () => {
+    pendingRelevantContexts.forEach(addRelevantContext)
     pendingMessages.forEach(sendMessage)
+    setPendingRelevantContexts([])
     setPendingMessages([])
     setChatLoaded(true)
   }
