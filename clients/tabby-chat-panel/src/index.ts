@@ -55,6 +55,9 @@ export interface ChatMessage {
 
   // Client side contexts - displayed in assistant message
   relevantContext?: Array<Context>
+
+  // Client side active selection context - displayed in assistant message
+  activeContext?: Context
 }
 
 export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerApi {

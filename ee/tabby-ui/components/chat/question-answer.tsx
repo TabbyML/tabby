@@ -4,7 +4,7 @@
 import React, { useState } from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
-import { isNil } from 'lodash-es'
+import { compact, isNil } from 'lodash-es'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import type { Context } from 'tabby-chat-panel'
@@ -253,6 +253,13 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     )
   }, [message?.relevant_code])
 
+  const clientContexts: Array<Context> = React.useMemo(() => {
+    return compact([
+      userMessage.activeContext,
+      ...(userMessage?.relevantContext ?? [])
+    ])
+  }, [userMessage.activeContext, userMessage.relevantContext])
+
   return (
     <div
       className={cn(
@@ -279,7 +286,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       <div className="w-full flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
         <CodeReferences
           contexts={contexts}
-          userContexts={userMessage.relevantContext}
+          userContexts={clientContexts}
           onContextClick={(ctx, isInWorkspace) => {
             onNavigateToContext?.(ctx, {
               openInEditor: client === 'vscode' && isInWorkspace
