@@ -4,7 +4,10 @@ use async_trait::async_trait;
 use juniper::ID;
 use tabby_schema::{
     bail,
-    thread::{self, CreateMessageInput, CreateThreadInput, ThreadRunOptionsInput, ThreadRunStream, ThreadService},
+    thread::{
+        self, CreateMessageInput, CreateThreadInput, ThreadRunOptionsInput, ThreadRunStream,
+        ThreadService,
+    },
     Result,
 };
 
@@ -20,7 +23,11 @@ impl ThreadService for ThreadServiceImpl {
         Ok(ID::new("message:1"))
     }
 
-    async fn create_run(&self, _id: &ID, options: &ThreadRunOptionsInput) -> Result<ThreadRunStream> {
+    async fn create_run(
+        &self,
+        _id: &ID,
+        options: &ThreadRunOptionsInput,
+    ) -> Result<ThreadRunStream> {
         let Some(answer) = self.answer.clone() else {
             bail!("Answer service is not available");
         };
@@ -29,9 +36,9 @@ impl ThreadService for ThreadServiceImpl {
         let messages = vec![thread::Message {
             id: ID::new("message:1"),
             thread_id: ID::new("thread:1"),
-             role: thread::Role::User,
-             content: "Hello, world!".to_string(),
-             attachments: None,
+            role: thread::Role::User,
+            content: "Hello, world!".to_string(),
+            attachments: None,
         }];
         answer.answer(&messages, options).await
     }

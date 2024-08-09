@@ -1,4 +1,3 @@
-use std::thread::Thread;
 
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 use serde::Serialize;

@@ -1,11 +1,13 @@
-use anyhow::anyhow;
-use core::panic;
 use std::sync::Arc;
 
-use async_openai::{error::OpenAIError, types::{
-    ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
-    ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, Role,
-}};
+use anyhow::anyhow;
+use async_openai::{
+    error::OpenAIError,
+    types::{
+        ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
+        ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, Role,
+    },
+};
 use async_stream::stream;
 use futures::stream::BoxStream;
 use tabby_common::api::{
@@ -14,7 +16,6 @@ use tabby_common::api::{
 };
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
-    bail,
     repository::RepositoryService,
     thread::{
         self, CodeQueryInput, DocQueryInput, MessageAttachmentCode, ThreadRunItem,
@@ -88,8 +89,7 @@ impl AnswerService {
                 vec![]
             };
 
-            if !relevant_code.is_empty() {
-            }
+            relevant_code.is_empty();
 
             // 2. Collect relevant docs if needed.
             let relevant_docs = if let Some(doc_query) = options.doc_query.as_ref() {
