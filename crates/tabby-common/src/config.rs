@@ -281,15 +281,26 @@ fn default_context_size() -> usize {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CompletionConfig {
+    #[serde(default = "default_max_input_length")]
     pub max_input_length: usize,
+
+    #[serde(default = "default_max_decoding_tokens")]
     pub max_decoding_tokens: usize,
+}
+
+fn default_max_input_length() -> usize {
+    1024 + 512
+}
+
+fn default_max_decoding_tokens() -> usize {
+    64
 }
 
 impl Default for CompletionConfig {
     fn default() -> Self {
         Self {
-            max_input_length: 1024 + 512,
-            max_decoding_tokens: 64,
+            max_input_length: default_max_input_length(),
+            max_decoding_tokens: default_max_decoding_tokens(),
         }
     }
 }
