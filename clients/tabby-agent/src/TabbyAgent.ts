@@ -71,7 +71,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private tryingConnectTimer: ReturnType<typeof setInterval>;
   static readonly submitStatsInterval = 1000 * 60 * 60 * 24; // 24h
   private submitStatsTimer: ReturnType<typeof setInterval>;
-  private clientInfoStr: string = "";
+  private userAgentHeader: string = "";
 
   constructor() {
     super();
@@ -164,7 +164,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       baseUrl: endpoint,
       headers: {
         Authorization: auth,
-        "User-Agent": this.clientInfoStr,
+        "User-Agent": this.userAgentHeader,
         ...this.config.server.requestHeaders,
       },
       /** dispatcher do not exist in {@link RequestInit} in browser env. */
@@ -396,7 +396,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }
     }
     await this.anonymousUsageLogger.init({ dataStore: this.dataStore });
-    this.clientInfoStr = this.clientInfoToString(options.clientProperties?.session);
+    this.userAgentHeader = this.clientInfoToString(options.clientProperties?.session);
     if (options.clientProperties) {
       if (options.clientProperties.session) {
         Object.entries(options.clientProperties.session).forEach(([key, value]) => {
