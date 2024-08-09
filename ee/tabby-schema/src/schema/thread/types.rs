@@ -1,4 +1,3 @@
-
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 use serde::Serialize;
 
