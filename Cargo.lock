@@ -5206,7 +5206,6 @@ name = "tabby-schema"
 version = "0.16.0-dev.0"
 dependencies = [
  "anyhow",
- "async-stream",
  "async-trait",
  "axum",
  "base64 0.22.1",

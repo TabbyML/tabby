@@ -101,6 +101,17 @@ impl Webserver {
         docsearch: Arc<dyn DocSearch>,
         serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
     ) -> (Router, Router) {
+        let answer = chat.as_ref().map(|chat| {
+            Arc::new(crate::service::answer::create(
+                chat.clone(),
+                code.clone(),
+                docsearch.clone(),
+                self.web_crawler.clone(),
+                self.repository.clone(),
+                serper_factory_fn,
+            ))
+        });
+
         let is_chat_enabled = chat.is_some();
         let ctx = create_service_locator(
             self.logger(),
@@ -109,21 +120,11 @@ impl Webserver {
             self.integration.clone(),
             self.web_crawler.clone(),
             self.job.clone(),
+            answer.clone(),
             self.db.clone(),
             is_chat_enabled,
         )
         .await;
-
-        let answer = chat.as_ref().map(|chat| {
-            Arc::new(crate::service::answer::create(
-                chat.clone(),
-                code.clone(),
-                docsearch.clone(),
-                ctx.web_crawler().clone(),
-                ctx.repository().clone(),
-                serper_factory_fn,
-            ))
-        });
 
         routes::create(ctx, api, ui, answer)
     }
