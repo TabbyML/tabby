@@ -46,8 +46,8 @@ function ChatPanelRenderer(
     onClearMessages,
     qaPairs,
     isLoading,
-    clientSelectedContext,
-    removeClientSelectedContext
+    relevantContext,
+    removeRelevantContext
   } = React.useContext(ChatContext)
 
   React.useImperativeHandle(
@@ -100,9 +100,9 @@ function ChatPanelRenderer(
           )}
         </div>
         <div className="border-t bg-background px-4 py-2 shadow-lg sm:space-y-4 sm:rounded-t-xl sm:border md:py-4">
-          {clientSelectedContext.length > 0 && (
+          {relevantContext.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {clientSelectedContext.map((item, idx) => {
+              {relevantContext.map((item, idx) => {
                 const [fileName] = item.filepath.split('/').slice(-1)
                 const line =
                   item.range.start === item.range.end
@@ -117,7 +117,7 @@ function ChatPanelRenderer(
                     <span className="text-foreground">{`${fileName}: ${line}`}</span>
                     <IconRemove
                       className="cursor-pointer text-muted-foreground transition-all hover:text-red-300"
-                      onClick={removeClientSelectedContext.bind(null, idx)}
+                      onClick={removeRelevantContext.bind(null, idx)}
                     />
                   </Badge>
                 )

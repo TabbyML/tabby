@@ -36,8 +36,8 @@ type ChatContextValue = {
   onCopyContent?: (value: string) => void
   client?: string
   onApplyInEditor?: (value: string) => void
-  clientSelectedContext: Context[]
-  removeClientSelectedContext: (index: number) => void
+  relevantContext: Context[]
+  removeRelevantContext: (index: number) => void
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -441,13 +441,13 @@ function ChatRenderer(
         onCopyContent,
         client,
         onApplyInEditor,
-        clientSelectedContext: relevantContext,
-        removeClientSelectedContext: removeRelevantContext
+        relevantContext,
+        removeRelevantContext
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
         <div className={`w-full px-4 ${chatMaxWidthClass}`}>
-          {/* FIXME: pb-[200px] might not enough when adding a large number of clientSelectedContext */}
+          {/* FIXME: pb-[200px] might not enough when adding a large number of relevantContext */}
           <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
             {qaPairs?.length ? (
               <QuestionAnswerList
