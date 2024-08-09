@@ -1,4 +1,4 @@
-use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, ID};
+use juniper::{GraphQLEnum, GraphQLObject, ID};
 use serde::Serialize;
 
 #[derive(GraphQLEnum, Serialize)]

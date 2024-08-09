@@ -14,14 +14,14 @@ pub mod worker;
 
 use std::sync::Arc;
 
-use async_stream::stream;
+
 use auth::{
     AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
     User,
 };
 use base64::Engine;
 use chrono::{DateTime, Utc};
-use futures::stream::BoxStream;
+
 use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLObject, IntoFieldError,
@@ -29,7 +29,7 @@ use juniper::{
 };
 use repository::RepositoryGrepOutput;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
-use thread::{CreateThreadRunInput, ThreadRunItem, ThreadRunStream, ThreadService};
+use thread::{CreateThreadRunInput, ThreadRunStream, ThreadService};
 use tracing::error;
 use validator::{Validate, ValidationErrors};
 use worker::WorkerService;

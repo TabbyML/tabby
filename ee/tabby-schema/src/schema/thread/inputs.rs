@@ -1,7 +1,7 @@
-use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, ID};
+use juniper::{GraphQLInputObject};
 use validator::{Validate, ValidateLength, ValidationError};
 
-use super::{MessageAttachment, Role};
+use super::{Role};
 
 #[derive(GraphQLInputObject, Validate)]
 #[validate(schema(function = "validate_message_input", skip_on_field_errors = false))]
