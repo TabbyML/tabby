@@ -17,6 +17,7 @@ use tabby_schema::{
 use tracing::debug;
 
 use super::{helper::Job, BackgroundJobEvent};
+use crate::bail;
 
 mod issues;
 
@@ -38,10 +39,21 @@ impl SyncIntegrationJob {
         self,
         repository_service: Arc<dyn ThirdPartyRepositoryService>,
     ) -> tabby_schema::Result<()> {
-        repository_service
-            .sync_repositories(self.integration_id)
-            .await?;
-        Ok(())
+        // Underlying dependencies, e.g octocrab, gitlab might panic when access_token is invalid.
+        // Here we start a new tokio task to handle the panic and return a proper error message.
+        let task = tokio::spawn(async move {
+            repository_service
+                .sync_repositories(self.integration_id)
+                .await
+        });
+
+        match task.await {
+            Ok(Ok(_)) => Ok(()),
+            Ok(Err(e)) => Err(e),
+            Err(e) => {
+                bail!("Failed to run sync integration job: {}", e)
+            }
+        }
     }
 
     pub async fn cron(
