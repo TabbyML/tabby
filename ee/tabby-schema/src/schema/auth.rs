@@ -347,6 +347,7 @@ pub trait AuthenticationService: Send + Sync {
 
     async fn refresh_token(&self, refresh_token: String) -> Result<RefreshTokenResponse>;
     async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload>;
+    async fn verify_auth_token(&self, token: &str) -> Result<ID>;
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
     async fn get_user(&self, id: &ID) -> Result<User>;
