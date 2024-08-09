@@ -301,12 +301,8 @@ function ChatRenderer(
     qaPairs: QuestionAnswerPair[]
   ): AnswerRequest => {
     const userMessage = qaPairs[qaPairs.length - 1].user
-    // FIXME(wwayne): The first context in relevantContext is currently sent as the code query.
-    //                Review and update the logic to ensure the appropriate api attribute is used.
-    const relevantContextFromActiveSelection =
-      userMessage?.relevantContext?.find(o => o.isActiveSelection)
     const contextForCodeQuery =
-      userMessage?.selectContext || relevantContextFromActiveSelection
+      userMessage?.selectContext || userMessage?.activeContext
     const code_query: AnswerRequest['code_query'] | undefined =
       contextForCodeQuery
         ? {
@@ -319,12 +315,10 @@ function ChatRenderer(
           }
         : undefined
 
-    const code_snippets = userMessage?.relevantContext
-      ?.filter(o => !o.isActiveSelection)
-      ?.map(o => ({
-        filepath: o.filepath,
-        content: o.content
-      }))
+    const code_snippets = userMessage?.relevantContext?.map(o => ({
+      filepath: o.filepath,
+      content: o.content
+    }))
 
     return {
       messages: toMessages(qaPairs).slice(0, -1),

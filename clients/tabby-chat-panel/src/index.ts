@@ -13,10 +13,7 @@ export interface FileContext {
   git_url: string
 }
 
-export type Context = FileContext & {
-  // FIXME: The `isActiveSelection` field is used to differentiate whether it is the active selection or the multi selection added by command.
-  isActiveSelection?: boolean
-}
+export type Context = FileContext
 
 export interface FetcherOptions {
   authorization: string
@@ -58,6 +55,9 @@ export interface ChatMessage {
 
   // Client side contexts - displayed in assistant message
   relevantContext?: Array<Context>
+
+  // Client side active selection context - displayed in assistant message
+  activeContext?: Context
 }
 
 export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerApi {
@@ -78,7 +78,7 @@ export function createServer(api: ServerApi): ClientApi {
       sendMessage: api.sendMessage,
       showError: api.showError,
       cleanError: api.cleanError,
-      addRelevantContext: api.addRelevantContext,
+      addRelevantContext: api.addRelevantContext
     },
   })
 }
