@@ -14,14 +14,12 @@ pub mod worker;
 
 use std::sync::Arc;
 
-
 use auth::{
     AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
     User,
 };
 use base64::Engine;
 use chrono::{DateTime, Utc};
-
 use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLObject, IntoFieldError,
@@ -933,12 +931,17 @@ impl Subscription {
         thread.create_run(&thread_id).await
     }
 
-    async fn create_thread_run(ctx: &Context, input: CreateThreadRunInput) -> Result<ThreadRunStream> {
+    async fn create_thread_run(
+        ctx: &Context,
+        input: CreateThreadRunInput,
+    ) -> Result<ThreadRunStream> {
         check_user(ctx).await?;
         input.validate()?;
 
         let thread = ctx.locator.thread();
-        thread.append_messages(&input.thread_id, &input.additional_messages).await?;
+        thread
+            .append_messages(&input.thread_id, &input.additional_messages)
+            .await?;
 
         thread.create_run(&input.thread_id).await
     }

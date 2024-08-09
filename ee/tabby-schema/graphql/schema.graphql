@@ -541,8 +541,8 @@ type Subscription {
 type ThreadRunItem {
   threadCreated: ID
   threadMessageCreated: ID
-  threadMessageAttachmentsCode: [MessageAttachmentCode!]!
-  threadMessageAttachmentsDoc: [MessageAttachmentDoc!]!
+  threadMessageAttachmentsCode: [MessageAttachmentCode!]
+  threadMessageAttachmentsDoc: [MessageAttachmentDoc!]
   threadMessageContentDelta: String
   threadMessageCompleted: ID
 }

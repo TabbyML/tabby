@@ -1,7 +1,7 @@
 use juniper::{GraphQLInputObject, ID};
-use validator::{Validate, ValidateLength, ValidationError};
+use validator::{Validate, ValidationError};
 
-use super::{Role};
+use super::Role;
 
 #[derive(GraphQLInputObject, Validate)]
 #[validate(schema(function = "validate_message_input", skip_on_field_errors = false))]
@@ -29,7 +29,7 @@ pub struct CreateThreadAndRunInput {
 }
 
 #[derive(GraphQLInputObject, Validate)]
-pub struct CreateThreadRunInput{
+pub struct CreateThreadRunInput {
     pub thread_id: ID,
 
     #[validate(nested)]

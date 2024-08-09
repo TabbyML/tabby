@@ -40,8 +40,8 @@ pub struct MessageAttachmentDoc {
 pub struct ThreadRunItem {
     thread_created: Option<ID>,
     thread_message_created: Option<ID>,
-    thread_message_attachments_code: Vec<MessageAttachmentCode>,
-    thread_message_attachments_doc: Vec<MessageAttachmentDoc>,
+    thread_message_attachments_code: Option<Vec<MessageAttachmentCode>>,
+    thread_message_attachments_doc: Option<Vec<MessageAttachmentDoc>>,
     thread_message_content_delta: Option<String>,
     thread_message_completed: Option<ID>,
 }

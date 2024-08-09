@@ -11,9 +11,11 @@ pub mod repository;
 mod setting;
 mod user_event;
 pub mod web_crawler;
+mod thread;
 
 use std::sync::Arc;
 
+use answer::AnswerService;
 use async_trait::async_trait;
 use axum::{
     body::Body,
@@ -58,6 +60,7 @@ struct ServerContext {
     user_event: Arc<dyn UserEventService>,
     job: Arc<dyn JobService>,
     web_crawler: Arc<dyn WebCrawlerService>,
+    thread: Arc<dyn ThreadService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -75,6 +78,7 @@ impl ServerContext {
         integration: Arc<dyn IntegrationService>,
         web_crawler: Arc<dyn WebCrawlerService>,
         job: Arc<dyn JobService>,
+        answer: Option<Arc<AnswerService>>,
         db_conn: DbConn,
         is_chat_enabled_locally: bool,
     ) -> Self {
@@ -90,6 +94,7 @@ impl ServerContext {
         );
         let user_event = Arc::new(user_event::create(db_conn.clone()));
         let setting = Arc::new(setting::create(db_conn.clone()));
+        let thread = Arc::new(thread::create(answer));
 
         Self {
             mail: mail.clone(),
@@ -100,6 +105,7 @@ impl ServerContext {
                 setting.clone(),
             )),
             web_crawler,
+            thread,
             license,
             repository,
             integration,
@@ -255,7 +261,7 @@ impl ServiceLocator for ArcServerContext {
     }
 
     fn thread(&self) -> Arc<dyn ThreadService> {
-        todo!("Not yet implemented")
+        self.0.thread.clone()
     }
 }
 
@@ -266,6 +272,7 @@ pub async fn create_service_locator(
     integration: Arc<dyn IntegrationService>,
     web_crawler: Arc<dyn WebCrawlerService>,
     job: Arc<dyn JobService>,
+    answer: Option<Arc<AnswerService>>,
     db: DbConn,
     is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
@@ -277,6 +284,7 @@ pub async fn create_service_locator(
             integration,
             web_crawler,
             job,
+            answer,
             db,
             is_chat_enabled,
         )
