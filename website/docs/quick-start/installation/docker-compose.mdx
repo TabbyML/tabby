@@ -16,7 +16,7 @@ import TabItem from '@theme/TabItem';
   After installation, you can start Tabby with the following `docker-compose.yml`:
 
 ```yaml title="docker-compose.yml"
-version: '3.5'
+version: '3.8'
 
 services:
   tabby:
@@ -27,6 +27,12 @@ services:
       - "$HOME/.tabby:/data"
     ports:
       - 8080:8080
+    environment:
+      - PATH=/usr/local/cuda/bin:$PATH
+      - LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/compat:$LD_LIBRARY_PATH
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    runtime: nvidia
     deploy:
       resources:
         reservations:

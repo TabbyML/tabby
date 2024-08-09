@@ -18,7 +18,10 @@ import TabItem from '@theme/TabItem';
 
   ```bash title="run.sh"
   docker run -it --gpus all \
-    -p 8080:8080 -v $HOME/.tabby:/data \
+    -p 8080:8080 \
+    -v $HOME/.tabby:/data \
+    -e PATH=/usr/local/cuda/bin:$PATH \
+    -e LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/compat:$LD_LIBRARY_PATH \
     tabbyml/tabby serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct --device cuda
   ```
 
