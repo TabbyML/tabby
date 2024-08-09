@@ -285,7 +285,7 @@ export class ChatViewProvider implements WebviewViewProvider {
       return;
     }
 
-    this.pendingRelevantContexts.forEach((ctx) => this.addRelevantContext(ctx))
+    this.pendingRelevantContexts.forEach((ctx) => this.addRelevantContext(ctx));
     this.pendingMessages.forEach((message) => this.sendMessageToChatPanel(message));
     if (serverInfo.config.token) {
       this.client?.cleanError();
@@ -444,7 +444,7 @@ export class ChatViewProvider implements WebviewViewProvider {
 
   public addRelevantContext(context: Context) {
     if (!this.client) {
-      this.pendingRelevantContexts.push(context)
+      this.pendingRelevantContexts.push(context);
     } else {
       this.client?.addRelevantContext(context);
     }
