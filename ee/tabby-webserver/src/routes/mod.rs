@@ -170,7 +170,7 @@ impl FromAuth<Arc<dyn ServiceLocator>> for tabby_schema::Context {
             if claims.is_none() && allow_auth_token {
                 claims = locator
                     .auth()
-                    .verify_auth_token(&token, false)
+                    .verify_auth_token(&token)
                     .await
                     .ok()
                     .map(|id| generate_jwt_payload(id));

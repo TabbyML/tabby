@@ -350,7 +350,6 @@ pub trait AuthenticationService: Send + Sync {
     async fn verify_auth_token(
         &self,
         token: &str,
-        requires_owner: bool,
     ) -> Result<ID>;
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;

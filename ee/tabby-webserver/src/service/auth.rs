@@ -295,8 +295,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let claims = validate_jwt(access_token).map_err(anyhow::Error::new)?;
         Ok(claims)
     }
-    async fn verify_auth_token(&self, token: &str, requires_owner: bool) -> Result<ID> {
-        match self.db.verify_auth_token(token, requires_owner).await {
+    async fn verify_auth_token(&self, token: &str) -> Result<ID> {
+        match self.db.verify_auth_token(token, false).await {
             Ok(user) => Ok(user.as_id()),
             Err(e) => bail!("Failed to verify auth token: {e}"),
         }
