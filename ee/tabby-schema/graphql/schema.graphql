@@ -83,6 +83,13 @@ enum Role {
   ASSISTANT
 }
 
+input CodeQueryInput {
+  gitUrl: String!
+  filepath: String
+  language: String
+  content: String!
+}
+
 input CreateIntegrationInput {
   displayName: String!
   accessToken: String!
@@ -98,6 +105,7 @@ input CreateMessageInput {
 
 input CreateThreadAndRunInput {
   thread: CreateThreadInput!
+  options: ThreadRunOptionsInput! = {codeQuery: null, docQuery: null, generateRelevantQuestions: false}
 }
 
 input CreateThreadInput {
@@ -107,10 +115,15 @@ input CreateThreadInput {
 input CreateThreadRunInput {
   threadId: ID!
   additionalMessages: [CreateMessageInput!]!
+  options: ThreadRunOptionsInput! = {codeQuery: null, docQuery: null, generateRelevantQuestions: false}
 }
 
 input CreateWebCrawlerUrlInput {
   url: String!
+}
+
+input DocQueryInput {
+  content: String!
 }
 
 input EmailSettingInput {
@@ -159,6 +172,12 @@ input RequestPasswordResetEmailInput {
 input SecuritySettingInput {
   allowedRegisterDomainList: [String!]!
   disableClientSideTelemetry: Boolean!
+}
+
+input ThreadRunOptionsInput {
+  docQuery: DocQueryInput = null
+  codeQuery: CodeQueryInput = null
+  generateRelevantQuestions: Boolean! = false
 }
 
 input UpdateIntegrationInput {
@@ -538,11 +557,18 @@ type Subscription {
   createThreadRun(input: CreateThreadRunInput!): ThreadRunItem!
 }
 
+"""
+  Schema of thread run stream.
+
+  The event's order is kept as same as the order defined in the struct fields.
+  Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
+"""
 type ThreadRunItem {
   threadCreated: ID
   threadMessageCreated: ID
   threadMessageAttachmentsCode: [MessageAttachmentCode!]
   threadMessageAttachmentsDoc: [MessageAttachmentDoc!]
+  threadMessageRelevantQuestions: [String!]
   threadMessageContentDelta: String
   threadMessageCompleted: ID
 }

@@ -36,12 +36,17 @@ pub struct MessageAttachmentDoc {
     pub content: String,
 }
 
+/// Schema of thread run stream.
+///
+/// The event's order is kept as same as the order defined in the struct fields.
+/// Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
 #[derive(GraphQLObject)]
 pub struct ThreadRunItem {
     thread_created: Option<ID>,
     thread_message_created: Option<ID>,
     thread_message_attachments_code: Option<Vec<MessageAttachmentCode>>,
     thread_message_attachments_doc: Option<Vec<MessageAttachmentDoc>>,
+    thread_message_relevant_questions: Option<Vec<String>>,
     thread_message_content_delta: Option<String>,
     thread_message_completed: Option<ID>,
 }

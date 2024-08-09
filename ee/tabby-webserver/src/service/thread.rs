@@ -3,6 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_schema::{
+    bail,
     thread::{CreateMessageInput, CreateThreadInput, ThreadRunStream, ThreadService},
     Result,
 };
@@ -20,7 +21,11 @@ impl ThreadService for ThreadServiceImpl {
     }
 
     async fn create_run(&self, _id: &ID) -> Result<ThreadRunStream> {
-        unimplemented!()
+        let Some(_answer) = self.answer.as_ref() else {
+            bail!("Answer service is not available");
+        };
+
+        todo!("Create a stream of thread run items");
     }
 
     async fn append_messages(&self, _id: &ID, _messages: &[CreateMessageInput]) -> Result<()> {

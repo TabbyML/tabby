@@ -8,7 +8,6 @@ use super::Role;
 pub struct CreateMessageInput {
     role: Role,
 
-    #[validate(length(code = "content", min = 1, message = "Content must not be empty"))]
     content: String,
 
     #[validate(nested)]
@@ -26,6 +25,37 @@ pub struct CreateThreadInput {
 pub struct CreateThreadAndRunInput {
     #[validate(nested)]
     pub thread: CreateThreadInput,
+
+    #[validate(nested)]
+    #[graphql(default)]
+    pub options: ThreadRunOptionsInput,
+}
+
+#[derive(GraphQLInputObject, Validate)]
+pub struct DocQueryInput {
+    content: String,
+}
+
+#[derive(GraphQLInputObject, Validate)]
+pub struct CodeQueryInput {
+    pub git_url: String,
+    pub filepath: Option<String>,
+    pub language: Option<String>,
+    pub content: String,
+}
+
+#[derive(GraphQLInputObject, Validate, Default)]
+pub struct ThreadRunOptionsInput {
+    #[validate(nested)]
+    #[graphql(default)]
+    pub doc_query: Option<DocQueryInput>,
+
+    #[validate(nested)]
+    #[graphql(default)]
+    pub code_query: Option<CodeQueryInput>,
+
+    #[graphql(default)]
+    pub generate_relevant_questions: bool,
 }
 
 #[derive(GraphQLInputObject, Validate)]
@@ -34,6 +64,10 @@ pub struct CreateThreadRunInput {
 
     #[validate(nested)]
     pub additional_messages: Vec<CreateMessageInput>,
+
+    #[validate(nested)]
+    #[graphql(default)]
+    pub options: ThreadRunOptionsInput,
 }
 
 #[derive(GraphQLInputObject, Validate)]
@@ -46,7 +80,6 @@ pub struct MessageAttachmentInput {
 pub struct MessageAttachmentCodeInput {
     pub filepath: Option<String>,
 
-    #[validate(length(code = "content", min = 1, message = "Content must not be empty"))]
     pub content: String,
 }
 
