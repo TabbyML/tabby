@@ -214,7 +214,7 @@ pub struct PasswordResetInput {
         code = "password1",
         message = "Password must be between 8 and 20 characters"
     ))]
-    #[validate(custom(function="validate_password"))]
+    #[validate(custom(function = "validate_password"))]
     pub password1: String,
     #[validate(length(
         min = 8,
