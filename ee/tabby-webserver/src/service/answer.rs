@@ -11,7 +11,9 @@ use async_openai::{
 use async_stream::stream;
 use futures::stream::BoxStream;
 use tabby_common::api::{
-    answer::{AnswerRequest, AnswerResponseChunk}, code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchQuery}, doc::{DocSearch, DocSearchError, DocSearchHit}
+    answer::{AnswerRequest, AnswerResponseChunk},
+    code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchQuery},
+    doc::{DocSearch, DocSearchError, DocSearchHit},
 };
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
