@@ -332,7 +332,6 @@ function ChatRenderer(
     return {
       messages: toMessages(qaPairs).slice(0, -1),
       code_query,
-      // @ts-ignore FIXME
       code_snippets,
       doc_query: !!docQuery,
       generate_relevant_questions: !!generateRelevantQuestions,
