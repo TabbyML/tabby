@@ -15,6 +15,9 @@ import {
   InitializeResult as LspInitializeResult,
   InitializeError,
   ClientCapabilities as LspClientCapabilities,
+  TextDocumentClientCapabilities,
+  CompletionClientCapabilities,
+  InlineCompletionClientCapabilities,
   ServerCapabilities as LspServerCapabilities,
   ConfigurationRequest as LspConfigurationRequest,
   DidChangeConfigurationNotification as LspDidChangeConfigurationNotification,
@@ -53,10 +56,20 @@ export namespace InitializeRequest {
 
 export type InitializeParams = LspInitializeParams & {
   clientInfo?: ClientInfo;
+  capabilities: ClientCapabilities;
   initializationOptions?: {
     config?: ClientProvidedConfig;
+    /**
+     * ClientInfo also can be provided in InitializationOptions, will be merged with the one in InitializeParams.
+     * This is useful for the clients that don't support changing the ClientInfo in InitializeParams.
+     */
+    clientInfo?: ClientInfo;
+    /**
+     * ClientCapabilities also can be provided in InitializationOptions, will be merged with the one in InitializeParams.
+     * This is useful for the clients that don't support changing the ClientCapabilities in InitializeParams.
+     */
+    clientCapabilities?: ClientCapabilities;
   };
-  capabilities: ClientCapabilities;
 };
 
 export type InitializeResult = LspInitializeResult & {
@@ -76,6 +89,10 @@ export type ClientInfo = {
 };
 
 export type ClientCapabilities = LspClientCapabilities & {
+  textDocument?: TextDocumentClientCapabilities & {
+    completion?: boolean | CompletionClientCapabilities;
+    inlineCompletion?: boolean | InlineCompletionClientCapabilities;
+  };
   tabby?: {
     /**
      * The client supports:
@@ -242,7 +259,7 @@ export type ChangesPreviewLineType =
 /**
  * Extends LSP method Completion Request(↩️)
  *
- * Note: Tabby provides this method capability *only* when the client has *NO* `textDocument/inlineCompletion` capability.
+ * Note: Tabby provides this method capability when the client has `textDocument/completion` capability.
  * - method: `textDocument/completion`
  * - params: {@link CompletionParams}
  * - result: {@link CompletionList} | null
@@ -274,7 +291,7 @@ export type CompletionEventId = {
 /**
  * Extends LSP method Inline Completion Request(↩️)
  *
- * Note: Tabby provides this method capability only when the client has `textDocument/inlineCompletion` capability.
+ * Note: Tabby provides this method capability when the client has `textDocument/inlineCompletion` capability.
  * - method: `textDocument/inlineCompletion`
  * - params: {@link InlineCompletionParams}
  * - result: {@link InlineCompletionList} | null

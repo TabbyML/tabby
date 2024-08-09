@@ -76,6 +76,7 @@ import {
 import { TextDocuments } from "./TextDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import deepEqual from "deep-equal";
+import { deepmerge } from "deepmerge-ts";
 import type {
   AgentIssue,
   ConfigUpdatedEvent,
@@ -177,9 +178,15 @@ export class Server {
   }
 
   private async initialize(params: InitializeParams): Promise<InitializeResult> {
-    const clientInfo: ClientInfo | undefined = params.clientInfo;
+    const clientInfo: ClientInfo | undefined = deepmerge(
+      params.clientInfo,
+      params.initializationOptions?.clientInfo ?? {},
+    );
     this.clientInfo = clientInfo;
-    const clientCapabilities: ClientCapabilities = params.capabilities;
+    const clientCapabilities: ClientCapabilities = deepmerge(
+      params.capabilities,
+      params.initializationOptions?.clientCapabilities ?? {},
+    );
     this.clientCapabilities = clientCapabilities;
     const clientProvidedConfig: ClientProvidedConfig | undefined = params.initializationOptions?.config;
     this.clientProvidedConfig = clientProvidedConfig;
@@ -207,11 +214,11 @@ export class Server {
         chat: false,
       },
     };
-
+    if (clientCapabilities.textDocument?.completion) {
+      serverCapabilities.completionProvider = {};
+    }
     if (clientCapabilities.textDocument?.inlineCompletion) {
       serverCapabilities.inlineCompletionProvider = true;
-    } else {
-      serverCapabilities.completionProvider = {};
     }
 
     if (clientCapabilities.workspace?.codeLens) {
