@@ -2,17 +2,26 @@ package com.tabbyml.tabby4eclipse.lsp;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.util.List;
 
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4e.server.ProcessStreamConnectionProvider;
 import org.osgi.framework.Bundle;
 
 import com.tabbyml.tabby4eclipse.Activator;
 import com.tabbyml.tabby4eclipse.Logger;
+import com.tabbyml.tabby4eclipse.lsp.protocol.ClientCapabilities;
+import com.tabbyml.tabby4eclipse.lsp.protocol.ClientCapabilities.TabbyClientCapabilities;
+import com.tabbyml.tabby4eclipse.lsp.protocol.ClientCapabilities.TextDocumentClientCapabilities;
+import com.tabbyml.tabby4eclipse.lsp.protocol.ClientInfo;
+import com.tabbyml.tabby4eclipse.lsp.protocol.ClientInfo.TabbyPluginInfo;
+import com.tabbyml.tabby4eclipse.lsp.protocol.ClientProvidedConfig;
+import com.tabbyml.tabby4eclipse.lsp.protocol.InitializationOptions;
 
 public class ConnectionProvider extends ProcessStreamConnectionProvider {
 	private Logger logger = new Logger("ConnectionProvider");
@@ -61,6 +70,11 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 	}
 
 	@Override
+	public Object getInitializationOptions(@Nullable URI rootUri) {
+		return new InitializationOptions(getProvidedConfig(), getClientInfo(), getClientCapabilities());
+	}
+
+	@Override
 	public void start() throws IOException {
 		super.start();
 		logger.info("Tabby language server started.");
@@ -70,5 +84,34 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 	public void stop() {
 		super.stop();
 		logger.info("Tabby language server stopped.");
+	}
+
+	private ClientProvidedConfig getProvidedConfig() {
+		ClientProvidedConfig config = new ClientProvidedConfig();
+		return config;
+	}
+
+	private ClientInfo getClientInfo() {
+		TabbyPluginInfo tabbyPluginInfo = new TabbyPluginInfo();
+		Bundle bundle = Platform.getBundle(Activator.PLUGIN_ID);
+		tabbyPluginInfo.setName(Activator.PLUGIN_ID);
+		tabbyPluginInfo.setVersion(bundle.getVersion().toString());
+
+		ClientInfo clientInfo = new ClientInfo();
+		clientInfo.setTabbyPlugin(tabbyPluginInfo);
+		return clientInfo;
+	}
+
+	private ClientCapabilities getClientCapabilities() {
+		TextDocumentClientCapabilities textDocumentClientCapabilities = new TextDocumentClientCapabilities();
+		textDocumentClientCapabilities.setCompletion(false);
+		textDocumentClientCapabilities.setInlineCompletion(true);
+
+		TabbyClientCapabilities tabbyClientCapabilities = new TabbyClientCapabilities();
+
+		ClientCapabilities clientCapabilities = new ClientCapabilities();
+		clientCapabilities.setTextDocument(textDocumentClientCapabilities);
+		clientCapabilities.setTabby(tabbyClientCapabilities);
+		return clientCapabilities;
 	}
 }
