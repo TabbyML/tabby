@@ -46,6 +46,7 @@ import { getLogger, logDestinations, fileLogger } from "./logger";
 import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
 import { loadTlsCaCerts } from "./loadCaCerts";
 import { createProxyForUrl, ProxyConfig } from "./http/proxy";
+import { name as agentName, version as agentVersion } from "../package.json";
 
 export class TabbyAgent extends EventEmitter implements Agent {
   private readonly logger = getLogger("TabbyAgent");
@@ -70,6 +71,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private tryingConnectTimer: ReturnType<typeof setInterval>;
   static readonly submitStatsInterval = 1000 * 60 * 60 * 24; // 24h
   private submitStatsTimer: ReturnType<typeof setInterval>;
+  private userAgentHeader: string = "";
 
   constructor() {
     super();
@@ -162,6 +164,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       baseUrl: endpoint,
       headers: {
         Authorization: auth,
+        "User-Agent": this.userAgentHeader,
         ...this.config.server.requestHeaders,
       },
       /** dispatcher do not exist in {@link RequestInit} in browser env. */
@@ -393,6 +396,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }
     }
     await this.anonymousUsageLogger.init({ dataStore: this.dataStore });
+    this.userAgentHeader = this.clientInfoToString(options.clientProperties?.session);
     if (options.clientProperties) {
       if (options.clientProperties.session) {
         Object.entries(options.clientProperties.session).forEach(([key, value]) => {
@@ -405,6 +409,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
         });
       }
     }
+
     if (this.dataStore) {
       const localConfig = deepmerge(defaultAgentConfig, this.userConfig, this.clientConfig) as AgentConfig;
       this.serverProvidedConfig = this.dataStore?.data.serverConfig?.[localConfig.server.endpoint] ?? {};
@@ -1009,5 +1014,22 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.healthCheck(); // schedule a health check
       return null;
     }
+  }
+
+  private clientInfoToString(session: Record<string, any> | undefined): string {
+    let envInfo = `Node.js/${process.version}`;
+
+    if (typeof navigator !== "undefined" && typeof navigator.userAgent === "string") {
+      envInfo = `${navigator.userAgent}`;
+    }
+
+    if (!session) return envInfo;
+
+    const ide = session["ide"] ? `${session["ide"].name.replace(/ /g, "-")}/${session["ide"].version}` : "";
+    const tabby = `${agentName}/${agentVersion}`;
+    const tabbyPlugin = session["tabby_plugin"]
+      ? `${session["tabby_plugin"].name}/${session["tabby_plugin"].version}`
+      : "";
+    return `${envInfo} ${tabby} ${ide} ${tabbyPlugin}`.trim();
   }
 }
