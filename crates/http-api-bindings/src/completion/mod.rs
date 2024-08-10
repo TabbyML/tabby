@@ -23,13 +23,9 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
             Arc::new(engine)
         }
         "ollama/completion" => ollama_api_bindings::create_completion(model).await,
-
         "mistral/completion" => {
             let engine = MistralFIMEngine::create(
-                model
-                    .api_endpoint
-                    .as_deref()
-                    .expect("api_endpoint is required"),
+                model.api_endpoint.as_deref(),
                 model.api_key.clone(),
                 model.model_name.clone(),
             );
@@ -46,7 +42,6 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
             );
             Arc::new(engine)
         }
-
         unsupported_kind => panic!(
             "Unsupported model kind for http completion: {}",
             unsupported_kind
@@ -54,9 +49,12 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
     }
 }
 
+const FIM_TOKEN: &str = "<|FIM|>";
+const FIM_TEMPLATE: &str = "{prefix}<|FIM|>{suffix}";
+
 pub fn build_completion_prompt(model: &HttpModelConfig) -> (Option<String>, Option<String>) {
-    if model.kind == "mistral/completion" {
-        (Some("{prefix}<FIM>{suffix}".to_owned()), None)
+    if model.kind == "mistral/completion" || model.kind == "openai/completion" {
+        (Some(FIM_TEMPLATE.to_owned()), None)
     } else {
         (model.prompt_template.clone(), model.chat_template.clone())
     }
