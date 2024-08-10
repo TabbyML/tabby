@@ -23,12 +23,16 @@ pub struct MessageAttachment {
     pub doc: Vec<MessageAttachmentDoc>,
 }
 
+/// WARNING: this struct's json representation will be serialized into DB as an individual column (array of objects).
+/// If you want to change the struct, please make sure the change is backward compatible.
 #[derive(GraphQLObject, Clone)]
 pub struct MessageAttachmentCode {
     pub filepath: Option<String>,
     pub content: String,
 }
 
+/// WARNING: this struct's json representation will be serialized into DB as an individual column (array of objects).
+/// If you want to change the struct, please make sure the change is backward compatible.
 #[derive(GraphQLObject, Clone)]
 pub struct MessageAttachmentDoc {
     pub title: String,
