@@ -5,6 +5,8 @@ use reqwest_eventsource::{Event, EventSource};
 use serde::{Deserialize, Serialize};
 use tabby_inference::{CompletionOptions, CompletionStream};
 
+use super::FIM_TOKEN;
+
 pub struct OpenAICompletionEngine {
     client: reqwest::Client,
     model_name: String,
@@ -51,7 +53,7 @@ struct CompletionResponseChoice {
 #[async_trait]
 impl CompletionStream for OpenAICompletionEngine {
     async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
-        let parts = prompt.splitn(2, "<FIM>").collect::<Vec<_>>();
+        let parts = prompt.splitn(2, FIM_TOKEN).collect::<Vec<_>>();
         let request = CompletionRequest {
             model: self.model_name.clone(),
             prompt: parts[0].to_owned(),

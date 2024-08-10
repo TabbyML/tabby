@@ -5,6 +5,8 @@ use reqwest_eventsource::{Event, EventSource};
 use serde::{Deserialize, Serialize};
 use tabby_inference::{CompletionOptions, CompletionStream};
 
+use super::FIM_TOKEN;
+
 pub struct MistralFIMEngine {
     client: reqwest::Client,
     api_endpoint: String,
@@ -39,7 +41,7 @@ impl MistralFIMEngine {
 #[derive(Serialize)]
 struct FIMRequest {
     prompt: String,
-    suffix: String,
+    suffix: Option<String>,
     model: String,
     temperature: f32,
     max_tokens: i32,
@@ -66,10 +68,10 @@ struct FIMResponseDelta {
 #[async_trait]
 impl CompletionStream for MistralFIMEngine {
     async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
-        let parts: Vec<&str> = prompt.split("<FIM>").collect();
+        let parts = prompt.splitn(2, FIM_TOKEN).collect::<Vec<_>>();
         let request = FIMRequest {
             prompt: parts[0].to_owned(),
-            suffix: parts[1].to_owned(),
+            suffix: parts.get(1).map(|x| x.to_string()).filter(|x| x.len() > 0),
             model: self.model_name.clone(),
             max_tokens: options.max_decoding_tokens,
             temperature: options.sampling_temperature,

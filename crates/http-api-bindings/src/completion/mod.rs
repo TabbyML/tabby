@@ -49,9 +49,12 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
     }
 }
 
+const FIM_TOKEN: &str = "<FIM>";
+const FIM_TEMPLATE: &str = "{prefix}<FIM>{suffix}";
+
 pub fn build_completion_prompt(model: &HttpModelConfig) -> (Option<String>, Option<String>) {
     if model.kind == "mistral/completion" || model.kind == "openai/completion" {
-        (Some("{prefix}<FIM>{suffix}".to_owned()), None)
+        (Some(FIM_TEMPLATE.to_owned()), None)
     } else {
         (model.prompt_template.clone(), model.chat_template.clone())
     }
