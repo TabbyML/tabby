@@ -12,8 +12,14 @@ pub struct MistralFIMEngine {
     model_name: String,
 }
 
+const DEFAULT_API_ENDPOINT: &str = "https://api.mistral.ai";
+
 impl MistralFIMEngine {
-    pub fn create(api_endpoint: &str, api_key: Option<String>, model_name: Option<String>) -> Self {
+    pub fn create(
+        api_endpoint: Option<&str>,
+        api_key: Option<String>,
+        model_name: Option<String>,
+    ) -> Self {
         let client = reqwest::Client::new();
         let model_name = model_name.unwrap_or("codestral-latest".into());
         let api_key = api_key.expect("API key is required for mistral/completion");
@@ -21,7 +27,10 @@ impl MistralFIMEngine {
         Self {
             client,
             model_name,
-            api_endpoint: format!("{}/v1/fim/completions", api_endpoint),
+            api_endpoint: format!(
+                "{}/v1/fim/completions",
+                api_endpoint.unwrap_or(DEFAULT_API_ENDPOINT)
+            ),
             api_key,
         }
     }

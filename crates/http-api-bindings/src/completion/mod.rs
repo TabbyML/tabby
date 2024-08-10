@@ -23,13 +23,9 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
             Arc::new(engine)
         }
         "ollama/completion" => ollama_api_bindings::create_completion(model).await,
-
         "mistral/completion" => {
             let engine = MistralFIMEngine::create(
-                model
-                    .api_endpoint
-                    .as_deref()
-                    .expect("api_endpoint is required"),
+                model.api_endpoint.as_deref(),
                 model.api_key.clone(),
                 model.model_name.clone(),
             );
