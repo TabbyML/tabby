@@ -57,7 +57,10 @@ impl CompletionStream for OpenAICompletionEngine {
         let request = CompletionRequest {
             model: self.model_name.clone(),
             prompt: parts[0].to_owned(),
-            suffix: parts.get(1).map(|x| x.to_string()).filter(|x| !x.is_empty()),
+            suffix: parts
+                .get(1)
+                .map(|x| x.to_string())
+                .filter(|x| !x.is_empty()),
             max_tokens: options.max_decoding_tokens,
             temperature: options.sampling_temperature,
             stream: true,

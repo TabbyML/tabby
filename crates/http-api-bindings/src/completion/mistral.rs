@@ -71,7 +71,10 @@ impl CompletionStream for MistralFIMEngine {
         let parts = prompt.splitn(2, FIM_TOKEN).collect::<Vec<_>>();
         let request = FIMRequest {
             prompt: parts[0].to_owned(),
-            suffix: parts.get(1).map(|x| x.to_string()).filter(|x| !x.is_empty()),
+            suffix: parts
+                .get(1)
+                .map(|x| x.to_string())
+                .filter(|x| !x.is_empty()),
             model: self.model_name.clone(),
             max_tokens: options.max_decoding_tokens,
             temperature: options.sampling_temperature,
