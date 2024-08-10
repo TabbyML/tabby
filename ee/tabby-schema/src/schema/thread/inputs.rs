@@ -6,19 +6,19 @@ use super::Role;
 #[derive(GraphQLInputObject, Validate)]
 #[validate(schema(function = "validate_message_input", skip_on_field_errors = false))]
 pub struct CreateMessageInput {
-    role: Role,
+    pub role: Role,
 
-    content: String,
+    pub content: String,
 
     #[validate(nested)]
-    attachments: Option<MessageAttachmentInput>,
+    pub attachments: Option<MessageAttachmentInput>,
 }
 
 #[derive(GraphQLInputObject, Validate)]
 #[validate(schema(function = "validate_thread_input", skip_on_field_errors = false))]
 pub struct CreateThreadInput {
     #[validate(nested)]
-    messages: Vec<CreateMessageInput>,
+    pub messages: Vec<CreateMessageInput>,
 }
 
 #[derive(GraphQLInputObject, Validate)]
@@ -73,7 +73,7 @@ pub struct CreateThreadRunInput {
 #[derive(GraphQLInputObject, Validate)]
 pub struct MessageAttachmentInput {
     #[validate(nested)]
-    code: Vec<MessageAttachmentCodeInput>,
+    pub code: Vec<MessageAttachmentCodeInput>,
 }
 
 #[derive(GraphQLInputObject, Validate)]

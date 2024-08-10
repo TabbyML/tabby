@@ -15,7 +15,7 @@ pub type ThreadRunStream = BoxStream<'static, Result<ThreadRunItem>>;
 #[async_trait]
 pub trait ThreadService: Send + Sync {
     /// Create a new thread
-    async fn create(&self, input: &CreateThreadInput) -> Result<ID>;
+    async fn create(&self, user_id: &ID, input: &CreateThreadInput) -> Result<ID>;
 
     /// Create a new thread run
     async fn create_run(&self, id: &ID, options: &ThreadRunOptionsInput)

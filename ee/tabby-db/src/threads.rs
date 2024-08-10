@@ -71,8 +71,8 @@ impl DbConn {
         thread_id: i64,
         role: &str,
         content: &str,
-        code_attachments: Option<Vec<ThreadMessageAttachmentCode>>,
-        doc_attachments: Option<Vec<ThreadMessageAttachmentDoc>>,
+        code_attachments: Option<&[ThreadMessageAttachmentCode]>,
+        doc_attachments: Option<&[ThreadMessageAttachmentDoc]>,
         verify_last_message_role: bool,
     ) -> Result<i64> {
         if verify_last_message_role {

@@ -921,12 +921,12 @@ impl Subscription {
         ctx: &Context,
         input: CreateThreadAndRunInput,
     ) -> Result<ThreadRunStream> {
-        check_user(ctx).await?;
+        let user = check_user(ctx).await?;
         input.validate()?;
 
         let thread = ctx.locator.thread();
 
-        let thread_id = thread.create(&input.thread).await?;
+        let thread_id = thread.create(&user.id, &input.thread).await?;
 
         thread.create_run(&thread_id, &input.options).await
     }
