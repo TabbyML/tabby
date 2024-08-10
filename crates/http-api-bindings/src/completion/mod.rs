@@ -42,7 +42,6 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
             );
             Arc::new(engine)
         }
-
         unsupported_kind => panic!(
             "Unsupported model kind for http completion: {}",
             unsupported_kind
@@ -51,7 +50,7 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
 }
 
 pub fn build_completion_prompt(model: &HttpModelConfig) -> (Option<String>, Option<String>) {
-    if model.kind == "mistral/completion" {
+    if model.kind == "mistral/completion" || model.kind == "openai/completion" {
         (Some("{prefix}<FIM>{suffix}".to_owned()), None)
     } else {
         (model.prompt_template.clone(), model.chat_template.clone())
