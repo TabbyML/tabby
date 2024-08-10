@@ -163,3 +163,15 @@ CREATE TABLE web_crawler_urls(
   CONSTRAINT `unique_url` UNIQUE(url)
 );
 CREATE INDEX `idx_job_runs_command` ON job_runs(command);
+CREATE TABLE threads(id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT);
+CREATE TABLE thread_messages(
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  thread_id INTEGER NOT NULL,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL,
+  -- Array of code attachments, in format of `MesssageAttachmentCode`
+  code_attachments JSONB,
+  -- Array of doc attachments, in format of `MesssageAttachmentDoc`
+  doc_attachments JSONB,
+  FOREIGN KEY(thread_id) REFERENCES threads(id) ON DELETE CASCADE
+);

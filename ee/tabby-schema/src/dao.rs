@@ -20,7 +20,7 @@ use crate::{
         setting::{NetworkSetting, SecuritySetting},
         user_event::{EventKind, UserEvent},
         CoreError,
-    },
+    }, thread,
 };
 
 impl From<InvitationDAO> for auth::Invitation {
@@ -365,6 +365,23 @@ impl DbEnum for AuthMethod {
             "plain" => Ok(AuthMethod::Plain),
             "login" => Ok(AuthMethod::Login),
             _ => bail!("{s} is not a valid value for AuthMethod"),
+        }
+    }
+}
+
+impl DbEnum for thread::Role {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            thread::Role::Assistant => "assistant",
+            thread::Role::User => "user",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "assistant" => Ok(thread::Role::Assistant),
+            "user" => Ok(thread::Role::User),
+            _ => bail!("{s} is not a valid value for thread::Role"),
         }
     }
 }
