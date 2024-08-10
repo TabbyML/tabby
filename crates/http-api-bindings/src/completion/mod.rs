@@ -49,8 +49,8 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
     }
 }
 
-const FIM_TOKEN: &str = "<FIM>";
-const FIM_TEMPLATE: &str = "{prefix}<FIM>{suffix}";
+const FIM_TOKEN: &str = "<|FIM|>";
+const FIM_TEMPLATE: &str = "{prefix}<|FIM|>{suffix}";
 
 pub fn build_completion_prompt(model: &HttpModelConfig) -> (Option<String>, Option<String>) {
     if model.kind == "mistral/completion" || model.kind == "openai/completion" {
