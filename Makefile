@@ -14,8 +14,7 @@ update-ui:
 update-db-schema:
 	sqlite3 ee/tabby-db/schema.sqlite ".schema --indent" > ee/tabby-db/schema/schema.sql
 	sqlite3 ee/tabby-db/schema.sqlite -init  ee/tabby-db/schema/sqlite-schema-visualize.sql "" > schema.dot
-	# Turn-off dot update as graphviz is problematic in CI environment since 08/03/2024
-	# dot -Tsvg schema.dot > ee/tabby-db/schema/schema.svg
+	dot -Tsvg schema.dot > ee/tabby-db/schema/schema.svg
 	rm schema.dot
 
 caddy:
