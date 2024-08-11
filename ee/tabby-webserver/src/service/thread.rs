@@ -7,7 +7,7 @@ use tabby_db::{DbConn, ThreadMessageAttachmentCode};
 use tabby_schema::{
     bail,
     thread::{
-        self, CreateMessageInput, CreateThreadInput, MessageAttachment, ThreadRunItem,
+        self, CreateMessageInput, CreateThreadInput, ThreadRunItem,
         ThreadRunOptionsInput, ThreadRunStream, ThreadService,
     },
     AsID, AsRowid, DbEnum, Result,
@@ -182,9 +182,10 @@ pub fn create(db: DbConn, answer: Option<Arc<AnswerService>>) -> impl ThreadServ
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use tabby_db::{testutils::create_user, DbConn};
-    use tabby_schema::thread::{CreateMessageInput, CreateThreadInput, Role};
+    use tabby_schema::thread::{CreateMessageInput, CreateThreadInput};
+
+    use super::*;
 
     #[tokio::test]
     async fn test_create_thread() {

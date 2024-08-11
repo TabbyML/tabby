@@ -21,12 +21,14 @@ use sqlx::{
     database::HasValueRef, query, query_scalar, sqlite::SqliteQueryResult, Decode, Encode, Pool,
     Sqlite, SqlitePool, Type, Value, ValueRef,
 };
+pub use threads::{
+    ThreadDAO, ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc, ThreadMessageDAO,
+};
 use tokio::sync::Mutex;
 use user_completions::UserCompletionDailyStatsDAO;
 pub use user_events::UserEventDAO;
 pub use users::UserDAO;
 pub use web_crawler::WebCrawlerUrlDAO;
-pub use threads::{ThreadDAO, ThreadMessageDAO, ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc};
 
 pub mod cache;
 mod email_setting;

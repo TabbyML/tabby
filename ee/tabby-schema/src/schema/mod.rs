@@ -28,7 +28,7 @@ use juniper::{
 use repository::RepositoryGrepOutput;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
-use tracing::{debug, error, warn};
+use tracing::{error, warn};
 use validator::{Validate, ValidationErrors};
 use worker::WorkerService;
 
@@ -892,7 +892,7 @@ fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError
 
     error
         .errors()
-        .into_iter()
+        .iter()
         .for_each(|(field, kind)| match kind {
             validator::ValidationErrorsKind::Struct(e) => {
                 for (_, error) in e.0.iter() {

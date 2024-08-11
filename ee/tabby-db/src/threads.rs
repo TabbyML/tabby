@@ -1,8 +1,9 @@
-use crate::DbConn;
 use anyhow::{bail, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as, types::Json, FromRow};
+
+use crate::DbConn;
 
 #[derive(FromRow)]
 pub struct ThreadDAO {

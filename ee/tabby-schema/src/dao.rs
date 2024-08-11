@@ -1,9 +1,10 @@
 use anyhow::bail;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
-use tabby_common::api::event::Message;
 use tabby_db::{
-    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO, ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc, ThreadMessageDAO, UserDAO, UserEventDAO
+    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
+    ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc,
+    ThreadMessageDAO, UserDAO, UserEventDAO,
 };
 
 use crate::{
@@ -238,11 +239,11 @@ impl From<ThreadMessageAttachmentCode> for thread::MessageAttachmentCode {
     }
 }
 
-impl Into<ThreadMessageAttachmentCode> for &thread::MessageAttachmentCode {
-    fn into(self) -> ThreadMessageAttachmentCode {
+impl From<&thread::MessageAttachmentCode> for ThreadMessageAttachmentCode {
+    fn from(val: &thread::MessageAttachmentCode) -> Self {
         ThreadMessageAttachmentCode {
-            filepath: self.filepath.clone(),
-            content: self.content.clone(),
+            filepath: val.filepath.clone(),
+            content: val.content.clone(),
         }
     }
 }
@@ -257,12 +258,12 @@ impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
     }
 }
 
-impl Into<ThreadMessageAttachmentDoc> for &thread::MessageAttachmentDoc {
-    fn into(self) -> ThreadMessageAttachmentDoc {
+impl From<&thread::MessageAttachmentDoc> for ThreadMessageAttachmentDoc {
+    fn from(val: &thread::MessageAttachmentDoc) -> Self {
         ThreadMessageAttachmentDoc {
-            title: self.title.clone(),
-            link: self.link.clone(),
-            content: self.content.clone(),
+            title: val.title.clone(),
+            link: val.link.clone(),
+            content: val.content.clone(),
         }
     }
 }
