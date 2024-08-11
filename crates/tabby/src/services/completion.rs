@@ -364,12 +364,13 @@ pub async fn create_completion_service_and_chat(
     Option<CompletionService>,
     Option<Arc<dyn ChatCompletionStream>>,
 ) {
-    let (engine, chat, prompt) = model::load_code_generation_and_chat(completion, chat).await;
+    let (code_generation, prompt, chat) =
+        model::load_code_generation_and_chat(completion, chat).await;
 
-    let svc = if let Some(engine) = engine {
+    let completion = if let Some(code_generation) = code_generation {
         Some(CompletionService::new(
             config.to_owned(),
-            engine.clone(),
+            code_generation.clone(),
             code,
             logger,
             prompt
@@ -380,7 +381,7 @@ pub async fn create_completion_service_and_chat(
         None
     };
 
-    (svc, chat)
+    (completion, chat)
 }
 
 #[cfg(test)]

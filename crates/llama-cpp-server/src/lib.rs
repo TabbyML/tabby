@@ -89,10 +89,10 @@ impl CompletionServer {
             context_size,
         );
         server.start().await;
-        Self::new_with_server(Arc::new(server)).await
+        Self::new_with_supervisor(Arc::new(server)).await
     }
 
-    async fn new_with_server(server: Arc<LlamaCppSupervisor>) -> Self {
+    async fn new_with_supervisor(server: Arc<LlamaCppSupervisor>) -> Self {
         let config = HttpModelConfigBuilder::default()
             .api_endpoint(Some(api_endpoint(server.port())))
             .kind("llama.cpp/completion".to_string())
@@ -136,10 +136,10 @@ impl ChatCompletionServer {
             context_size,
         );
         server.start().await;
-        Self::new_with_server(Arc::new(server)).await
+        Self::new_with_supervisor(Arc::new(server)).await
     }
 
-    async fn new_with_server(server: Arc<LlamaCppSupervisor>) -> Self {
+    async fn new_with_supervisor(server: Arc<LlamaCppSupervisor>) -> Self {
         let config = HttpModelConfigBuilder::default()
             .api_endpoint(Some(api_endpoint(server.port())))
             .kind("openai/chat".to_string())
@@ -215,8 +215,8 @@ pub async fn create_completion_and_chat(
     chat_model: &LocalModelConfig,
 ) -> (
     Arc<dyn CompletionStream>,
-    Arc<dyn ChatCompletionStream>,
     PromptInfo,
+    Arc<dyn ChatCompletionStream>,
 ) {
     let chat_model_path = resolve_model_path(&chat_model.model_id).await;
     let chat_template = resolve_prompt_info(&chat_model.model_id)
@@ -239,10 +239,10 @@ pub async fn create_completion_and_chat(
     ));
     server.start().await;
 
-    let chat = ChatCompletionServer::new_with_server(server.clone()).await;
+    let chat = ChatCompletionServer::new_with_supervisor(server.clone()).await;
 
     let completion = if completion_model.model_id == chat_model.model_id {
-        CompletionServer::new_with_server(server).await
+        CompletionServer::new_with_supervisor(server).await
     } else {
         CompletionServer::new(
             completion_model.num_gpu_layers,
@@ -254,7 +254,7 @@ pub async fn create_completion_and_chat(
         .await
     };
 
-    (Arc::new(completion), Arc::new(chat), prompt_info)
+    (Arc::new(completion), prompt_info, Arc::new(chat))
 }
 
 pub async fn create_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {

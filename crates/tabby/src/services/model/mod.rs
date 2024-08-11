@@ -15,16 +15,16 @@ pub async fn load_code_generation_and_chat(
     chat_model: Option<ModelConfig>,
 ) -> (
     Option<Arc<CodeGeneration>>,
-    Option<Arc<dyn ChatCompletionStream>>,
     Option<PromptInfo>,
+    Option<Arc<dyn ChatCompletionStream>>,
 ) {
-    let (engine, chat, prompt_info) = load_completion_and_chat(completion_model, chat_model).await;
+    let (engine, prompt_info, chat) = load_completion_and_chat(completion_model, chat_model).await;
     let code = if let Some(engine) = engine {
         Some(Arc::new(CodeGeneration::new(engine)))
     } else {
         None
     };
-    (code, chat, prompt_info)
+    (code, prompt_info, chat)
 }
 
 async fn load_completion_and_chat(
@@ -32,15 +32,17 @@ async fn load_completion_and_chat(
     chat_model: Option<ModelConfig>,
 ) -> (
     Option<Arc<dyn CompletionStream>>,
-    Option<Arc<dyn ChatCompletionStream>>,
     Option<PromptInfo>,
+    Option<Arc<dyn ChatCompletionStream>>,
 ) {
     if let (Some(completion), Some(chat)) = (&completion_model, &chat_model) {
         match (completion, chat) {
             (ModelConfig::Local(completion), ModelConfig::Local(chat)) => {
-                let (completion, chat, prompt) =
-                    llama_cpp_server::create_completion_and_chat(&completion, &chat).await;
-                return (Some(completion), Some(chat), Some(prompt));
+                if completion == chat {
+                    let (completion, prompt, chat) =
+                        llama_cpp_server::create_completion_and_chat(&completion, &chat).await;
+                    return (Some(completion), Some(prompt), Some(chat));
+                }
             }
             _ => {}
         }
@@ -80,7 +82,7 @@ async fn load_completion_and_chat(
         None
     };
 
-    (completion, chat, prompt)
+    (completion, prompt, chat)
 }
 
 pub async fn download_model_if_needed(model: &str) {
