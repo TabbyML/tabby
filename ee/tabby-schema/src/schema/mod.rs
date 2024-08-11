@@ -902,7 +902,9 @@ fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError
                             obj.add_field("path", Value::scalar(field.to_string()));
                             obj.add_field(
                                 "message",
-                                Value::scalar(error.message.clone().unwrap_or_default().to_string()),
+                                Value::scalar(
+                                    error.message.clone().unwrap_or_default().to_string(),
+                                ),
                             );
                             errors.push(obj.into());
                         }
@@ -975,7 +977,7 @@ impl Subscription {
             ));
         }
 
-        svc.append_messages(&input.thread_id, &input.additional_messages)
+        svc.append_user_message(&input.thread_id, &input.additional_user_message)
             .await?;
 
         svc.create_run(&input.thread_id, &input.options, false)

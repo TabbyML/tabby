@@ -26,8 +26,8 @@ impl ThreadService for ThreadServiceImpl {
     async fn create(&self, user_id: &ID, input: &CreateThreadInput) -> Result<ID> {
         let thread_id = self.db.create_thread(user_id.as_rowid()?).await?;
 
-        for message in &input.messages {
-            let code = message.attachments.as_ref().map(|x| {
+        let code: Option<Vec<ThreadMessageAttachmentCode>> =
+            input.user_message.attachments.as_ref().map(|x| {
                 x.code
                     .iter()
                     .map(|x| ThreadMessageAttachmentCode {
@@ -36,17 +36,16 @@ impl ThreadService for ThreadServiceImpl {
                     })
                     .collect::<Vec<_>>()
             });
-            self.db
-                .create_thread_message(
-                    thread_id,
-                    message.role.as_enum_str(),
-                    &message.content,
-                    code.as_deref(),
-                    None,
-                    false,
-                )
-                .await?;
-        }
+        self.db
+            .create_thread_message(
+                thread_id,
+                thread::Role::User.as_enum_str(),
+                &input.user_message.content,
+                code.as_deref(),
+                None,
+                false,
+            )
+            .await?;
         Ok(thread_id.as_id())
     }
 
@@ -150,33 +149,33 @@ impl ThreadService for ThreadServiceImpl {
         Ok(s.boxed())
     }
 
-    async fn append_messages(&self, thread_id: &ID, messages: &[CreateMessageInput]) -> Result<()> {
+    async fn append_user_message(
+        &self,
+        thread_id: &ID,
+        message: &CreateMessageInput,
+    ) -> Result<()> {
         let thread_id = thread_id.as_rowid()?;
 
-        for (i, message) in messages.iter().enumerate() {
-            let code = message.attachments.as_ref().map(|x| {
-                x.code
-                    .iter()
-                    .map(|x| ThreadMessageAttachmentCode {
-                        filepath: x.filepath.clone(),
-                        content: x.content.clone(),
-                    })
-                    .collect::<Vec<_>>()
-            });
+        let code = message.attachments.as_ref().map(|x| {
+            x.code
+                .iter()
+                .map(|x| ThreadMessageAttachmentCode {
+                    filepath: x.filepath.clone(),
+                    content: x.content.clone(),
+                })
+                .collect::<Vec<_>>()
+        });
 
-            let is_first = i == 0;
-            self.db
-                .create_thread_message(
-                    thread_id,
-                    message.role.as_enum_str(),
-                    &message.content,
-                    code.as_deref(),
-                    None,
-                    // Verify last message role only if it's the first message
-                    is_first,
-                )
-                .await?;
-        }
+        self.db
+            .create_thread_message(
+                thread_id,
+                thread::Role::User.as_enum_str(),
+                &message.content,
+                code.as_deref(),
+                None,
+                true,
+            )
+            .await?;
 
         Ok(())
     }
