@@ -7,6 +7,9 @@ CREATE TABLE threads(
     created_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
     updated_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
 
+    -- Array of relevant questions, in format of `String`
+    relevant_questions BLOB,
+
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 

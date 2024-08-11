@@ -231,7 +231,7 @@ impl AnswerService {
                 let questions = self
                     .generate_relevant_questions(&relevant_code, &relevant_docs, &query.content)
                     .await;
-                yield Ok(ThreadRunItem::thread_message_relevant_questions(questions));
+                yield Ok(ThreadRunItem::thread_relevant_questions(questions));
             }
 
             // 4. Prepare requesting LLM

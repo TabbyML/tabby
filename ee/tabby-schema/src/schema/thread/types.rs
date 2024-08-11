@@ -51,7 +51,6 @@ pub struct Thread {
 
 /// Schema of thread run stream.
 ///
-/// The event's order is kept as same as the order defined in the struct fields.
 /// Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
 #[derive(GraphQLObject)]
 pub struct ThreadRunItem {
@@ -59,7 +58,7 @@ pub struct ThreadRunItem {
     pub thread_message_created: Option<ID>,
     pub thread_message_attachments_code: Option<Vec<MessageAttachmentCode>>,
     pub thread_message_attachments_doc: Option<Vec<MessageAttachmentDoc>>,
-    pub thread_message_relevant_questions: Option<Vec<String>>,
+    pub thread_relevant_questions: Option<Vec<String>>,
     pub thread_message_content_delta: Option<String>,
     pub thread_message_completed: Option<ID>,
 }
@@ -71,7 +70,7 @@ impl ThreadRunItem {
             thread_message_created: None,
             thread_message_attachments_code: None,
             thread_message_attachments_doc: None,
-            thread_message_relevant_questions: None,
+            thread_relevant_questions: None,
             thread_message_content_delta: None,
             thread_message_completed: None,
         }
@@ -83,7 +82,7 @@ impl ThreadRunItem {
             thread_message_created: Some(id),
             thread_message_attachments_code: None,
             thread_message_attachments_doc: None,
-            thread_message_relevant_questions: None,
+            thread_relevant_questions: None,
             thread_message_content_delta: None,
             thread_message_completed: None,
         }
@@ -95,7 +94,7 @@ impl ThreadRunItem {
             thread_message_created: None,
             thread_message_attachments_code: None,
             thread_message_attachments_doc: None,
-            thread_message_relevant_questions: None,
+            thread_relevant_questions: None,
             thread_message_content_delta: None,
             thread_message_completed: Some(id),
         }
@@ -107,19 +106,19 @@ impl ThreadRunItem {
             thread_message_created: None,
             thread_message_attachments_code: Some(code),
             thread_message_attachments_doc: None,
-            thread_message_relevant_questions: None,
+            thread_relevant_questions: None,
             thread_message_content_delta: None,
             thread_message_completed: None,
         }
     }
 
-    pub fn thread_message_relevant_questions(questions: Vec<String>) -> Self {
+    pub fn thread_relevant_questions(questions: Vec<String>) -> Self {
         Self {
             thread_created: None,
             thread_message_created: None,
             thread_message_attachments_code: None,
             thread_message_attachments_doc: None,
-            thread_message_relevant_questions: Some(questions),
+            thread_relevant_questions: Some(questions),
             thread_message_content_delta: None,
             thread_message_completed: None,
         }
@@ -131,7 +130,7 @@ impl ThreadRunItem {
             thread_message_created: None,
             thread_message_attachments_code: None,
             thread_message_attachments_doc: Some(doc),
-            thread_message_relevant_questions: None,
+            thread_relevant_questions: None,
             thread_message_content_delta: None,
             thread_message_completed: None,
         }
@@ -143,7 +142,7 @@ impl ThreadRunItem {
             thread_message_created: None,
             thread_message_attachments_code: None,
             thread_message_attachments_doc: None,
-            thread_message_relevant_questions: None,
+            thread_relevant_questions: None,
             thread_message_content_delta: Some(delta),
             thread_message_completed: None,
         }

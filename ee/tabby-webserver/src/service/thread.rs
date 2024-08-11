@@ -135,6 +135,10 @@ impl ThreadService for ThreadServiceImpl {
                             content,
                         ).await?;
                     }
+
+                    if let Some(relevant_questions) = &item.thread_relevant_questions {
+                        db.update_thread_relevant_questions(thread_id.as_rowid()?, relevant_questions).await?;
+                    }
                 }
 
                 yield item;

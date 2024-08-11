@@ -8,6 +8,7 @@ use sqlx::{query, query_as, types::Json, FromRow};
 pub struct ThreadDAO {
     pub id: i64,
     pub user_id: i64,
+    pub relevant_questions: Option<Json<Vec<String>>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -55,6 +56,7 @@ impl DbConn {
             r#"SELECT
                 id,
                 user_id,
+                relevant_questions as "relevant_questions: Json<Vec<String>>",
                 created_at as "created_at: DateTime<Utc>",
                 updated_at as "updated_at: DateTime<Utc>"
             FROM threads WHERE id = ?"#,
@@ -64,6 +66,23 @@ impl DbConn {
         .await?;
 
         Ok(thread)
+    }
+
+    pub async fn update_thread_relevant_questions(
+        &self,
+        thread_id: i64,
+        relevant_questions: &[String],
+    ) -> Result<()> {
+        let relevant_questions = Json(relevant_questions.to_vec());
+        query!(
+            "UPDATE threads SET relevant_questions = ? WHERE id = ?",
+            relevant_questions,
+            thread_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
     }
 
     pub async fn create_thread_message(
@@ -120,7 +139,11 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn append_thread_message_content(&self, message_id: i64, content: &str) -> Result<()> {
+    pub async fn append_thread_message_content(
+        &self,
+        message_id: i64,
+        content: &str,
+    ) -> Result<()> {
         query!(
             "UPDATE thread_messages SET content = content || ? WHERE id = ?",
             content,
