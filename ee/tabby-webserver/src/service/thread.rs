@@ -193,11 +193,10 @@ mod tests {
         let service = create(db, None);
 
         let input = CreateThreadInput {
-            messages: vec![CreateMessageInput {
-                role: Role::User,
+            user_message: CreateMessageInput {
                 content: "Hello, world!".to_string(),
                 attachments: None,
-            }],
+            },
         };
 
         assert!(service.create(&user_id, &input).await.is_ok());
@@ -213,38 +212,24 @@ mod tests {
             .create(
                 &user_id,
                 &CreateThreadInput {
-                    messages: vec![CreateMessageInput {
-                        role: Role::User,
+                    user_message: CreateMessageInput {
                         content: "Ping!".to_string(),
                         attachments: None,
-                    }],
+                    },
                 },
             )
             .await
             .unwrap();
 
         assert!(service
-            .append_messages(
+            .append_user_message(
                 &thread_id,
-                &vec![CreateMessageInput {
-                    role: Role::User,
-                    content: "This will not success".to_string(),
+                &CreateMessageInput {
+                    content: "Pong!".to_string(),
                     attachments: None,
-                }]
+                }
             )
             .await
             .is_err());
-
-        assert!(service
-            .append_messages(
-                &thread_id,
-                &vec![CreateMessageInput {
-                    role: Role::Assistant,
-                    content: "Pong!".to_string(),
-                    attachments: None,
-                }]
-            )
-            .await
-            .is_ok());
     }
 }
