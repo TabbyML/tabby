@@ -1,9 +1,9 @@
 use anyhow::bail;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
+use tabby_common::api::event::Message;
 use tabby_db::{
-    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
-    ServerSettingDAO, UserDAO, UserEventDAO,
+    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO, ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc, ThreadMessageDAO, UserDAO, UserEventDAO
 };
 
 use crate::{
@@ -20,7 +20,8 @@ use crate::{
         setting::{NetworkSetting, SecuritySetting},
         user_event::{EventKind, UserEvent},
         CoreError,
-    }, thread,
+    },
+    thread::{self, MessageAttachment},
 };
 
 impl From<InvitationDAO> for auth::Invitation {
@@ -224,6 +225,82 @@ impl TryFrom<UserEventDAO> for UserEvent {
             kind: EventKind::from_enum_str(&value.kind)?,
             created_at: value.created_at.into(),
             payload: String::from_utf8(value.payload)?,
+        })
+    }
+}
+
+impl From<ThreadMessageAttachmentCode> for thread::MessageAttachmentCode {
+    fn from(value: ThreadMessageAttachmentCode) -> Self {
+        Self {
+            filepath: value.filepath,
+            content: value.content,
+        }
+    }
+}
+
+impl Into<ThreadMessageAttachmentCode> for &thread::MessageAttachmentCode {
+    fn into(self) -> ThreadMessageAttachmentCode {
+        ThreadMessageAttachmentCode {
+            filepath: self.filepath.clone(),
+            content: self.content.clone(),
+        }
+    }
+}
+
+impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
+    fn from(value: ThreadMessageAttachmentDoc) -> Self {
+        Self {
+            title: value.title,
+            link: value.link,
+            content: value.content,
+        }
+    }
+}
+
+impl Into<ThreadMessageAttachmentDoc> for &thread::MessageAttachmentDoc {
+    fn into(self) -> ThreadMessageAttachmentDoc {
+        ThreadMessageAttachmentDoc {
+            title: self.title.clone(),
+            link: self.link.clone(),
+            content: self.content.clone(),
+        }
+    }
+}
+
+impl From<ThreadDAO> for thread::Thread {
+    fn from(value: ThreadDAO) -> Self {
+        Self {
+            id: value.id.as_id(),
+            user_id: value.user_id.as_id(),
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+        }
+    }
+}
+
+impl TryFrom<ThreadMessageDAO> for thread::Message {
+    type Error = anyhow::Error;
+    fn try_from(value: ThreadMessageDAO) -> Result<Self, Self::Error> {
+        let code = value.code_attachments;
+        let doc = value.doc_attachments;
+
+        let attachment = MessageAttachment {
+            code: code
+                .map(|x| x.0.into_iter().map(|i| i.into()).collect())
+                .unwrap_or_default(),
+            doc: doc
+                .map(|x| x.0.into_iter().map(|i| i.into()).collect())
+                .unwrap_or_default(),
+        };
+
+        Ok(Self {
+            id: value.id.as_id(),
+            thread_id: value.thread_id.as_id(),
+            role: thread::Role::from_enum_str(&value.role)?,
+            content: value.content,
+            attachment,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
         })
     }
 }

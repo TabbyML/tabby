@@ -59,6 +59,7 @@ pub struct ThreadRunOptionsInput {
 }
 
 #[derive(GraphQLInputObject, Validate)]
+#[validate(schema(function = "validate_thread_run_input", skip_on_field_errors = false))]
 pub struct CreateThreadRunInput {
     pub thread_id: ID,
 
@@ -96,7 +97,14 @@ fn validate_message_input(input: &CreateMessageInput) -> Result<(), ValidationEr
 }
 
 fn validate_thread_input(input: &CreateThreadInput) -> Result<(), ValidationError> {
-    let messages = &input.messages;
+    validate_input_messages(&input.messages)
+}
+
+fn validate_thread_run_input(input: &CreateThreadRunInput) -> Result<(), ValidationError> {
+    validate_input_messages(&input.additional_messages)
+}
+
+fn validate_input_messages(messages: &[CreateMessageInput]) -> Result<(), ValidationError> {
     let length = messages.len();
 
     for (i, message) in messages.iter().enumerate() {
@@ -105,6 +113,24 @@ fn validate_thread_input(input: &CreateThreadInput) -> Result<(), ValidationErro
             return Err(ValidationError::new(
                 "Attachments are only allowed on the last message",
             ));
+        }
+
+        if is_last {
+            if message.role != Role::User {
+                return Err(ValidationError::new(
+                    "The last message must be from the user",
+                ));
+            }
+        }
+
+        let is_first = i == 0;
+        if !is_first {
+            let prev = &messages[i - 1];
+            if prev.role == message.role {
+                return Err(ValidationError::new(
+                    "Cannot send two messages in a row with the same role",
+                ));
+            }
         }
     }
 

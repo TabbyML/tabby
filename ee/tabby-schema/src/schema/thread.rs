@@ -17,8 +17,11 @@ pub trait ThreadService: Send + Sync {
     /// Create a new thread
     async fn create(&self, user_id: &ID, input: &CreateThreadInput) -> Result<ID>;
 
+    /// Get a thread by ID
+    async fn get(&self, id: &ID) -> Result<Option<Thread>>;
+
     /// Create a new thread run
-    async fn create_run(&self, id: &ID, options: &ThreadRunOptionsInput)
+    async fn create_run(&self, id: &ID, options: &ThreadRunOptionsInput, yield_thread_created: bool)
         -> Result<ThreadRunStream>;
 
     /// Append messages to an existing thread

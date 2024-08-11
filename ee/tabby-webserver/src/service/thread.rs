@@ -1,16 +1,18 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use futures::StreamExt;
 use juniper::ID;
 use tabby_db::{DbConn, ThreadMessageAttachmentCode};
 use tabby_schema::{
     bail,
     thread::{
-        self, CreateMessageInput, CreateThreadInput, ThreadRunOptionsInput, ThreadRunStream,
-        ThreadService,
+        self, CreateMessageInput, CreateThreadInput, MessageAttachment, ThreadRunItem,
+        ThreadRunOptionsInput, ThreadRunStream, ThreadService,
     },
     AsID, AsRowid, DbEnum, Result,
 };
+use tracing::error;
 
 use super::answer::AnswerService;
 
@@ -48,24 +50,100 @@ impl ThreadService for ThreadServiceImpl {
         Ok(thread_id.as_id())
     }
 
+    async fn get(&self, id: &ID) -> Result<Option<thread::Thread>> {
+        let thread = self.db.get_thread(id.as_rowid()?).await?;
+        Ok(thread.map(Into::into))
+    }
+
     async fn create_run(
         &self,
         thread_id: &ID,
         options: &ThreadRunOptionsInput,
+        yield_thread_created: bool,
     ) -> Result<ThreadRunStream> {
         let Some(answer) = self.answer.clone() else {
             bail!("Answer service is not available");
         };
 
-        // FIXME(meng): actual lookup messages from database.
-        let messages = vec![thread::Message {
-            id: ID::new("message:1"),
-            thread_id: thread_id.clone(),
-            role: thread::Role::User,
-            content: "Hello, world!".to_string(),
-            attachments: None,
-        }];
-        answer.answer_v2(&messages, options).await
+        let messages: Vec<thread::Message> = self
+            .db
+            .get_thread_messages(thread_id.as_rowid()?)
+            .await?
+            .into_iter()
+            .flat_map(|x| match x.try_into() {
+                Ok(x) => Some(x),
+                Err(e) => {
+                    error!("Failed to convert thread message: {}", e);
+                    None
+                }
+            })
+            .collect();
+
+        let assistant_message_id = self
+            .db
+            .create_thread_message(
+                thread_id.as_rowid()?,
+                thread::Role::Assistant.as_enum_str(),
+                "",
+                None,
+                None,
+                false,
+            )
+            .await?;
+
+        let s = answer.answer_v2(&messages, options).await?;
+
+        // Copy ownership of db and thread_id for the stream
+        let db = self.db.clone();
+        let thread_id = thread_id.clone();
+        let s = async_stream::stream! {
+            if yield_thread_created {
+                yield Ok(ThreadRunItem::thread_created(thread_id.clone()));
+            }
+
+            yield Ok(ThreadRunItem::thread_message_created(assistant_message_id.as_id()));
+
+            for await item in s {
+                if let Ok(item) = &item {
+                    if let Some(code) = &item.thread_message_attachments_code {
+                        let code = code
+                            .iter()
+                            .map(Into::into)
+                            .collect::<Vec<_>>();
+                        db.update_thread_message_attachments(
+                            assistant_message_id,
+                            Some(&code),
+                            None,
+                        ).await?;
+                    }
+
+                    if let Some(doc) = &item.thread_message_attachments_doc {
+                        let doc = doc
+                            .iter()
+                            .map(Into::into)
+                            .collect::<Vec<_>>();
+                        db.update_thread_message_attachments(
+                            assistant_message_id,
+                            None,
+                            Some(&doc),
+                        ).await?;
+                    }
+
+                    if let Some(content) = &item.thread_message_content_delta {
+                        db.append_thread_message_content(
+                            assistant_message_id,
+                            content,
+                        ).await?;
+                    }
+                }
+
+                yield item;
+            }
+
+            yield Ok(ThreadRunItem::thread_message_completed(assistant_message_id.as_id()));
+        };
+
+        Ok(s.boxed())
     }
 
     async fn append_messages(&self, thread_id: &ID, messages: &[CreateMessageInput]) -> Result<()> {
@@ -147,20 +225,28 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(service.append_messages(&thread_id, &vec![
-            CreateMessageInput {
-                role: Role::User,
-                content: "This will not success".to_string(),
-                attachments: None,
-            }
-        ]).await.is_err());
+        assert!(service
+            .append_messages(
+                &thread_id,
+                &vec![CreateMessageInput {
+                    role: Role::User,
+                    content: "This will not success".to_string(),
+                    attachments: None,
+                }]
+            )
+            .await
+            .is_err());
 
-        assert!(service.append_messages(&thread_id, &vec![
-            CreateMessageInput {
-                role: Role::Assistant,
-                content: "Pong!".to_string(),
-                attachments: None,
-            }
-        ]).await.is_ok());
+        assert!(service
+            .append_messages(
+                &thread_id,
+                &vec![CreateMessageInput {
+                    role: Role::Assistant,
+                    content: "Pong!".to_string(),
+                    attachments: None,
+                }]
+            )
+            .await
+            .is_ok());
     }
 }

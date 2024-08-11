@@ -14,6 +14,7 @@ pub mod worker;
 
 use std::sync::Arc;
 
+use anyhow::Context as _;
 use auth::{
     AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
     User,
@@ -928,22 +929,33 @@ impl Subscription {
 
         let thread_id = thread.create(&user.id, &input.thread).await?;
 
-        thread.create_run(&thread_id, &input.options).await
+        thread.create_run(&thread_id, &input.options, true).await
     }
 
     async fn create_thread_run(
         ctx: &Context,
         input: CreateThreadRunInput,
     ) -> Result<ThreadRunStream> {
-        // check_user(ctx).await?;
+        let user = check_user(ctx).await?;
         input.validate()?;
 
-        let thread = ctx.locator.thread();
-        thread
-            .append_messages(&input.thread_id, &input.additional_messages)
+        let svc = ctx.locator.thread();
+        let thread = svc
+            .get(&input.thread_id)
+            .await?
+            .context("Thread not found")?;
+        
+        if thread.user_id != user.id {
+            return Err(CoreError::Forbidden(
+                "You must be the thread owner to create a run",
+            ));
+        }
+
+        svc.append_messages(&input.thread_id, &input.additional_messages)
             .await?;
 
-        thread.create_run(&input.thread_id, &input.options).await
+        svc.create_run(&input.thread_id, &input.options, false)
+            .await
     }
 }
 

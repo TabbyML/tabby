@@ -100,6 +100,38 @@ impl DbConn {
         Ok(res.last_insert_rowid())
     }
 
+    pub async fn update_thread_message_attachments(
+        &self,
+        message_id: i64,
+        code_attachments: Option<&[ThreadMessageAttachmentCode]>,
+        doc_attachments: Option<&[ThreadMessageAttachmentDoc]>,
+    ) -> Result<()> {
+        let code_attachments = code_attachments.map(Json);
+        let doc_attachments = doc_attachments.map(Json);
+        query!(
+            "UPDATE thread_messages SET code_attachments = ?, doc_attachments = ? WHERE id = ?",
+            code_attachments,
+            doc_attachments,
+            message_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn append_thread_message_content(&self, message_id: i64, content: &str) -> Result<()> {
+        query!(
+            "UPDATE thread_messages SET content = content || ? WHERE id = ?",
+            content,
+            message_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
     async fn get_last_thread_message(&self, thread_id: i64) -> Result<Option<ThreadMessageDAO>> {
         let message = query_as!(
             ThreadMessageDAO,

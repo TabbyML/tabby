@@ -236,12 +236,9 @@ impl AnswerService {
 
             // 4. Prepare requesting LLM
             let request = {
-                let empty = Vec::default();
-                let code_snippets: &[MessageAttachmentCode] = query
-                    .attachments
-                    .as_ref()
-                    .map(|x| &x.code)
-                    .unwrap_or(&empty);
+                let code_snippets: &[MessageAttachmentCode] = &query
+                    .attachment
+                    .code;
 
                 let override_user_prompt = if !code_snippets.is_empty()
                     || !relevant_code.is_empty()
