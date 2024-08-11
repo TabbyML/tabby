@@ -38,11 +38,9 @@ async fn load_completion_and_chat(
     if let (Some(completion), Some(chat)) = (&completion_model, &chat_model) {
         match (completion, chat) {
             (ModelConfig::Local(completion), ModelConfig::Local(chat)) => {
-                if completion == chat {
-                    let (completion, prompt, chat) =
-                        llama_cpp_server::create_completion_and_chat(&completion, &chat).await;
-                    return (Some(completion), Some(prompt), Some(chat));
-                }
+                let (completion, prompt, chat) =
+                    llama_cpp_server::create_completion_and_chat(&completion, &chat).await;
+                return (Some(completion), Some(prompt), Some(chat));
             }
             _ => {}
         }

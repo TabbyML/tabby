@@ -241,7 +241,7 @@ pub async fn create_completion_and_chat(
 
     let chat = ChatCompletionServer::new_with_supervisor(server.clone()).await;
 
-    let completion = if completion_model.model_id == chat_model.model_id {
+    let completion = if completion_model == chat_model {
         CompletionServer::new_with_supervisor(server).await
     } else {
         CompletionServer::new(
