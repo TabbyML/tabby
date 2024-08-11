@@ -2,6 +2,7 @@ use anyhow::{bail, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as, types::Json, FromRow};
+use tabby_db_macros::query_paged_as;
 
 use crate::DbConn;
 
@@ -51,22 +52,41 @@ impl DbConn {
         Ok(res.last_insert_rowid())
     }
 
-    pub async fn get_thread(&self, id: i64) -> Result<Option<ThreadDAO>> {
-        let thread = query_as!(
+    pub async fn list_threads(
+        &self,
+        ids: Option<&[i64]>,
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> Result<Vec<ThreadDAO>> {
+        let mut conditions = vec![];
+
+        if let Some(ids) = ids {
+            let ids: Vec<String> = ids.iter().map(i64::to_string).collect();
+            let ids = ids.join(", ");
+            conditions.push(format!("id in ({ids})"));
+        }
+
+        let condition = (!conditions.is_empty()).then_some(conditions.join(" AND "));
+        let threads = query_paged_as!(
             ThreadDAO,
-            r#"SELECT
-                id,
-                user_id,
-                relevant_questions as "relevant_questions: Json<Vec<String>>",
-                created_at as "created_at: DateTime<Utc>",
-                updated_at as "updated_at: DateTime<Utc>"
-            FROM threads WHERE id = ?"#,
-            id
+            "threads",
+            [
+                "id",
+                "user_id",
+                "relevant_questions" as "relevant_questions: Json<Vec<String>>",
+                "created_at" as "created_at: DateTime<Utc>",
+                "updated_at" as "updated_at: DateTime<Utc>"
+            ],
+            limit,
+            skip_id,
+            backwards,
+            condition
         )
-        .fetch_optional(&self.pool)
+        .fetch_all(&self.pool)
         .await?;
 
-        Ok(thread)
+        Ok(threads)
     }
 
     pub async fn update_thread_relevant_questions(
@@ -180,22 +200,31 @@ impl DbConn {
         Ok(message)
     }
 
-    pub async fn get_thread_messages(&self, thread_id: i64) -> Result<Vec<ThreadMessageDAO>> {
-        let messages = query_as!(
+    pub async fn list_thread_messages(
+        &self,
+        thread_id: i64,
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> Result<Vec<ThreadMessageDAO>> {
+        let condition = format!("thread_id = {}", thread_id);
+        let messages = query_paged_as!(
             ThreadMessageDAO,
-            r#"SELECT
-                id,
-                thread_id,
-                role,
-                content,
-                code_attachments as "code_attachments: Json<Vec<ThreadMessageAttachmentCode>>",
-                doc_attachments as "doc_attachments: Json<Vec<ThreadMessageAttachmentDoc>>",
-                created_at as "created_at: DateTime<Utc>",
-                updated_at as "updated_at: DateTime<Utc>"
-            FROM thread_messages
-            WHERE thread_id = ?
-            ORDER BY id ASC"#,
-            thread_id
+            "thread_messages",
+            [
+                "id",
+                "thread_id",
+                "role",
+                "content",
+                "code_attachments" as "code_attachments: Json<Vec<ThreadMessageAttachmentCode>>",
+                "doc_attachments" as "doc_attachments: Json<Vec<ThreadMessageAttachmentDoc>>",
+                "created_at" as "created_at: DateTime<Utc>",
+                "updated_at" as "updated_at: DateTime<Utc>"
+            ],
+            limit,
+            skip_id,
+            backwards,
+            Some(condition)
         )
         .fetch_all(&self.pool)
         .await?;

@@ -2,6 +2,8 @@ use chrono::{DateTime, Utc};
 use juniper::{graphql_object, GraphQLEnum, GraphQLObject, ID};
 use serde::Serialize;
 
+use crate::{juniper::relay::NodeType, Context};
+
 #[derive(GraphQLEnum, Serialize, Clone, PartialEq, Eq)]
 pub enum Role {
     User,
@@ -9,6 +11,7 @@ pub enum Role {
 }
 
 #[derive(GraphQLObject, Clone)]
+#[graphql(context = Context)]
 pub struct Message {
     pub id: ID,
     pub thread_id: ID,
@@ -19,6 +22,22 @@ pub struct Message {
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+impl NodeType for Message {
+    type Cursor = String;
+
+    fn cursor(&self) -> Self::Cursor {
+        self.id.to_string()
+    }
+
+    fn connection_type_name() -> &'static str {
+        "MessageConnection"
+    }
+
+    fn edge_type_name() -> &'static str {
+        "MessageEdge"
+    }
 }
 
 #[derive(GraphQLObject, Clone, Default)]
@@ -42,11 +61,28 @@ pub struct MessageAttachmentDoc {
 }
 
 #[derive(GraphQLObject)]
+#[graphql(context = Context)]
 pub struct Thread {
     pub id: ID,
     pub user_id: ID,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+impl NodeType for Thread {
+    type Cursor = String;
+
+    fn cursor(&self) -> Self::Cursor {
+        self.id.to_string()
+    }
+
+    fn connection_type_name() -> &'static str {
+        "ThreadConnection"
+    }
+
+    fn edge_type_name() -> &'static str {
+        "ThreadEdge"
+    }
 }
 
 /// Schema of thread run stream.

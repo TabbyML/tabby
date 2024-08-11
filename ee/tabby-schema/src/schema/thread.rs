@@ -20,6 +20,16 @@ pub trait ThreadService: Send + Sync {
     /// Get a thread by ID
     async fn get(&self, id: &ID) -> Result<Option<Thread>>;
 
+    /// List threads
+    async fn list(
+        &self,
+        ids: Option<&[ID]>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<usize>,
+        last: Option<usize>,
+    ) -> Result<Vec<Thread>>;
+
     /// Create a new thread run
     async fn create_run(
         &self,
@@ -35,19 +45,16 @@ pub trait ThreadService: Send + Sync {
     // /// Delete a thread by ID
     // async fn delete(&self, id: ID) -> Result<()>;
 
-    // /// Create a new message in a thread
-    // async fn create_message(&self, input: CreateMessageInput) -> Result<ID>;
-
     // /// Delete a message by ID
     // async fn delete_message(&self, id: ID) -> Result<()>;
 
-    // /// Query messages in a thread
-    // async fn list_messages(
-    //     &self,
-    //     thread_id: ID,
-    //     after: Option<String>,
-    //     before: Option<String>,
-    //     first: Option<usize>,
-    //     last: Option<usize>,
-    // ) -> Result<Vec<Message>>;
+    /// Query messages in a thread
+    async fn list_thread_messages(
+        &self,
+        thread_id: &ID,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<usize>,
+        last: Option<usize>,
+    ) -> Result<Vec<Message>>;
 }
