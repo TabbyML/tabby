@@ -5211,7 +5211,6 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "chrono",
- "derive_builder",
  "futures",
  "hash-ids",
  "juniper",

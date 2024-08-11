@@ -68,6 +68,8 @@ impl ThreadService for ThreadServiceImpl {
             bail!("Last message in thread is not from user");
         }
 
+        let user_message_id = last_message.id.clone();
+
         let assistant_message_id = self
             .db
             .create_thread_message(
@@ -87,18 +89,22 @@ impl ThreadService for ThreadServiceImpl {
         let thread_id = thread_id.clone();
         let s = async_stream::stream! {
             if yield_thread_created {
-                yield Ok(ThreadRunItem::builder().thread_created(thread_id.clone()).create());
+                yield Ok(ThreadRunItem::ThreadCreated(thread_id.clone()));
             }
 
             if yield_last_user_message {
-                yield Ok(ThreadRunItem::builder().thread_user_message_created(last_message.id.clone()).create());
+                yield Ok(ThreadRunItem::ThreadUserMessageCreated(user_message_id));
             }
 
-            yield Ok(ThreadRunItem::builder().thread_assistant_message_created(assistant_message_id.as_id()).create());
+            yield Ok(ThreadRunItem::ThreadAssistantMessageCreated(assistant_message_id.as_id()));
 
             for await item in s {
-                if let Ok(item) = &item {
-                    if let Some(code) = &item.thread_assistant_message_attachments_code {
+                match &item {
+                    Ok(ThreadRunItem::ThreadAssistantMessageContentDelta(content)) => {
+                        db.append_thread_message_content(assistant_message_id, content).await?;
+                    }
+
+                    Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(code)) => {
                         let code = code
                             .iter()
                             .map(Into::into)
@@ -110,7 +116,7 @@ impl ThreadService for ThreadServiceImpl {
                         ).await?;
                     }
 
-                    if let Some(doc) = &item.thread_assistant_message_attachments_doc {
+                    Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(doc)) => {
                         let doc = doc
                             .iter()
                             .map(Into::into)
@@ -122,22 +128,17 @@ impl ThreadService for ThreadServiceImpl {
                         ).await?;
                     }
 
-                    if let Some(content) = &item.thread_assistant_message_content_delta {
-                        db.append_thread_message_content(
-                            assistant_message_id,
-                            content,
-                        ).await?;
+                    Ok(ThreadRunItem::ThreadRelevantQuestions(questions)) => {
+                        db.update_thread_relevant_questions(thread_id.as_rowid()?, questions).await?;
                     }
 
-                    if let Some(relevant_questions) = &item.thread_relevant_questions {
-                        db.update_thread_relevant_questions(thread_id.as_rowid()?, relevant_questions).await?;
-                    }
+                    _ => {}
                 }
 
                 yield item;
             }
 
-            yield Ok(ThreadRunItem::builder().thread_assistant_message_completed(assistant_message_id.as_id()).create());
+            yield Ok(ThreadRunItem::ThreadAssistantMessageCompleted(assistant_message_id.as_id()));
         };
 
         Ok(s.boxed())

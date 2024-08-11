@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
-use derive_builder::Builder;
-use juniper::{GraphQLEnum, GraphQLObject, ID};
+use juniper::{graphql_object, GraphQLEnum, GraphQLObject, ID};
 use serde::Serialize;
 
 #[derive(GraphQLEnum, Serialize, Clone, PartialEq, Eq)]
@@ -47,47 +46,78 @@ pub struct Thread {
     pub id: ID,
     pub user_id: ID,
     pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>
+    pub updated_at: DateTime<Utc>,
 }
 
 /// Schema of thread run stream.
 ///
 /// Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
-#[derive(GraphQLObject, Builder)]
-pub struct ThreadRunItem {
-    #[builder(setter(into, strip_option))]
-    pub thread_created: Option<ID>,
-
-    #[builder(setter(into, strip_option))]
-    pub thread_relevant_questions: Option<Vec<String>>,
-
-    #[builder(setter(into, strip_option))]
-    pub thread_user_message_created: Option<ID>,
-
-    #[builder(setter(into, strip_option))]
-    pub thread_assistant_message_created: Option<ID>,
-
-    #[builder(setter(into, strip_option))]
-    pub thread_assistant_message_attachments_code: Option<Vec<MessageAttachmentCode>>,
-
-    #[builder(setter(into, strip_option))]
-    pub thread_assistant_message_attachments_doc: Option<Vec<MessageAttachmentDoc>>,
-
-    #[builder(setter(into, strip_option))]
-    pub thread_assistant_message_content_delta: Option<String>,
-
-    #[builder(setter(into, strip_option))]
-    pub thread_assistant_message_completed: Option<ID>,
+pub enum ThreadRunItem {
+    ThreadCreated(ID),
+    ThreadRelevantQuestions(Vec<String>),
+    ThreadUserMessageCreated(ID),
+    ThreadAssistantMessageCreated(ID),
+    ThreadAssistantMessageAttachmentsCode(Vec<MessageAttachmentCode>),
+    ThreadAssistantMessageAttachmentsDoc(Vec<MessageAttachmentDoc>),
+    ThreadAssistantMessageContentDelta(String),
+    ThreadAssistantMessageCompleted(ID),
 }
 
+#[graphql_object]
 impl ThreadRunItem {
-    pub fn builder() -> ThreadRunItemBuilder {
-        ThreadRunItemBuilder::default()
+    fn thread_created(&self) -> Option<&ID> {
+        match self {
+            ThreadRunItem::ThreadCreated(id) => Some(id),
+            _ => None,
+        }
     }
-}
 
-impl ThreadRunItemBuilder {
-    pub fn create(&self) -> ThreadRunItem {
-        self.build().expect("Failed to build ThreadRunItem")
+    fn thread_relevant_questions(&self) -> Option<&Vec<String>> {
+        match self {
+            ThreadRunItem::ThreadRelevantQuestions(questions) => Some(questions),
+            _ => None,
+        }
+    }
+
+    fn thread_user_message_created(&self) -> Option<&ID> {
+        match self {
+            ThreadRunItem::ThreadUserMessageCreated(id) => Some(id),
+            _ => None,
+        }
+    }
+
+    fn thread_assistant_message_created(&self) -> Option<&ID> {
+        match self {
+            ThreadRunItem::ThreadAssistantMessageCreated(id) => Some(id),
+            _ => None,
+        }
+    }
+
+    fn thread_assistant_message_attachments_code(&self) -> Option<&Vec<MessageAttachmentCode>> {
+        match self {
+            ThreadRunItem::ThreadAssistantMessageAttachmentsCode(attachments) => Some(attachments),
+            _ => None,
+        }
+    }
+
+    fn thread_assistant_message_attachments_doc(&self) -> Option<&Vec<MessageAttachmentDoc>> {
+        match self {
+            ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(attachments) => Some(attachments),
+            _ => None,
+        }
+    }
+
+    fn thread_assistant_message_content_delta(&self) -> Option<&String> {
+        match self {
+            ThreadRunItem::ThreadAssistantMessageContentDelta(content) => Some(content),
+            _ => None,
+        }
+    }
+
+    fn thread_assistant_message_completed(&self) -> Option<&ID> {
+        match self {
+            ThreadRunItem::ThreadAssistantMessageCompleted(id) => Some(id),
+            _ => None,
+        }
     }
 }

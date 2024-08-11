@@ -78,11 +78,6 @@ enum RepositoryKind {
   GITLAB_SELF_HOSTED
 }
 
-enum Role {
-  USER
-  ASSISTANT
-}
-
 input CodeQueryInput {
   gitUrl: String!
   filepath: String
@@ -98,7 +93,6 @@ input CreateIntegrationInput {
 }
 
 input CreateMessageInput {
-  role: Role!
   content: String!
   attachments: MessageAttachmentInput
 }
@@ -109,12 +103,12 @@ input CreateThreadAndRunInput {
 }
 
 input CreateThreadInput {
-  messages: [CreateMessageInput!]!
+  userMessage: CreateMessageInput!
 }
 
 input CreateThreadRunInput {
   threadId: ID!
-  additionalMessages: [CreateMessageInput!]!
+  additionalUserMessage: CreateMessageInput!
   options: ThreadRunOptionsInput! = {codeQuery: null, docQuery: null, generateRelevantQuestions: false}
 }
 
@@ -369,6 +363,7 @@ type LicenseInfo {
   expiresAt: DateTime
 }
 
+"If you want to change the struct, please make sure the change is backward compatible."
 type MessageAttachmentCode {
   filepath: String
   content: String!
@@ -557,20 +552,15 @@ type Subscription {
   createThreadRun(input: CreateThreadRunInput!): ThreadRunItem!
 }
 
-"""
-  Schema of thread run stream.
-
-  The event's order is kept as same as the order defined in the struct fields.
-  Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
-"""
 type ThreadRunItem {
   threadCreated: ID
-  threadMessageCreated: ID
-  threadMessageAttachmentsCode: [MessageAttachmentCode!]
-  threadMessageAttachmentsDoc: [MessageAttachmentDoc!]
-  threadMessageRelevantQuestions: [String!]
-  threadMessageContentDelta: String
-  threadMessageCompleted: ID
+  threadRelevantQuestions: [String!]
+  threadUserMessageCreated: ID
+  threadAssistantMessageCreated: ID
+  threadAssistantMessageAttachmentsCode: [MessageAttachmentCode!]
+  threadAssistantMessageAttachmentsDoc: [MessageAttachmentDoc!]
+  threadAssistantMessageContentDelta: String
+  threadAssistantMessageCompleted: ID
 }
 
 type TokenAuthResponse {

@@ -215,7 +215,7 @@ impl AnswerService {
             };
 
             if !relevant_docs.is_empty() {
-                yield Ok(ThreadRunItem::builder().thread_assistant_message_attachments_code(
+                yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
                     relevant_code
                         .iter()
                         .map(|x| MessageAttachmentCode {
@@ -223,7 +223,7 @@ impl AnswerService {
                             content: x.doc.body.clone(),
                         })
                         .collect::<Vec<_>>(),
-                ).create());
+                ));
             }
 
             // 3. Generate relevant questions.
@@ -231,7 +231,7 @@ impl AnswerService {
                 let questions = self
                     .generate_relevant_questions(&relevant_code, &relevant_docs, &query.content)
                     .await;
-                yield Ok(ThreadRunItem::builder().thread_relevant_questions(questions).create());
+                yield Ok(ThreadRunItem::ThreadRelevantQuestions(questions));
             }
 
             // 4. Prepare requesting LLM
@@ -312,7 +312,7 @@ impl AnswerService {
                 };
 
                 if let Some(content) = chunk.choices[0].delta.content.as_deref() {
-                    yield Ok(ThreadRunItem::builder().thread_assistant_message_content_delta(content.to_owned()).create());
+                    yield Ok(ThreadRunItem::ThreadAssistantMessageContentDelta(content.to_owned()));
                 }
             }
         };
