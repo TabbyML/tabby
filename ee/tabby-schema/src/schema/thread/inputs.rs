@@ -107,19 +107,16 @@ fn validate_thread_run_input(input: &CreateThreadRunInput) -> Result<(), Validat
 fn validate_input_messages(messages: &[CreateMessageInput]) -> Result<(), ValidationError> {
     let length = messages.len();
 
+    let mut err = ValidationError::new("schema");
     for (i, message) in messages.iter().enumerate() {
         let is_last = i == length - 1;
         if !is_last && message.attachments.is_some() {
-            return Err(ValidationError::new(
-                "Attachments are only allowed on the last message",
-            ));
+            return Err(err.with_message("Attachments are only allowed on the last message".into()));
         }
 
         if is_last {
             if message.role != Role::User {
-                return Err(ValidationError::new(
-                    "The last message must be from the user",
-                ));
+                return Err(err.with_message("The last message must be from the user".into()));
             }
         }
 
@@ -127,9 +124,9 @@ fn validate_input_messages(messages: &[CreateMessageInput]) -> Result<(), Valida
         if !is_first {
             let prev = &messages[i - 1];
             if prev.role == message.role {
-                return Err(ValidationError::new(
-                    "Cannot send two messages in a row with the same role",
-                ));
+                return Err(
+                    err.with_message("Cannot send two messages in a row with the same role".into())
+                );
             }
         }
     }
