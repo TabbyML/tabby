@@ -250,7 +250,7 @@ pub struct HttpModelConfig {
     pub chat_template: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct LocalModelConfig {
     pub model_id: String,
 

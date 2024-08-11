@@ -66,7 +66,7 @@ impl Embedding for EmbeddingServer {
 
 struct CompletionServer {
     #[allow(unused)]
-    server: LlamaCppSupervisor,
+    server: Arc<LlamaCppSupervisor>,
     completion: Arc<dyn CompletionStream>,
 }
 
@@ -89,6 +89,10 @@ impl CompletionServer {
             context_size,
         );
         server.start().await;
+        Self::new_with_supervisor(Arc::new(server)).await
+    }
+
+    async fn new_with_supervisor(server: Arc<LlamaCppSupervisor>) -> Self {
         let config = HttpModelConfigBuilder::default()
             .api_endpoint(Some(api_endpoint(server.port())))
             .kind("llama.cpp/completion".to_string())
@@ -108,7 +112,7 @@ impl CompletionStream for CompletionServer {
 
 struct ChatCompletionServer {
     #[allow(unused)]
-    server: LlamaCppSupervisor,
+    server: Arc<LlamaCppSupervisor>,
     chat_completion: Arc<dyn ChatCompletionStream>,
 }
 
@@ -132,6 +136,10 @@ impl ChatCompletionServer {
             context_size,
         );
         server.start().await;
+        Self::new_with_supervisor(Arc::new(server)).await
+    }
+
+    async fn new_with_supervisor(server: Arc<LlamaCppSupervisor>) -> Self {
         let config = HttpModelConfigBuilder::default()
             .api_endpoint(Some(api_endpoint(server.port())))
             .kind("openai/chat".to_string())
@@ -200,6 +208,53 @@ pub async fn create_completion(
     );
 
     (stream, prompt_info)
+}
+
+pub async fn create_completion_and_chat(
+    completion_model: &LocalModelConfig,
+    chat_model: &LocalModelConfig,
+) -> (
+    Arc<dyn CompletionStream>,
+    PromptInfo,
+    Arc<dyn ChatCompletionStream>,
+) {
+    let chat_model_path = resolve_model_path(&chat_model.model_id).await;
+    let chat_template = resolve_prompt_info(&chat_model.model_id)
+        .await
+        .chat_template
+        .unwrap_or_else(|| panic!("Chat model requires specifying prompt template"));
+
+    let model_path = resolve_model_path(&completion_model.model_id).await;
+    let prompt_info = resolve_prompt_info(&completion_model.model_id).await;
+
+    let server = Arc::new(LlamaCppSupervisor::new(
+        "chat",
+        chat_model.num_gpu_layers,
+        false,
+        &chat_model_path,
+        chat_model.parallelism,
+        Some(chat_template),
+        chat_model.enable_fast_attention.unwrap_or_default(),
+        chat_model.context_size,
+    ));
+    server.start().await;
+
+    let chat = ChatCompletionServer::new_with_supervisor(server.clone()).await;
+
+    let completion = if completion_model == chat_model {
+        CompletionServer::new_with_supervisor(server).await
+    } else {
+        CompletionServer::new(
+            completion_model.num_gpu_layers,
+            &model_path,
+            completion_model.parallelism,
+            completion_model.enable_fast_attention.unwrap_or_default(),
+            completion_model.context_size,
+        )
+        .await
+    };
+
+    (Arc::new(completion), prompt_info, Arc::new(chat))
 }
 
 pub async fn create_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {

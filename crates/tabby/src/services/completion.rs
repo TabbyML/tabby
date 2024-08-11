@@ -12,7 +12,9 @@ use tabby_common::{
     config::{CompletionConfig, ModelConfig},
     languages::get_language,
 };
-use tabby_inference::{CodeGeneration, CodeGenerationOptions, CodeGenerationOptionsBuilder};
+use tabby_inference::{
+    ChatCompletionStream, CodeGeneration, CodeGenerationOptions, CodeGenerationOptionsBuilder,
+};
 use thiserror::Error;
 use utoipa::ToSchema;
 
@@ -352,26 +354,32 @@ impl CompletionService {
     }
 }
 
-pub async fn create_completion_service(
+pub async fn create_completion_service_and_chat(
     config: &CompletionConfig,
     code: Arc<dyn CodeSearch>,
     logger: Arc<dyn EventLogger>,
-    model: &ModelConfig,
-) -> CompletionService {
-    let (
-        engine,
-        model::PromptInfo {
-            prompt_template, ..
-        },
-    ) = model::load_code_generation(model).await;
+    completion: Option<ModelConfig>,
+    chat: Option<ModelConfig>,
+) -> (
+    Option<CompletionService>,
+    Option<Arc<dyn ChatCompletionStream>>,
+) {
+    let (code_generation, prompt, chat) =
+        model::load_code_generation_and_chat(completion, chat).await;
 
-    CompletionService::new(
-        config.to_owned(),
-        engine.clone(),
-        code,
-        logger,
-        prompt_template,
-    )
+    let completion = code_generation.map(|code_generation| {
+        CompletionService::new(
+            config.to_owned(),
+            code_generation.clone(),
+            code,
+            logger,
+            prompt
+                .unwrap_or_else(|| panic!("Prompt template is required for code completion"))
+                .prompt_template,
+        )
+    });
+
+    (completion, chat)
 }
 
 #[cfg(test)]
