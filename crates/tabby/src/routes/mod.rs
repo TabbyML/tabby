@@ -39,7 +39,7 @@ pub async fn run_app(api: Router, ui: Option<Router>, host: IpAddr, port: u16) {
    ╚═╝   ╚═╝  ╚═╝╚═════╝ ╚═════╝    ╚═╝   
 
 📄 Version {version}
-🚀 Listening at {address}
+🚀 Listening at http://{address}
 "#
     );
     let listener = tokio::net::TcpListener::bind(address).await.unwrap();
