@@ -512,6 +512,58 @@ impl Query {
         )
         .await
     }
+
+    async fn threads(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<thread::Thread>> {
+        check_user(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .thread()
+                    .list(ids.as_deref(), after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
+
+    /// Read thread messages by thread ID.
+    ///
+    /// Thread is public within an instance, so no need to check for ownership.
+    async fn thread_messages(
+        ctx: &Context,
+        thread_id: ID,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<thread::Message>> {
+        check_user(ctx).await?;
+
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .thread()
+                    .list_thread_messages(&thread_id, after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
 }
 
 #[derive(GraphQLObject)]

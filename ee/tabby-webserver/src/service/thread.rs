@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use futures::StreamExt;
 use juniper::ID;
-use tabby_db::{DbConn, ThreadMessageAttachmentCode};
+use tabby_db::{DbConn, ThreadMessageAttachmentCode, ThreadMessageDAO};
 use tabby_schema::{
     bail,
     thread::{
@@ -14,11 +14,21 @@ use tabby_schema::{
 };
 use tracing::error;
 
-use super::answer::AnswerService;
+use super::{answer::AnswerService, graphql_pagination_to_filter};
 
 struct ThreadServiceImpl {
     db: DbConn,
     answer: Option<Arc<AnswerService>>,
+}
+
+impl ThreadServiceImpl {
+    async fn get_thread_messages(&self, thread_id: &ID) -> Result<Vec<thread::Message>> {
+        let messages = self
+            .db
+            .list_thread_messages(thread_id.as_rowid()?, None, None, false)
+            .await?;
+        Ok(to_vec_messages(messages))
+    }
 }
 
 #[async_trait]
@@ -31,8 +41,11 @@ impl ThreadService for ThreadServiceImpl {
     }
 
     async fn get(&self, id: &ID) -> Result<Option<thread::Thread>> {
-        let thread = self.db.get_thread(id.as_rowid()?).await?;
-        Ok(thread.map(Into::into))
+        Ok(self
+            .list(Some(&[id.clone()]), None, None, None, None)
+            .await?
+            .into_iter()
+            .next())
     }
 
     async fn create_run(
@@ -47,8 +60,7 @@ impl ThreadService for ThreadServiceImpl {
         };
 
         let messages: Vec<thread::Message> = self
-            .db
-            .get_thread_messages(thread_id.as_rowid()?)
+            .get_thread_messages(thread_id)
             .await?
             .into_iter()
             .flat_map(|x| match x.try_into() {
@@ -174,6 +186,61 @@ impl ThreadService for ThreadServiceImpl {
 
         Ok(())
     }
+
+    async fn list(
+        &self,
+        ids: Option<&[ID]>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<usize>,
+        last: Option<usize>,
+    ) -> Result<Vec<thread::Thread>> {
+        let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+
+        let ids = ids.map(|x| {
+            x.iter()
+                .filter_map(|x| x.as_rowid().ok())
+                .collect::<Vec<_>>()
+        });
+        let threads = self
+            .db
+            .list_threads(ids.as_deref(), limit, skip_id, backwards)
+            .await?;
+
+        Ok(threads.into_iter().map(Into::into).collect())
+    }
+
+    async fn list_thread_messages(
+        &self,
+        thread_id: &ID,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<usize>,
+        last: Option<usize>,
+    ) -> Result<Vec<thread::Message>> {
+        let thread_id = thread_id.as_rowid()?;
+        let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+
+        let messages = self
+            .db
+            .list_thread_messages(thread_id, limit, skip_id, backwards)
+            .await?;
+
+        Ok(to_vec_messages(messages))
+    }
+}
+
+fn to_vec_messages(messages: Vec<ThreadMessageDAO>) -> Vec<thread::Message> {
+    messages
+        .into_iter()
+        .filter_map(|x| match x.try_into() {
+            Ok(x) => Some(x),
+            Err(e) => {
+                error!("Failed to convert thread message: {}", e);
+                None
+            }
+        })
+        .collect()
 }
 
 pub fn create(db: DbConn, answer: Option<Arc<AnswerService>>) -> impl ThreadService {

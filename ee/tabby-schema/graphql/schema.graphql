@@ -78,6 +78,11 @@ enum RepositoryKind {
   GITLAB_SELF_HOSTED
 }
 
+enum Role {
+  USER
+  ASSISTANT
+}
+
 input CodeQueryInput {
   gitUrl: String!
   filepath: String
@@ -363,6 +368,21 @@ type LicenseInfo {
   expiresAt: DateTime
 }
 
+type Message {
+  id: ID!
+  threadId: ID!
+  role: Role!
+  content: String!
+  attachment: MessageAttachment!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type MessageAttachment {
+  code: [MessageAttachmentCode!]!
+  doc: [MessageAttachmentDoc!]!
+}
+
 "If you want to change the struct, please make sure the change is backward compatible."
 type MessageAttachmentCode {
   filepath: String
@@ -373,6 +393,16 @@ type MessageAttachmentDoc {
   title: String!
   link: String!
   content: String!
+}
+
+type MessageConnection {
+  edges: [MessageEdge!]!
+  pageInfo: PageInfo!
+}
+
+type MessageEdge {
+  node: Message!
+  cursor: String!
 }
 
 type Mutation {
@@ -497,6 +527,13 @@ type Query {
   integrations(ids: [ID!], kind: IntegrationKind, after: String, before: String, first: Int, last: Int): IntegrationConnection!
   integratedRepositories(ids: [ID!], kind: IntegrationKind, active: Boolean, after: String, before: String, first: Int, last: Int): ProvidedRepositoryConnection!
   webCrawlerUrls(after: String, before: String, first: Int, last: Int): WebCrawlerUrlConnection!
+  threads(ids: [ID!], after: String, before: String, first: Int, last: Int): ThreadConnection!
+  """
+    Read thread messages by thread ID.
+
+    Thread is public within an instance, so no need to check for ownership.
+  """
+  threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
 }
 
 type RefreshTokenResponse {
@@ -550,6 +587,23 @@ type ServerInfo {
 type Subscription {
   createThreadAndRun(input: CreateThreadAndRunInput!): ThreadRunItem!
   createThreadRun(input: CreateThreadRunInput!): ThreadRunItem!
+}
+
+type Thread {
+  id: ID!
+  userId: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ThreadConnection {
+  edges: [ThreadEdge!]!
+  pageInfo: PageInfo!
+}
+
+type ThreadEdge {
+  node: Thread!
+  cursor: String!
 }
 
 type ThreadRunItem {
