@@ -561,7 +561,8 @@ impl Query {
                     .list_thread_messages(&thread_id, after, before, first, last)
                     .await
             },
-        ).await
+        )
+        .await
     }
 }
 
