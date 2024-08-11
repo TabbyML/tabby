@@ -8,7 +8,8 @@ import Homepage from './homepage.png';
 
 # Registering Accounts
 
-After deploying Tabby, you will need to register an account to access the instance.
+After deploying Tabby, you will need to register an account on your server to access the instance.
+Open the homepage by the url you specified in Tabby, for example, `http://localhost:8080`.
 
 ## Creating an Admin Account
 
