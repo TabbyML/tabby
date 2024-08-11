@@ -367,8 +367,8 @@ pub async fn create_completion_service_and_chat(
     let (code_generation, prompt, chat) =
         model::load_code_generation_and_chat(completion, chat).await;
 
-    let completion = if let Some(code_generation) = code_generation {
-        Some(CompletionService::new(
+    let completion = code_generation.map(|code_generation| {
+        CompletionService::new(
             config.to_owned(),
             code_generation.clone(),
             code,
@@ -376,10 +376,8 @@ pub async fn create_completion_service_and_chat(
             prompt
                 .unwrap_or_else(|| panic!("Prompt template is required for code completion"))
                 .prompt_template,
-        ))
-    } else {
-        None
-    };
+        )
+    });
 
     (completion, chat)
 }

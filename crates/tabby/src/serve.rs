@@ -232,7 +232,7 @@ async fn api_router(
     args: &ServeArgs,
     config: &Config,
     logger: Arc<dyn EventLogger>,
-    code: Arc<dyn CodeSearch>,
+    _code: Arc<dyn CodeSearch>,
     completion_state: Option<CompletionService>,
     chat_state: Option<Arc<dyn ChatCompletionStream>>,
     webserver: Option<bool>,

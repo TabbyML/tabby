@@ -19,11 +19,7 @@ pub async fn load_code_generation_and_chat(
     Option<Arc<dyn ChatCompletionStream>>,
 ) {
     let (engine, prompt_info, chat) = load_completion_and_chat(completion_model, chat_model).await;
-    let code = if let Some(engine) = engine {
-        Some(Arc::new(CodeGeneration::new(engine)))
-    } else {
-        None
-    };
+    let code = engine.map(|engine| Arc::new(CodeGeneration::new(engine)));
     (code, prompt_info, chat)
 }
 
@@ -39,7 +35,7 @@ async fn load_completion_and_chat(
         (&completion_model, &chat_model)
     {
         let (completion, prompt, chat) =
-            llama_cpp_server::create_completion_and_chat(&completion, &chat).await;
+            llama_cpp_server::create_completion_and_chat(completion, chat).await;
         return (Some(completion), Some(prompt), Some(chat));
     }
 
