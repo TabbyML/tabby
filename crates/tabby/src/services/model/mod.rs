@@ -35,38 +35,16 @@ async fn load_completion_and_chat(
     Option<PromptInfo>,
     Option<Arc<dyn ChatCompletionStream>>,
 ) {
-    match (completion_model, chat_model) {
-        (Some(ModelConfig::Local(completion)), Some(ModelConfig::Local(chat))) => {
-            let (completion, prompt, chat) =
-                llama_cpp_server::create_completion_and_chat(&completion, &chat).await;
-            (Some(completion), Some(prompt), Some(chat))
-        }
-        (Some(completion), Some(chat)) => {
-            let (completion, prompt) = match completion {
-                ModelConfig::Http(http) => {
-                    let engine = http_api_bindings::create(&http).await;
-                    let (prompt_template, chat_template) =
-                        http_api_bindings::build_completion_prompt(&http);
-                    (
-                        engine,
-                        PromptInfo {
-                            prompt_template,
-                            chat_template,
-                        },
-                    )
-                }
-                ModelConfig::Local(llama) => {
-                    let (stream, prompt) = llama_cpp_server::create_completion(&llama).await;
-                    (stream, prompt)
-                }
-            };
-            let chat = match chat {
-                ModelConfig::Http(http) => http_api_bindings::create_chat(&http).await,
-                ModelConfig::Local(llama) => llama_cpp_server::create_chat_completion(&llama).await,
-            };
-            (Some(completion), Some(prompt), Some(chat))
-        }
-        (Some(completion), None) => match completion {
+    if let (Some(ModelConfig::Local(completion)), Some(ModelConfig::Local(chat))) =
+        (&completion_model, &chat_model)
+    {
+        let (completion, prompt, chat) =
+            llama_cpp_server::create_completion_and_chat(&completion, &chat).await;
+        return (Some(completion), Some(prompt), Some(chat));
+    }
+
+    let (completion, prompt) = if let Some(completion_model) = completion_model {
+        match completion_model {
             ModelConfig::Http(http) => {
                 let engine = http_api_bindings::create(&http).await;
                 let (prompt_template, chat_template) =
@@ -77,28 +55,29 @@ async fn load_completion_and_chat(
                         prompt_template,
                         chat_template,
                     }),
-                    None,
                 )
             }
             ModelConfig::Local(llama) => {
                 let (stream, prompt) = llama_cpp_server::create_completion(&llama).await;
-                (Some(stream), Some(prompt), None)
+                (Some(stream), Some(prompt))
             }
-        },
-        (None, Some(chat)) => match chat {
-            ModelConfig::Http(http) => (
-                None,
-                None,
-                Some(http_api_bindings::create_chat(&http).await),
-            ),
-            ModelConfig::Local(llama) => (
-                None,
-                None,
-                Some(llama_cpp_server::create_chat_completion(&llama).await),
-            ),
-        },
-        _ => (None, None, None),
-    }
+        }
+    } else {
+        (None, None)
+    };
+
+    let chat = if let Some(chat_model) = chat_model {
+        match chat_model {
+            ModelConfig::Http(http) => Some(http_api_bindings::create_chat(&http).await),
+            ModelConfig::Local(llama) => {
+                Some(llama_cpp_server::create_chat_completion(&llama).await)
+            }
+        }
+    } else {
+        None
+    };
+
+    (completion, prompt, chat)
 }
 
 pub async fn download_model_if_needed(model: &str) {
