@@ -25,26 +25,7 @@ struct ThreadServiceImpl {
 impl ThreadService for ThreadServiceImpl {
     async fn create(&self, user_id: &ID, input: &CreateThreadInput) -> Result<ID> {
         let thread_id = self.db.create_thread(user_id.as_rowid()?).await?;
-
-        let code: Option<Vec<ThreadMessageAttachmentCode>> =
-            input.user_message.attachments.as_ref().map(|x| {
-                x.code
-                    .iter()
-                    .map(|x| ThreadMessageAttachmentCode {
-                        filepath: x.filepath.clone(),
-                        content: x.content.clone(),
-                    })
-                    .collect::<Vec<_>>()
-            });
-        self.db
-            .create_thread_message(
-                thread_id,
-                thread::Role::User.as_enum_str(),
-                &input.user_message.content,
-                code.as_deref(),
-                None,
-                false,
-            )
+        self.append_user_message(&thread_id.as_id(), &input.user_message)
             .await?;
         Ok(thread_id.as_id())
     }
@@ -58,6 +39,7 @@ impl ThreadService for ThreadServiceImpl {
         &self,
         thread_id: &ID,
         options: &ThreadRunOptionsInput,
+        yield_last_user_message: bool,
         yield_thread_created: bool,
     ) -> Result<ThreadRunStream> {
         let Some(answer) = self.answer.clone() else {
@@ -78,6 +60,14 @@ impl ThreadService for ThreadServiceImpl {
             })
             .collect();
 
+        let Some(last_message) = messages.last() else {
+            bail!("Thread has no messages");
+        };
+
+        if last_message.role != thread::Role::User {
+            bail!("Last message in thread is not from user");
+        }
+
         let assistant_message_id = self
             .db
             .create_thread_message(
@@ -97,14 +87,18 @@ impl ThreadService for ThreadServiceImpl {
         let thread_id = thread_id.clone();
         let s = async_stream::stream! {
             if yield_thread_created {
-                yield Ok(ThreadRunItem::thread_created(thread_id.clone()));
+                yield Ok(ThreadRunItem::builder().thread_created(thread_id.clone()).create());
             }
 
-            yield Ok(ThreadRunItem::thread_message_created(assistant_message_id.as_id()));
+            if yield_last_user_message {
+                yield Ok(ThreadRunItem::builder().thread_user_message_created(last_message.id.clone()).create());
+            }
+
+            yield Ok(ThreadRunItem::builder().thread_assistant_message_created(assistant_message_id.as_id()).create());
 
             for await item in s {
                 if let Ok(item) = &item {
-                    if let Some(code) = &item.thread_message_attachments_code {
+                    if let Some(code) = &item.thread_assistant_message_attachments_code {
                         let code = code
                             .iter()
                             .map(Into::into)
@@ -116,7 +110,7 @@ impl ThreadService for ThreadServiceImpl {
                         ).await?;
                     }
 
-                    if let Some(doc) = &item.thread_message_attachments_doc {
+                    if let Some(doc) = &item.thread_assistant_message_attachments_doc {
                         let doc = doc
                             .iter()
                             .map(Into::into)
@@ -128,7 +122,7 @@ impl ThreadService for ThreadServiceImpl {
                         ).await?;
                     }
 
-                    if let Some(content) = &item.thread_message_content_delta {
+                    if let Some(content) = &item.thread_assistant_message_content_delta {
                         db.append_thread_message_content(
                             assistant_message_id,
                             content,
@@ -143,7 +137,7 @@ impl ThreadService for ThreadServiceImpl {
                 yield item;
             }
 
-            yield Ok(ThreadRunItem::thread_message_completed(assistant_message_id.as_id()));
+            yield Ok(ThreadRunItem::builder().thread_assistant_message_completed(assistant_message_id.as_id()).create());
         };
 
         Ok(s.boxed())

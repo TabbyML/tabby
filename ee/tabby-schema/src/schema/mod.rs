@@ -952,7 +952,9 @@ impl Subscription {
 
         let thread_id = thread.create(&user.id, &input.thread).await?;
 
-        thread.create_run(&thread_id, &input.options, true).await
+        thread
+            .create_run(&thread_id, &input.options, true, true)
+            .await
     }
 
     async fn create_thread_run(
@@ -980,7 +982,7 @@ impl Subscription {
         svc.append_user_message(&input.thread_id, &input.additional_user_message)
             .await?;
 
-        svc.create_run(&input.thread_id, &input.options, false)
+        svc.create_run(&input.thread_id, &input.options, true, false)
             .await
     }
 }
