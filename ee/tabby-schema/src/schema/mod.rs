@@ -890,42 +890,37 @@ async fn check_analytic_access(ctx: &Context, users: &[ID]) -> Result<(), CoreEr
 fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError<S> {
     let mut errors: Vec<Value<S>> = vec![];
 
-    error
-        .errors()
-        .iter()
-        .for_each(|(field, kind)| match kind {
-            validator::ValidationErrorsKind::Struct(e) => {
-                for (_, error) in e.0.iter() {
-                    if let validator::ValidationErrorsKind::Field(field_errors) = error {
-                        for error in field_errors {
-                            let mut obj = Object::with_capacity(2);
-                            obj.add_field("path", Value::scalar(field.to_string()));
-                            obj.add_field(
-                                "message",
-                                Value::scalar(
-                                    error.message.clone().unwrap_or_default().to_string(),
-                                ),
-                            );
-                            errors.push(obj.into());
-                        }
+    error.errors().iter().for_each(|(field, kind)| match kind {
+        validator::ValidationErrorsKind::Struct(e) => {
+            for (_, error) in e.0.iter() {
+                if let validator::ValidationErrorsKind::Field(field_errors) = error {
+                    for error in field_errors {
+                        let mut obj = Object::with_capacity(2);
+                        obj.add_field("path", Value::scalar(field.to_string()));
+                        obj.add_field(
+                            "message",
+                            Value::scalar(error.message.clone().unwrap_or_default().to_string()),
+                        );
+                        errors.push(obj.into());
                     }
                 }
             }
-            validator::ValidationErrorsKind::List(_) => {
-                warn!("List errors are not handled");
+        }
+        validator::ValidationErrorsKind::List(_) => {
+            warn!("List errors are not handled");
+        }
+        validator::ValidationErrorsKind::Field(e) => {
+            for error in e {
+                let mut obj = Object::with_capacity(2);
+                obj.add_field("path", Value::scalar(field.to_string()));
+                obj.add_field(
+                    "message",
+                    Value::scalar(error.message.clone().unwrap_or_default().to_string()),
+                );
+                errors.push(obj.into());
             }
-            validator::ValidationErrorsKind::Field(e) => {
-                for error in e {
-                    let mut obj = Object::with_capacity(2);
-                    obj.add_field("path", Value::scalar(field.to_string()));
-                    obj.add_field(
-                        "message",
-                        Value::scalar(error.message.clone().unwrap_or_default().to_string()),
-                    );
-                    errors.push(obj.into());
-                }
-            }
-        });
+        }
+    });
 
     let mut error = Object::with_capacity(1);
     error.add_field("errors", Value::list(errors));

@@ -7,8 +7,8 @@ use tabby_db::{DbConn, ThreadMessageAttachmentCode};
 use tabby_schema::{
     bail,
     thread::{
-        self, CreateMessageInput, CreateThreadInput, ThreadRunItem,
-        ThreadRunOptionsInput, ThreadRunStream, ThreadService,
+        self, CreateMessageInput, CreateThreadInput, ThreadRunItem, ThreadRunOptionsInput,
+        ThreadRunStream, ThreadService,
     },
     AsID, AsRowid, DbEnum, Result,
 };

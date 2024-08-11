@@ -1,7 +1,6 @@
 use juniper::{GraphQLInputObject, ID};
 use validator::Validate;
 
-
 #[derive(GraphQLInputObject)]
 pub struct CreateMessageInput {
     pub content: String,
