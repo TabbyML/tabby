@@ -14,7 +14,6 @@ pub mod worker;
 
 use std::sync::Arc;
 
-use anyhow::Context as _;
 use auth::{
     AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
     User,
@@ -958,6 +957,9 @@ impl Subscription {
         ctx: &Context,
         input: CreateThreadRunInput,
     ) -> Result<ThreadRunStream> {
+        // ast-grep-ignore: use-schema-result
+        use anyhow::Context;
+
         let user = check_user(ctx).await?;
         input.validate()?;
 
