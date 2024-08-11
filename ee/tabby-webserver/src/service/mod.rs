@@ -94,7 +94,7 @@ impl ServerContext {
         );
         let user_event = Arc::new(user_event::create(db_conn.clone()));
         let setting = Arc::new(setting::create(db_conn.clone()));
-        let thread = Arc::new(thread::create(answer));
+        let thread = Arc::new(thread::create(db_conn.clone(), answer));
 
         Self {
             mail: mail.clone(),

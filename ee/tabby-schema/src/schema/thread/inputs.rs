@@ -1,32 +1,22 @@
 use juniper::{GraphQLInputObject, ID};
-use validator::{Validate, ValidationError};
+use validator::Validate;
 
-use super::Role;
-
-#[derive(GraphQLInputObject, Validate)]
-#[validate(schema(function = "validate_message_input", skip_on_field_errors = false))]
+#[derive(GraphQLInputObject)]
 pub struct CreateMessageInput {
-    role: Role,
+    pub content: String,
 
-    content: String,
-
-    #[validate(nested)]
-    attachments: Option<MessageAttachmentInput>,
+    pub attachments: Option<MessageAttachmentInput>,
 }
 
-#[derive(GraphQLInputObject, Validate)]
-#[validate(schema(function = "validate_thread_input", skip_on_field_errors = false))]
+#[derive(GraphQLInputObject)]
 pub struct CreateThreadInput {
-    #[validate(nested)]
-    messages: Vec<CreateMessageInput>,
+    pub user_message: CreateMessageInput,
 }
 
 #[derive(GraphQLInputObject, Validate)]
 pub struct CreateThreadAndRunInput {
-    #[validate(nested)]
     pub thread: CreateThreadInput,
 
-    #[validate(nested)]
     #[graphql(default)]
     pub options: ThreadRunOptionsInput,
 }
@@ -62,51 +52,20 @@ pub struct ThreadRunOptionsInput {
 pub struct CreateThreadRunInput {
     pub thread_id: ID,
 
-    #[validate(nested)]
-    pub additional_messages: Vec<CreateMessageInput>,
+    pub additional_user_message: CreateMessageInput,
 
-    #[validate(nested)]
     #[graphql(default)]
     pub options: ThreadRunOptionsInput,
 }
 
-#[derive(GraphQLInputObject, Validate)]
+#[derive(GraphQLInputObject)]
 pub struct MessageAttachmentInput {
-    #[validate(nested)]
-    code: Vec<MessageAttachmentCodeInput>,
+    pub code: Vec<MessageAttachmentCodeInput>,
 }
 
-#[derive(GraphQLInputObject, Validate)]
+#[derive(GraphQLInputObject)]
 pub struct MessageAttachmentCodeInput {
     pub filepath: Option<String>,
 
     pub content: String,
-}
-
-fn validate_message_input(input: &CreateMessageInput) -> Result<(), ValidationError> {
-    if let Role::Assistant = input.role {
-        if input.attachments.is_some() {
-            return Err(ValidationError::new(
-                "Attachments are not allowed for assistants",
-            ));
-        }
-    }
-
-    Ok(())
-}
-
-fn validate_thread_input(input: &CreateThreadInput) -> Result<(), ValidationError> {
-    let messages = &input.messages;
-    let length = messages.len();
-
-    for (i, message) in messages.iter().enumerate() {
-        let is_last = i == length - 1;
-        if !is_last && message.attachments.is_some() {
-            return Err(ValidationError::new(
-                "Attachments are only allowed on the last message",
-            ));
-        }
-    }
-
-    Ok(())
 }

@@ -215,14 +215,14 @@ impl AnswerService {
             };
 
             if !relevant_docs.is_empty() {
-                yield Ok(ThreadRunItem::thread_message_attachments_code(
+                yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
                     relevant_code
                         .iter()
                         .map(|x| MessageAttachmentCode {
                             filepath: Some(x.doc.filepath.clone()),
                             content: x.doc.body.clone(),
                         })
-                        .collect(),
+                        .collect::<Vec<_>>(),
                 ));
             }
 
@@ -231,17 +231,14 @@ impl AnswerService {
                 let questions = self
                     .generate_relevant_questions(&relevant_code, &relevant_docs, &query.content)
                     .await;
-                yield Ok(ThreadRunItem::thread_message_relevant_questions(questions));
+                yield Ok(ThreadRunItem::ThreadRelevantQuestions(questions));
             }
 
             // 4. Prepare requesting LLM
             let request = {
-                let empty = Vec::default();
-                let code_snippets: &[MessageAttachmentCode] = query
-                    .attachments
-                    .as_ref()
-                    .map(|x| &x.code)
-                    .unwrap_or(&empty);
+                let code_snippets: &[MessageAttachmentCode] = &query
+                    .attachment
+                    .code;
 
                 let override_user_prompt = if !code_snippets.is_empty()
                     || !relevant_code.is_empty()
@@ -315,7 +312,7 @@ impl AnswerService {
                 };
 
                 if let Some(content) = chunk.choices[0].delta.content.as_deref() {
-                    yield Ok(ThreadRunItem::thread_message_content_delta(content.to_owned()));
+                    yield Ok(ThreadRunItem::ThreadAssistantMessageContentDelta(content.to_owned()));
                 }
             }
         };

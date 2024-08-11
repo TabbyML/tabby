@@ -21,6 +21,9 @@ use sqlx::{
     database::HasValueRef, query, query_scalar, sqlite::SqliteQueryResult, Decode, Encode, Pool,
     Sqlite, SqlitePool, Type, Value, ValueRef,
 };
+pub use threads::{
+    ThreadDAO, ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc, ThreadMessageDAO,
+};
 use tokio::sync::Mutex;
 use user_completions::UserCompletionDailyStatsDAO;
 pub use user_events::UserEventDAO;
@@ -40,6 +43,7 @@ mod provided_repositories;
 mod refresh_tokens;
 mod repositories;
 mod server_setting;
+mod threads;
 mod user_completions;
 mod user_events;
 mod users;
@@ -290,6 +294,10 @@ where
     }
 }
 
+// FIXME: migrate all DateTimeUtc usage to reduce complexity
+#[deprecated(
+    note = "use `DateTime<Utc>` instead, which can be specified in query! or query_as! in grammar like `created_at as \"created_at: DateTime<Utc>\"`"
+)]
 #[derive(Default, Clone)]
 pub struct DateTimeUtc(DateTime<Utc>);
 
