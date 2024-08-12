@@ -13,8 +13,8 @@ Tabby offers an open-source alternative solution to GitHub Copilot with easy set
 Evaluation coding LLMs has also been a hot topic in academics. Many different metrics targeting different coding tasks have been proposed over the past year. At Tabby, we prioritize on metrics that **best resemble real-world development workflow**, and of course, the metrics should be constructed with non-biased data sources. In this blogpost, we will discuss our thoughts for desired code completion benchmarks, and also review latest academic progress in this area.
 
 
-## Exisiting Paradigms
-Existing coding LLM benchmark mostly focus on ***Pass@k*** metric - generating `k` code samples and measuring how often the results successfully pass given unit tests. OpenAI initially introduced this metric in [Evaluating Large Language Models Trained on Code](https://arxiv.org/pdf/2107.03374.pdf) in July 2021, along with the release of **HumanEval** bechmark dataset. 
+## Existing Paradigms
+Existing coding LLM benchmark mostly focus on ***Pass@k*** metric - generating `k` code samples and measuring how often the results successfully pass given unit tests. OpenAI initially introduced this metric in [Evaluating Large Language Models Trained on Code](https://arxiv.org/pdf/2107.03374.pdf) in July 2021, along with the release of **HumanEval** benchmark dataset. 
 
 ### 🤖 HumanEval
 
@@ -39,7 +39,7 @@ HumanEval was a pioneer research effort, but now suffers from some unfortunate d
 
 1. ***Data is likely contaminated.*** HumanEval dataset has been around for over two years and it has been discussed and documented widely online. The latest coding LLMs are likely to have included its test data in training data crawling, which would make the evaluation no longer valid.
 
-2. ***Trivial coding questions that aren't mimicing real engineering setups.*** HumanEval includes mostly LeetCode's interview-style questions, where they include a single function for LLMs to fill in the body. In a more realistic corporate setup, developers often add code in multiple files in a single PR, and constantly refer to functions implemented in other files. These are indeed more interesting yet challenging tasks for LLMs to perform, but are critical scenarios for AI coding assitants to land in enterprises.
+2. ***Trivial coding questions that aren't mimicking real engineering setups.*** HumanEval includes mostly LeetCode's interview-style questions, where they include a single function for LLMs to fill in the body. In a more realistic corporate setup, developers often add code in multiple files in a single PR, and constantly refer to functions implemented in other files. These are indeed more interesting yet challenging tasks for LLMs to perform, but are critical scenarios for AI coding assistants to land in enterprises.
 
 3. ***Unit tests are too weak.*** Researchers noticed that test cases in HumanEval tasks (on average 7.7 tests per problem) aren't enough to guarantee the correctness of the generated code (e.g. a wrong implementation could still pass all existing tests), and thus augmented test cases in HumanEval benchmark by 80x in [***HumanEvalPlus***](https://github.com/evalplus/evalplus). 
 
@@ -112,6 +112,6 @@ In this section, we showcase a few recent research work of from the academics to
 ### 💾 [RepoCoder: Repository-Level Code Completion Through Iterative Retrieval and Generation](https://arxiv.org/abs/2303.12570)
 
 **RepoCoder** presents an innovative approach of combining similarity-based retriever and LLM prediction into an ***iterative** retrieval-generation pipeline*. 
-To demostrate the effectiveness of this method, authors also introduced ***RepoEval***, covering scenarios like line, API invocation, and function body completion from high quality real-world repositories.
+To demonstrate the effectiveness of this method, authors also introduced ***RepoEval***, covering scenarios like line, API invocation, and function body completion from high quality real-world repositories.
 
 ![repocoder](./repocoder.png)

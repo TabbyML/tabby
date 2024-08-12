@@ -54,7 +54,7 @@ export default function SelfSignupSection() {
       </div>
       <SelfSignupForm onSuccess={onSuccess} />
       <div className="text-center text-sm">
-        Already have an accout?
+        Already have an account?
         <Link
           href="/auth/signin"
           className="ml-1 font-semibold text-primary hover:underline"

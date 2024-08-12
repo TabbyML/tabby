@@ -1,4 +1,4 @@
-description = 'Remove duplication: dupicated line suffix'
+description = 'Remove duplication: duplicated line suffix'
 
 [config]
 # use default config

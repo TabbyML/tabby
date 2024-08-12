@@ -512,7 +512,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         }
 
         if active && user.is_admin {
-            // Check there's sufficient seat if an admin being swtiched to active.
+            // Check there's sufficient seat if an admin being switched to active.
             let num_admins = self.db.count_active_admin_users().await?;
             license.ensure_admin_seats(num_admins + 1)?;
         }
@@ -826,7 +826,7 @@ mod tests {
             .await
             .unwrap()[0];
 
-        // Admin initialized, registeration requires a invitation code;
+        // Admin initialized, registration requires a invitation code;
         assert_matches!(
             service
                 .register(email.to_owned(), password.to_owned(), None, None)
@@ -1380,7 +1380,7 @@ mod tests {
             Err(CoreError::InvalidLicense(_))
         );
 
-        // Change user2 to deactive.
+        // Change user2 to deactivate.
         service
             .update_user_active(&user2.as_id(), false)
             .await

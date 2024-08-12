@@ -36,7 +36,7 @@ export const emptyInlineCompletionList: InlineCompletionList = {
 export class CompletionItem {
   // Shortcuts
   readonly text: string; // `replacePrefix` trimmed from `fullText`.
-  readonly lines: string[]; // splitted lines of `text`.
+  readonly lines: string[]; // split lines of `text`.
   readonly currentLine: string; // first item of `lines`
   readonly isBlank: boolean; // whether the item is a blank line.
 

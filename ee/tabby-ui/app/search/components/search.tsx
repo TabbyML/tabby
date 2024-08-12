@@ -236,7 +236,7 @@ export function Search() {
     router.replace('/')
   }, [])
 
-  // Set page title to the value of the first quesiton
+  // Set page title to the value of the first question
   useEffect(() => {
     if (title) document.title = title
   }, [title])
@@ -631,7 +631,7 @@ function AnswerBlock({
       })
       .trim()
     const citations = answer.relevant_documents
-      .map((relevent, idx) => `[${idx + 1}] ${relevent.doc.link}`)
+      .map((relevant, idx) => `[${idx + 1}] ${relevant.doc.link}`)
       .join('\n')
     return `${content}\n\nCitations:\n${citations}`
   }

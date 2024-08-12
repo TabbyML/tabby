@@ -122,7 +122,7 @@ pub async fn start(
                 },
                 Some(now) = hourly.next() => {
                     if let Err(err) = DbMaintainanceJob::cron(now, db.clone()).await {
-                        warn!("Database maintainance failed: {:?}", err);
+                        warn!("Database maintenance failed: {:?}", err);
                     }
 
                     if let Err(err) = SchedulerGitJob::cron(now, git_repository_service.clone(), job_service.clone()).await {

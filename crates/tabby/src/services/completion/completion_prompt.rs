@@ -353,7 +353,7 @@ mod tests {
             );
         }
 
-        // Test w/ emtpy prefix, w/ empty suffix.
+        // Test w/ empty prefix, w/ empty suffix.
         {
             let segments = make_segment("".into(), Some("".into()));
             assert_eq!(

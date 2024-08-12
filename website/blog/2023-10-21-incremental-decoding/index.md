@@ -58,7 +58,7 @@ However, often times decoding a sequence of tokens one-by-one without considerin
 
 ```
 Decoding first token:                ......, 211       ->   "......[ llo]"
-Indepently decoding the next token:  ......, 207, 211  ->   "......[ he][ llo]"
+Independently decoding the next token:  ......, 207, 211  ->   "......[ he][ llo]"
 ```
 
 In the case above, the final decoded string would be `" he llo"` with an awkward space in between. To resolve issues like this, we could cache the already-decoded prefix and append it to the current token to decode together. It is the core idea of **incremental decoding** to take the prefix token into consideration for decoding current tokens. With incremental decoding, we get the desired result for the example above:

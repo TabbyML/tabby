@@ -208,7 +208,7 @@ describe("postprocess", () => {
 
   describe("limitScopeByIndentation: bad cases", () => {
     const filter = limitScopeByIndentation();
-    it("cannot handle the case of indent that does'nt have a close line, e.g. chaining call", async () => {
+    it("cannot handle the case of indent that doesn't have a close line, e.g. chaining call", async () => {
       const context = documentContext`
         function sortWords(input) {
           const output = input.trim()
@@ -238,7 +238,7 @@ describe("postprocess", () => {
       await assertFilterResultNotEqual(filter, context, completion, expected);
     });
 
-    it("cannot handle the case of indent that does'nt have a close line, e.g. python def function", async () => {
+    it("cannot handle the case of indent that doesn't have a close line, e.g. python def function", async () => {
       const context = documentContext`
         def findMax(arr):
           ║

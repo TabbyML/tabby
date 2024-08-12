@@ -144,7 +144,7 @@ impl DbConn {
             .collect::<Vec<_>>()
             .join(",");
 
-        // Groups stats by day, round all timestamps to the begining of the day relative to `start`.
+        // Groups stats by day, round all timestamps to the beginning of the day relative to `start`.
         let res = sqlx::query_as(&format!(
             r#"
             SELECT DATETIME((STRFTIME('%s', ?1) + days_since_start * 3600 * 24), 'unixepoch') as start,
