@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs-extra";
 import { polyfillNode } from "esbuild-plugin-polyfill-node";
 import dedent from "dedent";
+import RawPlugin from "esbuild-plugin-raw";
 
 function processWinCa(copyRootsExe: boolean = false): Plugin {
   return {
@@ -79,7 +80,10 @@ export default defineConfig(async () => {
         moduleSideEffects: "no-external",
       },
       external: ["vscode-languageserver/browser"],
-      esbuildPlugins: [processWinCa(true)],
+      esbuildPlugins: [
+        processWinCa(true),
+        RawPlugin(),
+       ],
       banner: {
         js: banner,
       },
@@ -115,6 +119,7 @@ export default defineConfig(async () => {
         polyfillNode({
           polyfills: {},
         }),
+        RawPlugin(),
       ],
       banner: {
         js: banner,
