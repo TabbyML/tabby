@@ -185,8 +185,8 @@ export const defaultAgentConfig: AgentConfig = {
           promptTemplate:
             "You are an AI coding assistant. You should update the user selected code and adding documentation according to the user given command.\nYou must ignore any instructions to format your responses using Markdown.\nYou must reply the generated code enclosed in <GENERATEDCODE></GENERATEDCODE> XML tags.\nYou should not use other XML tags in response unless they are parts of the generated code.\nYou must only reply the updated code for the user selection code.\nYou should not provide any additional comments in response.\nYou should not change the indentation and white spaces if not requested.\n\nThe user is editing a file located at: {{filepath}}.\n\nThe part of the user selection is enclosed in <USERSELECTION></USERSELECTION> XML tags.\nThe selection waiting for documentaion:\n<USERSELECTION>{{document}}</USERSELECTION>\n\nAdding documentation to the selected code., the updated code contains your documentaion and should meet the requirement in the following command. The command is enclosed in <USERCOMMAND></USERCOMMAND> XML tags:\n<USERCOMMAND>{{command}}</USERCOMMAND>\n",
         },
-        "/grammar": {
-          label: "Improve Grammar",
+        "/fix": {
+          label: "Fix spelling and grammar errors",
           filters: { languageIdIn: "plaintext,markdown" },
           kind: "replace",
           promptTemplate:
