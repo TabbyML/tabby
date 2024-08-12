@@ -1,4 +1,3 @@
-mod answer;
 mod hub;
 mod oauth;
 mod repositories;
@@ -39,15 +38,6 @@ pub fn create(
         "/v1beta/server_setting",
         routing::get(server_setting).with_state(ctx.clone()),
     );
-
-    let api = if let Some(answer) = answer {
-        api.route(
-            "/v1beta/answer",
-            routing::post(answer::answer).with_state(answer),
-        )
-    } else {
-        api.route("/v1beta/answer", routing::post(StatusCode::NOT_IMPLEMENTED))
-    };
 
     let api = api
         // Routes before `distributed_tabby_layer` are protected by authentication middleware for following routes:

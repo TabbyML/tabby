@@ -10,14 +10,10 @@ use async_openai::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
-use tabby_common::{
-    api::{
-        answer::{AnswerRequest, AnswerResponseChunk},
-        code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery},
-        doc::{DocSearch, DocSearchError, DocSearchHit},
-    },
-    config::AnswerConfig,
-};
+use tabby_common::{api::{
+    code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery},
+    doc::{DocSearch, DocSearchError, DocSearchHit},
+}, config::AnswerConfig};
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     repository::RepositoryService,
@@ -70,120 +66,6 @@ impl AnswerService {
             repository,
             serper,
         }
-    }
-
-    #[deprecated(note = "This shall be removed after the migration to v2 is done.")]
-    pub async fn answer<'a>(
-        self: Arc<Self>,
-        mut req: AnswerRequest,
-    ) -> BoxStream<'a, AnswerResponseChunk> {
-        let s = stream! {
-            // 0. Collect sources given query, for now we only use the last message
-            let query: &mut _ = match req.messages.last_mut() {
-                Some(query) => query,
-                None => {
-                    warn!("No query found in the request");
-                    return;
-                }
-            };
-
-            let git_url = req.code_query.as_ref().map(|x| x.git_url.clone());
-
-            // 0. Extract client-provided code snippets
-            let code_snippets = req.code_snippets;
-
-            // 1. Collect relevant code if needed.
-            let relevant_code = if let Some(mut code_query)  = req.code_query  {
-                if req.collect_relevant_code_using_user_message {
-                    // Natural language content from query is used to search for relevant code.
-                    code_query.content = get_content(query).to_owned();
-                } else {
-                    // Code snippet is extended to the query.
-                    self.override_query_with_code_query(query, &code_query).await;
-                }
-
-                let code_query = CodeQueryInput {
-                    git_url: code_query.git_url,
-                    filepath: code_query.filepath,
-                    language: code_query.language,
-                    content: code_query.content,
-                };
-                self.collect_relevant_code(&code_query, &self.config.code_search_params, None).await
-            } else {
-                vec![]
-            };
-
-            if !relevant_code.is_empty() {
-                yield AnswerResponseChunk::RelevantCode(relevant_code.clone());
-            }
-
-
-            // 2. Collect relevant docs if needed.
-            let relevant_docs = if req.doc_query {
-                let query = DocQueryInput {
-                    content: get_content(query).to_owned(),
-                };
-                self.collect_relevant_docs(git_url.as_deref(), &query).await
-            } else {
-                vec![]
-            };
-
-            if !relevant_docs.is_empty() {
-                yield AnswerResponseChunk::RelevantDocuments(relevant_docs.clone());
-            }
-
-            if !code_snippets.is_empty() || !relevant_code.is_empty() || !relevant_docs.is_empty() {
-                if req.generate_relevant_questions {
-                    // 3. Generate relevant questions from the query
-                    let relevant_questions = self.generate_relevant_questions(&relevant_code, &relevant_docs, get_content(query)).await;
-                    yield AnswerResponseChunk::RelevantQuestions(relevant_questions);
-                }
-
-                let code_snippets: Vec<MessageAttachmentCodeInput> = code_snippets.iter().map(|x| MessageAttachmentCodeInput {
-                    filepath: x.filepath.clone(),
-                    content: x.content.clone(),
-                }).collect();
-
-                // 4. Generate override prompt from the query
-                set_content(query, self.generate_prompt(&code_snippets, &relevant_code, &relevant_docs, get_content(query)).await);
-            }
-
-
-            // 5. Generate answer from the query
-            let request = {
-                let mut builder = CreateChatCompletionRequestArgs::default();
-                builder.messages(req.messages).presence_penalty(PRESENCE_PENALTY);
-                if let Some(user) = req.user {
-                    builder.user(user);
-                };
-
-                builder.build().expect("Failed to create ChatCompletionRequest")
-            };
-
-            let s = match self.chat.chat_stream(request).await {
-                Ok(s) => s,
-                Err(err) => {
-                    warn!("Failed to create chat completion stream: {:?}", err);
-                    return;
-                }
-            };
-
-            for await chunk in s {
-                let chunk = match chunk {
-                    Ok(chunk) => chunk,
-                    Err(err) => {
-                        debug!("Failed to get chat completion chunk: {:?}", err);
-                        break;
-                    }
-                };
-
-                if let Some(content) = chunk.choices[0].delta.content.as_deref() {
-                    yield AnswerResponseChunk::AnswerDelta(content.to_owned());
-                }
-            }
-        };
-
-        Box::pin(s)
     }
 
     pub async fn answer_v2<'a>(
