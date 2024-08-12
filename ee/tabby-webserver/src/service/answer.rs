@@ -622,7 +622,7 @@ fn convert_messages_to_chat_completion_request(
 
             let y = &messages[i + 1];
 
-            build_user_prompt(&x, &y.attachment)
+            build_user_prompt(x, &y.attachment)
         } else {
             x.content.clone()
         };
