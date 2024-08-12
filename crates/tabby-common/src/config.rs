@@ -119,10 +119,6 @@ impl RepositoryConfig {
         Self::canonicalize_url(&self.git_url)
     }
 
-    pub fn source_id(&self) -> String {
-        self.canonical_git_url()
-    }
-
     pub fn canonicalize_url(url: &str) -> String {
         let url = url.strip_suffix(".git").unwrap_or(url);
         url::Url::parse(url)
