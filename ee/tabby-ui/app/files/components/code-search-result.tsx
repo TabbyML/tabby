@@ -116,7 +116,7 @@ export const SourceCodeSearchResult = ({
           const lines = result.lines.slice(range.start, range.end + 1)
           return (
             <LazyLoad
-              height={lines.length * 20 + 8}
+              height={lines.length * 20 + 9}
               key={`${result.path}-${range.start}`}
               offset={300}
             >
