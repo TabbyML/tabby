@@ -48,7 +48,7 @@ fn main() {
         ];
 
         let rocm_root = env::var("ROCM_ROOT").unwrap_or("/opt/rocm".to_string());
-        config.define("LLAMA_HIPBLAS", "ON");
+        config.define("GGML_HIPBLAS", "ON");
         config.define("CMAKE_C_COMPILER", format!("{}/llvm/bin/clang", rocm_root));
         config.define(
             "CMAKE_CXX_COMPILER",
