@@ -75,16 +75,16 @@ impl CodeSearchImpl {
             })
             .await?;
 
-        let Some(git_url) = closest_match(&query.git_url, repos.iter()) else {
+        let Some(source_id) = closest_match(&query.source_id, repos.iter()) else {
             return Ok(CodeSearchResponse::default());
         };
 
         debug!(
             "query.git_url: {:?}, matched git_url: {:?}",
-            query.git_url, git_url
+            query.source_id, source_id
         );
 
-        query.git_url = RepositoryConfig::canonicalize_url(git_url);
+        query.source_id = source_id.into();
 
         let docs_from_embedding = {
             let embedding = self.embedding.embed(&query.content).await?;

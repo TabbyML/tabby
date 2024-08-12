@@ -15,6 +15,8 @@ pub mod fields {
     pub const CHUNK_LANGUAGE: &str = "chunk_language";
     pub const CHUNK_BODY: &str = "chunk_body";
     pub const CHUNK_START_LINE: &str = "chunk_start_line";
+
+    pub const CHUNK_SOURCE_ID: &str = "chunk_source_id";
 }
 
 fn language_query(language: &str) -> Box<TermQuery> {
@@ -70,7 +72,7 @@ pub fn code_search_query(
 ) -> BooleanQuery {
     let schema = IndexSchema::instance();
     let corpus_query = schema.corpus_query(corpus::CODE);
-    let git_url_query = git_url_query(&query.git_url);
+    let git_url_query = git_url_query(&query.source_id);
 
     // language / git_url / filepath field shouldn't contribute to the score, mark them to 0.0.
     let mut subqueries: Vec<(Occur, Box<dyn Query>)> = vec![

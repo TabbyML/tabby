@@ -108,7 +108,7 @@ impl CodeIntelligence {
 
         let source_file = SourceCode {
             id,
-            git_url: config.canonical_git_url(),
+            source_id: config.source_id(),
             basedir: config.dir().display().to_string(),
             filepath: relative_path.display().to_string(),
             max_line_length,

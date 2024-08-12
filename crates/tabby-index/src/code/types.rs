@@ -10,7 +10,7 @@ use crate::indexer::{IndexId, ToIndexId};
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SourceCode {
     pub id: String,
-    pub git_url: String,
+    pub source_id: String,
     pub basedir: String,
     pub filepath: String,
     pub language: String,
@@ -25,7 +25,7 @@ pub struct SourceCode {
 impl ToIndexId for SourceCode {
     fn to_index_id(&self) -> IndexId {
         IndexId {
-            source_id: self.git_url.clone(),
+            source_id: self.source_id.clone(),
             id: self.id.clone(),
         }
     }

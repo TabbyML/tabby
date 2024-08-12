@@ -79,7 +79,7 @@ impl AnswerService {
                 }
             };
 
-            let git_url = req.code_query.as_ref().map(|x| x.git_url.clone());
+            let source_id = req.code_query.as_ref().map(|x| x.source_id.clone());
 
             // 0. Extract client-provided code snippets
             let code_snippets = req.code_snippets;
@@ -115,7 +115,7 @@ impl AnswerService {
                 let query = DocQueryInput {
                     content: get_content(query).to_owned(),
                 };
-                self.collect_relevant_docs(git_url.as_deref(), &query).await
+                self.collect_relevant_docs(source_id.as_deref(), &query).await
             } else {
                 vec![]
             };
@@ -322,7 +322,7 @@ impl AnswerService {
 
     async fn collect_relevant_code(&self, query: &CodeQueryInput) -> Vec<CodeSearchHit> {
         let query = CodeSearchQuery {
-            git_url: query.git_url.clone(),
+            source_id: query.git_url.clone(),
             filepath: query.filepath.clone(),
             language: query.language.clone(),
             content: query.content.clone(),
