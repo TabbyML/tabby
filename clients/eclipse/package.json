@@ -2,7 +2,7 @@
   "name": "tabby4eclipse",
   "private": true,
   "scripts": {
-    "postinstall": "node scripts/copy-tabby-agent.js"
+    "build": "node scripts/copy-tabby-agent.js"
   },
   "devDependencies": {
     "tabby-agent": "workspace:*",
