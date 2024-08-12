@@ -1,0 +1,3 @@
+kind: Fixed and Improvements
+body: Bump llama.cpp to b3571 to support jina series model in embeddings
+time: 2024-08-12T12:55:36.776763-07:00
