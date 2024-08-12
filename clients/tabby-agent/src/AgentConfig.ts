@@ -189,8 +189,12 @@ export const defaultAgentConfig: AgentConfig = {
           label: "Fix spelling and grammar errors",
           filters: { languageIdIn: "plaintext,markdown" },
           kind: "replace",
-          promptTemplate:
-            "You are an AI writing assistant. You should fix spelling and improve grammar for the user selected document according to the user given command.\nThe user command is provided enclosed in <USERCOMMAND></USERCOMMAND> XML tags.\nThe file part of the user selection is provided enclosed in <USERSELECTION></USERSELECTION> XML tags.\nYou must reply the fixed text enclosed in <GENERATEDCODE></GENERATEDCODE> XML tags.\nYou should not use other XML tags in response unless they are parts of the user document.\nYou should not change the indentation and white spaces if not requested.\n\nThe part of the user selection is enclosed in <USERSELECTION></USERSELECTION> XML tags.\nThe user selection:\n<USERSELECTION>{{document}}</USERSELECTION>\n",
+          promptTemplate: `You are an AI writing assistant.
+You help fix spelling, improve grammar and reply the fixed text enclosed in <GENERATEDCODE></GENERATEDCODE> XML tags.
+You should not use other XML tags in response unless they are parts of the user document.
+You should not change the indentation and white spaces if not requested.
+The text content to be processed will be enclosed in <DOCUMENT></DOCUMENT> XML tags.
+<DOCUMENT>{{document}}</DOCUMENT>`,
         },
       },
     },
