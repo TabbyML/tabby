@@ -115,7 +115,11 @@ export const SourceCodeSearchResult = ({
         {ranges.map((range, index) => {
           const lines = result.lines.slice(range.start, range.end + 1)
           return (
-            <LazyLoad key={`${result.path}-${range.start}`} offset={300}>
+            <LazyLoad
+              height={lines.length * 20 + 8}
+              key={`${result.path}-${range.start}`}
+              offset={300}
+            >
               <CodeSearchSnippet
                 language={language}
                 theme={theme}
