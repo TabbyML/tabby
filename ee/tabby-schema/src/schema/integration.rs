@@ -1,10 +1,10 @@
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 use strum::EnumIter;
 use url::Url;
 
 use crate::{juniper::relay::NodeType, Context, CoreError, Result};
+use tabby_db::DateTimeUtc;
 
 #[derive(Clone, EnumIter, GraphQLEnum)]
 pub enum IntegrationKind {
@@ -54,8 +54,8 @@ pub struct Integration {
     pub display_name: String,
     pub access_token: String,
     pub api_base: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: DateTimeUtc,
+    pub updated_at: DateTimeUtc,
     pub status: IntegrationStatus,
 }
 

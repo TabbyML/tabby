@@ -1,14 +1,15 @@
 use anyhow::Result;
+use chrono::NaiveDateTime;
 use sqlx::{prelude::FromRow, query};
 use tabby_db_macros::query_paged_as;
 
-use crate::{DateTimeUtc, DbConn};
+use crate::DbConn;
 
 #[derive(FromRow)]
 pub struct WebCrawlerUrlDAO {
     pub id: i64,
     pub url: String,
-    pub created_at: DateTimeUtc,
+    pub created_at: NaiveDateTime,
 }
 
 impl DbConn {

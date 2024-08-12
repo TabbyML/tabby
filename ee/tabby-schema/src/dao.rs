@@ -1,4 +1,5 @@
 use anyhow::bail;
+use chrono::NaiveDateTime;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
@@ -31,7 +32,7 @@ impl From<InvitationDAO> for auth::Invitation {
             id: (val.id as i32).as_id(),
             email: val.email,
             code: val.code,
-            created_at: *val.created_at,
+            created_at: val.created_at.and_utc(),
         }
     }
 }
@@ -41,10 +42,16 @@ impl From<JobRunDAO> for job::JobRun {
         Self {
             id: run.id.as_id(),
             job: run.name,
-            created_at: *run.created_at,
-            updated_at: *run.updated_at,
-            started_at: run.started_at.into_option(),
-            finished_at: run.finished_at.into_option(),
+            created_at: run.created_at.and_utc(),
+            updated_at: run.updated_at.and_utc(),
+            started_at: run
+                .started_at
+                .into_option()
+                .map(|t: NaiveDateTime| t.and_utc()),
+            finished_at: run
+                .finished_at
+                .into_option()
+                .map(|t: NaiveDateTime| t.and_utc()),
             exit_code: run.exit_code.map(|i| i as i32),
             stdout: run.stdout,
             stderr: run.stderr,
@@ -62,7 +69,7 @@ impl From<UserDAO> for auth::User {
             is_owner,
             is_admin: val.is_admin,
             auth_token: val.auth_token,
-            created_at: *val.created_at,
+            created_at: val.created_at.and_utc(),
             active: val.active,
             is_password_set: val.password_encrypted.is_some(),
         }
@@ -76,8 +83,8 @@ impl TryFrom<OAuthCredentialDAO> for OAuthCredential {
         Ok(OAuthCredential {
             provider: OAuthProvider::from_enum_str(&val.provider)?,
             client_id: val.client_id,
-            created_at: *val.created_at,
-            updated_at: *val.updated_at,
+            created_at: val.created_at.and_utc(),
+            updated_at: val.updated_at.and_utc(),
             client_secret: val.client_secret,
         })
     }
@@ -137,8 +144,8 @@ impl TryFrom<IntegrationDAO> for Integration {
             display_name: value.display_name,
             access_token: value.access_token,
             api_base: value.api_base,
-            created_at: *value.created_at,
-            updated_at: *value.updated_at,
+            created_at: value.created_at.and_utc(),
+            updated_at: value.updated_at.and_utc(),
             status,
         })
     }
@@ -224,7 +231,7 @@ impl TryFrom<UserEventDAO> for UserEvent {
             id: value.id.as_id(),
             user_id: value.user_id.as_id(),
             kind: EventKind::from_enum_str(&value.kind)?,
-            created_at: value.created_at.into(),
+            created_at: value.created_at.and_utc(),
             payload: String::from_utf8(value.payload)?,
         })
     }

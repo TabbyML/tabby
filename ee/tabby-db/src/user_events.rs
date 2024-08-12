@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
+use chrono::NaiveDateTime;
 use sqlx::{prelude::FromRow, query};
 use tabby_db_macros::query_paged_as;
 
@@ -11,7 +12,7 @@ pub struct UserEventDAO {
     pub id: i64,
     pub user_id: i64,
     pub kind: String,
-    pub created_at: DateTimeUtc,
+    pub created_at: NaiveDateTime,
     pub payload: Vec<u8>,
 }
 

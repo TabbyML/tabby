@@ -1,27 +1,27 @@
 use anyhow::Result;
+use chrono::{NaiveDateTime, Utc};
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use sqlx::{query, FromRow};
 use uuid::Uuid;
 
 use super::DbConn;
-use crate::DateTimeUtc;
 
 #[allow(unused)]
 #[derive(FromRow)]
 pub struct RefreshTokenDAO {
     pub id: i64,
-    pub created_at: DateTimeUtc,
+    pub created_at: NaiveDateTime,
 
     pub user_id: i64,
     pub token: String,
-    pub expires_at: DateTimeUtc,
+    pub expires_at: NaiveDateTime,
 }
 
 impl RefreshTokenDAO {
     pub fn is_expired(&self) -> bool {
-        let now = DateTimeUtc::now();
-        self.expires_at < now
+        let now = Utc::now();
+        self.expires_at.and_utc() < now
     }
 }
 
@@ -61,7 +61,7 @@ impl DbConn {
     }
 
     pub async fn delete_expired_token(&self) -> Result<i32> {
-        let time = DateTimeUtc::now();
+        let time = Utc::now();
         let res = query!(r#"DELETE FROM refresh_tokens WHERE expires_at < ?"#, time)
             .execute(&self.pool)
             .await?;
@@ -120,8 +120,8 @@ mod tests {
 
         assert_eq!(dao.user_id, 1);
         assert_eq!(dao.token, token);
-        assert!(dao.expires_at > DateTimeUtc::now() + chrono::Duration::days(6));
-        assert!(dao.expires_at < DateTimeUtc::now() + chrono::Duration::days(7));
+        assert!(dao.expires_at > Utc::now() + chrono::Duration::days(6));
+        assert!(dao.expires_at < Utc::now() + chrono::Duration::days(7));
     }
 
     #[tokio::test]

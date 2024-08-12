@@ -1,14 +1,14 @@
 use anyhow::{anyhow, Result};
-use chrono::Duration;
+use chrono::{Duration, NaiveDateTime, Utc};
 use sqlx::{query, query_as};
 use uuid::Uuid;
 
-use crate::{DateTimeUtc, DbConn};
+use crate::{sqlite_datetime_format, DbConn};
 
 pub struct PasswordResetDAO {
     pub user_id: i64,
     pub code: String,
-    pub created_at: DateTimeUtc,
+    pub created_at: NaiveDateTime,
 }
 
 impl DbConn {
@@ -69,7 +69,7 @@ impl DbConn {
             .filter(|user| user.active)
             .ok_or_else(|| anyhow!("Invalid code"))?;
 
-        if DateTimeUtc::now().signed_duration_since(*password_reset.created_at)
+        if Utc::now().signed_duration_since(password_reset.created_at.and_utc())
             > Duration::minutes(15)
         {
             Err(anyhow!("Invalid code"))
@@ -80,7 +80,7 @@ impl DbConn {
 
     #[cfg(any(test, feature = "testutils"))]
     pub async fn mark_password_reset_expired(&self, code: &str) -> Result<()> {
-        let timestamp = DateTimeUtc::now() - Duration::hours(10);
+        let timestamp = Utc::now() - Duration::hours(10);
         query!(
             "UPDATE password_reset SET created_at = ? WHERE code = ?;",
             timestamp,
@@ -92,8 +92,9 @@ impl DbConn {
     }
 
     pub async fn delete_expired_password_resets(&self) -> Result<()> {
-        let time = DateTimeUtc::now() - Duration::hours(1);
-        query!("DELETE FROM password_reset WHERE created_at < ?", time)
+        let time = Utc::now() - Duration::hours(1);
+        let t = sqlite_datetime_format(&time);
+        query!("DELETE FROM password_reset WHERE created_at < ?", t)
             .execute(&self.pool)
             .await?;
         Ok(())

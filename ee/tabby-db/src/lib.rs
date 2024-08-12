@@ -1,14 +1,9 @@
-use std::{
-    fmt::Display,
-    ops::{Add, Deref, Sub},
-    path::Path,
-    sync::Arc,
-};
+use std::{path::Path, sync::Arc};
 
 use anyhow::anyhow;
 use cache::Cache;
 use cached::TimedSizedCache;
-use chrono::{DateTime, Duration, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 pub use email_setting::EmailSettingDAO;
 pub use integrations::IntegrationDAO;
 pub use invitations::InvitationDAO;
@@ -18,8 +13,8 @@ pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
 use sqlx::{
-    database::HasValueRef, query, query_scalar, sqlite::SqliteQueryResult, Decode, Encode, Pool,
-    Sqlite, SqlitePool, Type, Value, ValueRef,
+    database::HasValueRef, query, query_scalar, sqlite::SqliteQueryResult, Decode, Pool, Sqlite,
+    SqlitePool, Type, ValueRef,
 };
 pub use threads::{
     ThreadDAO, ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc, ThreadMessageDAO,
@@ -237,20 +232,12 @@ impl DbConn {
     }
 }
 
-pub trait DbNullable:
-    for<'a> Decode<'a, Sqlite> + for<'a> Encode<'a, Sqlite> + Type<Sqlite>
-{
-}
-impl DbNullable for DateTimeUtc {}
-
 #[derive(Default)]
-pub struct DbOption<T>(Option<T>)
-where
-    T: DbNullable;
+pub struct DbOption<T>(Option<T>);
 
 impl<T> Type<Sqlite> for DbOption<T>
 where
-    T: Type<Sqlite> + DbNullable,
+    T: Type<Sqlite>,
 {
     fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
         T::type_info()
@@ -259,7 +246,7 @@ where
 
 impl<'a, T> Decode<'a, Sqlite> for DbOption<T>
 where
-    T: DbNullable,
+    T: Decode<'a, Sqlite>,
 {
     fn decode(
         value: <Sqlite as HasValueRef<'a>>::ValueRef,
@@ -274,17 +261,14 @@ where
 
 impl<T, F> From<Option<F>> for DbOption<T>
 where
-    T: From<F> + DbNullable,
+    T: From<F>,
 {
     fn from(value: Option<F>) -> Self {
         DbOption(value.map(|v| T::from(v)))
     }
 }
 
-impl<T> DbOption<T>
-where
-    T: DbNullable,
-{
+impl<T> DbOption<T> {
     pub fn into_option<V>(self) -> Option<V>
     where
         T: Into<V>,
@@ -295,7 +279,7 @@ where
 
 impl<T> Clone for DbOption<T>
 where
-    T: Clone + DbNullable,
+    T: Clone,
 {
     fn clone(&self) -> Self {
         self.0.clone().into()
@@ -303,116 +287,16 @@ where
 }
 
 // FIXME: migrate all DateTimeUtc usage to reduce complexity
-#[deprecated(
-    note = "use `DateTime<Utc>` instead, which can be specified in query! or query_as! in grammar like `created_at as \"created_at: DateTime<Utc>\"`"
-)]
-#[derive(Default, Clone)]
-pub struct DateTimeUtc(DateTime<Utc>);
+// #[deprecated(
+//     note = "use `DateTime<Utc>` instead, which can be specified in query! or query_as! in grammar like `created_at as \"created_at: DateTime<Utc>\"`"
+// )]
+// #[derive(Default, Clone)]
+// pub struct DateTimeUtc();
 
-impl Display for DateTimeUtc {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_sqlite_datetime())
-    }
-}
+pub type DateTimeUtc = DateTime<Utc>;
 
-impl std::fmt::Debug for DateTimeUtc {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_sqlite_datetime())
-    }
-}
-
-impl Add<Duration> for DateTimeUtc {
-    type Output = Self;
-
-    fn add(self, rhs: Duration) -> Self::Output {
-        ((self.0) + rhs).into()
-    }
-}
-
-impl Sub<Duration> for DateTimeUtc {
-    type Output = Self;
-
-    fn sub(self, rhs: Duration) -> Self::Output {
-        ((self.0) - rhs).into()
-    }
-}
-
-impl From<DateTime<Utc>> for DateTimeUtc {
-    fn from(value: DateTime<Utc>) -> Self {
-        Self(value)
-    }
-}
-
-impl From<DateTimeUtc> for DateTime<Utc> {
-    fn from(val: DateTimeUtc) -> Self {
-        *val
-    }
-}
-
-impl<'a> Decode<'a, Sqlite> for DateTimeUtc {
-    fn decode(
-        value: <Sqlite as HasValueRef<'a>>::ValueRef,
-    ) -> std::prelude::v1::Result<Self, sqlx::error::BoxDynError> {
-        let time: NaiveDateTime = value.to_owned().decode();
-        Ok(time.into())
-    }
-}
-
-impl Type<Sqlite> for DateTimeUtc {
-    fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
-        <String as Type<Sqlite>>::type_info()
-    }
-}
-
-impl<'a> Encode<'a, Sqlite> for DateTimeUtc {
-    fn encode_by_ref(
-        &self,
-        buf: &mut <Sqlite as sqlx::database::HasArguments<'a>>::ArgumentBuffer,
-    ) -> sqlx::encode::IsNull {
-        <String as Encode<Sqlite>>::encode(self.as_sqlite_datetime(), buf)
-    }
-}
-
-impl From<NaiveDateTime> for DateTimeUtc {
-    fn from(value: NaiveDateTime) -> Self {
-        DateTimeUtc(value.and_utc())
-    }
-}
-
-impl Deref for DateTimeUtc {
-    type Target = DateTime<Utc>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl PartialEq for DateTimeUtc {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-
-impl PartialOrd for DateTimeUtc {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(&other.0)
-    }
-}
-
-impl Copy for DateTimeUtc {}
-
-impl DateTimeUtc {
-    pub fn now() -> Self {
-        Self(Utc::now())
-    }
-
-    pub fn from_timestamp(secs: i64, subsec_nanos: u32) -> Option<Self> {
-        DateTime::from_timestamp(secs, subsec_nanos).map(Self)
-    }
-
-    fn as_sqlite_datetime(&self) -> String {
-        self.0.format("%F %X").to_string()
-    }
+pub fn sqlite_datetime_format(t: &DateTimeUtc) -> String {
+    t.format("%F %X").to_string()
 }
 
 pub trait SQLXResultExt {
@@ -457,9 +341,9 @@ mod tests {
     async fn test_timestamp_format() {
         let db = DbConn::new_in_memory().await.unwrap();
 
-        let time = DateTimeUtc::now();
+        let time = Utc::now();
 
-        let time_str = time.as_sqlite_datetime();
+        let time_str = sqlite_datetime_format(&time);
         let sql_time: String = sqlx::query_scalar::<_, String>("SELECT ?;")
             .bind(time)
             .fetch_one(&db.pool)
@@ -472,11 +356,11 @@ mod tests {
             .fetch_one(&db.pool)
             .await
             .unwrap();
-        assert_eq!(sql_time, DateTimeUtc::now().as_sqlite_datetime());
+        assert_eq!(sql_time, sqlite_datetime_format(&Utc::now()));
 
         // No assertions, these will fail at compiletime if adding/subtracting from these types
         // yields DateTime<Utc>, which could be dangerous
-        let time = DateTimeUtc::now();
+        let time = Utc::now();
         let _added_time: DateTimeUtc = time + Duration::milliseconds(1);
         let _subbed_time: DateTimeUtc = time - Duration::milliseconds(1);
     }

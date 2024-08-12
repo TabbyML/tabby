@@ -1,8 +1,9 @@
 use anyhow::{anyhow, Result};
+use chrono::NaiveDateTime;
 use sqlx::{prelude::FromRow, query, query_as};
 use tabby_db_macros::query_paged_as;
 
-use crate::{DateTimeUtc, DbConn};
+use crate::DbConn;
 
 #[derive(FromRow)]
 pub struct IntegrationDAO {
@@ -12,8 +13,8 @@ pub struct IntegrationDAO {
     pub display_name: String,
     pub access_token: String,
     pub api_base: Option<String>,
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
     pub synced: bool,
 }
 

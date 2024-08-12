@@ -76,7 +76,7 @@ fn to_web_crawler_url(value: WebCrawlerUrlDAO, job_info: JobInfo) -> WebCrawlerU
     WebCrawlerUrl {
         id: value.id.as_id(),
         url: value.url.clone(),
-        created_at: *value.created_at,
+        created_at: value.created_at.and_utc(),
         job_info,
     }
 }

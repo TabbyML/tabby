@@ -1,10 +1,11 @@
 use anyhow::{anyhow, Result};
+use chrono::NaiveDateTime;
 use sqlx::{prelude::FromRow, query};
 use tabby_db_macros::query_paged_as;
 use uuid::Uuid;
 
 use super::DbConn;
-use crate::{DateTimeUtc, SQLXResultExt};
+use crate::SQLXResultExt;
 
 #[derive(FromRow)]
 pub struct InvitationDAO {
@@ -12,7 +13,7 @@ pub struct InvitationDAO {
     pub email: String,
     pub code: String,
 
-    pub created_at: DateTimeUtc,
+    pub created_at: NaiveDateTime,
 }
 
 /// db read/write operations for `invitations` table

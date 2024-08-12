@@ -1,15 +1,16 @@
 use anyhow::{anyhow, Result};
+use chrono::NaiveDateTime;
 use sqlx::{prelude::FromRow, query, query_scalar};
 
-use crate::{DateTimeUtc, DbConn};
+use crate::DbConn;
 
 #[derive(FromRow)]
 pub struct OAuthCredentialDAO {
     pub provider: String,
     pub client_id: String,
     pub client_secret: String,
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 }
 
 impl DbConn {

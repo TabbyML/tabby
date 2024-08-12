@@ -1,16 +1,17 @@
 use anyhow::{anyhow, bail, Result};
+use chrono::NaiveDateTime;
 use sqlx::{query, query_as, query_scalar, FromRow};
 use tabby_db_macros::query_paged_as;
 use uuid::Uuid;
 
 use super::DbConn;
-use crate::{DateTimeUtc, SQLXResultExt};
+use crate::SQLXResultExt;
 
 #[allow(unused)]
 #[derive(FromRow)]
 pub struct UserDAO {
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 
     pub id: i64,
     pub email: String,

@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use cached::CachedAsync;
+use chrono::NaiveDateTime;
 use sqlx::{prelude::FromRow, query};
 
 use crate::{DateTimeUtc, DbConn};
@@ -16,8 +17,8 @@ pub struct UserCompletionDAO {
     pub selects: i64,
     pub dismisses: i64,
 
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 }
 
 #[derive(FromRow, Clone)]
