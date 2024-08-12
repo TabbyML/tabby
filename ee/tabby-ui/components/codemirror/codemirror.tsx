@@ -88,6 +88,9 @@ const CodeMirrorEditor = React.forwardRef<
     defaultThemeOption,
     basicSetup,
     EditorView.baseTheme({
+      '.cm-line': {
+        lineHeight: '20px'
+      },
       '.cm-scroller': {
         fontSize: '14px'
       },
