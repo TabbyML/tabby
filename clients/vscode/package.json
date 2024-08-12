@@ -111,12 +111,12 @@
       },
       {
         "command": "tabby.chat.edit.start",
-        "title": "Edit...",
+        "title": "Start Inline Editing",
         "category": "Tabby"
       },
       {
         "command": "tabby.chat.edit.stop",
-        "title": "Stop Editing",
+        "title": "Stop Inline Editing",
         "category": "Tabby"
       },
       {
