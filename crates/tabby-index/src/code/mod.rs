@@ -85,7 +85,7 @@ impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
             for await (start_line, body) in CodeIntelligence::chunks(&text, &source_code.language) {
                 let attributes = json!({
                     code::fields::CHUNK_FILEPATH: source_code.filepath,
-                    code::fields::CHUNK_GIT_URL: source_code.source_id,
+                    code::fields::CHUNK_GIT_URL: source_code.git_url,
                     code::fields::CHUNK_LANGUAGE: source_code.language,
                     code::fields::CHUNK_BODY:  body,
                     code::fields::CHUNK_START_LINE: start_line,

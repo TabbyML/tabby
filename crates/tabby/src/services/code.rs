@@ -81,7 +81,7 @@ impl CodeSearchImpl {
 
         debug!(
             "query.git_url: {:?}, matched git_url: {:?}",
-            query.source_id, source_id
+            query.git_url, git_url
         );
 
         query.git_url = RepositoryConfig::canonicalize_url(git_url);
