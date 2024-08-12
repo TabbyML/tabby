@@ -120,7 +120,6 @@ impl RepositoryConfig {
     }
 
     pub fn source_id(&self) -> String {
-        // format!("{}:{}", corpus::CODE, self.canonical_git_url())
         self.canonical_git_url()
     }
 

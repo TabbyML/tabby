@@ -182,7 +182,7 @@ async fn collect_snippets(
     content: &str,
 ) -> Vec<Snippet> {
     let query = CodeSearchQuery {
-        source_id: RepositoryConfig::canonicalize_url(git_url),
+        git_url: RepositoryConfig::canonicalize_url(git_url),
         filepath: filepath.map(|x| x.to_owned()),
         language: Some(language.to_owned()),
         content: content.to_owned(),

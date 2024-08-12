@@ -58,7 +58,7 @@ pub enum CodeSearchError {
 
 #[derive(Deserialize, ToSchema)]
 pub struct CodeSearchQuery {
-    pub source_id: String,
+    pub git_url: String,
     pub filepath: Option<String>,
     pub language: Option<String>,
     pub content: String,
