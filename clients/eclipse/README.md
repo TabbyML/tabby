@@ -14,6 +14,8 @@
 git clone https://github.com/TabbyML/tabby.git
 cd tabby
 pnpm install
+cd clients/eclipse
+pnpm turbo build
 ```
 
 This process will also build the `tabby-agent` and place it into the `clients/eclipse/plugin/tabby-agent/` directory.
