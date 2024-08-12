@@ -186,7 +186,7 @@ export const defaultAgentConfig: AgentConfig = {
           label: "Generate Docs",
           filters: { languageIdNotIn: "plaintext,markdown" },
           kind: "replace",
-          promptTemplate: generateDocsPrompt
+          promptTemplate: generateDocsPrompt,
         },
         "/fix": {
           label: "Fix spelling and grammar errors",

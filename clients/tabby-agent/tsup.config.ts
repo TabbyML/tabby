@@ -80,10 +80,7 @@ export default defineConfig(async () => {
         moduleSideEffects: "no-external",
       },
       external: ["vscode-languageserver/browser"],
-      esbuildPlugins: [
-        processWinCa(true),
-        RawPlugin(),
-       ],
+      esbuildPlugins: [processWinCa(true), RawPlugin()],
       banner: {
         js: banner,
       },
