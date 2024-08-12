@@ -75,7 +75,7 @@ import UserPanel from '@/components/user-panel'
 
 import './search.css'
 
-import { pick } from 'lodash-es'
+import { compact, isNil, pick } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
@@ -265,6 +265,7 @@ export function Search() {
     )
 
     if (!currentAnswer) return
+
     currentAnswer.content = answer?.answer_delta || ''
     currentAnswer.relevant_code = answer?.relevant_code
     currentAnswer.relevant_documents = answer?.relevant_documents
@@ -602,6 +603,16 @@ export function Search() {
   )
 }
 
+type AnswerBlockContextValue = {
+  onCodeCitationMouseEnter: (index: number) => void
+  onCodeCitationMouseLeave: (index: number) => void
+  onCodeCitationClick: (
+    data: ArrayElementType<AnswerResponse['relevant_code']>
+  ) => void
+}
+const AnswerBlockContext = createContext<AnswerBlockContextValue>(
+  {} as AnswerBlockContextValue
+)
 function AnswerBlock({
   answer,
   showRelatedQuestion
@@ -619,7 +630,9 @@ function AnswerBlock({
   const [enableDeveloperMode] = useEnableDeveloperMode()
 
   const [showMoreSource, setShowMoreSource] = useState(false)
-
+  const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] = useState<
+    number | undefined
+  >(undefined)
   const getCopyContent = (answer: ConversationMessage) => {
     if (!answer.relevant_documents) return answer.content
 
@@ -688,145 +701,191 @@ function AnswerBlock({
     window.open(url.toString())
   }
 
-  return (
-    <div className="flex flex-col gap-y-5">
-      {/* Relevant documents */}
-      {answer.relevant_documents && answer.relevant_documents.length > 0 && (
-        <div>
-          <div className="mb-1 flex items-center gap-x-2">
-            <IconBlocks className="relative" style={{ top: '-0.04rem' }} />
-            <p className="text-sm font-bold leading-normal">Sources</p>
-          </div>
-          <div
-            className="gap-sm grid grid-cols-3 gap-2 overflow-hidden md:grid-cols-4"
-            style={{
-              transition: 'height 0.25s ease-out',
-              height: showMoreSource
-                ? `${totalHeightInRem}rem`
-                : `${SOURCE_CARD_STYLE.compress}rem`
-            }}
-          >
-            {answer.relevant_documents.map((source, index) => (
-              <SourceCard
-                key={source.doc.link + index}
-                conversationId={answer.id}
-                source={source}
-                showMore={showMoreSource}
-                showDevTooltip={enableDeveloperMode.value}
-              />
-            ))}
-          </div>
-          <Button
-            variant="ghost"
-            className="-ml-1.5 mt-1 flex items-center gap-x-1 px-1 py-2 text-sm font-normal text-muted-foreground"
-            onClick={() => setShowMoreSource(!showMoreSource)}
-          >
-            <IconChevronRight
-              className={cn({
-                '-rotate-90': showMoreSource,
-                'rotate-90': !showMoreSource
-              })}
-            />
-            <p>{showMoreSource ? 'Show less' : 'Show more'}</p>
-          </Button>
-        </div>
-      )}
+  const onCodeCitationMouseEnter = (index: number) => {
+    setRelevantCodeHighlightIndex(
+      index - 1 - (answer?.relevant_documents?.length || 0)
+    )
+  }
 
-      {/* Answer content */}
-      <div>
-        <div className="mb-1 flex items-center gap-x-1.5">
-          <IconAnswer
-            className={cn({
-              'animate-spinner': answer.isLoading
-            })}
-          />
-          <p className="text-sm font-bold leading-none">Answer</p>
-          {enableDeveloperMode.value && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                setConversationIdForDev(answer.id)
-                setDevPanelOpen(true)
+  const onCodeCitationMouseLeave = (index: number) => {
+    setRelevantCodeHighlightIndex(undefined)
+  }
+
+  const onCodeCitationClick = (
+    code: ArrayElementType<AnswerResponse['relevant_code']>
+  ) => {
+    const { doc } = code
+    const start_line = doc?.start_line ?? 0
+    const lineCount = doc.body.split('\n').length
+    const end_line = start_line + lineCount - 1
+    // FIXME utils
+    if (!doc.filepath) return
+    const url = new URL(`${window.location.origin}/files`)
+    const searchParams = new URLSearchParams()
+    searchParams.append('redirect_filepath', doc.filepath)
+    searchParams.append('redirect_git_url', doc.git_url)
+    url.search = searchParams.toString()
+
+    const lineHash = formatLineHashForCodeBrowser({
+      start: start_line,
+      end: end_line
+    })
+    if (lineHash) {
+      url.hash = lineHash
+    }
+
+    window.open(url.toString())
+  }
+
+  return (
+    <AnswerBlockContext.Provider
+      value={{
+        onCodeCitationClick,
+        onCodeCitationMouseEnter,
+        onCodeCitationMouseLeave
+      }}
+    >
+      <div className="flex flex-col gap-y-5">
+        {/* Relevant documents */}
+        {answer.relevant_documents && answer.relevant_documents.length > 0 && (
+          <div>
+            <div className="mb-1 flex items-center gap-x-2">
+              <IconBlocks className="relative" style={{ top: '-0.04rem' }} />
+              <p className="text-sm font-bold leading-normal">Sources</p>
+            </div>
+            <div
+              className="gap-sm grid grid-cols-3 gap-2 overflow-hidden md:grid-cols-4"
+              style={{
+                transition: 'height 0.25s ease-out',
+                height: showMoreSource
+                  ? `${totalHeightInRem}rem`
+                  : `${SOURCE_CARD_STYLE.compress}rem`
               }}
             >
-              <IconBug />
+              {answer.relevant_documents.map((source, index) => (
+                <SourceCard
+                  key={source.doc.link + index}
+                  conversationId={answer.id}
+                  source={source}
+                  showMore={showMoreSource}
+                  showDevTooltip={enableDeveloperMode.value}
+                />
+              ))}
+            </div>
+            <Button
+              variant="ghost"
+              className="-ml-1.5 mt-1 flex items-center gap-x-1 px-1 py-2 text-sm font-normal text-muted-foreground"
+              onClick={() => setShowMoreSource(!showMoreSource)}
+            >
+              <IconChevronRight
+                className={cn({
+                  '-rotate-90': showMoreSource,
+                  'rotate-90': !showMoreSource
+                })}
+              />
+              <p>{showMoreSource ? 'Show less' : 'Show more'}</p>
             </Button>
-          )}
-        </div>
-
-        {/* Relevant code */}
-        {answer.relevant_code && answer.relevant_code.length > 0 && (
-          <CodeReferences
-            contexts={relevantCodeContexts}
-            className="mt-1 text-sm"
-            onContextClick={onCodeContextClick}
-            defaultOpen
-            enableTooltip={enableDeveloperMode.value}
-            onTooltipClick={() => {
-              setConversationIdForDev(answer.id)
-              setDevPanelOpen(true)
-            }}
-          />
+          </div>
         )}
 
-        {answer.isLoading && !answer.content && (
-          <Skeleton className="mt-1 h-40 w-full" />
-        )}
-        <MessageMarkdown
-          message={answer.content}
-          sources={answer.relevant_documents}
-        />
-        {answer.error && <ErrorMessageBlock error={answer.error} />}
-
-        {!answer.isLoading && (
-          <div className="mt-3 flex items-center gap-x-3 text-sm">
-            <CopyButton
-              className="-ml-1.5 gap-x-1 px-1 font-normal text-muted-foreground"
-              value={getCopyContent(answer)}
-              text="Copy"
+        {/* Answer content */}
+        <div>
+          <div className="mb-1 flex items-center gap-x-1.5">
+            <IconAnswer
+              className={cn({
+                'animate-spinner': answer.isLoading
+              })}
             />
-            {!isLoading && (
+            <p className="text-sm font-bold leading-none">Answer</p>
+            {enableDeveloperMode.value && (
               <Button
-                className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
                 variant="ghost"
-                onClick={() => onRegenerateResponse(answer.id)}
+                size="icon"
+                onClick={() => {
+                  setConversationIdForDev(answer.id)
+                  setDevPanelOpen(true)
+                }}
               >
-                <IconRefresh />
-                <p>Regenerate</p>
+                <IconBug />
               </Button>
             )}
           </div>
-        )}
-      </div>
 
-      {/* Related questions */}
-      {showRelatedQuestion &&
-        !answer.isLoading &&
-        answer.relevant_questions &&
-        answer.relevant_questions.length > 0 && (
-          <div>
-            <div className="flex items-center gap-x-1.5">
-              <IconLayers />
-              <p className="text-sm font-bold leading-none">Suggestions</p>
-            </div>
-            <div className="mt-2 flex flex-col gap-y-3">
-              {answer.relevant_questions?.map((related, index) => (
-                <div
-                  key={index}
-                  className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
-                  onClick={onSubmitSearch.bind(null, related)}
+          {/* Relevant code */}
+          {answer.relevant_code && answer.relevant_code.length > 0 && (
+            <CodeReferences
+              contexts={relevantCodeContexts}
+              className="mt-1 text-sm"
+              onContextClick={onCodeContextClick}
+              defaultOpen
+              enableTooltip={enableDeveloperMode.value}
+              onTooltipClick={() => {
+                setConversationIdForDev(answer.id)
+                setDevPanelOpen(true)
+              }}
+              highlightIndex={relevantCodeHighlightIndex}
+            />
+          )}
+
+          {answer.isLoading && !answer.content && (
+            <Skeleton className="mt-1 h-40 w-full" />
+          )}
+          <MessageMarkdown
+            message={answer.content}
+            relevantDocuments={answer.relevant_documents}
+            relevantCode={answer.relevant_code}
+          />
+          {answer.error && <ErrorMessageBlock error={answer.error} />}
+
+          {!answer.isLoading && (
+            <div className="mt-3 flex items-center gap-x-3 text-sm">
+              <CopyButton
+                className="-ml-1.5 gap-x-1 px-1 font-normal text-muted-foreground"
+                value={getCopyContent(answer)}
+                text="Copy"
+              />
+              {!isLoading && (
+                <Button
+                  className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
+                  variant="ghost"
+                  onClick={() => onRegenerateResponse(answer.id)}
                 >
-                  <p className="w-full overflow-hidden text-ellipsis text-sm">
-                    {related}
-                  </p>
-                  <IconPlus />
-                </div>
-              ))}
+                  <IconRefresh />
+                  <p>Regenerate</p>
+                </Button>
+              )}
             </div>
-          </div>
-        )}
-    </div>
+          )}
+        </div>
+
+        {/* Related questions */}
+        {showRelatedQuestion &&
+          !answer.isLoading &&
+          answer.relevant_questions &&
+          answer.relevant_questions.length > 0 && (
+            <div>
+              <div className="flex items-center gap-x-1.5">
+                <IconLayers />
+                <p className="text-sm font-bold leading-none">Suggestions</p>
+              </div>
+              <div className="mt-2 flex flex-col gap-y-3">
+                {answer.relevant_questions?.map((related, index) => (
+                  <div
+                    key={index}
+                    className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
+                    onClick={onSubmitSearch.bind(null, related)}
+                  >
+                    <p className="w-full overflow-hidden text-ellipsis text-sm">
+                      {related}
+                    </p>
+                    <IconPlus />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+      </div>
+    </AnswerBlockContext.Provider>
   )
 }
 
@@ -924,16 +983,47 @@ function SourceCard({
   )
 }
 
+type RelevantDocItem = {
+  type: 'doc'
+  data: ArrayElementType<AnswerResponse['relevant_documents']>
+}
+
+type RelevantCodeItem = {
+  type: 'code'
+  data: ArrayElementType<AnswerResponse['relevant_code']>
+}
+
+type RelevantSources = Array<RelevantDocItem | RelevantCodeItem>
+
 function MessageMarkdown({
   message,
   headline = false,
-  sources
+  relevantDocuments,
+  relevantCode,
+  onRelevantCodeClick
 }: {
   message: string
   headline?: boolean
-  sources?: AnswerResponse['relevant_documents']
-  relevant_code?: AnswerResponse['relevant_code']
+  relevantDocuments?: AnswerResponse['relevant_documents']
+  relevantCode?: AnswerResponse['relevant_code']
+  onRelevantCodeClick?: (
+    code: ArrayElementType<AnswerResponse['relevant_code']>
+  ) => void
 }) {
+  const relevantSources: RelevantSources = useMemo(() => {
+    const docs: RelevantSources =
+      relevantDocuments?.map(item => ({
+        type: 'doc',
+        data: item
+      })) ?? []
+    const code: RelevantSources =
+      relevantCode?.map(item => ({
+        type: 'code',
+        data: item
+      })) ?? []
+    return compact([...docs, ...code])
+  }, [relevantDocuments, relevantCode])
+
   const renderTextWithCitation = (nodeStr: string, index: number) => {
     const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
     const textList = nodeStr.split(citationMatchRegex)
@@ -946,45 +1036,29 @@ function MessageMarkdown({
           const citationIndex = citationNumberMatch
             ? parseInt(citationNumberMatch[0], 10)
             : null
-          const source =
-            citationIndex !== null ? sources?.[citationIndex - 1] : null
-          const sourceUrl = source ? new URL(source.doc.link) : null
+          const citationSource = !isNil(citationIndex)
+            ? relevantSources?.[citationIndex - 1]
+            : undefined
+          const citationType = citationSource?.type
+          const showcitation = citationSource && !isNil(citationIndex)
+
           return (
             <span key={index}>
               {text && <span>{text}</span>}
-              {source && (
-                <HoverCard>
-                  <HoverCardTrigger>
-                    <span
-                      className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
-                      onClick={() => window.open(source.doc.link)}
-                    >
-                      {citationIndex}
-                    </span>
-                  </HoverCardTrigger>
-                  <HoverCardContent className="w-96 text-sm">
-                    <div className="flex w-full flex-col gap-y-1">
-                      <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground">
-                        <SiteFavicon
-                          hostname={sourceUrl!.hostname}
-                          className="m-0 mr-1 leading-none"
-                        />
-                        <p className="m-0 leading-none">
-                          {sourceUrl!.hostname}
-                        </p>
-                      </div>
-                      <p
-                        className="m-0 cursor-pointer font-bold leading-none transition-opacity hover:opacity-70"
-                        onClick={() => window.open(source.doc.link)}
-                      >
-                        {source.doc.title}
-                      </p>
-                      <p className="m-0 line-clamp-4 leading-none">
-                        {normalizedText(source.doc.snippet)}
-                      </p>
-                    </div>
-                  </HoverCardContent>
-                </HoverCard>
+              {showcitation && (
+                <>
+                  {citationType === 'doc' ? (
+                    <RelevantDocumentHoverCard
+                      relevantDocument={citationSource.data}
+                      citationIndex={citationIndex}
+                    />
+                  ) : citationType === 'code' ? (
+                    <RelevantCodeHoverCard
+                      relevantCode={citationSource.data}
+                      citationIndex={citationIndex}
+                    />
+                  ) : null}
+                </>
               )}
             </span>
           )
@@ -1073,6 +1147,80 @@ function MessageMarkdown({
     >
       {message}
     </MemoizedReactMarkdown>
+  )
+}
+
+function RelevantDocumentHoverCard({
+  relevantDocument,
+  citationIndex
+}: {
+  relevantDocument: ArrayElementType<AnswerResponse['relevant_documents']>
+  citationIndex: number
+}) {
+  const sourceUrl = relevantDocument ? new URL(relevantDocument.doc.link) : null
+
+  return (
+    <HoverCard>
+      <HoverCardTrigger>
+        <span
+          className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
+          onClick={() => window.open(relevantDocument.doc.link)}
+        >
+          {citationIndex}
+        </span>
+      </HoverCardTrigger>
+      <HoverCardContent className="w-96 text-sm">
+        <div className="flex w-full flex-col gap-y-1">
+          <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground">
+            <SiteFavicon
+              hostname={sourceUrl!.hostname}
+              className="m-0 mr-1 leading-none"
+            />
+            <p className="m-0 leading-none">{sourceUrl!.hostname}</p>
+          </div>
+          <p
+            className="m-0 cursor-pointer font-bold leading-none transition-opacity hover:opacity-70"
+            onClick={() => window.open(relevantDocument.doc.link)}
+          >
+            {relevantDocument.doc.title}
+          </p>
+          <p className="m-0 line-clamp-4 leading-none">
+            {normalizedText(relevantDocument.doc.snippet)}
+          </p>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  )
+}
+
+function RelevantCodeHoverCard({
+  relevantCode,
+  citationIndex
+}: {
+  relevantCode: ArrayElementType<AnswerResponse['relevant_code']>
+  citationIndex: number
+}) {
+  const {
+    onCodeCitationClick,
+    onCodeCitationMouseEnter,
+    onCodeCitationMouseLeave
+  } = useContext(AnswerBlockContext)
+
+  return (
+    <span
+      className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
+      onClick={() => {
+        onCodeCitationClick?.(relevantCode)
+      }}
+      onMouseEnter={() => {
+        onCodeCitationMouseEnter?.(citationIndex)
+      }}
+      onMouseLeave={() => {
+        onCodeCitationMouseLeave?.(citationIndex)
+      }}
+    >
+      {citationIndex}
+    </span>
   )
 }
 

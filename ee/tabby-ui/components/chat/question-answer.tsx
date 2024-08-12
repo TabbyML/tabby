@@ -1,7 +1,7 @@
 // Inspired by Chatbot-UI and modified to fit the needs of this project
 // @see https://github.com/mckaywrigley/chatbot-ui/blob/main/components/Chat/ChatMessage.tsx
 
-import React, { useState } from 'react'
+import React, { forwardRef, useState } from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
 import { compact, isNil } from 'lodash-es'
@@ -471,61 +471,75 @@ interface ContextReferencesProps {
   enableTooltip?: boolean
   onTooltipClick?: () => void
   isExternalLink?: boolean
+  highlightIndex?: number | undefined
 }
-export const CodeReferences = ({
-  contexts,
-  userContexts,
-  className,
-  onContextClick,
-  defaultOpen,
-  enableTooltip,
-  onTooltipClick,
-  isExternalLink
-}: ContextReferencesProps) => {
-  const totalContextLength = (userContexts?.length || 0) + contexts.length
-  const isMultipleReferences = totalContextLength > 1
 
-  if (totalContextLength === 0) return null
-  return (
-    <Accordion
-      type="single"
-      collapsible
-      className={cn('bg-transparent text-foreground', className)}
-      defaultValue={defaultOpen ? 'references' : undefined}
-    >
-      <AccordionItem value="references" className="my-0 border-0">
-        <AccordionTrigger className="my-0 py-2 font-semibold">
-          <span className="mr-2">{`Read ${totalContextLength} file${
-            isMultipleReferences ? 's' : ''
-          }`}</span>
-        </AccordionTrigger>
-        <AccordionContent className="space-y-2">
-          {userContexts?.map((item, index) => {
-            return (
-              <ContextItem
-                key={`user-${index}`}
-                context={item}
-                onContextClick={ctx => onContextClick?.(ctx, true)}
-              />
-            )
-          })}
-          {contexts.map((item, index) => {
-            return (
-              <ContextItem
-                key={`assistant-${index}`}
-                context={item}
-                onContextClick={ctx => onContextClick?.(ctx, false)}
-                enableTooltip={enableTooltip}
-                onTooltipClick={onTooltipClick}
-                isExternalLink={isExternalLink}
-              />
-            )
-          })}
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
-  )
-}
+export const CodeReferences = forwardRef<
+  HTMLDivElement,
+  ContextReferencesProps
+>(
+  (
+    {
+      contexts,
+      userContexts,
+      className,
+      onContextClick,
+      defaultOpen,
+      enableTooltip,
+      onTooltipClick,
+      isExternalLink,
+      highlightIndex
+    },
+    ref
+  ) => {
+    const totalContextLength = (userContexts?.length || 0) + contexts.length
+    const isMultipleReferences = totalContextLength > 1
+
+    if (totalContextLength === 0) return null
+    return (
+      <Accordion
+        type="single"
+        collapsible
+        className={cn('bg-transparent text-foreground', className)}
+        defaultValue={defaultOpen ? 'references' : undefined}
+        ref={ref}
+      >
+        <AccordionItem value="references" className="my-0 border-0">
+          <AccordionTrigger className="my-0 py-2 font-semibold">
+            <span className="mr-2">{`Read ${totalContextLength} file${
+              isMultipleReferences ? 's' : ''
+            }`}</span>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-2">
+            {userContexts?.map((item, index) => {
+              return (
+                <ContextItem
+                  key={`user-${index}`}
+                  context={item}
+                  onContextClick={ctx => onContextClick?.(ctx, true)}
+                />
+              )
+            })}
+            {contexts.map((item, index) => {
+              return (
+                <ContextItem
+                  key={`assistant-${index}`}
+                  context={item}
+                  onContextClick={ctx => onContextClick?.(ctx, false)}
+                  enableTooltip={enableTooltip}
+                  onTooltipClick={onTooltipClick}
+                  isExternalLink={isExternalLink}
+                  isHighlighted={highlightIndex === index}
+                />
+              )
+            })}
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    )
+  }
+)
+CodeReferences.displayName = 'CodeReferences'
 
 function ContextItem({
   context,
@@ -533,7 +547,8 @@ function ContextItem({
   onContextClick,
   enableTooltip,
   onTooltipClick,
-  isExternalLink
+  isExternalLink,
+  isHighlighted
 }: {
   context: RelevantCodeContext
   clickable?: boolean
@@ -541,6 +556,7 @@ function ContextItem({
   enableTooltip?: boolean
   onTooltipClick?: () => void
   isExternalLink?: boolean
+  isHighlighted?: boolean
 }) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const isMultiLine =
@@ -567,7 +583,8 @@ function ContextItem({
         <div
           className={cn('rounded-md border p-2', {
             'cursor-pointer hover:bg-accent': clickable,
-            'cursor-default pointer-events-auto': !clickable
+            'cursor-default pointer-events-auto': !clickable,
+            'bg-accent transition-all': isHighlighted
           })}
           onClick={e => clickable && onContextClick?.(context)}
         >
