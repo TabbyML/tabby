@@ -207,6 +207,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                 className="w-[var(--radix-popover-trigger-width)] p-0"
                 align="start"
                 side="bottom"
+                sideOffset={-8}
               >
                 <Command className="transition-all">
                   <CommandInput
