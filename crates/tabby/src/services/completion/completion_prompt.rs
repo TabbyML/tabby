@@ -6,7 +6,7 @@ use tabby_common::{
     languages::get_language,
 };
 use tracing::warn;
-use tabby_common::config::RepositoryConfig;
+
 use super::{Segments, Snippet};
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;

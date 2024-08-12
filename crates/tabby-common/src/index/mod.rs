@@ -103,7 +103,11 @@ impl IndexSchema {
         BooleanQuery::new(self.source_sub_queries(corpus, source_id))
     }
 
-    pub fn source_sub_queries(&self, corpus: &str, source_id: &str) -> Vec<(Occur, Box<dyn Query>)> {
+    pub fn source_sub_queries(
+        &self,
+        corpus: &str,
+        source_id: &str,
+    ) -> Vec<(Occur, Box<dyn Query>)> {
         let source_id_query = TermQuery::new(
             Term::from_field_text(self.field_source_id, source_id),
             tantivy::schema::IndexRecordOption::Basic,
