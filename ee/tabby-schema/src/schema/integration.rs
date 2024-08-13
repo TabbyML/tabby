@@ -1,10 +1,10 @@
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 use strum::EnumIter;
 use url::Url;
 
 use crate::{juniper::relay::NodeType, Context, CoreError, Result};
-use chrono::{DateTime, Utc};
 
 #[derive(Clone, EnumIter, GraphQLEnum)]
 pub enum IntegrationKind {

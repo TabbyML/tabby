@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use juniper::{GraphQLObject, ID};
 use tabby_common::config::RepositoryConfig;
 
@@ -6,7 +7,6 @@ use super::{GitReference, RepositoryProvider};
 use crate::{
     integration::IntegrationKind, job::JobInfo, juniper::relay::NodeType, schema::Result, Context,
 };
-use chrono::{DateTime, Utc};
 
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]

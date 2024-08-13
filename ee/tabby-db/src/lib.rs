@@ -13,8 +13,8 @@ pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
 use sqlx::{
-    database::HasValueRef, query, query_scalar, sqlite::SqliteQueryResult, Decode, Pool, Sqlite,
-    SqlitePool, Type, ValueRef,
+    query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite,
+    SqlitePool,
 };
 pub use threads::{
     ThreadDAO, ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc, ThreadMessageDAO,
@@ -261,6 +261,7 @@ impl SQLXResultExt for Result<SqliteQueryResult, sqlx::Error> {
 #[cfg(test)]
 mod tests {
     use chrono::Duration;
+
     use super::*;
 
     #[tokio::test]

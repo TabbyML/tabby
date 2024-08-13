@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 use lazy_static::lazy_static;
 use strum::{EnumIter, IntoEnumIterator};
 
 use crate::schema::Result;
-use chrono::{DateTime, Utc};
 
 #[derive(GraphQLObject)]
 pub struct DiskUsageStats {

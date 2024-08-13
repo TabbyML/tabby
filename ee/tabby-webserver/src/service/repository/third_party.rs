@@ -205,7 +205,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
     ) -> Result<usize> {
         let usize = self
             .db
-            .delete_outdated_provided_repositories(integration_id.as_rowid()?, before.into())
+            .delete_outdated_provided_repositories(integration_id.as_rowid()?, before)
             .await?;
 
         self.job

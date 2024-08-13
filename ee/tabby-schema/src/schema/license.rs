@@ -1,12 +1,12 @@
 use std::error::Error;
 
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject};
 use serde::Deserialize;
 
 use super::CoreError;
 use crate::schema::Result;
-use chrono::{DateTime, Utc};
 
 #[derive(Debug, Deserialize, GraphQLEnum, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]

@@ -34,7 +34,7 @@ impl UserEventService for UserEventServiceImpl {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let events = self
             .db
-            .list_user_events(limit, skip_id, backwards, users, start.into(), end.into())
+            .list_user_events(limit, skip_id, backwards, users, start, end)
             .await?;
         Ok(events
             .into_iter()

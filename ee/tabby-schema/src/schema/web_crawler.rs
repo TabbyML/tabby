@@ -1,9 +1,9 @@
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use juniper::{GraphQLInputObject, GraphQLObject, ID};
 use validator::Validate;
 
 use crate::{job::JobInfo, juniper::relay::NodeType, Context, Result};
-use chrono::{DateTime, Utc};
 
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
