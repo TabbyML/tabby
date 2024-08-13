@@ -43,13 +43,11 @@ public class EditorListener implements IPartListener {
 					for (IEditorReference editorRef : editorReferences) {
 						IEditorPart editorPart = editorRef.getEditor(false);
 						if (editorPart instanceof ITextEditor textEditor) {
-							if (textEditor.isEditable()) {
-								IDocument document = LSPEclipseUtils.getDocument(textEditor.getEditorInput());
-								getLanguageServerWrapper().connectDocument(document);
-								logger.info("Connect " + LSPEclipseUtils.toUri(document) + " to LS when init.");
+							IDocument document = LSPEclipseUtils.getDocument(textEditor.getEditorInput());
+							getLanguageServerWrapper().connectDocument(document);
+							logger.info("Connect " + LSPEclipseUtils.toUri(document) + " to LS when init.");
 
-								getInlineCompletionService().register(textEditor);
-							}
+							getInlineCompletionService().register(textEditor);
 						}
 					}
 				}
@@ -64,7 +62,7 @@ public class EditorListener implements IPartListener {
 		try {
 			if (part != null) {
 				ITextEditor textEditor = (ITextEditor) part.getAdapter(ITextEditor.class);
-				if (textEditor != null && textEditor.isEditable()) {
+				if (textEditor != null) {
 					IDocument document = LSPEclipseUtils.getDocument(textEditor.getEditorInput());
 					getLanguageServerWrapper().connectDocument(document);
 					logger.info("Connect " + LSPEclipseUtils.toUri(document) + " to LS when partOpened.");
