@@ -9,15 +9,14 @@
 2. Ensure you have [Node.js](https://nodejs.org/en/download/) version 18 or higher installed. For package management, install [pnpm](https://pnpm.io/installation). Using [corepack](https://pnpm.io/installation#using-corepack) is the preferred method for installation.
 
 3. Clone the Tabby repository and install its dependencies:
-  ```bash
-  git clone https://github.com/TabbyML/tabby.git
-  cd tabby
-  pnpm install
-  cd clients/eclipse
-  pnpm turbo build
-  ```
-
-  This process will also build the `tabby-agent` and place it into the `clients/eclipse/plugin/tabby-agent/` directory.
+    ```bash
+    git clone https://github.com/TabbyML/tabby.git
+    cd tabby
+    pnpm install
+    cd clients/eclipse
+    pnpm turbo build
+    ```
+    This process will also build the `tabby-agent` and place it into the `clients/eclipse/plugin/tabby-agent/` directory.
 
 4. Import the project into your Eclipse workspace.  
   a. Open `File -> Import...`, select the `General -> Existing Projects into Workspace` option, and click `Next`.
