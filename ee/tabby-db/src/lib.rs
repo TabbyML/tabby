@@ -142,6 +142,14 @@ impl DbConn {
         })
     }
 
+    /// We forked sqlx to disable support for chrono::DateTime<Utc> as it's format is problematic
+    /// against SQLite `DATETIME("now")`.
+    ///
+    /// ```compile_fail
+    /// let output = sqlx::query_scalar::<_, String>("SELECT ?;").bind(chrono::Utc::now());
+    /// ```
+    fn _datetime_utc_shouldnt_be_bindable() {}
+
     pub async fn new(db_file: &Path) -> Result<Self> {
         tokio::fs::create_dir_all(db_file.parent().unwrap()).await?;
         let options = SqliteConnectOptions::new()
@@ -212,7 +220,7 @@ impl DbConn {
     pub async fn reset_registration_token(&self) -> Result<String> {
         let token = uuid::Uuid::new_v4().to_string();
         let result = token.clone();
-        let updated_at = chrono::Utc::now();
+        let updated_at = DateTimeUtc::now();
 
         let res = query!(
             "UPDATE registration_token SET token = ?, updated_at = ? WHERE id = 1",
