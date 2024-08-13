@@ -89,7 +89,13 @@ export function useThreadRun({
           thread: {
             userMessage: createMessageInput as CreateMessageInput
           },
-          options: threadRunOptions
+          options: {
+            ...threadRunOptions,
+            // use params to pass this
+            docQuery: {
+              content: createMessageInput?.content ?? ''
+            }
+          }
         }
       }
     })
@@ -179,6 +185,7 @@ export function useThreadRun({
     }
   }
 
+  // FIXME triggerWithOptions
   const triggerRequest = async (userMessage: CreateMessageInput) => {
     setIsLoading(true)
     setError(undefined)
