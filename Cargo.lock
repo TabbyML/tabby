@@ -6833,3 +6833,8 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
+
+[[patch.unused]]
+name = "sqlx-sqlite"
+version = "0.8.0"
+source = "git+https://github.com/wsxiaoys/sqlx#fac53b05a4fd13529d915f1350258a81d8b372aa"

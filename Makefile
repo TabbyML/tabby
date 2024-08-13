@@ -20,6 +20,9 @@ update-db-schema:
 caddy:
 	caddy run --watch --config ee/tabby-webserver/development/Caddyfile
 
+cargo-patch:
+	cargo patch
+
 bump-version:
 	cargo ws version --no-git-tag --force "*"
 

@@ -78,3 +78,7 @@ features = [
 
 [profile.dev.package]
 insta.opt-level = 3
+
+[patch.crates-io]
+# https://github.com/wsxiaoys/sqlx/tree/fix-0-7-4-remove-datetime-utc-encode
+sqlx-sqlite = { git = "https://github.com/wsxiaoys/sqlx", commit = "8ca573c" }
