@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use chrono::NaiveDateTime;
 use sqlx::{prelude::FromRow, query, query_as};
 use tabby_db_macros::query_paged_as;
 
@@ -13,8 +12,8 @@ pub struct ProvidedRepositoryDAO {
     pub name: String,
     pub git_url: String,
     pub active: bool,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
+    pub created_at: DateTimeUtc,
+    pub updated_at: DateTimeUtc,
 }
 
 impl DbConn {
@@ -54,7 +53,7 @@ impl DbConn {
     pub async fn get_provided_repository(&self, id: i64) -> Result<ProvidedRepositoryDAO> {
         let repo = query_as!(
             ProvidedRepositoryDAO,
-            "SELECT id, vendor_id, name, git_url, active, integration_id, created_at, updated_at FROM provided_repositories WHERE id = ?",
+            r#"SELECT id, vendor_id, name, git_url, active, integration_id, created_at as "created_at!: DateTimeUtc", updated_at as "updated_at!: DateTimeUtc" FROM provided_repositories WHERE id = ?"#,
             id
         )
         .fetch_one(&self.pool)
@@ -100,8 +99,8 @@ impl DbConn {
                 "git_url",
                 "active",
                 "integration_id",
-                "created_at",
-                "updated_at"
+                "created_at" as "created_at!: DateTimeUtc",
+                "updated_at" as "updated_at!: DateTimeUtc"
             ],
             limit,
             skip_id,

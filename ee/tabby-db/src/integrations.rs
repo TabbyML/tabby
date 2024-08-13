@@ -1,9 +1,8 @@
 use anyhow::{anyhow, Result};
-use chrono::NaiveDateTime;
 use sqlx::{prelude::FromRow, query, query_as};
 use tabby_db_macros::query_paged_as;
 
-use crate::DbConn;
+use crate::{DateTimeUtc, DbConn};
 
 #[derive(FromRow)]
 pub struct IntegrationDAO {
@@ -13,8 +12,8 @@ pub struct IntegrationDAO {
     pub display_name: String,
     pub access_token: String,
     pub api_base: Option<String>,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
+    pub created_at: DateTimeUtc,
+    pub updated_at: DateTimeUtc,
     pub synced: bool,
 }
 
@@ -48,8 +47,8 @@ impl DbConn {
                 display_name,
                 access_token,
                 api_base,
-                updated_at,
-                created_at,
+                updated_at as "updated_at!: DateTimeUtc",
+                created_at as "created_at!: DateTimeUtc",
                 synced
             FROM integrations WHERE id = ?;"#,
             id
@@ -155,8 +154,8 @@ impl DbConn {
                 "display_name",
                 "access_token",
                 "api_base",
-                "created_at",
-                "updated_at",
+                "created_at" as "created_at!: DateTimeUtc",
+                "updated_at" as "updated_at!: DateTimeUtc",
                 "synced"
             ],
             limit,

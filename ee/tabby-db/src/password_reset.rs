@@ -1,14 +1,14 @@
 use anyhow::{anyhow, Result};
-use chrono::{Duration, NaiveDateTime, Utc};
+use chrono::{Duration, Utc};
 use sqlx::{query, query_as};
 use uuid::Uuid;
 
-use crate::{sqlite_datetime_format, DbConn};
+use crate::{sqlite_datetime_format, DateTimeUtc, DbConn};
 
 pub struct PasswordResetDAO {
     pub user_id: i64,
     pub code: String,
-    pub created_at: NaiveDateTime,
+    pub created_at: DateTimeUtc,
 }
 
 impl DbConn {
@@ -35,7 +35,7 @@ impl DbConn {
     pub async fn get_password_reset_by_code(&self, code: &str) -> Result<Option<PasswordResetDAO>> {
         let password_reset = query_as!(
             PasswordResetDAO,
-            "SELECT user_id, code, created_at FROM password_reset WHERE code = ?;",
+            r#"SELECT user_id, code, created_at as "created_at!: DateTimeUtc" FROM password_reset WHERE code = ?;"#,
             code
         )
         .fetch_optional(&self.pool)
@@ -49,7 +49,7 @@ impl DbConn {
     ) -> Result<Option<PasswordResetDAO>> {
         let password_reset = query_as!(
             PasswordResetDAO,
-            "SELECT user_id, code, created_at FROM password_reset WHERE user_id = ?;",
+            r#"SELECT user_id, code, created_at as "created_at!: DateTimeUtc" FROM password_reset WHERE user_id = ?;"#,
             user_id
         )
         .fetch_optional(&self.pool)
@@ -69,9 +69,7 @@ impl DbConn {
             .filter(|user| user.active)
             .ok_or_else(|| anyhow!("Invalid code"))?;
 
-        if Utc::now().signed_duration_since(password_reset.created_at.and_utc())
-            > Duration::minutes(15)
-        {
+        if Utc::now().signed_duration_since(password_reset.created_at) > Duration::minutes(15) {
             Err(anyhow!("Invalid code"))
         } else {
             Ok(user_res.id)

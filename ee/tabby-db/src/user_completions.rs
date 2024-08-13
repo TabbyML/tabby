@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use cached::CachedAsync;
-use chrono::NaiveDateTime;
 use sqlx::{prelude::FromRow, query};
 
 use crate::{DateTimeUtc, DbConn};
@@ -17,8 +16,8 @@ pub struct UserCompletionDAO {
     pub selects: i64,
     pub dismisses: i64,
 
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
+    pub created_at: DateTimeUtc,
+    pub updated_at: DateTimeUtc,
 }
 
 #[derive(FromRow, Clone)]
@@ -181,7 +180,8 @@ impl DbConn {
     #[cfg(any(test, feature = "testutils"))]
     pub async fn fetch_one_user_completion(&self) -> Result<Option<UserCompletionDAO>> {
         Ok(
-            sqlx::query_as!(UserCompletionDAO, "SELECT user_id, completion_id, language, created_at, updated_at, views, selects, dismisses FROM user_completions")
+            sqlx::query_as!(UserCompletionDAO,
+                r#"SELECT user_id, completion_id, language, created_at as "created_at!: DateTimeUtc", updated_at as "updated_at!: DateTimeUtc", views, selects, dismisses FROM user_completions"#)
                 .fetch_optional(&self.pool)
                 .await?,
         )

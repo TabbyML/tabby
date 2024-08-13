@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use chrono::NaiveDateTime;
 use sqlx::{prelude::FromRow, query};
 use tabby_db_macros::query_paged_as;
 
@@ -12,7 +11,7 @@ pub struct UserEventDAO {
     pub id: i64,
     pub user_id: i64,
     pub kind: String,
-    pub created_at: NaiveDateTime,
+    pub created_at: DateTimeUtc,
     pub payload: Vec<u8>,
 }
 
@@ -61,7 +60,7 @@ impl DbConn {
         let events = query_paged_as!(
             UserEventDAO,
             "user_events",
-            ["id", "user_id", "kind", "created_at", "payload"],
+            ["id", "user_id", "kind", "created_at" as "created_at!: DateTimeUtc", "payload"],
             limit,
             skip_id,
             backwards,

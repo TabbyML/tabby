@@ -286,13 +286,6 @@ where
     }
 }
 
-// FIXME: migrate all DateTimeUtc usage to reduce complexity
-// #[deprecated(
-//     note = "use `DateTime<Utc>` instead, which can be specified in query! or query_as! in grammar like `created_at as \"created_at: DateTime<Utc>\"`"
-// )]
-// #[derive(Default, Clone)]
-// pub struct DateTimeUtc();
-
 pub type DateTimeUtc = DateTime<Utc>;
 
 pub fn sqlite_datetime_format(t: &DateTimeUtc) -> String {

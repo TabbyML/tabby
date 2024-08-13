@@ -1,10 +1,9 @@
 use anyhow::{anyhow, Result};
-use chrono::NaiveDateTime;
 use sqlx::{prelude::FromRow, query};
 use tabby_db_macros::query_paged_as;
 use uuid::Uuid;
 
-use super::DbConn;
+use super::{DateTimeUtc, DbConn};
 use crate::SQLXResultExt;
 
 #[derive(FromRow)]
@@ -13,7 +12,7 @@ pub struct InvitationDAO {
     pub email: String,
     pub code: String,
 
-    pub created_at: NaiveDateTime,
+    pub created_at: DateTimeUtc,
 }
 
 /// db read/write operations for `invitations` table
@@ -24,7 +23,7 @@ impl DbConn {
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<InvitationDAO>> {
-        let invitations = query_paged_as!(InvitationDAO, "invitations", ["id", "email", "code", "created_at"!], limit, skip_id, backwards)
+        let invitations = query_paged_as!(InvitationDAO, "invitations", ["id", "email", "code", "created_at" as "created_at!: DateTimeUtc"], limit, skip_id, backwards)
             .fetch_all(&self.pool)
             .await?;
 
@@ -34,7 +33,7 @@ impl DbConn {
     pub async fn get_invitation_by_code(&self, code: &str) -> Result<Option<InvitationDAO>> {
         let token = sqlx::query_as!(
             InvitationDAO,
-            r#"SELECT id as "id!", email, code, created_at as "created_at!" FROM invitations WHERE code = ?"#,
+            r#"SELECT id as "id!", email, code, created_at as "created_at!: DateTimeUtc" FROM invitations WHERE code = ?"#,
             code
         )
         .fetch_optional(&self.pool)
@@ -46,7 +45,7 @@ impl DbConn {
     pub async fn get_invitation_by_email(&self, email: &str) -> Result<Option<InvitationDAO>> {
         let token = sqlx::query_as!(
             InvitationDAO,
-            r#"SELECT id as "id!", email, code, created_at as "created_at!" FROM invitations WHERE email = ?"#,
+            r#"SELECT id as "id!", email, code, created_at as "created_at!: DateTimeUtc" FROM invitations WHERE email = ?"#,
             email
         )
         .fetch_optional(&self.pool)
@@ -74,7 +73,7 @@ impl DbConn {
 
         let invitation = sqlx::query_as!(
             InvitationDAO,
-            r#"SELECT id as "id!", email, code, created_at as "created_at!" FROM invitations WHERE id = ?"#,
+            r#"SELECT id as "id!", email, code, created_at as "created_at!: DateTimeUtc" FROM invitations WHERE id = ?"#,
             id
         ).fetch_one(&self.pool).await?;
 

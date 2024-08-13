@@ -284,8 +284,8 @@ fn to_provided_repository(value: ProvidedRepositoryDAO, job_info: JobInfo) -> Pr
         active: value.active,
         display_name: value.name,
         vendor_id: value.vendor_id,
-        created_at: value.created_at.and_utc(),
-        updated_at: value.updated_at.and_utc(),
+        created_at: value.created_at,
+        updated_at: value.updated_at,
         refs: tabby_git::list_refs(&RepositoryConfig::new(&value.git_url).dir())
             .unwrap_or_default()
             .into_iter()
