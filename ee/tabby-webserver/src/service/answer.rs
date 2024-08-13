@@ -19,12 +19,14 @@ use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     repository::RepositoryService,
     thread::{
-        self, CodeQueryInput, DocQueryInput, MessageAttachmentCode, ThreadRunItem,
-        ThreadRunOptionsInput,
+        self, CodeQueryInput, DocQueryInput, MessageAttachment, MessageAttachmentCode,
+        MessageAttachmentDoc, ThreadRunItem, ThreadRunOptionsInput,
     },
     web_crawler::WebCrawlerService,
 };
 use tracing::{debug, error, warn};
+
+use crate::bail;
 
 pub struct AnswerService {
     chat: Arc<dyn ChatCompletionStream>,
@@ -196,89 +198,51 @@ impl AnswerService {
             };
 
             let git_url = options.code_query.as_ref().map(|x| x.git_url.clone());
+            let mut attachment = MessageAttachment::default();
 
             // 1. Collect relevant code if needed.
-            let relevant_code = if let Some(code_query) = options.code_query.as_ref() {
-                self.collect_relevant_code(code_query).await
-            } else {
-                vec![]
-            };
-
-            relevant_code.is_empty();
-
-            // 2. Collect relevant docs if needed.
-            let relevant_docs = if let Some(doc_query) = options.doc_query.as_ref() {
-                self.collect_relevant_docs(git_url.as_deref(), doc_query)
-                    .await
-            } else {
-                vec![]
-            };
-
-            if !relevant_docs.is_empty() {
-                yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
-                    relevant_code
-                        .iter()
-                        .map(|x| MessageAttachmentCode {
+            if let Some(code_query) = options.code_query.as_ref() {
+                attachment.code = self.collect_relevant_code(code_query).await.iter()
+                        .map(|x| MessageAttachmentCode{
                             filepath: Some(x.doc.filepath.clone()),
                             content: x.doc.body.clone(),
                         })
-                        .collect::<Vec<_>>(),
+                        .collect::<Vec<_>>();
+            };
+
+            if !attachment.code.is_empty() {
+                yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(attachment.code.clone()));
+            }
+
+            // 2. Collect relevant docs if needed.
+            if let Some(doc_query) = options.doc_query.as_ref() {
+                attachment.doc = self.collect_relevant_docs(git_url.as_deref(), doc_query)
+                    .await.iter()
+                        .map(|x| MessageAttachmentDoc {
+                            title: x.doc.title.clone(),
+                            content: x.doc.snippet.clone(),
+                            link: x.doc.link.clone(),
+                        })
+                        .collect::<Vec<_>>();
+            };
+
+            if !attachment.doc.is_empty() {
+                yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(
+                    attachment.doc.clone()
                 ));
             }
 
             // 3. Generate relevant questions.
             if options.generate_relevant_questions {
                 let questions = self
-                    .generate_relevant_questions(&relevant_code, &relevant_docs, &query.content)
+                    .generate_relevant_questions_v2(&attachment, &query.content)
                     .await;
                 yield Ok(ThreadRunItem::ThreadRelevantQuestions(questions));
             }
 
             // 4. Prepare requesting LLM
             let request = {
-                let code_snippets: &[MessageAttachmentCode] = &query
-                    .attachment
-                    .code;
-
-                let override_user_prompt = if !code_snippets.is_empty()
-                    || !relevant_code.is_empty()
-                    || !relevant_docs.is_empty()
-                {
-                    self.generate_prompt(
-                        code_snippets,
-                        &relevant_code,
-                        &relevant_docs,
-                        &query.content,
-                    )
-                    .await
-                } else {
-                    query.content.clone()
-                };
-
-                // Convert `messages` to CreateChatCompletionRequest
-                let chat_messages: Vec<_> = messages
-                    .iter()
-                    .enumerate()
-                    .map(|(i, x)| {
-                        let role = match x.role {
-                            thread::Role::Assistant => Role::Assistant,
-                            thread::Role::User => Role::User,
-                        };
-
-                        let is_last = i == messages.len() - 1;
-                        let content = if is_last {
-                            override_user_prompt.clone()
-                        } else {
-                            x.content.clone()
-                        };
-
-                        ChatCompletionRequestMessage::System(ChatCompletionRequestSystemMessage {
-                            content,
-                            role,
-                            name: None,
-                        })
-                    })
-                    .collect();
+                let chat_messages = convert_messages_to_chat_completion_request(&messages, &attachment)?;
 
                 CreateChatCompletionRequestArgs::default()
                     .messages(chat_messages)
@@ -404,6 +368,75 @@ impl AnswerService {
         hits
     }
 
+    async fn generate_relevant_questions_v2(
+        &self,
+        attachment: &MessageAttachment,
+        question: &str,
+    ) -> Vec<String> {
+        if attachment.code.is_empty() && attachment.doc.is_empty() {
+            return vec![];
+        }
+
+        let snippets: Vec<String> = attachment
+            .code
+            .iter()
+            .map(|snippet| {
+                if let Some(filepath) = &snippet.filepath {
+                    format!("``` title=\"{}\"\n{}\n```", filepath, snippet.content)
+                } else {
+                    format!("```\n{}\n```", snippet.content)
+                }
+            })
+            .chain(
+                attachment
+                    .doc
+                    .iter()
+                    .map(|doc| format!("```\n{}\n```", doc.content)),
+            )
+            .collect();
+
+        let context: String = snippets.join("\n\n");
+        let prompt = format!(
+            r#"
+You are a helpful assistant that helps the user to ask related questions, based on user's original question and the related contexts. Please identify worthwhile topics that can be follow-ups, and write questions no longer than 20 words each. Please make sure that specifics, like events, names, locations, are included in follow up questions so they can be asked standalone. For example, if the original question asks about "the Manhattan project", in the follow up question, do not just say "the project", but use the full name "the Manhattan project". Your related questions must be in the same language as the original question.
+
+Here are the contexts of the question:
+
+{context}
+
+Remember, based on the original question and related contexts, suggest three such further questions. Do NOT repeat the original question. Each related question should be no longer than 20 words. Here is the original question:
+
+{question}
+"#
+        );
+
+        let request = CreateChatCompletionRequestArgs::default()
+            .messages(vec![ChatCompletionRequestMessage::User(
+                ChatCompletionRequestUserMessageArgs::default()
+                    .content(prompt)
+                    .build()
+                    .expect("Failed to create ChatCompletionRequestUserMessage"),
+            )])
+            .build()
+            .expect("Failed to create ChatCompletionRequest");
+
+        let chat = self.chat.clone();
+        let s = chat
+            .chat(request)
+            .await
+            .expect("Failed to create chat completion stream");
+        let content = s.choices[0]
+            .message
+            .content
+            .as_deref()
+            .expect("Failed to get content from chat completion");
+        content
+            .lines()
+            .map(remove_bullet_prefix)
+            .filter(|x| !x.is_empty())
+            .collect()
+    }
+
     async fn generate_relevant_questions(
         &self,
         relevant_code: &[CodeSearchHit],
@@ -490,7 +523,7 @@ Remember, based on the original question and related contexts, suggest three suc
             .iter()
             .map(|snippet| {
                 if let Some(filepath) = &snippet.filepath {
-                    format!("```title=\"{}\"\n{}\n```", filepath, snippet.content)
+                    format!("``` title=\"{}\"\n{}\n```", filepath, snippet.content)
                 } else {
                     format!("```\n{}\n```", snippet.content)
                 }
@@ -566,4 +599,116 @@ fn set_content(message: &mut ChatCompletionRequestMessage, content: String) {
             panic!("Unexpected message type");
         }
     }
+}
+
+fn convert_messages_to_chat_completion_request(
+    messages: &[tabby_schema::thread::Message],
+    attachment: &tabby_schema::thread::MessageAttachment,
+) -> anyhow::Result<Vec<ChatCompletionRequestMessage>> {
+    let mut output = vec![];
+    output.reserve(messages.len());
+
+    for i in 0..messages.len() - 1 {
+        let x = &messages[i];
+        let role = match x.role {
+            thread::Role::Assistant => Role::Assistant,
+            thread::Role::User => Role::User,
+        };
+
+        let content = if role == Role::User {
+            if i % 2 != 0 {
+                bail!("User message must be followed by assistant message");
+            }
+
+            let y = &messages[i + 1];
+
+            build_user_prompt(x, &y.attachment)
+        } else {
+            x.content.clone()
+        };
+
+        output.push(ChatCompletionRequestMessage::System(
+            ChatCompletionRequestSystemMessage {
+                content,
+                role,
+                name: None,
+            },
+        ));
+    }
+
+    output.push(ChatCompletionRequestMessage::System(
+        ChatCompletionRequestSystemMessage {
+            content: build_user_prompt(&messages[messages.len() - 1], attachment),
+            role: Role::User,
+            name: None,
+        },
+    ));
+
+    Ok(output)
+}
+
+fn build_user_prompt(
+    user_message: &tabby_schema::thread::Message,
+    assistant_attachment: &tabby_schema::thread::MessageAttachment,
+) -> String {
+    // If the user message has no code attachment and the assistant message has no code attachment or doc attachment, return the user message directly.
+    if user_message.attachment.code.is_empty()
+        && assistant_attachment.code.is_empty()
+        && assistant_attachment.doc.is_empty()
+    {
+        return user_message.content.clone();
+    }
+
+    let snippets: Vec<String> = user_message
+        .attachment
+        .code
+        .iter()
+        .map(|snippet| {
+            if let Some(filepath) = &snippet.filepath {
+                format!("```title=\"{}\"\n{}\n```", filepath, snippet.content)
+            } else {
+                format!("```\n{}\n```", snippet.content)
+            }
+        })
+        .chain(assistant_attachment.code.iter().map(|snippet| {
+            if let Some(filepath) = &snippet.filepath {
+                format!("```title=\"{}\"\n{}\n```", filepath, snippet.content)
+            } else {
+                format!("```\n{}\n```", snippet.content)
+            }
+        }))
+        .chain(
+            assistant_attachment
+                .doc
+                .iter()
+                .map(|doc| format!("```\n{}\n```", doc.content)),
+        )
+        .collect();
+
+    let citations: Vec<String> = snippets
+        .iter()
+        .enumerate()
+        .map(|(i, snippet)| format!("[[citation:{}]]\n{}", i + 1, *snippet))
+        .collect();
+
+    let context = citations.join("\n\n");
+    let question = &user_message.content;
+
+    format!(
+        r#"
+You are a professional developer AI assistant. You are given a user question, and please write clean, concise and accurate answer to the question. You will be given a set of related contexts to the question, each starting with a reference number like [[citation:x]], where x is a number. Please use the context and cite the context at the end of each sentence if applicable.
+
+Your answer must be correct, accurate and written by an expert using an unbiased and professional tone. Please limit to 1024 tokens. Do not give any information that is not related to the question, and do not repeat. Say "information is missing on" followed by the related topic, if the given context do not provide sufficient information.
+
+Please cite the contexts with the reference numbers, in the format [citation:x]. If a sentence comes from multiple contexts, please list all applicable citations, like [citation:3][citation:5]. Other than code and specific names and citations, your answer must be written in the same language as the question.
+
+Here are the set of contexts:
+
+{context}
+
+Remember, don't blindly repeat the contexts verbatim. When possible, give code snippet to demonstrate the answer. And here is the user question:
+
+{question}
+"#
+    )
 }
