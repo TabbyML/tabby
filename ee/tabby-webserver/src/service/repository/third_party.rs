@@ -205,7 +205,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
     ) -> Result<usize> {
         let usize = self
             .db
-            .delete_outdated_provided_repositories(integration_id.as_rowid()?, before.into())
+            .delete_outdated_provided_repositories(integration_id.as_rowid()?, before)
             .await?;
 
         self.job
@@ -284,8 +284,8 @@ fn to_provided_repository(value: ProvidedRepositoryDAO, job_info: JobInfo) -> Pr
         active: value.active,
         display_name: value.name,
         vendor_id: value.vendor_id,
-        created_at: *value.created_at,
-        updated_at: *value.updated_at,
+        created_at: value.created_at,
+        updated_at: value.updated_at,
         refs: tabby_git::list_refs(&RepositoryConfig::new(&value.git_url).dir())
             .unwrap_or_default()
             .into_iter()

@@ -134,7 +134,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let id = user.id.as_rowid()?;
         let existing = self.db.get_password_reset_by_user_id(id).await?;
         if let Some(existing) = existing {
-            if Utc::now().signed_duration_since(*existing.created_at) < Duration::minutes(5) {
+            if Utc::now().signed_duration_since(existing.created_at) < Duration::minutes(5) {
                 bail!("A password reset has been requested recently, please try again later");
             }
         }
@@ -286,7 +286,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             bail!("Unknown error");
         };
 
-        let resp = RefreshTokenResponse::new(access_token, new_token, *refresh_token.expires_at);
+        let resp = RefreshTokenResponse::new(access_token, new_token, refresh_token.expires_at);
 
         Ok(resp)
     }
