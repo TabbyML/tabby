@@ -26,7 +26,6 @@ import { useEnableDeveloperMode, useEnableSearch } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
-import { useTabbyAnswer } from '@/lib/hooks/use-tabby-answer'
 import fetcher from '@/lib/tabby/fetcher'
 import {
   AnswerEngineExtraContext,
@@ -80,7 +79,14 @@ import { ImperativePanelHandle } from 'react-resizable-panels'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
-import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
+import {
+  Maybe,
+  MessageAttachmentCode,
+  MessageAttachmentDoc,
+  RepositoryListQuery,
+  ThreadRunItem
+} from '@/lib/gql/generates/graphql'
+import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { repositoryListQuery } from '@/lib/tabby/query'
 import {
   Tooltip,
@@ -91,16 +97,11 @@ import { CodeReferences } from '@/components/chat/question-answer'
 
 import { DevPanel } from './dev-panel'
 
-interface Source {
-  title: string
-  link: string
-  snippet: string
-}
-
 type ConversationMessage = Message & {
-  relevant_code?: AnswerResponse['relevant_code']
-  relevant_documents?: AnswerResponse['relevant_documents']
-  relevant_questions?: string[]
+  relevant_code?: ThreadRunItem['threadAssistantMessageAttachmentsCode']
+  relevant_documents?: ThreadRunItem['threadAssistantMessageAttachmentsDoc']
+  relevant_questions?: ThreadRunItem['threadRelevantQuestions']
+  // FIXME remove code_query?
   code_query?: AnswerRequest['code_query']
   isLoading?: boolean
   error?: string
@@ -166,8 +167,14 @@ export function Search() {
   })
   const repositoryList = data?.repositoryList
 
-  const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
-    fetcher: tabbyFetcher
+  const { triggerRequest, isLoading, error, answer, stop } = useThreadRun({
+    threadRunOptions: {
+      generateRelevantQuestions: true,
+      codeQuery: {
+        gitUrl: 'https://github.com/TabbyML/tabby',
+        content: 'what does chat_completions do'
+      }
+    }
   })
 
   const isLoadingRef = useLatest(isLoading)
@@ -260,16 +267,20 @@ export function Search() {
   // Handling the stream response from useTabbyAnswer
   useEffect(() => {
     const newConversation = [...conversation]
+    // FIXME no currentAnswer, just the lastest answer
     const currentAnswer = newConversation.find(
       item => item.id === currentLoadindId
     )
 
     if (!currentAnswer) return
+    // FIXME modify user message id and assistant message id
+    // currentAnswer.id = answer?.threadAssistantMessageCreated || currentAnswer.id
 
-    currentAnswer.content = answer?.answer_delta || ''
-    currentAnswer.relevant_code = answer?.relevant_code
-    currentAnswer.relevant_documents = answer?.relevant_documents
-    currentAnswer.relevant_questions = answer?.relevant_questions
+    currentAnswer.content = answer?.threadAssistantMessageContentDelta || ''
+    currentAnswer.relevant_code = answer?.threadAssistantMessageAttachmentsCode
+    currentAnswer.relevant_documents =
+      answer?.threadAssistantMessageAttachmentsDoc
+    currentAnswer.relevant_questions = answer?.threadRelevantQuestions
     currentAnswer.isLoading = isLoading
     setConversation(newConversation)
   }, [isLoading, answer])
@@ -337,6 +348,7 @@ export function Search() {
   }, [devPanelOpen])
 
   const onSubmitSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
+    // FIXME change request payload
     const previousMessages = conversation.map(message => ({
       role: message.role,
       id: message.id,
@@ -356,28 +368,25 @@ export function Search() {
       isLoading: true
     }
 
-    const _repository = ctx?.repository || extraContext?.repository
-    const code_query: AnswerRequest['code_query'] = _repository
-      ? { git_url: _repository.gitUrl, content: '' }
-      : undefined
-    const answerRequest: AnswerRequest = {
-      messages: [...previousMessages, newUserMessage],
-      doc_query: true,
-      generate_relevant_questions: true,
-      collect_relevant_code_using_user_message: true,
-      code_query
-    }
+    // const _repository = ctx?.repository || extraContext?.repository
+    // const code_query: AnswerRequest['code_query'] = _repository
+    //   ? { git_url: _repository.gitUrl, content: '' }
+    //   : undefined
 
     setCurrentLoadingId(newAssistantId)
     setConversation(
       [...conversation].concat([newUserMessage, newAssistantMessage])
     )
-    triggerRequest(answerRequest)
+
+    triggerRequest({
+      content: question
+    })
 
     // Update HTML page title
     if (!title) setTitle(question)
   }
 
+  // FIXME
   const onRegenerateResponse = (
     id: string,
     conversationData?: ConversationMessage[]
@@ -607,7 +616,9 @@ type AnswerBlockContextValue = {
   onCodeCitationMouseEnter: (index: number) => void
   onCodeCitationMouseLeave: (index: number) => void
   onCodeCitationClick: (
-    data: ArrayElementType<AnswerResponse['relevant_code']>
+    data: ArrayElementType<
+      ThreadRunItem['threadAssistantMessageAttachmentsCode']
+    >
   ) => void
 }
 const AnswerBlockContext = createContext<AnswerBlockContextValue>(
@@ -644,7 +655,7 @@ function AnswerBlock({
       })
       .trim()
     const citations = answer.relevant_documents
-      .map((relevent, idx) => `[${idx + 1}] ${relevent.doc.link}`)
+      .map((relevent, idx) => `[${idx + 1}] ${relevent.link}`)
       .join('\n')
     return `${content}\n\nCitations:\n${citations}`
   }
@@ -657,30 +668,32 @@ function AnswerBlock({
       0.5 * Math.floor(answer.relevant_documents.length / 4)
     : 0
 
-  const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
-    return (
-      answer?.relevant_code?.map(hit => {
-        const { scores, doc } = hit
-        const start_line = doc?.start_line ?? 0
-        const lineCount = doc.body.split('\n').length
-        const end_line = start_line + lineCount - 1
+  // FIXME
+  // const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
+  //   return (
+  //     answer?.relevant_code?.map(hit => {
+  //       const { scores, doc } = hit
+  //       const start_line = doc?.start_line ?? 0
+  //       const lineCount = doc.body.split('\n').length
+  //       const end_line = start_line + lineCount - 1
 
-        return {
-          kind: 'file',
-          range: {
-            start: start_line,
-            end: end_line
-          },
-          filepath: doc.filepath,
-          content: doc.body,
-          git_url: doc.git_url,
-          extra: {
-            scores
-          }
-        }
-      }) ?? []
-    )
-  }, [answer?.relevant_code])
+  //       return {
+  //         kind: 'file',
+  //         range: {
+  //           start: start_line,
+  //           end: end_line
+  //         },
+  //         filepath: doc.filepath,
+  //         content: doc.body,
+  //         git_url: doc.git_url,
+  //         extra: {
+  //           scores
+  //         }
+  //       }
+  //     }) ?? []
+  //   )
+  // }, [answer?.relevant_code])
+  const relevantCodeContexts: RelevantCodeContext[] = []
 
   const onCodeContextClick = (ctx: Context) => {
     if (!ctx.filepath) return
@@ -711,19 +724,16 @@ function AnswerBlock({
     setRelevantCodeHighlightIndex(undefined)
   }
 
-  const onCodeCitationClick = (
-    code: ArrayElementType<AnswerResponse['relevant_code']>
-  ) => {
-    const { doc } = code
-    const start_line = doc?.start_line ?? 0
-    const lineCount = doc.body.split('\n').length
+  const onCodeCitationClick = (code: MessageAttachmentCode) => {
+    const start_line = code?.start_line ?? 0
+    const lineCount = code.content.split('\n').length
     const end_line = start_line + lineCount - 1
     // FIXME utils
-    if (!doc.filepath) return
+    if (!code.filepath) return
     const url = new URL(`${window.location.origin}/files`)
     const searchParams = new URLSearchParams()
-    searchParams.append('redirect_filepath', doc.filepath)
-    searchParams.append('redirect_git_url', doc.git_url)
+    searchParams.append('redirect_filepath', code.filepath)
+    searchParams.append('redirect_git_url', code.git_url)
     url.search = searchParams.toString()
 
     const lineHash = formatLineHashForCodeBrowser({
@@ -764,7 +774,7 @@ function AnswerBlock({
             >
               {answer.relevant_documents.map((source, index) => (
                 <SourceCard
-                  key={source.doc.link + index}
+                  key={source.link + index}
                   conversationId={answer.id}
                   source={source}
                   showMore={showMoreSource}
@@ -908,12 +918,12 @@ function SourceCard({
   showDevTooltip
 }: {
   conversationId: string
-  source: ArrayElementType<AnswerResponse['relevant_documents']>
+  source: MessageAttachmentDoc
   showMore: boolean
   showDevTooltip?: boolean
 }) {
   const { setDevPanelOpen, setConversationIdForDev } = useContext(SearchContext)
-  const { hostname } = new URL(source.doc.link)
+  const { hostname } = new URL(source.link)
   const [devTooltipOpen, setDevTooltipOpen] = useState(false)
 
   const onOpenChange = (v: boolean) => {
@@ -942,12 +952,12 @@ function SourceCard({
               : `${SOURCE_CARD_STYLE.compress}rem`,
             transition: 'all 0.25s ease-out'
           }}
-          onClick={() => window.open(source.doc.link)}
+          onClick={() => window.open(source.link)}
         >
           <div className="flex flex-1 flex-col justify-between gap-y-1">
             <div className="flex flex-col gap-y-0.5">
               <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-                {source.doc.title}
+                {source.title}
               </p>
               <p
                 className={cn(
@@ -958,7 +968,7 @@ function SourceCard({
                   }
                 )}
               >
-                {normalizedText(source.doc.snippet)}
+                {normalizedText(source.content)}
               </p>
             </div>
             <div className="flex items-center text-xs text-muted-foreground">
@@ -977,7 +987,7 @@ function SourceCard({
         className="cursor-pointer p-2"
         onClick={onTootipClick}
       >
-        <p>Score: {source.score}</p>
+        {/* <p>Score: {source.score}</p> */}
       </TooltipContent>
     </Tooltip>
   )
@@ -985,38 +995,34 @@ function SourceCard({
 
 type RelevantDocItem = {
   type: 'doc'
-  data: ArrayElementType<AnswerResponse['relevant_documents']>
+  data: MessageAttachmentDoc
 }
 
 type RelevantCodeItem = {
   type: 'code'
-  data: ArrayElementType<AnswerResponse['relevant_code']>
+  data: MessageAttachmentCode
 }
 
-type RelevantSources = Array<RelevantDocItem | RelevantCodeItem>
+type MessageAttachments = Array<RelevantDocItem | RelevantCodeItem>
 
 function MessageMarkdown({
   message,
   headline = false,
   relevantDocuments,
-  relevantCode,
-  onRelevantCodeClick
+  relevantCode
 }: {
   message: string
   headline?: boolean
-  relevantDocuments?: AnswerResponse['relevant_documents']
-  relevantCode?: AnswerResponse['relevant_code']
-  onRelevantCodeClick?: (
-    code: ArrayElementType<AnswerResponse['relevant_code']>
-  ) => void
+  relevantDocuments?: Maybe<Array<MessageAttachmentDoc>>
+  relevantCode?: Maybe<Array<MessageAttachmentCode>>
 }) {
-  const relevantSources: RelevantSources = useMemo(() => {
-    const docs: RelevantSources =
+  const messageAttachments: MessageAttachments = useMemo(() => {
+    const docs: MessageAttachments =
       relevantDocuments?.map(item => ({
         type: 'doc',
         data: item
       })) ?? []
-    const code: RelevantSources =
+    const code: MessageAttachments =
       relevantCode?.map(item => ({
         type: 'code',
         data: item
@@ -1037,7 +1043,7 @@ function MessageMarkdown({
             ? parseInt(citationNumberMatch[0], 10)
             : null
           const citationSource = !isNil(citationIndex)
-            ? relevantSources?.[citationIndex - 1]
+            ? messageAttachments?.[citationIndex - 1]
             : undefined
           const citationType = citationSource?.type
           const showcitation = citationSource && !isNil(citationIndex)
@@ -1154,17 +1160,17 @@ function RelevantDocumentHoverCard({
   relevantDocument,
   citationIndex
 }: {
-  relevantDocument: ArrayElementType<AnswerResponse['relevant_documents']>
+  relevantDocument: MessageAttachmentDoc
   citationIndex: number
 }) {
-  const sourceUrl = relevantDocument ? new URL(relevantDocument.doc.link) : null
+  const sourceUrl = relevantDocument ? new URL(relevantDocument.link) : null
 
   return (
     <HoverCard>
       <HoverCardTrigger>
         <span
           className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
-          onClick={() => window.open(relevantDocument.doc.link)}
+          onClick={() => window.open(relevantDocument.link)}
         >
           {citationIndex}
         </span>
@@ -1180,12 +1186,12 @@ function RelevantDocumentHoverCard({
           </div>
           <p
             className="m-0 cursor-pointer font-bold leading-none transition-opacity hover:opacity-70"
-            onClick={() => window.open(relevantDocument.doc.link)}
+            onClick={() => window.open(relevantDocument.link)}
           >
-            {relevantDocument.doc.title}
+            {relevantDocument.title}
           </p>
           <p className="m-0 line-clamp-4 leading-none">
-            {normalizedText(relevantDocument.doc.snippet)}
+            {normalizedText(relevantDocument.content)}
           </p>
         </div>
       </HoverCardContent>
@@ -1197,7 +1203,9 @@ function RelevantCodeHoverCard({
   relevantCode,
   citationIndex
 }: {
-  relevantCode: ArrayElementType<AnswerResponse['relevant_code']>
+  relevantCode: ArrayElementType<
+    ThreadRunItem['threadAssistantMessageAttachmentsCode']
+  >
   citationIndex: number
 }) {
   const {
@@ -1298,45 +1306,3 @@ function ErrorMessageBlock({ error = 'Fail to fetch' }: { error?: string }) {
     </MemoizedReactMarkdown>
   )
 }
-
-// function ContextItem({
-//   context,
-//   clickable = true
-// }: {
-//   context: Context
-//   clickable?: boolean
-// }) {
-//   const { onNavigateToContext } = React.useContext(ChatContext)
-//   const isMultiLine =
-//     !isNil(context.range?.start) &&
-//     !isNil(context.range?.end) &&
-//     context.range.start < context.range.end
-//   const pathSegments = context.filepath.split('/')
-//   const fileName = pathSegments[pathSegments.length - 1]
-//   const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
-//   return (
-//     <div
-//       className={cn('rounded-md border p-2', {
-//         'cursor-pointer hover:bg-accent': clickable,
-//         'cursor-default pointer-events-auto': !clickable
-//       })}
-//       onClick={e => clickable && onNavigateToContext?.(context)}
-//     >
-//       <div className="flex items-center gap-1 overflow-hidden">
-//         <IconFile className="shrink-0" />
-//         <div className="flex-1 truncate" title={context.filepath}>
-//           <span>{fileName}</span>
-//           {context.range?.start && (
-//             <span className="text-muted-foreground">
-//               :{context.range.start}
-//             </span>
-//           )}
-//           {isMultiLine && (
-//             <span className="text-muted-foreground">-{context.range.end}</span>
-//           )}
-//           <span className="ml-2 text-xs text-muted-foreground">{path}</span>
-//         </div>
-//       </div>
-//     </div>
-//   )
-// }

@@ -41,6 +41,7 @@ import Stats from './components/stats'
 
 import 'aos/dist/aos.css'
 
+import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { AnswerEngineExtraContext } from '@/lib/types'
 import { Separator } from '@/components/ui/separator'
 
@@ -60,6 +61,8 @@ function MainPanel() {
   const elementRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+
+  useThreadRun({})
 
   // Initialize the page's entry animation
   useEffect(() => {

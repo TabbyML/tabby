@@ -2,6 +2,7 @@ import { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { authExchange } from '@urql/exchange-auth'
 import { cacheExchange } from '@urql/exchange-graphcache'
 import { relayPagination } from '@urql/exchange-graphcache/extras'
+import { createClient as createWSClient } from 'graphql-ws'
 import { jwtDecode } from 'jwt-decode'
 import { isNil } from 'lodash-es'
 import { FieldValues, UseFormReturn } from 'react-hook-form'
@@ -12,6 +13,7 @@ import {
   errorExchange,
   fetchExchange,
   OperationResult,
+  subscriptionExchange,
   useMutation as useUrqlMutation
 } from 'urql'
 
@@ -91,6 +93,13 @@ function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
     }
   }
 }
+
+const wsClient = createWSClient({
+  url: 'http://localhost:8080/subscriptions',
+  connectionParams: {
+    authorization: `Bearer auth_9949a19e20d141b49f06b7e7ee23175d`
+  }
+})
 
 const client = new Client({
   url: `/graphql`,
@@ -342,7 +351,18 @@ const client = new Client({
         }
       }
     }),
-    fetchExchange
+    fetchExchange,
+    subscriptionExchange({
+      forwardSubscription(request) {
+        const input = { ...request, query: request.query || '' }
+        return {
+          subscribe(sink) {
+            const unsubscribe = wsClient.subscribe(input, sink)
+            return { unsubscribe }
+          }
+        }
+      }
+    })
   ]
 })
 
