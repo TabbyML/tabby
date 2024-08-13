@@ -64,7 +64,7 @@ pub struct CodeSearchQuery {
     pub content: String,
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CodeSearchParams {
     pub min_embedding_score: f32,
     pub min_bm25_score: f32,
@@ -84,8 +84,8 @@ impl Default for CodeSearchParams {
             min_bm25_score: 8.0,
             min_rrf_score: 0.028,
 
-            num_to_return: 5,
-            num_to_score: 10,
+            num_to_return: 20,
+            num_to_score: 40,
         }
     }
 }

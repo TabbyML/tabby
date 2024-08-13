@@ -244,9 +244,13 @@ impl CompletionService {
         prompt_template: Option<String>,
     ) -> Self {
         Self {
-            config,
             engine,
-            prompt_builder: completion_prompt::PromptBuilder::new(prompt_template, Some(code)),
+            prompt_builder: completion_prompt::PromptBuilder::new(
+                &config.code_search_params,
+                prompt_template,
+                Some(code),
+            ),
+            config,
             logger,
         }
     }

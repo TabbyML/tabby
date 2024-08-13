@@ -10,11 +10,11 @@ use async_openai::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
-use tabby_common::api::{
+use tabby_common::{api::{
     answer::{AnswerRequest, AnswerResponseChunk},
-    code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchQuery, CodeSearchParams},
+    code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery},
     doc::{DocSearch, DocSearchError, DocSearchHit},
-};
+}, config::AnswerConfig};
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     repository::RepositoryService,
@@ -29,6 +29,7 @@ use tracing::{debug, error, warn};
 use crate::bail;
 
 pub struct AnswerService {
+    config: AnswerConfig,
     chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
@@ -42,6 +43,7 @@ const PRESENCE_PENALTY: f32 = 0.5;
 
 impl AnswerService {
     fn new(
+        config: &AnswerConfig,
         chat: Arc<dyn ChatCompletionStream>,
         code: Arc<dyn CodeSearch>,
         doc: Arc<dyn DocSearch>,
@@ -57,6 +59,7 @@ impl AnswerService {
                 None
             };
         Self {
+            config: config.clone(),
             chat,
             code,
             doc,
@@ -293,9 +296,11 @@ impl AnswerService {
         };
 
         let params = CodeSearchParams {
-            num_to_return: 20,
-            num_to_score: 40,
-            ..Default::default()
+            num_to_return: 10,
+            num_to_score: 20,
+            min_bm25_score: -1.0,
+            min_embedding_score: 0.5,
+            min_rrf_score: -1.0,
         };
 
         match self.code.search_in_language(query, params).await {
@@ -580,6 +585,7 @@ fn remove_bullet_prefix(s: &str) -> String {
 }
 
 pub fn create(
+    config: &AnswerConfig,
     chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
@@ -587,7 +593,7 @@ pub fn create(
     repository: Arc<dyn RepositoryService>,
     serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
 ) -> AnswerService {
-    AnswerService::new(chat, code, doc, web, repository, serper_factory_fn)
+    AnswerService::new(config, chat, code, doc, web, repository, serper_factory_fn)
 }
 
 fn get_content(message: &ChatCompletionRequestMessage) -> &str {

@@ -9,16 +9,20 @@ use tracing::warn;
 
 use super::{Segments, Snippet};
 
-static MAX_SNIPPETS_TO_FETCH: usize = 20;
-
 pub struct PromptBuilder {
+    code_search_params: CodeSearchParams,
     prompt_template: Option<String>,
     code: Option<Arc<dyn CodeSearch>>,
 }
 
 impl PromptBuilder {
-    pub fn new(prompt_template: Option<String>, code: Option<Arc<dyn CodeSearch>>) -> Self {
+    pub fn new(
+        code_search_params: &CodeSearchParams,
+        prompt_template: Option<String>,
+        code: Option<Arc<dyn CodeSearch>>,
+    ) -> Self {
         PromptBuilder {
+            code_search_params: code_search_params.clone(),
             prompt_template,
             code,
         }
@@ -57,6 +61,7 @@ impl PromptBuilder {
         };
 
         let snippets_from_code_search = collect_snippets(
+            &self.code_search_params,
             max_snippets_chars_in_prompt,
             code.as_ref(),
             git_url,
@@ -174,6 +179,7 @@ fn extract_snippets_from_segments(
 }
 
 async fn collect_snippets(
+    code_search_params: &CodeSearchParams,
     max_snippets_chars: usize,
     code: &dyn CodeSearch,
     git_url: &str,
@@ -188,15 +194,9 @@ async fn collect_snippets(
         content: content.to_owned(),
     };
 
-    let params = CodeSearchParams {
-        num_to_return: MAX_SNIPPETS_TO_FETCH,
-        num_to_score: MAX_SNIPPETS_TO_FETCH * 2,
-        ..Default::default()
-    };
-
     let mut ret = Vec::new();
 
-    let serp = match code.search_in_language(query, params).await {
+    let serp = match code.search_in_language(query, code_search_params.clone()).await {
         Ok(serp) => serp,
         Err(CodeSearchError::NotReady) => {
             // Ignore.
