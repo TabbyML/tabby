@@ -105,6 +105,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
             .db
             .list_provided_repositories(integration_ids, kind, active, limit, skip_id, backwards)
             .await?;
+        println!("repositories: {}", repositories.len());
 
         let mut converted_repositories = vec![];
 

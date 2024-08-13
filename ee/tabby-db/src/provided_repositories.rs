@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query, query_as};
 use tabby_db_macros::query_paged_as;
 
-use crate::DbConn;
+use crate::{AsSqliteDateTimeString, DbConn};
 
 #[derive(FromRow)]
 pub struct ProvidedRepositoryDAO {
@@ -41,10 +41,11 @@ impl DbConn {
         integration_id: i64,
         cutoff_timestamp: DateTime<Utc>,
     ) -> Result<usize> {
+        let t = cutoff_timestamp.as_sqlite_datetime();
         let res = query!(
             "DELETE FROM provided_repositories WHERE integration_id = ? AND updated_at < ?;",
             integration_id,
-            cutoff_timestamp
+            t,
         )
         .execute(&self.pool)
         .await?;
