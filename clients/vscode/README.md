@@ -19,7 +19,7 @@ Tabby can answer general coding questions and specific questions about your code
 
 - Start a session in the chat view from the activity bar.
 - Select some code and use commands such as `Tabby: Explain This` to ask questions about your selection.
-- Request code edits directly by using the `Tabby: Edit...` command (shortcut: `Ctrl/Cmd+I`).
+- Request code edits directly by using the `Tabby: Start Inline Editing` command (shortcut: `Ctrl/Cmd+I`).
 
 ## Getting Started
 
