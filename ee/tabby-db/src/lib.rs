@@ -286,13 +286,13 @@ mod tests {
         let time = Utc::now();
 
         let time_str = time.as_sqlite_datetime();
-        let sql_time: String = sqlx::query_scalar::<_, String>("SELECT ?;")
+        let sql_time: DateTime<Utc> = sqlx::query_scalar::<_, DateTime<Utc>>("SELECT ?;")
             .bind(time)
             .fetch_one(&db.pool)
             .await
             .unwrap();
 
-        assert_eq!(time_str, sql_time);
+        assert_eq!(time_str, sql_time.as_sqlite_datetime());
 
         let sql_time: String = sqlx::query_scalar::<_, String>("SELECT DATETIME('now');")
             .fetch_one(&db.pool)

@@ -5,7 +5,7 @@ use lazy_static::lazy_static;
 use sqlx::{query, FromRow};
 use uuid::Uuid;
 
-use super::DbConn;
+use super::{AsSqliteDateTimeString, DbConn};
 
 #[allow(unused)]
 #[derive(FromRow)]
@@ -61,7 +61,7 @@ impl DbConn {
     }
 
     pub async fn delete_expired_token(&self) -> Result<i32> {
-        let time = Utc::now();
+        let time = Utc::now().as_sqlite_datetime();
         let res = query!(r#"DELETE FROM refresh_tokens WHERE expires_at < ?"#, time)
             .execute(&self.pool)
             .await?;
