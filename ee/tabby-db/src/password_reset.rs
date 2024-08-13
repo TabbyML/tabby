@@ -3,7 +3,7 @@ use chrono::{DateTime, Duration, Utc};
 use sqlx::{query, query_as};
 use uuid::Uuid;
 
-use crate::{AsSqliteDateTimeString, DbConn};
+use crate::DbConn;
 
 pub struct PasswordResetDAO {
     pub user_id: i64,

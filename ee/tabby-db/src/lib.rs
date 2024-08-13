@@ -260,6 +260,7 @@ impl SQLXResultExt for Result<SqliteQueryResult, sqlx::Error> {
 
 #[cfg(test)]
 mod tests {
+    use chrono::Duration;
     use super::*;
 
     #[tokio::test]
