@@ -65,8 +65,6 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
 
-      - run: cargo install cargo-patch && cargo patch
-
       - run: sudo bash ./ci/prepare_build_environment.sh
 
       - name: Run doc tests
