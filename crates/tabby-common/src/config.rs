@@ -314,7 +314,7 @@ impl Default for CompletionConfig {
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct AnswerConfig {
     #[serde(default)]
-    code_search_params: CodeSearchParams
+    pub code_search_params: CodeSearchParams
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
