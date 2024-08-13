@@ -771,7 +771,7 @@ mod tests {
     }
 
     #[test]
-    fn test_convert_messages_to_chat_completion_request_simple() {
+    fn test_convert_messages_to_chat_completion_request() {
         // Fake assistant attachment
         let attachment = tabby_schema::thread::MessageAttachment {
             doc: vec![tabby_schema::thread::MessageAttachmentDoc {
