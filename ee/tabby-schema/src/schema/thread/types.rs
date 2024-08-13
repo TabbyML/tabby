@@ -46,11 +46,13 @@ pub struct MessageAttachment {
     pub doc: Vec<MessageAttachmentDoc>,
 }
 
-/// If you want to change the struct, please make sure the change is backward compatible.
 #[derive(GraphQLObject, Clone)]
 pub struct MessageAttachmentCode {
-    pub filepath: Option<String>,
+    pub git_url: String,
+    pub filepath: String,
+    pub language: String,
     pub content: String,
+    pub start_line: i32,
 }
 
 #[derive(GraphQLObject, Clone)]

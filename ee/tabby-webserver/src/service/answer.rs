@@ -23,7 +23,8 @@ use tabby_schema::{
     repository::RepositoryService,
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        MessageAttachmentCode, MessageAttachmentDoc, ThreadRunItem, ThreadRunOptionsInput,
+        MessageAttachmentCode, MessageAttachmentCodeInput, MessageAttachmentDoc, ThreadRunItem,
+        ThreadRunOptionsInput,
     },
     web_crawler::WebCrawlerService,
 };
@@ -139,7 +140,7 @@ impl AnswerService {
                     yield AnswerResponseChunk::RelevantQuestions(relevant_questions);
                 }
 
-                let code_snippets: Vec<MessageAttachmentCode> = code_snippets.iter().map(|x| MessageAttachmentCode {
+                let code_snippets: Vec<MessageAttachmentCodeInput> = code_snippets.iter().map(|x| MessageAttachmentCodeInput {
                     filepath: x.filepath.clone(),
                     content: x.content.clone(),
                 }).collect();
@@ -190,9 +191,11 @@ impl AnswerService {
         self: Arc<Self>,
         messages: &[tabby_schema::thread::Message],
         options: &ThreadRunOptionsInput,
+        user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
     ) -> tabby_schema::Result<BoxStream<'a, tabby_schema::Result<ThreadRunItem>>> {
         let messages = messages.to_vec();
         let options = options.clone();
+        let user_attachment_input = user_attachment_input.cloned();
 
         let s = stream! {
             let query = match messages.last() {
@@ -209,9 +212,12 @@ impl AnswerService {
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
                 attachment.code = self.collect_relevant_code(code_query, &self.config.code_search_params, options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref())).await.iter()
-                        .map(|x| MessageAttachmentCode{
-                            filepath: Some(x.doc.filepath.clone()),
+                        .map(|x| MessageAttachmentCode {
+                            git_url: x.doc.git_url.clone(),
+                            filepath: x.doc.filepath.clone(),
+                            language: x.doc.language.clone(),
                             content: x.doc.body.clone(),
+                            start_line: x.doc.start_line as i32,
                         })
                         .collect::<Vec<_>>();
             };
@@ -248,7 +254,7 @@ impl AnswerService {
 
             // 4. Prepare requesting LLM
             let request = {
-                let chat_messages = convert_messages_to_chat_completion_request(&messages, &attachment)?;
+                let chat_messages = convert_messages_to_chat_completion_request(&messages, &attachment, user_attachment_input.as_ref())?;
 
                 CreateChatCompletionRequestArgs::default()
                     .messages(chat_messages)
@@ -398,11 +404,10 @@ impl AnswerService {
             .code
             .iter()
             .map(|snippet| {
-                if let Some(filepath) = &snippet.filepath {
-                    format!("``` title=\"{}\"\n{}\n```", filepath, snippet.content)
-                } else {
-                    format!("```\n{}\n```", snippet.content)
-                }
+                format!(
+                    "```{} title=\"{}\"\n{}\n```",
+                    snippet.language, snippet.filepath, snippet.content
+                )
             })
             .chain(
                 attachment
@@ -531,7 +536,7 @@ Remember, based on the original question and related contexts, suggest three suc
 
     async fn generate_prompt(
         &self,
-        code_snippets: &[MessageAttachmentCode],
+        code_snippets: &[MessageAttachmentCodeInput],
         relevant_code: &[CodeSearchHit],
         relevant_docs: &[DocSearchHit],
         question: &str,
@@ -628,6 +633,7 @@ fn set_content(message: &mut ChatCompletionRequestMessage, content: String) {
 fn convert_messages_to_chat_completion_request(
     messages: &[tabby_schema::thread::Message],
     attachment: &tabby_schema::thread::MessageAttachment,
+    user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
 ) -> anyhow::Result<Vec<ChatCompletionRequestMessage>> {
     let mut output = vec![];
     output.reserve(messages.len());
@@ -646,7 +652,7 @@ fn convert_messages_to_chat_completion_request(
 
             let y = &messages[i + 1];
 
-            build_user_prompt(x, &y.attachment)
+            build_user_prompt(&x.content, &y.attachment, None)
         } else {
             x.content.clone()
         };
@@ -662,7 +668,11 @@ fn convert_messages_to_chat_completion_request(
 
     output.push(ChatCompletionRequestMessage::System(
         ChatCompletionRequestSystemMessage {
-            content: build_user_prompt(&messages[messages.len() - 1], attachment),
+            content: build_user_prompt(
+                &messages[messages.len() - 1].content,
+                attachment,
+                user_attachment_input,
+            ),
             role: Role::User,
             name: None,
         },
@@ -672,41 +682,43 @@ fn convert_messages_to_chat_completion_request(
 }
 
 fn build_user_prompt(
-    user_message: &tabby_schema::thread::Message,
+    user_input: &str,
     assistant_attachment: &tabby_schema::thread::MessageAttachment,
+    user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
 ) -> String {
     // If the user message has no code attachment and the assistant message has no code attachment or doc attachment, return the user message directly.
-    if user_message.attachment.code.is_empty()
+    if user_attachment_input
+        .map(|x| x.code.is_empty())
+        .unwrap_or(true)
         && assistant_attachment.code.is_empty()
         && assistant_attachment.doc.is_empty()
     {
-        return user_message.content.clone();
+        return user_input.to_owned();
     }
 
-    let snippets: Vec<String> = user_message
-        .attachment
-        .code
+    let snippets: Vec<String> = assistant_attachment
+        .doc
         .iter()
-        .map(|snippet| {
-            if let Some(filepath) = &snippet.filepath {
-                format!("```title=\"{}\"\n{}\n```", filepath, snippet.content)
-            } else {
-                format!("```\n{}\n```", snippet.content)
-            }
-        })
-        .chain(assistant_attachment.code.iter().map(|snippet| {
-            if let Some(filepath) = &snippet.filepath {
-                format!("```title=\"{}\"\n{}\n```", filepath, snippet.content)
-            } else {
-                format!("```\n{}\n```", snippet.content)
-            }
-        }))
+        .map(|doc| format!("```\n{}\n```", doc.content))
         .chain(
-            assistant_attachment
-                .doc
+            user_attachment_input
+                .map(|x| &x.code)
+                .unwrap_or(&vec![])
                 .iter()
-                .map(|doc| format!("```\n{}\n```", doc.content)),
+                .map(|snippet| {
+                    if let Some(filepath) = &snippet.filepath {
+                        format!("```title=\"{}\"\n{}\n```", filepath, snippet.content)
+                    } else {
+                        format!("```\n{}\n```", snippet.content)
+                    }
+                }),
         )
+        .chain(assistant_attachment.code.iter().map(|snippet| {
+            format!(
+                "```{} title=\"{}\"\n{}\n```",
+                snippet.language, snippet.filepath, snippet.content
+            )
+        }))
         .collect();
 
     let citations: Vec<String> = snippets
@@ -716,7 +728,6 @@ fn build_user_prompt(
         .collect();
 
     let context = citations.join("\n\n");
-    let question = &user_message.content;
 
     format!(
         r#"
@@ -732,7 +743,76 @@ Here are the set of contexts:
 
 Remember, don't blindly repeat the contexts verbatim. When possible, give code snippet to demonstrate the answer. And here is the user question:
 
-{question}
+{user_input}
 "#
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use juniper::ID;
+    use tabby_schema::AsID;
+
+    fn make_message(
+        id: i32,
+        content: &str,
+        role: tabby_schema::thread::Role,
+        attachment: Option<tabby_schema::thread::MessageAttachment>,
+    ) -> tabby_schema::thread::Message {
+        tabby_schema::thread::Message {
+            id: id.as_id(),
+            thread_id: ID::new("0"),
+            content: content.to_owned(),
+            role,
+            attachment: attachment.unwrap_or_default(),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        }
+    }
+
+    #[test]
+    fn test_convert_messages_to_chat_completion_request() {
+        // Fake assistant attachment
+        let attachment = tabby_schema::thread::MessageAttachment {
+            doc: vec![tabby_schema::thread::MessageAttachmentDoc {
+                title: "1. Example Document".to_owned(),
+                content: "This is an example".to_owned(),
+                link: "https://example.com".to_owned(),
+            }],
+            code: vec![tabby_schema::thread::MessageAttachmentCode {
+                git_url: "https://github.com".to_owned(),
+                filepath: "server.py".to_owned(),
+                language: "python".to_owned(),
+                content: "print('Hello, server!')".to_owned(),
+                start_line: 1,
+            }],
+        };
+
+        let messages = vec![
+            make_message(1, "Hello", tabby_schema::thread::Role::User, None),
+            make_message(
+                2,
+                "Hi",
+                tabby_schema::thread::Role::Assistant,
+                Some(attachment),
+            ),
+            make_message(3, "How are you?", tabby_schema::thread::Role::User, None),
+        ];
+
+        let user_attachment_input = tabby_schema::thread::MessageAttachmentInput {
+            code: vec![tabby_schema::thread::MessageAttachmentCodeInput {
+                filepath: Some("client.py".to_owned()),
+                content: "print('Hello, client!')".to_owned(),
+            }],
+        };
+
+        let output = super::convert_messages_to_chat_completion_request(
+            &messages,
+            &tabby_schema::thread::MessageAttachment::default(),
+            Some(&user_attachment_input),
+        )
+        .unwrap();
+
+        insta::assert_yaml_snapshot!(output);
+    }
 }

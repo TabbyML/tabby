@@ -63,3 +63,4 @@ tabby-db = { path = "../../ee/tabby-db", features = ["testutils"] }
 tabby-common = { path = "../../crates/tabby-common", features = ["testutils"] }
 serial_test = { workspace = true }
 temp_testdir = { workspace = true }
+insta = { workspace = true, features = ["yaml", "redactions"] }

@@ -396,10 +396,12 @@ type MessageAttachment {
   doc: [MessageAttachmentDoc!]!
 }
 
-"If you want to change the struct, please make sure the change is backward compatible."
 type MessageAttachmentCode {
-  filepath: String
+  gitUrl: String!
+  filepath: String!
+  language: String!
   content: String!
+  startLine: Int!
 }
 
 type MessageAttachmentDoc {
