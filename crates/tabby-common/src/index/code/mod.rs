@@ -67,7 +67,10 @@ pub fn code_search_query(
         (Occur::Must, chunk_tokens_query),
         (
             Occur::Must,
-            Box::new(schema.source_query(corpus::CODE, &query.git_url)),
+            Box::new(ConstScoreQuery::new(
+                Box::new(schema.source_query(corpus::CODE, &query.git_url)),
+                0.0,
+            )),
         ),
     ];
 
