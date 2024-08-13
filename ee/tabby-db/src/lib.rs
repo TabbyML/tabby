@@ -142,9 +142,8 @@ impl DbConn {
         })
     }
 
-    /// Foos a bar.
-    ///
-    /// # Example
+    /// We forked sqlx to disable support for chrono::DateTime<Utc> as it's format is problematic
+    /// against SQLite `DATETIME("now")`.
     ///
     /// ```compile_fail
     /// let output = sqlx::query_scalar::<_, String>("SELECT ?;").bind(chrono::Utc::now())
