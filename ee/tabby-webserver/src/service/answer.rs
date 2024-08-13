@@ -22,8 +22,8 @@ use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     repository::RepositoryService,
     thread::{
-        self, CodeQueryInput, DocQueryInput, MessageAttachment, MessageAttachmentCode,
-        MessageAttachmentDoc, ThreadRunItem, ThreadRunOptionsInput,
+        self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
+        MessageAttachmentCode, MessageAttachmentDoc, ThreadRunItem, ThreadRunOptionsInput,
     },
     web_crawler::WebCrawlerService,
 };
@@ -107,9 +107,8 @@ impl AnswerService {
                     filepath: code_query.filepath,
                     language: code_query.language,
                     content: code_query.content,
-                    params_override: None
                 };
-                self.collect_relevant_code(&code_query, &self.config.code_search_params).await
+                self.collect_relevant_code(&code_query, &self.config.code_search_params, None).await
             } else {
                 vec![]
             };
@@ -209,7 +208,7 @@ impl AnswerService {
 
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
-                attachment.code = self.collect_relevant_code(code_query, &self.config.code_search_params).await.iter()
+                attachment.code = self.collect_relevant_code(code_query, &self.config.code_search_params, options.debug_options.as_ref().map(|x| x.code_search_params_override.as_ref()).flatten()).await.iter()
                         .map(|x| MessageAttachmentCode{
                             filepath: Some(x.doc.filepath.clone()),
                             content: x.doc.body.clone(),
@@ -295,6 +294,7 @@ impl AnswerService {
         &self,
         input: &CodeQueryInput,
         params: &CodeSearchParams,
+        override_params: Option<&CodeSearchParamsOverrideInput>,
     ) -> Vec<CodeSearchHit> {
         let query = CodeSearchQuery {
             git_url: input.git_url.clone(),
@@ -304,8 +304,7 @@ impl AnswerService {
         };
 
         let mut params = params.clone();
-        input
-            .params_override
+        override_params
             .as_ref()
             .inspect(|x| x.override_params(&mut params));
 

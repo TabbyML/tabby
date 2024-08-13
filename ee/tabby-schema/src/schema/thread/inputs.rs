@@ -33,21 +33,9 @@ pub struct CodeQueryInput {
     pub filepath: Option<String>,
     pub language: Option<String>,
     pub content: String,
-
-    /// Parameters to override the default code search parameters.
-    pub params_override: Option<CodeParamsOverrideInput>,
 }
 
-#[derive(GraphQLInputObject, Clone)]
-pub struct CodeParamsOverrideInput {
-    pub min_embedding_score: Option<f64>,
-    pub min_bm25_score: Option<f64>,
-    pub min_rrf_score: Option<f64>,
-    pub num_to_return: Option<i32>,
-    pub num_to_score: Option<i32>,
-}
-
-impl CodeParamsOverrideInput {
+impl CodeSearchParamsOverrideInput {
     pub fn override_params(&self, params: &mut CodeSearchParams) {
         if let Some(min_embedding_score) = self.min_embedding_score {
             params.min_embedding_score = min_embedding_score as f32;
@@ -79,6 +67,26 @@ pub struct ThreadRunOptionsInput {
 
     #[graphql(default)]
     pub generate_relevant_questions: bool,
+
+    #[graphql(default)]
+    pub debug_options: Option<ThreadRunDebugOptionsInput>,
+}
+
+
+
+#[derive(GraphQLInputObject, Clone)]
+pub struct CodeSearchParamsOverrideInput {
+    pub min_embedding_score: Option<f64>,
+    pub min_bm25_score: Option<f64>,
+    pub min_rrf_score: Option<f64>,
+    pub num_to_return: Option<i32>,
+    pub num_to_score: Option<i32>,
+}
+
+#[derive(GraphQLInputObject, Clone)]
+pub struct ThreadRunDebugOptionsInput {
+    #[graphql(default)]
+    pub code_search_params_override: Option<CodeSearchParamsOverrideInput>,
 }
 
 #[derive(GraphQLInputObject, Validate)]
