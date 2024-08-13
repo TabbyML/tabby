@@ -22,8 +22,8 @@ use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     repository::RepositoryService,
     thread::{
-        self, CodeQueryInput, DocQueryInput, MessageAttachment, MessageAttachmentCode,
-        MessageAttachmentDoc, ThreadRunItem, ThreadRunOptionsInput,
+        self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
+        MessageAttachmentCode, MessageAttachmentDoc, ThreadRunItem, ThreadRunOptionsInput,
     },
     web_crawler::WebCrawlerService,
 };
@@ -108,7 +108,7 @@ impl AnswerService {
                     language: code_query.language,
                     content: code_query.content,
                 };
-                self.collect_relevant_code(&code_query, &self.config.code_search_params).await
+                self.collect_relevant_code(&code_query, &self.config.code_search_params, None).await
             } else {
                 vec![]
             };
@@ -208,7 +208,7 @@ impl AnswerService {
 
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
-                attachment.code = self.collect_relevant_code(code_query, &self.config.code_search_params).await.iter()
+                attachment.code = self.collect_relevant_code(code_query, &self.config.code_search_params, options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref())).await.iter()
                         .map(|x| MessageAttachmentCode{
                             filepath: Some(x.doc.filepath.clone()),
                             content: x.doc.body.clone(),
@@ -292,15 +292,21 @@ impl AnswerService {
 
     async fn collect_relevant_code(
         &self,
-        query: &CodeQueryInput,
+        input: &CodeQueryInput,
         params: &CodeSearchParams,
+        override_params: Option<&CodeSearchParamsOverrideInput>,
     ) -> Vec<CodeSearchHit> {
         let query = CodeSearchQuery {
-            git_url: query.git_url.clone(),
-            filepath: query.filepath.clone(),
-            language: query.language.clone(),
-            content: query.content.clone(),
+            git_url: input.git_url.clone(),
+            filepath: input.filepath.clone(),
+            language: input.language.clone(),
+            content: input.content.clone(),
         };
+
+        let mut params = params.clone();
+        override_params
+            .as_ref()
+            .inspect(|x| x.override_params(&mut params));
 
         match self.code.search_in_language(query, params.clone()).await {
             Ok(docs) => docs.hits,
