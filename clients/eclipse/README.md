@@ -19,11 +19,11 @@
     This process will also build the `tabby-agent` and place it into the `clients/eclipse/plugin/tabby-agent/` directory.
 
 4. Import the project into your Eclipse workspace.  
-  a. Open `File -> Import...`, select the `General -> Existing Projects into Workspace` option, and click `Next`.
-    ![Import Project into Workspace](docs/eclipse-import-project-select-wizard.jpg)
-  b. Select the `clients/eclipse/plugin` as the root directory, check the item to be imported, and click `Finish`.
-    ![Import Project into Workspace](docs/eclipse-import-project-select-project.jpg)
-  c. Then import the `clients/eclipse/feature` directory as well.
+  a. Open `File -> Import...`, select the `General -> Existing Projects into Workspace` option, and click `Next`.  
+    ![Import Project into Workspace](docs/eclipse-import-project-select-wizard.jpg)  
+  b. Select the `clients/eclipse/plugin` as the root directory, check the item to be imported, and click `Finish`.  
+    ![Import Project into Workspace](docs/eclipse-import-project-select-project.jpg)  
+  c. Then import the `clients/eclipse/feature` directory as well.  
 
-5. Open the `clients/eclipse/plugin/plugin.xml` file in Eclipse. It should open as a plugin project overview. In the `Testing` section, click on `Launch an Eclipse application` to start the plugin.
-  ![Launch an Eclipse application](docs/eclipse-launch-application.jpg)
+5. Open the `clients/eclipse/plugin/plugin.xml` file in Eclipse. It should open as a plugin project overview. In the `Testing` section, click on `Launch an Eclipse application` to start the plugin.  
+  ![Launch an Eclipse application](docs/eclipse-launch-application.jpg)  
