@@ -208,7 +208,7 @@ impl AnswerService {
 
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
-                attachment.code = self.collect_relevant_code(code_query, &self.config.code_search_params, options.debug_options.as_ref().map(|x| x.code_search_params_override.as_ref()).flatten()).await.iter()
+                attachment.code = self.collect_relevant_code(code_query, &self.config.code_search_params, options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref())).await.iter()
                         .map(|x| MessageAttachmentCode{
                             filepath: Some(x.doc.filepath.clone()),
                             content: x.doc.body.clone(),

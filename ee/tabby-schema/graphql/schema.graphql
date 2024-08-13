@@ -90,6 +90,14 @@ input CodeQueryInput {
   content: String!
 }
 
+input CodeSearchParamsOverrideInput {
+  minEmbeddingScore: Float
+  minBm25Score: Float
+  minRrfScore: Float
+  numToReturn: Int
+  numToScore: Int
+}
+
 input CreateIntegrationInput {
   displayName: String!
   accessToken: String!
@@ -104,7 +112,7 @@ input CreateMessageInput {
 
 input CreateThreadAndRunInput {
   thread: CreateThreadInput!
-  options: ThreadRunOptionsInput! = {codeQuery: null, docQuery: null, generateRelevantQuestions: false}
+  options: ThreadRunOptionsInput! = {codeQuery: null, debugOptions: null, docQuery: null, generateRelevantQuestions: false}
 }
 
 input CreateThreadInput {
@@ -114,7 +122,7 @@ input CreateThreadInput {
 input CreateThreadRunInput {
   threadId: ID!
   additionalUserMessage: CreateMessageInput!
-  options: ThreadRunOptionsInput! = {codeQuery: null, docQuery: null, generateRelevantQuestions: false}
+  options: ThreadRunOptionsInput! = {codeQuery: null, debugOptions: null, docQuery: null, generateRelevantQuestions: false}
 }
 
 input CreateWebCrawlerUrlInput {
@@ -173,10 +181,15 @@ input SecuritySettingInput {
   disableClientSideTelemetry: Boolean!
 }
 
+input ThreadRunDebugOptionsInput {
+  codeSearchParamsOverride: CodeSearchParamsOverrideInput = null
+}
+
 input ThreadRunOptionsInput {
   docQuery: DocQueryInput = null
   codeQuery: CodeQueryInput = null
   generateRelevantQuestions: Boolean! = false
+  debugOptions: ThreadRunDebugOptionsInput = null
 }
 
 input UpdateIntegrationInput {

@@ -72,8 +72,6 @@ pub struct ThreadRunOptionsInput {
     pub debug_options: Option<ThreadRunDebugOptionsInput>,
 }
 
-
-
 #[derive(GraphQLInputObject, Clone)]
 pub struct CodeSearchParamsOverrideInput {
     pub min_embedding_score: Option<f64>,
