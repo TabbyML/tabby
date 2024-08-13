@@ -107,6 +107,7 @@ impl AnswerService {
                     filepath: code_query.filepath,
                     language: code_query.language,
                     content: code_query.content,
+                    params_override: None
                 };
                 self.collect_relevant_code(&code_query, &self.config.code_search_params).await
             } else {
@@ -292,15 +293,21 @@ impl AnswerService {
 
     async fn collect_relevant_code(
         &self,
-        query: &CodeQueryInput,
+        input: &CodeQueryInput,
         params: &CodeSearchParams,
     ) -> Vec<CodeSearchHit> {
         let query = CodeSearchQuery {
-            git_url: query.git_url.clone(),
-            filepath: query.filepath.clone(),
-            language: query.language.clone(),
-            content: query.content.clone(),
+            git_url: input.git_url.clone(),
+            filepath: input.filepath.clone(),
+            language: input.language.clone(),
+            content: input.content.clone(),
         };
+
+        let mut params = params.clone();
+        input
+            .params_override
+            .as_ref()
+            .inspect(|x| x.override_params(&mut params));
 
         match self.code.search_in_language(query, params.clone()).await {
             Ok(docs) => docs.hits,
