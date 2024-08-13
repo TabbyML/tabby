@@ -4,15 +4,15 @@ use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as, types::Json, FromRow};
 use tabby_db_macros::query_paged_as;
 
-use crate::{DateTimeUtc, DbConn};
+use crate::DbConn;
 
 #[derive(FromRow)]
 pub struct ThreadDAO {
     pub id: i64,
     pub user_id: i64,
     pub relevant_questions: Option<Json<Vec<String>>>,
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(sqlx::FromRow)]
@@ -26,8 +26,8 @@ pub struct ThreadMessageDAO {
     pub code_attachments: Option<Json<Vec<ThreadMessageAttachmentCode>>>,
     pub doc_attachments: Option<Json<Vec<ThreadMessageAttachmentDoc>>>,
 
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Serialize, Deserialize)]

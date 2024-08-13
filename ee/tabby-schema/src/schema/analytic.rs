@@ -6,7 +6,7 @@ use lazy_static::lazy_static;
 use strum::{EnumIter, IntoEnumIterator};
 
 use crate::schema::Result;
-use tabby_db::DateTimeUtc;
+use chrono::{DateTime, Utc};
 
 #[derive(GraphQLObject)]
 pub struct DiskUsageStats {
@@ -35,8 +35,8 @@ impl DiskUsage {
 
 #[derive(GraphQLObject, Debug, Clone)]
 pub struct CompletionStats {
-    pub start: DateTimeUtc,
-    pub end: DateTimeUtc,
+    pub start: DateTime<Utc>,
+    pub end: DateTime<Utc>,
 
     pub language: Language,
     pub completions: i32,
@@ -121,8 +121,8 @@ pub trait AnalyticService: Send + Sync {
     /// 3. `languages` is a list of programming language identifier. If empty, the report is computed for all languages.
     async fn daily_stats(
         &self,
-        start: DateTimeUtc,
-        end: DateTimeUtc,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
         users: Vec<ID>,
         languages: Vec<Language>,
     ) -> Result<Vec<CompletionStats>>;

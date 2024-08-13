@@ -1,14 +1,14 @@
 use anyhow::{anyhow, Result};
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, Utc};
 use sqlx::{query, query_as};
 use uuid::Uuid;
 
-use crate::{sqlite_datetime_format, DateTimeUtc, DbConn};
+use crate::{sqlite_datetime_format, DbConn};
 
 pub struct PasswordResetDAO {
     pub user_id: i64,
     pub code: String,
-    pub created_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
 }
 
 impl DbConn {
@@ -35,7 +35,7 @@ impl DbConn {
     pub async fn get_password_reset_by_code(&self, code: &str) -> Result<Option<PasswordResetDAO>> {
         let password_reset = query_as!(
             PasswordResetDAO,
-            r#"SELECT user_id, code, created_at as "created_at!: DateTimeUtc" FROM password_reset WHERE code = ?;"#,
+            r#"SELECT user_id, code, created_at as "created_at!: DateTime<Utc>" FROM password_reset WHERE code = ?;"#,
             code
         )
         .fetch_optional(&self.pool)
@@ -49,7 +49,7 @@ impl DbConn {
     ) -> Result<Option<PasswordResetDAO>> {
         let password_reset = query_as!(
             PasswordResetDAO,
-            r#"SELECT user_id, code, created_at as "created_at!: DateTimeUtc" FROM password_reset WHERE user_id = ?;"#,
+            r#"SELECT user_id, code, created_at as "created_at!: DateTime<Utc>" FROM password_reset WHERE user_id = ?;"#,
             user_id
         )
         .fetch_optional(&self.pool)

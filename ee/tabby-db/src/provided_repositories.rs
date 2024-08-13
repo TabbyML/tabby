@@ -1,8 +1,9 @@
 use anyhow::{anyhow, Result};
+use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query, query_as};
 use tabby_db_macros::query_paged_as;
 
-use crate::{DateTimeUtc, DbConn};
+use crate::DbConn;
 
 #[derive(FromRow)]
 pub struct ProvidedRepositoryDAO {
@@ -12,8 +13,8 @@ pub struct ProvidedRepositoryDAO {
     pub name: String,
     pub git_url: String,
     pub active: bool,
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl DbConn {
@@ -38,7 +39,7 @@ impl DbConn {
     pub async fn delete_outdated_provided_repositories(
         &self,
         integration_id: i64,
-        cutoff_timestamp: DateTimeUtc,
+        cutoff_timestamp: DateTime<Utc>,
     ) -> Result<usize> {
         let res = query!(
             "DELETE FROM provided_repositories WHERE integration_id = ? AND updated_at < ?;",
@@ -53,7 +54,7 @@ impl DbConn {
     pub async fn get_provided_repository(&self, id: i64) -> Result<ProvidedRepositoryDAO> {
         let repo = query_as!(
             ProvidedRepositoryDAO,
-            r#"SELECT id, vendor_id, name, git_url, active, integration_id, created_at as "created_at!: DateTimeUtc", updated_at as "updated_at!: DateTimeUtc" FROM provided_repositories WHERE id = ?"#,
+            r#"SELECT id, vendor_id, name, git_url, active, integration_id, created_at as "created_at!: DateTime<Utc>", updated_at as "updated_at!: DateTime<Utc>" FROM provided_repositories WHERE id = ?"#,
             id
         )
         .fetch_one(&self.pool)
@@ -99,8 +100,8 @@ impl DbConn {
                 "git_url",
                 "active",
                 "integration_id",
-                "created_at" as "created_at!: DateTimeUtc",
-                "updated_at" as "updated_at!: DateTimeUtc"
+                "created_at" as "created_at!: DateTime<Utc>",
+                "updated_at" as "updated_at!: DateTime<Utc>"
             ],
             limit,
             skip_id,

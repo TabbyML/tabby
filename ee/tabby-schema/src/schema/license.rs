@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 use super::CoreError;
 use crate::schema::Result;
-use tabby_db::DateTimeUtc;
+use chrono::{DateTime, Utc};
 
 #[derive(Debug, Deserialize, GraphQLEnum, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]
@@ -29,8 +29,8 @@ pub struct LicenseInfo {
     pub status: LicenseStatus,
     pub seats: i32,
     pub seats_used: i32,
-    pub issued_at: Option<DateTimeUtc>,
-    pub expires_at: Option<DateTimeUtc>,
+    pub issued_at: Option<DateTime<Utc>>,
+    pub expires_at: Option<DateTime<Utc>>,
 }
 
 impl LicenseInfo {

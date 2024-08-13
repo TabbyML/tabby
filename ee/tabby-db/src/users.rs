@@ -1,16 +1,17 @@
 use anyhow::{anyhow, bail, Result};
+use chrono::{DateTime, Utc};
 use sqlx::{query, query_as, query_scalar, FromRow};
 use tabby_db_macros::query_paged_as;
 use uuid::Uuid;
 
-use super::{DateTimeUtc, DbConn};
+use super::DbConn;
 use crate::SQLXResultExt;
 
 #[allow(unused)]
 #[derive(FromRow)]
 pub struct UserDAO {
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 
     pub id: i64,
     pub email: String,
@@ -29,7 +30,7 @@ macro_rules! select {
     ($str:literal $(,)? $($val:expr),*) => {
         query_as!(
             UserDAO,
-            r#"SELECT id as "id!", email, name, password_encrypted, is_admin, created_at as "created_at!: DateTimeUtc", updated_at as "updated_at!: DateTimeUtc", auth_token, active FROM users WHERE "# + $str,
+            r#"SELECT id as "id!", email, name, password_encrypted, is_admin, created_at as "created_at!: DateTime<Utc>", updated_at as "updated_at!: DateTime<Utc>", auth_token, active FROM users WHERE "# + $str,
             $($val),*
         )
     }
@@ -137,8 +138,8 @@ impl DbConn {
                 "name",
                 "password_encrypted",
                 "is_admin",
-                "created_at" as "created_at!: DateTimeUtc",
-                "updated_at" as "updated_at!: DateTimeUtc",
+                "created_at" as "created_at!: DateTime<Utc>",
+                "updated_at" as "updated_at!: DateTime<Utc>",
                 "auth_token",
                 "active"
             ],

@@ -4,7 +4,7 @@ use strum::EnumIter;
 use url::Url;
 
 use crate::{juniper::relay::NodeType, Context, CoreError, Result};
-use tabby_db::DateTimeUtc;
+use chrono::{DateTime, Utc};
 
 #[derive(Clone, EnumIter, GraphQLEnum)]
 pub enum IntegrationKind {
@@ -54,8 +54,8 @@ pub struct Integration {
     pub display_name: String,
     pub access_token: String,
     pub api_base: Option<String>,
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub status: IntegrationStatus,
 }
 

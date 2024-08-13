@@ -1,9 +1,9 @@
 use anyhow::Result;
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, Utc};
 use sqlx::{query, FromRow};
 use tabby_db_macros::query_paged_as;
 
-use super::{DateTimeUtc, DbConn};
+use super::DbConn;
 use crate::DbOption;
 
 #[derive(Default, Clone, FromRow)]
@@ -15,14 +15,14 @@ pub struct JobRunDAO {
     pub exit_code: Option<i64>,
     pub stdout: String,
     pub stderr: String,
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 
     /// The time when the job was started.
-    pub started_at: DbOption<DateTimeUtc>,
+    pub started_at: DbOption<DateTime<Utc>>,
 
     #[sqlx(rename = "end_ts")]
-    pub finished_at: DbOption<DateTimeUtc>,
+    pub finished_at: DbOption<DateTime<Utc>>,
 }
 
 impl JobRunDAO {
@@ -146,10 +146,10 @@ impl DbConn {
                 "stdout",
                 "stderr",
                 "command"!,
-                "created_at" as "created_at!: DateTimeUtc",
-                "updated_at" as "updated_at!: DateTimeUtc",
-                "started_at" as "started_at: DateTimeUtc",
-                "end_ts" as "finished_at: DateTimeUtc"
+                "created_at" as "created_at!: DateTime<Utc>",
+                "updated_at" as "updated_at!: DateTime<Utc>",
+                "started_at" as "started_at: DateTime<Utc>",
+                "end_ts" as "finished_at: DateTime<Utc>"
             ],
             limit,
             skip_id,

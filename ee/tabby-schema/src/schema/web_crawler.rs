@@ -3,14 +3,14 @@ use juniper::{GraphQLInputObject, GraphQLObject, ID};
 use validator::Validate;
 
 use crate::{job::JobInfo, juniper::relay::NodeType, Context, Result};
-use tabby_db::DateTimeUtc;
+use chrono::{DateTime, Utc};
 
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
 pub struct WebCrawlerUrl {
     pub url: String,
     pub id: ID,
-    pub created_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
     pub job_info: JobInfo,
 }
 

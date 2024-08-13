@@ -1,10 +1,10 @@
 use std::{borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, ID};
 use serde::{Deserialize, Serialize};
 use strum::EnumIter;
-use tabby_db::DateTimeUtc;
 use thiserror::Error;
 use tokio::task::JoinHandle;
 use tracing::error;
@@ -128,14 +128,14 @@ pub enum OAuthError {
 pub struct RefreshTokenResponse {
     pub access_token: String,
     pub refresh_token: String,
-    pub refresh_expires_at: DateTimeUtc,
+    pub refresh_expires_at: DateTime<Utc>,
 }
 
 impl RefreshTokenResponse {
     pub fn new(
         access_token: String,
         refresh_token: String,
-        refresh_expires_at: DateTimeUtc,
+        refresh_expires_at: DateTime<Utc>,
     ) -> Self {
         Self {
             access_token,
@@ -172,7 +172,7 @@ pub struct User {
     pub is_admin: bool,
     pub is_owner: bool,
     pub auth_token: String,
-    pub created_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
     pub active: bool,
     pub is_password_set: bool,
 }
@@ -279,7 +279,7 @@ pub struct Invitation {
     pub email: String,
     pub code: String,
 
-    pub created_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
 }
 
 impl relay::NodeType for Invitation {
@@ -313,8 +313,8 @@ pub struct OAuthCredential {
 
     #[graphql(skip)]
     pub client_secret: String,
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(GraphQLInputObject, Validate)]

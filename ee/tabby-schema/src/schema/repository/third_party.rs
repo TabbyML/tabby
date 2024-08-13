@@ -6,7 +6,7 @@ use super::{GitReference, RepositoryProvider};
 use crate::{
     integration::IntegrationKind, job::JobInfo, juniper::relay::NodeType, schema::Result, Context,
 };
-use tabby_db::DateTimeUtc;
+use chrono::{DateTime, Utc};
 
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
@@ -17,8 +17,8 @@ pub struct ProvidedRepository {
     pub display_name: String,
     pub git_url: String,
     pub vendor_id: String,
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub refs: Vec<GitReference>,
 
     pub job_info: JobInfo,
@@ -77,7 +77,7 @@ pub trait ThirdPartyRepositoryService: Send + Sync + RepositoryProvider {
     async fn delete_outdated_repositories(
         &self,
         integration_id: ID,
-        before: DateTimeUtc,
+        before: DateTime<Utc>,
     ) -> Result<usize>;
     async fn list_repository_configs(&self) -> Result<Vec<RepositoryConfig>>;
 }

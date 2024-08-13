@@ -3,7 +3,7 @@ use juniper::{GraphQLEnum, GraphQLObject, ID};
 
 use super::Context;
 use crate::{juniper::relay::NodeType, schema::Result};
-use tabby_db::DateTimeUtc;
+use chrono::{DateTime, Utc};
 
 #[derive(GraphQLEnum, Debug)]
 pub enum EventKind {
@@ -19,7 +19,7 @@ pub struct UserEvent {
     pub id: ID,
     pub user_id: ID,
     pub kind: EventKind,
-    pub created_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
     pub payload: String,
 }
 
@@ -48,7 +48,7 @@ pub trait UserEventService: Send + Sync {
         first: Option<usize>,
         last: Option<usize>,
         users: Vec<ID>,
-        start: DateTimeUtc,
-        end: DateTimeUtc,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
     ) -> Result<Vec<UserEvent>>;
 }

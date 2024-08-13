@@ -1,14 +1,15 @@
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query};
 use tabby_db_macros::query_paged_as;
 
-use crate::{DateTimeUtc, DbConn};
+use crate::DbConn;
 
 #[derive(FromRow)]
 pub struct WebCrawlerUrlDAO {
     pub id: i64,
     pub url: String,
-    pub created_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
 }
 
 impl DbConn {
@@ -21,7 +22,7 @@ impl DbConn {
         let urls = query_paged_as!(
             WebCrawlerUrlDAO,
             "web_crawler_urls",
-            ["id", "url", "created_at" as "created_at!: DateTimeUtc"],
+            ["id", "url", "created_at" as "created_at!: DateTime<Utc>"],
             limit,
             skip_id,
             backwards

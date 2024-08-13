@@ -1,21 +1,21 @@
 use anyhow::Result;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use sqlx::{query, FromRow};
 use uuid::Uuid;
 
-use super::{DateTimeUtc, DbConn};
+use super::DbConn;
 
 #[allow(unused)]
 #[derive(FromRow)]
 pub struct RefreshTokenDAO {
     pub id: i64,
-    pub created_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
 
     pub user_id: i64,
     pub token: String,
-    pub expires_at: DateTimeUtc,
+    pub expires_at: DateTime<Utc>,
 }
 
 impl RefreshTokenDAO {
@@ -72,7 +72,7 @@ impl DbConn {
     pub async fn get_refresh_token(&self, token: &str) -> Result<Option<RefreshTokenDAO>> {
         let token = sqlx::query_as!(
             RefreshTokenDAO,
-            r#"SELECT id as "id!", created_at as "created_at!: DateTimeUtc", expires_at as "expires_at!: DateTimeUtc", user_id, token FROM refresh_tokens WHERE token = ?"#,
+            r#"SELECT id as "id!", created_at as "created_at!: DateTime<Utc>", expires_at as "expires_at!: DateTime<Utc>", user_id, token FROM refresh_tokens WHERE token = ?"#,
             token
         )
         .fetch_optional(&self.pool)
