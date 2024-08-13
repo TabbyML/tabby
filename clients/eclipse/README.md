@@ -9,17 +9,22 @@
 2. Ensure you have [Node.js](https://nodejs.org/en/download/) version 18 or higher installed. For package management, install [pnpm](https://pnpm.io/installation). Using [corepack](https://pnpm.io/installation#using-corepack) is the preferred method for installation.
 
 3. Clone the Tabby repository and install its dependencies:
+  ```bash
+  git clone https://github.com/TabbyML/tabby.git
+  cd tabby
+  pnpm install
+  cd clients/eclipse
+  pnpm turbo build
+  ```
 
-```bash
-git clone https://github.com/TabbyML/tabby.git
-cd tabby
-pnpm install
-cd clients/eclipse
-pnpm turbo build
-```
+  This process will also build the `tabby-agent` and place it into the `clients/eclipse/plugin/tabby-agent/` directory.
 
-This process will also build the `tabby-agent` and place it into the `clients/eclipse/plugin/tabby-agent/` directory.
-
-4. Import the `clients/eclipse/plugin` and `clients/eclipse/feature` directories into your Eclipse workspace.
+4. Import the project into your Eclipse workspace.  
+  a. Open `File -> Import...`, select the `General -> Existing Projects into Workspace` option, and click `Next`.
+    ![Import Project into Workspace](docs/eclipse-import-project-select-wizard.png)
+  b. Select the `clients/eclipse/plugin` as the root directory, check the item to be imported, and click `Finish`.
+    ![Import Project into Workspace](docs/eclipse-import-project-select-project.png)
+  c. Then import the `clients/eclipse/feature` directory as well.
 
 5. Open the `clients/eclipse/plugin/plugin.xml` file in Eclipse. It should open as a plugin project overview. In the `Testing` section, click on `Launch an Eclipse application` to start the plugin.
+  ![Launch an Eclipse application](docs/eclipse-launch-application.jpg)
