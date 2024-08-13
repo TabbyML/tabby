@@ -12,10 +12,7 @@ pub use oauth_credential::OAuthCredentialDAO;
 pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
-use sqlx::{
-    query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite,
-    SqlitePool,
-};
+use sqlx::{query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite, SqlitePool};
 pub use threads::{
     ThreadDAO, ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc, ThreadMessageDAO,
 };
