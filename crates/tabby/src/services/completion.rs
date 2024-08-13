@@ -384,6 +384,7 @@ pub async fn create_completion_service_and_chat(
 
 #[cfg(test)]
 mod tests {
+    use api::code::CodeSearchParams;
     use async_stream::stream;
     use async_trait::async_trait;
     use futures::stream::BoxStream;

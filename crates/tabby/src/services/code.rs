@@ -155,9 +155,9 @@ fn merge_code_responses_by_rank(
         hits: scored_hits
             .into_iter()
             .filter(|hit| {
-                hit.scores.bm25 > params.bm25_score_threshold
-                    && hit.scores.embedding > params.embedding_score_threshold
-                    && hit.scores.rrf > params.rrf_score_threshold
+                hit.scores.bm25 > params.min_bm25_score
+                    && hit.scores.embedding > params.min_embedding_score
+                    && hit.scores.rrf > params.min_rrf_score
             })
             .take(params.num_to_return)
             .collect(),

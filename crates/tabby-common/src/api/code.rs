@@ -66,9 +66,9 @@ pub struct CodeSearchQuery {
 
 #[derive(Deserialize, ToSchema)]
 pub struct CodeSearchParams {
-    pub embedding_score_threshold: f32,
-    pub bm25_score_threshold: f32,
-    pub rrf_score_threshold: f32,
+    pub min_embedding_score: f32,
+    pub min_bm25_score: f32,
+    pub min_rrf_score: f32,
 
     /// At most num_to_return results will be returned.
     pub num_to_return: usize,
@@ -80,9 +80,9 @@ pub struct CodeSearchParams {
 impl Default for CodeSearchParams {
     fn default() -> Self {
         Self {
-            embedding_score_threshold: 0.75,
-            bm25_score_threshold: 8.0,
-            rrf_score_threshold: 0.028,
+            min_embedding_score: 0.75,
+            min_bm25_score: 8.0,
+            min_rrf_score: 0.028,
 
             num_to_return: 5,
             num_to_score: 10,
