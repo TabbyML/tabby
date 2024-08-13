@@ -60,7 +60,6 @@
     "dot-prop": "^8.0.2",
     "esbuild": "^0.19.12",
     "esbuild-plugin-polyfill-node": "^0.3.0",
-    "esbuild-plugin-raw": "^0.1.8",
     "eslint": "^8.55.0",
     "eslint-config-prettier": "^9.0.0",
     "eventsource-parser": "^1.1.2",

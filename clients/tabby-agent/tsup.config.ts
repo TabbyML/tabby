@@ -4,7 +4,6 @@ import path from "path";
 import fs from "fs-extra";
 import { polyfillNode } from "esbuild-plugin-polyfill-node";
 import dedent from "dedent";
-import RawPlugin from "esbuild-plugin-raw";
 
 function processWinCa(copyRootsExe: boolean = false): Plugin {
   return {
@@ -65,6 +64,9 @@ export default defineConfig(async () => {
     },
     {
       name: "lsp-node",
+      loader: {
+        ".md": "file",
+      },
       entry: ["src/lsp/index.ts"],
       outDir: "dist/node",
       platform: "node",
@@ -80,13 +82,16 @@ export default defineConfig(async () => {
         moduleSideEffects: "no-external",
       },
       external: ["vscode-languageserver/browser"],
-      esbuildPlugins: [processWinCa(true), RawPlugin()],
+      esbuildPlugins: [processWinCa(true)],
       banner: {
         js: banner,
       },
     },
     {
       name: "lsp-browser",
+      loader: {
+        ".md": "file",
+      },
       entry: ["src/lsp/index.ts"],
       outDir: "dist/browser",
       platform: "browser",
@@ -116,7 +121,6 @@ export default defineConfig(async () => {
         polyfillNode({
           polyfills: {},
         }),
-        RawPlugin(),
       ],
       banner: {
         js: banner,

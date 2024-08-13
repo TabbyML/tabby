@@ -1,8 +1,8 @@
-import fixSpellingAndGrammarPrompt from "./prompts/fix-spelling-and-grammar.md?raw";
-import generateCommitMessagePrompt from "./prompts/generate-commit-message.md?raw";
-import generateDocsPrompt from "./prompts/generate-docs.md?raw";
-import editCommandReplacePrompt from "./prompts/edit-command-replace.md?raw";
-import editCommandInsertPrompt from "./prompts/edit-command-insert.md?raw";
+import fixSpellingAndGrammarPrompt from "./prompts/fix-spelling-and-grammar.md";
+import generateCommitMessagePrompt from "./prompts/generate-commit-message.md";
+import generateDocsPrompt from "./prompts/generate-docs.md";
+import editCommandReplacePrompt from "./prompts/edit-command-replace.md";
+import editCommandInsertPrompt from "./prompts/edit-command-insert.md";
 
 export type AgentConfig = {
   server: {
