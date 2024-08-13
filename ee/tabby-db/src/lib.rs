@@ -232,61 +232,6 @@ impl DbConn {
     }
 }
 
-#[derive(Default)]
-pub struct DbOption<T>(Option<T>);
-
-impl<T> Type<Sqlite> for DbOption<T>
-where
-    T: Type<Sqlite>,
-{
-    fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
-        T::type_info()
-    }
-}
-
-impl<'a, T> Decode<'a, Sqlite> for DbOption<T>
-where
-    T: Decode<'a, Sqlite>,
-{
-    fn decode(
-        value: <Sqlite as HasValueRef<'a>>::ValueRef,
-    ) -> std::prelude::v1::Result<Self, sqlx::error::BoxDynError> {
-        if value.is_null() {
-            Ok(Self(None))
-        } else {
-            Ok(Self(Some(T::decode(value)?)))
-        }
-    }
-}
-
-impl<T, F> From<Option<F>> for DbOption<T>
-where
-    T: From<F>,
-{
-    fn from(value: Option<F>) -> Self {
-        DbOption(value.map(|v| T::from(v)))
-    }
-}
-
-impl<T> DbOption<T> {
-    pub fn into_option<V>(self) -> Option<V>
-    where
-        T: Into<V>,
-    {
-        self.0.map(Into::into)
-    }
-}
-
-impl<T> Clone for DbOption<T>
-where
-    T: Clone,
-{
-    fn clone(&self) -> Self {
-        self.0.clone().into()
-    }
-}
-
-
 trait AsSqliteDateTimeString {
     fn as_sqlite_datetime(&self) -> String;
 }
