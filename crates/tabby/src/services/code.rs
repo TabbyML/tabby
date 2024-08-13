@@ -6,7 +6,8 @@ use cached::{CachedAsync, TimedCache};
 use parse_git_url::GitUrl;
 use tabby_common::{
     api::code::{
-        CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery, CodeSearchResponse, CodeSearchScores
+        CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchParams,
+        CodeSearchQuery, CodeSearchResponse, CodeSearchScores,
     },
     config::{ConfigAccess, RepositoryConfig},
     index::{
@@ -93,7 +94,8 @@ impl CodeSearchImpl {
             ));
 
             let query = code::code_search_query(&query, embedding_tokens_query);
-            self.search_with_query(reader, &query, params.num_to_score).await?
+            self.search_with_query(reader, &query, params.num_to_score)
+                .await?
         };
 
         let docs_from_bm25 = {
@@ -101,7 +103,8 @@ impl CodeSearchImpl {
             let body_query = code::body_query(&body_tokens);
 
             let query = code::code_search_query(&query, body_query);
-            self.search_with_query(reader, &query, params.num_to_score).await?
+            self.search_with_query(reader, &query, params.num_to_score)
+                .await?
         };
 
         Ok(merge_code_responses_by_rank(

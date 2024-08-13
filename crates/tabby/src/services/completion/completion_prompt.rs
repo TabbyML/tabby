@@ -196,7 +196,10 @@ async fn collect_snippets(
 
     let mut ret = Vec::new();
 
-    let serp = match code.search_in_language(query, code_search_params.clone()).await {
+    let serp = match code
+        .search_in_language(query, code_search_params.clone())
+        .await
+    {
         Ok(serp) => serp,
         Err(CodeSearchError::NotReady) => {
             // Ignore.
@@ -284,7 +287,8 @@ mod tests {
     async fn test_collect_snippets() {
         // Not ready error from CodeSearch should result in empty snippets, rather than error
         let search = MockCodeSearch(|| Err(CodeSearchError::NotReady));
-        let snippets = collect_snippets(&CodeSearchParams::default(), 150, &search, "", None, "", "").await;
+        let snippets =
+            collect_snippets(&CodeSearchParams::default(), 150, &search, "", None, "", "").await;
         assert_eq!(snippets, vec![]);
 
         let search = MockCodeSearch(|| {
@@ -292,7 +296,8 @@ mod tests {
                 hits: vec![Default::default()],
             })
         });
-        let snippets = collect_snippets(&CodeSearchParams::default(), 150, &search, "", None, "", "").await;
+        let snippets =
+            collect_snippets(&CodeSearchParams::default(), 150, &search, "", None, "", "").await;
         assert_eq!(
             snippets,
             vec![Snippet {

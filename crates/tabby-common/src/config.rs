@@ -9,7 +9,9 @@ use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 use crate::{
-    api::code::CodeSearchParams, path::repositories_dir, terminal::{HeaderFormat, InfoMessage}
+    api::code::CodeSearchParams,
+    path::repositories_dir,
+    terminal::{HeaderFormat, InfoMessage},
 };
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
@@ -314,7 +316,7 @@ impl Default for CompletionConfig {
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct AnswerConfig {
     #[serde(default)]
-    pub code_search_params: CodeSearchParams
+    pub code_search_params: CodeSearchParams,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
