@@ -35,6 +35,7 @@ pub trait ThreadService: Send + Sync {
         &self,
         id: &ID,
         options: &ThreadRunOptionsInput,
+        attachment_input: Option<&MessageAttachmentInput>,
         yield_last_user_message: bool,
         yield_thread_created: bool,
     ) -> Result<ThreadRunStream>;

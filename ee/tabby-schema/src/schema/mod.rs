@@ -1000,7 +1000,13 @@ impl Subscription {
         let thread_id = thread.create(&user.id, &input.thread).await?;
 
         thread
-            .create_run(&thread_id, &input.options, true, true)
+            .create_run(
+                &thread_id,
+                &input.options,
+                input.thread.user_message.attachments.as_ref(),
+                true,
+                true,
+            )
             .await
     }
 
@@ -1029,8 +1035,14 @@ impl Subscription {
         svc.append_user_message(&input.thread_id, &input.additional_user_message)
             .await?;
 
-        svc.create_run(&input.thread_id, &input.options, true, false)
-            .await
+        svc.create_run(
+            &input.thread_id,
+            &input.options,
+            input.additional_user_message.attachments.as_ref(),
+            true,
+            false,
+        )
+        .await
     }
 }
 

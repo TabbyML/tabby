@@ -1,0 +1,10 @@
+---
+source: ee/tabby-webserver/src/service/answer.rs
+expression: output
+---
+- content: Hello
+  role: user
+- content: Hi
+  role: assistant
+- content: How are you?
+  role: user

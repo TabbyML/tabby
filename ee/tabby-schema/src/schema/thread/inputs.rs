@@ -97,14 +97,13 @@ pub struct CreateThreadRunInput {
     pub options: ThreadRunOptionsInput,
 }
 
-#[derive(GraphQLInputObject)]
+#[derive(GraphQLInputObject, Clone)]
 pub struct MessageAttachmentInput {
     pub code: Vec<MessageAttachmentCodeInput>,
 }
 
-#[derive(GraphQLInputObject)]
+#[derive(GraphQLInputObject, Clone)]
 pub struct MessageAttachmentCodeInput {
     pub filepath: Option<String>,
-
     pub content: String,
 }

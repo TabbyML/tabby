@@ -7,8 +7,7 @@ use tabby_db::{DbConn, ThreadMessageAttachmentCode, ThreadMessageDAO};
 use tabby_schema::{
     bail,
     thread::{
-        self, CreateMessageInput, CreateThreadInput, ThreadRunItem, ThreadRunOptionsInput,
-        ThreadRunStream, ThreadService,
+        self, CreateMessageInput, CreateThreadInput, MessageAttachmentInput, ThreadRunItem, ThreadRunOptionsInput, ThreadRunStream, ThreadService
     },
     AsID, AsRowid, DbEnum, Result,
 };
@@ -27,7 +26,7 @@ impl ThreadServiceImpl {
             .db
             .list_thread_messages(thread_id.as_rowid()?, None, None, false)
             .await?;
-        Ok(to_vec_messages(messages))
+        to_vec_messages(messages)
     }
 }
 
@@ -52,6 +51,7 @@ impl ThreadService for ThreadServiceImpl {
         &self,
         thread_id: &ID,
         options: &ThreadRunOptionsInput,
+        attachment_input: Option<&MessageAttachmentInput>,
         yield_last_user_message: bool,
         yield_thread_created: bool,
     ) -> Result<ThreadRunStream> {
@@ -59,18 +59,7 @@ impl ThreadService for ThreadServiceImpl {
             bail!("Answer service is not available");
         };
 
-        let messages: Vec<thread::Message> = self
-            .get_thread_messages(thread_id)
-            .await?
-            .into_iter()
-            .flat_map(|x| match x.try_into() {
-                Ok(x) => Some(x),
-                Err(e) => {
-                    error!("Failed to convert thread message: {}", e);
-                    None
-                }
-            })
-            .collect();
+        let messages = self.get_thread_messages(thread_id).await?;
 
         let Some(last_message) = messages.last() else {
             bail!("Thread has no messages");
@@ -94,7 +83,9 @@ impl ThreadService for ThreadServiceImpl {
             )
             .await?;
 
-        let s = answer.answer_v2(&messages, options).await?;
+        let s = answer
+            .answer_v2(&messages, options, attachment_input)
+            .await?;
 
         // Copy ownership of db and thread_id for the stream
         let db = self.db.clone();
@@ -163,22 +154,12 @@ impl ThreadService for ThreadServiceImpl {
     ) -> Result<()> {
         let thread_id = thread_id.as_rowid()?;
 
-        let code = message.attachments.as_ref().map(|x| {
-            x.code
-                .iter()
-                .map(|x| ThreadMessageAttachmentCode {
-                    filepath: x.filepath.clone(),
-                    content: x.content.clone(),
-                })
-                .collect::<Vec<_>>()
-        });
-
         self.db
             .create_thread_message(
                 thread_id,
                 thread::Role::User.as_enum_str(),
                 &message.content,
-                code.as_deref(),
+                None,
                 None,
                 true,
             )
@@ -226,21 +207,20 @@ impl ThreadService for ThreadServiceImpl {
             .list_thread_messages(thread_id, limit, skip_id, backwards)
             .await?;
 
-        Ok(to_vec_messages(messages))
+        to_vec_messages(messages)
     }
 }
 
-fn to_vec_messages(messages: Vec<ThreadMessageDAO>) -> Vec<thread::Message> {
-    messages
-        .into_iter()
-        .filter_map(|x| match x.try_into() {
-            Ok(x) => Some(x),
-            Err(e) => {
-                error!("Failed to convert thread message: {}", e);
-                None
-            }
-        })
-        .collect()
+fn to_vec_messages(messages: Vec<ThreadMessageDAO>) -> Result<Vec<thread::Message>> {
+    let mut output = vec![];
+    output.reserve(messages.len());
+
+    for x in messages {
+        let message: thread::Message = x.try_into()?;
+        output.push(message);
+    }
+
+    Ok(output)
 }
 
 pub fn create(db: DbConn, answer: Option<Arc<AnswerService>>) -> impl ThreadService {

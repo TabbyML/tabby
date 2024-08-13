@@ -233,8 +233,11 @@ impl TryFrom<UserEventDAO> for UserEvent {
 impl From<ThreadMessageAttachmentCode> for thread::MessageAttachmentCode {
     fn from(value: ThreadMessageAttachmentCode) -> Self {
         Self {
+            git_url: value.git_url,
             filepath: value.filepath,
+            language: value.language,
             content: value.content,
+            start_line: value.start_line as i32,
         }
     }
 }
@@ -242,8 +245,11 @@ impl From<ThreadMessageAttachmentCode> for thread::MessageAttachmentCode {
 impl From<&thread::MessageAttachmentCode> for ThreadMessageAttachmentCode {
     fn from(val: &thread::MessageAttachmentCode) -> Self {
         ThreadMessageAttachmentCode {
+            git_url: val.git_url.clone(),
             filepath: val.filepath.clone(),
+            language: val.language.clone(),
             content: val.content.clone(),
+            start_line: val.start_line as usize,
         }
     }
 }
