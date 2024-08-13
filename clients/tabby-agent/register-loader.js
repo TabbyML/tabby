@@ -8,10 +8,7 @@ function register() {
   const cwd = process.cwd();
   Module._load = function (request, _parent) {
     if (request.match(REQUIRE_PATH_TEST)) {
-      return fs.readFileSync(
-        path.join(path.dirname(_parent ? _parent.filename : cwd), request),
-        "utf8"
-      );
+      return fs.readFileSync(path.join(path.dirname(_parent ? _parent.filename : cwd), request), "utf8");
     }
     return orginalLoad.apply(this, arguments);
   };
