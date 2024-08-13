@@ -519,22 +519,28 @@ Remember, based on the original question and related contexts, suggest three suc
         relevant_docs: &[DocSearchHit],
         question: &str,
     ) -> String {
-        let snippets: Vec<String> = code_snippets
+        let snippets: Vec<String> =
+        // Relevant web docs comes first
+        relevant_docs
             .iter()
-            .map(|snippet| {
+            .map(|hit| hit.doc.snippet.to_owned())
+
+            // Then it's client side code snippets
+            .chain(code_snippets.iter().map(|snippet| {
                 if let Some(filepath) = &snippet.filepath {
                     format!("``` title=\"{}\"\n{}\n```", filepath, snippet.content)
                 } else {
                     format!("```\n{}\n```", snippet.content)
                 }
-            })
+            }))
+
+            // Lastly it's server side code snippets
             .chain(relevant_code.iter().map(|hit| {
                 format!(
                     "```{} title=\"{}\"\n{}\n```",
                     hit.doc.language, hit.doc.filepath, hit.doc.body
                 )
             }))
-            .chain(relevant_docs.iter().map(|hit| hit.doc.snippet.to_owned()))
             .collect();
 
         let citations: Vec<String> = snippets
