@@ -286,10 +286,15 @@ where
     }
 }
 
-pub type DateTimeUtc = DateTime<Utc>;
 
-pub fn sqlite_datetime_format(t: &DateTime<Utc>) -> String {
-    t.format("%F %X").to_string()
+trait AsSqliteDateTimeString {
+    fn as_sqlite_datetime(&self) -> String;
+}
+
+impl AsSqliteDateTimeString for DateTime<Utc> {
+    fn as_sqlite_datetime(&self) -> String {
+        self.format("%F %X").to_string()
+    }
 }
 
 pub trait SQLXResultExt {
@@ -336,7 +341,7 @@ mod tests {
 
         let time = Utc::now();
 
-        let time_str = sqlite_datetime_format(&time);
+        let time_str = time.as_sqlite_datetime();
         let sql_time: String = sqlx::query_scalar::<_, String>("SELECT ?;")
             .bind(time)
             .fetch_one(&db.pool)
@@ -349,7 +354,7 @@ mod tests {
             .fetch_one(&db.pool)
             .await
             .unwrap();
-        assert_eq!(sql_time, sqlite_datetime_format(&Utc::now()));
+        assert_eq!(sql_time, Utc::now().as_sqlite_datetime());
 
         // No assertions, these will fail at compiletime if adding/subtracting from these types
         // yields DateTime<Utc>, which could be dangerous
