@@ -252,7 +252,7 @@ mod tests {
         };
 
         // Init prompt builder with prompt rewrite disabled.
-        PromptBuilder::new(prompt_template, None)
+        PromptBuilder::new(&CodeSearchParams::default(), prompt_template, None)
     }
 
     fn make_segment(prefix: String, suffix: Option<String>) -> Segments {
@@ -284,7 +284,7 @@ mod tests {
     async fn test_collect_snippets() {
         // Not ready error from CodeSearch should result in empty snippets, rather than error
         let search = MockCodeSearch(|| Err(CodeSearchError::NotReady));
-        let snippets = collect_snippets(150, &search, "", None, "", "").await;
+        let snippets = collect_snippets(&CodeSearchParams::default(), 150, &search, "", None, "", "").await;
         assert_eq!(snippets, vec![]);
 
         let search = MockCodeSearch(|| {
@@ -292,7 +292,7 @@ mod tests {
                 hits: vec![Default::default()],
             })
         });
-        let snippets = collect_snippets(150, &search, "", None, "", "").await;
+        let snippets = collect_snippets(&CodeSearchParams::default(), 150, &search, "", None, "", "").await;
         assert_eq!(
             snippets,
             vec![Snippet {
