@@ -3,15 +3,15 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use futures::StreamExt;
 use juniper::ID;
-use tabby_db::{DbConn, ThreadMessageAttachmentCode, ThreadMessageDAO};
+use tabby_db::{DbConn, ThreadMessageDAO};
 use tabby_schema::{
     bail,
     thread::{
-        self, CreateMessageInput, CreateThreadInput, MessageAttachmentInput, ThreadRunItem, ThreadRunOptionsInput, ThreadRunStream, ThreadService
+        self, CreateMessageInput, CreateThreadInput, MessageAttachmentInput, ThreadRunItem,
+        ThreadRunOptionsInput, ThreadRunStream, ThreadService,
     },
     AsID, AsRowid, DbEnum, Result,
 };
-use tracing::error;
 
 use super::{answer::AnswerService, graphql_pagination_to_filter};
 
