@@ -274,7 +274,7 @@ mod tests {
         async fn search_in_language(
             &self,
             _query: CodeSearchQuery,
-            _limit: usize,
+            _params: CodeSearchParams,
         ) -> Result<CodeSearchResponse, CodeSearchError> {
             (self.0)()
         }
