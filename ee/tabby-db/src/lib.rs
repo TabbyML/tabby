@@ -146,7 +146,7 @@ impl DbConn {
     /// against SQLite `DATETIME("now")`.
     ///
     /// ```compile_fail
-    /// let output = sqlx::query_scalar::<_, String>("SELECT ?;").bind(chrono::Utc::now())
+    /// let output = sqlx::query_scalar::<_, String>("SELECT ?;").bind(chrono::Utc::now());
     /// ```
     fn _datetime_utc_shouldnt_be_bindable() {}
 
