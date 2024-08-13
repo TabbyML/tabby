@@ -3,7 +3,7 @@ use chrono::{DateTime, Duration, Utc};
 use sqlx::{query, query_as};
 use uuid::Uuid;
 
-use crate::DbConn;
+use crate::{AsSqliteDateTimeString, DbConn};
 
 pub struct PasswordResetDAO {
     pub user_id: i64,
@@ -78,7 +78,7 @@ impl DbConn {
 
     #[cfg(any(test, feature = "testutils"))]
     pub async fn mark_password_reset_expired(&self, code: &str) -> Result<()> {
-        let timestamp = Utc::now() - Duration::hours(10);
+        let timestamp = (Utc::now() - Duration::hours(10)).as_sqlite_datetime();
         query!(
             "UPDATE password_reset SET created_at = ? WHERE code = ?;",
             timestamp,
@@ -90,7 +90,7 @@ impl DbConn {
     }
 
     pub async fn delete_expired_password_resets(&self) -> Result<()> {
-        let time = Utc::now() - Duration::hours(1);
+        let time = (Utc::now() - Duration::hours(1)).as_sqlite_datetime();
         query!("DELETE FROM password_reset WHERE created_at < ?", time)
             .execute(&self.pool)
             .await?;

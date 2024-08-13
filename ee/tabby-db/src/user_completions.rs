@@ -5,7 +5,7 @@ use cached::CachedAsync;
 use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query};
 
-use crate::DbConn;
+use crate::{AsSqliteDateTimeString, DbConn};
 
 #[derive(FromRow)]
 pub struct UserCompletionDAO {
@@ -41,7 +41,8 @@ impl DbConn {
         let duration = Duration::from_millis(ts as u64);
         let created_at =
             DateTime::<Utc>::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
-                .context("Invalid created_at timestamp")?;
+                .context("Invalid created_at timestamp")?
+                .as_sqlite_datetime();
         let res = query!(
             "INSERT INTO user_completions (user_id, completion_id, language, created_at) VALUES (?, ?, ?, ?);",
             user_id,
@@ -65,7 +66,8 @@ impl DbConn {
         let duration = Duration::from_millis(ts as u64);
         let updated_at =
             DateTime::<Utc>::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
-                .context("Invalid updated_at timestamp")?;
+                .context("Invalid updated_at timestamp")?
+                .as_sqlite_datetime();
         query!("UPDATE user_completions SET views = views + ?, selects = selects + ?, dismisses = dismisses + ?, updated_at = ? WHERE completion_id = ?",
             views, selects, dismisses, updated_at, completion_id).execute(&self.pool).await?;
         Ok(())
@@ -171,8 +173,8 @@ impl DbConn {
             no_selected_users = users.is_empty(),
             no_selected_languages = languages.is_empty(),
         ))
-        .bind(start)
-        .bind(end)
+        .bind(start.as_sqlite_datetime())
+        .bind(end.as_sqlite_datetime())
         .fetch_all(&self.pool)
         .await?;
         Ok(res)

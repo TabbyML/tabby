@@ -212,7 +212,7 @@ impl DbConn {
     pub async fn reset_registration_token(&self) -> Result<String> {
         let token = uuid::Uuid::new_v4().to_string();
         let result = token.clone();
-        let updated_at = DateTimeUtc::now();
+        let updated_at = Utc::now().as_sqlite_datetime();
 
         let res = query!(
             "UPDATE registration_token SET token = ?, updated_at = ? WHERE id = 1",

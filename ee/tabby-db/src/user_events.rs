@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query};
 use tabby_db_macros::query_paged_as;
 
-use crate::DbConn;
+use crate::{AsSqliteDateTimeString, DbConn};
 
 #[derive(FromRow)]
 pub struct UserEventDAO {
@@ -27,7 +27,8 @@ impl DbConn {
         let duration = Duration::from_millis(created_at as u64);
         let created_at =
             DateTime::<Utc>::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
-                .context("Invalid created_at timestamp")?;
+                .context("Invalid created_at timestamp")?
+                .as_sqlite_datetime();
         query!(
             r#"INSERT INTO user_events(user_id, kind, created_at, payload) VALUES (?, ?, ?, ?)"#,
             user_id,

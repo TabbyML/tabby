@@ -3,7 +3,7 @@ use chrono::{DateTime, Duration, Utc};
 use sqlx::{query, FromRow};
 use tabby_db_macros::query_paged_as;
 
-use super::DbConn;
+use super::{AsSqliteDateTimeString, DbConn};
 
 #[derive(Default, Clone, FromRow)]
 pub struct JobRunDAO {
@@ -180,7 +180,7 @@ impl DbConn {
                 SUM(exit_code IS NULL) AS pending FROM job_runs
                 WHERE created_at > ? {condition};"#
         ))
-        .bind(cutoff)
+        .bind(cutoff.as_sqlite_datetime())
         .fetch_one(&self.pool)
         .await?;
         Ok(stats)
