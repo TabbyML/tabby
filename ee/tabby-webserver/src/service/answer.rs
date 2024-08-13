@@ -12,7 +12,7 @@ use async_stream::stream;
 use futures::stream::BoxStream;
 use tabby_common::api::{
     answer::{AnswerRequest, AnswerResponseChunk},
-    code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchQuery},
+    code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchQuery, CodeSearchParams},
     doc::{DocSearch, DocSearchError, DocSearchHit},
 };
 use tabby_inference::ChatCompletionStream;
@@ -291,7 +291,14 @@ impl AnswerService {
             language: query.language.clone(),
             content: query.content.clone(),
         };
-        match self.code.search_in_language(query, 20).await {
+
+        let params = CodeSearchParams {
+            num_to_return: 20,
+            num_to_score: 40,
+            ..Default::default()
+        };
+
+        match self.code.search_in_language(query, params).await {
             Ok(docs) => docs.hits,
             Err(err) => {
                 if let CodeSearchError::NotReady = err {

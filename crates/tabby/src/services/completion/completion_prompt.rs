@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use strfmt::strfmt;
 use tabby_common::{
-    api::code::{CodeSearch, CodeSearchError, CodeSearchQuery},
+    api::code::{CodeSearch, CodeSearchError, CodeSearchParams, CodeSearchQuery},
     languages::get_language,
 };
 use tracing::warn;
@@ -188,9 +188,15 @@ async fn collect_snippets(
         content: content.to_owned(),
     };
 
+    let params = CodeSearchParams {
+        num_to_return: MAX_SNIPPETS_TO_FETCH,
+        num_to_score: MAX_SNIPPETS_TO_FETCH * 2,
+        ..Default::default()
+    };
+
     let mut ret = Vec::new();
 
-    let serp = match code.search_in_language(query, MAX_SNIPPETS_TO_FETCH).await {
+    let serp = match code.search_in_language(query, params).await {
         Ok(serp) => serp,
         Err(CodeSearchError::NotReady) => {
             // Ignore.
