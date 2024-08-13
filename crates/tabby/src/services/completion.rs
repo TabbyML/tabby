@@ -244,9 +244,13 @@ impl CompletionService {
         prompt_template: Option<String>,
     ) -> Self {
         Self {
-            config,
             engine,
-            prompt_builder: completion_prompt::PromptBuilder::new(prompt_template, Some(code)),
+            prompt_builder: completion_prompt::PromptBuilder::new(
+                &config.code_search_params,
+                prompt_template,
+                Some(code),
+            ),
+            config,
             logger,
         }
     }
@@ -384,6 +388,7 @@ pub async fn create_completion_service_and_chat(
 
 #[cfg(test)]
 mod tests {
+    use api::code::CodeSearchParams;
     use async_stream::stream;
     use async_trait::async_trait;
     use futures::stream::BoxStream;
@@ -418,7 +423,7 @@ mod tests {
         async fn search_in_language(
             &self,
             _query: CodeSearchQuery,
-            _limit: usize,
+            _params: CodeSearchParams,
         ) -> Result<CodeSearchResponse, CodeSearchError> {
             Ok(CodeSearchResponse { hits: vec![] })
         }

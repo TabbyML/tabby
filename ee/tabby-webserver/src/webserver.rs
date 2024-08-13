@@ -94,6 +94,7 @@ impl Webserver {
 
     pub async fn attach(
         &self,
+        config: &Config,
         api: Router,
         ui: Router,
         code: Arc<dyn CodeSearch>,
@@ -103,6 +104,7 @@ impl Webserver {
     ) -> (Router, Router) {
         let answer = chat.as_ref().map(|chat| {
             Arc::new(crate::service::answer::create(
+                &config.answer,
                 chat.clone(),
                 code.clone(),
                 docsearch.clone(),

@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 use crate::{
+    api::code::CodeSearchParams,
     path::repositories_dir,
     terminal::{HeaderFormat, InfoMessage},
 };
@@ -26,6 +27,9 @@ pub struct Config {
 
     #[serde(default)]
     pub completion: CompletionConfig,
+
+    #[serde(default)]
+    pub answer: AnswerConfig,
 }
 
 impl Config {
@@ -286,6 +290,9 @@ pub struct CompletionConfig {
 
     #[serde(default = "default_max_decoding_tokens")]
     pub max_decoding_tokens: usize,
+
+    #[serde(default)]
+    pub code_search_params: CodeSearchParams,
 }
 
 fn default_max_input_length() -> usize {
@@ -301,8 +308,15 @@ impl Default for CompletionConfig {
         Self {
             max_input_length: default_max_input_length(),
             max_decoding_tokens: default_max_decoding_tokens(),
+            code_search_params: CodeSearchParams::default(),
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct AnswerConfig {
+    #[serde(default)]
+    pub code_search_params: CodeSearchParams,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]

@@ -64,11 +64,37 @@ pub struct CodeSearchQuery {
     pub content: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CodeSearchParams {
+    pub min_embedding_score: f32,
+    pub min_bm25_score: f32,
+    pub min_rrf_score: f32,
+
+    /// At most num_to_return results will be returned.
+    pub num_to_return: usize,
+
+    /// At most num_to_score results will be scored.
+    pub num_to_score: usize,
+}
+
+impl Default for CodeSearchParams {
+    fn default() -> Self {
+        Self {
+            min_embedding_score: 0.75,
+            min_bm25_score: 8.0,
+            min_rrf_score: 0.028,
+
+            num_to_return: 20,
+            num_to_score: 40,
+        }
+    }
+}
+
 #[async_trait]
 pub trait CodeSearch: Send + Sync {
     async fn search_in_language(
         &self,
         query: CodeSearchQuery,
-        limit: usize,
+        params: CodeSearchParams,
     ) -> Result<CodeSearchResponse, CodeSearchError>;
 }

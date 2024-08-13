@@ -2,23 +2,27 @@ use std::sync::Arc;
 
 use strfmt::strfmt;
 use tabby_common::{
-    api::code::{CodeSearch, CodeSearchError, CodeSearchQuery},
+    api::code::{CodeSearch, CodeSearchError, CodeSearchParams, CodeSearchQuery},
     languages::get_language,
 };
 use tracing::warn;
 
 use super::{Segments, Snippet};
 
-static MAX_SNIPPETS_TO_FETCH: usize = 20;
-
 pub struct PromptBuilder {
+    code_search_params: CodeSearchParams,
     prompt_template: Option<String>,
     code: Option<Arc<dyn CodeSearch>>,
 }
 
 impl PromptBuilder {
-    pub fn new(prompt_template: Option<String>, code: Option<Arc<dyn CodeSearch>>) -> Self {
+    pub fn new(
+        code_search_params: &CodeSearchParams,
+        prompt_template: Option<String>,
+        code: Option<Arc<dyn CodeSearch>>,
+    ) -> Self {
         PromptBuilder {
+            code_search_params: code_search_params.clone(),
             prompt_template,
             code,
         }
@@ -57,6 +61,7 @@ impl PromptBuilder {
         };
 
         let snippets_from_code_search = collect_snippets(
+            &self.code_search_params,
             max_snippets_chars_in_prompt,
             code.as_ref(),
             git_url,
@@ -174,6 +179,7 @@ fn extract_snippets_from_segments(
 }
 
 async fn collect_snippets(
+    code_search_params: &CodeSearchParams,
     max_snippets_chars: usize,
     code: &dyn CodeSearch,
     git_url: &str,
@@ -190,7 +196,10 @@ async fn collect_snippets(
 
     let mut ret = Vec::new();
 
-    let serp = match code.search_in_language(query, MAX_SNIPPETS_TO_FETCH).await {
+    let serp = match code
+        .search_in_language(query, code_search_params.clone())
+        .await
+    {
         Ok(serp) => serp,
         Err(CodeSearchError::NotReady) => {
             // Ignore.
@@ -246,7 +255,7 @@ mod tests {
         };
 
         // Init prompt builder with prompt rewrite disabled.
-        PromptBuilder::new(prompt_template, None)
+        PromptBuilder::new(&CodeSearchParams::default(), prompt_template, None)
     }
 
     fn make_segment(prefix: String, suffix: Option<String>) -> Segments {
@@ -268,7 +277,7 @@ mod tests {
         async fn search_in_language(
             &self,
             _query: CodeSearchQuery,
-            _limit: usize,
+            _params: CodeSearchParams,
         ) -> Result<CodeSearchResponse, CodeSearchError> {
             (self.0)()
         }
@@ -278,7 +287,8 @@ mod tests {
     async fn test_collect_snippets() {
         // Not ready error from CodeSearch should result in empty snippets, rather than error
         let search = MockCodeSearch(|| Err(CodeSearchError::NotReady));
-        let snippets = collect_snippets(150, &search, "", None, "", "").await;
+        let snippets =
+            collect_snippets(&CodeSearchParams::default(), 150, &search, "", None, "", "").await;
         assert_eq!(snippets, vec![]);
 
         let search = MockCodeSearch(|| {
@@ -286,7 +296,8 @@ mod tests {
                 hits: vec![Default::default()],
             })
         });
-        let snippets = collect_snippets(150, &search, "", None, "", "").await;
+        let snippets =
+            collect_snippets(&CodeSearchParams::default(), 150, &search, "", None, "", "").await;
         assert_eq!(
             snippets,
             vec![Snippet {

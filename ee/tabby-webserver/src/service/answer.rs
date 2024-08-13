@@ -10,10 +10,13 @@ use async_openai::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
-use tabby_common::api::{
-    answer::{AnswerRequest, AnswerResponseChunk},
-    code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchQuery},
-    doc::{DocSearch, DocSearchError, DocSearchHit},
+use tabby_common::{
+    api::{
+        answer::{AnswerRequest, AnswerResponseChunk},
+        code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery},
+        doc::{DocSearch, DocSearchError, DocSearchHit},
+    },
+    config::AnswerConfig,
 };
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
@@ -29,6 +32,7 @@ use tracing::{debug, error, warn};
 use crate::bail;
 
 pub struct AnswerService {
+    config: AnswerConfig,
     chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
@@ -42,6 +46,7 @@ const PRESENCE_PENALTY: f32 = 0.5;
 
 impl AnswerService {
     fn new(
+        config: &AnswerConfig,
         chat: Arc<dyn ChatCompletionStream>,
         code: Arc<dyn CodeSearch>,
         doc: Arc<dyn DocSearch>,
@@ -57,6 +62,7 @@ impl AnswerService {
                 None
             };
         Self {
+            config: config.clone(),
             chat,
             code,
             doc,
@@ -102,7 +108,7 @@ impl AnswerService {
                     language: code_query.language,
                     content: code_query.content,
                 };
-                self.collect_relevant_code(&code_query).await
+                self.collect_relevant_code(&code_query, &self.config.code_search_params).await
             } else {
                 vec![]
             };
@@ -202,7 +208,7 @@ impl AnswerService {
 
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
-                attachment.code = self.collect_relevant_code(code_query).await.iter()
+                attachment.code = self.collect_relevant_code(code_query, &self.config.code_search_params).await.iter()
                         .map(|x| MessageAttachmentCode{
                             filepath: Some(x.doc.filepath.clone()),
                             content: x.doc.body.clone(),
@@ -284,14 +290,19 @@ impl AnswerService {
         Ok(Box::pin(s))
     }
 
-    async fn collect_relevant_code(&self, query: &CodeQueryInput) -> Vec<CodeSearchHit> {
+    async fn collect_relevant_code(
+        &self,
+        query: &CodeQueryInput,
+        params: &CodeSearchParams,
+    ) -> Vec<CodeSearchHit> {
         let query = CodeSearchQuery {
             git_url: query.git_url.clone(),
             filepath: query.filepath.clone(),
             language: query.language.clone(),
             content: query.content.clone(),
         };
-        match self.code.search_in_language(query, 20).await {
+
+        match self.code.search_in_language(query, params.clone()).await {
             Ok(docs) => docs.hits,
             Err(err) => {
                 if let CodeSearchError::NotReady = err {
@@ -573,6 +584,7 @@ fn remove_bullet_prefix(s: &str) -> String {
 }
 
 pub fn create(
+    config: &AnswerConfig,
     chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
@@ -580,7 +592,7 @@ pub fn create(
     repository: Arc<dyn RepositoryService>,
     serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
 ) -> AnswerService {
-    AnswerService::new(chat, code, doc, web, repository, serper_factory_fn)
+    AnswerService::new(config, chat, code, doc, web, repository, serper_factory_fn)
 }
 
 fn get_content(message: &ChatCompletionRequestMessage) -> &str {

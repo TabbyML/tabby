@@ -198,7 +198,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     #[cfg(feature = "ee")]
     if let Some(ws) = &ws {
         let (new_api, new_ui) = ws
-            .attach(api, ui, code, chat, docsearch, |x| {
+            .attach(&config, api, ui, code, chat, docsearch, |x| {
                 Box::new(services::doc::create_serper(x))
             })
             .await;
