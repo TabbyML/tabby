@@ -4,7 +4,6 @@ use sqlx::{query, FromRow};
 use tabby_db_macros::query_paged_as;
 
 use super::DbConn;
-use crate::DbOption;
 
 #[derive(Default, Clone, FromRow)]
 pub struct JobRunDAO {
@@ -19,23 +18,23 @@ pub struct JobRunDAO {
     pub updated_at: DateTime<Utc>,
 
     /// The time when the job was started.
-    pub started_at: DbOption<DateTime<Utc>>,
+    pub started_at: Option<DateTime<Utc>>,
 
     #[sqlx(rename = "end_ts")]
-    pub finished_at: DbOption<DateTime<Utc>>,
+    pub finished_at: Option<DateTime<Utc>>,
 }
 
 impl JobRunDAO {
     pub fn is_running(&self) -> bool {
-        self.started_at.0.is_some() && self.finished_at.0.is_none()
+        self.started_at.is_some() && self.finished_at.is_none()
     }
 
     pub fn is_pending(&self) -> bool {
-        self.started_at.0.is_none()
+        self.started_at.is_none()
     }
 
     pub fn is_finished(&self) -> bool {
-        self.finished_at.0.is_some()
+        self.finished_at.is_some()
     }
 }
 
