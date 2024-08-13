@@ -1,2 +1,3 @@
 tests/golden/**
 tests/bad_cases/**
+src/prompts/**

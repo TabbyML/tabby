@@ -64,6 +64,9 @@ export default defineConfig(async () => {
     },
     {
       name: "lsp-node",
+      loader: {
+        ".md": "file",
+      },
       entry: ["src/lsp/index.ts"],
       outDir: "dist/node",
       platform: "node",
@@ -86,6 +89,9 @@ export default defineConfig(async () => {
     },
     {
       name: "lsp-browser",
+      loader: {
+        ".md": "file",
+      },
       entry: ["src/lsp/index.ts"],
       outDir: "dist/browser",
       platform: "browser",
