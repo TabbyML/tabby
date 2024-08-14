@@ -13,6 +13,7 @@ import {
   ChatEditCommandTooLongError,
   ChatEditMutexError,
   ApplyWorkspaceEditRequest,
+  ApplyWorkspaceEditParams,
 } from "./protocol";
 import { TextDocuments } from "./TextDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -231,7 +232,7 @@ export class ChatEditProvider {
       }
     });
 
-    await this.connection.sendRequest(ApplyWorkspaceEditRequest.type, {
+    await this.applyWorkspaceEdit({
       edit: {
         changes: {
           [params.location.uri]: [
@@ -268,7 +269,7 @@ export class ChatEditProvider {
         },
       };
 
-      await this.connection.sendRequest(ApplyWorkspaceEditRequest.type, {
+      await this.applyWorkspaceEdit({
         edit: workspaceEdit,
         options: {
           undoStopBefore: isFirst,
@@ -360,6 +361,26 @@ export class ChatEditProvider {
       this.mutexAbortController = null;
     }
   }
+
+  private async applyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<boolean> {
+    try {
+      const result = await this.connection.sendRequest(ApplyWorkspaceEditRequest.type, params);
+      return result;
+    } catch (error) {
+      console.warn("Extended applyEdit failed, falling back to standard method:", error);
+      try {
+        await this.connection.workspace.applyEdit({
+          edit: params.edit,
+          label: params.label,
+        });
+        return true;
+      } catch (fallbackError) {
+        console.error("Both extended and standard applyEdit methods failed:", fallbackError);
+        return false;
+      }
+    }
+  }
+
   // header line
   // <<<<<<< Editing by Tabby <.#=+->
   // markers:

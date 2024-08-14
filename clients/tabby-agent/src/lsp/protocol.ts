@@ -459,7 +459,6 @@ export type ChatEditResolveParams = {
 export namespace ApplyWorkspaceEditRequest {
   export const method = "tabby/workspace/applyEdit";
   export const messageDirection = MessageDirection.serverToClient;
-  //TODO change boolean
   export const type = new ProtocolRequestType<ApplyWorkspaceEditParams, boolean, never, void, void>(method);
 }
 
