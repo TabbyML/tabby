@@ -13,7 +13,6 @@ import {
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import defaultFavicon from '@/assets/default-favicon.png'
-import { Message } from 'ai'
 import DOMPurify from 'dompurify'
 import he from 'he'
 import { marked } from 'marked'
@@ -71,18 +70,21 @@ import UserPanel from '@/components/user-panel'
 
 import './search.css'
 
-import { compact, isNil, pick } from 'lodash-es'
+import { compact, isEmpty, isNil, pick } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
+import { graphql } from '@/lib/gql/generates'
 import {
   CodeQueryInput,
   InputMaybe,
   Maybe,
+  Message,
   MessageAttachmentCode,
   MessageAttachmentDoc,
   RepositoryListQuery,
+  Role,
   ThreadRunItem
 } from '@/lib/gql/generates/graphql'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
@@ -97,12 +99,15 @@ import { CodeReferences } from '@/components/chat/question-answer'
 
 import { DevPanel } from './dev-panel'
 
-type ConversationMessage = Message & {
-  relevant_code?: ThreadRunItem['threadAssistantMessageAttachmentsCode']
-  relevant_documents?: ThreadRunItem['threadAssistantMessageAttachmentsDoc']
-  relevant_questions?: ThreadRunItem['threadRelevantQuestions']
+type ConversationMessage = Omit<
+  Message,
+  '__typename' | 'updatedAt' | 'createdAt' | 'attachment' | 'threadId'
+> & {
+  threadId?: string
+  threadRelevantQuestions?: Maybe<string[]>
   isLoading?: boolean
   error?: string
+  attachment?: Message['attachment']
 }
 
 type SearchContextValue = {
@@ -124,9 +129,54 @@ const SOURCE_CARD_STYLE = {
   expand: 6.3
 }
 
+const listThreadMessages = graphql(/* GraphQL */ `
+  query ListThreadMessages(
+    $threadId: ID!
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    threadMessages(
+      threadId: $threadId
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          threadId
+          role
+          content
+          attachment {
+            code {
+              filepath
+              content
+            }
+            doc {
+              title
+              link
+              content
+            }
+          }
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
+
 export function Search() {
   const { searchParams, updateUrlComponents } = useRouterStuff()
-  const threadId = searchParams.get('threadId')
+  const threadId = searchParams.get('threadId')?.toString()
   const isChatEnabled = useIsChatEnabled()
   const [searchFlag] = useEnableSearch()
   const [messages, setMessages] = useState<ConversationMessage[]>([])
@@ -155,6 +205,25 @@ export function Search() {
   })
   const repositoryList = data?.repositoryList
 
+  const [beforeCursor, setBeforeCursor] = useState<string | undefined>()
+  const [{ data: threadMessages }, reexcute] = useQuery({
+    query: listThreadMessages,
+    variables: {
+      threadId: threadId as string,
+      last: 10,
+      before: beforeCursor
+    },
+    // pause: !threadId
+    pause: true
+  })
+
+  // todo setBeforeCursor
+  useEffect(() => {
+    // todo concat messages
+    if (threadMessages?.threadMessages?.edges?.length) {
+    }
+  }, [threadMessages])
+
   // FIXME testing code
   const headers = useMemo(() => {
     return {
@@ -179,6 +248,7 @@ export function Search() {
     answer: threadRun,
     stop
   } = useThreadRun({
+    threadId,
     headers,
     onThreadCreated
   })
@@ -191,17 +261,17 @@ export function Search() {
 
   const valueForDev = useMemo(() => {
     if (currentMessageForDev) {
-      return pick(currentMessageForDev, 'relevant_documents', 'relevant_code')
+      return pick(currentMessageForDev?.attachment, 'doc', 'code')
     }
     return {
       answers: messages
-        .filter(o => o.role === 'assistant')
-        .map(o => pick(o, 'relevant_documents', 'relevant_code'))
+        .filter(o => o.role === Role.Assistant)
+        .map(o => pick(o, 'doc', 'code'))
     }
   }, [
     messageIdForDev,
-    currentMessageForDev?.relevant_documents,
-    currentMessageForDev?.relevant_code
+    currentMessageForDev?.attachment?.code,
+    currentMessageForDev?.attachment?.doc
   ])
 
   const onPanelLayout = (sizes: number[]) => {
@@ -277,12 +347,15 @@ export function Search() {
     if (currentAssistantMessageIndex <= 0) return
 
     // updateUserMessageId
-    // if (threadRun?.threadUserMessageCreated) {
-    //   // FIXME currentUserMessageId
-    //   console.log('should update user message id')
-    //   const currentUserMessage = newMessages[currentAssistantMessageIndex - 1]
-    //   newMessages = getMessagesWithNewMessageId(newMessages, currentUserMessage.id, threadRun.threadUserMessageCreated)
-    // }
+    if (threadRun?.threadUserMessageCreated) {
+      // console.log('should update user message id')
+      const currentUserMessage = newMessages[currentAssistantMessageIndex - 1]
+      newMessages = getMessagesWithNewMessageId(
+        newMessages,
+        currentUserMessage.id,
+        threadRun.threadUserMessageCreated
+      )
+    }
 
     const currentAssistantMessage = newMessages[currentAssistantMessageIndex]
 
@@ -294,11 +367,11 @@ export function Search() {
 
     currentAssistantMessage.content =
       threadRun?.threadAssistantMessageContentDelta || ''
-    currentAssistantMessage.relevant_code =
-      threadRun?.threadAssistantMessageAttachmentsCode
-    currentAssistantMessage.relevant_documents =
-      threadRun?.threadAssistantMessageAttachmentsDoc
-    currentAssistantMessage.relevant_questions =
+    currentAssistantMessage.attachment = {
+      code: threadRun?.threadAssistantMessageAttachmentsCode ?? [],
+      doc: threadRun?.threadAssistantMessageAttachmentsDoc ?? []
+    }
+    currentAssistantMessage.threadRelevantQuestions =
       threadRun?.threadRelevantQuestions
     currentAssistantMessage.isLoading = isLoading
     setMessages(newMessages)
@@ -396,12 +469,12 @@ export function Search() {
     const newAssistantId = nanoid()
     const newUserMessage: ConversationMessage = {
       id: nanoid(),
-      role: 'user',
+      role: Role.User,
       content: question
     }
     const newAssistantMessage: ConversationMessage = {
       id: newAssistantId,
-      role: 'assistant',
+      role: Role.Assistant,
       content: '',
       isLoading: true
     }
@@ -443,8 +516,10 @@ export function Search() {
     const newMessages = [...data]
     let newTargetAnswer = newMessages[targetAnswerIdx]
     newTargetAnswer.content = ''
-    newTargetAnswer.relevant_code = undefined
-    newTargetAnswer.relevant_documents = undefined
+    newTargetAnswer.attachment = {
+      doc: [],
+      code: []
+    }
     newTargetAnswer.error = undefined
     newTargetAnswer.isLoading = true
 
@@ -482,7 +557,8 @@ export function Search() {
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
 
-  // console.log('messages====', messages)
+  console.log('messages====', messages)
+
   return (
     <SearchContext.Provider
       value={{
@@ -524,7 +600,7 @@ export function Search() {
                 <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
                   <div className="flex flex-col">
                     {messages.map((item, idx) => {
-                      if (item.role === 'user') {
+                      if (item.role === Role.User) {
                         return (
                           <div key={item.id + idx}>
                             {idx !== 0 && <Separator />}
@@ -537,7 +613,7 @@ export function Search() {
                           </div>
                         )
                       }
-                      if (item.role === 'assistant') {
+                      if (item.role === Role.Assistant) {
                         return (
                           <div key={item.id + idx} className="pb-8 pt-2">
                             <AnswerBlock
@@ -677,7 +753,8 @@ function AnswerBlock({
     number | undefined
   >(undefined)
   const getCopyContent = (answer: ConversationMessage) => {
-    if (!answer.relevant_documents) return answer.content
+    // FIXME copy code
+    if (isEmpty(answer?.attachment?.doc)) return answer.content
 
     const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
     const content = answer.content
@@ -686,7 +763,7 @@ function AnswerBlock({
         return `[${citationNumberMatch}]`
       })
       .trim()
-    const citations = answer.relevant_documents
+    const citations = answer.attachment?.doc
       .map((relevent, idx) => `[${idx + 1}] ${relevent.link}`)
       .join('\n')
     return `${content}\n\nCitations:\n${citations}`
@@ -694,10 +771,9 @@ function AnswerBlock({
 
   const IconAnswer = answer.isLoading ? IconSpinner : IconSparkles
 
-  const totalHeightInRem = answer.relevant_documents
-    ? Math.ceil(answer.relevant_documents.length / 4) *
-        SOURCE_CARD_STYLE.expand +
-      0.5 * Math.floor(answer.relevant_documents.length / 4)
+  const totalHeightInRem = answer.attachment?.doc?.length
+    ? Math.ceil(answer.attachment.doc.length / 4) * SOURCE_CARD_STYLE.expand +
+      0.5 * Math.floor(answer.attachment.doc.length / 4)
     : 0
 
   // FIXME
@@ -748,7 +824,7 @@ function AnswerBlock({
 
   const onCodeCitationMouseEnter = (index: number) => {
     setRelevantCodeHighlightIndex(
-      index - 1 - (answer?.relevant_documents?.length || 0)
+      index - 1 - (answer?.attachment?.doc?.length || 0)
     )
   }
 
@@ -779,6 +855,9 @@ function AnswerBlock({
     window.open(url.toString())
   }
 
+  const relevant_documents = answer?.attachment?.doc
+  const relevant_code = answer?.attachment?.code
+
   return (
     <AnswerBlockContext.Provider
       value={{
@@ -789,7 +868,7 @@ function AnswerBlock({
     >
       <div className="flex flex-col gap-y-5">
         {/* Relevant documents */}
-        {answer.relevant_documents && answer.relevant_documents.length > 0 && (
+        {relevant_documents && relevant_documents.length > 0 && (
           <div>
             <div className="mb-1 flex items-center gap-x-2">
               <IconBlocks className="relative" style={{ top: '-0.04rem' }} />
@@ -804,7 +883,7 @@ function AnswerBlock({
                   : `${SOURCE_CARD_STYLE.compress}rem`
               }}
             >
-              {answer.relevant_documents.map((source, index) => (
+              {relevant_documents.map((source, index) => (
                 <SourceCard
                   key={source.link + index}
                   conversationId={answer.id}
@@ -854,7 +933,7 @@ function AnswerBlock({
           </div>
 
           {/* Relevant code */}
-          {answer.relevant_code && answer.relevant_code.length > 0 && (
+          {relevant_code && relevant_code.length > 0 && (
             <CodeReferences
               contexts={relevantCodeContexts}
               className="mt-1 text-sm"
@@ -874,8 +953,8 @@ function AnswerBlock({
           )}
           <MessageMarkdown
             message={answer.content}
-            relevantDocuments={answer.relevant_documents}
-            relevantCode={answer.relevant_code}
+            relevantDocuments={relevant_documents}
+            relevantCode={relevant_code}
           />
           {answer.error && <ErrorMessageBlock error={answer.error} />}
 
@@ -903,15 +982,15 @@ function AnswerBlock({
         {/* Related questions */}
         {showRelatedQuestion &&
           !answer.isLoading &&
-          answer.relevant_questions &&
-          answer.relevant_questions.length > 0 && (
+          answer.threadRelevantQuestions &&
+          answer.threadRelevantQuestions.length > 0 && (
             <div>
               <div className="flex items-center gap-x-1.5">
                 <IconLayers />
                 <p className="text-sm font-bold leading-none">Suggestions</p>
               </div>
               <div className="mt-2 flex flex-col gap-y-3">
-                {answer.relevant_questions?.map((related, index) => (
+                {answer.threadRelevantQuestions?.map((related, index) => (
                   <div
                     key={index}
                     className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
