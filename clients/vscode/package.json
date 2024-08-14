@@ -111,8 +111,9 @@
       },
       {
         "command": "tabby.chat.generateCommitMessage",
-        "title": "Generate Commit Message",
-        "category": "Tabby"
+        "title": "Generate Commit Message with Tabby Agent",
+        "category": "Tabby",
+        "icon": "assets/logo.png"
       },
       {
         "command": "tabby.chat.edit.start",
@@ -204,6 +205,13 @@
         {
           "submenu": "tabby.submenu",
           "group": "2_tabby"
+        }
+      ],
+      "scm/title": [
+        {
+          "command": "tabby.chat.generateCommitMessage",
+          "when": "tabby.chatEnabled",
+          "group": "navigation"
         }
       ]
     },

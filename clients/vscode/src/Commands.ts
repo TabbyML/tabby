@@ -518,7 +518,7 @@ export class Commands {
             { repository: selectedRepo.rootUri.toString() },
             token,
           );
-          if (result) {
+          if (result && selectedRepo.inputBox) {
             selectedRepo.inputBox.value = result.commitMessage;
           }
         },
