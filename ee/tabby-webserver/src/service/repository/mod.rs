@@ -105,7 +105,7 @@ impl RepositoryService for RepositoryServiceImpl {
     }
 
     async fn resolve_repository(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository> {
-        if let RepositoryKind::Git = kind {
+        if let RepositoryKind::GitConfig = kind {
             if let Ok(index) = config_id_to_index(id) {
                 let config = &self.config[index];
                 return repository_config_to_repository(index, config);
@@ -113,7 +113,7 @@ impl RepositoryService for RepositoryServiceImpl {
         }
 
         match kind {
-            RepositoryKind::Git => self.git().get_repository(id).await,
+            RepositoryKind::Git | RepositoryKind::GitConfig => self.git().get_repository(id).await,
             RepositoryKind::Github
             | RepositoryKind::Gitlab
             | RepositoryKind::GithubSelfHosted
@@ -252,7 +252,7 @@ fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> R
     Ok(Repository {
         id: ID::new(config_index_to_id(index)),
         name: config.dir_name(),
-        kind: RepositoryKind::Git,
+        kind: RepositoryKind::GitConfig,
         dir: config.dir(),
         refs: tabby_git::list_refs(&config.dir())?
             .into_iter()
