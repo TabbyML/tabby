@@ -93,7 +93,6 @@ export function useThreadRun({
     return {}
   }, [headers])
 
-  console.log(pause, followupPause)
   const [createThreadAndRunResult] = useSubscription({
     query: CreateThreadAndRunSubscription,
     pause: !createMessageInput ? true : pause,
@@ -152,7 +151,6 @@ export function useThreadRun({
         setIsLoading(false)
         setPause(true)
         setFollowupPause(true)
-        console.log(threadRunItem)
       }
     }
   }, [createThreadAndRunResult])

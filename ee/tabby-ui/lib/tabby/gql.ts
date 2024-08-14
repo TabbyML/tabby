@@ -347,10 +347,6 @@ const client = new Client({
     fetchExchange,
     subscriptionExchange({
       forwardSubscription(request, operation) {
-        console.log(
-          operation.context.fetchOptions?.headers?.Authorization,
-          'authorization==='
-        )
         const wsClient = createWSClient({
           url: 'http://localhost:8080/subscriptions',
           connectionParams: {
