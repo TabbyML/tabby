@@ -14,6 +14,9 @@ fn main() {
     config.define("BUILD_SHARED_LIBS", "OFF");
     config.define("INS_ENB", "ON");
 
+    // Disable OpenMP
+    config.define("GGML_OPENMP", "OFF");
+
     if cfg!(target_os = "macos") {
         config.define("LLAMA_METAL", "ON");
         config.define("LLAMA_METAL_EMBED_LIBRARY", "ON");
