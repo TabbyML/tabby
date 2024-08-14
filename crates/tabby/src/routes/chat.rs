@@ -48,11 +48,26 @@ pub async fn chat_completions(
         }
     };
 
-    let s = s.map(|chunk| {
-        let chunk = chunk?;
-        let json = serde_json::to_string(&chunk)?;
-        Ok(Event::default().data(json))
+    let stream = futures::stream::unfold(s, |mut s| async {
+        while let Some(chunk_result) = s.next().await {
+            match chunk_result {
+                Ok(chunk) => {
+                    return if let Ok(json) = serde_json::to_string(&chunk) {
+                        let event = Ok(Event::default().data(json));
+                        Some((event, s))
+                    } else {
+                        let err = anyhow::anyhow!("Failed to serialize chunk to JSON");
+                        Some((Err(err), s))
+                    }
+                }
+                Err(err) => {
+                    warn!("Error processing chat completion chunk: {:?}", err);
+                    break;
+                }
+            }
+        }
+        None
     });
 
-    Ok(Sse::new(s).keep_alive(KeepAlive::default()))
+    Ok(Sse::new(stream).keep_alive(KeepAlive::default()))
 }
