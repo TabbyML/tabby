@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react'
-import { isEmpty, pickBy } from 'lodash-es'
-import { createRequest, OperationContext, useSubscription } from 'urql'
+import React from 'react'
+import { pickBy } from 'lodash-es'
+import { OperationContext, useSubscription } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 
@@ -9,23 +9,21 @@ import {
   ThreadRunItem,
   ThreadRunOptionsInput
 } from '../gql/generates/graphql'
-import { client } from '../tabby/gql'
-import { useLatest } from './use-latest'
 
 interface UseThreadRunOptions {
   onError?: (err: Error) => void
   threadId?: string
   headers?: Record<string, string> | Headers
-  threadRunOptions?: ThreadRunOptionsInput
+  onThreadCreated?: (threadId: string) => void
 }
 
 const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
   subscription CreateThreadAndRun($input: CreateThreadAndRunInput!) {
     createThreadAndRun(input: $input) {
       threadCreated
-      threadRelevantQuestions
       threadUserMessageCreated
       threadAssistantMessageCreated
+      threadRelevantQuestions
       threadAssistantMessageAttachmentsCode {
         filepath
         content
@@ -45,9 +43,9 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
   subscription CreateThreadRun($input: CreateThreadRunInput!) {
     createThreadRun(input: $input) {
       threadCreated
-      threadRelevantQuestions
       threadUserMessageCreated
       threadAssistantMessageCreated
+      threadRelevantQuestions
       threadAssistantMessageAttachmentsCode {
         filepath
         content
@@ -66,8 +64,8 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
 export function useThreadRun({
   onError,
   threadId: propsThreadId,
-  threadRunOptions,
-  headers
+  headers,
+  onThreadCreated
 }: UseThreadRunOptions) {
   const [threadId, setThreadId] = React.useState<string | undefined>(
     propsThreadId
@@ -77,6 +75,9 @@ export function useThreadRun({
   const [followupPause, setFollowupPause] = React.useState(true)
   const [createMessageInput, setCreateMessageInput] =
     React.useState<CreateMessageInput | null>(null)
+  const [threadRunOptions, setThreadRunOptions] = React.useState<
+    ThreadRunOptionsInput | undefined
+  >()
   const [isLoading, setIsLoading] = React.useState(false)
   const [threadRunItem, setThreadRunItem] = React.useState<
     ThreadRunItem | undefined
@@ -93,42 +94,88 @@ export function useThreadRun({
     return {}
   }, [headers])
 
-  const [createThreadAndRunResult] = useSubscription({
-    query: CreateThreadAndRunSubscription,
-    pause: !createMessageInput ? true : pause,
-    variables: {
-      input: {
-        thread: {
-          userMessage: createMessageInput as CreateMessageInput
-        },
-        options: {
-          ...threadRunOptions,
-          docQuery: {
-            content: createMessageInput?.content ?? ''
-          }
+  const combineThreadRunData = (
+    existingData: ThreadRunItem | undefined,
+    data: ThreadRunItem
+  ): ThreadRunItem => {
+    if (!data) return data
+    // new thread created
+    if (data.threadCreated) return data
+    // new userMessage created
+    if (
+      existingData?.threadAssistantMessageCreated &&
+      data.threadUserMessageCreated
+    )
+      return data
+
+    return {
+      ...existingData,
+      ...pickBy(data, v => v !== null),
+      threadAssistantMessageContentDelta: `${
+        existingData?.threadAssistantMessageContentDelta ?? ''
+      }${data?.threadAssistantMessageContentDelta ?? ''}`
+    }
+  }
+
+  const [createThreadAndRunResult] = useSubscription(
+    {
+      query: CreateThreadAndRunSubscription,
+      // pause: !createMessageInput ? true : pause,
+      pause: pause,
+      variables: {
+        input: {
+          thread: {
+            userMessage: createMessageInput as CreateMessageInput
+          },
+          options: threadRunOptions
         }
-      }
+      },
+      context: operationContext
     },
-    context: operationContext
-  })
-
-  const [createThreadRunResult] = useSubscription({
-    query: CreateThreadRunSubscription,
-    pause: threadId && createMessageInput ? followupPause : true,
-    variables: {
-      input: {
-        threadId: threadId as string,
-        additionalUserMessage: createMessageInput as CreateMessageInput,
-        options: threadRunOptions
+    (prevData, data) => {
+      return {
+        ...data,
+        createThreadAndRun: combineThreadRunData(
+          prevData?.createThreadAndRun,
+          data.createThreadAndRun
+        )
       }
-    },
-    context: operationContext
-  })
+    }
+  )
 
-  useEffect(() => {
+  const [createThreadRunResult] = useSubscription(
+    {
+      query: CreateThreadRunSubscription,
+      // pause: threadId && createMessageInput ? followupPause : true,
+      pause: followupPause,
+      variables: {
+        input: {
+          threadId: threadId as string,
+          additionalUserMessage: createMessageInput as CreateMessageInput,
+          options: threadRunOptions
+        }
+      },
+      context: operationContext
+    },
+    (prevData, data) => {
+      return {
+        ...data,
+        createThreadRun: combineThreadRunData(
+          prevData?.createThreadRun,
+          data.createThreadRun
+        )
+      }
+    }
+  )
+
+  // createThreadAndRun
+  React.useEffect(() => {
+    if (createThreadAndRunResult.fetching) return
     // error handling
     if (createThreadAndRunResult?.error) {
       setError(createThreadAndRunResult?.error)
+      setPause(true)
+      setIsLoading(false)
       return
     }
     // save the threadId
@@ -138,42 +185,36 @@ export function useThreadRun({
       )
     }
     if (createThreadAndRunResult?.data?.createThreadAndRun) {
-      setThreadRunItem(prev =>
-        mergeParsedThreadData(
-          prev,
-          createThreadAndRunResult?.data?.createThreadAndRun!
-        )
-      )
+      setThreadRunItem(createThreadAndRunResult?.data?.createThreadAndRun)
+
       if (
         createThreadAndRunResult?.data?.createThreadAndRun
           ?.threadAssistantMessageCompleted
       ) {
-        setIsLoading(false)
-        setPause(true)
-        setFollowupPause(true)
+        stop()
       }
     }
   }, [createThreadAndRunResult])
 
-  useEffect(() => {
+  // createThreadRun
+  React.useEffect(() => {
+    if (createThreadRunResult?.fetching) return
     // error handling
     if (createThreadRunResult?.error) {
       setError(createThreadRunResult?.error)
+      setFollowupPause(true)
+      setIsLoading(false)
       return
     }
 
     if (createThreadRunResult?.data?.createThreadRun) {
-      setThreadRunItem(prev =>
-        mergeParsedThreadData(
-          prev,
-          createThreadRunResult?.data?.createThreadRun!
-        )
-      )
+      setThreadRunItem(createThreadRunResult?.data?.createThreadRun)
+
       if (
         createThreadRunResult?.data?.createThreadRun
           ?.threadAssistantMessageCompleted
       ) {
-        setIsLoading(false)
+        stop()
       }
     }
   }, [createThreadRunResult])
@@ -182,41 +223,25 @@ export function useThreadRun({
     setPause(true)
     setFollowupPause(true)
     setIsLoading(false)
-  }
-
-  const mergeParsedThreadData = (
-    existingData: ThreadRunItem | undefined,
-    data: ThreadRunItem
-  ): ThreadRunItem => {
-    if (!existingData) return data
-
-    return {
-      ...existingData,
-      ...pickBy(data, v => !isEmpty(v)),
-      threadAssistantMessageContentDelta: `${
-        existingData?.threadAssistantMessageContentDelta ?? ''
-      }${data?.threadAssistantMessageContentDelta ?? ''}`
-    }
+    setTimeout(() => {
+      if (!propsThreadId && threadId) {
+        onThreadCreated?.(threadId)
+      }
+    })
   }
 
   // FIXME triggerWithOptions
-  const triggerRequest = async (userMessage: CreateMessageInput) => {
+  const triggerRequest = async (
+    userMessage: CreateMessageInput,
+    options?: ThreadRunOptionsInput
+  ) => {
     setIsLoading(true)
     setError(undefined)
     setThreadRunItem(undefined)
 
     setCreateMessageInput(userMessage)
+    setThreadRunOptions(options)
     // if it's more convient to create a operation so that we can use the lastest token to connect websocket
-    // const operation = client.createRequestOperation('subscription', createRequest(CreateThreadAndRunSubscription, {
-    //   input: {
-    //     thread: {
-    //       userMessage
-    //     },
-    //     options: {
-    //       generateRelevantQuestions: true
-    //     }
-    //   }
-    // }))
 
     if (threadId) {
       setFollowupPause(false)

@@ -26,11 +26,8 @@ import { useEnableDeveloperMode, useEnableSearch } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
-import fetcher from '@/lib/tabby/fetcher'
 import {
   AnswerEngineExtraContext,
-  AnswerRequest,
-  AnswerResponse,
   ArrayElementType,
   RelevantCodeContext
 } from '@/lib/types'
@@ -80,12 +77,15 @@ import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
 import {
+  CodeQueryInput,
+  InputMaybe,
   Maybe,
   MessageAttachmentCode,
   MessageAttachmentDoc,
   RepositoryListQuery,
   ThreadRunItem
 } from '@/lib/gql/generates/graphql'
+import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { repositoryListQuery } from '@/lib/tabby/query'
 import {
@@ -101,8 +101,6 @@ type ConversationMessage = Message & {
   relevant_code?: ThreadRunItem['threadAssistantMessageAttachmentsCode']
   relevant_documents?: ThreadRunItem['threadAssistantMessageAttachmentsDoc']
   relevant_questions?: ThreadRunItem['threadRelevantQuestions']
-  // FIXME remove code_query?
-  code_query?: AnswerRequest['code_query']
   isLoading?: boolean
   error?: string
 }
@@ -121,33 +119,25 @@ export const SearchContext = createContext<SearchContextValue>(
   {} as SearchContextValue
 )
 
-const tabbyFetcher = ((url: string, init?: RequestInit) => {
-  return fetcher(url, {
-    ...init,
-    responseFormatter(response) {
-      return response
-    },
-    errorHandler(response) {
-      throw new Error(response ? String(response.status) : 'Fail to fetch')
-    }
-  })
-}) as typeof fetch
-
 const SOURCE_CARD_STYLE = {
   compress: 5.3,
   expand: 6.3
 }
 
 export function Search() {
+  const { searchParams, updateUrlComponents } = useRouterStuff()
+  const threadId = searchParams.get('threadId')
   const isChatEnabled = useIsChatEnabled()
   const [searchFlag] = useEnableSearch()
-  const [conversation, setConversation] = useState<ConversationMessage[]>([])
+  const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [showStop, setShowStop] = useState(true)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [title, setTitle] = useState('')
   const [isReady, setIsReady] = useState(false)
   const [extraContext, setExtraContext] = useState<AnswerEngineExtraContext>({})
-  const [currentLoadindId, setCurrentLoadingId] = useState<string>('')
+  const [currentUserMessageId, setCurrentUserMessageId] = useState<string>('')
+  const [currentAssistantMessageId, setCurrentAssistantMessageId] =
+    useState<string>('')
   const contentContainerRef = useRef<HTMLDivElement>(null)
   const [showSearchInput, setShowSearchInput] = useState(false)
   const [isShowDemoBanner] = useShowDemoBanner()
@@ -155,9 +145,7 @@ export function Search() {
   const initCheckRef = useRef(false)
   const { theme } = useCurrentTheme()
   const [devPanelOpen, setDevPanelOpen] = useState(false)
-  const [conversationIdForDev, setConversationIdForDev] = useState<
-    string | undefined
-  >()
+  const [messageIdForDev, setMessageIdForDev] = useState<string | undefined>()
   const devPanelRef = useRef<ImperativePanelHandle>(null)
   const [devPanelSize, setDevPanelSize] = useState(45)
   const prevDevPanelSize = useRef(devPanelSize)
@@ -174,40 +162,46 @@ export function Search() {
     }
   }, [])
 
-  const { triggerRequest, isLoading, error, answer, stop } = useThreadRun({
-    headers,
-    threadRunOptions: {
-      generateRelevantQuestions: true,
-      codeQuery: {
-        gitUrl: 'https://github.com/TabbyML/tabby',
-        content: 'what does chat_completions do'
+  const onThreadCreated = (threadId: string) => {
+    updateUrlComponents({
+      searchParams: {
+        set: {
+          threadId
+        }
       }
-    }
+    })
+  }
+
+  const {
+    triggerRequest,
+    isLoading,
+    error,
+    answer: threadRun,
+    stop
+  } = useThreadRun({
+    headers,
+    onThreadCreated
   })
 
   const isLoadingRef = useLatest(isLoading)
 
-  const currentConversationForDev = useMemo(() => {
-    return conversation.find(item => item.id === conversationIdForDev)
-  }, [conversationIdForDev, conversation])
+  const currentMessageForDev = useMemo(() => {
+    return messages.find(item => item.id === messageIdForDev)
+  }, [messageIdForDev, messages])
 
   const valueForDev = useMemo(() => {
-    if (currentConversationForDev) {
-      return pick(
-        currentConversationForDev,
-        'relevant_documents',
-        'relevant_code'
-      )
+    if (currentMessageForDev) {
+      return pick(currentMessageForDev, 'relevant_documents', 'relevant_code')
     }
     return {
-      answers: conversation
+      answers: messages
         .filter(o => o.role === 'assistant')
         .map(o => pick(o, 'relevant_documents', 'relevant_code'))
     }
   }, [
-    conversationIdForDev,
-    currentConversationForDev?.relevant_documents,
-    currentConversationForDev?.relevant_code
+    messageIdForDev,
+    currentMessageForDev?.relevant_documents,
+    currentMessageForDev?.relevant_code
   ])
 
   const onPanelLayout = (sizes: number[]) => {
@@ -241,7 +235,6 @@ export function Search() {
         ...p,
         repository: initialExtraInfo?.repository
       }))
-      // FIXME(jueliang) just use the value in context
       onSubmitSearch(initialMessage, {
         repository: initialExtraInfo?.repository
       })
@@ -274,31 +267,49 @@ export function Search() {
 
   // Handling the stream response from useTabbyAnswer
   useEffect(() => {
-    const newConversation = [...conversation]
-    // FIXME no currentAnswer, just the lastest answer
-    const currentAnswer = newConversation.find(
-      item => item.id === currentLoadindId
+    if (!threadRun) return
+
+    let newMessages = [...messages]
+    const currentAssistantMessageIndex = newMessages.findIndex(
+      item => item.id === currentAssistantMessageId
     )
 
-    if (!currentAnswer) return
-    // FIXME modify user message id and assistant message id
-    // currentAnswer.id = answer?.threadAssistantMessageCreated || currentAnswer.id
+    if (currentAssistantMessageIndex <= 0) return
 
-    currentAnswer.content = answer?.threadAssistantMessageContentDelta || ''
-    currentAnswer.relevant_code = answer?.threadAssistantMessageAttachmentsCode
-    currentAnswer.relevant_documents =
-      answer?.threadAssistantMessageAttachmentsDoc
-    currentAnswer.relevant_questions = answer?.threadRelevantQuestions
-    currentAnswer.isLoading = isLoading
-    setConversation(newConversation)
-  }, [isLoading, answer])
+    // updateUserMessageId
+    // if (threadRun?.threadUserMessageCreated) {
+    //   // FIXME currentUserMessageId
+    //   console.log('should update user message id')
+    //   const currentUserMessage = newMessages[currentAssistantMessageIndex - 1]
+    //   newMessages = getMessagesWithNewMessageId(newMessages, currentUserMessage.id, threadRun.threadUserMessageCreated)
+    // }
+
+    const currentAssistantMessage = newMessages[currentAssistantMessageIndex]
+
+    // updateAssistantMessageId
+    if (threadRun?.threadAssistantMessageCreated) {
+      currentAssistantMessage.id = threadRun.threadAssistantMessageCreated
+      setCurrentAssistantMessageId(threadRun?.threadAssistantMessageCreated)
+    }
+
+    currentAssistantMessage.content =
+      threadRun?.threadAssistantMessageContentDelta || ''
+    currentAssistantMessage.relevant_code =
+      threadRun?.threadAssistantMessageAttachmentsCode
+    currentAssistantMessage.relevant_documents =
+      threadRun?.threadAssistantMessageAttachmentsDoc
+    currentAssistantMessage.relevant_questions =
+      threadRun?.threadRelevantQuestions
+    currentAssistantMessage.isLoading = isLoading
+    setMessages(newMessages)
+  }, [isLoading, threadRun])
 
   // Handling the error response from useTabbyAnswer
   useEffect(() => {
     if (error) {
-      const newConversation = [...conversation]
+      const newConversation = [...messages]
       const currentAnswer = newConversation.find(
-        item => item.id === currentLoadindId
+        item => item.id === currentAssistantMessageId
       )
       if (currentAnswer) {
         currentAnswer.error =
@@ -309,17 +320,18 @@ export function Search() {
   }, [error])
 
   // Delay showing the stop button
-  let showStopTimeoutId: number
+  const showStopTimeoutId = useRef<number>()
+
   useEffect(() => {
     if (isLoadingRef.current) {
-      showStopTimeoutId = window.setTimeout(() => {
+      showStopTimeoutId.current = window.setTimeout(() => {
         if (!isLoadingRef.current) return
         setShowStop(true)
 
         // Scroll to the bottom
         if (container) {
           const isLastAnswerLoading =
-            currentLoadindId === conversation[conversation.length - 1].id
+            currentAssistantMessageId === messages[messages.length - 1].id
           if (isLastAnswerLoading) {
             container.scrollTo({
               top: container.scrollHeight,
@@ -335,7 +347,7 @@ export function Search() {
     }
 
     return () => {
-      window.clearTimeout(showStopTimeoutId)
+      window.clearTimeout(showStopTimeoutId.current)
     }
   }, [isLoading])
 
@@ -355,17 +367,35 @@ export function Search() {
     }
   }, [devPanelOpen])
 
+  const getMessagesWithNewMessageId = (
+    messages: ConversationMessage[],
+    prevId: string,
+    newId: string
+  ) => {
+    const itemIdx = messages.findIndex(o => o.id === prevId)
+    if (itemIdx > -1) {
+      return [
+        ...messages.slice(0, itemIdx),
+        {
+          ...messages[itemIdx],
+          id: newId
+        },
+        ...messages.slice(itemIdx + 1)
+      ]
+    }
+    return messages
+  }
+
   const onSubmitSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
-    // FIXME change request payload
-    const previousMessages = conversation.map(message => ({
-      role: message.role,
-      id: message.id,
-      content: message.content
-    }))
-    const previousUserId = previousMessages.length > 0 && previousMessages[0].id
+    // const previousMessages = messages.map(message => ({
+    //   role: message.role,
+    //   id: message.id,
+    //   content: message.content
+    // }))
+    // const previousUserMessageId = previousMessages.length > 0 && previousMessages[0].id
     const newAssistantId = nanoid()
     const newUserMessage: ConversationMessage = {
-      id: previousUserId || nanoid(),
+      id: nanoid(),
       role: 'user',
       content: question
     }
@@ -376,19 +406,24 @@ export function Search() {
       isLoading: true
     }
 
-    // const _repository = ctx?.repository || extraContext?.repository
-    // const code_query: AnswerRequest['code_query'] = _repository
-    //   ? { git_url: _repository.gitUrl, content: '' }
-    //   : undefined
+    const _repository = ctx?.repository || extraContext?.repository
+    const codeQuery: InputMaybe<CodeQueryInput> = _repository
+      ? { gitUrl: _repository.gitUrl, content: question }
+      : null
 
-    setCurrentLoadingId(newAssistantId)
-    setConversation(
-      [...conversation].concat([newUserMessage, newAssistantMessage])
+    setCurrentAssistantMessageId(newAssistantId)
+    setMessages([...messages].concat([newUserMessage, newAssistantMessage]))
+
+    triggerRequest(
+      {
+        content: question
+      },
+      {
+        generateRelevantQuestions: true,
+        codeQuery,
+        docQuery: { content: question }
+      }
     )
-
-    triggerRequest({
-      content: question
-    })
 
     // Update HTML page title
     if (!title) setTitle(question)
@@ -399,44 +434,32 @@ export function Search() {
     id: string,
     conversationData?: ConversationMessage[]
   ) => {
-    const data = conversationData || conversation
+    const data = conversationData || messages
     const targetAnswerIdx = data.findIndex(item => item.id === id)
     if (targetAnswerIdx < 1) return
     const targetQuestionIdx = targetAnswerIdx - 1
     const targetQuestion = data[targetQuestionIdx]
 
-    const previousMessages = data.slice(0, targetQuestionIdx).map(message => ({
-      role: message.role,
-      id: message.id,
-      content: message.content,
-      code_query: message.code_query
-    }))
-    const newUserMessage: ConversationMessage = {
-      role: 'user',
-      id: targetQuestion.id,
-      content: targetQuestion.content
-    }
-    const answerRequest: AnswerRequest = {
-      messages: [...previousMessages, newUserMessage],
-      code_query: extraContext?.repository
-        ? { git_url: extraContext.repository.gitUrl, content: '' }
-        : undefined,
-      doc_query: true,
-      generate_relevant_questions: true,
-      collect_relevant_code_using_user_message: true
-    }
-
-    const newConversation = [...data]
-    let newTargetAnswer = newConversation[targetAnswerIdx]
+    const newMessages = [...data]
+    let newTargetAnswer = newMessages[targetAnswerIdx]
     newTargetAnswer.content = ''
     newTargetAnswer.relevant_code = undefined
     newTargetAnswer.relevant_documents = undefined
     newTargetAnswer.error = undefined
     newTargetAnswer.isLoading = true
 
-    setCurrentLoadingId(newTargetAnswer.id)
-    setConversation(newConversation)
-    triggerRequest(answerRequest)
+    setCurrentAssistantMessageId(newTargetAnswer.id)
+    setMessages(newMessages)
+    triggerRequest(
+      {
+        content: targetQuestion.content
+      },
+      {
+        generateRelevantQuestions: true,
+        docQuery: { content: targetQuestion.content }
+        // FIXME docQuery
+      }
+    )
   }
 
   const onToggleFullScreen = (fullScreen: boolean) => {
@@ -459,6 +482,7 @@ export function Search() {
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
 
+  // console.log('messages====', messages)
   return (
     <SearchContext.Provider
       value={{
@@ -468,7 +492,7 @@ export function Search() {
         extraRequestContext: extraContext,
         repositoryList,
         setDevPanelOpen,
-        setConversationIdForDev
+        setConversationIdForDev: setMessageIdForDev
       }}
     >
       <div className="transition-all" style={style}>
@@ -499,7 +523,7 @@ export function Search() {
               <ScrollArea className="h-full" ref={contentContainerRef}>
                 <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
                   <div className="flex flex-col">
-                    {conversation.map((item, idx) => {
+                    {messages.map((item, idx) => {
                       if (item.role === 'user') {
                         return (
                           <div key={item.id + idx}>
@@ -518,9 +542,7 @@ export function Search() {
                           <div key={item.id + idx} className="pb-8 pt-2">
                             <AnswerBlock
                               answer={item}
-                              showRelatedQuestion={
-                                idx === conversation.length - 1
-                              }
+                              showRelatedQuestion={idx === messages.length - 1}
                             />
                           </div>
                         )
@@ -629,9 +651,11 @@ type AnswerBlockContextValue = {
     >
   ) => void
 }
+
 const AnswerBlockContext = createContext<AnswerBlockContextValue>(
   {} as AnswerBlockContextValue
 )
+
 function AnswerBlock({
   answer,
   showRelatedQuestion
