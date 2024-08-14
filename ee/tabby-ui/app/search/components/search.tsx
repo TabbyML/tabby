@@ -167,7 +167,15 @@ export function Search() {
   })
   const repositoryList = data?.repositoryList
 
+  // FIXME testing code
+  const headers = useMemo(() => {
+    return {
+      Authorization: 'Bearer auth_9949a19e20d141b49f06b7e7ee23175d'
+    }
+  }, [])
+
   const { triggerRequest, isLoading, error, answer, stop } = useThreadRun({
+    headers,
     threadRunOptions: {
       generateRelevantQuestions: true,
       codeQuery: {

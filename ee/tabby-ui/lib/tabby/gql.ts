@@ -94,13 +94,6 @@ function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
   }
 }
 
-const wsClient = createWSClient({
-  url: 'http://localhost:8080/subscriptions',
-  connectionParams: {
-    authorization: `Bearer auth_9949a19e20d141b49f06b7e7ee23175d`
-  }
-})
-
 const client = new Client({
   url: `/graphql`,
   requestPolicy: 'cache-and-network',
@@ -353,7 +346,18 @@ const client = new Client({
     }),
     fetchExchange,
     subscriptionExchange({
-      forwardSubscription(request) {
+      forwardSubscription(request, operation) {
+        console.log(
+          operation.context.fetchOptions?.headers?.Authorization,
+          'authorization==='
+        )
+        const wsClient = createWSClient({
+          url: 'http://localhost:8080/subscriptions',
+          connectionParams: {
+            authorization:
+              operation.context.fetchOptions?.headers?.Authorization ?? ''
+          }
+        })
         const input = { ...request, query: request.query || '' }
         return {
           subscribe(sink) {
