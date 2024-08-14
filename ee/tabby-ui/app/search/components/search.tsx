@@ -210,17 +210,20 @@ export function Search() {
     query: listThreadMessages,
     variables: {
       threadId: threadId as string,
-      last: 10,
+      last: 20,
       before: beforeCursor
     },
-    // pause: !threadId
-    pause: true
+    pause: !threadId || isReady
   })
 
-  // todo setBeforeCursor
+  // todo scroll and setBeforeCursor
   useEffect(() => {
-    // todo concat messages
     if (threadMessages?.threadMessages?.edges?.length) {
+      const messages = threadMessages.threadMessages.edges
+        .map(o => o.node)
+        .slice()
+      setMessages(messages)
+      setIsReady(true)
     }
   }, [threadMessages])
 
@@ -311,7 +314,9 @@ export function Search() {
       return
     }
 
-    router.replace('/')
+    if (!threadId) {
+      router.replace('/')
+    }
   }, [])
 
   // Set page title to the value of the first quesiton
@@ -556,8 +561,6 @@ export function Search() {
   const style = isShowDemoBanner
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
-
-  console.log('messages====', messages)
 
   return (
     <SearchContext.Provider
