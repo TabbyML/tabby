@@ -506,7 +506,7 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .web_crawler()
-                    .list_web_crawler_urls(after, before, first, last)
+                    .list_web_crawler_urls(after, before, first, last, Some(true), None)
                     .await
             },
         )
@@ -914,6 +914,11 @@ impl Mutation {
 
     async fn delete_web_crawler_url(ctx: &Context, id: ID) -> Result<bool> {
         ctx.locator.web_crawler().delete_web_crawler_url(id).await?;
+        Ok(true)
+    }
+
+    async fn update_active_web_crawler_url(ctx: &Context, id: ID, active: bool) -> Result<bool> {
+        ctx.locator.web_crawler().update_active_web_crawler_url(id, active).await?;
         Ok(true)
     }
 }

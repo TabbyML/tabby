@@ -60,7 +60,7 @@ impl Webserver {
         let integration = Arc::new(integration::create(db.clone(), job.clone()));
         let repository = repository::create(db.clone(), integration.clone(), job.clone());
 
-        let web_crawler = Arc::new(web_crawler::create(db.clone(), job.clone()));
+        let web_crawler = Arc::new(web_crawler::create(db.clone(), job.clone()).await);
 
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));

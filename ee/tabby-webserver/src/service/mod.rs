@@ -12,6 +12,7 @@ mod setting;
 mod thread;
 mod user_event;
 pub mod web_crawler;
+mod preset_crawler_urls;
 
 use std::sync::Arc;
 

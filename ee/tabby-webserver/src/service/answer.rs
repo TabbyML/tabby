@@ -336,7 +336,7 @@ impl AnswerService {
             // 1. By default only web sources are considered.
             let mut source_ids: Vec<_> = self
                 .web
-                .list_web_crawler_urls(None, None, None, None)
+                .list_web_crawler_urls(None, None, None, None, Some(true), None)
                 .await
                 .unwrap_or_default()
                 .into_iter()

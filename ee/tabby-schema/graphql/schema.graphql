@@ -458,6 +458,7 @@ type Mutation {
   triggerJobRun(command: String!): ID!
   createWebCrawlerUrl(input: CreateWebCrawlerUrlInput!): ID!
   deleteWebCrawlerUrl(id: ID!): Boolean!
+  updateActiveWebCrawlerUrl(id: ID!, active: Boolean!): Boolean!
 }
 
 type NetworkSetting {
@@ -680,6 +681,8 @@ type UserEventEdge {
 type WebCrawlerUrl {
   url: String!
   id: ID!
+  name: String!
+  is_preset: Boolean!
   createdAt: DateTime!
   jobInfo: JobInfo!
 }

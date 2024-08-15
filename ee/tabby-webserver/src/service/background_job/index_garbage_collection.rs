@@ -22,7 +22,7 @@ impl IndexGarbageCollection {
 
         sources.extend(
             web_crawler
-                .list_web_crawler_urls(None, None, None, None)
+                .list_web_crawler_urls(None, None, None, None, Some(true), None)
                 .await?
                 .into_iter()
                 .map(|url| (corpus::WEB.into(), url.source_id())),

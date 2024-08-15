@@ -10,6 +10,9 @@ use crate::{job::JobInfo, juniper::relay::NodeType, Context, Result};
 pub struct WebCrawlerUrl {
     pub url: String,
     pub id: ID,
+    pub name: String,
+    pub is_preset: bool,
+    pub is_active: bool,
     pub created_at: DateTime<Utc>,
     pub job_info: JobInfo,
 }
@@ -54,8 +57,11 @@ pub trait WebCrawlerService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
+        active: Option<bool>,
+        preset: Option<bool>,
     ) -> Result<Vec<WebCrawlerUrl>>;
 
     async fn create_web_crawler_url(&self, url: String) -> Result<ID>;
     async fn delete_web_crawler_url(&self, id: ID) -> Result<()>;
+    async fn update_active_web_crawler_url(&self, id: ID, active: bool) -> Result<()>;
 }
