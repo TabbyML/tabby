@@ -370,7 +370,7 @@ export function Search() {
     )
   }, [contentContainerRef?.current])
 
-  // Handling the stream response from useTabbyAnswer
+  // Handling the stream response from useThreadRun
   useEffect(() => {
     if (!threadRun) return
 
@@ -382,23 +382,22 @@ export function Search() {
     if (currentAssistantMessageIndex <= 0) return
 
     // updateUserMessageId
-    if (threadRun?.threadUserMessageCreated) {
-      // console.log('should update user message id')
-      const currentUserMessage = newMessages[currentAssistantMessageIndex - 1]
-      newMessages = getMessagesWithNewMessageId(
-        newMessages,
-        currentUserMessage.id,
-        threadRun.threadUserMessageCreated
-      )
-    }
+    // if (threadRun?.threadUserMessageCreated) {
+    //   const currentUserMessage = newMessages[currentAssistantMessageIndex - 1]
+    //   newMessages = getMessagesWithNewMessageId(
+    //     newMessages,
+    //     currentUserMessage.id,
+    //     threadRun.threadUserMessageCreated
+    //   )
+    // }
 
     const currentAssistantMessage = newMessages[currentAssistantMessageIndex]
 
     // updateAssistantMessageId
-    if (threadRun?.threadAssistantMessageCreated) {
-      currentAssistantMessage.id = threadRun.threadAssistantMessageCreated
-      setCurrentAssistantMessageId(threadRun?.threadAssistantMessageCreated)
-    }
+    // if (threadRun?.threadAssistantMessageCreated) {
+    //   currentAssistantMessage.id = threadRun.threadAssistantMessageCreated
+    //   setCurrentAssistantMessageId(threadRun?.threadAssistantMessageCreated)
+    // }
 
     currentAssistantMessage.content =
       threadRun?.threadAssistantMessageContentDelta || ''
@@ -425,7 +424,7 @@ export function Search() {
     setMessages(newMessages)
   }, [isLoading, threadRun])
 
-  // Handling the error response from useTabbyAnswer
+  // Handling the error response from useThreadRun
   useEffect(() => {
     if (error) {
       const newConversation = [...messages]
@@ -824,9 +823,9 @@ function AnswerBlock({
 
   const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
     return (
-      answer?.attachment?.code?.map(hit => {
-        const start_line = hit?.startLine ?? 0
-        const lineCount = hit.content.split('\n').length
+      answer?.attachment?.code?.map(code => {
+        const start_line = code?.startLine ?? 0
+        const lineCount = code.content.split('\n').length
         const end_line = start_line + lineCount - 1
 
         return {
@@ -835,12 +834,12 @@ function AnswerBlock({
             start: start_line,
             end: end_line
           },
-          filepath: hit.filepath,
-          content: hit.content,
-          git_url: hit.gitUrl
-          // extra: {
-          //   scores
-          // }
+          filepath: code.filepath,
+          content: code.content,
+          git_url: code.gitUrl,
+          extra: {
+            scores: code?.extra?.scores
+          }
         }
       }) ?? []
     )
@@ -1141,7 +1140,7 @@ function SourceCard({
         className="cursor-pointer p-2"
         onClick={onTootipClick}
       >
-        <p>Score: {source?.extra?.score}</p>
+        <p>Score: {source?.extra?.score ?? '-'}</p>
       </TooltipContent>
     </Tooltip>
   )

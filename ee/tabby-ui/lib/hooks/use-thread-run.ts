@@ -146,8 +146,7 @@ export function useThreadRun({
   const [createThreadAndRunResult] = useSubscription(
     {
       query: CreateThreadAndRunSubscription,
-      // if threadId is provided, should not start a new thread
-      pause: !threadId && createMessageInput ? pause : true,
+      pause,
       variables: {
         input: {
           thread: {
@@ -172,8 +171,7 @@ export function useThreadRun({
   const [createThreadRunResult] = useSubscription(
     {
       query: CreateThreadRunSubscription,
-      // if the threadId is not provided, should not start a thread run
-      pause: threadId && createMessageInput ? followupPause : true,
+      pause: followupPause,
       variables: {
         input: {
           threadId: threadId as string,

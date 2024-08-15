@@ -620,15 +620,15 @@ function ContextItem({
           <div className="space-y-1">
             <div className="flex">
               <span className="w-20">rrf:</span>
-              {scores?.rrf}
+              {scores?.rrf ?? '-'}
             </div>
             <div className="flex">
               <span className="w-20">bm25:</span>
-              {scores?.bm25}
+              {scores?.bm25 ?? '-'}
             </div>
             <div className="flex">
               <span className="w-20">embedding:</span>
-              {scores?.embedding}
+              {scores?.embedding ?? '-'}
             </div>
           </div>
         </div>
