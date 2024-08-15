@@ -6,7 +6,8 @@ use futures::{stream::BoxStream, StreamExt};
 use issues::{list_github_issues, list_gitlab_issues};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
-use tabby_index::public::{CodeIndexer, CodeRepository, DocIndexer, WebDocument};
+use tabby_common::config::CodeRepository;
+use tabby_index::public::{CodeIndexer, DocIndexer, WebDocument};
 use tabby_inference::Embedding;
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},

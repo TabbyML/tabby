@@ -109,18 +109,12 @@ pub fn config_id_to_index(id: &str) -> Result<usize, anyhow::Error> {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RepositoryConfig {
-    pub git_url: String,
+    git_url: String,
 }
 
 impl RepositoryConfig {
-    pub fn new<T: Into<String>>(git_url: T) -> Self {
-        Self {
-            git_url: git_url.into(),
-        }
-    }
-
-    pub fn canonical_git_url(&self) -> String {
-        Self::canonicalize_url(&self.git_url)
+    pub fn git_url(&self) -> &str {
+        &self.git_url
     }
 
     pub fn canonicalize_url(url: &str) -> String {
@@ -138,7 +132,7 @@ impl RepositoryConfig {
         Self::resolve_dir(&self.git_url)
     }
 
-    pub fn dir_name(&self) -> String {
+    pub fn display_name(&self) -> String {
         Self::resolve_dir_name(&self.git_url)
     }
 
@@ -327,22 +321,60 @@ pub struct AnswerConfig {
     pub code_search_params: CodeSearchParams,
 }
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone)]
-pub struct DocIndexConfig {
-    pub start_urls: Vec<String>,
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CodeRepository {
+    pub git_url: String,
+    pub source_id: String,
+}
+
+impl From<RepositoryConfig> for CodeRepository {
+    fn from(config: RepositoryConfig) -> Self {
+        Self::new(&config.git_url)
+    }
+}
+
+impl CodeRepository {
+    pub fn new(git_url: &str) -> Self {
+        Self {
+            git_url: git_url.to_owned(),
+
+            // FIXME(meng): This is a temporary solution to use git_url as source_id, we shall migrate this by pass source_id as parameter.
+            source_id: RepositoryConfig::canonicalize_url(git_url),
+        }
+    }
+
+    pub fn dir(&self) -> PathBuf {
+        RepositoryConfig::resolve_dir(&self.git_url)
+    }
+
+    pub fn dir_name(&self) -> String {
+        RepositoryConfig::resolve_dir_name(&self.git_url)
+    }
+
+    pub fn canonical_git_url(&self) -> String {
+        RepositoryConfig::canonicalize_url(&self.git_url)
+    }
+
+    pub fn is_local_dir(&self) -> bool {
+        RepositoryConfig::resolve_is_local_dir(&self.git_url)
+    }
 }
 
 #[async_trait]
-pub trait ConfigAccess: Send + Sync {
-    async fn repositories(&self) -> Result<Vec<RepositoryConfig>>;
+pub trait CodeRepositoryAccess: Send + Sync {
+    async fn repositories(&self) -> Result<Vec<CodeRepository>>;
 }
 
-pub struct StaticConfigAccess;
+pub struct StaticCodeRepositoryAccess;
 
 #[async_trait]
-impl ConfigAccess for StaticConfigAccess {
-    async fn repositories(&self) -> Result<Vec<RepositoryConfig>> {
-        Ok(Config::load()?.repositories)
+impl CodeRepositoryAccess for StaticCodeRepositoryAccess {
+    async fn repositories(&self) -> Result<Vec<CodeRepository>> {
+        Ok(Config::load()?
+            .repositories
+            .into_iter()
+            .map(CodeRepository::from)
+            .collect())
     }
 }
 

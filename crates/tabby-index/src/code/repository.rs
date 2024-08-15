@@ -5,7 +5,7 @@ use std::{
     process::Command,
 };
 
-use tabby_common::{config::RepositoryConfig, path::repositories_dir};
+use tabby_common::path::repositories_dir;
 use tracing::warn;
 
 use super::CodeRepository;
@@ -76,7 +76,7 @@ pub fn sync_repository(repository: &CodeRepository) {
     }
 }
 
-pub fn garbage_collection(repositories: &[RepositoryConfig]) {
+pub fn garbage_collection(repositories: &[CodeRepository]) {
     let names = repositories.iter().map(|r| r.dir()).collect::<HashSet<_>>();
 
     let Ok(dir) = fs::read_dir(repositories_dir()) else {

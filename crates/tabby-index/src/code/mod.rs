@@ -1,11 +1,11 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use serde_json::json;
 use tabby_common::{
-    config::RepositoryConfig,
+    config::CodeRepository,
     index::{code, corpus},
 };
 use tabby_inference::Embedding;
@@ -27,38 +27,6 @@ mod types;
 #[derive(Default)]
 pub struct CodeIndexer {}
 
-pub struct CodeRepository {
-    pub git_url: String,
-    pub source_id: String,
-}
-
-impl CodeRepository {
-    pub fn new(git_url: &str) -> Self {
-        Self {
-            git_url: git_url.to_owned(),
-
-            // FIXME(meng): This is a temporary solution to use git_url as source_id, we shall migrate this by pass source_id as parameter.
-            source_id: RepositoryConfig::canonicalize_url(git_url),
-        }
-    }
-
-    pub fn dir(&self) -> PathBuf {
-        RepositoryConfig::resolve_dir(&self.git_url)
-    }
-
-    pub fn dir_name(&self) -> String {
-        RepositoryConfig::resolve_dir_name(&self.git_url)
-    }
-
-    pub fn canonical_git_url(&self) -> String {
-        RepositoryConfig::canonicalize_url(&self.git_url)
-    }
-
-    pub fn is_local_dir(&self) -> bool {
-        RepositoryConfig::resolve_is_local_dir(&self.git_url)
-    }
-}
-
 impl CodeIndexer {
     pub async fn refresh(&mut self, embedding: Arc<dyn Embedding>, repository: &CodeRepository) {
         logkit::info!(
@@ -71,7 +39,7 @@ impl CodeIndexer {
         index::garbage_collection().await;
     }
 
-    pub async fn garbage_collection(&mut self, repositories: &[RepositoryConfig]) {
+    pub async fn garbage_collection(&mut self, repositories: &[CodeRepository]) {
         repository::garbage_collection(repositories);
     }
 }

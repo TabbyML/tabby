@@ -7,7 +7,7 @@ use tabby_common::{
         doc::DocSearch,
         event::{ComposedLogger, EventLogger},
     },
-    config::{Config, ConfigAccess, RepositoryConfig},
+    config::{CodeRepository, CodeRepositoryAccess, Config},
 };
 use tabby_db::DbConn;
 use tabby_inference::{ChatCompletionStream, Embedding};
@@ -35,9 +35,11 @@ pub struct Webserver {
 }
 
 #[async_trait::async_trait]
-impl ConfigAccess for Webserver {
-    async fn repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
-        let mut repos = Config::load().map(|x| x.repositories).unwrap_or_default();
+impl CodeRepositoryAccess for Webserver {
+    async fn repositories(&self) -> anyhow::Result<Vec<CodeRepository>> {
+        let mut repos: Vec<CodeRepository> = Config::load()
+            .map(|x| x.repositories.into_iter().map(Into::into).collect())
+            .unwrap_or_default();
         repos.extend(self.repository.list_all_repository_urls().await?);
         Ok(repos)
     }

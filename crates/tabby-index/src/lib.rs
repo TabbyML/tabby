@@ -13,7 +13,7 @@ mod doc;
 pub mod public {
     use super::*;
     pub use super::{
-        code::{CodeIndexer, CodeRepository},
+        code::CodeIndexer,
         doc::public::{DocIndexer, WebDocument},
     };
 
