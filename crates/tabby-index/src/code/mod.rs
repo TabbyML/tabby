@@ -36,6 +36,8 @@ impl CodeRepository {
     pub fn new(git_url: &str) -> Self {
         Self {
             git_url: git_url.to_owned(),
+
+            // FIXME(meng): This is a temporary solution to use git_url as source_id, we shall migrate this by pass source_id as parameter.
             source_id: RepositoryConfig::canonicalize_url(git_url),
         }
     }
