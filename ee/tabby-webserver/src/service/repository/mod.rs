@@ -1,11 +1,11 @@
 mod git;
 mod third_party;
 
-use std::sync::Arc;
-
+use anyhow::anyhow;
 use async_trait::async_trait;
 use futures::StreamExt;
 use juniper::ID;
+use std::sync::Arc;
 use tabby_common::{
     config::{config_id_to_index, config_index_to_id, Config, RepositoryConfig},
     index::corpus,
@@ -18,7 +18,7 @@ use tabby_schema::{
         FileEntrySearchResult, GitReference, GitRepositoryService, ProvidedRepository, Repository,
         RepositoryKind, RepositoryService, ThirdPartyRepositoryService,
     },
-    Result,
+    CoreError, Result,
 };
 
 struct RepositoryServiceImpl {
@@ -105,15 +105,13 @@ impl RepositoryService for RepositoryServiceImpl {
     }
 
     async fn resolve_repository(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository> {
-        if let RepositoryKind::GitConfig = kind {
-            if let Ok(index) = config_id_to_index(id) {
+        match kind {
+            RepositoryKind::GitConfig => {
+                let index = config_id_to_index(id)?;
                 let config = &self.config[index];
                 return repository_config_to_repository(index, config);
             }
-        }
-
-        match kind {
-            RepositoryKind::Git | RepositoryKind::GitConfig => self.git().get_repository(id).await,
+            RepositoryKind::Git => self.git().get_repository(id).await,
             RepositoryKind::Github
             | RepositoryKind::Gitlab
             | RepositoryKind::GithubSelfHosted
