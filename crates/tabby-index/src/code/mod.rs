@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use async_stream::stream;
 use async_trait::async_trait;
@@ -27,8 +27,38 @@ mod types;
 #[derive(Default)]
 pub struct CodeIndexer {}
 
+pub struct CodeRepository {
+    pub git_url: String,
+    pub source_id: String,
+}
+
+impl CodeRepository {
+    pub fn new(git_url: &str) -> Self {
+        Self {
+            git_url: git_url.to_owned(),
+            source_id: RepositoryConfig::canonicalize_url(git_url),
+        }
+    }
+
+    pub fn dir(&self) -> PathBuf {
+        RepositoryConfig::resolve_dir(&self.git_url)
+    }
+
+    pub fn dir_name(&self) -> String {
+        RepositoryConfig::resolve_dir_name(&self.git_url)
+    }
+
+    pub fn canonical_git_url(&self) -> String {
+        RepositoryConfig::canonicalize_url(&self.git_url)
+    }
+
+    pub fn is_local_dir(&self) -> bool {
+        RepositoryConfig::resolve_is_local_dir(&self.git_url)
+    }
+}
+
 impl CodeIndexer {
-    pub async fn refresh(&mut self, embedding: Arc<dyn Embedding>, repository: &RepositoryConfig) {
+    pub async fn refresh(&mut self, embedding: Arc<dyn Embedding>, repository: &CodeRepository) {
         logkit::info!(
             "Building source code index: {}",
             repository.canonical_git_url()

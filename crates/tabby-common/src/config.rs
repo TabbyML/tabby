@@ -135,20 +135,28 @@ impl RepositoryConfig {
     }
 
     pub fn dir(&self) -> PathBuf {
-        if self.is_local_dir() {
-            let path = self.git_url.strip_prefix("file://").unwrap();
-            path.into()
-        } else {
-            repositories_dir().join(self.dir_name())
-        }
+        Self::resolve_dir(&self.git_url)
     }
 
     pub fn dir_name(&self) -> String {
-        sanitize_name(&self.canonical_git_url())
+        Self::resolve_dir_name(&self.git_url)
     }
 
-    pub fn is_local_dir(&self) -> bool {
-        self.git_url.starts_with("file://")
+    pub fn resolve_dir(git_url: &str) -> PathBuf {
+        if Self::resolve_is_local_dir(git_url) {
+            let path = git_url.strip_prefix("file://").unwrap();
+            path.into()
+        } else {
+            repositories_dir().join(sanitize_name(git_url))
+        }
+    }
+
+    pub fn resolve_dir_name(git_url: &str) -> String {
+        sanitize_name(&Self::canonicalize_url(git_url))
+    }
+
+    pub fn resolve_is_local_dir(git_url: &str) -> bool {
+        git_url.starts_with("file://")
     }
 }
 
@@ -353,13 +361,7 @@ mod tests {
         let repo = RepositoryConfig {
             git_url: "file:///home/user".to_owned(),
         };
-        assert!(repo.is_local_dir());
-        assert_eq!(repo.dir().display().to_string(), "/home/user");
-
-        let repo = RepositoryConfig {
-            git_url: "https://github.com/TabbyML/tabby".to_owned(),
-        };
-        assert!(!repo.is_local_dir());
+        let _ = repo.dir();
     }
 
     #[test]

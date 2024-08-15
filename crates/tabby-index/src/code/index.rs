@@ -3,13 +3,14 @@ use std::{pin::pin, sync::Arc};
 use async_stream::stream;
 use futures::StreamExt;
 use ignore::{DirEntry, Walk};
-use tabby_common::{config::RepositoryConfig, index::corpus};
+use tabby_common::index::corpus;
 use tabby_inference::Embedding;
 use tracing::warn;
 
 use super::{
     create_code_builder,
     intelligence::{CodeIntelligence, SourceCode},
+    CodeRepository,
 };
 use crate::indexer::Indexer;
 
@@ -20,7 +21,7 @@ static MIN_ALPHA_NUM_FRACTION: f32 = 0.25f32;
 static MAX_NUMBER_OF_LINES: usize = 100000;
 static MAX_NUMBER_FRACTION: f32 = 0.5f32;
 
-pub async fn index_repository(embedding: Arc<dyn Embedding>, repository: &RepositoryConfig) {
+pub async fn index_repository(embedding: Arc<dyn Embedding>, repository: &CodeRepository) {
     let total_files = Walk::new(repository.dir()).count();
     let file_stream = stream! {
         for file in Walk::new(repository.dir()) {
@@ -76,7 +77,7 @@ pub async fn garbage_collection() {
 }
 
 async fn add_changed_documents(
-    repository: &RepositoryConfig,
+    repository: &CodeRepository,
     embedding: Arc<dyn Embedding>,
     files: Vec<DirEntry>,
 ) -> usize {
@@ -84,7 +85,6 @@ async fn add_changed_documents(
     let builder = Arc::new(create_code_builder(Some(embedding)));
     let index = Arc::new(Indexer::new(corpus::CODE));
     let cloned_index = index.clone();
-    let repository = repository.clone();
 
     let mut count_docs = 0;
     stream! {
@@ -98,7 +98,7 @@ async fn add_changed_documents(
                 continue;
             }
 
-            let Some(code) = CodeIntelligence::compute_source_file(&repository, file.path()) else {
+            let Some(code) = CodeIntelligence::compute_source_file(repository, file.path()) else {
                 continue;
             };
 

@@ -4,7 +4,7 @@ use anyhow::Context;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_common::config::RepositoryConfig;
-use tabby_index::public::CodeIndexer;
+use tabby_index::public::{CodeIndexer, CodeRepository};
 use tabby_inference::Embedding;
 use tabby_schema::{job::JobService, repository::GitRepositoryService};
 
@@ -27,7 +27,7 @@ impl Job for SchedulerGitJob {
 
 impl SchedulerGitJob {
     pub async fn run(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
-        let repository = self.repository.clone();
+        let repository = CodeRepository::new(&self.repository.git_url);
         tokio::spawn(async move {
             let mut code = CodeIndexer::default();
             code.refresh(embedding, &repository).await;
