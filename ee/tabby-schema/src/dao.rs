@@ -238,7 +238,6 @@ impl From<ThreadMessageAttachmentCode> for thread::MessageAttachmentCode {
             language: value.language,
             content: value.content,
             start_line: value.start_line as i32,
-            scores: None,
         }
     }
 }
