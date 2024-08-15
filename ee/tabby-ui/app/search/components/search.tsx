@@ -241,13 +241,6 @@ export function Search() {
     }
   }, [threadMessages])
 
-  // FIXME testing code
-  const headers = useMemo(() => {
-    return {
-      Authorization: 'Bearer auth_9949a19e20d141b49f06b7e7ee23175d'
-    }
-  }, [])
-
   const onThreadCreated = (threadId: string) => {
     updateUrlComponents({
       pathname: `/search/${threadId}`
@@ -262,7 +255,6 @@ export function Search() {
     stop
   } = useThreadRun({
     threadId,
-    headers,
     onThreadCreated
   })
 
