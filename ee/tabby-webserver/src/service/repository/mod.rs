@@ -17,7 +17,8 @@ use tabby_schema::{
     repository::{
         FileEntrySearchResult, GitReference, GitRepositoryService, ProvidedRepository, Repository,
         RepositoryKind, RepositoryService, ThirdPartyRepositoryService,
-    }, Result,
+    },
+    Result,
 };
 
 struct RepositoryServiceImpl {
