@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use async_openai::error::OpenAIError;
 use axum::{
     extract::State,
     response::sse::{Event, KeepAlive, Sse},
@@ -10,7 +11,7 @@ use futures::{Stream, StreamExt};
 use hyper::StatusCode;
 use tabby_common::axum::MaybeUser;
 use tabby_inference::ChatCompletionStream;
-use tracing::{instrument, warn};
+use tracing::{error, instrument, warn};
 
 #[utoipa::path(
     post,
@@ -48,11 +49,26 @@ pub async fn chat_completions(
         }
     };
 
-    let s = s.map(|chunk| {
-        let chunk = chunk?;
-        let json = serde_json::to_string(&chunk)?;
-        Ok(Event::default().data(json))
-    });
+    let s = async_stream::stream! {
+        let mut s = s;
+        while let Some(event) = s.next().await {
+            match event {
+                Ok(event) => {
+                    yield Ok(Event::default().json_data(event)?);
+                }
+                Err(err) => {
+                    if let OpenAIError::StreamError(content) = err {
+                        if content == "Stream ended" {
+                            break;
+                        }
+                    } else {
+                        error!("Failed to get chat completion chunk: {:?}", err);
+                        yield Err(err.into());
+                    }
+                }
+            }
+        }
+    };
 
     Ok(Sse::new(s).keep_alive(KeepAlive::default()))
 }
