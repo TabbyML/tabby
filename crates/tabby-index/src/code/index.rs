@@ -106,8 +106,6 @@ async fn add_changed_documents(
                 continue;
             }
 
-            logkit::debug!("Indexing file: {}", file.path().display());
-
             let (_, s) = builder.build(code).await;
             for await task in s {
                 yield task;
