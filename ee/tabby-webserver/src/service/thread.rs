@@ -337,8 +337,16 @@ mod tests {
             false,
         ).await.unwrap();
 
+        let messages = service.list_thread_messages(&thread_id, None, None, None, None).await.unwrap();
+        assert_eq!(messages.len(), 3);
+
         assert!(service
             .delete_thread_message_pair(&thread_id, &another_user_message_id.as_id(), &assistant_message_id.as_id())
+            .await
+            .is_err());
+
+        assert!(service
+            .delete_thread_message_pair(&thread_id, &assistant_message_id.as_id(), &another_user_message_id.as_id())
             .await
             .is_err());
 
