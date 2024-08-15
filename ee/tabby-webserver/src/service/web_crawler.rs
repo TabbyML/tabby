@@ -1,5 +1,7 @@
-use std::collections::{BTreeMap, HashSet};
-use std::sync::Arc;
+use std::{
+    collections::{BTreeMap, HashSet},
+    sync::Arc,
+};
 
 use async_trait::async_trait;
 use juniper::ID;
@@ -9,12 +11,17 @@ use tabby_schema::{
     web_crawler::{WebCrawlerService, WebCrawlerUrl},
     AsID, AsRowid, Result,
 };
-use crate::service::preset_crawler_urls::get_preset_crawler_urls;
+
 use super::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
+use crate::service::preset_crawler_urls::get_preset_crawler_urls;
 
 pub async fn create(db: DbConn, job_service: Arc<dyn JobService>) -> impl WebCrawlerService {
     let preset_web_crawler_urls = get_preset_crawler_urls();
-    let service = WebCrawlerServiceImpl { db, job_service, preset_web_crawler_urls };
+    let service = WebCrawlerServiceImpl {
+        db,
+        job_service,
+        preset_web_crawler_urls,
+    };
     if let Err(e) = service.init_preset_web_crawler_urls().await {
         panic!("failed to init preset web crawler urls because of {:?}", e);
     }
@@ -29,7 +36,10 @@ struct WebCrawlerServiceImpl {
 
 impl WebCrawlerServiceImpl {
     pub async fn init_preset_web_crawler_urls(&self) -> Result<()> {
-        let origin_urls = self.db.list_web_crawler_urls(None, None, false, None, Some(true)).await?;
+        let origin_urls = self
+            .db
+            .list_web_crawler_urls(None, None, false, None, Some(true))
+            .await?;
         let mut origin_urls_index: HashSet<String> = HashSet::default();
         for url in origin_urls {
             origin_urls_index.insert(url.url);
@@ -39,7 +49,9 @@ impl WebCrawlerServiceImpl {
                 continue;
             }
 
-            self.db.create_web_crawler_url(name.clone(), url.clone(), false, true).await?;
+            self.db
+                .create_web_crawler_url(name.clone(), url.clone(), false, true)
+                .await?;
         }
         Ok(())
     }
@@ -77,7 +89,10 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
     }
 
     async fn create_web_crawler_url(&self, url: String) -> Result<ID> {
-        let id = self.db.create_web_crawler_url("".to_string(), url.clone(), true, false).await?;
+        let id = self
+            .db
+            .create_web_crawler_url("".to_string(), url.clone(), true, false)
+            .await?;
 
         let _ = self
             .job_service
@@ -97,8 +112,11 @@ impl WebCrawlerService for WebCrawlerServiceImpl {
             .await?;
         Ok(())
     }
-    async fn update_active_web_crawler_url(&self,  id: ID, active: bool) -> Result<()> {
-        let url = self.db.update_active_web_crawler_url(id.as_rowid()?, active).await?;
+    async fn update_active_web_crawler_url(&self, id: ID, active: bool) -> Result<()> {
+        let url = self
+            .db
+            .update_active_web_crawler_url(id.as_rowid()?, active)
+            .await?;
         if active {
             let _ = self
                 .job_service

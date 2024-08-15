@@ -918,7 +918,10 @@ impl Mutation {
     }
 
     async fn update_active_web_crawler_url(ctx: &Context, id: ID, active: bool) -> Result<bool> {
-        ctx.locator.web_crawler().update_active_web_crawler_url(id, active).await?;
+        ctx.locator
+            .web_crawler()
+            .update_active_web_crawler_url(id, active)
+            .await?;
         Ok(true)
     }
 }

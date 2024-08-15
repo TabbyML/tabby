@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
-use sqlx::{prelude::FromRow, query, query_as, query_scalar};
+use sqlx::{prelude::FromRow, query, query_scalar};
 use tabby_db_macros::query_paged_as;
 
 use crate::DbConn;
@@ -26,10 +26,10 @@ impl DbConn {
     ) -> Result<Vec<WebCrawlerUrlDAO>> {
         let mut conditions = vec![];
         if let Some(is_preset) = is_preset {
-            conditions.push(format!("is_preset={}",is_preset));
+            conditions.push(format!("is_preset={}", is_preset));
         }
         if let Some(active) = active {
-            conditions.push(format!("active={}",active));
+            conditions.push(format!("active={}", active));
         }
         let condition = (!conditions.is_empty()).then_some(conditions.join(" AND "));
         let urls = query_paged_as!(
@@ -47,14 +47,25 @@ impl DbConn {
         Ok(urls)
     }
 
-    pub async fn create_web_crawler_url(&self, name: String, url: String, active: bool, is_preset: bool) -> Result<i64> {
-        let res = query!("INSERT INTO web_crawler_urls(web_name, url, active, is_preset) VALUES (?,?,?,?);", name, url, active, is_preset)
-            .execute(&self.pool)
-            .await?;
+    pub async fn create_web_crawler_url(
+        &self,
+        name: String,
+        url: String,
+        active: bool,
+        is_preset: bool,
+    ) -> Result<i64> {
+        let res = query!(
+            "INSERT INTO web_crawler_urls(web_name, url, active, is_preset) VALUES (?,?,?,?);",
+            name,
+            url,
+            active,
+            is_preset
+        )
+        .execute(&self.pool)
+        .await?;
 
         Ok(res.last_insert_rowid())
     }
-
 
     pub async fn delete_web_crawler_url(&self, id: i64) -> Result<()> {
         query!("DELETE FROM web_crawler_urls WHERE id = ?;", id)
@@ -72,12 +83,12 @@ impl DbConn {
             "UPDATE web_crawler_urls SET active = $1 WHERE id = $2;",
             id,
             active
-        ).execute(&self.pool).await?;
+        )
+        .execute(&self.pool)
+        .await?;
 
         if res.rows_affected() != 1 {
-            return Err(anyhow!(
-                "The specified web_crawler_urls id does not exist"
-            ));
+            return Err(anyhow!("The specified web_crawler_urls id does not exist"));
         }
 
         Ok(url)

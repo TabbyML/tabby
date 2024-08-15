@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+
 use serde_json::Value;
 
 pub fn get_preset_crawler_urls() -> BTreeMap<String, String> {
@@ -394,7 +395,10 @@ pub fn get_preset_crawler_urls() -> BTreeMap<String, String> {
     for v in data.as_array().unwrap() {
         let url = v.get("crawlerStart").unwrap();
         let name = v.get("name").unwrap();
-        urls.insert(name.as_str().unwrap().to_string(), url.as_str().unwrap().to_string());
+        urls.insert(
+            name.as_str().unwrap().to_string(),
+            url.as_str().unwrap().to_string(),
+        );
     }
     urls
 }

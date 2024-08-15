@@ -7,12 +7,12 @@ pub mod event_logger;
 pub mod integration;
 pub mod job;
 mod license;
+mod preset_crawler_urls;
 pub mod repository;
 mod setting;
 mod thread;
 mod user_event;
 pub mod web_crawler;
-mod preset_crawler_urls;
 
 use std::sync::Arc;
 

@@ -682,7 +682,8 @@ type WebCrawlerUrl {
   url: String!
   id: ID!
   name: String!
-  is_preset: Boolean!
+  isPreset: Boolean!
+  isActive: Boolean!
   createdAt: DateTime!
   jobInfo: JobInfo!
 }
