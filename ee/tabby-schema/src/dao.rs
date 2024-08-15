@@ -9,14 +9,13 @@ use tabby_db::{
 
 use crate::{
     integration::{Integration, IntegrationKind, IntegrationStatus},
-    repository::{ProvidedRepository, RepositoryKind},
+    repository::{RepositoryKind},
     schema::{
         auth::{self, OAuthCredential, OAuthProvider},
         email::{AuthMethod, EmailSetting, Encryption},
         job,
         repository::{
-            GithubProvidedRepository, GithubRepositoryProvider, GitlabProvidedRepository,
-            GitlabRepositoryProvider, RepositoryProviderStatus,
+            GithubRepositoryProvider, GitlabRepositoryProvider, RepositoryProviderStatus,
         },
         setting::{NetworkSetting, SecuritySetting},
         user_event::{EventKind, UserEvent},
@@ -155,20 +154,6 @@ impl From<IntegrationKind> for RepositoryKind {
     }
 }
 
-impl From<ProvidedRepository> for GithubProvidedRepository {
-    fn from(value: ProvidedRepository) -> Self {
-        Self {
-            id: value.id,
-            vendor_id: value.vendor_id,
-            github_repository_provider_id: value.integration_id,
-            name: value.display_name,
-            git_url: value.git_url,
-            active: value.active,
-            refs: value.refs,
-        }
-    }
-}
-
 impl From<Integration> for GithubRepositoryProvider {
     fn from(value: Integration) -> Self {
         Self {
@@ -199,20 +184,6 @@ impl From<IntegrationStatus> for RepositoryProviderStatus {
             IntegrationStatus::Ready => Self::Ready,
             IntegrationStatus::Pending => Self::Pending,
             IntegrationStatus::Failed => Self::Failed,
-        }
-    }
-}
-
-impl From<ProvidedRepository> for GitlabProvidedRepository {
-    fn from(value: ProvidedRepository) -> Self {
-        Self {
-            id: value.id,
-            vendor_id: value.vendor_id,
-            gitlab_repository_provider_id: value.integration_id,
-            name: value.display_name,
-            git_url: value.git_url,
-            active: value.active,
-            refs: value.refs,
         }
     }
 }

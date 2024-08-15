@@ -102,8 +102,11 @@ impl SchedulerGithubGitlabJob {
             repository.display_name
         );
         let mut code = CodeIndexer::default();
-        code.refresh(embedding.clone(), &CodeRepository::new(&authenticated_url))
-            .await;
+        code.refresh(
+            embedding.clone(),
+            &CodeRepository::new(&authenticated_url, &repository.source_id()),
+        )
+        .await;
 
         logkit::info!(
             "Indexing documents for repository {}",

@@ -327,19 +327,11 @@ pub struct CodeRepository {
     pub source_id: String,
 }
 
-impl From<RepositoryConfig> for CodeRepository {
-    fn from(config: RepositoryConfig) -> Self {
-        Self::new(&config.git_url)
-    }
-}
-
 impl CodeRepository {
-    pub fn new(git_url: &str) -> Self {
+    pub fn new(git_url: &str, source_id: &str) -> Self {
         Self {
             git_url: git_url.to_owned(),
-
-            // FIXME(meng): This is a temporary solution to use git_url as source_id, we shall migrate this by pass source_id as parameter.
-            source_id: RepositoryConfig::canonicalize_url(git_url),
+            source_id: source_id.to_owned(),
         }
     }
 
@@ -373,7 +365,8 @@ impl CodeRepositoryAccess for StaticCodeRepositoryAccess {
         Ok(Config::load()?
             .repositories
             .into_iter()
-            .map(CodeRepository::from)
+            .enumerate()
+            .map(|(i, repo)| CodeRepository::new(&repo.git_url, &config_index_to_id(i)))
             .collect())
     }
 }

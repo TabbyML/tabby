@@ -308,7 +308,8 @@ mod tests {
         ($query:literal, $candidates:expr) => {
             let candidates: Vec<_> = $candidates
                 .into_iter()
-                .map(|x| CodeRepository::new(&x))
+                .enumerate()
+                .map(|(i, x)| CodeRepository::new(&x, &tabby_common::config::config_index_to_id(i)))
                 .collect();
             let expect = &candidates[0];
             assert_eq!(
@@ -322,7 +323,8 @@ mod tests {
         ($query:literal, $candidates:expr) => {
             let candidates: Vec<_> = $candidates
                 .into_iter()
-                .map(|x| CodeRepository::new(&x))
+                .enumerate()
+                .map(|(i, x)| CodeRepository::new(&x, &tabby_common::config::config_index_to_id(i)))
                 .collect();
             assert_eq!(closest_match($query, &candidates), None);
         };

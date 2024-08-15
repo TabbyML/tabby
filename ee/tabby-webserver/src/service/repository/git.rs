@@ -43,6 +43,7 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
         for repository in repositories {
             let event = BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
                 &repository.git_url,
+                &GitRepository::format_source_id(&repository.id.as_id()),
             ));
             let job_info = self.job_service.get_job_info(event.to_command()).await?;
 
@@ -60,8 +61,11 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
         let _ = self
             .job_service
             .trigger(
-                BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(&git_url))
-                    .to_command(),
+                BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
+                    &git_url,
+                    &GitRepository::format_source_id(&id),
+                ))
+                .to_command(),
             )
             .await;
         Ok(id)
@@ -84,8 +88,11 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
         let _ = self
             .job_service
             .trigger(
-                BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(&git_url))
-                    .to_command(),
+                BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
+                    &git_url,
+                    &GitRepository::format_source_id(id),
+                ))
+                .to_command(),
             )
             .await;
         Ok(true)
@@ -106,7 +113,10 @@ impl RepositoryProvider for GitRepositoryServiceImpl {
     async fn get_repository(&self, id: &ID) -> Result<Repository> {
         let dao = self.db.get_repository(id.as_rowid()?).await?;
 
-        let event = BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(&dao.git_url));
+        let event = BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
+            &dao.git_url,
+            &GitRepository::format_source_id(&dao.id.as_id()),
+        ));
 
         let job_info = self.job_service.get_job_info(event.to_command()).await?;
         let git_repo = to_git_repository(dao, job_info);
