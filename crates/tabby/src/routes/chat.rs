@@ -11,7 +11,7 @@ use futures::{Stream, StreamExt};
 use hyper::StatusCode;
 use tabby_common::axum::MaybeUser;
 use tabby_inference::ChatCompletionStream;
-use tracing::{debug, error, instrument, warn};
+use tracing::{error, instrument, warn};
 
 #[utoipa::path(
     post,
