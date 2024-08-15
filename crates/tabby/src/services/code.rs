@@ -314,7 +314,7 @@ mod tests {
             let expect = &candidates[0];
             assert_eq!(
                 closest_match($query, &candidates),
-                Some(expect.git_url.as_ref())
+                Some(expect.source_id.as_ref())
             );
         };
     }
