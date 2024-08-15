@@ -25,11 +25,7 @@ import { useEnableDeveloperMode, useEnableSearch } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
-import {
-  AnswerEngineExtraContext,
-  ArrayElementType,
-  RelevantCodeContext
-} from '@/lib/types'
+import { AnswerEngineExtraContext, RelevantCodeContext } from '@/lib/types'
 import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { CodeBlock } from '@/components/ui/codeblock'
@@ -83,9 +79,10 @@ import {
   Message,
   MessageAttachmentCode,
   MessageAttachmentDoc,
+  MessageCodeSearchHit,
+  MessageDocSearchHit,
   RepositoryListQuery,
-  Role,
-  ThreadRunItem
+  Role
 } from '@/lib/gql/generates/graphql'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
@@ -108,7 +105,19 @@ type ConversationMessage = Omit<
   threadRelevantQuestions?: Maybe<string[]>
   isLoading?: boolean
   error?: string
-  attachment?: Message['attachment']
+  attachment?: {
+    code: Array<AttachmentCodeItem>
+    doc: Array<AttachmentDocItem>
+  }
+}
+
+// for rendering, including scores
+type AttachmentCodeItem = MessageAttachmentCode & {
+  extra?: { scores?: MessageCodeSearchHit['scores'] }
+}
+// for rendering, including score
+type AttachmentDocItem = MessageAttachmentDoc & {
+  extra?: { score?: MessageDocSearchHit['score'] }
 }
 
 type SearchContextValue = {
@@ -394,8 +403,21 @@ export function Search() {
     currentAssistantMessage.content =
       threadRun?.threadAssistantMessageContentDelta || ''
     currentAssistantMessage.attachment = {
-      code: threadRun?.threadAssistantMessageAttachmentsCode ?? [],
-      doc: threadRun?.threadAssistantMessageAttachmentsDoc ?? []
+      // format the attachments
+      code:
+        threadRun?.threadAssistantMessageAttachmentsCode?.map(hit => ({
+          ...hit.code,
+          extra: {
+            scores: hit.scores
+          }
+        })) ?? [],
+      doc:
+        threadRun?.threadAssistantMessageAttachmentsDoc?.map(hit => ({
+          ...hit.doc,
+          extra: {
+            score: hit.score
+          }
+        })) ?? []
     }
     currentAssistantMessage.threadRelevantQuestions =
       threadRun?.threadRelevantQuestions
@@ -749,11 +771,7 @@ export function Search() {
 type AnswerBlockContextValue = {
   onCodeCitationMouseEnter: (index: number) => void
   onCodeCitationMouseLeave: (index: number) => void
-  onCodeCitationClick: (
-    data: ArrayElementType<
-      ThreadRunItem['threadAssistantMessageAttachmentsCode']
-    >
-  ) => void
+  onCodeCitationClick: (data: MessageAttachmentCode) => void
 }
 
 const AnswerBlockContext = createContext<AnswerBlockContextValue>(
@@ -880,8 +898,8 @@ function AnswerBlock({
     window.open(url.toString())
   }
 
-  const relevant_documents = answer?.attachment?.doc
-  const relevant_code = answer?.attachment?.code
+  const messageAttachmentDocs = answer?.attachment?.doc
+  const messageAttachmentCode = answer?.attachment?.code
 
   return (
     <AnswerBlockContext.Provider
@@ -892,8 +910,8 @@ function AnswerBlock({
       }}
     >
       <div className="flex flex-col gap-y-5">
-        {/* Relevant documents */}
-        {relevant_documents && relevant_documents.length > 0 && (
+        {/* document search hits */}
+        {messageAttachmentDocs && messageAttachmentDocs.length > 0 && (
           <div>
             <div className="mb-1 flex items-center gap-x-2">
               <IconBlocks className="relative" style={{ top: '-0.04rem' }} />
@@ -908,7 +926,7 @@ function AnswerBlock({
                   : `${SOURCE_CARD_STYLE.compress}rem`
               }}
             >
-              {relevant_documents.map((source, index) => (
+              {messageAttachmentDocs.map((source, index) => (
                 <SourceCard
                   key={source.link + index}
                   conversationId={answer.id}
@@ -957,8 +975,8 @@ function AnswerBlock({
             )}
           </div>
 
-          {/* Relevant code */}
-          {relevant_code && relevant_code.length > 0 && (
+          {/* code search hits */}
+          {messageAttachmentCode && messageAttachmentCode.length > 0 && (
             <CodeReferences
               contexts={relevantCodeContexts}
               className="mt-1 text-sm"
@@ -978,8 +996,8 @@ function AnswerBlock({
           )}
           <MessageMarkdown
             message={answer.content}
-            relevantDocuments={relevant_documents}
-            relevantCode={relevant_code}
+            relevantDocuments={messageAttachmentDocs}
+            relevantCode={messageAttachmentCode}
           />
           {answer.error && <ErrorMessageBlock error={answer.error} />}
 
@@ -1054,7 +1072,7 @@ function SourceCard({
   showDevTooltip
 }: {
   conversationId: string
-  source: MessageAttachmentDoc
+  source: AttachmentDocItem
   showMore: boolean
   showDevTooltip?: boolean
 }) {
@@ -1123,7 +1141,7 @@ function SourceCard({
         className="cursor-pointer p-2"
         onClick={onTootipClick}
       >
-        {/* <p>Score: {source.score}</p> */}
+        <p>Score: {source?.extra?.score}</p>
       </TooltipContent>
     </Tooltip>
   )
@@ -1131,12 +1149,12 @@ function SourceCard({
 
 type RelevantDocItem = {
   type: 'doc'
-  data: MessageAttachmentDoc
+  data: AttachmentDocItem
 }
 
 type RelevantCodeItem = {
   type: 'code'
-  data: MessageAttachmentCode
+  data: AttachmentCodeItem
 }
 
 type MessageAttachments = Array<RelevantDocItem | RelevantCodeItem>
@@ -1149,8 +1167,8 @@ function MessageMarkdown({
 }: {
   message: string
   headline?: boolean
-  relevantDocuments?: Maybe<Array<MessageAttachmentDoc>>
-  relevantCode?: Maybe<Array<MessageAttachmentCode>>
+  relevantDocuments?: Array<AttachmentDocItem>
+  relevantCode?: Array<AttachmentCodeItem>
 }) {
   const messageAttachments: MessageAttachments = useMemo(() => {
     const docs: MessageAttachments =
@@ -1190,12 +1208,12 @@ function MessageMarkdown({
               {showcitation && (
                 <>
                   {citationType === 'doc' ? (
-                    <RelevantDocumentHoverCard
+                    <RelevantDocumentBadge
                       relevantDocument={citationSource.data}
                       citationIndex={citationIndex}
                     />
                   ) : citationType === 'code' ? (
-                    <RelevantCodeHoverCard
+                    <RelevantCodeBadge
                       relevantCode={citationSource.data}
                       citationIndex={citationIndex}
                     />
@@ -1292,7 +1310,7 @@ function MessageMarkdown({
   )
 }
 
-function RelevantDocumentHoverCard({
+function RelevantDocumentBadge({
   relevantDocument,
   citationIndex
 }: {
@@ -1335,13 +1353,11 @@ function RelevantDocumentHoverCard({
   )
 }
 
-function RelevantCodeHoverCard({
+function RelevantCodeBadge({
   relevantCode,
   citationIndex
 }: {
-  relevantCode: ArrayElementType<
-    ThreadRunItem['threadAssistantMessageAttachmentsCode']
-  >
+  relevantCode: MessageAttachmentCode
   citationIndex: number
 }) {
   const {

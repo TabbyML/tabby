@@ -25,16 +25,26 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
       threadAssistantMessageCreated
       threadRelevantQuestions
       threadAssistantMessageAttachmentsCode {
-        gitUrl
-        filepath
-        language
-        content
-        startLine
+        code {
+          gitUrl
+          filepath
+          language
+          content
+          startLine
+        }
+        scores {
+          rrf
+          bm25
+          embedding
+        }
       }
       threadAssistantMessageAttachmentsDoc {
-        title
-        link
-        content
+        doc {
+          title
+          link
+          content
+        }
+        score
       }
       threadAssistantMessageContentDelta
       threadAssistantMessageCompleted
@@ -50,16 +60,26 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
       threadAssistantMessageCreated
       threadRelevantQuestions
       threadAssistantMessageAttachmentsCode {
-        gitUrl
-        filepath
-        language
-        content
-        startLine
+        code {
+          gitUrl
+          filepath
+          language
+          content
+          startLine
+        }
+        scores {
+          rrf
+          bm25
+          embedding
+        }
       }
       threadAssistantMessageAttachmentsDoc {
-        title
-        link
-        content
+        doc {
+          title
+          link
+          content
+        }
+        score
       }
       threadAssistantMessageContentDelta
       threadAssistantMessageCompleted
@@ -126,8 +146,8 @@ export function useThreadRun({
   const [createThreadAndRunResult] = useSubscription(
     {
       query: CreateThreadAndRunSubscription,
-      // pause: !createMessageInput ? true : pause,
-      pause: pause,
+      // if threadId is provided, should not start a new thread
+      pause: !threadId && createMessageInput ? pause : true,
       variables: {
         input: {
           thread: {
@@ -152,8 +172,8 @@ export function useThreadRun({
   const [createThreadRunResult] = useSubscription(
     {
       query: CreateThreadRunSubscription,
-      // pause: threadId && createMessageInput ? followupPause : true,
-      pause: followupPause,
+      // if the threadId is not provided, should not start a thread run
+      pause: threadId && createMessageInput ? followupPause : true,
       variables: {
         input: {
           threadId: threadId as string,
