@@ -71,6 +71,8 @@ const FIELD_UPDATED_AT: &str = "updated_at";
 pub mod corpus {
     pub const CODE: &str = "code";
     pub const WEB: &str = "web";
+
+    pub const ALL: [&str; 2] = [CODE, WEB];
 }
 
 impl IndexSchema {

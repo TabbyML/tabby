@@ -18,8 +18,7 @@ pub mod public {
     };
 
     pub fn run_index_garbage_collection(active_sources: Vec<String>) -> anyhow::Result<()> {
-        let corpus_list = [corpus::WEB, corpus::CODE];
-        for corpus in corpus_list.iter() {
+        for corpus in corpus::ALL.iter() {
             let indexer = Indexer::new(corpus);
             indexer.garbage_collect(&active_sources)?;
             indexer.commit();
