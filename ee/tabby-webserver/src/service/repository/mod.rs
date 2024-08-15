@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use futures::StreamExt;
 use juniper::ID;
 use tabby_common::{
-    config::{config_id_to_index, config_index_to_id, Config, RepositoryConfig},
+    config::{config_id_to_index, config_index_to_id, CodeRepository, Config, RepositoryConfig},
     index::corpus,
 };
 use tabby_db::DbConn;
@@ -43,18 +43,18 @@ pub fn create(
 
 #[async_trait]
 impl RepositoryService for RepositoryServiceImpl {
-    async fn list_all_repository_urls(&self) -> Result<Vec<RepositoryConfig>> {
-        let mut repos: Vec<RepositoryConfig> = self
+    async fn list_all_repository_urls(&self) -> Result<Vec<CodeRepository>> {
+        let mut repos: Vec<CodeRepository> = self
             .git
             .list(None, None, None, None)
             .await?
             .into_iter()
-            .map(|repo| RepositoryConfig::new(repo.git_url))
+            .map(|repo| CodeRepository::new(&repo.git_url))
             .collect();
 
         repos.extend(
             self.third_party
-                .list_repository_configs()
+                .list_code_repositories()
                 .await
                 .unwrap_or_default(),
         );
@@ -224,18 +224,17 @@ fn to_sub_match(m: tabby_git::GrepSubMatch) -> tabby_schema::repository::GrepSub
 }
 
 fn list_refs(git_url: &str) -> Vec<tabby_git::GitReference> {
-    let dir = RepositoryConfig::new(git_url.to_owned()).dir();
+    let dir = RepositoryConfig::resolve_dir(git_url);
     tabby_git::list_refs(&dir).unwrap_or_default()
 }
 
 fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
-    let config = RepositoryConfig::new(&repo.git_url);
     Repository {
         id: repo.id,
         name: repo.display_name,
         kind,
-        dir: config.dir(),
-        git_url: config.canonical_git_url(),
+        dir: RepositoryConfig::resolve_dir(&repo.git_url),
+        git_url: RepositoryConfig::canonicalize_url(&repo.git_url),
         refs: list_refs(&repo.git_url)
             .into_iter()
             .map(|r| GitReference {
@@ -249,7 +248,7 @@ fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
 fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> Result<Repository> {
     Ok(Repository {
         id: ID::new(config_index_to_id(index)),
-        name: config.dir_name(),
+        name: config.display_name(),
         kind: RepositoryKind::GitConfig,
         dir: config.dir(),
         refs: tabby_git::list_refs(&config.dir())?
@@ -259,7 +258,7 @@ fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> R
                 commit: r.commit,
             })
             .collect(),
-        git_url: config.git_url.clone(),
+        git_url: config.git_url().to_owned(),
     })
 }
 

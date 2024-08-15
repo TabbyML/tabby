@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use fetch::fetch_all_repos;
 use juniper::ID;
 use strum::IntoEnumIterator;
-use tabby_common::config::RepositoryConfig;
+use tabby_common::config::{CodeRepository, RepositoryConfig};
 use tabby_db::{DbConn, ProvidedRepositoryDAO};
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
@@ -215,7 +215,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         Ok(usize)
     }
 
-    async fn list_repository_configs(&self) -> Result<Vec<RepositoryConfig>> {
+    async fn list_code_repositories(&self) -> Result<Vec<CodeRepository>> {
         let mut urls = vec![];
 
         let integrations = self
@@ -240,7 +240,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
                 let url = integration
                     .kind
                     .format_authenticated_url(&repository.git_url, &integration.access_token)?;
-                urls.push(RepositoryConfig::new(url));
+                urls.push(CodeRepository::new(&url));
             }
         }
 
@@ -286,7 +286,7 @@ fn to_provided_repository(value: ProvidedRepositoryDAO, job_info: JobInfo) -> Pr
         vendor_id: value.vendor_id,
         created_at: value.created_at,
         updated_at: value.updated_at,
-        refs: tabby_git::list_refs(&RepositoryConfig::new(&value.git_url).dir())
+        refs: tabby_git::list_refs(&RepositoryConfig::resolve_dir(&value.git_url))
             .unwrap_or_default()
             .into_iter()
             .map(|r| GitReference {
@@ -460,7 +460,7 @@ mod tests {
 
         // Test github urls are formatted correctly
         let git_urls: Vec<_> = repository
-            .list_repository_configs()
+            .list_code_repositories()
             .await
             .unwrap()
             .into_iter()
@@ -519,7 +519,7 @@ mod tests {
             .unwrap();
 
         let git_urls: Vec<_> = repository
-            .list_repository_configs()
+            .list_code_repositories()
             .await
             .unwrap()
             .into_iter()

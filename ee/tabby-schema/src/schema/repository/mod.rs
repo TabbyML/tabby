@@ -11,7 +11,7 @@ use async_trait::async_trait;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use juniper::{graphql_object, GraphQLEnum, GraphQLObject, ID};
 use serde::Deserialize;
-use tabby_common::config::RepositoryConfig;
+use tabby_common::config::{CodeRepository, RepositoryConfig};
 pub use third_party::{ProvidedRepository, ThirdPartyRepositoryService};
 
 use super::Result;
@@ -58,13 +58,12 @@ pub struct GitReference {
 
 impl From<GitRepository> for Repository {
     fn from(value: GitRepository) -> Self {
-        let config = RepositoryConfig::new(value.git_url);
         Self {
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Git,
-            dir: config.dir(),
-            git_url: config.canonical_git_url(),
+            dir: RepositoryConfig::resolve_dir(&value.git_url),
+            git_url: RepositoryConfig::canonicalize_url(&value.git_url),
             refs: value.refs,
         }
     }
@@ -128,13 +127,12 @@ impl NodeType for GitlabProvidedRepository {
 
 impl From<GithubProvidedRepository> for Repository {
     fn from(value: GithubProvidedRepository) -> Self {
-        let config = RepositoryConfig::new(value.git_url);
         Self {
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Github,
-            dir: config.dir(),
-            git_url: config.canonical_git_url(),
+            dir: RepositoryConfig::resolve_dir(&value.git_url),
+            git_url: RepositoryConfig::canonicalize_url(&value.git_url),
             refs: value.refs,
         }
     }
@@ -142,13 +140,12 @@ impl From<GithubProvidedRepository> for Repository {
 
 impl From<GitlabProvidedRepository> for Repository {
     fn from(value: GitlabProvidedRepository) -> Self {
-        let config = RepositoryConfig::new(value.git_url);
         Self {
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Gitlab,
-            dir: config.dir(),
-            git_url: config.canonical_git_url(),
+            dir: RepositoryConfig::resolve_dir(&value.git_url),
+            git_url: RepositoryConfig::canonicalize_url(&value.git_url),
             refs: value.refs,
         }
     }
@@ -303,7 +300,7 @@ pub trait RepositoryService: Send + Sync {
     fn git(&self) -> Arc<dyn GitRepositoryService>;
     fn third_party(&self) -> Arc<dyn ThirdPartyRepositoryService>;
 
-    async fn list_all_repository_urls(&self) -> Result<Vec<RepositoryConfig>>;
+    async fn list_all_repository_urls(&self) -> Result<Vec<CodeRepository>>;
     async fn list_all_sources(&self) -> Result<Vec<(String, String)>>;
 
     async fn resolve_web_source_id_by_git_url(&self, git_url: &str) -> Result<String>;

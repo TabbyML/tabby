@@ -9,7 +9,7 @@ use tabby_common::{
         CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchParams,
         CodeSearchQuery, CodeSearchResponse, CodeSearchScores,
     },
-    config::{ConfigAccess, RepositoryConfig},
+    config::{CodeRepository, CodeRepositoryAccess, RepositoryConfig},
     index::{
         self,
         code::{self, tokenize_code},
@@ -28,13 +28,13 @@ use tracing::debug;
 use super::tantivy::IndexReaderProvider;
 
 struct CodeSearchImpl {
-    config_access: Arc<dyn ConfigAccess>,
+    config_access: Arc<dyn CodeRepositoryAccess>,
     embedding: Arc<dyn Embedding>,
-    repo_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
+    repo_cache: Mutex<TimedCache<(), Vec<CodeRepository>>>,
 }
 
 impl CodeSearchImpl {
-    fn new(config_access: Arc<dyn ConfigAccess>, embedding: Arc<dyn Embedding>) -> Self {
+    fn new(config_access: Arc<dyn CodeRepositoryAccess>, embedding: Arc<dyn Embedding>) -> Self {
         Self {
             config_access,
             embedding,
@@ -247,7 +247,7 @@ fn get_json_text_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name:
 
 fn closest_match<'a>(
     search_term: &'a str,
-    search_input: impl IntoIterator<Item = &'a RepositoryConfig>,
+    search_input: impl IntoIterator<Item = &'a CodeRepository>,
 ) -> Option<&'a str> {
     let git_search = GitUrl::parse(search_term).ok()?;
 
@@ -266,7 +266,7 @@ struct CodeSearchService {
 
 impl CodeSearchService {
     pub fn new(
-        config_access: Arc<dyn ConfigAccess>,
+        config_access: Arc<dyn CodeRepositoryAccess>,
         embedding: Arc<dyn Embedding>,
         provider: Arc<IndexReaderProvider>,
     ) -> Self {
@@ -278,7 +278,7 @@ impl CodeSearchService {
 }
 
 pub fn create_code_search(
-    config_access: Arc<dyn ConfigAccess>,
+    config_access: Arc<dyn CodeRepositoryAccess>,
     embedding: Arc<dyn Embedding>,
     provider: Arc<IndexReaderProvider>,
 ) -> impl CodeSearch {
@@ -308,7 +308,7 @@ mod tests {
         ($query:literal, $candidates:expr) => {
             let candidates: Vec<_> = $candidates
                 .into_iter()
-                .map(|x| RepositoryConfig::new(x.to_string()))
+                .map(|x| CodeRepository::new(&x))
                 .collect();
             let expect = &candidates[0];
             assert_eq!(
@@ -322,7 +322,7 @@ mod tests {
         ($query:literal, $candidates:expr) => {
             let candidates: Vec<_> = $candidates
                 .into_iter()
-                .map(|x| RepositoryConfig::new(x.to_string()))
+                .map(|x| CodeRepository::new(&x))
                 .collect();
             assert_eq!(closest_match($query, &candidates), None);
         };
