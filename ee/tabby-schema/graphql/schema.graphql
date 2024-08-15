@@ -474,6 +474,8 @@ type Mutation {
   triggerJobRun(command: String!): ID!
   createWebCrawlerUrl(input: CreateWebCrawlerUrlInput!): ID!
   deleteWebCrawlerUrl(id: ID!): Boolean!
+  "Delete pair of user message and bot response in a thread."
+  deleteThreadMessagePair(threadId: ID!, userMessageId: ID!, assistantMessageId: ID!): Boolean!
 }
 
 type NetworkSetting {
