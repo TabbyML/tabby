@@ -76,7 +76,7 @@ export function useThreadRun({
   const [threadId, setThreadId] = React.useState<string | undefined>(
     propsThreadId
   )
-  // FIXME use two pause
+
   const [pause, setPause] = React.useState(true)
   const [followupPause, setFollowupPause] = React.useState(true)
   const [createMessageInput, setCreateMessageInput] =
@@ -236,7 +236,6 @@ export function useThreadRun({
     })
   }
 
-  // FIXME triggerWithOptions
   const triggerRequest = async (
     userMessage: CreateMessageInput,
     options?: ThreadRunOptionsInput
@@ -247,7 +246,6 @@ export function useThreadRun({
 
     setCreateMessageInput(userMessage)
     setThreadRunOptions(options)
-    // if it's more convient to create a operation so that we can use the lastest token to connect websocket
 
     if (threadId) {
       setFollowupPause(false)
