@@ -404,15 +404,31 @@ type MessageAttachmentCode {
   startLine: Int!
 }
 
+type MessageAttachmentCodeScores {
+  rrf: Float!
+  bm25: Float!
+  embedding: Float!
+}
+
 type MessageAttachmentDoc {
   title: String!
   link: String!
   content: String!
 }
 
+type MessageCodeSearchHit {
+  code: MessageAttachmentCode!
+  scores: MessageAttachmentCodeScores!
+}
+
 type MessageConnection {
   edges: [MessageEdge!]!
   pageInfo: PageInfo!
+}
+
+type MessageDocSearchHit {
+  doc: MessageAttachmentDoc!
+  score: Float!
 }
 
 type MessageEdge {
@@ -626,8 +642,8 @@ type ThreadRunItem {
   threadRelevantQuestions: [String!]
   threadUserMessageCreated: ID
   threadAssistantMessageCreated: ID
-  threadAssistantMessageAttachmentsCode: [MessageAttachmentCode!]
-  threadAssistantMessageAttachmentsDoc: [MessageAttachmentDoc!]
+  threadAssistantMessageAttachmentsCode: [MessageCodeSearchHit!]
+  threadAssistantMessageAttachmentsDoc: [MessageDocSearchHit!]
   threadAssistantMessageContentDelta: String
   threadAssistantMessageCompleted: ID
 }
