@@ -22,8 +22,8 @@ use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     repository::RepositoryService,
     thread::{
-        self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment, MessageAttachmentCodeInput, ThreadRunItem,
-        ThreadRunOptionsInput,
+        self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
+        MessageAttachmentCodeInput, ThreadRunItem, ThreadRunOptionsInput,
     },
     web_crawler::WebCrawlerService,
 };
