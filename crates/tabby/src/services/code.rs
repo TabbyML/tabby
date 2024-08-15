@@ -75,16 +75,16 @@ impl CodeSearchImpl {
             })
             .await?;
 
-        let Some(git_url) = closest_match(&query.git_url, repos.iter()) else {
+        let Some(source_id) = closest_match(&query.git_url, repos.iter()) else {
             return Ok(CodeSearchResponse::default());
         };
 
         debug!(
-            "query.git_url: {:?}, matched git_url: {:?}",
-            query.git_url, git_url
+            "query.git_url: {:?}, matched source_id: {:?}",
+            query.git_url, source_id
         );
 
-        query.git_url = RepositoryConfig::canonicalize_url(git_url);
+        query.source_id = source_id.to_owned();
 
         let docs_from_embedding = {
             let embedding = self.embedding.embed(&query.content).await?;
@@ -256,7 +256,7 @@ fn closest_match<'a>(
         .filter(|elem| GitUrl::parse(&elem.git_url).is_ok_and(|x| x.name == git_search.name))
         // If there're multiple matches, we pick the one with highest alphabetical order
         .min_by_key(|elem| elem.canonical_git_url())
-        .map(|x| x.git_url.as_str())
+        .map(|x| x.source_id.as_str())
 }
 
 struct CodeSearchService {

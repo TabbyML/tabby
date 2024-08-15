@@ -67,12 +67,11 @@ pub struct IndexSchema {
 
 const FIELD_CHUNK_ID: &str = "chunk_id";
 const FIELD_UPDATED_AT: &str = "updated_at";
+pub const FIELD_SOURCE_ID: &str = "source_id_v2";
 
 pub mod corpus {
     pub const CODE: &str = "code";
     pub const WEB: &str = "web";
-
-    pub const ALL: [&str; 2] = [CODE, WEB];
 }
 
 impl IndexSchema {
@@ -84,7 +83,7 @@ impl IndexSchema {
         let mut builder = Schema::builder();
 
         let field_corpus = builder.add_text_field("corpus", STRING | FAST);
-        let field_source_id = builder.add_text_field("source_id_v2", STRING | FAST);
+        let field_source_id = builder.add_text_field(FIELD_SOURCE_ID, STRING | FAST);
         let field_id = builder.add_text_field("id", STRING | STORED);
 
         let field_updated_at = builder.add_date_field(FIELD_UPDATED_AT, INDEXED);
@@ -121,18 +120,11 @@ impl IndexSchema {
         }
     }
 
-    pub fn source_query(&self, corpus: &str, source_id: &str) -> impl Query {
-        let source_id_query = TermQuery::new(
+    pub fn source_id_query(&self, source_id: &str) -> impl Query {
+        TermQuery::new(
             Term::from_field_text(self.field_source_id, source_id),
             tantivy::schema::IndexRecordOption::Basic,
-        );
-
-        BooleanQuery::new(vec![
-            // Must match the corpus
-            (Occur::Must, self.corpus_query(corpus)),
-            // Must match the source id
-            (Occur::Must, Box::new(source_id_query)),
-        ])
+        )
     }
 
     /// Build a query to find the document with the given `doc_id`.

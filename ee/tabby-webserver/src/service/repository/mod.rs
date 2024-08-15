@@ -159,7 +159,7 @@ impl RepositoryService for RepositoryServiceImpl {
         Ok(ret)
     }
 
-    async fn resolve_web_source_id_by_git_url(&self, git_url: &str) -> Result<String> {
+    async fn resolve_source_id_by_git_url(&self, git_url: &str) -> Result<String> {
         let git_url = RepositoryConfig::canonicalize_url(git_url);
 
         // Only third_party repositories with a git_url could generates a web source (e.g Issues, PRs)
