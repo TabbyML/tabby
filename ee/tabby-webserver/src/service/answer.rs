@@ -218,6 +218,7 @@ impl AnswerService {
                             language: x.doc.language.clone(),
                             content: x.doc.body.clone(),
                             start_line: x.doc.start_line as i32,
+                            scores: Some(x.scores.clone().into()),
                         })
                         .collect::<Vec<_>>();
             };
@@ -785,6 +786,7 @@ mod tests {
                 language: "python".to_owned(),
                 content: "print('Hello, server!')".to_owned(),
                 start_line: 1,
+                scores: None,
             }],
         };
 

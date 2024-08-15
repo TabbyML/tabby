@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use juniper::{graphql_object, GraphQLEnum, GraphQLObject, ID};
 use serde::Serialize;
+use tabby_common::api::code::CodeSearchScores;
 
 use crate::{juniper::relay::NodeType, Context};
 
@@ -53,6 +54,26 @@ pub struct MessageAttachmentCode {
     pub language: String,
     pub content: String,
     pub start_line: i32,
+
+    /// Scores for code attachment. This field is only available for the latest message being streamed.
+    pub scores: Option<MessageAttachmentCodeScores>
+}
+
+#[derive(GraphQLObject, Clone)]
+pub struct MessageAttachmentCodeScores {
+    pub rrf: f64,
+    pub bm25: f64,
+    pub embedding: f64,
+}
+
+impl From<CodeSearchScores> for MessageAttachmentCodeScores {
+    fn from(scores: CodeSearchScores) -> Self {
+        Self {
+            rrf: scores.rrf as f64,
+            bm25: scores.bm25 as f64,
+            embedding: scores.embedding as f64,
+        }
+    }
 }
 
 #[derive(GraphQLObject, Clone)]
