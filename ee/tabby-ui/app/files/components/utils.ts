@@ -65,6 +65,8 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
       break
     case 'gitlabselfhosted':
       kind = RepositoryKind.GitlabSelfHosted
+    case 'gitconfig':
+      kind = RepositoryKind.GitConfig
       break
   }
   let basename: string | undefined
