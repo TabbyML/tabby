@@ -76,6 +76,7 @@ enum RepositoryKind {
   GITLAB
   GITHUB_SELF_HOSTED
   GITLAB_SELF_HOSTED
+  GIT_CONFIG
 }
 
 enum Role {

@@ -1,11 +1,11 @@
 mod git;
 mod third_party;
 
-use anyhow::anyhow;
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use futures::StreamExt;
 use juniper::ID;
-use std::sync::Arc;
 use tabby_common::{
     config::{config_id_to_index, config_index_to_id, Config, RepositoryConfig},
     index::corpus,
@@ -17,8 +17,7 @@ use tabby_schema::{
     repository::{
         FileEntrySearchResult, GitReference, GitRepositoryService, ProvidedRepository, Repository,
         RepositoryKind, RepositoryService, ThirdPartyRepositoryService,
-    },
-    CoreError, Result,
+    }, Result,
 };
 
 struct RepositoryServiceImpl {
