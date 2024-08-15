@@ -112,6 +112,8 @@ type ConversationMessage = Omit<
 }
 
 type SearchContextValue = {
+  // flag for initialize the pathname
+  isPathnameInitialized: boolean
   isLoading: boolean
   onRegenerateResponse: (id: string) => void
   onSubmitSearch: (question: string) => void
@@ -179,8 +181,9 @@ const listThreadMessages = graphql(/* GraphQL */ `
 `)
 
 export function Search() {
-  const { searchParams, updateUrlComponents } = useRouterStuff()
-  const threadId = searchParams.get('threadId')?.toString()
+  const { updateUrlComponents, pathname } = useRouterStuff()
+  const [activePathname, setActivePathname] = useState<string | undefined>()
+  const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const isChatEnabled = useIsChatEnabled()
   const [searchFlag] = useEnableSearch()
   const [messages, setMessages] = useState<ConversationMessage[]>([])
@@ -196,13 +199,20 @@ export function Search() {
   const [showSearchInput, setShowSearchInput] = useState(false)
   const [isShowDemoBanner] = useShowDemoBanner()
   const router = useRouter()
-  const initCheckRef = useRef(false)
+  const initializing = useRef(false)
   const { theme } = useCurrentTheme()
   const [devPanelOpen, setDevPanelOpen] = useState(false)
   const [messageIdForDev, setMessageIdForDev] = useState<string | undefined>()
   const devPanelRef = useRef<ImperativePanelHandle>(null)
   const [devPanelSize, setDevPanelSize] = useState(45)
   const prevDevPanelSize = useRef(devPanelSize)
+
+  const threadId = useMemo(() => {
+    const regex = /^\/search\/(.*)/
+    if (!activePathname) return undefined
+
+    return activePathname.match(regex)?.[1]
+  }, [activePathname])
 
   const [{ data }] = useQuery({
     query: repositoryListQuery
@@ -240,11 +250,7 @@ export function Search() {
 
   const onThreadCreated = (threadId: string) => {
     updateUrlComponents({
-      searchParams: {
-        set: {
-          threadId
-        }
-      }
+      pathname: `/search/${threadId}`
     })
   }
 
@@ -287,41 +293,60 @@ export function Search() {
     }
   }
 
+  // for synchronizing the active pathname
+  useEffect(() => {
+    // prevActivePath.current = activePath
+    setActivePathname(pathname)
+
+    if (!isPathnameInitialized) {
+      setIsPathnameInitialized(true)
+    }
+  }, [pathname])
+
   // Check sessionStorage for initial message or most recent conversation
   useEffect(() => {
-    if (initCheckRef.current) return
+    const init = () => {
+      if (initializing.current) return
 
-    initCheckRef.current = true
+      initializing.current = true
 
-    const initialMessage = sessionStorage.getItem(
-      SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
-    )
-    const initialExtraContextStr = sessionStorage.getItem(
-      SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
-    )
-    const initialExtraInfo = initialExtraContextStr
-      ? JSON.parse(initialExtraContextStr)
-      : undefined
-    if (initialMessage) {
-      sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
-      sessionStorage.removeItem(
+      // initial UserMessage from home page
+      const initialMessage = sessionStorage.getItem(
+        SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
+      )
+      // initial extra context from home page
+      const initialExtraContextStr = sessionStorage.getItem(
         SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
       )
-      setIsReady(true)
-      setExtraContext(p => ({
-        ...p,
-        repository: initialExtraInfo?.repository
-      }))
-      onSubmitSearch(initialMessage, {
-        repository: initialExtraInfo?.repository
-      })
-      return
+      const initialExtraInfo = initialExtraContextStr
+        ? JSON.parse(initialExtraContextStr)
+        : undefined
+
+      if (initialMessage) {
+        sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
+        sessionStorage.removeItem(
+          SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
+        )
+        setIsReady(true)
+        setExtraContext(p => ({
+          ...p,
+          repository: initialExtraInfo?.repository
+        }))
+        onSubmitSearch(initialMessage, {
+          repository: initialExtraInfo?.repository
+        })
+        return
+      }
+
+      if (!threadId) {
+        router.replace('/')
+      }
     }
 
-    if (!threadId) {
-      router.replace('/')
+    if (isPathnameInitialized) {
+      init()
     }
-  }, [])
+  }, [isPathnameInitialized])
 
   // Set page title to the value of the first quesiton
   useEffect(() => {
@@ -552,7 +577,7 @@ export function Search() {
     prevDevPanelSize.current = devPanelSize
   }
 
-  if (!isReady && threadId && fetchingMessages) {
+  if (!isReady) {
     return (
       <div className="mx-auto mt-24 w-full space-y-10 px-4 pb-32 lg:max-w-4xl lg:px-0">
         <MessagesSkeletion />
@@ -578,7 +603,8 @@ export function Search() {
         extraRequestContext: extraContext,
         repositoryList,
         setDevPanelOpen,
-        setConversationIdForDev: setMessageIdForDev
+        setConversationIdForDev: setMessageIdForDev,
+        isPathnameInitialized
       }}
     >
       <div className="transition-all" style={style}>

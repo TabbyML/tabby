@@ -110,7 +110,11 @@ const client = new Client({
         GrepTextOrBase64: () => null,
         GrepSubMatch: () => null,
         Repository: (data: any) => (data ? `${data.kind}_${data.id}` : null),
-        GitReference: () => null
+        GitReference: () => null,
+        MessageAttachment: () => null,
+        MessageAttachmentCode: () => null,
+        MessageAttachmentDoc: () => null,
+        NetworkSetting: () => null
       },
       resolvers: {
         Query: {

@@ -174,6 +174,12 @@ export function useThreadRun({
     }
   )
 
+  React.useEffect(() => {
+    if (propsThreadId && propsThreadId !== threadId) {
+      setThreadId(propsThreadId)
+    }
+  }, [propsThreadId])
+
   // createThreadAndRun
   React.useEffect(() => {
     if (createThreadAndRunResult.fetching) return
