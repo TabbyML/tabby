@@ -23,8 +23,7 @@ use tabby_schema::{
     repository::RepositoryService,
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        MessageAttachmentCode, MessageAttachmentCodeInput, MessageAttachmentDoc, ThreadRunItem,
-        ThreadRunOptionsInput,
+        MessageAttachmentCodeInput, ThreadRunItem, ThreadRunOptionsInput,
     },
     web_crawler::WebCrawlerService,
 };
@@ -211,38 +210,32 @@ impl AnswerService {
 
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
-                attachment.code = self.collect_relevant_code(code_query, &self.config.code_search_params, options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref())).await.iter()
-                        .map(|x| MessageAttachmentCode {
-                            git_url: x.doc.git_url.clone(),
-                            filepath: x.doc.filepath.clone(),
-                            language: x.doc.language.clone(),
-                            content: x.doc.body.clone(),
-                            start_line: x.doc.start_line as i32,
-                        })
-                        .collect::<Vec<_>>();
-            };
+                let hits = self.collect_relevant_code(code_query, &self.config.code_search_params, options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref())).await;
+                attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
 
-            if !attachment.code.is_empty() {
-                yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(attachment.code.clone()));
-            }
+                if !hits.is_empty() {
+                    let message_hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
+                    yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
+                        message_hits
+                    ));
+                }
+            };
 
             // 2. Collect relevant docs if needed.
             if let Some(doc_query) = options.doc_query.as_ref() {
-                attachment.doc = self.collect_relevant_docs(git_url.as_deref(), doc_query)
-                    .await.iter()
-                        .map(|x| MessageAttachmentDoc {
-                            title: x.doc.title.clone(),
-                            content: x.doc.snippet.clone(),
-                            link: x.doc.link.clone(),
-                        })
+                let hits = self.collect_relevant_docs(git_url.as_deref(), doc_query)
+                    .await;
+                attachment.doc = hits.iter()
+                        .map(|x| x.doc.clone().into())
                         .collect::<Vec<_>>();
-            };
 
-            if !attachment.doc.is_empty() {
-                yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(
-                    attachment.doc.clone()
-                ));
-            }
+                if !attachment.doc.is_empty() {
+                    let message_hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
+                    yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(
+                        message_hits
+                    ));
+                }
+            };
 
             // 3. Generate relevant questions.
             if options.generate_relevant_questions {

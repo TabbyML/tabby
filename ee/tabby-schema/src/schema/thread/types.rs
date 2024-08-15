@@ -1,6 +1,10 @@
 use chrono::{DateTime, Utc};
 use juniper::{graphql_object, GraphQLEnum, GraphQLObject, ID};
 use serde::Serialize;
+use tabby_common::api::{
+    code::{CodeSearchDocument, CodeSearchHit, CodeSearchScores},
+    doc::{DocSearchDocument, DocSearchHit},
+};
 
 use crate::{juniper::relay::NodeType, Context};
 
@@ -55,11 +59,80 @@ pub struct MessageAttachmentCode {
     pub start_line: i32,
 }
 
+impl From<CodeSearchDocument> for MessageAttachmentCode {
+    fn from(doc: CodeSearchDocument) -> Self {
+        Self {
+            git_url: doc.git_url,
+            filepath: doc.filepath,
+            language: doc.language,
+            content: doc.body,
+            start_line: doc.start_line as i32,
+        }
+    }
+}
+
+#[derive(GraphQLObject, Clone)]
+pub struct MessageAttachmentCodeScores {
+    pub rrf: f64,
+    pub bm25: f64,
+    pub embedding: f64,
+}
+
+impl From<CodeSearchScores> for MessageAttachmentCodeScores {
+    fn from(scores: CodeSearchScores) -> Self {
+        Self {
+            rrf: scores.rrf as f64,
+            bm25: scores.bm25 as f64,
+            embedding: scores.embedding as f64,
+        }
+    }
+}
+
+#[derive(GraphQLObject)]
+pub struct MessageCodeSearchHit {
+    pub code: MessageAttachmentCode,
+    pub scores: MessageAttachmentCodeScores,
+}
+
+impl From<CodeSearchHit> for MessageCodeSearchHit {
+    fn from(hit: CodeSearchHit) -> Self {
+        Self {
+            code: hit.doc.into(),
+            scores: hit.scores.into(),
+        }
+    }
+}
+
 #[derive(GraphQLObject, Clone)]
 pub struct MessageAttachmentDoc {
     pub title: String,
     pub link: String,
     pub content: String,
+}
+
+impl From<DocSearchDocument> for MessageAttachmentDoc {
+    fn from(doc: DocSearchDocument) -> Self {
+        Self {
+            title: doc.title,
+            link: doc.link,
+            content: doc.snippet,
+        }
+    }
+}
+
+#[derive(GraphQLObject)]
+pub struct MessageDocSearchHit {
+    pub doc: MessageAttachmentDoc,
+    pub score: f64,
+}
+
+impl From<DocSearchHit> for MessageDocSearchHit {
+    fn from(hit: DocSearchHit) -> Self {
+        Self {
+            doc: hit.doc.into(),
+            score: hit.score as f64,
+        }
+    }
 }
 
 #[derive(GraphQLObject)]
@@ -95,8 +168,8 @@ pub enum ThreadRunItem {
     ThreadRelevantQuestions(Vec<String>),
     ThreadUserMessageCreated(ID),
     ThreadAssistantMessageCreated(ID),
-    ThreadAssistantMessageAttachmentsCode(Vec<MessageAttachmentCode>),
-    ThreadAssistantMessageAttachmentsDoc(Vec<MessageAttachmentDoc>),
+    ThreadAssistantMessageAttachmentsCode(Vec<MessageCodeSearchHit>),
+    ThreadAssistantMessageAttachmentsDoc(Vec<MessageDocSearchHit>),
     ThreadAssistantMessageContentDelta(String),
     ThreadAssistantMessageCompleted(ID),
 }
@@ -131,16 +204,16 @@ impl ThreadRunItem {
         }
     }
 
-    fn thread_assistant_message_attachments_code(&self) -> Option<&Vec<MessageAttachmentCode>> {
+    fn thread_assistant_message_attachments_code(&self) -> Option<&Vec<MessageCodeSearchHit>> {
         match self {
-            ThreadRunItem::ThreadAssistantMessageAttachmentsCode(attachments) => Some(attachments),
+            ThreadRunItem::ThreadAssistantMessageAttachmentsCode(hits) => Some(hits),
             _ => None,
         }
     }
 
-    fn thread_assistant_message_attachments_doc(&self) -> Option<&Vec<MessageAttachmentDoc>> {
+    fn thread_assistant_message_attachments_doc(&self) -> Option<&Vec<MessageDocSearchHit>> {
         match self {
-            ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(attachments) => Some(attachments),
+            ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(hits) => Some(hits),
             _ => None,
         }
     }

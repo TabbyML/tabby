@@ -107,10 +107,10 @@ impl ThreadService for ThreadServiceImpl {
                         db.append_thread_message_content(assistant_message_id, content).await?;
                     }
 
-                    Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(code)) => {
-                        let code = code
+                    Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(hits)) => {
+                        let code = hits
                             .iter()
-                            .map(Into::into)
+                            .map(|x| (&x.code).into())
                             .collect::<Vec<_>>();
                         db.update_thread_message_attachments(
                             assistant_message_id,
@@ -122,7 +122,7 @@ impl ThreadService for ThreadServiceImpl {
                     Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(doc)) => {
                         let doc = doc
                             .iter()
-                            .map(Into::into)
+                            .map(|x| (&x.doc).into())
                             .collect::<Vec<_>>();
                         db.update_thread_message_attachments(
                             assistant_message_id,
