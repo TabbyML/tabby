@@ -258,7 +258,7 @@ impl DbConn {
         .await?;
 
         if message.len() != 2 {
-            bail!("Thread has less than 2 messages");
+            bail!("Thread message pair is not valid")
         }
 
         let is_valid_user_message = message[0].id == user_message_id && message[0].role == "user";
