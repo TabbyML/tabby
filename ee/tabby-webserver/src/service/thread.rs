@@ -316,42 +316,63 @@ mod tests {
             .await
             .unwrap();
 
-        let assistant_message_id = db.create_thread_message(
-            thread_id.as_rowid().unwrap(),
-            thread::Role::Assistant.as_enum_str(),
-            "Pong!",
-            None,
-            None,
-            false,
-        ).await.unwrap();
+        let assistant_message_id = db
+            .create_thread_message(
+                thread_id.as_rowid().unwrap(),
+                thread::Role::Assistant.as_enum_str(),
+                "Pong!",
+                None,
+                None,
+                false,
+            )
+            .await
+            .unwrap();
 
         let user_message_id = assistant_message_id - 1;
 
         // Create another user message to test the error case
-        let another_user_message_id = db.create_thread_message(
-            thread_id.as_rowid().unwrap(),
-            thread::Role::User.as_enum_str(),
-            "Ping another time!",
-            None,
-            None,
-            false,
-        ).await.unwrap();
+        let another_user_message_id = db
+            .create_thread_message(
+                thread_id.as_rowid().unwrap(),
+                thread::Role::User.as_enum_str(),
+                "Ping another time!",
+                None,
+                None,
+                false,
+            )
+            .await
+            .unwrap();
 
-        let messages = service.list_thread_messages(&thread_id, None, None, None, None).await.unwrap();
+        let messages = service
+            .list_thread_messages(&thread_id, None, None, None, None)
+            .await
+            .unwrap();
         assert_eq!(messages.len(), 3);
 
         assert!(service
-            .delete_thread_message_pair(&thread_id, &another_user_message_id.as_id(), &assistant_message_id.as_id())
+            .delete_thread_message_pair(
+                &thread_id,
+                &another_user_message_id.as_id(),
+                &assistant_message_id.as_id()
+            )
             .await
             .is_err());
 
         assert!(service
-            .delete_thread_message_pair(&thread_id, &assistant_message_id.as_id(), &another_user_message_id.as_id())
+            .delete_thread_message_pair(
+                &thread_id,
+                &assistant_message_id.as_id(),
+                &another_user_message_id.as_id()
+            )
             .await
             .is_err());
 
         assert!(service
-            .delete_thread_message_pair(&thread_id, &user_message_id.as_id(), &assistant_message_id.as_id())
+            .delete_thread_message_pair(
+                &thread_id,
+                &user_message_id.as_id(),
+                &assistant_message_id.as_id()
+            )
             .await
             .is_ok());
     }

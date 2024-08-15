@@ -57,5 +57,10 @@ pub trait ThreadService: Send + Sync {
     ) -> Result<Vec<Message>>;
 
     /// Delete pair of user message and bot response in a thread.
-    async fn delete_thread_message_pair(&self, thread_id: &ID, user_message_id: &ID, assistant_message_id: &ID) -> Result<()>;
+    async fn delete_thread_message_pair(
+        &self,
+        thread_id: &ID,
+        user_message_id: &ID,
+        assistant_message_id: &ID,
+    ) -> Result<()>;
 }

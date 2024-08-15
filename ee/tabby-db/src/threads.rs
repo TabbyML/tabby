@@ -262,7 +262,8 @@ impl DbConn {
         }
 
         let is_valid_user_message = message[0].id == user_message_id && message[0].role == "user";
-        let is_valid_assistant_message = message[1].id == assistant_message_id && message[1].role == "assistant";
+        let is_valid_assistant_message =
+            message[1].id == assistant_message_id && message[1].role == "assistant";
 
         if !is_valid_user_message || !is_valid_assistant_message {
             bail!("Invalid message pair");
