@@ -554,7 +554,7 @@ export function Search() {
 
   if (!isReady && threadId && fetchingMessages) {
     return (
-      <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0 w-full mt-24 space-y-10">
+      <div className="mx-auto mt-24 w-full space-y-10 px-4 pb-32 lg:max-w-4xl lg:px-0">
         <MessagesSkeletion />
         <MessagesSkeletion />
       </div>
