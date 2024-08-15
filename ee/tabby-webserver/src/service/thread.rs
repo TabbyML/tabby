@@ -327,6 +327,7 @@ mod tests {
 
         let user_message_id = assistant_message_id - 1;
 
+        // Create another user message to test the error case
         let another_user_message_id = db.create_thread_message(
             thread_id.as_rowid().unwrap(),
             thread::Role::User.as_enum_str(),
