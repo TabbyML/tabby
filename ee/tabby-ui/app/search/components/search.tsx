@@ -98,6 +98,7 @@ import {
 import { CodeReferences } from '@/components/chat/question-answer'
 
 import { DevPanel } from './dev-panel'
+import { MessagesSkeletion } from './messages-skeleton'
 
 type ConversationMessage = Omit<
   Message,
@@ -152,8 +153,11 @@ const listThreadMessages = graphql(/* GraphQL */ `
           content
           attachment {
             code {
+              gitUrl
               filepath
+              language
               content
+              startLine
             }
             doc {
               title
@@ -205,18 +209,18 @@ export function Search() {
   })
   const repositoryList = data?.repositoryList
 
-  const [beforeCursor, setBeforeCursor] = useState<string | undefined>()
-  const [{ data: threadMessages }, reexcute] = useQuery({
+  const [afterCursor, setAfterCursor] = useState<string | undefined>()
+  const [{ data: threadMessages, fetching: fetchingMessages }] = useQuery({
     query: listThreadMessages,
     variables: {
       threadId: threadId as string,
-      last: 20,
-      before: beforeCursor
+      first: 20,
+      after: afterCursor
     },
     pause: !threadId || isReady
   })
 
-  // todo scroll and setBeforeCursor
+  // todo scroll and setAfterCursor
   useEffect(() => {
     if (threadMessages?.threadMessages?.edges?.length) {
       const messages = threadMessages.threadMessages.edges
@@ -465,12 +469,6 @@ export function Search() {
   }
 
   const onSubmitSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
-    // const previousMessages = messages.map(message => ({
-    //   role: message.role,
-    //   id: message.id,
-    //   content: message.content
-    // }))
-    // const previousUserMessageId = previousMessages.length > 0 && previousMessages[0].id
     const newAssistantId = nanoid()
     const newUserMessage: ConversationMessage = {
       id: nanoid(),
@@ -554,6 +552,15 @@ export function Search() {
     prevDevPanelSize.current = devPanelSize
   }
 
+  if (!isReady && threadId && fetchingMessages) {
+    return (
+      <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0 w-full mt-24 space-y-10">
+        <MessagesSkeletion />
+        <MessagesSkeletion />
+      </div>
+    )
+  }
+
   if (!searchFlag.value || !isChatEnabled || !isReady) {
     return <></>
   }
@@ -582,7 +589,7 @@ export function Search() {
                 <Button
                   variant="ghost"
                   className="-ml-1 pl-0 text-sm text-muted-foreground"
-                  onClick={() => router.back()}
+                  onClick={() => router.replace('/')}
                 >
                   <IconChevronLeft className="mr-1 h-5 w-5" />
                   Home
@@ -779,32 +786,29 @@ function AnswerBlock({
       0.5 * Math.floor(answer.attachment.doc.length / 4)
     : 0
 
-  // FIXME
-  // const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
-  //   return (
-  //     answer?.relevant_code?.map(hit => {
-  //       const { scores, doc } = hit
-  //       const start_line = doc?.start_line ?? 0
-  //       const lineCount = doc.body.split('\n').length
-  //       const end_line = start_line + lineCount - 1
+  const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
+    return (
+      answer?.attachment?.code?.map(hit => {
+        const start_line = hit?.startLine ?? 0
+        const lineCount = hit.content.split('\n').length
+        const end_line = start_line + lineCount - 1
 
-  //       return {
-  //         kind: 'file',
-  //         range: {
-  //           start: start_line,
-  //           end: end_line
-  //         },
-  //         filepath: doc.filepath,
-  //         content: doc.body,
-  //         git_url: doc.git_url,
-  //         extra: {
-  //           scores
-  //         }
-  //       }
-  //     }) ?? []
-  //   )
-  // }, [answer?.relevant_code])
-  const relevantCodeContexts: RelevantCodeContext[] = []
+        return {
+          kind: 'file',
+          range: {
+            start: start_line,
+            end: end_line
+          },
+          filepath: hit.filepath,
+          content: hit.content,
+          git_url: hit.gitUrl
+          // extra: {
+          //   scores
+          // }
+        }
+      }) ?? []
+    )
+  }, [answer?.attachment?.code])
 
   const onCodeContextClick = (ctx: Context) => {
     if (!ctx.filepath) return
@@ -836,7 +840,7 @@ function AnswerBlock({
   }
 
   const onCodeCitationClick = (code: MessageAttachmentCode) => {
-    const start_line = code?.start_line ?? 0
+    const start_line = code?.startLine ?? 0
     const lineCount = code.content.split('\n').length
     const end_line = start_line + lineCount - 1
     // FIXME utils
@@ -844,7 +848,7 @@ function AnswerBlock({
     const url = new URL(`${window.location.origin}/files`)
     const searchParams = new URLSearchParams()
     searchParams.append('redirect_filepath', code.filepath)
-    searchParams.append('redirect_git_url', code.git_url)
+    searchParams.append('redirect_git_url', code.gitUrl)
     url.search = searchParams.toString()
 
     const lineHash = formatLineHashForCodeBrowser({

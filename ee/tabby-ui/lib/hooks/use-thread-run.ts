@@ -25,8 +25,11 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
       threadAssistantMessageCreated
       threadRelevantQuestions
       threadAssistantMessageAttachmentsCode {
+        gitUrl
         filepath
+        language
         content
+        startLine
       }
       threadAssistantMessageAttachmentsDoc {
         title
@@ -47,8 +50,11 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
       threadAssistantMessageCreated
       threadRelevantQuestions
       threadAssistantMessageAttachmentsCode {
+        gitUrl
         filepath
+        language
         content
+        startLine
       }
       threadAssistantMessageAttachmentsDoc {
         title
