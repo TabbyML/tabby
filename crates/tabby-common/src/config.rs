@@ -141,7 +141,7 @@ impl RepositoryConfig {
             let path = git_url.strip_prefix("file://").unwrap();
             path.into()
         } else {
-            repositories_dir().join(sanitize_name(git_url))
+            repositories_dir().join(Self::resolve_dir_name(git_url))
         }
     }
 
