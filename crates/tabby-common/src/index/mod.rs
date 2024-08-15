@@ -13,26 +13,6 @@ use tantivy::{
     DateTime, Term,
 };
 
-/// On a high level, the index schema is structured as follows:
-///
-///           +----------------+
-///           |     corpus     | <--- A group of documents, each document has a unique
-///           +----------------+      identifier (id) within the corpus.
-///                   |
-///                   v
-///           +----------------+
-///           |    document    | <--- A document is a group of chunks, each document has a
-///           |      (id)      |      unique identifier (id) across corpus, document's
-///           +----------------+      attributes are stored but not indexed.
-///                   |
-///                   v
-///           +----------------+
-///           |     chunk      | <--- Each chunk has a unique identifier (chunk_id) within
-///           |   (chunk_id)   |      the document. Chunk is the unit being retrieved during
-///           +----------------+      the search process.
-///
-/// Across the corpus, there is a concept of source_id, which identifies a group of documents.
-/// It is usually used to identify the source of the document, such as a Github connection or a web document crawl.
 pub struct IndexSchema {
     pub schema: Schema,
 
@@ -41,7 +21,7 @@ pub struct IndexSchema {
     /// See ./doc or ./code as an example
     pub field_corpus: Field,
 
-    /// Unique identifier (across corpus) for a group of documents.
+    /// Unique identifier (within corpus) for a group of documents.
     pub field_source_id: Field,
 
     /// Unique identifier (within corpus) for the document, each document could have multiple chunks indexed.
