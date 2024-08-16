@@ -338,10 +338,8 @@ impl AnswerService {
 
             // 2. If code_query is available, we also issues / PRs coming from the source.
             if let Some(git_url) = code_query_git_url {
-                if let Ok(git_source_id) = self
-                    .repository
-                    .resolve_source_id_by_git_url(git_url)
-                    .await
+                if let Ok(git_source_id) =
+                    self.repository.resolve_source_id_by_git_url(git_url).await
                 {
                     source_ids.push(git_source_id);
                 }

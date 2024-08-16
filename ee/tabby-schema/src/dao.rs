@@ -9,7 +9,7 @@ use tabby_db::{
 
 use crate::{
     integration::{Integration, IntegrationKind, IntegrationStatus},
-    repository::{RepositoryKind},
+    repository::RepositoryKind,
     schema::{
         auth::{self, OAuthCredential, OAuthProvider},
         email::{AuthMethod, EmailSetting, Encryption},

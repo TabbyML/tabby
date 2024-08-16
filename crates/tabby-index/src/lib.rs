@@ -21,7 +21,7 @@ pub mod public {
     pub fn run_index_garbage_collection(active_sources: Vec<String>) -> anyhow::Result<()> {
         let index_garbage_collector = IndexGarbageCollector::new();
         index_garbage_collector.garbage_collect(&active_sources)?;
-        index_garbage_collector.commit(); 
+        index_garbage_collector.commit();
         Ok(())
     }
 }

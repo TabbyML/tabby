@@ -9,7 +9,7 @@ use tabby_common::{
         CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchParams,
         CodeSearchQuery, CodeSearchResponse, CodeSearchScores,
     },
-    config::{CodeRepository, CodeRepositoryAccess, RepositoryConfig},
+    config::{CodeRepository, CodeRepositoryAccess},
     index::{
         self,
         code::{self, tokenize_code},

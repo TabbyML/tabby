@@ -4,13 +4,21 @@ use anyhow::bail;
 use async_stream::stream;
 use futures::{stream::BoxStream, Stream, StreamExt};
 use serde_json::json;
-use tabby_common::{index::{IndexSchema, FIELD_SOURCE_ID}, path};
+use tabby_common::{
+    index::{IndexSchema, FIELD_SOURCE_ID},
+    path,
+};
 use tantivy::{
     aggregation::{
         agg_req::Aggregation,
         agg_result::{AggregationResult, BucketResult},
         AggregationCollector, Key,
-    }, collector::TopDocs, doc, query::AllQuery, schema::{self, Value}, DocAddress, DocSet, IndexWriter, Searcher, TantivyDocument, Term, TERMINATED
+    },
+    collector::TopDocs,
+    doc,
+    query::AllQuery,
+    schema::{self, Value},
+    DocAddress, DocSet, IndexWriter, Searcher, TantivyDocument, Term, TERMINATED,
 };
 use tokio::task::JoinHandle;
 use tracing::{debug, warn};
@@ -254,9 +262,7 @@ impl IndexGarbageCollector {
             Default::default(),
         );
 
-        let res = self
-            .searcher
-            .search(&AllQuery, &collector)?;
+        let res = self.searcher.search(&AllQuery, &collector)?;
         let Some(AggregationResult::BucketResult(BucketResult::Terms { buckets, .. })) =
             res.0.get("count")
         else {
@@ -270,11 +276,7 @@ impl IndexGarbageCollector {
             };
 
             if !source_ids.contains(source_id) {
-                debug!(
-                    "Deleting {} documents for source_id: {}",
-                    count,
-                    source_id,
-                );
+                debug!("Deleting {} documents for source_id: {}", count, source_id,);
                 self.delete_by_source_id(source_id);
             }
         }

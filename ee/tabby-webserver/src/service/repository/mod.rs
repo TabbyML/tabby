@@ -6,8 +6,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use futures::StreamExt;
 use juniper::ID;
-use tabby_common::{
-    config::{config_id_to_index, config_index_to_id, CodeRepository, Config, RepositoryConfig},
+use tabby_common::config::{
+    config_id_to_index, config_index_to_id, CodeRepository, Config, RepositoryConfig,
 };
 use tabby_db::DbConn;
 use tabby_schema::{
