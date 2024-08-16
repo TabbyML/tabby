@@ -46,9 +46,6 @@ pub trait ThreadService: Send + Sync {
     // /// Delete a thread by ID
     // async fn delete(&self, id: ID) -> Result<()>;
 
-    // /// Delete a message by ID
-    // async fn delete_message(&self, id: ID) -> Result<()>;
-
     /// Query messages in a thread
     async fn list_thread_messages(
         &self,
@@ -58,4 +55,12 @@ pub trait ThreadService: Send + Sync {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<Message>>;
+
+    /// Delete pair of user message and bot response in a thread.
+    async fn delete_thread_message_pair(
+        &self,
+        thread_id: &ID,
+        user_message_id: &ID,
+        assistant_message_id: &ID,
+    ) -> Result<()>;
 }

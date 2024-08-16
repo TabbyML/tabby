@@ -234,4 +234,46 @@ impl DbConn {
 
         Ok(messages)
     }
+
+    pub async fn delete_thread_message_pair(
+        &self,
+        thread_id: i64,
+        user_message_id: i64,
+        assistant_message_id: i64,
+    ) -> Result<()> {
+        #[derive(FromRow)]
+        struct Response {
+            id: i64,
+            role: String,
+        }
+
+        let message = query_as!(
+            Response,
+            "SELECT id, role FROM thread_messages WHERE thread_id = ? AND id >= ? AND id <= ?",
+            thread_id,
+            user_message_id,
+            assistant_message_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        if message.len() != 2 {
+            bail!("Thread message pair is not valid")
+        }
+
+        let is_valid_user_message = message[0].id == user_message_id && message[0].role == "user";
+        let is_valid_assistant_message =
+            message[1].id == assistant_message_id && message[1].role == "assistant";
+
+        if !is_valid_user_message || !is_valid_assistant_message {
+            bail!("Invalid message pair");
+        }
+
+        let message_ids = format!("{}, {}", user_message_id, assistant_message_id);
+        query!("DELETE FROM thread_messages WHERE id IN (?)", message_ids)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
 }
