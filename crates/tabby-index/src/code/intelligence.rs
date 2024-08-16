@@ -61,6 +61,7 @@ impl CodeIntelligence {
 
     pub fn check_source_file_id_matched(item_key: &str) -> bool {
         let Ok(key) = item_key.parse::<SourceFileId>() else {
+            warn!("Failed to parse key: {}", item_key);
             return false;
         };
 
@@ -73,7 +74,7 @@ impl CodeIntelligence {
     }
 
     pub fn compute_source_file(config: &CodeRepository, path: &Path) -> Option<SourceCode> {
-        let id = Self::compute_source_file_id(path)?;
+        let source_file_id = Self::compute_source_file_id(path)?;
 
         if path.is_dir() || !path.exists() {
             warn!("Path {} is not a file or does not exist", path.display());
@@ -110,7 +111,7 @@ impl CodeIntelligence {
         } = metrics::compute_metrics(&contents);
 
         let source_file = SourceCode {
-            id,
+            source_file_id,
             source_id: config.source_id.clone(),
             git_url: config.canonical_git_url(),
             basedir: config.dir().display().to_string(),

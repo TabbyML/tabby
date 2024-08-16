@@ -62,12 +62,18 @@ pub async fn garbage_collection() {
         let mut num_to_delete = 0;
 
         for await id in index.iter_ids() {
-            let item_key = id;
-            if CodeIntelligence::check_source_file_id_matched(&item_key) {
+            let Some(source_file_id) = SourceCode::source_file_id_from_id(&id) else {
+                warn!("Failed to extract source file id from index id: {id}");
+                num_to_delete += 1;
+                index.delete(&id);
+                continue;
+            };
+
+            if CodeIntelligence::check_source_file_id_matched(source_file_id) {
                 num_to_keep += 1;
             } else {
                 num_to_delete += 1;
-                index.delete(&item_key);
+                index.delete(&id);
             }
         }
 
