@@ -246,7 +246,7 @@ mod tests {
     use std::path::PathBuf;
 
     use serial_test::serial;
-    use tabby_common::path::set_tabby_root;
+    use tabby_common::{config::config_index_to_id, path::set_tabby_root};
     use tracing_test::traced_test;
 
     use super::*;
@@ -258,7 +258,7 @@ mod tests {
     }
 
     fn get_repository_config() -> CodeRepository {
-        CodeRepository::new("https://github.com/TabbyML/tabby")
+        CodeRepository::new("https://github.com/TabbyML/tabby", &config_index_to_id(0))
     }
 
     fn get_rust_source_file() -> PathBuf {

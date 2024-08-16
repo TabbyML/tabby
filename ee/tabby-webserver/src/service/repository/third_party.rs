@@ -240,7 +240,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
                 let url = integration
                     .kind
                     .format_authenticated_url(&repository.git_url, &integration.access_token)?;
-                urls.push(CodeRepository::new(&url));
+                urls.push(CodeRepository::new(&url, &repository.source_id()));
             }
         }
 

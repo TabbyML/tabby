@@ -4,17 +4,13 @@ use anyhow::bail;
 use async_stream::stream;
 use futures::{stream::BoxStream, Stream, StreamExt};
 use serde_json::json;
-use tabby_common::{index::IndexSchema, path};
+use tabby_common::{index::{IndexSchema, FIELD_SOURCE_ID}, path};
 use tantivy::{
     aggregation::{
         agg_req::Aggregation,
         agg_result::{AggregationResult, BucketResult},
         AggregationCollector, Key,
-    },
-    collector::TopDocs,
-    doc,
-    schema::{self, Value},
-    DocAddress, DocSet, IndexWriter, Searcher, TantivyDocument, Term, TERMINATED,
+    }, collector::TopDocs, doc, query::AllQuery, schema::{self, Value}, DocAddress, DocSet, IndexWriter, Searcher, TantivyDocument, Term, TERMINATED
 };
 use tokio::task::JoinHandle;
 use tracing::{debug, warn};
@@ -128,13 +124,12 @@ pub struct Indexer {
     corpus: String,
     searcher: Searcher,
     writer: IndexWriter,
-    pub recreated: bool,
 }
 
 impl Indexer {
     pub fn new(corpus: &str) -> Self {
         let doc = IndexSchema::instance();
-        let (recreated, index) = open_or_create_index(&doc.schema, &path::index_dir());
+        let (_, index) = open_or_create_index(&doc.schema, &path::index_dir());
         let writer = index
             .writer(150_000_000)
             .expect("Failed to create index writer");
@@ -144,7 +139,6 @@ impl Indexer {
             corpus: corpus.to_owned(),
             searcher: reader.searcher(),
             writer,
-            recreated,
         }
     }
 
@@ -159,13 +153,6 @@ impl Indexer {
         let _ = self
             .writer
             .delete_query(Box::new(schema.doc_query_with_chunks(&self.corpus, id)));
-    }
-
-    fn delete_by_source_id(&self, source_id: &str) {
-        let schema = IndexSchema::instance();
-        let _ = self
-            .writer
-            .delete_query(Box::new(schema.source_query(&self.corpus, source_id)));
     }
 
     pub fn commit(mut self) {
@@ -219,13 +206,43 @@ impl Indexer {
         }
     }
 
+    pub fn is_indexed_after(&self, id: &str, time: chrono::DateTime<chrono::Utc>) -> bool {
+        let schema = IndexSchema::instance();
+        let query = schema.doc_indexed_after(&self.corpus, id, time);
+        let Ok(docs) = self.searcher.search(&query, &TopDocs::with_limit(1)) else {
+            return false;
+        };
+
+        !docs.is_empty()
+    }
+}
+
+pub struct IndexGarbageCollector {
+    searcher: Searcher,
+    writer: IndexWriter,
+}
+
+impl IndexGarbageCollector {
+    pub fn new() -> Self {
+        let doc = IndexSchema::instance();
+        let (_, index) = open_or_create_index(&doc.schema, &path::index_dir());
+        let writer = index
+            .writer(150_000_000)
+            .expect("Failed to create index writer");
+        let reader = index.reader().expect("Failed to create index reader");
+
+        Self {
+            searcher: reader.searcher(),
+            writer,
+        }
+    }
+
     pub fn garbage_collect(&self, active_source_ids: &[String]) -> anyhow::Result<()> {
         let source_ids: HashSet<_> = active_source_ids.iter().collect();
-        let schema = IndexSchema::instance();
 
         let count_aggregation: Aggregation = serde_json::from_value(json!({
             "terms": {
-                "field": "source_id"
+                "field": FIELD_SOURCE_ID,
             }
         }))
         .unwrap();
@@ -239,13 +256,14 @@ impl Indexer {
 
         let res = self
             .searcher
-            .search(&schema.corpus_query(&self.corpus), &collector)?;
+            .search(&AllQuery, &collector)?;
         let Some(AggregationResult::BucketResult(BucketResult::Terms { buckets, .. })) =
             res.0.get("count")
         else {
             bail!("Failed to get source_id count");
         };
         for source_id in buckets {
+            let count = source_id.doc_count;
             let Key::Str(source_id) = &source_id.key else {
                 warn!("Failed to get source_id key as string");
                 continue;
@@ -253,8 +271,9 @@ impl Indexer {
 
             if !source_ids.contains(source_id) {
                 debug!(
-                    "Deleting documents for source_id: {} in corpus: {}",
-                    source_id, self.corpus
+                    "Deleting {} documents for source_id: {}",
+                    count,
+                    source_id,
                 );
                 self.delete_by_source_id(source_id);
             }
@@ -263,14 +282,18 @@ impl Indexer {
         Ok(())
     }
 
-    pub fn is_indexed_after(&self, id: &str, time: chrono::DateTime<chrono::Utc>) -> bool {
+    fn delete_by_source_id(&self, source_id: &str) {
         let schema = IndexSchema::instance();
-        let query = schema.doc_indexed_after(&self.corpus, id, time);
-        let Ok(docs) = self.searcher.search(&query, &TopDocs::with_limit(1)) else {
-            return false;
-        };
+        let _ = self
+            .writer
+            .delete_query(Box::new(schema.source_id_query(source_id)));
+    }
 
-        !docs.is_empty()
+    pub fn commit(mut self) {
+        self.writer.commit().expect("Failed to commit changes");
+        self.writer
+            .wait_merging_threads()
+            .expect("Failed to wait for merging threads");
     }
 }
 

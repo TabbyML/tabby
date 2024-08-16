@@ -295,12 +295,12 @@ impl AnswerService {
         params: &CodeSearchParams,
         override_params: Option<&CodeSearchParamsOverrideInput>,
     ) -> Vec<CodeSearchHit> {
-        let query = CodeSearchQuery {
-            git_url: input.git_url.clone(),
-            filepath: input.filepath.clone(),
-            language: input.language.clone(),
-            content: input.content.clone(),
-        };
+        let query = CodeSearchQuery::new(
+            input.git_url.clone(),
+            input.filepath.clone(),
+            input.language.clone(),
+            input.content.clone(),
+        );
 
         let mut params = params.clone();
         override_params
@@ -340,7 +340,7 @@ impl AnswerService {
             if let Some(git_url) = code_query_git_url {
                 if let Ok(git_source_id) = self
                     .repository
-                    .resolve_web_source_id_by_git_url(git_url)
+                    .resolve_source_id_by_git_url(git_url)
                     .await
                 {
                     source_ids.push(git_source_id);

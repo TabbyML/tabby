@@ -8,7 +8,6 @@ use futures::StreamExt;
 use juniper::ID;
 use tabby_common::{
     config::{config_id_to_index, config_index_to_id, CodeRepository, Config, RepositoryConfig},
-    index::corpus,
 };
 use tabby_db::DbConn;
 use tabby_schema::{
@@ -43,13 +42,13 @@ pub fn create(
 
 #[async_trait]
 impl RepositoryService for RepositoryServiceImpl {
-    async fn list_all_repository_urls(&self) -> Result<Vec<CodeRepository>> {
+    async fn list_all_code_repository(&self) -> Result<Vec<CodeRepository>> {
         let mut repos: Vec<CodeRepository> = self
             .git
             .list(None, None, None, None)
             .await?
             .into_iter()
-            .map(|repo| CodeRepository::new(&repo.git_url))
+            .map(|repo| CodeRepository::new(&repo.git_url, &repo.source_id()))
             .collect();
 
         repos.extend(
@@ -60,25 +59,6 @@ impl RepositoryService for RepositoryServiceImpl {
         );
 
         Ok(repos)
-    }
-
-    async fn list_all_sources(&self) -> Result<Vec<(String, String)>> {
-        let mut sources: Vec<_> = self
-            .list_all_repository_urls()
-            .await?
-            .into_iter()
-            .map(|config| (corpus::CODE.into(), config.canonical_git_url()))
-            .collect();
-
-        sources.extend(
-            self.third_party()
-                .list_repositories_with_filter(None, None, Some(true), None, None, None, None)
-                .await?
-                .into_iter()
-                .map(|repo| (corpus::WEB.into(), repo.source_id())),
-        );
-
-        Ok(sources)
     }
 
     fn git(&self) -> Arc<dyn GitRepositoryService> {
@@ -177,7 +157,7 @@ impl RepositoryService for RepositoryServiceImpl {
         Ok(ret)
     }
 
-    async fn resolve_web_source_id_by_git_url(&self, git_url: &str) -> Result<String> {
+    async fn resolve_source_id_by_git_url(&self, git_url: &str) -> Result<String> {
         let git_url = RepositoryConfig::canonicalize_url(git_url);
 
         // Only third_party repositories with a git_url could generates a web source (e.g Issues, PRs)
@@ -230,6 +210,7 @@ fn list_refs(git_url: &str) -> Vec<tabby_git::GitReference> {
 
 fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
     Repository {
+        source_id: repo.source_id(),
         id: repo.id,
         name: repo.display_name,
         kind,
@@ -248,6 +229,7 @@ fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
 fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> Result<Repository> {
     Ok(Repository {
         id: ID::new(config_index_to_id(index)),
+        source_id: config_index_to_id(index),
         name: config.display_name(),
         kind: RepositoryKind::GitConfig,
         dir: config.dir(),
@@ -283,7 +265,7 @@ mod tests {
             .unwrap();
 
         // FIXME(boxbeam): add repo with github service once there's syncing logic.
-        let repos = service.list_all_repository_urls().await.unwrap();
+        let repos = service.list_all_code_repository().await.unwrap();
         assert_eq!(repos.len(), 1);
     }
 }
