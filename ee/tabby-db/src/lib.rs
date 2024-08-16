@@ -40,6 +40,7 @@ mod user_completions;
 mod user_events;
 mod users;
 mod web_crawler;
+mod web_document;
 
 use anyhow::Result;
 use sql_query_builder as sql;
