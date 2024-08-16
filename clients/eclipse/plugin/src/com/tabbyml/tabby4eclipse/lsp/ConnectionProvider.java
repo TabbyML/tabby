@@ -20,6 +20,7 @@ import com.tabbyml.tabby4eclipse.lsp.protocol.ClientCapabilities.TabbyClientCapa
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientCapabilities.TextDocumentClientCapabilities;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientInfo;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientInfo.TabbyPluginInfo;
+import com.tabbyml.tabby4eclipse.statusbar.StatusInfoHolder;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientProvidedConfig;
 import com.tabbyml.tabby4eclipse.lsp.protocol.InitializationOptions;
 
@@ -44,6 +45,7 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 				}
 			}
 			if (nodeExecutableFile == null) {
+				StatusInfoHolder.getInstance().setConnectionFailed(true);
 				logger.error("Cannot find node executable.");
 				return;
 			}
@@ -51,6 +53,7 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 			Bundle bundle = Platform.getBundle(Activator.PLUGIN_ID);
 			URL agentScriptUrl = FileLocator.find(bundle, new Path("tabby-agent/dist/node/index.js"));
 			if (agentScriptUrl == null) {
+				StatusInfoHolder.getInstance().setConnectionFailed(true);
 				logger.error("Cannot find tabby-agent script.");
 				return;
 			}
@@ -61,6 +64,7 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 			logger.info("Will use command " + commands.toString() + " to start Tabby language server.");
 			this.setCommands(commands);
 		} catch (IOException e) {
+			StatusInfoHolder.getInstance().setConnectionFailed(true);
 			logger.error("Failed to setup command to start Tabby language server.", e);
 		}
 	}
@@ -108,6 +112,8 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 		textDocumentClientCapabilities.setInlineCompletion(true);
 
 		TabbyClientCapabilities tabbyClientCapabilities = new TabbyClientCapabilities();
+		tabbyClientCapabilities.setConfigDidChangeListener(false);
+		tabbyClientCapabilities.setStatusDidChangeListener(true);
 
 		ClientCapabilities clientCapabilities = new ClientCapabilities();
 		clientCapabilities.setTextDocument(textDocumentClientCapabilities);

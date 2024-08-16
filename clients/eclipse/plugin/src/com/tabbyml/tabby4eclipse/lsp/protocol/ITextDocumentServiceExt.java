@@ -5,7 +5,7 @@ import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.lsp4j.jsonrpc.services.JsonSegment;
 
 @JsonSegment("textDocument")
-public interface TextDocumentServiceExt {
+public interface ITextDocumentServiceExt {
 	@JsonRequest
 	CompletableFuture<InlineCompletionList> inlineCompletion(InlineCompletionParams params);
 }
