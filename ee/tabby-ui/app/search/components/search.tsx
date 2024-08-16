@@ -41,7 +41,7 @@ import {
   IconChevronRight,
   IconLayers,
   IconPlus,
-  IconRefresh,
+  // IconRefresh,
   IconSparkles,
   IconSpinner,
   IconStop
@@ -104,7 +104,7 @@ type ConversationMessage = Omit<
 > & {
   threadId?: string
   threadRelevantQuestions?: Maybe<string[]>
-  isLoading?: boolean
+  // isLoading?: boolean
   error?: string
   attachment?: {
     code: Array<AttachmentCodeItem>
@@ -198,12 +198,9 @@ export function Search() {
   const isChatEnabled = useIsChatEnabled()
   const [searchFlag] = useEnableSearch()
   const [messages, setMessages] = useState<ConversationMessage[]>([])
-  const [showStop, setShowStop] = useState(true)
-  const [container, setContainer] = useState<HTMLDivElement | null>(null)
-  const [title, setTitle] = useState('')
+  const [stopButtonVisible, setStopButtonVisible] = useState(true)
   const [isReady, setIsReady] = useState(false)
   const [extraContext, setExtraContext] = useState<AnswerEngineExtraContext>({})
-  const [currentUserMessageId, setCurrentUserMessageId] = useState<string>('')
   const [currentAssistantMessageId, setCurrentAssistantMessageId] =
     useState<string>('')
   const contentContainerRef = useRef<HTMLDivElement>(null)
@@ -366,11 +363,6 @@ export function Search() {
     }
   }, [isPathnameInitialized])
 
-  // Set page title to the value of the first quesiton
-  useEffect(() => {
-    if (title) document.title = title
-  }, [title])
-
   // Display the input field with a delayed animatio
   useEffect(() => {
     if (isReady) {
@@ -380,16 +372,9 @@ export function Search() {
     }
   }, [isReady])
 
-  // Initialize the reference to the ScrollArea used for scrolling to the bottom
-  useEffect(() => {
-    setContainer(
-      contentContainerRef?.current?.children[1] as HTMLDivElement | null
-    )
-  }, [contentContainerRef?.current])
-
   // Handling the stream response from useThreadRun
   useEffect(() => {
-    if (!answer) return
+    // if (!answer) return
 
     let newMessages = [...messages]
     const currentAssistantMessageIndex = newMessages.findIndex(
@@ -437,7 +422,7 @@ export function Search() {
     }
     currentAssistantMessage.threadRelevantQuestions =
       answer?.threadRelevantQuestions
-    currentAssistantMessage.isLoading = isLoading
+
     setMessages(newMessages)
   }, [isLoading, answer])
 
@@ -451,7 +436,6 @@ export function Search() {
       if (currentAnswer) {
         currentAnswer.error =
           error.message === '401' ? 'Unauthorized' : 'Fail to fetch'
-        currentAnswer.isLoading = false
       }
     }
   }, [error])
@@ -463,9 +447,10 @@ export function Search() {
     if (isLoadingRef.current) {
       showStopTimeoutId.current = window.setTimeout(() => {
         if (!isLoadingRef.current) return
-        setShowStop(true)
+        setStopButtonVisible(true)
 
         // Scroll to the bottom
+        const container = contentContainerRef?.current?.children?.[1]
         if (container) {
           const isLastAnswerLoading =
             currentAssistantMessageId === messages[messages.length - 1].id
@@ -480,7 +465,7 @@ export function Search() {
     }
 
     if (!isLoadingRef.current) {
-      setShowStop(false)
+      setStopButtonVisible(false)
     }
 
     return () => {
@@ -504,25 +489,6 @@ export function Search() {
     }
   }, [devPanelOpen])
 
-  const getMessagesWithNewMessageId = (
-    messages: ConversationMessage[],
-    prevId: string,
-    newId: string
-  ) => {
-    const itemIdx = messages.findIndex(o => o.id === prevId)
-    if (itemIdx > -1) {
-      return [
-        ...messages.slice(0, itemIdx),
-        {
-          ...messages[itemIdx],
-          id: newId
-        },
-        ...messages.slice(itemIdx + 1)
-      ]
-    }
-    return messages
-  }
-
   const onSubmitSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
     const newAssistantId = nanoid()
     const newUserMessage: ConversationMessage = {
@@ -533,8 +499,7 @@ export function Search() {
     const newAssistantMessage: ConversationMessage = {
       id: newAssistantId,
       role: Role.Assistant,
-      content: '',
-      isLoading: true
+      content: ''
     }
 
     const _repository = ctx?.repository || extraContext?.repository
@@ -555,9 +520,6 @@ export function Search() {
         docQuery: { content: question }
       }
     )
-
-    // Update HTML page title
-    if (!title) setTitle(question)
   }
 
   // FIXME
@@ -579,7 +541,7 @@ export function Search() {
       code: []
     }
     newTargetAnswer.error = undefined
-    newTargetAnswer.isLoading = true
+    // newTargetAnswer.isLoading = true
 
     setCurrentAssistantMessageId(newTargetAnswer.id)
     setMessages(newMessages)
@@ -652,6 +614,16 @@ export function Search() {
                 </Button>
               </div>
               <div className="flex items-center gap-x-6">
+                {!!threadId && (
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => router.push('/')}
+                  >
+                    <IconPlus />
+                    New Thread
+                  </Button>
+                )}
                 <ClientOnly>
                   <ThemeToggle />
                 </ClientOnly>
@@ -680,11 +652,15 @@ export function Search() {
                         )
                       }
                       if (item.role === Role.Assistant) {
+                        const isLastAssistantMessage =
+                          idx === messages.length - 1
                         return (
                           <div key={item.id + idx} className="pb-8 pt-2">
                             <AnswerBlock
                               answer={item}
-                              showRelatedQuestion={idx === messages.length - 1}
+                              isLastAssistantMessage={isLastAssistantMessage}
+                              showRelatedQuestion={isLastAssistantMessage}
+                              isLoading={isLoading && isLastAssistantMessage}
                             />
                           </div>
                         )
@@ -695,20 +671,25 @@ export function Search() {
                 </div>
               </ScrollArea>
 
-              {container && (
-                <ButtonScrollToBottom
-                  className="!fixed !bottom-[5.4rem] !right-4 !top-auto z-40 border-muted-foreground lg:!bottom-[2.85rem]"
-                  container={container}
-                  offset={100}
-                  // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
-                  // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
-                  style={
-                    theme === 'dark'
-                      ? ({ '--background': '0 0% 12%' } as CSSProperties)
-                      : {}
+              <ButtonScrollToBottom
+                className={cn(
+                  '!fixed !bottom-[5.4rem] !right-4 !top-auto z-40 border-muted-foreground lg:!bottom-[2.85rem]',
+                  {
+                    hidden: devPanelOpen
                   }
-                />
-              )}
+                )}
+                container={
+                  contentContainerRef.current?.children?.[1] as HTMLDivElement
+                }
+                offset={100}
+                // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
+                // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
+                style={
+                  theme === 'dark'
+                    ? ({ '--background': '0 0% 12%' } as CSSProperties)
+                    : {}
+                }
+              />
 
               <div
                 className={cn(
@@ -728,8 +709,8 @@ export function Search() {
               >
                 <Button
                   className={cn('bg-background', {
-                    'opacity-0 pointer-events-none': !showStop,
-                    'opacity-100': showStop
+                    'opacity-0 pointer-events-none': !stopButtonVisible,
+                    'opacity-100': stopButtonVisible
                   })}
                   style={{
                     transition: 'opacity 0.55s ease-out'
@@ -796,15 +777,18 @@ const AnswerBlockContext = createContext<AnswerBlockContextValue>(
 
 function AnswerBlock({
   answer,
-  showRelatedQuestion
+  showRelatedQuestion,
+  isLoading,
+  isLastAssistantMessage
 }: {
   answer: ConversationMessage
   showRelatedQuestion: boolean
+  isLoading?: boolean
+  isLastAssistantMessage?: boolean
 }) {
   const {
     onRegenerateResponse,
     onSubmitSearch,
-    isLoading,
     setDevPanelOpen,
     setConversationIdForDev
   } = useContext(SearchContext)
@@ -831,7 +815,7 @@ function AnswerBlock({
     return `${content}\n\nCitations:\n${citations}`
   }
 
-  const IconAnswer = answer.isLoading ? IconSpinner : IconSparkles
+  const IconAnswer = isLoading ? IconSpinner : IconSparkles
 
   const totalHeightInRem = answer.attachment?.doc?.length
     ? Math.ceil(answer.attachment.doc.length / 4) * SOURCE_CARD_STYLE.expand +
@@ -973,7 +957,7 @@ function AnswerBlock({
           <div className="mb-1 flex items-center gap-x-1.5">
             <IconAnswer
               className={cn({
-                'animate-spinner': answer.isLoading
+                'animate-spinner': isLoading
               })}
             />
             <p className="text-sm font-bold leading-none">Answer</p>
@@ -1007,7 +991,7 @@ function AnswerBlock({
             />
           )}
 
-          {answer.isLoading && !answer.content && (
+          {isLoading && !answer.content && (
             <Skeleton className="mt-1 h-40 w-full" />
           )}
           <MessageMarkdown
@@ -1017,14 +1001,15 @@ function AnswerBlock({
           />
           {answer.error && <ErrorMessageBlock error={answer.error} />}
 
-          {!answer.isLoading && (
+          {!isLoading && (
             <div className="mt-3 flex items-center gap-x-3 text-sm">
               <CopyButton
                 className="-ml-1.5 gap-x-1 px-1 font-normal text-muted-foreground"
                 value={getCopyContent(answer)}
                 text="Copy"
               />
-              {!isLoading && (
+              {/* FIXME hide regenerate for now */}
+              {/* {!isLoading && isLastAssistantMessage && (
                 <Button
                   className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
                   variant="ghost"
@@ -1033,14 +1018,14 @@ function AnswerBlock({
                   <IconRefresh />
                   <p>Regenerate</p>
                 </Button>
-              )}
+              )} */}
             </div>
           )}
         </div>
 
         {/* Related questions */}
         {showRelatedQuestion &&
-          !answer.isLoading &&
+          !isLoading &&
           answer.threadRelevantQuestions &&
           answer.threadRelevantQuestions.length > 0 && (
             <div>

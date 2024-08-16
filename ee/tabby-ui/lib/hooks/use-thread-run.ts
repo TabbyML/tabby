@@ -204,8 +204,7 @@ export function useThreadRun({
     // error handling
     if (createThreadAndRunResult?.error) {
       setError(createThreadAndRunResult?.error)
-      setPause(true)
-      setIsLoading(false)
+      stop()
       return
     }
     // save the threadId
@@ -232,8 +231,7 @@ export function useThreadRun({
     // error handling
     if (createThreadRunResult?.error) {
       setError(createThreadRunResult?.error)
-      setFollowupPause(true)
-      setIsLoading(false)
+      stop()
       return
     }
 
