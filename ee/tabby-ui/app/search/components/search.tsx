@@ -68,6 +68,7 @@ import './search.css'
 
 import { compact, isEmpty, isNil, pick } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
+import slugify from 'slugify'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
@@ -95,7 +96,7 @@ import {
 import { CodeReferences } from '@/components/chat/question-answer'
 
 import { DevPanel } from './dev-panel'
-import { MessagesSkeletion } from './messages-skeleton'
+import { MessagesSkeleton } from './messages-skeleton'
 
 type ConversationMessage = Omit<
   Message,
@@ -190,7 +191,8 @@ const listThreadMessages = graphql(/* GraphQL */ `
 `)
 
 export function Search() {
-  const { updateUrlComponents, pathname } = useRouterStuff()
+  const { updateUrlComponents, pathname, searchParams } = useRouterStuff()
+  const isNewThread = searchParams.get('q')?.toString() === 'new'
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const isChatEnabled = useIsChatEnabled()
@@ -220,7 +222,7 @@ export function Search() {
     const regex = /^\/search\/(.*)/
     if (!activePathname) return undefined
 
-    return activePathname.match(regex)?.[1]
+    return activePathname.match(regex)?.[1]?.split('-').pop()
   }, [activePathname])
 
   const [{ data }] = useQuery({
@@ -251,18 +253,31 @@ export function Search() {
   }, [threadMessages])
 
   const onThreadCreated = (threadId: string) => {
+    const title = messages?.[0]?.content
+    const slug = slugify(title, {
+      lower: true
+    })
+      .split('-')
+      .slice(0, 8)
+      .join('-')
+
+    if (slug) {
+      document.title = slug
+    } else {
+      document.title = title
+    }
+
+    const slugWithThreadId = compact([slug, threadId]).join('-')
+
     updateUrlComponents({
-      pathname: `/search/${threadId}`
+      pathname: `/search/${slugWithThreadId}`,
+      searchParams: {
+        del: ['q']
+      }
     })
   }
 
-  const {
-    triggerRequest,
-    isLoading,
-    error,
-    answer: threadRun,
-    stop
-  } = useThreadRun({
+  const { triggerRequest, isLoading, error, answer, stop } = useThreadRun({
     threadId,
     onThreadCreated
   })
@@ -311,32 +326,34 @@ export function Search() {
 
       initializing.current = true
 
-      // initial UserMessage from home page
-      const initialMessage = sessionStorage.getItem(
-        SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
-      )
-      // initial extra context from home page
-      const initialExtraContextStr = sessionStorage.getItem(
-        SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
-      )
-      const initialExtraInfo = initialExtraContextStr
-        ? JSON.parse(initialExtraContextStr)
-        : undefined
-
-      if (initialMessage) {
-        sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
-        sessionStorage.removeItem(
+      if (isNewThread) {
+        // initial UserMessage from home page
+        const initialMessage = sessionStorage.getItem(
+          SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
+        )
+        // initial extra context from home page
+        const initialExtraContextStr = sessionStorage.getItem(
           SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
         )
-        setIsReady(true)
-        setExtraContext(p => ({
-          ...p,
-          repository: initialExtraInfo?.repository
-        }))
-        onSubmitSearch(initialMessage, {
-          repository: initialExtraInfo?.repository
-        })
-        return
+        const initialExtraInfo = initialExtraContextStr
+          ? JSON.parse(initialExtraContextStr)
+          : undefined
+
+        if (initialMessage) {
+          sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
+          sessionStorage.removeItem(
+            SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
+          )
+          setIsReady(true)
+          setExtraContext(p => ({
+            ...p,
+            repository: initialExtraInfo?.repository
+          }))
+          onSubmitSearch(initialMessage, {
+            repository: initialExtraInfo?.repository
+          })
+          return
+        }
       }
 
       if (!threadId) {
@@ -372,7 +389,7 @@ export function Search() {
 
   // Handling the stream response from useThreadRun
   useEffect(() => {
-    if (!threadRun) return
+    if (!answer) return
 
     let newMessages = [...messages]
     const currentAssistantMessageIndex = newMessages.findIndex(
@@ -400,18 +417,18 @@ export function Search() {
     // }
 
     currentAssistantMessage.content =
-      threadRun?.threadAssistantMessageContentDelta || ''
+      answer?.threadAssistantMessageContentDelta || ''
     currentAssistantMessage.attachment = {
       // format the attachments
       code:
-        threadRun?.threadAssistantMessageAttachmentsCode?.map(hit => ({
+        answer?.threadAssistantMessageAttachmentsCode?.map(hit => ({
           ...hit.code,
           extra: {
             scores: hit.scores
           }
         })) ?? [],
       doc:
-        threadRun?.threadAssistantMessageAttachmentsDoc?.map(hit => ({
+        answer?.threadAssistantMessageAttachmentsDoc?.map(hit => ({
           ...hit.doc,
           extra: {
             score: hit.score
@@ -419,10 +436,10 @@ export function Search() {
         })) ?? []
     }
     currentAssistantMessage.threadRelevantQuestions =
-      threadRun?.threadRelevantQuestions
+      answer?.threadRelevantQuestions
     currentAssistantMessage.isLoading = isLoading
     setMessages(newMessages)
-  }, [isLoading, threadRun])
+  }, [isLoading, answer])
 
   // Handling the error response from useThreadRun
   useEffect(() => {
@@ -590,11 +607,11 @@ export function Search() {
     prevDevPanelSize.current = devPanelSize
   }
 
-  if (!isReady) {
+  if (!isReady && !isNewThread) {
     return (
       <div className="mx-auto mt-24 w-full space-y-10 px-4 pb-32 lg:max-w-4xl lg:px-0">
-        <MessagesSkeletion />
-        <MessagesSkeletion />
+        <MessagesSkeleton />
+        <MessagesSkeleton />
       </div>
     )
   }

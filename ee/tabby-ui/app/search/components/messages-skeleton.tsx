@@ -1,6 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton'
 
-export function MessagesSkeletion() {
+export function MessagesSkeleton() {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
