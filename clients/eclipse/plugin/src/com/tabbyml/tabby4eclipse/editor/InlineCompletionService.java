@@ -33,7 +33,7 @@ import com.tabbyml.tabby4eclipse.Logger;
 import com.tabbyml.tabby4eclipse.lsp.LanguageServerService;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ILanguageServer;
 import com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionParams;
-import com.tabbyml.tabby4eclipse.lsp.protocol.TextDocumentServiceExt;
+import com.tabbyml.tabby4eclipse.lsp.protocol.ITextDocumentServiceExt;
 
 public class InlineCompletionService {
 	public static InlineCompletionService getInstance() {
@@ -114,9 +114,9 @@ public class InlineCompletionService {
 			}
 			current = null;
 		}
-		
+
 		ITextViewer textViewer = (ITextViewer) textEditor.getAdapter(ITextViewer.class);
-		
+
 		InlineCompletionContext.Request request = new InlineCompletionContext.Request(textEditor, offset);
 		logger.debug("Request request: " + request.offset + "," + offsetInWidget);
 		InlineCompletionParams params = request.toInlineCompletionParams();
@@ -126,7 +126,7 @@ public class InlineCompletionService {
 		}
 		Function<LanguageServer, CompletableFuture<com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionList>> jobFn = (
 				server) -> {
-			TextDocumentServiceExt textDocumentService = ((ILanguageServer) server).getTextDocumentServiceExt();
+			ITextDocumentServiceExt textDocumentService = ((ILanguageServer) server).getTextDocumentServiceExt();
 			return textDocumentService.inlineCompletion(params);
 		};
 		CompletableFuture<com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionList> job = LanguageServerService
@@ -283,7 +283,7 @@ public class InlineCompletionService {
 	private boolean isActiveEditor(ITextEditor textEditor) {
 		return textEditor == getActiveEditor();
 	}
-	
+
 	private class TriggerEvent {
 		private ITextEditor textEditor;
 		private long modificationStamp;
@@ -376,7 +376,7 @@ public class InlineCompletionService {
 			return event.getOffset() + event.getText().length();
 		}
 	}
-	
+
 	private static long getDocumentModificationStamp(ITextEditor textEditor) {
 		IDocument document = LSPEclipseUtils.getDocument(textEditor.getEditorInput());
 		if (document instanceof IDocumentExtension4 documentExt) {

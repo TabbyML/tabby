@@ -5,5 +5,8 @@ import org.eclipse.lsp4j.services.LanguageServer;
 
 public interface ILanguageServer extends LanguageServer {
 	@JsonDelegate
-	TextDocumentServiceExt getTextDocumentServiceExt();
+	ITextDocumentServiceExt getTextDocumentServiceExt();
+
+	@JsonDelegate
+	IStatusService getStatusService();
 }
