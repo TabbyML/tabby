@@ -66,11 +66,7 @@ impl DbConn {
         backwards: bool,
         is_preset: Option<bool>,
     ) -> Result<Vec<WebCrawlerUrlDAO>> {
-        let condition = if let Some(is_preset) = is_preset {
-            Some(format!("is_preset={}", is_preset))
-        } else {
-            None
-        };
+        let condition = is_preset.map(|is_preset| format!("is_preset={}", is_preset));
 
         let urls = query_paged_as!(
             WebDocumentDAO,
@@ -86,10 +82,20 @@ impl DbConn {
         Ok(urls)
     }
 
-    pub async fn create_web_document(&self, name: String, url: String, is_preset: bool) -> Result<i64> {
-        let res = query!("INSERT INTO web_documents(name, url, is_preset) VALUES (?,?,?);", name, url, is_preset)
-            .execute(&self.pool)
-            .await?;
+    pub async fn create_web_document(
+        &self,
+        name: String,
+        url: String,
+        is_preset: bool,
+    ) -> Result<i64> {
+        let res = query!(
+            "INSERT INTO web_documents(name, url, is_preset) VALUES (?,?,?);",
+            name,
+            url,
+            is_preset
+        )
+        .execute(&self.pool)
+        .await?;
 
         Ok(res.last_insert_rowid())
     }
