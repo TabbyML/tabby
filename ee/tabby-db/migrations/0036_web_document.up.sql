@@ -1,4 +1,3 @@
--- Add up migration script here
 CREATE TABLE web_documents(
      id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
      name VARCHAR(255) NOT NULL,
