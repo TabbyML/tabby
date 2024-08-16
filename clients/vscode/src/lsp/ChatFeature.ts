@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { window, workspace, Range, Position, Disposable, TextEditorEdit, CancellationToken } from "vscode";
+import { window, workspace, Range, Position, Disposable, CancellationToken, TextEditorEdit } from "vscode";
 import { BaseLanguageClient, DynamicFeature, FeatureState, RegistrationData } from "vscode-languageclient";
 import {
   ServerCapabilities,
@@ -119,14 +119,13 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
 
   private async handleApplyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<boolean> {
     const { edit, options } = params;
-
     const activeEditor = window.activeTextEditor;
     if (!activeEditor) {
       return false;
     }
 
-    const applyUndoStop = (stopBefore: boolean, stopAfter: boolean) => {
-      return activeEditor.edit(
+    try {
+      const success = await activeEditor.edit(
         (editBuilder: TextEditorEdit) => {
           Object.entries(edit.changes || {}).forEach(([uri, textEdits]) => {
             const document = workspace.textDocuments.find((doc) => doc.uri.toString() === uri);
@@ -142,20 +141,17 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
           });
         },
         {
-          undoStopBefore: stopBefore,
-          undoStopAfter: stopAfter,
+          undoStopBefore: options?.undoStopBefore ?? false,
+          undoStopAfter: options?.undoStopAfter ?? false,
         },
       );
-    };
 
-    try {
-      const success = await applyUndoStop(options?.undoStopBefore ?? false, options?.undoStopAfter ?? false);
       return success;
     } catch (error) {
-      console.error("Error applying workspace edit:", error);
       return false;
     }
   }
+
   async resolveEdit(params: ChatEditResolveParams): Promise<boolean> {
     return this.client.sendRequest(ChatEditResolveRequest.method, params);
   }
