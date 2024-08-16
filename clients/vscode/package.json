@@ -111,9 +111,9 @@
       },
       {
         "command": "tabby.chat.generateCommitMessage",
-        "title": "Generate Commit Message with Tabby Agent",
+        "title": "Generate Commit Message",
         "category": "Tabby",
-        "icon": "assets/logo.png"
+        "icon": "assets/magic-wand.svg"
       },
       {
         "command": "tabby.chat.edit.start",
