@@ -6,6 +6,6 @@ CREATE TABLE web_documents(
      is_preset BOOLEAN NOT NULL DEFAULT FALSE,
      created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
      updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
-     CONSTRAINT `unique_name` UNIQUE(name),
-     CONSTRAINT `unique_url` UNIQUE(url)
+     CONSTRAINT idx_name UNIQUE(name),
+     CONSTRAINT idx_url UNIQUE(url)
 );
