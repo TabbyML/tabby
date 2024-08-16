@@ -374,7 +374,7 @@ export function Search() {
 
   // Handling the stream response from useThreadRun
   useEffect(() => {
-    // if (!answer) return
+    if (!answer) return
 
     let newMessages = [...messages]
     const currentAssistantMessageIndex = newMessages.findIndex(
@@ -472,13 +472,6 @@ export function Search() {
       window.clearTimeout(showStopTimeoutId.current)
     }
   }, [isLoading])
-
-  // Stop stream before closing the page
-  useEffect(() => {
-    return () => {
-      if (isLoadingRef.current) stop()
-    }
-  }, [])
 
   useEffect(() => {
     if (devPanelOpen) {
@@ -716,7 +709,7 @@ export function Search() {
                     transition: 'opacity 0.55s ease-out'
                   }}
                   variant="outline"
-                  onClick={stop}
+                  onClick={() => stop()}
                 >
                   <IconStop className="mr-2" />
                   Stop generating

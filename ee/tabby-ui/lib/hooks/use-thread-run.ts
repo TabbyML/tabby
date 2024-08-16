@@ -9,6 +9,7 @@ import {
   ThreadRunItem,
   ThreadRunOptionsInput
 } from '../gql/generates/graphql'
+import { useDebounceCallback } from './use-debounce'
 
 interface UseThreadRunOptions {
   onError?: (err: Error) => void
@@ -143,6 +144,29 @@ export function useThreadRun({
     }
   }
 
+  const debouncedStop = useDebounceCallback(
+    (silent?: boolean) => {
+      setPause(true)
+      setFollowupPause(true)
+      setIsLoading(false)
+      if (!silent && !propsThreadId && threadId) {
+        onThreadCreated?.(threadId)
+      }
+    },
+    300,
+    {
+      leading: false,
+      onUnmount(debounced) {
+        if (isLoading) {
+          debounced(true)
+        }
+        debounced.flush()
+      }
+    }
+  )
+
+  const stop = (silent?: boolean) => debouncedStop.run(silent)
+
   const [createThreadAndRunResult] = useSubscription(
     {
       query: CreateThreadAndRunSubscription,
@@ -200,7 +224,11 @@ export function useThreadRun({
 
   // createThreadAndRun
   React.useEffect(() => {
-    if (createThreadAndRunResult.fetching) return
+    if (
+      createThreadAndRunResult.fetching ||
+      !createThreadAndRunResult?.operation
+    )
+      return
     // error handling
     if (createThreadAndRunResult?.error) {
       setError(createThreadAndRunResult?.error)
@@ -227,7 +255,9 @@ export function useThreadRun({
 
   // createThreadRun
   React.useEffect(() => {
-    if (createThreadRunResult?.fetching) return
+    if (createThreadRunResult?.fetching || !createThreadRunResult?.operation)
+      return
+
     // error handling
     if (createThreadRunResult?.error) {
       setError(createThreadRunResult?.error)
@@ -246,17 +276,6 @@ export function useThreadRun({
       }
     }
   }, [createThreadRunResult])
-
-  const stop = () => {
-    setPause(true)
-    setFollowupPause(true)
-    setIsLoading(false)
-    setTimeout(() => {
-      if (!propsThreadId && threadId) {
-        onThreadCreated?.(threadId)
-      }
-    })
-  }
 
   const triggerRequest = async (
     userMessage: CreateMessageInput,
