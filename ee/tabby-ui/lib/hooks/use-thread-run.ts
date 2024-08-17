@@ -132,8 +132,9 @@ export function useThreadRun({
     if (
       existingData?.threadAssistantMessageCreated &&
       data.threadUserMessageCreated
-    )
+    ) {
       return data
+    }
 
     return {
       ...existingData,
@@ -233,8 +234,9 @@ export function useThreadRun({
     if (
       createThreadAndRunResult.fetching ||
       !createThreadAndRunResult?.operation
-    )
+    ) {
       return
+    }
     // error handling
     if (createThreadAndRunResult?.error) {
       setError(createThreadAndRunResult?.error)
@@ -261,8 +263,9 @@ export function useThreadRun({
       stop()
     }
 
-    if (createThreadRunResult?.fetching || !createThreadRunResult?.operation)
+    if (createThreadRunResult?.fetching || !createThreadRunResult?.operation) {
       return
+    }
 
     // error handling
     if (createThreadRunResult?.error) {
