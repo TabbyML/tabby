@@ -192,7 +192,6 @@ const listThreadMessages = graphql(/* GraphQL */ `
 
 export function Search() {
   const { updateUrlComponents, pathname, searchParams } = useRouterStuff()
-  const isNewThread = pathname === '/search'
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const isChatEnabled = useIsChatEnabled()
@@ -323,34 +322,32 @@ export function Search() {
 
       initializing.current = true
 
-      if (isNewThread) {
-        // initial UserMessage from home page
-        const initialMessage = sessionStorage.getItem(
-          SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
-        )
-        // initial extra context from home page
-        const initialExtraContextStr = sessionStorage.getItem(
+      // initial UserMessage from home page
+      const initialMessage = sessionStorage.getItem(
+        SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
+      )
+      // initial extra context from home page
+      const initialExtraContextStr = sessionStorage.getItem(
+        SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
+      )
+      const initialExtraInfo = initialExtraContextStr
+        ? JSON.parse(initialExtraContextStr)
+        : undefined
+
+      if (initialMessage) {
+        sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
+        sessionStorage.removeItem(
           SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
         )
-        const initialExtraInfo = initialExtraContextStr
-          ? JSON.parse(initialExtraContextStr)
-          : undefined
-
-        if (initialMessage) {
-          sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
-          sessionStorage.removeItem(
-            SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
-          )
-          setIsReady(true)
-          setExtraContext(p => ({
-            ...p,
-            repository: initialExtraInfo?.repository
-          }))
-          onSubmitSearch(initialMessage, {
-            repository: initialExtraInfo?.repository
-          })
-          return
-        }
+        setIsReady(true)
+        setExtraContext(p => ({
+          ...p,
+          repository: initialExtraInfo?.repository
+        }))
+        onSubmitSearch(initialMessage, {
+          repository: initialExtraInfo?.repository
+        })
+        return
       }
 
       if (!threadId) {
@@ -562,7 +559,7 @@ export function Search() {
     prevDevPanelSize.current = devPanelSize
   }
 
-  if (!isReady && !isNewThread) {
+  if (!isReady && fetchingMessages) {
     return (
       <div className="mx-auto mt-24 w-full space-y-10 px-4 pb-32 lg:max-w-4xl lg:px-0">
         <MessagesSkeleton />
