@@ -418,10 +418,11 @@ function ChatRenderer(
   }, [])
 
   const chatMaxWidthClass = maxWidth ? `max-w-${maxWidth}` : 'max-w-2xl'
-  if (!initialized)
+  if (!initialized) {
     return (
       <ListSkeleton className={`${chatMaxWidthClass} mx-auto pt-4 md:pt-10`} />
     )
+  }
 
   return (
     <ChatContext.Provider

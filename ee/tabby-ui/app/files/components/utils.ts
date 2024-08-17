@@ -177,11 +177,12 @@ function resolveRepoRef(
   name: string
   ref: GitReference | undefined
 } {
-  if (!ref)
+  if (!ref) {
     return {
       name: '',
       ref: undefined
     }
+  }
 
   const regx = /refs\/(\w+)\/(.*)/
   const match = ref.name.match(regx)
