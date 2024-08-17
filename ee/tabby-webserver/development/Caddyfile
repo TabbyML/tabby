@@ -5,6 +5,7 @@
 	@backend {
 		path /graphql
 		path /graphiql
+		path /subscriptions
 
 		path /v1/*
 		path /v1beta/*
