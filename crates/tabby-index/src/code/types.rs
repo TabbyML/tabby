@@ -7,8 +7,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::indexer::{IndexId, ToIndexId};
 
-use super::intelligence::CodeIntelligence;
-
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SourceCode {
     pub source_file_id: String,
@@ -47,7 +45,7 @@ impl SourceCode {
         Path::new(&self.basedir).join(&self.filepath)
     }
 
-    pub fn source_file_id_from_id<'a>(id: &'a str) -> Option<&'a str> {
+    pub fn source_file_id_from_id(id: &str) -> Option<&str> {
         id.split(":::").nth(1)
     }
 }
