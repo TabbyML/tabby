@@ -225,6 +225,12 @@ export function useThreadRun({
   // createThreadAndRun
   React.useEffect(() => {
     if (
+      createThreadAndRunResult?.data?.createThreadAndRun
+        ?.threadAssistantMessageCompleted
+    ) {
+      stop()
+    }
+    if (
       createThreadAndRunResult.fetching ||
       !createThreadAndRunResult?.operation
     )
@@ -243,18 +249,18 @@ export function useThreadRun({
     }
     if (createThreadAndRunResult?.data?.createThreadAndRun) {
       setThreadRunItem(createThreadAndRunResult?.data?.createThreadAndRun)
-
-      if (
-        createThreadAndRunResult?.data?.createThreadAndRun
-          ?.threadAssistantMessageCompleted
-      ) {
-        stop()
-      }
     }
   }, [createThreadAndRunResult])
 
   // createThreadRun
   React.useEffect(() => {
+    if (
+      createThreadRunResult?.data?.createThreadRun
+        ?.threadAssistantMessageCompleted
+    ) {
+      stop()
+    }
+
     if (createThreadRunResult?.fetching || !createThreadRunResult?.operation)
       return
 
@@ -267,13 +273,6 @@ export function useThreadRun({
 
     if (createThreadRunResult?.data?.createThreadRun) {
       setThreadRunItem(createThreadRunResult?.data?.createThreadRun)
-
-      if (
-        createThreadRunResult?.data?.createThreadRun
-          ?.threadAssistantMessageCompleted
-      ) {
-        stop()
-      }
     }
   }, [createThreadRunResult])
 

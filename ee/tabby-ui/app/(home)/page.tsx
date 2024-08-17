@@ -92,7 +92,7 @@ function MainPanel() {
         repository: ctx?.repository ? omit(ctx.repository, 'refs') : undefined
       })
     )
-    router.push('/search?q=new')
+    router.push('/search')
   }
 
   const style = isShowDemoBanner
