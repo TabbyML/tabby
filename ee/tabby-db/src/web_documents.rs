@@ -17,7 +17,7 @@ pub struct WebDocumentDAO {
 }
 
 impl DbConn {
-    pub async fn list_web_document(
+    pub async fn list_web_documents(
         &self,
         limit: Option<usize>,
         skip_id: Option<i32>,
