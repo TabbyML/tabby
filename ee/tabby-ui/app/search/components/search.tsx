@@ -192,7 +192,7 @@ const listThreadMessages = graphql(/* GraphQL */ `
 
 export function Search() {
   const { updateUrlComponents, pathname, searchParams } = useRouterStuff()
-  const isNewThread = pathname === '/search';
+  const isNewThread = pathname === '/search'
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const isChatEnabled = useIsChatEnabled()
