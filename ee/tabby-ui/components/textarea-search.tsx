@@ -234,7 +234,7 @@ function RepoSelect({ value, onChange, className, disabled }: RepoSelectProps) {
   const repos = data?.repositoryList
 
   const emptyText = useMemo(() => {
-    if (!repos?.length)
+    if (!repos?.length) {
       return (
         <div className="space-y-4 py-2">
           <p className="font-semibold">No repositories</p>
@@ -247,8 +247,9 @@ function RepoSelect({ value, onChange, className, disabled }: RepoSelectProps) {
           </Link>
         </div>
       )
-
-    return 'No results found'
+    } else {
+      return 'No results found'
+    }
   }, [repos])
 
   const onSelectRepo = (repo: Repository) => {
