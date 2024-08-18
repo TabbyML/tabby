@@ -1,0 +1,94 @@
+---
+authors: [wei]
+tags: [editor integration, product]
+image: ./tabby-edit.png
+
+---
+
+
+# Introduce the Inline Edit in Tabby
+
+![Tabby Edit](./tabby-edit.png)
+
+## What is Tabby Edit?  
+  
+Tabby Edit is a feature that allows you to edit your code directly in your favorite editor.  
+  
+Tabby Edit will not change your code directly,  
+but it will show you the difference between your code and the generated ones,  
+allow you to review the changes and decide whether to apply.  
+  
+  
+## Get started with Tabby Edit  
+  
+To get started with Tabby Edit, you need a Tabby server and extension installed for your editor.  
+If you don't have it done, please check [our documents](https://tabby.tabbyml.com/docs/welcome/).  
+After you have installed the Tabby server and extension, you can start using Tabby Edit.  
+  
+First, select the code you want to update and then use the command palette to open Tabby Edit,  
+or use the keyboard shortcut `Ctrl + I` (or `Cmd + I` on Mac).  
+  
+Then you can type your prompt to describe what you want to do,  
+and Tabby will generate the code for you showing the difference between your code and the generated ones.  
+  
+![Tabby Edit](./tabby-edit.png)  
+  
+If you are satisfied with the changes, you can apply them by clicking the `Accept` button on top of the diff view.  
+Or you can reject them by clicking the `Discard` button, Tabby will leave everything unchanged.  
+  
+Each time you use Tabby Edit, the prompt will be saved and you can choose it from the history list.  
+  
+## What can you do with Tabby Edit  
+  
+With the power of LLM, Tabby Edit can help you to do many things,  
+such as generating documents for your code, refactoring your code, finding and fixing bugs in your code automatically,  
+just type your request in neural language and let Tabby do the rest.  
+  
+Here are some examples:  
+  
+### Generate documents for your code  
+  
+Writing documents for code is always a tedious task,  
+but with Tabby Edit, you can just type `Generate docs` and Tabby will generate the documents for you.  
+  
+![generate-docs](./generate-docs.gif)  
+  
+### Find and fix bugs in your code automatically  
+  
+If you have a bug in your code, you can just type `find and fix bugs` and Tabby will find the bugs and fix them for you.  
+  
+![find-and-fix-bugs](./find-and-fix-bugs.gif)  
+  
+### Refactor your code adding checks  
+  
+Sometimes we have to deal with some corner cases, just leave it to Tabby.  
+  
+For example, we have a simple function to find the max number in a list,  
+but the list may be empty, you can Edit with `refactor the code make it stronger`,  
+and then Tabby can add some checks.  
+  
+![refactor-stronger](refactor-stronger.gif)  
+  
+### Refactor your code to optimize performance  
+  
+If you have a piece of code that is not performing well,  
+you can use Tabby Edit to use a better algorithm or optimize the code.  
+  
+For example, when sorting, we can let Tabby Edit write the quick sort algorithm for us:  
+  
+![refactor-quick-sort](refactor-quick-sort.gif)  
+  
+### Rewrite your code in a different language  
+  
+Sometimes we find a piece of code that is written in a language we don't expect,  
+you can use Tabby Edit to rewrite it in the expected one.  
+  
+For example, we copy a piece of Python code, but we want it in Rust,  
+just type `rewrite it in rust`:  
+  
+![rewrite-in-rust](rewrite-in-rust.gif)  
+  
+## Conclusion  
+  
+Tabby Edit is a powerful feature that can help you write better code without leaving your editor,  
+and you still own every change in your code.
