@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use sqlx::{prelude::FromRow, query};
+use sqlx::{prelude::FromRow, query, query_scalar};
 use tabby_db_macros::query_paged_as;
 
 use crate::DbConn;
@@ -22,9 +22,9 @@ impl DbConn {
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
-        is_preset: Option<bool>,
+        is_preset: bool,
     ) -> Result<Vec<WebDocumentDAO>> {
-        let condition = is_preset.map(|is_preset| format!("is_preset={}", is_preset));
+        let condition = Some(format!("is_preset={}", is_preset));
 
         let urls = query_paged_as!(
             WebDocumentDAO,
@@ -56,6 +56,27 @@ impl DbConn {
         .await?;
 
         Ok(res.last_insert_rowid())
+    }
+
+    pub async fn active_preset_web_document(&self, name: String, url: String) -> Result<i64> {
+        let res = query!(
+            "INSERT INTO web_documents(name, url, is_preset) VALUES (?,?,true);",
+            name,
+            url,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(res.last_insert_rowid())
+    }
+
+    pub async fn deactivate_preset_web_document(&self, name: String) -> Result<i64> {
+        let res = query_scalar!("SELECT id FROM web_documents WHERE name = ?;", name)
+            .fetch_one(&self.pool)
+            .await?;
+
+        self.delete_web_document(res).await?;
+        Ok(res)
     }
 
     pub async fn delete_web_document(&self, id: i64) -> Result<()> {
