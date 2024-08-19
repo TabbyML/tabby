@@ -40,8 +40,8 @@ impl CustomWebDocument {
 pub struct CreateCustomDocumentInput {
     #[validate(regex(
         code = "name",
-        path = "*crate::schema::constants::USERNAME_REGEX",
-        message = "Invalid repository name"
+        path = "*crate::schema::constants::DOCUMENT_NAME_REGEX",
+        message = "Invalid document name"
     ))]
     pub name: String,
     #[validate(url(code = "url", message = "Invalid URL"))]
