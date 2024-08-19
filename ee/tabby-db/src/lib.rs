@@ -22,6 +22,7 @@ use user_completions::UserCompletionDailyStatsDAO;
 pub use user_events::UserEventDAO;
 pub use users::UserDAO;
 pub use web_crawler::WebCrawlerUrlDAO;
+pub use web_documents::WebDocumentDAO;
 
 pub mod cache;
 mod email_setting;

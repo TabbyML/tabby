@@ -99,6 +99,11 @@ input CodeSearchParamsOverrideInput {
   numToScore: Int
 }
 
+input CreateCustomDocumentInput {
+  name: String!
+  url: String!
+}
+
 input CreateIntegrationInput {
   displayName: String!
   accessToken: String!
@@ -188,6 +193,11 @@ input SecuritySettingInput {
   disableClientSideTelemetry: Boolean!
 }
 
+input SetPresetDocumentActiveInput {
+  name: String!
+  active: Boolean!
+}
+
 input ThreadRunDebugOptionsInput {
   codeSearchParamsOverride: CodeSearchParamsOverrideInput = null
 }
@@ -236,6 +246,24 @@ type CompletionStats {
   completions: Int!
   views: Int!
   selects: Int!
+}
+
+type CustomDocumentConnection {
+  edges: [CustomDocumentEdge!]!
+  pageInfo: PageInfo!
+}
+
+type CustomDocumentEdge {
+  node: CustomWebDocument!
+  cursor: String!
+}
+
+type CustomWebDocument {
+  url: String!
+  name: String!
+  id: ID!
+  createdAt: DateTime!
+  jobInfo: JobInfo!
 }
 
 type DiskUsage {
@@ -490,6 +518,9 @@ type Mutation {
   deleteWebCrawlerUrl(id: ID!): Boolean!
   "Delete pair of user message and bot response in a thread."
   deleteThreadMessagePair(threadId: ID!, userMessageId: ID!, assistantMessageId: ID!): Boolean!
+  createCustomDocument(input: CreateCustomDocumentInput!): ID!
+  deleteCustomDocument(id: ID!): Boolean!
+  setPresetDocumentActive(input: SetPresetDocumentActiveInput!): ID!
 }
 
 type NetworkSetting {
@@ -508,6 +539,25 @@ type PageInfo {
   hasNextPage: Boolean!
   startCursor: String
   endCursor: String
+}
+
+type PresetDocumentConnection {
+  edges: [PresetDocumentEdge!]!
+  pageInfo: PageInfo!
+}
+
+type PresetDocumentEdge {
+  node: PresetWebDocument!
+  cursor: String!
+}
+
+type PresetWebDocument {
+  name: String!
+  id: ID!
+  active: Boolean!
+  "`updated_at` is only filled when the preset is active."
+  updatedAt: DateTime
+  jobInfo: JobInfo
 }
 
 type ProvidedRepository {
@@ -581,6 +631,8 @@ type Query {
     Thread is public within an instance, so no need to check for ownership.
   """
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
+  customWebDocuments(after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
+  presetWebDocuments(after: String, before: String, first: Int, last: Int, active: Boolean!): PresetDocumentConnection!
 }
 
 type RefreshTokenResponse {
