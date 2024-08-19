@@ -590,12 +590,14 @@ impl Query {
         )
         .await
     }
-    async fn preset_web_documents(ctx: &Context,
-                                  after: Option<String>,
-                                  before: Option<String>,
-                                  first: Option<i32>,
-                                  last: Option<i32>,
-                                  active: bool) -> Result<Connection<PresetWebDocument>> {
+    async fn preset_web_documents(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+        active: bool,
+    ) -> Result<Connection<PresetWebDocument>> {
         query_async(
             after,
             before,
@@ -606,7 +608,9 @@ impl Query {
                     .web_documents()
                     .list_preset_web_documents(after, before, first, last, active)
                     .await
-            }).await
+            },
+        )
+        .await
     }
 }
 

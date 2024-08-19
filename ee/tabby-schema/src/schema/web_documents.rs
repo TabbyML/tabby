@@ -51,8 +51,8 @@ pub struct CreateCustomDocumentInput {
 pub struct SetPresetDocumentActiveInput {
     #[validate(regex(
         code = "name",
-        path = "*crate::schema::constants::USERNAME_REGEX",
-        message = "Invalid repository name"
+        path = "*crate::schema::constants::DOCUMENT_NAME_REGEX",
+        message = "Invalid document name"
     ))]
     pub name: String,
     pub active: bool,
@@ -102,11 +102,13 @@ pub trait WebDocumentService: Send + Sync {
 
     async fn create_custom_web_document(&self, name: String, url: String) -> Result<ID>;
     async fn delete_custom_web_document(&self, id: ID) -> Result<()>;
-    async fn list_preset_web_documents(&self,
-                                       after: Option<String>,
-                                       before: Option<String>,
-                                       first: Option<usize>,
-                                       last: Option<usize>,
-                                       active: bool) -> Result<Vec<PresetWebDocument>>;
+    async fn list_preset_web_documents(
+        &self,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<usize>,
+        last: Option<usize>,
+        active: bool,
+    ) -> Result<Vec<PresetWebDocument>>;
     async fn set_preset_web_documents_active(&self, name: String, active: bool) -> Result<ID>;
 }
