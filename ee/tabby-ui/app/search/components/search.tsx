@@ -37,9 +37,11 @@ import {
 import {
   IconBlocks,
   IconBug,
+  IconCheck,
   IconChevronLeft,
   IconChevronRight,
   IconLayers,
+  IconLink,
   IconPlus,
   // IconRefresh,
   IconSparkles,
@@ -85,6 +87,7 @@ import {
   RepositoryListQuery,
   Role
 } from '@/lib/gql/generates/graphql'
+import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { repositoryListQuery } from '@/lib/tabby/query'
@@ -279,6 +282,15 @@ export function Search() {
   })
 
   const isLoadingRef = useLatest(isLoading)
+
+  const { isCopied, copyToClipboard } = useCopyToClipboard({
+    timeout: 2000
+  })
+
+  const onCopy = () => {
+    if (isCopied) return
+    copyToClipboard(window.location.href)
+  }
 
   const currentMessageForDev = useMemo(() => {
     return messages.find(item => item.id === messageIdForDev)
@@ -603,23 +615,37 @@ export function Search() {
                   Home
                 </Button>
               </div>
-              <div className="flex items-center gap-x-6">
+              <div className="flex items-center gap-2">
                 {!!threadId && (
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => router.push('/')}
-                  >
-                    <IconPlus />
-                    New Thread
-                  </Button>
+                  <>
+                    <Button
+                      variant="ghost"
+                      className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
+                      onClick={() => router.push('/')}
+                    >
+                      <IconPlus />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
+                      onClick={onCopy}
+                    >
+                      {isCopied ? (
+                        <IconCheck className="text-green-600" />
+                      ) : (
+                        <IconLink />
+                      )}
+                    </Button>
+                  </>
                 )}
                 <ClientOnly>
                   <ThemeToggle />
                 </ClientOnly>
-                <UserPanel showHome={false} showSetting>
-                  <UserAvatar className="h-10 w-10 border" />
-                </UserPanel>
+                <div className="ml-2">
+                  <UserPanel showHome={false} showSetting>
+                    <UserAvatar className="h-10 w-10 border" />
+                  </UserPanel>
+                </div>
               </div>
             </header>
 

@@ -14,6 +14,7 @@ import {
   GitFork,
   IndentIncrease,
   Layers2,
+  Link,
   Mail,
   Search,
   Sparkles,
@@ -1540,6 +1541,10 @@ function IconRemove({ className, ...props }: React.ComponentProps<typeof X>) {
   return <X className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconLink({ className, ...props }: React.ComponentProps<typeof Link>) {
+  return <Link className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1627,5 +1632,6 @@ export {
   IconApplyInEditor,
   IconBug,
   IconFilter,
-  IconRemove
+  IconRemove,
+  IconLink
 }
