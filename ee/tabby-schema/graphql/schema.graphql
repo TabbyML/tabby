@@ -99,6 +99,11 @@ input CodeSearchParamsOverrideInput {
   numToScore: Int
 }
 
+input CreateCustomDocumentInput {
+  name: String!
+  url: String!
+}
+
 input CreateIntegrationInput {
   displayName: String!
   accessToken: String!
@@ -180,6 +185,11 @@ input RequestPasswordResetEmailInput {
 input SecuritySettingInput {
   allowedRegisterDomainList: [String!]!
   disableClientSideTelemetry: Boolean!
+}
+
+input SetPresetDocumentActiveInput {
+  name: String!
+  active: Boolean!
 }
 
 input ThreadRunDebugOptionsInput {
@@ -475,10 +485,9 @@ type Mutation {
   triggerJobRun(command: String!): ID!
   createWebCrawlerUrl(input: CreateWebCrawlerUrlInput!): ID!
   deleteWebCrawlerUrl(id: ID!): Boolean!
-  "requires admin"
-  setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
   deleteCustomDocument(id: ID!): Boolean!
+  setPresetDocumentActive(input: SetPresetDocumentActiveInput!): ID!
 }
 
 type NetworkSetting {
@@ -570,8 +579,8 @@ type Query {
     Thread is public within an instance, so no need to check for ownership.
   """
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
-  presetWebDocument(active: Boolean!): [PresetWebDocument!]!
-  customWebDocument(after: String, before: String, first: Int, last: Int): CustomWebDocumentConnection!
+  customWebDocuments(after: String, before: String, first: Int, last: Int): WebDocumentConnection!
+  presetWebDocuments(active: Boolean!): [WebDocument!]!
 }
 
 type RefreshTokenResponse {
@@ -717,37 +726,19 @@ type WebCrawlerUrlEdge {
   cursor: String!
 }
 
-input CreateCustomDocumentInput {
+type WebDocument {
   url: String!
-  name: String!
-}
-
-input SetPresetDocumentActiveInput {
-  name: String!
-  active: Boolean!
-}
-
-type PresetWebDocument {
-  id: ID
-  name: String!
-  createdAt: DateTime!
-  jobInfo: JobInfo
-}
-
-type CustomWebDocument {
   id: ID!
-  name: String!
-  url: String!
   createdAt: DateTime!
   jobInfo: JobInfo!
 }
 
-type CustomWebDocumentEdge {
-  node: CustomWebDocument!
-  cursor: String!
+type WebDocumentConnection {
+  edges: [WebDocumentEdge!]!
+  pageInfo: PageInfo!
 }
 
-type CustomWebDocumentConnection {
-  edges: [CustomWebDocumentEdge!]!
-  pageInfo: PageInfo!
+type WebDocumentEdge {
+  node: WebDocument!
+  cursor: String!
 }

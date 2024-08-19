@@ -25,11 +25,18 @@ impl WebDocument {
 }
 
 #[derive(Validate, GraphQLInputObject)]
-pub struct CreateWebCrawlerUrlInput {
-    #[validate(url(code = "name", message = "Invalid URL"))]
+pub struct CreateCustomDocumentInput {
+    #[validate(url(code = "name", message = "Invalid Name"))]
     pub name: String,
     #[validate(url(code = "url", message = "Invalid URL"))]
     pub url: String,
+}
+
+#[derive(Validate, GraphQLInputObject)]
+pub struct SetPresetDocumentActiveInput {
+    #[validate(url(code = "name", message = "Invalid Name"))]
+    pub name: String,
+    pub active: bool,
 }
 
 impl NodeType for WebDocument {
@@ -60,5 +67,6 @@ pub trait WebDocumentService: Send + Sync {
 
     async fn create_custom_web_document(&self, name: String, url: String) -> Result<ID>;
     async fn delete_custom_web_document(&self, id: ID) -> Result<()>;
-    async fn list_preset_web_documents(&self, active: bool) -> Result<()>;
+    async fn list_preset_web_documents(&self, active: bool) -> Result<Vec<WebDocument>>;
+    async fn set_preset_web_documents_active(&self, name: String, active: bool) -> Result<ID>;
 }
