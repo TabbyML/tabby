@@ -5,9 +5,9 @@ use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
     job::JobService,
-    web_documents::{CustomWebDocument, PresetWebDocument, WebDocumentService}, Result,
+    web_documents::{CustomWebDocument, PresetWebDocument, WebDocumentService},
+    Result,
 };
-
 
 pub fn create(db: DbConn, job_service: Arc<dyn JobService>) -> impl WebDocumentService {
     WebDocumentServiceImpl { db, job_service }
