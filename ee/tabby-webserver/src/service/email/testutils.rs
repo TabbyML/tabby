@@ -86,5 +86,6 @@ fn default_email_settings() -> EmailSettingInput {
         encryption: Encryption::None,
         auth_method: AuthMethod::None,
         smtp_password: Some("fake".into()),
+        cert_pem: None,
     }
 }

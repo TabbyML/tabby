@@ -96,6 +96,7 @@ impl TryFrom<EmailSettingDAO> for EmailSetting {
             from_address: value.from_address,
             encryption,
             auth_method,
+            cert_pem: value.cert_pem,
         })
     }
 }

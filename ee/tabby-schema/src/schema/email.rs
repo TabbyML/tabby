@@ -27,6 +27,7 @@ pub struct EmailSetting {
     pub from_address: String,
     pub encryption: Encryption,
     pub auth_method: AuthMethod,
+    pub cert_pem: Option<String>,
 }
 
 #[derive(GraphQLInputObject, Validate)]
@@ -39,6 +40,7 @@ pub struct EmailSettingInput {
     pub encryption: Encryption,
     pub auth_method: AuthMethod,
     pub smtp_password: Option<String>,
+    pub cert_pem: Option<String>,
 }
 
 #[async_trait]

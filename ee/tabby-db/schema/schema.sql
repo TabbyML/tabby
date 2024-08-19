@@ -72,9 +72,9 @@ CREATE TABLE email_setting(
   smtp_server VARCHAR(255) NOT NULL,
   from_address VARCHAR(255) NOT NULL,
   encryption VARCHAR(255) NOT NULL DEFAULT 'ssltls',
-  auth_method VARCHAR(255) NOT NULL DEFAULT 'plain'
-  ,
-  smtp_port INTEGER NOT NULL DEFAULT 25
+  auth_method VARCHAR(255) NOT NULL DEFAULT 'plain',
+  smtp_port INTEGER NOT NULL DEFAULT 25,
+  cert_pem STRING
 );
 CREATE TABLE oauth_credential(
   id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,

@@ -14,13 +14,14 @@ pub struct EmailSettingDAO {
     pub from_address: String,
     pub encryption: String,
     pub auth_method: String,
+    pub cert_pem: Option<String>,
 }
 
 impl DbConn {
     pub async fn read_email_setting(&self) -> Result<Option<EmailSettingDAO>> {
         let setting = query_as!(
             EmailSettingDAO,
-            "SELECT smtp_username, smtp_password, smtp_server, smtp_port, from_address, encryption, auth_method FROM email_setting WHERE id=?",
+            "SELECT smtp_username, smtp_password, smtp_server, smtp_port, from_address, encryption, auth_method, cert_pem FROM email_setting WHERE id=?",
             EMAIL_CREDENTIAL_ROW_ID
         )
         .fetch_optional(&self.pool)
@@ -37,6 +38,7 @@ impl DbConn {
         from_address: String,
         encryption: String,
         auth_method: String,
+        cert_pem: Option<String>,
     ) -> Result<()> {
         let mut transaction = self.pool.begin().await?;
         let smtp_password = match smtp_password {
@@ -49,8 +51,8 @@ impl DbConn {
             .await
             .map_err(|_| anyhow!("smtp_password is required to enable email sending"))?,
         };
-        query!("INSERT INTO email_setting (id, smtp_username, smtp_password, smtp_server, from_address, encryption, auth_method, smtp_port) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                ON CONFLICT(id) DO UPDATE SET smtp_username = $2, smtp_password = $3, smtp_server = $4, from_address = $5, encryption = $6, auth_method = $7, smtp_port = $8",
+        query!("INSERT INTO email_setting (id, smtp_username, smtp_password, smtp_server, from_address, encryption, auth_method, smtp_port, cert_pem) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                ON CONFLICT(id) DO UPDATE SET smtp_username = $2, smtp_password = $3, smtp_server = $4, from_address = $5, encryption = $6, auth_method = $7, smtp_port = $8, cert_pem = $9",
             EMAIL_CREDENTIAL_ROW_ID,
             smtp_username,
             smtp_password,
@@ -59,6 +61,7 @@ impl DbConn {
             encryption,
             auth_method,
             smtp_port,
+            cert_pem,
         ).execute(&mut *transaction).await?;
         transaction.commit().await?;
         Ok(())
@@ -95,6 +98,7 @@ mod tests {
             "user".into(),
             "STARTTLS".into(),
             "".into(),
+            None,
         )
         .await
         .unwrap();
@@ -114,6 +118,21 @@ mod tests {
             "user2".into(),
             "STARTTLS".into(),
             "".into(),
+            None,
+        )
+        .await
+        .unwrap();
+
+        // Test update with cert
+        conn.update_email_setting(
+            "user2".into(),
+            None,
+            "server2".into(),
+            25,
+            "user2".into(),
+            "STARTTLS".into(),
+            "".into(),
+            Some("cert_pem2".into()),
         )
         .await
         .unwrap();
@@ -122,5 +141,6 @@ mod tests {
         assert_eq!(creds.smtp_username, "user2");
         assert_eq!(creds.smtp_password, "pass");
         assert_eq!(creds.smtp_server, "server2");
+        assert_eq!(creds.cert_pem, Some("cert_pem2".into()));
     }
 }

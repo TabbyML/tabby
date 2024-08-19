@@ -1,0 +1,1 @@
+ALTER TABLE email_setting ADD COLUMN cert_pem STRING;

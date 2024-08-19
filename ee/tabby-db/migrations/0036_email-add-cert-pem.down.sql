@@ -1,0 +1,1 @@
+ALTER TABLE email_setting DROP COLUMN cert_pem;
