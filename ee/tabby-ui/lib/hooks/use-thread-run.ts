@@ -115,7 +115,7 @@ export function useThreadRun({
   const [threadId, setThreadId] = React.useState<string | undefined>(
     propsThreadId
   )
-
+  const processingAssistantMessageId = React.useRef<string | undefined>()
   const [pause, setPause] = React.useState(true)
   const [followupPause, setFollowupPause] = React.useState(true)
   const [createMessageInput, setCreateMessageInput] =
@@ -168,6 +168,7 @@ export function useThreadRun({
       setPause(true)
       setFollowupPause(true)
       setIsLoading(false)
+      processingAssistantMessageId.current = undefined
       if (!silent && threadId) {
         onAssistantMessageCompleted?.(threadId, threadRunItem)
       }
@@ -201,6 +202,12 @@ export function useThreadRun({
       context: operationContext
     },
     (prevData, data) => {
+      // memo the processing assistant message id
+      if (data?.createThreadAndRun?.threadAssistantMessageCreated) {
+        processingAssistantMessageId.current =
+          data?.createThreadAndRun?.threadAssistantMessageCreated
+      }
+
       return {
         ...data,
         createThreadAndRun: combineThreadRunData(
@@ -225,6 +232,12 @@ export function useThreadRun({
       context: operationContext
     },
     (prevData, data) => {
+      // memo the processing assistant message id
+      if (data?.createThreadRun?.threadAssistantMessageCreated) {
+        processingAssistantMessageId.current =
+          data?.createThreadRun?.threadAssistantMessageCreated
+      }
+
       return {
         ...data,
         createThreadRun: combineThreadRunData(
@@ -243,24 +256,32 @@ export function useThreadRun({
 
   // createThreadAndRun
   React.useEffect(() => {
+    // initial state with no operation
+    if (!createThreadAndRunResult?.operation) {
+      return
+    }
+
+    if (
+      createThreadAndRunResult?.data?.createThreadAndRun
+        ?.threadAssistantMessageCreated !== processingAssistantMessageId.current
+    ) {
+      return
+    }
+
     if (
       createThreadAndRunResult?.data?.createThreadAndRun
         ?.threadAssistantMessageCompleted
     ) {
       stop()
     }
-    if (
-      createThreadAndRunResult.fetching ||
-      !createThreadAndRunResult?.operation
-    ) {
-      return
-    }
+
     // error handling
     if (createThreadAndRunResult?.error) {
       setError(createThreadAndRunResult?.error)
       stop()
       return
     }
+
     // save the threadId
     if (createThreadAndRunResult?.data?.createThreadAndRun?.threadCreated) {
       setThreadId(
@@ -274,15 +295,23 @@ export function useThreadRun({
 
   // createThreadRun
   React.useEffect(() => {
+    // initial state with no operation
+    if (!createThreadRunResult?.operation) {
+      return
+    }
+
+    if (
+      createThreadRunResult?.data?.createThreadRun
+        ?.threadAssistantMessageCreated !== processingAssistantMessageId.current
+    ) {
+      return
+    }
+
     if (
       createThreadRunResult?.data?.createThreadRun
         ?.threadAssistantMessageCompleted
     ) {
       stop()
-    }
-
-    if (createThreadRunResult?.fetching || !createThreadRunResult?.operation) {
-      return
     }
 
     // error handling
@@ -309,6 +338,7 @@ export function useThreadRun({
 
     setCreateMessageInput(userMessage)
     setThreadRunOptions(options)
+    processingAssistantMessageId.current = undefined
 
     if (threadId) {
       setFollowupPause(false)
