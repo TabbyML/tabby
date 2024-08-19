@@ -37,9 +37,11 @@ import {
 import {
   IconBlocks,
   IconBug,
+  IconCheck,
   IconChevronLeft,
   IconChevronRight,
   IconLayers,
+  IconLink,
   IconPlus,
   // IconRefresh,
   IconSparkles,
@@ -97,6 +99,7 @@ import { CodeReferences } from '@/components/chat/question-answer'
 
 import { DevPanel } from './dev-panel'
 import { MessagesSkeleton } from './messages-skeleton'
+import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 
 type ConversationMessage = Omit<
   Message,
@@ -279,6 +282,15 @@ export function Search() {
   })
 
   const isLoadingRef = useLatest(isLoading)
+
+  const { isCopied, copyToClipboard } = useCopyToClipboard({
+    timeout: 2000
+  })
+
+  const onCopy = () => {
+    if (isCopied) return
+    copyToClipboard(window.location.href)
+  }
 
   const currentMessageForDev = useMemo(() => {
     return messages.find(item => item.id === messageIdForDev)
@@ -605,14 +617,42 @@ export function Search() {
               </div>
               <div className="flex items-center gap-x-6">
                 {!!threadId && (
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => router.push('/')}
-                  >
-                    <IconPlus />
-                    New Thread
-                  </Button>
+                  <div className='flex items-center gap-2'>
+                    <Tooltip delayDuration={300}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
+                          onClick={() => router.push('/')}
+                        >
+                          <IconPlus />
+                          New Thread
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Create a New Thread</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip delayDuration={300}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
+                          onClick={onCopy}
+                        >
+                          {isCopied ? (
+                            <IconCheck className="text-green-600" />
+                          ) : (
+                            <IconLink />
+                          )}
+                          Share
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Copy Link</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 )}
                 <ClientOnly>
                   <ThemeToggle />
@@ -809,7 +849,7 @@ function AnswerBlock({
 
   const totalHeightInRem = answer.attachment?.doc?.length
     ? Math.ceil(answer.attachment.doc.length / 4) * SOURCE_CARD_STYLE.expand +
-      0.5 * Math.floor(answer.attachment.doc.length / 4)
+    0.5 * Math.floor(answer.attachment.doc.length / 4)
     : 0
 
   const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
