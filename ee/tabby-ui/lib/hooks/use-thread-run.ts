@@ -9,13 +9,17 @@ import {
   ThreadRunItem,
   ThreadRunOptionsInput
 } from '../gql/generates/graphql'
+import { useMutation } from '../tabby/gql'
 import { useDebounceCallback } from './use-debounce'
 
 interface UseThreadRunOptions {
   onError?: (err: Error) => void
   threadId?: string
   headers?: Record<string, string> | Headers
-  onThreadCreated?: (threadId: string) => void
+  onAssistantMessageCompleted?: (
+    threadId: string,
+    threadRunId: ThreadRunItem | undefined
+  ) => void
 }
 
 const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
@@ -88,11 +92,25 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
   }
 `)
 
+const DeleteThreadMessagePairMutation = graphql(/* GraphQL */ `
+  mutation DeleteThreadMessagePair(
+    $threadId: ID!
+    $userMessageId: ID!
+    $assistantMessageId: ID!
+  ) {
+    deleteThreadMessagePair(
+      threadId: $threadId
+      userMessageId: $userMessageId
+      assistantMessageId: $assistantMessageId
+    )
+  }
+`)
+
 export function useThreadRun({
   onError,
   threadId: propsThreadId,
   headers,
-  onThreadCreated
+  onAssistantMessageCompleted
 }: UseThreadRunOptions) {
   const [threadId, setThreadId] = React.useState<string | undefined>(
     propsThreadId
@@ -150,8 +168,8 @@ export function useThreadRun({
       setPause(true)
       setFollowupPause(true)
       setIsLoading(false)
-      if (!silent && !propsThreadId && threadId) {
-        onThreadCreated?.(threadId)
+      if (!silent && threadId) {
+        onAssistantMessageCompleted?.(threadId, threadRunItem)
       }
     },
     300,
@@ -279,7 +297,9 @@ export function useThreadRun({
     }
   }, [createThreadRunResult])
 
-  const triggerRequest = async (
+  const deleteThreadMessagePair = useMutation(DeleteThreadMessagePairMutation)
+
+  const sendUserMessage = async (
     userMessage: CreateMessageInput,
     options?: ThreadRunOptionsInput
   ) => {
@@ -297,12 +317,41 @@ export function useThreadRun({
     }
   }
 
+  const regenerate = (payload: {
+    threadId: string
+    userMessageId: string
+    assistantMessageId: string
+    userMessage: CreateMessageInput
+    threadRunOptions?: ThreadRunOptionsInput
+  }) => {
+    if (!threadId) return
+
+    setIsLoading(true)
+    setError(undefined)
+    // 1. delete message pair
+    deleteThreadMessagePair({
+      threadId: payload.threadId,
+      userMessageId: payload.userMessageId,
+      assistantMessageId: payload.assistantMessageId
+    })
+      .then(res => {
+        // 2. send userMessage
+        if (res?.data?.deleteThreadMessagePair) {
+          sendUserMessage(payload.userMessage, payload.threadRunOptions)
+        }
+      })
+      .catch(e => {
+        // FIXME error handling
+      })
+  }
+
   return {
     isLoading,
     answer: threadRunItem,
     error,
     setError,
-    triggerRequest,
-    stop
+    sendUserMessage,
+    stop,
+    regenerate
   }
 }

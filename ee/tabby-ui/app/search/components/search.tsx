@@ -43,7 +43,7 @@ import {
   IconLayers,
   IconLink,
   IconPlus,
-  // IconRefresh,
+  IconRefresh,
   IconSparkles,
   IconSpinner,
   IconStop
@@ -85,7 +85,8 @@ import {
   MessageCodeSearchHit,
   MessageDocSearchHit,
   RepositoryListQuery,
-  Role
+  Role,
+  ThreadRunItem
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
@@ -194,7 +195,7 @@ const listThreadMessages = graphql(/* GraphQL */ `
 `)
 
 export function Search() {
-  const { updateUrlComponents, pathname, searchParams } = useRouterStuff()
+  const { updateUrlComponents, pathname } = useRouterStuff()
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const isChatEnabled = useIsChatEnabled()
@@ -203,6 +204,7 @@ export function Search() {
   const [stopButtonVisible, setStopButtonVisible] = useState(true)
   const [isReady, setIsReady] = useState(false)
   const [extraContext, setExtraContext] = useState<AnswerEngineExtraContext>({})
+  const [currentUserMessageId, setCurrentUserMessageId] = useState<string>('')
   const [currentAssistantMessageId, setCurrentAssistantMessageId] =
     useState<string>('')
   const contentContainerRef = useRef<HTMLDivElement>(null)
@@ -251,7 +253,26 @@ export function Search() {
     }
   }, [threadMessages])
 
-  const onThreadCreated = (threadId: string) => {
+  const updateCurrentMessagePairIDs = (
+    userMessageId: string,
+    assistantMessageId: string
+  ) => {
+    const userMessageIndex = messages.findIndex(
+      o => o.id === currentUserMessageId
+    )
+    const assistantMessageIndex = messages.findIndex(
+      o => o.id === currentAssistantMessageId
+    )
+    if (userMessageIndex > -1 && assistantMessageIndex > -1) {
+      const newMessage = [...messages]
+      newMessage[userMessageIndex].id = userMessageId
+      newMessage[assistantMessageIndex].id = assistantMessageId
+      setMessages(newMessage)
+    }
+  }
+
+  // `/search` -> `/search/{slug}-{threadId}`
+  const updateURLPattern = (threadId: string) => {
     const title = messages?.[0]?.content
     const slug = slugify(title, {
       lower: true
@@ -276,10 +297,30 @@ export function Search() {
     })
   }
 
-  const { triggerRequest, isLoading, error, answer, stop } = useThreadRun({
-    threadId,
-    onThreadCreated
-  })
+  const onAssistantMessageCompleted = (
+    newThreadId: string,
+    threadRunItem: ThreadRunItem | undefined
+  ) => {
+    if (
+      threadRunItem?.threadUserMessageCreated &&
+      threadRunItem.threadAssistantMessageCreated
+    ) {
+      updateCurrentMessagePairIDs(
+        threadRunItem.threadUserMessageCreated,
+        threadRunItem.threadAssistantMessageCreated
+      )
+    }
+
+    if (newThreadId && !threadId) {
+      updateURLPattern(newThreadId)
+    }
+  }
+
+  const { sendUserMessage, isLoading, error, answer, stop, regenerate } =
+    useThreadRun({
+      threadId,
+      onAssistantMessageCompleted
+    })
 
   const isLoadingRef = useLatest(isLoading)
 
@@ -319,7 +360,6 @@ export function Search() {
 
   // for synchronizing the active pathname
   useEffect(() => {
-    // prevActivePath.current = activePath
     setActivePathname(pathname)
 
     if (!isPathnameInitialized) {
@@ -392,23 +432,7 @@ export function Search() {
 
     if (currentAssistantMessageIndex <= 0) return
 
-    // updateUserMessageId
-    // if (threadRun?.threadUserMessageCreated) {
-    //   const currentUserMessage = newMessages[currentAssistantMessageIndex - 1]
-    //   newMessages = getMessagesWithNewMessageId(
-    //     newMessages,
-    //     currentUserMessage.id,
-    //     threadRun.threadUserMessageCreated
-    //   )
-    // }
-
     const currentAssistantMessage = newMessages[currentAssistantMessageIndex]
-
-    // updateAssistantMessageId
-    // if (threadRun?.threadAssistantMessageCreated) {
-    //   currentAssistantMessage.id = threadRun.threadAssistantMessageCreated
-    //   setCurrentAssistantMessageId(threadRun?.threadAssistantMessageCreated)
-    // }
 
     currentAssistantMessage.content =
       answer?.threadAssistantMessageContentDelta || ''
@@ -492,14 +516,15 @@ export function Search() {
   }, [devPanelOpen])
 
   const onSubmitSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
-    const newAssistantId = nanoid()
+    const newUserMessageId = nanoid()
+    const newAssistantMessageId = nanoid()
     const newUserMessage: ConversationMessage = {
-      id: nanoid(),
+      id: newUserMessageId,
       role: Role.User,
       content: question
     }
     const newAssistantMessage: ConversationMessage = {
-      id: newAssistantId,
+      id: newAssistantMessageId,
       role: Role.Assistant,
       content: ''
     }
@@ -509,10 +534,11 @@ export function Search() {
       ? { gitUrl: _repository.gitUrl, content: question }
       : null
 
-    setCurrentAssistantMessageId(newAssistantId)
+    setCurrentUserMessageId(newUserMessageId)
+    setCurrentAssistantMessageId(newAssistantMessageId)
     setMessages([...messages].concat([newUserMessage, newAssistantMessage]))
 
-    triggerRequest(
+    sendUserMessage(
       {
         content: question
       },
@@ -524,39 +550,50 @@ export function Search() {
     )
   }
 
-  // FIXME
-  const onRegenerateResponse = (
-    id: string,
-    conversationData?: ConversationMessage[]
-  ) => {
-    const data = conversationData || messages
-    const targetAnswerIdx = data.findIndex(item => item.id === id)
-    if (targetAnswerIdx < 1) return
-    const targetQuestionIdx = targetAnswerIdx - 1
-    const targetQuestion = data[targetQuestionIdx]
+  // regenerate ths last assistant message
+  const onRegenerateResponse = () => {
+    if (!threadId) return
 
-    const newMessages = [...data]
-    let newTargetAnswer = newMessages[targetAnswerIdx]
-    newTargetAnswer.content = ''
-    newTargetAnswer.attachment = {
-      doc: [],
-      code: []
+    const assistantMessageIndex = messages.length - 1
+    const userMessageIndex = assistantMessageIndex - 1
+    if (assistantMessageIndex === -1 || userMessageIndex <= -1) return
+
+    const prevUserMessageId = messages[userMessageIndex].id
+    const prevAssistantMessageId = messages[assistantMessageIndex].id
+
+    const newMessages = messages.slice(0, -2)
+    const userMessage = messages[userMessageIndex]
+    const newUserMessage: ConversationMessage = {
+      ...userMessage,
+      id: nanoid()
     }
-    newTargetAnswer.error = undefined
-    // newTargetAnswer.isLoading = true
+    const newAssistantMessage: ConversationMessage = {
+      id: nanoid(),
+      role: Role.Assistant,
+      content: ''
+    }
+    const _repository = extraContext?.repository
+    const codeQuery: InputMaybe<CodeQueryInput> = _repository
+      ? { gitUrl: _repository.gitUrl, content: newUserMessage.content }
+      : null
 
-    setCurrentAssistantMessageId(newTargetAnswer.id)
-    setMessages(newMessages)
-    triggerRequest(
-      {
-        content: targetQuestion.content
+    setCurrentUserMessageId(newUserMessage.id)
+    setCurrentAssistantMessageId(newAssistantMessage.id)
+    setMessages(newMessages.concat([newUserMessage, newAssistantMessage]))
+
+    regenerate({
+      threadId,
+      userMessageId: prevUserMessageId,
+      assistantMessageId: prevAssistantMessageId,
+      userMessage: {
+        content: newUserMessage.content
       },
-      {
+      threadRunOptions: {
         generateRelevantQuestions: true,
-        docQuery: { content: targetQuestion.content }
-        // FIXME docQuery
+        codeQuery,
+        docQuery: { content: newUserMessage.content }
       }
-    )
+    })
   }
 
   const onToggleFullScreen = (fullScreen: boolean) => {
@@ -820,7 +857,7 @@ function AnswerBlock({
 
     const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
     const content = answer.content
-      .replace(citationMatchRegex, (match, p1) => {
+      .replace(citationMatchRegex, match => {
         const citationNumberMatch = match?.match(/\d+/)
         return `[${citationNumberMatch}]`
       })
@@ -891,11 +928,11 @@ function AnswerBlock({
     setRelevantCodeHighlightIndex(undefined)
   }
 
-  const onCodeCitationClick = (code: MessageAttachmentCode) => {
+  const openCodeBrowserTab = (code: MessageAttachmentCode) => {
     const start_line = code?.startLine ?? 0
     const lineCount = code.content.split('\n').length
     const end_line = start_line + lineCount - 1
-    // FIXME utils
+
     if (!code.filepath) return
     const url = new URL(`${window.location.origin}/files`)
     const searchParams = new URLSearchParams()
@@ -913,6 +950,8 @@ function AnswerBlock({
 
     window.open(url.toString())
   }
+
+  const onCodeCitationClick = (code: MessageAttachmentCode) => {}
 
   const messageAttachmentDocs = answer?.attachment?.doc
   const messageAttachmentCode = answer?.attachment?.code
@@ -1024,8 +1063,7 @@ function AnswerBlock({
                 value={getCopyContent(answer)}
                 text="Copy"
               />
-              {/* FIXME hide regenerate for now */}
-              {/* {!isLoading && isLastAssistantMessage && (
+              {!isLoading && isLastAssistantMessage && (
                 <Button
                   className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
                   variant="ghost"
@@ -1034,7 +1072,7 @@ function AnswerBlock({
                   <IconRefresh />
                   <p>Regenerate</p>
                 </Button>
-              )} */}
+              )}
             </div>
           )}
         </div>
