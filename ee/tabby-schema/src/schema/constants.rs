@@ -5,7 +5,8 @@ lazy_static! {
     pub static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("^[a-zA-Z][\\w.-]+$").unwrap();
     pub static ref USERNAME_REGEX: Regex =
         Regex::new(r"^[^0-9±!@£$%^&*_+§¡€#¢¶•ªº«\\/<>?:;|=.,]{2,20}$").unwrap();
-    pub static ref WEB_DOCUMENT_NAME_REGEX: Regex = Regex::new(r"^[A-Za-z][A-Za-z0-9\ ]*$").unwrap();
+    pub static ref WEB_DOCUMENT_NAME_REGEX: Regex =
+        Regex::new(r"^[A-Za-z][A-Za-z0-9\ ]*$").unwrap();
 }
 
 #[cfg(test)]

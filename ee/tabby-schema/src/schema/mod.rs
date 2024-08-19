@@ -54,10 +54,10 @@ use self::{
     web_crawler::{CreateWebCrawlerUrlInput, WebCrawlerService, WebCrawlerUrl},
     web_documents::{CreateCustomDocumentInput, CustomWebDocument, WebDocumentService},
 };
-use crate::web_documents::{PresetWebDocument, SetPresetDocumentActiveInput};
 use crate::{
     env,
     juniper::relay::{self, query_async, Connection},
+    web_documents::{PresetWebDocument, SetPresetDocumentActiveInput},
 };
 
 pub trait ServiceLocator: Send + Sync {

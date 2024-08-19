@@ -542,6 +542,7 @@ type PresetWebDocument {
   name: String!
   id: ID!
   active: Boolean!
+  "`updated_at` is only filled when the preset is active."
   updatedAt: DateTime
   jobInfo: JobInfo
 }

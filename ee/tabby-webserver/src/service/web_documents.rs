@@ -1,15 +1,13 @@
 use std::sync::Arc;
 
-use super::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
 use async_trait::async_trait;
 use juniper::ID;
-use tabby_db::{DbConn, WebDocumentDAO};
-use tabby_schema::web_documents::PresetWebDocument;
+use tabby_db::DbConn;
 use tabby_schema::{
-    job::{JobInfo, JobService},
-    web_documents::{CustomWebDocument, WebDocumentService},
-    AsID, AsRowid, Result,
+    job::JobService,
+    web_documents::{CustomWebDocument, PresetWebDocument, WebDocumentService}, Result,
 };
+
 
 pub fn create(db: DbConn, job_service: Arc<dyn JobService>) -> impl WebDocumentService {
     WebDocumentServiceImpl { db, job_service }
