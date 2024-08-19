@@ -615,51 +615,37 @@ export function Search() {
                   Home
                 </Button>
               </div>
-              <div className="flex items-center gap-x-6">
+              <div className="flex items-center gap-2">
                 {!!threadId && (
-                  <div className="flex items-center gap-2">
-                    <Tooltip delayDuration={300}>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
-                          onClick={() => router.push('/')}
-                        >
-                          <IconPlus />
-                          New Thread
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Create a New Thread</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <Tooltip delayDuration={300}>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
-                          onClick={onCopy}
-                        >
-                          {isCopied ? (
-                            <IconCheck className="text-green-600" />
-                          ) : (
-                            <IconLink />
-                          )}
-                          Share
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Copy Link</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
+                  <>
+                    <Button
+                      variant="ghost"
+                      className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
+                      onClick={() => router.push('/')}
+                    >
+                      <IconPlus />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
+                      onClick={onCopy}
+                    >
+                      {isCopied ? (
+                        <IconCheck className="text-green-600" />
+                      ) : (
+                        <IconLink />
+                      )}
+                    </Button>
+                  </>
                 )}
                 <ClientOnly>
                   <ThemeToggle />
                 </ClientOnly>
-                <UserPanel showHome={false} showSetting>
-                  <UserAvatar className="h-10 w-10 border" />
-                </UserPanel>
+                <div className='ml-2'>
+                  <UserPanel showHome={false} showSetting>
+                    <UserAvatar className="h-10 w-10 border" />
+                  </UserPanel>
+                </div>
               </div>
             </header>
 
@@ -849,7 +835,7 @@ function AnswerBlock({
 
   const totalHeightInRem = answer.attachment?.doc?.length
     ? Math.ceil(answer.attachment.doc.length / 4) * SOURCE_CARD_STYLE.expand +
-      0.5 * Math.floor(answer.attachment.doc.length / 4)
+    0.5 * Math.floor(answer.attachment.doc.length / 4)
     : 0
 
   const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
