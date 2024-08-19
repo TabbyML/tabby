@@ -40,7 +40,12 @@ impl WebDocumentService for WebDocumentServiceImpl {
         Ok(())
     }
 
-    async fn list_preset_web_documents(&self, active: bool) -> Result<Vec<PresetWebDocument>> {
+    async fn list_preset_web_documents(&self,
+                                       after: Option<String>,
+                                       before: Option<String>,
+                                       first: Option<usize>,
+                                       last: Option<usize>,
+                                       active: bool) -> Result<Vec<PresetWebDocument>> {
         Ok(vec![])
     }
 

@@ -590,11 +590,23 @@ impl Query {
         )
         .await
     }
-    async fn preset_web_documents(ctx: &Context, active: bool) -> Result<Vec<PresetWebDocument>> {
-        ctx.locator
-            .web_documents()
-            .list_preset_web_documents(active)
-            .await
+    async fn preset_web_documents(ctx: &Context,
+                                  after: Option<String>,
+                                  before: Option<String>,
+                                  first: Option<i32>,
+                                  last: Option<i32>,
+                                  active: bool) -> Result<Connection<PresetWebDocument>> {
+        query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .web_documents()
+                    .list_preset_web_documents(after, before, first, last, active)
+                    .await
+            }).await
     }
 }
 
