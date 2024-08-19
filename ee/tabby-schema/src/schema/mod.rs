@@ -10,6 +10,7 @@ pub mod setting;
 pub mod thread;
 pub mod user_event;
 pub mod web_crawler;
+pub mod web_documents;
 pub mod worker;
 
 use std::sync::Arc;
@@ -51,7 +52,9 @@ use self::{
     },
     user_event::{UserEvent, UserEventService},
     web_crawler::{CreateWebCrawlerUrlInput, WebCrawlerService, WebCrawlerUrl},
+    web_documents::{CreateCustomDocumentInput, CustomWebDocument, WebDocumentService},
 };
+use crate::web_documents::{PresetWebDocument, SetPresetDocumentActiveInput};
 use crate::{
     env,
     juniper::relay::{self, query_async, Connection},
@@ -71,6 +74,7 @@ pub trait ServiceLocator: Send + Sync {
     fn analytic(&self) -> Arc<dyn AnalyticService>;
     fn user_event(&self) -> Arc<dyn UserEventService>;
     fn web_crawler(&self) -> Arc<dyn WebCrawlerService>;
+    fn web_documents(&self) -> Arc<dyn WebDocumentService>;
     fn thread(&self) -> Arc<dyn ThreadService>;
 }
 
@@ -564,6 +568,50 @@ impl Query {
         )
         .await
     }
+
+    async fn custom_web_documents(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<CustomWebDocument>> {
+        query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .web_documents()
+                    .list_custom_web_documents(after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
+    async fn preset_web_documents(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+        active: bool,
+    ) -> Result<Connection<PresetWebDocument>> {
+        query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .web_documents()
+                    .list_preset_web_documents(after, before, first, last, active)
+                    .await
+            },
+        )
+        .await
+    }
 }
 
 #[derive(GraphQLObject)]
@@ -915,6 +963,37 @@ impl Mutation {
     async fn delete_web_crawler_url(ctx: &Context, id: ID) -> Result<bool> {
         ctx.locator.web_crawler().delete_web_crawler_url(id).await?;
         Ok(true)
+    }
+
+    async fn create_custom_document(ctx: &Context, input: CreateCustomDocumentInput) -> Result<ID> {
+        input.validate()?;
+        let id = ctx
+            .locator
+            .web_documents()
+            .create_custom_web_document(input.name, input.url)
+            .await?;
+        Ok(id)
+    }
+
+    async fn delete_custom_document(ctx: &Context, id: ID) -> Result<bool> {
+        ctx.locator
+            .web_documents()
+            .delete_custom_web_document(id)
+            .await?;
+        Ok(true)
+    }
+
+    async fn set_preset_document_active(
+        ctx: &Context,
+        input: SetPresetDocumentActiveInput,
+    ) -> Result<ID> {
+        input.validate()?;
+        let id = ctx
+            .locator
+            .web_documents()
+            .set_preset_web_documents_active(input.name, input.active)
+            .await?;
+        Ok(id)
     }
 }
 

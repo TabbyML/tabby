@@ -5,6 +5,7 @@ lazy_static! {
     pub static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("^[a-zA-Z][\\w.-]+$").unwrap();
     pub static ref USERNAME_REGEX: Regex =
         Regex::new(r"^[^0-9±!@£$%^&*_+§¡€#¢¶•ªº«\\/<>?:;|=.,]{2,20}$").unwrap();
+    pub static ref WEB_DOCUMENT_NAME_REGEX: Regex = Regex::new(r"^[A-Za-z][A-Za-z0-9\ ]*$").unwrap();
 }
 
 #[cfg(test)]
@@ -37,6 +38,24 @@ mod tests {
 
         for (name, expected) in test_cases {
             let result = USERNAME_REGEX.is_match(name);
+            assert_eq!(result, expected, "Failed for name: {}", name);
+        }
+    }
+
+    #[test]
+    fn test_web_document_name_regex() {
+        let test_cases = vec![
+            ("John", true),    // English name
+            ("Müller", false), // German name
+            ("abc123", true),
+            ("Abc 123", true),
+            (" abc 123", false),
+            ("abc123*", false),
+            ("abc123_", false),
+        ];
+
+        for (name, expected) in test_cases {
+            let result = WEB_DOCUMENT_NAME_REGEX.is_match(name);
             assert_eq!(result, expected, "Failed for name: {}", name);
         }
     }

@@ -12,6 +12,7 @@ mod setting;
 mod thread;
 mod user_event;
 pub mod web_crawler;
+pub mod web_documents;
 
 use std::sync::Arc;
 
@@ -43,6 +44,7 @@ use tabby_schema::{
     thread::ThreadService,
     user_event::UserEventService,
     web_crawler::WebCrawlerService,
+    web_documents::WebDocumentService,
     worker::WorkerService,
     AsID, AsRowid, CoreError, Result, ServiceLocator,
 };
@@ -60,6 +62,7 @@ struct ServerContext {
     user_event: Arc<dyn UserEventService>,
     job: Arc<dyn JobService>,
     web_crawler: Arc<dyn WebCrawlerService>,
+    web_documents: Arc<dyn WebDocumentService>,
     thread: Arc<dyn ThreadService>,
 
     logger: Arc<dyn EventLogger>,
@@ -77,6 +80,7 @@ impl ServerContext {
         repository: Arc<dyn RepositoryService>,
         integration: Arc<dyn IntegrationService>,
         web_crawler: Arc<dyn WebCrawlerService>,
+        web_documents: Arc<dyn WebDocumentService>,
         job: Arc<dyn JobService>,
         answer: Option<Arc<AnswerService>>,
         db_conn: DbConn,
@@ -105,6 +109,7 @@ impl ServerContext {
                 setting.clone(),
             )),
             web_crawler,
+            web_documents,
             thread,
             license,
             repository,
@@ -260,6 +265,10 @@ impl ServiceLocator for ArcServerContext {
         self.0.web_crawler.clone()
     }
 
+    fn web_documents(&self) -> Arc<dyn WebDocumentService> {
+        self.0.web_documents.clone()
+    }
+
     fn thread(&self) -> Arc<dyn ThreadService> {
         self.0.thread.clone()
     }
@@ -271,6 +280,7 @@ pub async fn create_service_locator(
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
     web_crawler: Arc<dyn WebCrawlerService>,
+    web_documents: Arc<dyn WebDocumentService>,
     job: Arc<dyn JobService>,
     answer: Option<Arc<AnswerService>>,
     db: DbConn,
@@ -283,6 +293,7 @@ pub async fn create_service_locator(
             repository,
             integration,
             web_crawler,
+            web_documents,
             job,
             answer,
             db,
