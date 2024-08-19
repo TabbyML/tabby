@@ -11,7 +11,7 @@ use async_trait::async_trait;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use juniper::{graphql_object, GraphQLEnum, GraphQLObject, ID};
 use serde::Deserialize;
-use tabby_common::config::RepositoryConfig;
+use tabby_common::config::{CodeRepository, RepositoryConfig};
 pub use third_party::{ProvidedRepository, ThirdPartyRepositoryService};
 
 use super::Result;
@@ -40,6 +40,10 @@ pub enum RepositoryKind {
 #[derive(GraphQLObject, Debug)]
 pub struct Repository {
     pub id: ID,
+
+    #[graphql(skip)]
+    pub source_id: String,
+
     pub name: String,
     pub kind: RepositoryKind,
 
@@ -58,97 +62,13 @@ pub struct GitReference {
 
 impl From<GitRepository> for Repository {
     fn from(value: GitRepository) -> Self {
-        let config = RepositoryConfig::new(value.git_url);
         Self {
+            source_id: value.source_id(),
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Git,
-            dir: config.dir(),
-            git_url: config.canonical_git_url(),
-            refs: value.refs,
-        }
-    }
-}
-
-#[derive(GraphQLObject, Debug)]
-#[graphql(context = Context)]
-pub struct GithubProvidedRepository {
-    pub id: ID,
-    pub vendor_id: String,
-    pub github_repository_provider_id: ID,
-    pub name: String,
-    pub git_url: String,
-    pub active: bool,
-    pub refs: Vec<GitReference>,
-}
-
-impl NodeType for GithubProvidedRepository {
-    type Cursor = String;
-
-    fn cursor(&self) -> Self::Cursor {
-        self.id.to_string()
-    }
-
-    fn connection_type_name() -> &'static str {
-        "GithubProvidedRepositoryConnection"
-    }
-
-    fn edge_type_name() -> &'static str {
-        "GithubProvidedRepositoryEdge"
-    }
-}
-
-#[derive(GraphQLObject, Debug)]
-#[graphql(context = Context)]
-pub struct GitlabProvidedRepository {
-    pub id: ID,
-    pub vendor_id: String,
-    pub gitlab_repository_provider_id: ID,
-    pub name: String,
-    pub git_url: String,
-    pub active: bool,
-    pub refs: Vec<GitReference>,
-}
-
-impl NodeType for GitlabProvidedRepository {
-    type Cursor = String;
-
-    fn cursor(&self) -> Self::Cursor {
-        self.id.to_string()
-    }
-
-    fn connection_type_name() -> &'static str {
-        "GitlabProvidedRepositoryConnection"
-    }
-
-    fn edge_type_name() -> &'static str {
-        "GitlabProvidedRepositoryEdge"
-    }
-}
-
-impl From<GithubProvidedRepository> for Repository {
-    fn from(value: GithubProvidedRepository) -> Self {
-        let config = RepositoryConfig::new(value.git_url);
-        Self {
-            id: value.id,
-            name: value.name,
-            kind: RepositoryKind::Github,
-            dir: config.dir(),
-            git_url: config.canonical_git_url(),
-            refs: value.refs,
-        }
-    }
-}
-
-impl From<GitlabProvidedRepository> for Repository {
-    fn from(value: GitlabProvidedRepository) -> Self {
-        let config = RepositoryConfig::new(value.git_url);
-        Self {
-            id: value.id,
-            name: value.name,
-            kind: RepositoryKind::Gitlab,
-            dir: config.dir(),
-            git_url: config.canonical_git_url(),
+            dir: RepositoryConfig::resolve_dir(&value.git_url),
+            git_url: RepositoryConfig::canonicalize_url(&value.git_url),
             refs: value.refs,
         }
     }
@@ -303,8 +223,7 @@ pub trait RepositoryService: Send + Sync {
     fn git(&self) -> Arc<dyn GitRepositoryService>;
     fn third_party(&self) -> Arc<dyn ThirdPartyRepositoryService>;
 
-    async fn list_all_repository_urls(&self) -> Result<Vec<RepositoryConfig>>;
-    async fn list_all_sources(&self) -> Result<Vec<(String, String)>>;
+    async fn list_all_code_repository(&self) -> Result<Vec<CodeRepository>>;
 
-    async fn resolve_web_source_id_by_git_url(&self, git_url: &str) -> Result<String>;
+    async fn resolve_source_id_by_git_url(&self, git_url: &str) -> Result<String>;
 }

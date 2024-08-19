@@ -9,7 +9,8 @@ use crate::indexer::{IndexId, ToIndexId};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SourceCode {
-    pub id: String,
+    pub source_file_id: String,
+    pub source_id: String,
     pub git_url: String,
     pub basedir: String,
     pub filepath: String,
@@ -25,8 +26,11 @@ pub struct SourceCode {
 impl ToIndexId for SourceCode {
     fn to_index_id(&self) -> IndexId {
         IndexId {
-            source_id: self.git_url.clone(),
-            id: self.id.clone(),
+            source_id: self.source_id.clone(),
+
+            // Source file id might be duplicated across different source_ids, we prefix it with
+            // source_id to make it unique within corpus.
+            id: format!("{}:::{}", self.source_id, self.source_file_id),
         }
     }
 }
@@ -39,6 +43,10 @@ impl SourceCode {
 
     pub fn absolute_path(&self) -> PathBuf {
         Path::new(&self.basedir).join(&self.filepath)
+    }
+
+    pub fn source_file_id_from_id(id: &str) -> Option<&str> {
+        id.split(":::").nth(1)
     }
 }
 

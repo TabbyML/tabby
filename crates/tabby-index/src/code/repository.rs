@@ -5,14 +5,16 @@ use std::{
     process::Command,
 };
 
-use tabby_common::{config::RepositoryConfig, path::repositories_dir};
+use tabby_common::path::repositories_dir;
 use tracing::warn;
+
+use super::CodeRepository;
 
 trait RepositoryExt {
     fn sync(&self);
 }
 
-impl RepositoryExt for RepositoryConfig {
+impl RepositoryExt for CodeRepository {
     fn sync(&self) {
         let dir = self.dir();
         let mut finished = false;
@@ -64,7 +66,7 @@ fn pull_remote(path: &Path) -> bool {
     true
 }
 
-pub fn sync_repository(repository: &RepositoryConfig) {
+pub fn sync_repository(repository: &CodeRepository) {
     if repository.is_local_dir() {
         if !repository.dir().exists() {
             panic!("Directory {} does not exist", repository.dir().display());
@@ -74,7 +76,7 @@ pub fn sync_repository(repository: &RepositoryConfig) {
     }
 }
 
-pub fn garbage_collection(repositories: &[RepositoryConfig]) {
+pub fn garbage_collection(repositories: &[CodeRepository]) {
     let names = repositories.iter().map(|r| r.dir()).collect::<HashSet<_>>();
 
     let Ok(dir) = fs::read_dir(repositories_dir()) else {

@@ -13,6 +13,30 @@ use tantivy::{
     DateTime, Term,
 };
 
+/// On a high level, the index schema is structured as follows:
+///
+/// ```text
+///
+///           +----------------+
+///           |     corpus     | <--- A group of documents, each document has a unique
+///           +----------------+      identifier (id) within the corpus.
+///                   |
+///                   v
+///           +----------------+
+///           |    document    | <--- A document is a group of chunks, each document has a
+///           |      (id)      |      unique identifier (id) across corpus, document's
+///           +----------------+      attributes are stored but not indexed.
+///                   |
+///                   v
+///           +----------------+
+///           |     chunk      | <--- Each chunk has a unique identifier (chunk_id) within
+///           |   (chunk_id)   |      the document. Chunk is the unit being retrieved during
+///           +----------------+      the search process.
+///
+/// ```
+///
+/// Across the corpus, there is a concept of source_id, which identifies a group of documents.
+/// It is usually used to identify the source of the document, such as a Github connection or a web document crawl.
 pub struct IndexSchema {
     pub schema: Schema,
 
@@ -21,7 +45,7 @@ pub struct IndexSchema {
     /// See ./doc or ./code as an example
     pub field_corpus: Field,
 
-    /// Unique identifier (within corpus) for a group of documents.
+    /// Unique identifier (across corpus) for a group of documents.
     pub field_source_id: Field,
 
     /// Unique identifier (within corpus) for the document, each document could have multiple chunks indexed.
@@ -47,6 +71,7 @@ pub struct IndexSchema {
 
 const FIELD_CHUNK_ID: &str = "chunk_id";
 const FIELD_UPDATED_AT: &str = "updated_at";
+pub const FIELD_SOURCE_ID: &str = "source_id_v2";
 
 pub mod corpus {
     pub const CODE: &str = "code";
@@ -62,7 +87,7 @@ impl IndexSchema {
         let mut builder = Schema::builder();
 
         let field_corpus = builder.add_text_field("corpus", STRING | FAST);
-        let field_source_id = builder.add_text_field("source_id", STRING | FAST);
+        let field_source_id = builder.add_text_field(FIELD_SOURCE_ID, STRING | FAST);
         let field_id = builder.add_text_field("id", STRING | STORED);
 
         let field_updated_at = builder.add_date_field(FIELD_UPDATED_AT, INDEXED);
@@ -99,18 +124,11 @@ impl IndexSchema {
         }
     }
 
-    pub fn source_query(&self, corpus: &str, source_id: &str) -> impl Query {
-        let source_id_query = TermQuery::new(
+    pub fn source_id_query(&self, source_id: &str) -> impl Query {
+        TermQuery::new(
             Term::from_field_text(self.field_source_id, source_id),
             tantivy::schema::IndexRecordOption::Basic,
-        );
-
-        BooleanQuery::new(vec![
-            // Must match the corpus
-            (Occur::Must, self.corpus_query(corpus)),
-            // Must match the source id
-            (Occur::Must, Box::new(source_id_query)),
-        ])
+        )
     }
 
     /// Build a query to find the document with the given `doc_id`.

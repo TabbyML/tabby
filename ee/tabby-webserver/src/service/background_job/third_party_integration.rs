@@ -6,7 +6,7 @@ use futures::{stream::BoxStream, StreamExt};
 use issues::{list_github_issues, list_gitlab_issues};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
-use tabby_common::config::RepositoryConfig;
+use tabby_common::config::CodeRepository;
 use tabby_index::public::{CodeIndexer, DocIndexer, WebDocument};
 use tabby_inference::Embedding;
 use tabby_schema::{
@@ -102,8 +102,11 @@ impl SchedulerGithubGitlabJob {
             repository.display_name
         );
         let mut code = CodeIndexer::default();
-        code.refresh(embedding.clone(), &RepositoryConfig::new(authenticated_url))
-            .await;
+        code.refresh(
+            embedding.clone(),
+            &CodeRepository::new(&authenticated_url, &repository.source_id()),
+        )
+        .await;
 
         logkit::info!(
             "Indexing documents for repository {}",

@@ -187,12 +187,12 @@ async fn collect_snippets(
     language: &str,
     content: &str,
 ) -> Vec<Snippet> {
-    let query = CodeSearchQuery {
-        git_url: git_url.to_owned(),
-        filepath: filepath.map(|x| x.to_owned()),
-        language: Some(language.to_owned()),
-        content: content.to_owned(),
-    };
+    let query = CodeSearchQuery::new(
+        git_url.to_owned(),
+        filepath.map(|x| x.to_owned()),
+        Some(language.to_owned()),
+        content.to_owned(),
+    );
 
     let mut ret = Vec::new();
 

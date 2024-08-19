@@ -14,7 +14,7 @@ use helper::{CronStream, Job, JobLogger};
 use index_garbage_collection::IndexGarbageCollection;
 use juniper::ID;
 use serde::{Deserialize, Serialize};
-use tabby_common::config::RepositoryConfig;
+use tabby_common::config::CodeRepository;
 use tabby_db::DbConn;
 use tabby_inference::Embedding;
 use tabby_schema::{
@@ -31,7 +31,7 @@ use self::{db::DbMaintainanceJob, third_party_integration::SyncIntegrationJob};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BackgroundJobEvent {
-    SchedulerGitRepository(RepositoryConfig),
+    SchedulerGitRepository(CodeRepository),
     SchedulerGithubGitlabRepository(ID),
     SyncThirdPartyRepositories(ID),
     WebCrawler(String, String),
