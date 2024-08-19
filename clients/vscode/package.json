@@ -352,7 +352,7 @@
       "activitybar": [
         {
           "id": "chatView",
-          "title": "Tabby",
+          "title": "Tabby Chat",
           "icon": "assets/chat.svg"
         }
       ]
@@ -362,7 +362,7 @@
         {
           "type": "webview",
           "id": "tabby.chatView",
-          "name": "Tabby",
+          "name": "Tabby Chat",
           "visibility": "visible"
         }
       ]
