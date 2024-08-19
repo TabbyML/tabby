@@ -475,6 +475,10 @@ type Mutation {
   triggerJobRun(command: String!): ID!
   createWebCrawlerUrl(input: CreateWebCrawlerUrlInput!): ID!
   deleteWebCrawlerUrl(id: ID!): Boolean!
+  "requires admin"
+  setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
+  createCustomDocument(input: CreateCustomDocumentInput!): ID!
+  deleteCustomDocument(id: ID!): Boolean!
 }
 
 type NetworkSetting {
@@ -566,6 +570,8 @@ type Query {
     Thread is public within an instance, so no need to check for ownership.
   """
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
+  presetWebDocument(active: Boolean!): [PresetWebDocument!]!
+  customWebDocument(after: String, before: String, first: Int, last: Int): CustomWebDocumentConnection!
 }
 
 type RefreshTokenResponse {
@@ -709,4 +715,39 @@ type WebCrawlerUrlConnection {
 type WebCrawlerUrlEdge {
   node: WebCrawlerUrl!
   cursor: String!
+}
+
+input CreateCustomDocumentInput {
+  url: String!
+  name: String!
+}
+
+input SetPresetDocumentActiveInput {
+  name: String!
+  active: Boolean!
+}
+
+type PresetWebDocument {
+  id: ID
+  name: String!
+  createdAt: DateTime!
+  jobInfo: JobInfo
+}
+
+type CustomWebDocument {
+  id: ID!
+  name: String!
+  url: String!
+  createdAt: DateTime!
+  jobInfo: JobInfo!
+}
+
+type CustomWebDocumentEdge {
+  node: CustomWebDocument!
+  cursor: String!
+}
+
+type CustomWebDocumentConnection {
+  edges: [CustomWebDocumentEdge!]!
+  pageInfo: PageInfo!
 }

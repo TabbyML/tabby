@@ -12,7 +12,6 @@ mod setting;
 mod thread;
 mod user_event;
 pub mod web_crawler;
-
 use std::sync::Arc;
 
 use answer::AnswerService;
