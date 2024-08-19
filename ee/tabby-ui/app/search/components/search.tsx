@@ -87,6 +87,7 @@ import {
   RepositoryListQuery,
   Role
 } from '@/lib/gql/generates/graphql'
+import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { repositoryListQuery } from '@/lib/tabby/query'
@@ -99,7 +100,6 @@ import { CodeReferences } from '@/components/chat/question-answer'
 
 import { DevPanel } from './dev-panel'
 import { MessagesSkeleton } from './messages-skeleton'
-import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 
 type ConversationMessage = Omit<
   Message,
@@ -617,7 +617,7 @@ export function Search() {
               </div>
               <div className="flex items-center gap-x-6">
                 {!!threadId && (
-                  <div className='flex items-center gap-2'>
+                  <div className="flex items-center gap-2">
                     <Tooltip delayDuration={300}>
                       <TooltipTrigger asChild>
                         <Button
@@ -849,7 +849,7 @@ function AnswerBlock({
 
   const totalHeightInRem = answer.attachment?.doc?.length
     ? Math.ceil(answer.attachment.doc.length / 4) * SOURCE_CARD_STYLE.expand +
-    0.5 * Math.floor(answer.attachment.doc.length / 4)
+      0.5 * Math.floor(answer.attachment.doc.length / 4)
     : 0
 
   const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
