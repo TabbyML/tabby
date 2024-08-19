@@ -274,7 +274,7 @@ export class ChatViewProvider implements WebviewViewProvider {
       }
     }
 
-    return
+    return;
   }
 
   private async refreshChatPage() {
