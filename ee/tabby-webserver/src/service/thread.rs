@@ -375,5 +375,12 @@ mod tests {
             )
             .await
             .is_ok());
+
+        // Verify that the messages were deleted
+        let messages = service
+            .list_thread_messages(&thread_id, None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(messages.len(), 1);
     }
 }

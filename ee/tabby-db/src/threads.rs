@@ -269,10 +269,13 @@ impl DbConn {
             bail!("Invalid message pair");
         }
 
-        let message_ids = format!("{}, {}", user_message_id, assistant_message_id);
-        query!("DELETE FROM thread_messages WHERE id IN (?)", message_ids)
-            .execute(&self.pool)
-            .await?;
+        query!(
+            "DELETE FROM thread_messages WHERE id = ? or id = ?",
+            user_message_id,
+            assistant_message_id
+        )
+        .execute(&self.pool)
+        .await?;
 
         Ok(())
     }
