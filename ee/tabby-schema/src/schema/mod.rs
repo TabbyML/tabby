@@ -105,6 +105,12 @@ pub enum CoreError {
     #[error("SMTP is not configured")]
     EmailNotConfigured,
 
+    #[error("SMTP cert is invalid")]
+    EmailInvalidCert,
+
+    #[error("SMTP cert is invalid")]
+    EmailInvalidCertPath(#[from] std::io::Error),
+
     #[error("{0}")]
     InvalidLicense(&'static str),
 
