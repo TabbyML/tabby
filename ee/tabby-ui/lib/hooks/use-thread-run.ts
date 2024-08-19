@@ -261,6 +261,27 @@ export function useThreadRun({
     }
   }
 
+  const onDeleteThreadMessagePair = (
+    threadId: string,
+    userMessageId: string,
+    assistantMessageId: string
+  ) => {
+    return deleteThreadMessagePair({
+      threadId,
+      userMessageId,
+      assistantMessageId
+    })
+      .then(res => {
+        if (res?.data?.deleteThreadMessagePair) {
+          return true
+        }
+        return false
+      })
+      .catch(e => {
+        return false
+      })
+  }
+
   const regenerate = (payload: {
     threadId: string
     userMessageId: string
@@ -296,6 +317,7 @@ export function useThreadRun({
     setError,
     sendUserMessage,
     stop: stop.current,
-    regenerate
+    regenerate,
+    deleteThreadMessagePair: onDeleteThreadMessagePair
   }
 }

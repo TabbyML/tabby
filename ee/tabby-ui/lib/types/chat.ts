@@ -4,7 +4,7 @@ import type {
   components as TabbyOpenApiComponents
 } from 'tabby-openapi'
 
-import { Repository } from '../gql/generates/graphql'
+import { MessageAttachmentCode, Repository } from '../gql/generates/graphql'
 
 export interface UserMessage extends ChatMessage {
   id: string
@@ -18,7 +18,7 @@ export interface AssistantMessage {
   id: string
   message: string
   error?: string
-  relevant_code?: AnswerResponse['relevant_code']
+  relevant_code?: MessageAttachmentCode[]
 }
 
 export interface QuestionAnswerPair {
