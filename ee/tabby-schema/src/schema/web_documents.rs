@@ -40,7 +40,7 @@ impl CustomWebDocument {
 pub struct CreateCustomDocumentInput {
     #[validate(regex(
         code = "name",
-        path = "*crate::schema::constants::DOCUMENT_NAME_REGEX",
+        path = "*crate::schema::constants::WEB_DOCUMENT_NAME_REGEX",
         message = "Invalid document name"
     ))]
     pub name: String,
@@ -52,7 +52,7 @@ pub struct CreateCustomDocumentInput {
 pub struct SetPresetDocumentActiveInput {
     #[validate(regex(
         code = "name",
-        path = "*crate::schema::constants::DOCUMENT_NAME_REGEX",
+        path = "*crate::schema::constants::WEB_DOCUMENT_NAME_REGEX",
         message = "Invalid document name"
     ))]
     pub name: String,
