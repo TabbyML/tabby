@@ -5,7 +5,7 @@ lazy_static! {
     pub static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("^[a-zA-Z][\\w.-]+$").unwrap();
     pub static ref USERNAME_REGEX: Regex =
         Regex::new(r"^[^0-9±!@£$%^&*_+§¡€#¢¶•ªº«\\/<>?:;|=.,]{2,20}$").unwrap();
-    pub static ref WEB_DOCUMENT_NAME_REGEX: Regex = Regex::new(r"^[A-Za-z][A-Za-z0-9_]*$").unwrap();
+    pub static ref WEB_DOCUMENT_NAME_REGEX: Regex = Regex::new(r"^[A-Za-z][A-Za-z0-9\ ]*$").unwrap();
 }
 
 #[cfg(test)]
@@ -48,9 +48,10 @@ mod tests {
             ("John", true),    // English name
             ("Müller", false), // German name
             ("abc123", true),
-            ("Abc_123", true),
-            ("_abc_123", false),
+            ("Abc 123", true),
+            (" abc 123", false),
             ("abc123*", false),
+            ("abc123_", false),
         ];
 
         for (name, expected) in test_cases {
