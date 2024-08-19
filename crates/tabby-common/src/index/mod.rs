@@ -15,6 +15,8 @@ use tantivy::{
 
 /// On a high level, the index schema is structured as follows:
 ///
+/// ```text
+/// 
 ///           +----------------+
 ///           |     corpus     | <--- A group of documents, each document has a unique
 ///           +----------------+      identifier (id) within the corpus.
@@ -30,6 +32,8 @@ use tantivy::{
 ///           |     chunk      | <--- Each chunk has a unique identifier (chunk_id) within
 ///           |   (chunk_id)   |      the document. Chunk is the unit being retrieved during
 ///           +----------------+      the search process.
+/// 
+/// ```
 ///
 /// Across the corpus, there is a concept of source_id, which identifies a group of documents.
 /// It is usually used to identify the source of the document, such as a Github connection or a web document crawl.
