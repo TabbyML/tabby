@@ -262,6 +262,8 @@ export function useThreadRun({
     }
 
     if (
+      !!createThreadAndRunResult?.data?.createThreadAndRun
+        ?.threadAssistantMessageCreated &&
       createThreadAndRunResult?.data?.createThreadAndRun
         ?.threadAssistantMessageCreated !== processingAssistantMessageId.current
     ) {
@@ -301,6 +303,8 @@ export function useThreadRun({
     }
 
     if (
+      !!createThreadRunResult?.data?.createThreadRun
+        ?.threadAssistantMessageCreated &&
       createThreadRunResult?.data?.createThreadRun
         ?.threadAssistantMessageCreated !== processingAssistantMessageId.current
     ) {
