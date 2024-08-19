@@ -641,7 +641,7 @@ export function Search() {
                 <ClientOnly>
                   <ThemeToggle />
                 </ClientOnly>
-                <div className='ml-2'>
+                <div className="ml-2">
                   <UserPanel showHome={false} showSetting>
                     <UserAvatar className="h-10 w-10 border" />
                   </UserPanel>
@@ -835,7 +835,7 @@ function AnswerBlock({
 
   const totalHeightInRem = answer.attachment?.doc?.length
     ? Math.ceil(answer.attachment.doc.length / 4) * SOURCE_CARD_STYLE.expand +
-    0.5 * Math.floor(answer.attachment.doc.length / 4)
+      0.5 * Math.floor(answer.attachment.doc.length / 4)
     : 0
 
   const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
