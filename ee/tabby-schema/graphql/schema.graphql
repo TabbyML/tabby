@@ -540,6 +540,7 @@ type PresetWebDocument {
   name: String!
   id: ID!
   active: Boolean!
+  updatedAt: DateTime
   jobInfo: JobInfo
 }
 
