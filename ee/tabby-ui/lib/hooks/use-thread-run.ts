@@ -205,7 +205,7 @@ export function useThreadRun({
       // memo the processing assistant message id
       if (data?.createThreadAndRun?.threadAssistantMessageCreated) {
         processingAssistantMessageId.current =
-          data?.createThreadAndRun?.threadAssistantMessageCreated
+          data.createThreadAndRun.threadAssistantMessageCreated
       }
 
       return {
@@ -235,7 +235,7 @@ export function useThreadRun({
       // memo the processing assistant message id
       if (data?.createThreadRun?.threadAssistantMessageCreated) {
         processingAssistantMessageId.current =
-          data?.createThreadRun?.threadAssistantMessageCreated
+          data.createThreadRun.threadAssistantMessageCreated
       }
 
       return {
@@ -261,11 +261,12 @@ export function useThreadRun({
       return
     }
 
+    const assistantMessageId =
+      createThreadAndRunResult?.data?.createThreadAndRun
+        ?.threadAssistantMessageCreated
     if (
-      !!createThreadAndRunResult?.data?.createThreadAndRun
-        ?.threadAssistantMessageCreated &&
-      createThreadAndRunResult.data.createThreadAndRun
-        .threadAssistantMessageCreated !== processingAssistantMessageId.current
+      !!assistantMessageId &&
+      assistantMessageId !== processingAssistantMessageId.current
     ) {
       return
     }
@@ -302,11 +303,12 @@ export function useThreadRun({
       return
     }
 
+    const assistantMessageId =
+      createThreadRunResult?.data?.createThreadRun
+        ?.threadAssistantMessageCreated
     if (
-      !!createThreadRunResult?.data?.createThreadRun
-        ?.threadAssistantMessageCreated &&
-      createThreadRunResult.data.createThreadRun
-        .threadAssistantMessageCreated !== processingAssistantMessageId.current
+      !!assistantMessageId &&
+      assistantMessageId !== processingAssistantMessageId.current
     ) {
       return
     }
