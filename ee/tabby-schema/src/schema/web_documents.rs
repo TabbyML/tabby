@@ -21,6 +21,7 @@ pub struct PresetWebDocument {
     pub name: String,
     pub id: ID,
     pub active: bool,
+    /// `updated_at` is only filled when the preset is active.
     pub updated_at: Option<DateTime<Utc>>,
     pub job_info: Option<JobInfo>,
 }
