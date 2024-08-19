@@ -242,6 +242,14 @@ type CompletionStats {
   selects: Int!
 }
 
+type CustomWebDocument {
+  url: String!
+  name: String!
+  id: ID!
+  createdAt: DateTime!
+  jobInfo: JobInfo!
+}
+
 type DiskUsage {
   filepath: [String!]!
   "Size in kilobytes."
@@ -508,6 +516,12 @@ type PageInfo {
   endCursor: String
 }
 
+type PresetWebDocument {
+  name: String!
+  id: ID!
+  jobInfo: JobInfo!
+}
+
 type ProvidedRepository {
   id: ID!
   integrationId: ID!
@@ -580,7 +594,7 @@ type Query {
   """
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
   customWebDocuments(after: String, before: String, first: Int, last: Int): WebDocumentConnection!
-  presetWebDocuments(active: Boolean!): [WebDocument!]!
+  presetWebDocuments(active: Boolean!): [PresetWebDocument!]!
 }
 
 type RefreshTokenResponse {
@@ -726,19 +740,12 @@ type WebCrawlerUrlEdge {
   cursor: String!
 }
 
-type WebDocument {
-  url: String!
-  id: ID!
-  createdAt: DateTime!
-  jobInfo: JobInfo!
-}
-
 type WebDocumentConnection {
   edges: [WebDocumentEdge!]!
   pageInfo: PageInfo!
 }
 
 type WebDocumentEdge {
-  node: WebDocument!
+  node: CustomWebDocument!
   cursor: String!
 }

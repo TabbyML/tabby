@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
+use super::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::{DbConn, WebDocumentDAO};
+use tabby_schema::web_documents::PresetWebDocument;
 use tabby_schema::{
     job::{JobInfo, JobService},
-    web_documents::{WebDocument, WebDocumentService},
+    web_documents::{CustomWebDocument, WebDocumentService},
     AsID, AsRowid, Result,
 };
-
-use super::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
 
 pub fn create(db: DbConn, job_service: Arc<dyn JobService>) -> impl WebDocumentService {
     WebDocumentServiceImpl { db, job_service }
@@ -28,7 +28,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<WebDocument>> {
+    ) -> Result<Vec<CustomWebDocument>> {
         Ok(vec![])
     }
 
@@ -40,7 +40,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
         Ok(())
     }
 
-    async fn list_preset_web_documents(&self, active: bool) -> Result<Vec<WebDocument>> {
+    async fn list_preset_web_documents(&self, active: bool) -> Result<Vec<PresetWebDocument>> {
         Ok(vec![])
     }
 

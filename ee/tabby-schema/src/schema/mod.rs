@@ -52,9 +52,9 @@ use self::{
     },
     user_event::{UserEvent, UserEventService},
     web_crawler::{CreateWebCrawlerUrlInput, WebCrawlerService, WebCrawlerUrl},
-    web_documents::{CreateCustomDocumentInput, WebDocument, WebDocumentService},
+    web_documents::{CreateCustomDocumentInput, CustomWebDocument, WebDocumentService},
 };
-use crate::web_documents::SetPresetDocumentActiveInput;
+use crate::web_documents::{PresetWebDocument, SetPresetDocumentActiveInput};
 use crate::{
     env,
     juniper::relay::{self, query_async, Connection},
@@ -575,7 +575,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<WebDocument>> {
+    ) -> Result<Connection<CustomWebDocument>> {
         query_async(
             after,
             before,
@@ -590,7 +590,7 @@ impl Query {
         )
         .await
     }
-    async fn preset_web_documents(ctx: &Context, active: bool) -> Result<Vec<WebDocument>> {
+    async fn preset_web_documents(ctx: &Context, active: bool) -> Result<Vec<PresetWebDocument>> {
         ctx.locator
             .web_documents()
             .list_preset_web_documents(active)

@@ -7,14 +7,23 @@ use crate::{job::JobInfo, juniper::relay::NodeType, Context, Result};
 
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
-pub struct WebDocument {
+pub struct CustomWebDocument {
     pub url: String,
+    pub name: String,
     pub id: ID,
     pub created_at: DateTime<Utc>,
     pub job_info: JobInfo,
 }
 
-impl WebDocument {
+#[derive(GraphQLObject)]
+#[graphql(context = Context)]
+pub struct PresetWebDocument {
+    pub name: String,
+    pub id: ID,
+    pub job_info: JobInfo,
+}
+
+impl CustomWebDocument {
     pub fn source_id(&self) -> String {
         Self::format_source_id(&self.id)
     }
@@ -39,7 +48,7 @@ pub struct SetPresetDocumentActiveInput {
     pub active: bool,
 }
 
-impl NodeType for WebDocument {
+impl NodeType for CustomWebDocument {
     type Cursor = String;
 
     fn cursor(&self) -> Self::Cursor {
@@ -63,10 +72,10 @@ pub trait WebDocumentService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<WebDocument>>;
+    ) -> Result<Vec<CustomWebDocument>>;
 
     async fn create_custom_web_document(&self, name: String, url: String) -> Result<ID>;
     async fn delete_custom_web_document(&self, id: ID) -> Result<()>;
-    async fn list_preset_web_documents(&self, active: bool) -> Result<Vec<WebDocument>>;
+    async fn list_preset_web_documents(&self, active: bool) -> Result<Vec<PresetWebDocument>>;
     async fn set_preset_web_documents_active(&self, name: String, active: bool) -> Result<ID>;
 }
