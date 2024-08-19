@@ -65,10 +65,11 @@ pub fn code_search_query(
     // language / git_url / filepath field shouldn't contribute to the score, mark them to 0.0.
     let mut subqueries = vec![
         (Occur::Must, chunk_tokens_query),
+        (Occur::Must, schema.corpus_query(corpus::CODE)),
         (
             Occur::Must,
             Box::new(ConstScoreQuery::new(
-                Box::new(schema.source_query(corpus::CODE, &query.git_url)),
+                Box::new(schema.source_id_query(&query.source_id)),
                 0.0,
             )),
         ),

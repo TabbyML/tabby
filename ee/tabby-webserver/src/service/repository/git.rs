@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use juniper::ID;
-use tabby_common::config::RepositoryConfig;
+use tabby_common::config::{CodeRepository, RepositoryConfig};
 use tabby_db::{DbConn, RepositoryDAO};
 use tabby_schema::{
     job::{JobInfo, JobService},
@@ -41,8 +41,9 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
         let mut converted_repositories = vec![];
 
         for repository in repositories {
-            let event = BackgroundJobEvent::SchedulerGitRepository(RepositoryConfig::new(
-                repository.git_url.clone(),
+            let event = BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
+                &repository.git_url,
+                &GitRepository::format_source_id(&repository.id.as_id()),
             ));
             let job_info = self.job_service.get_job_info(event.to_command()).await?;
 
@@ -60,8 +61,11 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
         let _ = self
             .job_service
             .trigger(
-                BackgroundJobEvent::SchedulerGitRepository(RepositoryConfig::new(git_url))
-                    .to_command(),
+                BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
+                    &git_url,
+                    &GitRepository::format_source_id(&id),
+                ))
+                .to_command(),
             )
             .await;
         Ok(id)
@@ -84,8 +88,11 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
         let _ = self
             .job_service
             .trigger(
-                BackgroundJobEvent::SchedulerGitRepository(RepositoryConfig::new(git_url))
-                    .to_command(),
+                BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
+                    &git_url,
+                    &GitRepository::format_source_id(id),
+                ))
+                .to_command(),
             )
             .await;
         Ok(true)
@@ -106,8 +113,10 @@ impl RepositoryProvider for GitRepositoryServiceImpl {
     async fn get_repository(&self, id: &ID) -> Result<Repository> {
         let dao = self.db.get_repository(id.as_rowid()?).await?;
 
-        let event =
-            BackgroundJobEvent::SchedulerGitRepository(RepositoryConfig::new(dao.git_url.clone()));
+        let event = BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
+            &dao.git_url,
+            &GitRepository::format_source_id(&dao.id.as_id()),
+        ));
 
         let job_info = self.job_service.get_job_info(event.to_command()).await?;
         let git_repo = to_git_repository(dao, job_info);
@@ -116,11 +125,10 @@ impl RepositoryProvider for GitRepositoryServiceImpl {
 }
 
 fn to_git_repository(repo: RepositoryDAO, job_info: JobInfo) -> GitRepository {
-    let config = RepositoryConfig::new(&repo.git_url);
     GitRepository {
         id: repo.id.as_id(),
         name: repo.name,
-        refs: tabby_git::list_refs(&config.dir())
+        refs: tabby_git::list_refs(&RepositoryConfig::resolve_dir(&repo.git_url))
             .unwrap_or_default()
             .into_iter()
             .map(|r| GitReference {

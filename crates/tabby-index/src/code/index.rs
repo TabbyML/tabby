@@ -3,13 +3,14 @@ use std::{pin::pin, sync::Arc};
 use async_stream::stream;
 use futures::StreamExt;
 use ignore::{DirEntry, Walk};
-use tabby_common::{config::RepositoryConfig, index::corpus};
+use tabby_common::index::corpus;
 use tabby_inference::Embedding;
 use tracing::warn;
 
 use super::{
     create_code_builder,
     intelligence::{CodeIntelligence, SourceCode},
+    CodeRepository,
 };
 use crate::indexer::Indexer;
 
@@ -20,7 +21,7 @@ static MIN_ALPHA_NUM_FRACTION: f32 = 0.25f32;
 static MAX_NUMBER_OF_LINES: usize = 100000;
 static MAX_NUMBER_FRACTION: f32 = 0.5f32;
 
-pub async fn index_repository(embedding: Arc<dyn Embedding>, repository: &RepositoryConfig) {
+pub async fn index_repository(embedding: Arc<dyn Embedding>, repository: &CodeRepository) {
     let total_files = Walk::new(repository.dir()).count();
     let file_stream = stream! {
         for file in Walk::new(repository.dir()) {
@@ -61,12 +62,18 @@ pub async fn garbage_collection() {
         let mut num_to_delete = 0;
 
         for await id in index.iter_ids() {
-            let item_key = id;
-            if CodeIntelligence::check_source_file_id_matched(&item_key) {
+            let Some(source_file_id) = SourceCode::source_file_id_from_id(&id) else {
+                warn!("Failed to extract source file id from index id: {id}");
+                num_to_delete += 1;
+                index.delete(&id);
+                continue;
+            };
+
+            if CodeIntelligence::check_source_file_id_matched(source_file_id) {
                 num_to_keep += 1;
             } else {
                 num_to_delete += 1;
-                index.delete(&item_key);
+                index.delete(&id);
             }
         }
 
@@ -76,7 +83,7 @@ pub async fn garbage_collection() {
 }
 
 async fn add_changed_documents(
-    repository: &RepositoryConfig,
+    repository: &CodeRepository,
     embedding: Arc<dyn Embedding>,
     files: Vec<DirEntry>,
 ) -> usize {
@@ -84,7 +91,6 @@ async fn add_changed_documents(
     let builder = Arc::new(create_code_builder(Some(embedding)));
     let index = Arc::new(Indexer::new(corpus::CODE));
     let cloned_index = index.clone();
-    let repository = repository.clone();
 
     let mut count_docs = 0;
     stream! {
@@ -98,7 +104,7 @@ async fn add_changed_documents(
                 continue;
             }
 
-            let Some(code) = CodeIntelligence::compute_source_file(&repository, file.path()) else {
+            let Some(code) = CodeIntelligence::compute_source_file(repository, file.path()) else {
                 continue;
             };
 

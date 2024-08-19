@@ -62,6 +62,26 @@ pub struct CodeSearchQuery {
     pub filepath: Option<String>,
     pub language: Option<String>,
     pub content: String,
+
+    #[serde(skip)]
+    pub source_id: String,
+}
+
+impl CodeSearchQuery {
+    pub fn new(
+        git_url: String,
+        filepath: Option<String>,
+        language: Option<String>,
+        content: String,
+    ) -> Self {
+        Self {
+            git_url,
+            filepath,
+            language,
+            content,
+            source_id: String::default(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

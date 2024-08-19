@@ -5,13 +5,16 @@ use std::{fs::read_to_string, path::Path};
 use async_stream::stream;
 use futures::Stream;
 use id::SourceFileId;
-use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext};
+use tabby_common::languages::get_language_by_ext;
 use text_splitter::{CodeSplitter, TextSplitter};
 use tracing::warn;
 use tree_sitter_tags::TagsContext;
 
-use super::languages::{self};
 pub use super::types::{Point, SourceCode, Tag};
+use super::{
+    languages::{self},
+    CodeRepository,
+};
 
 pub struct CodeIntelligence;
 
@@ -58,6 +61,7 @@ impl CodeIntelligence {
 
     pub fn check_source_file_id_matched(item_key: &str) -> bool {
         let Ok(key) = item_key.parse::<SourceFileId>() else {
+            warn!("Failed to parse key: {}", item_key);
             return false;
         };
 
@@ -69,8 +73,8 @@ impl CodeIntelligence {
         file_key.to_string() == item_key
     }
 
-    pub fn compute_source_file(config: &RepositoryConfig, path: &Path) -> Option<SourceCode> {
-        let id = Self::compute_source_file_id(path)?;
+    pub fn compute_source_file(config: &CodeRepository, path: &Path) -> Option<SourceCode> {
+        let source_file_id = Self::compute_source_file_id(path)?;
 
         if path.is_dir() || !path.exists() {
             warn!("Path {} is not a file or does not exist", path.display());
@@ -107,7 +111,8 @@ impl CodeIntelligence {
         } = metrics::compute_metrics(&contents);
 
         let source_file = SourceCode {
-            id,
+            source_file_id,
+            source_id: config.source_id.clone(),
             git_url: config.canonical_git_url(),
             basedir: config.dir().display().to_string(),
             filepath: relative_path.display().to_string(),
@@ -242,7 +247,7 @@ mod tests {
     use std::path::PathBuf;
 
     use serial_test::serial;
-    use tabby_common::path::set_tabby_root;
+    use tabby_common::{config::config_index_to_id, path::set_tabby_root};
     use tracing_test::traced_test;
 
     use super::*;
@@ -253,8 +258,8 @@ mod tests {
         path
     }
 
-    fn get_repository_config() -> RepositoryConfig {
-        RepositoryConfig::new("https://github.com/TabbyML/tabby")
+    fn get_repository_config() -> CodeRepository {
+        CodeRepository::new("https://github.com/TabbyML/tabby", &config_index_to_id(0))
     }
 
     fn get_rust_source_file() -> PathBuf {

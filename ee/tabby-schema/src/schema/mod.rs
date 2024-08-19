@@ -995,6 +995,33 @@ impl Mutation {
             .await?;
         Ok(id)
     }
+
+    /// Delete pair of user message and bot response in a thread.
+    async fn delete_thread_message_pair(
+        ctx: &Context,
+        thread_id: ID,
+        user_message_id: ID,
+        assistant_message_id: ID,
+    ) -> Result<bool> {
+        // ast-grep-ignore: use-schema-result
+        use anyhow::Context;
+
+        let user = check_user(ctx).await?;
+        let svc = ctx.locator.thread();
+        let thread = svc.get(&thread_id).await?.context("Thread not found")?;
+
+        if thread.user_id != user.id {
+            return Err(CoreError::Forbidden(
+                "You must be the thread owner to delete the latest message pair",
+            ));
+        }
+
+        ctx.locator
+            .thread()
+            .delete_thread_message_pair(&thread_id, &user_message_id, &assistant_message_id)
+            .await?;
+        Ok(true)
+    }
 }
 
 async fn check_analytic_access(ctx: &Context, users: &[ID]) -> Result<(), CoreError> {

@@ -506,6 +506,8 @@ type Mutation {
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
   deleteCustomDocument(id: ID!): Boolean!
   setPresetDocumentActive(input: SetPresetDocumentActiveInput!): ID!
+  "Delete pair of user message and bot response in a thread."
+  deleteThreadMessagePair(threadId: ID!, userMessageId: ID!, assistantMessageId: ID!): Boolean!
 }
 
 type NetworkSetting {

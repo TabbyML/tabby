@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use futures::stream::BoxStream;
 use serde_json::json;
 use tabby_common::{
-    config::RepositoryConfig,
+    config::CodeRepository,
     index::{code, corpus},
 };
 use tabby_inference::Embedding;
@@ -28,7 +28,7 @@ mod types;
 pub struct CodeIndexer {}
 
 impl CodeIndexer {
-    pub async fn refresh(&mut self, embedding: Arc<dyn Embedding>, repository: &RepositoryConfig) {
+    pub async fn refresh(&mut self, embedding: Arc<dyn Embedding>, repository: &CodeRepository) {
         logkit::info!(
             "Building source code index: {}",
             repository.canonical_git_url()
@@ -39,7 +39,7 @@ impl CodeIndexer {
         index::garbage_collection().await;
     }
 
-    pub async fn garbage_collection(&mut self, repositories: &[RepositoryConfig]) {
+    pub async fn garbage_collection(&mut self, repositories: &[CodeRepository]) {
         repository::garbage_collection(repositories);
     }
 }
