@@ -10,8 +10,8 @@ pub mod setting;
 pub mod thread;
 pub mod user_event;
 pub mod web_crawler;
-pub mod worker;
 mod web_documents;
+pub mod worker;
 
 use std::sync::Arc;
 
