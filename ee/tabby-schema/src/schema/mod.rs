@@ -52,13 +52,13 @@ use self::{
     },
     user_event::{UserEvent, UserEventService},
     web_crawler::{CreateWebCrawlerUrlInput, WebCrawlerService, WebCrawlerUrl},
-    web_documents::{CreateCustomDocumentInput, WebDocumentService, WebDocument},
+    web_documents::{CreateCustomDocumentInput, WebDocument, WebDocumentService},
 };
+use crate::web_documents::SetPresetDocumentActiveInput;
 use crate::{
     env,
     juniper::relay::{self, query_async, Connection},
 };
-use crate::web_documents::SetPresetDocumentActiveInput;
 
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> Arc<dyn AuthenticationService>;
@@ -193,7 +193,7 @@ impl Query {
                     .await
             },
         )
-            .await
+        .await
     }
 
     async fn invitations(
@@ -216,7 +216,7 @@ impl Query {
                     .await
             },
         )
-            .await
+        .await
     }
 
     async fn job_runs(
@@ -241,7 +241,7 @@ impl Query {
                     .await
             },
         )
-            .await
+        .await
     }
 
     async fn job_run_stats(ctx: &Context, jobs: Option<Vec<String>>) -> Result<JobStats> {
@@ -285,7 +285,7 @@ impl Query {
                     .await
             },
         )
-            .await
+        .await
     }
 
     /// Search files that matches the pattern in the repository.
@@ -431,7 +431,7 @@ impl Query {
                     .await
             },
         )
-            .await
+        .await
     }
 
     async fn disk_usage_stats(ctx: &Context) -> Result<DiskUsageStats> {
@@ -466,7 +466,7 @@ impl Query {
                     .await
             },
         )
-            .await
+        .await
     }
 
     async fn integrated_repositories(
@@ -492,7 +492,7 @@ impl Query {
                     .await
             },
         )
-            .await
+        .await
     }
 
     async fn web_crawler_urls(
@@ -514,7 +514,7 @@ impl Query {
                     .await
             },
         )
-            .await
+        .await
     }
 
     async fn threads(
@@ -538,7 +538,7 @@ impl Query {
                     .await
             },
         )
-            .await
+        .await
     }
 
     /// Read thread messages by thread ID.
@@ -566,7 +566,7 @@ impl Query {
                     .await
             },
         )
-            .await
+        .await
     }
 
     async fn custom_web_documents(
@@ -588,12 +588,9 @@ impl Query {
                     .await
             },
         )
-            .await
+        .await
     }
-    async fn preset_web_documents(
-        ctx: &Context,
-        active: bool,
-    ) -> Result<Vec<WebDocument>> {
+    async fn preset_web_documents(ctx: &Context, active: bool) -> Result<Vec<WebDocument>> {
         ctx.locator
             .web_documents()
             .list_preset_web_documents(active)
@@ -963,11 +960,17 @@ impl Mutation {
     }
 
     async fn delete_custom_document(ctx: &Context, id: ID) -> Result<bool> {
-        ctx.locator.web_documents().delete_custom_web_document(id).await?;
+        ctx.locator
+            .web_documents()
+            .delete_custom_web_document(id)
+            .await?;
         Ok(true)
     }
 
-    async fn set_preset_document_active(ctx: &Context, input: SetPresetDocumentActiveInput) -> Result<ID> {
+    async fn set_preset_document_active(
+        ctx: &Context,
+        input: SetPresetDocumentActiveInput,
+    ) -> Result<ID> {
         input.validate()?;
         let id = ctx
             .locator

@@ -1,5 +1,13 @@
 use std::sync::Arc;
 
+use crate::{
+    path::db_file,
+    routes,
+    service::{
+        background_job, create_service_locator, event_logger::create_event_logger, integration,
+        job, repository, web_crawler, web_documents,
+    },
+};
 use axum::Router;
 use tabby_common::{
     api::{
@@ -11,15 +19,10 @@ use tabby_common::{
 };
 use tabby_db::DbConn;
 use tabby_inference::{ChatCompletionStream, Embedding};
-use tabby_schema::{integration::IntegrationService, job::JobService, repository::RepositoryService, web_crawler::WebCrawlerService};
 use tabby_schema::web_documents::WebDocumentService;
-use crate::{
-    path::db_file,
-    routes,
-    service::{
-        background_job, create_service_locator, event_logger::create_event_logger, integration,
-        job, repository, web_crawler, web_documents,
-    },
+use tabby_schema::{
+    integration::IntegrationService, job::JobService, repository::RepositoryService,
+    web_crawler::WebCrawlerService,
 };
 
 pub struct Webserver {

@@ -265,7 +265,6 @@ impl ServiceLocator for ArcServerContext {
         self.0.web_crawler.clone()
     }
 
-
     fn web_documents(&self) -> Arc<dyn WebDocumentService> {
         self.0.web_documents.clone()
     }

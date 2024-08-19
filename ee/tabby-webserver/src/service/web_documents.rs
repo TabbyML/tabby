@@ -5,7 +5,7 @@ use juniper::ID;
 use tabby_db::{DbConn, WebDocumentDAO};
 use tabby_schema::{
     job::{JobInfo, JobService},
-    web_documents::{WebDocumentService, WebDocument},
+    web_documents::{WebDocument, WebDocumentService},
     AsID, AsRowid, Result,
 };
 
@@ -22,7 +22,13 @@ struct WebDocumentServiceImpl {
 
 #[async_trait]
 impl WebDocumentService for WebDocumentServiceImpl {
-    async fn list_custom_web_documents(&self, after: Option<String>, before: Option<String>, first: Option<usize>, last: Option<usize>) -> Result<Vec<WebDocument>> {
+    async fn list_custom_web_documents(
+        &self,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<usize>,
+        last: Option<usize>,
+    ) -> Result<Vec<WebDocument>> {
         Ok(vec![])
     }
 
@@ -38,9 +44,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
         Ok(vec![])
     }
 
-
     async fn set_preset_web_documents_active(&self, name: String, active: bool) -> Result<ID> {
         Ok(ID::new("0"))
     }
 }
-
