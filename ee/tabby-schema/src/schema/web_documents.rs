@@ -20,7 +20,7 @@ impl WebDocument {
     }
 
     pub fn format_source_id(id: &ID) -> String {
-        format!("web_crawler:{}", id)
+        format!("web_document:{}", id)
     }
 }
 
@@ -40,11 +40,11 @@ impl NodeType for WebDocument {
     }
 
     fn connection_type_name() -> &'static str {
-        "WebCrawlerUrlConnection"
+        "WebDocumentConnection"
     }
 
     fn edge_type_name() -> &'static str {
-        "WebCrawlerUrlEdge"
+        "WebDocumentEdge"
     }
 }
 
