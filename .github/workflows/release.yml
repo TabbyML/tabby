@@ -244,9 +244,36 @@ jobs:
           retention-days: 3
           name: tabby_${{ matrix.binary }}${{ matrix.ext }}
           path: tabby_${{ matrix.binary }}${{ matrix.ext }}
+  
+  package-win-cuda:
+    runs-on: ubuntu-latest
+    env:
+      LLAMA_CPP_VERSION: b3571
+    needs: [release-binary]
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+      
+      - name: Display structure of downloaded files
+        run: ls -R
+      
+      - name: Package CUDA 11.7
+        run: >
+          LLAMA_CPP_PLATFORM=cuda-cu11.7.1-x64 OUTPUT_NAME=x86_64-windows-msvc-cuda117 ./ci/package_win_cuda.sh
+          LLAMA_CPP_PLATFORM=cuda-cu12.2.0-x64 OUTPUT_NAME=x86_64-windows-msvc-cuda122 ./ci/package_win_cuda.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          retention-days: 3
+          name: tabby_win_cuda_distributions
+          path: dist/
+
 
   pre-release:
-    needs: [release-llama-server-binary, release-binary]
+    needs: [release-llama-server-binary, release-binary, package-win-cuda]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -291,6 +318,9 @@ jobs:
               fi
             done
           done
+      
+      - name: Display structure of created files
+        run: ls -R dist
 
       - uses: ncipollo/release-action@v1
         if: github.event_name == 'push'
