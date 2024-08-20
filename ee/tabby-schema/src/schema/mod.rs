@@ -596,7 +596,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-        include_inactive: bool,
+        is_active: bool,
     ) -> Result<Connection<PresetWebDocument>> {
         query_async(
             after,
@@ -606,7 +606,7 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .web_documents()
-                    .list_preset_web_documents(after, before, first, last, include_inactive)
+                    .list_preset_web_documents(after, before, first, last, is_active)
                     .await
             },
         )

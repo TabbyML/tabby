@@ -541,6 +541,7 @@ type PresetDocumentEdge {
 
 type PresetWebDocument {
   id: ID!
+  name: String!
   "`updated_at` is only filled when the preset is active."
   updatedAt: DateTime
   "`job_info` is only filled when the preset is active."
@@ -619,7 +620,7 @@ type Query {
   """
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
   customWebDocuments(after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
-  presetWebDocuments(after: String, before: String, first: Int, last: Int, includeInactive: Boolean!): PresetDocumentConnection!
+  presetWebDocuments(after: String, before: String, first: Int, last: Int, isActive: Boolean!): PresetDocumentConnection!
 }
 
 type RefreshTokenResponse {

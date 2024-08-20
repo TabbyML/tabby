@@ -106,7 +106,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-        include_inactive: bool,
+        is_active: bool,
     ) -> Result<Vec<PresetWebDocument>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let urls = self
@@ -118,18 +118,20 @@ impl WebDocumentService for WebDocumentServiceImpl {
         let mut active_urls: HashSet<String> = HashSet::default();
 
         for url in urls {
-            let event = BackgroundJobEvent::WebCrawler(
-                CustomWebDocument::format_source_id(&url.id.as_id()),
-                url.url.clone(),
-            );
-
             active_urls.insert(url.name.clone());
 
-            let job_info = self.job_service.get_job_info(event.to_command()).await?;
-            converted_urls.push(to_preset_web_document(url, job_info));
+            if is_active {
+                let event = BackgroundJobEvent::WebCrawler(
+                    CustomWebDocument::format_source_id(&url.id.as_id()),
+                    url.url.clone(),
+                );
+
+                let job_info = self.job_service.get_job_info(event.to_command()).await?;
+                converted_urls.push(to_preset_web_document(url, job_info));
+            }
         }
 
-        if include_inactive {
+        if !is_active {
             for name in self.preset_web_documents.keys() {
                 if active_urls.contains(name) {
                     continue;
