@@ -5,7 +5,6 @@ import { Config } from "./Config";
 
 export default class CommandPalette {
   quickPick: QuickPick<CommandPaletteItem>;
-  isChatEnabled = false;
 
   constructor(
     private readonly client: Client,
@@ -17,7 +16,7 @@ export default class CommandPalette {
 
     let items: CommandPaletteItem[] = [this.itemForStatus()];
 
-    if (this.isChatEnabled) {
+    if (this.client.chat.isAvailable) {
       items.push({
         label: "Chat",
         command: "tabby.chatView.focus",
