@@ -88,6 +88,11 @@
         "category": "Tabby"
       },
       {
+        "command": "tabby.chat.addFileContext",
+        "title": "Add File to Chat",
+        "category": "Tabby"
+      },
+      {
         "command": "tabby.chat.explainCodeBlock",
         "title": "Explain This",
         "category": "Tabby"
@@ -143,7 +148,13 @@
       "tabby.submenu": [
         {
           "command": "tabby.chat.addRelevantContext",
-          "when": "editorHasSelection && tabby.chatEnabled"
+          "when": "editorHasSelection && tabby.chatEnabled",
+          "group": "tabby.submenu@1"
+        },
+        {
+          "command": "tabby.chat.addFileContext",
+          "when": "tabby.chatEnabled",
+          "group": "tabby.submenu@2"
         }
       ],
       "commandPalette": [
@@ -194,7 +205,8 @@
       ],
       "editor/context": [
         {
-          "submenu": "tabby.submenu"
+          "submenu": "tabby.submenu",
+          "group": "2_workspace"
         }
       ]
     },
