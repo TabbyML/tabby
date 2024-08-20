@@ -244,10 +244,20 @@ export class ChatViewProvider implements WebviewViewProvider {
     });
   }
 
-  private isChatPanelAvailable(serverInfo: ServerInfo): boolean {
-    if (!serverInfo.health || !serverInfo.health["webserver"] || !serverInfo.health["chat_model"]) {
-      return false;
+  // Check if server is healthy and has the chat model enabled.
+  //
+  // Returns undefined if it's working, otherwise returns a message to display.
+  private checkChatPanel(serverInfo: ServerInfo): string | undefined {
+    if (!serverInfo.health) {
+      return "Your Tabby server is not responding. Please check your server status.";
     }
+
+    if (!serverInfo.health["webserver"] || !serverInfo.health["chat_model"]) {
+      return "You need to launch the server with the chat model enabled; for example, use `--chat-model Qwen2-1.5B-Instruct`.";
+    }
+
+    const MIN_VERSION = "0.16.0";
+
     if (serverInfo.health["version"]) {
       let version: semver.SemVer | undefined | null = undefined;
       if (typeof serverInfo.health["version"] === "string") {
@@ -259,11 +269,12 @@ export class ChatViewProvider implements WebviewViewProvider {
       ) {
         version = semver.coerce(serverInfo.health["version"]["git_describe"]);
       }
-      if (version && semver.lt(version, "0.16.0")) {
-        return false;
+      if (version && semver.lt(version, MIN_VERSION)) {
+        return `Tabby Chat requires Tabby server version ${MIN_VERSION} or later. Your server is running version ${version}.`;
       }
     }
-    return true;
+
+    return;
   }
 
   private async refreshChatPage() {
@@ -277,11 +288,9 @@ export class ChatViewProvider implements WebviewViewProvider {
       });
     }
 
-    if (!this.isChatPanelAvailable(serverInfo)) {
-      this.client?.showError({
-        content:
-          "Please update to the latest release of the Tabby server.\n\nYou also need to launch the server with the chat model enabled; for example, use `--chat-model Qwen2-1.5B-Instruct`.",
-      });
+    const error = this.checkChatPanel(serverInfo);
+    if (error) {
+      this.client?.showError({ content: error });
       return;
     }
 
