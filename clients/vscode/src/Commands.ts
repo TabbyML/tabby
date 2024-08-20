@@ -27,6 +27,7 @@ import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { GitProvider, Repository } from "./git/GitProvider";
 import CommandPalette from "./CommandPalette";
 import { showOutputPanel } from "./logger";
+import { Issues } from "./Issues";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -35,6 +36,7 @@ export class Commands {
     private readonly context: ExtensionContext,
     private readonly client: Client,
     private readonly config: Config,
+    private readonly issues: Issues,
     private readonly contextVariables: ContextVariables,
     private readonly inlineCompletionProvider: InlineCompletionProvider,
     private readonly chatViewProvider: ChatViewProvider,
@@ -208,7 +210,7 @@ export class Commands {
       commands.executeCommand("workbench.action.openWalkthrough", "TabbyML.vscode-tabby#gettingStarted");
     },
     "commandPalette.trigger": () => {
-      new CommandPalette(this.client, this.config);
+      new CommandPalette(this.client, this.config, this.issues);
     },
     "outputPanel.focus": () => {
       showOutputPanel();

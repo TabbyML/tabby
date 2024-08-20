@@ -2,6 +2,7 @@ import { commands, QuickPick, QuickPickItem, QuickPickItemKind, ThemeIcon, windo
 import { State as LanguageClientState } from "vscode-languageclient";
 import { Client } from "./lsp/Client";
 import { Config } from "./Config";
+import { Issues } from "./Issues";
 
 export default class CommandPalette {
   quickPick: QuickPick<CommandPaletteItem>;
@@ -9,6 +10,7 @@ export default class CommandPalette {
   constructor(
     private readonly client: Client,
     private readonly config: Config,
+    private readonly issues: Issues,
   ) {
     this.quickPick = window.createQuickPick();
     this.quickPick.title = "Tabby Command Palette";
@@ -75,7 +77,11 @@ export default class CommandPalette {
     this.quickPick.hide();
     const item = this.quickPick.activeItems[0];
     if (item?.command) {
-      commands.executeCommand(item.command);
+      if (typeof item.command === "function") {
+        item.command();
+      } else {
+        commands.executeCommand(item.command);
+      }
     }
   }
 
@@ -84,7 +90,7 @@ export default class CommandPalette {
     const agentStatus = this.client.agent.status;
     const item: CommandPaletteItem = {
       label: "Status",
-      iconPath: new ThemeIcon("pulse"),
+      iconPath: new ThemeIcon("warning"),
     };
     if (lspState === LanguageClientState.Starting || agentStatus === "notInitialized") {
       item.label = "Starting...";
@@ -92,7 +98,7 @@ export default class CommandPalette {
     } else if (lspState === LanguageClientState.Stopped || agentStatus === "finalized") {
       item.label = "Disabled";
       item.iconPath = new ThemeIcon("circle-slash");
-    } else if (agentStatus === "disconnected") {
+    } else if (agentStatus === "disconnected" || this.issues.first === "connectionFailed") {
       item.label = "Disconnected";
       item.description = "Cannot connect to Tabby Server";
       item.command = "tabby.openSettings";
@@ -100,15 +106,30 @@ export default class CommandPalette {
       item.label = "Unauthorized";
       item.description = "Your credentials are invalid";
       item.command = "tabby.setApiToken";
+    } else if (this.issues.length > 0) {
+      switch (this.issues.first) {
+        case "highCompletionTimeoutRate":
+          item.label = "Timeout"
+          item.description = "Most completion requests timed out.";
+          break;
+        case "slowCompletionResponseTime":
+          item.label = "Long response time";
+          item.description = "Completion requests appear to take too much time.";
+          break;
+      }
+      item.command = () => this.issues.showHelpMessage();
     } else if (agentStatus === "ready") {
       item.label = "Ready";
       item.iconPath = new ThemeIcon("check");
       item.command = "tabby.outputPanel.focus";
     }
+
     return item;
   }
 }
 
 interface CommandPaletteItem extends QuickPickItem {
-  command?: string;
+  command?: string | CallbackCommand;
 }
+
+type CallbackCommand = () => void;
