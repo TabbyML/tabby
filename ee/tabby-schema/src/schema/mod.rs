@@ -137,7 +137,23 @@ async fn check_admin(ctx: &Context) -> Result<(), CoreError> {
 }
 
 async fn check_user(ctx: &Context) -> Result<User, CoreError> {
+    check_user_and_auth_token(ctx, false).await
+}
+
+async fn check_user_allow_auth_token(ctx: &Context) -> Result<User, CoreError> {
+    check_user_and_auth_token(ctx, true).await
+}
+
+async fn check_user_and_auth_token(
+    ctx: &Context,
+    allow_auth_token: bool,
+) -> Result<User, CoreError> {
     let claims = check_claims(ctx)?;
+    if !allow_auth_token && claims.is_generated_from_auth_token {
+        return Err(CoreError::Forbidden(
+            "Invoking this API with an auth token is not allowed",
+        ));
+    }
     let user = ctx.locator.auth().get_user(&claims.sub).await?;
     Ok(user)
 }
@@ -927,7 +943,7 @@ impl Mutation {
         // ast-grep-ignore: use-schema-result
         use anyhow::Context;
 
-        let user = check_user(ctx).await?;
+        let user = check_user_allow_auth_token(ctx).await?;
         let svc = ctx.locator.thread();
         let thread = svc.get(&thread_id).await?.context("Thread not found")?;
 
@@ -1019,7 +1035,7 @@ impl Subscription {
         ctx: &Context,
         input: CreateThreadAndRunInput,
     ) -> Result<ThreadRunStream> {
-        let user = check_user(ctx).await?;
+        let user = check_user_allow_auth_token(ctx).await?;
         input.validate()?;
 
         let thread = ctx.locator.thread();
@@ -1044,7 +1060,7 @@ impl Subscription {
         // ast-grep-ignore: use-schema-result
         use anyhow::Context;
 
-        let user = check_user(ctx).await?;
+        let user = check_user_allow_auth_token(ctx).await?;
         input.validate()?;
 
         let svc = ctx.locator.thread();
