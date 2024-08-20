@@ -159,10 +159,7 @@ async fn avatar(
 
 #[async_trait::async_trait]
 impl FromAuth<Arc<dyn ServiceLocator>> for tabby_schema::Context {
-    async fn build(
-        locator: Arc<dyn ServiceLocator>,
-        token: Option<String>
-    ) -> Self {
+    async fn build(locator: Arc<dyn ServiceLocator>, token: Option<String>) -> Self {
         let claims = if let Some(token) = token {
             let mut claims = validate_jwt(&token).ok();
 
