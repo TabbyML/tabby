@@ -10,7 +10,6 @@ export default class CommandPalette {
     private readonly client: Client,
     private readonly config: Config,
   ) {
-    this.isChatEnabled = this.client.chat.isAvailable;
     this.quickPick = window.createQuickPick();
     this.quickPick.title = "Tabby Command Palette";
 
