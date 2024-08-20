@@ -612,7 +612,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-        active: bool,
+        is_active: bool,
     ) -> Result<Connection<PresetWebDocument>> {
         query_async(
             after,
@@ -622,7 +622,7 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .web_documents()
-                    .list_preset_web_documents(after, before, first, last, active)
+                    .list_preset_web_documents(after, before, first, last, is_active)
                     .await
             },
         )
@@ -1029,14 +1029,13 @@ impl Mutation {
     async fn set_preset_document_active(
         ctx: &Context,
         input: SetPresetDocumentActiveInput,
-    ) -> Result<ID> {
+    ) -> Result<bool> {
         input.validate()?;
-        let id = ctx
-            .locator
+        ctx.locator
             .web_documents()
             .set_preset_web_documents_active(input.name, input.active)
             .await?;
-        Ok(id)
+        Ok(true)
     }
 }
 

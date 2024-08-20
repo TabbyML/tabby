@@ -12,17 +12,19 @@ pub struct CustomWebDocument {
     pub name: String,
     pub id: ID,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub job_info: JobInfo,
 }
 
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
 pub struct PresetWebDocument {
-    pub name: String,
     pub id: ID,
-    pub active: bool,
+
+    pub name: String,
     /// `updated_at` is only filled when the preset is active.
     pub updated_at: Option<DateTime<Utc>>,
+    /// `job_info` is only filled when the preset is active.
     pub job_info: Option<JobInfo>,
 }
 
@@ -79,7 +81,7 @@ impl NodeType for PresetWebDocument {
     type Cursor = String;
 
     fn cursor(&self) -> Self::Cursor {
-        self.name.clone()
+        self.id.to_string()
     }
 
     fn connection_type_name() -> &'static str {
@@ -109,7 +111,7 @@ pub trait WebDocumentService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-        active: bool,
+        is_active: bool,
     ) -> Result<Vec<PresetWebDocument>>;
-    async fn set_preset_web_documents_active(&self, name: String, active: bool) -> Result<ID>;
+    async fn set_preset_web_documents_active(&self, name: String, active: bool) -> Result<()>;
 }

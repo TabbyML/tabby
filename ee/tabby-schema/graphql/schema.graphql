@@ -263,6 +263,7 @@ type CustomWebDocument {
   name: String!
   id: ID!
   createdAt: DateTime!
+  updatedAt: DateTime!
   jobInfo: JobInfo!
 }
 
@@ -520,7 +521,7 @@ type Mutation {
   deleteThreadMessagePair(threadId: ID!, userMessageId: ID!, assistantMessageId: ID!): Boolean!
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
   deleteCustomDocument(id: ID!): Boolean!
-  setPresetDocumentActive(input: SetPresetDocumentActiveInput!): ID!
+  setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
 }
 
 type NetworkSetting {
@@ -552,11 +553,11 @@ type PresetDocumentEdge {
 }
 
 type PresetWebDocument {
-  name: String!
   id: ID!
-  active: Boolean!
+  name: String!
   "`updated_at` is only filled when the preset is active."
   updatedAt: DateTime
+  "`job_info` is only filled when the preset is active."
   jobInfo: JobInfo
 }
 
@@ -632,7 +633,7 @@ type Query {
   """
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
   customWebDocuments(after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
-  presetWebDocuments(after: String, before: String, first: Int, last: Int, active: Boolean!): PresetDocumentConnection!
+  presetWebDocuments(after: String, before: String, first: Int, last: Int, isActive: Boolean!): PresetDocumentConnection!
 }
 
 type RefreshTokenResponse {

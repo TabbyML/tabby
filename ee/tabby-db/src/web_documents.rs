@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query};
 use tabby_db_macros::query_paged_as;
@@ -22,9 +22,9 @@ impl DbConn {
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
-        is_preset: Option<bool>,
+        is_preset: bool,
     ) -> Result<Vec<WebDocumentDAO>> {
-        let condition = is_preset.map(|is_preset| format!("is_preset={}", is_preset));
+        let condition = Some(format!("is_preset={}", is_preset));
 
         let urls = query_paged_as!(
             WebDocumentDAO,
@@ -56,6 +56,16 @@ impl DbConn {
         .await?;
 
         Ok(res.last_insert_rowid())
+    }
+
+    pub async fn deactivate_preset_web_document(&self, name: String) -> Result<()> {
+        let res = query!("DELETE FROM web_documents WHERE name = ?;", name)
+            .execute(&self.pool)
+            .await?;
+        if res.rows_affected() != 1 {
+            return Err(anyhow!("No preset web document to deactivate"));
+        }
+        Ok(())
     }
 
     pub async fn delete_web_document(&self, id: i64) -> Result<()> {
