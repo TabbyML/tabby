@@ -162,7 +162,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
             };
             let id = self
                 .db
-                .create_web_document(name, url.clone(), false)
+                .create_web_document(name, url.clone(), true)
                 .await?;
             let _ = self
                 .job_service

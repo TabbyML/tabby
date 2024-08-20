@@ -58,18 +58,6 @@ impl DbConn {
         Ok(res.last_insert_rowid())
     }
 
-    pub async fn active_preset_web_document(&self, name: String, url: String) -> Result<i64> {
-        let res = query!(
-            "INSERT INTO web_documents(name, url, is_preset) VALUES (?,?,true);",
-            name,
-            url,
-        )
-        .execute(&self.pool)
-        .await?;
-
-        Ok(res.last_insert_rowid())
-    }
-
     pub async fn deactivate_preset_web_document(&self, name: String) -> Result<()> {
         let res = query!("DELETE FROM web_documents WHERE name = ?;", name)
             .execute(&self.pool)
