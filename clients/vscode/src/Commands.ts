@@ -188,8 +188,8 @@ export class Commands {
         .then((selection) => {
           if (selection) {
             switch (selection.label) {
-              case "Model Registry":
-                env.openExternal(Uri.parse("https://tabby.tabbyml.com/docs/models/"));
+              case "Website":
+                env.openExternal(Uri.parse("https://tabby.tabbyml.com/"));
                 break;
               case "Tabby Slack Community":
                 env.openExternal(Uri.parse("https://links.tabbyml.com/join-slack-extensions/"));
