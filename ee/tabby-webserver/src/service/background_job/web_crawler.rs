@@ -1,12 +1,14 @@
-use std::sync::Arc;
-
 use chrono::Utc;
 use futures::StreamExt;
+use std::sync::Arc;
+use std::time::Duration;
 use tabby_crawler::crawl_pipeline;
 use tabby_index::public::{DocIndexer, WebDocument};
 use tabby_inference::Embedding;
 
 use super::helper::Job;
+
+const CRAWLER_TIMEOUT_SECS: u64 = 3600;
 
 pub struct WebCrawlerJob {
     source_id: String,
@@ -22,7 +24,7 @@ impl WebCrawlerJob {
         Self { source_id, url }
     }
 
-    pub async fn run(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
+    pub async fn run_impl(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
         logkit::info!("Starting doc index pipeline for {}", self.url);
         let embedding = embedding.clone();
         let mut num_docs = 0;
@@ -44,6 +46,23 @@ impl WebCrawlerJob {
         }
         logkit::info!("Crawled {} documents from '{}'", num_docs, self.url);
         indexer.commit();
+        Ok(())
+    }
+    pub async fn run(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
+        let url = self.url.clone();
+        if tokio::time::timeout(
+            Duration::from_secs(CRAWLER_TIMEOUT_SECS),
+            self.run_impl(embedding),
+        )
+        .await
+        .is_err()
+        {
+            logkit::warn!(
+                "Crawled for url: {} timeout after {} seconds",
+                url,
+                CRAWLER_TIMEOUT_SECS
+            );
+        }
         Ok(())
     }
 }
