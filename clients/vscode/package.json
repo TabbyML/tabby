@@ -346,6 +346,18 @@
         "command": "tabby.chat.edit.discard",
         "key": "escape",
         "when": "tabby.chatEditResolving && editorTextFocus && !editorReadonly"
+      },
+      {
+        "command": "tabby.chat.addRelevantContext",
+        "key": "ctrl+l",
+        "mac": "cmd+l",
+        "when": "editorHasSelection && editorTextFocus && tabby.chatEnabled"
+      },
+      {
+        "command": "tabby.chatView.focus",
+        "key": "ctrl+l",
+        "mac": "cmd+l",
+        "when": "!editorHasSelection && tabby.chatEnabled"
       }
     ],
     "viewsContainers": {
