@@ -235,8 +235,8 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   const contexts: Array<Context> = React.useMemo(() => {
     return (
       message?.relevant_code?.map(code => {
-        const start_line = code.doc?.start_line ?? 0
-        const lineCount = code.doc.body.split('\n').length
+        const start_line = code?.startLine ?? 0
+        const lineCount = code.content.split('\n').length
         const end_line = start_line + lineCount - 1
 
         return {
@@ -245,9 +245,9 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
             start: start_line,
             end: end_line
           },
-          filepath: code.doc.filepath,
-          content: code.doc.body,
-          git_url: code.doc.git_url
+          filepath: code.filepath,
+          content: code.content,
+          git_url: code.gitUrl
         }
       }) ?? []
     )

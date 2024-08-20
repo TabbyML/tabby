@@ -61,9 +61,7 @@ function selectContextToMessageContent(
 }
 
 export interface ChatRef {
-  sendUserChat: (
-    message: UserMessageWithOptionalId
-  ) => Promise<string | null | undefined>
+  sendUserChat: (message: UserMessageWithOptionalId) => void
   stop: () => void
   isLoading: boolean
   addRelevantContext: (context: Context) => void
@@ -332,7 +330,7 @@ function ChatRenderer(
 
   const generateRequestPayload = (
     userMessage: UserMessage
-  ): [userMessage: CreateMessageInput, options?: ThreadRunOptionsInput] => {
+  ): [CreateMessageInput, ThreadRunOptionsInput] => {
     const contextForCodeQuery =
       userMessage?.selectContext || userMessage?.activeContext
     const codeQuery: InputMaybe<CodeQueryInput> = contextForCodeQuery
@@ -405,7 +403,7 @@ function ChatRenderer(
     }
   )
 
-  const sendUserChat = async (userMessage: UserMessageWithOptionalId) => {
+  const sendUserChat = (userMessage: UserMessageWithOptionalId) => {
     return handleSendUserChat.current?.(userMessage)
   }
 
