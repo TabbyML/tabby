@@ -109,7 +109,7 @@ export default class CommandPalette {
     } else if (this.issues.length > 0) {
       switch (this.issues.first) {
         case "highCompletionTimeoutRate":
-          item.label = "Timeout"
+          item.label = "Timeout";
           item.description = "Most completion requests timed out.";
           break;
         case "slowCompletionResponseTime":
