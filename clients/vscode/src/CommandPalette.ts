@@ -97,11 +97,11 @@ export default class CommandPalette {
             item.iconPath = new ThemeIcon("circle-slash");
         } else if (agentStatus === "disconnected") {
             item.label = "Disconnected";
-            item.description = "Cannot connect to Tabby Server. Click to open settings"
+            item.description = "Cannot connect to Tabby Server"
             item.command = "tabby.openSettings"
         } else if (agentStatus === "unauthorized") {
             item.label = "Unauthorized";
-            item.description = "Tabby Server requires authorization. Please set your personal token."
+            item.description = "Your credentials are invalid"
             item.command = "tabby.setApiToken"
         } else if (agentStatus === "ready") {
             item.label = "Ready";
