@@ -113,7 +113,7 @@ export default class CommandPalette {
           item.description = "Most completion requests timed out.";
           break;
         case "slowCompletionResponseTime":
-          item.label = "Long response time";
+          item.label = "Slow Response";
           item.description = "Completion requests appear to take too much time.";
           break;
       }
