@@ -1,7 +1,7 @@
+use std::{sync::Arc, time::Duration};
+
 use chrono::Utc;
 use futures::StreamExt;
-use std::sync::Arc;
-use std::time::Duration;
 use tabby_crawler::crawl_pipeline;
 use tabby_index::public::{DocIndexer, WebDocument};
 use tabby_inference::Embedding;
