@@ -10,6 +10,7 @@ import {
   ThreadRunOptionsInput
 } from '../gql/generates/graphql'
 import { client, useMutation } from '../tabby/gql'
+import { useLatest } from './use-latest'
 
 interface UseThreadRunOptions {
   onError?: (err: Error) => void
@@ -146,7 +147,7 @@ export function useThreadRun({
     }
   }
 
-  const stop = (silent?: boolean) => {
+  const stop = useLatest((silent?: boolean) => {
     unsubscribeFn.current?.()
     unsubscribeFn.current = undefined
     setIsLoading(false)
@@ -154,7 +155,7 @@ export function useThreadRun({
     if (!silent && threadId) {
       onAssistantMessageCompleted?.(threadId, threadRunItem)
     }
-  }
+  })
 
   React.useEffect(() => {
     if (propsThreadId && propsThreadId !== threadId) {
@@ -188,7 +189,7 @@ export function useThreadRun({
         }
 
         if (res?.data?.createThreadAndRun?.threadAssistantMessageCompleted) {
-          stop()
+          stop.current()
         }
 
         const threadIdFromData = res.data?.createThreadAndRun?.threadCreated
@@ -230,7 +231,7 @@ export function useThreadRun({
         }
 
         if (res?.data?.createThreadRun?.threadAssistantMessageCompleted) {
-          stop()
+          stop.current()
         }
 
         setThreadRunItem(prevData =>
@@ -294,7 +295,7 @@ export function useThreadRun({
     error,
     setError,
     sendUserMessage,
-    stop,
+    stop: stop.current,
     regenerate
   }
 }
