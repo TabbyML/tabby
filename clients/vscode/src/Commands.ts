@@ -254,6 +254,17 @@ export class Commands {
     "chat.addRelevantContext": async () => {
       this.addRelevantContext();
     },
+    "chat.addFileContext": () => {
+      const editor = window.activeTextEditor;
+      if (editor) {
+        commands.executeCommand("tabby.chatView.focus").then(() => {
+          const fileContext = ChatViewProvider.getFileContextFromEditor({ editor, gitProvider: this.gitProvider });
+          this.chatViewProvider.addRelevantContext(fileContext);
+        });
+      } else {
+        window.showInformationMessage("No active editor");
+      }
+    },
     "chat.fixCodeBlock": async () => {
       this.sendMessageToChatPanel("Identify and fix potential bugs in the selected code:");
     },
