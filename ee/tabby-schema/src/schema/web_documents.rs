@@ -20,6 +20,8 @@ pub struct CustomWebDocument {
 #[graphql(context = Context)]
 pub struct PresetWebDocument {
     pub id: ID,
+
+    pub name: String,
     /// `updated_at` is only filled when the preset is active.
     pub updated_at: Option<DateTime<Utc>>,
     /// `job_info` is only filled when the preset is active.

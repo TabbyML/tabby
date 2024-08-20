@@ -137,6 +137,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
 
                 converted_urls.push(PresetWebDocument {
                     id: ID::from(name.clone()),
+                    name: name.clone(),
                     job_info: None,
                     updated_at: None,
                 });
@@ -160,10 +161,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
                     name
                 ))));
             };
-            let id = self
-                .db
-                .create_web_document(name, url.clone(), true)
-                .await?;
+            let id = self.db.create_web_document(name, url.clone(), true).await?;
             let _ = self
                 .job_service
                 .trigger(
@@ -192,7 +190,8 @@ fn to_custom_web_document(value: WebDocumentDAO, job_info: JobInfo) -> CustomWeb
 
 fn to_preset_web_document(value: WebDocumentDAO, job_info: JobInfo) -> PresetWebDocument {
     PresetWebDocument {
-        id: ID::from(value.name),
+        id: ID::from(value.name.clone()),
+        name: value.name,
         job_info: Some(job_info),
         updated_at: Some(value.updated_at),
     }
