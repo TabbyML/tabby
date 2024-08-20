@@ -177,6 +177,11 @@ export namespace ConfigurationRequest {
  * [Tabby] Defines the config supported to be changed on the client side (IDE).
  */
 export type ClientProvidedConfig = {
+  proxy?: {
+    authorization: string;
+    url: string;
+    noProxy: string | string[];
+  };
   /**
    * Specifies the endpoint and token for connecting to the Tabby server.
    */

@@ -26,7 +26,9 @@ export function createProxyForUrl(url: string, configs: ProxyConfig[]): Dispatch
       logger.info("Using proxy from environment variables.");
       return new EnvHttpProxyAgent();
     } else if ("url" in config && config["url"]) {
-      const noProxyList = config["noProxy"]?.split(/,|\s+/).map((item) => item.trim());
+      const noProxyList = Array.isArray(config["noProxy"])
+        ? config["noProxy"]
+        : config["noProxy"]?.split(/,|\s+/).map((item) => item.trim());
       if (!noProxyList || !noProxyList.includes(host)) {
         logger.info(`Using proxy ${config["url"]}.`);
         return new ProxyAgent({

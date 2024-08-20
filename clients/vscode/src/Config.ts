@@ -118,8 +118,56 @@ export class Config extends EventEmitter {
     this.memento.update("edit.recentlyCommand", value);
   }
 
+  get httpConfig() {
+    return workspace.getConfiguration("http");
+  }
+
+  get authorization() {
+    return this.httpConfig.get("authorization", "");
+  }
+
+  set authorization(value: string) {
+    if (value !== this.authorization) {
+      this.httpConfig.update("authorization", value);
+    }
+  }
+
+  get proxyUrl() {
+    const https = workspace.getConfiguration("https");
+    const httpsProxy = https.get("proxy", "");
+    const httpProxy = this.httpConfig.get("proxy", "");
+
+    return httpsProxy || httpProxy;
+  }
+
+  set proxyUrl(value: string) {
+    if (value !== this.proxyUrl) {
+      const isHTTPS = value.includes('https');
+      if (isHTTPS) {
+        workspace.getConfiguration("https").update("proxy", value);
+      } else {
+        this.httpConfig.update("proxy", value);
+      }
+    }
+  }
+
+  get noProxy() {
+    return this.httpConfig.get("noProxy", []);
+  }
+
+  set noProxy(value: string[]) {
+    if (value.length !== this.noProxy.length) {
+      this.httpConfig.update("noProxy", value);
+    }
+  }
+
   buildClientProvidedConfig(): ClientProvidedConfig {
     return {
+      proxy: {
+        url: this.proxyUrl,
+        authorization: this.authorization,
+        noProxy: this.noProxy,
+      },
       server: {
         endpoint: this.serverEndpoint,
         token: this.serverToken,
