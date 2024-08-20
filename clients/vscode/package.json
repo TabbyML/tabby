@@ -30,9 +30,6 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "enabledApiProposals": [
-    "contribEditorContentMenu"
-  ],
   "main": "./dist/node/extension.js",
   "browser": "./dist/browser/extension.js",
   "contributes": {
