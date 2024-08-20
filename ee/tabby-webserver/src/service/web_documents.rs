@@ -130,14 +130,13 @@ impl WebDocumentService for WebDocumentServiceImpl {
         }
 
         if include_inactive {
-            for (name, url) in &self.preset_web_documents {
+            for name in self.preset_web_documents.keys() {
                 if active_urls.contains(name) {
                     continue;
                 }
 
                 converted_urls.push(PresetWebDocument {
-                    id: 0.as_id(),
-                    name: name.clone(),
+                    id: ID::from(name.clone()),
                     job_info: None,
                     updated_at: None,
                 });
@@ -147,13 +146,13 @@ impl WebDocumentService for WebDocumentServiceImpl {
         Ok(converted_urls)
     }
 
-    async fn set_preset_web_documents_active(&self, name: String, active: bool) -> Result<ID> {
+    async fn set_preset_web_documents_active(&self, name: String, active: bool) -> Result<()> {
         if !active {
-            let id = self.db.deactivate_preset_web_document(name).await?;
+            self.db.deactivate_preset_web_document(name).await?;
             self.job_service
                 .trigger(BackgroundJobEvent::IndexGarbageCollection.to_command())
                 .await?;
-            Ok(id.as_id())
+            Ok(())
         } else {
             let Some(url) = self.preset_web_documents.get(&name) else {
                 return Err(CoreError::Other(anyhow!(format!(
@@ -175,7 +174,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
                     .to_command(),
                 )
                 .await;
-            Ok(id.as_id())
+            Ok(())
         }
     }
 }
@@ -193,8 +192,7 @@ fn to_custom_web_document(value: WebDocumentDAO, job_info: JobInfo) -> CustomWeb
 
 fn to_preset_web_document(value: WebDocumentDAO, job_info: JobInfo) -> PresetWebDocument {
     PresetWebDocument {
-        id: value.id.as_id(),
-        name: value.name,
+        id: ID::from(value.name),
         job_info: Some(job_info),
         updated_at: Some(value.updated_at),
     }

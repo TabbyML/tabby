@@ -1,6 +1,6 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
-use sqlx::{prelude::FromRow, query, query_scalar};
+use sqlx::{prelude::FromRow, query};
 use tabby_db_macros::query_paged_as;
 
 use crate::DbConn;
@@ -70,13 +70,14 @@ impl DbConn {
         Ok(res.last_insert_rowid())
     }
 
-    pub async fn deactivate_preset_web_document(&self, name: String) -> Result<i64> {
-        let res = query_scalar!("SELECT id FROM web_documents WHERE name = ?;", name)
-            .fetch_one(&self.pool)
+    pub async fn deactivate_preset_web_document(&self, name: String) -> Result<()> {
+        let res = query!("DELETE FROM web_documents WHERE name = ?;", name)
+            .execute(&self.pool)
             .await?;
-
-        self.delete_web_document(res).await?;
-        Ok(res)
+        if res.rows_affected() != 1 {
+            return Err(anyhow!("No integration access token to delete"));
+        }
+        Ok(())
     }
 
     pub async fn delete_web_document(&self, id: i64) -> Result<()> {

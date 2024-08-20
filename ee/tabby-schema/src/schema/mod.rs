@@ -986,14 +986,13 @@ impl Mutation {
     async fn set_preset_document_active(
         ctx: &Context,
         input: SetPresetDocumentActiveInput,
-    ) -> Result<ID> {
+    ) -> Result<bool> {
         input.validate()?;
-        let id = ctx
-            .locator
+        ctx.locator
             .web_documents()
             .set_preset_web_documents_active(input.name, input.active)
             .await?;
-        Ok(id)
+        Ok(true)
     }
 
     /// Delete pair of user message and bot response in a thread.

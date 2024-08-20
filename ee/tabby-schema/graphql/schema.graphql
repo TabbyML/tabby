@@ -506,7 +506,7 @@ type Mutation {
   deleteWebCrawlerUrl(id: ID!): Boolean!
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
   deleteCustomDocument(id: ID!): Boolean!
-  setPresetDocumentActive(input: SetPresetDocumentActiveInput!): ID!
+  setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
   "Delete pair of user message and bot response in a thread."
   deleteThreadMessagePair(threadId: ID!, userMessageId: ID!, assistantMessageId: ID!): Boolean!
 }
@@ -540,7 +540,6 @@ type PresetDocumentEdge {
 }
 
 type PresetWebDocument {
-  name: String!
   id: ID!
   "`updated_at` is only filled when the preset is active."
   updatedAt: DateTime
