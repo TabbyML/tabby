@@ -30,6 +30,9 @@
   "activationEvents": [
     "onStartupFinished"
   ],
+  "enabledApiProposals": [
+    "contribEditorContentMenu"
+  ],
   "main": "./dist/node/extension.js",
   "browser": "./dist/browser/extension.js",
   "contributes": {
@@ -130,7 +133,19 @@
         "category": "Tabby"
       }
     ],
+    "submenus": [
+      {
+        "id": "tabby.submenu",
+        "label": "Tabby"
+      }
+    ],
     "menus": {
+      "tabby.submenu": [
+        {
+          "command": "tabby.chat.addRelevantContext",
+          "when": "editorHasSelection && tabby.chatEnabled"
+        }
+      ],
       "commandPalette": [
         {
           "command": "tabby.inlineCompletion.trigger",
@@ -175,6 +190,11 @@
         {
           "command": "tabby.chat.edit.discard",
           "when": "false"
+        }
+      ],
+      "editor/context": [
+        {
+          "submenu": "tabby.submenu"
         }
       ]
     },
