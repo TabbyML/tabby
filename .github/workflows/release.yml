@@ -134,7 +134,7 @@ jobs:
         if: runner.os == 'Windows'
 
       - name: Install CUDA toolkit for Windows
-        uses: Jimver/cuda-toolkit@v0.2.11
+        uses: Jimver/cuda-toolkit@v0.2.15
         with:
           cuda: ${{ matrix.windows_cuda }}
           method: 'network'
