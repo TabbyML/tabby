@@ -42,7 +42,7 @@ export class StatusBarItem {
     this.item.command = {
       title: "Show Tabby Command Palette",
       command: "tabby.commandPalette.trigger",
-    }
+    };
     this.context.subscriptions.push(this.item);
 
     this.client.languageClient.onDidChangeState(() => this.updateStatus());

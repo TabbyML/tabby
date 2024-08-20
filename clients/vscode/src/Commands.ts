@@ -208,10 +208,10 @@ export class Commands {
       commands.executeCommand("workbench.action.openWalkthrough", "TabbyML.vscode-tabby#gettingStarted");
     },
     "commandPalette.trigger": () => {
-      new CommandPalette(this.client, this.config)
+      new CommandPalette(this.client, this.config);
     },
     "outputPanel.focus": () => {
-      showOutputPanel()
+      showOutputPanel();
     },
     "inlineCompletion.trigger": () => {
       commands.executeCommand("editor.action.inlineSuggest.trigger");
