@@ -78,6 +78,8 @@ impl LlamaCppSupervisor {
                     command.arg("-fa");
                 };
 
+                let command_args = format!("{:?}", command);
+
                 let mut process = command.spawn().unwrap_or_else(|e| {
                     panic!(
                         "Failed to start llama-server <{}> with command {:?}: {}",
@@ -94,8 +96,8 @@ impl LlamaCppSupervisor {
 
                 if status_code != 0 {
                     warn!(
-                        "llama-server <{}> exited with status code {}",
-                        name, status_code
+                        "llama-server <{}> exited with status code {}, args: `{}`",
+                        name, status_code, command_args
                     );
                     let mut stderr = process
                         .stderr
