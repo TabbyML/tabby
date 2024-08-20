@@ -4,7 +4,13 @@ import type {
   components as TabbyOpenApiComponents
 } from 'tabby-openapi'
 
-import { MessageAttachmentCode, Repository } from '../gql/generates/graphql'
+import {
+  MessageAttachmentCode,
+  MessageAttachmentDoc,
+  MessageCodeSearchHit,
+  MessageDocSearchHit,
+  Repository
+} from '../gql/generates/graphql'
 
 export interface UserMessage extends ChatMessage {
   id: string
@@ -76,4 +82,13 @@ export interface RelevantCodeContext extends Context {
   extra?: {
     scores?: components['schemas']['CodeSearchScores']
   }
+}
+
+// for rendering, including scores
+export type AttachmentCodeItem = MessageAttachmentCode & {
+  extra?: { scores?: MessageCodeSearchHit['scores'] }
+}
+// for rendering, including score
+export type AttachmentDocItem = MessageAttachmentDoc & {
+  extra?: { score?: MessageDocSearchHit['score'] }
 }

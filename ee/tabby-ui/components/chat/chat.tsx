@@ -156,10 +156,6 @@ function ChatRenderer(
         threadRunItem.threadAssistantMessageCreated
       )
     }
-
-    if (newThreadId && !threadId) {
-      setThreadId(newThreadId)
-    }
   }
 
   const {
@@ -189,10 +185,10 @@ function ChatRenderer(
     deleteThreadMessagePair(threadId, qaPair?.user.id, qaPair?.assistant?.id)
   }
 
-  const onRegenerateResponse = async (userMessageid: string) => {
+  const onRegenerateResponse = async (userMessageId: string) => {
     if (!threadId) return
 
-    const qaPairIndex = findIndex(qaPairs, o => o.user.id === userMessageid)
+    const qaPairIndex = findIndex(qaPairs, o => o.user.id === userMessageId)
     if (qaPairIndex > -1) {
       const qaPair = qaPairs[qaPairIndex]
 
@@ -266,6 +262,12 @@ function ChatRenderer(
     if (!isLoading || !qaPairs?.length || !answer) return
 
     const lastQaPairs = qaPairs[qaPairs.length - 1]
+
+    // update threadId
+    if (answer?.threadCreated && !threadId) {
+      setThreadId(answer.threadCreated)
+    }
+
     setQaPairs(prev => {
       const assisatntMessage = prev[prev.length - 1].assistant
       const nextAssistantMessage: AssistantMessage = {
