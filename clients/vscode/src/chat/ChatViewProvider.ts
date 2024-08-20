@@ -34,7 +34,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     private readonly agent: Agent,
     private readonly logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
-  ) { }
+  ) {}
 
   static getFileContextFromSelection({
     editor,
@@ -64,7 +64,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     const text = editor.document.getText(editor.selection);
     if (!text) return null;
 
-    const { filepath, git_url} = resolveFilePathAndGitUrl(uri, gitProvider);
+    const { filepath, git_url } = resolveFilePathAndGitUrl(uri, gitProvider);
 
     return {
       kind: "file",
@@ -74,21 +74,15 @@ export class ChatViewProvider implements WebviewViewProvider {
         end: editor.selection.end.line + 1,
       },
       filepath,
-      git_url, 
+      git_url,
     };
   }
 
-  static getFileContextFromEditor({
-    editor,
-    gitProvider,
-  }: {
-    editor: TextEditor;
-    gitProvider: GitProvider;
-  }): Context {
+  static getFileContextFromEditor({ editor, gitProvider }: { editor: TextEditor; gitProvider: GitProvider }): Context {
     const content = editor.document.getText();
     const lineCount = editor.document.lineCount;
     const uri = editor.document.uri;
-    const { filepath, git_url} = resolveFilePathAndGitUrl(uri, gitProvider);
+    const { filepath, git_url } = resolveFilePathAndGitUrl(uri, gitProvider);
     return {
       kind: "file",
       content,
@@ -97,7 +91,7 @@ export class ChatViewProvider implements WebviewViewProvider {
         end: lineCount,
       },
       filepath,
-      git_url
+      git_url,
     };
   }
 
@@ -259,10 +253,20 @@ export class ChatViewProvider implements WebviewViewProvider {
     });
   }
 
-  private isChatPanelAvailable(serverInfo: ServerInfo): boolean {
-    if (!serverInfo.health || !serverInfo.health["webserver"] || !serverInfo.health["chat_model"]) {
-      return false;
+  // Check if server is healthy and has the chat model enabled.
+  //
+  // Returns undefined if it's working, otherwise returns a message to display.
+  private checkChatPanel(serverInfo: ServerInfo): string | undefined {
+    if (!serverInfo.health) {
+      return "Your Tabby server is not responding. Please check your server status.";
     }
+
+    if (!serverInfo.health["webserver"] || !serverInfo.health["chat_model"]) {
+      return "You need to launch the server with the chat model enabled; for example, use `--chat-model Qwen2-1.5B-Instruct`.";
+    }
+
+    const MIN_VERSION = "0.16.0";
+
     if (serverInfo.health["version"]) {
       let version: semver.SemVer | undefined | null = undefined;
       if (typeof serverInfo.health["version"] === "string") {
@@ -274,11 +278,12 @@ export class ChatViewProvider implements WebviewViewProvider {
       ) {
         version = semver.coerce(serverInfo.health["version"]["git_describe"]);
       }
-      if (version && semver.lt(version, "0.16.0")) {
-        return false;
+      if (version && semver.lt(version, MIN_VERSION)) {
+        return `Tabby Chat requires Tabby server version ${MIN_VERSION} or later. Your server is running version ${version}.`;
       }
     }
-    return true;
+
+    return;
   }
 
   private async refreshChatPage() {
@@ -292,11 +297,9 @@ export class ChatViewProvider implements WebviewViewProvider {
       });
     }
 
-    if (!this.isChatPanelAvailable(serverInfo)) {
-      this.client?.showError({
-        content:
-          "Please update to the latest release of the Tabby server.\n\nYou also need to launch the server with the chat model enabled; for example, use `--chat-model Qwen2-1.5B-Instruct`.",
-      });
+    const error = this.checkChatPanel(serverInfo);
+    if (error) {
+      this.client?.showError({ content: error });
       return;
     }
 
@@ -473,9 +476,9 @@ export class ChatViewProvider implements WebviewViewProvider {
   private formatLineHashForCodeBrowser(
     range:
       | {
-        start: number;
-        end?: number;
-      }
+          start: number;
+          end?: number;
+        }
       | undefined,
   ): string {
     if (!range) return "";
@@ -503,5 +506,5 @@ function resolveFilePathAndGitUrl(uri: Uri, gitProvider: GitProvider): { filepat
   return {
     filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
     git_url: remoteUrl ?? "",
-  }
+  };
 }
