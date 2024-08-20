@@ -257,5 +257,22 @@ mod tests {
             .unwrap();
 
         assert_eq!(383, urls.len());
+        service
+            .set_preset_web_documents_active("React".to_string(), false)
+            .await
+            .unwrap();
+        let urls = service
+            .list_preset_web_documents(None, None, None, None, false)
+            .await
+            .unwrap();
+        assert_eq!(384, urls.len());
+
+        service.delete_custom_web_document(id).await.unwrap();
+        let urls = service
+            .list_custom_web_documents(None, None, None, None)
+            .await
+            .unwrap();
+
+        assert_eq!(0, urls.len());
     }
 }
