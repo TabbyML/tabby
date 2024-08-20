@@ -1,6 +1,6 @@
 import React from 'react'
 import { pickBy } from 'lodash-es'
-import { OperationContext, useSubscription } from 'urql'
+import { OperationContext } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 
@@ -9,8 +9,7 @@ import {
   ThreadRunItem,
   ThreadRunOptionsInput
 } from '../gql/generates/graphql'
-import { useMutation } from '../tabby/gql'
-import { useDebounceCallback } from './use-debounce'
+import { client, useMutation } from '../tabby/gql'
 
 interface UseThreadRunOptions {
   onError?: (err: Error) => void
@@ -107,7 +106,6 @@ const DeleteThreadMessagePairMutation = graphql(/* GraphQL */ `
 `)
 
 export function useThreadRun({
-  onError,
   threadId: propsThreadId,
   headers,
   onAssistantMessageCompleted
@@ -115,19 +113,13 @@ export function useThreadRun({
   const [threadId, setThreadId] = React.useState<string | undefined>(
     propsThreadId
   )
-  const processingAssistantMessageId = React.useRef<string | undefined>()
-  const [pause, setPause] = React.useState(true)
-  const [followupPause, setFollowupPause] = React.useState(true)
-  const [createMessageInput, setCreateMessageInput] =
-    React.useState<CreateMessageInput | null>(null)
-  const [threadRunOptions, setThreadRunOptions] = React.useState<
-    ThreadRunOptionsInput | undefined
-  >()
+  const unsubscribeFn = React.useRef<(() => void) | undefined>()
   const [isLoading, setIsLoading] = React.useState(false)
   const [threadRunItem, setThreadRunItem] = React.useState<
     ThreadRunItem | undefined
   >()
   const [error, setError] = React.useState<Error | undefined>()
+
   const operationContext: Partial<OperationContext> = React.useMemo(() => {
     if (headers) {
       return {
@@ -141,18 +133,9 @@ export function useThreadRun({
 
   const combineThreadRunData = (
     existingData: ThreadRunItem | undefined,
-    data: ThreadRunItem
-  ): ThreadRunItem => {
+    data: ThreadRunItem | undefined
+  ): ThreadRunItem | undefined => {
     if (!data) return data
-    // new thread created
-    if (data.threadCreated) return data
-    // new userMessage created
-    if (
-      existingData?.threadAssistantMessageCreated &&
-      data.threadUserMessageCreated
-    ) {
-      return data
-    }
 
     return {
       ...existingData,
@@ -163,90 +146,15 @@ export function useThreadRun({
     }
   }
 
-  const debouncedStop = useDebounceCallback(
-    (silent?: boolean) => {
-      setPause(true)
-      setFollowupPause(true)
-      setIsLoading(false)
-      processingAssistantMessageId.current = undefined
-      if (!silent && threadId) {
-        onAssistantMessageCompleted?.(threadId, threadRunItem)
-      }
-    },
-    300,
-    {
-      leading: false,
-      onUnmount(debounced) {
-        if (isLoading) {
-          debounced(true)
-        }
-        debounced.flush()
-      }
+  const stop = (silent?: boolean) => {
+    unsubscribeFn.current?.()
+    unsubscribeFn.current = undefined
+    setIsLoading(false)
+
+    if (!silent && threadId) {
+      onAssistantMessageCompleted?.(threadId, threadRunItem)
     }
-  )
-
-  const stop = (silent?: boolean) => debouncedStop.run(silent)
-
-  const [createThreadAndRunResult] = useSubscription(
-    {
-      query: CreateThreadAndRunSubscription,
-      pause,
-      variables: {
-        input: {
-          thread: {
-            userMessage: createMessageInput as CreateMessageInput
-          },
-          options: threadRunOptions
-        }
-      },
-      context: operationContext
-    },
-    (prevData, data) => {
-      // memo the processing assistant message id
-      if (data?.createThreadAndRun?.threadAssistantMessageCreated) {
-        processingAssistantMessageId.current =
-          data.createThreadAndRun.threadAssistantMessageCreated
-      }
-
-      return {
-        ...data,
-        createThreadAndRun: combineThreadRunData(
-          prevData?.createThreadAndRun,
-          data.createThreadAndRun
-        )
-      }
-    }
-  )
-
-  const [createThreadRunResult] = useSubscription(
-    {
-      query: CreateThreadRunSubscription,
-      pause: followupPause,
-      variables: {
-        input: {
-          threadId: threadId as string,
-          additionalUserMessage: createMessageInput as CreateMessageInput,
-          options: threadRunOptions
-        }
-      },
-      context: operationContext
-    },
-    (prevData, data) => {
-      // memo the processing assistant message id
-      if (data?.createThreadRun?.threadAssistantMessageCreated) {
-        processingAssistantMessageId.current =
-          data.createThreadRun.threadAssistantMessageCreated
-      }
-
-      return {
-        ...data,
-        createThreadRun: combineThreadRunData(
-          prevData?.createThreadRun,
-          data.createThreadRun
-        )
-      }
-    }
-  )
+  }
 
   React.useEffect(() => {
     if (propsThreadId && propsThreadId !== threadId) {
@@ -254,102 +162,101 @@ export function useThreadRun({
     }
   }, [propsThreadId])
 
-  // createThreadAndRun
-  React.useEffect(() => {
-    // initial state with no operation
-    if (!createThreadAndRunResult?.operation) {
-      return
-    }
-
-    const assistantMessageId =
-      createThreadAndRunResult?.data?.createThreadAndRun
-        ?.threadAssistantMessageCreated
-    if (
-      !!assistantMessageId &&
-      assistantMessageId !== processingAssistantMessageId.current
-    ) {
-      return
-    }
-
-    if (
-      createThreadAndRunResult?.data?.createThreadAndRun
-        ?.threadAssistantMessageCompleted
-    ) {
-      stop()
-    }
-
-    // error handling
-    if (createThreadAndRunResult?.error) {
-      setError(createThreadAndRunResult?.error)
-      stop()
-      return
-    }
-
-    // save the threadId
-    if (createThreadAndRunResult?.data?.createThreadAndRun?.threadCreated) {
-      setThreadId(
-        createThreadAndRunResult?.data?.createThreadAndRun?.threadCreated
-      )
-    }
-    if (createThreadAndRunResult?.data?.createThreadAndRun) {
-      setThreadRunItem(createThreadAndRunResult?.data?.createThreadAndRun)
-    }
-  }, [createThreadAndRunResult])
-
-  // createThreadRun
-  React.useEffect(() => {
-    // initial state with no operation
-    if (!createThreadRunResult?.operation) {
-      return
-    }
-
-    const assistantMessageId =
-      createThreadRunResult?.data?.createThreadRun
-        ?.threadAssistantMessageCreated
-    if (
-      !!assistantMessageId &&
-      assistantMessageId !== processingAssistantMessageId.current
-    ) {
-      return
-    }
-
-    if (
-      createThreadRunResult?.data?.createThreadRun
-        ?.threadAssistantMessageCompleted
-    ) {
-      stop()
-    }
-
-    // error handling
-    if (createThreadRunResult?.error) {
-      setError(createThreadRunResult?.error)
-      stop()
-      return
-    }
-
-    if (createThreadRunResult?.data?.createThreadRun) {
-      setThreadRunItem(createThreadRunResult?.data?.createThreadRun)
-    }
-  }, [createThreadRunResult])
-
-  const deleteThreadMessagePair = useMutation(DeleteThreadMessagePairMutation)
-
-  const sendUserMessage = async (
+  const createThreadAndRun = (
     userMessage: CreateMessageInput,
     options?: ThreadRunOptionsInput
   ) => {
+    const { unsubscribe } = client
+      .subscription(
+        CreateThreadAndRunSubscription,
+        {
+          input: {
+            thread: {
+              userMessage
+            },
+            options
+          }
+        },
+        operationContext
+      )
+      .subscribe(res => {
+        if (res?.error) {
+          setIsLoading(false)
+          setError(res.error)
+          unsubscribe()
+          return
+        }
+
+        if (res?.data?.createThreadAndRun?.threadAssistantMessageCompleted) {
+          stop()
+        }
+
+        const threadIdFromData = res.data?.createThreadAndRun?.threadCreated
+        if (!!threadIdFromData && threadIdFromData !== threadId) {
+          setThreadId(threadIdFromData)
+        }
+
+        setThreadRunItem(prevData =>
+          combineThreadRunData(prevData, res.data?.createThreadAndRun)
+        )
+      })
+
+    return unsubscribe
+  }
+
+  const createThreadRun = (
+    userMessage: CreateMessageInput,
+    options?: ThreadRunOptionsInput
+  ) => {
+    if (!threadId) return
+    const { unsubscribe } = client
+      .subscription(
+        CreateThreadRunSubscription,
+        {
+          input: {
+            threadId,
+            additionalUserMessage: userMessage,
+            options
+          }
+        },
+        operationContext
+      )
+      .subscribe(res => {
+        if (res?.error) {
+          setIsLoading(false)
+          setError(res.error)
+          unsubscribe()
+          return
+        }
+
+        if (res?.data?.createThreadRun?.threadAssistantMessageCompleted) {
+          stop()
+        }
+
+        setThreadRunItem(prevData =>
+          combineThreadRunData(prevData, res.data?.createThreadRun)
+        )
+      })
+
+    return unsubscribe
+  }
+
+  const deleteThreadMessagePair = useMutation(DeleteThreadMessagePairMutation)
+
+  const sendUserMessage = (
+    userMessage: CreateMessageInput,
+    options?: ThreadRunOptionsInput
+  ) => {
+    if (isLoading) return
+
     setIsLoading(true)
     setError(undefined)
     setThreadRunItem(undefined)
 
-    setCreateMessageInput(userMessage)
-    setThreadRunOptions(options)
-    processingAssistantMessageId.current = undefined
-
     if (threadId) {
-      setFollowupPause(false)
+      unsubscribeFn.current = createThreadRun(userMessage, options)
     } else {
-      setPause(false)
+      unsubscribeFn.current = createThreadAndRun(userMessage, options)
     }
   }
 
