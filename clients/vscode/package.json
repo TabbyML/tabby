@@ -206,7 +206,7 @@
       "editor/context": [
         {
           "submenu": "tabby.submenu",
-          "group": "2_workspace"
+          "group": "2_tabby"
         }
       ]
     },
