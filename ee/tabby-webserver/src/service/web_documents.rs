@@ -22,9 +22,12 @@ pub fn create(db: DbConn, job_service: Arc<dyn JobService>) -> impl WebDocumentS
     let data: serde_json::Value = serde_json::from_str(PRESET_WEB_DOCUMENTS_DATA).unwrap();
     let mut preset_web_documents = HashMap::new();
     for doc in data.as_array().unwrap() {
-        let name = doc.get("name").unwrap();
-        let url = doc.get("crawlerStart").unwrap();
-        preset_web_documents.insert(name.to_string(), url.to_string());
+        let name = doc.get("name").unwrap().to_string();
+        let url = doc.get("crawlerStart").unwrap().to_string();
+        preset_web_documents.insert(
+            String::from(&name[1..name.len() - 1]),
+            String::from(&url[1..url.len() - 1]),
+        );
     }
     WebDocumentServiceImpl {
         db,
@@ -196,5 +199,63 @@ fn to_preset_web_document(value: WebDocumentDAO, job_info: JobInfo) -> PresetWeb
         name: value.name,
         job_info: Some(job_info),
         updated_at: Some(value.updated_at),
+    }
+}
+#[cfg(test)]
+mod tests {
+    use tabby_db::DbConn;
+
+    use super::*;
+    use crate::background_job::BackgroundJobEvent;
+
+    #[tokio::test]
+    async fn test_list_web_documents() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let job = Arc::new(crate::service::job::create(db.clone()).await);
+        let service = create(db.clone(), job.clone());
+
+        let url = "https://example.com".to_string();
+        let id = service
+            .create_custom_web_document("example".to_string(), url.clone())
+            .await
+            .unwrap();
+
+        let command = BackgroundJobEvent::WebCrawler(id.to_string(), "https://example.com".into())
+            .to_command();
+
+        db.create_job_run("web".into(), command).await.unwrap();
+
+        let urls = service
+            .list_custom_web_documents(None, None, None, None)
+            .await
+            .unwrap();
+
+        assert_eq!(1, urls.len());
+        assert_eq!(id, urls[0].id);
+        assert!(urls[0].job_info.last_job_run.is_some());
+
+        service
+            .set_preset_web_documents_active("React".to_string(), true)
+            .await
+            .unwrap();
+
+        let command =
+            BackgroundJobEvent::WebCrawler("id".into(), "https://react.dev/reference/".into())
+                .to_command();
+
+        db.create_job_run("preset".into(), command).await.unwrap();
+        let urls = service
+            .list_preset_web_documents(None, None, None, None, true)
+            .await
+            .unwrap();
+
+        assert_eq!(1, urls.len());
+        assert!(urls[0].updated_at.is_some());
+        let urls = service
+            .list_preset_web_documents(None, None, None, None, false)
+            .await
+            .unwrap();
+
+        assert_eq!(383, urls.len());
     }
 }
