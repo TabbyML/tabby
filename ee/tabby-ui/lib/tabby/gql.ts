@@ -354,8 +354,9 @@ const client = new Client({
         const authorization =
           // @ts-ignore
           operation.context.fetchOptions?.headers?.Authorization ?? ''
+        const host = window.location.host
         const wsClient = createWSClient({
-          url: '/subscriptions',
+          url: `ws://${host}/subscriptions`,
           connectionParams: {
             authorization
           }
