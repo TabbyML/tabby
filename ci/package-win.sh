@@ -8,7 +8,7 @@ OUTPUT_NAME=${OUTPUT_NAME:-x86_64-windows-msvc-cuda117}
 NAME=llama-${LLAMA_CPP_VERSION}-bin-win-${LLAMA_CPP_PLATFORM}
 ZIP_FILE=${NAME}.zip
 
-#curl https://github.com/ggerganov/llama.cpp/releases/download/${LLAMA_CPP_VERSION}/${ZIP_FILE} -L -o ${ZIP_FILE}
+curl https://github.com/ggerganov/llama.cpp/releases/download/${LLAMA_CPP_VERSION}/${ZIP_FILE} -L -o ${ZIP_FILE}
 unzip ${ZIP_FILE} -d ${OUTPUT_NAME}
 
 pushd ${OUTPUT_NAME}
