@@ -289,23 +289,38 @@ impl DbConn {
 
         let res = query!(
             r#"
-        DELETE FROM threads WHERE id IN (
-            SELECT
-                threads.id
-            FROM
-                threads
-                LEFT JOIN thread_messages ON threads.id = thread_messages.thread_id
+            DELETE FROM threads
             WHERE
-                is_ephemeral
-                AND
-                  (
-                   --- If there are no messages, delete the thread if it's older than the threshold
-                   (thread_messages.updated_at IS NULL AND threads.updated_at < ?1)
+                id IN (
+                    SELECT
+                        id
+                    FROM
+                        (
+                            SELECT
+                                threads.id,
 
-                   --- Otherwise, delete the thread if the last message is older than the threshold
-                   OR (thread_messages.updated_at IS NOT NULL AND thread_messages.updated_at < ?1)
-                  )
-        );"#,
+                                --- Get the latest updated_at time from the thread and its messages using MAX aggregation
+                                MAX(
+                                    CASE
+                                        --- If there are no messages, use the thread's updated_at time
+                                        WHEN thread_messages.updated_at IS NULL THEN threads.updated_at
+
+                                        --- Otherwise, use the message's updated_at time
+                                        ELSE thread_messages.updated_at
+                                    END
+                                ) AS last_updated_at
+                            FROM
+                                threads
+                                LEFT JOIN thread_messages ON threads.id = thread_messages.thread_id
+                            WHERE
+                                is_ephemeral
+                            GROUP BY
+                                1
+                            HAVING
+                                last_updated_at < ?
+                        )
+                );
+        "#,
             time
         )
         .execute(&self.pool)
