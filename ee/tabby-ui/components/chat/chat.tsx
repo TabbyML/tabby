@@ -72,14 +72,14 @@ interface ChatProps extends React.ComponentProps<'div'> {
   chatId: string
   api?: string
   headers?: Record<string, string> | Headers
+  isEphemeral?: boolean
   initialMessages?: QuestionAnswerPair[]
   onLoaded?: () => void
-  onThreadUpdates: (messages: QuestionAnswerPair[]) => void
+  onThreadUpdates?: (messages: QuestionAnswerPair[]) => void
   onNavigateToContext: (context: Context, opts?: NavigateOpts) => void
   container?: HTMLDivElement
   docQuery?: boolean
   generateRelevantQuestions?: boolean
-  collectRelevantCodeUsingUserMessage?: boolean
   maxWidth?: string
   welcomeMessage?: string
   promptFormClassname?: string
@@ -95,6 +95,7 @@ function ChatRenderer(
     chatId,
     initialMessages,
     headers,
+    isEphemeral,
     onLoaded,
     onThreadUpdates,
     onNavigateToContext,
@@ -168,6 +169,7 @@ function ChatRenderer(
     deleteThreadMessagePair
   } = useThreadRun({
     headers,
+    isEphemeral,
     onAssistantMessageCompleted
   })
 
@@ -205,7 +207,6 @@ function ChatRenderer(
             id: newUserMessageId
           },
           assistant: {
-            ...qaPair.assistant,
             id: newAssistantMessgaeid,
             message: '',
             error: undefined
@@ -238,8 +239,9 @@ function ChatRenderer(
   }
 
   const onClearMessages = () => {
-    stop()
+    stop(true)
     setQaPairs([])
+    setThreadId(undefined)
   }
 
   const handleMessageAction = (
@@ -437,7 +439,7 @@ function ChatRenderer(
 
   React.useEffect(() => {
     if (!isOnLoadExecuted.current) return
-    onThreadUpdates(qaPairs)
+    onThreadUpdates?.(qaPairs)
   }, [qaPairs])
 
   React.useImperativeHandle(

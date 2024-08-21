@@ -87,7 +87,9 @@ export const CodeReferences = forwardRef<
                   enableTooltip={enableTooltip}
                   onTooltipClick={onTooltipClick}
                   isExternalLink={isExternalLink}
-                  isHighlighted={highlightIndex === index}
+                  isHighlighted={
+                    highlightIndex === index + (userContexts?.length || 0)
+                  }
                 />
               )
             })}

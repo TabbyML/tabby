@@ -263,6 +263,8 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     ])
   }, [userMessage.activeContext, userMessage.relevantContext])
 
+  const attachmentDocsLen = 0
+
   const attachmentCode: Array<AttachmentCodeItem> = useMemo(() => {
     return concat(clientCode, serverCode).map(o => ({
       content: o.content,
@@ -275,7 +277,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   }, [clientCode, serverCode])
 
   const onCodeCitationMouseEnter = (index: number) => {
-    setRelevantCodeHighlightIndex(index - 1 - (attachmentCode?.length || 0))
+    setRelevantCodeHighlightIndex(index - 1 - (attachmentDocsLen || 0))
   }
 
   const onCodeCitationMouseLeave = (index: number) => {
@@ -354,7 +356,8 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               onApplyInEditor={onApplyInEditor}
               onCopyContent={onCopyContent}
               attachmentCode={attachmentCode}
-              onCodeCitationClick={onCodeCitationClick}
+              // FIXME
+              // onCodeCitationClick={onCodeCitationClick}
               onCodeCitationMouseEnter={onCodeCitationMouseEnter}
               onCodeCitationMouseLeave={onCodeCitationMouseLeave}
             />
