@@ -12,6 +12,7 @@ import {
   CombinedError,
   errorExchange,
   fetchExchange,
+  OperationContext,
   OperationResult,
   subscriptionExchange,
   useMutation as useUrqlMutation
@@ -54,11 +55,14 @@ function useMutation<TResult, TVariables extends AnyVariables>(
     ? makeFormErrorHandler(options.form)
     : undefined
 
-  const fn = async (variables?: TVariables) => {
+  const fn = async (
+    variables?: TVariables,
+    context?: Partial<OperationContext>
+  ) => {
     let response: OperationResult<TResult, AnyVariables> | undefined
 
     try {
-      response = await executeMutation(variables)
+      response = await executeMutation(variables, context)
       if (response?.error) {
         onFormError && onFormError(response.error)
         options?.onError && options.onError(response.error)
@@ -354,8 +358,9 @@ const client = new Client({
         const authorization =
           // @ts-ignore
           operation.context.fetchOptions?.headers?.Authorization ?? ''
+        const host = window.location.host
         const wsClient = createWSClient({
-          url: '/subscriptions',
+          url: `ws://${host}/subscriptions`,
           connectionParams: {
             authorization
           }
