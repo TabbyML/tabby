@@ -335,6 +335,7 @@ function ChatRenderer(
   const generateRequestPayload = (
     userMessage: UserMessage
   ): [CreateMessageInput, ThreadRunOptionsInput] => {
+    // use selectContext or activeContext for code query
     const contextForCodeQuery =
       userMessage?.selectContext || userMessage?.activeContext
     const codeQuery: InputMaybe<CodeQueryInput> = contextForCodeQuery
@@ -349,12 +350,14 @@ function ChatRenderer(
       : null
 
     const attachmentCode: MessageAttachmentCodeInput[] = compact([
-      contextForCodeQuery
+      // activeCode in IDE
+      userMessage?.activeContext
         ? {
-            content: contextForCodeQuery.content,
-            filepath: contextForCodeQuery.filepath
+            content: userMessage?.activeContext.content,
+            filepath: userMessage?.activeContext.filepath
           }
         : undefined,
+      // relevantCode
       ...(userMessage?.relevantContext?.map(o => ({
         filepath: o.filepath,
         content: o.content
@@ -382,9 +385,21 @@ function ChatRenderer(
     async (userMessage: UserMessageWithOptionalId) => {
       if (isLoading) return
 
-      // If no id is provided, set a fallback id.
+      let selectCodeSnippet = ''
+      const selectCodeContextContent = userMessage?.selectContext?.content
+      if (selectCodeContextContent) {
+        const language = userMessage?.selectContext?.filepath
+          ? filename2prism(userMessage?.selectContext?.filepath)[0] ?? ''
+          : ''
+        selectCodeSnippet = `\n${'```'}${language}\n${
+          selectCodeContextContent ?? ''
+        }\n${'```'}\n`
+      }
+
       const newUserMessage = {
         ...userMessage,
+        message: userMessage.message + selectCodeSnippet,
+        // If no id is provided, set a fallback id.
         id: userMessage.id ?? nanoid()
       }
 
