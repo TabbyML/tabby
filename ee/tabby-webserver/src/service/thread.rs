@@ -33,7 +33,10 @@ impl ThreadServiceImpl {
 #[async_trait]
 impl ThreadService for ThreadServiceImpl {
     async fn create(&self, user_id: &ID, input: &CreateThreadInput) -> Result<ID> {
-        let thread_id = self.db.create_thread(user_id.as_rowid()?, input.is_ephemeral).await?;
+        let thread_id = self
+            .db
+            .create_thread(user_id.as_rowid()?, input.is_ephemeral)
+            .await?;
         self.append_user_message(&thread_id.as_id(), &input.user_message)
             .await?;
         Ok(thread_id.as_id())
