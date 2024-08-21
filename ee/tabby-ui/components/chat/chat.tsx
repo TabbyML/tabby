@@ -7,7 +7,6 @@ import {
   CreateMessageInput,
   InputMaybe,
   MessageAttachmentCodeInput,
-  ThreadRunItem,
   ThreadRunOptionsInput
 } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
@@ -120,45 +119,6 @@ function ChatRenderer(
   const [relevantContext, setRelevantContext] = React.useState<Context[]>([])
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
 
-  const updateCurrentQaPairIDs = (
-    newUserMessageId: string,
-    newAssistantMessageId: string
-  ) => {
-    const qaPairIndex = qaPairs.length - 1
-    const qaPair = qaPairs[qaPairIndex]
-    const newQaPairs: QuestionAnswerPair[] = [
-      ...qaPairs.slice(0, -1),
-      {
-        user: {
-          ...qaPair.user,
-          id: newUserMessageId
-        },
-        assistant: {
-          ...qaPair.assistant,
-          message: qaPair?.assistant?.message ?? '',
-          id: newAssistantMessageId
-        }
-      }
-    ]
-
-    setQaPairs(newQaPairs)
-  }
-
-  const onAssistantMessageCompleted = (
-    newThreadId: string,
-    threadRunItem: ThreadRunItem | undefined
-  ) => {
-    if (
-      threadRunItem?.threadUserMessageCreated &&
-      threadRunItem.threadAssistantMessageCreated
-    ) {
-      updateCurrentQaPairIDs(
-        threadRunItem.threadUserMessageCreated,
-        threadRunItem.threadAssistantMessageCreated
-      )
-    }
-  }
-
   const {
     sendUserMessage,
     isLoading,
@@ -170,8 +130,7 @@ function ChatRenderer(
   } = useThreadRun({
     threadId,
     headers,
-    isEphemeral,
-    onAssistantMessageCompleted
+    isEphemeral
   })
 
   const onDeleteMessage = async (userMessageId: string) => {
@@ -274,7 +233,10 @@ function ChatRenderer(
       const assisatntMessage = prev[prev.length - 1].assistant
       const nextAssistantMessage: AssistantMessage = {
         ...assisatntMessage,
-        id: assisatntMessage?.id || nanoid(),
+        id:
+          answer?.threadAssistantMessageCreated ||
+          assisatntMessage?.id ||
+          nanoid(),
         message: answer.threadAssistantMessageContentDelta ?? '',
         error: undefined,
         relevant_code:
@@ -284,7 +246,10 @@ function ChatRenderer(
       return [
         ...prev.slice(0, prev.length - 1),
         {
-          ...lastQaPairs,
+          user: {
+            ...lastQaPairs.user,
+            id: answer?.threadUserMessageCreated || lastQaPairs.user.id
+          },
           assistant: nextAssistantMessage
         }
       ]
