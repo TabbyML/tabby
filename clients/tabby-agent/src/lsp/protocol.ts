@@ -180,7 +180,6 @@ export type ClientProvidedConfig = {
   proxy?: {
     authorization: string;
     url: string;
-    noProxy: string | string[];
   };
   /**
    * Specifies the endpoint and token for connecting to the Tabby server.

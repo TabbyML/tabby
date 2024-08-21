@@ -151,22 +151,11 @@ export class Config extends EventEmitter {
     }
   }
 
-  get noProxy() {
-    return this.httpConfig.get("noProxy", []);
-  }
-
-  set noProxy(value: string[]) {
-    if (value.length !== this.noProxy.length) {
-      this.httpConfig.update("noProxy", value);
-    }
-  }
-
   buildClientProvidedConfig(): ClientProvidedConfig {
     return {
       proxy: {
         url: this.url,
         authorization: this.authorization,
-        noProxy: this.noProxy,
       },
       server: {
         endpoint: this.serverEndpoint,
