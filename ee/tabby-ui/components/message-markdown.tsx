@@ -9,6 +9,7 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
 import {
+  Maybe,
   MessageAttachmentCode,
   MessageAttachmentDoc
 } from '@/lib/gql/generates/graphql'
@@ -48,8 +49,8 @@ const normalizedText = (input: string) => {
 export interface MessageMarkdownProps {
   message: string
   headline?: boolean
-  attachmentDocs?: Array<AttachmentDocItem>
-  attachmentCode?: Array<AttachmentCodeItem>
+  attachmentDocs?: Maybe<Array<AttachmentDocItem>>
+  attachmentCode?: Maybe<Array<AttachmentCodeItem>>
   onCopyContent?: ((value: string) => void) | undefined
   onApplyInEditor?: ((value: string) => void) | undefined
   onCodeCitationClick?: (code: MessageAttachmentCode) => void
