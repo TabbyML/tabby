@@ -25,6 +25,9 @@ import { ContextVariables } from "./ContextVariables";
 import { InlineCompletionProvider } from "./InlineCompletionProvider";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { GitProvider, Repository } from "./git/GitProvider";
+import CommandPalette from "./CommandPalette";
+import { showOutputPanel } from "./logger";
+import { Issues } from "./Issues";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -33,6 +36,7 @@ export class Commands {
     private readonly context: ExtensionContext,
     private readonly client: Client,
     private readonly config: Config,
+    private readonly issues: Issues,
     private readonly contextVariables: ContextVariables,
     private readonly inlineCompletionProvider: InlineCompletionProvider,
     private readonly chatViewProvider: ChatViewProvider,
@@ -165,25 +169,20 @@ export class Commands {
       window
         .showQuickPick([
           {
-            label: "Online Documentation",
+            label: "Website",
             iconPath: new ThemeIcon("book"),
             alwaysShow: true,
-          },
-          {
-            label: "Model Registry",
-            description: "Explore more recommend models from Tabby's model registry",
-            iconPath: new ThemeIcon("library"),
-            alwaysShow: true,
+            description: "Visit Tabby's website to learn more about features and use cases",
           },
           {
             label: "Tabby Slack Community",
-            description: "Join Tabby's Slack community to get help or feed back",
+            description: "Join Tabby's Slack community to get help or share feedback",
             iconPath: new ThemeIcon("comment-discussion"),
             alwaysShow: true,
           },
           {
             label: "Tabby GitHub Repository",
-            description: "View the source code for Tabby, and open issues",
+            description: "Open issues for bugs or feature requests",
             iconPath: new ThemeIcon("github"),
             alwaysShow: true,
           },
@@ -191,11 +190,8 @@ export class Commands {
         .then((selection) => {
           if (selection) {
             switch (selection.label) {
-              case "Online Documentation":
+              case "Website":
                 env.openExternal(Uri.parse("https://tabby.tabbyml.com/"));
-                break;
-              case "Model Registry":
-                env.openExternal(Uri.parse("https://tabby.tabbyml.com/docs/models/"));
                 break;
               case "Tabby Slack Community":
                 env.openExternal(Uri.parse("https://links.tabbyml.com/join-slack-extensions/"));
@@ -212,6 +208,12 @@ export class Commands {
     },
     gettingStarted: () => {
       commands.executeCommand("workbench.action.openWalkthrough", "TabbyML.vscode-tabby#gettingStarted");
+    },
+    "commandPalette.trigger": () => {
+      new CommandPalette(this.client, this.config, this.issues);
+    },
+    "outputPanel.focus": () => {
+      showOutputPanel();
     },
     "inlineCompletion.trigger": () => {
       commands.executeCommand("editor.action.inlineSuggest.trigger");
