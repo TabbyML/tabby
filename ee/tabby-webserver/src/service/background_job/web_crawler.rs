@@ -69,10 +69,14 @@ impl WebCrawlerJob {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::atomic::Ordering;
-    use std::sync::atomic::{AtomicBool, AtomicUsize};
-    use std::sync::Arc;
-    use std::time::Duration;
+    use std::{
+        sync::{
+            atomic::{AtomicBool, AtomicUsize, Ordering},
+            Arc,
+        },
+        time::Duration,
+    };
+
     use tokio::time::Instant;
 
     async fn run(count: Arc<AtomicUsize>, finished: Arc<AtomicBool>) -> tabby_schema::Result<()> {
@@ -96,6 +100,6 @@ mod tests {
         .await
         .is_err());
         assert!(count.load(Ordering::Acquire) > 1);
-        assert_eq!(finished.load(Ordering::Acquire), false);
+        assert!(!finished.load(Ordering::Acquire));
     }
 }
