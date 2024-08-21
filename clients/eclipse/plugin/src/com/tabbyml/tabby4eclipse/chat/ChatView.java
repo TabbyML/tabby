@@ -1,7 +1,6 @@
 package com.tabbyml.tabby4eclipse.chat;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,7 +9,6 @@ import java.util.Map;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
@@ -20,7 +18,6 @@ import org.eclipse.jface.resource.FontRegistry;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.viewers.ISelection;
-import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.browser.Browser;
 import org.eclipse.swt.browser.BrowserFunction;
@@ -36,6 +33,7 @@ import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.ide.ResourceUtil;
 import org.eclipse.ui.part.ViewPart;
 import org.eclipse.ui.texteditor.ITextEditor;
@@ -443,6 +441,15 @@ public class ChatView extends ViewPart {
 
 	private void handleChatPanelRequest(Request request) {
 		switch (request.getMethod()) {
+		case "navigate": {
+			List<Object> params = request.getParams();
+			if (params.size() < 1) {
+				return;
+			}
+			FileContext context = gson.fromJson(gson.toJson(params.get(0)), FileContext.class);
+			navigateToFileContext(context);
+			break;
+		}
 		case "onSubmitMessage": {
 			List<Object> params = request.getParams();
 			if (params.size() < 1) {
@@ -462,17 +469,29 @@ public class ChatView extends ViewPart {
 					} else {
 						chatMessage.setActiveContext(getActiveContext());
 					}
-
 					add(chatMessage);
 				}
 			}));
+			break;
+		}
+		case "onApplyInEditor": {
+			List<Object> params = request.getParams();
+			if (params.size() < 1) {
+				return;
+			}
+			String content = (String) params.get(0);
+			applyContentInEditor(content);
+			break;
 		}
 		}
 	}
 
 	private FileContext getActiveContext() {
-		FileContext context = new FileContext();
 		ITextEditor activeTextEditor = Utils.getActiveTextEditor();
+		if (activeTextEditor == null) {
+			return null;
+		}
+		FileContext context = new FileContext();
 
 		IFile file = ResourceUtil.getFile(activeTextEditor.getEditorInput());
 		URI fileUri = file.getLocationURI();
@@ -510,5 +529,50 @@ public class ChatView extends ViewPart {
 			}
 		}
 		return context;
+	}
+
+	private void navigateToFileContext(FileContext context) {
+		logger.info("Navigate to file: " + context.getFilePath() + ", line: " + context.getRange().getStart());
+		// FIXME(@icycode): the base path could be a git repository root, but it cannot
+		// be determined here
+		IFile file = null;
+		ITextEditor activeTextEditor = Utils.getActiveTextEditor();
+		if (activeTextEditor != null) {
+			// try find file in the project of the active editor
+			IFile activeFile = ResourceUtil.getFile(activeTextEditor.getEditorInput());
+			if (activeFile != null) {
+				file = activeFile.getProject().getFile(new Path(context.getFilePath()));
+			}
+		} else {
+			// try find file in the workspace
+			file = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(new Path(context.getFilePath()));
+		}
+		try {
+			if (file != null && file.exists()) {
+				IEditorPart editorPart = IDE.openEditor(Utils.getActiveWorkbenchPage(), file);
+				if (editorPart instanceof ITextEditor textEditor) {
+					IDocument document = textEditor.getDocumentProvider().getDocument(textEditor.getEditorInput());
+					int offset = document.getLineOffset(context.getRange().getStart() - 1);
+					textEditor.selectAndReveal(offset, 0);
+				}
+			}
+		} catch (Exception e) {
+			logger.error("Error to navigate to file: " + context.getFilePath(), e);
+		}
+	}
+
+	private void applyContentInEditor(String content) {
+		logger.info("Apply content to the active text editor.");
+		ITextEditor activeTextEditor = Utils.getActiveTextEditor();
+		if (activeTextEditor != null) {
+			try {
+				IDocument document = activeTextEditor.getDocumentProvider()
+						.getDocument(activeTextEditor.getEditorInput());
+				ITextSelection selection = (ITextSelection) activeTextEditor.getSelectionProvider().getSelection();
+				document.replace(selection.getOffset(), selection.getLength(), content);
+			} catch (Exception e) {
+				logger.error("Error to apply content to the active text editor.", e);
+			}
+		}
 	}
 }

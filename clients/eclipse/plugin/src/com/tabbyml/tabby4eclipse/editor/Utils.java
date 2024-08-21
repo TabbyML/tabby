@@ -7,15 +7,21 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 public class Utils {
-	public static ITextEditor getActiveTextEditor() {
+	public static IWorkbenchPage getActiveWorkbenchPage() {
 		IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
 		if (window != null) {
 			IWorkbenchPage page = window.getActivePage();
-			if (page != null) {
-				IEditorPart activeEditor = page.getActiveEditor();
-				if (activeEditor instanceof ITextEditor textEditor) {
-					return textEditor;
-				}
+			return page;
+		}
+		return null;
+	}
+
+	public static ITextEditor getActiveTextEditor() {
+		IWorkbenchPage page = getActiveWorkbenchPage();
+		if (page != null) {
+			IEditorPart activeEditor = page.getActiveEditor();
+			if (activeEditor instanceof ITextEditor textEditor) {
+				return textEditor;
 			}
 		}
 		return null;
