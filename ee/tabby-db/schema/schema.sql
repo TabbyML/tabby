@@ -165,6 +165,8 @@ CREATE TABLE web_crawler_urls(
 CREATE INDEX `idx_job_runs_command` ON job_runs(command);
 CREATE TABLE threads(
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  -- Whether the thread is ephemeral(e.g from chat sidebar)
+  is_ephemeral BOOLEAN NOT NULL,
   -- The user who created the thread
   user_id INTEGER NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),

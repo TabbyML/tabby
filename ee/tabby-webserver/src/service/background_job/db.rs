@@ -15,6 +15,7 @@ impl DbMaintainanceJob {
     pub async fn cron(_now: DateTime<Utc>, db: DbConn) -> tabby_schema::Result<()> {
         db.delete_expired_token().await?;
         db.delete_expired_password_resets().await?;
+        db.delete_expired_threads().await?;
         Ok(())
     }
 }
