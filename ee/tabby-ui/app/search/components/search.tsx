@@ -297,10 +297,6 @@ export function Search() {
         threadRunItem.threadAssistantMessageCreated
       )
     }
-
-    if (newThreadId && !threadId) {
-      updateURLPattern(newThreadId)
-    }
   }
 
   const { sendUserMessage, isLoading, error, answer, stop, regenerate } =
@@ -418,6 +414,11 @@ export function Search() {
     )
 
     if (currentAssistantMessageIndex <= 0) return
+
+    const newThreadId = answer?.threadCreated
+    if (!!newThreadId && !threadId) {
+      updateURLPattern(newThreadId)
+    }
 
     const currentAssistantMessage = newMessages[currentAssistantMessageIndex]
 
