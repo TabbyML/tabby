@@ -27,7 +27,12 @@ import {
   AttachmentDocItem,
   RelevantCodeContext
 } from '@/lib/types'
-import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
+import {
+  cn,
+  formatLineHashForCodeBrowser,
+  getRangeFromAttachmentCode,
+  getRangeTextFromAttachmentCode
+} from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   IconBlocks,
@@ -103,7 +108,6 @@ type ConversationMessage = Omit<
 > & {
   threadId?: string
   threadRelevantQuestions?: Maybe<string[]>
-  // isLoading?: boolean
   error?: string
   attachment?: {
     code: Maybe<Array<AttachmentCodeItem>>
@@ -826,7 +830,6 @@ function AnswerBlock({
     number | undefined
   >(undefined)
   const getCopyContent = (answer: ConversationMessage) => {
-    // FIXME copy code
     if (isEmpty(answer?.attachment?.doc)) return answer.content
 
     const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
@@ -836,10 +839,21 @@ function AnswerBlock({
         return `[${citationNumberMatch}]`
       })
       .trim()
-    const citations =
-      answer?.attachment?.doc
-        ?.map((relevent, idx) => `[${idx + 1}] ${relevent.link}`)
-        ?.join('\n') ?? ''
+    const docCitations =
+      answer.attachment?.doc
+        ?.map((doc, idx) => `[${idx + 1}] ${doc.link}`)
+        .join('\n') ?? ''
+    const docCitationLen = answer.attachment?.doc?.length ?? 0
+    const codeCitations =
+      answer.attachment?.code
+        ?.map((code, idx) => {
+          const lineRangeText = getRangeTextFromAttachmentCode(code)
+          const filenameText = compact([code.filepath, lineRangeText]).join(':')
+          return `[${idx + docCitationLen + 1}] ${filenameText}`
+        })
+        .join('\n') ?? ''
+    const citations = docCitations + codeCitations
+
     return `${content}\n\nCitations:\n${citations}`
   }
 
@@ -853,15 +867,13 @@ function AnswerBlock({
   const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
     return (
       answer?.attachment?.code?.map(code => {
-        const start_line = code?.startLine ?? 0
-        const lineCount = code.content.split('\n').length
-        const end_line = start_line + lineCount - 1
+        const { startLine, endLine } = getRangeFromAttachmentCode(code)
 
         return {
           kind: 'file',
           range: {
-            start: start_line,
-            end: end_line
+            start: startLine,
+            end: endLine
           },
           filepath: code.filepath,
           content: code.content,
@@ -904,9 +916,7 @@ function AnswerBlock({
   }
 
   const openCodeBrowserTab = (code: MessageAttachmentCode) => {
-    const start_line = code?.startLine ?? 0
-    const lineCount = code.content.split('\n').length
-    const end_line = start_line + lineCount - 1
+    const { startLine, endLine } = getRangeFromAttachmentCode(code)
 
     if (!code.filepath) return
     const url = new URL(`${window.location.origin}/files`)
@@ -916,8 +926,8 @@ function AnswerBlock({
     url.search = searchParams.toString()
 
     const lineHash = formatLineHashForCodeBrowser({
-      start: start_line,
-      end: end_line
+      start: startLine,
+      end: endLine
     })
     if (lineHash) {
       url.hash = lineHash

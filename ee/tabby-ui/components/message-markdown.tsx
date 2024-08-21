@@ -31,6 +31,7 @@ type RelevantDocItem = {
 type RelevantCodeItem = {
   type: 'code'
   data: AttachmentCodeItem
+  isClient?: boolean
 }
 
 type MessageAttachments = Array<RelevantDocItem | RelevantCodeItem>

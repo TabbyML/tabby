@@ -86,6 +86,7 @@ export interface RelevantCodeContext extends Context {
 
 // for rendering, including scores
 export type AttachmentCodeItem = MessageAttachmentCode & {
+  isClient?: boolean
   extra?: { scores?: MessageCodeSearchHit['scores'] }
 }
 // for rendering, including score

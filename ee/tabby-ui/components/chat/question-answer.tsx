@@ -4,10 +4,9 @@
 import React, { useMemo } from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
-import { compact, concat, isNil } from 'lodash-es'
+import { compact, isEmpty, isNil } from 'lodash-es'
 import type { Context } from 'tabby-chat-panel'
 
-import { MessageAttachmentCode } from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
 import {
@@ -16,7 +15,11 @@ import {
   QuestionAnswerPair,
   UserMessage
 } from '@/lib/types/chat'
-import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
+import {
+  cn,
+  getRangeFromAttachmentCode,
+  getRangeTextFromAttachmentCode
+} from '@/lib/utils'
 
 import { CopyButton } from '../copy-button'
 import { ErrorMessageBlock, MessageMarkdown } from '../message-markdown'
@@ -217,6 +220,7 @@ interface AssistantMessageActionProps {
   userMessageId: string
   message: AssistantMessage
   enableRegenerating?: boolean
+  attachmentCode?: Array<AttachmentCodeItem>
 }
 
 function AssistantMessageCard(props: AssistantMessageCardProps) {
@@ -235,15 +239,13 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   const serverCode: Array<Context> = React.useMemo(() => {
     return (
       message?.relevant_code?.map(code => {
-        const start_line = code?.startLine ?? 0
-        const lineCount = code.content.split('\n').length
-        const end_line = start_line + lineCount - 1
+        const { startLine, endLine } = getRangeFromAttachmentCode(code)
 
         return {
           kind: 'file',
           range: {
-            start: start_line,
-            end: end_line
+            start: startLine,
+            end: endLine
           },
           filepath: code.filepath,
           content: code.content,
@@ -263,14 +265,28 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   const attachmentDocsLen = 0
 
   const attachmentCode: Array<AttachmentCodeItem> = useMemo(() => {
-    return concat(clientCode, serverCode).map(o => ({
-      content: o.content,
-      filepath: o.filepath,
-      gitUrl: o.git_url,
-      startLine: o.range.start,
-      // FIXME
-      language: ''
-    }))
+    const formatedClientAttachmentCode =
+      clientCode?.map(o => ({
+        content: o.content,
+        filepath: o.filepath,
+        gitUrl: o.git_url,
+        startLine: o.range.start,
+        language: filename2prism(o.filepath ?? '')[0],
+        isClient: true
+      })) ?? []
+    const formatedServerAttachmentCode =
+      serverCode?.map(o => ({
+        content: o.content,
+        filepath: o.filepath,
+        gitUrl: o.git_url,
+        startLine: o.range.start,
+        language: filename2prism(o.filepath ?? '')[0],
+        isClient: false
+      })) ?? []
+    return compact([
+      ...formatedClientAttachmentCode,
+      ...formatedServerAttachmentCode
+    ])
   }, [clientCode, serverCode])
 
   const onCodeCitationMouseEnter = (index: number) => {
@@ -281,31 +297,21 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     setRelevantCodeHighlightIndex(undefined)
   }
 
-  const openCodeBrowserTab = (code: MessageAttachmentCode) => {
-    const start_line = code?.startLine ?? 0
-    const lineCount = code.content.split('\n').length
-    const end_line = start_line + lineCount - 1
-
-    if (!code.filepath) return
-    const url = new URL(`${window.location.origin}/files`)
-    const searchParams = new URLSearchParams()
-    searchParams.append('redirect_filepath', code.filepath)
-    searchParams.append('redirect_git_url', code.gitUrl)
-    url.search = searchParams.toString()
-
-    const lineHash = formatLineHashForCodeBrowser({
-      start: start_line,
-      end: end_line
-    })
-    if (lineHash) {
-      url.hash = lineHash
+  const onCodeCitationClick = (code: AttachmentCodeItem) => {
+    const { startLine, endLine } = getRangeFromAttachmentCode(code)
+    const ctx: Context = {
+      git_url: code.gitUrl,
+      content: code.content,
+      filepath: code.filepath,
+      kind: 'file',
+      range: {
+        start: startLine,
+        end: endLine
+      }
     }
-
-    window.open(url.toString())
-  }
-
-  const onCodeCitationClick = (code: MessageAttachmentCode) => {
-    openCodeBrowserTab(code)
+    onNavigateToContext?.(ctx, {
+      openInEditor: client === 'vscode' && code.isClient
+    })
   }
 
   return (
@@ -328,6 +334,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
             message={message}
             userMessageId={userMessageId}
             enableRegenerating={enableRegenerating}
+            attachmentCode={attachmentCode}
           />
         </div>
       </div>
@@ -354,8 +361,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               onApplyInEditor={onApplyInEditor}
               onCopyContent={onCopyContent}
               attachmentCode={attachmentCode}
-              // FIXME
-              // onCodeCitationClick={onCodeCitationClick}
+              onCodeCitationClick={onCodeCitationClick}
               onCodeCitationMouseEnter={onCodeCitationMouseEnter}
               onCodeCitationMouseLeave={onCodeCitationMouseLeave}
             />
@@ -366,11 +372,39 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           <AssistantMessageCardActions
             message={message}
             userMessageId={userMessageId}
+            enableRegenerating={enableRegenerating}
+            attachmentCode={attachmentCode}
           />
         </div>
       </div>
     </div>
   )
+}
+
+function getCopyContent(
+  content: string,
+  attachmentCode?: Array<AttachmentCodeItem>
+) {
+  if (!attachmentCode || isEmpty(attachmentCode)) return content
+
+  const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
+  const parsedContent = content
+    .replace(citationMatchRegex, match => {
+      const citationNumberMatch = match?.match(/\d+/)
+      return `[${citationNumberMatch}]`
+    })
+    .trim()
+
+  const codeCitations =
+    attachmentCode
+      .map((code, idx) => {
+        const lineRangeText = getRangeTextFromAttachmentCode(code)
+        const filenameText = compact([code.filepath, lineRangeText]).join(':')
+        return `[${idx + 1}] ${filenameText}`
+      })
+      .join('\n') ?? ''
+
+  return `${parsedContent}\n\nCitations:\n${codeCitations}`
 }
 
 function AssistantMessageCardActions(props: AssistantMessageActionProps) {
@@ -379,7 +413,11 @@ function AssistantMessageCardActions(props: AssistantMessageActionProps) {
     isLoading: isGenerating,
     onCopyContent
   } = React.useContext(ChatContext)
-  const { message, userMessageId, enableRegenerating } = props
+  const { message, userMessageId, enableRegenerating, attachmentCode } = props
+  const copyContent = useMemo(() => {
+    return getCopyContent(message.message, attachmentCode)
+  }, [message.message, attachmentCode])
+
   return (
     <ChatMessageActionsWrapper>
       {!isGenerating && enableRegenerating && (
@@ -392,7 +430,7 @@ function AssistantMessageCardActions(props: AssistantMessageActionProps) {
           <span className="sr-only">Regenerate message</span>
         </Button>
       )}
-      <CopyButton value={message.message} onCopyContent={onCopyContent} />
+      <CopyButton value={copyContent} onCopyContent={onCopyContent} />
     </ChatMessageActionsWrapper>
   )
 }
