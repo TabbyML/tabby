@@ -75,6 +75,7 @@ export const CodeReferences = forwardRef<
                   key={`user-${index}`}
                   context={item}
                   onContextClick={ctx => onContextClick?.(ctx, true)}
+                  isHighlighted={highlightIndex === index}
                 />
               )
             })}

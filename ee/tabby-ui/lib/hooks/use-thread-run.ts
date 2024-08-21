@@ -269,11 +269,14 @@ export function useThreadRun({
     userMessageId: string,
     assistantMessageId: string
   ) => {
-    return deleteThreadMessagePair({
-      threadId,
-      userMessageId,
-      assistantMessageId
-    })
+    return deleteThreadMessagePair(
+      {
+        threadId,
+        userMessageId,
+        assistantMessageId
+      },
+      operationContext
+    )
       .then(res => {
         if (res?.data?.deleteThreadMessagePair) {
           return true
@@ -297,11 +300,12 @@ export function useThreadRun({
     setIsLoading(true)
     setError(undefined)
     // 1. delete message pair
-    deleteThreadMessagePair({
-      threadId: payload.threadId,
-      userMessageId: payload.userMessageId,
-      assistantMessageId: payload.assistantMessageId
-    }).finally(() => {
+    onDeleteThreadMessagePair(
+      payload.threadId,
+      payload.userMessageId,
+      payload.assistantMessageId
+    ).finally(() => {
+      // 2. send a new user message
       sendUserMessage(payload.userMessage, payload.threadRunOptions)
     })
   }
