@@ -284,7 +284,7 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn delete_expired_threads(&self) -> Result<usize> {
+    pub async fn delete_expired_ephemeral_threads(&self) -> Result<usize> {
         let time = (Utc::now() - Duration::hours(4)).as_sqlite_datetime();
 
         let res = query!(
@@ -336,7 +336,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_expired_threads() {
         let db = DbConn::new_in_memory().await.unwrap();
-        assert_eq!(db.delete_expired_threads().await.unwrap(), 0);
+        assert_eq!(db.delete_expired_ephemeral_threads().await.unwrap(), 0);
 
         let user_id = testutils::create_user(&db).await;
         let _ephemeral_thread_id = db.create_thread(user_id, true).await.unwrap();
@@ -349,7 +349,7 @@ mod tests {
             .unwrap();
 
         // Only the ephemeral thread should be deleted
-        assert_eq!(db.delete_expired_threads().await.unwrap(), 1);
+        assert_eq!(db.delete_expired_ephemeral_threads().await.unwrap(), 1);
 
         // The remaining thread should be the non-ephemeral thread
         let threads = db.list_threads(None, None, None, false).await.unwrap();
