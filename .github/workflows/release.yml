@@ -35,8 +35,8 @@ jobs:
           - x86_64-manylinux2014-vulkan
           - x86_64-windows-msvc
           - x86_64-windows-msvc-vulkan
-          - x86_64-windows-msvc-cuda117
-          - x86_64-windows-msvc-cuda122
+          # - x86_64-windows-msvc-cuda117
+          # - x86_64-windows-msvc-cuda122
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
