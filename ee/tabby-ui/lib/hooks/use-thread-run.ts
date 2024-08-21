@@ -301,16 +301,9 @@ export function useThreadRun({
       threadId: payload.threadId,
       userMessageId: payload.userMessageId,
       assistantMessageId: payload.assistantMessageId
+    }).finally(() => {
+      sendUserMessage(payload.userMessage, payload.threadRunOptions)
     })
-      .then(res => {
-        // 2. send userMessage
-        if (res?.data?.deleteThreadMessagePair) {
-          sendUserMessage(payload.userMessage, payload.threadRunOptions)
-        }
-      })
-      .catch(e => {
-        // FIXME error handling
-      })
   }
 
   return {

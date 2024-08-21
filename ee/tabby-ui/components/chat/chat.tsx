@@ -201,7 +201,6 @@ function ChatRenderer(
       let nextQaPairs: QuestionAnswerPair[] = [
         ...qaPairs.slice(0, qaPairIndex),
         {
-          ...qaPair,
           user: {
             ...qaPair.user,
             id: newUserMessageId
