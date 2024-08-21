@@ -138,7 +138,7 @@
       // server to client requests
       if (event.source === chat.contentWindow) {
         // handle copy action
-        if ("action" in event.data && event.data.action === "copy") {
+        if (typeof event.data === "object" && "action" in event.data && event.data.action === "copy") {
           if (navigator.clipboard?.writeText) {
             navigator.clipboard.writeText(event.data.data);
           }

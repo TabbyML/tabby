@@ -23,17 +23,13 @@ import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.swt.custom.CaretEvent;
 import org.eclipse.swt.custom.CaretListener;
 import org.eclipse.swt.custom.StyledText;
-import org.eclipse.ui.IEditorPart;
-import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.IWorkbenchWindow;
-import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.tabbyml.tabby4eclipse.Logger;
 import com.tabbyml.tabby4eclipse.lsp.LanguageServerService;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ILanguageServer;
-import com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionParams;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ITextDocumentServiceExt;
+import com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionParams;
 
 public class InlineCompletionService {
 	public static InlineCompletionService getInstance() {
@@ -148,7 +144,7 @@ public class InlineCompletionService {
 	}
 
 	public boolean isInlineCompletionVisible() {
-		return isInlineCompletionVisible(getActiveEditor());
+		return isInlineCompletionVisible(Utils.getActiveTextEditor());
 	}
 
 	public boolean isInlineCompletionVisible(ITextEditor textEditor) {
@@ -160,7 +156,7 @@ public class InlineCompletionService {
 	}
 
 	public void accept() {
-		accept(getActiveEditor());
+		accept(Utils.getActiveTextEditor());
 	}
 
 	public void accept(ITextEditor textEditor) {
@@ -266,22 +262,8 @@ public class InlineCompletionService {
 		}
 	}
 
-	private ITextEditor getActiveEditor() {
-		IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
-		if (window != null) {
-			IWorkbenchPage page = window.getActivePage();
-			if (page != null) {
-				IEditorPart activeEditor = page.getActiveEditor();
-				if (activeEditor instanceof ITextEditor textEditor) {
-					return textEditor;
-				}
-			}
-		}
-		return null;
-	}
-
 	private boolean isActiveEditor(ITextEditor textEditor) {
-		return textEditor == getActiveEditor();
+		return textEditor == Utils.getActiveTextEditor();
 	}
 
 	private class TriggerEvent {

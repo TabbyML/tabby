@@ -1,16 +1,26 @@
 package com.tabbyml.tabby4eclipse.chat;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.resource.ColorRegistry;
 import org.eclipse.jface.resource.FontRegistry;
+import org.eclipse.jface.text.IDocument;
+import org.eclipse.jface.text.ITextSelection;
+import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.browser.Browser;
 import org.eclipse.swt.browser.BrowserFunction;
@@ -21,21 +31,29 @@ import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.ide.ResourceUtil;
 import org.eclipse.ui.part.ViewPart;
+import org.eclipse.ui.texteditor.ITextEditor;
 import org.eclipse.ui.themes.ITheme;
 import org.osgi.framework.Bundle;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.tabbyml.tabby4eclipse.Activator;
 import com.tabbyml.tabby4eclipse.Logger;
+import com.tabbyml.tabby4eclipse.chat.ChatMessage.FileContext;
+import com.tabbyml.tabby4eclipse.editor.Utils;
+import com.tabbyml.tabby4eclipse.git.GitProvider;
 import com.tabbyml.tabby4eclipse.lsp.LanguageServerService;
 import com.tabbyml.tabby4eclipse.lsp.ServerConfigHolder;
 import com.tabbyml.tabby4eclipse.lsp.StatusInfoHolder;
 import com.tabbyml.tabby4eclipse.lsp.protocol.Config;
+import com.tabbyml.tabby4eclipse.lsp.protocol.GitRepository;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ILanguageServer;
 import com.tabbyml.tabby4eclipse.lsp.protocol.IStatusService;
 import com.tabbyml.tabby4eclipse.lsp.protocol.StatusInfo;
@@ -414,28 +432,83 @@ public class ChatView extends ViewPart {
 	private void sendRequestToChatPanel(Request request) {
 		String json = gson.toJson(request);
 		browser.getDisplay().asyncExec(() -> {
-			browser.execute(String.format("sendRequestToChatPanel('%s')", json));
+			browser.execute(String.format("sendRequestToChatPanel('%s')", escapeCharacters(json)));
 		});
+	}
+
+	public static String escapeCharacters(String jsonString) {
+		return jsonString.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
+				.replace("\t", "\\t");
 	}
 
 	private void handleChatPanelRequest(Request request) {
 		switch (request.getMethod()) {
 		case "onSubmitMessage": {
 			List<Object> params = request.getParams();
+			if (params.size() < 1) {
+				return;
+			}
+			String message = (String) params.get(0);
+			List<FileContext> releventContexts = params.size() > 1
+					? releventContexts = gson.fromJson(gson.toJson(params.get(1)), new TypeToken<List<FileContext>>() {
+					}.getType())
+					: null;
 			sendRequestToChatPanel(new Request("sendMessage", new ArrayList<>() {
 				{
-					add(new HashMap<>() {
-						{
-							put("message", params.get(0));
-							put("selectContext", null);
-							if (params.size() > 1) {
-								put("relevantContext", params.get(1));
-							}
-						}
-					});
+					ChatMessage chatMessage = new ChatMessage();
+					chatMessage.setMessage(message);
+					if (releventContexts != null && !releventContexts.isEmpty()) {
+						chatMessage.setRelevantContext(releventContexts);
+					} else {
+						chatMessage.setActiveContext(getActiveContext());
+					}
+
+					add(chatMessage);
 				}
 			}));
 		}
 		}
+	}
+
+	private FileContext getActiveContext() {
+		FileContext context = new FileContext();
+		ITextEditor activeTextEditor = Utils.getActiveTextEditor();
+
+		IFile file = ResourceUtil.getFile(activeTextEditor.getEditorInput());
+		URI fileUri = file.getLocationURI();
+		if (file != null) {
+			GitRepository gitInfo = GitProvider.getRepository(fileUri);
+			IProject project = file.getProject();
+			if (gitInfo != null) {
+				try {
+					context.setGitUrl(gitInfo.getRemoteUrl());
+					String relativePath = new URI(gitInfo.getRoot()).relativize(fileUri).getPath();
+					context.setFilePath(relativePath);
+				} catch (Exception e) {
+					logger.error("Failed to get git info.", e);
+				}
+			} else if (project != null) {
+				URI projectRoot = project.getLocationURI();
+				String relativePath = projectRoot.relativize(fileUri).getPath();
+				context.setFilePath(relativePath);
+			} else {
+				context.setFilePath(fileUri.toString());
+			}
+		}
+
+		ISelection selection = activeTextEditor.getSelectionProvider().getSelection();
+		if (selection instanceof ITextSelection textSelection) {
+			if (textSelection.isEmpty()) {
+				IDocument document = activeTextEditor.getDocumentProvider()
+						.getDocument(activeTextEditor.getEditorInput());
+				context.setRange(new FileContext.LineRange(1, document.getNumberOfLines()));
+				context.setContent(document.get());
+			} else {
+				context.setRange(
+						new FileContext.LineRange(textSelection.getStartLine() + 1, textSelection.getEndLine() + 1));
+				context.setContent(textSelection.getText());
+			}
+		}
+		return context;
 	}
 }

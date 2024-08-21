@@ -9,7 +9,6 @@ import java.util.List;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
-import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4e.server.ProcessStreamConnectionProvider;
 import org.osgi.framework.Bundle;
 
@@ -73,7 +72,7 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 	}
 
 	@Override
-	public Object getInitializationOptions(@Nullable URI rootUri) {
+	public Object getInitializationOptions(URI rootUri) {
 		return new InitializationOptions(getProvidedConfig(), getClientInfo(), getClientCapabilities());
 	}
 
