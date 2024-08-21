@@ -541,6 +541,13 @@ export class Server {
         disable: clientProvidedConfig.anonymousUsageTracking.disable,
       };
     }
+    if (clientProvidedConfig?.proxy?.url) {
+      config.proxy = {
+        url: clientProvidedConfig.proxy.url,
+        noProxy: clientProvidedConfig.proxy.noProxy,
+        authorization: clientProvidedConfig.proxy.authorization,
+      };
+    }
     return config;
   }
 
