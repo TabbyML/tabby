@@ -76,8 +76,7 @@ import {
   Message,
   MessageAttachmentCode,
   RepositoryListQuery,
-  Role,
-  ThreadRunItem
+  Role
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
@@ -387,8 +386,9 @@ export function Search() {
     const currentAssistantMessageIdx = newMessages.findIndex(
       o => o.id === currentAssistantMessageId
     )
-    if (currentUserMessageIdx === -1 || currentAssistantMessageIdx === -1)
+    if (currentUserMessageIdx === -1 || currentAssistantMessageIdx === -1) {
       return
+    }
 
     const currentUserMessage = newMessages[currentUserMessageIdx]
     const currentAssistantMessage = newMessages[currentAssistantMessageIdx]

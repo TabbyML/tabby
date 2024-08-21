@@ -7,7 +7,6 @@ import {
   CreateMessageInput,
   InputMaybe,
   MessageAttachmentCodeInput,
-  ThreadRunItem,
   ThreadRunOptionsInput
 } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
