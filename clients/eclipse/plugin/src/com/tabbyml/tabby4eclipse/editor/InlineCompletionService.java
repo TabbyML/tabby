@@ -118,7 +118,7 @@ public class InlineCompletionService {
 		ITextViewer textViewer = (ITextViewer) textEditor.getAdapter(ITextViewer.class);
 
 		InlineCompletionContext.Request request = new InlineCompletionContext.Request(textEditor, offset);
-		logger.debug("Request request: " + request.offset + "," + offsetInWidget);
+		logger.debug("Request offset: " + request.offset + ", offsetInWidget:" + offsetInWidget);
 		InlineCompletionParams params = request.toInlineCompletionParams();
 		if (params == null) {
 			logger.debug("Failed to create InlineCompletionParams");

@@ -20,7 +20,6 @@ import com.tabbyml.tabby4eclipse.lsp.protocol.ClientCapabilities.TabbyClientCapa
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientCapabilities.TextDocumentClientCapabilities;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientInfo;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientInfo.TabbyPluginInfo;
-import com.tabbyml.tabby4eclipse.statusbar.StatusInfoHolder;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientProvidedConfig;
 import com.tabbyml.tabby4eclipse.lsp.protocol.InitializationOptions;
 
@@ -112,7 +111,7 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 		textDocumentClientCapabilities.setInlineCompletion(true);
 
 		TabbyClientCapabilities tabbyClientCapabilities = new TabbyClientCapabilities();
-		tabbyClientCapabilities.setConfigDidChangeListener(false);
+		tabbyClientCapabilities.setConfigDidChangeListener(true);
 		tabbyClientCapabilities.setStatusDidChangeListener(true);
 
 		ClientCapabilities clientCapabilities = new ClientCapabilities();

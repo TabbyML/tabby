@@ -1,4 +1,4 @@
-package com.tabbyml.tabby4eclipse.statusbar;
+package com.tabbyml.tabby4eclipse.lsp;
 
 import java.util.ArrayList;
 import java.util.List;
