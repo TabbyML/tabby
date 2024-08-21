@@ -41,3 +41,7 @@ export function getLogger(tag = "Tabby"): LogOutputChannel {
     },
   });
 }
+
+export function showOutputPanel(): void {
+  outputChannel.show();
+}

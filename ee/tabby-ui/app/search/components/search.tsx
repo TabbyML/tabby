@@ -81,8 +81,7 @@ import {
   Message,
   MessageAttachmentCode,
   RepositoryListQuery,
-  Role,
-  ThreadRunItem
+  Role
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
@@ -111,8 +110,8 @@ type ConversationMessage = Omit<
   threadRelevantQuestions?: Maybe<string[]>
   error?: string
   attachment?: {
-    code: Array<AttachmentCodeItem>
-    doc: Array<AttachmentDocItem>
+    code: Maybe<Array<AttachmentCodeItem>>
+    doc: Maybe<Array<AttachmentDocItem>>
   }
 }
 
@@ -244,24 +243,6 @@ export function Search() {
     }
   }, [threadMessages])
 
-  const updateCurrentMessagePairIDs = (
-    userMessageId: string,
-    assistantMessageId: string
-  ) => {
-    const userMessageIndex = messages.findIndex(
-      o => o.id === currentUserMessageId
-    )
-    const assistantMessageIndex = messages.findIndex(
-      o => o.id === currentAssistantMessageId
-    )
-    if (userMessageIndex > -1 && assistantMessageIndex > -1) {
-      const newMessage = [...messages]
-      newMessage[userMessageIndex].id = userMessageId
-      newMessage[assistantMessageIndex].id = assistantMessageId
-      setMessages(newMessage)
-    }
-  }
-
   // `/search` -> `/search/{slug}-{threadId}`
   const updateURLPattern = (threadId: string) => {
     const title = messages?.[0]?.content
@@ -288,25 +269,9 @@ export function Search() {
     })
   }
 
-  const onAssistantMessageCompleted = (
-    newThreadId: string,
-    threadRunItem: ThreadRunItem | undefined
-  ) => {
-    if (
-      threadRunItem?.threadUserMessageCreated &&
-      threadRunItem.threadAssistantMessageCreated
-    ) {
-      updateCurrentMessagePairIDs(
-        threadRunItem.threadUserMessageCreated,
-        threadRunItem.threadAssistantMessageCreated
-      )
-    }
-  }
-
   const { sendUserMessage, isLoading, error, answer, stop, regenerate } =
     useThreadRun({
-      threadId,
-      onAssistantMessageCompleted
+      threadId
     })
 
   const isLoadingRef = useLatest(isLoading)
@@ -413,41 +378,72 @@ export function Search() {
     if (!answer) return
 
     let newMessages = [...messages]
-    const currentAssistantMessageIndex = newMessages.findIndex(
-      item => item.id === currentAssistantMessageId
-    )
-
-    if (currentAssistantMessageIndex <= 0) return
-
     const newThreadId = answer?.threadCreated
     if (!!newThreadId && !threadId) {
       updateURLPattern(newThreadId)
+      return
     }
 
-    const currentAssistantMessage = newMessages[currentAssistantMessageIndex]
+    const currentUserMessageIdx = newMessages.findIndex(
+      o => o.id === currentUserMessageId
+    )
+    const currentAssistantMessageIdx = newMessages.findIndex(
+      o => o.id === currentAssistantMessageId
+    )
+    if (currentUserMessageIdx === -1 || currentAssistantMessageIdx === -1) {
+      return
+    }
 
+    const currentUserMessage = newMessages[currentUserMessageIdx]
+    const currentAssistantMessage = newMessages[currentAssistantMessageIdx]
+
+    // update assistant message
     currentAssistantMessage.content =
       answer?.threadAssistantMessageContentDelta || ''
-    currentAssistantMessage.attachment = {
-      // format the attachments
-      code:
-        answer?.threadAssistantMessageAttachmentsCode?.map(hit => ({
-          ...hit.code,
-          extra: {
-            scores: hit.scores
-          }
-        })) ?? [],
-      doc:
-        answer?.threadAssistantMessageAttachmentsDoc?.map(hit => ({
-          ...hit.doc,
-          extra: {
-            score: hit.score
-          }
-        })) ?? []
+
+    if (!currentAssistantMessage?.attachment?.code) {
+      currentAssistantMessage.attachment = {
+        doc: currentAssistantMessage.attachment?.doc ?? null,
+        code:
+          answer?.threadAssistantMessageAttachmentsCode?.map(hit => ({
+            ...hit.code,
+            extra: {
+              scores: hit.scores
+            }
+          })) ?? null
+      }
+    }
+    if (!currentAssistantMessage?.attachment?.doc) {
+      currentAssistantMessage.attachment = {
+        doc:
+          answer?.threadAssistantMessageAttachmentsDoc?.map(hit => ({
+            ...hit.doc,
+            extra: {
+              score: hit.score
+            }
+          })) ?? null,
+        code: currentAssistantMessage.attachment?.code ?? null
+      }
     }
     currentAssistantMessage.threadRelevantQuestions =
       answer?.threadRelevantQuestions
 
+    // update message pair ids
+    const newUserMessageId = answer?.threadUserMessageCreated
+    const newAssistantMessageId = answer?.threadAssistantMessageCreated
+    if (
+      newUserMessageId &&
+      newAssistantMessageId &&
+      newUserMessageId !== currentUserMessage.id &&
+      newAssistantMessageId !== currentAssistantMessage.id
+    ) {
+      currentUserMessage.id = newUserMessageId
+      currentAssistantMessage.id = newAssistantMessageId
+      setCurrentUserMessageId(newUserMessageId)
+      setCurrentAssistantMessageId(newAssistantMessageId)
+    }
+
+    // update messages
     setMessages(newMessages)
   }, [isLoading, answer])
 
@@ -1020,7 +1016,7 @@ function AnswerBlock({
             contexts={relevantCodeContexts}
             className="mt-1 text-sm"
             onContextClick={onCodeContextClick}
-            defaultOpen
+            defaultOpen={messageAttachmentCode?.length <= 5}
             enableTooltip={enableDeveloperMode.value}
             onTooltipClick={() => {
               setConversationIdForDev(answer.id)

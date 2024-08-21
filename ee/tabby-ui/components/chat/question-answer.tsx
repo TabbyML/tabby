@@ -350,6 +350,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           }}
           isExternalLink={!!client}
           highlightIndex={relevantCodeHighlightIndex}
+          defaultOpen={serverCode?.length + clientCode?.length <= 5}
         />
         {isLoading && !message?.message ? (
           <MessagePendingIndicator />

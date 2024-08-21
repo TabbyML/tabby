@@ -75,6 +75,7 @@ export async function activate(context: ExtensionContext) {
     context,
     client,
     config,
+    issues,
     contextVariables,
     inlineCompletionProvider,
     chatViewProvider,
