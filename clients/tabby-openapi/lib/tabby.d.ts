@@ -91,37 +91,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        AnswerCodeSnippet: {
-            filepath?: string | null;
-            content: string;
-        };
-        /** @example {
-         *       "messages": [
-         *         {
-         *           "content": "What is tail recursion?",
-         *           "role": "user"
-         *         }
-         *       ]
-         *     } */
-        AnswerRequest: {
-            user?: string | null;
-            messages: components["schemas"]["ChatCompletionRequestMessage"][];
-            code_query?: components["schemas"]["CodeSearchQuery"] | null;
-            /** @description Client-provided context to enrich the LLM request. */
-            code_snippets?: components["schemas"]["AnswerCodeSnippet"][];
-            doc_query?: boolean;
-            generate_relevant_questions?: boolean;
-            collect_relevant_code_using_user_message?: boolean;
-        };
-        AnswerResponseChunk: {
-            relevant_code: components["schemas"]["CodeSearchHit"][];
-        } | {
-            relevant_documents: components["schemas"]["DocSearchHit"][];
-        } | {
-            relevant_questions: string[];
-        } | {
-            answer_delta: string;
-        };
         Choice: {
             /** Format: int32 */
             index: number;
