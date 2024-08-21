@@ -517,7 +517,7 @@ public class ChatView extends ViewPart {
 
 		ISelection selection = activeTextEditor.getSelectionProvider().getSelection();
 		if (selection instanceof ITextSelection textSelection) {
-			if (textSelection.isEmpty()) {
+			if (textSelection.isEmpty() || textSelection.getText().isBlank()) {
 				IDocument document = activeTextEditor.getDocumentProvider()
 						.getDocument(activeTextEditor.getEditorInput());
 				context.setRange(new FileContext.LineRange(1, document.getNumberOfLines()));
