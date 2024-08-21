@@ -13,7 +13,7 @@ unzip ${ZIP_FILE} -d ${OUTPUT_NAME}
 
 pushd ${OUTPUT_NAME}
 rm $(ls *.exe | grep -v "llama-server")
-cp ../tabby_x86_64-windows-msvc.exe tabby.exe
+cp ../tabby_x86_64-windows-msvc.exe/tabby_x86_64-windows-msvc.exe tabby.exe
 popd
 
 zip -r ${OUTPUT_NAME}.zip ${OUTPUT_NAME}
