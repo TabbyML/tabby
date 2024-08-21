@@ -840,17 +840,15 @@ function AnswerBlock({
       })
       .trim()
     const docCitations =
-      answer.attachment?.doc
-        .map((doc, idx) => `[${idx + 1}] ${doc.link}`)
+      answer.attachment?.doc?.map((doc, idx) => `[${idx + 1}] ${doc.link}`)
         .join('\n') ?? ''
     const docCitationLen = answer.attachment?.doc?.length ?? 0
     const codeCitations =
-      answer.attachment?.code
-        .map((code, idx) => {
-          const lineRangeText = getRangeTextFromAttachmentCode(code)
-          const filenameText = compact([code.filepath, lineRangeText]).join(':')
-          return `[${idx + docCitationLen + 1}] ${filenameText}`
-        })
+      answer.attachment?.code?.map((code, idx) => {
+        const lineRangeText = getRangeTextFromAttachmentCode(code)
+        const filenameText = compact([code.filepath, lineRangeText]).join(':')
+        return `[${idx + docCitationLen + 1}] ${filenameText}`
+      })
         .join('\n') ?? ''
     const citations = docCitations + codeCitations
 
@@ -861,7 +859,7 @@ function AnswerBlock({
 
   const totalHeightInRem = answer.attachment?.doc?.length
     ? Math.ceil(answer.attachment.doc.length / 4) * SOURCE_CARD_STYLE.expand +
-      0.5 * Math.floor(answer.attachment.doc.length / 4)
+    0.5 * Math.floor(answer.attachment.doc.length / 4)
     : 0
 
   const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
