@@ -132,7 +132,7 @@ export class Config extends EventEmitter {
     }
   }
 
-  get proxyUrl() {
+  get url() {
     const https = workspace.getConfiguration("https");
     const httpsProxy = https.get("proxy", "");
     const httpProxy = this.httpConfig.get("proxy", "");
@@ -140,8 +140,8 @@ export class Config extends EventEmitter {
     return httpsProxy || httpProxy;
   }
 
-  set proxyUrl(value: string) {
-    if (value !== this.proxyUrl) {
+  set url(value: string) {
+    if (value !== this.url) {
       const isHTTPS = value.includes('https');
       if (isHTTPS) {
         workspace.getConfiguration("https").update("proxy", value);
@@ -164,7 +164,7 @@ export class Config extends EventEmitter {
   buildClientProvidedConfig(): ClientProvidedConfig {
     return {
       proxy: {
-        url: this.proxyUrl,
+        url: this.url,
         authorization: this.authorization,
         noProxy: this.noProxy,
       },
