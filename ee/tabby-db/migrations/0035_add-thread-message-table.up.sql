@@ -1,6 +1,9 @@
 CREATE TABLE threads(
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 
+    -- Whether the thread is ephemeral (e.g from chat sidebar)
+    is_ephemeral BOOLEAN NOT NULL,
+
     -- The user who created the thread
     user_id INTEGER NOT NULL,
 

@@ -15,6 +15,7 @@ import { useLatest } from './use-latest'
 interface UseThreadRunOptions {
   onError?: (err: Error) => void
   threadId?: string
+  isEphemeral?: boolean
   headers?: Record<string, string> | Headers
   onAssistantMessageCompleted?: (
     threadId: string,
@@ -109,7 +110,8 @@ const DeleteThreadMessagePairMutation = graphql(/* GraphQL */ `
 export function useThreadRun({
   threadId: propsThreadId,
   headers,
-  onAssistantMessageCompleted
+  onAssistantMessageCompleted,
+  isEphemeral
 }: UseThreadRunOptions) {
   const [threadId, setThreadId] = React.useState<string | undefined>(
     propsThreadId
@@ -158,7 +160,7 @@ export function useThreadRun({
   })
 
   React.useEffect(() => {
-    if (propsThreadId && propsThreadId !== threadId) {
+    if (propsThreadId !== threadId) {
       setThreadId(propsThreadId)
     }
   }, [propsThreadId])
@@ -173,6 +175,7 @@ export function useThreadRun({
         {
           input: {
             thread: {
+              isEphemeral: !!isEphemeral,
               userMessage
             },
             options
@@ -261,6 +264,30 @@ export function useThreadRun({
     }
   }
 
+  const onDeleteThreadMessagePair = (
+    threadId: string,
+    userMessageId: string,
+    assistantMessageId: string
+  ) => {
+    return deleteThreadMessagePair(
+      {
+        threadId,
+        userMessageId,
+        assistantMessageId
+      },
+      operationContext
+    )
+      .then(res => {
+        if (res?.data?.deleteThreadMessagePair) {
+          return true
+        }
+        return false
+      })
+      .catch(e => {
+        return false
+      })
+  }
+
   const regenerate = (payload: {
     threadId: string
     userMessageId: string
@@ -273,20 +300,14 @@ export function useThreadRun({
     setIsLoading(true)
     setError(undefined)
     // 1. delete message pair
-    deleteThreadMessagePair({
-      threadId: payload.threadId,
-      userMessageId: payload.userMessageId,
-      assistantMessageId: payload.assistantMessageId
+    onDeleteThreadMessagePair(
+      payload.threadId,
+      payload.userMessageId,
+      payload.assistantMessageId
+    ).finally(() => {
+      // 2. send a new user message
+      sendUserMessage(payload.userMessage, payload.threadRunOptions)
     })
-      .then(res => {
-        // 2. send userMessage
-        if (res?.data?.deleteThreadMessagePair) {
-          sendUserMessage(payload.userMessage, payload.threadRunOptions)
-        }
-      })
-      .catch(e => {
-        // FIXME error handling
-      })
   }
 
   return {
@@ -296,6 +317,7 @@ export function useThreadRun({
     setError,
     sendUserMessage,
     stop: stop.current,
-    regenerate
+    regenerate,
+    deleteThreadMessagePair: onDeleteThreadMessagePair
   }
 }

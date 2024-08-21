@@ -24,11 +24,14 @@ import {
 import { SourceCodeBrowserContext } from './source-code-browser'
 import {
   generateEntryPath,
+  isValidLineHash,
   parseLineNumberFromHash,
   viewModelToKind
 } from './utils'
 
 import './line-menu-extension/line-menu.css'
+
+import { filename2prism } from '@/lib/language-utils'
 
 interface CodeEditorViewProps {
   value: string
@@ -121,8 +124,21 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
           viewModelToKind(activeEntryInfo.viewMode)
         )
         const link = new URL(`${window.location.origin}/files/${_link}`)
-        link.hash = window.location.hash
-        link.search = window.location.search
+
+        // set hash
+        if (isValidLineHash(window.location.hash)) {
+          link.hash = window.location.hash
+        }
+
+        // set search
+        const detectedLanguage = activeEntryInfo.basename
+          ? filename2prism(activeEntryInfo.basename)[0]
+          : undefined
+        const isMarkdown = detectedLanguage === 'markdown'
+        if (isMarkdown) {
+          link.searchParams.set('plain', '1')
+        }
+
         copyToClipboard(link.toString())
         return
       }

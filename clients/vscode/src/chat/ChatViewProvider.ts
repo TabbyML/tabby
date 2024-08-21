@@ -64,15 +64,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     const text = editor.document.getText(editor.selection);
     if (!text) return null;
 
-    const workspaceFolder = workspace.getWorkspaceFolder(uri);
-    const repo = gitProvider.getRepository(uri);
-    const remoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
-    let filePath = uri.toString(true);
-    if (repo) {
-      filePath = filePath.replace(repo.rootUri.toString(true), "");
-    } else if (workspaceFolder) {
-      filePath = filePath.replace(workspaceFolder.uri.toString(true), "");
-    }
+    const { filepath, git_url } = resolveFilePathAndGitUrl(uri, gitProvider);
 
     return {
       kind: "file",
@@ -81,8 +73,25 @@ export class ChatViewProvider implements WebviewViewProvider {
         start: editor.selection.start.line + 1,
         end: editor.selection.end.line + 1,
       },
-      filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
-      git_url: remoteUrl ?? "",
+      filepath,
+      git_url,
+    };
+  }
+
+  static getFileContextFromEditor({ editor, gitProvider }: { editor: TextEditor; gitProvider: GitProvider }): Context {
+    const content = editor.document.getText();
+    const lineCount = editor.document.lineCount;
+    const uri = editor.document.uri;
+    const { filepath, git_url } = resolveFilePathAndGitUrl(uri, gitProvider);
+    return {
+      kind: "file",
+      content,
+      range: {
+        start: 1,
+        end: lineCount,
+      },
+      filepath,
+      git_url,
     };
   }
 
@@ -481,4 +490,21 @@ export class ChatViewProvider implements WebviewViewProvider {
       .filter((o) => o !== undefined)
       .join("-");
   }
+}
+
+function resolveFilePathAndGitUrl(uri: Uri, gitProvider: GitProvider): { filepath: string; git_url: string } {
+  const workspaceFolder = workspace.getWorkspaceFolder(uri);
+  const repo = gitProvider.getRepository(uri);
+  const remoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
+  let filePath = uri.toString(true);
+  if (repo) {
+    filePath = filePath.replace(repo.rootUri.toString(true), "");
+  } else if (workspaceFolder) {
+    filePath = filePath.replace(workspaceFolder.uri.toString(true), "");
+  }
+
+  return {
+    filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
+    git_url: remoteUrl ?? "",
+  };
 }

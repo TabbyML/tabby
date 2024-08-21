@@ -155,11 +155,20 @@ pub struct JWTPayload {
 
     /// User id string
     pub sub: ID,
+
+    /// Whether the token is generated from auth token based authentication
+    #[serde(skip)]
+    pub is_generated_from_auth_token: bool,
 }
 
 impl JWTPayload {
-    pub fn new(id: ID, iat: i64, exp: i64) -> Self {
-        Self { sub: id, iat, exp }
+    pub fn new(id: ID, iat: i64, exp: i64, is_generated_from_auth_token: bool) -> Self {
+        Self {
+            sub: id,
+            iat,
+            exp,
+            is_generated_from_auth_token,
+        }
     }
 }
 

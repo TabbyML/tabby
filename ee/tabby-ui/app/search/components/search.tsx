@@ -10,30 +10,30 @@ import {
   useRef,
   useState
 } from 'react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import defaultFavicon from '@/assets/default-favicon.png'
 import DOMPurify from 'dompurify'
 import he from 'he'
 import { marked } from 'marked'
 import { nanoid } from 'nanoid'
-import remarkGfm from 'remark-gfm'
-import remarkMath from 'remark-math'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableDeveloperMode, useEnableSearch } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
-import { AnswerEngineExtraContext, RelevantCodeContext } from '@/lib/types'
-import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { CodeBlock } from '@/components/ui/codeblock'
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger
-} from '@/components/ui/hover-card'
+  AnswerEngineExtraContext,
+  AttachmentCodeItem,
+  AttachmentDocItem,
+  RelevantCodeContext
+} from '@/lib/types'
+import {
+  cn,
+  formatLineHashForCodeBrowser,
+  getRangeFromAttachmentCode,
+  getRangeTextFromAttachmentCode
+} from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import {
   IconBlocks,
   IconBug,
@@ -60,7 +60,6 @@ import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { ClientOnly } from '@/components/client-only'
 import { CopyButton } from '@/components/copy-button'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
-import { MemoizedReactMarkdown } from '@/components/markdown'
 import TextAreaSearch from '@/components/textarea-search'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { UserAvatar } from '@/components/user-avatar'
@@ -68,7 +67,7 @@ import UserPanel from '@/components/user-panel'
 
 import './search.css'
 
-import { compact, isEmpty, isNil, pick } from 'lodash-es'
+import { compact, isEmpty, pick } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import slugify from 'slugify'
 import { Context } from 'tabby-chat-panel/index'
@@ -81,12 +80,8 @@ import {
   Maybe,
   Message,
   MessageAttachmentCode,
-  MessageAttachmentDoc,
-  MessageCodeSearchHit,
-  MessageDocSearchHit,
   RepositoryListQuery,
-  Role,
-  ThreadRunItem
+  Role
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
@@ -97,7 +92,12 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
-import { CodeReferences } from '@/components/chat/question-answer'
+import { CodeReferences } from '@/components/chat/code-references'
+import {
+  ErrorMessageBlock,
+  MessageMarkdown,
+  SiteFavicon
+} from '@/components/message-markdown'
 
 import { DevPanel } from './dev-panel'
 import { MessagesSkeleton } from './messages-skeleton'
@@ -108,21 +108,11 @@ type ConversationMessage = Omit<
 > & {
   threadId?: string
   threadRelevantQuestions?: Maybe<string[]>
-  // isLoading?: boolean
   error?: string
   attachment?: {
-    code: Array<AttachmentCodeItem>
-    doc: Array<AttachmentDocItem>
+    code: Maybe<Array<AttachmentCodeItem>>
+    doc: Maybe<Array<AttachmentDocItem>>
   }
-}
-
-// for rendering, including scores
-type AttachmentCodeItem = MessageAttachmentCode & {
-  extra?: { scores?: MessageCodeSearchHit['scores'] }
-}
-// for rendering, including score
-type AttachmentDocItem = MessageAttachmentDoc & {
-  extra?: { score?: MessageDocSearchHit['score'] }
 }
 
 type SearchContextValue = {
@@ -253,24 +243,6 @@ export function Search() {
     }
   }, [threadMessages])
 
-  const updateCurrentMessagePairIDs = (
-    userMessageId: string,
-    assistantMessageId: string
-  ) => {
-    const userMessageIndex = messages.findIndex(
-      o => o.id === currentUserMessageId
-    )
-    const assistantMessageIndex = messages.findIndex(
-      o => o.id === currentAssistantMessageId
-    )
-    if (userMessageIndex > -1 && assistantMessageIndex > -1) {
-      const newMessage = [...messages]
-      newMessage[userMessageIndex].id = userMessageId
-      newMessage[assistantMessageIndex].id = assistantMessageId
-      setMessages(newMessage)
-    }
-  }
-
   // `/search` -> `/search/{slug}-{threadId}`
   const updateURLPattern = (threadId: string) => {
     const title = messages?.[0]?.content
@@ -297,29 +269,9 @@ export function Search() {
     })
   }
 
-  const onAssistantMessageCompleted = (
-    newThreadId: string,
-    threadRunItem: ThreadRunItem | undefined
-  ) => {
-    if (
-      threadRunItem?.threadUserMessageCreated &&
-      threadRunItem.threadAssistantMessageCreated
-    ) {
-      updateCurrentMessagePairIDs(
-        threadRunItem.threadUserMessageCreated,
-        threadRunItem.threadAssistantMessageCreated
-      )
-    }
-
-    if (newThreadId && !threadId) {
-      updateURLPattern(newThreadId)
-    }
-  }
-
   const { sendUserMessage, isLoading, error, answer, stop, regenerate } =
     useThreadRun({
-      threadId,
-      onAssistantMessageCompleted
+      threadId
     })
 
   const isLoadingRef = useLatest(isLoading)
@@ -426,36 +378,72 @@ export function Search() {
     if (!answer) return
 
     let newMessages = [...messages]
-    const currentAssistantMessageIndex = newMessages.findIndex(
-      item => item.id === currentAssistantMessageId
+    const newThreadId = answer?.threadCreated
+    if (!!newThreadId && !threadId) {
+      updateURLPattern(newThreadId)
+      return
+    }
+
+    const currentUserMessageIdx = newMessages.findIndex(
+      o => o.id === currentUserMessageId
     )
+    const currentAssistantMessageIdx = newMessages.findIndex(
+      o => o.id === currentAssistantMessageId
+    )
+    if (currentUserMessageIdx === -1 || currentAssistantMessageIdx === -1) {
+      return
+    }
 
-    if (currentAssistantMessageIndex <= 0) return
+    const currentUserMessage = newMessages[currentUserMessageIdx]
+    const currentAssistantMessage = newMessages[currentAssistantMessageIdx]
 
-    const currentAssistantMessage = newMessages[currentAssistantMessageIndex]
-
+    // update assistant message
     currentAssistantMessage.content =
       answer?.threadAssistantMessageContentDelta || ''
-    currentAssistantMessage.attachment = {
-      // format the attachments
-      code:
-        answer?.threadAssistantMessageAttachmentsCode?.map(hit => ({
-          ...hit.code,
-          extra: {
-            scores: hit.scores
-          }
-        })) ?? [],
-      doc:
-        answer?.threadAssistantMessageAttachmentsDoc?.map(hit => ({
-          ...hit.doc,
-          extra: {
-            score: hit.score
-          }
-        })) ?? []
+
+    if (!currentAssistantMessage?.attachment?.code) {
+      currentAssistantMessage.attachment = {
+        doc: currentAssistantMessage.attachment?.doc ?? null,
+        code:
+          answer?.threadAssistantMessageAttachmentsCode?.map(hit => ({
+            ...hit.code,
+            extra: {
+              scores: hit.scores
+            }
+          })) ?? null
+      }
+    }
+    if (!currentAssistantMessage?.attachment?.doc) {
+      currentAssistantMessage.attachment = {
+        doc:
+          answer?.threadAssistantMessageAttachmentsDoc?.map(hit => ({
+            ...hit.doc,
+            extra: {
+              score: hit.score
+            }
+          })) ?? null,
+        code: currentAssistantMessage.attachment?.code ?? null
+      }
     }
     currentAssistantMessage.threadRelevantQuestions =
       answer?.threadRelevantQuestions
 
+    // update message pair ids
+    const newUserMessageId = answer?.threadUserMessageCreated
+    const newAssistantMessageId = answer?.threadAssistantMessageCreated
+    if (
+      newUserMessageId &&
+      newAssistantMessageId &&
+      newUserMessageId !== currentUserMessage.id &&
+      newAssistantMessageId !== currentAssistantMessage.id
+    ) {
+      currentUserMessage.id = newUserMessageId
+      currentAssistantMessage.id = newAssistantMessageId
+      setCurrentUserMessageId(newUserMessageId)
+      setCurrentAssistantMessageId(newAssistantMessageId)
+    }
+
+    // update messages
     setMessages(newMessages)
   }, [isLoading, answer])
 
@@ -818,16 +806,6 @@ export function Search() {
   )
 }
 
-type AnswerBlockContextValue = {
-  onCodeCitationMouseEnter: (index: number) => void
-  onCodeCitationMouseLeave: (index: number) => void
-  onCodeCitationClick: (data: MessageAttachmentCode) => void
-}
-
-const AnswerBlockContext = createContext<AnswerBlockContextValue>(
-  {} as AnswerBlockContextValue
-)
-
 function AnswerBlock({
   answer,
   showRelatedQuestion,
@@ -852,7 +830,6 @@ function AnswerBlock({
     number | undefined
   >(undefined)
   const getCopyContent = (answer: ConversationMessage) => {
-    // FIXME copy code
     if (isEmpty(answer?.attachment?.doc)) return answer.content
 
     const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
@@ -862,9 +839,21 @@ function AnswerBlock({
         return `[${citationNumberMatch}]`
       })
       .trim()
-    const citations = answer.attachment?.doc
-      .map((relevent, idx) => `[${idx + 1}] ${relevent.link}`)
-      .join('\n')
+    const docCitations =
+      answer.attachment?.doc
+        ?.map((doc, idx) => `[${idx + 1}] ${doc.link}`)
+        .join('\n') ?? ''
+    const docCitationLen = answer.attachment?.doc?.length ?? 0
+    const codeCitations =
+      answer.attachment?.code
+        ?.map((code, idx) => {
+          const lineRangeText = getRangeTextFromAttachmentCode(code)
+          const filenameText = compact([code.filepath, lineRangeText]).join(':')
+          return `[${idx + docCitationLen + 1}] ${filenameText}`
+        })
+        .join('\n') ?? ''
+    const citations = docCitations + codeCitations
+
     return `${content}\n\nCitations:\n${citations}`
   }
 
@@ -878,15 +867,13 @@ function AnswerBlock({
   const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
     return (
       answer?.attachment?.code?.map(code => {
-        const start_line = code?.startLine ?? 0
-        const lineCount = code.content.split('\n').length
-        const end_line = start_line + lineCount - 1
+        const { startLine, endLine } = getRangeFromAttachmentCode(code)
 
         return {
           kind: 'file',
           range: {
-            start: start_line,
-            end: end_line
+            start: startLine,
+            end: endLine
           },
           filepath: code.filepath,
           content: code.content,
@@ -929,9 +916,7 @@ function AnswerBlock({
   }
 
   const openCodeBrowserTab = (code: MessageAttachmentCode) => {
-    const start_line = code?.startLine ?? 0
-    const lineCount = code.content.split('\n').length
-    const end_line = start_line + lineCount - 1
+    const { startLine, endLine } = getRangeFromAttachmentCode(code)
 
     if (!code.filepath) return
     const url = new URL(`${window.location.origin}/files`)
@@ -941,8 +926,8 @@ function AnswerBlock({
     url.search = searchParams.toString()
 
     const lineHash = formatLineHashForCodeBrowser({
-      start: start_line,
-      end: end_line
+      start: startLine,
+      end: endLine
     })
     if (lineHash) {
       url.hash = lineHash
@@ -951,160 +936,157 @@ function AnswerBlock({
     window.open(url.toString())
   }
 
-  const onCodeCitationClick = (code: MessageAttachmentCode) => {}
+  const onCodeCitationClick = (code: MessageAttachmentCode) => {
+    openCodeBrowserTab(code)
+  }
 
   const messageAttachmentDocs = answer?.attachment?.doc
   const messageAttachmentCode = answer?.attachment?.code
 
   return (
-    <AnswerBlockContext.Provider
-      value={{
-        onCodeCitationClick,
-        onCodeCitationMouseEnter,
-        onCodeCitationMouseLeave
-      }}
-    >
-      <div className="flex flex-col gap-y-5">
-        {/* document search hits */}
-        {messageAttachmentDocs && messageAttachmentDocs.length > 0 && (
-          <div>
-            <div className="mb-1 flex items-center gap-x-2">
-              <IconBlocks className="relative" style={{ top: '-0.04rem' }} />
-              <p className="text-sm font-bold leading-normal">Sources</p>
-            </div>
-            <div
-              className="gap-sm grid grid-cols-3 gap-2 overflow-hidden md:grid-cols-4"
-              style={{
-                transition: 'height 0.25s ease-out',
-                height: showMoreSource
-                  ? `${totalHeightInRem}rem`
-                  : `${SOURCE_CARD_STYLE.compress}rem`
-              }}
-            >
-              {messageAttachmentDocs.map((source, index) => (
-                <SourceCard
-                  key={source.link + index}
-                  conversationId={answer.id}
-                  source={source}
-                  showMore={showMoreSource}
-                  showDevTooltip={enableDeveloperMode.value}
-                />
-              ))}
-            </div>
-            <Button
-              variant="ghost"
-              className="-ml-1.5 mt-1 flex items-center gap-x-1 px-1 py-2 text-sm font-normal text-muted-foreground"
-              onClick={() => setShowMoreSource(!showMoreSource)}
-            >
-              <IconChevronRight
-                className={cn({
-                  '-rotate-90': showMoreSource,
-                  'rotate-90': !showMoreSource
-                })}
-              />
-              <p>{showMoreSource ? 'Show less' : 'Show more'}</p>
-            </Button>
-          </div>
-        )}
-
-        {/* Answer content */}
+    <div className="flex flex-col gap-y-5">
+      {/* document search hits */}
+      {messageAttachmentDocs && messageAttachmentDocs.length > 0 && (
         <div>
-          <div className="mb-1 flex items-center gap-x-1.5">
-            <IconAnswer
+          <div className="mb-1 flex items-center gap-x-2">
+            <IconBlocks className="relative" style={{ top: '-0.04rem' }} />
+            <p className="text-sm font-bold leading-normal">Sources</p>
+          </div>
+          <div
+            className="gap-sm grid grid-cols-3 gap-2 overflow-hidden md:grid-cols-4"
+            style={{
+              transition: 'height 0.25s ease-out',
+              height: showMoreSource
+                ? `${totalHeightInRem}rem`
+                : `${SOURCE_CARD_STYLE.compress}rem`
+            }}
+          >
+            {messageAttachmentDocs.map((source, index) => (
+              <SourceCard
+                key={source.link + index}
+                conversationId={answer.id}
+                source={source}
+                showMore={showMoreSource}
+                showDevTooltip={enableDeveloperMode.value}
+              />
+            ))}
+          </div>
+          <Button
+            variant="ghost"
+            className="-ml-1.5 mt-1 flex items-center gap-x-1 px-1 py-2 text-sm font-normal text-muted-foreground"
+            onClick={() => setShowMoreSource(!showMoreSource)}
+          >
+            <IconChevronRight
               className={cn({
-                'animate-spinner': isLoading
+                '-rotate-90': showMoreSource,
+                'rotate-90': !showMoreSource
               })}
             />
-            <p className="text-sm font-bold leading-none">Answer</p>
-            {enableDeveloperMode.value && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setConversationIdForDev(answer.id)
-                  setDevPanelOpen(true)
-                }}
-              >
-                <IconBug />
-              </Button>
-            )}
-          </div>
+            <p>{showMoreSource ? 'Show less' : 'Show more'}</p>
+          </Button>
+        </div>
+      )}
 
-          {/* code search hits */}
-          {messageAttachmentCode && messageAttachmentCode.length > 0 && (
-            <CodeReferences
-              contexts={relevantCodeContexts}
-              className="mt-1 text-sm"
-              onContextClick={onCodeContextClick}
-              defaultOpen
-              enableTooltip={enableDeveloperMode.value}
-              onTooltipClick={() => {
+      {/* Answer content */}
+      <div>
+        <div className="mb-1 flex items-center gap-x-1.5">
+          <IconAnswer
+            className={cn({
+              'animate-spinner': isLoading
+            })}
+          />
+          <p className="text-sm font-bold leading-none">Answer</p>
+          {enableDeveloperMode.value && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
                 setConversationIdForDev(answer.id)
                 setDevPanelOpen(true)
               }}
-              highlightIndex={relevantCodeHighlightIndex}
-            />
-          )}
-
-          {isLoading && !answer.content && (
-            <Skeleton className="mt-1 h-40 w-full" />
-          )}
-          <MessageMarkdown
-            message={answer.content}
-            relevantDocuments={messageAttachmentDocs}
-            relevantCode={messageAttachmentCode}
-          />
-          {answer.error && <ErrorMessageBlock error={answer.error} />}
-
-          {!isLoading && (
-            <div className="mt-3 flex items-center gap-x-3 text-sm">
-              <CopyButton
-                className="-ml-1.5 gap-x-1 px-1 font-normal text-muted-foreground"
-                value={getCopyContent(answer)}
-                text="Copy"
-              />
-              {!isLoading && isLastAssistantMessage && (
-                <Button
-                  className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
-                  variant="ghost"
-                  onClick={() => onRegenerateResponse(answer.id)}
-                >
-                  <IconRefresh />
-                  <p>Regenerate</p>
-                </Button>
-              )}
-            </div>
+            >
+              <IconBug />
+            </Button>
           )}
         </div>
 
-        {/* Related questions */}
-        {showRelatedQuestion &&
-          !isLoading &&
-          answer.threadRelevantQuestions &&
-          answer.threadRelevantQuestions.length > 0 && (
-            <div>
-              <div className="flex items-center gap-x-1.5">
-                <IconLayers />
-                <p className="text-sm font-bold leading-none">Suggestions</p>
-              </div>
-              <div className="mt-2 flex flex-col gap-y-3">
-                {answer.threadRelevantQuestions?.map((related, index) => (
-                  <div
-                    key={index}
-                    className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
-                    onClick={onSubmitSearch.bind(null, related)}
-                  >
-                    <p className="w-full overflow-hidden text-ellipsis text-sm">
-                      {related}
-                    </p>
-                    <IconPlus />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+        {/* code search hits */}
+        {messageAttachmentCode && messageAttachmentCode.length > 0 && (
+          <CodeReferences
+            contexts={relevantCodeContexts}
+            className="mt-1 text-sm"
+            onContextClick={onCodeContextClick}
+            defaultOpen={messageAttachmentCode?.length <= 5}
+            enableTooltip={enableDeveloperMode.value}
+            onTooltipClick={() => {
+              setConversationIdForDev(answer.id)
+              setDevPanelOpen(true)
+            }}
+            highlightIndex={relevantCodeHighlightIndex}
+          />
+        )}
+
+        {isLoading && !answer.content && (
+          <Skeleton className="mt-1 h-40 w-full" />
+        )}
+        <MessageMarkdown
+          message={answer.content}
+          attachmentDocs={messageAttachmentDocs}
+          attachmentCode={messageAttachmentCode}
+          onCodeCitationClick={onCodeCitationClick}
+          onCodeCitationMouseEnter={onCodeCitationMouseEnter}
+          onCodeCitationMouseLeave={onCodeCitationMouseLeave}
+        />
+        {answer.error && <ErrorMessageBlock error={answer.error} />}
+
+        {!isLoading && (
+          <div className="mt-3 flex items-center gap-x-3 text-sm">
+            <CopyButton
+              className="-ml-1.5 gap-x-1 px-1 font-normal text-muted-foreground"
+              value={getCopyContent(answer)}
+              text="Copy"
+            />
+            {!isLoading && isLastAssistantMessage && (
+              <Button
+                className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
+                variant="ghost"
+                onClick={() => onRegenerateResponse(answer.id)}
+              >
+                <IconRefresh />
+                <p>Regenerate</p>
+              </Button>
+            )}
+          </div>
+        )}
       </div>
-    </AnswerBlockContext.Provider>
+
+      {/* Related questions */}
+      {showRelatedQuestion &&
+        !isLoading &&
+        answer.threadRelevantQuestions &&
+        answer.threadRelevantQuestions.length > 0 && (
+          <div>
+            <div className="flex items-center gap-x-1.5">
+              <IconLayers />
+              <p className="text-sm font-bold leading-none">Suggestions</p>
+            </div>
+            <div className="mt-2 flex flex-col gap-y-3">
+              {answer.threadRelevantQuestions?.map((related, index) => (
+                <div
+                  key={index}
+                  className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
+                  onClick={onSubmitSearch.bind(null, related)}
+                >
+                  <p className="w-full overflow-hidden text-ellipsis text-sm">
+                    {related}
+                  </p>
+                  <IconPlus />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+    </div>
   )
 }
 
@@ -1199,317 +1181,5 @@ function SourceCard({
         <p>Score: {source?.extra?.score ?? '-'}</p>
       </TooltipContent>
     </Tooltip>
-  )
-}
-
-type RelevantDocItem = {
-  type: 'doc'
-  data: AttachmentDocItem
-}
-
-type RelevantCodeItem = {
-  type: 'code'
-  data: AttachmentCodeItem
-}
-
-type MessageAttachments = Array<RelevantDocItem | RelevantCodeItem>
-
-function MessageMarkdown({
-  message,
-  headline = false,
-  relevantDocuments,
-  relevantCode
-}: {
-  message: string
-  headline?: boolean
-  relevantDocuments?: Array<AttachmentDocItem>
-  relevantCode?: Array<AttachmentCodeItem>
-}) {
-  const messageAttachments: MessageAttachments = useMemo(() => {
-    const docs: MessageAttachments =
-      relevantDocuments?.map(item => ({
-        type: 'doc',
-        data: item
-      })) ?? []
-    const code: MessageAttachments =
-      relevantCode?.map(item => ({
-        type: 'code',
-        data: item
-      })) ?? []
-    return compact([...docs, ...code])
-  }, [relevantDocuments, relevantCode])
-
-  const renderTextWithCitation = (nodeStr: string, index: number) => {
-    const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
-    const textList = nodeStr.split(citationMatchRegex)
-    const citationList = nodeStr.match(citationMatchRegex)
-    return (
-      <span key={index}>
-        {textList.map((text, index) => {
-          const citation = citationList?.[index]
-          const citationNumberMatch = citation?.match(/\d+/)
-          const citationIndex = citationNumberMatch
-            ? parseInt(citationNumberMatch[0], 10)
-            : null
-          const citationSource = !isNil(citationIndex)
-            ? messageAttachments?.[citationIndex - 1]
-            : undefined
-          const citationType = citationSource?.type
-          const showcitation = citationSource && !isNil(citationIndex)
-
-          return (
-            <span key={index}>
-              {text && <span>{text}</span>}
-              {showcitation && (
-                <>
-                  {citationType === 'doc' ? (
-                    <RelevantDocumentBadge
-                      relevantDocument={citationSource.data}
-                      citationIndex={citationIndex}
-                    />
-                  ) : citationType === 'code' ? (
-                    <RelevantCodeBadge
-                      relevantCode={citationSource.data}
-                      citationIndex={citationIndex}
-                    />
-                  ) : null}
-                </>
-              )}
-            </span>
-          )
-        })}
-      </span>
-    )
-  }
-
-  return (
-    <MemoizedReactMarkdown
-      className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
-      remarkPlugins={[remarkGfm, remarkMath]}
-      components={{
-        p({ children }) {
-          if (headline) {
-            return (
-              <h3 className="break-anywhere cursor-text scroll-m-20 text-xl font-semibold tracking-tight">
-                {children}
-              </h3>
-            )
-          }
-
-          if (children.length) {
-            return (
-              <div className="mb-2 inline-block leading-relaxed last:mb-0">
-                {children.map((childrenItem, index) => {
-                  if (typeof childrenItem === 'string') {
-                    return renderTextWithCitation(childrenItem, index)
-                  }
-
-                  return <span key={index}>{childrenItem}</span>
-                })}
-              </div>
-            )
-          }
-
-          return <p className="mb-2 last:mb-0">{children}</p>
-        },
-        li({ children }) {
-          if (children && children.length) {
-            return (
-              <li>
-                {children.map((childrenItem, index) => {
-                  if (typeof childrenItem === 'string') {
-                    return renderTextWithCitation(childrenItem, index)
-                  }
-
-                  return <span key={index}>{childrenItem}</span>
-                })}
-              </li>
-            )
-          }
-          return <li>{children}</li>
-        },
-        code({ node, inline, className, children, ...props }) {
-          if (children.length) {
-            if (children[0] == '▍') {
-              return (
-                <span className="mt-1 animate-pulse cursor-default">▍</span>
-              )
-            }
-
-            children[0] = (children[0] as string).replace('`▍`', '▍')
-          }
-
-          const match = /language-(\w+)/.exec(className || '')
-
-          if (inline) {
-            return (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            )
-          }
-
-          return (
-            <CodeBlock
-              key={Math.random()}
-              language={(match && match[1]) || ''}
-              value={String(children).replace(/\n$/, '')}
-              {...props}
-            />
-          )
-        }
-      }}
-    >
-      {message}
-    </MemoizedReactMarkdown>
-  )
-}
-
-function RelevantDocumentBadge({
-  relevantDocument,
-  citationIndex
-}: {
-  relevantDocument: MessageAttachmentDoc
-  citationIndex: number
-}) {
-  const sourceUrl = relevantDocument ? new URL(relevantDocument.link) : null
-
-  return (
-    <HoverCard>
-      <HoverCardTrigger>
-        <span
-          className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
-          onClick={() => window.open(relevantDocument.link)}
-        >
-          {citationIndex}
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-96 text-sm">
-        <div className="flex w-full flex-col gap-y-1">
-          <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground">
-            <SiteFavicon
-              hostname={sourceUrl!.hostname}
-              className="m-0 mr-1 leading-none"
-            />
-            <p className="m-0 leading-none">{sourceUrl!.hostname}</p>
-          </div>
-          <p
-            className="m-0 cursor-pointer font-bold leading-none transition-opacity hover:opacity-70"
-            onClick={() => window.open(relevantDocument.link)}
-          >
-            {relevantDocument.title}
-          </p>
-          <p className="m-0 line-clamp-4 leading-none">
-            {normalizedText(relevantDocument.content)}
-          </p>
-        </div>
-      </HoverCardContent>
-    </HoverCard>
-  )
-}
-
-function RelevantCodeBadge({
-  relevantCode,
-  citationIndex
-}: {
-  relevantCode: MessageAttachmentCode
-  citationIndex: number
-}) {
-  const {
-    onCodeCitationClick,
-    onCodeCitationMouseEnter,
-    onCodeCitationMouseLeave
-  } = useContext(AnswerBlockContext)
-
-  return (
-    <span
-      className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
-      onClick={() => {
-        onCodeCitationClick?.(relevantCode)
-      }}
-      onMouseEnter={() => {
-        onCodeCitationMouseEnter?.(citationIndex)
-      }}
-      onMouseLeave={() => {
-        onCodeCitationMouseLeave?.(citationIndex)
-      }}
-    >
-      {citationIndex}
-    </span>
-  )
-}
-
-function SiteFavicon({
-  hostname,
-  className
-}: {
-  hostname: string
-  className?: string
-}) {
-  const [isLoaded, setIsLoaded] = useState(false)
-
-  const handleImageLoad = () => {
-    setIsLoaded(true)
-  }
-
-  return (
-    <div className="relative h-3.5 w-3.5">
-      <Image
-        src={defaultFavicon}
-        alt={hostname}
-        width={14}
-        height={14}
-        className={cn(
-          'absolute left-0 top-0 z-0 h-3.5 w-3.5 rounded-full leading-none',
-          className
-        )}
-      />
-      <Image
-        src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=${hostname}`}
-        alt={hostname}
-        width={14}
-        height={14}
-        className={cn(
-          'relative z-10 h-3.5 w-3.5 rounded-full bg-card leading-none',
-          className,
-          {
-            'opacity-0': !isLoaded
-          }
-        )}
-        onLoad={handleImageLoad}
-      />
-    </div>
-  )
-}
-
-function ErrorMessageBlock({ error = 'Fail to fetch' }: { error?: string }) {
-  const errorMessage = useMemo(() => {
-    let jsonString = JSON.stringify(
-      {
-        error: true,
-        message: error
-      },
-      null,
-      2
-    )
-    const markdownJson = '```\n' + jsonString + '\n```'
-    return markdownJson
-  }, [error])
-  return (
-    <MemoizedReactMarkdown
-      className="prose-full-width prose break-words text-sm dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
-      remarkPlugins={[remarkGfm, remarkMath]}
-      components={{
-        code({ node, inline, className, children, ...props }) {
-          return (
-            <div {...props} className={cn(className, 'bg-zinc-950 p-2')}>
-              {children}
-            </div>
-          )
-        }
-      }}
-    >
-      {errorMessage}
-    </MemoizedReactMarkdown>
   )
 }

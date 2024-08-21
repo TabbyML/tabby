@@ -1,13 +1,19 @@
 import React from 'react'
-import { Message } from 'ai'
-import { findIndex } from 'lodash-es'
+import { compact, findIndex } from 'lodash-es'
 import type { Context, NavigateOpts } from 'tabby-chat-panel'
 
+import {
+  CodeQueryInput,
+  CreateMessageInput,
+  InputMaybe,
+  MessageAttachmentCodeInput,
+  ThreadRunOptionsInput
+} from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
+import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { filename2prism } from '@/lib/language-utils'
 import {
-  AnswerRequest,
   AssistantMessage,
   MessageActionType,
   QuestionAnswerPair,
@@ -16,7 +22,6 @@ import {
 } from '@/lib/types/chat'
 import { cn, nanoid } from '@/lib/utils'
 
-import { useTabbyAnswer } from '../../lib/hooks/use-tabby-answer'
 import { ListSkeleton } from '../skeleton'
 import { ChatPanel, ChatPanelRef } from './chat-panel'
 import { ChatScrollAnchor } from './chat-scroll-anchor'
@@ -44,51 +49,7 @@ export const ChatContext = React.createContext<ChatContextValue>(
   {} as ChatContextValue
 )
 
-function toMessages(qaPairs: QuestionAnswerPair[] | undefined): Message[] {
-  if (!qaPairs?.length) return []
-  let result: Message[] = []
-
-  const len = qaPairs.length
-  for (let i = 0; i < qaPairs.length; i++) {
-    const pair = qaPairs[i]
-    let { user, assistant } = pair
-    if (user) {
-      result.push(
-        userMessageToMessage(user, {
-          // if it's not the latest user prompt, the message should include the fileContext converted into a code block.
-          includeTransformedSelectContext: len > 1 && i !== len - 1
-        })
-      )
-    }
-    if (assistant) {
-      result.push({
-        role: 'assistant',
-        id: assistant.id,
-        content: assistant.message
-      })
-    }
-  }
-  return result
-}
-
-function userMessageToMessage(
-  userMessage: UserMessage,
-  {
-    includeTransformedSelectContext
-  }: {
-    includeTransformedSelectContext?: boolean
-  }
-): Message {
-  const { message, id } = userMessage
-  return {
-    id,
-    role: 'user',
-    content: includeTransformedSelectContext
-      ? message + selectContextToMessageContent(userMessage.selectContext)
-      : message
-  }
-}
-
+// FIXME remove
 function selectContextToMessageContent(
   context: UserMessage['selectContext']
 ): string {
@@ -99,9 +60,7 @@ function selectContextToMessageContent(
 }
 
 export interface ChatRef {
-  sendUserChat: (
-    message: UserMessageWithOptionalId
-  ) => Promise<string | null | undefined>
+  sendUserChat: (message: UserMessageWithOptionalId) => void
   stop: () => void
   isLoading: boolean
   addRelevantContext: (context: Context) => void
@@ -111,16 +70,15 @@ export interface ChatRef {
 interface ChatProps extends React.ComponentProps<'div'> {
   chatId: string
   api?: string
-  fetcher?: typeof fetch
   headers?: Record<string, string> | Headers
+  isEphemeral?: boolean
   initialMessages?: QuestionAnswerPair[]
   onLoaded?: () => void
-  onThreadUpdates: (messages: QuestionAnswerPair[]) => void
+  onThreadUpdates?: (messages: QuestionAnswerPair[]) => void
   onNavigateToContext: (context: Context, opts?: NavigateOpts) => void
   container?: HTMLDivElement
   docQuery?: boolean
   generateRelevantQuestions?: boolean
-  collectRelevantCodeUsingUserMessage?: boolean
   maxWidth?: string
   welcomeMessage?: string
   promptFormClassname?: string
@@ -136,15 +94,13 @@ function ChatRenderer(
     chatId,
     initialMessages,
     headers,
-    api = '/v1beta/answer',
+    isEphemeral,
     onLoaded,
     onThreadUpdates,
     onNavigateToContext,
     container,
-    fetcher,
     docQuery,
     generateRelevantQuestions,
-    collectRelevantCodeUsingUserMessage,
     maxWidth,
     welcomeMessage,
     promptFormClassname,
@@ -156,46 +112,77 @@ function ChatRenderer(
   ref: React.ForwardedRef<ChatRef>
 ) {
   const [initialized, setInitialzed] = React.useState(false)
+  const [threadId, setThreadId] = React.useState<string | undefined>()
   const isOnLoadExecuted = React.useRef(false)
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
   const [input, setInput] = React.useState<string>('')
   const [relevantContext, setRelevantContext] = React.useState<Context[]>([])
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
 
-  const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
-    api,
+  const {
+    sendUserMessage,
+    isLoading,
+    error,
+    answer,
+    stop,
+    regenerate,
+    deleteThreadMessagePair
+  } = useThreadRun({
+    threadId,
     headers,
-    fetcher
+    isEphemeral
   })
 
   const onDeleteMessage = async (userMessageId: string) => {
+    if (!threadId) return
+
     // Stop generating first.
     stop()
+    const qaPair = qaPairs.find(o => o.user.id === userMessageId)
+    if (!qaPair?.user || !qaPair.assistant) return
 
     const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
     setQaPairs(nextQaPairs)
+
+    deleteThreadMessagePair(threadId, qaPair?.user.id, qaPair?.assistant?.id)
   }
 
-  const onRegenerateResponse = async (userMessageid: string) => {
-    const qaPairIndex = findIndex(qaPairs, o => o.user.id === userMessageid)
+  const onRegenerateResponse = async (userMessageId: string) => {
+    if (!threadId) return
+
+    const qaPairIndex = findIndex(qaPairs, o => o.user.id === userMessageId)
     if (qaPairIndex > -1) {
       const qaPair = qaPairs[qaPairIndex]
+
+      if (!qaPair.assistant) return
+
+      const newUserMessageId = nanoid()
+      const newAssistantMessgaeid = nanoid()
       let nextQaPairs: QuestionAnswerPair[] = [
         ...qaPairs.slice(0, qaPairIndex),
         {
-          ...qaPair,
+          user: {
+            ...qaPair.user,
+            id: newUserMessageId
+          },
           assistant: {
-            ...qaPair.assistant,
-            id: qaPair.assistant?.id || nanoid(),
-            // clear assistant message
+            id: newAssistantMessgaeid,
             message: '',
-            // clear error
             error: undefined
           }
         }
       ]
       setQaPairs(nextQaPairs)
-      return triggerRequest(generateRequestPayloadFromQaPairs(nextQaPairs))
+      const [userMessage, threadRunOptions] = generateRequestPayload(
+        qaPair.user
+      )
+      return regenerate({
+        threadId,
+        userMessageId: qaPair.user.id,
+        assistantMessageId: qaPair.assistant.id,
+        userMessage,
+        threadRunOptions
+      })
     }
   }
 
@@ -211,8 +198,9 @@ function ChatRenderer(
   }
 
   const onClearMessages = () => {
-    stop()
+    stop(true)
     setQaPairs([])
+    setThreadId(undefined)
   }
 
   const handleMessageAction = (
@@ -235,21 +223,33 @@ function ChatRenderer(
     if (!isLoading || !qaPairs?.length || !answer) return
 
     const lastQaPairs = qaPairs[qaPairs.length - 1]
-    const lastMessage = answer
+
+    // update threadId
+    if (answer?.threadCreated && !threadId) {
+      setThreadId(answer.threadCreated)
+    }
+
     setQaPairs(prev => {
       const assisatntMessage = prev[prev.length - 1].assistant
       const nextAssistantMessage: AssistantMessage = {
         ...assisatntMessage,
-        id: assisatntMessage?.id || nanoid(),
-        message: lastMessage.answer_delta ?? '',
+        id:
+          answer?.threadAssistantMessageCreated ||
+          assisatntMessage?.id ||
+          nanoid(),
+        message: answer.threadAssistantMessageContentDelta ?? '',
         error: undefined,
-        relevant_code: answer?.relevant_code
+        relevant_code:
+          answer?.threadAssistantMessageAttachmentsCode?.map(o => o.code) ?? []
       }
       // merge assistantMessage
       return [
         ...prev.slice(0, prev.length - 1),
         {
-          ...lastQaPairs,
+          user: {
+            ...lastQaPairs.user,
+            id: answer?.threadUserMessageCreated || lastQaPairs.user.id
+          },
           assistant: nextAssistantMessage
         }
       ]
@@ -297,47 +297,74 @@ function ChatRenderer(
     }
   }, [error])
 
-  const generateRequestPayloadFromQaPairs = (
-    qaPairs: QuestionAnswerPair[]
-  ): AnswerRequest => {
-    const userMessage = qaPairs[qaPairs.length - 1].user
+  const generateRequestPayload = (
+    userMessage: UserMessage
+  ): [CreateMessageInput, ThreadRunOptionsInput] => {
+    // use selectContext or activeContext for code query
     const contextForCodeQuery =
       userMessage?.selectContext || userMessage?.activeContext
-    const code_query: AnswerRequest['code_query'] | undefined =
-      contextForCodeQuery
+    const codeQuery: InputMaybe<CodeQueryInput> = contextForCodeQuery
+      ? {
+          content: contextForCodeQuery.content ?? '',
+          filepath: contextForCodeQuery.filepath,
+          language: contextForCodeQuery.filepath
+            ? filename2prism(contextForCodeQuery.filepath)[0] || 'text'
+            : 'text',
+          gitUrl: contextForCodeQuery?.git_url ?? ''
+        }
+      : null
+
+    const attachmentCode: MessageAttachmentCodeInput[] = compact([
+      // activeCode in IDE
+      userMessage?.activeContext
         ? {
-            content: contextForCodeQuery.content ?? '',
-            filepath: contextForCodeQuery.filepath,
-            language: contextForCodeQuery.filepath
-              ? filename2prism(contextForCodeQuery.filepath)[0] || 'text'
-              : 'text',
-            git_url: contextForCodeQuery?.git_url ?? ''
+            content: userMessage?.activeContext.content,
+            filepath: userMessage?.activeContext.filepath
           }
-        : undefined
+        : undefined,
+      // relevantCode
+      ...(userMessage?.relevantContext?.map(o => ({
+        filepath: o.filepath,
+        content: o.content
+      })) ?? [])
+    ])
 
-    const code_snippets = userMessage?.relevantContext?.map(o => ({
-      filepath: o.filepath,
-      content: o.content
-    }))
+    const content = userMessage.message
 
-    return {
-      messages: toMessages(qaPairs).slice(0, -1),
-      code_query,
-      code_snippets,
-      doc_query: !!docQuery,
-      generate_relevant_questions: !!generateRelevantQuestions,
-      collect_relevant_code_using_user_message:
-        !!collectRelevantCodeUsingUserMessage
-    }
+    return [
+      {
+        content,
+        attachments: {
+          code: attachmentCode
+        }
+      },
+      {
+        docQuery: docQuery ? { content } : null,
+        generateRelevantQuestions: !!generateRelevantQuestions,
+        codeQuery
+      }
+    ]
   }
 
   const handleSendUserChat = useLatest(
     async (userMessage: UserMessageWithOptionalId) => {
       if (isLoading) return
 
-      // If no id is provided, set a fallback id.
+      let selectCodeSnippet = ''
+      const selectCodeContextContent = userMessage?.selectContext?.content
+      if (selectCodeContextContent) {
+        const language = userMessage?.selectContext?.filepath
+          ? filename2prism(userMessage?.selectContext?.filepath)[0] ?? ''
+          : ''
+        selectCodeSnippet = `\n${'```'}${language}\n${
+          selectCodeContextContent ?? ''
+        }\n${'```'}\n`
+      }
+
       const newUserMessage = {
         ...userMessage,
+        message: userMessage.message + selectCodeSnippet,
+        // If no id is provided, set a fallback id.
         id: userMessage.id ?? nanoid()
       }
 
@@ -356,11 +383,11 @@ function ChatRenderer(
 
       setQaPairs(nextQaPairs)
 
-      return triggerRequest(generateRequestPayloadFromQaPairs(nextQaPairs))
+      return sendUserMessage(...generateRequestPayload(newUserMessage))
     }
   )
 
-  const sendUserChat = async (userMessage: UserMessageWithOptionalId) => {
+  const sendUserChat = (userMessage: UserMessageWithOptionalId) => {
     return handleSendUserChat.current?.(userMessage)
   }
 
@@ -392,7 +419,7 @@ function ChatRenderer(
 
   React.useEffect(() => {
     if (!isOnLoadExecuted.current) return
-    onThreadUpdates(qaPairs)
+    onThreadUpdates?.(qaPairs)
   }, [qaPairs])
 
   React.useImperativeHandle(
