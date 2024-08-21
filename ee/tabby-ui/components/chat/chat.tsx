@@ -168,6 +168,7 @@ function ChatRenderer(
     regenerate,
     deleteThreadMessagePair
   } = useThreadRun({
+    threadId,
     headers,
     isEphemeral,
     onAssistantMessageCompleted
