@@ -47,7 +47,14 @@ impl NodeType for Message {
 #[derive(GraphQLObject, Clone, Default)]
 pub struct MessageAttachment {
     pub code: Vec<MessageAttachmentCode>,
+    pub client_code: Vec<MessageAttachmentClientCode>,
     pub doc: Vec<MessageAttachmentDoc>,
+}
+
+#[derive(GraphQLObject, Clone)]
+pub struct MessageAttachmentClientCode {
+    pub filepath: Option<String>,
+    pub content: String,
 }
 
 #[derive(GraphQLObject, Clone)]

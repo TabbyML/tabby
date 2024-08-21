@@ -511,6 +511,10 @@ mod tests {
                 content: "print('Hello, server!')".to_owned(),
                 start_line: 1,
             }],
+            client_code: vec![tabby_schema::thread::MessageAttachmentClientCode {
+                filepath: Some("client.py".to_owned()),
+                content: "print('Hello, client!')".to_owned(),
+            }],
         };
 
         let messages = vec![
