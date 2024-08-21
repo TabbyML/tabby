@@ -8,7 +8,7 @@ use tabby_inference::Embedding;
 
 use super::helper::Job;
 
-const CRAWLER_TIMEOUT_SECS: u64 = 3600;
+const CRAWLER_TIMEOUT_SECS: u64 = 7200;
 
 pub struct WebCrawlerJob {
     source_id: String,
