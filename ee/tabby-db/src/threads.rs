@@ -50,6 +50,7 @@ pub struct ThreadMessageAttachmentCode {
 #[derive(Serialize, Deserialize)]
 pub struct ThreadMessageAttachmentClientCode {
     pub filepath: Option<String>,
+    pub start_line: Option<usize>,
     pub content: String,
 }
 

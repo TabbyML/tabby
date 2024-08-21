@@ -54,6 +54,7 @@ pub struct MessageAttachment {
 #[derive(GraphQLObject, Clone)]
 pub struct MessageAttachmentClientCode {
     pub filepath: Option<String>,
+    pub start_line: Option<i32>,
     pub content: String,
 }
 

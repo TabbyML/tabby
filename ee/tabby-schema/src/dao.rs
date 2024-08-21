@@ -228,6 +228,7 @@ impl From<ThreadMessageAttachmentClientCode> for thread::MessageAttachmentClient
         Self {
             filepath: value.filepath,
             content: value.content,
+            start_line: value.start_line.map(|x| x as i32),
         }
     }
 }
@@ -237,6 +238,7 @@ impl From<&thread::MessageAttachmentCodeInput> for ThreadMessageAttachmentClient
         ThreadMessageAttachmentClientCode {
             filepath: val.filepath.clone(),
             content: val.content.clone(),
+            start_line: val.start_line.map(|x| x as usize),
         }
     }
 }
