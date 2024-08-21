@@ -265,13 +265,16 @@ jobs:
       - name: Package CUDA 11.7
         run: >
           LLAMA_CPP_PLATFORM=cuda-cu11.7.1-x64 OUTPUT_NAME=x86_64-windows-msvc-cuda117 ./ci/package-win.sh
+
+      - name: Package CUDA 12.2
+        run: >
           LLAMA_CPP_PLATFORM=cuda-cu12.2.0-x64 OUTPUT_NAME=x86_64-windows-msvc-cuda122 ./ci/package-win.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           retention-days: 3
-          name: tabby_win_cuda_distributions
+          name: dist
           path: dist/
 
 
