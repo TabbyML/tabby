@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Input variables
 LLAMA_CPP_VERSION=${LLAMA_CPP_VERSION:-b3571}
