@@ -9,7 +9,7 @@ use argon2::{
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use juniper::ID;
-use tabby_db::{DbConn, InvitationDAO};
+use tabby_db::{DbConn, InvitationDAO, UserDAO};
 use tabby_schema::{
     auth::{
         AuthenticationService, Invitation, JWTPayload, OAuthCredential, OAuthError, OAuthProvider,
@@ -38,6 +38,7 @@ struct AuthenticationServiceImpl {
     mail: Arc<dyn EmailService>,
     license: Arc<dyn LicenseService>,
     setting: Arc<dyn SettingService>,
+    impersonate_user: Option<UserDAO>,
 }
 
 pub fn create(
@@ -46,11 +47,33 @@ pub fn create(
     license: Arc<dyn LicenseService>,
     setting: Arc<dyn SettingService>,
 ) -> impl AuthenticationService {
+    let mut impersonate = None;
+    if let Ok(value) = std::env::var("TABBY_OWNER_IMPERSONATE_OVERRIDE") {
+        let words: Vec<&str> = value.split(':').collect();
+        if words.len() == 2 {
+            impersonate = Some((words[0].to_string(), words[1].to_string()));
+        }
+    }
+    let impersonate_user = impersonate.map(|(email, pass)| {
+        let password_encrypted = password_hash(&pass).expect("can not encrypt passworkd");
+        UserDAO {
+            created_at: Default::default(),
+            updated_at: Default::default(),
+            id: 1,
+            email,
+            name: None,
+            password_encrypted: Some(password_encrypted),
+            is_admin: true,
+            auth_token: "".to_string(),
+            active: true,
+        }
+    });
     AuthenticationServiceImpl {
         db,
         mail,
         license,
         setting,
+        impersonate_user,
     }
 }
 
@@ -236,7 +259,17 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse> {
-        let Some(user) = self.db.get_user_by_email(&email).await? else {
+        let user = if self
+            .impersonate_user
+            .as_ref()
+            .map_or(false, |u| u.email == email)
+        {
+            self.impersonate_user.clone()
+        } else {
+            self.db.get_user_by_email(&email).await?
+        };
+
+        let Some(user) = user else {
             bail!("Invalid email address or password");
         };
 

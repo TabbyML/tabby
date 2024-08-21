@@ -8,7 +8,7 @@ use super::DbConn;
 use crate::SQLXResultExt;
 
 #[allow(unused)]
-#[derive(FromRow)]
+#[derive(FromRow, Clone)]
 pub struct UserDAO {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
