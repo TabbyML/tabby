@@ -1,5 +1,5 @@
 import { BaseLanguageClient, StaticFeature, FeatureState, ClientCapabilities } from "vscode-languageclient";
-import { DidChangeConfigurationNotification, ClientProvidedConfig } from "tabby-agent";
+import { DidChangeConfigurationNotification, ClientProvidedConfig, InitializeParams } from "tabby-agent";
 import { Config } from "../Config";
 
 export class ConfigurationSyncFeature implements StaticFeature {
@@ -12,8 +12,11 @@ export class ConfigurationSyncFeature implements StaticFeature {
     return { kind: "static" };
   }
 
-  fillInitializeParams() {
-    // nothing
+  fillInitializeParams(params: InitializeParams) {
+    params.initializationOptions = {
+      ...params.initializationOptions,
+      settings: this.config.buildClientProvidedConfig(),
+    };
   }
 
   fillClientCapabilities(capabilities: ClientCapabilities): void {
