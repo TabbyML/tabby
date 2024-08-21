@@ -30,7 +30,7 @@ pub fn create(
     ctx: Arc<dyn ServiceLocator>,
     api: Router,
     ui: Router,
-    answer: Option<Arc<AnswerService>>,
+    _answer: Option<Arc<AnswerService>>,
 ) -> (Router, Router) {
     let schema = Arc::new(create_schema());
 

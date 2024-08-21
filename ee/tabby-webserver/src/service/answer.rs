@@ -10,16 +10,19 @@ use async_openai::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
-use tabby_common::{api::{
-    code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery},
-    doc::{DocSearch, DocSearchError, DocSearchHit},
-}, config::AnswerConfig};
+use tabby_common::{
+    api::{
+        code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery},
+        doc::{DocSearch, DocSearchError, DocSearchHit},
+    },
+    config::AnswerConfig,
+};
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     repository::RepositoryService,
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        MessageAttachmentCodeInput, ThreadRunItem, ThreadRunOptionsInput,
+        ThreadRunItem, ThreadRunOptionsInput,
     },
     web_crawler::WebCrawlerService,
 };

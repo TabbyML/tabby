@@ -1,7 +1,5 @@
 import type { ChatMessage, Context } from 'tabby-chat-panel'
-import type {
-  components,
-} from 'tabby-openapi'
+import type { components } from 'tabby-openapi'
 
 import {
   MessageAttachmentCode,
