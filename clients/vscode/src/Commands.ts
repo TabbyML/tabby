@@ -302,7 +302,7 @@ export class Commands {
           ...suggestedCommand.map((item) => ({
             label: item.label,
             value: item.command,
-            iconPath: item.source === "preset" ? new ThemeIcon("edit") : new ThemeIcon("spark"),
+            iconPath: item.source === "preset" ? new ThemeIcon("run") : new ThemeIcon("spark"),
             description: item.source === "preset" ? item.command : "Suggested",
           })),
         );
@@ -322,6 +322,9 @@ export class Commands {
             iconPath: new ThemeIcon("history"),
             description: "History",
             buttons: [
+              {
+                iconPath: new ThemeIcon("edit"),
+              },
               {
                 iconPath: new ThemeIcon("settings-remove"),
               },
@@ -411,6 +414,10 @@ export class Commands {
             this.config.chatEditRecentlyCommand = recentlyCommand;
             updateQuickPickList();
           }
+        }
+
+        if (button.iconPath instanceof ThemeIcon && button.iconPath.id === "edit") {
+          quickPick.value = item.value;
         }
       });
 
