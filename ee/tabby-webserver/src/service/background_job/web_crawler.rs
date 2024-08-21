@@ -66,3 +66,36 @@ impl WebCrawlerJob {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::Ordering;
+    use std::sync::atomic::{AtomicBool, AtomicUsize};
+    use std::sync::Arc;
+    use std::time::Duration;
+    use tokio::time::Instant;
+
+    async fn run(count: Arc<AtomicUsize>, finished: Arc<AtomicBool>) -> tabby_schema::Result<()> {
+        let now = Instant::now();
+        while now.elapsed() < Duration::from_secs(1) {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            count.fetch_add(1, Ordering::AcqRel);
+        }
+        finished.store(true, Ordering::Release);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn timeout_function() {
+        let count = Arc::new(AtomicUsize::new(0));
+        let finished = Arc::new(AtomicBool::new(false));
+        assert!(tokio::time::timeout(
+            Duration::from_millis(200),
+            run(count.clone(), finished.clone())
+        )
+        .await
+        .is_err());
+        assert!(count.load(Ordering::Acquire) > 1);
+        assert_eq!(finished.load(Ordering::Acquire), false);
+    }
+}
