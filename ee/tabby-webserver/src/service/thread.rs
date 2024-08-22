@@ -157,18 +157,15 @@ impl ThreadService for ThreadServiceImpl {
         message: &CreateMessageInput,
     ) -> Result<()> {
         let thread_id = thread_id.as_rowid()?;
-        let client_code = message
-            .attachments
-            .as_ref()
-            .and_then(|x| {
-                let code = x.code.iter().map(Into::into).collect::<Vec<_>>();
-                // If there are no code attachments, return None
-                if code.is_empty() {
-                    None
-                } else {
-                    Some(code)
-                }
-            });
+        let client_code = message.attachments.as_ref().and_then(|x| {
+            let code = x.code.iter().map(Into::into).collect::<Vec<_>>();
+            // If there are no code attachments, return None
+            if code.is_empty() {
+                None
+            } else {
+                Some(code)
+            }
+        });
 
         self.db
             .create_thread_message(
