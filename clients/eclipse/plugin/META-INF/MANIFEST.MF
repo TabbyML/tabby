@@ -2,19 +2,20 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Tabby Plugin for Eclipse
 Bundle-SymbolicName: com.tabbyml.tabby4eclipse;singleton:=true
-Bundle-Version: 0.0.1.11
+Bundle-Version: 0.0.1.12
 Bundle-Activator: com.tabbyml.tabby4eclipse.Activator
 Bundle-Vendor: com.tabbyml
 Require-Bundle: org.eclipse.ui,
  org.eclipse.ui.ide,
+ org.eclipse.ui.workbench.texteditor,
+ org.eclipse.core.resources,
  org.eclipse.core.runtime,
+ org.eclipse.jface.text,
  org.eclipse.lsp4e,
  org.eclipse.lsp4j;bundle-version="0.23.1",
  org.eclipse.lsp4j.jsonrpc;bundle-version="0.23.1",
- org.eclipse.core.resources,
- org.eclipse.ui.workbench.texteditor,
- org.eclipse.jface.text,
- org.eclipse.jdt.annotation
+ org.eclipse.jgit,
+ com.google.gson;bundle-version="2.11.0"
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Automatic-Module-Name: com.tabbyml.tabby4eclipse
 Bundle-ActivationPolicy: lazy

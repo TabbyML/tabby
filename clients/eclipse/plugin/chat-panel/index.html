@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    html,
+    body,
+    div,
+    p,
+    iframe {
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    #message {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    #message div {
+      width: 100%;
+      max-width: 300px;
+      color: hsl(var(--foreground));
+    }
+
+    #message a {
+      color: hsl(var(--primary));
+    }
+
+    #message div h4 {
+      margin: 16px 0;
+    }
+
+    #message div p {
+      margin: 8px 0;
+    }
+
+    iframe {
+      border-width: 0;
+      width: 100%;
+      height: 100vh;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="message">
+    <div>
+      <h4>Welcome to Tabby Chat</h4>
+      <p id="messageContent"></p>
+      <a href="javascript:reload();">Reload</a>
+    </div>
+  </div>
+  <iframe id="chat" style="display: none;"></iframe>
+  <script>
+    function getChatPanel() {
+      return document.getElementById("chat");
+    }
+
+    function reload() {
+      // handleReload is a function injected by the client
+      handleReload();
+    }
+
+    function showMessage(message) {
+      const messageDiv = document.getElementById("message");
+      messageDiv.style.cssText = "display: " + (message ? "flex" : "none") + ";";
+      const messageContent = document.getElementById("messageContent");
+      messageContent.innerHTML = message;
+    }
+
+    function showChatPanel(visible) {
+      const chat = getChatPanel();
+      chat.style.cssText = "display: " + (visible ? "block" : "none") + ";";
+    }
+
+    function loadChatPanel(url) {
+      const chat = getChatPanel();
+      chat.src = url;
+    }
+
+    getChatPanel().addEventListener('load', function () {
+      setTimeout(() => {
+        // handleChatPanelLoaded is a function injected by the client
+        handleChatPanelLoaded();
+
+        const chat = getChatPanel();
+        // override iframe style
+        const theme = document.documentElement.className;
+        const css = document.documentElement.style.cssText;
+        chat.contentWindow.postMessage({ style: css, themeClass: theme, }, new URL(chat.src).origin);
+        // alternatively:
+        // const chatDocument = chat.contentWindow.document;
+        // chatDocument.documentElement.className = theme;
+        // chatDocument.documentElement.style.cssText = css;
+        // chatDocument.body.style.cssText = css;
+
+        // handleChatPanelStyleApplied is a function injected by the client
+        setTimeout(handleChatPanelStyleApplied, 100);
+      }, 300);
+    });
+
+    function applyStyle(style) {
+      const { theme, css } = JSON.parse(style);
+      document.documentElement.className = theme;
+      document.documentElement.style.cssText = css;
+    }
+
+    function sendRequestToChatPanel(request) {
+      const chat = getChatPanel();
+      // client to server requests
+      const { method, params } = JSON.parse(request);
+      if (method) {
+        // adapter for @quilted/threads requests
+        const data = [
+          0, // kind: Request
+          [uuid(), method, params],
+        ]
+        chat.contentWindow.postMessage(data, new URL(chat.src).origin);
+      }
+    }
+
+    function uuid() {
+      return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+      );
+    }
+
+    window.addEventListener("message", (event) => {
+      const chat = getChatPanel();
+
+      // server to client requests
+      if (event.source === chat.contentWindow) {
+        // handle copy action
+        if (typeof event.data === "object" && "action" in event.data && event.data.action === "copy") {
+          if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(event.data.data);
+          }
+        }
+
+        // adapter for @quilted/threads requests
+        if (Array.isArray(event.data) && event.data.length >= 2) {
+          const [kind, data] = event.data;
+          if (kind === 0) {
+            // 0: Request
+            if (Array.isArray(data) && event.data.length >= 2) {
+              const [_requestId, method, params] = data;
+              // handleChatPanelRequest is a function injected by the client
+              handleChatPanelRequest(JSON.stringify({ method, params }));
+            }
+          } else {
+            // 1: Response
+            // ignored as current methods return void
+          }
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>
