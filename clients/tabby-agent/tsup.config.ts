@@ -65,7 +65,7 @@ export default defineConfig(async () => {
     {
       name: "lsp-node",
       loader: {
-        ".md": "file",
+        ".md": "text",
       },
       entry: ["src/lsp/index.ts"],
       outDir: "dist/node",
@@ -90,7 +90,7 @@ export default defineConfig(async () => {
     {
       name: "lsp-browser",
       loader: {
-        ".md": "file",
+        ".md": "text",
       },
       entry: ["src/lsp/index.ts"],
       outDir: "dist/browser",
@@ -117,11 +117,16 @@ export default defineConfig(async () => {
         "undici",
       ],
       esbuildPlugins: [
-        processWinCa(),
         polyfillNode({
           polyfills: {},
         }),
       ],
+      esbuildOptions: (options) => {
+        // disable warning for `import is undefined`:
+        // src/lsp/index.ts:9:6:
+        // 9 |  dns.setDefaultResultOrder("ipv4first");
+        options.logOverride = { "import-is-undefined": "info" };
+      },
       banner: {
         js: banner,
       },
