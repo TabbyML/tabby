@@ -71,7 +71,7 @@ import './search.css'
 import Link from 'next/link'
 import { compact, isEmpty, pick } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
-import slugify from 'slugify'
+import slugify from '@sindresorhus/slugify';
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
@@ -277,10 +277,9 @@ export function Search() {
 
   // `/search` -> `/search/{slug}-{threadId}`
   const updateURLPattern = (threadId: string) => {
-    const title = messages?.[0]?.content
-    const slug = slugify(title, {
-      lower: true
-    })
+    const firstLine = messages?.[0]?.content.split('\n')[0];
+    const title = firstLine.slice(0, 48);
+    const slug = slugify(title)
       .split('-')
       .slice(0, 8)
       .join('-')
