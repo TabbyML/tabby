@@ -294,6 +294,7 @@ mod tests {
                             code: vec![MessageAttachmentCodeInput {
                                 filepath: Some("main.rs".to_string()),
                                 content: "fn main() { println!(\"Hello, world!\"); }".to_string(),
+                                start_line: Some(1),
                             }],
                         }),
                     },
@@ -302,8 +303,14 @@ mod tests {
             .await
             .unwrap();
 
-        let messages = service.list_thread_messages(&thread_id, None, None, None, None).await.unwrap();
-        assert_eq!(messages[0].attachment.client_code[0].filepath, Some("main.rs".to_string()));
+        let messages = service
+            .list_thread_messages(&thread_id, None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(
+            messages[0].attachment.client_code[0].filepath,
+            Some("main.rs".to_string())
+        );
 
         assert!(service
             .append_user_message(

@@ -514,6 +514,7 @@ mod tests {
             client_code: vec![tabby_schema::thread::MessageAttachmentClientCode {
                 filepath: Some("client.py".to_owned()),
                 content: "print('Hello, client!')".to_owned(),
+                start_line: Some(1),
             }],
         };
 
@@ -532,6 +533,7 @@ mod tests {
             code: vec![tabby_schema::thread::MessageAttachmentCodeInput {
                 filepath: Some("client.py".to_owned()),
                 content: "print('Hello, client!')".to_owned(),
+                start_line: Some(1),
             }],
         };
 
