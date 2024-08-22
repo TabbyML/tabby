@@ -247,6 +247,13 @@ export default {
               existingPath.replace("/docs/quick-start/installation", "/docs/installation"),
             ]
           }
+
+          // Create redirection from /docs/quick-start/installation/* to /docs/references/cloud-deployment/*
+          if (existingPath.startsWith("/docs/references/cloud-deployment/")) {
+            return [
+              existingPath.replace("/docs/references/cloud-deployment/", "/docs/quick-start/installation/"),
+            ]
+          }
         }
       },
     ],
