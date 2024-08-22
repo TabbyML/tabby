@@ -151,6 +151,7 @@ input EmailSettingInput {
 
 input MessageAttachmentCodeInput {
   filepath: String
+  startLine: Int
   content: String!
 }
 
@@ -399,7 +400,14 @@ type Message {
 
 type MessageAttachment {
   code: [MessageAttachmentCode!]!
+  clientCode: [MessageAttachmentClientCode!]!
   doc: [MessageAttachmentDoc!]!
+}
+
+type MessageAttachmentClientCode {
+  filepath: String
+  startLine: Int
+  content: String!
 }
 
 type MessageAttachmentCode {

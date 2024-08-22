@@ -24,6 +24,7 @@ pub struct ThreadMessageDAO {
     pub content: String,
 
     pub code_attachments: Option<Json<Vec<ThreadMessageAttachmentCode>>>,
+    pub client_code_attachments: Option<Json<Vec<ThreadMessageAttachmentClientCode>>>,
     pub doc_attachments: Option<Json<Vec<ThreadMessageAttachmentDoc>>>,
 
     pub created_at: DateTime<Utc>,
@@ -44,6 +45,13 @@ pub struct ThreadMessageAttachmentCode {
     pub filepath: String,
     pub content: String,
     pub start_line: usize,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ThreadMessageAttachmentClientCode {
+    pub filepath: Option<String>,
+    pub start_line: Option<usize>,
+    pub content: String,
 }
 
 impl DbConn {
@@ -119,6 +127,7 @@ impl DbConn {
         role: &str,
         content: &str,
         code_attachments: Option<&[ThreadMessageAttachmentCode]>,
+        client_code_attachments: Option<&[ThreadMessageAttachmentClientCode]>,
         doc_attachments: Option<&[ThreadMessageAttachmentDoc]>,
         verify_last_message_role: bool,
     ) -> Result<i64> {
@@ -132,13 +141,22 @@ impl DbConn {
         }
 
         let code_attachments = code_attachments.map(Json);
+        let client_code_attachments = client_code_attachments.map(Json);
         let doc_attachments = doc_attachments.map(Json);
         let res = query!(
-            "INSERT INTO thread_messages(thread_id, role, content, code_attachments, doc_attachments) VALUES (?, ?, ?, ?, ?)",
+            r#"INSERT INTO thread_messages(
+                thread_id,
+                role,
+                content,
+                code_attachments,
+                client_code_attachments,
+                doc_attachments
+            ) VALUES (?, ?, ?, ?, ?, ?)"#,
             thread_id,
             role,
             content,
             code_attachments,
+            client_code_attachments,
             doc_attachments,
         )
         .execute(&self.pool)
@@ -192,6 +210,7 @@ impl DbConn {
                 role,
                 content,
                 code_attachments as "code_attachments: Json<Vec<ThreadMessageAttachmentCode>>",
+                client_code_attachments as "client_code_attachments: Json<Vec<ThreadMessageAttachmentClientCode>>",
                 doc_attachments as "doc_attachments: Json<Vec<ThreadMessageAttachmentDoc>>",
                 created_at as "created_at: DateTime<Utc>",
                 updated_at as "updated_at: DateTime<Utc>"
@@ -224,6 +243,7 @@ impl DbConn {
                 "role",
                 "content",
                 "code_attachments" as "code_attachments: Json<Vec<ThreadMessageAttachmentCode>>",
+                "client_code_attachments" as "client_code_attachments: Json<Vec<ThreadMessageAttachmentClientCode>>",
                 "doc_attachments" as "doc_attachments: Json<Vec<ThreadMessageAttachmentDoc>>",
                 "created_at" as "created_at: DateTime<Utc>",
                 "updated_at" as "updated_at: DateTime<Utc>"
