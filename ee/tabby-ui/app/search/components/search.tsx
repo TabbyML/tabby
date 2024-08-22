@@ -1023,7 +1023,6 @@ function AnswerBlock({
             contexts={relevantCodeContexts}
             className="mt-1 text-sm"
             onContextClick={onCodeContextClick}
-            defaultOpen={messageAttachmentCode?.length <= 5}
             enableTooltip={enableDeveloperMode.value}
             onTooltipClick={() => {
               setConversationIdForDev(answer.id)
