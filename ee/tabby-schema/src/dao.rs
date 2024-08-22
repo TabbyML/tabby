@@ -2,7 +2,9 @@ use anyhow::bail;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO, ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc, ThreadMessageDAO, UserDAO, UserEventDAO
+    EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
+    ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
+    ThreadMessageAttachmentDoc, ThreadMessageDAO, UserDAO, UserEventDAO,
 };
 
 use crate::{
