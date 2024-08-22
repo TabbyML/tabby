@@ -23,7 +23,8 @@ import TabItem from '@theme/TabItem';
   ```
 
   </TabItem>
-  <TabItem value="cpu" label="CPU" default>
+
+  {false && <TabItem value="cpu" label="CPU" default>
 
   ```bash title="run.sh"
   docker run --entrypoint /opt/tabby/bin/tabby-cpu -it \
@@ -31,5 +32,5 @@ import TabItem from '@theme/TabItem';
     tabbyml/tabby serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct
   ```
 
-  </TabItem>
+  </TabItem>}
 </Tabs>
