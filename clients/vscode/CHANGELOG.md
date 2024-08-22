@@ -1,3 +1,17 @@
+## 1.9.0
+
+**pre-release**
+
+### Features
+
+- Introduced a new UI for the Tabby command palette, helping you quickly inspect status and navigate to commands. Access the command palette by clicking the `Tabby` label in the status bar. 
+- Added a new keybinding `Ctrl/Cmd + L` to open the chat panel.
+- Enhanced the chat panel conversation context by allowing you to manually add code snippets through right-click menu or `Ctrl/Cmd + L`.
+
+### Fixes & Improvements
+
+- Renamed the command `Tabby: Edit...` to `Tabby: Start Inline Editing`. You can edit commands from the history now.
+
 ## 1.8.2
 
 **stable**
