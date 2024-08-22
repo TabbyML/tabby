@@ -239,6 +239,10 @@ export default {
             to: '/docs/quick-start/installation/docker',
             from: '/docs/quick-start/installation'
           },
+          {
+            to: '/docs/references/programming-languages',
+            from: '/docs/programming-languages'
+          },
         ],
         createRedirects(existingPath) {
           // Create redirection from /docs/installation/* to /docs/quick-start/installation/*
