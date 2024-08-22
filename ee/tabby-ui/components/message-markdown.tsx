@@ -281,7 +281,7 @@ function RelevantDocumentBadge({
     <HoverCard>
       <HoverCardTrigger>
         <span
-          className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
+          className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs font-medium"
           onClick={() => window.open(relevantDocument.link)}
         >
           {citationIndex}
@@ -326,7 +326,7 @@ function RelevantCodeBadge({
 
   return (
     <span
-      className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
+      className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs font-medium"
       onClick={() => {
         onCodeCitationClick?.(relevantCode)
       }}
