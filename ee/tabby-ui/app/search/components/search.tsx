@@ -999,7 +999,7 @@ function AnswerBlock({
 
       {/* Answer content */}
       <div>
-        <div className="mb-1 flex items-center gap-x-1.5 h-8">
+        <div className="mb-1 flex h-8 items-center gap-x-1.5">
           <IconAnswer
             className={cn({
               'animate-spinner': isLoading
