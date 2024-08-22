@@ -62,6 +62,10 @@ impl Config {
             .print();
         }
 
+        for (i, repo) in cfg.repositories.iter_mut().enumerate() {
+            repo.source_id = config_index_to_id(i);
+        }
+
         Ok(cfg)
     }
 
@@ -110,21 +114,11 @@ pub fn config_id_to_index(id: &str) -> Result<usize, anyhow::Error> {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RepositoryConfig {
     pub git_url: String,
-    dir_name: String,
+    #[serde(skip)]
+    pub source_id: String,
 }
 
 impl RepositoryConfig {
-    pub fn new<T: Into<String>>(git_url: T, kind: &str, id: &str) -> Self {
-        Self {
-            git_url: git_url.into(),
-            dir_name: format!("{kind}_{id}")
-        }
-    }
-
-    pub fn canonical_git_url(&self) -> String {
-        Self::canonicalize_url(&self.git_url)
-    }
-
     pub fn canonicalize_url(url: &str) -> String {
         let url = url.strip_suffix(".git").unwrap_or(url);
         url::Url::parse(url)
@@ -137,7 +131,11 @@ impl RepositoryConfig {
     }
 
     pub fn dir(&self) -> PathBuf {
-        Self::resolve_dir(&self.git_url)
+        if Self::resolve_is_local_dir(&self.git_url) {
+            Self::resolve_dir(&self.git_url)
+        } else {
+            Self::resolve_dir(&self.source_id)
+        }
     }
 
     pub fn display_name(&self) -> String {
@@ -155,9 +153,6 @@ impl RepositoryConfig {
 
     pub fn resolve_dir_name(git_url: &str) -> String {
         sanitize_name(&Self::canonicalize_url(git_url))
-    }
-    pub fn dir_name(&self) -> String {
-        sanitize_name(&self.dir_name)
     }
 
     pub fn resolve_is_local_dir(git_url: &str) -> bool {
@@ -336,22 +331,29 @@ pub struct AnswerConfig {
 pub struct CodeRepository {
     pub git_url: String,
     pub source_id: String,
+    pub dir: String,
 }
 
 impl CodeRepository {
     pub fn new(git_url: &str, source_id: &str) -> Self {
+        let dir = if RepositoryConfig::resolve_is_local_dir(git_url) {
+            git_url.to_owned()
+        } else {
+            source_id.to_owned()
+        };
         Self {
             git_url: git_url.to_owned(),
             source_id: source_id.to_owned(),
+            dir,
         }
     }
 
     pub fn dir(&self) -> PathBuf {
-        RepositoryConfig::resolve_dir(&self.git_url)
+        RepositoryConfig::resolve_dir(&self.dir)
     }
 
     pub fn dir_name(&self) -> String {
-        RepositoryConfig::resolve_dir_name(&self.git_url)
+        RepositoryConfig::resolve_dir_name(&self.dir)
     }
 
     pub fn canonical_git_url(&self) -> String {
@@ -359,7 +361,7 @@ impl CodeRepository {
     }
 
     pub fn is_local_dir(&self) -> bool {
-        RepositoryConfig::resolve_is_local_dir(&self.git_url)
+        RepositoryConfig::resolve_is_local_dir(&self.dir)
     }
 }
 
@@ -377,7 +379,7 @@ impl CodeRepositoryAccess for StaticCodeRepositoryAccess {
             .repositories
             .into_iter()
             .enumerate()
-            .map(|(i, repo)| CodeRepository::new(&repo.git_url, &config_index_to_id(i)))
+            .map(|(i, repo)| CodeRepository::new(&repo.git_url, &repo.source_id))
             .collect())
     }
 }
@@ -396,7 +398,7 @@ mod tests {
     fn it_parses_local_dir() {
         let repo = RepositoryConfig {
             git_url: "file:///home/user".to_owned(),
-            id: "".to_string(),
+            source_id: "".to_string(),
         };
         let _ = repo.dir();
     }
@@ -405,7 +407,7 @@ mod tests {
     fn test_repository_config_name() {
         let repo = RepositoryConfig {
             git_url: "https://github.com/TabbyML/tabby.git".to_owned(),
-            id: "".to_string(),
+            source_id: "".to_string(),
         };
         assert!(repo.dir().ends_with("https_github.com_TabbyML_tabby"));
     }

@@ -240,7 +240,7 @@ fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> R
                 commit: r.commit,
             })
             .collect(),
-        git_url: config.git_url().to_owned(),
+        git_url: config.git_url.to_owned(),
     })
 }
 

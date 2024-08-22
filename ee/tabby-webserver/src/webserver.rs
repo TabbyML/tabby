@@ -41,7 +41,7 @@ impl CodeRepositoryAccess for Webserver {
             .repositories
             .into_iter()
             .enumerate()
-            .map(|(i, repo)| CodeRepository::new(repo.git_url(), &config_index_to_id(i)))
+            .map(|(i, repo)| CodeRepository::new(&repo.git_url, &config_index_to_id(i)))
             .collect();
         repos.extend(self.repository.list_all_code_repository().await?);
         Ok(repos)
