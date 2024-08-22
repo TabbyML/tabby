@@ -67,9 +67,9 @@ fn create_impl(
     if let Ok(value) = std::env::var("TABBY_OWNER_IMPERSONATE_OVERRIDE") {
         let words: Vec<&str> = value.split(':').collect();
         if words.len() == 2 {
-            let password_encrypted = password_hash(words[1]).expect("can not encrypt passworkd");
+            let password_encrypted = password_hash(words[1]).expect("can not encrypt password");
             impersonate_user = Some(ImpersonateUserCredential {
-                // impersonate user is owner use, so use 1 as id.
+                // The first user registered is the owner user, so we set id = 1 to impersonate the owner user.
                 id: 1,
                 email: words[0].to_string(),
                 password_encrypted,
