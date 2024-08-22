@@ -18,7 +18,10 @@ impl IndexGarbageCollection {
         web_crawler: Arc<dyn WebCrawlerService>,
     ) -> tabby_schema::Result<()> {
         let repositories = repository.list_all_code_repository().await?;
-        let mut sources: Vec<_> = repositories.iter().map(|repo| repo.source_id.clone()).collect();
+        let mut sources: Vec<_> = repositories
+            .iter()
+            .map(|repo| repo.source_id.clone())
+            .collect();
 
         sources.extend(
             web_crawler
