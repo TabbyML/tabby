@@ -34,7 +34,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     private readonly agent: Agent,
     private readonly logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
-  ) {}
+  ) { }
 
   static getFileContextFromSelection({
     editor,
@@ -108,21 +108,29 @@ export class ChatViewProvider implements WebviewViewProvider {
     this.client = createClient(webviewView, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
         if (opts?.openInEditor) {
-          const files = await workspace.findFiles(context.filepath, undefined, 1);
-          if (files[0]) {
-            const document = await workspace.openTextDocument(files[0].path);
-            const newEditor = await window.showTextDocument(document, {
-              viewColumn: ViewColumn.Active,
-              preview: false,
-              preserveFocus: true,
-            });
-
-            // Move the cursor to the specified line
-            const start = new Position(Math.max(0, context.range.start - 1), 0);
-            const end = new Position(context.range.end, 0);
-            newEditor.selection = new Selection(start, end);
-            newEditor.revealRange(new Range(start, end), TextEditorRevealType.InCenter);
+          let document;
+          try {
+            document = await workspace.openTextDocument(context.filepath);
+          } catch (e) {
+            const files = await workspace.findFiles(context.filepath, undefined, 1);
+            if (files[0]) {
+              document = await workspace.openTextDocument(files[0]);
+            } else {
+              throw new Error(`File not found: ${context.filepath}`);
+            }
           }
+
+          const newEditor = await window.showTextDocument(document, {
+            viewColumn: ViewColumn.Active,
+            preview: false,
+            preserveFocus: true,
+          });
+
+          // Move the cursor to the specified line
+          const start = new Position(Math.max(0, context.range.start - 1), 0);
+          const end = new Position(context.range.end, 0);
+          newEditor.selection = new Selection(start, end);
+          newEditor.revealRange(new Range(start, end), TextEditorRevealType.InCenter);
 
           return;
         }
@@ -476,9 +484,9 @@ export class ChatViewProvider implements WebviewViewProvider {
   private formatLineHashForCodeBrowser(
     range:
       | {
-          start: number;
-          end?: number;
-        }
+        start: number;
+        end?: number;
+      }
       | undefined,
   ): string {
     if (!range) return "";
