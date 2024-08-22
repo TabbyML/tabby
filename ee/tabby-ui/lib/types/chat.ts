@@ -1,8 +1,5 @@
 import type { ChatMessage, Context } from 'tabby-chat-panel'
-import type {
-  components,
-  components as TabbyOpenApiComponents
-} from 'tabby-openapi'
+import type { components } from 'tabby-openapi'
 
 import {
   MessageAttachmentCode,
@@ -61,8 +58,6 @@ export type SearchReponse = {
 
 export type MessageActionType = 'delete' | 'regenerate'
 
-export type AnswerRequest = TabbyOpenApiComponents['schemas']['AnswerRequest']
-
 type Keys<T> = T extends any ? keyof T : never
 type Pick<T, K extends Keys<T>> = T extends { [k in K]?: any }
   ? T[K]
@@ -70,9 +65,6 @@ type Pick<T, K extends Keys<T>> = T extends { [k in K]?: any }
 type MergeUnionType<T> = {
   [k in Keys<T>]?: Pick<T, k>
 }
-export type AnswerResponse = MergeUnionType<
-  TabbyOpenApiComponents['schemas']['AnswerResponseChunk']
->
 
 export type AnswerEngineExtraContext = {
   repository?: Omit<Repository, 'refs'>
