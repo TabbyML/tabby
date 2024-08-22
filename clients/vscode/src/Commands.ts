@@ -80,15 +80,15 @@ export class Commands {
       return;
     }
 
-    const focusChat = !this.chatViewProvider.webview || !this.chatViewProvider.webview?.visible;
-    const clearSelection = !this.chatViewProvider.webview?.visible;
+    // If chat webview is not created or not visible, we shall focus on it.
+    const focusChat = !this.chatViewProvider.webview?.visible;
     const addContext = () => {
       const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
       if (fileContext) {
         this.chatViewProvider.addRelevantContext(fileContext);
 
-        // Clear selection
-        if (clearSelection) {
+        // If chat gains focus, clear selection from editor window.
+        if (focusChat) {
           editor.selection = new Selection(editor.selection.start, editor.selection.start);
         }
       };
