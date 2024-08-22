@@ -1237,10 +1237,10 @@ function Header({ threadId }: { threadId?: string }) {
 
 function ThreadMessagesErrorView() {
   return (
-    <div className="h-screen flex flex-col">
+    <div className="flex h-screen flex-col">
       <Header />
       <div className="flex-1">
-        <div className="flex flex-col items-center h-full justify-center gap-2">
+        <div className="flex h-full flex-col items-center justify-center gap-2">
           <div className="flex items-center gap-2">
             <IconFileSearch className="h-6 w-6" />
             <div className="text-xl font-semibold">Something went wrong</div>
@@ -1249,7 +1249,7 @@ function ThreadMessagesErrorView() {
             Failed to fetch the thread, please refresh the page or start a new
             thread
           </div>
-          <Link href="/" className={cn(buttonVariants(), 'gap-2 mt-4')}>
+          <Link href="/" className={cn(buttonVariants(), 'mt-4 gap-2')}>
             <IconPlus />
             <span>New Thread</span>
           </Link>
