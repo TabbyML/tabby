@@ -358,7 +358,7 @@ const client = new Client({
         const authorization =
           // @ts-ignore
           operation.context.fetchOptions?.headers?.Authorization ?? ''
-        const protocol = window.location.protocol;
+        const protocol = window.location.protocol
         const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:'
         const host = window.location.host
         const wsClient = createWSClient({
