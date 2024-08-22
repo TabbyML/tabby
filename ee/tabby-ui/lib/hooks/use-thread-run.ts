@@ -298,7 +298,10 @@ export function useThreadRun({
     if (!threadId) return
 
     setIsLoading(true)
+    // reset assistantMessage
     setError(undefined)
+    setThreadRunItem(undefined)
+
     // 1. delete message pair
     onDeleteThreadMessagePair(
       payload.threadId,

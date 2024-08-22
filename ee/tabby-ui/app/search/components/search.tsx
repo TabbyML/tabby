@@ -127,6 +127,7 @@ type SearchContextValue = {
   repositoryList: RepositoryListQuery['repositoryList'] | undefined
   setDevPanelOpen: (v: boolean) => void
   setConversationIdForDev: (v: string | undefined) => void
+  enableDeveloperMode: boolean
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -217,6 +218,7 @@ export function Search() {
   const devPanelRef = useRef<ImperativePanelHandle>(null)
   const [devPanelSize, setDevPanelSize] = useState(45)
   const prevDevPanelSize = useRef(devPanelSize)
+  const [enableDeveloperMode] = useEnableDeveloperMode()
 
   const threadId = useMemo(() => {
     const regex = /^\/search\/(.*)/
@@ -657,7 +659,8 @@ export function Search() {
         repositoryList,
         setDevPanelOpen,
         setConversationIdForDev: setMessageIdForDev,
-        isPathnameInitialized
+        isPathnameInitialized,
+        enableDeveloperMode: enableDeveloperMode.value
       }}
     >
       <div className="transition-all" style={style}>
@@ -811,9 +814,9 @@ function AnswerBlock({
     onRegenerateResponse,
     onSubmitSearch,
     setDevPanelOpen,
-    setConversationIdForDev
+    setConversationIdForDev,
+    enableDeveloperMode
   } = useContext(SearchContext)
-  const [enableDeveloperMode] = useEnableDeveloperMode()
 
   const [showMoreSource, setShowMoreSource] = useState(false)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] = useState<
@@ -959,7 +962,7 @@ function AnswerBlock({
                 conversationId={answer.id}
                 source={source}
                 showMore={showMoreSource}
-                showDevTooltip={enableDeveloperMode.value}
+                showDevTooltip={enableDeveloperMode}
               />
             ))}
           </div>
@@ -981,14 +984,14 @@ function AnswerBlock({
 
       {/* Answer content */}
       <div>
-        <div className="mb-1 flex items-center gap-x-1.5">
+        <div className="mb-1 flex h-8 items-center gap-x-1.5">
           <IconAnswer
             className={cn({
               'animate-spinner': isLoading
             })}
           />
           <p className="text-sm font-bold leading-none">Answer</p>
-          {enableDeveloperMode.value && (
+          {enableDeveloperMode && (
             <Button
               variant="ghost"
               size="icon"
@@ -1008,7 +1011,7 @@ function AnswerBlock({
             contexts={relevantCodeContexts}
             className="mt-1 text-sm"
             onContextClick={onCodeContextClick}
-            enableTooltip={enableDeveloperMode.value}
+            enableTooltip={enableDeveloperMode}
             onTooltipClick={() => {
               setConversationIdForDev(answer.id)
               setDevPanelOpen(true)
