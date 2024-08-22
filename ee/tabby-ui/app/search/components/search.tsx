@@ -830,8 +830,9 @@ function AnswerBlock({
     number | undefined
   >(undefined)
   const getCopyContent = (answer: ConversationMessage) => {
-    if (isEmpty(answer?.attachment?.doc) && isEmpty(answer?.attachment?.code))
+    if (isEmpty(answer?.attachment?.doc) && isEmpty(answer?.attachment?.code)) {
       return answer.content
+    }
 
     const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
     const content = answer.content
