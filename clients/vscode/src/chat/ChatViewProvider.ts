@@ -34,7 +34,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     private readonly agent: Agent,
     private readonly logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
-  ) { }
+  ) {}
 
   static getFileContextFromSelection({
     editor,
@@ -484,9 +484,9 @@ export class ChatViewProvider implements WebviewViewProvider {
   private formatLineHashForCodeBrowser(
     range:
       | {
-        start: number;
-        end?: number;
-      }
+          start: number;
+          end?: number;
+        }
       | undefined,
   ): string {
     if (!range) return "";
