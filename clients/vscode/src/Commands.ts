@@ -91,8 +91,8 @@ export class Commands {
         if (focusChat) {
           editor.selection = new Selection(editor.selection.start, editor.selection.start);
         }
-      };
-    }
+      }
+    };
 
     if (focusChat) {
       commands.executeCommand("tabby.chatView.focus").then(addContext);
