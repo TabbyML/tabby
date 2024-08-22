@@ -165,6 +165,11 @@ const listThreadMessages = graphql(/* GraphQL */ `
               content
               startLine
             }
+            clientCode {
+              filepath
+              content
+              startLine
+            }
             doc {
               title
               link
