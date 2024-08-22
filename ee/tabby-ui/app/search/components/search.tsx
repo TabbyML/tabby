@@ -277,9 +277,9 @@ export function Search() {
 
   // `/search` -> `/search/{slug}-{threadId}`
   const updateURLPattern = (threadId: string) => {
-    const firstLine = messages?.[0]?.content.split('\n')[0];
-    const title = firstLine.slice(0, 48);
-    const slug = slugify(title);
+    const firstLine = messages?.[0]?.content.split('\n')[0]
+    const title = firstLine.slice(0, 48)
+    const slug = slugify(title)
 
     if (slug) {
       document.title = slug
