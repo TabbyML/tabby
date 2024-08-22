@@ -319,13 +319,15 @@ function ChatRenderer(
       userMessage?.activeContext
         ? {
             content: userMessage?.activeContext.content,
-            filepath: userMessage?.activeContext.filepath
+            filepath: userMessage?.activeContext.filepath,
+            startLine: userMessage.activeContext.range.start
           }
         : undefined,
       // relevantCode
       ...(userMessage?.relevantContext?.map(o => ({
         filepath: o.filepath,
-        content: o.content
+        content: o.content,
+        startLine: o.range.start
       })) ?? [])
     ])
 

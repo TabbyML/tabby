@@ -111,5 +111,6 @@ pub struct MessageAttachmentInput {
 #[derive(GraphQLInputObject, Clone)]
 pub struct MessageAttachmentCodeInput {
     pub filepath: Option<String>,
+    pub start_line: Option<i32>,
     pub content: String,
 }
