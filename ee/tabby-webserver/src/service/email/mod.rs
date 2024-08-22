@@ -6,12 +6,11 @@ use lettre::{
     message::{header::ContentType, Mailbox, MessageBuilder},
     transport::smtp::{
         authentication::{Credentials, Mechanism},
-        client::{Tls, TlsParameters, Certificate},
+        client::{Certificate, Tls, TlsParameters},
         AsyncSmtpTransportBuilder,
     },
     Address, AsyncSmtpTransport, AsyncTransport, Tokio1Executor,
 };
-
 use tabby_db::DbConn;
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::warn;
@@ -50,10 +49,13 @@ fn make_smtp_builder(
 ) -> Result<AsyncSmtpTransportBuilder> {
     let mut tls_parameters = TlsParameters::builder(host.into());
     if let Some(cert_pem) = cert_pem {
-        let cert = Certificate::from_pem(cert_pem.as_bytes()).map_err(|_|CoreError::EmailInvalidCert)?;
+        let cert =
+            Certificate::from_pem(cert_pem.as_bytes()).map_err(|_| CoreError::EmailInvalidCert)?;
         tls_parameters = tls_parameters.add_root_certificate(cert);
     }
-    let tls_parameters = tls_parameters.build().map_err(|_|CoreError::EmailInvalidCert)?;
+    let tls_parameters = tls_parameters
+        .build()
+        .map_err(|_| CoreError::EmailInvalidCert)?;
 
     let builder = match encryption {
         Encryption::StartTls => AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(host)
