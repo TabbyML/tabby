@@ -69,9 +69,9 @@ import UserPanel from '@/components/user-panel'
 import './search.css'
 
 import Link from 'next/link'
+import slugify from '@sindresorhus/slugify'
 import { compact, isEmpty, pick } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
-import slugify from '@sindresorhus/slugify';
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
@@ -277,12 +277,9 @@ export function Search() {
 
   // `/search` -> `/search/{slug}-{threadId}`
   const updateURLPattern = (threadId: string) => {
-    const firstLine = messages?.[0]?.content.split('\n')[0];
-    const title = firstLine.slice(0, 48);
-    const slug = slugify(title)
-      .split('-')
-      .slice(0, 8)
-      .join('-')
+    const firstLine = messages?.[0]?.content.split('\n')[0]
+    const title = firstLine.slice(0, 48)
+    const slug = slugify(title).split('-').slice(0, 8).join('-')
 
     if (slug) {
       document.title = slug
