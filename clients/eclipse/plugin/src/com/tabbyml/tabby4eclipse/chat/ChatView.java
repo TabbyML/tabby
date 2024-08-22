@@ -198,11 +198,11 @@ public class ChatView extends ViewPart {
 		reloadContent(false);
 	}
 
-	private void reloadContent(boolean recheck) {
+	private void reloadContent(boolean force) {
 		if (!isHtmlLoaded) {
 			return;
 		}
-		if (recheck) {
+		if (force) {
 			LanguageServerService.getInstance().getServer().execute((server) -> {
 				IStatusService statusService = ((ILanguageServer) server).getStatusService();
 				StatusRequestParams params = new StatusRequestParams();
@@ -210,15 +210,15 @@ public class ChatView extends ViewPart {
 				return statusService.getStatus(params);
 			}).thenAccept((statusInfo) -> {
 				String status = statusInfo.getStatus();
-				reloadContentForStatus(status);
+				reloadContentForStatus(status, true);
 			});
 		} else {
 			String status = statusInfoHolder.getStatusInfo().getStatus();
-			reloadContentForStatus(status);
+			reloadContentForStatus(status, false);
 		}
 	}
 
-	private void reloadContentForStatus(String status) {
+	private void reloadContentForStatus(String status, boolean force) {
 		if (status.equals(StatusInfo.Status.DISCONNECTED)) {
 			showMessage("Cannot connect to Tabby server, please check your settings.");
 			showChatPanel(false);
@@ -234,7 +234,7 @@ public class ChatView extends ViewPart {
 			} else {
 				// Load main
 				Config.ServerConfig config = serverConfigHolder.getConfig().getServer();
-				if (currentConfig == null || currentConfig.getEndpoint() != config.getEndpoint()
+				if (force || currentConfig == null || currentConfig.getEndpoint() != config.getEndpoint()
 						|| currentConfig.getToken() != config.getToken()) {
 					showMessage("Connecting to Tabby server...");
 					showChatPanel(false);
