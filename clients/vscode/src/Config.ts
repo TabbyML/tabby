@@ -1,7 +1,6 @@
 import { EventEmitter } from "events";
 import { workspace, ExtensionContext, WorkspaceConfiguration, ConfigurationTarget, Memento } from "vscode";
 import { ClientProvidedConfig } from "tabby-agent";
-import { getLogger } from "./logger";
 
 interface AdvancedSettings {
   "inlineCompletion.triggerMode"?: "automatic" | "manual";
@@ -146,7 +145,6 @@ export class Config extends EventEmitter {
   }
 
   buildClientProvidedConfig(): ClientProvidedConfig {
-    getLogger().info("buildClientProvidedConfig", this.serverEndpoint, this.serverToken)
     return {
       server: {
         endpoint: this.serverEndpoint,
