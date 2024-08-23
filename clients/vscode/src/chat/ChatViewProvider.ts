@@ -33,7 +33,7 @@ export class ChatViewProvider implements WebviewViewProvider {
   constructor(
     private readonly context: ExtensionContext,
     private readonly agent: Agent,
-    private logger: LogOutputChannel,
+    private readonly logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
   ) {}
 
