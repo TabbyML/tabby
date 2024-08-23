@@ -66,6 +66,7 @@ export default function NavBar({ className }: { className?: string }) {
           Beta
         </Badge>
       </SidebarButton>
+      <SidebarButton href="/settings/providers/doc">Preset Docs</SidebarButton>
     </div>
   )
 }
