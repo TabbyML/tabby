@@ -13,6 +13,8 @@ import {
   Selection,
   TextEditorRevealType,
   ViewColumn,
+  WorkspaceFolder,
+  TextDocument,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context, NavigateOpts } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -108,16 +110,9 @@ export class ChatViewProvider implements WebviewViewProvider {
     this.client = createClient(webviewView, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
         if (opts?.openInEditor) {
-          let document;
-          try {
-            document = await workspace.openTextDocument(context.filepath);
-          } catch (e) {
-            const files = await workspace.findFiles(context.filepath, undefined, 1);
-            if (files[0]) {
-              document = await workspace.openTextDocument(files[0]);
-            } else {
-              throw new Error(`File not found: ${context.filepath}`);
-            }
+          const document = await resolveFilePath(this.logger, workspace.workspaceFolders, context.filepath);
+          if (!document) {
+            throw new Error(`File not found: ${context.filepath}`);
           }
 
           const newEditor = await window.showTextDocument(document, {
@@ -515,4 +510,37 @@ function resolveFilePathAndGitUrl(uri: Uri, gitProvider: GitProvider): { filepat
     filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
     git_url: remoteUrl ?? "",
   };
+}
+
+async function resolveFilePath(
+  logger: LogOutputChannel,
+  folders: readonly WorkspaceFolder[] | undefined,
+  filepath: string,
+): Promise<TextDocument | null> {
+  if (filepath.startsWith("file://")) {
+    const absoluteFilepath = Uri.parse(filepath, true);
+    return workspace.openTextDocument(absoluteFilepath);
+  }
+
+  if (!folders) {
+    return null;
+  }
+
+  for (const root of folders) {
+    const absoluteFilepath = Uri.joinPath(root.uri, filepath);
+    try {
+      return workspace.openTextDocument(absoluteFilepath);
+    } catch (err) {
+      // Do nothing, file doesn't exists.
+    }
+  }
+
+  logger.info("File not found in workspace folders, trying with findFiles...");
+
+  const files = await workspace.findFiles(filepath, undefined, 1);
+  if (files[0]) {
+    return workspace.openTextDocument(files[0]);
+  }
+
+  return null;
 }
