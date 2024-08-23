@@ -406,7 +406,7 @@ function ChatRenderer(
   }
 
   const handleAddRelevantContext = useLatest((context: Context) => {
-    setRelevantContext(relevantContext.concat([context]))
+    setRelevantContext(oldValue => appendContextAndDedupe(oldValue, context))
   })
 
   const addRelevantContext = (context: Context) => {
@@ -501,6 +501,27 @@ function ChatRenderer(
         </div>
       </div>
     </ChatContext.Provider>
+  )
+}
+
+function appendContextAndDedupe(
+  ctxList: Context[],
+  newCtx: Context
+): Context[] {
+  if (!ctxList.some(ctx => isContextEqual(ctx, newCtx))) {
+    ctxList.push(newCtx)
+  }
+  return ctxList
+}
+
+function isContextEqual(lhs: Context, rhs: Context): boolean {
+  return (
+    lhs.kind === rhs.kind &&
+    lhs.range.start === rhs.range.start &&
+    lhs.range.end === rhs.range.end &&
+    lhs.filepath === rhs.filepath &&
+    lhs.content === rhs.content &&
+    lhs.git_url === rhs.git_url
   )
 }
 
