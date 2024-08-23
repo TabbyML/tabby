@@ -133,6 +133,11 @@
         "command": "tabby.chat.edit.discard",
         "title": "Discard Changes",
         "category": "Tabby"
+      },
+      {
+        "command": "tabby.server.selectPastServerConfig",
+        "title": "Select Server Config from History",
+        "category": "Tabby"
       }
     ],
     "submenus": [

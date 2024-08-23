@@ -119,7 +119,8 @@ export default class CommandPalette {
       }
       item.command = () => this.issues.showHelpMessage();
     } else if (agentStatus === "ready") {
-      item.label = "Ready";
+      item.label = `Ready`;
+      item.description = this.config.serverEndpoint;
       item.iconPath = new ThemeIcon("check");
       item.command = "tabby.outputPanel.focus";
     }

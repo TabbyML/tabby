@@ -20,7 +20,7 @@ import path from "path";
 import { strict as assert } from "assert";
 import { ChatEditCommand } from "tabby-agent";
 import { Client } from "./lsp/Client";
-import { Config } from "./Config";
+import { Config, PastServerConfig } from "./Config";
 import { ContextVariables } from "./ContextVariables";
 import { InlineCompletionProvider } from "./InlineCompletionProvider";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
@@ -524,5 +524,27 @@ export class Commands {
         },
       );
     },
+    "server.selectPastServerConfig": () => {
+      const configs = this.config.pastServerConfigs;
+      if (configs.length <= 0) return;
+
+      const quickPick = window.createQuickPick<QuickPickItem & PastServerConfig>();
+
+      quickPick.items = this.config.pastServerConfigs.toReversed().map(x => ({
+        ...x,
+        label: x.endpoint,
+      }));
+
+      quickPick.onDidAccept(() => {
+        const item = quickPick.activeItems[0];
+        if (item) {
+          this.config.restoreServerConfig(item);
+        }
+
+        quickPick.hide();
+      });
+
+      quickPick.show();
+    }
   };
 }

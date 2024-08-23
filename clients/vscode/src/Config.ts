@@ -1,10 +1,16 @@
 import { EventEmitter } from "events";
 import { workspace, ExtensionContext, WorkspaceConfiguration, ConfigurationTarget, Memento } from "vscode";
 import { ClientProvidedConfig } from "tabby-agent";
+import { getLogger } from "./logger";
 
 interface AdvancedSettings {
   "inlineCompletion.triggerMode"?: "automatic" | "manual";
   "chatEdit.history"?: number;
+}
+
+export interface PastServerConfig {
+  endpoint: string,
+  token: string | null,
 }
 
 export class Config extends EventEmitter {
@@ -19,7 +25,7 @@ export class Config extends EventEmitter {
     );
   }
 
-  get workspace(): WorkspaceConfiguration {
+  private get workspace(): WorkspaceConfiguration {
     return workspace.getConfiguration("tabby");
   }
 
@@ -118,7 +124,29 @@ export class Config extends EventEmitter {
     this.memento.update("edit.recentlyCommand", value);
   }
 
+  get pastServerConfigs(): Array<PastServerConfig> {
+    return this.memento.get("server.pastServerConfigs", [])
+  }
+
+  async appendPastServerConfig(config: PastServerConfig) {
+    const pastConfigs = this.pastServerConfigs.filter((c) => c.endpoint !== config.endpoint);
+    pastConfigs.push(config);
+
+    await this.memento.update("server.pastServerConfigs", pastConfigs)
+  }
+
+  async removePastServerConfigByApiEndpoint(apiEndpoint: string) {
+    const pastConfigs = this.pastServerConfigs.filter((c) => c.endpoint !== apiEndpoint);
+    await this.memento.update("server.pastServerConfigs", pastConfigs)
+  }
+
+  async restoreServerConfig(config: PastServerConfig) {
+      await this.memento.update("server.token", config.token);
+      this.serverEndpoint = config.endpoint;
+  }
+
   buildClientProvidedConfig(): ClientProvidedConfig {
+    getLogger().info("buildClientProvidedConfig", this.serverEndpoint, this.serverToken)
     return {
       server: {
         endpoint: this.serverEndpoint,

@@ -12,6 +12,7 @@ import { ContextVariables } from "./ContextVariables";
 import { StatusBarItem } from "./StatusBarItem";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { Commands } from "./Commands";
+import { Status } from "tabby-agent";
 
 const isBrowser = !!process.env["IS_BROWSER"];
 const logger = getLogger();
@@ -54,6 +55,27 @@ export async function activate(context: ExtensionContext) {
   client.registerConfigManager(config);
   client.registerInlineCompletionProvider(inlineCompletionProvider);
   client.registerGitProvider(gitProvider);
+
+  // Register config callback for past ServerConfig
+  client.agent.addListener("didChangeStatus", async (status: Status) => {
+    if (!client) return;
+
+    const { config: serverConfig } = await client.agent.fetchServerInfo();
+
+    if (serverConfig.requestHeaders && Object.keys(serverConfig.requestHeaders).length > 0) {
+      // If serverConfig.requestHeaders is not empty, it means the server is configured in `tabby-agent/config.toml`, we shall not record it.
+      return;
+    }
+
+    if (status === "ready") {
+      await config.appendPastServerConfig({
+        endpoint: serverConfig.endpoint,
+        token: serverConfig.token,
+      })
+    } else if (status === "unauthorized") {
+      // await config.removePastServerConfigByApiEndpoint(serverConfig.endpoint)
+    }
+  })
 
   // Register chat panel
   const chatViewProvider = new ChatViewProvider(context, client.agent, logger, gitProvider);
