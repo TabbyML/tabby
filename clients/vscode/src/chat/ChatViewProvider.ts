@@ -231,7 +231,7 @@ export class ChatViewProvider implements WebviewViewProvider {
         this.refreshChatPage();
       }
 
-      commands.executeCommand("setContext", "tabby.chatViewVisible", webviewView.visible)
+      commands.executeCommand("setContext", "tabby.chatViewVisible", webviewView.visible);
     });
 
     webviewView.webview.onDidReceiveMessage((message) => {
