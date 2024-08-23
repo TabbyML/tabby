@@ -101,6 +101,9 @@ pub enum CoreError {
     #[error("SMTP is not configured")]
     EmailNotConfigured,
 
+    #[error("SMTP cert is invalid")]
+    EmailInvalidCert,
+
     #[error("{0}")]
     InvalidLicense(&'static str),
 

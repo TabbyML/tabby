@@ -147,6 +147,7 @@ input EmailSettingInput {
   encryption: Encryption!
   authMethod: AuthMethod!
   smtpPassword: String
+  certPem: String
 }
 
 input MessageAttachmentCodeInput {
@@ -258,6 +259,7 @@ type EmailSetting {
   fromAddress: String!
   encryption: Encryption!
   authMethod: AuthMethod!
+  certPem: String
 }
 
 type FileEntrySearchResult {
