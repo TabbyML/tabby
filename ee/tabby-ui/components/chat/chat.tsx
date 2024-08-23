@@ -509,7 +509,7 @@ function appendContextAndDedupe(
   newCtx: Context
 ): Context[] {
   if (!ctxList.some(ctx => isContextEqual(ctx, newCtx))) {
-    ctxList.push(newCtx)
+    return ctxList.concat([newCtx])
   }
   return ctxList
 }
