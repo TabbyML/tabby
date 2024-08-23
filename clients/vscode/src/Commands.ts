@@ -302,7 +302,7 @@ export class Commands {
         },
       };
       //ensure max length
-      const recentlyCommand = this.config.chatEditRecentlyCommand.slice(0, this.config.chatEditHistory);
+      const recentlyCommand = this.config.chatEditRecentlyCommand.slice(0, this.config.maxChatEditHistory);
       const suggestedCommand: ChatEditCommand[] = [];
       const quickPick = window.createQuickPick<QuickPickItem & { value: string }>();
 
@@ -373,7 +373,7 @@ export class Commands {
         if (command) {
           const updatedRecentlyCommand = [command]
             .concat(recentlyCommand.filter((item) => item !== command))
-            .slice(0, this.config.chatEditHistory);
+            .slice(0, this.config.maxChatEditHistory);
           this.config.chatEditRecentlyCommand = updatedRecentlyCommand;
 
           window.withProgress(

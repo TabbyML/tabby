@@ -62,7 +62,7 @@ export class Config extends EventEmitter {
     }
   }
 
-  get chatEditHistory(): number {
+  get maxChatEditHistory(): number {
     const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
     const numHistory = advancedSettings["chatEdit.history"] === undefined ? 20 : advancedSettings["chatEdit.history"];
     if (numHistory < 0) {
@@ -74,8 +74,8 @@ export class Config extends EventEmitter {
     }
   }
 
-  set chatEditHistory(value: number) {
-    if (value != this.chatEditHistory) {
+  set maxChatEditHistory(value: number) {
+    if (value != this.maxChatEditHistory) {
       const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
       const updateValue = { ...advancedSettings, "chatEdit.history": value };
       this.workspace.update("settings.advanced", updateValue, ConfigurationTarget.Global);
