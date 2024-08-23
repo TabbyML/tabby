@@ -86,13 +86,8 @@ export class Commands {
       const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
       if (fileContext) {
         this.chatViewProvider.addRelevantContext(fileContext);
-
-        // If chat gains focus, clear selection from editor window.
-        if (focusChat) {
-          editor.selection = new Selection(editor.selection.start, editor.selection.start);
-        }
-      }
-    };
+      };
+    }
 
     if (focusChat) {
       commands.executeCommand("tabby.chatView.focus").then(addContext);

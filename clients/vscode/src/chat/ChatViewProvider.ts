@@ -13,6 +13,7 @@ import {
   Selection,
   TextEditorRevealType,
   ViewColumn,
+  commands,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context, NavigateOpts } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -32,7 +33,7 @@ export class ChatViewProvider implements WebviewViewProvider {
   constructor(
     private readonly context: ExtensionContext,
     private readonly agent: Agent,
-    private readonly logger: LogOutputChannel,
+    public logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
   ) {}
 
@@ -229,6 +230,8 @@ export class ChatViewProvider implements WebviewViewProvider {
       if (webviewView.visible) {
         this.refreshChatPage();
       }
+
+      commands.executeCommand("setContext", "tabby.chatViewVisible", webviewView.visible)
     });
 
     webviewView.webview.onDidReceiveMessage((message) => {
