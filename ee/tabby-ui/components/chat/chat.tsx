@@ -305,23 +305,23 @@ function ChatRenderer(
       userMessage?.selectContext || userMessage?.activeContext
     const codeQuery: InputMaybe<CodeQueryInput> = contextForCodeQuery
       ? {
-          content: contextForCodeQuery.content ?? '',
-          filepath: contextForCodeQuery.filepath,
-          language: contextForCodeQuery.filepath
-            ? filename2prism(contextForCodeQuery.filepath)[0] || 'text'
-            : 'text',
-          gitUrl: contextForCodeQuery?.git_url ?? ''
-        }
+        content: contextForCodeQuery.content ?? '',
+        filepath: contextForCodeQuery.filepath,
+        language: contextForCodeQuery.filepath
+          ? filename2prism(contextForCodeQuery.filepath)[0] || 'text'
+          : 'text',
+        gitUrl: contextForCodeQuery?.git_url ?? ''
+      }
       : null
 
     const attachmentCode: MessageAttachmentCodeInput[] = compact([
       // activeCode in IDE
       userMessage?.activeContext
         ? {
-            content: userMessage?.activeContext.content,
-            filepath: userMessage?.activeContext.filepath,
-            startLine: userMessage.activeContext.range.start
-          }
+          content: userMessage?.activeContext.content,
+          filepath: userMessage?.activeContext.filepath,
+          startLine: userMessage.activeContext.range.start
+        }
         : undefined,
       // relevantCode
       ...(userMessage?.relevantContext?.map(o => ({
@@ -358,9 +358,8 @@ function ChatRenderer(
         const language = userMessage?.selectContext?.filepath
           ? filename2prism(userMessage?.selectContext?.filepath)[0] ?? ''
           : ''
-        selectCodeSnippet = `\n${'```'}${language}\n${
-          selectCodeContextContent ?? ''
-        }\n${'```'}\n`
+        selectCodeSnippet = `\n${'```'}${language}\n${selectCodeContextContent ?? ''
+          }\n${'```'}\n`
       }
 
       const newUserMessage = {
@@ -406,7 +405,7 @@ function ChatRenderer(
   }
 
   const handleAddRelevantContext = useLatest((context: Context) => {
-    setRelevantContext(relevantContext.concat([context]))
+    setRelevantContext((oldValue) => appendContextAndDedupe(oldValue, context))
   })
 
   const addRelevantContext = (context: Context) => {
@@ -502,6 +501,22 @@ function ChatRenderer(
       </div>
     </ChatContext.Provider>
   )
+}
+
+function appendContextAndDedupe(ctxList: Context[], newCtx: Context): Context[] {
+  if (!ctxList.some(ctx => isContextEqual(ctx, newCtx))) {
+    ctxList.push(newCtx);
+  }
+  return ctxList;
+}
+
+function isContextEqual(lhs: Context, rhs: Context): boolean {
+  return lhs.kind === rhs.kind &&
+    lhs.range.start === rhs.range.start &&
+    lhs.range.end === rhs.range.end &&
+    lhs.filepath === rhs.filepath &&
+    lhs.content === rhs.content &&
+    lhs.git_url === rhs.git_url;
 }
 
 export const Chat = React.forwardRef<ChatRef, ChatProps>(ChatRenderer)
