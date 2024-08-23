@@ -378,8 +378,7 @@ impl CodeRepositoryAccess for StaticCodeRepositoryAccess {
         Ok(Config::load()?
             .repositories
             .into_iter()
-            .enumerate()
-            .map(|(i, repo)| CodeRepository::new(&repo.git_url, &repo.source_id))
+            .map(|repo| CodeRepository::new(&repo.git_url, &repo.source_id))
             .collect())
     }
 }
