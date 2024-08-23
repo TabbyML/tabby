@@ -71,7 +71,7 @@ export async function activate(context: ExtensionContext) {
       await config.appendPastServerConfig({
         endpoint: serverConfig.endpoint,
         token: serverConfig.token,
-      })
+      });
     }
   });
 

@@ -129,10 +129,10 @@ export class Config extends EventEmitter {
   }
 
   async appendPastServerConfig(config: PastServerConfig) {
-    getLogger().info("appending config", config.endpoint)
+    getLogger().info("appending config", config.endpoint);
     const pastConfigs = this.pastServerConfigs.filter((c) => c.endpoint !== config.endpoint);
     const newPastConfigs = [config, ...pastConfigs.slice(0, 4)];
-    await this.memento.update("server.pastServerConfigs", newPastConfigs)
+    await this.memento.update("server.pastServerConfigs", newPastConfigs);
   }
 
   async removePastServerConfigByApiEndpoint(apiEndpoint: string) {

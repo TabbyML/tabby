@@ -530,14 +530,14 @@ export class Commands {
 
       const quickPick = window.createQuickPick<QuickPickItem & PastServerConfig>();
 
-      quickPick.items = configs.map(x => ({
+      quickPick.items = configs.map((x) => ({
         ...x,
         label: x.endpoint,
         buttons: [
           {
             iconPath: new ThemeIcon("settings-remove"),
-          }
-        ]
+          },
+        ],
       }));
 
       quickPick.onDidAccept(() => {
@@ -554,7 +554,7 @@ export class Commands {
         if (e.button.iconPath.id === "settings-remove") {
           this.config.removePastServerConfigByApiEndpoint(e.item.endpoint);
         }
-      })
+      });
 
       quickPick.show();
     },
