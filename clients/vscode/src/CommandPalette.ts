@@ -117,7 +117,7 @@ export default class CommandPalette {
           item.description = "Completion requests appear to take too much time.";
           break;
       }
-      item.command = () => this.issues.showHelpMessage();
+      item.command = () => this.issues.showHelpMessage(undefined, true);
     } else if (agentStatus === "ready") {
       item.label = "Ready";
       item.iconPath = new ThemeIcon("check");
