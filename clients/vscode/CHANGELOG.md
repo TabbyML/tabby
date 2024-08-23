@@ -1,3 +1,12 @@
+## 1.9.1
+
+**pre-release**
+
+### Fixes & Improvements
+
+- Enhanced user experience with the shortcut `Ctrl/Cmd + L`.
+- Decreased the delay in navigating to files when clicking on context references in the chat panel.
+
 ## 1.9.0
 
 **pre-release**
