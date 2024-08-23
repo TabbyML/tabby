@@ -110,7 +110,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     this.client = createClient(webviewView, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
         if (opts?.openInEditor) {
-          const document = await resolveFilePath(this.logger, workspace.workspaceFolders, context.filepath);
+          const document = await resolveDocument(this.logger, workspace.workspaceFolders, context.filepath);
           if (!document) {
             throw new Error(`File not found: ${context.filepath}`);
           }
@@ -512,7 +512,7 @@ function resolveFilePathAndGitUrl(uri: Uri, gitProvider: GitProvider): { filepat
   };
 }
 
-async function resolveFilePath(
+async function resolveDocument(
   logger: LogOutputChannel,
   folders: readonly WorkspaceFolder[] | undefined,
   filepath: string,
