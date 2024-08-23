@@ -529,7 +529,7 @@ async function resolveDocument(
   for (const root of folders) {
     const absoluteFilepath = Uri.joinPath(root.uri, filepath);
     try {
-      return workspace.openTextDocument(absoluteFilepath);
+      return await workspace.openTextDocument(absoluteFilepath);
     } catch (err) {
       // Do nothing, file doesn't exists.
     }
