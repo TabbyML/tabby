@@ -71,11 +71,11 @@ export async function activate(context: ExtensionContext) {
       await config.appendPastServerConfig({
         endpoint: serverConfig.endpoint,
         token: serverConfig.token,
-      })
+      });
     } else if (status === "unauthorized") {
       // await config.removePastServerConfigByApiEndpoint(serverConfig.endpoint)
     }
-  })
+  });
 
   // Register chat panel
   const chatViewProvider = new ChatViewProvider(context, client.agent, logger, gitProvider);
