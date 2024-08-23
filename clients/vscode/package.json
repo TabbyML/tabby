@@ -136,7 +136,7 @@
       },
       {
         "command": "tabby.server.selectPastServerConfig",
-        "title": "Select Server Config from History",
+        "title": "Select Server Endpoint from History",
         "category": "Tabby"
       }
     ],
