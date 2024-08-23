@@ -112,6 +112,9 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 		TabbyClientCapabilities tabbyClientCapabilities = new TabbyClientCapabilities();
 		tabbyClientCapabilities.setConfigDidChangeListener(true);
 		tabbyClientCapabilities.setStatusDidChangeListener(true);
+		tabbyClientCapabilities.setWorkspaceFileSystem(true);
+		tabbyClientCapabilities.setGitProvider(true);
+		tabbyClientCapabilities.setLanguageSupport(true);
 
 		ClientCapabilities clientCapabilities = new ClientCapabilities();
 		clientCapabilities.setTextDocument(textDocumentClientCapabilities);

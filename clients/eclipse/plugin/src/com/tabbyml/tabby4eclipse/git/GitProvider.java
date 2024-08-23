@@ -1,21 +1,35 @@
 package com.tabbyml.tabby4eclipse.git;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.net.URI;
 import java.util.List;
 
+import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.RemoteConfig;
 
 import com.tabbyml.tabby4eclipse.Logger;
+import com.tabbyml.tabby4eclipse.lsp.protocol.GitDiffParams;
+import com.tabbyml.tabby4eclipse.lsp.protocol.GitDiffResult;
 import com.tabbyml.tabby4eclipse.lsp.protocol.GitRepository;
+import com.tabbyml.tabby4eclipse.lsp.protocol.GitRepositoryParams;
 
 public class GitProvider {
-	private static Logger logger = new Logger("GitProvider");
+	public static GitProvider getInstance() {
+		return LazyHolder.INSTANCE;
+	}
 
-	public static GitRepository getRepository(URI uri) {
+	private static class LazyHolder {
+		private static final GitProvider INSTANCE = new GitProvider();
+	}
+
+	private Logger logger = new Logger("GitProvider");
+
+	public GitRepository getRepository(GitRepositoryParams params) {
 		try {
+			URI uri = new URI(params.getUri());
 			File file = new File(uri);
 			FileRepositoryBuilder builder = new FileRepositoryBuilder();
 			Repository repository = builder.findGitDir(file).build();
@@ -48,7 +62,32 @@ public class GitProvider {
 				return null;
 			}
 		} catch (Exception e) {
-			logger.info("Failed to get repository for: " + uri);
+			logger.error("Failed to get repository for: " + params.getUri(), e);
+			return null;
+		}
+	}
+
+	public GitDiffResult getDiff(GitDiffParams params) {
+		try {
+			URI repoPath = new URI(params.getRepository());
+			File repoDir = new File(repoPath);
+			FileRepositoryBuilder builder = new FileRepositoryBuilder();
+			Repository repository = builder.findGitDir(repoDir).build();
+			if (repository != null) {
+				try (Git git = new Git(repository)) {
+					ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+					git.diff().setCached(params.getCached()).setOutputStream(outStream).call();
+					String diff = outStream.toString("UTF-8");
+
+					GitDiffResult result = new GitDiffResult(diff);
+					outStream.close();
+					return result;
+				}
+			} else {
+				return null;
+			}
+		} catch (Exception e) {
+			logger.error("Failed to get diff for: " + params.getRepository(), e);
 			return null;
 		}
 	}
