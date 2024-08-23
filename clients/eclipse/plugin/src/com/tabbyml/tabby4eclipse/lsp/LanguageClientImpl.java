@@ -1,11 +1,18 @@
 package com.tabbyml.tabby4eclipse.lsp;
 
+import java.net.URI;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.lsp4j.LocationLink;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.SemanticTokensRangeParams;
+import org.eclipse.jface.text.IDocument;
+import org.eclipse.lsp4e.LSPEclipseUtils;
+import org.eclipse.lsp4e.LanguageServers;
 import org.eclipse.lsp4j.DeclarationParams;
+import org.eclipse.lsp4j.Location;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 
@@ -15,6 +22,8 @@ import com.tabbyml.tabby4eclipse.lsp.protocol.GitDiffParams;
 import com.tabbyml.tabby4eclipse.lsp.protocol.GitDiffResult;
 import com.tabbyml.tabby4eclipse.lsp.protocol.GitRepository;
 import com.tabbyml.tabby4eclipse.lsp.protocol.GitRepositoryParams;
+import com.tabbyml.tabby4eclipse.lsp.protocol.ReadFileParams;
+import com.tabbyml.tabby4eclipse.lsp.protocol.ReadFileResult;
 import com.tabbyml.tabby4eclipse.lsp.protocol.SemanticTokensRangeResult;
 import com.tabbyml.tabby4eclipse.lsp.protocol.StatusInfo;
 
@@ -27,6 +36,31 @@ public class LanguageClientImpl extends org.eclipse.lsp4e.LanguageClientImpl {
 	@JsonNotification("tabby/config/didChange")
 	void statusDidChange(Config params) {
 		ServerConfigHolder.getInstance().setConfig(params);
+	}
+
+	@JsonRequest("tabby/workspaceFileSystem/readFile")
+	CompletableFuture<ReadFileResult> workspaceReadFile(ReadFileParams params) {
+		if (params.getFormat().equals("text")) {
+			try {
+				URI uri = new URI(params.getUri());
+				IDocument document = LSPEclipseUtils.getDocument(uri);
+				Range range = params.getRange();
+
+				ReadFileResult result = new ReadFileResult();
+				if (range != null) {
+					int start = LSPEclipseUtils.toOffset(range.getStart(), document);
+					int end = LSPEclipseUtils.toOffset(range.getEnd(), document);
+					result.setText(document.get(start, end - start));
+				} else {
+					result.setText(document.get());
+				}
+				return CompletableFuture.completedFuture(result);
+			} catch (Exception e) {
+				return CompletableFuture.completedFuture(null);
+			}
+		} else {
+			return CompletableFuture.completedFuture(null);
+		}
 	}
 
 	@JsonRequest("tabby/git/repository")
@@ -46,12 +80,13 @@ public class LanguageClientImpl extends org.eclipse.lsp4e.LanguageClientImpl {
 	}
 
 	@JsonRequest("tabby/languageSupport/textDocument/declaration")
-	CompletableFuture<List<LocationLink>> languageSupportDeclaration(DeclarationParams params) {
-		return null;
+	CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> languageSupportDeclaration(
+			DeclarationParams params) {
+		return LanguageSupportProvider.getInstance().languageSupportDeclaration(params);
 	}
 
 	@JsonRequest("tabby/languageSupport/textDocument/semanticTokens/range")
 	CompletableFuture<SemanticTokensRangeResult> languageSupportSemanticTokensRange(SemanticTokensRangeParams params) {
-		return null;
+		return LanguageSupportProvider.getInstance().languageSupportSemanticTokensRange(params);
 	}
 }
