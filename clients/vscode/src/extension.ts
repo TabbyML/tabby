@@ -71,9 +71,13 @@ export async function activate(context: ExtensionContext) {
       await config.appendPastServerConfig({
         endpoint: serverConfig.endpoint,
         token: serverConfig.token,
+<<<<<<< HEAD
       });
     } else if (status === "unauthorized") {
       // await config.removePastServerConfigByApiEndpoint(serverConfig.endpoint)
+=======
+      })
+>>>>>>> d2980716d (limit max count)
     }
   });
 

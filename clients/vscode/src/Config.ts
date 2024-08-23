@@ -129,9 +129,14 @@ export class Config extends EventEmitter {
 
   async appendPastServerConfig(config: PastServerConfig) {
     const pastConfigs = this.pastServerConfigs.filter((c) => c.endpoint !== config.endpoint);
+<<<<<<< HEAD
     pastConfigs.push(config);
 
     await this.memento.update("server.pastServerConfigs", pastConfigs);
+=======
+    const newPastConfigs = [config, ...pastConfigs.slice(0, 4)];
+    await this.memento.update("server.pastServerConfigs", newPastConfigs)
+>>>>>>> d2980716d (limit max count)
   }
 
   async removePastServerConfigByApiEndpoint(apiEndpoint: string) {

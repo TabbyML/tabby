@@ -530,7 +530,7 @@ export class Commands {
 
       const quickPick = window.createQuickPick<QuickPickItem & PastServerConfig>();
 
-      quickPick.items = this.config.pastServerConfigs.toReversed().map((x) => ({
+      quickPick.items = configs.map(x => ({
         ...x,
         label: x.endpoint,
       }));
