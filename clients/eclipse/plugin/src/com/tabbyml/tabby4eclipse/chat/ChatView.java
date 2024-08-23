@@ -307,8 +307,8 @@ public class ChatView extends ViewPart {
 		String[] minVersionParts = MIN_SERVER_VERSION.split("\\.");
 
 		for (int i = 0; i < Math.max(versionParts.length, minVersionParts.length); i++) {
-			int versionPart = i < versionParts.length ? Integer.parseInt(versionParts[i]) : 0;
-			int minVersionPart = i < minVersionParts.length ? Integer.parseInt(minVersionParts[i]) : 0;
+			int versionPart = i < versionParts.length ? parseInt(versionParts[i]) : 0;
+			int minVersionPart = i < minVersionParts.length ? parseInt(minVersionParts[i]) : 0;
 
 			if (versionPart < minVersionPart) {
 				return false;
@@ -318,6 +318,14 @@ public class ChatView extends ViewPart {
 		}
 
 		return true;
+	}
+
+	private int parseInt(String str) {
+		try {
+			return Integer.parseInt(str);
+		} catch (NumberFormatException e) {
+			return 0;
+		}
 	}
 
 	private void setupThemeStyle() {
