@@ -20,8 +20,8 @@ export default function PresetDoc() {
       <div className="my-4 flex justify-between">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <IconListFilter className="absolute left-1.5 top-2.5 text-muted-foreground" />
-            <Input className="w-60 pl-6" />
+            <IconListFilter className="absolute left-3 top-2.5 text-muted-foreground" />
+            <Input className="w-60 pl-8" />
           </div>
           <Select defaultValue="">
             <SelectTrigger className="w-40">

@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
-import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
 import { Switch } from '@/components/ui/switch'
 import {
