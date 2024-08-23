@@ -70,7 +70,7 @@ import './search.css'
 
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
-import { compact, isEmpty, pick } from 'lodash-es'
+import { compact, isEmpty, pick, uniqBy } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
@@ -254,7 +254,7 @@ export function Search() {
       const messages = threadMessages.threadMessages.edges
         .map(o => o.node)
         .slice()
-      setMessages(prev => [...prev, ...messages])
+      setMessages(prev => uniqBy([...prev, ...messages], 'id'))
     }
 
     if (threadMessages?.threadMessages) {
