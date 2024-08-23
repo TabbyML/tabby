@@ -283,7 +283,11 @@ export class ChatEditProvider {
       };
     };
 
-    const processBuffer = (edit: Edit, inTag: "document" | "comment", closeTag: string) => {
+    const processBuffer = (edit: Edit, inTag: "document" | "comment", openTag: string, closeTag: string) => {
+      if (edit.buffer.startsWith(openTag)) {
+        edit.buffer = edit.buffer.substring(openTag.length);
+      }
+
       const reg = this.createCloseTagMatcher(closeTag);
       const match = reg.exec(edit.buffer);
       if (!match) {
@@ -296,7 +300,6 @@ export class ChatEditProvider {
       }
       return inTag;
     };
-
     const findOpenTag = (
       buffer: string,
       responseDocumentTag: string[],
@@ -334,11 +337,10 @@ export class ChatEditProvider {
         }
 
         if (inTag) {
+          const openTag = inTag === "document" ? responseDocumentTag[0] : responseCommentTag?.[0];
           const closeTag = inTag === "document" ? responseDocumentTag[1] : responseCommentTag?.[1];
-          if (!closeTag) break;
-
-          inTag = processBuffer(edit, inTag, closeTag);
-
+          if (!closeTag || !openTag) break;
+          inTag = processBuffer(edit, inTag, openTag, closeTag);
           await applyEdit(edit, isFirstEdit, false);
           isFirstEdit = false;
         }
@@ -364,10 +366,10 @@ export class ChatEditProvider {
 
   private async applyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<boolean> {
     try {
+      //TODO(Sma1lboy): adding client capabilities to indicate if client support this method rather than try-catch
       const result = await this.connection.sendRequest(ApplyWorkspaceEditRequest.type, params);
       return result;
     } catch (error) {
-      console.warn("Extended applyEdit failed, falling back to standard method:", error);
       try {
         await this.connection.workspace.applyEdit({
           edit: params.edit,
@@ -375,7 +377,6 @@ export class ChatEditProvider {
         });
         return true;
       } catch (fallbackError) {
-        console.error("Both extended and standard applyEdit methods failed:", fallbackError);
         return false;
       }
     }
