@@ -33,13 +33,14 @@ import {
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode
 } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import {
   IconBlocks,
   IconBug,
   IconCheck,
   IconChevronLeft,
   IconChevronRight,
+  IconFileSearch,
   IconLayers,
   IconLink,
   IconPlus,
@@ -67,9 +68,10 @@ import UserPanel from '@/components/user-panel'
 
 import './search.css'
 
-import { compact, isEmpty, pick } from 'lodash-es'
+import Link from 'next/link'
+import slugify from '@sindresorhus/slugify'
+import { compact, isEmpty, pick, uniqBy } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
-import slugify from 'slugify'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
@@ -125,6 +127,7 @@ type SearchContextValue = {
   repositoryList: RepositoryListQuery['repositoryList'] | undefined
   setDevPanelOpen: (v: boolean) => void
   setConversationIdForDev: (v: string | undefined) => void
+  enableDeveloperMode: boolean
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -189,6 +192,8 @@ const listThreadMessages = graphql(/* GraphQL */ `
   }
 `)
 
+const PAGE_SIZE = 30
+
 export function Search() {
   const { updateUrlComponents, pathname } = useRouterStuff()
   const [activePathname, setActivePathname] = useState<string | undefined>()
@@ -213,6 +218,7 @@ export function Search() {
   const devPanelRef = useRef<ImperativePanelHandle>(null)
   const [devPanelSize, setDevPanelSize] = useState(45)
   const prevDevPanelSize = useRef(devPanelSize)
+  const [enableDeveloperMode] = useEnableDeveloperMode()
 
   const threadId = useMemo(() => {
     const regex = /^\/search\/(.*)/
@@ -227,36 +233,53 @@ export function Search() {
   const repositoryList = data?.repositoryList
 
   const [afterCursor, setAfterCursor] = useState<string | undefined>()
-  const [{ data: threadMessages, fetching: fetchingMessages }] = useQuery({
+  const [
+    {
+      data: threadMessages,
+      error: threadMessagesError,
+      fetching: fetchingMessages
+    }
+  ] = useQuery({
     query: listThreadMessages,
     variables: {
       threadId: threadId as string,
-      first: 20,
+      first: PAGE_SIZE,
       after: afterCursor
     },
     pause: !threadId || isReady
   })
 
-  // todo scroll and setAfterCursor
   useEffect(() => {
     if (threadMessages?.threadMessages?.edges?.length) {
       const messages = threadMessages.threadMessages.edges
         .map(o => o.node)
         .slice()
-      setMessages(messages)
-      setIsReady(true)
+      setMessages(prev => uniqBy([...prev, ...messages], 'id'))
+    }
+
+    if (threadMessages?.threadMessages) {
+      const hasNextPage = threadMessages?.threadMessages?.pageInfo?.hasNextPage
+      const endCursor = threadMessages?.threadMessages.pageInfo.endCursor
+      if (hasNextPage && endCursor) {
+        setAfterCursor(endCursor)
+      } else {
+        setIsReady(true)
+      }
     }
   }, [threadMessages])
 
+  useEffect(() => {
+    if (threadMessagesError && !isReady) {
+      // FIXME error view?
+      setIsReady(true)
+    }
+  }, [threadMessagesError])
+
   // `/search` -> `/search/{slug}-{threadId}`
   const updateURLPattern = (threadId: string) => {
-    const title = messages?.[0]?.content
-    const slug = slugify(title, {
-      lower: true
-    })
-      .split('-')
-      .slice(0, 8)
-      .join('-')
+    const firstLine = messages?.[0]?.content.split('\n')[0]
+    const title = firstLine.slice(0, 48)
+    const slug = slugify(title)
 
     if (slug) {
       document.title = slug
@@ -280,15 +303,6 @@ export function Search() {
     })
 
   const isLoadingRef = useLatest(isLoading)
-
-  const { isCopied, copyToClipboard } = useCopyToClipboard({
-    timeout: 2000
-  })
-
-  const onCopy = () => {
-    if (isCopied) return
-    copyToClipboard(window.location.href)
-  }
 
   const currentMessageForDev = useMemo(() => {
     return messages.find(item => item.id === messageIdForDev)
@@ -364,7 +378,7 @@ export function Search() {
       }
     }
 
-    if (isPathnameInitialized) {
+    if (isPathnameInitialized && !threadId) {
       init()
     }
   }, [isPathnameInitialized])
@@ -418,6 +432,7 @@ export function Search() {
           })) ?? null
       }
     }
+
     if (!currentAssistantMessage?.attachment?.doc) {
       currentAssistantMessage.attachment = {
         doc:
@@ -430,6 +445,7 @@ export function Search() {
         code: currentAssistantMessage.attachment?.code ?? null
       }
     }
+
     currentAssistantMessage.threadRelevantQuestions =
       answer?.threadRelevantQuestions
 
@@ -478,14 +494,10 @@ export function Search() {
         // Scroll to the bottom
         const container = contentContainerRef?.current?.children?.[1]
         if (container) {
-          const isLastAnswerLoading =
-            currentAssistantMessageId === messages[messages.length - 1].id
-          if (isLastAnswerLoading) {
-            container.scrollTo({
-              top: container.scrollHeight,
-              behavior: 'smooth'
-            })
-          }
+          container.scrollTo({
+            top: container.scrollHeight,
+            behavior: 'smooth'
+          })
         }
       }, 300)
     }
@@ -563,7 +575,12 @@ export function Search() {
     const newAssistantMessage: ConversationMessage = {
       id: nanoid(),
       role: Role.Assistant,
-      content: ''
+      content: '',
+      attachment: {
+        code: [],
+        doc: []
+      },
+      error: undefined
     }
     const _repository = extraContext?.repository
     const codeQuery: InputMaybe<CodeQueryInput> = _repository
@@ -572,7 +589,7 @@ export function Search() {
 
     setCurrentUserMessageId(newUserMessage.id)
     setCurrentAssistantMessageId(newAssistantMessage.id)
-    setMessages(newMessages.concat([newUserMessage, newAssistantMessage]))
+    setMessages([...newMessages, newUserMessage, newAssistantMessage])
 
     regenerate({
       threadId,
@@ -601,11 +618,21 @@ export function Search() {
     prevDevPanelSize.current = devPanelSize
   }
 
-  if (!isReady && fetchingMessages) {
+  const isFetchingMessages =
+    fetchingMessages || threadMessages?.threadMessages?.pageInfo?.hasNextPage
+
+  if (isReady && threadMessagesError) {
+    return <ThreadMessagesErrorView />
+  }
+
+  if (!isReady && isFetchingMessages) {
     return (
-      <div className="mx-auto mt-24 w-full space-y-10 px-4 pb-32 lg:max-w-4xl lg:px-0">
-        <MessagesSkeleton />
-        <MessagesSkeleton />
+      <div>
+        <Header />
+        <div className="mx-auto mt-24 w-full space-y-10 px-4 pb-32 lg:max-w-4xl lg:px-0">
+          <MessagesSkeleton />
+          <MessagesSkeleton />
+        </div>
       </div>
     )
   }
@@ -628,65 +655,22 @@ export function Search() {
         repositoryList,
         setDevPanelOpen,
         setConversationIdForDev: setMessageIdForDev,
-        isPathnameInitialized
+        isPathnameInitialized,
+        enableDeveloperMode: enableDeveloperMode.value
       }}
     >
       <div className="transition-all" style={style}>
         <ResizablePanelGroup direction="vertical" onLayout={onPanelLayout}>
           <ResizablePanel>
-            <header className="flex h-16 items-center justify-between px-4">
-              <div className="flex items-center gap-x-6">
-                <Button
-                  variant="ghost"
-                  className="-ml-1 pl-0 text-sm text-muted-foreground"
-                  onClick={() => router.replace('/')}
-                >
-                  <IconChevronLeft className="mr-1 h-5 w-5" />
-                  Home
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                {!!threadId && (
-                  <>
-                    <Button
-                      variant="ghost"
-                      className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
-                      onClick={() => router.push('/')}
-                    >
-                      <IconPlus />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
-                      onClick={onCopy}
-                    >
-                      {isCopied ? (
-                        <IconCheck className="text-green-600" />
-                      ) : (
-                        <IconLink />
-                      )}
-                    </Button>
-                  </>
-                )}
-                <ClientOnly>
-                  <ThemeToggle />
-                </ClientOnly>
-                <div className="ml-2">
-                  <UserPanel showHome={false} showSetting>
-                    <UserAvatar className="h-10 w-10 border" />
-                  </UserPanel>
-                </div>
-              </div>
-            </header>
-
-            <main className="h-[calc(100%-4rem)] overflow-auto pb-8 lg:pb-0">
+            <Header threadId={threadId} />
+            <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
               <ScrollArea className="h-full" ref={contentContainerRef}>
                 <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
                   <div className="flex flex-col">
                     {messages.map((item, idx) => {
                       if (item.role === Role.User) {
                         return (
-                          <div key={item.id + idx}>
+                          <div key={item.id}>
                             {idx !== 0 && <Separator />}
                             <div className="pb-2 pt-8">
                               <MessageMarkdown
@@ -701,7 +685,7 @@ export function Search() {
                         const isLastAssistantMessage =
                           idx === messages.length - 1
                         return (
-                          <div key={item.id + idx} className="pb-8 pt-2">
+                          <div key={item.id} className="pb-8 pt-2">
                             <AnswerBlock
                               answer={item}
                               isLastAssistantMessage={isLastAssistantMessage}
@@ -826,9 +810,9 @@ function AnswerBlock({
     onRegenerateResponse,
     onSubmitSearch,
     setDevPanelOpen,
-    setConversationIdForDev
+    setConversationIdForDev,
+    enableDeveloperMode
   } = useContext(SearchContext)
-  const [enableDeveloperMode] = useEnableDeveloperMode()
 
   const [showMoreSource, setShowMoreSource] = useState(false)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] = useState<
@@ -974,7 +958,7 @@ function AnswerBlock({
                 conversationId={answer.id}
                 source={source}
                 showMore={showMoreSource}
-                showDevTooltip={enableDeveloperMode.value}
+                showDevTooltip={enableDeveloperMode}
               />
             ))}
           </div>
@@ -996,14 +980,14 @@ function AnswerBlock({
 
       {/* Answer content */}
       <div>
-        <div className="mb-1 flex items-center gap-x-1.5">
+        <div className="mb-1 flex h-8 items-center gap-x-1.5">
           <IconAnswer
             className={cn({
               'animate-spinner': isLoading
             })}
           />
           <p className="text-sm font-bold leading-none">Answer</p>
-          {enableDeveloperMode.value && (
+          {enableDeveloperMode && (
             <Button
               variant="ghost"
               size="icon"
@@ -1023,8 +1007,7 @@ function AnswerBlock({
             contexts={relevantCodeContexts}
             className="mt-1 text-sm"
             onContextClick={onCodeContextClick}
-            defaultOpen={messageAttachmentCode?.length <= 5}
-            enableTooltip={enableDeveloperMode.value}
+            enableTooltip={enableDeveloperMode}
             onTooltipClick={() => {
               setConversationIdForDev(answer.id)
               setDevPanelOpen(true)
@@ -1188,5 +1171,88 @@ function SourceCard({
         <p>Score: {source?.extra?.score ?? '-'}</p>
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+function Header({ threadId }: { threadId?: string }) {
+  const router = useRouter()
+  const { isCopied, copyToClipboard } = useCopyToClipboard({
+    timeout: 2000
+  })
+
+  const onCopy = () => {
+    if (isCopied) return
+    copyToClipboard(window.location.href)
+  }
+
+  return (
+    <header className="flex h-16 items-center justify-between px-4">
+      <div className="flex items-center gap-x-6">
+        <Button
+          variant="ghost"
+          className="-ml-1 pl-0 text-sm text-muted-foreground"
+          onClick={() => router.replace('/')}
+        >
+          <IconChevronLeft className="mr-1 h-5 w-5" />
+          Home
+        </Button>
+      </div>
+      <div className="flex items-center gap-2">
+        {!!threadId && (
+          <>
+            <Button
+              variant="ghost"
+              className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
+              onClick={() => router.push('/')}
+            >
+              <IconPlus />
+            </Button>
+            <Button
+              variant="ghost"
+              className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
+              onClick={onCopy}
+            >
+              {isCopied ? (
+                <IconCheck className="text-green-600" />
+              ) : (
+                <IconLink />
+              )}
+            </Button>
+          </>
+        )}
+        <ClientOnly>
+          <ThemeToggle />
+        </ClientOnly>
+        <div className="ml-2">
+          <UserPanel showHome={false} showSetting>
+            <UserAvatar className="h-10 w-10 border" />
+          </UserPanel>
+        </div>
+      </div>
+    </header>
+  )
+}
+
+function ThreadMessagesErrorView() {
+  return (
+    <div className="flex h-screen flex-col">
+      <Header />
+      <div className="flex-1">
+        <div className="flex h-full flex-col items-center justify-center gap-2">
+          <div className="flex items-center gap-2">
+            <IconFileSearch className="h-6 w-6" />
+            <div className="text-xl font-semibold">Something went wrong</div>
+          </div>
+          <div>
+            Failed to fetch the thread, please refresh the page or start a new
+            thread
+          </div>
+          <Link href="/" className={cn(buttonVariants(), 'mt-4 gap-2')}>
+            <IconPlus />
+            <span>New Thread</span>
+          </Link>
+        </div>
+      </div>
+    </div>
   )
 }

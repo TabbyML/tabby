@@ -52,10 +52,6 @@ impl SchedulerGitJob {
             .map(|repo| CodeRepository::new(&repo.git_url, &repo.source_id))
             .collect();
 
-        let mut code = CodeIndexer::default();
-
-        code.garbage_collection(&repositories).await;
-
         for repository in repositories {
             let _ = job
                 .trigger(BackgroundJobEvent::SchedulerGitRepository(repository).to_command())

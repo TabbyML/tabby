@@ -75,15 +75,24 @@ export class Commands {
 
   private addRelevantContext() {
     const editor = window.activeTextEditor;
-    if (editor) {
-      commands.executeCommand("tabby.chatView.focus").then(() => {
-        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
-        if (fileContext) {
-          this.chatViewProvider.addRelevantContext(fileContext);
-        }
-      });
-    } else {
+    if (!editor) {
       window.showInformationMessage("No active editor");
+      return;
+    }
+
+    // If chat webview is not created or not visible, we shall focus on it.
+    const focusChat = !this.chatViewProvider.webview?.visible;
+    const addContext = () => {
+      const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+      if (fileContext) {
+        this.chatViewProvider.addRelevantContext(fileContext);
+      }
+    };
+
+    if (focusChat) {
+      commands.executeCommand("tabby.chatView.focus").then(addContext);
+    } else {
+      addContext();
     }
   }
 

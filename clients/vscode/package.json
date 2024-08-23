@@ -386,7 +386,7 @@
         "command": "tabby.chatView.focus",
         "key": "ctrl+l",
         "mac": "cmd+l",
-        "when": "!editorHasSelection && tabby.chatEnabled"
+        "when": "!editorHasSelection && tabby.chatEnabled && !tabby.chatViewVisible"
       }
     ],
     "viewsContainers": {
