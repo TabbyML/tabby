@@ -533,6 +533,11 @@ export class Commands {
       quickPick.items = configs.map(x => ({
         ...x,
         label: x.endpoint,
+        buttons: [
+          {
+            iconPath: new ThemeIcon("settings-remove"),
+          }
+        ]
       }));
 
       quickPick.onDidAccept(() => {
@@ -543,6 +548,13 @@ export class Commands {
 
         quickPick.hide();
       });
+
+      quickPick.onDidTriggerItemButton((e) => {
+        if (!(e.button.iconPath instanceof ThemeIcon)) return;
+        if (e.button.iconPath.id === "settings-remove") {
+          this.config.removePastServerConfigByApiEndpoint(e.item.endpoint);
+        }
+      })
 
       quickPick.show();
     },

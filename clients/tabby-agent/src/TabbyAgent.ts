@@ -136,6 +136,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     }
 
     if (!this.api || isServerConnectionChanged) {
+      this.changeStatus("notInitialized");
       await this.setupApi();
     }
 

@@ -1,6 +1,7 @@
 import { EventEmitter } from "events";
 import { workspace, ExtensionContext, WorkspaceConfiguration, ConfigurationTarget, Memento } from "vscode";
 import { ClientProvidedConfig } from "tabby-agent";
+import { getLogger } from "./logger";
 
 interface AdvancedSettings {
   "inlineCompletion.triggerMode"?: "automatic" | "manual";
@@ -128,15 +129,10 @@ export class Config extends EventEmitter {
   }
 
   async appendPastServerConfig(config: PastServerConfig) {
+    getLogger().info("appending config", config.endpoint)
     const pastConfigs = this.pastServerConfigs.filter((c) => c.endpoint !== config.endpoint);
-<<<<<<< HEAD
-    pastConfigs.push(config);
-
-    await this.memento.update("server.pastServerConfigs", pastConfigs);
-=======
     const newPastConfigs = [config, ...pastConfigs.slice(0, 4)];
     await this.memento.update("server.pastServerConfigs", newPastConfigs)
->>>>>>> d2980716d (limit max count)
   }
 
   async removePastServerConfigByApiEndpoint(apiEndpoint: string) {
