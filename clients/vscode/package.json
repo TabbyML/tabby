@@ -113,7 +113,7 @@
         "command": "tabby.chat.generateCommitMessage",
         "title": "Generate Commit Message",
         "category": "Tabby",
-        "icon": "assets/magic-wand.svg"
+        "icon": "$(sparkle)"
       },
       {
         "command": "tabby.chat.edit.start",
@@ -211,7 +211,7 @@
         {
           "command": "tabby.chat.generateCommitMessage",
           "when": "tabby.chatEnabled",
-          "group": "navigation"
+          "group": "navigation@-1"
         }
       ]
     },
