@@ -6,26 +6,29 @@ image: ./tabby-edit.png
 ---
 
 
-# Introduce the Inline Edit in Tabby
+# Introducing Inline Edit in Tabby
 
 ![Tabby Edit](./tabby-edit.png)
 
-## What is Tabby Edit?  
+## What is Tabby Inline Edit?  
   
-Tabby Edit is a feature that allows you to edit your code directly in your favorite editor.  
+Tabby Inline Edit is a feature that allows you to edit your code directly in your favorite editor,
+the key of this feature is to offer a new user interaction,
+to enable users to instruct LLM with natural language for code changes on a specific piece of code snippet
+(unlike code completion or chat interface).
   
-Tabby Edit will not change your code directly,  
+Tabby Inline Edit will not change your code directly,  
 but it will show you the difference between your code and the generated ones,  
 allow you to review the changes and decide whether to apply.  
   
   
-## Get started with Tabby Edit  
+## Getting start with Tabby Inline Edit  
   
-To get started with Tabby Edit, you need a Tabby server and extension installed for your editor.  
-If you don't have it done, please check [our documents](https://tabby.tabbyml.com/docs/welcome/).  
-After you have installed the Tabby server and extension, you can start using Tabby Edit.  
+To get started with Tabby Inline Edit, you need a Tabby server and extension installed for your editor.  
+If you don't have it done, please check [our documentation](https://tabby.tabbyml.com/docs/welcome/).  
+After you have installed the Tabby server and extension, you can start using Tabby Inline Edit.  
   
-First, select the code you want to update and then use the command palette to open Tabby Edit,  
+First, select the code you want to update and then use the command palette to open Tabby Inline Edit,  
 or use the keyboard shortcut `Ctrl + I` (or `Cmd + I` on Mac).  
   
 Then you can type your prompt to describe what you want to do,  
@@ -36,11 +39,11 @@ and Tabby will generate the code for you showing the difference between your cod
 If you are satisfied with the changes, you can apply them by clicking the `Accept` button on top of the diff view.  
 Or you can reject them by clicking the `Discard` button, Tabby will leave everything unchanged.  
   
-Each time you use Tabby Edit, the prompt will be saved and you can choose it from the history list.  
+Each time you use Tabby Inline Edit, the prompt will be saved and you can choose it from the history list.  
   
-## What can you do with Tabby Edit  
+## What can you do with Tabby Inline Edit  
   
-With the power of LLM, Tabby Edit can help you to do many things,  
+With the power of LLM, Tabby Inline Edit can help with many mundane tasks and help **achieve better productivity** in daily work.,  
 such as generating documents for your code, refactoring your code, finding and fixing bugs in your code automatically,  
 just type your request in neural language and let Tabby do the rest.  
   
@@ -49,7 +52,7 @@ Here are some examples:
 ### Generate documents for your code  
   
 Writing documents for code is always a tedious task,  
-but with Tabby Edit, you can just type `Generate docs` and Tabby will generate the documents for you.  
+but with Tabby Inline Edit, you can just type `Generate docs` and Tabby will generate the documents for you.  
   
 ![generate-docs](./generate-docs.gif)  
   
@@ -72,16 +75,16 @@ and then Tabby can add some checks.
 ### Refactor your code to optimize performance  
   
 If you have a piece of code that is not performing well,  
-you can use Tabby Edit to use a better algorithm or optimize the code.  
+you can use Tabby Inline Edit to use a better algorithm or optimize the code.  
   
-For example, when sorting, we can let Tabby Edit write the quick sort algorithm for us:  
+For example, when sorting, we can let Tabby Inline Edit write the quick sort algorithm for us:  
   
 ![refactor-quick-sort](refactor-quick-sort.gif)  
   
 ### Rewrite your code in a different language  
   
 Sometimes we find a piece of code that is written in a language we don't expect,  
-you can use Tabby Edit to rewrite it in the expected one.  
+you can use Tabby Inline Edit to rewrite it in the expected one.  
   
 For example, we copy a piece of Python code, but we want it in Rust,  
 just type `rewrite it in rust`:  
@@ -90,5 +93,5 @@ just type `rewrite it in rust`:
   
 ## Conclusion  
   
-Tabby Edit is a powerful feature that can help you write better code without leaving your editor,  
+Tabby Inline Edit is a powerful feature that can help you write better code without leaving your editor,  
 and you still own every change in your code.
