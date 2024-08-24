@@ -256,6 +256,7 @@ export default {
           if (existingPath.startsWith("/docs/references/cloud-deployment/")) {
             return [
               existingPath.replace("/docs/references/cloud-deployment/", "/docs/quick-start/installation/"),
+              existingPath.replace("/docs/references/cloud-deployment/", "/docs/installation/"),
             ]
           }
         }
