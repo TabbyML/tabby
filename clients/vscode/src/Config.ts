@@ -12,7 +12,13 @@ export class Config extends EventEmitter {
     super();
     context.subscriptions.push(
       workspace.onDidChangeConfiguration(async (event) => {
-        if (event.affectsConfiguration("tabby")) {
+        if (
+          event.affectsConfiguration("tabby") ||
+          event.affectsConfiguration("http.proxy") ||
+          event.affectsConfiguration("https.proxy") ||
+          event.affectsConfiguration("http.proxyAuthorization") ||
+          event.affectsConfiguration("http.proxySupport")
+        ) {
           this.emit("updated");
         }
       }),
@@ -151,9 +157,23 @@ export class Config extends EventEmitter {
     }
   }
 
+  get proxySupport() {
+    return this.httpConfig.get("proxySupport", "on");
+  }
+
+  set proxySupport(value: "on" | "off") {
+    if (value !== this.proxySupport) {
+      this.httpConfig.update("proxySupport", value);
+    }
+  }
+
+  // Note: current we only support http.proxy | http.authorization
+  // As for `http.proxySupport`, we only support 'on' | 'off',
+  // More properties we will land later.
   buildClientProvidedConfig(): ClientProvidedConfig {
     return {
       proxy: {
+        proxySupport: this.proxySupport,
         url: this.url,
         authorization: this.authorization,
       },

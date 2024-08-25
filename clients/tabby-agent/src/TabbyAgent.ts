@@ -109,9 +109,12 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
     await loadTlsCaCerts(this.config.tls);
 
+    let hasUpdate = false;
+
     if (isBlank(this.config.server.token) && this.config.server.requestHeaders["Authorization"] === undefined) {
       if (this.config.server.endpoint !== this.auth?.endpoint) {
         this.auth = new Auth(this.config.server.endpoint);
+        hasUpdate = true;
         await this.auth.init({ dataStore: this.dataStore });
         this.auth.on("updated", () => {
           this.setupApi();
@@ -135,7 +138,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.connectionErrorMessage = undefined;
     }
 
-    if (!this.api || isServerConnectionChanged) {
+    if (!hasUpdate  && (!this.api || isServerConnectionChanged)) {
       await this.setupApi();
     }
 

@@ -363,6 +363,31 @@ export class Server {
         this.agent.clearConfig("anonymousUsageTracking.disable");
       }
     }
+    if (
+      clientProvidedConfig?.proxy?.url &&
+      clientProvidedConfig.proxy.url !== this.clientProvidedConfig?.proxy?.url
+    ) {
+      // vscode `http.proxySupport` support "on" | "fallback" | "override" | "off"
+      // But currently only support "on" | "off", and if it isn't set to "off",
+      // we suppose is "on"
+      if (clientProvidedConfig?.proxy["proxySupport"] !== "off") {
+        this.agent.updateConfig("proxy.url", clientProvidedConfig.proxy.url);
+      } else {
+        this.agent.clearConfig("proxy.url");
+      }
+    }
+
+    if (
+      clientProvidedConfig?.proxy?.authorization &&
+      clientProvidedConfig.proxy.authorization !== this.clientProvidedConfig?.proxy?.authorization
+    ) {
+      if (clientProvidedConfig?.proxy["proxySupport"] !== "off") {
+        this.agent.updateConfig("proxy.authorization", clientProvidedConfig.proxy.authorization);
+      } else {
+        this.agent.clearConfig("proxy.authorization");
+      }
+    }
+
     const clientType = this.getClientType(this.clientInfo);
     if (
       clientProvidedConfig?.inlineCompletion?.triggerMode !== undefined &&
@@ -540,6 +565,33 @@ export class Server {
       config.anonymousUsageTracking = {
         disable: clientProvidedConfig.anonymousUsageTracking.disable,
       };
+    }
+    if (clientProvidedConfig?.proxy?.url) {
+      if (config.proxy) {
+        config.proxy.url = clientProvidedConfig.proxy.url;
+      } else {
+        config.proxy = {
+          url: clientProvidedConfig.proxy.url,
+        };
+      }
+    }
+    if (clientProvidedConfig?.proxy?.authorization) {
+      if (config.proxy) {
+        config.proxy.authorization = clientProvidedConfig.proxy.authorization;
+      } else {
+        config.proxy = {
+          authorization: clientProvidedConfig.proxy.authorization,
+        };
+      }
+    }
+    if (clientProvidedConfig?.proxy?.proxySupport) {
+      if (config.proxy) {
+        config.proxy.proxySupport = clientProvidedConfig.proxy.proxySupport;
+      } else {
+        config.proxy = {
+          proxySupport: clientProvidedConfig.proxy.proxySupport,
+        };
+      }
     }
     return config;
   }

@@ -12,6 +12,7 @@ export type AgentConfig = {
     requestTimeout: number;
   };
   proxy: {
+    proxySupport: "on" | "off";
     authorization: string;
     url: string;
   };
@@ -129,6 +130,7 @@ export const defaultAgentConfig: AgentConfig = {
     requestTimeout: 2 * 60 * 1000, // 2 minutes
   },
   proxy: {
+    proxySupport: "on",
     authorization: "",
     url: "",
   },
