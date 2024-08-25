@@ -138,7 +138,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.connectionErrorMessage = undefined;
     }
 
-    if (!hasUpdate  && (!this.api || isServerConnectionChanged)) {
+    if (!hasUpdate && (!this.api || isServerConnectionChanged)) {
       await this.setupApi();
     }
 
@@ -249,7 +249,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     return abortSignalFromAnyOf([AbortSignal.timeout(timeout), options?.signal]);
   }
 
-  private async healthCheck(options?: { signal?: AbortSignal; method?: "GET" | "POST" }): Promise<void> {
+  public async healthCheck(options?: { signal?: AbortSignal; method?: "GET" | "POST" }): Promise<void> {
     const requestId = uuid();
     const requestPath = "/v1/health";
     const requestDescription = `${options?.method || "GET"} ${this.config.server.endpoint + requestPath}`;
@@ -261,12 +261,14 @@ export class TabbyAgent extends EventEmitter implements Agent {
         throw new Error("http client not initialized");
       }
       this.logger.debug(`Health check request: ${requestDescription}. [${requestId}]`);
+      this.emit("connectingStateUpdated", true);
       let response;
       if (options?.method === "POST") {
         response = await this.api.POST(requestPath, requestOptions);
       } else {
         response = await this.api.GET(requestPath, requestOptions);
       }
+      this.emit("connectingStateUpdated", false);
       this.logger.debug(`Health check response status: ${response.response.status}. [${requestId}]`);
       if (response.error || !response.response.ok) {
         throw new HttpError(response.response);
@@ -288,6 +290,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }
       this.changeStatus("ready");
     } catch (error) {
+      this.emit("connectingStateUpdated", false);
       this.serverHealthState = undefined;
       if (error instanceof HttpError && error.status == 405 && options?.method !== "POST") {
         return await this.healthCheck({ method: "POST" });
@@ -603,6 +606,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
         solution = new CompletionSolution(context);
         // Fetch the completion
         this.logger.info(`Fetching completion...`);
+        this.emit("fetchingStateUpdated", true);
         try {
           const response = await this.fetchCompletion(
             context.language,
@@ -619,6 +623,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
             solution = undefined;
           }
         }
+        this.emit("fetchingStateUpdated", false);
       } else {
         // No cached solution, or cached solution is not completed
         // TriggerKind is Manual
@@ -626,6 +631,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
         solution = cachedSolution?.withContext(context) ?? new CompletionSolution(context);
         this.logger.info(`Fetching more completions...`);
+        this.emit("fetchingStateUpdated", true);
 
         try {
           let tries = 0;
@@ -655,6 +661,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
             solution = undefined;
           }
         }
+        this.emit("fetchingStateUpdated", false);
       }
       // Postprocess solution
       if (solution) {
@@ -1034,5 +1041,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
       ? `${session["tabby_plugin"].name}/${session["tabby_plugin"].version}`
       : "";
     return `${envInfo} ${tabby} ${ide} ${tabbyPlugin}`.trim();
+  }
+
+  // FIXME(@icycodes): extract data store
+  public getDataStore(): DataStore | undefined {
+    return this.dataStore;
   }
 }

@@ -78,7 +78,6 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import deepEqual from "deep-equal";
 import { deepmerge } from "deepmerge-ts";
 import type {
-  AgentIssue,
   ConfigUpdatedEvent,
   StatusChangedEvent,
   IssuesUpdatedEvent,
@@ -96,6 +95,8 @@ import { RecentlyChangedCodeSearch } from "../codeSearch/RecentlyChangedCodeSear
 import { isPositionInRange, intersectionRange } from "../utils/range";
 import { extractNonReservedWordList } from "../utils/string";
 import { splitLines, isBlank } from "../utils";
+import { ConfigProvider } from "./ConfigProvider";
+import { StatusProvider } from "./StatusProvider";
 import { ChatEditProvider } from "./ChatEditProvider";
 import { CodeLensProvider } from "./CodeLensProvider";
 import { CommandProvider } from "./CommandProvider";
@@ -109,7 +110,12 @@ export class Server {
 
   private readonly documents = new TextDocuments(TextDocument);
   private readonly notebooks = new NotebookDocuments(this.documents);
+
   private recentlyChangedCodeSearch: RecentlyChangedCodeSearch | undefined = undefined;
+
+  private config: ConfigProvider;
+  private status: StatusProvider;
+
   private chatEditProvider: ChatEditProvider;
   private codeLensProvider: CodeLensProvider | undefined = undefined;
   private commandProvider: CommandProvider;
@@ -169,8 +175,12 @@ export class Server {
     this.connection.onNotification(TelemetryEventNotification.type, async (param) => {
       return this.event(param);
     });
+
+    this.config = new ConfigProvider(this.agent);
+    this.status = new StatusProvider(this.agent);
+
     // Command
-    this.commandProvider = new CommandProvider(this.connection, this.chatEditProvider);
+    this.commandProvider = new CommandProvider(this.connection, this.chatEditProvider, this.status);
   }
 
   listen() {
@@ -226,6 +236,9 @@ export class Server {
       this.codeLensProvider.fillServerCapabilities(serverCapabilities);
     }
     this.commandProvider.fillServerCapabilities(serverCapabilities);
+
+    this.config.setup(this.connection, clientCapabilities);
+    this.status.setup(this.connection, clientCapabilities);
 
     await this.agent.initialize({
       config: this.createInitConfig(clientProvidedConfig),
@@ -363,10 +376,7 @@ export class Server {
         this.agent.clearConfig("anonymousUsageTracking.disable");
       }
     }
-    if (
-      clientProvidedConfig?.proxy?.url &&
-      clientProvidedConfig.proxy.url !== this.clientProvidedConfig?.proxy?.url
-    ) {
+    if (clientProvidedConfig?.proxy?.url && clientProvidedConfig.proxy.url !== this.clientProvidedConfig?.proxy?.url) {
       // vscode `http.proxySupport` support "on" | "fallback" | "override" | "off"
       // But currently only support "on" | "off", and if it isn't set to "off",
       // we suppose is "on"
@@ -440,7 +450,7 @@ export class Server {
     }
     return {
       name: detail.name,
-      helpMessage: this.buildHelpMessage(detail, params.helpMessageFormat),
+      helpMessage: this.status.buildHelpMessage(detail, params.helpMessageFormat),
     };
   }
 
@@ -1113,87 +1123,5 @@ export class Server {
         };
       }),
     };
-  }
-
-  private buildHelpMessage(issueDetail: AgentIssue, format?: "plaintext" | "markdown" | "html"): string | undefined {
-    const outputFormat = format ?? "plaintext";
-
-    // "connectionFailed"
-    if (issueDetail.name == "connectionFailed") {
-      if (outputFormat == "html") {
-        return issueDetail.message?.replace(/\n/g, "<br/>");
-      } else {
-        return issueDetail.message;
-      }
-    }
-
-    // "slowCompletionResponseTime" or "highCompletionTimeoutRate"
-    let statsMessage = "";
-    if (issueDetail.name == "slowCompletionResponseTime") {
-      const stats = issueDetail.completionResponseStats;
-      if (stats && stats["responses"] && stats["averageResponseTime"]) {
-        statsMessage = `The average response time of recent ${stats["responses"]} completion requests is ${Number(
-          stats["averageResponseTime"],
-        ).toFixed(0)}ms.<br/><br/>`;
-      }
-    }
-
-    if (issueDetail.name == "highCompletionTimeoutRate") {
-      const stats = issueDetail.completionResponseStats;
-      if (stats && stats["total"] && stats["timeouts"]) {
-        statsMessage = `${stats["timeouts"]} of ${stats["total"]} completion requests timed out.<br/><br/>`;
-      }
-    }
-
-    let helpMessageForRunningLargeModelOnCPU = "";
-    const serverHealthState = this.agent.getServerHealthState();
-    if (serverHealthState?.device === "cpu" && serverHealthState?.model?.match(/[0-9.]+B$/)) {
-      helpMessageForRunningLargeModelOnCPU +=
-        `Your Tabby server is running model <i>${serverHealthState?.model}</i> on CPU. ` +
-        "This model may be performing poorly due to its large parameter size, please consider trying smaller models or switch to GPU. " +
-        "You can find a list of recommend models in the <a href='https://tabby.tabbyml.com/'>online documentation</a>.<br/>";
-    }
-    let commonHelpMessage = "";
-    if (helpMessageForRunningLargeModelOnCPU.length == 0) {
-      commonHelpMessage += `<li>The running model <i>${
-        serverHealthState?.model ?? ""
-      }</i> may be performing poorly due to its large parameter size. `;
-      commonHelpMessage +=
-        "Please consider trying smaller models. You can find a list of recommend models in the <a href='https://tabby.tabbyml.com/'>online documentation</a>.</li>";
-    }
-    const host = new URL(this.serverInfo?.config.endpoint ?? "http://localhost:8080").host;
-    if (!(host.startsWith("localhost") || host.startsWith("127.0.0.1") || host.startsWith("0.0.0.0"))) {
-      commonHelpMessage += "<li>A poor network connection. Please check your network and proxy settings.</li>";
-      commonHelpMessage += "<li>Server overload. Please contact your Tabby server administrator for assistance.</li>";
-    }
-    let helpMessage = "";
-    if (helpMessageForRunningLargeModelOnCPU.length > 0) {
-      helpMessage += helpMessageForRunningLargeModelOnCPU + "<br/>";
-      if (commonHelpMessage.length > 0) {
-        helpMessage += "Other possible causes of this issue: <br/><ul>" + commonHelpMessage + "</ul>";
-      }
-    } else {
-      // commonHelpMessage should not be empty here
-      helpMessage += "Possible causes of this issue: <br/><ul>" + commonHelpMessage + "</ul>";
-    }
-
-    if (outputFormat == "html") {
-      return statsMessage + helpMessage;
-    }
-    if (outputFormat == "markdown") {
-      return (statsMessage + helpMessage)
-        .replace(/<br\/>/g, " \n")
-        .replace(/<i>(.*?)<\/i>/g, "*$1*")
-        .replace(/<a\s+(?:[^>]*?\s+)?href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/g, "[$2]($1)")
-        .replace(/<ul[^>]*>(.*?)<\/ul>/g, "$1")
-        .replace(/<li[^>]*>(.*?)<\/li>/g, "- $1 \n");
-    } else {
-      return (statsMessage + helpMessage)
-        .replace(/<br\/>/g, " \n")
-        .replace(/<i>(.*?)<\/i>/g, "$1")
-        .replace(/<a[^>]*>(.*?)<\/a>/g, "$1")
-        .replace(/<ul[^>]*>(.*?)<\/ul>/g, "$1")
-        .replace(/<li[^>]*>(.*?)<\/li>/g, "- $1 \n");
-    }
   }
 }
