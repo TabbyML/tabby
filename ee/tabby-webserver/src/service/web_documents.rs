@@ -116,7 +116,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let urls = self
             .db
-            .list_web_documents(names, limit, skip_id, backwards, true)
+            .list_web_documents(names.clone(), limit, skip_id, backwards, true)
             .await?;
 
         let mut converted_urls = vec![];
@@ -137,18 +137,33 @@ impl WebDocumentService for WebDocumentServiceImpl {
         }
 
         if !is_active {
-            for name in self.preset_web_documents.keys() {
-                if active_urls.contains(name) {
-                    continue;
+            if let Some(names) = names {
+                for name in names {
+                    if active_urls.contains(&name) || !self.preset_web_documents.contains_key(&name)
+                    {
+                        continue;
+                    }
+                    converted_urls.push(PresetWebDocument {
+                        id: ID::from(name.clone()),
+                        name,
+                        job_info: None,
+                        updated_at: None,
+                        is_active: false,
+                    });
                 }
-
-                converted_urls.push(PresetWebDocument {
-                    id: ID::from(name.clone()),
-                    name: name.clone(),
-                    job_info: None,
-                    updated_at: None,
-                    is_active: false,
-                });
+            } else {
+                for name in self.preset_web_documents.keys() {
+                    if active_urls.contains(name) {
+                        continue;
+                    }
+                    converted_urls.push(PresetWebDocument {
+                        id: ID::from(name.clone()),
+                        name: name.clone(),
+                        job_info: None,
+                        updated_at: None,
+                        is_active: false,
+                    });
+                }
             }
         }
 
@@ -248,21 +263,41 @@ mod tests {
                 .to_command();
 
         db.create_job_run("preset".into(), command).await.unwrap();
+        service
+            .set_preset_web_documents_active("Qwik".to_string(), true)
+            .await
+            .unwrap();
         let urls = service
             .list_preset_web_documents(None, None, None, None, None, true)
             .await
             .unwrap();
+        assert_eq!(2, urls.len());
 
-        assert_eq!(1, urls.len());
-        assert!(urls[0].updated_at.is_some());
         let urls = service
             .list_preset_web_documents(None, None, None, None, None, false)
             .await
             .unwrap();
+        assert_eq!(382, urls.len());
 
-        assert_eq!(383, urls.len());
+        let urls = service
+            .list_preset_web_documents(
+                Some(vec!["React".to_string()]),
+                None,
+                None,
+                None,
+                None,
+                true,
+            )
+            .await
+            .unwrap();
+        assert_eq!(1, urls.len());
+
         service
             .set_preset_web_documents_active("React".to_string(), false)
+            .await
+            .unwrap();
+        service
+            .set_preset_web_documents_active("Qwik".to_string(), false)
             .await
             .unwrap();
         let urls = service
@@ -299,6 +334,19 @@ mod tests {
                 None,
                 None,
                 None,
+            )
+            .await
+            .unwrap();
+        assert_eq!(2, urls.len());
+
+        let urls = service
+            .list_preset_web_documents(
+                Some(vec!["React".to_string(), "Qwik".to_string()]),
+                None,
+                None,
+                None,
+                None,
+                false,
             )
             .await
             .unwrap();
