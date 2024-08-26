@@ -10,45 +10,39 @@ import {
   useRef,
   useState
 } from 'react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import defaultFavicon from '@/assets/default-favicon.png'
-import { Message } from 'ai'
 import DOMPurify from 'dompurify'
 import he from 'he'
 import { marked } from 'marked'
 import { nanoid } from 'nanoid'
-import remarkGfm from 'remark-gfm'
-import remarkMath from 'remark-math'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableDeveloperMode, useEnableSearch } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
-import { useTabbyAnswer } from '@/lib/hooks/use-tabby-answer'
-import fetcher from '@/lib/tabby/fetcher'
 import {
   AnswerEngineExtraContext,
-  AnswerRequest,
-  AnswerResponse,
-  ArrayElementType,
+  AttachmentCodeItem,
+  AttachmentDocItem,
   RelevantCodeContext
 } from '@/lib/types'
-import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { CodeBlock } from '@/components/ui/codeblock'
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger
-} from '@/components/ui/hover-card'
+  cn,
+  formatLineHashForCodeBrowser,
+  getRangeFromAttachmentCode,
+  getRangeTextFromAttachmentCode
+} from '@/lib/utils'
+import { Button, buttonVariants } from '@/components/ui/button'
 import {
   IconBlocks,
   IconBug,
+  IconCheck,
   IconChevronLeft,
   IconChevronRight,
+  IconFileSearch,
   IconLayers,
+  IconLink,
   IconPlus,
   IconRefresh,
   IconSparkles,
@@ -67,7 +61,6 @@ import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { ClientOnly } from '@/components/client-only'
 import { CopyButton } from '@/components/copy-button'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
-import { MemoizedReactMarkdown } from '@/components/markdown'
 import TextAreaSearch from '@/components/textarea-search'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { UserAvatar } from '@/components/user-avatar'
@@ -75,38 +68,58 @@ import UserPanel from '@/components/user-panel'
 
 import './search.css'
 
-import { compact, isNil, pick } from 'lodash-es'
+import Link from 'next/link'
+import slugify from '@sindresorhus/slugify'
+import { compact, isEmpty, pick, uniqBy } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
-import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
+import { graphql } from '@/lib/gql/generates'
+import {
+  CodeQueryInput,
+  InputMaybe,
+  Maybe,
+  Message,
+  MessageAttachmentCode,
+  RepositoryListQuery,
+  Role
+} from '@/lib/gql/generates/graphql'
+import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
+import useRouterStuff from '@/lib/hooks/use-router-stuff'
+import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { repositoryListQuery } from '@/lib/tabby/query'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
-import { CodeReferences } from '@/components/chat/question-answer'
+import { CodeReferences } from '@/components/chat/code-references'
+import {
+  ErrorMessageBlock,
+  MessageMarkdown,
+  SiteFavicon
+} from '@/components/message-markdown'
 
 import { DevPanel } from './dev-panel'
+import { MessagesSkeleton } from './messages-skeleton'
 
-interface Source {
-  title: string
-  link: string
-  snippet: string
-}
-
-type ConversationMessage = Message & {
-  relevant_code?: AnswerResponse['relevant_code']
-  relevant_documents?: AnswerResponse['relevant_documents']
-  relevant_questions?: string[]
-  code_query?: AnswerRequest['code_query']
-  isLoading?: boolean
+type ConversationMessage = Omit<
+  Message,
+  '__typename' | 'updatedAt' | 'createdAt' | 'attachment' | 'threadId'
+> & {
+  threadId?: string
+  threadRelevantQuestions?: Maybe<string[]>
   error?: string
+  attachment?: {
+    code: Maybe<Array<AttachmentCodeItem>>
+    doc: Maybe<Array<AttachmentDocItem>>
+  }
 }
 
 type SearchContextValue = {
+  // flag for initialize the pathname
+  isPathnameInitialized: boolean
   isLoading: boolean
   onRegenerateResponse: (id: string) => void
   onSubmitSearch: (question: string) => void
@@ -114,85 +127,200 @@ type SearchContextValue = {
   repositoryList: RepositoryListQuery['repositoryList'] | undefined
   setDevPanelOpen: (v: boolean) => void
   setConversationIdForDev: (v: string | undefined) => void
+  enableDeveloperMode: boolean
 }
 
 export const SearchContext = createContext<SearchContextValue>(
   {} as SearchContextValue
 )
 
-const tabbyFetcher = ((url: string, init?: RequestInit) => {
-  return fetcher(url, {
-    ...init,
-    responseFormatter(response) {
-      return response
-    },
-    errorHandler(response) {
-      throw new Error(response ? String(response.status) : 'Fail to fetch')
-    }
-  })
-}) as typeof fetch
-
 const SOURCE_CARD_STYLE = {
   compress: 5.3,
   expand: 6.3
 }
 
+const listThreadMessages = graphql(/* GraphQL */ `
+  query ListThreadMessages(
+    $threadId: ID!
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    threadMessages(
+      threadId: $threadId
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          threadId
+          role
+          content
+          attachment {
+            code {
+              gitUrl
+              filepath
+              language
+              content
+              startLine
+            }
+            clientCode {
+              filepath
+              content
+              startLine
+            }
+            doc {
+              title
+              link
+              content
+            }
+          }
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
+
+const PAGE_SIZE = 30
+
 export function Search() {
+  const { updateUrlComponents, pathname } = useRouterStuff()
+  const [activePathname, setActivePathname] = useState<string | undefined>()
+  const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const isChatEnabled = useIsChatEnabled()
   const [searchFlag] = useEnableSearch()
-  const [conversation, setConversation] = useState<ConversationMessage[]>([])
-  const [showStop, setShowStop] = useState(true)
-  const [container, setContainer] = useState<HTMLDivElement | null>(null)
-  const [title, setTitle] = useState('')
+  const [messages, setMessages] = useState<ConversationMessage[]>([])
+  const [stopButtonVisible, setStopButtonVisible] = useState(true)
   const [isReady, setIsReady] = useState(false)
   const [extraContext, setExtraContext] = useState<AnswerEngineExtraContext>({})
-  const [currentLoadindId, setCurrentLoadingId] = useState<string>('')
+  const [currentUserMessageId, setCurrentUserMessageId] = useState<string>('')
+  const [currentAssistantMessageId, setCurrentAssistantMessageId] =
+    useState<string>('')
   const contentContainerRef = useRef<HTMLDivElement>(null)
   const [showSearchInput, setShowSearchInput] = useState(false)
   const [isShowDemoBanner] = useShowDemoBanner()
   const router = useRouter()
-  const initCheckRef = useRef(false)
+  const initializing = useRef(false)
   const { theme } = useCurrentTheme()
   const [devPanelOpen, setDevPanelOpen] = useState(false)
-  const [conversationIdForDev, setConversationIdForDev] = useState<
-    string | undefined
-  >()
+  const [messageIdForDev, setMessageIdForDev] = useState<string | undefined>()
   const devPanelRef = useRef<ImperativePanelHandle>(null)
   const [devPanelSize, setDevPanelSize] = useState(45)
   const prevDevPanelSize = useRef(devPanelSize)
+  const [enableDeveloperMode] = useEnableDeveloperMode()
+
+  const threadId = useMemo(() => {
+    const regex = /^\/search\/(.*)/
+    if (!activePathname) return undefined
+
+    return activePathname.match(regex)?.[1]?.split('-').pop()
+  }, [activePathname])
 
   const [{ data }] = useQuery({
     query: repositoryListQuery
   })
   const repositoryList = data?.repositoryList
 
-  const { triggerRequest, isLoading, error, answer, stop } = useTabbyAnswer({
-    fetcher: tabbyFetcher
+  const [afterCursor, setAfterCursor] = useState<string | undefined>()
+  const [
+    {
+      data: threadMessages,
+      error: threadMessagesError,
+      fetching: fetchingMessages
+    }
+  ] = useQuery({
+    query: listThreadMessages,
+    variables: {
+      threadId: threadId as string,
+      first: PAGE_SIZE,
+      after: afterCursor
+    },
+    pause: !threadId || isReady
   })
+
+  useEffect(() => {
+    if (threadMessages?.threadMessages?.edges?.length) {
+      const messages = threadMessages.threadMessages.edges
+        .map(o => o.node)
+        .slice()
+      setMessages(prev => uniqBy([...prev, ...messages], 'id'))
+    }
+
+    if (threadMessages?.threadMessages) {
+      const hasNextPage = threadMessages?.threadMessages?.pageInfo?.hasNextPage
+      const endCursor = threadMessages?.threadMessages.pageInfo.endCursor
+      if (hasNextPage && endCursor) {
+        setAfterCursor(endCursor)
+      } else {
+        setIsReady(true)
+      }
+    }
+  }, [threadMessages])
+
+  useEffect(() => {
+    if (threadMessagesError && !isReady) {
+      // FIXME error view?
+      setIsReady(true)
+    }
+  }, [threadMessagesError])
+
+  // `/search` -> `/search/{slug}-{threadId}`
+  const updateURLPattern = (threadId: string) => {
+    const firstLine = messages?.[0]?.content.split('\n')[0]
+    const title = firstLine.slice(0, 48)
+    const slug = slugify(title)
+
+    if (slug) {
+      document.title = slug
+    } else {
+      document.title = title
+    }
+
+    const slugWithThreadId = compact([slug, threadId]).join('-')
+
+    updateUrlComponents({
+      pathname: `/search/${slugWithThreadId}`,
+      searchParams: {
+        del: ['q']
+      }
+    })
+  }
+
+  const { sendUserMessage, isLoading, error, answer, stop, regenerate } =
+    useThreadRun({
+      threadId
+    })
 
   const isLoadingRef = useLatest(isLoading)
 
-  const currentConversationForDev = useMemo(() => {
-    return conversation.find(item => item.id === conversationIdForDev)
-  }, [conversationIdForDev, conversation])
+  const currentMessageForDev = useMemo(() => {
+    return messages.find(item => item.id === messageIdForDev)
+  }, [messageIdForDev, messages])
 
   const valueForDev = useMemo(() => {
-    if (currentConversationForDev) {
-      return pick(
-        currentConversationForDev,
-        'relevant_documents',
-        'relevant_code'
-      )
+    if (currentMessageForDev) {
+      return pick(currentMessageForDev?.attachment, 'doc', 'code')
     }
     return {
-      answers: conversation
-        .filter(o => o.role === 'assistant')
-        .map(o => pick(o, 'relevant_documents', 'relevant_code'))
+      answers: messages
+        .filter(o => o.role === Role.Assistant)
+        .map(o => pick(o, 'doc', 'code'))
     }
   }, [
-    conversationIdForDev,
-    currentConversationForDev?.relevant_documents,
-    currentConversationForDev?.relevant_code
+    messageIdForDev,
+    currentMessageForDev?.attachment?.code,
+    currentMessageForDev?.attachment?.doc
   ])
 
   const onPanelLayout = (sizes: number[]) => {
@@ -201,45 +329,59 @@ export function Search() {
     }
   }
 
+  // for synchronizing the active pathname
+  useEffect(() => {
+    setActivePathname(pathname)
+
+    if (!isPathnameInitialized) {
+      setIsPathnameInitialized(true)
+    }
+  }, [pathname])
+
   // Check sessionStorage for initial message or most recent conversation
   useEffect(() => {
-    if (initCheckRef.current) return
+    const init = () => {
+      if (initializing.current) return
 
-    initCheckRef.current = true
+      initializing.current = true
 
-    const initialMessage = sessionStorage.getItem(
-      SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
-    )
-    const initialExtraContextStr = sessionStorage.getItem(
-      SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
-    )
-    const initialExtraInfo = initialExtraContextStr
-      ? JSON.parse(initialExtraContextStr)
-      : undefined
-    if (initialMessage) {
-      sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
-      sessionStorage.removeItem(
+      // initial UserMessage from home page
+      const initialMessage = sessionStorage.getItem(
+        SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
+      )
+      // initial extra context from home page
+      const initialExtraContextStr = sessionStorage.getItem(
         SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
       )
-      setIsReady(true)
-      setExtraContext(p => ({
-        ...p,
-        repository: initialExtraInfo?.repository
-      }))
-      // FIXME(jueliang) just use the value in context
-      onSubmitSearch(initialMessage, {
-        repository: initialExtraInfo?.repository
-      })
-      return
+      const initialExtraInfo = initialExtraContextStr
+        ? JSON.parse(initialExtraContextStr)
+        : undefined
+
+      if (initialMessage) {
+        sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
+        sessionStorage.removeItem(
+          SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
+        )
+        setIsReady(true)
+        setExtraContext(p => ({
+          ...p,
+          repository: initialExtraInfo?.repository
+        }))
+        onSubmitSearch(initialMessage, {
+          repository: initialExtraInfo?.repository
+        })
+        return
+      }
+
+      if (!threadId) {
+        router.replace('/')
+      }
     }
 
-    router.replace('/')
-  }, [])
-
-  // Set page title to the value of the first quesiton
-  useEffect(() => {
-    if (title) document.title = title
-  }, [title])
+    if (isPathnameInitialized && !threadId) {
+      init()
+    }
+  }, [isPathnameInitialized])
 
   // Display the input field with a delayed animatio
   useEffect(() => {
@@ -250,82 +392,124 @@ export function Search() {
     }
   }, [isReady])
 
-  // Initialize the reference to the ScrollArea used for scrolling to the bottom
+  // Handling the stream response from useThreadRun
   useEffect(() => {
-    setContainer(
-      contentContainerRef?.current?.children[1] as HTMLDivElement | null
+    if (!answer) return
+
+    let newMessages = [...messages]
+    const newThreadId = answer?.threadCreated
+    if (!!newThreadId && !threadId) {
+      updateURLPattern(newThreadId)
+      return
+    }
+
+    const currentUserMessageIdx = newMessages.findIndex(
+      o => o.id === currentUserMessageId
     )
-  }, [contentContainerRef?.current])
-
-  // Handling the stream response from useTabbyAnswer
-  useEffect(() => {
-    const newConversation = [...conversation]
-    const currentAnswer = newConversation.find(
-      item => item.id === currentLoadindId
+    const currentAssistantMessageIdx = newMessages.findIndex(
+      o => o.id === currentAssistantMessageId
     )
+    if (currentUserMessageIdx === -1 || currentAssistantMessageIdx === -1) {
+      return
+    }
 
-    if (!currentAnswer) return
+    const currentUserMessage = newMessages[currentUserMessageIdx]
+    const currentAssistantMessage = newMessages[currentAssistantMessageIdx]
 
-    currentAnswer.content = answer?.answer_delta || ''
-    currentAnswer.relevant_code = answer?.relevant_code
-    currentAnswer.relevant_documents = answer?.relevant_documents
-    currentAnswer.relevant_questions = answer?.relevant_questions
-    currentAnswer.isLoading = isLoading
-    setConversation(newConversation)
+    // update assistant message
+    currentAssistantMessage.content =
+      answer?.threadAssistantMessageContentDelta || ''
+
+    if (!currentAssistantMessage?.attachment?.code) {
+      currentAssistantMessage.attachment = {
+        doc: currentAssistantMessage.attachment?.doc ?? null,
+        code:
+          answer?.threadAssistantMessageAttachmentsCode?.map(hit => ({
+            ...hit.code,
+            extra: {
+              scores: hit.scores
+            }
+          })) ?? null
+      }
+    }
+
+    if (!currentAssistantMessage?.attachment?.doc) {
+      currentAssistantMessage.attachment = {
+        doc:
+          answer?.threadAssistantMessageAttachmentsDoc?.map(hit => ({
+            ...hit.doc,
+            extra: {
+              score: hit.score
+            }
+          })) ?? null,
+        code: currentAssistantMessage.attachment?.code ?? null
+      }
+    }
+
+    currentAssistantMessage.threadRelevantQuestions =
+      answer?.threadRelevantQuestions
+
+    // update message pair ids
+    const newUserMessageId = answer?.threadUserMessageCreated
+    const newAssistantMessageId = answer?.threadAssistantMessageCreated
+    if (
+      newUserMessageId &&
+      newAssistantMessageId &&
+      newUserMessageId !== currentUserMessage.id &&
+      newAssistantMessageId !== currentAssistantMessage.id
+    ) {
+      currentUserMessage.id = newUserMessageId
+      currentAssistantMessage.id = newAssistantMessageId
+      setCurrentUserMessageId(newUserMessageId)
+      setCurrentAssistantMessageId(newAssistantMessageId)
+    }
+
+    // update messages
+    setMessages(newMessages)
   }, [isLoading, answer])
 
-  // Handling the error response from useTabbyAnswer
+  // Handling the error response from useThreadRun
   useEffect(() => {
     if (error) {
-      const newConversation = [...conversation]
+      const newConversation = [...messages]
       const currentAnswer = newConversation.find(
-        item => item.id === currentLoadindId
+        item => item.id === currentAssistantMessageId
       )
       if (currentAnswer) {
         currentAnswer.error =
           error.message === '401' ? 'Unauthorized' : 'Fail to fetch'
-        currentAnswer.isLoading = false
       }
     }
   }, [error])
 
   // Delay showing the stop button
-  let showStopTimeoutId: number
+  const showStopTimeoutId = useRef<number>()
+
   useEffect(() => {
     if (isLoadingRef.current) {
-      showStopTimeoutId = window.setTimeout(() => {
+      showStopTimeoutId.current = window.setTimeout(() => {
         if (!isLoadingRef.current) return
-        setShowStop(true)
+        setStopButtonVisible(true)
 
         // Scroll to the bottom
+        const container = contentContainerRef?.current?.children?.[1]
         if (container) {
-          const isLastAnswerLoading =
-            currentLoadindId === conversation[conversation.length - 1].id
-          if (isLastAnswerLoading) {
-            container.scrollTo({
-              top: container.scrollHeight,
-              behavior: 'smooth'
-            })
-          }
+          container.scrollTo({
+            top: container.scrollHeight,
+            behavior: 'smooth'
+          })
         }
       }, 300)
     }
 
     if (!isLoadingRef.current) {
-      setShowStop(false)
+      setStopButtonVisible(false)
     }
 
     return () => {
-      window.clearTimeout(showStopTimeoutId)
+      window.clearTimeout(showStopTimeoutId.current)
     }
   }, [isLoading])
-
-  // Stop stream before closing the page
-  useEffect(() => {
-    return () => {
-      if (isLoadingRef.current) stop()
-    }
-  }, [])
 
   useEffect(() => {
     if (devPanelOpen) {
@@ -337,89 +521,89 @@ export function Search() {
   }, [devPanelOpen])
 
   const onSubmitSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
-    const previousMessages = conversation.map(message => ({
-      role: message.role,
-      id: message.id,
-      content: message.content
-    }))
-    const previousUserId = previousMessages.length > 0 && previousMessages[0].id
-    const newAssistantId = nanoid()
+    const newUserMessageId = nanoid()
+    const newAssistantMessageId = nanoid()
     const newUserMessage: ConversationMessage = {
-      id: previousUserId || nanoid(),
-      role: 'user',
+      id: newUserMessageId,
+      role: Role.User,
       content: question
     }
     const newAssistantMessage: ConversationMessage = {
-      id: newAssistantId,
-      role: 'assistant',
-      content: '',
-      isLoading: true
+      id: newAssistantMessageId,
+      role: Role.Assistant,
+      content: ''
     }
 
     const _repository = ctx?.repository || extraContext?.repository
-    const code_query: AnswerRequest['code_query'] = _repository
-      ? { git_url: _repository.gitUrl, content: '' }
-      : undefined
-    const answerRequest: AnswerRequest = {
-      messages: [...previousMessages, newUserMessage],
-      doc_query: true,
-      generate_relevant_questions: true,
-      collect_relevant_code_using_user_message: true,
-      code_query
-    }
+    const codeQuery: InputMaybe<CodeQueryInput> = _repository
+      ? { gitUrl: _repository.gitUrl, content: question }
+      : null
 
-    setCurrentLoadingId(newAssistantId)
-    setConversation(
-      [...conversation].concat([newUserMessage, newAssistantMessage])
+    setCurrentUserMessageId(newUserMessageId)
+    setCurrentAssistantMessageId(newAssistantMessageId)
+    setMessages([...messages].concat([newUserMessage, newAssistantMessage]))
+
+    sendUserMessage(
+      {
+        content: question
+      },
+      {
+        generateRelevantQuestions: true,
+        codeQuery,
+        docQuery: { content: question }
+      }
     )
-    triggerRequest(answerRequest)
-
-    // Update HTML page title
-    if (!title) setTitle(question)
   }
 
-  const onRegenerateResponse = (
-    id: string,
-    conversationData?: ConversationMessage[]
-  ) => {
-    const data = conversationData || conversation
-    const targetAnswerIdx = data.findIndex(item => item.id === id)
-    if (targetAnswerIdx < 1) return
-    const targetQuestionIdx = targetAnswerIdx - 1
-    const targetQuestion = data[targetQuestionIdx]
+  // regenerate ths last assistant message
+  const onRegenerateResponse = () => {
+    if (!threadId) return
 
-    const previousMessages = data.slice(0, targetQuestionIdx).map(message => ({
-      role: message.role,
-      id: message.id,
-      content: message.content,
-      code_query: message.code_query
-    }))
+    const assistantMessageIndex = messages.length - 1
+    const userMessageIndex = assistantMessageIndex - 1
+    if (assistantMessageIndex === -1 || userMessageIndex <= -1) return
+
+    const prevUserMessageId = messages[userMessageIndex].id
+    const prevAssistantMessageId = messages[assistantMessageIndex].id
+
+    const newMessages = messages.slice(0, -2)
+    const userMessage = messages[userMessageIndex]
     const newUserMessage: ConversationMessage = {
-      role: 'user',
-      id: targetQuestion.id,
-      content: targetQuestion.content
+      ...userMessage,
+      id: nanoid()
     }
-    const answerRequest: AnswerRequest = {
-      messages: [...previousMessages, newUserMessage],
-      code_query: extraContext?.repository
-        ? { git_url: extraContext.repository.gitUrl, content: '' }
-        : undefined,
-      doc_query: true,
-      generate_relevant_questions: true,
-      collect_relevant_code_using_user_message: true
+    const newAssistantMessage: ConversationMessage = {
+      id: nanoid(),
+      role: Role.Assistant,
+      content: '',
+      attachment: {
+        code: [],
+        doc: []
+      },
+      error: undefined
     }
+    const _repository = extraContext?.repository
+    const codeQuery: InputMaybe<CodeQueryInput> = _repository
+      ? { gitUrl: _repository.gitUrl, content: newUserMessage.content }
+      : null
 
-    const newConversation = [...data]
-    let newTargetAnswer = newConversation[targetAnswerIdx]
-    newTargetAnswer.content = ''
-    newTargetAnswer.relevant_code = undefined
-    newTargetAnswer.relevant_documents = undefined
-    newTargetAnswer.error = undefined
-    newTargetAnswer.isLoading = true
+    setCurrentUserMessageId(newUserMessage.id)
+    setCurrentAssistantMessageId(newAssistantMessage.id)
+    setMessages([...newMessages, newUserMessage, newAssistantMessage])
 
-    setCurrentLoadingId(newTargetAnswer.id)
-    setConversation(newConversation)
-    triggerRequest(answerRequest)
+    regenerate({
+      threadId,
+      userMessageId: prevUserMessageId,
+      assistantMessageId: prevAssistantMessageId,
+      userMessage: {
+        content: newUserMessage.content
+      },
+      threadRunOptions: {
+        generateRelevantQuestions: true,
+        codeQuery,
+        docQuery: { content: newUserMessage.content }
+      }
+    })
   }
 
   const onToggleFullScreen = (fullScreen: boolean) => {
@@ -432,6 +616,25 @@ export function Search() {
     devPanelRef.current?.resize(nextSize)
     setDevPanelSize(nextSize)
     prevDevPanelSize.current = devPanelSize
+  }
+
+  const isFetchingMessages =
+    fetchingMessages || threadMessages?.threadMessages?.pageInfo?.hasNextPage
+
+  if (isReady && threadMessagesError) {
+    return <ThreadMessagesErrorView />
+  }
+
+  if (!isReady && isFetchingMessages) {
+    return (
+      <div>
+        <Header />
+        <div className="mx-auto mt-24 w-full space-y-10 px-4 pb-32 lg:max-w-4xl lg:px-0">
+          <MessagesSkeleton />
+          <MessagesSkeleton />
+        </div>
+      </div>
+    )
   }
 
   if (!searchFlag.value || !isChatEnabled || !isReady) {
@@ -451,41 +654,23 @@ export function Search() {
         extraRequestContext: extraContext,
         repositoryList,
         setDevPanelOpen,
-        setConversationIdForDev
+        setConversationIdForDev: setMessageIdForDev,
+        isPathnameInitialized,
+        enableDeveloperMode: enableDeveloperMode.value
       }}
     >
       <div className="transition-all" style={style}>
         <ResizablePanelGroup direction="vertical" onLayout={onPanelLayout}>
           <ResizablePanel>
-            <header className="flex h-16 items-center justify-between px-4">
-              <div className="flex items-center gap-x-6">
-                <Button
-                  variant="ghost"
-                  className="-ml-1 pl-0 text-sm text-muted-foreground"
-                  onClick={() => router.back()}
-                >
-                  <IconChevronLeft className="mr-1 h-5 w-5" />
-                  Home
-                </Button>
-              </div>
-              <div className="flex items-center gap-x-6">
-                <ClientOnly>
-                  <ThemeToggle />
-                </ClientOnly>
-                <UserPanel showHome={false} showSetting>
-                  <UserAvatar className="h-10 w-10 border" />
-                </UserPanel>
-              </div>
-            </header>
-
-            <main className="h-[calc(100%-4rem)] overflow-auto pb-8 lg:pb-0">
+            <Header threadId={threadId} />
+            <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
               <ScrollArea className="h-full" ref={contentContainerRef}>
                 <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
                   <div className="flex flex-col">
-                    {conversation.map((item, idx) => {
-                      if (item.role === 'user') {
+                    {messages.map((item, idx) => {
+                      if (item.role === Role.User) {
                         return (
-                          <div key={item.id + idx}>
+                          <div key={item.id}>
                             {idx !== 0 && <Separator />}
                             <div className="pb-2 pt-8">
                               <MessageMarkdown
@@ -496,14 +681,16 @@ export function Search() {
                           </div>
                         )
                       }
-                      if (item.role === 'assistant') {
+                      if (item.role === Role.Assistant) {
+                        const isLastAssistantMessage =
+                          idx === messages.length - 1
                         return (
-                          <div key={item.id + idx} className="pb-8 pt-2">
+                          <div key={item.id} className="pb-8 pt-2">
                             <AnswerBlock
                               answer={item}
-                              showRelatedQuestion={
-                                idx === conversation.length - 1
-                              }
+                              isLastAssistantMessage={isLastAssistantMessage}
+                              showRelatedQuestion={isLastAssistantMessage}
+                              isLoading={isLoading && isLastAssistantMessage}
                             />
                           </div>
                         )
@@ -514,20 +701,25 @@ export function Search() {
                 </div>
               </ScrollArea>
 
-              {container && (
-                <ButtonScrollToBottom
-                  className="!fixed !bottom-[5.4rem] !right-4 !top-auto z-40 border-muted-foreground lg:!bottom-[2.85rem]"
-                  container={container}
-                  offset={100}
-                  // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
-                  // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
-                  style={
-                    theme === 'dark'
-                      ? ({ '--background': '0 0% 12%' } as CSSProperties)
-                      : {}
+              <ButtonScrollToBottom
+                className={cn(
+                  '!fixed !bottom-[5.4rem] !right-4 !top-auto z-40 border-muted-foreground lg:!bottom-[2.85rem]',
+                  {
+                    hidden: devPanelOpen
                   }
-                />
-              )}
+                )}
+                container={
+                  contentContainerRef.current?.children?.[1] as HTMLDivElement
+                }
+                offset={100}
+                // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
+                // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
+                style={
+                  theme === 'dark'
+                    ? ({ '--background': '0 0% 12%' } as CSSProperties)
+                    : {}
+                }
+              />
 
               <div
                 className={cn(
@@ -547,14 +739,14 @@ export function Search() {
               >
                 <Button
                   className={cn('bg-background', {
-                    'opacity-0 pointer-events-none': !showStop,
-                    'opacity-100': showStop
+                    'opacity-0 pointer-events-none': !stopButtonVisible,
+                    'opacity-100': stopButtonVisible
                   })}
                   style={{
                     transition: 'opacity 0.55s ease-out'
                   }}
                   variant="outline"
-                  onClick={stop}
+                  onClick={() => stop()}
                 >
                   <IconStop className="mr-2" />
                   Stop generating
@@ -603,84 +795,87 @@ export function Search() {
   )
 }
 
-type AnswerBlockContextValue = {
-  onCodeCitationMouseEnter: (index: number) => void
-  onCodeCitationMouseLeave: (index: number) => void
-  onCodeCitationClick: (
-    data: ArrayElementType<AnswerResponse['relevant_code']>
-  ) => void
-}
-const AnswerBlockContext = createContext<AnswerBlockContextValue>(
-  {} as AnswerBlockContextValue
-)
 function AnswerBlock({
   answer,
-  showRelatedQuestion
+  showRelatedQuestion,
+  isLoading,
+  isLastAssistantMessage
 }: {
   answer: ConversationMessage
   showRelatedQuestion: boolean
+  isLoading?: boolean
+  isLastAssistantMessage?: boolean
 }) {
   const {
     onRegenerateResponse,
     onSubmitSearch,
-    isLoading,
     setDevPanelOpen,
-    setConversationIdForDev
+    setConversationIdForDev,
+    enableDeveloperMode
   } = useContext(SearchContext)
-  const [enableDeveloperMode] = useEnableDeveloperMode()
 
   const [showMoreSource, setShowMoreSource] = useState(false)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] = useState<
     number | undefined
   >(undefined)
   const getCopyContent = (answer: ConversationMessage) => {
-    if (!answer.relevant_documents) return answer.content
+    if (isEmpty(answer?.attachment?.doc) && isEmpty(answer?.attachment?.code)) {
+      return answer.content
+    }
 
     const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
     const content = answer.content
-      .replace(citationMatchRegex, (match, p1) => {
+      .replace(citationMatchRegex, match => {
         const citationNumberMatch = match?.match(/\d+/)
         return `[${citationNumberMatch}]`
       })
       .trim()
-    const citations = answer.relevant_documents
-      .map((relevent, idx) => `[${idx + 1}] ${relevent.doc.link}`)
-      .join('\n')
+    const docCitations =
+      answer.attachment?.doc
+        ?.map((doc, idx) => `[${idx + 1}] ${doc.link}`)
+        .join('\n') ?? ''
+    const docCitationLen = answer.attachment?.doc?.length ?? 0
+    const codeCitations =
+      answer.attachment?.code
+        ?.map((code, idx) => {
+          const lineRangeText = getRangeTextFromAttachmentCode(code)
+          const filenameText = compact([code.filepath, lineRangeText]).join(':')
+          return `[${idx + docCitationLen + 1}] ${filenameText}`
+        })
+        .join('\n') ?? ''
+    const citations = docCitations + codeCitations
+
     return `${content}\n\nCitations:\n${citations}`
   }
 
-  const IconAnswer = answer.isLoading ? IconSpinner : IconSparkles
+  const IconAnswer = isLoading ? IconSpinner : IconSparkles
 
-  const totalHeightInRem = answer.relevant_documents
-    ? Math.ceil(answer.relevant_documents.length / 4) *
-        SOURCE_CARD_STYLE.expand +
-      0.5 * Math.floor(answer.relevant_documents.length / 4)
+  const totalHeightInRem = answer.attachment?.doc?.length
+    ? Math.ceil(answer.attachment.doc.length / 4) * SOURCE_CARD_STYLE.expand +
+      0.5 * Math.floor(answer.attachment.doc.length / 4)
     : 0
 
   const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
     return (
-      answer?.relevant_code?.map(hit => {
-        const { scores, doc } = hit
-        const start_line = doc?.start_line ?? 0
-        const lineCount = doc.body.split('\n').length
-        const end_line = start_line + lineCount - 1
+      answer?.attachment?.code?.map(code => {
+        const { startLine, endLine } = getRangeFromAttachmentCode(code)
 
         return {
           kind: 'file',
           range: {
-            start: start_line,
-            end: end_line
+            start: startLine,
+            end: endLine
           },
-          filepath: doc.filepath,
-          content: doc.body,
-          git_url: doc.git_url,
+          filepath: code.filepath,
+          content: code.content,
+          git_url: code.gitUrl,
           extra: {
-            scores
+            scores: code?.extra?.scores
           }
         }
       }) ?? []
     )
-  }, [answer?.relevant_code])
+  }, [answer?.attachment?.code])
 
   const onCodeContextClick = (ctx: Context) => {
     if (!ctx.filepath) return
@@ -703,7 +898,7 @@ function AnswerBlock({
 
   const onCodeCitationMouseEnter = (index: number) => {
     setRelevantCodeHighlightIndex(
-      index - 1 - (answer?.relevant_documents?.length || 0)
+      index - 1 - (answer?.attachment?.doc?.length || 0)
     )
   }
 
@@ -711,24 +906,19 @@ function AnswerBlock({
     setRelevantCodeHighlightIndex(undefined)
   }
 
-  const onCodeCitationClick = (
-    code: ArrayElementType<AnswerResponse['relevant_code']>
-  ) => {
-    const { doc } = code
-    const start_line = doc?.start_line ?? 0
-    const lineCount = doc.body.split('\n').length
-    const end_line = start_line + lineCount - 1
-    // FIXME utils
-    if (!doc.filepath) return
+  const openCodeBrowserTab = (code: MessageAttachmentCode) => {
+    const { startLine, endLine } = getRangeFromAttachmentCode(code)
+
+    if (!code.filepath) return
     const url = new URL(`${window.location.origin}/files`)
     const searchParams = new URLSearchParams()
-    searchParams.append('redirect_filepath', doc.filepath)
-    searchParams.append('redirect_git_url', doc.git_url)
+    searchParams.append('redirect_filepath', code.filepath)
+    searchParams.append('redirect_git_url', code.gitUrl)
     url.search = searchParams.toString()
 
     const lineHash = formatLineHashForCodeBrowser({
-      start: start_line,
-      end: end_line
+      start: startLine,
+      end: endLine
     })
     if (lineHash) {
       url.hash = lineHash
@@ -737,155 +927,156 @@ function AnswerBlock({
     window.open(url.toString())
   }
 
-  return (
-    <AnswerBlockContext.Provider
-      value={{
-        onCodeCitationClick,
-        onCodeCitationMouseEnter,
-        onCodeCitationMouseLeave
-      }}
-    >
-      <div className="flex flex-col gap-y-5">
-        {/* Relevant documents */}
-        {answer.relevant_documents && answer.relevant_documents.length > 0 && (
-          <div>
-            <div className="mb-1 flex items-center gap-x-2">
-              <IconBlocks className="relative" style={{ top: '-0.04rem' }} />
-              <p className="text-sm font-bold leading-normal">Sources</p>
-            </div>
-            <div
-              className="gap-sm grid grid-cols-3 gap-2 overflow-hidden md:grid-cols-4"
-              style={{
-                transition: 'height 0.25s ease-out',
-                height: showMoreSource
-                  ? `${totalHeightInRem}rem`
-                  : `${SOURCE_CARD_STYLE.compress}rem`
-              }}
-            >
-              {answer.relevant_documents.map((source, index) => (
-                <SourceCard
-                  key={source.doc.link + index}
-                  conversationId={answer.id}
-                  source={source}
-                  showMore={showMoreSource}
-                  showDevTooltip={enableDeveloperMode.value}
-                />
-              ))}
-            </div>
-            <Button
-              variant="ghost"
-              className="-ml-1.5 mt-1 flex items-center gap-x-1 px-1 py-2 text-sm font-normal text-muted-foreground"
-              onClick={() => setShowMoreSource(!showMoreSource)}
-            >
-              <IconChevronRight
-                className={cn({
-                  '-rotate-90': showMoreSource,
-                  'rotate-90': !showMoreSource
-                })}
-              />
-              <p>{showMoreSource ? 'Show less' : 'Show more'}</p>
-            </Button>
-          </div>
-        )}
+  const onCodeCitationClick = (code: MessageAttachmentCode) => {
+    openCodeBrowserTab(code)
+  }
 
-        {/* Answer content */}
+  const messageAttachmentDocs = answer?.attachment?.doc
+  const messageAttachmentCode = answer?.attachment?.code
+
+  return (
+    <div className="flex flex-col gap-y-5">
+      {/* document search hits */}
+      {messageAttachmentDocs && messageAttachmentDocs.length > 0 && (
         <div>
-          <div className="mb-1 flex items-center gap-x-1.5">
-            <IconAnswer
+          <div className="mb-1 flex items-center gap-x-2">
+            <IconBlocks className="relative" style={{ top: '-0.04rem' }} />
+            <p className="text-sm font-bold leading-normal">Sources</p>
+          </div>
+          <div
+            className="gap-sm grid grid-cols-3 gap-2 overflow-hidden md:grid-cols-4"
+            style={{
+              transition: 'height 0.25s ease-out',
+              height: showMoreSource
+                ? `${totalHeightInRem}rem`
+                : `${SOURCE_CARD_STYLE.compress}rem`
+            }}
+          >
+            {messageAttachmentDocs.map((source, index) => (
+              <SourceCard
+                key={source.link + index}
+                conversationId={answer.id}
+                source={source}
+                showMore={showMoreSource}
+                showDevTooltip={enableDeveloperMode}
+              />
+            ))}
+          </div>
+          <Button
+            variant="ghost"
+            className="-ml-1.5 mt-1 flex items-center gap-x-1 px-1 py-2 text-sm font-normal text-muted-foreground"
+            onClick={() => setShowMoreSource(!showMoreSource)}
+          >
+            <IconChevronRight
               className={cn({
-                'animate-spinner': answer.isLoading
+                '-rotate-90': showMoreSource,
+                'rotate-90': !showMoreSource
               })}
             />
-            <p className="text-sm font-bold leading-none">Answer</p>
-            {enableDeveloperMode.value && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setConversationIdForDev(answer.id)
-                  setDevPanelOpen(true)
-                }}
-              >
-                <IconBug />
-              </Button>
-            )}
-          </div>
+            <p>{showMoreSource ? 'Show less' : 'Show more'}</p>
+          </Button>
+        </div>
+      )}
 
-          {/* Relevant code */}
-          {answer.relevant_code && answer.relevant_code.length > 0 && (
-            <CodeReferences
-              contexts={relevantCodeContexts}
-              className="mt-1 text-sm"
-              onContextClick={onCodeContextClick}
-              defaultOpen
-              enableTooltip={enableDeveloperMode.value}
-              onTooltipClick={() => {
+      {/* Answer content */}
+      <div>
+        <div className="mb-1 flex h-8 items-center gap-x-1.5">
+          <IconAnswer
+            className={cn({
+              'animate-spinner': isLoading
+            })}
+          />
+          <p className="text-sm font-bold leading-none">Answer</p>
+          {enableDeveloperMode && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
                 setConversationIdForDev(answer.id)
                 setDevPanelOpen(true)
               }}
-              highlightIndex={relevantCodeHighlightIndex}
-            />
-          )}
-
-          {answer.isLoading && !answer.content && (
-            <Skeleton className="mt-1 h-40 w-full" />
-          )}
-          <MessageMarkdown
-            message={answer.content}
-            relevantDocuments={answer.relevant_documents}
-            relevantCode={answer.relevant_code}
-          />
-          {answer.error && <ErrorMessageBlock error={answer.error} />}
-
-          {!answer.isLoading && (
-            <div className="mt-3 flex items-center gap-x-3 text-sm">
-              <CopyButton
-                className="-ml-1.5 gap-x-1 px-1 font-normal text-muted-foreground"
-                value={getCopyContent(answer)}
-                text="Copy"
-              />
-              {!isLoading && (
-                <Button
-                  className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
-                  variant="ghost"
-                  onClick={() => onRegenerateResponse(answer.id)}
-                >
-                  <IconRefresh />
-                  <p>Regenerate</p>
-                </Button>
-              )}
-            </div>
+            >
+              <IconBug />
+            </Button>
           )}
         </div>
 
-        {/* Related questions */}
-        {showRelatedQuestion &&
-          !answer.isLoading &&
-          answer.relevant_questions &&
-          answer.relevant_questions.length > 0 && (
-            <div>
-              <div className="flex items-center gap-x-1.5">
-                <IconLayers />
-                <p className="text-sm font-bold leading-none">Suggestions</p>
-              </div>
-              <div className="mt-2 flex flex-col gap-y-3">
-                {answer.relevant_questions?.map((related, index) => (
-                  <div
-                    key={index}
-                    className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
-                    onClick={onSubmitSearch.bind(null, related)}
-                  >
-                    <p className="w-full overflow-hidden text-ellipsis text-sm">
-                      {related}
-                    </p>
-                    <IconPlus />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+        {/* code search hits */}
+        {messageAttachmentCode && messageAttachmentCode.length > 0 && (
+          <CodeReferences
+            contexts={relevantCodeContexts}
+            className="mt-1 text-sm"
+            onContextClick={onCodeContextClick}
+            enableTooltip={enableDeveloperMode}
+            onTooltipClick={() => {
+              setConversationIdForDev(answer.id)
+              setDevPanelOpen(true)
+            }}
+            highlightIndex={relevantCodeHighlightIndex}
+          />
+        )}
+
+        {isLoading && !answer.content && (
+          <Skeleton className="mt-1 h-40 w-full" />
+        )}
+        <MessageMarkdown
+          message={answer.content}
+          attachmentDocs={messageAttachmentDocs}
+          attachmentCode={messageAttachmentCode}
+          onCodeCitationClick={onCodeCitationClick}
+          onCodeCitationMouseEnter={onCodeCitationMouseEnter}
+          onCodeCitationMouseLeave={onCodeCitationMouseLeave}
+        />
+        {answer.error && <ErrorMessageBlock error={answer.error} />}
+
+        {!isLoading && (
+          <div className="mt-3 flex items-center gap-x-3 text-sm">
+            <CopyButton
+              className="-ml-1.5 gap-x-1 px-1 font-normal text-muted-foreground"
+              value={getCopyContent(answer)}
+              text="Copy"
+            />
+            {!isLoading && isLastAssistantMessage && (
+              <Button
+                className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
+                variant="ghost"
+                onClick={() => onRegenerateResponse(answer.id)}
+              >
+                <IconRefresh />
+                <p>Regenerate</p>
+              </Button>
+            )}
+          </div>
+        )}
       </div>
-    </AnswerBlockContext.Provider>
+
+      {/* Related questions */}
+      {showRelatedQuestion &&
+        !isLoading &&
+        answer.threadRelevantQuestions &&
+        answer.threadRelevantQuestions.length > 0 && (
+          <div>
+            <div className="flex items-center gap-x-1.5">
+              <IconLayers />
+              <p className="text-sm font-bold leading-none">Suggestions</p>
+            </div>
+            <div className="mt-2 flex flex-col gap-y-3">
+              {answer.threadRelevantQuestions?.map((related, index) => (
+                <div
+                  key={index}
+                  className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
+                  onClick={onSubmitSearch.bind(null, related)}
+                >
+                  <p className="w-full overflow-hidden text-ellipsis text-sm">
+                    {related}
+                  </p>
+                  <IconPlus />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+    </div>
   )
 }
 
@@ -908,12 +1099,12 @@ function SourceCard({
   showDevTooltip
 }: {
   conversationId: string
-  source: ArrayElementType<AnswerResponse['relevant_documents']>
+  source: AttachmentDocItem
   showMore: boolean
   showDevTooltip?: boolean
 }) {
   const { setDevPanelOpen, setConversationIdForDev } = useContext(SearchContext)
-  const { hostname } = new URL(source.doc.link)
+  const { hostname } = new URL(source.link)
   const [devTooltipOpen, setDevTooltipOpen] = useState(false)
 
   const onOpenChange = (v: boolean) => {
@@ -942,12 +1133,12 @@ function SourceCard({
               : `${SOURCE_CARD_STYLE.compress}rem`,
             transition: 'all 0.25s ease-out'
           }}
-          onClick={() => window.open(source.doc.link)}
+          onClick={() => window.open(source.link)}
         >
           <div className="flex flex-1 flex-col justify-between gap-y-1">
             <div className="flex flex-col gap-y-0.5">
               <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-                {source.doc.title}
+                {source.title}
               </p>
               <p
                 className={cn(
@@ -958,7 +1149,7 @@ function SourceCard({
                   }
                 )}
               >
-                {normalizedText(source.doc.snippet)}
+                {normalizedText(source.content)}
               </p>
             </div>
             <div className="flex items-center text-xs text-muted-foreground">
@@ -977,366 +1168,91 @@ function SourceCard({
         className="cursor-pointer p-2"
         onClick={onTootipClick}
       >
-        <p>Score: {source.score}</p>
+        <p>Score: {source?.extra?.score ?? '-'}</p>
       </TooltipContent>
     </Tooltip>
   )
 }
 
-type RelevantDocItem = {
-  type: 'doc'
-  data: ArrayElementType<AnswerResponse['relevant_documents']>
-}
+function Header({ threadId }: { threadId?: string }) {
+  const router = useRouter()
+  const { isCopied, copyToClipboard } = useCopyToClipboard({
+    timeout: 2000
+  })
 
-type RelevantCodeItem = {
-  type: 'code'
-  data: ArrayElementType<AnswerResponse['relevant_code']>
-}
-
-type RelevantSources = Array<RelevantDocItem | RelevantCodeItem>
-
-function MessageMarkdown({
-  message,
-  headline = false,
-  relevantDocuments,
-  relevantCode,
-  onRelevantCodeClick
-}: {
-  message: string
-  headline?: boolean
-  relevantDocuments?: AnswerResponse['relevant_documents']
-  relevantCode?: AnswerResponse['relevant_code']
-  onRelevantCodeClick?: (
-    code: ArrayElementType<AnswerResponse['relevant_code']>
-  ) => void
-}) {
-  const relevantSources: RelevantSources = useMemo(() => {
-    const docs: RelevantSources =
-      relevantDocuments?.map(item => ({
-        type: 'doc',
-        data: item
-      })) ?? []
-    const code: RelevantSources =
-      relevantCode?.map(item => ({
-        type: 'code',
-        data: item
-      })) ?? []
-    return compact([...docs, ...code])
-  }, [relevantDocuments, relevantCode])
-
-  const renderTextWithCitation = (nodeStr: string, index: number) => {
-    const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
-    const textList = nodeStr.split(citationMatchRegex)
-    const citationList = nodeStr.match(citationMatchRegex)
-    return (
-      <span key={index}>
-        {textList.map((text, index) => {
-          const citation = citationList?.[index]
-          const citationNumberMatch = citation?.match(/\d+/)
-          const citationIndex = citationNumberMatch
-            ? parseInt(citationNumberMatch[0], 10)
-            : null
-          const citationSource = !isNil(citationIndex)
-            ? relevantSources?.[citationIndex - 1]
-            : undefined
-          const citationType = citationSource?.type
-          const showcitation = citationSource && !isNil(citationIndex)
-
-          return (
-            <span key={index}>
-              {text && <span>{text}</span>}
-              {showcitation && (
-                <>
-                  {citationType === 'doc' ? (
-                    <RelevantDocumentHoverCard
-                      relevantDocument={citationSource.data}
-                      citationIndex={citationIndex}
-                    />
-                  ) : citationType === 'code' ? (
-                    <RelevantCodeHoverCard
-                      relevantCode={citationSource.data}
-                      citationIndex={citationIndex}
-                    />
-                  ) : null}
-                </>
-              )}
-            </span>
-          )
-        })}
-      </span>
-    )
+  const onCopy = () => {
+    if (isCopied) return
+    copyToClipboard(window.location.href)
   }
 
   return (
-    <MemoizedReactMarkdown
-      className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
-      remarkPlugins={[remarkGfm, remarkMath]}
-      components={{
-        p({ children }) {
-          if (headline) {
-            return (
-              <h3 className="break-anywhere cursor-text scroll-m-20 text-xl font-semibold tracking-tight">
-                {children}
-              </h3>
-            )
-          }
-
-          if (children.length) {
-            return (
-              <div className="mb-2 inline-block leading-relaxed last:mb-0">
-                {children.map((childrenItem, index) => {
-                  if (typeof childrenItem === 'string') {
-                    return renderTextWithCitation(childrenItem, index)
-                  }
-
-                  return <span key={index}>{childrenItem}</span>
-                })}
-              </div>
-            )
-          }
-
-          return <p className="mb-2 last:mb-0">{children}</p>
-        },
-        li({ children }) {
-          if (children && children.length) {
-            return (
-              <li>
-                {children.map((childrenItem, index) => {
-                  if (typeof childrenItem === 'string') {
-                    return renderTextWithCitation(childrenItem, index)
-                  }
-
-                  return <span key={index}>{childrenItem}</span>
-                })}
-              </li>
-            )
-          }
-          return <li>{children}</li>
-        },
-        code({ node, inline, className, children, ...props }) {
-          if (children.length) {
-            if (children[0] == '▍') {
-              return (
-                <span className="mt-1 animate-pulse cursor-default">▍</span>
-              )
-            }
-
-            children[0] = (children[0] as string).replace('`▍`', '▍')
-          }
-
-          const match = /language-(\w+)/.exec(className || '')
-
-          if (inline) {
-            return (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            )
-          }
-
-          return (
-            <CodeBlock
-              key={Math.random()}
-              language={(match && match[1]) || ''}
-              value={String(children).replace(/\n$/, '')}
-              {...props}
-            />
-          )
-        }
-      }}
-    >
-      {message}
-    </MemoizedReactMarkdown>
-  )
-}
-
-function RelevantDocumentHoverCard({
-  relevantDocument,
-  citationIndex
-}: {
-  relevantDocument: ArrayElementType<AnswerResponse['relevant_documents']>
-  citationIndex: number
-}) {
-  const sourceUrl = relevantDocument ? new URL(relevantDocument.doc.link) : null
-
-  return (
-    <HoverCard>
-      <HoverCardTrigger>
-        <span
-          className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
-          onClick={() => window.open(relevantDocument.doc.link)}
+    <header className="flex h-16 items-center justify-between px-4">
+      <div className="flex items-center gap-x-6">
+        <Button
+          variant="ghost"
+          className="-ml-1 pl-0 text-sm text-muted-foreground"
+          onClick={() => router.replace('/')}
         >
-          {citationIndex}
-        </span>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-96 text-sm">
-        <div className="flex w-full flex-col gap-y-1">
-          <div className="m-0 flex items-center space-x-1 text-xs leading-none text-muted-foreground">
-            <SiteFavicon
-              hostname={sourceUrl!.hostname}
-              className="m-0 mr-1 leading-none"
-            />
-            <p className="m-0 leading-none">{sourceUrl!.hostname}</p>
-          </div>
-          <p
-            className="m-0 cursor-pointer font-bold leading-none transition-opacity hover:opacity-70"
-            onClick={() => window.open(relevantDocument.doc.link)}
-          >
-            {relevantDocument.doc.title}
-          </p>
-          <p className="m-0 line-clamp-4 leading-none">
-            {normalizedText(relevantDocument.doc.snippet)}
-          </p>
+          <IconChevronLeft className="mr-1 h-5 w-5" />
+          Home
+        </Button>
+      </div>
+      <div className="flex items-center gap-2">
+        {!!threadId && (
+          <>
+            <Button
+              variant="ghost"
+              className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
+              onClick={() => router.push('/')}
+            >
+              <IconPlus />
+            </Button>
+            <Button
+              variant="ghost"
+              className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
+              onClick={onCopy}
+            >
+              {isCopied ? (
+                <IconCheck className="text-green-600" />
+              ) : (
+                <IconLink />
+              )}
+            </Button>
+          </>
+        )}
+        <ClientOnly>
+          <ThemeToggle />
+        </ClientOnly>
+        <div className="ml-2">
+          <UserPanel showHome={false} showSetting>
+            <UserAvatar className="h-10 w-10 border" />
+          </UserPanel>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      </div>
+    </header>
   )
 }
 
-function RelevantCodeHoverCard({
-  relevantCode,
-  citationIndex
-}: {
-  relevantCode: ArrayElementType<AnswerResponse['relevant_code']>
-  citationIndex: number
-}) {
-  const {
-    onCodeCitationClick,
-    onCodeCitationMouseEnter,
-    onCodeCitationMouseLeave
-  } = useContext(AnswerBlockContext)
-
+function ThreadMessagesErrorView() {
   return (
-    <span
-      className="relative -top-2 mr-0.5 inline-block h-4 w-4 cursor-pointer rounded-full bg-muted text-center text-xs"
-      onClick={() => {
-        onCodeCitationClick?.(relevantCode)
-      }}
-      onMouseEnter={() => {
-        onCodeCitationMouseEnter?.(citationIndex)
-      }}
-      onMouseLeave={() => {
-        onCodeCitationMouseLeave?.(citationIndex)
-      }}
-    >
-      {citationIndex}
-    </span>
-  )
-}
-
-function SiteFavicon({
-  hostname,
-  className
-}: {
-  hostname: string
-  className?: string
-}) {
-  const [isLoaded, setIsLoaded] = useState(false)
-
-  const handleImageLoad = () => {
-    setIsLoaded(true)
-  }
-
-  return (
-    <div className="relative h-3.5 w-3.5">
-      <Image
-        src={defaultFavicon}
-        alt={hostname}
-        width={14}
-        height={14}
-        className={cn(
-          'absolute left-0 top-0 z-0 h-3.5 w-3.5 rounded-full leading-none',
-          className
-        )}
-      />
-      <Image
-        src={`https://s2.googleusercontent.com/s2/favicons?sz=128&domain_url=${hostname}`}
-        alt={hostname}
-        width={14}
-        height={14}
-        className={cn(
-          'relative z-10 h-3.5 w-3.5 rounded-full bg-card leading-none',
-          className,
-          {
-            'opacity-0': !isLoaded
-          }
-        )}
-        onLoad={handleImageLoad}
-      />
+    <div className="flex h-screen flex-col">
+      <Header />
+      <div className="flex-1">
+        <div className="flex h-full flex-col items-center justify-center gap-2">
+          <div className="flex items-center gap-2">
+            <IconFileSearch className="h-6 w-6" />
+            <div className="text-xl font-semibold">Something went wrong</div>
+          </div>
+          <div>
+            Failed to fetch the thread, please refresh the page or start a new
+            thread
+          </div>
+          <Link href="/" className={cn(buttonVariants(), 'mt-4 gap-2')}>
+            <IconPlus />
+            <span>New Thread</span>
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }
-
-function ErrorMessageBlock({ error = 'Fail to fetch' }: { error?: string }) {
-  const errorMessage = useMemo(() => {
-    let jsonString = JSON.stringify(
-      {
-        error: true,
-        message: error
-      },
-      null,
-      2
-    )
-    const markdownJson = '```\n' + jsonString + '\n```'
-    return markdownJson
-  }, [error])
-  return (
-    <MemoizedReactMarkdown
-      className="prose-full-width prose break-words text-sm dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
-      remarkPlugins={[remarkGfm, remarkMath]}
-      components={{
-        code({ node, inline, className, children, ...props }) {
-          return (
-            <div {...props} className={cn(className, 'bg-zinc-950 p-2')}>
-              {children}
-            </div>
-          )
-        }
-      }}
-    >
-      {errorMessage}
-    </MemoizedReactMarkdown>
-  )
-}
-
-// function ContextItem({
-//   context,
-//   clickable = true
-// }: {
-//   context: Context
-//   clickable?: boolean
-// }) {
-//   const { onNavigateToContext } = React.useContext(ChatContext)
-//   const isMultiLine =
-//     !isNil(context.range?.start) &&
-//     !isNil(context.range?.end) &&
-//     context.range.start < context.range.end
-//   const pathSegments = context.filepath.split('/')
-//   const fileName = pathSegments[pathSegments.length - 1]
-//   const path = pathSegments.slice(0, pathSegments.length - 1).join('/')
-//   return (
-//     <div
-//       className={cn('rounded-md border p-2', {
-//         'cursor-pointer hover:bg-accent': clickable,
-//         'cursor-default pointer-events-auto': !clickable
-//       })}
-//       onClick={e => clickable && onNavigateToContext?.(context)}
-//     >
-//       <div className="flex items-center gap-1 overflow-hidden">
-//         <IconFile className="shrink-0" />
-//         <div className="flex-1 truncate" title={context.filepath}>
-//           <span>{fileName}</span>
-//           {context.range?.start && (
-//             <span className="text-muted-foreground">
-//               :{context.range.start}
-//             </span>
-//           )}
-//           {isMultiLine && (
-//             <span className="text-muted-foreground">-{context.range.end}</span>
-//           )}
-//           <span className="ml-2 text-xs text-muted-foreground">{path}</span>
-//         </div>
-//       </div>
-//     </div>
-//   )
-// }

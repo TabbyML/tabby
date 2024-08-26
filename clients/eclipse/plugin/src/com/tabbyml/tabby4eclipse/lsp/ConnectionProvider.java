@@ -9,7 +9,6 @@ import java.util.List;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
-import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4e.server.ProcessStreamConnectionProvider;
 import org.osgi.framework.Bundle;
 
@@ -44,6 +43,7 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 				}
 			}
 			if (nodeExecutableFile == null) {
+				StatusInfoHolder.getInstance().setConnectionFailed(true);
 				logger.error("Cannot find node executable.");
 				return;
 			}
@@ -51,6 +51,7 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 			Bundle bundle = Platform.getBundle(Activator.PLUGIN_ID);
 			URL agentScriptUrl = FileLocator.find(bundle, new Path("tabby-agent/dist/node/index.js"));
 			if (agentScriptUrl == null) {
+				StatusInfoHolder.getInstance().setConnectionFailed(true);
 				logger.error("Cannot find tabby-agent script.");
 				return;
 			}
@@ -61,6 +62,7 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 			logger.info("Will use command " + commands.toString() + " to start Tabby language server.");
 			this.setCommands(commands);
 		} catch (IOException e) {
+			StatusInfoHolder.getInstance().setConnectionFailed(true);
 			logger.error("Failed to setup command to start Tabby language server.", e);
 		}
 	}
@@ -70,7 +72,7 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 	}
 
 	@Override
-	public Object getInitializationOptions(@Nullable URI rootUri) {
+	public Object getInitializationOptions(URI rootUri) {
 		return new InitializationOptions(getProvidedConfig(), getClientInfo(), getClientCapabilities());
 	}
 
@@ -108,6 +110,11 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 		textDocumentClientCapabilities.setInlineCompletion(true);
 
 		TabbyClientCapabilities tabbyClientCapabilities = new TabbyClientCapabilities();
+		tabbyClientCapabilities.setConfigDidChangeListener(true);
+		tabbyClientCapabilities.setStatusDidChangeListener(true);
+		tabbyClientCapabilities.setWorkspaceFileSystem(true);
+		tabbyClientCapabilities.setGitProvider(true);
+		tabbyClientCapabilities.setLanguageSupport(true);
 
 		ClientCapabilities clientCapabilities = new ClientCapabilities();
 		clientCapabilities.setTextDocument(textDocumentClientCapabilities);

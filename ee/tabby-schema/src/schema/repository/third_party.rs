@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLObject, ID};
-use tabby_common::config::RepositoryConfig;
+use tabby_common::config::CodeRepository;
 
 use super::{GitReference, RepositoryProvider};
 use crate::{
@@ -79,5 +79,5 @@ pub trait ThirdPartyRepositoryService: Send + Sync + RepositoryProvider {
         integration_id: ID,
         before: DateTime<Utc>,
     ) -> Result<usize>;
-    async fn list_repository_configs(&self) -> Result<Vec<RepositoryConfig>>;
+    async fn list_code_repositories(&self) -> Result<Vec<CodeRepository>>;
 }

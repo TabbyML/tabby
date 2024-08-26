@@ -13,6 +13,9 @@ import {
   Selection,
   TextEditorRevealType,
   ViewColumn,
+  WorkspaceFolder,
+  TextDocument,
+  commands,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context, NavigateOpts } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -64,15 +67,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     const text = editor.document.getText(editor.selection);
     if (!text) return null;
 
-    const workspaceFolder = workspace.getWorkspaceFolder(uri);
-    const repo = gitProvider.getRepository(uri);
-    const remoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
-    let filePath = uri.toString(true);
-    if (repo) {
-      filePath = filePath.replace(repo.rootUri.toString(true), "");
-    } else if (workspaceFolder) {
-      filePath = filePath.replace(workspaceFolder.uri.toString(true), "");
-    }
+    const { filepath, git_url } = resolveFilePathAndGitUrl(uri, gitProvider);
 
     return {
       kind: "file",
@@ -81,8 +76,25 @@ export class ChatViewProvider implements WebviewViewProvider {
         start: editor.selection.start.line + 1,
         end: editor.selection.end.line + 1,
       },
-      filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
-      git_url: remoteUrl ?? "",
+      filepath,
+      git_url,
+    };
+  }
+
+  static getFileContextFromEditor({ editor, gitProvider }: { editor: TextEditor; gitProvider: GitProvider }): Context {
+    const content = editor.document.getText();
+    const lineCount = editor.document.lineCount;
+    const uri = editor.document.uri;
+    const { filepath, git_url } = resolveFilePathAndGitUrl(uri, gitProvider);
+    return {
+      kind: "file",
+      content,
+      range: {
+        start: 1,
+        end: lineCount,
+      },
+      filepath,
+      git_url,
     };
   }
 
@@ -99,21 +111,22 @@ export class ChatViewProvider implements WebviewViewProvider {
     this.client = createClient(webviewView, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
         if (opts?.openInEditor) {
-          const files = await workspace.findFiles(context.filepath, undefined, 1);
-          if (files[0]) {
-            const document = await workspace.openTextDocument(files[0].path);
-            const newEditor = await window.showTextDocument(document, {
-              viewColumn: ViewColumn.Active,
-              preview: false,
-              preserveFocus: true,
-            });
-
-            // Move the cursor to the specified line
-            const start = new Position(Math.max(0, context.range.start - 1), 0);
-            const end = new Position(context.range.end, 0);
-            newEditor.selection = new Selection(start, end);
-            newEditor.revealRange(new Range(start, end), TextEditorRevealType.InCenter);
+          const document = await resolveDocument(this.logger, workspace.workspaceFolders, context.filepath);
+          if (!document) {
+            throw new Error(`File not found: ${context.filepath}`);
           }
+
+          const newEditor = await window.showTextDocument(document, {
+            viewColumn: ViewColumn.Active,
+            preview: false,
+            preserveFocus: true,
+          });
+
+          // Move the cursor to the specified line
+          const start = new Position(Math.max(0, context.range.start - 1), 0);
+          const end = new Position(context.range.end, 0);
+          newEditor.selection = new Selection(start, end);
+          newEditor.revealRange(new Range(start, end), TextEditorRevealType.InCenter);
 
           return;
         }
@@ -220,6 +233,8 @@ export class ChatViewProvider implements WebviewViewProvider {
       if (webviewView.visible) {
         this.refreshChatPage();
       }
+
+      commands.executeCommand("setContext", "tabby.chatViewVisible", webviewView.visible);
     });
 
     webviewView.webview.onDidReceiveMessage((message) => {
@@ -244,10 +259,20 @@ export class ChatViewProvider implements WebviewViewProvider {
     });
   }
 
-  private isChatPanelAvailable(serverInfo: ServerInfo): boolean {
-    if (!serverInfo.health || !serverInfo.health["webserver"] || !serverInfo.health["chat_model"]) {
-      return false;
+  // Check if server is healthy and has the chat model enabled.
+  //
+  // Returns undefined if it's working, otherwise returns a message to display.
+  private checkChatPanel(serverInfo: ServerInfo): string | undefined {
+    if (!serverInfo.health) {
+      return "Your Tabby server is not responding. Please check your server status.";
     }
+
+    if (!serverInfo.health["webserver"] || !serverInfo.health["chat_model"]) {
+      return "You need to launch the server with the chat model enabled; for example, use `--chat-model Qwen2-1.5B-Instruct`.";
+    }
+
+    const MIN_VERSION = "0.16.0";
+
     if (serverInfo.health["version"]) {
       let version: semver.SemVer | undefined | null = undefined;
       if (typeof serverInfo.health["version"] === "string") {
@@ -259,11 +284,12 @@ export class ChatViewProvider implements WebviewViewProvider {
       ) {
         version = semver.coerce(serverInfo.health["version"]["git_describe"]);
       }
-      if (version && semver.lt(version, "0.16.0")) {
-        return false;
+      if (version && semver.lt(version, MIN_VERSION)) {
+        return `Tabby Chat requires Tabby server version ${MIN_VERSION} or later. Your server is running version ${version}.`;
       }
     }
-    return true;
+
+    return;
   }
 
   private async refreshChatPage() {
@@ -277,11 +303,9 @@ export class ChatViewProvider implements WebviewViewProvider {
       });
     }
 
-    if (!this.isChatPanelAvailable(serverInfo)) {
-      this.client?.showError({
-        content:
-          "Please update to the latest release of the Tabby server.\n\nYou also need to launch the server with the chat model enabled; for example, use `--chat-model Qwen2-1.5B-Instruct`.",
-      });
+    const error = this.checkChatPanel(serverInfo);
+    if (error) {
+      this.client?.showError({ content: error });
       return;
     }
 
@@ -472,4 +496,54 @@ export class ChatViewProvider implements WebviewViewProvider {
       .filter((o) => o !== undefined)
       .join("-");
   }
+}
+
+function resolveFilePathAndGitUrl(uri: Uri, gitProvider: GitProvider): { filepath: string; git_url: string } {
+  const workspaceFolder = workspace.getWorkspaceFolder(uri);
+  const repo = gitProvider.getRepository(uri);
+  const remoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
+  let filePath = uri.toString(true);
+  if (repo) {
+    filePath = filePath.replace(repo.rootUri.toString(true), "");
+  } else if (workspaceFolder) {
+    filePath = filePath.replace(workspaceFolder.uri.toString(true), "");
+  }
+
+  return {
+    filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
+    git_url: remoteUrl ?? "",
+  };
+}
+
+async function resolveDocument(
+  logger: LogOutputChannel,
+  folders: readonly WorkspaceFolder[] | undefined,
+  filepath: string,
+): Promise<TextDocument | null> {
+  if (filepath.startsWith("file://")) {
+    const absoluteFilepath = Uri.parse(filepath, true);
+    return workspace.openTextDocument(absoluteFilepath);
+  }
+
+  if (!folders) {
+    return null;
+  }
+
+  for (const root of folders) {
+    const absoluteFilepath = Uri.joinPath(root.uri, filepath);
+    try {
+      return await workspace.openTextDocument(absoluteFilepath);
+    } catch (err) {
+      // Do nothing, file doesn't exists.
+    }
+  }
+
+  logger.info("File not found in workspace folders, trying with findFiles...");
+
+  const files = await workspace.findFiles(filepath, undefined, 1);
+  if (files[0]) {
+    return workspace.openTextDocument(files[0]);
+  }
+
+  return null;
 }

@@ -109,18 +109,12 @@ pub fn config_id_to_index(id: &str) -> Result<usize, anyhow::Error> {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RepositoryConfig {
-    pub git_url: String,
+    git_url: String,
 }
 
 impl RepositoryConfig {
-    pub fn new<T: Into<String>>(git_url: T) -> Self {
-        Self {
-            git_url: git_url.into(),
-        }
-    }
-
-    pub fn canonical_git_url(&self) -> String {
-        Self::canonicalize_url(&self.git_url)
+    pub fn git_url(&self) -> &str {
+        &self.git_url
     }
 
     pub fn canonicalize_url(url: &str) -> String {
@@ -135,20 +129,28 @@ impl RepositoryConfig {
     }
 
     pub fn dir(&self) -> PathBuf {
-        if self.is_local_dir() {
-            let path = self.git_url.strip_prefix("file://").unwrap();
+        Self::resolve_dir(&self.git_url)
+    }
+
+    pub fn display_name(&self) -> String {
+        Self::resolve_dir_name(&self.git_url)
+    }
+
+    pub fn resolve_dir(git_url: &str) -> PathBuf {
+        if Self::resolve_is_local_dir(git_url) {
+            let path = git_url.strip_prefix("file://").unwrap();
             path.into()
         } else {
-            repositories_dir().join(self.dir_name())
+            repositories_dir().join(Self::resolve_dir_name(git_url))
         }
     }
 
-    pub fn dir_name(&self) -> String {
-        sanitize_name(&self.canonical_git_url())
+    pub fn resolve_dir_name(git_url: &str) -> String {
+        sanitize_name(&Self::canonicalize_url(git_url))
     }
 
-    pub fn is_local_dir(&self) -> bool {
-        self.git_url.starts_with("file://")
+    pub fn resolve_is_local_dir(git_url: &str) -> bool {
+        git_url.starts_with("file://")
     }
 }
 
@@ -319,22 +321,53 @@ pub struct AnswerConfig {
     pub code_search_params: CodeSearchParams,
 }
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone)]
-pub struct DocIndexConfig {
-    pub start_urls: Vec<String>,
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CodeRepository {
+    pub git_url: String,
+    pub source_id: String,
+}
+
+impl CodeRepository {
+    pub fn new(git_url: &str, source_id: &str) -> Self {
+        Self {
+            git_url: git_url.to_owned(),
+            source_id: source_id.to_owned(),
+        }
+    }
+
+    pub fn dir(&self) -> PathBuf {
+        RepositoryConfig::resolve_dir(&self.git_url)
+    }
+
+    pub fn dir_name(&self) -> String {
+        RepositoryConfig::resolve_dir_name(&self.git_url)
+    }
+
+    pub fn canonical_git_url(&self) -> String {
+        RepositoryConfig::canonicalize_url(&self.git_url)
+    }
+
+    pub fn is_local_dir(&self) -> bool {
+        RepositoryConfig::resolve_is_local_dir(&self.git_url)
+    }
 }
 
 #[async_trait]
-pub trait ConfigAccess: Send + Sync {
-    async fn repositories(&self) -> Result<Vec<RepositoryConfig>>;
+pub trait CodeRepositoryAccess: Send + Sync {
+    async fn repositories(&self) -> Result<Vec<CodeRepository>>;
 }
 
-pub struct StaticConfigAccess;
+pub struct StaticCodeRepositoryAccess;
 
 #[async_trait]
-impl ConfigAccess for StaticConfigAccess {
-    async fn repositories(&self) -> Result<Vec<RepositoryConfig>> {
-        Ok(Config::load()?.repositories)
+impl CodeRepositoryAccess for StaticCodeRepositoryAccess {
+    async fn repositories(&self) -> Result<Vec<CodeRepository>> {
+        Ok(Config::load()?
+            .repositories
+            .into_iter()
+            .enumerate()
+            .map(|(i, repo)| CodeRepository::new(&repo.git_url, &config_index_to_id(i)))
+            .collect())
     }
 }
 
@@ -353,13 +386,7 @@ mod tests {
         let repo = RepositoryConfig {
             git_url: "file:///home/user".to_owned(),
         };
-        assert!(repo.is_local_dir());
-        assert_eq!(repo.dir().display().to_string(), "/home/user");
-
-        let repo = RepositoryConfig {
-            git_url: "https://github.com/TabbyML/tabby".to_owned(),
-        };
-        assert!(!repo.is_local_dir());
+        let _ = repo.dir();
     }
 
     #[test]

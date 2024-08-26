@@ -65,6 +65,8 @@ function resolveRepositoryInfoFromPath(path: string | undefined): {
       break
     case 'gitlabselfhosted':
       kind = RepositoryKind.GitlabSelfHosted
+    case 'gitconfig':
+      kind = RepositoryKind.GitConfig
       break
   }
   let basename: string | undefined
@@ -175,11 +177,12 @@ function resolveRepoRef(
   name: string
   ref: GitReference | undefined
 } {
-  if (!ref)
+  if (!ref) {
     return {
       name: '',
       ref: undefined
     }
+  }
 
   const regx = /refs\/(\w+)\/(.*)/
   const match = ref.name.match(regx)
@@ -299,6 +302,10 @@ function parseLineNumberFromHash(hash: string | undefined): {
   }
 }
 
+function isValidLineHash(hash: string | undefined) {
+  return parseLineNumberFromHash(hash)?.start !== undefined
+}
+
 export {
   resolveRepoSpecifierFromRepoInfo,
   resolveFileNameFromPath,
@@ -315,5 +322,6 @@ export {
   parseLineFromSearchParam,
   parseLineNumberFromHash,
   viewModelToKind,
-  kindToViewModel
+  kindToViewModel,
+  isValidLineHash
 }

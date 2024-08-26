@@ -50,7 +50,8 @@ public class ClientCapabilities {
 	}
 
 	public static class TabbyClientCapabilities {
-		private boolean agent;
+		private boolean configDidChangeListener;
+		private boolean statusDidChangeListener;
 		private boolean workspaceFileSystem;
 		private boolean dataStore;
 		private boolean languageSupport;
@@ -58,7 +59,8 @@ public class ClientCapabilities {
 		private boolean editorOptions;
 
 		public TabbyClientCapabilities() {
-			this.agent = false;
+			this.configDidChangeListener = false;
+			this.statusDidChangeListener = false;
 			this.workspaceFileSystem = false;
 			this.dataStore = false;
 			this.languageSupport = false;
@@ -66,12 +68,20 @@ public class ClientCapabilities {
 			this.editorOptions = false;
 		}
 
-		public boolean getAgent() {
-			return agent;
+		public boolean getConfigDidChangeListener() {
+			return configDidChangeListener;
 		}
 
-		public void setAgent(boolean agent) {
-			this.agent = agent;
+		public void setConfigDidChangeListener(boolean configDidChangeListener) {
+			this.configDidChangeListener = configDidChangeListener;
+		}
+
+		public boolean getStatusDidChangeListener() {
+			return statusDidChangeListener;
+		}
+
+		public void setStatusDidChangeListener(boolean statusDidChangeListener) {
+			this.statusDidChangeListener = statusDidChangeListener;
 		}
 
 		public boolean getWorkspaceFileSystem() {

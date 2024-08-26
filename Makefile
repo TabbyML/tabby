@@ -21,7 +21,7 @@ caddy:
 	caddy run --watch --config ee/tabby-webserver/development/Caddyfile
 
 bump-version:
-	cargo ws version --no-git-tag --force "*"
+	cargo ws version --force "*" --no-individual-tags --allow-branch "main"
 
 bump-release-version:
 	cargo ws version --allow-branch "r*" --no-individual-tags --force "*"

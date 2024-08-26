@@ -1,6 +1,9 @@
 CREATE TABLE threads(
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 
+    -- Whether the thread is ephemeral (e.g from chat sidebar)
+    is_ephemeral BOOLEAN NOT NULL,
+
     -- The user who created the thread
     user_id INTEGER NOT NULL,
 
@@ -22,6 +25,9 @@ CREATE TABLE thread_messages(
 
     -- Array of code attachments, in format of `ThreadMessageAttachmentCode`
     code_attachments BLOB,
+
+    -- Array of client code attachments, in format of `ThreadMessageAttachmentClientCode`
+    client_code_attachments BLOB,
 
     -- Array of doc attachments, in format of `ThreadMessageAttachmentDoc`
     doc_attachments BLOB,

@@ -2,6 +2,7 @@ import { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { authExchange } from '@urql/exchange-auth'
 import { cacheExchange } from '@urql/exchange-graphcache'
 import { relayPagination } from '@urql/exchange-graphcache/extras'
+import { createClient as createWSClient } from 'graphql-ws'
 import { jwtDecode } from 'jwt-decode'
 import { isNil } from 'lodash-es'
 import { FieldValues, UseFormReturn } from 'react-hook-form'
@@ -11,7 +12,9 @@ import {
   CombinedError,
   errorExchange,
   fetchExchange,
+  OperationContext,
   OperationResult,
+  subscriptionExchange,
   useMutation as useUrqlMutation
 } from 'urql'
 
@@ -52,11 +55,14 @@ function useMutation<TResult, TVariables extends AnyVariables>(
     ? makeFormErrorHandler(options.form)
     : undefined
 
-  const fn = async (variables?: TVariables) => {
+  const fn = async (
+    variables?: TVariables,
+    context?: Partial<OperationContext>
+  ) => {
     let response: OperationResult<TResult, AnyVariables> | undefined
 
     try {
-      response = await executeMutation(variables)
+      response = await executeMutation(variables, context)
       if (response?.error) {
         onFormError && onFormError(response.error)
         options?.onError && options.onError(response.error)
@@ -108,7 +114,11 @@ const client = new Client({
         GrepTextOrBase64: () => null,
         GrepSubMatch: () => null,
         Repository: (data: any) => (data ? `${data.kind}_${data.id}` : null),
-        GitReference: () => null
+        GitReference: () => null,
+        MessageAttachment: () => null,
+        MessageAttachmentCode: () => null,
+        MessageAttachmentDoc: () => null,
+        NetworkSetting: () => null
       },
       resolvers: {
         Query: {
@@ -342,7 +352,30 @@ const client = new Client({
         }
       }
     }),
-    fetchExchange
+    fetchExchange,
+    subscriptionExchange({
+      forwardSubscription(request, operation) {
+        const authorization =
+          // @ts-ignore
+          operation.context.fetchOptions?.headers?.Authorization ?? ''
+        const protocol = window.location.protocol
+        const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:'
+        const host = window.location.host
+        const wsClient = createWSClient({
+          url: `${wsProtocol}//${host}/subscriptions`,
+          connectionParams: {
+            authorization
+          }
+        })
+        const input = { ...request, query: request.query || '' }
+        return {
+          subscribe(sink) {
+            const unsubscribe = wsClient.subscribe(input, sink)
+            return { unsubscribe }
+          }
+        }
+      }
+    })
   ]
 })
 

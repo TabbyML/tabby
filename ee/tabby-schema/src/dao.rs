@@ -3,20 +3,19 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
-    ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc,
-    ThreadMessageDAO, UserDAO, UserEventDAO,
+    ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
+    ThreadMessageAttachmentDoc, ThreadMessageDAO, UserDAO, UserEventDAO,
 };
 
 use crate::{
     integration::{Integration, IntegrationKind, IntegrationStatus},
-    repository::{ProvidedRepository, RepositoryKind},
+    repository::RepositoryKind,
     schema::{
         auth::{self, OAuthCredential, OAuthProvider},
         email::{AuthMethod, EmailSetting, Encryption},
         job,
         repository::{
-            GithubProvidedRepository, GithubRepositoryProvider, GitlabProvidedRepository,
-            GitlabRepositoryProvider, RepositoryProviderStatus,
+            GithubRepositoryProvider, GitlabRepositoryProvider, RepositoryProviderStatus,
         },
         setting::{NetworkSetting, SecuritySetting},
         user_event::{EventKind, UserEvent},
@@ -155,20 +154,6 @@ impl From<IntegrationKind> for RepositoryKind {
     }
 }
 
-impl From<ProvidedRepository> for GithubProvidedRepository {
-    fn from(value: ProvidedRepository) -> Self {
-        Self {
-            id: value.id,
-            vendor_id: value.vendor_id,
-            github_repository_provider_id: value.integration_id,
-            name: value.display_name,
-            git_url: value.git_url,
-            active: value.active,
-            refs: value.refs,
-        }
-    }
-}
-
 impl From<Integration> for GithubRepositoryProvider {
     fn from(value: Integration) -> Self {
         Self {
@@ -199,20 +184,6 @@ impl From<IntegrationStatus> for RepositoryProviderStatus {
             IntegrationStatus::Ready => Self::Ready,
             IntegrationStatus::Pending => Self::Pending,
             IntegrationStatus::Failed => Self::Failed,
-        }
-    }
-}
-
-impl From<ProvidedRepository> for GitlabProvidedRepository {
-    fn from(value: ProvidedRepository) -> Self {
-        Self {
-            id: value.id,
-            vendor_id: value.vendor_id,
-            gitlab_repository_provider_id: value.integration_id,
-            name: value.display_name,
-            git_url: value.git_url,
-            active: value.active,
-            refs: value.refs,
         }
     }
 }
@@ -254,6 +225,26 @@ impl From<&thread::MessageAttachmentCode> for ThreadMessageAttachmentCode {
     }
 }
 
+impl From<ThreadMessageAttachmentClientCode> for thread::MessageAttachmentClientCode {
+    fn from(value: ThreadMessageAttachmentClientCode) -> Self {
+        Self {
+            filepath: value.filepath,
+            content: value.content,
+            start_line: value.start_line.map(|x| x as i32),
+        }
+    }
+}
+
+impl From<&thread::MessageAttachmentCodeInput> for ThreadMessageAttachmentClientCode {
+    fn from(val: &thread::MessageAttachmentCodeInput) -> Self {
+        ThreadMessageAttachmentClientCode {
+            filepath: val.filepath.clone(),
+            content: val.content.clone(),
+            start_line: val.start_line.map(|x| x as usize),
+        }
+    }
+}
+
 impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
     fn from(value: ThreadMessageAttachmentDoc) -> Self {
         Self {
@@ -289,10 +280,14 @@ impl TryFrom<ThreadMessageDAO> for thread::Message {
     type Error = anyhow::Error;
     fn try_from(value: ThreadMessageDAO) -> Result<Self, Self::Error> {
         let code = value.code_attachments;
+        let client_code = value.client_code_attachments;
         let doc = value.doc_attachments;
 
         let attachment = MessageAttachment {
             code: code
+                .map(|x| x.0.into_iter().map(|i| i.into()).collect())
+                .unwrap_or_default(),
+            client_code: client_code
                 .map(|x| x.0.into_iter().map(|i| i.into()).collect())
                 .unwrap_or_default(),
             doc: doc

@@ -1,10 +1,10 @@
 use anyhow::{bail, Result};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as, types::Json, FromRow};
 use tabby_db_macros::query_paged_as;
 
-use crate::DbConn;
+use crate::{AsSqliteDateTimeString, DbConn};
 
 #[derive(FromRow)]
 pub struct ThreadDAO {
@@ -24,6 +24,7 @@ pub struct ThreadMessageDAO {
     pub content: String,
 
     pub code_attachments: Option<Json<Vec<ThreadMessageAttachmentCode>>>,
+    pub client_code_attachments: Option<Json<Vec<ThreadMessageAttachmentClientCode>>>,
     pub doc_attachments: Option<Json<Vec<ThreadMessageAttachmentDoc>>>,
 
     pub created_at: DateTime<Utc>,
@@ -46,11 +47,22 @@ pub struct ThreadMessageAttachmentCode {
     pub start_line: usize,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct ThreadMessageAttachmentClientCode {
+    pub filepath: Option<String>,
+    pub start_line: Option<usize>,
+    pub content: String,
+}
+
 impl DbConn {
-    pub async fn create_thread(&self, user_id: i64) -> Result<i64> {
-        let res = query!("INSERT INTO threads(user_id) VALUES (?)", user_id)
-            .execute(&self.pool)
-            .await?;
+    pub async fn create_thread(&self, user_id: i64, is_ephemeral: bool) -> Result<i64> {
+        let res = query!(
+            "INSERT INTO threads(user_id, is_ephemeral) VALUES (?, ?)",
+            user_id,
+            is_ephemeral
+        )
+        .execute(&self.pool)
+        .await?;
 
         Ok(res.last_insert_rowid())
     }
@@ -99,7 +111,7 @@ impl DbConn {
     ) -> Result<()> {
         let relevant_questions = Json(relevant_questions.to_vec());
         query!(
-            "UPDATE threads SET relevant_questions = ? WHERE id = ?",
+            "UPDATE threads SET relevant_questions = ?, updated_at = DATETIME('now') WHERE id = ?",
             relevant_questions,
             thread_id
         )
@@ -115,6 +127,7 @@ impl DbConn {
         role: &str,
         content: &str,
         code_attachments: Option<&[ThreadMessageAttachmentCode]>,
+        client_code_attachments: Option<&[ThreadMessageAttachmentClientCode]>,
         doc_attachments: Option<&[ThreadMessageAttachmentDoc]>,
         verify_last_message_role: bool,
     ) -> Result<i64> {
@@ -128,13 +141,22 @@ impl DbConn {
         }
 
         let code_attachments = code_attachments.map(Json);
+        let client_code_attachments = client_code_attachments.map(Json);
         let doc_attachments = doc_attachments.map(Json);
         let res = query!(
-            "INSERT INTO thread_messages(thread_id, role, content, code_attachments, doc_attachments) VALUES (?, ?, ?, ?, ?)",
+            r#"INSERT INTO thread_messages(
+                thread_id,
+                role,
+                content,
+                code_attachments,
+                client_code_attachments,
+                doc_attachments
+            ) VALUES (?, ?, ?, ?, ?, ?)"#,
             thread_id,
             role,
             content,
             code_attachments,
+            client_code_attachments,
             doc_attachments,
         )
         .execute(&self.pool)
@@ -152,7 +174,7 @@ impl DbConn {
         let code_attachments = code_attachments.map(Json);
         let doc_attachments = doc_attachments.map(Json);
         query!(
-            "UPDATE thread_messages SET code_attachments = ?, doc_attachments = ? WHERE id = ?",
+            "UPDATE thread_messages SET code_attachments = ?, doc_attachments = ?, updated_at = DATETIME('now') WHERE id = ?",
             code_attachments,
             doc_attachments,
             message_id
@@ -169,7 +191,7 @@ impl DbConn {
         content: &str,
     ) -> Result<()> {
         query!(
-            "UPDATE thread_messages SET content = content || ? WHERE id = ?",
+            "UPDATE thread_messages SET content = content || ?, updated_at = DATETIME('now') WHERE id = ?",
             content,
             message_id
         )
@@ -188,6 +210,7 @@ impl DbConn {
                 role,
                 content,
                 code_attachments as "code_attachments: Json<Vec<ThreadMessageAttachmentCode>>",
+                client_code_attachments as "client_code_attachments: Json<Vec<ThreadMessageAttachmentClientCode>>",
                 doc_attachments as "doc_attachments: Json<Vec<ThreadMessageAttachmentDoc>>",
                 created_at as "created_at: DateTime<Utc>",
                 updated_at as "updated_at: DateTime<Utc>"
@@ -220,6 +243,7 @@ impl DbConn {
                 "role",
                 "content",
                 "code_attachments" as "code_attachments: Json<Vec<ThreadMessageAttachmentCode>>",
+                "client_code_attachments" as "client_code_attachments: Json<Vec<ThreadMessageAttachmentClientCode>>",
                 "doc_attachments" as "doc_attachments: Json<Vec<ThreadMessageAttachmentDoc>>",
                 "created_at" as "created_at: DateTime<Utc>",
                 "updated_at" as "updated_at: DateTime<Utc>"
@@ -233,5 +257,123 @@ impl DbConn {
         .await?;
 
         Ok(messages)
+    }
+
+    pub async fn delete_thread_message_pair(
+        &self,
+        thread_id: i64,
+        user_message_id: i64,
+        assistant_message_id: i64,
+    ) -> Result<()> {
+        #[derive(FromRow)]
+        struct Response {
+            id: i64,
+            role: String,
+        }
+
+        let message = query_as!(
+            Response,
+            "SELECT id, role FROM thread_messages WHERE thread_id = ? AND id >= ? AND id <= ?",
+            thread_id,
+            user_message_id,
+            assistant_message_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        if message.len() != 2 {
+            bail!("Thread message pair is not valid")
+        }
+
+        let is_valid_user_message = message[0].id == user_message_id && message[0].role == "user";
+        let is_valid_assistant_message =
+            message[1].id == assistant_message_id && message[1].role == "assistant";
+
+        if !is_valid_user_message || !is_valid_assistant_message {
+            bail!("Invalid message pair");
+        }
+
+        query!(
+            "DELETE FROM thread_messages WHERE id = ? or id = ?",
+            user_message_id,
+            assistant_message_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn delete_expired_ephemeral_threads(&self) -> Result<usize> {
+        let time = (Utc::now() - Duration::hours(4)).as_sqlite_datetime();
+
+        let res = query!(
+            r#"
+            DELETE FROM threads
+            WHERE
+                id IN (
+                    SELECT
+                        id
+                    FROM
+                        (
+                            SELECT
+                                threads.id,
+
+                                --- Get the latest updated_at time from the thread and its messages using MAX aggregation
+                                MAX(
+                                    CASE
+                                        --- If there are no messages, use the thread's updated_at time
+                                        WHEN thread_messages.updated_at IS NULL THEN threads.updated_at
+
+                                        --- Otherwise, use the message's updated_at time
+                                        ELSE thread_messages.updated_at
+                                    END
+                                ) AS last_updated_at
+                            FROM
+                                threads
+                                LEFT JOIN thread_messages ON threads.id = thread_messages.thread_id
+                            WHERE
+                                is_ephemeral
+                            GROUP BY
+                                1
+                            HAVING
+                                last_updated_at < ?
+                        )
+                );
+        "#,
+            time
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(res.rows_affected() as usize)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{testutils, DbConn};
+
+    #[tokio::test]
+    async fn test_delete_expired_threads() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        assert_eq!(db.delete_expired_ephemeral_threads().await.unwrap(), 0);
+
+        let user_id = testutils::create_user(&db).await;
+        let _ephemeral_thread_id = db.create_thread(user_id, true).await.unwrap();
+        let non_ephemeral_thread_id = db.create_thread(user_id, false).await.unwrap();
+
+        // Update the updated_at time to be 8 hours ago for all threads
+        sqlx::query!("UPDATE threads SET updated_at = DATETIME('now', '-8 hours')",)
+            .execute(&db.pool)
+            .await
+            .unwrap();
+
+        // Only the ephemeral thread should be deleted
+        assert_eq!(db.delete_expired_ephemeral_threads().await.unwrap(), 1);
+
+        // The remaining thread should be the non-ephemeral thread
+        let threads = db.list_threads(None, None, None, false).await.unwrap();
+        assert_eq!(threads.len(), 1);
+        assert_eq!(threads[0].id, non_ephemeral_thread_id);
     }
 }

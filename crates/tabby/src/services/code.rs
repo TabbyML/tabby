@@ -9,7 +9,7 @@ use tabby_common::{
         CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchParams,
         CodeSearchQuery, CodeSearchResponse, CodeSearchScores,
     },
-    config::{ConfigAccess, RepositoryConfig},
+    config::{CodeRepository, CodeRepositoryAccess},
     index::{
         self,
         code::{self, tokenize_code},
@@ -28,13 +28,13 @@ use tracing::debug;
 use super::tantivy::IndexReaderProvider;
 
 struct CodeSearchImpl {
-    config_access: Arc<dyn ConfigAccess>,
+    config_access: Arc<dyn CodeRepositoryAccess>,
     embedding: Arc<dyn Embedding>,
-    repo_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
+    repo_cache: Mutex<TimedCache<(), Vec<CodeRepository>>>,
 }
 
 impl CodeSearchImpl {
-    fn new(config_access: Arc<dyn ConfigAccess>, embedding: Arc<dyn Embedding>) -> Self {
+    fn new(config_access: Arc<dyn CodeRepositoryAccess>, embedding: Arc<dyn Embedding>) -> Self {
         Self {
             config_access,
             embedding,
@@ -75,16 +75,16 @@ impl CodeSearchImpl {
             })
             .await?;
 
-        let Some(git_url) = closest_match(&query.git_url, repos.iter()) else {
+        let Some(source_id) = closest_match(&query.git_url, repos.iter()) else {
             return Ok(CodeSearchResponse::default());
         };
 
         debug!(
-            "query.git_url: {:?}, matched git_url: {:?}",
-            query.git_url, git_url
+            "query.git_url: {:?}, matched source_id: {:?}",
+            query.git_url, source_id
         );
 
-        query.git_url = RepositoryConfig::canonicalize_url(git_url);
+        query.source_id = source_id.to_owned();
 
         let docs_from_embedding = {
             let embedding = self.embedding.embed(&query.content).await?;
@@ -247,7 +247,7 @@ fn get_json_text_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name:
 
 fn closest_match<'a>(
     search_term: &'a str,
-    search_input: impl IntoIterator<Item = &'a RepositoryConfig>,
+    search_input: impl IntoIterator<Item = &'a CodeRepository>,
 ) -> Option<&'a str> {
     let git_search = GitUrl::parse(search_term).ok()?;
 
@@ -256,7 +256,7 @@ fn closest_match<'a>(
         .filter(|elem| GitUrl::parse(&elem.git_url).is_ok_and(|x| x.name == git_search.name))
         // If there're multiple matches, we pick the one with highest alphabetical order
         .min_by_key(|elem| elem.canonical_git_url())
-        .map(|x| x.git_url.as_str())
+        .map(|x| x.source_id.as_str())
 }
 
 struct CodeSearchService {
@@ -266,7 +266,7 @@ struct CodeSearchService {
 
 impl CodeSearchService {
     pub fn new(
-        config_access: Arc<dyn ConfigAccess>,
+        config_access: Arc<dyn CodeRepositoryAccess>,
         embedding: Arc<dyn Embedding>,
         provider: Arc<IndexReaderProvider>,
     ) -> Self {
@@ -278,7 +278,7 @@ impl CodeSearchService {
 }
 
 pub fn create_code_search(
-    config_access: Arc<dyn ConfigAccess>,
+    config_access: Arc<dyn CodeRepositoryAccess>,
     embedding: Arc<dyn Embedding>,
     provider: Arc<IndexReaderProvider>,
 ) -> impl CodeSearch {
@@ -308,12 +308,13 @@ mod tests {
         ($query:literal, $candidates:expr) => {
             let candidates: Vec<_> = $candidates
                 .into_iter()
-                .map(|x| RepositoryConfig::new(x.to_string()))
+                .enumerate()
+                .map(|(i, x)| CodeRepository::new(&x, &tabby_common::config::config_index_to_id(i)))
                 .collect();
             let expect = &candidates[0];
             assert_eq!(
                 closest_match($query, &candidates),
-                Some(expect.git_url.as_ref())
+                Some(expect.source_id.as_ref())
             );
         };
     }
@@ -322,7 +323,8 @@ mod tests {
         ($query:literal, $candidates:expr) => {
             let candidates: Vec<_> = $candidates
                 .into_iter()
-                .map(|x| RepositoryConfig::new(x.to_string()))
+                .enumerate()
+                .map(|(i, x)| CodeRepository::new(&x, &tabby_common::config::config_index_to_id(i)))
                 .collect();
             assert_eq!(closest_match($query, &candidates), None);
         };

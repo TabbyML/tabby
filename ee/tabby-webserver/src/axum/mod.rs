@@ -18,7 +18,7 @@ use juniper_graphql_ws::{ConnectionConfig, Schema};
 
 #[async_trait]
 pub trait FromAuth<S> {
-    async fn build(state: S, token: Option<String>, allow_auth_token: bool) -> Self;
+    async fn build(state: S, token: Option<String>) -> Self;
 }
 
 #[cfg_attr(text, axum::debug_handler)]
@@ -32,7 +32,7 @@ where
     S: Schema, // TODO: Refactor in the way we don't depend on `juniper_graphql_ws::Schema` here.
     S::Context: FromAuth<C>,
 {
-    let ctx = S::Context::build(state, bearer, false).await;
+    let ctx = S::Context::build(state, bearer).await;
     JuniperResponse(req.execute(schema.root_node(), &ctx).await)
 }
 
@@ -58,7 +58,7 @@ where
                     .and_then(extract_bearer_token);
 
                 // Allow auth token for websocket connection
-                let ctx = S::Context::build(state, bearer, true);
+                let ctx = S::Context::build(state, bearer);
                 ctx.then(|ctx| async move { Ok(ConnectionConfig::new(ctx)) })
                     .boxed()
             };

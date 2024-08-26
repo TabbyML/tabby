@@ -33,7 +33,10 @@ impl ThreadServiceImpl {
 #[async_trait]
 impl ThreadService for ThreadServiceImpl {
     async fn create(&self, user_id: &ID, input: &CreateThreadInput) -> Result<ID> {
-        let thread_id = self.db.create_thread(user_id.as_rowid()?).await?;
+        let thread_id = self
+            .db
+            .create_thread(user_id.as_rowid()?, input.is_ephemeral)
+            .await?;
         self.append_user_message(&thread_id.as_id(), &input.user_message)
             .await?;
         Ok(thread_id.as_id())
@@ -77,6 +80,7 @@ impl ThreadService for ThreadServiceImpl {
                 thread_id.as_rowid()?,
                 thread::Role::Assistant.as_enum_str(),
                 "",
+                None,
                 None,
                 None,
                 false,
@@ -153,6 +157,15 @@ impl ThreadService for ThreadServiceImpl {
         message: &CreateMessageInput,
     ) -> Result<()> {
         let thread_id = thread_id.as_rowid()?;
+        let client_code = message.attachments.as_ref().and_then(|x| {
+            let code = x.code.iter().map(Into::into).collect::<Vec<_>>();
+            // If there are no code attachments, return None
+            if code.is_empty() {
+                None
+            } else {
+                Some(code)
+            }
+        });
 
         self.db
             .create_thread_message(
@@ -160,6 +173,7 @@ impl ThreadService for ThreadServiceImpl {
                 thread::Role::User.as_enum_str(),
                 &message.content,
                 None,
+                client_code.as_deref(),
                 None,
                 true,
             )
@@ -209,6 +223,22 @@ impl ThreadService for ThreadServiceImpl {
 
         to_vec_messages(messages)
     }
+
+    async fn delete_thread_message_pair(
+        &self,
+        thread_id: &ID,
+        user_message_id: &ID,
+        assistant_message_id: &ID,
+    ) -> Result<()> {
+        self.db
+            .delete_thread_message_pair(
+                thread_id.as_rowid()?,
+                user_message_id.as_rowid()?,
+                assistant_message_id.as_rowid()?,
+            )
+            .await?;
+        Ok(())
+    }
 }
 
 fn to_vec_messages(messages: Vec<ThreadMessageDAO>) -> Result<Vec<thread::Message>> {
@@ -231,6 +261,7 @@ pub fn create(db: DbConn, answer: Option<Arc<AnswerService>>) -> impl ThreadServ
 mod tests {
     use tabby_db::{testutils::create_user, DbConn};
     use tabby_schema::thread::{CreateMessageInput, CreateThreadInput};
+    use thread::MessageAttachmentCodeInput;
 
     use super::*;
 
@@ -241,6 +272,7 @@ mod tests {
         let service = create(db, None);
 
         let input = CreateThreadInput {
+            is_ephemeral: false,
             user_message: CreateMessageInput {
                 content: "Hello, world!".to_string(),
                 attachments: None,
@@ -260,14 +292,30 @@ mod tests {
             .create(
                 &user_id,
                 &CreateThreadInput {
+                    is_ephemeral: false,
                     user_message: CreateMessageInput {
                         content: "Ping!".to_string(),
-                        attachments: None,
+                        attachments: Some(MessageAttachmentInput {
+                            code: vec![MessageAttachmentCodeInput {
+                                filepath: Some("main.rs".to_string()),
+                                content: "fn main() { println!(\"Hello, world!\"); }".to_string(),
+                                start_line: Some(1),
+                            }],
+                        }),
                     },
                 },
             )
             .await
             .unwrap();
+
+        let messages = service
+            .list_thread_messages(&thread_id, None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(
+            messages[0].attachment.client_code[0].filepath,
+            Some("main.rs".to_string())
+        );
 
         assert!(service
             .append_user_message(
@@ -279,5 +327,95 @@ mod tests {
             )
             .await
             .is_err());
+    }
+
+    #[tokio::test]
+    async fn test_delete_thread_message_pair() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let user_id = create_user(&db).await.as_id();
+        let service = create(db.clone(), None);
+
+        let thread_id = service
+            .create(
+                &user_id,
+                &CreateThreadInput {
+                    is_ephemeral: false,
+                    user_message: CreateMessageInput {
+                        content: "Ping!".to_string(),
+                        attachments: None,
+                    },
+                },
+            )
+            .await
+            .unwrap();
+
+        let assistant_message_id = db
+            .create_thread_message(
+                thread_id.as_rowid().unwrap(),
+                thread::Role::Assistant.as_enum_str(),
+                "Pong!",
+                None,
+                None,
+                None,
+                false,
+            )
+            .await
+            .unwrap();
+
+        let user_message_id = assistant_message_id - 1;
+
+        // Create another user message to test the error case
+        let another_user_message_id = db
+            .create_thread_message(
+                thread_id.as_rowid().unwrap(),
+                thread::Role::User.as_enum_str(),
+                "Ping another time!",
+                None,
+                None,
+                None,
+                false,
+            )
+            .await
+            .unwrap();
+
+        let messages = service
+            .list_thread_messages(&thread_id, None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(messages.len(), 3);
+
+        assert!(service
+            .delete_thread_message_pair(
+                &thread_id,
+                &another_user_message_id.as_id(),
+                &assistant_message_id.as_id()
+            )
+            .await
+            .is_err());
+
+        assert!(service
+            .delete_thread_message_pair(
+                &thread_id,
+                &assistant_message_id.as_id(),
+                &another_user_message_id.as_id()
+            )
+            .await
+            .is_err());
+
+        assert!(service
+            .delete_thread_message_pair(
+                &thread_id,
+                &user_message_id.as_id(),
+                &assistant_message_id.as_id()
+            )
+            .await
+            .is_ok());
+
+        // Verify that the messages were deleted
+        let messages = service
+            .list_thread_messages(&thread_id, None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(messages.len(), 1);
     }
 }

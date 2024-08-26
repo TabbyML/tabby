@@ -32,6 +32,16 @@ pub struct GitRepository {
     pub job_info: JobInfo,
 }
 
+impl GitRepository {
+    pub fn source_id(&self) -> String {
+        Self::format_source_id(&self.id)
+    }
+
+    pub fn format_source_id(id: &ID) -> String {
+        format!("git:{}", id)
+    }
+}
+
 impl NodeType for GitRepository {
     type Cursor = String;
 

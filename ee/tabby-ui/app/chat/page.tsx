@@ -337,7 +337,7 @@ export default function ChatPage() {
         key={activeChatId}
         ref={chatRef}
         headers={headers}
-        onThreadUpdates={() => {}}
+        isEphemeral
         onNavigateToContext={onNavigateToContext}
         onLoaded={onChatLoaded}
         maxWidth={maxWidth}
@@ -345,7 +345,6 @@ export default function ChatPage() {
         client={client}
         onSubmitMessage={isOnSubmitMessage ? onSubmitMessage : undefined}
         onApplyInEditor={isOnApplyInEditor ? onApplyInEditor : undefined}
-        collectRelevantCodeUsingUserMessage
       />
     </ErrorBoundary>
   )

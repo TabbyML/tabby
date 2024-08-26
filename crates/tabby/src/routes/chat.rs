@@ -27,6 +27,7 @@ use tracing::{error, instrument, warn};
         ("token" = [])
     )
 )]
+#[allow(unused)]
 pub async fn chat_completions_utoipa(_request: Json<serde_json::Value>) -> StatusCode {
     unimplemented!()
 }

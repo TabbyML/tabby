@@ -6,7 +6,7 @@ use hyper::StatusCode;
 use spinners::{Spinner, Spinners, Stream};
 use tabby_common::{
     api::{self, code::CodeSearch, event::EventLogger},
-    config::{Config, ConfigAccess, ModelConfig, StaticConfigAccess},
+    config::{CodeRepositoryAccess, Config, ModelConfig, StaticCodeRepositoryAccess},
     usage,
 };
 use tabby_inference::ChatCompletionStream;
@@ -53,9 +53,6 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     ),
     paths(routes::log_event, routes::completions, routes::chat_completions_utoipa, routes::health, routes::setting),
     components(schemas(
-        api::answer::AnswerRequest,
-        api::answer::AnswerCodeSnippet,
-        api::answer::AnswerResponseChunk,
         api::code::CodeSearchHit,
         api::code::CodeSearchQuery,
         api::code::CodeSearchScores,
@@ -151,7 +148,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     };
 
     let mut logger: Arc<dyn EventLogger> = Arc::new(create_event_logger());
-    let mut config_access: Arc<dyn ConfigAccess> = Arc::new(StaticConfigAccess);
+    let mut config_access: Arc<dyn CodeRepositoryAccess> = Arc::new(StaticCodeRepositoryAccess);
 
     #[cfg(feature = "ee")]
     if let Some(ws) = &ws {

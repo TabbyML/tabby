@@ -37,7 +37,7 @@ services:
 ```
 
   </TabItem>
-  <TabItem value="cpu" label="CPU">
+  {false && <TabItem value="cpu" label="CPU">
 
 ```yaml title="docker-compose.yml"
 version: '3.5'
@@ -54,6 +54,6 @@ services:
       - 8080:8080
 ```
 
-  </TabItem>
+  </TabItem>}
 </Tabs>
 

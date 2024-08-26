@@ -85,6 +85,11 @@
         "category": "Tabby"
       },
       {
+        "command": "tabby.chat.addFileContext",
+        "title": "Add File to Chat",
+        "category": "Tabby"
+      },
+      {
         "command": "tabby.chat.explainCodeBlock",
         "title": "Explain This",
         "category": "Tabby"
@@ -130,7 +135,25 @@
         "category": "Tabby"
       }
     ],
+    "submenus": [
+      {
+        "id": "tabby.submenu",
+        "label": "Tabby"
+      }
+    ],
     "menus": {
+      "tabby.submenu": [
+        {
+          "command": "tabby.chat.addRelevantContext",
+          "when": "editorHasSelection && tabby.chatEnabled",
+          "group": "tabby.submenu@1"
+        },
+        {
+          "command": "tabby.chat.addFileContext",
+          "when": "tabby.chatEnabled",
+          "group": "tabby.submenu@2"
+        }
+      ],
       "commandPalette": [
         {
           "command": "tabby.inlineCompletion.trigger",
@@ -175,6 +198,12 @@
         {
           "command": "tabby.chat.edit.discard",
           "when": "false"
+        }
+      ],
+      "editor/context": [
+        {
+          "submenu": "tabby.submenu",
+          "group": "2_tabby"
         }
       ]
     },
@@ -346,6 +375,18 @@
         "command": "tabby.chat.edit.discard",
         "key": "escape",
         "when": "tabby.chatEditResolving && editorTextFocus && !editorReadonly"
+      },
+      {
+        "command": "tabby.chat.addRelevantContext",
+        "key": "ctrl+l",
+        "mac": "cmd+l",
+        "when": "editorHasSelection && editorTextFocus && tabby.chatEnabled"
+      },
+      {
+        "command": "tabby.chatView.focus",
+        "key": "ctrl+l",
+        "mac": "cmd+l",
+        "when": "!editorHasSelection && tabby.chatEnabled && !tabby.chatViewVisible"
       }
     ],
     "viewsContainers": {

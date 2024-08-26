@@ -165,6 +165,8 @@ CREATE TABLE web_crawler_urls(
 CREATE INDEX `idx_job_runs_command` ON job_runs(command);
 CREATE TABLE threads(
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  -- Whether the thread is ephemeral(e.g from chat sidebar)
+  is_ephemeral BOOLEAN NOT NULL,
   -- The user who created the thread
   user_id INTEGER NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
@@ -180,9 +182,21 @@ CREATE TABLE thread_messages(
   content TEXT NOT NULL,
   -- Array of code attachments, in format of `ThreadMessageAttachmentCode`
   code_attachments BLOB,
+  -- Array of client code attachments, in format of `ThreadMessageAttachmentClientCode`
+  client_code_attachments BLOB,
   -- Array of doc attachments, in format of `ThreadMessageAttachmentDoc`
   doc_attachments BLOB,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   FOREIGN KEY(thread_id) REFERENCES threads(id) ON DELETE CASCADE
+);
+CREATE TABLE web_documents(
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  name VARCHAR(255) NOT NULL,
+  url TEXT NOT NULL,
+  is_preset BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  CONSTRAINT idx_name UNIQUE(name),
+  CONSTRAINT idx_url UNIQUE(url)
 );

@@ -7,13 +7,13 @@ use tabby_common::{
         doc::DocSearch,
         event::{ComposedLogger, EventLogger},
     },
-    config::{Config, ConfigAccess, RepositoryConfig},
+    config::{config_index_to_id, CodeRepository, CodeRepositoryAccess, Config},
 };
 use tabby_db::DbConn;
 use tabby_inference::{ChatCompletionStream, Embedding};
 use tabby_schema::{
     integration::IntegrationService, job::JobService, repository::RepositoryService,
-    web_crawler::WebCrawlerService,
+    web_crawler::WebCrawlerService, web_documents::WebDocumentService,
 };
 
 use crate::{
@@ -21,7 +21,7 @@ use crate::{
     routes,
     service::{
         background_job, create_service_locator, event_logger::create_event_logger, integration,
-        job, repository, web_crawler,
+        job, repository, web_crawler, web_documents,
     },
 };
 
@@ -31,14 +31,20 @@ pub struct Webserver {
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
     web_crawler: Arc<dyn WebCrawlerService>,
+    web_documents: Arc<dyn WebDocumentService>,
     job: Arc<dyn JobService>,
 }
 
 #[async_trait::async_trait]
-impl ConfigAccess for Webserver {
-    async fn repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
-        let mut repos = Config::load().map(|x| x.repositories).unwrap_or_default();
-        repos.extend(self.repository.list_all_repository_urls().await?);
+impl CodeRepositoryAccess for Webserver {
+    async fn repositories(&self) -> anyhow::Result<Vec<CodeRepository>> {
+        let mut repos: Vec<CodeRepository> = Config::load()?
+            .repositories
+            .into_iter()
+            .enumerate()
+            .map(|(i, repo)| CodeRepository::new(repo.git_url(), &config_index_to_id(i)))
+            .collect();
+        repos.extend(self.repository.list_all_code_repository().await?);
         Ok(repos)
     }
 }
@@ -61,6 +67,7 @@ impl Webserver {
         let repository = repository::create(db.clone(), integration.clone(), job.clone());
 
         let web_crawler = Arc::new(web_crawler::create(db.clone(), job.clone()));
+        let web_documents = Arc::new(web_documents::create(db.clone(), job.clone()));
 
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
@@ -70,6 +77,7 @@ impl Webserver {
             repository: repository.clone(),
             integration: integration.clone(),
             web_crawler: web_crawler.clone(),
+            web_documents: web_documents.clone(),
             job: job.clone(),
         });
 
@@ -121,6 +129,7 @@ impl Webserver {
             self.repository.clone(),
             self.integration.clone(),
             self.web_crawler.clone(),
+            self.web_documents.clone(),
             self.job.clone(),
             answer.clone(),
             self.db.clone(),

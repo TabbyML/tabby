@@ -76,6 +76,7 @@ enum RepositoryKind {
   GITLAB
   GITHUB_SELF_HOSTED
   GITLAB_SELF_HOSTED
+  GIT_CONFIG
 }
 
 enum Role {
@@ -98,6 +99,11 @@ input CodeSearchParamsOverrideInput {
   numToScore: Int
 }
 
+input CreateCustomDocumentInput {
+  name: String!
+  url: String!
+}
+
 input CreateIntegrationInput {
   displayName: String!
   accessToken: String!
@@ -116,6 +122,11 @@ input CreateThreadAndRunInput {
 }
 
 input CreateThreadInput {
+  """
+    If true, the thread will be garbage collected after a certain amount of time.
+
+    This is useful for threads that are not meant to be long-lived, such as those created from chat sidebars.
+  """ isEphemeral: Boolean! = false
   userMessage: CreateMessageInput!
 }
 
@@ -145,6 +156,7 @@ input EmailSettingInput {
 
 input MessageAttachmentCodeInput {
   filepath: String
+  startLine: Int
   content: String!
 }
 
@@ -179,6 +191,11 @@ input RequestPasswordResetEmailInput {
 input SecuritySettingInput {
   allowedRegisterDomainList: [String!]!
   disableClientSideTelemetry: Boolean!
+}
+
+input SetPresetDocumentActiveInput {
+  name: String!
+  active: Boolean!
 }
 
 input ThreadRunDebugOptionsInput {
@@ -229,6 +246,25 @@ type CompletionStats {
   completions: Int!
   views: Int!
   selects: Int!
+}
+
+type CustomDocumentConnection {
+  edges: [CustomDocumentEdge!]!
+  pageInfo: PageInfo!
+}
+
+type CustomDocumentEdge {
+  node: CustomWebDocument!
+  cursor: String!
+}
+
+type CustomWebDocument {
+  url: String!
+  name: String!
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  jobInfo: JobInfo!
 }
 
 type DiskUsage {
@@ -393,7 +429,14 @@ type Message {
 
 type MessageAttachment {
   code: [MessageAttachmentCode!]!
+  clientCode: [MessageAttachmentClientCode!]!
   doc: [MessageAttachmentDoc!]!
+}
+
+type MessageAttachmentClientCode {
+  filepath: String
+  startLine: Int
+  content: String!
 }
 
 type MessageAttachmentCode {
@@ -474,6 +517,11 @@ type Mutation {
   triggerJobRun(command: String!): ID!
   createWebCrawlerUrl(input: CreateWebCrawlerUrlInput!): ID!
   deleteWebCrawlerUrl(id: ID!): Boolean!
+  "Delete pair of user message and bot response in a thread."
+  deleteThreadMessagePair(threadId: ID!, userMessageId: ID!, assistantMessageId: ID!): Boolean!
+  createCustomDocument(input: CreateCustomDocumentInput!): ID!
+  deleteCustomDocument(id: ID!): Boolean!
+  setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
 }
 
 type NetworkSetting {
@@ -492,6 +540,25 @@ type PageInfo {
   hasNextPage: Boolean!
   startCursor: String
   endCursor: String
+}
+
+type PresetDocumentConnection {
+  edges: [PresetDocumentEdge!]!
+  pageInfo: PageInfo!
+}
+
+type PresetDocumentEdge {
+  node: PresetWebDocument!
+  cursor: String!
+}
+
+type PresetWebDocument {
+  id: ID!
+  name: String!
+  "`updated_at` is only filled when the preset is active."
+  updatedAt: DateTime
+  "`job_info` is only filled when the preset is active."
+  jobInfo: JobInfo
 }
 
 type ProvidedRepository {
@@ -565,6 +632,8 @@ type Query {
     Thread is public within an instance, so no need to check for ownership.
   """
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
+  customWebDocuments(after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
+  presetWebDocuments(after: String, before: String, first: Int, last: Int, isActive: Boolean!): PresetDocumentConnection!
 }
 
 type RefreshTokenResponse {

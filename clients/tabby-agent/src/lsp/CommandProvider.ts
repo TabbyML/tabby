@@ -1,11 +1,18 @@
 import { Connection, ExecuteCommandParams } from "vscode-languageserver";
-import { ServerCapabilities, ChatEditResolveParams } from "./protocol";
+import {
+  ServerCapabilities,
+  StatusShowHelpMessageRequest,
+  ChatEditResolveRequest,
+  ChatEditResolveParams,
+} from "./protocol";
 import { ChatEditProvider } from "./ChatEditProvider";
+import { StatusProvider } from "./StatusProvider";
 
 export class CommandProvider {
   constructor(
     private readonly connection: Connection,
     private readonly chatEditProvider: ChatEditProvider,
+    private readonly statusProvider: StatusProvider,
   ) {
     this.connection.onExecuteCommand(async (params) => {
       return this.executeCommand(params);
@@ -14,15 +21,17 @@ export class CommandProvider {
 
   fillServerCapabilities(capabilities: ServerCapabilities): void {
     capabilities.executeCommandProvider = {
-      commands: ["tabby/chat/edit/resolve"],
+      commands: [StatusShowHelpMessageRequest.method, ChatEditResolveRequest.method],
     };
   }
 
   async executeCommand(params: ExecuteCommandParams): Promise<void> {
-    if (params.command === "tabby/chat/edit/resolve") {
-      const resolveParams = params.arguments?.[0] as ChatEditResolveParams;
-      if (resolveParams) {
-        await this.chatEditProvider.resolveEdit(resolveParams);
+    if (params.command === StatusShowHelpMessageRequest.method) {
+      await this.statusProvider.showStatusHelpMessage(this.connection);
+    } else if (params.command === ChatEditResolveRequest.method) {
+      const commandParams = params.arguments?.[0] as ChatEditResolveParams;
+      if (commandParams) {
+        await this.chatEditProvider.resolveEdit(commandParams);
       }
     }
   }

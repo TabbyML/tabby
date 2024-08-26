@@ -25,6 +25,9 @@ import { ContextVariables } from "./ContextVariables";
 import { InlineCompletionProvider } from "./InlineCompletionProvider";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { GitProvider, Repository } from "./git/GitProvider";
+import CommandPalette from "./CommandPalette";
+import { showOutputPanel } from "./logger";
+import { Issues } from "./Issues";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -33,6 +36,7 @@ export class Commands {
     private readonly context: ExtensionContext,
     private readonly client: Client,
     private readonly config: Config,
+    private readonly issues: Issues,
     private readonly contextVariables: ContextVariables,
     private readonly inlineCompletionProvider: InlineCompletionProvider,
     private readonly chatViewProvider: ChatViewProvider,
@@ -71,15 +75,24 @@ export class Commands {
 
   private addRelevantContext() {
     const editor = window.activeTextEditor;
-    if (editor) {
-      commands.executeCommand("tabby.chatView.focus").then(() => {
-        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
-        if (fileContext) {
-          this.chatViewProvider.addRelevantContext(fileContext);
-        }
-      });
-    } else {
+    if (!editor) {
       window.showInformationMessage("No active editor");
+      return;
+    }
+
+    // If chat webview is not created or not visible, we shall focus on it.
+    const focusChat = !this.chatViewProvider.webview?.visible;
+    const addContext = () => {
+      const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+      if (fileContext) {
+        this.chatViewProvider.addRelevantContext(fileContext);
+      }
+    };
+
+    if (focusChat) {
+      commands.executeCommand("tabby.chatView.focus").then(addContext);
+    } else {
+      addContext();
     }
   }
 
@@ -165,25 +178,20 @@ export class Commands {
       window
         .showQuickPick([
           {
-            label: "Online Documentation",
+            label: "Website",
             iconPath: new ThemeIcon("book"),
             alwaysShow: true,
-          },
-          {
-            label: "Model Registry",
-            description: "Explore more recommend models from Tabby's model registry",
-            iconPath: new ThemeIcon("library"),
-            alwaysShow: true,
+            description: "Visit Tabby's website to learn more about features and use cases",
           },
           {
             label: "Tabby Slack Community",
-            description: "Join Tabby's Slack community to get help or feed back",
+            description: "Join Tabby's Slack community to get help or share feedback",
             iconPath: new ThemeIcon("comment-discussion"),
             alwaysShow: true,
           },
           {
             label: "Tabby GitHub Repository",
-            description: "View the source code for Tabby, and open issues",
+            description: "Open issues for bugs or feature requests",
             iconPath: new ThemeIcon("github"),
             alwaysShow: true,
           },
@@ -191,11 +199,8 @@ export class Commands {
         .then((selection) => {
           if (selection) {
             switch (selection.label) {
-              case "Online Documentation":
+              case "Website":
                 env.openExternal(Uri.parse("https://tabby.tabbyml.com/"));
-                break;
-              case "Model Registry":
-                env.openExternal(Uri.parse("https://tabby.tabbyml.com/docs/models/"));
                 break;
               case "Tabby Slack Community":
                 env.openExternal(Uri.parse("https://links.tabbyml.com/join-slack-extensions/"));
@@ -212,6 +217,12 @@ export class Commands {
     },
     gettingStarted: () => {
       commands.executeCommand("workbench.action.openWalkthrough", "TabbyML.vscode-tabby#gettingStarted");
+    },
+    "commandPalette.trigger": () => {
+      new CommandPalette(this.client, this.config, this.issues);
+    },
+    "outputPanel.focus": () => {
+      showOutputPanel();
     },
     "inlineCompletion.trigger": () => {
       commands.executeCommand("editor.action.inlineSuggest.trigger");
@@ -254,6 +265,17 @@ export class Commands {
     "chat.addRelevantContext": async () => {
       this.addRelevantContext();
     },
+    "chat.addFileContext": () => {
+      const editor = window.activeTextEditor;
+      if (editor) {
+        commands.executeCommand("tabby.chatView.focus").then(() => {
+          const fileContext = ChatViewProvider.getFileContextFromEditor({ editor, gitProvider: this.gitProvider });
+          this.chatViewProvider.addRelevantContext(fileContext);
+        });
+      } else {
+        window.showInformationMessage("No active editor");
+      }
+    },
     "chat.fixCodeBlock": async () => {
       this.sendMessageToChatPanel("Identify and fix potential bugs in the selected code:");
     },
@@ -291,7 +313,7 @@ export class Commands {
           ...suggestedCommand.map((item) => ({
             label: item.label,
             value: item.command,
-            iconPath: item.source === "preset" ? new ThemeIcon("edit") : new ThemeIcon("spark"),
+            iconPath: item.source === "preset" ? new ThemeIcon("run") : new ThemeIcon("spark"),
             description: item.source === "preset" ? item.command : "Suggested",
           })),
         );
@@ -311,6 +333,9 @@ export class Commands {
             iconPath: new ThemeIcon("history"),
             description: "History",
             buttons: [
+              {
+                iconPath: new ThemeIcon("edit"),
+              },
               {
                 iconPath: new ThemeIcon("settings-remove"),
               },
@@ -400,6 +425,10 @@ export class Commands {
             this.config.chatEditRecentlyCommand = recentlyCommand;
             updateQuickPickList();
           }
+        }
+
+        if (button.iconPath instanceof ThemeIcon && button.iconPath.id === "edit") {
+          quickPick.value = item.value;
         }
       });
 

@@ -23,17 +23,13 @@ import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.swt.custom.CaretEvent;
 import org.eclipse.swt.custom.CaretListener;
 import org.eclipse.swt.custom.StyledText;
-import org.eclipse.ui.IEditorPart;
-import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.IWorkbenchWindow;
-import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.tabbyml.tabby4eclipse.Logger;
 import com.tabbyml.tabby4eclipse.lsp.LanguageServerService;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ILanguageServer;
+import com.tabbyml.tabby4eclipse.lsp.protocol.ITextDocumentServiceExt;
 import com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionParams;
-import com.tabbyml.tabby4eclipse.lsp.protocol.TextDocumentServiceExt;
 
 public class InlineCompletionService {
 	public static InlineCompletionService getInstance() {
@@ -114,11 +110,11 @@ public class InlineCompletionService {
 			}
 			current = null;
 		}
-		
+
 		ITextViewer textViewer = (ITextViewer) textEditor.getAdapter(ITextViewer.class);
-		
+
 		InlineCompletionContext.Request request = new InlineCompletionContext.Request(textEditor, offset);
-		logger.debug("Request request: " + request.offset + "," + offsetInWidget);
+		logger.debug("Request offset: " + request.offset + ", offsetInWidget:" + offsetInWidget);
 		InlineCompletionParams params = request.toInlineCompletionParams();
 		if (params == null) {
 			logger.debug("Failed to create InlineCompletionParams");
@@ -126,7 +122,7 @@ public class InlineCompletionService {
 		}
 		Function<LanguageServer, CompletableFuture<com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionList>> jobFn = (
 				server) -> {
-			TextDocumentServiceExt textDocumentService = ((ILanguageServer) server).getTextDocumentServiceExt();
+			ITextDocumentServiceExt textDocumentService = ((ILanguageServer) server).getTextDocumentServiceExt();
 			return textDocumentService.inlineCompletion(params);
 		};
 		CompletableFuture<com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionList> job = LanguageServerService
@@ -148,7 +144,7 @@ public class InlineCompletionService {
 	}
 
 	public boolean isInlineCompletionVisible() {
-		return isInlineCompletionVisible(getActiveEditor());
+		return isInlineCompletionVisible(Utils.getActiveTextEditor());
 	}
 
 	public boolean isInlineCompletionVisible(ITextEditor textEditor) {
@@ -160,7 +156,7 @@ public class InlineCompletionService {
 	}
 
 	public void accept() {
-		accept(getActiveEditor());
+		accept(Utils.getActiveTextEditor());
 	}
 
 	public void accept(ITextEditor textEditor) {
@@ -266,24 +262,10 @@ public class InlineCompletionService {
 		}
 	}
 
-	private ITextEditor getActiveEditor() {
-		IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
-		if (window != null) {
-			IWorkbenchPage page = window.getActivePage();
-			if (page != null) {
-				IEditorPart activeEditor = page.getActiveEditor();
-				if (activeEditor instanceof ITextEditor textEditor) {
-					return textEditor;
-				}
-			}
-		}
-		return null;
+	private boolean isActiveEditor(ITextEditor textEditor) {
+		return textEditor == Utils.getActiveTextEditor();
 	}
 
-	private boolean isActiveEditor(ITextEditor textEditor) {
-		return textEditor == getActiveEditor();
-	}
-	
 	private class TriggerEvent {
 		private ITextEditor textEditor;
 		private long modificationStamp;
@@ -376,7 +358,7 @@ public class InlineCompletionService {
 			return event.getOffset() + event.getText().length();
 		}
 	}
-	
+
 	private static long getDocumentModificationStamp(ITextEditor textEditor) {
 		IDocument document = LSPEclipseUtils.getDocument(textEditor.getEditorInput());
 		if (document instanceof IDocumentExtension4 documentExt) {

@@ -6,6 +6,7 @@ import {
   ProtocolNotificationType,
   RegistrationType,
   MessageDirection,
+  LSPAny,
   URI,
   Range,
   Location,
@@ -95,6 +96,7 @@ export type ClientCapabilities = LspClientCapabilities & {
   };
   tabby?: {
     /**
+     * @deprecated Use configListener and statusListener instead.
      * The client supports:
      * - `tabby/agent/didUpdateServerInfo`
      * - `tabby/agent/didChangeStatus`
@@ -102,6 +104,18 @@ export type ClientCapabilities = LspClientCapabilities & {
      * This capability indicates that client support receiving agent notifications.
      */
     agent?: boolean;
+    /**
+     * The client supports:
+     * - `tabby/config/didChange`
+     * This capability indicates that client support receiving notifications for configuration changes.
+     */
+    configDidChangeListener?: boolean;
+    /**
+     * The client supports:
+     * - `tabby/status/didChange`
+     * This capability indicates that client support receiving notifications for status sync to display a status bar.
+     */
+    statusDidChangeListener?: boolean;
     /**
      * The client supports:
      * - `tabby/workspaceFileSystem/readFile`
@@ -156,6 +170,14 @@ export type ServerCapabilities = LspServerCapabilities & {
   };
 };
 
+export namespace TextDocumentCompletionFeatureRegistration {
+  export const type = new RegistrationType("textDocument/completion");
+}
+
+export namespace TextDocumentInlineCompletionFeatureRegistration {
+  export const type = new RegistrationType("textDocument/inlineCompletion");
+}
+
 export namespace ChatFeatureRegistration {
   export const type = new RegistrationType("tabby/chat");
 }
@@ -164,13 +186,13 @@ export namespace ChatFeatureRegistration {
  * Extends LSP method Configuration Request(↪️)
  *
  * - method: `workspace/configuration`
- * - params: any
- * - result: {@link ClientProvidedConfig}[] (the array contains only one config)
+ * - params: any, not used
+ * - result: [{@link ClientProvidedConfig}] (the array should contains only one ClientProvidedConfig item)
  */
 export namespace ConfigurationRequest {
   export const method = LspConfigurationRequest.method;
   export const messageDirection = LspConfigurationRequest.messageDirection;
-  export const type = new ProtocolRequestType<any, ClientProvidedConfig[], never, void, void>(method);
+  export const type = new ProtocolRequestType<LSPAny, [ClientProvidedConfig], never, void, void>(method);
 }
 
 /**
@@ -194,7 +216,7 @@ export type ClientProvidedConfig = {
    * Sending this config to the server is for telemetry purposes.
    */
   inlineCompletion?: {
-    triggerMode?: "auto" | "manual";
+    triggerMode?: InlineCompletionTriggerMode;
   };
   /**
    * Keybindings should be implemented on the client side.
@@ -208,6 +230,8 @@ export type ClientProvidedConfig = {
     disable?: boolean;
   };
 };
+
+export type InlineCompletionTriggerMode = "auto" | "manual";
 
 /**
  * Extends LSP method DidChangeConfiguration Notification(➡️)
@@ -514,6 +538,7 @@ export type EventParams = {
 };
 
 /**
+ * @deprecated See {@link StatusDidChangeNotification} {@link ConfigDidChangeNotification}
  * [Tabby] DidUpdateServerInfo Notification(⬅️)
  *
  * This method is sent from the server to the client to notify the current Tabby server info has changed.
@@ -541,6 +566,7 @@ export type ServerInfo = {
 };
 
 /**
+ * @deprecated See {@link StatusRequest} {@link ConfigRequest}
  * [Tabby] Server Info Request(↩️)
  *
  * This method is sent from the client to the server to check the current Tabby server info.
@@ -555,6 +581,7 @@ export namespace AgentServerInfoRequest {
 }
 
 /**
+ * @deprecated See {@link StatusDidChangeNotification}
  * [Tabby] DidChangeStatus Notification(⬅️)
  *
  * This method is sent from the server to the client to notify the client about the status of the server.
@@ -575,6 +602,7 @@ export type DidChangeStatusParams = {
 export type Status = "notInitialized" | "ready" | "disconnected" | "unauthorized" | "finalized";
 
 /**
+ * @deprecated See {@link StatusRequest}
  * [Tabby] Status Request(↩️)
  *
  * This method is sent from the client to the server to check the current status of the server.
@@ -589,6 +617,7 @@ export namespace AgentStatusRequest {
 }
 
 /**
+ * @deprecated See {@link StatusDidChangeNotification}
  * [Tabby] DidUpdateIssue Notification(⬅️)
  *
  * This method is sent from the server to the client to notify the client about the current issues.
@@ -611,6 +640,7 @@ export type IssueList = {
 export type IssueName = "slowCompletionResponseTime" | "highCompletionTimeoutRate" | "connectionFailed";
 
 /**
+ * @deprecated See {@link StatusRequest}
  * [Tabby] Issues Request(↩️)
  *
  * This method is sent from the client to the server to check if there is any issue.
@@ -625,6 +655,7 @@ export namespace AgentIssuesRequest {
 }
 
 /**
+ * @deprecated See {@link StatusShowHelpMessageRequest}
  * [Tabby] Issue Detail Request(↩️)
  *
  * This method is sent from the client to the server to check the detail of an issue.
@@ -646,6 +677,139 @@ export type IssueDetailParams = {
 export type IssueDetailResult = {
   name: IssueName;
   helpMessage?: string;
+};
+
+/**
+ * [Tabby] Config Request(↩️)
+ *
+ * This method is sent from the client to the server to get the current configuration.
+ * - method: `tabby/config`
+ * - params: any, not used
+ * - result: {@link Config}
+ */
+export namespace ConfigRequest {
+  export const method = "tabby/config";
+  export const messageDirection = MessageDirection.clientToServer;
+  export const type = new ProtocolRequestType<LSPAny, Config, never, void, void>(method);
+}
+
+export type Config = {
+  server: {
+    endpoint: string;
+    token: string;
+    requestHeaders: Record<string, string | number | boolean | null | undefined>;
+  };
+};
+
+/**
+ * [Tabby] Config DidChange Notification(⬅️)
+ *
+ * This method is sent from the server to the client to notify the client of the configuration changes.
+ * - method: `tabby/config/didChange`
+ * - params: {@link Config}
+ * - result: void
+ */
+export namespace ConfigDidChangeNotification {
+  export const method = "tabby/config/didChange";
+  export const messageDirection = MessageDirection.serverToClient;
+  export const type = new ProtocolNotificationType<Config, void>(method);
+}
+
+/**
+ * [Tabby] Status Request(↩️)
+ *
+ * This method is sent from the client to the server to check the current status of the server.
+ * - method: `tabby/status`
+ * - params: {@link StatusRequestParams}
+ * - result: {@link StatusInfo}
+ */
+export namespace StatusRequest {
+  export const method = "tabby/status";
+  export const messageDirection = MessageDirection.clientToServer;
+  export const type = new ProtocolRequestType<StatusRequestParams, StatusInfo, never, void, void>(method);
+}
+
+export type StatusRequestParams = {
+  /**
+   * Forces a recheck of the connection to the Tabby server, and waiting for result.
+   */
+  recheckConnection?: boolean;
+};
+
+/**
+ * [Tabby] StatusInfo is used to display the status bar in the editor.
+ */
+export type StatusInfo = {
+  status:
+    | "notInitialized"
+    | "finalized"
+    | "connecting"
+    | "unauthorized"
+    | "disconnected"
+    | "ready"
+    | "readyForAutoTrigger"
+    | "readyForManualTrigger"
+    | "fetching"
+    | "completionResponseSlow";
+  tooltip?: string;
+  serverHealth?: Record<string, unknown>;
+  command?: StatusShowHelpMessageCommand | LspCommand;
+};
+
+/**
+ * [Tabby] Status DidChange Notification(⬅️)
+ *
+ * This method is sent from the server to the client to notify the client of the status changes.
+ * - method: `tabby/status/didChange`
+ * - params: {@link StatusInfo}
+ * - result: void
+ */
+export namespace StatusDidChangeNotification {
+  export const method = "tabby/status/didChange";
+  export const messageDirection = MessageDirection.serverToClient;
+  export const type = new ProtocolNotificationType<StatusInfo, void>(method);
+}
+
+/**
+ * [Tabby] Status Show Help Message Request(↩️)
+ *
+ * This method is sent from the client to the server to request to show the help message for the current status.
+ * The server will callback client to show request using ShowMessageRequest (`window/showMessageRequest`).
+ * - method: `tabby/status/showHelpMessage`
+ * - params: any, not used
+ * - result: boolean
+ */
+export namespace StatusShowHelpMessageRequest {
+  export const method = "tabby/status/showHelpMessage";
+  export const messageDirection = MessageDirection.clientToServer;
+  export const type = new ProtocolRequestType<LSPAny, boolean, never, void, void>(method);
+}
+
+export type StatusShowHelpMessageCommand = LspCommand & {
+  title: string;
+  command: "tabby/status/showHelpMessage";
+  arguments: [LSPAny];
+};
+
+/**
+ * [Tabby] Status Ignored Issues Edit Request(↩️)
+ *
+ * This method is sent from the client to the server to add or remove the issues that marked as ignored.
+ * - method: `tabby/status/ignoredIssues/edit`
+ * - params: {@link StatusIgnoredIssuesEditParams}
+ * - result: boolean
+ */
+export namespace StatusIgnoredIssuesEditRequest {
+  export const method = "tabby/status/ignoredIssues/edit";
+  export const messageDirection = MessageDirection.clientToServer;
+  export const type = new ProtocolRequestType<StatusIgnoredIssuesEditParams, boolean, never, void, void>(method);
+}
+
+export type StatusIssuesName = "completionResponseSlow";
+
+export type StatusIgnoredIssuesEditParams = {
+  operation: "add" | "remove" | "removeAll";
+  issues: StatusIssuesName | StatusIssuesName[];
 };
 
 /**

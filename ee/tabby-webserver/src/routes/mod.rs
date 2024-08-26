@@ -1,4 +1,3 @@
-mod answer;
 mod hub;
 mod oauth;
 mod repositories;
@@ -31,7 +30,7 @@ pub fn create(
     ctx: Arc<dyn ServiceLocator>,
     api: Router,
     ui: Router,
-    answer: Option<Arc<AnswerService>>,
+    _answer: Option<Arc<AnswerService>>,
 ) -> (Router, Router) {
     let schema = Arc::new(create_schema());
 
@@ -39,15 +38,6 @@ pub fn create(
         "/v1beta/server_setting",
         routing::get(server_setting).with_state(ctx.clone()),
     );
-
-    let api = if let Some(answer) = answer {
-        api.route(
-            "/v1beta/answer",
-            routing::post(answer::answer).with_state(answer),
-        )
-    } else {
-        api.route("/v1beta/answer", routing::post(StatusCode::NOT_IMPLEMENTED))
-    };
 
     let api = api
         // Routes before `distributed_tabby_layer` are protected by authentication middleware for following routes:
@@ -159,21 +149,17 @@ async fn avatar(
 
 #[async_trait::async_trait]
 impl FromAuth<Arc<dyn ServiceLocator>> for tabby_schema::Context {
-    async fn build(
-        locator: Arc<dyn ServiceLocator>,
-        token: Option<String>,
-        allow_auth_token: bool,
-    ) -> Self {
+    async fn build(locator: Arc<dyn ServiceLocator>, token: Option<String>) -> Self {
         let claims = if let Some(token) = token {
             let mut claims = validate_jwt(&token).ok();
 
-            if claims.is_none() && allow_auth_token {
+            if claims.is_none() {
                 claims = locator
                     .auth()
                     .verify_auth_token(&token)
                     .await
                     .ok()
-                    .map(generate_jwt_payload);
+                    .map(|id| generate_jwt_payload(id, true));
             }
 
             claims
