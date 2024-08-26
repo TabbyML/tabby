@@ -1,3 +1,7 @@
 .text-area-autosize::-webkit-scrollbar {
   display: none;
 }
+
+li > * {
+  vertical-align: top;
+}
