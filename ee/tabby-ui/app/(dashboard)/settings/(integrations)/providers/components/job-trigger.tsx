@@ -11,16 +11,19 @@ import {
 } from '@/components/ui/tooltip'
 
 interface JobInfoProps {
-  jobInfo: {
-    command: string
-    lastJobRun?: {
-      id: string
-      job: string
-      createdAt: any
-      finishedAt?: any | null
-      exitCode?: number | null
-    } | null
-  }
+  jobInfo:
+    | {
+        command: string
+        lastJobRun?: {
+          id: string
+          job: string
+          createdAt: any
+          finishedAt?: any | null
+          exitCode?: number | null
+        } | null
+      }
+    | undefined
+    | null
   onTrigger: () => Promise<any>
 }
 

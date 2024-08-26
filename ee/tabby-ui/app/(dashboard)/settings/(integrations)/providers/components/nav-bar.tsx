@@ -66,7 +66,9 @@ export default function NavBar({ className }: { className?: string }) {
           Beta
         </Badge>
       </SidebarButton>
-      <SidebarButton href="/settings/providers/doc">Preset Docs</SidebarButton>
+      <SidebarButton href="/settings/providers/doc/preset">
+        Preset Docs
+      </SidebarButton>
     </div>
   )
 }
@@ -74,6 +76,11 @@ export default function NavBar({ className }: { className?: string }) {
 function SidebarButton({ href, children }: SidebarButtonProps) {
   const pathname = usePathname()
   const isSelected = React.useMemo(() => {
+    const docPathname = '/settings/providers/doc'
+    if (pathname?.startsWith(docPathname)) {
+      return href.startsWith(docPathname)
+    }
+
     const matcher = pathname.match(/^(\/settings\/providers\/[\w-]+)/)?.[1]
     return matcher === href
   }, [pathname, href])

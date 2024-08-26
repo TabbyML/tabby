@@ -1,26 +1,18 @@
 'use client'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
-import { PresetWebDocumentsQuery } from '@/lib/gql/generates/graphql'
+import { CustomWebDocumentsQuery } from '@/lib/gql/generates/graphql'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { useMutation } from '@/lib/tabby/gql'
 import { ArrayElementType } from '@/lib/types'
-import { Button } from '@/components/ui/button'
-import { IconClose, IconListFilter } from '@/components/ui/icons'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { IconClose, IconListFilter, IconTrash } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import {
   Table,
   TableBody,
@@ -35,25 +27,24 @@ import { JobInfoView } from '../../components/job-trigger'
 import { triggerJobRunMutation } from '../../query'
 import { TypeFilter } from './type-filter'
 
-const listPresetWebDocuments = graphql(/* GraphQL */ `
-  query PresetWebDocuments(
+const listCustomWebDocuments = graphql(/* GraphQL */ `
+  query CustomWebDocuments(
     $after: String
     $before: String
     $first: Int
     $last: Int
-    $isActive: Boolean!
   ) {
-    presetWebDocuments(
+    customWebDocuments(
       after: $after
       before: $before
       first: $first
       last: $last
-      isActive: $isActive
     ) {
       edges {
         node {
-          id
+          url
           name
+          id
           jobInfo {
             lastJobRun {
               id
@@ -77,34 +68,49 @@ const listPresetWebDocuments = graphql(/* GraphQL */ `
   }
 `)
 
-const setPresetDocumentActiveMutation = graphql(/* GraphQL */ `
-  mutation SetPresetDocumentActive($input: SetPresetDocumentActiveInput!) {
-    setPresetDocumentActive(input: $input)
+const deleteCustomWebDocumentMutation = graphql(/* GraphQL */ `
+  mutation DeleteCustomDocument($id: ID!) {
+    deleteCustomDocument(id: $id)
   }
 `)
 
 type ListItem = ArrayElementType<
-  PresetWebDocumentsQuery['presetWebDocuments']['edges']
-> & {
-  isActive: boolean
-}
+  CustomWebDocumentsQuery['customWebDocuments']['edges']
+>
 
-export default function PresetDocument() {
-  const [isActive, setIsActive] = useState('0')
+export default function CustomDocument() {
   const [filterPattern, setFilterPattern] = useState<string | undefined>()
   const [debouncedFilterPattern] = useDebounceValue(filterPattern, 200)
   const [list, setList] = useState<ListItem[] | undefined>()
-  const [loadingNames, setLoadingNames] = useState<Set<string>>(new Set())
   const inputRef = useRef<HTMLInputElement>(null)
-
-  const [{ data, stale }] = useQuery({
-    query: listPresetWebDocuments,
-    variables: {
-      isActive: isActive === '1'
-    }
+  const [{ fetching, data, stale }] = useQuery({
+    query: listCustomWebDocuments
   })
 
-  const setPresetDocumentActive = useMutation(setPresetDocumentActiveMutation)
+  const clearFilter = () => {
+    setFilterPattern('')
+    inputRef.current?.focus()
+  }
+
+  const deleteCustomWebDocument = useMutation(deleteCustomWebDocumentMutation)
+
+  const handleDeleteCustomDoc = (id: string) => {
+    deleteCustomWebDocument({
+      id
+    })
+      .then(res => {
+        if (!res?.data?.deleteCustomDocument) {
+          const errorMessage = res?.error?.message || 'Failed to delete'
+          toast.error(errorMessage)
+        } else {
+          setList(l => l?.filter(o => o.node.id !== id))
+        }
+      })
+      .catch(e => {
+        const errorMessage = e?.message || 'Failed to delete'
+        toast.error(errorMessage)
+      })
+  }
 
   const triggerJobRun = useMutation(triggerJobRunMutation)
   const handleTriggerJobRun = (command: string) => {
@@ -120,72 +126,8 @@ export default function PresetDocument() {
     })
   }
 
-  const onCheckedChange = (name: string, checked: boolean) => {
-    if (loadingNames.has(name)) return
-
-    setLoadingNames(prev => {
-      const nextSet = new Set(prev)
-      nextSet.add(name)
-      return nextSet
-    })
-
-    // optimistic update
-    setList(l =>
-      l?.map(o => {
-        if (o.node.name === name) {
-          return {
-            ...o,
-            isActive: checked
-          }
-        }
-        return o
-      })
-    )
-
-    setPresetDocumentActive({
-      input: {
-        name,
-        active: checked
-      }
-    })
-      .then(res => {
-        if (!res?.data?.setPresetDocumentActive) {
-          const errorMessage = res?.error?.message ?? 'Failed to update'
-          toast.error(errorMessage)
-          setList(l =>
-            l?.map(o => {
-              if (o.node.name !== name) {
-                return o
-              }
-              return {
-                ...o,
-                isActive: !checked
-              }
-            })
-          )
-        }
-      })
-      .finally(() => {
-        setLoadingNames(prev => {
-          const nextSet = new Set(prev)
-          nextSet.delete(name)
-          return nextSet
-        })
-      })
-  }
-
-  const clearFilter = () => {
-    setFilterPattern('')
-    inputRef.current?.focus()
-  }
-
   useEffect(() => {
-    setList(
-      data?.presetWebDocuments?.edges?.map(o => ({
-        ...o,
-        isActive: isActive === '1'
-      }))
-    )
+    setList(data?.customWebDocuments?.edges)
   }, [data])
 
   const filteredList = useMemo(() => {
@@ -200,19 +142,8 @@ export default function PresetDocument() {
   return (
     <>
       <div className="my-4 flex justify-between">
-        <TypeFilter type="preset" />
+        <TypeFilter type="custom" />
         <div className="flex items-center gap-4">
-          <Select value={isActive} onValueChange={setIsActive}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent align="end">
-              <SelectGroup>
-                <SelectItem value="1">Active</SelectItem>
-                <SelectItem value="0">Inactive</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
           <div className="relative">
             <IconListFilter
               className="text-muted-foreground absolute left-3 top-2.5 cursor-text"
@@ -235,21 +166,25 @@ export default function PresetDocument() {
               </Button>
             ) : null}
           </div>
+          <Link href={`./custom/new`} className={buttonVariants()}>
+            Create
+          </Link>
         </div>
       </div>
-      <LoadingWrapper loading={!data || stale}>
+      <LoadingWrapper loading={fetching || stale}>
         <Table className="table-fixed border-b">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[70%]">Name</TableHead>
+              <TableHead className="w-[30%]">Name</TableHead>
+              <TableHead className="w-[40%]">URL</TableHead>
               <TableHead>Job</TableHead>
-              <TableHead className="w-[100px] text-right">Active</TableHead>
+              <TableHead className="w-[100px] text-right"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!filteredList?.length ? (
+            {!filteredList?.length && !fetching ? (
               <TableRow>
-                <TableCell colSpan={3} className="h-[100px] text-center">
+                <TableCell colSpan={4} className="h-[100px] text-center">
                   {!list?.length ? 'No data' : 'No matches data'}
                 </TableCell>
               </TableRow>
@@ -261,25 +196,27 @@ export default function PresetDocument() {
                       <TableCell className="break-all lg:break-words">
                         {x.node.name}
                       </TableCell>
+                      <TableCell className="break-all lg:break-words">
+                        {x.node.url}
+                      </TableCell>
                       <TableCell>
-                        {x.isActive ? (
-                          <JobInfoView
-                            jobInfo={x.node.jobInfo}
-                            onTrigger={async () => {
-                              if (x.node?.jobInfo?.command) {
-                                handleTriggerJobRun(x.node?.jobInfo.command)
-                              }
-                            }}
-                          />
-                        ) : null}
+                        <JobInfoView
+                          jobInfo={x.node.jobInfo}
+                          onTrigger={async () => {
+                            if (x.node?.jobInfo?.command) {
+                              handleTriggerJobRun(x.node?.jobInfo.command)
+                            }
+                          }}
+                        />
                       </TableCell>
                       <TableCell className="text-right">
-                        <Switch
-                          checked={x.isActive}
-                          onCheckedChange={checked =>
-                            onCheckedChange(x.node.name, checked)
-                          }
-                        />
+                        <Button
+                          size="icon"
+                          variant="hover-destructive"
+                          onClick={() => handleDeleteCustomDoc(x.node.id)}
+                        >
+                          <IconTrash />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   )
