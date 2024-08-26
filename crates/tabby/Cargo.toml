@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 homepage.workspace = true
+default-run = "tabby"
 
 [features]
 default = ["ee", "llama-cpp-server/binary"]
