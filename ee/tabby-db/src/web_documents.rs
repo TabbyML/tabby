@@ -19,12 +19,22 @@ pub struct WebDocumentDAO {
 impl DbConn {
     pub async fn list_web_documents(
         &self,
+        names: Option<Vec<String>>,
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
         is_preset: bool,
     ) -> Result<Vec<WebDocumentDAO>> {
-        let condition = Some(format!("is_preset={}", is_preset));
+        let mut condition = format!("is_preset={}", is_preset);
+        if let Some(names) = names {
+            let names = names
+                .into_iter()
+                .map(|s| "\"".to_string() + s.as_str() + "\"")
+                .collect::<Vec<_>>()
+                .join(",");
+            condition += &format!(" AND name in ({names})");
+        }
+        let condition = Some(condition);
 
         let urls = query_paged_as!(
             WebDocumentDAO,

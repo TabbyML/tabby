@@ -46,6 +46,7 @@ struct WebDocumentServiceImpl {
 impl WebDocumentService for WebDocumentServiceImpl {
     async fn list_custom_web_documents(
         &self,
+        names: Option<Vec<String>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
@@ -54,7 +55,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let urls = self
             .db
-            .list_web_documents(limit, skip_id, backwards, false)
+            .list_web_documents(names, limit, skip_id, backwards, false)
             .await?;
 
         let mut converted_urls = vec![];
@@ -105,6 +106,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
 
     async fn list_preset_web_documents(
         &self,
+        names: Option<Vec<String>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
@@ -114,7 +116,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let urls = self
             .db
-            .list_web_documents(limit, skip_id, backwards, true)
+            .list_web_documents(names, limit, skip_id, backwards, true)
             .await?;
 
         let mut converted_urls = vec![];
@@ -145,6 +147,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
                     name: name.clone(),
                     job_info: None,
                     updated_at: None,
+                    is_active: false,
                 });
             }
         }
@@ -199,6 +202,7 @@ fn to_preset_web_document(value: WebDocumentDAO, job_info: JobInfo) -> PresetWeb
         name: value.name,
         job_info: Some(job_info),
         updated_at: Some(value.updated_at),
+        is_active: true,
     }
 }
 #[cfg(test)]
@@ -226,7 +230,7 @@ mod tests {
         db.create_job_run("web".into(), command).await.unwrap();
 
         let urls = service
-            .list_custom_web_documents(None, None, None, None)
+            .list_custom_web_documents(None, None, None, None, None)
             .await
             .unwrap();
 
@@ -245,14 +249,14 @@ mod tests {
 
         db.create_job_run("preset".into(), command).await.unwrap();
         let urls = service
-            .list_preset_web_documents(None, None, None, None, true)
+            .list_preset_web_documents(None, None, None, None, None, true)
             .await
             .unwrap();
 
         assert_eq!(1, urls.len());
         assert!(urls[0].updated_at.is_some());
         let urls = service
-            .list_preset_web_documents(None, None, None, None, false)
+            .list_preset_web_documents(None, None, None, None, None, false)
             .await
             .unwrap();
 
@@ -262,17 +266,42 @@ mod tests {
             .await
             .unwrap();
         let urls = service
-            .list_preset_web_documents(None, None, None, None, false)
+            .list_preset_web_documents(None, None, None, None, None, false)
             .await
             .unwrap();
         assert_eq!(384, urls.len());
 
         service.delete_custom_web_document(id).await.unwrap();
         let urls = service
-            .list_custom_web_documents(None, None, None, None)
+            .list_custom_web_documents(None, None, None, None, None)
             .await
             .unwrap();
 
         assert_eq!(0, urls.len());
+
+        let _ = service
+            .create_custom_web_document("example1".to_string(), "https://example1.com".to_string())
+            .await
+            .unwrap();
+        let _ = service
+            .create_custom_web_document("example2".to_string(), "https://example2.com".to_string())
+            .await
+            .unwrap();
+        let _ = service
+            .create_custom_web_document("example3".to_string(), "https://example3.com".to_string())
+            .await
+            .unwrap();
+
+        let urls = service
+            .list_custom_web_documents(
+                Some(vec!["example2".to_string(), "example3".to_string()]),
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        assert_eq!(2, urls.len());
     }
 }

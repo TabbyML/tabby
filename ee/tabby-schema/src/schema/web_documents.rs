@@ -26,6 +26,7 @@ pub struct PresetWebDocument {
     pub updated_at: Option<DateTime<Utc>>,
     /// `job_info` is only filled when the preset is active.
     pub job_info: Option<JobInfo>,
+    pub is_active: bool,
 }
 
 impl CustomWebDocument {
@@ -97,6 +98,7 @@ impl NodeType for PresetWebDocument {
 pub trait WebDocumentService: Send + Sync {
     async fn list_custom_web_documents(
         &self,
+        names: Option<Vec<String>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
@@ -107,6 +109,7 @@ pub trait WebDocumentService: Send + Sync {
     async fn delete_custom_web_document(&self, id: ID) -> Result<()>;
     async fn list_preset_web_documents(
         &self,
+        names: Option<Vec<String>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
