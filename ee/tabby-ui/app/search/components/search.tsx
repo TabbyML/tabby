@@ -1222,13 +1222,11 @@ function Header({ threadId }: { threadId?: string }) {
           </>
         )}
         <ClientOnly>
-          <ThemeToggle />
+          <ThemeToggle className="mr-4" />
         </ClientOnly>
-        <div className="ml-2">
-          <UserPanel showHome={false} showSetting>
-            <UserAvatar className="h-10 w-10 border" />
-          </UserPanel>
-        </div>
+        <UserPanel showHome={false} showSetting>
+          <UserAvatar className="h-10 w-10 border" />
+        </UserPanel>
       </div>
     </header>
   )
