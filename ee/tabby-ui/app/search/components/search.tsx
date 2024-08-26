@@ -399,7 +399,9 @@ export function Search() {
 
     let newMessages = [...messages]
     const newThreadId = answer?.threadCreated
-    if (!!newThreadId && !threadId) {
+
+    // Update the URL pattern after the streaming is completed.
+    if (answer?.threadAssistantMessageCompleted && !!newThreadId && !threadId) {
       updateURLPattern(newThreadId)
       return
     }
