@@ -87,7 +87,7 @@ impl IndexSchema {
         let mut builder = Schema::builder();
 
         let field_corpus = builder.add_text_field("corpus", STRING | FAST);
-        let field_source_id = builder.add_text_field(FIELD_SOURCE_ID, STRING | FAST);
+        let field_source_id = builder.add_text_field(FIELD_SOURCE_ID, STRING | FAST | STORED);
         let field_id = builder.add_text_field("id", STRING | STORED);
 
         let field_updated_at = builder.add_date_field(FIELD_UPDATED_AT, INDEXED);

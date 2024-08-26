@@ -209,6 +209,7 @@ impl From<ThreadMessageAttachmentCode> for thread::MessageAttachmentCode {
             language: value.language,
             content: value.content,
             start_line: value.start_line as i32,
+            source_id: value.source_id,
         }
     }
 }
@@ -221,6 +222,7 @@ impl From<&thread::MessageAttachmentCode> for ThreadMessageAttachmentCode {
             language: val.language.clone(),
             content: val.content.clone(),
             start_line: val.start_line as usize,
+            source_id: val.source_id.clone(),
         }
     }
 }

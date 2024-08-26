@@ -61,6 +61,7 @@ pub struct MessageAttachmentClientCode {
 #[derive(GraphQLObject, Clone)]
 pub struct MessageAttachmentCode {
     pub git_url: String,
+    pub source_id: String,
     pub filepath: String,
     pub language: String,
     pub content: String,
@@ -71,6 +72,7 @@ impl From<CodeSearchDocument> for MessageAttachmentCode {
     fn from(doc: CodeSearchDocument) -> Self {
         Self {
             git_url: doc.git_url,
+            source_id: doc.source_id,
             filepath: doc.filepath,
             language: doc.language,
             content: doc.body,

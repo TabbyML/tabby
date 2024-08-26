@@ -213,6 +213,7 @@ fn create_hit(scores: CodeSearchScores, doc: TantivyDocument) -> CodeSearchHit {
             schema.field_chunk_attributes,
             code::fields::CHUNK_START_LINE,
         ) as usize,
+        source_id: get_text(&doc, schema.field_source_id).to_owned(),
     };
     CodeSearchHit { scores, doc }
 }
