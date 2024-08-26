@@ -215,7 +215,7 @@ export default function PresetDocument() {
           </Select>
           <div className="relative">
             <IconListFilter
-              className="text-muted-foreground absolute left-3 top-2.5 cursor-text"
+              className="absolute left-3 top-2.5 cursor-text text-muted-foreground"
               onClick={() => inputRef.current?.focus()}
             />
             <Input
@@ -228,7 +228,7 @@ export default function PresetDocument() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 cursor-pointer absolute right-3 top-1.5"
+                className="absolute right-3 top-1.5 h-6 w-6 cursor-pointer"
                 onClick={clearFilter}
               >
                 <IconClose />

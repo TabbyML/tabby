@@ -146,7 +146,7 @@ export default function CustomDocument() {
         <div className="flex items-center gap-4">
           <div className="relative">
             <IconListFilter
-              className="text-muted-foreground absolute left-3 top-2.5 cursor-text"
+              className="absolute left-3 top-2.5 cursor-text text-muted-foreground"
               onClick={() => inputRef.current?.focus()}
             />
             <Input
@@ -159,7 +159,7 @@ export default function CustomDocument() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 cursor-pointer absolute right-3 top-1.5"
+                className="absolute right-3 top-1.5 h-6 w-6 cursor-pointer"
                 onClick={clearFilter}
               >
                 <IconClose />
