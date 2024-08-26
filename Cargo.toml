@@ -13,6 +13,7 @@ members = [
     "crates/http-api-bindings",
     "crates/llama-cpp-server",
     "crates/ollama-api-bindings",
+    "crates/tabby-index-cli",
 
     "ee/tabby-webserver",
     "ee/tabby-db",
@@ -67,6 +68,7 @@ insta = "1.34.0"
 logkit = "0.3"
 async-openai = "0.20"
 tracing-test = "0.2"
+clap = "4.3.0"
 
 [workspace.dependencies.uuid]
 version = "1.3.3"
