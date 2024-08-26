@@ -1,10 +1,16 @@
 import { EventEmitter } from "events";
 import { workspace, ExtensionContext, WorkspaceConfiguration, ConfigurationTarget, Memento } from "vscode";
 import { ClientProvidedConfig } from "tabby-agent";
+import { getLogger } from "./logger";
 
 interface AdvancedSettings {
   "inlineCompletion.triggerMode"?: "automatic" | "manual";
   "chatEdit.history"?: number;
+}
+
+export interface PastServerConfig {
+  endpoint: string;
+  token: string | null;
 }
 
 export class Config extends EventEmitter {
@@ -25,7 +31,7 @@ export class Config extends EventEmitter {
     );
   }
 
-  get workspace(): WorkspaceConfiguration {
+  private get workspace(): WorkspaceConfiguration {
     return workspace.getConfiguration("tabby");
   }
 
@@ -68,7 +74,7 @@ export class Config extends EventEmitter {
     }
   }
 
-  get chatEditHistory(): number {
+  get maxChatEditHistory(): number {
     const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
     const numHistory = advancedSettings["chatEdit.history"] === undefined ? 20 : advancedSettings["chatEdit.history"];
     if (numHistory < 0) {
@@ -80,8 +86,8 @@ export class Config extends EventEmitter {
     }
   }
 
-  set chatEditHistory(value: number) {
-    if (value != this.chatEditHistory) {
+  set maxChatEditHistory(value: number) {
+    if (value != this.maxChatEditHistory) {
       const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
       const updateValue = { ...advancedSettings, "chatEdit.history": value };
       this.workspace.update("settings.advanced", updateValue, ConfigurationTarget.Global);
@@ -124,6 +130,27 @@ export class Config extends EventEmitter {
     this.memento.update("edit.recentlyCommand", value);
   }
 
+  get pastServerConfigs(): PastServerConfig[] {
+    return this.memento.get("server.pastServerConfigs", []);
+  }
+
+  async appendPastServerConfig(config: PastServerConfig) {
+    getLogger().info("appending config", config.endpoint);
+    const pastConfigs = this.pastServerConfigs.filter((c) => c.endpoint !== config.endpoint);
+    const newPastConfigs = [config, ...pastConfigs.slice(0, 4)];
+    await this.memento.update("server.pastServerConfigs", newPastConfigs);
+  }
+
+  async removePastServerConfigByApiEndpoint(apiEndpoint: string) {
+    const pastConfigs = this.pastServerConfigs.filter((c) => c.endpoint !== apiEndpoint);
+    await this.memento.update("server.pastServerConfigs", pastConfigs);
+  }
+
+  async restoreServerConfig(config: PastServerConfig) {
+    await this.memento.update("server.token", config.token);
+    this.serverEndpoint = config.endpoint;
+  }
+
   get httpConfig() {
     return workspace.getConfiguration("http");
   }
@@ -161,11 +188,11 @@ export class Config extends EventEmitter {
     return this.httpConfig.get("proxySupport") !== "off";
   }
 
-  // Note: current we only support http.proxy | http.authorization
-  // As for `http.proxySupport`, we only support 'on' | 'off',
-  // More properties we will land later.
   buildClientProvidedConfig(): ClientProvidedConfig {
     return {
+      // Note: current we only support http.proxy | http.authorization
+      // As for `http.proxySupport`, we only support 'on' | 'off',
+      // More properties we will land later.
       proxy: {
         enabled: this.enabled,
         url: this.url,

@@ -1,4 +1,4 @@
-import { Range, Location, Connection, CancellationToken } from "vscode-languageserver";
+import { Range, Location, Connection, CancellationToken, WorkspaceEdit } from "vscode-languageserver";
 import {
   ChatEditToken,
   ChatEditRequest,
@@ -12,6 +12,8 @@ import {
   ChatEditDocumentTooLongError,
   ChatEditCommandTooLongError,
   ChatEditMutexError,
+  ApplyWorkspaceEditRequest,
+  ApplyWorkspaceEditParams,
 } from "./protocol";
 import { TextDocuments } from "./TextDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -229,7 +231,8 @@ export class ChatEditProvider {
         }
       }
     });
-    await this.connection.workspace.applyEdit({
+
+    await this.applyWorkspaceEdit({
       edit: {
         changes: {
           [params.location.uri]: [
@@ -240,6 +243,10 @@ export class ChatEditProvider {
           ],
         },
       },
+      options: {
+        undoStopBefore: false,
+        undoStopAfter: false,
+      },
     });
     return true;
   }
@@ -249,121 +256,130 @@ export class ChatEditProvider {
     responseDocumentTag: string[],
     responseCommentTag?: string[],
   ): Promise<void> {
-    const finalize = async (state: "completed" | "stopped") => {
-      if (this.currentEdit) {
-        const edit = this.currentEdit;
-        edit.state = state;
-        const editedLines = this.generateChangesPreview(edit);
-        await this.connection.workspace.applyEdit({
-          edit: {
-            changes: {
-              [edit.location.uri]: [
-                {
-                  range: edit.editedRange,
-                  newText: editedLines.join("\n") + "\n",
-                },
-              ],
+    const applyEdit = async (edit: Edit, isFirst: boolean = false, isLast: boolean = false) => {
+      const editedLines = this.generateChangesPreview(edit);
+      const workspaceEdit: WorkspaceEdit = {
+        changes: {
+          [edit.location.uri]: [
+            {
+              range: edit.editedRange,
+              newText: editedLines.join("\n") + "\n",
             },
-          },
-        });
-      }
-      this.currentEdit = null;
-      this.mutexAbortController = null;
+          ],
+        },
+      };
+
+      await this.applyWorkspaceEdit({
+        edit: workspaceEdit,
+        options: {
+          undoStopBefore: isFirst,
+          undoStopAfter: isLast,
+        },
+      });
+
+      edit.editedRange = {
+        start: { line: edit.editedRange.start.line, character: 0 },
+        end: { line: edit.editedRange.start.line + editedLines.length, character: 0 },
+      };
     };
+
+    const processBuffer = (edit: Edit, inTag: "document" | "comment", openTag: string, closeTag: string) => {
+      if (edit.buffer.startsWith(openTag)) {
+        edit.buffer = edit.buffer.substring(openTag.length);
+      }
+
+      const reg = this.createCloseTagMatcher(closeTag);
+      const match = reg.exec(edit.buffer);
+      if (!match) {
+        edit[inTag === "document" ? "editedText" : "comments"] += edit.buffer;
+        edit.buffer = "";
+      } else {
+        edit[inTag === "document" ? "editedText" : "comments"] += edit.buffer.substring(0, match.index);
+        edit.buffer = edit.buffer.substring(match.index);
+        return match[0] === closeTag ? false : inTag;
+      }
+      return inTag;
+    };
+    const findOpenTag = (
+      buffer: string,
+      responseDocumentTag: string[],
+      responseCommentTag?: string[],
+    ): "document" | "comment" | false => {
+      const openTags = [responseDocumentTag[0], responseCommentTag?.[0]].filter(Boolean);
+      if (openTags.length < 1) return false;
+
+      const reg = new RegExp(openTags.join("|"), "g");
+      const match = reg.exec(buffer);
+      if (match && match[0]) {
+        if (match[0] === responseDocumentTag[0]) {
+          return "document";
+        } else if (match[0] === responseCommentTag?.[0]) {
+          return "comment";
+        }
+      }
+      return false;
+    };
+
     try {
       let inTag: "document" | "comment" | false = false;
+      let isFirstEdit = true;
+
       for await (const delta of stream) {
         if (!this.currentEdit || !this.mutexAbortController || this.mutexAbortController.signal.aborted) {
           break;
         }
-        let changed = false;
+
         const edit = this.currentEdit;
         edit.buffer += delta;
+
         if (!inTag) {
-          const openTags = [responseDocumentTag[0], responseCommentTag?.[0]].filter(Boolean);
-          if (openTags.length < 1) {
-            break;
-          }
-          const reg = new RegExp(openTags.join("|"), "g");
-          const match = reg.exec(edit.buffer);
-          if (match && match[0]) {
-            if (match[0] === responseDocumentTag[0]) {
-              inTag = "document";
-              edit.buffer = edit.buffer.substring(match.index + match[0].length);
-            } else if (match[0] === responseCommentTag?.[0]) {
-              inTag = "comment";
-              edit.buffer = edit.buffer.substring(match.index + match[0].length);
-            }
-          }
+          inTag = findOpenTag(edit.buffer, responseDocumentTag, responseCommentTag);
         }
+
         if (inTag) {
-          let closeTag: string | undefined = undefined;
-          if (inTag === "document") {
-            closeTag = responseDocumentTag[1];
-          } else if (inTag === "comment") {
-            closeTag = responseCommentTag?.[1];
-          }
-          if (!closeTag) {
-            break;
-          }
-          const reg = this.createCloseTagMatcher(closeTag);
-          const match = reg.exec(edit.buffer);
-          if (!match) {
-            if (inTag === "document") {
-              edit.editedText += edit.buffer;
-            } else if (inTag === "comment") {
-              edit.comments += edit.buffer;
-            }
-            edit.buffer = "";
-          } else {
-            if (inTag === "document") {
-              edit.editedText += edit.buffer.substring(0, match.index);
-            } else if (inTag === "comment") {
-              edit.comments += edit.buffer.substring(0, match.index);
-            }
-            edit.buffer = edit.buffer.substring(match.index);
-            if (match[0] === closeTag) {
-              inTag = false;
-            }
-          }
-          changed = true;
+          const openTag = inTag === "document" ? responseDocumentTag[0] : responseCommentTag?.[0];
+          const closeTag = inTag === "document" ? responseDocumentTag[1] : responseCommentTag?.[1];
+          if (!closeTag || !openTag) break;
+          inTag = processBuffer(edit, inTag, openTag, closeTag);
+          await applyEdit(edit, isFirstEdit, false);
+          isFirstEdit = false;
         }
-        if (changed) {
-          const editedLines = this.generateChangesPreview(edit);
-          await this.connection.workspace.applyEdit({
-            edit: {
-              changes: {
-                [edit.location.uri]: [
-                  {
-                    range: edit.editedRange,
-                    newText: editedLines.join("\n") + "\n",
-                  },
-                ],
-              },
-            },
-          });
-          edit.editedRange = {
-            start: {
-              line: edit.editedRange.start.line,
-              character: 0,
-            },
-            end: {
-              line: edit.editedRange.start.line + editedLines.length,
-              character: 0,
-            },
-          };
-        }
+      }
+
+      if (this.currentEdit) {
+        this.currentEdit.state = "completed";
+        await applyEdit(this.currentEdit, false, true);
       }
     } catch (error) {
-      await finalize("stopped");
-      // FIXME(@icycodes): use openai for nodejs instead of tabby-openapi schema
-      if (error instanceof TypeError && error.message.startsWith("terminated")) {
-        // ignore server side close error
-      } else {
+      if (this.currentEdit) {
+        this.currentEdit.state = "stopped";
+        await applyEdit(this.currentEdit, false, true);
+      }
+      if (!(error instanceof TypeError && error.message.startsWith("terminated"))) {
         throw error;
       }
+    } finally {
+      this.currentEdit = null;
+      this.mutexAbortController = null;
     }
-    await finalize("completed");
+  }
+
+  private async applyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<boolean> {
+    try {
+      //TODO(Sma1lboy): adding client capabilities to indicate if client support this method rather than try-catch
+      const result = await this.connection.sendRequest(ApplyWorkspaceEditRequest.type, params);
+      return result;
+    } catch (error) {
+      try {
+        await this.connection.workspace.applyEdit({
+          edit: params.edit,
+          label: params.label,
+        });
+        return true;
+      } catch (fallbackError) {
+        return false;
+      }
+    }
   }
 
   // header line

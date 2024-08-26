@@ -20,7 +20,7 @@ import path from "path";
 import { strict as assert } from "assert";
 import { ChatEditCommand } from "tabby-agent";
 import { Client } from "./lsp/Client";
-import { Config } from "./Config";
+import { Config, PastServerConfig } from "./Config";
 import { ContextVariables } from "./ContextVariables";
 import { InlineCompletionProvider } from "./InlineCompletionProvider";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
@@ -302,7 +302,7 @@ export class Commands {
         },
       };
       //ensure max length
-      const recentlyCommand = this.config.chatEditRecentlyCommand.slice(0, this.config.chatEditHistory);
+      const recentlyCommand = this.config.chatEditRecentlyCommand.slice(0, this.config.maxChatEditHistory);
       const suggestedCommand: ChatEditCommand[] = [];
       const quickPick = window.createQuickPick<QuickPickItem & { value: string }>();
 
@@ -373,7 +373,7 @@ export class Commands {
         if (command) {
           const updatedRecentlyCommand = [command]
             .concat(recentlyCommand.filter((item) => item !== command))
-            .slice(0, this.config.chatEditHistory);
+            .slice(0, this.config.maxChatEditHistory);
           this.config.chatEditRecentlyCommand = updatedRecentlyCommand;
 
           window.withProgress(
@@ -465,42 +465,43 @@ export class Commands {
       };
       await this.client.chat.resolveEdit({ location, action: "discard" });
     },
-    "chat.generateCommitMessage": async () => {
+    "chat.generateCommitMessage": async (repository?: Repository) => {
       const repos = this.gitProvider.getRepositories() ?? [];
       if (repos.length < 1) {
         window.showInformationMessage("No Git repositories found.");
         return;
       }
-      // Select repo
-      let selectedRepo: Repository | undefined = undefined;
-      if (repos.length == 1) {
-        selectedRepo = repos[0];
-      } else {
-        const selected = await window.showQuickPick(
-          repos
-            .map((repo) => {
-              const repoRoot = repo.rootUri.fsPath;
-              return {
-                label: path.basename(repoRoot),
-                detail: repoRoot,
-                iconPath: new ThemeIcon("repo"),
-                picked: repo.ui.selected,
-                alwaysShow: true,
-                value: repo,
-              };
-            })
-            .sort((a, b) => {
-              if (a.detail.startsWith(b.detail)) {
-                return 1;
-              } else if (b.detail.startsWith(a.detail)) {
-                return -1;
-              } else {
-                return a.label.localeCompare(b.label);
-              }
-            }),
-          { placeHolder: "Select a Git repository" },
-        );
-        selectedRepo = selected?.value;
+      let selectedRepo = repository;
+      if (!selectedRepo) {
+        if (repos.length == 1) {
+          selectedRepo = repos[0];
+        } else {
+          const selected = await window.showQuickPick(
+            repos
+              .map((repo) => {
+                const repoRoot = repo.rootUri.fsPath;
+                return {
+                  label: path.basename(repoRoot),
+                  detail: repoRoot,
+                  iconPath: new ThemeIcon("repo"),
+                  picked: repo.ui.selected,
+                  alwaysShow: true,
+                  value: repo,
+                };
+              })
+              .sort((a, b) => {
+                if (a.detail.startsWith(b.detail)) {
+                  return 1;
+                } else if (b.detail.startsWith(a.detail)) {
+                  return -1;
+                } else {
+                  return a.label.localeCompare(b.label);
+                }
+              }),
+            { placeHolder: "Select a Git repository" },
+          );
+          selectedRepo = selected?.value;
+        }
       }
       if (!selectedRepo) {
         return;
@@ -518,11 +519,45 @@ export class Commands {
             { repository: selectedRepo.rootUri.toString() },
             token,
           );
-          if (result) {
+          if (result && selectedRepo.inputBox) {
             selectedRepo.inputBox.value = result.commitMessage;
           }
         },
       );
+    },
+    "server.selectPastServerConfig": () => {
+      const configs = this.config.pastServerConfigs;
+      if (configs.length <= 0) return;
+
+      const quickPick = window.createQuickPick<QuickPickItem & PastServerConfig>();
+
+      quickPick.items = configs.map((x) => ({
+        ...x,
+        label: x.endpoint,
+        buttons: [
+          {
+            iconPath: new ThemeIcon("settings-remove"),
+          },
+        ],
+      }));
+
+      quickPick.onDidAccept(() => {
+        const item = quickPick.activeItems[0];
+        if (item) {
+          this.config.restoreServerConfig(item);
+        }
+
+        quickPick.hide();
+      });
+
+      quickPick.onDidTriggerItemButton((e) => {
+        if (!(e.button.iconPath instanceof ThemeIcon)) return;
+        if (e.button.iconPath.id === "settings-remove") {
+          this.config.removePastServerConfigByApiEndpoint(e.item.endpoint);
+        }
+      });
+
+      quickPick.show();
     },
   };
 }
