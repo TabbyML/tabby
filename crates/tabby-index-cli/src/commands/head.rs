@@ -15,9 +15,8 @@ pub struct HeadArgs {
 }
 
 pub fn run_head_cli(index_path: &Path, args: &HeadArgs) -> anyhow::Result<()> {
-    let index =
-        Index::open_in_dir(index_path)?;
-    
+    let index = Index::open_in_dir(index_path)?;
+
     let searcher = index.reader()?.searcher();
     let schema = IndexSchema::instance();
 
@@ -28,7 +27,9 @@ pub fn run_head_cli(index_path: &Path, args: &HeadArgs) -> anyhow::Result<()> {
         };
 
         let term_corpus = Term::from_field_text(schema.field_corpus, &args.corpus);
-        let Ok(Some(mut postings)) = inverted_index.read_postings(&term_corpus, tantivy::schema::IndexRecordOption::Basic) else {
+        let Ok(Some(mut postings)) =
+            inverted_index.read_postings(&term_corpus, tantivy::schema::IndexRecordOption::Basic)
+        else {
             continue;
         };
 
@@ -36,12 +37,13 @@ pub fn run_head_cli(index_path: &Path, args: &HeadArgs) -> anyhow::Result<()> {
         while doc_id != TERMINATED {
             if !segment_reader.is_deleted(doc_id) {
                 let doc_address = DocAddress::new(segment_ordinal as u32, doc_id);
-                let doc: TantivyDocument = searcher.doc(doc_address).expect("Failed to read document");
+                let doc: TantivyDocument =
+                    searcher.doc(doc_address).expect("Failed to read document");
 
                 let json = doc.to_json(&schema.schema);
 
                 println!("{}", json);
-                
+
                 count += 1;
                 if count >= args.num_docs {
                     break 'outer;

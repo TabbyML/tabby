@@ -1,7 +1,7 @@
 mod commands;
 mod timer;
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 use commands::{BenchArgs, HeadArgs};
@@ -22,7 +22,7 @@ struct Cli {
 pub enum Commands {
     Inspect,
     Bench(BenchArgs),
-    Head(HeadArgs)
+    Head(HeadArgs),
 }
 
 fn main() -> anyhow::Result<()> {
@@ -35,7 +35,7 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Bench(args) => {
             commands::run_bench_cli(&index_dir, &args).map_err(|e| anyhow::anyhow!("{}", e))?;
-        },
+        }
         Commands::Head(args) => {
             commands::run_head_cli(&index_dir, &args)?;
         }

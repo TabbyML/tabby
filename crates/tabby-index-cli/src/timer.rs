@@ -43,6 +43,7 @@ pub struct Timing {
 
 /// Timer tree
 #[derive(Debug, Serialize)]
+#[derive(Default)]
 pub struct TimerTree {
     timings: Vec<Timing>,
 }
@@ -64,13 +65,6 @@ impl TimerTree {
     }
 }
 
-impl Default for TimerTree {
-    fn default() -> TimerTree {
-        TimerTree {
-            timings: Vec::new(),
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {

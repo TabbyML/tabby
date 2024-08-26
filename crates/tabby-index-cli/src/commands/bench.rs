@@ -1,16 +1,19 @@
-use crate::timer::TimerTree;
+use std::{
+    fs::File,
+    io,
+    io::{BufRead, BufReader},
+    path::{Path, PathBuf},
+};
+
 use clap::Args;
-use std::fs::File;
-use std::io;
-use std::io::BufRead;
-use std::io::BufReader;
-use std::path::Path;
-use std::path::PathBuf;
-use tantivy::collector::{Count, TopDocs};
-use tantivy::query::QueryParser;
-use tantivy::schema::{Field, Schema};
-use tantivy::Index;
-use tantivy::TantivyDocument;
+use tantivy::{
+    collector::{Count, TopDocs},
+    query::QueryParser,
+    schema::{Field, Schema},
+    Index, TantivyDocument,
+};
+
+use crate::timer::TimerTree;
 
 #[derive(Args)]
 pub struct BenchArgs {
@@ -36,7 +39,7 @@ fn extract_search_fields(schema: &Schema) -> Vec<Field> {
 }
 
 fn read_query_file(query_path: &Path) -> io::Result<Vec<String>> {
-    let query_file: File = File::open(&query_path)?;
+    let query_file: File = File::open(query_path)?;
     let file = BufReader::new(&query_file);
     let mut queries = Vec::new();
     for line_res in file.lines() {
@@ -66,16 +69,12 @@ fn run_bench(index_path: &Path, query_filepath: &Path, num_repeat: usize) -> Res
     );
 
     println!("SEARCH\n");
-    println!("{}\t{}\t{}", "query", "num hits", "time in microsecs");
+    println!("query\tnum hits\ttime in microsecs");
     for _ in 0..num_repeat {
         for query_txt in &queries {
-            let query = query_parser.parse_query(&query_txt).unwrap_or_else(|x| {
-                panic!(
-                    "Failed to parse query {:?}.\n\n{:?}",
-                    query_txt,
-                    x
-                )
-            });
+            let query = query_parser
+                .parse_query(query_txt)
+                .unwrap_or_else(|x| panic!("Failed to parse query {:?}.\n\n{:?}", query_txt, x));
             let mut timing = TimerTree::default();
             let (_top_docs, count) = {
                 let _search = timing.open("search");
@@ -90,10 +89,10 @@ fn run_bench(index_path: &Path, query_filepath: &Path, num_repeat: usize) -> Res
     }
 
     println!("\n\nFETCH STORE\n");
-    println!("{}\t{}", "query", "time in microsecs");
+    println!("query\ttime in microsecs");
     for _ in 0..num_repeat {
         for query_txt in &queries {
-            let query = query_parser.parse_query(&query_txt).unwrap();
+            let query = query_parser.parse_query(query_txt).unwrap();
             let top_docs = searcher
                 .search(&*query, &TopDocs::with_limit(10))
                 .map_err(|e| {

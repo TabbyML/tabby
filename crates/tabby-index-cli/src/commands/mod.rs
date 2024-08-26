@@ -1,7 +1,9 @@
 mod bench;
-mod inspect;
 mod head;
+mod inspect;
 
-pub use self::inspect::run_inspect_cli;
-pub use self::bench::{run_bench_cli, BenchArgs};
-pub use self::head::{run_head_cli, HeadArgs};
+pub use self::{
+    bench::{run_bench_cli, BenchArgs},
+    head::{run_head_cli, HeadArgs},
+    inspect::run_inspect_cli,
+};

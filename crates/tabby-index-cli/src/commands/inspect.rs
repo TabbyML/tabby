@@ -1,15 +1,13 @@
 use std::path::Path;
-use tantivy;
-use tantivy::schema::Schema;
-use tantivy::space_usage::PerFieldSpaceUsage;
-use tantivy::Index;
+
+use tantivy::{self, schema::Schema, space_usage::PerFieldSpaceUsage, Index};
 
 pub fn run_inspect_cli(directory: &Path) -> tantivy::Result<()> {
     let index = Index::open_in_dir(directory)?;
     let schema = index.schema();
     let searcher = index.reader()?.searcher();
     let segments = searcher.segment_readers();
-    println!("");
+    println!();
     println!("===============================================================================");
     println!("Inspect index report");
     println!("===============================================================================\n");
@@ -19,7 +17,7 @@ pub fn run_inspect_cli(directory: &Path) -> tantivy::Result<()> {
     println!("Number of segments: {}", segments.len());
     let space_usage = searcher.space_usage()?;
     println!("Total bytes: {}", space_usage.total());
-    println!("");
+    println!();
     for (i, (segment_reader, segment_space_usage)) in segments
         .iter()
         .zip(space_usage.segments().iter())
@@ -39,37 +37,37 @@ pub fn run_inspect_cli(directory: &Path) -> tantivy::Result<()> {
             "Offset bytes: {}",
             segment_space_usage.store().offsets_usage()
         );
-        println!("");
+        println!();
         println!("{}.1 Term dictionnary space usage", section_count);
         println!("--------------------------------");
         let per_field_space_usage = segment_space_usage.termdict();
         println!("Total bytes: {}", per_field_space_usage.total());
         print_fields_space_usage(&schema, per_field_space_usage);
-        println!("");
+        println!();
 
         println!("{}.2 Fast field space usage", section_count);
         println!("--------------------------------");
         let fast_field_space_usage = segment_space_usage.fast_fields();
         println!("Total bytes: {}", fast_field_space_usage.total());
         print_fields_space_usage(&schema, fast_field_space_usage);
-        println!("");
+        println!();
 
         println!("{}.3 Postings space usage", section_count);
         println!("--------------------------------");
         let postings_space_usage = segment_space_usage.postings();
         println!("Total bytes: {}", postings_space_usage.total());
         print_fields_space_usage(&schema, postings_space_usage);
-        println!("");
+        println!();
 
         println!("{}.4 Positions space usage", section_count);
         println!("--------------------------------");
         let positions_space_usage = segment_space_usage.positions();
         println!("Total bytes: {}", positions_space_usage.total());
         print_fields_space_usage(&schema, positions_space_usage);
-        println!("");
+        println!();
     }
 
-    println!("");
+    println!();
     println!("----------------------------- END OF REPORT ----------------------------------");
     Ok(())
 }
