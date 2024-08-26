@@ -465,42 +465,43 @@ export class Commands {
       };
       await this.client.chat.resolveEdit({ location, action: "discard" });
     },
-    "chat.generateCommitMessage": async () => {
+    "chat.generateCommitMessage": async (repository?: Repository) => {
       const repos = this.gitProvider.getRepositories() ?? [];
       if (repos.length < 1) {
         window.showInformationMessage("No Git repositories found.");
         return;
       }
-      // Select repo
-      let selectedRepo: Repository | undefined = undefined;
-      if (repos.length == 1) {
-        selectedRepo = repos[0];
-      } else {
-        const selected = await window.showQuickPick(
-          repos
-            .map((repo) => {
-              const repoRoot = repo.rootUri.fsPath;
-              return {
-                label: path.basename(repoRoot),
-                detail: repoRoot,
-                iconPath: new ThemeIcon("repo"),
-                picked: repo.ui.selected,
-                alwaysShow: true,
-                value: repo,
-              };
-            })
-            .sort((a, b) => {
-              if (a.detail.startsWith(b.detail)) {
-                return 1;
-              } else if (b.detail.startsWith(a.detail)) {
-                return -1;
-              } else {
-                return a.label.localeCompare(b.label);
-              }
-            }),
-          { placeHolder: "Select a Git repository" },
-        );
-        selectedRepo = selected?.value;
+      let selectedRepo = repository;
+      if (!selectedRepo) {
+        if (repos.length == 1) {
+          selectedRepo = repos[0];
+        } else {
+          const selected = await window.showQuickPick(
+            repos
+              .map((repo) => {
+                const repoRoot = repo.rootUri.fsPath;
+                return {
+                  label: path.basename(repoRoot),
+                  detail: repoRoot,
+                  iconPath: new ThemeIcon("repo"),
+                  picked: repo.ui.selected,
+                  alwaysShow: true,
+                  value: repo,
+                };
+              })
+              .sort((a, b) => {
+                if (a.detail.startsWith(b.detail)) {
+                  return 1;
+                } else if (b.detail.startsWith(a.detail)) {
+                  return -1;
+                } else {
+                  return a.label.localeCompare(b.label);
+                }
+              }),
+            { placeHolder: "Select a Git repository" },
+          );
+          selectedRepo = selected?.value;
+        }
       }
       if (!selectedRepo) {
         return;
@@ -518,7 +519,7 @@ export class Commands {
             { repository: selectedRepo.rootUri.toString() },
             token,
           );
-          if (result) {
+          if (result && selectedRepo.inputBox) {
             selectedRepo.inputBox.value = result.commitMessage;
           }
         },
