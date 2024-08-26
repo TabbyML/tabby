@@ -406,9 +406,9 @@ mod tests {
     fn test_repository_config_name() {
         let repo = RepositoryConfig {
             git_url: "https://github.com/TabbyML/tabby.git".to_owned(),
-            source_id: "".to_string(),
+            source_id: "aBc".to_string(),
         };
-        assert!(repo.dir().ends_with("https_github.com_TabbyML_tabby"));
+        assert!(repo.dir().ends_with("aBc"));
     }
 
     #[test]
