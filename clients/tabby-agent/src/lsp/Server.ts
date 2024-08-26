@@ -360,7 +360,7 @@ export class Server {
       clientProvidedConfig?.server?.token !== undefined &&
       clientProvidedConfig.server.token !== this.clientProvidedConfig?.server?.token
     ) {
-    if (clientProvidedConfig.server.token.trim().length > 0) {
+      if (clientProvidedConfig.server.token.trim().length > 0) {
         this.agent.updateConfig("server.token", clientProvidedConfig.server.token);
       } else {
         this.agent.clearConfig("server.token");
@@ -376,10 +376,7 @@ export class Server {
         this.agent.clearConfig("anonymousUsageTracking.disable");
       }
     }
-    if (
-      clientProvidedConfig?.proxy?.url &&
-      clientProvidedConfig.proxy.url !== this.clientProvidedConfig?.proxy?.url
-    ) {
+    if (clientProvidedConfig?.proxy?.url && clientProvidedConfig.proxy.url !== this.clientProvidedConfig?.proxy?.url) {
       if (clientProvidedConfig?.proxy.enabled) {
         this.agent.updateConfig("proxy.url", clientProvidedConfig.proxy.url);
       } else {
@@ -564,40 +561,40 @@ export class Server {
 
     const fieldsToCheck = [
       {
-        key: 'server',
+        key: "server",
         properties: [
           {
-            name: 'endpoint',
+            name: "endpoint",
             validation: (x?: string) => x && x.trim().length > 0,
           },
           {
-            name: 'token',
+            name: "token",
             validation: (x?: string) => x && x.trim().length > 0,
-          }
+          },
         ],
       },
       {
-        key: 'anonymousUsageTracking',
+        key: "anonymousUsageTracking",
         properties: [
           {
-            name: 'disable',
+            name: "disable",
             validation: (x?: boolean) => x !== undefined,
-          }
-        ]
+          },
+        ],
       },
       {
-        key: 'proxy',
+        key: "proxy",
         properties: [
           {
-            name: 'url',
+            name: "url",
             validation: (x?: unknown) => x !== undefined,
           },
           {
-            name: 'authorization',
+            name: "authorization",
             validation: (x?: unknown) => x !== undefined,
           },
           {
-            name: 'enabled',
+            name: "enabled",
             validation: (x?: boolean) => x !== undefined,
           },
         ],
