@@ -506,6 +506,7 @@ mod tests {
             }],
             code: vec![tabby_schema::thread::MessageAttachmentCode {
                 git_url: "https://github.com".to_owned(),
+                source_id: "https://github.com".to_owned(),
                 filepath: "server.py".to_owned(),
                 language: "python".to_owned(),
                 content: "print('Hello, server!')".to_owned(),
