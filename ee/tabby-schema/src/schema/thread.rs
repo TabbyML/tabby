@@ -20,6 +20,9 @@ pub trait ThreadService: Send + Sync {
     /// Get a thread by ID
     async fn get(&self, id: &ID) -> Result<Option<Thread>>;
 
+    /// Converting a ephemeral thread to a persisted thread
+    async fn set_persisted(&self, id: &ID) -> Result<()>;
+
     /// List threads
     async fn list(
         &self,
@@ -28,7 +31,7 @@ pub trait ThreadService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<Thread>>;
+) -> Result<Vec<Thread>>;
 
     /// Create a new thread run
     async fn create_run(
