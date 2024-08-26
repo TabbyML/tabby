@@ -40,9 +40,9 @@ pub fn run_head_cli(index_path: &Path, args: &HeadArgs) -> anyhow::Result<()> {
                 let doc: TantivyDocument =
                     searcher.doc(doc_address).expect("Failed to read document");
 
-                let json = doc.to_json(&schema.schema);
+                let json_value = to_json_value(doc, &schema.schema);
 
-                println!("{}", json);
+                println!("{}", json_value);
 
                 count += 1;
                 if count >= args.num_docs {
@@ -54,4 +54,19 @@ pub fn run_head_cli(index_path: &Path, args: &HeadArgs) -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+fn to_json_value(doc: TantivyDocument, schema: &tantivy::schema::Schema) -> serde_json::Value {
+    let json = doc.to_json(schema);
+    let mut doc: serde_json::Value = serde_json::from_str(&json).expect("Failed to parse JSON");
+
+    for (_, value) in doc.as_object_mut().expect("Expected object").iter_mut() {
+        if let Some(array) = value.as_array_mut() {
+            if array.len() == 1 {
+                *value = array[0].clone();
+            }
+        }
+    }
+
+    doc
 }

@@ -5184,6 +5184,7 @@ dependencies = [
  "anyhow",
  "clap",
  "serde",
+ "serde_json",
  "tabby-common",
  "tantivy",
 ]

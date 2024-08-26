@@ -11,3 +11,4 @@ tantivy.workspace = true
 tabby-common = { path = "../tabby-common" }
 anyhow.workspace = true
 serde.workspace = true
+serde_json.workspace = true
