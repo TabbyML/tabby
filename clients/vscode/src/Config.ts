@@ -148,7 +148,7 @@ export class Config extends EventEmitter {
 
   set url(value: string) {
     if (value !== this.url) {
-      const isHTTPS = value.includes('https');
+      const isHTTPS = value.includes("https");
       if (isHTTPS) {
         workspace.getConfiguration("https").update("proxy", value);
       } else {
