@@ -71,7 +71,7 @@ pub struct IndexSchema {
 
 const FIELD_CHUNK_ID: &str = "chunk_id";
 const FIELD_UPDATED_AT: &str = "updated_at";
-pub const FIELD_SOURCE_ID: &str = "source_id_v2";
+pub const FIELD_SOURCE_ID: &str = "source_id";
 
 pub mod corpus {
     pub const CODE: &str = "code";
