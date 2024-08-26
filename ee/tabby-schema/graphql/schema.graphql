@@ -633,8 +633,8 @@ type Query {
     Thread is public within an instance, so no need to check for ownership.
   """
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
-  customWebDocuments(names: [String!], after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
-  presetWebDocuments(names: [String!], after: String, before: String, first: Int, last: Int, isActive: Boolean!): PresetDocumentConnection!
+  customWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
+  presetWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int, isActive: Boolean!): PresetDocumentConnection!
 }
 
 type RefreshTokenResponse {
