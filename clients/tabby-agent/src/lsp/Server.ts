@@ -347,7 +347,7 @@ export class Server {
       clientProvidedConfig?.server?.token !== undefined &&
       clientProvidedConfig.server.token !== this.clientProvidedConfig?.server?.token
     ) {
-      if (clientProvidedConfig.server.token.trim().length > 0) {
+    if (clientProvidedConfig.server.token.trim().length > 0) {
         this.agent.updateConfig("server.token", clientProvidedConfig.server.token);
       } else {
         this.agent.clearConfig("server.token");
@@ -367,10 +367,7 @@ export class Server {
       clientProvidedConfig?.proxy?.url &&
       clientProvidedConfig.proxy.url !== this.clientProvidedConfig?.proxy?.url
     ) {
-      // vscode `http.proxySupport` support "on" | "fallback" | "override" | "off"
-      // But currently only support "on" | "off", and if it isn't set to "off",
-      // we suppose is "on"
-      if (clientProvidedConfig?.proxy["proxySupport"] !== "off") {
+      if (clientProvidedConfig?.proxy.enabled) {
         this.agent.updateConfig("proxy.url", clientProvidedConfig.proxy.url);
       } else {
         this.agent.clearConfig("proxy.url");
@@ -381,7 +378,7 @@ export class Server {
       clientProvidedConfig?.proxy?.authorization &&
       clientProvidedConfig.proxy.authorization !== this.clientProvidedConfig?.proxy?.authorization
     ) {
-      if (clientProvidedConfig?.proxy["proxySupport"] !== "off") {
+      if (clientProvidedConfig?.proxy.enabled) {
         this.agent.updateConfig("proxy.authorization", clientProvidedConfig.proxy.authorization);
       } else {
         this.agent.clearConfig("proxy.authorization");
@@ -584,12 +581,12 @@ export class Server {
         };
       }
     }
-    if (clientProvidedConfig?.proxy?.proxySupport) {
+    if (clientProvidedConfig?.proxy?.enabled !== undefined) {
       if (config.proxy) {
-        config.proxy.proxySupport = clientProvidedConfig.proxy.proxySupport;
+        config.proxy.enabled = clientProvidedConfig.proxy.enabled;
       } else {
         config.proxy = {
-          proxySupport: clientProvidedConfig.proxy.proxySupport,
+          enabled: clientProvidedConfig.proxy.enabled,
         };
       }
     }

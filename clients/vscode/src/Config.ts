@@ -157,14 +157,8 @@ export class Config extends EventEmitter {
     }
   }
 
-  get proxySupport() {
-    return this.httpConfig.get("proxySupport", "on");
-  }
-
-  set proxySupport(value: "on" | "off") {
-    if (value !== this.proxySupport) {
-      this.httpConfig.update("proxySupport", value);
-    }
+  get enabled() {
+    return this.httpConfig.get("proxySupport") !== "off";
   }
 
   // Note: current we only support http.proxy | http.authorization
@@ -173,7 +167,7 @@ export class Config extends EventEmitter {
   buildClientProvidedConfig(): ClientProvidedConfig {
     return {
       proxy: {
-        proxySupport: this.proxySupport,
+        enabled: this.enabled,
         url: this.url,
         authorization: this.authorization,
       },

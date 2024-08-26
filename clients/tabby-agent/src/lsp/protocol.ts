@@ -178,7 +178,7 @@ export namespace ConfigurationRequest {
  */
 export type ClientProvidedConfig = {
   proxy?: {
-    proxySupport: "on" | "off";
+    enabled: boolean;
     authorization: string;
     url: string;
   };
