@@ -46,13 +46,15 @@ struct WebDocumentServiceImpl {
 impl WebDocumentService for WebDocumentServiceImpl {
     async fn list_custom_web_documents(
         &self,
-        names: Option<Vec<String>>,
+        ids: Option<Vec<ID>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<CustomWebDocument>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+        let names: Option<Vec<String>> =
+            ids.map(|ids| ids.into_iter().map(|id| id.to_string()).collect::<Vec<_>>());
         let urls = self
             .db
             .list_web_documents(names, limit, skip_id, backwards, false)
@@ -106,7 +108,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
 
     async fn list_preset_web_documents(
         &self,
-        names: Option<Vec<String>>,
+        ids: Option<Vec<ID>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
@@ -114,6 +116,8 @@ impl WebDocumentService for WebDocumentServiceImpl {
         is_active: bool,
     ) -> Result<Vec<PresetWebDocument>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+        let names: Option<Vec<String>> =
+            ids.map(|ids| ids.into_iter().map(|id| id.to_string()).collect::<Vec<_>>());
         let urls = self
             .db
             .list_web_documents(names.clone(), limit, skip_id, backwards, true)
@@ -281,7 +285,7 @@ mod tests {
 
         let urls = service
             .list_preset_web_documents(
-                Some(vec!["React".to_string()]),
+                Some(vec![ID::from("React".to_string())]),
                 None,
                 None,
                 None,
@@ -329,7 +333,10 @@ mod tests {
 
         let urls = service
             .list_custom_web_documents(
-                Some(vec!["example2".to_string(), "example3".to_string()]),
+                Some(vec![
+                    ID::from("example2".to_string()),
+                    ID::from("example3".to_string()),
+                ]),
                 None,
                 None,
                 None,
@@ -341,7 +348,10 @@ mod tests {
 
         let urls = service
             .list_preset_web_documents(
-                Some(vec!["React".to_string(), "Qwik".to_string()]),
+                Some(vec![
+                    ID::from("React".to_string()),
+                    ID::from("Qwik".to_string()),
+                ]),
                 None,
                 None,
                 None,

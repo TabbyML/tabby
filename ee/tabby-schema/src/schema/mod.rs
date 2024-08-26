@@ -587,7 +587,7 @@ impl Query {
 
     async fn custom_web_documents(
         ctx: &Context,
-        names: Option<Vec<String>>,
+        ids: Option<Vec<ID>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -601,7 +601,7 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .web_documents()
-                    .list_custom_web_documents(names, after, before, first, last)
+                    .list_custom_web_documents(ids, after, before, first, last)
                     .await
             },
         )
@@ -609,7 +609,7 @@ impl Query {
     }
     async fn preset_web_documents(
         ctx: &Context,
-        names: Option<Vec<String>>,
+        ids: Option<Vec<ID>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -624,7 +624,7 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .web_documents()
-                    .list_preset_web_documents(names, after, before, first, last, is_active)
+                    .list_preset_web_documents(ids, after, before, first, last, is_active)
                     .await
             },
         )
