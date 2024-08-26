@@ -18,6 +18,7 @@ use super::{
 
 pub struct CodeIntelligence;
 
+const TEXT_CHUNK_SIZE: usize = 1536;
 const CHUNK_SIZE: usize = 512;
 
 impl CodeIntelligence {
@@ -129,7 +130,7 @@ impl CodeIntelligence {
 
     fn stream_text_chunks(text: &str) -> impl Stream<Item = (usize, String)> {
         let text = text.to_owned();
-        let splitter = TextSplitter::new(CHUNK_SIZE);
+        let splitter = TextSplitter::new(TEXT_CHUNK_SIZE);
         stream! {
             for (offset, chunk) in splitter.chunk_indices(&text) {
                 yield (offset, chunk.to_owned());
