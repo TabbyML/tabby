@@ -557,50 +557,63 @@ export class Server {
 
   private createInitConfig(clientProvidedConfig: ClientProvidedConfig | undefined): PartialAgentConfig {
     const config: PartialAgentConfig = {};
-    if (clientProvidedConfig?.server?.endpoint && clientProvidedConfig.server.endpoint.trim().length > 0) {
-      config.server = {
-        endpoint: clientProvidedConfig.server.endpoint,
-      };
+
+    if (!clientProvidedConfig) {
+      return config;
     }
-    if (clientProvidedConfig?.server?.token && clientProvidedConfig.server.token.trim().length > 0) {
-      if (config.server) {
-        config.server.token = clientProvidedConfig.server.token;
-      } else {
-        config.server = {
-          token: clientProvidedConfig.server.token,
-        };
-      }
-    }
-    if (clientProvidedConfig?.anonymousUsageTracking?.disable !== undefined) {
-      config.anonymousUsageTracking = {
-        disable: clientProvidedConfig.anonymousUsageTracking.disable,
-      };
-    }
-    if (clientProvidedConfig?.proxy?.url) {
-      if (config.proxy) {
-        config.proxy.url = clientProvidedConfig.proxy.url;
-      } else {
-        config.proxy = {
-          url: clientProvidedConfig.proxy.url,
-        };
-      }
-    }
-    if (clientProvidedConfig?.proxy?.authorization) {
-      if (config.proxy) {
-        config.proxy.authorization = clientProvidedConfig.proxy.authorization;
-      } else {
-        config.proxy = {
-          authorization: clientProvidedConfig.proxy.authorization,
-        };
-      }
-    }
-    if (clientProvidedConfig?.proxy?.enabled !== undefined) {
-      if (config.proxy) {
-        config.proxy.enabled = clientProvidedConfig.proxy.enabled;
-      } else {
-        config.proxy = {
-          enabled: clientProvidedConfig.proxy.enabled,
-        };
+
+    const fieldsToCheck = [
+      {
+        key: 'server',
+        properties: [
+          {
+            name: 'endpoint',
+            validation: (x?: string) => x && x.trim().length > 0,
+          },
+          {
+            name: 'token',
+            validation: (x?: string) => x && x.trim().length > 0,
+          }
+        ],
+      },
+      {
+        key: 'anonymousUsageTracking',
+        properties: [
+          {
+            name: 'disable',
+            validation: (x?: boolean) => x !== undefined,
+          }
+        ]
+      },
+      {
+        key: 'proxy',
+        properties: [
+          {
+            name: 'url',
+            validation: (x?: unknown) => x !== undefined,
+          },
+          {
+            name: 'authorization',
+            validation: (x?: unknown) => x !== undefined,
+          },
+          {
+            name: 'enabled',
+            validation: (x?: boolean) => x !== undefined,
+          },
+        ],
+      },
+    ];
+
+    for (const { key, properties } of fieldsToCheck) {
+      for (const { name, validation } of properties) {
+        const prop = clientProvidedConfig[key as keyof ClientProvidedConfig];
+
+        if (prop && validation(prop[name as keyof typeof prop])) {
+          const k = key as keyof PartialAgentConfig;
+          const configuration = config[k] || {};
+          configuration[name as keyof typeof prop] = prop[name as keyof typeof prop];
+          config[k] = configuration;
+        }
       }
     }
     return config;
