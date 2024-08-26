@@ -20,7 +20,7 @@ import path from "path";
 import { strict as assert } from "assert";
 import { ChatEditCommand } from "tabby-agent";
 import { Client } from "./lsp/Client";
-import { Config } from "./Config";
+import { Config, PastServerConfig } from "./Config";
 import { ContextVariables } from "./ContextVariables";
 import { InlineCompletionProvider } from "./InlineCompletionProvider";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
@@ -302,7 +302,7 @@ export class Commands {
         },
       };
       //ensure max length
-      const recentlyCommand = this.config.chatEditRecentlyCommand.slice(0, this.config.chatEditHistory);
+      const recentlyCommand = this.config.chatEditRecentlyCommand.slice(0, this.config.maxChatEditHistory);
       const suggestedCommand: ChatEditCommand[] = [];
       const quickPick = window.createQuickPick<QuickPickItem & { value: string }>();
 
@@ -373,7 +373,7 @@ export class Commands {
         if (command) {
           const updatedRecentlyCommand = [command]
             .concat(recentlyCommand.filter((item) => item !== command))
-            .slice(0, this.config.chatEditHistory);
+            .slice(0, this.config.maxChatEditHistory);
           this.config.chatEditRecentlyCommand = updatedRecentlyCommand;
 
           window.withProgress(
@@ -524,6 +524,40 @@ export class Commands {
           }
         },
       );
+    },
+    "server.selectPastServerConfig": () => {
+      const configs = this.config.pastServerConfigs;
+      if (configs.length <= 0) return;
+
+      const quickPick = window.createQuickPick<QuickPickItem & PastServerConfig>();
+
+      quickPick.items = configs.map((x) => ({
+        ...x,
+        label: x.endpoint,
+        buttons: [
+          {
+            iconPath: new ThemeIcon("settings-remove"),
+          },
+        ],
+      }));
+
+      quickPick.onDidAccept(() => {
+        const item = quickPick.activeItems[0];
+        if (item) {
+          this.config.restoreServerConfig(item);
+        }
+
+        quickPick.hide();
+      });
+
+      quickPick.onDidTriggerItemButton((e) => {
+        if (!(e.button.iconPath instanceof ThemeIcon)) return;
+        if (e.button.iconPath.id === "settings-remove") {
+          this.config.removePastServerConfigByApiEndpoint(e.item.endpoint);
+        }
+      });
+
+      quickPick.show();
     },
   };
 }
