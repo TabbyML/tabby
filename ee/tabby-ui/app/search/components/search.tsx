@@ -1187,7 +1187,7 @@ function Header({ threadId }: { threadId?: string }) {
   }
 
   return (
-    <header className="flex h-16 items-center justify-between px-4 backdrop-blur-xl lg:px-10">
+    <header className="flex h-16 items-center justify-between px-4 lg:px-10">
       <div className="flex items-center gap-x-6">
         <Button
           variant="ghost"
