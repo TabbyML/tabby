@@ -58,6 +58,7 @@ pub struct Language {
 
     top_level_keywords: Option<Vec<String>>,
     pub line_comment: Option<String>,
+    pub chunk_size: Option<usize>,
 }
 
 impl Language {

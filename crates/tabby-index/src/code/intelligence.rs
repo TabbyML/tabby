@@ -144,8 +144,11 @@ impl CodeIntelligence {
         let Some(config) = languages::get(language) else {
             return None;
         };
+        let chunk_size = tabby_common::languages::get_language(language)
+            .chunk_size
+            .unwrap_or(CHUNK_SIZE);
         let text = text.to_owned();
-        let splitter = CodeSplitter::new(config.0.language.clone(), CHUNK_SIZE)
+        let splitter = CodeSplitter::new(config.0.language.clone(), chunk_size)
             .expect("Failed to create code splitter");
         Some(stream! {
             for (offset, chunk) in splitter.chunk_indices(&text) {
