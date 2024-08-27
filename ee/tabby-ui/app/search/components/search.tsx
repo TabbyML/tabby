@@ -407,6 +407,11 @@ export function Search() {
   useEffect(() => {
     if (!answer) return
 
+    // update threadId
+    if (answer?.threadCreated && answer.threadCreated !== threadId) {
+      setThreadId(answer.threadCreated)
+    }
+
     let newMessages = [...messages]
 
     const currentUserMessageIdx = newMessages.findIndex(
@@ -417,11 +422,6 @@ export function Search() {
     )
     if (currentUserMessageIdx === -1 || currentAssistantMessageIdx === -1) {
       return
-    }
-
-    // update threadId
-    if (answer?.threadCreated && answer.threadCreated !== threadId) {
-      setThreadId(answer.threadCreated)
     }
 
     const currentUserMessage = newMessages[currentUserMessageIdx]
@@ -674,8 +674,8 @@ export function Search() {
         <ResizablePanelGroup direction="vertical" onLayout={onPanelLayout}>
           <ResizablePanel>
             <Header
-              threadIdFromURL={threadId}
-              threadIdFromStreaming={answer?.threadCreated}
+              threadIdFromURL={threadIdFromURL}
+              threadIdFromStreaming={threadId}
               streamingDone={!!answer?.threadAssistantMessageCompleted}
               updateThreadURL={updateThreadURL}
             />
