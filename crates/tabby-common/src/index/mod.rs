@@ -86,7 +86,6 @@ impl IndexSchema {
     fn new() -> Self {
         let mut builder = Schema::builder();
 
-
         let field_corpus = builder.add_text_field("corpus", STRING | FAST | STORED);
         let field_source_id = builder.add_text_field(FIELD_SOURCE_ID, STRING | FAST | STORED);
         let field_id = builder.add_text_field("id", STRING | STORED);
