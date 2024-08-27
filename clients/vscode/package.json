@@ -423,7 +423,7 @@
     }
   },
   "scripts": {
-    "build": "tsc --noEmit && tsup --minify",
+    "build": "tsc --noUnusedLocals --noEmit && tsup --minify",
     "watch": "tsc-watch --noEmit --onSuccess \"tsup\"",
     "dev": "code --extensionDevelopmentPath=$PWD --disable-extensions && pnpm watch",
     "dev:browser": "vscode-test-web --extensionDevelopmentPath=$PWD --browserType=chromium --port=3000 && pnpm watch",
