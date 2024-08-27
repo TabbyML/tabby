@@ -77,7 +77,6 @@ impl CodeIntelligence {
         let source_file_id = Self::compute_source_file_id(path)?;
 
         if path.is_dir() || !path.exists() {
-            warn!("Path {} is not a file or does not exist", path.display());
             return None;
         }
         let relative_path = path
@@ -262,10 +261,10 @@ mod tests {
         CodeRepository::new("https://github.com/TabbyML/tabby", &config_index_to_id(0))
     }
 
-    fn get_rust_source_file() -> PathBuf {
+    fn get_rust_source_file(source_id: &str) -> PathBuf {
         let mut path = get_tabby_root();
         path.push("repositories");
-        path.push("https_github.com_TabbyML_tabby");
+        path.push(source_id);
         path.push("rust.rs");
         path
     }
@@ -276,8 +275,11 @@ mod tests {
     fn test_create_source_file() {
         set_tabby_root(get_tabby_root());
         let config = get_repository_config();
-        let source_file = CodeIntelligence::compute_source_file(&config, &get_rust_source_file())
-            .expect("Failed to create source file");
+        let source_file = CodeIntelligence::compute_source_file(
+            &config,
+            &get_rust_source_file(&config.source_id),
+        )
+        .expect("Failed to create source file");
 
         // check source_file properties
         assert_eq!(source_file.language, "rust");
