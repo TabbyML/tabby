@@ -124,6 +124,7 @@ lazy_static! {
         line_comment: Some("".into()),
         top_level_keywords: Some(vec![]),
         exts: vec![],
+        chunk_size: None
     };
 }
 
