@@ -1,6 +1,6 @@
 import React from 'react'
-import { compact, findIndex } from 'lodash-es'
-import type { Context, NavigateOpts } from 'tabby-chat-panel'
+import { compact, findIndex, isEqual, uniqWith } from 'lodash-es'
+import type { Context, FileContext, NavigateOpts } from 'tabby-chat-panel'
 
 import {
   CodeQueryInput,
@@ -311,22 +311,19 @@ function ChatRenderer(
         }
       : null
 
-    const attachmentCode: MessageAttachmentCodeInput[] = compact([
-      // activeCode in IDE
-      userMessage?.activeContext
-        ? {
-            content: userMessage?.activeContext.content,
-            filepath: userMessage?.activeContext.filepath,
-            startLine: userMessage.activeContext.range.start
-          }
-        : undefined,
-      // relevantCode
-      ...(userMessage?.relevantContext?.map(o => ({
-        filepath: o.filepath,
-        content: o.content,
-        startLine: o.range.start
-      })) ?? [])
-    ])
+    const fileContext: FileContext[] = uniqWith(
+      compact([
+        userMessage?.activeContext,
+        ...(userMessage?.relevantContext || [])
+      ]),
+      isEqual
+    )
+
+    const attachmentCode: MessageAttachmentCodeInput[] = fileContext.map(o => ({
+      content: o.content,
+      filepath: o.filepath,
+      startLine: o.range.start
+    }))
 
     const content = userMessage.message
 
@@ -505,21 +502,10 @@ function appendContextAndDedupe(
   ctxList: Context[],
   newCtx: Context
 ): Context[] {
-  if (!ctxList.some(ctx => isContextEqual(ctx, newCtx))) {
+  if (!ctxList.some(ctx => isEqual(ctx, newCtx))) {
     return ctxList.concat([newCtx])
   }
   return ctxList
-}
-
-function isContextEqual(lhs: Context, rhs: Context): boolean {
-  return (
-    lhs.kind === rhs.kind &&
-    lhs.range.start === rhs.range.start &&
-    lhs.range.end === rhs.range.end &&
-    lhs.filepath === rhs.filepath &&
-    lhs.content === rhs.content &&
-    lhs.git_url === rhs.git_url
-  )
 }
 
 export const Chat = React.forwardRef<ChatRef, ChatProps>(ChatRenderer)
