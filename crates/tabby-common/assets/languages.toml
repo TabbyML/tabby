@@ -334,6 +334,7 @@ exts = ["Makefile"]
 [[config]]
 languages = ["markdown"]
 exts = ["md", "markdown"]
+chunk_size = 1536
 
 [[config]]
 languages = ["perl"]

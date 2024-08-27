@@ -40,6 +40,7 @@ import {
   SemanticTokensRangeParams,
   SemanticTokens,
   SemanticTokensLegend,
+  WorkspaceEdit,
 } from "vscode-languageserver-protocol";
 
 /**
@@ -470,6 +471,43 @@ export type ChatEditResolveParams = {
    */
   action: "accept" | "discard";
 };
+
+/**
+ * [Tabby] Apply workspace edit request(↩️)
+ *
+ * This method is sent from the server to client to apply edit in workspace with options.
+ * - method: `tabby/workspace/applyEdit`
+ * - params: {@link ApplyWorkspaceEditParams}
+ * - result: boolean
+ */
+export namespace ApplyWorkspaceEditRequest {
+  export const method = "tabby/workspace/applyEdit";
+  export const messageDirection = MessageDirection.serverToClient;
+  export const type = new ProtocolRequestType<ApplyWorkspaceEditParams, boolean, never, void, void>(method);
+}
+
+export interface ApplyWorkspaceEditParams {
+  /**
+   * An optional label of the workspace edit. This label is
+   * presented in the user interface for example on an undo
+   * stack to undo the workspace edit.
+   */
+  label?: string;
+  /**
+   * The edits to apply.
+   */
+  edit: WorkspaceEdit;
+  options?: {
+    /**
+     * Add undo stop before making the edits.
+     */
+    readonly undoStopBefore: boolean;
+    /**
+     * Add undo stop after making the edits.
+     */
+    readonly undoStopAfter: boolean;
+  };
+}
 
 export type ChatEditResolveCommand = LspCommand & {
   title: string;

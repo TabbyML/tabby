@@ -10,6 +10,7 @@ pub mod setting;
 pub mod thread;
 pub mod user_event;
 pub mod web_crawler;
+pub mod web_documents;
 pub mod worker;
 
 use std::sync::Arc;
@@ -51,10 +52,12 @@ use self::{
     },
     user_event::{UserEvent, UserEventService},
     web_crawler::{CreateWebCrawlerUrlInput, WebCrawlerService, WebCrawlerUrl},
+    web_documents::{CreateCustomDocumentInput, CustomWebDocument, WebDocumentService},
 };
 use crate::{
     env,
     juniper::relay::{self, query_async, Connection},
+    web_documents::{PresetWebDocument, SetPresetDocumentActiveInput},
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -71,6 +74,7 @@ pub trait ServiceLocator: Send + Sync {
     fn analytic(&self) -> Arc<dyn AnalyticService>;
     fn user_event(&self) -> Arc<dyn UserEventService>;
     fn web_crawler(&self) -> Arc<dyn WebCrawlerService>;
+    fn web_documents(&self) -> Arc<dyn WebDocumentService>;
     fn thread(&self) -> Arc<dyn ThreadService>;
 }
 
@@ -580,6 +584,52 @@ impl Query {
         )
         .await
     }
+
+    async fn custom_web_documents(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<CustomWebDocument>> {
+        query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .web_documents()
+                    .list_custom_web_documents(ids, after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
+    async fn preset_web_documents(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+        is_active: Option<bool>,
+    ) -> Result<Connection<PresetWebDocument>> {
+        query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .web_documents()
+                    .list_preset_web_documents(ids, after, before, first, last, is_active)
+                    .await
+            },
+        )
+        .await
+    }
 }
 
 #[derive(GraphQLObject)]
@@ -956,6 +1006,55 @@ impl Mutation {
         ctx.locator
             .thread()
             .delete_thread_message_pair(&thread_id, &user_message_id, &assistant_message_id)
+            .await?;
+        Ok(true)
+    }
+
+    /// Turn on persisted status for a thread.
+    async fn set_thread_persisted(ctx: &Context, thread_id: ID) -> Result<bool> {
+        // ast-grep-ignore: use-schema-result
+        use anyhow::Context;
+
+        let user = check_user(ctx).await?;
+        let svc = ctx.locator.thread();
+        let thread = svc.get(&thread_id).await?.context("Thread not found")?;
+
+        if thread.user_id != user.id {
+            return Err(CoreError::Forbidden(
+                "You must be the thread owner to set persisted status",
+            ));
+        }
+
+        ctx.locator.thread().set_persisted(&thread_id).await?;
+        Ok(true)
+    }
+
+    async fn create_custom_document(ctx: &Context, input: CreateCustomDocumentInput) -> Result<ID> {
+        input.validate()?;
+        let id = ctx
+            .locator
+            .web_documents()
+            .create_custom_web_document(input.name, input.url)
+            .await?;
+        Ok(id)
+    }
+
+    async fn delete_custom_document(ctx: &Context, id: ID) -> Result<bool> {
+        ctx.locator
+            .web_documents()
+            .delete_custom_web_document(id)
+            .await?;
+        Ok(true)
+    }
+
+    async fn set_preset_document_active(
+        ctx: &Context,
+        input: SetPresetDocumentActiveInput,
+    ) -> Result<bool> {
+        input.validate()?;
+        ctx.locator
+            .web_documents()
+            .set_preset_web_documents_active(input.id, input.active)
             .await?;
         Ok(true)
     }

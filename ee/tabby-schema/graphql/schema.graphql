@@ -99,6 +99,11 @@ input CodeSearchParamsOverrideInput {
   numToScore: Int
 }
 
+input CreateCustomDocumentInput {
+  name: String!
+  url: String!
+}
+
 input CreateIntegrationInput {
   displayName: String!
   accessToken: String!
@@ -117,11 +122,6 @@ input CreateThreadAndRunInput {
 }
 
 input CreateThreadInput {
-  """
-    If true, the thread will be garbage collected after a certain amount of time.
-
-    This is useful for threads that are not meant to be long-lived, such as those created from chat sidebars.
-  """ isEphemeral: Boolean! = false
   userMessage: CreateMessageInput!
 }
 
@@ -188,6 +188,11 @@ input SecuritySettingInput {
   disableClientSideTelemetry: Boolean!
 }
 
+input SetPresetDocumentActiveInput {
+  id: ID!
+  active: Boolean!
+}
+
 input ThreadRunDebugOptionsInput {
   codeSearchParamsOverride: CodeSearchParamsOverrideInput = null
 }
@@ -236,6 +241,25 @@ type CompletionStats {
   completions: Int!
   views: Int!
   selects: Int!
+}
+
+type CustomDocumentConnection {
+  edges: [CustomDocumentEdge!]!
+  pageInfo: PageInfo!
+}
+
+type CustomDocumentEdge {
+  node: CustomWebDocument!
+  cursor: String!
+}
+
+type CustomWebDocument {
+  url: String!
+  name: String!
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  jobInfo: JobInfo!
 }
 
 type DiskUsage {
@@ -490,6 +514,11 @@ type Mutation {
   deleteWebCrawlerUrl(id: ID!): Boolean!
   "Delete pair of user message and bot response in a thread."
   deleteThreadMessagePair(threadId: ID!, userMessageId: ID!, assistantMessageId: ID!): Boolean!
+  "Turn on persisted status for a thread."
+  setThreadPersisted(threadId: ID!): Boolean!
+  createCustomDocument(input: CreateCustomDocumentInput!): ID!
+  deleteCustomDocument(id: ID!): Boolean!
+  setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
 }
 
 type NetworkSetting {
@@ -508,6 +537,26 @@ type PageInfo {
   hasNextPage: Boolean!
   startCursor: String
   endCursor: String
+}
+
+type PresetDocumentConnection {
+  edges: [PresetDocumentEdge!]!
+  pageInfo: PageInfo!
+}
+
+type PresetDocumentEdge {
+  node: PresetWebDocument!
+  cursor: String!
+}
+
+type PresetWebDocument {
+  id: ID!
+  name: String!
+  "`updated_at` is only filled when the preset is active."
+  updatedAt: DateTime
+  "`job_info` is only filled when the preset is active."
+  jobInfo: JobInfo
+  isActive: Boolean!
 }
 
 type ProvidedRepository {
@@ -581,6 +630,8 @@ type Query {
     Thread is public within an instance, so no need to check for ownership.
   """
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
+  customWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
+  presetWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int, isActive: Boolean): PresetDocumentConnection!
 }
 
 type RefreshTokenResponse {

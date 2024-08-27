@@ -2,7 +2,7 @@
 sidebar_position: 6
 ---
 
-# 🧑‍💻 Programming Languages
+# Programming Languages
 
 Most models nowadays support a large number of programming languages (thanks to [The Stack](https://huggingface.co/datasets/bigcode/the-stack), which has collected 358 programming languages).
 In Tabby, we need to add configuration for each language to maximize performance and completion quality.

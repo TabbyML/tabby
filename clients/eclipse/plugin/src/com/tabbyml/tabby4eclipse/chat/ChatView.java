@@ -52,6 +52,7 @@ import com.tabbyml.tabby4eclipse.lsp.ServerConfigHolder;
 import com.tabbyml.tabby4eclipse.lsp.StatusInfoHolder;
 import com.tabbyml.tabby4eclipse.lsp.protocol.Config;
 import com.tabbyml.tabby4eclipse.lsp.protocol.GitRepository;
+import com.tabbyml.tabby4eclipse.lsp.protocol.GitRepositoryParams;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ILanguageServer;
 import com.tabbyml.tabby4eclipse.lsp.protocol.IStatusService;
 import com.tabbyml.tabby4eclipse.lsp.protocol.StatusInfo;
@@ -234,8 +235,9 @@ public class ChatView extends ViewPart {
 			} else {
 				// Load main
 				Config.ServerConfig config = serverConfigHolder.getConfig().getServer();
-				if (force || currentConfig == null || currentConfig.getEndpoint() != config.getEndpoint()
-						|| currentConfig.getToken() != config.getToken()) {
+				if (config != null
+						&& (force || currentConfig == null || currentConfig.getEndpoint() != config.getEndpoint()
+								|| currentConfig.getToken() != config.getToken())) {
 					showMessage("Connecting to Tabby server...");
 					showChatPanel(false);
 					currentConfig = config;
@@ -307,8 +309,8 @@ public class ChatView extends ViewPart {
 		String[] minVersionParts = MIN_SERVER_VERSION.split("\\.");
 
 		for (int i = 0; i < Math.max(versionParts.length, minVersionParts.length); i++) {
-			int versionPart = i < versionParts.length ? Integer.parseInt(versionParts[i]) : 0;
-			int minVersionPart = i < minVersionParts.length ? Integer.parseInt(minVersionParts[i]) : 0;
+			int versionPart = i < versionParts.length ? parseInt(versionParts[i]) : 0;
+			int minVersionPart = i < minVersionParts.length ? parseInt(minVersionParts[i]) : 0;
 
 			if (versionPart < minVersionPart) {
 				return false;
@@ -318,6 +320,14 @@ public class ChatView extends ViewPart {
 		}
 
 		return true;
+	}
+
+	private int parseInt(String str) {
+		try {
+			return Integer.parseInt(str);
+		} catch (NumberFormatException e) {
+			return 0;
+		}
 	}
 
 	private void setupThemeStyle() {
@@ -496,7 +506,8 @@ public class ChatView extends ViewPart {
 		IFile file = ResourceUtil.getFile(activeTextEditor.getEditorInput());
 		URI fileUri = file.getLocationURI();
 		if (file != null) {
-			GitRepository gitInfo = GitProvider.getRepository(fileUri);
+			GitRepository gitInfo = GitProvider.getInstance()
+					.getRepository(new GitRepositoryParams(fileUri.toString()));
 			IProject project = file.getProject();
 			if (gitInfo != null) {
 				try {

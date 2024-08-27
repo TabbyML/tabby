@@ -23,6 +23,8 @@ import {
 } from '@/components/ui/hover-card'
 import { MemoizedReactMarkdown } from '@/components/markdown'
 
+import './style.css'
+
 type RelevantDocItem = {
   type: 'doc'
   data: AttachmentDocItem
@@ -148,7 +150,7 @@ export function MessageMarkdown({
       }}
     >
       <MemoizedReactMarkdown
-        className="prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
+        className="message-markdown prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
         remarkPlugins={[remarkGfm, remarkMath]}
         components={{
           p({ children }) {
