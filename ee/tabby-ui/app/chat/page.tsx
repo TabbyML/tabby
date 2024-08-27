@@ -337,7 +337,6 @@ export default function ChatPage() {
         key={activeChatId}
         ref={chatRef}
         headers={headers}
-        isEphemeral
         onNavigateToContext={onNavigateToContext}
         onLoaded={onChatLoaded}
         maxWidth={maxWidth}
