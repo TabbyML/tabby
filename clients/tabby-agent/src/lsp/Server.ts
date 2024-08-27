@@ -356,6 +356,15 @@ export class Server {
       : clientProvidedConfig?.[key1] !== this.clientProvidedConfig?.[key1];
   }
 
+  private checkClientProvidedConfig(
+    clientProvidedConfig: ClientProvidedConfig,
+    key: keyof ClientProvidedConfig,
+    x: string,
+  ): boolean {
+    const prop = clientProvidedConfig?.[key];
+    return prop?.[x as keyof typeof prop] !== undefined && isBlank(prop[x as keyof typeof prop]);
+  }
+
   private async updateConfiguration(params: DidChangeConfigurationParams) {
     const clientProvidedConfig: ClientProvidedConfig | null = params.settings;
 
@@ -364,21 +373,13 @@ export class Server {
     const fieldsToCheck = [
       {
         key: "server.endpoint",
-        validation: (key: string, x: string) => {
-          const prop = clientProvidedConfig?.[key as keyof ClientProvidedConfig];
-          return (
-            prop?.[x as keyof typeof prop] !== undefined && (prop?.[x as keyof typeof prop] as string).trim().length > 0
-          );
-        },
+        validation: (key: keyof ClientProvidedConfig, x: string) =>
+          this.checkClientProvidedConfig(clientProvidedConfig, key, x),
       },
       {
         key: "server.token",
-        validation: (key: string, x: string) => {
-          const prop = clientProvidedConfig?.[key as keyof ClientProvidedConfig];
-          return (
-            prop?.[x as keyof typeof prop] !== undefined && (prop?.[x as keyof typeof prop] as string).trim().length > 0
-          );
-        },
+        validation: (key: keyof ClientProvidedConfig, x: string) =>
+          this.checkClientProvidedConfig(clientProvidedConfig, key, x),
       },
       {
         key: "anonymousUsageTracking.disable",
@@ -390,12 +391,12 @@ export class Server {
       },
       {
         key: "proxy.authorization",
-        validation: () => () => clientProvidedConfig?.proxy?.enabled,
+        validation: () => clientProvidedConfig?.proxy?.enabled,
       },
       {
         key: "proxy.enabled",
-        validation: (key: string, x: string) => {
-          const prop = clientProvidedConfig?.[key as keyof ClientProvidedConfig];
+        validation: (key: keyof ClientProvidedConfig, x: string) => {
+          const prop = clientProvidedConfig?.[key];
           return prop?.[x as keyof typeof prop] !== undefined;
         },
       },
@@ -410,7 +411,7 @@ export class Server {
           second as keyof ClientProvidedConfig,
         )
       ) {
-        if (validation(first!, second!)) {
+        if (validation(first as keyof ClientProvidedConfig, second!)) {
           const firstProp = clientProvidedConfig[first as keyof typeof clientProvidedConfig];
           this.agent.updateConfig(`${first}.${second}`, firstProp?.[second as keyof typeof firstProp]);
         } else {
