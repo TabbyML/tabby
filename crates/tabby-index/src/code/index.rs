@@ -5,7 +5,7 @@ use futures::StreamExt;
 use ignore::{DirEntry, Walk};
 use tabby_common::index::corpus;
 use tabby_inference::Embedding;
-use tracing::warn;
+use tracing::{debug, warn};
 
 use super::{
     create_code_builder,
@@ -99,7 +99,9 @@ async fn add_changed_documents(
                 continue;
             };
 
-            if cloned_index.is_indexed(&key) {
+            let id = SourceCode::to_index_id(&repository.source_id, &key).id;
+
+            if cloned_index.is_indexed(&id) {
                 // Skip if already indexed
                 continue;
             }
