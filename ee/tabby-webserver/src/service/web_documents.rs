@@ -235,10 +235,10 @@ fn to_preset_web_document(value: WebDocumentDAO, job_info: JobInfo) -> PresetWeb
 #[cfg(test)]
 mod tests {
     use tabby_db::DbConn;
+    use tabby_schema::constants::WEB_DOCUMENT_NAME_REGEX;
 
     use super::*;
     use crate::background_job::BackgroundJobEvent;
-    use tabby_schema::constants::WEB_DOCUMENT_NAME_REGEX;
 
     #[tokio::test]
     async fn test_list_web_documents() {
