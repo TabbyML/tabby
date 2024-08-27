@@ -248,7 +248,7 @@ mod tests {
     use serial_test::serial;
     use tabby_common::{config::config_index_to_id, path::set_tabby_root};
     use tracing_test::traced_test;
-
+    use tabby_common::config::RepositoryConfig;
     use super::*;
 
     fn get_tabby_root() -> PathBuf {
@@ -264,7 +264,7 @@ mod tests {
     fn get_rust_source_file(source_id: &str) -> PathBuf {
         let mut path = get_tabby_root();
         path.push("repositories");
-        path.push(source_id);
+        path.push(RepositoryConfig::resolve_dir_name(source_id));
         path.push("rust.rs");
         path
     }
