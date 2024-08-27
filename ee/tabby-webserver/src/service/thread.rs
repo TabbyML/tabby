@@ -36,7 +36,7 @@ impl ThreadService for ThreadServiceImpl {
         let thread_id = self
             .db
             // By default, all new threads are ephemeral
-            .create_thread(user_id.as_rowid()?, false)
+            .create_thread(user_id.as_rowid()?, true)
             .await?;
         self.append_user_message(&thread_id.as_id(), &input.user_message)
             .await?;

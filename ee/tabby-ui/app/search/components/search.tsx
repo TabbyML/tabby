@@ -103,6 +103,8 @@ import {
 
 import { DevPanel } from './dev-panel'
 import { MessagesSkeleton } from './messages-skeleton'
+import { toast } from 'sonner'
+import { useMutation } from '@/lib/tabby/gql'
 
 type ConversationMessage = Omit<
   Message,
@@ -276,7 +278,7 @@ export function Search() {
   }, [threadMessagesError])
 
   // `/search` -> `/search/{slug}-{threadId}`
-  const updateURLPattern = (threadId: string) => {
+  const updateThreadURL = (threadId: string) => {
     const firstLine = messages?.[0]?.content.split('\n')[0]
     const title = firstLine.slice(0, 48)
     const slug = slugify(title)
@@ -289,13 +291,15 @@ export function Search() {
 
     const slugWithThreadId = compact([slug, threadId]).join('-')
 
-    updateUrlComponents({
+    const path = updateUrlComponents({
       pathname: `/search/${slugWithThreadId}`,
       searchParams: {
         del: ['q']
       },
       replace: true
     })
+
+    return location.origin + path
   }
 
   const { sendUserMessage, isLoading, error, answer, stop, regenerate } =
@@ -398,13 +402,6 @@ export function Search() {
     if (!answer) return
 
     let newMessages = [...messages]
-    const newThreadId = answer?.threadCreated
-
-    // Update the URL pattern after the streaming is completed.
-    if (answer?.threadAssistantMessageCompleted && !!newThreadId && !threadId) {
-      updateURLPattern(newThreadId)
-      return
-    }
 
     const currentUserMessageIdx = newMessages.findIndex(
       o => o.id === currentUserMessageId
@@ -665,7 +662,7 @@ export function Search() {
       <div className="transition-all" style={style}>
         <ResizablePanelGroup direction="vertical" onLayout={onPanelLayout}>
           <ResizablePanel>
-            <Header threadId={threadId} />
+            <Header threadIdFromURL={threadId} threadIdFromStreaming={answer?.threadCreated} streamingDone={!!answer?.threadAssistantMessageCompleted} updateThreadURL={updateThreadURL} />
             <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
               <ScrollArea className="h-full" ref={contentContainerRef}>
                 <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
@@ -855,7 +852,7 @@ function AnswerBlock({
 
   const totalHeightInRem = answer.attachment?.doc?.length
     ? Math.ceil(answer.attachment.doc.length / 4) * SOURCE_CARD_STYLE.expand +
-      0.5 * Math.floor(answer.attachment.doc.length / 4)
+    0.5 * Math.floor(answer.attachment.doc.length / 4)
     : 0
 
   const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
@@ -1177,15 +1174,34 @@ function SourceCard({
   )
 }
 
-function Header({ threadId }: { threadId?: string }) {
+const setThreadPersistedMutation = graphql(/* GraphQL */ `
+  mutation SetThreadPersisted($threadId: ID!) {
+    setThreadPersisted(threadId: $threadId)
+  }
+`);
+
+function Header({ threadIdFromURL, threadIdFromStreaming, streamingDone, updateThreadURL }: { threadIdFromURL?: string, threadIdFromStreaming?: string | null, streamingDone?: boolean, updateThreadURL?: (threadId: string) => string }) {
   const router = useRouter()
   const { isCopied, copyToClipboard } = useCopyToClipboard({
     timeout: 2000
   })
 
-  const onCopy = () => {
+  const setThreadPersisted = useMutation(setThreadPersistedMutation, {
+    onError(err) {
+      toast.error(err.message)
+    }
+  });
+
+  const onCopy = async () => {
     if (isCopied) return
-    copyToClipboard(window.location.href)
+
+    let url = window.location.href;
+    if (!threadIdFromURL && (streamingDone && threadIdFromStreaming && updateThreadURL)) {
+      await setThreadPersisted({ threadId: threadIdFromStreaming });
+      url = updateThreadURL(threadIdFromStreaming);
+    }
+
+    copyToClipboard(url)
   }
 
   return (
@@ -1201,7 +1217,7 @@ function Header({ threadId }: { threadId?: string }) {
         </Button>
       </div>
       <div className="flex items-center gap-2">
-        {!!threadId && (
+        {(streamingDone || threadIdFromURL) && (
           <>
             <Button
               variant="ghost"
