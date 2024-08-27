@@ -132,8 +132,8 @@ impl WebDocumentService for WebDocumentServiceImpl {
 
         let mut converted_urls = vec![];
         let mut active_urls: HashSet<String> = HashSet::default();
-        let include_active = is_active.clone().unwrap_or(true);
-        let include_inactive = !is_active.clone().unwrap_or(false);
+        let include_active = is_active.unwrap_or(true);
+        let include_inactive = !is_active.unwrap_or(false);
 
         for url in urls {
             active_urls.insert(url.name.clone());
