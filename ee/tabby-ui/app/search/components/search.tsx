@@ -72,6 +72,7 @@ import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
 import { compact, isEmpty, pick, uniqBy } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
+import { toast } from 'sonner'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
@@ -88,6 +89,7 @@ import {
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
+import { useMutation } from '@/lib/tabby/gql'
 import { repositoryListQuery } from '@/lib/tabby/query'
 import {
   Tooltip,
@@ -103,8 +105,6 @@ import {
 
 import { DevPanel } from './dev-panel'
 import { MessagesSkeleton } from './messages-skeleton'
-import { toast } from 'sonner'
-import { useMutation } from '@/lib/tabby/gql'
 
 type ConversationMessage = Omit<
   Message,
@@ -662,7 +662,12 @@ export function Search() {
       <div className="transition-all" style={style}>
         <ResizablePanelGroup direction="vertical" onLayout={onPanelLayout}>
           <ResizablePanel>
-            <Header threadIdFromURL={threadId} threadIdFromStreaming={answer?.threadCreated} streamingDone={!!answer?.threadAssistantMessageCompleted} updateThreadURL={updateThreadURL} />
+            <Header
+              threadIdFromURL={threadId}
+              threadIdFromStreaming={answer?.threadCreated}
+              streamingDone={!!answer?.threadAssistantMessageCompleted}
+              updateThreadURL={updateThreadURL}
+            />
             <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
               <ScrollArea className="h-full" ref={contentContainerRef}>
                 <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
@@ -852,7 +857,7 @@ function AnswerBlock({
 
   const totalHeightInRem = answer.attachment?.doc?.length
     ? Math.ceil(answer.attachment.doc.length / 4) * SOURCE_CARD_STYLE.expand +
-    0.5 * Math.floor(answer.attachment.doc.length / 4)
+      0.5 * Math.floor(answer.attachment.doc.length / 4)
     : 0
 
   const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
@@ -1178,9 +1183,19 @@ const setThreadPersistedMutation = graphql(/* GraphQL */ `
   mutation SetThreadPersisted($threadId: ID!) {
     setThreadPersisted(threadId: $threadId)
   }
-`);
+`)
 
-function Header({ threadIdFromURL, threadIdFromStreaming, streamingDone, updateThreadURL }: { threadIdFromURL?: string, threadIdFromStreaming?: string | null, streamingDone?: boolean, updateThreadURL?: (threadId: string) => string }) {
+function Header({
+  threadIdFromURL,
+  threadIdFromStreaming,
+  streamingDone,
+  updateThreadURL
+}: {
+  threadIdFromURL?: string
+  threadIdFromStreaming?: string | null
+  streamingDone?: boolean
+  updateThreadURL?: (threadId: string) => string
+}) {
   const router = useRouter()
   const { isCopied, copyToClipboard } = useCopyToClipboard({
     timeout: 2000
@@ -1190,15 +1205,20 @@ function Header({ threadIdFromURL, threadIdFromStreaming, streamingDone, updateT
     onError(err) {
       toast.error(err.message)
     }
-  });
+  })
 
   const onCopy = async () => {
     if (isCopied) return
 
-    let url = window.location.href;
-    if (!threadIdFromURL && (streamingDone && threadIdFromStreaming && updateThreadURL)) {
-      await setThreadPersisted({ threadId: threadIdFromStreaming });
-      url = updateThreadURL(threadIdFromStreaming);
+    let url = window.location.href
+    if (
+      !threadIdFromURL &&
+      streamingDone &&
+      threadIdFromStreaming &&
+      updateThreadURL
+    ) {
+      await setThreadPersisted({ threadId: threadIdFromStreaming })
+      url = updateThreadURL(threadIdFromStreaming)
     }
 
     copyToClipboard(url)

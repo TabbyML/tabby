@@ -127,7 +127,7 @@ function ChatRenderer(
     deleteThreadMessagePair
   } = useThreadRun({
     threadId,
-    headers,
+    headers
   })
 
   const onDeleteMessage = async (userMessageId: string) => {

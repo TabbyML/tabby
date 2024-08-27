@@ -109,7 +109,7 @@ const DeleteThreadMessagePairMutation = graphql(/* GraphQL */ `
 export function useThreadRun({
   threadId: propsThreadId,
   headers,
-  onAssistantMessageCompleted,
+  onAssistantMessageCompleted
 }: UseThreadRunOptions) {
   const [threadId, setThreadId] = React.useState<string | undefined>(
     propsThreadId
