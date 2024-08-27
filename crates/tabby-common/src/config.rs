@@ -62,10 +62,6 @@ impl Config {
             .print();
         }
 
-        for (i, repo) in cfg.repositories.iter_mut().enumerate() {
-            repo.source_id = config_index_to_id(i);
-        }
-
         Ok(cfg)
     }
 
@@ -77,8 +73,9 @@ impl Config {
 
     fn validate_dirs(&self) -> Result<()> {
         let mut dirs = HashSet::new();
-        for repo in self.repositories.iter() {
-            let dir = repo.dir().display().to_string();
+        for (i, repo) in self.repositories.iter().enumerate() {
+            let source_id = config_index_to_id(i);
+            let dir = repo.dir(&source_id).display().to_string();
             if !dirs.insert(dir.clone()) {
                 return Err(anyhow!("Duplicate directory in `repositories`: {}", dir));
             }
@@ -96,7 +93,7 @@ lazy_static! {
 
 pub fn config_index_to_id(index: usize) -> String {
     let id = HASHER.encode(&[index as u64]);
-    format!("config_{id}")
+    format!("config:{id}")
 }
 
 pub fn config_id_to_index(id: &str) -> Result<usize, anyhow::Error> {
@@ -114,8 +111,6 @@ pub fn config_id_to_index(id: &str) -> Result<usize, anyhow::Error> {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RepositoryConfig {
     pub git_url: String,
-    #[serde(skip)]
-    pub source_id: String,
 }
 
 impl RepositoryConfig {
@@ -130,11 +125,16 @@ impl RepositoryConfig {
             .unwrap_or_else(|_| url.to_string())
     }
 
-    pub fn dir(&self) -> PathBuf {
-        if Self::resolve_is_local_dir(&self.git_url) {
-            Self::resolve_dir(&self.git_url)
+    pub fn dir(&self, source_id: &str) -> PathBuf {
+        Self::get_dir(&self.git_url, source_id)
+    }
+
+    pub fn get_dir(git_url: &str, source_id: &str) -> PathBuf {
+        if Self::resolve_is_local_dir(git_url) {
+            let path = git_url.strip_prefix("file://").unwrap();
+            path.into()
         } else {
-            Self::resolve_dir(&self.source_id)
+            repositories_dir().join(Self::resolve_dir_name(source_id))
         }
     }
 
@@ -378,14 +378,15 @@ impl CodeRepositoryAccess for StaticCodeRepositoryAccess {
         Ok(Config::load()?
             .repositories
             .into_iter()
-            .map(|repo| CodeRepository::new(&repo.git_url, &repo.source_id))
+            .enumerate()
+            .map(|(i, repo)| CodeRepository::new(&repo.git_url, &config_index_to_id(i)))
             .collect())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{sanitize_name, Config, RepositoryConfig};
+    use super::{sanitize_name, CodeRepository, Config, RepositoryConfig};
 
     #[test]
     fn it_parses_empty_config() {
@@ -397,18 +398,17 @@ mod tests {
     fn it_parses_local_dir() {
         let repo = RepositoryConfig {
             git_url: "file:///home/user".to_owned(),
-            source_id: "".to_string(),
         };
-        let _ = repo.dir();
+        let _ = repo.dir("");
     }
 
     #[test]
     fn test_repository_config_name() {
         let repo = RepositoryConfig {
             git_url: "https://github.com/TabbyML/tabby.git".to_owned(),
-            source_id: "aBc".to_string(),
         };
-        assert!(repo.dir().ends_with("aBc"));
+        assert!(repo.dir("aBc").ends_with("aBc"));
+        assert!(repo.dir("config:aBc").ends_with("config_aBc"));
     }
 
     #[test]
@@ -447,5 +447,12 @@ mod tests {
             RepositoryConfig::canonicalize_url("file:///home/TabbyML/tabby"),
             "file:///home/TabbyML/tabby"
         );
+    }
+
+    #[test]
+    fn test_code_repository() {
+        let repo = CodeRepository::new("https://github.com/TabbyML/tabby.git", "config:123");
+        assert_eq!(repo.dir_name(), "config_123");
+        assert_eq!(repo.dir().file_name().unwrap().to_str().unwrap(), "config_123");
     }
 }

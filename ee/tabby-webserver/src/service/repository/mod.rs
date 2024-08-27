@@ -227,19 +227,21 @@ fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
 }
 
 fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> Result<Repository> {
+    let source_id = config_index_to_id(index);
+    let dir = RepositoryConfig::get_dir(&config.git_url, &source_id);
     Ok(Repository {
-        id: ID::new(config_index_to_id(index)),
-        source_id: config_index_to_id(index),
+        id: ID::new(source_id.clone()),
+        source_id,
         name: config.display_name(),
         kind: RepositoryKind::GitConfig,
-        dir: config.dir(),
-        refs: tabby_git::list_refs(&config.dir())?
+        refs: tabby_git::list_refs(&dir)?
             .into_iter()
             .map(|r| GitReference {
                 name: r.name,
                 commit: r.commit,
             })
             .collect(),
+        dir,
         git_url: config.git_url.to_owned(),
     })
 }
