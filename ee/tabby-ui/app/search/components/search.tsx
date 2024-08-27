@@ -279,14 +279,9 @@ export function Search() {
   const updateURLPattern = (threadId: string) => {
     const firstLine = messages?.[0]?.content.split('\n')[0]
     const title = firstLine.slice(0, 48)
+    document.title = title
+
     const slug = slugify(title)
-
-    if (slug) {
-      document.title = slug
-    } else {
-      document.title = title
-    }
-
     const slugWithThreadId = compact([slug, threadId]).join('-')
 
     updateUrlComponents({
