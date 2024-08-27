@@ -453,6 +453,9 @@ mod tests {
     fn test_code_repository() {
         let repo = CodeRepository::new("https://github.com/TabbyML/tabby.git", "config:123");
         assert_eq!(repo.dir_name(), "config_123");
-        assert_eq!(repo.dir().file_name().unwrap().to_str().unwrap(), "config_123");
+        assert_eq!(
+            repo.dir().file_name().unwrap().to_str().unwrap(),
+            "config_123"
+        );
     }
 }
