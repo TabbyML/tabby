@@ -1,3 +1,13 @@
+## 1.9.3
+
+**pre-release**
+
+### Fixes & Improvements
+
+- Inline edit streaming steps are now considered as one undo-redo step.
+- Added a button in the source control view title to easily generate commit messages.
+- Fixed a bug where the chat panel did not refresh when server configuration was changed.
+
 ## 1.9.1
 
 **pre-release**
