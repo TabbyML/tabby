@@ -344,12 +344,16 @@ export class Server {
     }
   }
 
-  private shouldConfigurationUpdate(clientProvidedConfig: ClientProvidedConfig, key1: keyof ClientProvidedConfig, key2?: keyof ClientProvidedConfig): boolean {
+  private shouldConfigurationUpdate(
+    clientProvidedConfig: ClientProvidedConfig,
+    key1: keyof ClientProvidedConfig,
+    key2?: keyof ClientProvidedConfig,
+  ): boolean {
     const prop = clientProvidedConfig?.[key1];
     const prevProp = this.clientProvidedConfig?.[key1];
     return key2
       ? prop?.[key2 as keyof typeof prop] !== prevProp?.[key2 as keyof typeof prevProp]
-      : clientProvidedConfig?.[key1] !== this.clientProvidedConfig?.[key1]
+      : clientProvidedConfig?.[key1] !== this.clientProvidedConfig?.[key1];
   }
 
   private async updateConfiguration(params: DidChangeConfigurationParams) {
@@ -362,14 +366,18 @@ export class Server {
         key: "server.endpoint",
         validation: (key: string, x: string) => {
           const prop = clientProvidedConfig?.[key as keyof ClientProvidedConfig];
-          return prop?.[x as keyof typeof prop] !== undefined && (prop?.[x as keyof typeof prop] as string).trim().length > 0;
+          return (
+            prop?.[x as keyof typeof prop] !== undefined && (prop?.[x as keyof typeof prop] as string).trim().length > 0
+          );
         },
       },
       {
         key: "server.token",
-        validation: (key: string, x: string) =>  {
+        validation: (key: string, x: string) => {
           const prop = clientProvidedConfig?.[key as keyof ClientProvidedConfig];
-          return prop?.[x as keyof typeof prop] !== undefined && (prop?.[x as keyof typeof prop] as string).trim().length > 0;
+          return (
+            prop?.[x as keyof typeof prop] !== undefined && (prop?.[x as keyof typeof prop] as string).trim().length > 0
+          );
         },
       },
       {
@@ -387,17 +395,23 @@ export class Server {
       {
         key: "proxy.enabled",
         validation: (key: string, x: string) => {
-          const prop = clientProvidedConfig?.[key as keyof ClientProvidedConfig]
-          return prop?.[x as keyof typeof prop] !== undefined
+          const prop = clientProvidedConfig?.[key as keyof ClientProvidedConfig];
+          return prop?.[x as keyof typeof prop] !== undefined;
         },
       },
     ];
 
     for (const { key, validation } of fieldsToCheck) {
-      const [first, second] = key.split('.');
-      if (this.shouldConfigurationUpdate(clientProvidedConfig, first as keyof ClientProvidedConfig, second as keyof ClientProvidedConfig)) {
+      const [first, second] = key.split(".");
+      if (
+        this.shouldConfigurationUpdate(
+          clientProvidedConfig,
+          first as keyof ClientProvidedConfig,
+          second as keyof ClientProvidedConfig,
+        )
+      ) {
         if (validation(first!, second!)) {
-          const firstProp = clientProvidedConfig[first as keyof typeof clientProvidedConfig]
+          const firstProp = clientProvidedConfig[first as keyof typeof clientProvidedConfig];
           this.agent.updateConfig(`${first}.${second}`, firstProp?.[second as keyof typeof firstProp]);
         } else {
           this.agent.clearConfig(`${first}.${name}`);
@@ -406,7 +420,13 @@ export class Server {
     }
 
     const clientType = this.getClientType(this.clientInfo);
-    if (this.shouldConfigurationUpdate(clientProvidedConfig, "inlineCompletion", "triggerMode" as keyof ClientProvidedConfig["inlineCompletion"])) {
+    if (
+      this.shouldConfigurationUpdate(
+        clientProvidedConfig,
+        "inlineCompletion",
+        "triggerMode" as keyof ClientProvidedConfig["inlineCompletion"],
+      )
+    ) {
       this.agent.updateClientProperties(
         "user",
         `${clientType}.triggerMode`,
@@ -573,7 +593,7 @@ export class Server {
     ];
 
     for (const { name, validation } of fieldsToCheck) {
-      const [key1, key2] = name.split('.');
+      const [key1, key2] = name.split(".");
       const prop = clientProvidedConfig[key1 as keyof ClientProvidedConfig];
 
       if (prop && validation(prop[key2 as keyof typeof prop])) {
