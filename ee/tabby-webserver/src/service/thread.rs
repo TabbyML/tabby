@@ -116,10 +116,9 @@ impl ThreadService for ThreadServiceImpl {
                             .iter()
                             .map(|x| (&x.code).into())
                             .collect::<Vec<_>>();
-                        db.update_thread_message_attachments(
+                        db.update_thread_message_code_attachments(
                             assistant_message_id,
-                            Some(&code),
-                            None,
+                            &code,
                         ).await?;
                     }
 
@@ -128,10 +127,9 @@ impl ThreadService for ThreadServiceImpl {
                             .iter()
                             .map(|x| (&x.doc).into())
                             .collect::<Vec<_>>();
-                        db.update_thread_message_attachments(
+                        db.update_thread_message_doc_attachments(
                             assistant_message_id,
-                            None,
-                            Some(&doc),
+                            &doc,
                         ).await?;
                     }
 
