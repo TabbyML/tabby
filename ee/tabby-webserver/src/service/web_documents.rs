@@ -181,21 +181,22 @@ impl WebDocumentService for WebDocumentServiceImpl {
         Ok(converted_urls)
     }
 
-    async fn set_preset_web_documents_active(&self, id: String, active: bool) -> Result<()> {
+    async fn set_preset_web_documents_active(&self, id: ID, active: bool) -> Result<()> {
+        let name = id.to_string();
         if !active {
-            self.db.deactivate_preset_web_document(id).await?;
+            self.db.deactivate_preset_web_document(name).await?;
             self.job_service
                 .trigger(BackgroundJobEvent::IndexGarbageCollection.to_command())
                 .await?;
             Ok(())
         } else {
-            let Some(url) = self.preset_web_documents.get(&id) else {
+            let Some(url) = self.preset_web_documents.get(&name) else {
                 return Err(CoreError::Other(anyhow!(format!(
                     "id {} does not exist",
                     id
                 ))));
             };
-            let id = self.db.create_web_document(id, url.clone(), true).await?;
+            let id = self.db.create_web_document(name, url.clone(), true).await?;
             let _ = self
                 .job_service
                 .trigger(
@@ -266,7 +267,7 @@ mod tests {
         assert!(urls[0].job_info.last_job_run.is_some());
 
         service
-            .set_preset_web_documents_active("React".to_string(), true)
+            .set_preset_web_documents_active(ID::from("React".to_string()), true)
             .await
             .unwrap();
 
@@ -276,7 +277,7 @@ mod tests {
 
         db.create_job_run("preset".into(), command).await.unwrap();
         service
-            .set_preset_web_documents_active("Qwik".to_string(), true)
+            .set_preset_web_documents_active(ID::from("Qwik".to_string()), true)
             .await
             .unwrap();
         let urls = service
@@ -305,11 +306,11 @@ mod tests {
         assert_eq!(1, urls.len());
 
         service
-            .set_preset_web_documents_active("React".to_string(), false)
+            .set_preset_web_documents_active(ID::from("React".to_string()), false)
             .await
             .unwrap();
         service
-            .set_preset_web_documents_active("Qwik".to_string(), false)
+            .set_preset_web_documents_active(ID::from("Qwik".to_string()), false)
             .await
             .unwrap();
         let urls = service
@@ -368,7 +369,11 @@ mod tests {
         let job = Arc::new(crate::service::job::create(db.clone()).await);
         let service = create_impl(db.clone(), job.clone());
         for name in service.preset_web_documents.keys() {
-            assert!(WEB_DOCUMENT_NAME_REGEX.is_match(name.as_str()));
+            assert!(
+                WEB_DOCUMENT_NAME_REGEX.is_match(name.as_str()),
+                "name: {}",
+                name
+            );
         }
     }
 }
