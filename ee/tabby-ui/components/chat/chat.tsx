@@ -71,7 +71,6 @@ interface ChatProps extends React.ComponentProps<'div'> {
   chatId: string
   api?: string
   headers?: Record<string, string> | Headers
-  isEphemeral?: boolean
   initialMessages?: QuestionAnswerPair[]
   onLoaded?: () => void
   onThreadUpdates?: (messages: QuestionAnswerPair[]) => void
@@ -94,7 +93,6 @@ function ChatRenderer(
     chatId,
     initialMessages,
     headers,
-    isEphemeral,
     onLoaded,
     onThreadUpdates,
     onNavigateToContext,
@@ -129,8 +127,7 @@ function ChatRenderer(
     deleteThreadMessagePair
   } = useThreadRun({
     threadId,
-    headers,
-    isEphemeral
+    headers
   })
 
   const onDeleteMessage = async (userMessageId: string) => {

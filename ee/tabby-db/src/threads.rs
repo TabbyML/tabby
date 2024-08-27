@@ -121,6 +121,18 @@ impl DbConn {
         Ok(())
     }
 
+    pub async fn update_thread_ephemeral(&self, thread_id: i64, is_ephemeral: bool) -> Result<()> {
+        query!(
+            "UPDATE threads SET is_ephemeral = ?, updated_at = DATETIME('now') WHERE id = ?",
+            is_ephemeral,
+            thread_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn create_thread_message(
         &self,
         thread_id: i64,
