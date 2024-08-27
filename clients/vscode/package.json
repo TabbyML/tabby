@@ -433,7 +433,7 @@
     "vscode:package": "vsce package --no-dependencies",
     "vscode:prepublish": "turbo build --force",
     "vscode:publish": "vsce publish --no-dependencies",
-    "vscode:publish-prerelease": "vsce publish --no-dependencies --prerelease"
+    "vscode:publish-prerelease": "vsce publish --no-dependencies --pre-release"
   },
   "devDependencies": {
     "@quilted/threads": "^2.2.0",
