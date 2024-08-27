@@ -344,76 +344,77 @@ export class Server {
     }
   }
 
+  private shouldConfigurationUpdate(clientProvidedConfig: ClientProvidedConfig, key1: keyof ClientProvidedConfig, key2?: keyof ClientProvidedConfig): boolean {
+    const prop = clientProvidedConfig?.[key1];
+    const prevProp = this.clientProvidedConfig?.[key1];
+    return key2
+      ? prop?.[key2 as keyof typeof prop] !== prevProp?.[key2 as keyof typeof prevProp]
+      : clientProvidedConfig?.[key1] !== this.clientProvidedConfig?.[key1]
+  }
+
   private async updateConfiguration(params: DidChangeConfigurationParams) {
     const clientProvidedConfig: ClientProvidedConfig | null = params.settings;
-    if (
-      clientProvidedConfig?.server?.endpoint !== undefined &&
-      clientProvidedConfig.server.endpoint !== this.clientProvidedConfig?.server?.endpoint
-    ) {
-      if (clientProvidedConfig.server.endpoint.trim().length > 0) {
-        this.agent.updateConfig("server.endpoint", clientProvidedConfig.server.endpoint);
-      } else {
-        this.agent.clearConfig("server.endpoint");
-      }
-    }
-    if (
-      clientProvidedConfig?.server?.token !== undefined &&
-      clientProvidedConfig.server.token !== this.clientProvidedConfig?.server?.token
-    ) {
-    if (clientProvidedConfig.server.token.trim().length > 0) {
-        this.agent.updateConfig("server.token", clientProvidedConfig.server.token);
-      } else {
-        this.agent.clearConfig("server.token");
-      }
-    }
-    if (
-      clientProvidedConfig?.anonymousUsageTracking?.disable !== undefined &&
-      clientProvidedConfig.anonymousUsageTracking.disable !== this.clientProvidedConfig?.anonymousUsageTracking?.disable
-    ) {
-      if (clientProvidedConfig.anonymousUsageTracking.disable) {
-        this.agent.updateConfig("anonymousUsageTracking.disable", true);
-      } else {
-        this.agent.clearConfig("anonymousUsageTracking.disable");
-      }
-    }
-    if (
-      clientProvidedConfig?.proxy?.url &&
-      clientProvidedConfig.proxy.url !== this.clientProvidedConfig?.proxy?.url
-    ) {
-      if (clientProvidedConfig?.proxy.enabled) {
-        this.agent.updateConfig("proxy.url", clientProvidedConfig.proxy.url);
-      } else {
-        this.agent.clearConfig("proxy.url");
-      }
-    }
 
-    if (
-      clientProvidedConfig?.proxy?.authorization &&
-      clientProvidedConfig.proxy.authorization !== this.clientProvidedConfig?.proxy?.authorization
-    ) {
-      if (clientProvidedConfig?.proxy.enabled) {
-        this.agent.updateConfig("proxy.authorization", clientProvidedConfig.proxy.authorization);
-      } else {
-        this.agent.clearConfig("proxy.authorization");
+    if (!clientProvidedConfig) return;
+
+    const fieldsToCheck = [
+      {
+        key: "server.endpoint",
+        validation: (key: string, x: string) => {
+          const prop = clientProvidedConfig?.[key as keyof ClientProvidedConfig];
+          return prop?.[x as keyof typeof prop] !== undefined && (prop?.[x as keyof typeof prop] as string).trim().length > 0;
+        },
+      },
+      {
+        key: "server.token",
+        validation: (key: string, x: string) =>  {
+          const prop = clientProvidedConfig?.[key as keyof ClientProvidedConfig];
+          return prop?.[x as keyof typeof prop] !== undefined && (prop?.[x as keyof typeof prop] as string).trim().length > 0;
+        },
+      },
+      {
+        key: "anonymousUsageTracking.disable",
+        validation: () => clientProvidedConfig?.anonymousUsageTracking?.disable,
+      },
+      {
+        key: "proxy.url",
+        validation: () => clientProvidedConfig?.proxy?.enabled,
+      },
+      {
+        key: "proxy.authorization",
+        validation: () => () => clientProvidedConfig?.proxy?.enabled,
+      },
+      {
+        key: "proxy.enabled",
+        validation: (key: string, x: string) => {
+          const prop = clientProvidedConfig?.[key as keyof ClientProvidedConfig]
+          return prop?.[x as keyof typeof prop] !== undefined
+        },
+      },
+    ];
+
+    for (const { key, validation } of fieldsToCheck) {
+      const [first, second] = key.split('.');
+      if (this.shouldConfigurationUpdate(clientProvidedConfig, first as keyof ClientProvidedConfig, second as keyof ClientProvidedConfig)) {
+        if (validation(first!, second!)) {
+          const firstProp = clientProvidedConfig[first as keyof typeof clientProvidedConfig]
+          this.agent.updateConfig(`${first}.${second}`, firstProp?.[second as keyof typeof firstProp]);
+        } else {
+          this.agent.clearConfig(`${first}.${name}`);
+        }
       }
     }
 
     const clientType = this.getClientType(this.clientInfo);
-    if (
-      clientProvidedConfig?.inlineCompletion?.triggerMode !== undefined &&
-      clientProvidedConfig.inlineCompletion.triggerMode !== this.clientProvidedConfig?.inlineCompletion?.triggerMode
-    ) {
+    if (this.shouldConfigurationUpdate(clientProvidedConfig, "inlineCompletion", "triggerMode" as keyof ClientProvidedConfig["inlineCompletion"])) {
       this.agent.updateClientProperties(
         "user",
         `${clientType}.triggerMode`,
-        clientProvidedConfig.inlineCompletion?.triggerMode,
+        clientProvidedConfig!.inlineCompletion?.triggerMode,
       );
     }
-    if (
-      clientProvidedConfig?.keybindings !== undefined &&
-      clientProvidedConfig.keybindings !== this.clientProvidedConfig?.keybindings
-    ) {
-      this.agent.updateClientProperties("user", `${clientType}.keybindings`, clientProvidedConfig.keybindings);
+    if (this.shouldConfigurationUpdate(clientProvidedConfig, "keybindings")) {
+      this.agent.updateClientProperties("user", `${clientType}.keybindings`, clientProvidedConfig!.keybindings);
     }
     this.clientProvidedConfig = clientProvidedConfig;
   }
@@ -563,57 +564,22 @@ export class Server {
     }
 
     const fieldsToCheck = [
-      {
-        key: 'server',
-        properties: [
-          {
-            name: 'endpoint',
-            validation: (x?: string) => x && x.trim().length > 0,
-          },
-          {
-            name: 'token',
-            validation: (x?: string) => x && x.trim().length > 0,
-          }
-        ],
-      },
-      {
-        key: 'anonymousUsageTracking',
-        properties: [
-          {
-            name: 'disable',
-            validation: (x?: boolean) => x !== undefined,
-          }
-        ]
-      },
-      {
-        key: 'proxy',
-        properties: [
-          {
-            name: 'url',
-            validation: (x?: unknown) => x !== undefined,
-          },
-          {
-            name: 'authorization',
-            validation: (x?: unknown) => x !== undefined,
-          },
-          {
-            name: 'enabled',
-            validation: (x?: boolean) => x !== undefined,
-          },
-        ],
-      },
+      { name: "server.endpoint", validation: (x?: string) => x && x.trim().length > 0 },
+      { name: "server.token", validation: (x?: string) => x && x.trim().length > 0 },
+      { name: "anonymousUsageTracking.disable", validation: (x?: boolean) => x !== undefined },
+      { name: "proxy.url", validation: (x?: unknown) => x !== undefined },
+      { name: "proxy.authorization", validation: (x?: unknown) => x !== undefined },
+      { name: "proxy.enabled", validation: (x?: boolean) => x !== undefined },
     ];
 
-    for (const { key, properties } of fieldsToCheck) {
-      for (const { name, validation } of properties) {
-        const prop = clientProvidedConfig[key as keyof ClientProvidedConfig];
+    for (const { name, validation } of fieldsToCheck) {
+      const [key1, key2] = name.split('.');
+      const prop = clientProvidedConfig[key1 as keyof ClientProvidedConfig];
 
-        if (prop && validation(prop[name as keyof typeof prop])) {
-          const k = key as keyof PartialAgentConfig;
-          const configuration = config[k] || {};
-          configuration[name as keyof typeof prop] = prop[name as keyof typeof prop];
-          config[k] = configuration;
-        }
+      if (prop && validation(prop[key2 as keyof typeof prop])) {
+        const configuration = config[key1 as keyof PartialAgentConfig] || {};
+        configuration[key2 as keyof typeof prop] = prop[key2 as keyof typeof prop];
+        config[key1 as keyof PartialAgentConfig] = configuration;
       }
     }
     return config;
