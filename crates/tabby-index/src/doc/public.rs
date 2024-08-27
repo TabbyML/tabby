@@ -42,20 +42,18 @@ impl DocIndexer {
     }
 
     pub async fn add(&self, updated_at: DateTime<Utc>, document: WebDocument) -> bool {
-        if self.indexer.is_indexed_after(&document.id, updated_at) {
+        let is_document_empty = document.body.trim().is_empty();
+        if is_document_empty || self.indexer.is_indexed_after(&document.id, updated_at) {
             return false;
         };
 
         stream! {
-            let is_document_empty = document.body.trim().is_empty();
             let (id, s) = self.builder.build(document).await;
             self.indexer.delete(&id);
 
-            if !is_document_empty {
-                for await doc in s.buffer_unordered(std::cmp::max(std::thread::available_parallelism().unwrap().get() * 2, 32)) {
-                    if let Ok(Some(doc)) = doc {
-                        self.indexer.add(doc).await;
-                    }
+            for await doc in s.buffer_unordered(std::cmp::max(std::thread::available_parallelism().unwrap().get() * 2, 32)) {
+                if let Ok(Some(doc)) = doc {
+                    self.indexer.add(doc).await;
                 }
             }
         }.count().await;
