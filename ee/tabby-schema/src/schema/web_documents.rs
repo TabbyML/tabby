@@ -54,11 +54,11 @@ pub struct CreateCustomDocumentInput {
 #[derive(Validate, GraphQLInputObject)]
 pub struct SetPresetDocumentActiveInput {
     #[validate(regex(
-        code = "name",
+        code = "id",
         path = "*crate::schema::constants::WEB_DOCUMENT_NAME_REGEX",
-        message = "Invalid document name"
+        message = "Invalid document id"
     ))]
-    pub name: String,
+    pub id: String,
     pub active: bool,
 }
 
@@ -116,5 +116,5 @@ pub trait WebDocumentService: Send + Sync {
         last: Option<usize>,
         is_active: bool,
     ) -> Result<Vec<PresetWebDocument>>;
-    async fn set_preset_web_documents_active(&self, name: String, active: bool) -> Result<()>;
+    async fn set_preset_web_documents_active(&self, id: String, active: bool) -> Result<()>;
 }

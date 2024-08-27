@@ -19,6 +19,10 @@ use super::{
 };
 
 pub fn create(db: DbConn, job_service: Arc<dyn JobService>) -> impl WebDocumentService {
+    create_impl(db, job_service)
+}
+
+fn create_impl(db: DbConn, job_service: Arc<dyn JobService>) -> WebDocumentServiceImpl {
     let data: serde_json::Value = serde_json::from_str(PRESET_WEB_DOCUMENTS_DATA).unwrap();
     let mut preset_web_documents = HashMap::new();
     for doc in data.as_array().unwrap() {
@@ -177,21 +181,21 @@ impl WebDocumentService for WebDocumentServiceImpl {
         Ok(converted_urls)
     }
 
-    async fn set_preset_web_documents_active(&self, name: String, active: bool) -> Result<()> {
+    async fn set_preset_web_documents_active(&self, id: String, active: bool) -> Result<()> {
         if !active {
-            self.db.deactivate_preset_web_document(name).await?;
+            self.db.deactivate_preset_web_document(id).await?;
             self.job_service
                 .trigger(BackgroundJobEvent::IndexGarbageCollection.to_command())
                 .await?;
             Ok(())
         } else {
-            let Some(url) = self.preset_web_documents.get(&name) else {
+            let Some(url) = self.preset_web_documents.get(&id) else {
                 return Err(CoreError::Other(anyhow!(format!(
-                    "name {} does not exist",
-                    name
+                    "id {} does not exist",
+                    id
                 ))));
             };
-            let id = self.db.create_web_document(name, url.clone(), true).await?;
+            let id = self.db.create_web_document(id, url.clone(), true).await?;
             let _ = self
                 .job_service
                 .trigger(
@@ -233,6 +237,7 @@ mod tests {
 
     use super::*;
     use crate::background_job::BackgroundJobEvent;
+    use tabby_schema::constants::WEB_DOCUMENT_NAME_REGEX;
 
     #[tokio::test]
     async fn test_list_web_documents() {
@@ -355,5 +360,15 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(2, urls.len());
+    }
+
+    #[tokio::test]
+    async fn test_preset_web_documents_validate() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let job = Arc::new(crate::service::job::create(db.clone()).await);
+        let service = create_impl(db.clone(), job.clone());
+        for name in service.preset_web_documents.keys() {
+            assert!(WEB_DOCUMENT_NAME_REGEX.is_match(name.as_str()));
+        }
     }
 }

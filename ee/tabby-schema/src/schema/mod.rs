@@ -1032,9 +1032,10 @@ impl Mutation {
         ctx: &Context,
         input: SetPresetDocumentActiveInput,
     ) -> Result<bool> {
+        input.validate()?;
         ctx.locator
             .web_documents()
-            .set_preset_web_documents_active(input.name, input.active)
+            .set_preset_web_documents_active(input.id, input.active)
             .await?;
         Ok(true)
     }
