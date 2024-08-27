@@ -72,6 +72,7 @@ import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
 import { compact, isEmpty, pick, uniqBy } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
+import { toast } from 'sonner'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
@@ -88,6 +89,7 @@ import {
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
+import { useMutation } from '@/lib/tabby/gql'
 import { repositoryListQuery } from '@/lib/tabby/query'
 import {
   Tooltip,
@@ -219,13 +221,19 @@ export function Search() {
   const [devPanelSize, setDevPanelSize] = useState(45)
   const prevDevPanelSize = useRef(devPanelSize)
   const [enableDeveloperMode] = useEnableDeveloperMode()
-
-  const threadId = useMemo(() => {
+  const [threadId, setThreadId] = useState<string | undefined>()
+  const threadIdFromURL = useMemo(() => {
     const regex = /^\/search\/(.*)/
     if (!activePathname) return undefined
 
     return activePathname.match(regex)?.[1]?.split('-').pop()
   }, [activePathname])
+
+  useEffect(() => {
+    if (threadIdFromURL) {
+      setThreadId(threadIdFromURL)
+    }
+  }, [threadIdFromURL])
 
   const [{ data }] = useQuery({
     query: repositoryListQuery
@@ -268,6 +276,16 @@ export function Search() {
     }
   }, [threadMessages])
 
+  // update title
+  useEffect(() => {
+    if (messages?.[0]?.content) {
+      const title = getTitleFromMessages(messages)
+      if (title) {
+        document.title = title
+      }
+    }
+  }, [messages?.[0]?.content])
+
   useEffect(() => {
     if (threadMessagesError && !isReady) {
       // FIXME error view?
@@ -276,25 +294,20 @@ export function Search() {
   }, [threadMessagesError])
 
   // `/search` -> `/search/{slug}-{threadId}`
-  const updateURLPattern = (threadId: string) => {
-    const firstLine = messages?.[0]?.content.split('\n')[0]
-    const title = firstLine.slice(0, 48)
+  const updateThreadURL = (threadId: string) => {
+    const title = getTitleFromMessages(messages)
     const slug = slugify(title)
-
-    if (slug) {
-      document.title = slug
-    } else {
-      document.title = title
-    }
-
     const slugWithThreadId = compact([slug, threadId]).join('-')
 
-    updateUrlComponents({
+    const path = updateUrlComponents({
       pathname: `/search/${slugWithThreadId}`,
       searchParams: {
         del: ['q']
-      }
+      },
+      replace: true
     })
+
+    return location.origin + path
   }
 
   const { sendUserMessage, isLoading, error, answer, stop, regenerate } =
@@ -378,7 +391,7 @@ export function Search() {
       }
     }
 
-    if (isPathnameInitialized && !threadId) {
+    if (isPathnameInitialized && !threadIdFromURL) {
       init()
     }
   }, [isPathnameInitialized])
@@ -396,12 +409,12 @@ export function Search() {
   useEffect(() => {
     if (!answer) return
 
-    let newMessages = [...messages]
-    const newThreadId = answer?.threadCreated
-    if (!!newThreadId && !threadId) {
-      updateURLPattern(newThreadId)
-      return
+    // update threadId
+    if (answer?.threadCreated && answer.threadCreated !== threadId) {
+      setThreadId(answer.threadCreated)
     }
+
+    let newMessages = [...messages]
 
     const currentUserMessageIdx = newMessages.findIndex(
       o => o.id === currentUserMessageId
@@ -662,7 +675,12 @@ export function Search() {
       <div className="transition-all" style={style}>
         <ResizablePanelGroup direction="vertical" onLayout={onPanelLayout}>
           <ResizablePanel>
-            <Header threadId={threadId} />
+            <Header
+              threadIdFromURL={threadIdFromURL}
+              threadIdFromStreaming={threadId}
+              streamingDone={!!answer?.threadAssistantMessageCompleted}
+              updateThreadURL={updateThreadURL}
+            />
             <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
               <ScrollArea className="h-full" ref={contentContainerRef}>
                 <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
@@ -1174,19 +1192,53 @@ function SourceCard({
   )
 }
 
-function Header({ threadId }: { threadId?: string }) {
+const setThreadPersistedMutation = graphql(/* GraphQL */ `
+  mutation SetThreadPersisted($threadId: ID!) {
+    setThreadPersisted(threadId: $threadId)
+  }
+`)
+
+function Header({
+  threadIdFromURL,
+  threadIdFromStreaming,
+  streamingDone,
+  updateThreadURL
+}: {
+  threadIdFromURL?: string
+  threadIdFromStreaming?: string | null
+  streamingDone?: boolean
+  updateThreadURL?: (threadId: string) => string
+}) {
   const router = useRouter()
   const { isCopied, copyToClipboard } = useCopyToClipboard({
     timeout: 2000
   })
 
-  const onCopy = () => {
+  const setThreadPersisted = useMutation(setThreadPersistedMutation, {
+    onError(err) {
+      toast.error(err.message)
+    }
+  })
+
+  const onCopy = async () => {
     if (isCopied) return
-    copyToClipboard(window.location.href)
+
+    let url = window.location.href
+    if (
+      !threadIdFromURL &&
+      streamingDone &&
+      threadIdFromStreaming &&
+      updateThreadURL
+    ) {
+      await setThreadPersisted({ threadId: threadIdFromStreaming })
+      url = updateThreadURL(threadIdFromStreaming)
+    }
+
+    copyToClipboard(url)
   }
 
   return (
-    <header className="flex h-16 items-center justify-between px-4">
+    <header className="flex h-16 items-center justify-between px-4 lg:px-10">
       <div className="flex items-center gap-x-6">
         <Button
           variant="ghost"
@@ -1198,7 +1250,7 @@ function Header({ threadId }: { threadId?: string }) {
         </Button>
       </div>
       <div className="flex items-center gap-2">
-        {!!threadId && (
+        {(streamingDone || threadIdFromURL) && (
           <>
             <Button
               variant="ghost"
@@ -1221,13 +1273,11 @@ function Header({ threadId }: { threadId?: string }) {
           </>
         )}
         <ClientOnly>
-          <ThemeToggle />
+          <ThemeToggle className="mr-4" />
         </ClientOnly>
-        <div className="ml-2">
-          <UserPanel showHome={false} showSetting>
-            <UserAvatar className="h-10 w-10 border" />
-          </UserPanel>
-        </div>
+        <UserPanel showHome={false} showSetting>
+          <UserAvatar className="h-10 w-10 border" />
+        </UserPanel>
       </div>
     </header>
   )
@@ -1255,4 +1305,12 @@ function ThreadMessagesErrorView() {
       </div>
     </div>
   )
+}
+
+function getTitleFromMessages(messages: ConversationMessage[] | undefined) {
+  if (!messages?.length) return ''
+
+  const firstLine = messages?.[0]?.content.split('\n')[0]
+  const title = firstLine.slice(0, 48)
+  return title
 }

@@ -25,13 +25,7 @@ pub struct SourceCode {
 
 impl ToIndexId for SourceCode {
     fn to_index_id(&self) -> IndexId {
-        IndexId {
-            source_id: self.source_id.clone(),
-
-            // Source file id might be duplicated across different source_ids, we prefix it with
-            // source_id to make it unique within corpus.
-            id: format!("{}:::{}", self.source_id, self.source_file_id),
-        }
+        Self::to_index_id(&self.source_id, &self.source_file_id)
     }
 }
 
@@ -47,6 +41,15 @@ impl SourceCode {
 
     pub fn source_file_id_from_id(id: &str) -> Option<&str> {
         id.split(":::").nth(1)
+    }
+
+    pub fn to_index_id(source_id: &str, source_file_id: &str) -> IndexId {
+        IndexId {
+            source_id: source_id.to_owned(),
+            // Source file id might be duplicated across different source_ids, we prefix it with
+            // source_id to make it unique within corpus.
+            id: format!("{}:::{}", source_id, source_file_id),
+        }
     }
 }
 

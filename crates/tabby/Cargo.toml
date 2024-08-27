@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 homepage.workspace = true
+default-run = "tabby"
 
 [features]
 default = ["ee", "llama-cpp-server/binary"]
@@ -31,7 +32,7 @@ serde = { workspace = true }
 serdeconv = { workspace = true }
 serde_json = { workspace = true }
 tower-http = { workspace = true, features = ["cors", "timeout"] }
-clap = { version = "4.3.0", features = ["derive"] }
+clap = { workspace = true, features = ["derive"] }
 lazy_static = { workspace = true }
 strum = { workspace = true }
 strfmt = "0.2.4"

@@ -122,6 +122,18 @@ impl DbConn {
         Ok(())
     }
 
+    pub async fn update_thread_ephemeral(&self, thread_id: i64, is_ephemeral: bool) -> Result<()> {
+        query!(
+            "UPDATE threads SET is_ephemeral = ?, updated_at = DATETIME('now') WHERE id = ?",
+            is_ephemeral,
+            thread_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn create_thread_message(
         &self,
         thread_id: i64,
@@ -166,17 +178,31 @@ impl DbConn {
         Ok(res.last_insert_rowid())
     }
 
-    pub async fn update_thread_message_attachments(
+    pub async fn update_thread_message_code_attachments(
         &self,
         message_id: i64,
-        code_attachments: Option<&[ThreadMessageAttachmentCode]>,
-        doc_attachments: Option<&[ThreadMessageAttachmentDoc]>,
+        code_attachments: &[ThreadMessageAttachmentCode],
     ) -> Result<()> {
-        let code_attachments = code_attachments.map(Json);
-        let doc_attachments = doc_attachments.map(Json);
+        let code_attachments = Json(code_attachments);
         query!(
-            "UPDATE thread_messages SET code_attachments = ?, doc_attachments = ?, updated_at = DATETIME('now') WHERE id = ?",
+            "UPDATE thread_messages SET code_attachments = ?, updated_at = DATETIME('now') WHERE id = ?",
             code_attachments,
+            message_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn update_thread_message_doc_attachments(
+        &self,
+        message_id: i64,
+        doc_attachments: &[ThreadMessageAttachmentDoc],
+    ) -> Result<()> {
+        let doc_attachments = Json(doc_attachments);
+        query!(
+            "UPDATE thread_messages SET doc_attachments = ?, updated_at = DATETIME('now') WHERE id = ?",
             doc_attachments,
             message_id
         )

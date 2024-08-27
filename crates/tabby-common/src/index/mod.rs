@@ -71,7 +71,7 @@ pub struct IndexSchema {
 
 const FIELD_CHUNK_ID: &str = "chunk_id";
 const FIELD_UPDATED_AT: &str = "updated_at";
-pub const FIELD_SOURCE_ID: &str = "source_id_v2";
+pub const FIELD_SOURCE_ID: &str = "source_id";
 
 pub mod corpus {
     pub const CODE: &str = "code";
@@ -86,11 +86,12 @@ impl IndexSchema {
     fn new() -> Self {
         let mut builder = Schema::builder();
 
-        let field_corpus = builder.add_text_field("corpus", STRING | FAST);
+
+        let field_corpus = builder.add_text_field("corpus", STRING | FAST | STORED);
         let field_source_id = builder.add_text_field(FIELD_SOURCE_ID, STRING | FAST | STORED);
         let field_id = builder.add_text_field("id", STRING | STORED);
 
-        let field_updated_at = builder.add_date_field(FIELD_UPDATED_AT, INDEXED);
+        let field_updated_at = builder.add_date_field(FIELD_UPDATED_AT, INDEXED | STORED);
         let field_attributes = builder.add_text_field("attributes", STORED);
 
         let field_chunk_id = builder.add_text_field(FIELD_CHUNK_ID, STRING | FAST | STORED);
@@ -107,6 +108,7 @@ impl IndexSchema {
                 ),
         );
 
+        // Chunks are only indexed for search; their size is usually large, so we don't store them.
         let field_chunk_tokens = builder.add_text_field("chunk_tokens", STRING);
         let schema = builder.build();
 
