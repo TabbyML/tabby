@@ -4,7 +4,7 @@
 import React, { useMemo } from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
-import { compact, isEmpty, isNil } from 'lodash-es'
+import { compact, isEmpty, isEqual, isNil, uniqWith } from 'lodash-es'
 import type { Context } from 'tabby-chat-panel'
 
 import { useMe } from '@/lib/hooks/use-me'
@@ -256,10 +256,13 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   }, [message?.relevant_code])
 
   const clientCode: Array<Context> = React.useMemo(() => {
-    return compact([
-      userMessage.activeContext,
-      ...(userMessage?.relevantContext ?? [])
-    ])
+    return uniqWith(
+      compact([
+        userMessage.activeContext,
+        ...(userMessage?.relevantContext ?? [])
+      ]),
+      isEqual
+    )
   }, [userMessage.activeContext, userMessage.relevantContext])
 
   const attachmentDocsLen = 0
