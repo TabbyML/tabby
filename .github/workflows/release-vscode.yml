@@ -47,6 +47,6 @@ jobs:
         run: pnpm install
 
       - name: Publish
-        run: cd clients/vscode && pnpm run $(node scripts/publish.js)
+        run: cd clients/vscode && pnpm run $(node scripts/publish.cjs)
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
