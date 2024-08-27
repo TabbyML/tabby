@@ -614,7 +614,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-        is_active: bool,
+        is_active: Option<bool>,
     ) -> Result<Connection<PresetWebDocument>> {
         query_async(
             after,

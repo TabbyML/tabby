@@ -120,7 +120,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-        is_active: bool,
+        is_active: Option<bool>,
     ) -> Result<Vec<PresetWebDocument>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let names: Option<Vec<String>> =
@@ -132,11 +132,13 @@ impl WebDocumentService for WebDocumentServiceImpl {
 
         let mut converted_urls = vec![];
         let mut active_urls: HashSet<String> = HashSet::default();
+        let include_active = is_active.clone().unwrap_or(true);
+        let include_inactive = !is_active.clone().unwrap_or(false);
 
         for url in urls {
             active_urls.insert(url.name.clone());
 
-            if is_active {
+            if include_active {
                 let event = BackgroundJobEvent::WebCrawler(
                     CustomWebDocument::format_source_id(&url.id.as_id()),
                     url.url.clone(),
@@ -147,7 +149,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
             }
         }
 
-        if !is_active {
+        if include_inactive {
             if let Some(names) = names {
                 for name in names {
                     if active_urls.contains(&name) || !self.preset_web_documents.contains_key(&name)
@@ -281,13 +283,13 @@ mod tests {
             .await
             .unwrap();
         let urls = service
-            .list_preset_web_documents(None, None, None, None, None, true)
+            .list_preset_web_documents(None, None, None, None, None, Some(true))
             .await
             .unwrap();
         assert_eq!(2, urls.len());
 
         let urls = service
-            .list_preset_web_documents(None, None, None, None, None, false)
+            .list_preset_web_documents(None, None, None, None, None, Some(false))
             .await
             .unwrap();
         assert_eq!(382, urls.len());
@@ -299,11 +301,18 @@ mod tests {
                 None,
                 None,
                 None,
-                true,
+                Some(true),
             )
             .await
             .unwrap();
         assert_eq!(1, urls.len());
+        assert!(urls[0].is_active);
+
+        let urls = service
+            .list_preset_web_documents(None, None, None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(384, urls.len());
 
         service
             .set_preset_web_documents_active(ID::from("React".to_string()), false)
@@ -314,7 +323,7 @@ mod tests {
             .await
             .unwrap();
         let urls = service
-            .list_preset_web_documents(None, None, None, None, None, false)
+            .list_preset_web_documents(None, None, None, None, None, Some(false))
             .await
             .unwrap();
         assert_eq!(384, urls.len());
@@ -356,7 +365,7 @@ mod tests {
                 None,
                 None,
                 None,
-                false,
+                Some(false),
             )
             .await
             .unwrap();

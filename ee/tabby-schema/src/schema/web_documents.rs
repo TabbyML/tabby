@@ -109,7 +109,7 @@ pub trait WebDocumentService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-        is_active: bool,
+        is_active: Option<bool>,
     ) -> Result<Vec<PresetWebDocument>>;
     async fn set_preset_web_documents_active(&self, id: ID, active: bool) -> Result<()>;
 }

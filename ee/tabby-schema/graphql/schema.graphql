@@ -122,6 +122,11 @@ input CreateThreadAndRunInput {
 }
 
 input CreateThreadInput {
+  """
+    If true, the thread will be garbage collected after a certain amount of time.
+
+    This is useful for threads that are not meant to be long-lived, such as those created from chat sidebars.
+  """ isEphemeral: Boolean! = false
   userMessage: CreateMessageInput!
 }
 
@@ -514,8 +519,6 @@ type Mutation {
   deleteWebCrawlerUrl(id: ID!): Boolean!
   "Delete pair of user message and bot response in a thread."
   deleteThreadMessagePair(threadId: ID!, userMessageId: ID!, assistantMessageId: ID!): Boolean!
-  "Turn on persisted status for a thread."
-  setThreadPersisted(threadId: ID!): Boolean!
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
   deleteCustomDocument(id: ID!): Boolean!
   setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
@@ -631,7 +634,7 @@ type Query {
   """
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
   customWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
-  presetWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int, isActive: Boolean!): PresetDocumentConnection!
+  presetWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int, isActive: Boolean): PresetDocumentConnection!
 }
 
 type RefreshTokenResponse {
