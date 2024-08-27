@@ -1,4 +1,4 @@
-name: Build and release vscode extension
+name: Release vscode extension
 
 on:
   workflow_dispatch:
