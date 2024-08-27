@@ -959,6 +959,25 @@ impl Mutation {
             .await?;
         Ok(true)
     }
+
+    /// Turn on persisted status for a thread.
+    async fn set_thread_persisted(ctx: &Context, thread_id: ID) -> Result<bool> {
+        // ast-grep-ignore: use-schema-result
+        use anyhow::Context;
+
+        let user = check_user(ctx).await?;
+        let svc = ctx.locator.thread();
+        let thread = svc.get(&thread_id).await?.context("Thread not found")?;
+
+        if thread.user_id != user.id {
+            return Err(CoreError::Forbidden(
+                "You must be the thread owner to set persisted status",
+            ));
+        }
+
+        ctx.locator.thread().set_persisted(&thread_id).await?;
+        Ok(true)
+    }
 }
 
 async fn check_analytic_access(ctx: &Context, users: &[ID]) -> Result<(), CoreError> {

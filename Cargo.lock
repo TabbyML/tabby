@@ -5179,7 +5179,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-index-cli"
-version = "0.17.0-dev.0"
+version = "0.16.0"
 dependencies = [
  "anyhow",
  "clap",
