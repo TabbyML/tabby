@@ -389,7 +389,7 @@ export function Search() {
       }
     }
 
-    if (isPathnameInitialized && !threadId) {
+    if (isPathnameInitialized && !threadIdFromURL) {
       init()
     }
   }, [isPathnameInitialized])
