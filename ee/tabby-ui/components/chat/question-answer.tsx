@@ -256,10 +256,13 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   }, [message?.relevant_code])
 
   const clientCode: Array<Context> = React.useMemo(() => {
-    return uniqWith(compact([
-      userMessage.activeContext,
-      ...(userMessage?.relevantContext ?? [])
-    ]), isEqual)
+    return uniqWith(
+      compact([
+        userMessage.activeContext,
+        ...(userMessage?.relevantContext ?? [])
+      ]),
+      isEqual
+    )
   }, [userMessage.activeContext, userMessage.relevantContext])
 
   const attachmentDocsLen = 0

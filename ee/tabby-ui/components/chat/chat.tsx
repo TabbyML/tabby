@@ -1,5 +1,5 @@
 import React from 'react'
-import { uniqWith, compact, findIndex, isEqual } from 'lodash-es'
+import { compact, findIndex, isEqual, uniqWith } from 'lodash-es'
 import type { Context, FileContext, NavigateOpts } from 'tabby-chat-panel'
 
 import {
@@ -310,17 +310,20 @@ function ChatRenderer(
           gitUrl: contextForCodeQuery?.git_url ?? ''
         }
       : null
-    
-    const fileContext: FileContext[] = uniqWith(compact([
-      userMessage?.activeContext,
-      ...(userMessage?.relevantContext || [])
-    ]), isEqual)
+
+    const fileContext: FileContext[] = uniqWith(
+      compact([
+        userMessage?.activeContext,
+        ...(userMessage?.relevantContext || [])
+      ]),
+      isEqual
+    )
 
     const attachmentCode: MessageAttachmentCodeInput[] = fileContext.map(o => ({
       content: o.content,
       filepath: o.filepath,
       startLine: o.range.start
-    }));
+    }))
 
     const content = userMessage.message
 
