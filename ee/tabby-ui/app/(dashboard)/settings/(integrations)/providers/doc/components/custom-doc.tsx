@@ -8,10 +8,10 @@ import { useQuery } from 'urql'
 import { graphql } from '@/lib/gql/generates'
 import { CustomWebDocumentsQuery } from '@/lib/gql/generates/graphql'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
-import { useMutation } from '@/lib/tabby/gql'
+import { client, useMutation } from '@/lib/tabby/gql'
 import { ArrayElementType } from '@/lib/types'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { IconClose, IconListFilter, IconTrash } from '@/components/ui/icons'
+import { IconClose, IconSearch, IconTrash } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import {
   Table,
@@ -29,12 +29,14 @@ import { TypeFilter } from './type-filter'
 
 const listCustomWebDocuments = graphql(/* GraphQL */ `
   query CustomWebDocuments(
+    $ids: [ID!]
     $after: String
     $before: String
     $first: Int
     $last: Int
   ) {
     customWebDocuments(
+      ids: $ids
       after: $after
       before: $before
       first: $first
@@ -112,14 +114,48 @@ export default function CustomDocument() {
       })
   }
 
+  const getDocumentById = async (id: string) => {
+    if (!id) return undefined
+    try {
+      const res = await client
+        .query(listCustomWebDocuments, { ids: [id] })
+        .toPromise()
+      const record = res?.data?.customWebDocuments?.edges?.[0]
+      return record
+    } catch (e) {
+      return undefined
+    }
+  }
+
+  const updateDocumentItemById = async (id: string) => {
+    try {
+      const docItem = await getDocumentById(id)
+      if (!docItem?.node?.id || !list?.length) return
+
+      const targetIdx = list.findIndex(o => o.node?.id === docItem.node.id)
+      if (targetIdx > -1) {
+        setList(prev =>
+          prev?.map(o => {
+            if (o.node.id === docItem.node.id) {
+              return docItem
+            } else {
+              return o
+            }
+          })
+        )
+      }
+    } catch (e) {}
+  }
+
   const triggerJobRun = useMutation(triggerJobRunMutation)
-  const handleTriggerJobRun = (command: string) => {
+  const handleTriggerJobRun = (id: string, command: string) => {
     return triggerJobRun({ command }).then(res => {
       if (res?.data?.triggerJobRun) {
         toast.success(
           'The job has been triggered successfully, it may take a few minutes to process.'
         )
-        // FIXME getItemByID
+
+        updateDocumentItemById(id)
       } else {
         toast.error(res?.error?.message || 'Failed to trigger job')
       }
@@ -145,7 +181,7 @@ export default function CustomDocument() {
         <TypeFilter type="custom" />
         <div className="flex items-center gap-4">
           <div className="relative">
-            <IconListFilter
+            <IconSearch
               className="absolute left-3 top-2.5 cursor-text text-muted-foreground"
               onClick={() => inputRef.current?.focus()}
             />
@@ -154,6 +190,7 @@ export default function CustomDocument() {
               value={filterPattern}
               onChange={e => setFilterPattern(e.target.value)}
               ref={inputRef}
+              placeholder="Search..."
             />
             {filterPattern ? (
               <Button
@@ -175,9 +212,9 @@ export default function CustomDocument() {
         <Table className="table-fixed border-b">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[30%]">Name</TableHead>
-              <TableHead className="w-[40%]">URL</TableHead>
-              <TableHead>Job</TableHead>
+              <TableHead className="w-[25%]">Name</TableHead>
+              <TableHead>URL</TableHead>
+              <TableHead className="w-[100px] lg:w-[200px]">Job</TableHead>
               <TableHead className="w-[100px] text-right"></TableHead>
             </TableRow>
           </TableHeader>
@@ -204,7 +241,10 @@ export default function CustomDocument() {
                           jobInfo={x.node.jobInfo}
                           onTrigger={async () => {
                             if (x.node?.jobInfo?.command) {
-                              handleTriggerJobRun(x.node?.jobInfo.command)
+                              handleTriggerJobRun(
+                                x.node.id,
+                                x.node?.jobInfo.command
+                              )
                             }
                           }}
                         />

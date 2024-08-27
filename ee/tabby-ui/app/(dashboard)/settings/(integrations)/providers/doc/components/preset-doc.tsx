@@ -7,10 +7,10 @@ import { useQuery } from 'urql'
 import { graphql } from '@/lib/gql/generates'
 import { PresetWebDocumentsQuery } from '@/lib/gql/generates/graphql'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
-import { useMutation } from '@/lib/tabby/gql'
+import { client, useMutation } from '@/lib/tabby/gql'
 import { ArrayElementType } from '@/lib/types'
 import { Button } from '@/components/ui/button'
-import { IconClose, IconListFilter } from '@/components/ui/icons'
+import { IconClose, IconSearch } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -37,13 +37,15 @@ import { TypeFilter } from './type-filter'
 
 const listPresetWebDocuments = graphql(/* GraphQL */ `
   query PresetWebDocuments(
+    $ids: [ID!]
     $after: String
     $before: String
     $first: Int
     $last: Int
-    $isActive: Boolean!
+    $isActive: Boolean
   ) {
     presetWebDocuments(
+      ids: $ids
       after: $after
       before: $before
       first: $first
@@ -54,6 +56,7 @@ const listPresetWebDocuments = graphql(/* GraphQL */ `
         node {
           id
           name
+          isActive
           jobInfo {
             lastJobRun {
               id
@@ -85,57 +88,94 @@ const setPresetDocumentActiveMutation = graphql(/* GraphQL */ `
 
 type ListItem = ArrayElementType<
   PresetWebDocumentsQuery['presetWebDocuments']['edges']
-> & {
-  isActive: boolean
-}
+>
 
 export default function PresetDocument() {
-  const [isActive, setIsActive] = useState('0')
+  const [isActiveFilter, setIsActiveFilter] = useState('all')
   const [filterPattern, setFilterPattern] = useState<string | undefined>()
   const [debouncedFilterPattern] = useDebounceValue(filterPattern, 200)
   const [list, setList] = useState<ListItem[] | undefined>()
-  const [loadingNames, setLoadingNames] = useState<Set<string>>(new Set())
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set())
   const inputRef = useRef<HTMLInputElement>(null)
-
+  const getIsActiveFromFilter = (filter: string) => {
+    if (filter === 'all') return undefined
+    return filter === 'active' ? true : false
+  }
   const [{ data, stale }] = useQuery({
     query: listPresetWebDocuments,
     variables: {
-      isActive: isActive === '1'
+      isActive: getIsActiveFromFilter(isActiveFilter)
     }
   })
 
   const setPresetDocumentActive = useMutation(setPresetDocumentActiveMutation)
 
+  const getDocumentById = async (id: string) => {
+    if (!id) return undefined
+    try {
+      const res = await client
+        .query(listPresetWebDocuments, { ids: [id] })
+        .toPromise()
+      const record = res?.data?.presetWebDocuments?.edges?.[0]
+      return record
+    } catch (e) {
+      return undefined
+    }
+  }
+
+  const updateDocumentItemById = async (id: string) => {
+    try {
+      const docItem = await getDocumentById(id)
+      if (!docItem?.node?.id || !list?.length) return
+
+      const targetIdx = list.findIndex(o => o.node?.id === docItem.node.id)
+      if (targetIdx > -1) {
+        setList(prev =>
+          prev?.map(o => {
+            if (o.node.id === docItem.node.id) {
+              return docItem
+            } else {
+              return o
+            }
+          })
+        )
+      }
+    } catch (e) {}
+  }
+
   const triggerJobRun = useMutation(triggerJobRunMutation)
-  const handleTriggerJobRun = (command: string) => {
+  const handleTriggerJobRun = (id: string, command: string) => {
     return triggerJobRun({ command }).then(res => {
       if (res?.data?.triggerJobRun) {
         toast.success(
           'The job has been triggered successfully, it may take a few minutes to process.'
         )
-        // FIXME getItemByID
+        updateDocumentItemById(id)
       } else {
         toast.error(res?.error?.message || 'Failed to trigger job')
       }
     })
   }
 
-  const onCheckedChange = (name: string, checked: boolean) => {
-    if (loadingNames.has(name)) return
+  const onCheckedChange = (id: string, checked: boolean) => {
+    if (processingIds.has(id)) return
 
-    setLoadingNames(prev => {
+    setProcessingIds(prev => {
       const nextSet = new Set(prev)
-      nextSet.add(name)
+      nextSet.add(id)
       return nextSet
     })
 
     // optimistic update
     setList(l =>
       l?.map(o => {
-        if (o.node.name === name) {
+        if (o.node.id === id) {
           return {
             ...o,
-            isActive: checked
+            node: {
+              ...o.node,
+              isActive: checked
+            }
           }
         }
         return o
@@ -144,7 +184,7 @@ export default function PresetDocument() {
 
     setPresetDocumentActive({
       input: {
-        name,
+        id,
         active: checked
       }
     })
@@ -154,23 +194,27 @@ export default function PresetDocument() {
           toast.error(errorMessage)
           setList(l =>
             l?.map(o => {
-              if (o.node.name !== name) {
+              if (o.node.id !== id) {
                 return o
               }
               return {
                 ...o,
-                isActive: !checked
+                node: {
+                  ...o.node,
+                  isActive: !checked
+                }
               }
             })
           )
         }
       })
       .finally(() => {
-        setLoadingNames(prev => {
+        setProcessingIds(prev => {
           const nextSet = new Set(prev)
-          nextSet.delete(name)
+          nextSet.delete(id)
           return nextSet
         })
+        updateDocumentItemById(id)
       })
   }
 
@@ -180,12 +224,7 @@ export default function PresetDocument() {
   }
 
   useEffect(() => {
-    setList(
-      data?.presetWebDocuments?.edges?.map(o => ({
-        ...o,
-        isActive: isActive === '1'
-      }))
-    )
+    setList(data?.presetWebDocuments?.edges)
   }, [data])
 
   const filteredList = useMemo(() => {
@@ -202,19 +241,8 @@ export default function PresetDocument() {
       <div className="my-4 flex justify-between">
         <TypeFilter type="preset" />
         <div className="flex items-center gap-4">
-          <Select value={isActive} onValueChange={setIsActive}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent align="end">
-              <SelectGroup>
-                <SelectItem value="1">Active</SelectItem>
-                <SelectItem value="0">Inactive</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
           <div className="relative">
-            <IconListFilter
+            <IconSearch
               className="absolute left-3 top-2.5 cursor-text text-muted-foreground"
               onClick={() => inputRef.current?.focus()}
             />
@@ -223,6 +251,7 @@ export default function PresetDocument() {
               value={filterPattern}
               onChange={e => setFilterPattern(e.target.value)}
               ref={inputRef}
+              placeholder="Search..."
             />
             {filterPattern ? (
               <Button
@@ -235,14 +264,27 @@ export default function PresetDocument() {
               </Button>
             ) : null}
           </div>
+          <Select value={isActiveFilter} onValueChange={setIsActiveFilter}>
+            <SelectTrigger className="w-40 gap-2">
+              <span>Status:</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end">
+              <SelectGroup>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <LoadingWrapper loading={!data || stale}>
         <Table className="table-fixed border-b">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[70%]">Name</TableHead>
-              <TableHead>Job</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead className="w-[100px] lg:w-[200px]">Job</TableHead>
               <TableHead className="w-[100px] text-right">Active</TableHead>
             </TableRow>
           </TableHeader>
@@ -262,12 +304,15 @@ export default function PresetDocument() {
                         {x.node.name}
                       </TableCell>
                       <TableCell>
-                        {x.isActive ? (
+                        {x.node.isActive ? (
                           <JobInfoView
                             jobInfo={x.node.jobInfo}
                             onTrigger={async () => {
                               if (x.node?.jobInfo?.command) {
-                                handleTriggerJobRun(x.node?.jobInfo.command)
+                                handleTriggerJobRun(
+                                  x.node.id,
+                                  x.node?.jobInfo.command
+                                )
                               }
                             }}
                           />
@@ -275,9 +320,9 @@ export default function PresetDocument() {
                       </TableCell>
                       <TableCell className="text-right">
                         <Switch
-                          checked={x.isActive}
+                          checked={x.node.isActive}
                           onCheckedChange={checked =>
-                            onCheckedChange(x.node.name, checked)
+                            onCheckedChange(x.node.id, checked)
                           }
                         />
                       </TableCell>
