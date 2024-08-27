@@ -53,11 +53,14 @@ impl WebDocumentService for WebDocumentServiceImpl {
         last: Option<usize>,
     ) -> Result<Vec<CustomWebDocument>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
-        let names: Option<Vec<String>> =
-            ids.map(|ids| ids.into_iter().map(|id| id.to_string()).collect::<Vec<_>>());
+        let ids = ids.map(|x| {
+            x.iter()
+                .filter_map(|x| x.as_rowid().ok())
+                .collect::<Vec<_>>()
+        });
         let urls = self
             .db
-            .list_web_documents(names, limit, skip_id, backwards, false)
+            .list_custom_web_documents(ids, limit, skip_id, backwards)
             .await?;
 
         let mut converted_urls = vec![];
@@ -120,7 +123,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
             ids.map(|ids| ids.into_iter().map(|id| id.to_string()).collect::<Vec<_>>());
         let urls = self
             .db
-            .list_web_documents(names.clone(), limit, skip_id, backwards, true)
+            .list_preset_web_documents(names.clone(), limit, skip_id, backwards)
             .await?;
 
         let mut converted_urls = vec![];
@@ -318,30 +321,21 @@ mod tests {
 
         assert_eq!(0, urls.len());
 
-        let _ = service
+        let id1 = service
             .create_custom_web_document("example1".to_string(), "https://example1.com".to_string())
             .await
             .unwrap();
-        let _ = service
+        let id2 = service
             .create_custom_web_document("example2".to_string(), "https://example2.com".to_string())
             .await
             .unwrap();
-        let _ = service
+        let id3 = service
             .create_custom_web_document("example3".to_string(), "https://example3.com".to_string())
             .await
             .unwrap();
 
         let urls = service
-            .list_custom_web_documents(
-                Some(vec![
-                    ID::from("example2".to_string()),
-                    ID::from("example3".to_string()),
-                ]),
-                None,
-                None,
-                None,
-                None,
-            )
+            .list_custom_web_documents(Some(vec![id2, id3]), None, None, None, None)
             .await
             .unwrap();
         assert_eq!(2, urls.len());
