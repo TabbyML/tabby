@@ -189,7 +189,7 @@ input SecuritySettingInput {
 }
 
 input SetPresetDocumentActiveInput {
-  name: String!
+  id: ID!
   active: Boolean!
 }
 
@@ -556,6 +556,7 @@ type PresetWebDocument {
   updatedAt: DateTime
   "`job_info` is only filled when the preset is active."
   jobInfo: JobInfo
+  isActive: Boolean!
 }
 
 type ProvidedRepository {
@@ -629,8 +630,8 @@ type Query {
     Thread is public within an instance, so no need to check for ownership.
   """
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
-  customWebDocuments(after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
-  presetWebDocuments(after: String, before: String, first: Int, last: Int, isActive: Boolean!): PresetDocumentConnection!
+  customWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
+  presetWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int, isActive: Boolean): PresetDocumentConnection!
 }
 
 type RefreshTokenResponse {

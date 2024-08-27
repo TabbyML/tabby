@@ -587,6 +587,7 @@ impl Query {
 
     async fn custom_web_documents(
         ctx: &Context,
+        ids: Option<Vec<ID>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -600,7 +601,7 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .web_documents()
-                    .list_custom_web_documents(after, before, first, last)
+                    .list_custom_web_documents(ids, after, before, first, last)
                     .await
             },
         )
@@ -608,11 +609,12 @@ impl Query {
     }
     async fn preset_web_documents(
         ctx: &Context,
+        ids: Option<Vec<ID>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-        is_active: bool,
+        is_active: Option<bool>,
     ) -> Result<Connection<PresetWebDocument>> {
         query_async(
             after,
@@ -622,7 +624,7 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .web_documents()
-                    .list_preset_web_documents(after, before, first, last, is_active)
+                    .list_preset_web_documents(ids, after, before, first, last, is_active)
                     .await
             },
         )
@@ -1052,7 +1054,7 @@ impl Mutation {
         input.validate()?;
         ctx.locator
             .web_documents()
-            .set_preset_web_documents_active(input.name, input.active)
+            .set_preset_web_documents_active(input.id, input.active)
             .await?;
         Ok(true)
     }

@@ -6,7 +6,7 @@ lazy_static! {
     pub static ref USERNAME_REGEX: Regex =
         Regex::new(r"^[^0-9±!@£$%^&*_+§¡€#¢¶•ªº«\\/<>?:;|=.,]{2,20}$").unwrap();
     pub static ref WEB_DOCUMENT_NAME_REGEX: Regex =
-        Regex::new(r"^[A-Za-z][A-Za-z0-9]*(\ [A-Za-z0-9]+)*$").unwrap();
+        Regex::new(r"^[A-Za-z][A-Za-z0-9#]*(?:[\s.-][A-Za-z0-9]+)*$").unwrap();
 }
 
 #[cfg(test)]
@@ -54,6 +54,7 @@ mod tests {
             ("abc123*", false),
             ("abc123_", false),
             ("abc  123", false), // two space
+            ("ABC-abc", true),
         ];
 
         for (name, expected) in test_cases {
