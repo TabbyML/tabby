@@ -224,7 +224,10 @@ export class ChatViewProvider implements WebviewViewProvider {
       }
     });
 
-    this.agent.on("didUpdateServerInfo", () => {
+    this.agent.on("didUpdateServerInfo", async () => {
+      const serverInfo = await this.agent.fetchServerInfo();
+      console.log("didUpdateServerInfo", serverInfo)
+      this.displayChatPage(serverInfo.config.endpoint, { force: true });
       this.refreshChatPage();
     });
 
