@@ -101,7 +101,7 @@ pub fn config_index_to_id(index: usize) -> String {
 
 pub fn config_id_to_index(id: &str) -> Result<usize, anyhow::Error> {
     let id = id
-        .strip_prefix("config_")
+        .strip_prefix("config:")
         .ok_or_else(|| anyhow!("Invalid config ID"))?;
 
     HASHER
