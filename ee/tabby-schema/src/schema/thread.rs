@@ -31,7 +31,7 @@ pub trait ThreadService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-) -> Result<Vec<Thread>>;
+    ) -> Result<Vec<Thread>>;
 
     /// Create a new thread run
     async fn create_run(

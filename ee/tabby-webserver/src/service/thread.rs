@@ -52,7 +52,9 @@ impl ThreadService for ThreadServiceImpl {
     }
 
     async fn set_persisted(&self, id: &ID) -> Result<()> {
-        self.db.update_thread_ephemeral(id.as_rowid()?, false).await?;
+        self.db
+            .update_thread_ephemeral(id.as_rowid()?, false)
+            .await?;
         Ok(())
     }
 
