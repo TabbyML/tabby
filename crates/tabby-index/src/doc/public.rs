@@ -5,7 +5,6 @@ use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use tabby_common::index::corpus;
 use tabby_inference::Embedding;
-use tracing::debug;
 
 use super::create_web_builder;
 use crate::{

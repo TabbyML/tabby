@@ -5,7 +5,7 @@ use futures::StreamExt;
 use ignore::{DirEntry, Walk};
 use tabby_common::index::corpus;
 use tabby_inference::Embedding;
-use tracing::{debug, warn};
+use tracing::warn;
 
 use super::{
     create_code_builder,
