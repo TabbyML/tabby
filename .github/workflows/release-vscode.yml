@@ -1,6 +1,7 @@
 name: Build and release vscode extension
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'vscode@*'
