@@ -221,13 +221,19 @@ export function Search() {
   const [devPanelSize, setDevPanelSize] = useState(45)
   const prevDevPanelSize = useRef(devPanelSize)
   const [enableDeveloperMode] = useEnableDeveloperMode()
-
-  const threadId = useMemo(() => {
+  const [threadId, setThreadId] = useState<string | undefined>()
+  const threadIdFromURL = useMemo(() => {
     const regex = /^\/search\/(.*)/
     if (!activePathname) return undefined
 
     return activePathname.match(regex)?.[1]?.split('-').pop()
   }, [activePathname])
+
+  useEffect(() => {
+    if (threadIdFromURL) {
+      setThreadId(threadIdFromURL)
+    }
+  }, [threadIdFromURL])
 
   const [{ data }] = useQuery({
     query: repositoryListQuery
@@ -411,6 +417,11 @@ export function Search() {
     )
     if (currentUserMessageIdx === -1 || currentAssistantMessageIdx === -1) {
       return
+    }
+
+    // update threadId
+    if (answer?.threadCreated && answer.threadCreated !== threadId) {
+      setThreadId(answer.threadCreated)
     }
 
     const currentUserMessage = newMessages[currentUserMessageIdx]
