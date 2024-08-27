@@ -276,6 +276,16 @@ export function Search() {
     }
   }, [threadMessages])
 
+  // update title
+  useEffect(() => {
+    if (messages?.[0]?.content) {
+      const title = getTitleFromMessages(messages)
+      if (title) {
+        document.title = title
+      }
+    }
+  }, [messages?.[0]?.content])
+
   useEffect(() => {
     if (threadMessagesError && !isReady) {
       // FIXME error view?
@@ -285,10 +295,7 @@ export function Search() {
 
   // `/search` -> `/search/{slug}-{threadId}`
   const updateThreadURL = (threadId: string) => {
-    const firstLine = messages?.[0]?.content.split('\n')[0]
-    const title = firstLine.slice(0, 48)
-    document.title = title
-
+    const title = getTitleFromMessages(messages)
     const slug = slugify(title)
     const slugWithThreadId = compact([slug, threadId]).join('-')
 
@@ -1298,4 +1305,12 @@ function ThreadMessagesErrorView() {
       </div>
     </div>
   )
+}
+
+function getTitleFromMessages(messages: ConversationMessage[] | undefined) {
+  if (!messages?.length) return ''
+
+  const firstLine = messages?.[0]?.content.split('\n')[0]
+  const title = firstLine.slice(0, 48)
+  return title
 }
