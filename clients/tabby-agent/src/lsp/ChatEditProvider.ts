@@ -39,10 +39,19 @@ export type Edit = {
   state: "editing" | "stopped" | "completed";
 };
 
+export interface Outline {
+  line: number;
+  text: string;
+}
+export interface Outlines {
+  uri: string;
+  outlines: Outline[];
+}
+
 export class ChatEditProvider {
   private currentEdit: Edit | null = null;
   private mutexAbortController: AbortController | null = null;
-  private currentOutlines: { uri: string; outlines: string[] } | null = null;
+  private currentOutlines: Outlines | null = null;
 
   constructor(
     private readonly connection: Connection,
@@ -577,26 +586,28 @@ export class ChatEditProvider {
 
       if (readableStream) {
         const editId = "tabby-" + cryptoRandomString({ length: 6, type: "alphanumeric" });
-        const startLine = document.positionAt(selection.start).line;
+        let currentLine = document.positionAt(selection.start).line;
         const endLine = document.positionAt(selection.end).line;
 
         let startMarker = `${this.getCommentPrefix(document.languageId)}>>> [${editId}]`;
         let endMarker = `${this.getCommentPrefix(document.languageId)}<<< [${editId}]`;
+
+        this.currentOutlines = { uri: params.location.uri, outlines: [] };
 
         await this.applyWorkspaceEdit({
           edit: {
             changes: {
               [params.location.uri]: [
                 {
-                  range: { start: { line: startLine - 1, character: 0 }, end: { line: startLine - 1, character: 0 } },
+                  range: { start: { line: currentLine, character: 0 }, end: { line: currentLine, character: 0 } },
                   newText: `${startMarker}\n`,
                 },
               ],
             },
           },
         });
+        currentLine++;
 
-        const outlines: string[] = [];
         let buffer = "";
 
         for await (const chunk of readableStream) {
@@ -605,55 +616,76 @@ export class ChatEditProvider {
 
             let newlineIndex: number;
             while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
-              const line = buffer.slice(0, newlineIndex).trim();
+              const fullLine = buffer.slice(0, newlineIndex).trim();
               buffer = buffer.slice(newlineIndex + 1);
 
-              if (line) {
-                outlines.push(line);
+              // Parse the line to extract line number and content
+              const match = fullLine.match(/^(\d+)\s*\|\s*(.*)$/);
+              if (match) {
+                const [, lineNumber, content] = match;
+                const parsedLineNumber = parseInt(lineNumber!, 10);
 
-                startMarker += ".";
-                endMarker += ".";
+                if (!isNaN(parsedLineNumber) && content) {
+                  this.currentOutlines.outlines.push({ line: parsedLineNumber - 1 + 1, text: content.trim() });
 
-                await this.applyWorkspaceEdit({
-                  edit: {
-                    changes: {
-                      [params.location.uri]: [
-                        {
-                          range: {
-                            start: { line: startLine - 1, character: 0 },
-                            end: { line: startLine, character: 0 },
+                  startMarker += ".";
+                  endMarker += ".";
+
+                  await this.applyWorkspaceEdit({
+                    edit: {
+                      changes: {
+                        [params.location.uri]: [
+                          {
+                            range: {
+                              start: { line: currentLine - 1, character: 0 },
+                              end: { line: currentLine, character: 0 },
+                            },
+                            newText: `${startMarker}\n`,
                           },
-                          newText: `${startMarker}\n`,
-                        },
-                        {
-                          range: {
-                            start: { line: endLine + 1, character: 0 },
-                            end: { line: endLine + 2, character: 0 },
-                          },
-                          newText: `${endMarker}\n`,
-                        },
-                      ],
+                        ],
+                      },
                     },
-                  },
-                });
+                  });
 
-                this.currentOutlines = { uri: params.location.uri, outlines: outlines };
-                this.connection.sendNotification(ChatNLOutlinesSync.type, {
-                  uri: params.location.uri,
-                });
+                  this.connection.sendNotification(ChatNLOutlinesSync.type, {
+                    uri: params.location.uri,
+                  });
+                }
               }
             }
           }
         }
 
+        // Insert final endMarker
+        await this.applyWorkspaceEdit({
+          edit: {
+            changes: {
+              [params.location.uri]: [
+                {
+                  range: {
+                    start: { line: endLine + 1, character: 0 },
+                    end: { line: endLine + 1, character: 0 },
+                  },
+                  newText: `${endMarker}\n`,
+                },
+              ],
+            },
+          },
+        });
+
         if (buffer.trim()) {
-          outlines.push(buffer.trim());
+          const match = buffer.trim().match(/^(\d+)\s*\|\s*(.*)$/);
+          if (match) {
+            const [, lineNumber, content] = match;
+            const parsedLineNumber = parseInt(lineNumber!, 10);
+            if (!isNaN(parsedLineNumber) && content) {
+              this.currentOutlines.outlines.push({ line: parsedLineNumber - 1, text: content.trim() });
+            }
+          }
           this.connection.sendNotification(ChatNLOutlinesSync.type, {
             uri: params.location.uri,
           });
         }
-
-        this.currentOutlines = { uri: params.location.uri, outlines: outlines };
 
         return true;
       }
@@ -667,7 +699,7 @@ export class ChatEditProvider {
     }
   }
 
-  getCurrentOutlines(): { uri: string; outlines: string[] } | null {
+  getCurrentOutlines(): Outlines | null {
     return this.currentOutlines;
   }
 }

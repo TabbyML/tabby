@@ -58,28 +58,26 @@ export class CodeLensProvider {
     const currentOutlines = this.chatEditProvider.getCurrentOutlines();
     if (currentOutlines && currentOutlines.uri === uri) {
       for (const outline of currentOutlines.outlines) {
-        const [lineNumberStr, content] = outline.split("|");
-        if (lineNumberStr && content) {
-          const lineNumber = parseInt(lineNumberStr.trim()) - 1;
-          const range = Range.create(lineNumber, 0, lineNumber, 0);
+        const lineNumber = outline.line;
+        const content = outline.text;
+        const range = Range.create(lineNumber, 0, lineNumber, 0);
 
-          codeLenses.push({
-            range,
-            command: {
-              title: "Edit",
-              command: "tabby.editOutline",
-              arguments: [{ uri, line: lineNumber, content: content.trim() }],
-            },
-          });
-          codeLenses.push({
-            range,
-            command: {
-              title: content.trim(),
-              command: "tabby.showOutline",
-              arguments: [{ uri, line: lineNumber, content: content.trim() }],
-            },
-          });
-        }
+        codeLenses.push({
+          range,
+          command: {
+            title: "Edit",
+            command: "tabby.editOutline",
+            arguments: [{ uri, line: lineNumber, content: content.trim() }],
+          },
+        });
+        codeLenses.push({
+          range,
+          command: {
+            title: content.trim(),
+            command: "tabby.showOutline",
+            arguments: [{ uri, line: lineNumber, content: content.trim() }],
+          },
+        });
       }
 
       for (let i = 0; i < textDocument.lineCount; i++) {
