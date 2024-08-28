@@ -31,10 +31,10 @@ function PostHogPageView(): null {
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   const isDemoMode = useIsDemoMode()
-  const [postHogInstance, setPostHogInstance] = useState<PostHog | null>(null)
+  const [postHogInstance, setPostHogInstance] = useState<PostHog | undefined>()
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && isDemoMode) {
+    if (typeof window !== 'undefined' && isDemoMode && !postHogInstance) {
       const isInIframe = window.self !== window.top
       if (isInIframe) return
 
@@ -43,11 +43,10 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
         person_profiles: 'identified_only',
         capture_pageview: false
       })
-      setPostHogInstance(postHogInstance || null)
+      setPostHogInstance(postHogInstance || undefined)
     }
   }, [isDemoMode])
 
-  if (!isDemoMode || !postHogInstance) return children
   return (
     <Provider client={postHogInstance}>
       <>

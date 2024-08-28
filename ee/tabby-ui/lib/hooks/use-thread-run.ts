@@ -15,7 +15,6 @@ import { useLatest } from './use-latest'
 interface UseThreadRunOptions {
   onError?: (err: Error) => void
   threadId?: string
-  isEphemeral?: boolean
   headers?: Record<string, string> | Headers
   onAssistantMessageCompleted?: (
     threadId: string,
@@ -110,8 +109,7 @@ const DeleteThreadMessagePairMutation = graphql(/* GraphQL */ `
 export function useThreadRun({
   threadId: propsThreadId,
   headers,
-  onAssistantMessageCompleted,
-  isEphemeral
+  onAssistantMessageCompleted
 }: UseThreadRunOptions) {
   const [threadId, setThreadId] = React.useState<string | undefined>(
     propsThreadId
@@ -175,7 +173,6 @@ export function useThreadRun({
         {
           input: {
             thread: {
-              isEphemeral: !!isEphemeral,
               userMessage
             },
             options
@@ -298,7 +295,10 @@ export function useThreadRun({
     if (!threadId) return
 
     setIsLoading(true)
+    // reset assistantMessage
     setError(undefined)
+    setThreadRunItem(undefined)
+
     // 1. delete message pair
     onDeleteThreadMessagePair(
       payload.threadId,

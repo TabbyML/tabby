@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { CancellationToken } from "vscode";
+import { window, workspace, Range, Position, Disposable, CancellationToken, TextEditorEdit } from "vscode";
 import { BaseLanguageClient, DynamicFeature, FeatureState, RegistrationData } from "vscode-languageclient";
 import {
   ServerCapabilities,
@@ -15,10 +15,14 @@ import {
   ChatEditToken,
   ChatEditResolveRequest,
   ChatEditResolveParams,
+  ApplyWorkspaceEditParams,
+  ApplyWorkspaceEditRequest,
 } from "tabby-agent";
 
 export class ChatFeature extends EventEmitter implements DynamicFeature<unknown> {
   private registration: string | undefined = undefined;
+  private disposables: Disposable[] = [];
+
   constructor(private readonly client: BaseLanguageClient) {
     super();
   }
@@ -45,6 +49,12 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
     if (capabilities.tabby?.chat) {
       this.register({ id: this.registrationType.method, registerOptions: {} });
     }
+
+    this.disposables.push(
+      this.client.onRequest(ApplyWorkspaceEditRequest.type, (params: ApplyWorkspaceEditParams) => {
+        return this.handleApplyWorkspaceEdit(params);
+      }),
+    );
   }
 
   register(data: RegistrationData<unknown>): void {
@@ -60,7 +70,8 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
   }
 
   clear(): void {
-    // nothing
+    this.disposables.forEach((disposable) => disposable.dispose());
+    this.disposables = [];
   }
 
   get isAvailable(): boolean {
@@ -104,6 +115,41 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
       return null;
     }
     return this.client.sendRequest(ChatEditRequest.method, params, token);
+  }
+
+  private async handleApplyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<boolean> {
+    const { edit, options } = params;
+    const activeEditor = window.activeTextEditor;
+    if (!activeEditor) {
+      return false;
+    }
+
+    try {
+      const success = await activeEditor.edit(
+        (editBuilder: TextEditorEdit) => {
+          Object.entries(edit.changes || {}).forEach(([uri, textEdits]) => {
+            const document = workspace.textDocuments.find((doc) => doc.uri.toString() === uri);
+            if (document && document === activeEditor.document) {
+              textEdits.forEach((textEdit) => {
+                const range = new Range(
+                  new Position(textEdit.range.start.line, textEdit.range.start.character),
+                  new Position(textEdit.range.end.line, textEdit.range.end.character),
+                );
+                editBuilder.replace(range, textEdit.newText);
+              });
+            }
+          });
+        },
+        {
+          undoStopBefore: options?.undoStopBefore ?? false,
+          undoStopAfter: options?.undoStopAfter ?? false,
+        },
+      );
+
+      return success;
+    } catch (error) {
+      return false;
+    }
   }
 
   async resolveEdit(params: ChatEditResolveParams): Promise<boolean> {

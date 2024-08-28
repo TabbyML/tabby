@@ -43,7 +43,8 @@ export class Issues extends EventEmitter {
     return await this.client.agent.fetchIssueDetail({ name: issue, helpMessageFormat: "plaintext" });
   }
 
-  async showHelpMessage(issue?: IssueName | undefined, modal = false) {
+  // FIXME(meng): Remove codepath for `modal = false`, which is no longer used.
+  async showHelpMessage(issue?: IssueName | undefined, modal = true) {
     const name = issue ?? this.first;
     if (!name) {
       return;

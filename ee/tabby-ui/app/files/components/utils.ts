@@ -302,6 +302,10 @@ function parseLineNumberFromHash(hash: string | undefined): {
   }
 }
 
+function isValidLineHash(hash: string | undefined) {
+  return parseLineNumberFromHash(hash)?.start !== undefined
+}
+
 export {
   resolveRepoSpecifierFromRepoInfo,
   resolveFileNameFromPath,
@@ -318,5 +322,6 @@ export {
   parseLineFromSearchParam,
   parseLineNumberFromHash,
   viewModelToKind,
-  kindToViewModel
+  kindToViewModel,
+  isValidLineHash
 }

@@ -2,6 +2,7 @@ package com.tabbyml.tabby4eclipse.statusbar;
 
 import org.eclipse.lsp4j.Command;
 import org.eclipse.lsp4j.ExecuteCommandParams;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CLabel;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
@@ -14,7 +15,9 @@ import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.ui.menus.WorkbenchWindowControlContribution;
 
 import com.tabbyml.tabby4eclipse.Images;
+import com.tabbyml.tabby4eclipse.chat.ChatView;
 import com.tabbyml.tabby4eclipse.lsp.LanguageServerService;
+import com.tabbyml.tabby4eclipse.lsp.StatusInfoHolder;
 import com.tabbyml.tabby4eclipse.lsp.protocol.StatusInfo;
 
 public class StatusbarContribution extends WorkbenchWindowControlContribution {
@@ -24,7 +27,7 @@ public class StatusbarContribution extends WorkbenchWindowControlContribution {
 
 	@Override
 	protected Control createControl(Composite parent) {
-		CLabel label = new CLabel(parent, 0);
+		CLabel label = new CLabel(parent, SWT.NONE);
 		label.setText("Tabby");
 		label.addMouseListener(new MouseAdapter() {
 			@Override
@@ -85,8 +88,8 @@ public class StatusbarContribution extends WorkbenchWindowControlContribution {
 
 	private Menu createMenu(CLabel label) {
 		Menu menu = new Menu(label);
-		MenuItem statusItem = new MenuItem(menu, 0);
 
+		MenuItem statusItem = new MenuItem(menu, SWT.NONE);
 		if (statusInfoHolder.isConnectionFailed()) {
 			statusItem.setImage(Images.getIcon(Images.ICON_ERROR));
 			statusItem.setText(TOOLTIP_INITIALIZATION_FAILED);
@@ -138,6 +141,18 @@ public class StatusbarContribution extends WorkbenchWindowControlContribution {
 		default:
 			break;
 		}
+		
+
+		MenuItem openChatViewItem = new MenuItem(menu, SWT.NONE);
+		openChatViewItem.setImage(Images.getIcon(Images.ICON_CHAT));
+		openChatViewItem.setText("Open Tabby Chat");
+		openChatViewItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				ChatView.openChatView();
+			}
+		});
+		
 		return menu;
 	}
 }

@@ -3,8 +3,8 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
-    ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentCode, ThreadMessageAttachmentDoc,
-    ThreadMessageDAO, UserDAO, UserEventDAO,
+    ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
+    ThreadMessageAttachmentDoc, ThreadMessageDAO, UserDAO, UserEventDAO,
 };
 
 use crate::{
@@ -225,6 +225,26 @@ impl From<&thread::MessageAttachmentCode> for ThreadMessageAttachmentCode {
     }
 }
 
+impl From<ThreadMessageAttachmentClientCode> for thread::MessageAttachmentClientCode {
+    fn from(value: ThreadMessageAttachmentClientCode) -> Self {
+        Self {
+            filepath: value.filepath,
+            content: value.content,
+            start_line: value.start_line.map(|x| x as i32),
+        }
+    }
+}
+
+impl From<&thread::MessageAttachmentCodeInput> for ThreadMessageAttachmentClientCode {
+    fn from(val: &thread::MessageAttachmentCodeInput) -> Self {
+        ThreadMessageAttachmentClientCode {
+            filepath: val.filepath.clone(),
+            content: val.content.clone(),
+            start_line: val.start_line.map(|x| x as usize),
+        }
+    }
+}
+
 impl From<ThreadMessageAttachmentDoc> for thread::MessageAttachmentDoc {
     fn from(value: ThreadMessageAttachmentDoc) -> Self {
         Self {
@@ -260,10 +280,14 @@ impl TryFrom<ThreadMessageDAO> for thread::Message {
     type Error = anyhow::Error;
     fn try_from(value: ThreadMessageDAO) -> Result<Self, Self::Error> {
         let code = value.code_attachments;
+        let client_code = value.client_code_attachments;
         let doc = value.doc_attachments;
 
         let attachment = MessageAttachment {
             code: code
+                .map(|x| x.0.into_iter().map(|i| i.into()).collect())
+                .unwrap_or_default(),
+            client_code: client_code
                 .map(|x| x.0.into_iter().map(|i| i.into()).collect())
                 .unwrap_or_default(),
             doc: doc

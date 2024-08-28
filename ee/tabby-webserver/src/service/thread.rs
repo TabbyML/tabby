@@ -35,7 +35,8 @@ impl ThreadService for ThreadServiceImpl {
     async fn create(&self, user_id: &ID, input: &CreateThreadInput) -> Result<ID> {
         let thread_id = self
             .db
-            .create_thread(user_id.as_rowid()?, input.is_ephemeral)
+            // By default, all new threads are ephemeral
+            .create_thread(user_id.as_rowid()?, true)
             .await?;
         self.append_user_message(&thread_id.as_id(), &input.user_message)
             .await?;
@@ -48,6 +49,13 @@ impl ThreadService for ThreadServiceImpl {
             .await?
             .into_iter()
             .next())
+    }
+
+    async fn set_persisted(&self, id: &ID) -> Result<()> {
+        self.db
+            .update_thread_ephemeral(id.as_rowid()?, false)
+            .await?;
+        Ok(())
     }
 
     async fn create_run(
@@ -80,6 +88,7 @@ impl ThreadService for ThreadServiceImpl {
                 thread_id.as_rowid()?,
                 thread::Role::Assistant.as_enum_str(),
                 "",
+                None,
                 None,
                 None,
                 false,
@@ -115,10 +124,9 @@ impl ThreadService for ThreadServiceImpl {
                             .iter()
                             .map(|x| (&x.code).into())
                             .collect::<Vec<_>>();
-                        db.update_thread_message_attachments(
+                        db.update_thread_message_code_attachments(
                             assistant_message_id,
-                            Some(&code),
-                            None,
+                            &code,
                         ).await?;
                     }
 
@@ -127,10 +135,9 @@ impl ThreadService for ThreadServiceImpl {
                             .iter()
                             .map(|x| (&x.doc).into())
                             .collect::<Vec<_>>();
-                        db.update_thread_message_attachments(
+                        db.update_thread_message_doc_attachments(
                             assistant_message_id,
-                            None,
-                            Some(&doc),
+                            &doc,
                         ).await?;
                     }
 
@@ -156,6 +163,15 @@ impl ThreadService for ThreadServiceImpl {
         message: &CreateMessageInput,
     ) -> Result<()> {
         let thread_id = thread_id.as_rowid()?;
+        let client_code = message.attachments.as_ref().and_then(|x| {
+            let code = x.code.iter().map(Into::into).collect::<Vec<_>>();
+            // If there are no code attachments, return None
+            if code.is_empty() {
+                None
+            } else {
+                Some(code)
+            }
+        });
 
         self.db
             .create_thread_message(
@@ -163,6 +179,7 @@ impl ThreadService for ThreadServiceImpl {
                 thread::Role::User.as_enum_str(),
                 &message.content,
                 None,
+                client_code.as_deref(),
                 None,
                 true,
             )
@@ -250,6 +267,7 @@ pub fn create(db: DbConn, answer: Option<Arc<AnswerService>>) -> impl ThreadServ
 mod tests {
     use tabby_db::{testutils::create_user, DbConn};
     use tabby_schema::thread::{CreateMessageInput, CreateThreadInput};
+    use thread::MessageAttachmentCodeInput;
 
     use super::*;
 
@@ -260,7 +278,6 @@ mod tests {
         let service = create(db, None);
 
         let input = CreateThreadInput {
-            is_ephemeral: false,
             user_message: CreateMessageInput {
                 content: "Hello, world!".to_string(),
                 attachments: None,
@@ -280,15 +297,29 @@ mod tests {
             .create(
                 &user_id,
                 &CreateThreadInput {
-                    is_ephemeral: false,
                     user_message: CreateMessageInput {
                         content: "Ping!".to_string(),
-                        attachments: None,
+                        attachments: Some(MessageAttachmentInput {
+                            code: vec![MessageAttachmentCodeInput {
+                                filepath: Some("main.rs".to_string()),
+                                content: "fn main() { println!(\"Hello, world!\"); }".to_string(),
+                                start_line: Some(1),
+                            }],
+                        }),
                     },
                 },
             )
             .await
             .unwrap();
+
+        let messages = service
+            .list_thread_messages(&thread_id, None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(
+            messages[0].attachment.client_code[0].filepath,
+            Some("main.rs".to_string())
+        );
 
         assert!(service
             .append_user_message(
@@ -312,7 +343,6 @@ mod tests {
             .create(
                 &user_id,
                 &CreateThreadInput {
-                    is_ephemeral: false,
                     user_message: CreateMessageInput {
                         content: "Ping!".to_string(),
                         attachments: None,
@@ -329,6 +359,7 @@ mod tests {
                 "Pong!",
                 None,
                 None,
+                None,
                 false,
             )
             .await
@@ -342,6 +373,7 @@ mod tests {
                 thread_id.as_rowid().unwrap(),
                 thread::Role::User.as_enum_str(),
                 "Ping another time!",
+                None,
                 None,
                 None,
                 false,

@@ -112,7 +112,8 @@
       {
         "command": "tabby.chat.generateCommitMessage",
         "title": "Generate Commit Message",
-        "category": "Tabby"
+        "category": "Tabby",
+        "icon": "$(sparkle)"
       },
       {
         "command": "tabby.chat.edit.start",
@@ -132,6 +133,11 @@
       {
         "command": "tabby.chat.edit.discard",
         "title": "Discard Changes",
+        "category": "Tabby"
+      },
+      {
+        "command": "tabby.server.selectPastServerConfig",
+        "title": "Select Server Endpoint from History",
         "category": "Tabby"
       }
     ],
@@ -181,7 +187,7 @@
         },
         {
           "command": "tabby.chat.generateCommitMessage",
-          "when": "tabby.chatEnabled"
+          "when": "false"
         },
         {
           "command": "tabby.chat.edit.start",
@@ -204,6 +210,13 @@
         {
           "submenu": "tabby.submenu",
           "group": "2_tabby"
+        }
+      ],
+      "scm/title": [
+        {
+          "command": "tabby.chat.generateCommitMessage",
+          "when": "tabby.chatEnabled",
+          "group": "navigation@-1"
         }
       ]
     },
@@ -386,7 +399,7 @@
         "command": "tabby.chatView.focus",
         "key": "ctrl+l",
         "mac": "cmd+l",
-        "when": "!editorHasSelection && tabby.chatEnabled"
+        "when": "!editorHasSelection && tabby.chatEnabled && !tabby.chatViewVisible"
       }
     ],
     "viewsContainers": {
@@ -419,7 +432,8 @@
     "vscode:prepackage": "turbo build --force",
     "vscode:package": "vsce package --no-dependencies",
     "vscode:prepublish": "turbo build --force",
-    "vscode:publish": "vsce publish --no-dependencies"
+    "vscode:publish": "vsce publish --no-dependencies",
+    "vscode:publish-prerelease": "vsce publish --no-dependencies --pre-release"
   },
   "devDependencies": {
     "@quilted/threads": "^2.2.0",

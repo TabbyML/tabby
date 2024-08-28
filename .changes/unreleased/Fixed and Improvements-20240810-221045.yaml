@@ -1,4 +1,0 @@
-kind: Fixed and Improvements
-body: When reusing a model for Chat / Completion together (e.g Codestral-22B) with
-  local model backend, resuse the llama-server sub process.
-time: 2024-08-10T22:10:45.454278-07:00

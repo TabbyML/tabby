@@ -20,11 +20,14 @@ import path from "path";
 import { strict as assert } from "assert";
 import { ChatEditCommand } from "tabby-agent";
 import { Client } from "./lsp/Client";
-import { Config } from "./Config";
+import { Config, PastServerConfig } from "./Config";
 import { ContextVariables } from "./ContextVariables";
 import { InlineCompletionProvider } from "./InlineCompletionProvider";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { GitProvider, Repository } from "./git/GitProvider";
+import CommandPalette from "./CommandPalette";
+import { showOutputPanel } from "./logger";
+import { Issues } from "./Issues";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -33,6 +36,7 @@ export class Commands {
     private readonly context: ExtensionContext,
     private readonly client: Client,
     private readonly config: Config,
+    private readonly issues: Issues,
     private readonly contextVariables: ContextVariables,
     private readonly inlineCompletionProvider: InlineCompletionProvider,
     private readonly chatViewProvider: ChatViewProvider,
@@ -71,15 +75,24 @@ export class Commands {
 
   private addRelevantContext() {
     const editor = window.activeTextEditor;
-    if (editor) {
-      commands.executeCommand("tabby.chatView.focus").then(() => {
-        const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
-        if (fileContext) {
-          this.chatViewProvider.addRelevantContext(fileContext);
-        }
-      });
-    } else {
+    if (!editor) {
       window.showInformationMessage("No active editor");
+      return;
+    }
+
+    // If chat webview is not created or not visible, we shall focus on it.
+    const focusChat = !this.chatViewProvider.webview?.visible;
+    const addContext = () => {
+      const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+      if (fileContext) {
+        this.chatViewProvider.addRelevantContext(fileContext);
+      }
+    };
+
+    if (focusChat) {
+      commands.executeCommand("tabby.chatView.focus").then(addContext);
+    } else {
+      addContext();
     }
   }
 
@@ -165,25 +178,20 @@ export class Commands {
       window
         .showQuickPick([
           {
-            label: "Online Documentation",
+            label: "Website",
             iconPath: new ThemeIcon("book"),
             alwaysShow: true,
-          },
-          {
-            label: "Model Registry",
-            description: "Explore more recommend models from Tabby's model registry",
-            iconPath: new ThemeIcon("library"),
-            alwaysShow: true,
+            description: "Visit Tabby's website to learn more about features and use cases",
           },
           {
             label: "Tabby Slack Community",
-            description: "Join Tabby's Slack community to get help or feed back",
+            description: "Join Tabby's Slack community to get help or share feedback",
             iconPath: new ThemeIcon("comment-discussion"),
             alwaysShow: true,
           },
           {
             label: "Tabby GitHub Repository",
-            description: "View the source code for Tabby, and open issues",
+            description: "Open issues for bugs or feature requests",
             iconPath: new ThemeIcon("github"),
             alwaysShow: true,
           },
@@ -191,11 +199,8 @@ export class Commands {
         .then((selection) => {
           if (selection) {
             switch (selection.label) {
-              case "Online Documentation":
+              case "Website":
                 env.openExternal(Uri.parse("https://tabby.tabbyml.com/"));
-                break;
-              case "Model Registry":
-                env.openExternal(Uri.parse("https://tabby.tabbyml.com/docs/models/"));
                 break;
               case "Tabby Slack Community":
                 env.openExternal(Uri.parse("https://links.tabbyml.com/join-slack-extensions/"));
@@ -212,6 +217,12 @@ export class Commands {
     },
     gettingStarted: () => {
       commands.executeCommand("workbench.action.openWalkthrough", "TabbyML.vscode-tabby#gettingStarted");
+    },
+    "commandPalette.trigger": () => {
+      new CommandPalette(this.client, this.config, this.issues);
+    },
+    "outputPanel.focus": () => {
+      showOutputPanel();
     },
     "inlineCompletion.trigger": () => {
       commands.executeCommand("editor.action.inlineSuggest.trigger");
@@ -291,7 +302,7 @@ export class Commands {
         },
       };
       //ensure max length
-      const recentlyCommand = this.config.chatEditRecentlyCommand.slice(0, this.config.chatEditHistory);
+      const recentlyCommand = this.config.chatEditRecentlyCommand.slice(0, this.config.maxChatEditHistory);
       const suggestedCommand: ChatEditCommand[] = [];
       const quickPick = window.createQuickPick<QuickPickItem & { value: string }>();
 
@@ -302,7 +313,7 @@ export class Commands {
           ...suggestedCommand.map((item) => ({
             label: item.label,
             value: item.command,
-            iconPath: item.source === "preset" ? new ThemeIcon("edit") : new ThemeIcon("spark"),
+            iconPath: item.source === "preset" ? new ThemeIcon("run") : new ThemeIcon("spark"),
             description: item.source === "preset" ? item.command : "Suggested",
           })),
         );
@@ -322,6 +333,9 @@ export class Commands {
             iconPath: new ThemeIcon("history"),
             description: "History",
             buttons: [
+              {
+                iconPath: new ThemeIcon("edit"),
+              },
               {
                 iconPath: new ThemeIcon("settings-remove"),
               },
@@ -359,7 +373,7 @@ export class Commands {
         if (command) {
           const updatedRecentlyCommand = [command]
             .concat(recentlyCommand.filter((item) => item !== command))
-            .slice(0, this.config.chatEditHistory);
+            .slice(0, this.config.maxChatEditHistory);
           this.config.chatEditRecentlyCommand = updatedRecentlyCommand;
 
           window.withProgress(
@@ -412,6 +426,10 @@ export class Commands {
             updateQuickPickList();
           }
         }
+
+        if (button.iconPath instanceof ThemeIcon && button.iconPath.id === "edit") {
+          quickPick.value = item.value;
+        }
       });
 
       quickPick.show();
@@ -447,42 +465,43 @@ export class Commands {
       };
       await this.client.chat.resolveEdit({ location, action: "discard" });
     },
-    "chat.generateCommitMessage": async () => {
+    "chat.generateCommitMessage": async (repository?: Repository) => {
       const repos = this.gitProvider.getRepositories() ?? [];
       if (repos.length < 1) {
         window.showInformationMessage("No Git repositories found.");
         return;
       }
-      // Select repo
-      let selectedRepo: Repository | undefined = undefined;
-      if (repos.length == 1) {
-        selectedRepo = repos[0];
-      } else {
-        const selected = await window.showQuickPick(
-          repos
-            .map((repo) => {
-              const repoRoot = repo.rootUri.fsPath;
-              return {
-                label: path.basename(repoRoot),
-                detail: repoRoot,
-                iconPath: new ThemeIcon("repo"),
-                picked: repo.ui.selected,
-                alwaysShow: true,
-                value: repo,
-              };
-            })
-            .sort((a, b) => {
-              if (a.detail.startsWith(b.detail)) {
-                return 1;
-              } else if (b.detail.startsWith(a.detail)) {
-                return -1;
-              } else {
-                return a.label.localeCompare(b.label);
-              }
-            }),
-          { placeHolder: "Select a Git repository" },
-        );
-        selectedRepo = selected?.value;
+      let selectedRepo = repository;
+      if (!selectedRepo) {
+        if (repos.length == 1) {
+          selectedRepo = repos[0];
+        } else {
+          const selected = await window.showQuickPick(
+            repos
+              .map((repo) => {
+                const repoRoot = repo.rootUri.fsPath;
+                return {
+                  label: path.basename(repoRoot),
+                  detail: repoRoot,
+                  iconPath: new ThemeIcon("repo"),
+                  picked: repo.ui.selected,
+                  alwaysShow: true,
+                  value: repo,
+                };
+              })
+              .sort((a, b) => {
+                if (a.detail.startsWith(b.detail)) {
+                  return 1;
+                } else if (b.detail.startsWith(a.detail)) {
+                  return -1;
+                } else {
+                  return a.label.localeCompare(b.label);
+                }
+              }),
+            { placeHolder: "Select a Git repository" },
+          );
+          selectedRepo = selected?.value;
+        }
       }
       if (!selectedRepo) {
         return;
@@ -500,11 +519,45 @@ export class Commands {
             { repository: selectedRepo.rootUri.toString() },
             token,
           );
-          if (result) {
+          if (result && selectedRepo.inputBox) {
             selectedRepo.inputBox.value = result.commitMessage;
           }
         },
       );
+    },
+    "server.selectPastServerConfig": () => {
+      const configs = this.config.pastServerConfigs;
+      if (configs.length <= 0) return;
+
+      const quickPick = window.createQuickPick<QuickPickItem & PastServerConfig>();
+
+      quickPick.items = configs.map((x) => ({
+        ...x,
+        label: x.endpoint,
+        buttons: [
+          {
+            iconPath: new ThemeIcon("settings-remove"),
+          },
+        ],
+      }));
+
+      quickPick.onDidAccept(() => {
+        const item = quickPick.activeItems[0];
+        if (item) {
+          this.config.restoreServerConfig(item);
+        }
+
+        quickPick.hide();
+      });
+
+      quickPick.onDidTriggerItemButton((e) => {
+        if (!(e.button.iconPath instanceof ThemeIcon)) return;
+        if (e.button.iconPath.id === "settings-remove") {
+          this.config.removePastServerConfigByApiEndpoint(e.item.endpoint);
+        }
+      });
+
+      quickPick.show();
     },
   };
 }

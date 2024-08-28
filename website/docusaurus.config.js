@@ -239,12 +239,24 @@ export default {
             to: '/docs/quick-start/installation/docker',
             from: '/docs/quick-start/installation'
           },
+          {
+            to: '/docs/references/programming-languages',
+            from: '/docs/programming-languages'
+          },
         ],
         createRedirects(existingPath) {
           // Create redirection from /docs/installation/* to /docs/quick-start/installation/*
           if (existingPath.startsWith("/docs/quick-start/installation")) {
             return [
               existingPath.replace("/docs/quick-start/installation", "/docs/installation"),
+            ]
+          }
+
+          // Create redirection from /docs/quick-start/installation/* to /docs/references/cloud-deployment/*
+          if (existingPath.startsWith("/docs/references/cloud-deployment/")) {
+            return [
+              existingPath.replace("/docs/references/cloud-deployment/", "/docs/quick-start/installation/"),
+              existingPath.replace("/docs/references/cloud-deployment/", "/docs/installation/"),
             ]
           }
         }

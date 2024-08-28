@@ -1,4 +1,4 @@
-import React, { forwardRef, useState } from 'react'
+import React, { forwardRef, useEffect, useState } from 'react'
 import { isNil } from 'lodash-es'
 
 import { RelevantCodeContext } from '@/lib/types'
@@ -25,7 +25,6 @@ interface ContextReferencesProps {
     context: RelevantCodeContext,
     isInWorkspace?: boolean
   ) => void
-  defaultOpen?: boolean
   enableTooltip?: boolean
   onTooltipClick?: () => void
   isExternalLink?: boolean
@@ -42,7 +41,6 @@ export const CodeReferences = forwardRef<
       userContexts,
       className,
       onContextClick,
-      defaultOpen,
       enableTooltip,
       onTooltipClick,
       isExternalLink,
@@ -52,15 +50,30 @@ export const CodeReferences = forwardRef<
   ) => {
     const totalContextLength = (userContexts?.length || 0) + contexts.length
     const isMultipleReferences = totalContextLength > 1
+    const serverCtxLen = contexts?.length ?? 0
+    const clientCtxLen = userContexts?.length ?? 0
+    const ctxLen = serverCtxLen + clientCtxLen
+    const [accordionValue, setAccordionValue] = useState<string | undefined>(
+      ctxLen <= 5 ? 'references' : undefined
+    )
+    useEffect(() => {
+      if (ctxLen <= 5) {
+        setAccordionValue('references')
+      } else {
+        setAccordionValue(undefined)
+      }
+    }, [ctxLen])
 
     if (totalContextLength === 0) return null
+
     return (
       <Accordion
         type="single"
         collapsible
         className={cn('bg-transparent text-foreground', className)}
-        defaultValue={defaultOpen ? 'references' : undefined}
         ref={ref}
+        value={accordionValue}
+        onValueChange={setAccordionValue}
       >
         <AccordionItem value="references" className="my-0 border-0">
           <AccordionTrigger className="my-0 py-2 font-semibold">

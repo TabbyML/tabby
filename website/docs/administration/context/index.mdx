@@ -7,6 +7,8 @@ import GitUrl from "./git.png";
 import GitHubGitLabUrl from "./github-gitlab.png";
 import SelectRepoUrl from "./select-repo.png";
 import CodeBrowserUrl from "./code-browser.png";
+import JobLinkUrl from "./repository-job.png";
+import JobLogUrl from "./repository-job-run.png";
 
 # Repository Context
 
@@ -34,6 +36,14 @@ The repository context is used to connect Tabby with a source code repository fr
     * Once the token is set, you can add the repository by selecting it from the dropdown list.
 
     <img src={SelectRepoUrl} alt="select-repo" width="700" />
+
+3. After adding the repository, a job will be created to fetch its information and build it into the index. You can view the job's log on the `Jobs` page.
+
+      <div>
+        <img src={JobLinkUrl} alt="job-link" />
+        <img src={JobLogUrl} alt="job-log" />
+      </div>
+
 
 ## Adding a Repository through configuration file
 

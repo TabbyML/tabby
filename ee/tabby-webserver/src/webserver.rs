@@ -13,7 +13,7 @@ use tabby_db::DbConn;
 use tabby_inference::{ChatCompletionStream, Embedding};
 use tabby_schema::{
     integration::IntegrationService, job::JobService, repository::RepositoryService,
-    web_crawler::WebCrawlerService,
+    web_crawler::WebCrawlerService, web_documents::WebDocumentService,
 };
 
 use crate::{
@@ -21,7 +21,7 @@ use crate::{
     routes,
     service::{
         background_job, create_service_locator, event_logger::create_event_logger, integration,
-        job, repository, web_crawler,
+        job, repository, web_crawler, web_documents,
     },
 };
 
@@ -31,6 +31,7 @@ pub struct Webserver {
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
     web_crawler: Arc<dyn WebCrawlerService>,
+    web_documents: Arc<dyn WebDocumentService>,
     job: Arc<dyn JobService>,
 }
 
@@ -66,6 +67,7 @@ impl Webserver {
         let repository = repository::create(db.clone(), integration.clone(), job.clone());
 
         let web_crawler = Arc::new(web_crawler::create(db.clone(), job.clone()));
+        let web_documents = Arc::new(web_documents::create(db.clone(), job.clone()));
 
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
@@ -75,6 +77,7 @@ impl Webserver {
             repository: repository.clone(),
             integration: integration.clone(),
             web_crawler: web_crawler.clone(),
+            web_documents: web_documents.clone(),
             job: job.clone(),
         });
 
@@ -126,6 +129,7 @@ impl Webserver {
             self.repository.clone(),
             self.integration.clone(),
             self.web_crawler.clone(),
+            self.web_documents.clone(),
             self.job.clone(),
             answer.clone(),
             self.db.clone(),

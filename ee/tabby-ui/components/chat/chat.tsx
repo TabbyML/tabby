@@ -1,13 +1,12 @@
 import React from 'react'
-import { compact, findIndex } from 'lodash-es'
-import type { Context, NavigateOpts } from 'tabby-chat-panel'
+import { compact, findIndex, isEqual, uniqWith } from 'lodash-es'
+import type { Context, FileContext, NavigateOpts } from 'tabby-chat-panel'
 
 import {
   CodeQueryInput,
   CreateMessageInput,
   InputMaybe,
   MessageAttachmentCodeInput,
-  ThreadRunItem,
   ThreadRunOptionsInput
 } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
@@ -72,7 +71,6 @@ interface ChatProps extends React.ComponentProps<'div'> {
   chatId: string
   api?: string
   headers?: Record<string, string> | Headers
-  isEphemeral?: boolean
   initialMessages?: QuestionAnswerPair[]
   onLoaded?: () => void
   onThreadUpdates?: (messages: QuestionAnswerPair[]) => void
@@ -95,7 +93,6 @@ function ChatRenderer(
     chatId,
     initialMessages,
     headers,
-    isEphemeral,
     onLoaded,
     onThreadUpdates,
     onNavigateToContext,
@@ -120,45 +117,6 @@ function ChatRenderer(
   const [relevantContext, setRelevantContext] = React.useState<Context[]>([])
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
 
-  const updateCurrentQaPairIDs = (
-    newUserMessageId: string,
-    newAssistantMessageId: string
-  ) => {
-    const qaPairIndex = qaPairs.length - 1
-    const qaPair = qaPairs[qaPairIndex]
-    const newQaPairs: QuestionAnswerPair[] = [
-      ...qaPairs.slice(0, -1),
-      {
-        user: {
-          ...qaPair.user,
-          id: newUserMessageId
-        },
-        assistant: {
-          ...qaPair.assistant,
-          message: qaPair?.assistant?.message ?? '',
-          id: newAssistantMessageId
-        }
-      }
-    ]
-
-    setQaPairs(newQaPairs)
-  }
-
-  const onAssistantMessageCompleted = (
-    newThreadId: string,
-    threadRunItem: ThreadRunItem | undefined
-  ) => {
-    if (
-      threadRunItem?.threadUserMessageCreated &&
-      threadRunItem.threadAssistantMessageCreated
-    ) {
-      updateCurrentQaPairIDs(
-        threadRunItem.threadUserMessageCreated,
-        threadRunItem.threadAssistantMessageCreated
-      )
-    }
-  }
-
   const {
     sendUserMessage,
     isLoading,
@@ -169,9 +127,7 @@ function ChatRenderer(
     deleteThreadMessagePair
   } = useThreadRun({
     threadId,
-    headers,
-    isEphemeral,
-    onAssistantMessageCompleted
+    headers
   })
 
   const onDeleteMessage = async (userMessageId: string) => {
@@ -274,7 +230,10 @@ function ChatRenderer(
       const assisatntMessage = prev[prev.length - 1].assistant
       const nextAssistantMessage: AssistantMessage = {
         ...assisatntMessage,
-        id: assisatntMessage?.id || nanoid(),
+        id:
+          answer?.threadAssistantMessageCreated ||
+          assisatntMessage?.id ||
+          nanoid(),
         message: answer.threadAssistantMessageContentDelta ?? '',
         error: undefined,
         relevant_code:
@@ -284,7 +243,10 @@ function ChatRenderer(
       return [
         ...prev.slice(0, prev.length - 1),
         {
-          ...lastQaPairs,
+          user: {
+            ...lastQaPairs.user,
+            id: answer?.threadUserMessageCreated || lastQaPairs.user.id
+          },
           assistant: nextAssistantMessage
         }
       ]
@@ -349,20 +311,19 @@ function ChatRenderer(
         }
       : null
 
-    const attachmentCode: MessageAttachmentCodeInput[] = compact([
-      // activeCode in IDE
-      userMessage?.activeContext
-        ? {
-            content: userMessage?.activeContext.content,
-            filepath: userMessage?.activeContext.filepath
-          }
-        : undefined,
-      // relevantCode
-      ...(userMessage?.relevantContext?.map(o => ({
-        filepath: o.filepath,
-        content: o.content
-      })) ?? [])
-    ])
+    const fileContext: FileContext[] = uniqWith(
+      compact([
+        userMessage?.activeContext,
+        ...(userMessage?.relevantContext || [])
+      ]),
+      isEqual
+    )
+
+    const attachmentCode: MessageAttachmentCodeInput[] = fileContext.map(o => ({
+      content: o.content,
+      filepath: o.filepath,
+      startLine: o.range.start
+    }))
 
     const content = userMessage.message
 
@@ -439,7 +400,7 @@ function ChatRenderer(
   }
 
   const handleAddRelevantContext = useLatest((context: Context) => {
-    setRelevantContext(relevantContext.concat([context]))
+    setRelevantContext(oldValue => appendContextAndDedupe(oldValue, context))
   })
 
   const addRelevantContext = (context: Context) => {
@@ -535,6 +496,16 @@ function ChatRenderer(
       </div>
     </ChatContext.Provider>
   )
+}
+
+function appendContextAndDedupe(
+  ctxList: Context[],
+  newCtx: Context
+): Context[] {
+  if (!ctxList.some(ctx => isEqual(ctx, newCtx))) {
+    return ctxList.concat([newCtx])
+  }
+  return ctxList
 }
 
 export const Chat = React.forwardRef<ChatRef, ChatProps>(ChatRenderer)

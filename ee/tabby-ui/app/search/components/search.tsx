@@ -27,14 +27,20 @@ import {
   AttachmentDocItem,
   RelevantCodeContext
 } from '@/lib/types'
-import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import {
+  cn,
+  formatLineHashForCodeBrowser,
+  getRangeFromAttachmentCode,
+  getRangeTextFromAttachmentCode
+} from '@/lib/utils'
+import { Button, buttonVariants } from '@/components/ui/button'
 import {
   IconBlocks,
   IconBug,
   IconCheck,
   IconChevronLeft,
   IconChevronRight,
+  IconFileSearch,
   IconLayers,
   IconLink,
   IconPlus,
@@ -62,9 +68,11 @@ import UserPanel from '@/components/user-panel'
 
 import './search.css'
 
-import { compact, isEmpty, pick } from 'lodash-es'
+import Link from 'next/link'
+import slugify from '@sindresorhus/slugify'
+import { compact, isEmpty, pick, uniqBy } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
-import slugify from 'slugify'
+import { toast } from 'sonner'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
@@ -76,12 +84,12 @@ import {
   Message,
   MessageAttachmentCode,
   RepositoryListQuery,
-  Role,
-  ThreadRunItem
+  Role
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
+import { useMutation } from '@/lib/tabby/gql'
 import { repositoryListQuery } from '@/lib/tabby/query'
 import {
   Tooltip,
@@ -104,11 +112,10 @@ type ConversationMessage = Omit<
 > & {
   threadId?: string
   threadRelevantQuestions?: Maybe<string[]>
-  // isLoading?: boolean
   error?: string
   attachment?: {
-    code: Array<AttachmentCodeItem>
-    doc: Array<AttachmentDocItem>
+    code: Maybe<Array<AttachmentCodeItem>>
+    doc: Maybe<Array<AttachmentDocItem>>
   }
 }
 
@@ -122,6 +129,7 @@ type SearchContextValue = {
   repositoryList: RepositoryListQuery['repositoryList'] | undefined
   setDevPanelOpen: (v: boolean) => void
   setConversationIdForDev: (v: string | undefined) => void
+  enableDeveloperMode: boolean
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -162,6 +170,11 @@ const listThreadMessages = graphql(/* GraphQL */ `
               content
               startLine
             }
+            clientCode {
+              filepath
+              content
+              startLine
+            }
             doc {
               title
               link
@@ -180,6 +193,8 @@ const listThreadMessages = graphql(/* GraphQL */ `
     }
   }
 `)
+
+const PAGE_SIZE = 30
 
 export function Search() {
   const { updateUrlComponents, pathname } = useRouterStuff()
@@ -205,13 +220,20 @@ export function Search() {
   const devPanelRef = useRef<ImperativePanelHandle>(null)
   const [devPanelSize, setDevPanelSize] = useState(45)
   const prevDevPanelSize = useRef(devPanelSize)
-
-  const threadId = useMemo(() => {
+  const [enableDeveloperMode] = useEnableDeveloperMode()
+  const [threadId, setThreadId] = useState<string | undefined>()
+  const threadIdFromURL = useMemo(() => {
     const regex = /^\/search\/(.*)/
     if (!activePathname) return undefined
 
     return activePathname.match(regex)?.[1]?.split('-').pop()
   }, [activePathname])
+
+  useEffect(() => {
+    if (threadIdFromURL) {
+      setThreadId(threadIdFromURL)
+    }
+  }, [threadIdFromURL])
 
   const [{ data }] = useQuery({
     query: repositoryListQuery
@@ -219,102 +241,81 @@ export function Search() {
   const repositoryList = data?.repositoryList
 
   const [afterCursor, setAfterCursor] = useState<string | undefined>()
-  const [{ data: threadMessages, fetching: fetchingMessages }] = useQuery({
+  const [
+    {
+      data: threadMessages,
+      error: threadMessagesError,
+      fetching: fetchingMessages
+    }
+  ] = useQuery({
     query: listThreadMessages,
     variables: {
       threadId: threadId as string,
-      first: 20,
+      first: PAGE_SIZE,
       after: afterCursor
     },
     pause: !threadId || isReady
   })
 
-  // todo scroll and setAfterCursor
   useEffect(() => {
     if (threadMessages?.threadMessages?.edges?.length) {
       const messages = threadMessages.threadMessages.edges
         .map(o => o.node)
         .slice()
-      setMessages(messages)
-      setIsReady(true)
+      setMessages(prev => uniqBy([...prev, ...messages], 'id'))
+    }
+
+    if (threadMessages?.threadMessages) {
+      const hasNextPage = threadMessages?.threadMessages?.pageInfo?.hasNextPage
+      const endCursor = threadMessages?.threadMessages.pageInfo.endCursor
+      if (hasNextPage && endCursor) {
+        setAfterCursor(endCursor)
+      } else {
+        setIsReady(true)
+      }
     }
   }, [threadMessages])
 
-  const updateCurrentMessagePairIDs = (
-    userMessageId: string,
-    assistantMessageId: string
-  ) => {
-    const userMessageIndex = messages.findIndex(
-      o => o.id === currentUserMessageId
-    )
-    const assistantMessageIndex = messages.findIndex(
-      o => o.id === currentAssistantMessageId
-    )
-    if (userMessageIndex > -1 && assistantMessageIndex > -1) {
-      const newMessage = [...messages]
-      newMessage[userMessageIndex].id = userMessageId
-      newMessage[assistantMessageIndex].id = assistantMessageId
-      setMessages(newMessage)
+  // update title
+  useEffect(() => {
+    if (messages?.[0]?.content) {
+      const title = getTitleFromMessages(messages)
+      if (title) {
+        document.title = title
+      }
     }
-  }
+  }, [messages?.[0]?.content])
+
+  useEffect(() => {
+    if (threadMessagesError && !isReady) {
+      // FIXME error view?
+      setIsReady(true)
+    }
+  }, [threadMessagesError])
 
   // `/search` -> `/search/{slug}-{threadId}`
-  const updateURLPattern = (threadId: string) => {
-    const title = messages?.[0]?.content
-    const slug = slugify(title, {
-      lower: true
-    })
-      .split('-')
-      .slice(0, 8)
-      .join('-')
-
-    if (slug) {
-      document.title = slug
-    } else {
-      document.title = title
-    }
-
+  const updateThreadURL = (threadId: string) => {
+    const title = getTitleFromMessages(messages)
+    const slug = slugify(title)
     const slugWithThreadId = compact([slug, threadId]).join('-')
 
-    updateUrlComponents({
+    const path = updateUrlComponents({
       pathname: `/search/${slugWithThreadId}`,
       searchParams: {
         del: ['q']
-      }
+      },
+      replace: true
     })
-  }
 
-  const onAssistantMessageCompleted = (
-    newThreadId: string,
-    threadRunItem: ThreadRunItem | undefined
-  ) => {
-    if (
-      threadRunItem?.threadUserMessageCreated &&
-      threadRunItem.threadAssistantMessageCreated
-    ) {
-      updateCurrentMessagePairIDs(
-        threadRunItem.threadUserMessageCreated,
-        threadRunItem.threadAssistantMessageCreated
-      )
-    }
+    return location.origin + path
   }
 
   const { sendUserMessage, isLoading, error, answer, stop, regenerate } =
     useThreadRun({
-      threadId,
-      onAssistantMessageCompleted
+      threadId
     })
 
   const isLoadingRef = useLatest(isLoading)
-
-  const { isCopied, copyToClipboard } = useCopyToClipboard({
-    timeout: 2000
-  })
-
-  const onCopy = () => {
-    if (isCopied) return
-    copyToClipboard(window.location.href)
-  }
 
   const currentMessageForDev = useMemo(() => {
     return messages.find(item => item.id === messageIdForDev)
@@ -390,7 +391,7 @@ export function Search() {
       }
     }
 
-    if (isPathnameInitialized) {
+    if (isPathnameInitialized && !threadIdFromURL) {
       init()
     }
   }, [isPathnameInitialized])
@@ -408,42 +409,75 @@ export function Search() {
   useEffect(() => {
     if (!answer) return
 
-    let newMessages = [...messages]
-    const currentAssistantMessageIndex = newMessages.findIndex(
-      item => item.id === currentAssistantMessageId
-    )
-
-    if (currentAssistantMessageIndex <= 0) return
-
-    const newThreadId = answer?.threadCreated
-    if (!!newThreadId && !threadId) {
-      updateURLPattern(newThreadId)
+    // update threadId
+    if (answer?.threadCreated && answer.threadCreated !== threadId) {
+      setThreadId(answer.threadCreated)
     }
 
-    const currentAssistantMessage = newMessages[currentAssistantMessageIndex]
+    let newMessages = [...messages]
 
+    const currentUserMessageIdx = newMessages.findIndex(
+      o => o.id === currentUserMessageId
+    )
+    const currentAssistantMessageIdx = newMessages.findIndex(
+      o => o.id === currentAssistantMessageId
+    )
+    if (currentUserMessageIdx === -1 || currentAssistantMessageIdx === -1) {
+      return
+    }
+
+    const currentUserMessage = newMessages[currentUserMessageIdx]
+    const currentAssistantMessage = newMessages[currentAssistantMessageIdx]
+
+    // update assistant message
     currentAssistantMessage.content =
       answer?.threadAssistantMessageContentDelta || ''
-    currentAssistantMessage.attachment = {
-      // format the attachments
-      code:
-        answer?.threadAssistantMessageAttachmentsCode?.map(hit => ({
-          ...hit.code,
-          extra: {
-            scores: hit.scores
-          }
-        })) ?? [],
-      doc:
-        answer?.threadAssistantMessageAttachmentsDoc?.map(hit => ({
-          ...hit.doc,
-          extra: {
-            score: hit.score
-          }
-        })) ?? []
+
+    if (!currentAssistantMessage?.attachment?.code) {
+      currentAssistantMessage.attachment = {
+        doc: currentAssistantMessage.attachment?.doc ?? null,
+        code:
+          answer?.threadAssistantMessageAttachmentsCode?.map(hit => ({
+            ...hit.code,
+            extra: {
+              scores: hit.scores
+            }
+          })) ?? null
+      }
     }
+
+    if (!currentAssistantMessage?.attachment?.doc) {
+      currentAssistantMessage.attachment = {
+        doc:
+          answer?.threadAssistantMessageAttachmentsDoc?.map(hit => ({
+            ...hit.doc,
+            extra: {
+              score: hit.score
+            }
+          })) ?? null,
+        code: currentAssistantMessage.attachment?.code ?? null
+      }
+    }
+
     currentAssistantMessage.threadRelevantQuestions =
       answer?.threadRelevantQuestions
 
+    // update message pair ids
+    const newUserMessageId = answer?.threadUserMessageCreated
+    const newAssistantMessageId = answer?.threadAssistantMessageCreated
+    if (
+      newUserMessageId &&
+      newAssistantMessageId &&
+      newUserMessageId !== currentUserMessage.id &&
+      newAssistantMessageId !== currentAssistantMessage.id
+    ) {
+      currentUserMessage.id = newUserMessageId
+      currentAssistantMessage.id = newAssistantMessageId
+      setCurrentUserMessageId(newUserMessageId)
+      setCurrentAssistantMessageId(newAssistantMessageId)
+    }
+
+    // update messages
     setMessages(newMessages)
   }, [isLoading, answer])
 
@@ -473,14 +507,10 @@ export function Search() {
         // Scroll to the bottom
         const container = contentContainerRef?.current?.children?.[1]
         if (container) {
-          const isLastAnswerLoading =
-            currentAssistantMessageId === messages[messages.length - 1].id
-          if (isLastAnswerLoading) {
-            container.scrollTo({
-              top: container.scrollHeight,
-              behavior: 'smooth'
-            })
-          }
+          container.scrollTo({
+            top: container.scrollHeight,
+            behavior: 'smooth'
+          })
         }
       }, 300)
     }
@@ -558,7 +588,12 @@ export function Search() {
     const newAssistantMessage: ConversationMessage = {
       id: nanoid(),
       role: Role.Assistant,
-      content: ''
+      content: '',
+      attachment: {
+        code: [],
+        doc: []
+      },
+      error: undefined
     }
     const _repository = extraContext?.repository
     const codeQuery: InputMaybe<CodeQueryInput> = _repository
@@ -567,7 +602,7 @@ export function Search() {
 
     setCurrentUserMessageId(newUserMessage.id)
     setCurrentAssistantMessageId(newAssistantMessage.id)
-    setMessages(newMessages.concat([newUserMessage, newAssistantMessage]))
+    setMessages([...newMessages, newUserMessage, newAssistantMessage])
 
     regenerate({
       threadId,
@@ -596,11 +631,21 @@ export function Search() {
     prevDevPanelSize.current = devPanelSize
   }
 
-  if (!isReady && fetchingMessages) {
+  const isFetchingMessages =
+    fetchingMessages || threadMessages?.threadMessages?.pageInfo?.hasNextPage
+
+  if (isReady && threadMessagesError) {
+    return <ThreadMessagesErrorView />
+  }
+
+  if (!isReady && isFetchingMessages) {
     return (
-      <div className="mx-auto mt-24 w-full space-y-10 px-4 pb-32 lg:max-w-4xl lg:px-0">
-        <MessagesSkeleton />
-        <MessagesSkeleton />
+      <div>
+        <Header />
+        <div className="mx-auto mt-24 w-full space-y-10 px-4 pb-32 lg:max-w-4xl lg:px-0">
+          <MessagesSkeleton />
+          <MessagesSkeleton />
+        </div>
       </div>
     )
   }
@@ -623,65 +668,27 @@ export function Search() {
         repositoryList,
         setDevPanelOpen,
         setConversationIdForDev: setMessageIdForDev,
-        isPathnameInitialized
+        isPathnameInitialized,
+        enableDeveloperMode: enableDeveloperMode.value
       }}
     >
       <div className="transition-all" style={style}>
         <ResizablePanelGroup direction="vertical" onLayout={onPanelLayout}>
           <ResizablePanel>
-            <header className="flex h-16 items-center justify-between px-4">
-              <div className="flex items-center gap-x-6">
-                <Button
-                  variant="ghost"
-                  className="-ml-1 pl-0 text-sm text-muted-foreground"
-                  onClick={() => router.replace('/')}
-                >
-                  <IconChevronLeft className="mr-1 h-5 w-5" />
-                  Home
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                {!!threadId && (
-                  <>
-                    <Button
-                      variant="ghost"
-                      className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
-                      onClick={() => router.push('/')}
-                    >
-                      <IconPlus />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
-                      onClick={onCopy}
-                    >
-                      {isCopied ? (
-                        <IconCheck className="text-green-600" />
-                      ) : (
-                        <IconLink />
-                      )}
-                    </Button>
-                  </>
-                )}
-                <ClientOnly>
-                  <ThemeToggle />
-                </ClientOnly>
-                <div className="ml-2">
-                  <UserPanel showHome={false} showSetting>
-                    <UserAvatar className="h-10 w-10 border" />
-                  </UserPanel>
-                </div>
-              </div>
-            </header>
-
-            <main className="h-[calc(100%-4rem)] overflow-auto pb-8 lg:pb-0">
+            <Header
+              threadIdFromURL={threadIdFromURL}
+              threadIdFromStreaming={threadId}
+              streamingDone={!!answer?.threadAssistantMessageCompleted}
+              updateThreadURL={updateThreadURL}
+            />
+            <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
               <ScrollArea className="h-full" ref={contentContainerRef}>
                 <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
                   <div className="flex flex-col">
                     {messages.map((item, idx) => {
                       if (item.role === Role.User) {
                         return (
-                          <div key={item.id + idx}>
+                          <div key={item.id}>
                             {idx !== 0 && <Separator />}
                             <div className="pb-2 pt-8">
                               <MessageMarkdown
@@ -696,7 +703,7 @@ export function Search() {
                         const isLastAssistantMessage =
                           idx === messages.length - 1
                         return (
-                          <div key={item.id + idx} className="pb-8 pt-2">
+                          <div key={item.id} className="pb-8 pt-2">
                             <AnswerBlock
                               answer={item}
                               isLastAssistantMessage={isLastAssistantMessage}
@@ -821,17 +828,18 @@ function AnswerBlock({
     onRegenerateResponse,
     onSubmitSearch,
     setDevPanelOpen,
-    setConversationIdForDev
+    setConversationIdForDev,
+    enableDeveloperMode
   } = useContext(SearchContext)
-  const [enableDeveloperMode] = useEnableDeveloperMode()
 
   const [showMoreSource, setShowMoreSource] = useState(false)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] = useState<
     number | undefined
   >(undefined)
   const getCopyContent = (answer: ConversationMessage) => {
-    // FIXME copy code
-    if (isEmpty(answer?.attachment?.doc)) return answer.content
+    if (isEmpty(answer?.attachment?.doc) && isEmpty(answer?.attachment?.code)) {
+      return answer.content
+    }
 
     const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
     const content = answer.content
@@ -840,9 +848,21 @@ function AnswerBlock({
         return `[${citationNumberMatch}]`
       })
       .trim()
-    const citations = answer.attachment?.doc
-      .map((relevent, idx) => `[${idx + 1}] ${relevent.link}`)
-      .join('\n')
+    const docCitations =
+      answer.attachment?.doc
+        ?.map((doc, idx) => `[${idx + 1}] ${doc.link}`)
+        .join('\n') ?? ''
+    const docCitationLen = answer.attachment?.doc?.length ?? 0
+    const codeCitations =
+      answer.attachment?.code
+        ?.map((code, idx) => {
+          const lineRangeText = getRangeTextFromAttachmentCode(code)
+          const filenameText = compact([code.filepath, lineRangeText]).join(':')
+          return `[${idx + docCitationLen + 1}] ${filenameText}`
+        })
+        .join('\n') ?? ''
+    const citations = docCitations + codeCitations
+
     return `${content}\n\nCitations:\n${citations}`
   }
 
@@ -856,15 +876,13 @@ function AnswerBlock({
   const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
     return (
       answer?.attachment?.code?.map(code => {
-        const start_line = code?.startLine ?? 0
-        const lineCount = code.content.split('\n').length
-        const end_line = start_line + lineCount - 1
+        const { startLine, endLine } = getRangeFromAttachmentCode(code)
 
         return {
           kind: 'file',
           range: {
-            start: start_line,
-            end: end_line
+            start: startLine,
+            end: endLine
           },
           filepath: code.filepath,
           content: code.content,
@@ -907,9 +925,7 @@ function AnswerBlock({
   }
 
   const openCodeBrowserTab = (code: MessageAttachmentCode) => {
-    const start_line = code?.startLine ?? 0
-    const lineCount = code.content.split('\n').length
-    const end_line = start_line + lineCount - 1
+    const { startLine, endLine } = getRangeFromAttachmentCode(code)
 
     if (!code.filepath) return
     const url = new URL(`${window.location.origin}/files`)
@@ -919,8 +935,8 @@ function AnswerBlock({
     url.search = searchParams.toString()
 
     const lineHash = formatLineHashForCodeBrowser({
-      start: start_line,
-      end: end_line
+      start: startLine,
+      end: endLine
     })
     if (lineHash) {
       url.hash = lineHash
@@ -960,7 +976,7 @@ function AnswerBlock({
                 conversationId={answer.id}
                 source={source}
                 showMore={showMoreSource}
-                showDevTooltip={enableDeveloperMode.value}
+                showDevTooltip={enableDeveloperMode}
               />
             ))}
           </div>
@@ -982,14 +998,14 @@ function AnswerBlock({
 
       {/* Answer content */}
       <div>
-        <div className="mb-1 flex items-center gap-x-1.5">
+        <div className="mb-1 flex h-8 items-center gap-x-1.5">
           <IconAnswer
             className={cn({
               'animate-spinner': isLoading
             })}
           />
           <p className="text-sm font-bold leading-none">Answer</p>
-          {enableDeveloperMode.value && (
+          {enableDeveloperMode && (
             <Button
               variant="ghost"
               size="icon"
@@ -1009,8 +1025,7 @@ function AnswerBlock({
             contexts={relevantCodeContexts}
             className="mt-1 text-sm"
             onContextClick={onCodeContextClick}
-            defaultOpen
-            enableTooltip={enableDeveloperMode.value}
+            enableTooltip={enableDeveloperMode}
             onTooltipClick={() => {
               setConversationIdForDev(answer.id)
               setDevPanelOpen(true)
@@ -1175,4 +1190,127 @@ function SourceCard({
       </TooltipContent>
     </Tooltip>
   )
+}
+
+const setThreadPersistedMutation = graphql(/* GraphQL */ `
+  mutation SetThreadPersisted($threadId: ID!) {
+    setThreadPersisted(threadId: $threadId)
+  }
+`)
+
+function Header({
+  threadIdFromURL,
+  threadIdFromStreaming,
+  streamingDone,
+  updateThreadURL
+}: {
+  threadIdFromURL?: string
+  threadIdFromStreaming?: string | null
+  streamingDone?: boolean
+  updateThreadURL?: (threadId: string) => string
+}) {
+  const router = useRouter()
+  const { isCopied, copyToClipboard } = useCopyToClipboard({
+    timeout: 2000
+  })
+
+  const setThreadPersisted = useMutation(setThreadPersistedMutation, {
+    onError(err) {
+      toast.error(err.message)
+    }
+  })
+
+  const onCopy = async () => {
+    if (isCopied) return
+
+    let url = window.location.href
+    if (
+      !threadIdFromURL &&
+      streamingDone &&
+      threadIdFromStreaming &&
+      updateThreadURL
+    ) {
+      await setThreadPersisted({ threadId: threadIdFromStreaming })
+      url = updateThreadURL(threadIdFromStreaming)
+    }
+
+    copyToClipboard(url)
+  }
+
+  return (
+    <header className="flex h-16 items-center justify-between px-4 lg:px-10">
+      <div className="flex items-center gap-x-6">
+        <Button
+          variant="ghost"
+          className="-ml-1 pl-0 text-sm text-muted-foreground"
+          onClick={() => router.replace('/')}
+        >
+          <IconChevronLeft className="mr-1 h-5 w-5" />
+          Home
+        </Button>
+      </div>
+      <div className="flex items-center gap-2">
+        {(streamingDone || threadIdFromURL) && (
+          <>
+            <Button
+              variant="ghost"
+              className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
+              onClick={() => router.push('/')}
+            >
+              <IconPlus />
+            </Button>
+            <Button
+              variant="ghost"
+              className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
+              onClick={onCopy}
+            >
+              {isCopied ? (
+                <IconCheck className="text-green-600" />
+              ) : (
+                <IconLink />
+              )}
+            </Button>
+          </>
+        )}
+        <ClientOnly>
+          <ThemeToggle className="mr-4" />
+        </ClientOnly>
+        <UserPanel showHome={false} showSetting>
+          <UserAvatar className="h-10 w-10 border" />
+        </UserPanel>
+      </div>
+    </header>
+  )
+}
+
+function ThreadMessagesErrorView() {
+  return (
+    <div className="flex h-screen flex-col">
+      <Header />
+      <div className="flex-1">
+        <div className="flex h-full flex-col items-center justify-center gap-2">
+          <div className="flex items-center gap-2">
+            <IconFileSearch className="h-6 w-6" />
+            <div className="text-xl font-semibold">Something went wrong</div>
+          </div>
+          <div>
+            Failed to fetch the thread, please refresh the page or start a new
+            thread
+          </div>
+          <Link href="/" className={cn(buttonVariants(), 'mt-4 gap-2')}>
+            <IconPlus />
+            <span>New Thread</span>
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function getTitleFromMessages(messages: ConversationMessage[] | undefined) {
+  if (!messages?.length) return ''
+
+  const firstLine = messages?.[0]?.content.split('\n')[0]
+  const title = firstLine.slice(0, 48)
+  return title
 }

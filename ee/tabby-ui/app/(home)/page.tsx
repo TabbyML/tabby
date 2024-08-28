@@ -100,7 +100,7 @@ function MainPanel() {
     : { height: '100vh' }
   return (
     <div className="transition-all" style={style}>
-      <header className="flex h-16 items-center justify-end px-4">
+      <header className="flex h-16 items-center justify-end px-4 lg:px-10">
         <div className="flex items-center gap-x-6">
           <ClientOnly>
             <ThemeToggle />

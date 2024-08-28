@@ -89,7 +89,7 @@ export class StatusProvider extends EventEmitter implements Feature {
     if (detail?.name === "connectionFailed") {
       params = {
         type: MessageType.Error,
-        message: "Connect to Server Failed.\n" + this.buildHelpMessage(detail, "plaintext") ?? "",
+        message: "Connect to Server Failed.\n" + (this.buildHelpMessage(detail, "plaintext") ?? ""),
         actions: [{ title: "OK" }],
       };
     } else if (detail?.name === "highCompletionTimeoutRate" || detail?.name === "slowCompletionResponseTime") {

@@ -11,12 +11,6 @@ pub struct CreateMessageInput {
 
 #[derive(GraphQLInputObject)]
 pub struct CreateThreadInput {
-    /// If true, the thread will be garbage collected after a certain amount of time.
-    ///
-    /// This is useful for threads that are not meant to be long-lived, such as those created from chat sidebars.
-    #[graphql(default)]
-    pub is_ephemeral: bool,
-
     pub user_message: CreateMessageInput,
 }
 
@@ -111,5 +105,6 @@ pub struct MessageAttachmentInput {
 #[derive(GraphQLInputObject, Clone)]
 pub struct MessageAttachmentCodeInput {
     pub filepath: Option<String>,
+    pub start_line: Option<i32>,
     pub content: String,
 }

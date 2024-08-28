@@ -33,11 +33,19 @@ use crate::{
 };
 
 #[derive(Clone)]
+struct ImpersonateUserCredential {
+    id: i64,
+    email: String,
+    password_encrypted: String,
+}
+
+#[derive(Clone)]
 struct AuthenticationServiceImpl {
     db: DbConn,
     mail: Arc<dyn EmailService>,
     license: Arc<dyn LicenseService>,
     setting: Arc<dyn SettingService>,
+    impersonate_user: Option<ImpersonateUserCredential>,
 }
 
 pub fn create(
@@ -46,11 +54,34 @@ pub fn create(
     license: Arc<dyn LicenseService>,
     setting: Arc<dyn SettingService>,
 ) -> impl AuthenticationService {
+    create_impl(db, mail, license, setting)
+}
+
+fn create_impl(
+    db: DbConn,
+    mail: Arc<dyn EmailService>,
+    license: Arc<dyn LicenseService>,
+    setting: Arc<dyn SettingService>,
+) -> AuthenticationServiceImpl {
+    let mut impersonate_user = None;
+    if let Ok(value) = std::env::var("TABBY_OWNER_IMPERSONATE_OVERRIDE") {
+        let words: Vec<&str> = value.split(':').collect();
+        if words.len() == 2 {
+            let password_encrypted = password_hash(words[1]).expect("can not encrypt password");
+            impersonate_user = Some(ImpersonateUserCredential {
+                // The first user registered is the owner user, so we set id = 1 to impersonate the owner user.
+                id: 1,
+                email: words[0].to_string(),
+                password_encrypted,
+            });
+        }
+    }
     AuthenticationServiceImpl {
         db,
         mail,
         license,
         setting,
+        impersonate_user,
     }
 }
 
@@ -236,6 +267,17 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse> {
+        if let Some(user) = &self.impersonate_user {
+            if user.email == email && password_verify(&password, &user.password_encrypted) {
+                let refresh_token = self.db.create_refresh_token(user.id).await?;
+                let Ok(access_token) = generate_jwt(user.id.as_id()) else {
+                    bail!("Unknown error");
+                };
+                let resp = TokenAuthResponse::new(access_token, refresh_token);
+                return Ok(resp);
+            }
+        }
+
         let Some(user) = self.db.get_user_by_email(&email).await? else {
             bail!("Invalid email address or password");
         };
@@ -704,12 +746,12 @@ mod tests {
         license: Arc<dyn LicenseService>,
     ) -> AuthenticationServiceImpl {
         let db = DbConn::new_in_memory().await.unwrap();
-        AuthenticationServiceImpl {
-            db: db.clone(),
-            setting: Arc::new(crate::service::setting::create(db.clone())),
-            mail: Arc::new(new_email_service(db).await.unwrap()),
+        create_impl(
+            db.clone(),
+            Arc::new(new_email_service(db.clone()).await.unwrap()),
             license,
-        }
+            Arc::new(crate::service::setting::create(db)),
+        )
     }
 
     async fn test_authentication_service() -> AuthenticationServiceImpl {
@@ -729,6 +771,7 @@ mod tests {
             mail: Arc::new(smtp.create_test_email_service(db.clone()).await),
             license: Arc::new(MockLicenseService::team()),
             setting: Arc::new(crate::service::setting::create(db)),
+            impersonate_user: None,
         };
         (service, smtp)
     }
@@ -767,7 +810,7 @@ mod tests {
     static ADMIN_EMAIL: &str = "test@example.com";
     static ADMIN_PASSWORD: &str = "123456789$acR";
 
-    async fn register_admin_user(service: &AuthenticationServiceImpl) -> RegisterResponse {
+    async fn register_admin_user(service: &impl AuthenticationService) -> RegisterResponse {
         service
             .register(
                 ADMIN_EMAIL.to_owned(),
@@ -1555,5 +1598,16 @@ mod tests {
         .await;
 
         assert!(response.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_personate_user_auth_token() {
+        std::env::set_var("TABBY_OWNER_IMPERSONATE_OVERRIDE", "abc@example.com:123456");
+        let service = test_authentication_service().await;
+        register_admin_user(&service).await;
+        assert!(service
+            .token_auth("abc@example.com".to_owned(), "123456".to_owned())
+            .await
+            .is_ok());
     }
 }

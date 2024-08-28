@@ -9,7 +9,6 @@ import java.util.List;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
-import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4e.server.ProcessStreamConnectionProvider;
 import org.osgi.framework.Bundle;
 
@@ -20,7 +19,6 @@ import com.tabbyml.tabby4eclipse.lsp.protocol.ClientCapabilities.TabbyClientCapa
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientCapabilities.TextDocumentClientCapabilities;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientInfo;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientInfo.TabbyPluginInfo;
-import com.tabbyml.tabby4eclipse.statusbar.StatusInfoHolder;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientProvidedConfig;
 import com.tabbyml.tabby4eclipse.lsp.protocol.InitializationOptions;
 
@@ -74,7 +72,7 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 	}
 
 	@Override
-	public Object getInitializationOptions(@Nullable URI rootUri) {
+	public Object getInitializationOptions(URI rootUri) {
 		return new InitializationOptions(getProvidedConfig(), getClientInfo(), getClientCapabilities());
 	}
 
@@ -112,8 +110,11 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 		textDocumentClientCapabilities.setInlineCompletion(true);
 
 		TabbyClientCapabilities tabbyClientCapabilities = new TabbyClientCapabilities();
-		tabbyClientCapabilities.setConfigDidChangeListener(false);
+		tabbyClientCapabilities.setConfigDidChangeListener(true);
 		tabbyClientCapabilities.setStatusDidChangeListener(true);
+		tabbyClientCapabilities.setWorkspaceFileSystem(true);
+		tabbyClientCapabilities.setGitProvider(true);
+		tabbyClientCapabilities.setLanguageSupport(true);
 
 		ClientCapabilities clientCapabilities = new ClientCapabilities();
 		clientCapabilities.setTextDocument(textDocumentClientCapabilities);

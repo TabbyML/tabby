@@ -5037,7 +5037,6 @@ name = "tabby-common"
 version = "0.17.0-dev.0"
 dependencies = [
  "anyhow",
- "async-openai",
  "async-trait",
  "axum",
  "axum-extra",
@@ -5179,6 +5178,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "tabby-index-cli"
+version = "0.17.0-dev.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "serde",
+ "serde_json",
+ "tabby-common",
+ "tantivy",
+]
+
+[[package]]
 name = "tabby-inference"
 version = "0.17.0-dev.0"
 dependencies = [
@@ -5272,7 +5283,6 @@ dependencies = [
  "tracing",
  "url",
  "urlencoding",
- "utoipa",
  "uuid",
 ]
 
