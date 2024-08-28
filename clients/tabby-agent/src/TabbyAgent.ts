@@ -1024,6 +1024,67 @@ export class TabbyAgent extends EventEmitter implements Agent {
     }
   }
 
+  public async provideNLOutlines(document: string, options?: AbortSignalOption) {
+    if (this.status === "notInitialized") {
+      throw new Error("Agent is not initialized");
+    }
+
+    const requestId = uuid();
+    try {
+      if (!this.api) {
+        throw new Error("http client not initialized");
+      }
+
+      const requestPath = "/v1/chat/completions";
+      const promptTemplate = this.config.chat.generateOutlines.promptTemplate;
+
+      const messages: { role: "user"; content: string }[] = [
+        {
+          role: "user",
+          content: promptTemplate.replace("{{document}}", document),
+        },
+      ];
+
+      const requestOptions = {
+        body: {
+          messages,
+          model: "",
+          stream: true,
+        },
+        signal: this.createAbortSignal(options),
+        parseAs: "stream" as ParseAs,
+      };
+
+      const requestDescription = `POST ${this.config.server.endpoint + requestPath}`;
+      this.logger.debug(`NL Outlines request: ${requestDescription}. [${requestId}]`);
+      this.logger.trace(`NL Outlines request body: [${requestId}]`, requestOptions.body);
+
+      const response = await this.api.POST(requestPath, requestOptions);
+      this.logger.debug(`NL Outlines response status: ${response.response.status}. [${requestId}]`);
+
+      if (response.error || !response.response.ok) {
+        throw new HttpError(response.response);
+      }
+
+      if (!response.response.body) {
+        return null;
+      }
+
+      const readableStream = readChatStream(response.response.body, requestOptions.signal);
+      return readableStream;
+    } catch (error) {
+      if (isCanceledError(error)) {
+        this.logger.debug(`NL Outlines request canceled. [${requestId}]`);
+      } else if (isUnauthorizedError(error)) {
+        this.logger.debug(`NL Outlines request failed due to unauthorized. [${requestId}]`);
+      } else {
+        this.logger.error(`NL Outlines request failed. [${requestId}]`, error);
+      }
+      this.healthCheck(); // schedule a health check
+      return null;
+    }
+  }
+
   private clientInfoToString(session: Record<string, any> | undefined): string {
     let envInfo = `Node.js/${process.version}`;
 

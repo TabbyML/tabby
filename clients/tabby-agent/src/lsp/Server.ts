@@ -232,7 +232,7 @@ export class Server {
     }
 
     if (clientCapabilities.workspace?.codeLens) {
-      this.codeLensProvider = new CodeLensProvider(this.connection, this.documents);
+      this.codeLensProvider = new CodeLensProvider(this.connection, this.chatEditProvider, this.documents);
       this.codeLensProvider.fillServerCapabilities(serverCapabilities);
     }
     this.commandProvider.fillServerCapabilities(serverCapabilities);
