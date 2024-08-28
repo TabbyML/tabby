@@ -89,13 +89,14 @@ export default function TextAreaSearch({
     getPreviouslySelectedRepo()
   }, [])
 
-  const onSearchKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) return e.preventDefault()
-  }
-
-  const onSearchKeyUp = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      return search()
+  const onSearchKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (
+      event.key === 'Enter' &&
+      !event.shiftKey &&
+      !event.nativeEvent.isComposing
+    ) {
+      event.preventDefault()
+      search()
     }
   }
 
@@ -172,7 +173,6 @@ export default function TextAreaSearch({
         placeholder={placeholder || 'Ask anything...'}
         maxRows={5}
         onKeyDown={onSearchKeyDown}
-        onKeyUp={onSearchKeyUp}
         onFocus={() => setIsFocus(true)}
         onBlur={() => setIsFocus(false)}
         onChange={e => setValue(e.target.value)}
