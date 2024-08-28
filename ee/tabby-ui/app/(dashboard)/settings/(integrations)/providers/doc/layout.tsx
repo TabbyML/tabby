@@ -9,8 +9,8 @@ export default function WebProviderLayout({
     <>
       <SubHeader>
         <p>
-          Crawl documents from preset-docs and use their content to enhance the
-          Answer Engine. Recrawling will occur only if manually initiated.
+          Crawl documents and use their content to enhance the Answer Engine.
+          Recrawling will occur only if manually initiated.
         </p>
         <p>
           Underlying,{' '}

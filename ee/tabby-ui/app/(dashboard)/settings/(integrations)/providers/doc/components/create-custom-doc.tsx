@@ -19,8 +19,6 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 
-import { TypeFilter } from './type-filter'
-
 const createCustomDocumentMutation = graphql(/* GraphQL */ `
   mutation CreateCustomDocument($input: CreateCustomDocumentInput!) {
     createCustomDocument(input: $input)
@@ -61,9 +59,6 @@ export default function CreateCustomDocument() {
 
   return (
     <>
-      <div className="my-4 flex justify-between">
-        <TypeFilter type="custom" />
-      </div>
       <Form {...form}>
         <div className="grid gap-2">
           <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>

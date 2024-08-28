@@ -5,13 +5,21 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { CustomWebDocumentsQuery } from '@/lib/gql/generates/graphql'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { client, useMutation } from '@/lib/tabby/gql'
 import { ArrayElementType } from '@/lib/types'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { IconClose, IconSearch, IconTrash } from '@/components/ui/icons'
+import { CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  IconChevronLeft,
+  IconChevronRight,
+  IconClose,
+  IconSearch,
+  IconTrash
+} from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import {
   Table,
@@ -25,7 +33,6 @@ import LoadingWrapper from '@/components/loading-wrapper'
 
 import { JobInfoView } from '../../components/job-trigger'
 import { triggerJobRunMutation } from '../../query'
-import { TypeFilter } from './type-filter'
 
 const listCustomWebDocuments = graphql(/* GraphQL */ `
   query CustomWebDocuments(
@@ -80,7 +87,10 @@ type ListItem = ArrayElementType<
   CustomWebDocumentsQuery['customWebDocuments']['edges']
 >
 
+const PAGE_SIZE = DEFAULT_PAGE_SIZE
+
 export default function CustomDocument() {
+  const [page, setPage] = useState(1)
   const [filterPattern, setFilterPattern] = useState<string | undefined>()
   const [debouncedFilterPattern] = useDebounceValue(filterPattern, 200)
   const [list, setList] = useState<ListItem[] | undefined>()
@@ -175,38 +185,51 @@ export default function CustomDocument() {
     )
   }, [debouncedFilterPattern, list])
 
+  const currentList = useMemo(() => {
+    return filteredList?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  }, [filteredList, page])
+
+  const pageCount = useMemo(() => {
+    return Math.ceil((filteredList?.length || 0) / PAGE_SIZE)
+  }, [filteredList])
+
+  // reset pageNo
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedFilterPattern])
+
   return (
     <>
-      <div className="my-4 flex justify-between">
-        <TypeFilter type="custom" />
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <IconSearch
-              className="absolute left-3 top-2.5 cursor-text text-muted-foreground"
-              onClick={() => inputRef.current?.focus()}
-            />
-            <Input
-              className="w-50 px-8"
-              value={filterPattern}
-              onChange={e => setFilterPattern(e.target.value)}
-              ref={inputRef}
-              placeholder="Search..."
-            />
-            {filterPattern ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-3 top-1.5 h-6 w-6 cursor-pointer"
-                onClick={clearFilter}
-              >
-                <IconClose />
-              </Button>
-            ) : null}
-          </div>
-          <Link href={`./custom/new`} className={buttonVariants()}>
-            Create
-          </Link>
+      <CardHeader className="pl-0 pt-4">
+        <CardTitle>Custom Documents</CardTitle>
+      </CardHeader>
+      <div className="mb-4 flex items-center gap-4">
+        <div className="relative">
+          <IconSearch
+            className="absolute left-3 top-2.5 cursor-text text-muted-foreground"
+            onClick={() => inputRef.current?.focus()}
+          />
+          <Input
+            className="w-50 px-8"
+            value={filterPattern}
+            onChange={e => setFilterPattern(e.target.value)}
+            ref={inputRef}
+            placeholder="Search..."
+          />
+          {filterPattern ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-3 top-1.5 h-6 w-6 cursor-pointer"
+              onClick={clearFilter}
+            >
+              <IconClose />
+            </Button>
+          ) : null}
         </div>
+        <Link href={`./doc/new`} className={buttonVariants()}>
+          Create
+        </Link>
       </div>
       <LoadingWrapper loading={fetching || stale}>
         <Table className="table-fixed border-b">
@@ -219,7 +242,7 @@ export default function CustomDocument() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!filteredList?.length && !fetching ? (
+            {!currentList?.length && !fetching ? (
               <TableRow>
                 <TableCell colSpan={4} className="h-[100px] text-center">
                   {!list?.length ? 'No data' : 'No matches data'}
@@ -227,7 +250,7 @@ export default function CustomDocument() {
               </TableRow>
             ) : (
               <>
-                {filteredList?.map(x => {
+                {currentList?.map(x => {
                   return (
                     <TableRow key={x.node.id}>
                       <TableCell className="break-all lg:break-words">
@@ -265,6 +288,35 @@ export default function CustomDocument() {
             )}
           </TableBody>
         </Table>
+        {pageCount > 1 && (
+          <div className="flex justify-end mt-4">
+            <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+              Page {page}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                className="h-8 w-8 p-0"
+                disabled={page <= 1}
+                onClick={e => {
+                  setPage(page - 1)
+                }}
+              >
+                <IconChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                className="h-8 w-8 p-0"
+                disabled={page >= pageCount}
+                onClick={e => {
+                  setPage(page + 1)
+                }}
+              >
+                <IconChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </LoadingWrapper>
     </>
   )

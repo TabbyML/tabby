@@ -1,25 +1,25 @@
 'use client'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { PresetWebDocumentsQuery } from '@/lib/gql/generates/graphql'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { client, useMutation } from '@/lib/tabby/gql'
 import { ArrayElementType } from '@/lib/types'
-import { Button } from '@/components/ui/button'
-import { IconClose, IconSearch } from '@/components/ui/icons'
-import { Input } from '@/components/ui/input'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
+  IconChevronLeft,
+  IconChevronRight,
+  IconClose,
+  IconSearch
+} from '@/components/ui/icons'
+import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import {
   Table,
@@ -33,7 +33,6 @@ import LoadingWrapper from '@/components/loading-wrapper'
 
 import { JobInfoView } from '../../components/job-trigger'
 import { triggerJobRunMutation } from '../../query'
-import { TypeFilter } from './type-filter'
 
 const listPresetWebDocuments = graphql(/* GraphQL */ `
   query PresetWebDocuments(
@@ -90,22 +89,17 @@ type ListItem = ArrayElementType<
   PresetWebDocumentsQuery['presetWebDocuments']['edges']
 >
 
+const PAGE_SIZE = DEFAULT_PAGE_SIZE
+
 export default function PresetDocument() {
-  const [isActiveFilter, setIsActiveFilter] = useState('all')
+  const [page, setPage] = useState(1)
   const [filterPattern, setFilterPattern] = useState<string | undefined>()
   const [debouncedFilterPattern] = useDebounceValue(filterPattern, 200)
   const [list, setList] = useState<ListItem[] | undefined>()
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set())
   const inputRef = useRef<HTMLInputElement>(null)
-  const getIsActiveFromFilter = (filter: string) => {
-    if (filter === 'all') return undefined
-    return filter === 'active' ? true : false
-  }
   const [{ data, stale }] = useQuery({
-    query: listPresetWebDocuments,
-    variables: {
-      isActive: getIsActiveFromFilter(isActiveFilter)
-    }
+    query: listPresetWebDocuments
   })
 
   const setPresetDocumentActive = useMutation(setPresetDocumentActiveMutation)
@@ -236,48 +230,51 @@ export default function PresetDocument() {
     )
   }, [debouncedFilterPattern, list])
 
+  const currentList = useMemo(() => {
+    return filteredList?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  }, [filteredList, page])
+
+  const pageCount = useMemo(() => {
+    return Math.ceil((filteredList?.length || 0) / PAGE_SIZE)
+  }, [filteredList])
+
+  // reset pageNo
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedFilterPattern])
+
   return (
     <>
-      <div className="my-4 flex justify-between">
-        <TypeFilter type="preset" />
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <IconSearch
-              className="absolute left-3 top-2.5 cursor-text text-muted-foreground"
-              onClick={() => inputRef.current?.focus()}
-            />
-            <Input
-              className="w-50 px-8"
-              value={filterPattern}
-              onChange={e => setFilterPattern(e.target.value)}
-              ref={inputRef}
-              placeholder="Search..."
-            />
-            {filterPattern ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-3 top-1.5 h-6 w-6 cursor-pointer"
-                onClick={clearFilter}
-              >
-                <IconClose />
-              </Button>
-            ) : null}
-          </div>
-          <Select value={isActiveFilter} onValueChange={setIsActiveFilter}>
-            <SelectTrigger className="w-40 gap-2">
-              <span>Status:</span>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent align="end">
-              <SelectGroup>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+      <CardHeader className="pl-0 pt-0">
+        <CardTitle>Preset Documents</CardTitle>
+      </CardHeader>
+      <div className="mb-4 flex items-center gap-4">
+        <div className="relative">
+          <IconSearch
+            className="absolute left-3 top-2.5 cursor-text text-muted-foreground"
+            onClick={() => inputRef.current?.focus()}
+          />
+          <Input
+            className="w-50 px-8"
+            value={filterPattern}
+            onChange={e => setFilterPattern(e.target.value)}
+            ref={inputRef}
+            placeholder="Search..."
+          />
+          {filterPattern ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-3 top-1.5 h-6 w-6 cursor-pointer"
+              onClick={clearFilter}
+            >
+              <IconClose />
+            </Button>
+          ) : null}
         </div>
+        <Link href={`./doc/new`} className={buttonVariants()}>
+          Create Your Own
+        </Link>
       </div>
       <LoadingWrapper loading={!data || stale}>
         <Table className="table-fixed border-b">
@@ -289,7 +286,8 @@ export default function PresetDocument() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!filteredList?.length ? (
+            {/* FIXME */}
+            {!currentList?.length ? (
               <TableRow>
                 <TableCell colSpan={3} className="h-[100px] text-center">
                   {!list?.length ? 'No data' : 'No matches data'}
@@ -297,7 +295,7 @@ export default function PresetDocument() {
               </TableRow>
             ) : (
               <>
-                {filteredList?.map(x => {
+                {currentList?.map(x => {
                   return (
                     <TableRow key={x.node.id}>
                       <TableCell className="break-all lg:break-words">
@@ -333,6 +331,35 @@ export default function PresetDocument() {
             )}
           </TableBody>
         </Table>
+        {pageCount > 1 && (
+          <div className="flex justify-end mt-4">
+            <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+              Page {page}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                className="h-8 w-8 p-0"
+                disabled={page <= 1}
+                onClick={e => {
+                  setPage(page - 1)
+                }}
+              >
+                <IconChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                className="h-8 w-8 p-0"
+                disabled={page >= pageCount}
+                onClick={e => {
+                  setPage(page + 1)
+                }}
+              >
+                <IconChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </LoadingWrapper>
     </>
   )

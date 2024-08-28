@@ -57,17 +57,14 @@ export default function NavBar({ className }: { className?: string }) {
           </SidebarButton>
         )
       })}
-      <SidebarButton href="/settings/providers/web">
-        Web
+      <SidebarButton href="/settings/providers/doc">
+        Documents
         <Badge
           variant="outline"
           className="h-3.5 border-secondary-foreground/60 px-1.5 text-[10px] text-secondary-foreground/60"
         >
           Beta
         </Badge>
-      </SidebarButton>
-      <SidebarButton href="/settings/providers/doc/preset">
-        Preset Docs
       </SidebarButton>
     </div>
   )
