@@ -27,10 +27,7 @@ impl ToIndexId for SourceCode {
     fn to_index_id(&self) -> IndexId {
         IndexId {
             source_id: self.source_id.clone(),
-
-            // Source file id might be duplicated across different source_ids, we prefix it with
-            // source_id to make it unique within corpus.
-            id: format!("{}:::{}", self.source_id, self.source_file_id),
+            id: self.source_file_id.clone(),
         }
     }
 }
