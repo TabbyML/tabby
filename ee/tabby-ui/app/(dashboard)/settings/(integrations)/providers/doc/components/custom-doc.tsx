@@ -289,7 +289,7 @@ export default function CustomDocument() {
           </TableBody>
         </Table>
         {pageCount > 1 && (
-          <div className="flex justify-end mt-4">
+          <div className="mt-4 flex justify-end">
             <div className="flex w-[100px] items-center justify-center text-sm font-medium">
               Page {page}
             </div>
