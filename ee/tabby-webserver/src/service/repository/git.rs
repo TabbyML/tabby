@@ -125,10 +125,12 @@ impl RepositoryProvider for GitRepositoryServiceImpl {
 }
 
 fn to_git_repository(repo: RepositoryDAO, job_info: JobInfo) -> GitRepository {
+    let source_id = GitRepository::format_source_id(&repo.id.as_id());
+    let dir = RepositoryConfig::resolve_dir(&source_id);
     GitRepository {
         id: repo.id.as_id(),
         name: repo.name,
-        refs: tabby_git::list_refs(&RepositoryConfig::resolve_dir(&repo.git_url))
+        refs: tabby_git::list_refs(&dir)
             .unwrap_or_default()
             .into_iter()
             .map(|r| GitReference {

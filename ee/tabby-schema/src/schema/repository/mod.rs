@@ -62,12 +62,13 @@ pub struct GitReference {
 
 impl From<GitRepository> for Repository {
     fn from(value: GitRepository) -> Self {
+        let source_id = value.source_id();
         Self {
-            source_id: value.source_id(),
+            dir: RepositoryConfig::resolve_dir(&source_id),
+            source_id,
             id: value.id,
             name: value.name,
             kind: RepositoryKind::Git,
-            dir: RepositoryConfig::resolve_dir(&value.git_url),
             git_url: RepositoryConfig::canonicalize_url(&value.git_url),
             refs: value.refs,
         }
