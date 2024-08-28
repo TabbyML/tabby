@@ -47,6 +47,11 @@ const decorationTypeUnchanged = window.createTextEditorDecorationType({
     // width: "10px",
   },
 });
+const decorationTypePending = window.createTextEditorDecorationType({
+  backgroundColor: new ThemeColor("editorInlayHint.background"),
+  isWholeLine: true,
+  rangeBehavior: DecorationRangeBehavior.ClosedClosed,
+});
 const decorationTypeInserted = window.createTextEditorDecorationType({
   backgroundColor: new ThemeColor("diffEditor.insertedTextBackground"),
   isWholeLine: true,
@@ -74,7 +79,7 @@ const decorationTypes: Record<string, TextEditorDecorationType> = {
   footer: decorationTypeFooter,
   commentsFirstLine: decorationTypeComments,
   comments: decorationTypeComments,
-  waiting: decorationTypeUnchanged,
+  waiting: decorationTypePending,
   inProgress: decorationTypeInserted,
   unchanged: decorationTypeUnchanged,
   inserted: decorationTypeInserted,

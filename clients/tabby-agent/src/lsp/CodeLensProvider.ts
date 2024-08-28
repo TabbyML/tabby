@@ -68,9 +68,9 @@ export class CodeLensProvider {
       const codeLensLocation: Location = { uri: uri, range: codeLensRange };
       const lineCodeLenses: CodeLens[] = [];
       if (lineInPreviewBlock < 0) {
-        const match = /^>>>>>>>.+(<.*>)\[(tabby-[0-9|a-z|A-Z]{6})\]/g.exec(text);
-        const markers = match?.[1];
-        const editId = match?.[2];
+        const match = /^>>>>>>> (tabby-[0-9|a-z|A-Z]{6}) (\[.*\])/g.exec(text);
+        const editId = match?.[1];
+        const markers = match?.[2];
         if (match && markers && editId) {
           previewBlockMarkers = markers;
           lineInPreviewBlock = 0;
@@ -83,7 +83,7 @@ export class CodeLensProvider {
           });
         }
       } else {
-        const match = /^<<<<<<< \[(tabby-[0-9|a-z|A-Z]{6})\]/g.exec(text);
+        const match = /^<<<<<<< (tabby-[0-9|a-z|A-Z]{6})/g.exec(text);
         const editId = match?.[1];
         if (match && editId) {
           lineInPreviewBlock = -1;

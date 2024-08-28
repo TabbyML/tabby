@@ -201,8 +201,8 @@ export class ChatEditProvider {
         end: { line: line + 1, character: 0 },
       });
 
-      const match = /^>>>>>>>.+(<.*>)\[(tabby-[0-9|a-z|A-Z]{6})\]/g.exec(lineText);
-      markers = match?.[1];
+      const match = /^>>>>>>> (tabby-[0-9|a-z|A-Z]{6}) (\[.*\])/g.exec(lineText);
+      markers = match?.[2];
       if (markers) {
         break;
       }
@@ -273,7 +273,7 @@ export class ChatEditProvider {
             [edit.location.uri]: [
               {
                 range: edit.editedRange,
-                newText: `<<<<<<< [${edit.id}]\n`,
+                newText: `<<<<<<< ${edit.id}\n`,
               },
             ],
           },
@@ -442,15 +442,8 @@ export class ChatEditProvider {
   private generateChangesPreview(edit: Edit): string[] {
     const lines: string[] = [];
     let markers = "";
-    // header
-    let stateDescription = "Editing in progress";
-    if (edit.state === "stopped") {
-      stateDescription = "Editing stopped";
-    } else if (edit.state == "completed") {
-      stateDescription = "Editing completed";
-    }
     // lines.push(`<<<<<<< ${stateDescription} {{markers}}[${edit.id}]`);
-    markers += "<";
+    markers += "[";
     // comments: split by new line or 80 chars
     const commentLines = edit.comments
       .trim()
@@ -532,8 +525,8 @@ export class ChatEditProvider {
       }
     }
     // footer
-    lines.push(`>>>>>>> ${stateDescription} {{markers}}[${edit.id}]`);
-    markers += ">";
+    lines.push(`>>>>>>> ${edit.id} {{markers}}`);
+    markers += "]";
     // replace markers
     // lines[0] = lines[0]!.replace("{{markers}}", markers);
     lines[lines.length - 1] = lines[lines.length - 1]!.replace("{{markers}}", markers);
