@@ -362,7 +362,7 @@ export class Server {
     x: string,
   ): boolean {
     const prop = clientProvidedConfig?.[key];
-    return prop?.[x as keyof typeof prop] !== undefined && isBlank(prop[x as keyof typeof prop]);
+    return prop?.[x as keyof typeof prop] !== undefined && !isBlank(prop[x as keyof typeof prop]);
   }
 
   private async updateConfiguration(params: DidChangeConfigurationParams) {
@@ -387,18 +387,13 @@ export class Server {
       },
       {
         key: "proxy.url",
-        validation: () => clientProvidedConfig?.proxy?.enabled,
+        validation: (key: keyof ClientProvidedConfig, x: string) =>
+          this.checkClientProvidedConfig(clientProvidedConfig, key, x),
       },
       {
         key: "proxy.authorization",
-        validation: () => clientProvidedConfig?.proxy?.enabled,
-      },
-      {
-        key: "proxy.enabled",
-        validation: (key: keyof ClientProvidedConfig, x: string) => {
-          const prop = clientProvidedConfig?.[key];
-          return prop?.[x as keyof typeof prop] !== undefined;
-        },
+        validation: (key: keyof ClientProvidedConfig, x: string) =>
+          this.checkClientProvidedConfig(clientProvidedConfig, key, x),
       },
     ];
 
@@ -590,7 +585,6 @@ export class Server {
       { name: "anonymousUsageTracking.disable", validation: (x?: boolean) => x !== undefined },
       { name: "proxy.url", validation: (x?: unknown) => x !== undefined },
       { name: "proxy.authorization", validation: (x?: unknown) => x !== undefined },
-      { name: "proxy.enabled", validation: (x?: boolean) => x !== undefined },
     ];
 
     for (const { name, validation } of fieldsToCheck) {

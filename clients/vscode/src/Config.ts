@@ -22,8 +22,7 @@ export class Config extends EventEmitter {
           event.affectsConfiguration("tabby") ||
           event.affectsConfiguration("http.proxy") ||
           event.affectsConfiguration("https.proxy") ||
-          event.affectsConfiguration("http.proxyAuthorization") ||
-          event.affectsConfiguration("http.proxySupport")
+          event.affectsConfiguration("http.proxyAuthorization")
         ) {
           this.emit("updated");
         }
@@ -184,17 +183,11 @@ export class Config extends EventEmitter {
     }
   }
 
-  get enabled() {
-    return this.httpConfig.get("proxySupport") !== "off";
-  }
-
   buildClientProvidedConfig(): ClientProvidedConfig {
     return {
       // Note: current we only support http.proxy | http.authorization
-      // As for `http.proxySupport`, we only support 'on' | 'off',
       // More properties we will land later.
       proxy: {
-        enabled: this.enabled,
         url: this.url,
         authorization: this.authorization,
       },
