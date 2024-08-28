@@ -357,11 +357,17 @@ export class ChatEditProvider {
     };
 
     try {
+      if (!this.currentEdit) {
+        throw new Error("No current edit");
+      }
+
       let inTag: "document" | "comment" | false = false;
-      let isFirstEdit = true;
+
+      // Insert the first line as early as possible so codelens can be shown
+      await applyEdit(this.currentEdit, true, false);
 
       for await (const delta of stream) {
-        if (!this.currentEdit || !this.mutexAbortController || this.mutexAbortController.signal.aborted) {
+        if (!this.mutexAbortController || this.mutexAbortController.signal.aborted) {
           break;
         }
 
@@ -377,9 +383,8 @@ export class ChatEditProvider {
           const closeTag = inTag === "document" ? responseDocumentTag[1] : responseCommentTag?.[1];
           if (!closeTag || !openTag) break;
           inTag = processBuffer(edit, inTag, openTag, closeTag);
-          if (isFirstEdit || delta.includes("\n")) {
-            await applyEdit(edit, isFirstEdit, false);
-            isFirstEdit = false;
+          if (delta.includes("\n")) {
+            await applyEdit(edit, false, false);
           }
         }
       }
