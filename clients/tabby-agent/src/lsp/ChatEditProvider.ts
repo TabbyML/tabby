@@ -341,8 +341,10 @@ export class ChatEditProvider {
           const closeTag = inTag === "document" ? responseDocumentTag[1] : responseCommentTag?.[1];
           if (!closeTag || !openTag) break;
           inTag = processBuffer(edit, inTag, openTag, closeTag);
-          await applyEdit(edit, isFirstEdit, false);
-          isFirstEdit = false;
+          if (isFirstEdit || delta.includes("\n")) {
+            await applyEdit(edit, isFirstEdit, false);
+            isFirstEdit = false;
+          }
         }
       }
 
