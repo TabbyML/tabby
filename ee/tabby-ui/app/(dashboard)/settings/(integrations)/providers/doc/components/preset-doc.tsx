@@ -1,18 +1,15 @@
 'use client'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { PresetWebDocumentsQuery } from '@/lib/gql/generates/graphql'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { client, useMutation } from '@/lib/tabby/gql'
 import { ArrayElementType } from '@/lib/types'
-import { Button, buttonVariants } from '@/components/ui/button'
-import { CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import {
   IconChevronLeft,
   IconChevronRight,
@@ -89,7 +86,7 @@ type ListItem = ArrayElementType<
   PresetWebDocumentsQuery['presetWebDocuments']['edges']
 >
 
-const PAGE_SIZE = DEFAULT_PAGE_SIZE
+const PAGE_SIZE = 5
 
 export default function PresetDocument() {
   const [page, setPage] = useState(1)
@@ -245,9 +242,6 @@ export default function PresetDocument() {
 
   return (
     <>
-      <CardHeader className="pl-0 pt-0">
-        <CardTitle>Preset Documents</CardTitle>
-      </CardHeader>
       <div className="mb-4 flex items-center gap-4">
         <div className="relative">
           <IconSearch
@@ -272,9 +266,6 @@ export default function PresetDocument() {
             </Button>
           ) : null}
         </div>
-        <Link href={`./doc/new`} className={buttonVariants()}>
-          Create Your Own
-        </Link>
       </div>
       <LoadingWrapper loading={!data || stale}>
         <Table className="table-fixed border-b">
@@ -282,7 +273,7 @@ export default function PresetDocument() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead className="w-[100px] lg:w-[200px]">Job</TableHead>
-              <TableHead className="w-[100px] text-right">Active</TableHead>
+              <TableHead className="w-[100px] text-right">Enabled</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

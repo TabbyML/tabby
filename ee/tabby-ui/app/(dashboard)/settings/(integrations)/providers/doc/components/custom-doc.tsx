@@ -12,7 +12,7 @@ import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { client, useMutation } from '@/lib/tabby/gql'
 import { ArrayElementType } from '@/lib/types'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { CardHeader, CardTitle } from '@/components/ui/card'
+import { CardHeader } from '@/components/ui/card'
 import {
   IconChevronLeft,
   IconChevronRight,
@@ -200,9 +200,7 @@ export default function CustomDocument() {
 
   return (
     <>
-      <CardHeader className="pl-0 pt-4">
-        <CardTitle>Custom Documents</CardTitle>
-      </CardHeader>
+      <CardHeader className="pl-0 pt-4"></CardHeader>
       <div className="mb-4 flex items-center gap-4">
         <div className="relative">
           <IconSearch
