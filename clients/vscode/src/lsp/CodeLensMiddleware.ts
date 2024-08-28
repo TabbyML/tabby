@@ -16,12 +16,12 @@ import { findTextEditor } from "./vscodeWindowUtils";
 type CodeLens = VscodeCodeLens & TabbyCodeLens;
 
 const decorationTypeHeader = window.createTextEditorDecorationType({
-  backgroundColor: new ThemeColor("merge.incomingHeaderBackground"),
+  // backgroundColor: new ThemeColor("merge.incomingHeaderBackground"),
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
 });
 const decorationTypeFooter = window.createTextEditorDecorationType({
-  backgroundColor: new ThemeColor("merge.incomingHeaderBackground"),
+  // backgroundColor: new ThemeColor("merge.incomingHeaderBackground"),
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
 });
