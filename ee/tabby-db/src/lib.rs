@@ -4,6 +4,7 @@ use anyhow::anyhow;
 use cache::Cache;
 use cached::TimedSizedCache;
 use chrono::{DateTime, Utc};
+use cliclack::{input, outro};
 pub use email_setting::EmailSettingDAO;
 pub use integrations::IntegrationDAO;
 pub use invitations::InvitationDAO;
@@ -156,8 +157,15 @@ impl DbConn {
 
     /// Initialize database, create tables and insert first token if not exist
     async fn init_db(pool: SqlitePool) -> Result<Self> {
+        let user_input: String = input("The database is from an older version. Type 'confirm' to run database migrations:")
+        .interact()?;
+        if user_input != "confirm" {
+            outro("Database initialization cancelled.")?;
+            return Err(anyhow!("Database initialization cancelled by user"));
+        }
+        
         sqlx::migrate!("./migrations").run(&pool).await?;
-
+    
         let token = uuid::Uuid::new_v4().to_string();
         query!(
             "INSERT OR IGNORE INTO registration_token (id, token) VALUES (1, ?)",
