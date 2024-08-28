@@ -215,7 +215,7 @@ impl AnswerService {
 
         // 1. Collect relevant docs from the tantivy doc search.
         let mut hits = vec![];
-        let doc_hits = match self.doc.search(&source_ids, &doc_query.content, 5).await {
+        let doc_hits = match self.doc.search(source_ids, &doc_query.content, 5).await {
             Ok(docs) => docs.hits,
             Err(err) => {
                 if let DocSearchError::NotReady = err {

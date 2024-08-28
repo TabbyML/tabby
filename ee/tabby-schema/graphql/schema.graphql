@@ -138,6 +138,7 @@ input CreateWebCrawlerUrlInput {
 
 input DocQueryInput {
   content: String!
+  "Whether to collect documents from public web." searchPublic: Boolean!
   "source_ids to be included in the doc search." sourceIds: [String!]
 }
 

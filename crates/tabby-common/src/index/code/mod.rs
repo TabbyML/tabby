@@ -72,7 +72,7 @@ pub fn code_search_query(
                 Box::new(schema.source_id_query(&query.source_id)),
                 0.0,
             )),
-        )
+        ),
     ];
 
     if let Some(language) = query.language.as_deref() {

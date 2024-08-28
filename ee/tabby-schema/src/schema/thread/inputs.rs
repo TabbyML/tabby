@@ -1,12 +1,9 @@
-use crate::bail;
 use juniper::{
-    graphql_object, marker::IsInputType, DefaultScalarValue, FromInputValue, GraphQLInputObject,
-    GraphQLType, ScalarValue, ID,
+    GraphQLInputObject, ID,
 };
 use tabby_common::api::code::CodeSearchParams;
-use validator::{Validate, ValidationError, ValidationErrors};
+use validator::{Validate, ValidationError};
 
-use crate::CoreError;
 
 #[derive(GraphQLInputObject)]
 pub struct CreateMessageInput {
