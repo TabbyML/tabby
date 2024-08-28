@@ -1,9 +1,6 @@
-use juniper::{
-    GraphQLInputObject, ID,
-};
+use juniper::{GraphQLInputObject, ID};
 use tabby_common::api::code::CodeSearchParams;
 use validator::{Validate, ValidationError};
-
 
 #[derive(GraphQLInputObject)]
 pub struct CreateMessageInput {
