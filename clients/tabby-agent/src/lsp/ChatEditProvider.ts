@@ -184,6 +184,11 @@ export class ChatEditProvider {
   }
 
   async resolveEdit(params: ChatEditResolveParams): Promise<boolean> {
+    if (params.action === "cancel") {
+      this.mutexAbortController?.abort();
+      return false;
+    }
+
     const document = this.documents.get(params.location.uri);
     if (!document) {
       return false;

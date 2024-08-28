@@ -89,30 +89,56 @@ export class CodeLensProvider {
         if (match && editId) {
           lineInPreviewBlock = -1;
 
-          lineCodeLenses.push({
-            range: codeLensRange,
-            command: {
-              title: "Accept",
-              command: "tabby/chat/edit/resolve",
-              arguments: [{ location: codeLensLocation, action: "accept" }],
-            },
-            data: {
-              type: codeLensType,
-              line: changesPreviewLineType.header,
-            },
-          });
-          lineCodeLenses.push({
-            range: codeLensRange,
-            command: {
-              title: "Discard",
-              command: "tabby/chat/edit/resolve",
-              arguments: [{ location: codeLensLocation, action: "discard" }],
-            },
-            data: {
-              type: codeLensType,
-              line: changesPreviewLineType.header,
-            },
-          });
+          if (previewBlockMarkers.includes(".")) {
+            lineCodeLenses.push({
+              range: codeLensRange,
+              command: {
+                title: "$(sync~spin) Tabby is working...",
+                command: " ",
+              },
+              data: {
+                type: codeLensType,
+                line: changesPreviewLineType.header,
+              },
+            });
+            lineCodeLenses.push({
+              range: codeLensRange,
+              command: {
+                title: "Cancel",
+                command: "tabby/chat/edit/resolve",
+                arguments: [{ location: codeLensLocation, action: "cancel" }],
+              },
+              data: {
+                type: codeLensType,
+                line: changesPreviewLineType.header,
+              },
+            });
+          } else {
+            lineCodeLenses.push({
+              range: codeLensRange,
+              command: {
+                title: "$(check)Accept",
+                command: "tabby/chat/edit/resolve",
+                arguments: [{ location: codeLensLocation, action: "accept" }],
+              },
+              data: {
+                type: codeLensType,
+                line: changesPreviewLineType.header,
+              },
+            });
+            lineCodeLenses.push({
+              range: codeLensRange,
+              command: {
+                title: "$(remove-close)Discard",
+                command: "tabby/chat/edit/resolve",
+                arguments: [{ location: codeLensLocation, action: "discard" }],
+              },
+              data: {
+                type: codeLensType,
+                line: changesPreviewLineType.header,
+              },
+            });
+          }
         } else {
           lineInPreviewBlock++;
           const marker = previewBlockMarkers[previewBlockMarkers.length - lineInPreviewBlock - 1];

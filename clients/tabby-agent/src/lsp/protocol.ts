@@ -469,7 +469,7 @@ export type ChatEditResolveParams = {
   /**
    * The action to take for this edit.
    */
-  action: "accept" | "discard";
+  action: "accept" | "discard" | "cancel";
 };
 
 /**

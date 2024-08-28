@@ -33,18 +33,18 @@ const decorationTypeComments = window.createTextEditorDecorationType({
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedOpen,
   before: {
-    contentText: ">",
-    color: new ThemeColor("editorInlayHint.foreground"),
-    backgroundColor: new ThemeColor("editorInlayHint.background"),
-    fontWeight: "bold",
-    width: "10px",
+    // contentText: ">",
+    // color: new ThemeColor("editorInlayHint.foreground"),
+    // backgroundColor: new ThemeColor("editorInlayHint.background"),
+    // fontWeight: "bold",
+    // width: "10px",
   },
 });
 const decorationTypeUnchanged = window.createTextEditorDecorationType({
   before: {
-    contentText: "",
-    fontWeight: "bold",
-    width: "10px",
+    // contentText: "",
+    // fontWeight: "bold",
+    // width: "10px",
   },
 });
 const decorationTypeInserted = window.createTextEditorDecorationType({
@@ -52,10 +52,10 @@ const decorationTypeInserted = window.createTextEditorDecorationType({
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
   before: {
-    contentText: "+",
-    backgroundColor: new ThemeColor("diffEditor.insertedTextBackground"),
-    fontWeight: "bold",
-    width: "10px",
+    // contentText: "+",
+    // backgroundColor: new ThemeColor("diffEditor.insertedTextBackground"),
+    // fontWeight: "bold",
+    // width: "10px",
   },
 });
 const decorationTypeDeleted = window.createTextEditorDecorationType({
@@ -63,10 +63,10 @@ const decorationTypeDeleted = window.createTextEditorDecorationType({
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
   before: {
-    contentText: "-",
-    backgroundColor: new ThemeColor("diffEditor.removedTextBackground"),
-    fontWeight: "bold",
-    width: "10px",
+    // contentText: "-",
+    // backgroundColor: new ThemeColor("diffEditor.removedTextBackground"),
+    // fontWeight: "bold",
+    // width: "10px",
   },
 });
 const decorationTypes: Record<string, TextEditorDecorationType> = {

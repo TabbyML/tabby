@@ -1,6 +1,6 @@
 import { ChatEditCommand } from "tabby-agent";
 import { Config } from "../Config";
-import { CancellationTokenSource, QuickPickItem, ThemeIcon, QuickPickItemKind, window, ProgressLocation, TextEditor, Selection, Position, QuickPick, QuickPickItemButtonEvent } from "vscode";
+import { CancellationTokenSource, QuickPickItem, ThemeIcon, QuickPickItemKind, window, TextEditor, Selection, Position, QuickPick, QuickPickItemButtonEvent } from "vscode";
 import { Client } from "../lsp/Client";
 import { ContextVariables } from "../ContextVariables";
 
@@ -41,7 +41,7 @@ export class InlineEditController {
         this.quickPick.show()
     }
 
-    private onDidAccept() {
+    private async onDidAccept() {
         const startPosition = new Position(this.editLocation.range.start.line, this.editLocation.range.start.character);
         const quickPick = this.quickPick;
         quickPick.hide();
@@ -53,45 +53,30 @@ export class InlineEditController {
                 .slice(0, this.config.maxChatEditHistory);
             this.config.chatEditRecentlyCommand = updatedRecentlyCommand;
 
-            window.withProgress(
-                {
-                    location: ProgressLocation.Notification,
-                    title: "Editing in progress...",
-                    cancellable: true,
-                },
-                async (_, token) => {
-                    this.editor.selection = new Selection(startPosition, startPosition);
-                    this.contextVariables.chatEditInProgress = true;
-                    if (token.isCancellationRequested) {
-                        return;
-                    }
-                    this.chatEditCancellationTokenSource = new CancellationTokenSource();
-                    token.onCancellationRequested(() => {
-                        this.chatEditCancellationTokenSource?.cancel();
-                    });
-                    try {
-                        await this.client.chat.provideEdit(
-                            {
-                                location: this.editLocation,
-                                command,
-                                format: "previewChanges",
-                            },
-                            this.chatEditCancellationTokenSource.token,
-                        );
-                    } catch (error) {
-                        if (typeof error === "object" && error && "message" in error && typeof error["message"] === "string") {
-                            window.showErrorMessage(error["message"]);
-                        }
-                    }
-                    this.chatEditCancellationTokenSource.dispose();
-                    this.chatEditCancellationTokenSource = null;
-                    this.contextVariables.chatEditInProgress = false;
-                    this.editor.selection = new Selection(startPosition, startPosition);
-                },
-            );
+            this.editor.selection = new Selection(startPosition, startPosition);
+            this.contextVariables.chatEditInProgress = true;
+            this.chatEditCancellationTokenSource = new CancellationTokenSource();
+            try {
+                await this.client.chat.provideEdit(
+                    {
+                        location: this.editLocation,
+                        command,
+                        format: "previewChanges",
+                    },
+                    this.chatEditCancellationTokenSource.token,
+                );
+            } catch (error) {
+                if (typeof error === "object" && error && "message" in error && typeof error["message"] === "string") {
+                    window.showErrorMessage(error["message"]);
+                }
+            }
+            this.chatEditCancellationTokenSource.dispose();
+            this.chatEditCancellationTokenSource = null;
+            this.contextVariables.chatEditInProgress = false;
+            this.editor.selection = new Selection(startPosition, startPosition);
         }
-
     }
+
 
     private onDidTriggerItemButton(event: QuickPickItemButtonEvent<EditCommand>) {
         const item = event.item;
