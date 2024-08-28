@@ -10,6 +10,7 @@ import {
 import { ServerCapabilities, CodeLens, CodeLensType, ChangesPreviewLineType } from "./protocol";
 import { TextDocuments } from "./TextDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
+import { getLogger } from "../logger";
 
 const codeLensType: CodeLensType = "previewChanges";
 const changesPreviewLineType = {
@@ -54,7 +55,7 @@ export class CodeLensProvider {
     const codeLenses: CodeLens[] = [];
     let lineInPreviewBlock = -1;
     let previewBlockMarkers = "";
-    for (let line = 0; line < textDocument.lineCount; line++) {
+    for (let line = textDocument.lineCount - 1; line >= 0; line = line - 1) {
       if (token.isCancellationRequested) {
         return null;
       }
@@ -64,15 +65,29 @@ export class CodeLensProvider {
         start: { line: line, character: 0 },
         end: { line: line, character: text.length - 1 },
       };
+
       const codeLensLocation: Location = { uri: uri, range: codeLensRange };
       const lineCodeLenses: CodeLens[] = [];
       if (lineInPreviewBlock < 0) {
-        const match = /^<<<<<<<.+(<.*>)\[(tabby-[0-9|a-z|A-Z]{6})\]/g.exec(text);
+        const match = /^>>>>>>>.+(<.*>)\[(tabby-[0-9|a-z|A-Z]{6})\]/g.exec(text);
         const markers = match?.[1];
         const editId = match?.[2];
         if (match && markers && editId) {
-          lineInPreviewBlock = 0;
           previewBlockMarkers = markers;
+          lineInPreviewBlock = 0;
+          lineCodeLenses.push({
+            range: codeLensRange,
+            data: {
+              type: codeLensType,
+              line: changesPreviewLineType.footer,
+            },
+          });
+        }
+      } else {
+        const match = /^<<<<<<<.+(<.*>)\[(tabby-[0-9|a-z|A-Z]{6})\]/g.exec(text);
+        const editId = match?.[2];
+        if (match && editId) {
+          lineInPreviewBlock = -1;
 
           lineCodeLenses.push({
             range: codeLensRange,
@@ -98,22 +113,9 @@ export class CodeLensProvider {
               line: changesPreviewLineType.header,
             },
           });
-        }
-      } else {
-        const match = /^>>>>>>>.+(<.*>)\[(tabby-[0-9|a-z|A-Z]{6})\]/g.exec(text);
-        const editId = match?.[2];
-        if (match && editId) {
-          lineInPreviewBlock = -1;
-          lineCodeLenses.push({
-            range: codeLensRange,
-            data: {
-              type: codeLensType,
-              line: changesPreviewLineType.footer,
-            },
-          });
         } else {
           lineInPreviewBlock++;
-          const marker = previewBlockMarkers[lineInPreviewBlock];
+          const marker = previewBlockMarkers[previewBlockMarkers.length - lineInPreviewBlock - 1];
           let codeLens: CodeLens | undefined = undefined;
           switch (marker) {
             case "#":

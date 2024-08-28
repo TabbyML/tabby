@@ -23,6 +23,7 @@ import * as Diff from "diff";
 import { TabbyAgent } from "../TabbyAgent";
 import { isEmptyRange } from "../utils/range";
 import { isBlank } from "../utils";
+import { getLogger } from "../logger";
 
 export type Edit = {
   id: ChatEditToken;
@@ -187,21 +188,26 @@ export class ChatEditProvider {
     if (!document) {
       return false;
     }
-    const header = document.getText({
-      start: {
-        line: params.location.range.start.line,
-        character: 0,
-      },
-      end: {
-        line: params.location.range.start.line + 1,
-        character: 0,
-      },
-    });
-    const match = /^<<<<<<<.+(<.*>)\[(tabby-[0-9|a-z|A-Z]{6})\]/g.exec(header);
-    const markers = match?.[1];
-    if (!match || !markers) {
-      return false;
+
+    let markers;
+    let line = params.location.range.start.line;
+    for (; line < document.lineCount; line++) {
+      const lineText = document.getText({
+        start: { line, character: 0 },
+        end: { line: line + 1, character: 0 },
+      });
+      
+      const match = /^>>>>>>>.+(<.*>)\[(tabby-[0-9|a-z|A-Z]{6})\]/g.exec(lineText);
+      markers = match?.[1];
+      if (markers) {
+        break;
+      }
     }
+
+    if (!markers) {
+      return false
+    }
+
     const previewRange = {
       start: {
         line: params.location.range.start.line,
@@ -257,6 +263,32 @@ export class ChatEditProvider {
     responseCommentTag?: string[],
   ): Promise<void> {
     const applyEdit = async (edit: Edit, isFirst: boolean = false, isLast: boolean = false) => {
+      if (isFirst) {
+        const workspaceEdit: WorkspaceEdit = {
+          changes: {
+            [edit.location.uri]: [
+              {
+                range: edit.editedRange,
+                newText: `<<<<<<< Inline Edit <>[${edit.id}]\n`
+              },
+            ],
+          },
+        };
+
+        await this.applyWorkspaceEdit({
+          edit: workspaceEdit,
+          options: {
+            undoStopBefore: isFirst,
+            undoStopAfter: isLast,
+          },
+        });
+
+        edit.editedRange = {
+          start: { line: edit.editedRange.start.line + 1, character: 0 },
+          end: { line: edit.editedRange.start.line + 1, character: 0 },
+        };
+      }
+
       const editedLines = this.generateChangesPreview(edit);
       const workspaceEdit: WorkspaceEdit = {
         changes: {
@@ -407,7 +439,7 @@ export class ChatEditProvider {
     } else if (edit.state == "completed") {
       stateDescription = "Editing completed";
     }
-    lines.push(`<<<<<<< ${stateDescription} {{markers}}[${edit.id}]`);
+    // lines.push(`<<<<<<< ${stateDescription} {{markers}}[${edit.id}]`);
     markers += "<";
     // comments: split by new line or 80 chars
     const commentLines = edit.comments
@@ -485,7 +517,7 @@ export class ChatEditProvider {
     lines.push(`>>>>>>> ${stateDescription} {{markers}}[${edit.id}]`);
     markers += ">";
     // replace markers
-    lines[0] = lines[0]!.replace("{{markers}}", markers);
+    // lines[0] = lines[0]!.replace("{{markers}}", markers);
     lines[lines.length - 1] = lines[lines.length - 1]!.replace("{{markers}}", markers);
     return lines;
   }
