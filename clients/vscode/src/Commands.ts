@@ -299,8 +299,14 @@ export class Commands {
         },
       };
 
-      const inlineEditController = new InlineEditController(this.client, this.config, this.contextVariables, editor, editLocation );
-      inlineEditController.start()
+      const inlineEditController = new InlineEditController(
+        this.client,
+        this.config,
+        this.contextVariables,
+        editor,
+        editLocation,
+      );
+      inlineEditController.start();
     },
     "chat.edit.stop": async () => {
       this.chatEditCancellationTokenSource?.cancel();

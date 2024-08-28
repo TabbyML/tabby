@@ -209,7 +209,7 @@ export class ChatEditProvider {
     }
 
     if (!markers) {
-      return false
+      return false;
     }
 
     const previewRange = {
@@ -273,7 +273,7 @@ export class ChatEditProvider {
             [edit.location.uri]: [
               {
                 range: edit.editedRange,
-                newText: `<<<<<<< [${edit.id}]\n`
+                newText: `<<<<<<< [${edit.id}]\n`,
               },
             ],
           },
