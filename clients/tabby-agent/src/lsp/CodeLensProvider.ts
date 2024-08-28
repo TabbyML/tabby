@@ -10,7 +10,6 @@ import {
 import { ServerCapabilities, CodeLens, CodeLensType, ChangesPreviewLineType } from "./protocol";
 import { TextDocuments } from "./TextDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { getLogger } from "../logger";
 
 const codeLensType: CodeLensType = "previewChanges";
 const changesPreviewLineType = {
