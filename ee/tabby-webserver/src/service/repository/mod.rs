@@ -228,7 +228,7 @@ fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
 
 fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> Result<Repository> {
     let source_id = config_index_to_id(index);
-    let dir = RepositoryConfig::get_dir(&config.git_url, &source_id);
+    let dir = RepositoryConfig::get_dir(config.git_url(), &source_id);
     Ok(Repository {
         id: ID::new(source_id.clone()),
         source_id,
@@ -242,7 +242,7 @@ fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> R
             })
             .collect(),
         dir,
-        git_url: config.git_url.to_owned(),
+        git_url: config.git_url().to_owned(),
     })
 }
 

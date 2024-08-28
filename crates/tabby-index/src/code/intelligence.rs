@@ -77,6 +77,7 @@ impl CodeIntelligence {
         let source_file_id = Self::compute_source_file_id(path)?;
 
         if path.is_dir() || !path.exists() {
+            warn!("Path {} is not a file or does not exist", path.display());
             return None;
         }
         let relative_path = path

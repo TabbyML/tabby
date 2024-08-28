@@ -110,10 +110,14 @@ pub fn config_id_to_index(id: &str) -> Result<usize, anyhow::Error> {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RepositoryConfig {
-    pub git_url: String,
+    git_url: String,
 }
 
 impl RepositoryConfig {
+    pub fn git_url(&self) -> &str {
+        &self.git_url
+    }
+
     pub fn canonicalize_url(url: &str) -> String {
         let url = url.strip_suffix(".git").unwrap_or(url);
         url::Url::parse(url)
@@ -379,7 +383,7 @@ impl CodeRepositoryAccess for StaticCodeRepositoryAccess {
             .repositories
             .into_iter()
             .enumerate()
-            .map(|(i, repo)| CodeRepository::new(&repo.git_url, &config_index_to_id(i)))
+            .map(|(i, repo)| CodeRepository::new(repo.git_url(), &config_index_to_id(i)))
             .collect())
     }
 }
