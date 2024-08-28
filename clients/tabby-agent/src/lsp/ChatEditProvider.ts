@@ -23,7 +23,6 @@ import * as Diff from "diff";
 import { TabbyAgent } from "../TabbyAgent";
 import { isEmptyRange } from "../utils/range";
 import { isBlank } from "../utils";
-import { getLogger } from "../logger";
 
 export type Edit = {
   id: ChatEditToken;
