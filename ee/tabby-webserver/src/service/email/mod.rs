@@ -48,10 +48,17 @@ fn make_smtp_builder(
     cert_pem: Option<String>,
 ) -> Result<AsyncSmtpTransportBuilder> {
     let mut tls_parameters = TlsParameters::builder(host.into());
-    if let Some(cert_pem) = cert_pem {
-        let cert =
-            Certificate::from_pem(cert_pem.as_bytes()).map_err(|_| CoreError::EmailInvalidCert)?;
+    //if let Some(cert_pem) = cert_pem {
+    //    let cert = Certificate::from_pem(cert_pem.as_bytes()).map_err(|_|CoreError::EmailInvalidCert)?;
+    //    tls_parameters = tls_parameters.add_root_certificate(cert);
+    //}
+    // if the env variable is set, it would have higher proirity and overwrite the db cert
+    if let Ok(cert_path) = std::env::var("TABBY_EMAIL_CERT_PATH") {
+        let cert_file = std::fs::read(cert_path)?;
+        println!("cert_file: {:?}", String::from_utf8_lossy(&cert_file));
+        let cert = Certificate::from_pem(&cert_file).map_err(|_|CoreError::EmailInvalidCert)?;
         tls_parameters = tls_parameters.add_root_certificate(cert);
+        println!("tls: {:?}", tls_parameters);
     }
     let tls_parameters = tls_parameters
         .build()
