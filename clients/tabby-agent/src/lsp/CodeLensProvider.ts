@@ -84,8 +84,8 @@ export class CodeLensProvider {
           });
         }
       } else {
-        const match = /^<<<<<<<.+(<.*>)\[(tabby-[0-9|a-z|A-Z]{6})\]/g.exec(text);
-        const editId = match?.[2];
+        const match = /^<<<<<<< \[(tabby-[0-9|a-z|A-Z]{6})\]/g.exec(text);
+        const editId = match?.[1];
         if (match && editId) {
           lineInPreviewBlock = -1;
 
@@ -113,7 +113,7 @@ export class CodeLensProvider {
                 line: changesPreviewLineType.header,
               },
             });
-          } else {
+          } else if (!previewBlockMarkers.includes("x")) {
             lineCodeLenses.push({
               range: codeLensRange,
               command: {

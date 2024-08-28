@@ -201,7 +201,7 @@ export class ChatEditProvider {
         start: { line, character: 0 },
         end: { line: line + 1, character: 0 },
       });
-      
+
       const match = /^>>>>>>>.+(<.*>)\[(tabby-[0-9|a-z|A-Z]{6})\]/g.exec(lineText);
       markers = match?.[1];
       if (markers) {
@@ -274,7 +274,7 @@ export class ChatEditProvider {
             [edit.location.uri]: [
               {
                 range: edit.editedRange,
-                newText: `<<<<<<< Inline Edit <>[${edit.id}]\n`
+                newText: `<<<<<<< [${edit.id}]\n`
               },
             ],
           },
@@ -283,8 +283,8 @@ export class ChatEditProvider {
         await this.applyWorkspaceEdit({
           edit: workspaceEdit,
           options: {
-            undoStopBefore: isFirst,
-            undoStopAfter: isLast,
+            undoStopBefore: true,
+            undoStopAfter: false,
           },
         });
 
@@ -309,7 +309,7 @@ export class ChatEditProvider {
       await this.applyWorkspaceEdit({
         edit: workspaceEdit,
         options: {
-          undoStopBefore: isFirst,
+          undoStopBefore: false,
           undoStopAfter: isLast,
         },
       });
@@ -432,6 +432,7 @@ export class ChatEditProvider {
   // [+] inserted
   // [-] deleted
   // [>] footer
+  // [x] stopped
   // footer line
   // >>>>>>> End of changes
   private generateChangesPreview(edit: Edit): string[] {
@@ -507,14 +508,22 @@ export class ChatEditProvider {
         lineIndex++;
       }
       if (inProgressChunk && lastDiff) {
-        pushDiffValue(lastDiff.value, "|");
+        if (edit.state === "stopped") {
+          pushDiffValue(lastDiff.value, "x");
+        } else {
+          pushDiffValue(lastDiff.value, "|");
+        }
       }
       while (lineIndex < diffs.length - inProgressChunk) {
         const diff = diffs[lineIndex];
         if (!diff) {
           break;
         }
-        pushDiffValue(diff.value, ".");
+        if (edit.state === "stopped") {
+          pushDiffValue(diff.value, "x");
+        } else {
+          pushDiffValue(diff.value, ".");
+        }
         lineIndex++;
       }
     }
