@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use tabby_index::public::{run_index_garbage_collection, CodeIndexer};
-use tabby_schema::{repository::RepositoryService, web_crawler::WebCrawlerService};
+use tabby_schema::{
+    repository::RepositoryService, web_crawler::WebCrawlerService,
+    web_documents::WebDocumentService,
+};
 
 use super::helper::Job;
 
@@ -16,6 +19,7 @@ impl IndexGarbageCollection {
         self,
         repository: Arc<dyn RepositoryService>,
         web_crawler: Arc<dyn WebCrawlerService>,
+        web_document: Arc<dyn WebDocumentService>,
     ) -> tabby_schema::Result<()> {
         let repositories = repository.list_all_code_repository().await?;
         let mut sources: Vec<_> = repositories
@@ -29,6 +33,22 @@ impl IndexGarbageCollection {
                 .await?
                 .into_iter()
                 .map(|url| url.source_id()),
+        );
+
+        sources.extend(
+            web_document
+                .list_custom_web_documents(None, None, None, None, None)
+                .await?
+                .into_iter()
+                .map(|doc| doc.source_id()),
+        );
+
+        sources.extend(
+            web_document
+                .list_preset_web_documents(None, None, None, None, None, Some(true))
+                .await?
+                .into_iter()
+                .map(|doc| doc.source_id()),
         );
 
         // Run garbage collection on the index
