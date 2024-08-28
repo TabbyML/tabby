@@ -85,10 +85,11 @@ enum Role {
 }
 
 input CodeQueryInput {
-  gitUrl: String!
   filepath: String
   language: String
   content: String!
+  "git_url to be included in the code search." gitUrl: String
+  "source_ids to be included in the code search." sourceId: String
 }
 
 input CodeSearchParamsOverrideInput {
@@ -137,6 +138,7 @@ input CreateWebCrawlerUrlInput {
 
 input DocQueryInput {
   content: String!
+  "source_ids to be included in the doc search." sourceIds: [String!]
 }
 
 input EmailSettingInput {
