@@ -1,5 +1,15 @@
 import { EventEmitter } from "events";
-import { window, workspace, Range, Position, Disposable, CancellationToken, TextEditorEdit } from "vscode";
+import {
+  window,
+  workspace,
+  Range,
+  Position,
+  Disposable,
+  CancellationToken,
+  TextEditorEdit,
+  Uri,
+  commands,
+} from "vscode";
 import { BaseLanguageClient, DynamicFeature, FeatureState, RegistrationData } from "vscode-languageclient";
 import {
   ServerCapabilities,
@@ -17,6 +27,9 @@ import {
   ChatEditResolveParams,
   ApplyWorkspaceEditParams,
   ApplyWorkspaceEditRequest,
+  ChatNLOutlinesParams,
+  ChatNLOutlinesRequest,
+  ChatNLOutlinesSync,
 } from "tabby-agent";
 
 export class ChatFeature extends EventEmitter implements DynamicFeature<unknown> {
@@ -55,6 +68,11 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
         return this.handleApplyWorkspaceEdit(params);
       }),
     );
+
+    this.client.onNotification(ChatNLOutlinesSync.type, async (params) => {
+      const uri = Uri.parse(params.uri);
+      commands.executeCommand("vscode.executeCodeLensProvider", uri);
+    });
   }
 
   register(data: RegistrationData<unknown>): void {
@@ -115,6 +133,15 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
       return null;
     }
     return this.client.sendRequest(ChatEditRequest.method, params, token);
+  }
+  async provideNLOutlinesGenerate(
+    params: ChatNLOutlinesParams,
+    token?: CancellationToken,
+  ): Promise<ChatEditToken | null> {
+    if (!this.isAvailable) {
+      return null;
+    }
+    return this.client.sendRequest(ChatNLOutlinesRequest.method, params, token);
   }
 
   private async handleApplyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<boolean> {

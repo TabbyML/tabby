@@ -6,6 +6,7 @@ export class ContextVariables {
   private chatEnabledValue = false;
   private chatEditInProgressValue = false;
   private chatEditResolvingValue = false;
+  private nlOutlinesGenerationInProgressValue = false;
   private inlineCompletionTriggerModeValue: "automatic" | "manual" = "automatic";
 
   constructor(
@@ -65,6 +66,15 @@ export class ContextVariables {
   set chatEditInProgress(value: boolean) {
     commands.executeCommand("setContext", "tabby.chatEditInProgress", value);
     this.chatEditInProgressValue = value;
+  }
+
+  get nlOutlinesGenerationInProgress(): boolean {
+    return this.nlOutlinesGenerationInProgressValue;
+  }
+
+  set nlOutlinesGenerationInProgress(value: boolean) {
+    commands.executeCommand("setContext", "tabby.nlOutlinesGenerationInProgress", value);
+    this.nlOutlinesGenerationInProgressValue = value;
   }
 
   get chatEditResolving(): boolean {

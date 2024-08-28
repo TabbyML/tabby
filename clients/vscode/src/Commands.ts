@@ -31,6 +31,7 @@ import { Issues } from "./Issues";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
+  private nlOutlinesCancellationTokenSource: CancellationTokenSource | null = null;
 
   constructor(
     private readonly context: ExtensionContext,
@@ -433,6 +434,56 @@ export class Commands {
       });
 
       quickPick.show();
+    },
+    "chat.edit.generateNatureLanguageOutlines": async () => {
+      const editor = window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+      const editLocation = {
+        uri: editor.document.uri.toString(),
+        range: {
+          start: { line: editor.selection.start.line, character: 0 },
+          end: {
+            line: editor.selection.end.character === 0 ? editor.selection.end.line : editor.selection.end.line + 1,
+            character: 0,
+          },
+        },
+      };
+      window.withProgress(
+        {
+          location: ProgressLocation.Notification,
+          title: "Generating natural language outlines...",
+          cancellable: true,
+        },
+        async (_, token) => {
+          this.contextVariables.nlOutlinesGenerationInProgress = true;
+          if (token.isCancellationRequested) {
+            return;
+          }
+          this.nlOutlinesCancellationTokenSource = new CancellationTokenSource();
+          token.onCancellationRequested(() => {
+            this.nlOutlinesCancellationTokenSource?.cancel();
+          });
+
+          try {
+            await this.client.chat.provideNLOutlinesGenerate(
+              {
+                location: editLocation,
+              },
+              this.nlOutlinesCancellationTokenSource.token,
+            );
+          } catch (error) {
+            if (typeof error === "object" && error && "message" in error && typeof error.message === "string") {
+              window.showErrorMessage(`Error generating outlines: ${error.message}`);
+            }
+          } finally {
+            this.nlOutlinesCancellationTokenSource?.dispose();
+            this.nlOutlinesCancellationTokenSource = null;
+            this.contextVariables.nlOutlinesGenerationInProgress = false;
+          }
+        },
+      );
     },
     "chat.edit.stop": async () => {
       this.chatEditCancellationTokenSource?.cancel();

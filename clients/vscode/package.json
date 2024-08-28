@@ -136,6 +136,11 @@
         "category": "Tabby"
       },
       {
+        "command": "tabby.chat.edit.generateNatureLanguageOutlines",
+        "title": "Generate Nature Language Outlines for selecting range",
+        "category": "Tabby"
+      },
+      {
         "command": "tabby.server.selectPastServerConfig",
         "title": "Select Server Endpoint from History",
         "category": "Tabby"
@@ -192,6 +197,10 @@
         {
           "command": "tabby.chat.edit.start",
           "when": "tabby.chatEnabled"
+        },
+        {
+          "command": "tabby.chat.edit.generateNatureLanguageOutlines",
+          "when": "editorHasSelection && tabby.chatEnabled"
         },
         {
           "command": "tabby.chat.edit.stop",
