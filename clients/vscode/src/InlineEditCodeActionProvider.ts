@@ -19,7 +19,7 @@ export class InlineEditCodeActionProvider implements CodeActionProvider {
     if (token.isCancellationRequested) {
       return;
     }
-    const quickFix = new CodeAction("Inline Edit with Tabby", CodeActionKind.QuickFix);
+    const quickFix = new CodeAction("Edit with Tabby", CodeActionKind.RefactorRewrite);
 
     quickFix.command = {
       command: "tabby.chat.edit.start",
