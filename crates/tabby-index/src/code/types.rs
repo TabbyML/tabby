@@ -46,7 +46,7 @@ impl SourceCode {
     pub fn to_index_id(source_id: &str, source_file_id: &str) -> IndexId {
         IndexId {
             source_id: source_id.to_owned(),
-            id: ource_file_id.to_owned(),
+            id: source_file_id.to_owned(),
         }
     }
 }
