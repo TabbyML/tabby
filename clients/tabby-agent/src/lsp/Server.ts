@@ -410,7 +410,7 @@ export class Server {
           const firstProp = clientProvidedConfig[first as keyof typeof clientProvidedConfig];
           this.agent.updateConfig(`${first}.${second}`, firstProp?.[second as keyof typeof firstProp]);
         } else {
-          this.agent.clearConfig(`${first}.${name}`);
+          this.agent.clearConfig(`${first}.${second}`);
         }
       }
     }
