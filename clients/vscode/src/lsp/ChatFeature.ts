@@ -131,8 +131,9 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
           Object.entries(edit.changes || {}).forEach(([uri, textEdits]) => {
             const document = workspace.textDocuments.find((doc) => doc.uri.toString() === uri);
             if (document && document === activeEditor.document) {
-              if (textEdits.length === 1) {
-                applyTextEditMinimalLineChange(editBuilder, textEdits[0]!, document);
+              const textEdit = textEdits[0];
+              if (textEdits.length === 1 && textEdit) {
+                applyTextEditMinimalLineChange(editBuilder, textEdit, document);
               } else {
                 textEdits.forEach((textEdit) => {
                   const range = new Range(
