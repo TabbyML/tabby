@@ -1,3 +1,9 @@
+## 1.11.0 (Pre-release)
+
+### Fixes & Improvements
+
+- Polished inline-editing experience with line-by-line streaming.
+
 ## 1.10.0
 
 ### Features
