@@ -18,6 +18,8 @@ public class GitProvider {
 			IGitProvider eclipseJGitProvider = new EclipseJGitProvider();
 			if (eclipseJGitProvider.isAvailable()) {
 				return eclipseJGitProvider;
+			} else {
+				logger.info("Eclipse JGitProvider is not available.");
 			}
 		} catch (NoClassDefFoundError e) {
 			logger.info("Eclipse JGitProvider is not available.");
