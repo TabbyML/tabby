@@ -13,6 +13,7 @@ import { StatusBarItem } from "./StatusBarItem";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { Commands } from "./Commands";
 import { Status } from "tabby-agent";
+import { InlineEditCodeActionProvider } from "./InlineEditCodeActionProvider";
 
 const isBrowser = !!process.env["IS_BROWSER"];
 const logger = getLogger();
@@ -55,6 +56,7 @@ export async function activate(context: ExtensionContext) {
   client.registerConfigManager(config);
   client.registerInlineCompletionProvider(inlineCompletionProvider);
   client.registerGitProvider(gitProvider);
+  client.registerCodeActionProvider(new InlineEditCodeActionProvider());
 
   // Register config callback for past ServerConfig
   client.agent.addListener("didChangeStatus", async (status: Status) => {

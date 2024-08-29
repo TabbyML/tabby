@@ -1,4 +1,4 @@
-import { ExtensionContext } from "vscode";
+import { CodeActionProvider, ExtensionContext, languages } from "vscode";
 import { BaseLanguageClient } from "vscode-languageclient";
 import { AgentFeature } from "./AgentFeature";
 import { ChatFeature } from "./ChatFeature";
@@ -73,5 +73,8 @@ export class Client {
   registerGitProvider(provider: GitProvider): void {
     const feature = new GitProviderFeature(this.languageClient, provider);
     this.languageClient.registerFeature(feature);
+  }
+  registerCodeActionProvider(provider: CodeActionProvider) {
+    this.context.subscriptions.push(languages.registerCodeActionsProvider("*", provider));
   }
 }
