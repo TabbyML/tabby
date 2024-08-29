@@ -22,7 +22,7 @@ use auth::{
 };
 use base64::Engine;
 use chrono::{DateTime, Utc};
-use context::ContextService;
+use context::{ContextInfo, ContextService};
 use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLObject, IntoFieldError,
@@ -462,6 +462,11 @@ impl Query {
         check_user(ctx).await?;
 
         ctx.locator.repository().repository_list().await
+    }
+
+    async fn context_info(ctx: &Context) -> Result<ContextInfo> {
+        check_user(ctx).await?;
+        ctx.locator.context().read().await
     }
 
     async fn integrations(

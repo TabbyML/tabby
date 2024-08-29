@@ -10,6 +10,14 @@ enum AuthMethod {
   LOGIN
 }
 
+"Represents the kind of context source."
+enum ContextKind {
+  GIT
+  GITHUB
+  GITLAB
+  DOC
+}
+
 enum Encryption {
   START_TLS
   SSL_TLS
@@ -241,6 +249,21 @@ type CompletionStats {
   completions: Int!
   views: Int!
   selects: Int!
+}
+
+type ContextInfo {
+  sources: [ContextSource!]!
+  "Whether the deployment has capability to search public web."
+  canSearchPublic: Boolean!
+}
+
+type ContextSource {
+  id: ID!
+  kind: ContextKind!
+  "Represents the source of the context, which is the value mapped to `source_id` in the index."
+  sourceId: String!
+  "Display name of the context, used to provide a human-readable name for user selection, such as in a dropdown menu."
+  displayName: String!
 }
 
 type CustomDocumentConnection {
@@ -620,6 +643,7 @@ type Query {
   userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTime!, end: DateTime!): UserEventConnection!
   diskUsageStats: DiskUsageStats!
   repositoryList: [Repository!]!
+  contextInfo: ContextInfo!
   integrations(ids: [ID!], kind: IntegrationKind, after: String, before: String, first: Int, last: Int): IntegrationConnection!
   integratedRepositories(ids: [ID!], kind: IntegrationKind, active: Boolean, after: String, before: String, first: Int, last: Int): ProvidedRepositoryConnection!
   webCrawlerUrls(after: String, before: String, first: Int, last: Int): WebCrawlerUrlConnection!
