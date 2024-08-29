@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc};
+use std::{arch::aarch64::int64x1_t, fmt, path::Path, sync::Arc};
 
 use anyhow::anyhow;
 use cache::Cache;
@@ -13,7 +13,7 @@ pub use oauth_credential::OAuthCredentialDAO;
 pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
-use sqlx::{query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite, SqlitePool};
+use sqlx::{query, query_scalar, sqlite::{SqliteQueryResult, SqliteRow}, Column, Pool, Row, Sqlite, SqlitePool};
 pub use threads::{
     ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
     ThreadMessageAttachmentDoc, ThreadMessageDAO,
@@ -100,6 +100,10 @@ fn make_pagination_query_with_condition(
     select.as_string()
 }
 
+
+
+
+
 impl DbConn {
     #[cfg(any(test, feature = "testutils"))]
     pub async fn new_in_memory() -> Result<Self> {
@@ -155,15 +159,39 @@ impl DbConn {
         Self::init_db(pool).await
     }
 
-    /// Initialize database, create tables and insert first token if not exist
-    async fn init_db(pool: SqlitePool) -> Result<Self> {
-        let user_input: String = input(
-            "The database is from an older version. Type 'confirm' to run database migrations:",
-        )
-        .interact()?;
+    fn prompt_confirm() -> Result<bool> {
+        let user_input: String = input("The database is from an older version. Type 'confirm' to run database migrations:")
+            .interact()?;
         if user_input != "confirm" {
             outro("Database initialization cancelled.")?;
             return Err(anyhow!("Database initialization cancelled by user"));
+        }
+        Ok(true)
+    }
+
+
+
+    /// Initialize database, create tables and insert first token if not exist
+    async fn init_db(pool: SqlitePool) -> Result<Self> {
+        
+        let local_migrations = sqlx::migrate!();
+        let mut applied_migrations = sqlx::query("SELECT version FROM _sqlx_migrations")
+        .fetch_all(&pool)
+        .await?.into_iter();
+
+        let should_confirm = if local_migrations.iter().len() / 2 != applied_migrations.len() {
+            true
+        } else {
+            local_migrations.iter().any(|migration| {
+                !applied_migrations.any(|row| {
+                    let version: i64 = row.get(0);
+                    version == migration.version
+                })
+            })
+        };
+
+        if should_confirm {
+            Self::prompt_confirm()?;
         }
 
         sqlx::migrate!("./migrations").run(&pool).await?;
