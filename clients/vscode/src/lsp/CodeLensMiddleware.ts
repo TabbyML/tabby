@@ -16,12 +16,10 @@ import { findTextEditor } from "./vscodeWindowUtils";
 type CodeLens = VscodeCodeLens & TabbyCodeLens;
 
 const decorationTypeHeader = window.createTextEditorDecorationType({
-  // backgroundColor: new ThemeColor("merge.incomingHeaderBackground"),
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
 });
 const decorationTypeFooter = window.createTextEditorDecorationType({
-  // backgroundColor: new ThemeColor("merge.incomingHeaderBackground"),
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
 });
@@ -32,20 +30,8 @@ const decorationTypeComments = window.createTextEditorDecorationType({
   fontWeight: "normal",
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedOpen,
-  before: {
-    // contentText: ">",
-    // color: new ThemeColor("editorInlayHint.foreground"),
-    // backgroundColor: new ThemeColor("editorInlayHint.background"),
-    // fontWeight: "bold",
-    // width: "10px",
-  },
 });
 const decorationTypeUnchanged = window.createTextEditorDecorationType({
-  before: {
-    // contentText: "",
-    // fontWeight: "bold",
-    // width: "10px",
-  },
 });
 const decorationTypePending = window.createTextEditorDecorationType({
   backgroundColor: new ThemeColor("editorInlayHint.background"),
@@ -56,23 +42,11 @@ const decorationTypeInserted = window.createTextEditorDecorationType({
   backgroundColor: new ThemeColor("diffEditor.insertedTextBackground"),
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
-  before: {
-    // contentText: "+",
-    // backgroundColor: new ThemeColor("diffEditor.insertedTextBackground"),
-    // fontWeight: "bold",
-    // width: "10px",
-  },
 });
 const decorationTypeDeleted = window.createTextEditorDecorationType({
   backgroundColor: new ThemeColor("diffEditor.removedTextBackground"),
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
-  before: {
-    // contentText: "-",
-    // backgroundColor: new ThemeColor("diffEditor.removedTextBackground"),
-    // fontWeight: "bold",
-    // width: "10px",
-  },
 });
 const decorationTypes: Record<string, TextEditorDecorationType> = {
   header: decorationTypeHeader,
