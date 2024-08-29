@@ -1,6 +1,7 @@
 pub mod analytic;
 pub mod auth;
 pub mod constants;
+pub mod context;
 pub mod email;
 pub mod integration;
 pub mod job;
@@ -12,7 +13,6 @@ pub mod user_event;
 pub mod web_crawler;
 pub mod web_documents;
 pub mod worker;
-pub mod context;
 
 use std::sync::Arc;
 

@@ -18,11 +18,10 @@ use tabby_common::config::CodeRepository;
 use tabby_db::DbConn;
 use tabby_inference::Embedding;
 use tabby_schema::{
+    context::ContextService,
     integration::IntegrationService,
     job::JobService,
     repository::{GitRepositoryService, RepositoryService, ThirdPartyRepositoryService},
-    web_crawler::WebCrawlerService,
-    web_documents::WebDocumentService,
 };
 use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::{debug, warn};
@@ -64,8 +63,7 @@ pub async fn start(
     third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
     integration_service: Arc<dyn IntegrationService>,
     repository_service: Arc<dyn RepositoryService>,
-    web_crawler_service: Arc<dyn WebCrawlerService>,
-    web_document_service: Arc<dyn WebDocumentService>,
+    context_service: Arc<dyn ContextService>,
     embedding: Arc<dyn Embedding>,
 ) {
     let mut hourly =
@@ -112,7 +110,7 @@ pub async fn start(
                         }
                         BackgroundJobEvent::IndexGarbageCollection => {
                             let job = IndexGarbageCollection;
-                            job.run(repository_service.clone(), web_crawler_service.clone(), web_document_service.clone()).await
+                            job.run(repository_service.clone(), context_service.clone()).await
                         }
                     } {
                         logkit::info!(exit_code = 1; "Job failed {}", err);
@@ -139,7 +137,7 @@ pub async fn start(
                         warn!("Index issues job failed: {err:?}");
                     }
 
-                    if let Err(err) = IndexGarbageCollection.run(repository_service.clone(), web_crawler_service.clone(), web_document_service.clone()).await {
+                    if let Err(err) = IndexGarbageCollection.run(repository_service.clone(), context_service.clone()).await {
                         warn!("Index garbage collection job failed: {err:?}");
                     }
 

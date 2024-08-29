@@ -1,8 +1,12 @@
-use crate::Result;
 use async_trait::async_trait;
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 
-use super::{repository::{Repository, RepositoryKind}, web_crawler::WebCrawlerUrl, web_documents::{CustomWebDocument, PresetWebDocument}};
+use super::{
+    repository::{Repository, RepositoryKind},
+    web_crawler::WebCrawlerUrl,
+    web_documents::{CustomWebDocument, PresetWebDocument},
+};
+use crate::Result;
 
 /// Represents the kind of context source.
 #[derive(GraphQLEnum)]
@@ -28,7 +32,10 @@ pub struct ContextSource {
 
 impl ContextSource {
     pub fn is_code_repository(&self) -> bool {
-        matches!(self.kind, ContextKind::Git | ContextKind::Github | ContextKind::Gitlab)
+        matches!(
+            self.kind,
+            ContextKind::Git | ContextKind::Github | ContextKind::Gitlab
+        )
     }
 }
 
