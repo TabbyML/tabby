@@ -334,6 +334,10 @@ Remember, based on the original question and related contexts, suggest three suc
             .filter(|x| !x.is_empty())
             .collect()
     }
+
+    pub fn can_search_public(&self) -> bool {
+        self.serper.is_some()
+    }
 }
 
 fn remove_bullet_prefix(s: &str) -> String {

@@ -2,6 +2,7 @@ mod analytic;
 pub mod answer;
 mod auth;
 pub mod background_job;
+mod context;
 mod email;
 pub mod event_logger;
 pub mod integration;
@@ -35,6 +36,7 @@ use tabby_db::DbConn;
 use tabby_schema::{
     analytic::AnalyticService,
     auth::AuthenticationService,
+    context::ContextService,
     email::EmailService,
     integration::IntegrationService,
     is_demo_mode,
@@ -65,6 +67,7 @@ struct ServerContext {
     web_crawler: Arc<dyn WebCrawlerService>,
     web_documents: Arc<dyn WebDocumentService>,
     thread: Arc<dyn ThreadService>,
+    context: Arc<dyn ContextService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -99,7 +102,13 @@ impl ServerContext {
         );
         let user_event = Arc::new(user_event::create(db_conn.clone()));
         let setting = Arc::new(setting::create(db_conn.clone()));
-        let thread = Arc::new(thread::create(db_conn.clone(), answer));
+        let thread = Arc::new(thread::create(db_conn.clone(), answer.clone()));
+        let context = Arc::new(context::create(
+            repository.clone(),
+            web_crawler.clone(),
+            web_documents.clone(),
+            answer.clone(),
+        ));
 
         Self {
             mail: mail.clone(),
@@ -112,6 +121,7 @@ impl ServerContext {
             web_crawler,
             web_documents,
             thread,
+            context,
             license,
             repository,
             integration,
@@ -272,6 +282,10 @@ impl ServiceLocator for ArcServerContext {
 
     fn thread(&self) -> Arc<dyn ThreadService> {
         self.0.thread.clone()
+    }
+
+    fn context(&self) -> Arc<dyn ContextService> {
+        self.0.context.clone()
     }
 }
 

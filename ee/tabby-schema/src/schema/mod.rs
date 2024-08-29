@@ -12,6 +12,7 @@ pub mod user_event;
 pub mod web_crawler;
 pub mod web_documents;
 pub mod worker;
+pub mod context;
 
 use std::sync::Arc;
 
@@ -21,6 +22,7 @@ use auth::{
 };
 use base64::Engine;
 use chrono::{DateTime, Utc};
+use context::ContextService;
 use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLObject, IntoFieldError,
@@ -76,6 +78,7 @@ pub trait ServiceLocator: Send + Sync {
     fn web_crawler(&self) -> Arc<dyn WebCrawlerService>;
     fn web_documents(&self) -> Arc<dyn WebDocumentService>;
     fn thread(&self) -> Arc<dyn ThreadService>;
+    fn context(&self) -> Arc<dyn ContextService>;
 }
 
 pub struct Context {
@@ -455,6 +458,7 @@ impl Query {
         ctx.locator.analytic().disk_usage_stats().await
     }
 
+    #[deprecated(note = "Use `contextSourceInfo` instead.")]
     async fn repository_list(ctx: &Context) -> Result<Vec<Repository>> {
         check_user(ctx).await?;
 
