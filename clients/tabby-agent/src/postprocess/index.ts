@@ -11,12 +11,13 @@ import { formatIndentation } from "./formatIndentation";
 import { trimSpace } from "./trimSpace";
 import { trimMultiLineInSingleLineMode } from "./trimMultiLineInSingleLineMode";
 import { dropDuplicated } from "./dropDuplicated";
-import { dropBlank } from "./dropBlank";
+import { dropMinimum } from "./dropMinimum";
 import { calculateReplaceRange } from "./calculateReplaceRange";
+
 
 type ItemListFilter = (items: CompletionItem[]) => Promise<CompletionItem[]>;
 
-function createListFilter(filterFactory: PostprocessFilterFactory, config: unknown): ItemListFilter {
+function createListFilter(filterFactory: PostprocessFilterFactory, config: AgentConfig["postprocess"]): ItemListFilter {
   const filter: PostprocessFilter = filterFactory(config);
   return async (items: CompletionItem[]): Promise<CompletionItem[]> => {
     return await items.mapAsync(filter);
@@ -25,25 +26,25 @@ function createListFilter(filterFactory: PostprocessFilterFactory, config: unkno
 
 export async function preCacheProcess(
   items: CompletionItem[],
-  _config: AgentConfig["postprocess"],
+  config: AgentConfig["postprocess"],
 ): Promise<CompletionItem[]> {
   const applyFilter = (filterFactory: PostprocessFilterFactory): ItemListFilter => {
-    return createListFilter(filterFactory, _config);
+    return createListFilter(filterFactory, config);
   };
   return Promise.resolve(items)
     .then(applyFilter(trimMultiLineInSingleLineMode))
     .then(applyFilter(removeLineEndsWithRepetition))
     .then(applyFilter(dropDuplicated))
     .then(applyFilter(trimSpace))
-    .then(applyFilter(dropBlank));
+    .then(applyFilter(dropMinimum));
 }
 
 export async function postCacheProcess(
   items: CompletionItem[],
-  _config: AgentConfig["postprocess"],
+  config: AgentConfig["postprocess"],
 ): Promise<CompletionItem[]> {
   const applyFilter = (filterFactory: PostprocessFilterFactory): ItemListFilter => {
-    return createListFilter(filterFactory, _config);
+    return createListFilter(filterFactory, config);
   };
   return Promise.resolve(items)
     .then(applyFilter(removeRepetitiveBlocks))
@@ -53,6 +54,6 @@ export async function postCacheProcess(
     .then(applyFilter(formatIndentation))
     .then(applyFilter(dropDuplicated))
     .then(applyFilter(trimSpace))
-    .then(applyFilter(dropBlank))
+    .then(applyFilter(dropMinimum))
     .then(applyFilter(calculateReplaceRange));
 }

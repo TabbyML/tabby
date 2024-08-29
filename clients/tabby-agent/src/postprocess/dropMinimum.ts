@@ -1,10 +1,10 @@
 import { PostprocessFilter } from "./base";
 import { CompletionItem } from "../CompletionSolution";
-import { isBlank } from "../utils";
+import { AgentConfig } from "../AgentConfig";
 
-export function dropBlank(): PostprocessFilter {
+export function dropMinimum(config: AgentConfig["postprocess"]): PostprocessFilter {
   return (item: CompletionItem): CompletionItem => {
-    if (isBlank(item.fullText) || isBlank(item.text)) {
+    if (item.fullText.trim().length < config.minChars || item.text.trim().length < config.minChars) {
       return CompletionItem.createBlankItem(item.context);
     }
     return item;
