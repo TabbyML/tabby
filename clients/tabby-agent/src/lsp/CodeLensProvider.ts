@@ -74,13 +74,16 @@ export class CodeLensProvider {
         if (match && markers && editId) {
           previewBlockMarkers = markers;
           lineInPreviewBlock = 0;
-          lineCodeLenses.push({
-            range: codeLensRange,
-            data: {
-              type: codeLensType,
-              line: changesPreviewLineType.footer,
-            },
-          });
+
+          if (!previewBlockMarkers.includes("x")) {
+            lineCodeLenses.push({
+              range: codeLensRange,
+              data: {
+                type: codeLensType,
+                line: changesPreviewLineType.footer,
+              },
+            });
+          }
         }
       } else {
         const match = /^<<<<<<< (tabby-[0-9|a-z|A-Z]{6})/g.exec(text);
