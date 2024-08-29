@@ -11,14 +11,13 @@ import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { client, useMutation } from '@/lib/tabby/gql'
 import { ArrayElementType } from '@/lib/types'
 import { Button } from '@/components/ui/button'
-import {
-  IconChevronLeft,
-  IconChevronRight,
-  IconClose,
-  IconListFilter,
-  IconSearch
-} from '@/components/ui/icons'
+import { IconClose, IconListFilter, IconSearch } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '@/components/ui/popover'
 import { Switch } from '@/components/ui/switch'
 import {
   Table,
@@ -29,11 +28,8 @@ import {
   TableRow
 } from '@/components/ui/table'
 import LoadingWrapper from '@/components/loading-wrapper'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover'
+import { QuickNavPagination } from '@/components/quick-nav-pagination'
+
 import { JobInfoView } from '../../components/job-trigger'
 import { triggerJobRunMutation } from '../../query'
 
@@ -92,10 +88,9 @@ type ListItem = ArrayElementType<
   PresetWebDocumentsQuery['presetWebDocuments']['edges']
 >
 
-const PAGE_SIZE = 5
-
 export default function PresetDocument() {
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(5)
   const [filterPattern, setFilterPattern] = useState<string | undefined>()
   const [debouncedFilterPattern] = useDebounceValue(filterPattern, 200)
   const [list, setList] = useState<ListItem[] | undefined>()
@@ -138,7 +133,7 @@ export default function PresetDocument() {
           })
         )
       }
-    } catch (e) { }
+    } catch (e) {}
   }
 
   const triggerJobRun = useMutation(triggerJobRunMutation)
@@ -228,11 +223,7 @@ export default function PresetDocument() {
   const onInputKeyDown = (
     event: React.KeyboardEvent<HTMLInputElement>
   ): void => {
-    if (
-      event.key === 'Enter' &&
-      !event.nativeEvent.isComposing
-    ) {
-      // set popover hide
+    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
       setFilterOpen(false)
     }
   }
@@ -247,12 +238,8 @@ export default function PresetDocument() {
   }, [debouncedFilterPattern, list])
 
   const currentList = useMemo(() => {
-    return filteredList?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  }, [filteredList, page])
-
-  const pageCount = useMemo(() => {
-    return Math.ceil((filteredList?.length || 0) / PAGE_SIZE)
-  }, [filteredList])
+    return filteredList?.slice((page - 1) * pageSize, page * pageSize)
+  }, [filteredList, page, pageSize])
 
   // reset pageNo
   useEffect(() => {
@@ -265,22 +252,22 @@ export default function PresetDocument() {
         <Table className="table-fixed border-b">
           <TableHeader>
             <TableRow>
-              <TableHead className='flex items-center gap-1.5'>
+              <TableHead className="flex items-center gap-1.5">
                 Name
                 <Popover open={filterOpen} onOpenChange={setFilterOpen}>
                   <PopoverTrigger asChild>
-                    <Button size='icon' variant='ghost' className='relative'>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="relative shrink-0"
+                    >
                       <IconListFilter />
                       {!!debouncedFilterPattern && (
-                        <div className='w-1.5 h-1.5 rounded-full bg-red-400 absolute right-0 top-1'></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 absolute right-0 top-1"></div>
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent
-                    align='end'
-                    side='right'
-                    className='p-1'
-                  >
+                  <PopoverContent align="end" side="right" className="p-1">
                     <div className="relative">
                       <IconSearch
                         className="absolute left-3 top-2.5 cursor-text text-muted-foreground"
@@ -288,7 +275,7 @@ export default function PresetDocument() {
                       />
                       <Input
                         size={30}
-                        className='w-48 px-8'
+                        className="w-48 px-8"
                         value={filterPattern}
                         onChange={e => setFilterPattern(e.target.value)}
                         ref={inputRef}
@@ -359,35 +346,18 @@ export default function PresetDocument() {
             )}
           </TableBody>
         </Table>
-        {pageCount > 1 && (
-          <div className="mt-4 flex justify-end">
-            <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-              Page {page}
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                className="h-8 w-8 p-0"
-                disabled={page <= 1}
-                onClick={e => {
-                  setPage(page - 1)
-                }}
-              >
-                <IconChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                className="h-8 w-8 p-0"
-                disabled={page >= pageCount}
-                onClick={e => {
-                  setPage(page + 1)
-                }}
-              >
-                <IconChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
+        <QuickNavPagination
+          className="mt-2 flex justify-end"
+          page={page}
+          pageSize={pageSize}
+          showQuickJumper
+          showSizeChanger
+          totalCount={filteredList?.length ?? 0}
+          onChange={(page: number, pageSize: number) => {
+            setPage(page)
+            setPageSize(pageSize)
+          }}
+        />
       </LoadingWrapper>
     </>
   )

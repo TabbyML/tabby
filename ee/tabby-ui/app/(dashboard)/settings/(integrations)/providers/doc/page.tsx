@@ -19,7 +19,7 @@ export default function DocumentProviderPage() {
         </SubHeader>
         <PresetDocument />
       </CardContent>
-      <CardContent className="pl-0 pt-4 xl:pb-32">
+      <CardContent className="pl-0 pt-8 xl:pb-32">
         <SubHeader>
           <p>
             You can also include your own developer documents here. Please
