@@ -105,7 +105,7 @@ export const QuickNavPagination: React.FC<QuickNavPaginationProps> = ({
     <Pagination className={className}>
       <PaginationContent>
         {showSizeChanger && (
-          <div className="flex items-center space-x-2 mr-2">
+          <div className="mr-2 flex items-center space-x-2">
             <span className="text-sm font-medium">Rows per page</span>
             <Select
               value={String(pageSize)}

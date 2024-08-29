@@ -219,7 +219,7 @@ export default function CustomDocument() {
         <Table className="table-fixed border-b">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[25%] flex items-center gap-1.5">
+              <TableHead className="flex w-[25%] items-center gap-1.5">
                 Name
                 <Popover open={filterOpen} onOpenChange={setFilterOpen}>
                   <PopoverTrigger asChild>
@@ -230,7 +230,7 @@ export default function CustomDocument() {
                     >
                       <IconListFilter />
                       {!!debouncedFilterPattern && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 absolute right-0 top-1"></div>
+                        <div className="absolute right-0 top-1 h-1.5 w-1.5 rounded-full bg-red-400"></div>
                       )}
                     </Button>
                   </PopoverTrigger>

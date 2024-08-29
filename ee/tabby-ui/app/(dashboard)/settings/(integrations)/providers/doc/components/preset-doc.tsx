@@ -263,7 +263,7 @@ export default function PresetDocument() {
                     >
                       <IconListFilter />
                       {!!debouncedFilterPattern && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 absolute right-0 top-1"></div>
+                        <div className="absolute right-0 top-1 h-1.5 w-1.5 rounded-full bg-red-400"></div>
                       )}
                     </Button>
                   </PopoverTrigger>
