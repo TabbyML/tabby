@@ -458,7 +458,6 @@ impl Query {
         ctx.locator.analytic().disk_usage_stats().await
     }
 
-    #[deprecated(note = "Use `contextSourceInfo` instead.")]
     async fn repository_list(ctx: &Context) -> Result<Vec<Repository>> {
         check_user(ctx).await?;
 
