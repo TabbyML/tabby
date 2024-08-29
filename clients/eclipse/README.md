@@ -27,3 +27,11 @@
 
 5. Open the `clients/eclipse/plugin/plugin.xml` file in Eclipse. It should open as a plugin project overview. In the `Testing` section, click on `Launch an Eclipse application` to start the plugin.  
   ![Launch an Eclipse application](docs/eclipse-launch-application.jpg)  
+
+## Export a ZIP Archive
+
+1. In Eclipse, open `File -> Export...`, select the `Plug-in Development -> Deployable features` option, and click `Next`.  
+    ![Export Archive](docs/eclipse-export-archive-select-wizard.jpg)  
+2. Check the `com.tabbyml.features.tabby4eclipse`, then select `Archive file` with a specified file path, and click `Finish`.
+    ![Export Archive](docs/eclipse-export-archive-select-features.jpg)  
+3. The exported ZIP archive should be located at the specified file path. It can be installed by navigating to `Help -> Install New Software...`.
