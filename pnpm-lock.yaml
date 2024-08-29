@@ -332,10 +332,10 @@ importers:
         version: 2.2.3
       esbuild-plugin-copy:
         specifier: ^2.1.1
-        version: 2.1.1(esbuild@0.19.12)
+        version: 2.1.1(esbuild@0.20.2)
       esbuild-plugin-polyfill-node:
         specifier: ^0.3.0
-        version: 0.3.0(esbuild@0.19.12)
+        version: 0.3.0(esbuild@0.20.2)
       eslint:
         specifier: ^8.55.0
         version: 8.57.0
@@ -537,6 +537,9 @@ importers:
       focus-trap-react:
         specifier: ^10.1.1
         version: 10.2.2(prop-types@15.8.1)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      fuzzysort:
+        specifier: ^3.0.2
+        version: 3.0.2
       graphql:
         specifier: ^16.8.1
         version: 16.8.1
@@ -6086,6 +6089,9 @@ packages:
 
   functions-have-names@1.2.3:
     resolution: {integrity: sha512-xckBUXyTIqT97tq2x2AMb+g163b5JFysYk0x4qxNFwbfQkmNZoiRHb6sPzI9/QV33WeuvVYBUIiD4NzNIyqaRQ==}
+
+  fuzzysort@3.0.2:
+    resolution: {integrity: sha512-ZyahVgxvckB1Qosn7YGWLDJJp2XlyaQ2WmZeI+d0AzW0AMqVYnz5N89G6KAKa6m/LOtv+kzJn4lhDF/yVg11Cg==}
 
   gensync@1.0.0-beta.2:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
@@ -16055,11 +16061,11 @@ snapshots:
       is-date-object: 1.0.5
       is-symbol: 1.0.4
 
-  esbuild-plugin-copy@2.1.1(esbuild@0.19.12):
+  esbuild-plugin-copy@2.1.1(esbuild@0.20.2):
     dependencies:
       chalk: 4.1.2
       chokidar: 3.6.0
-      esbuild: 0.19.12
+      esbuild: 0.20.2
       fs-extra: 10.1.0
       globby: 11.1.0
 
@@ -16067,6 +16073,12 @@ snapshots:
     dependencies:
       '@jspm/core': 2.0.1
       esbuild: 0.19.12
+      import-meta-resolve: 3.1.1
+
+  esbuild-plugin-polyfill-node@0.3.0(esbuild@0.20.2):
+    dependencies:
+      '@jspm/core': 2.0.1
+      esbuild: 0.20.2
       import-meta-resolve: 3.1.1
 
   esbuild@0.19.11:
@@ -17015,6 +17027,8 @@ snapshots:
       functions-have-names: 1.2.3
 
   functions-have-names@1.2.3: {}
+
+  fuzzysort@3.0.2: {}
 
   gensync@1.0.0-beta.2: {}
 

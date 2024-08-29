@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { go as fuzzy } from 'fuzzysort'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
@@ -14,6 +15,7 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconClose,
+  IconListFilter,
   IconSearch
 } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
@@ -27,7 +29,11 @@ import {
   TableRow
 } from '@/components/ui/table'
 import LoadingWrapper from '@/components/loading-wrapper'
-
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '@/components/ui/popover'
 import { JobInfoView } from '../../components/job-trigger'
 import { triggerJobRunMutation } from '../../query'
 
@@ -95,6 +101,7 @@ export default function PresetDocument() {
   const [list, setList] = useState<ListItem[] | undefined>()
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set())
   const inputRef = useRef<HTMLInputElement>(null)
+  const [filterOpen, setFilterOpen] = useState(false)
   const [{ data, stale }] = useQuery({
     query: listPresetWebDocuments
   })
@@ -131,7 +138,7 @@ export default function PresetDocument() {
           })
         )
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   const triggerJobRun = useMutation(triggerJobRunMutation)
@@ -218,13 +225,25 @@ export default function PresetDocument() {
     setList(data?.presetWebDocuments?.edges)
   }, [data])
 
+  const onInputKeyDown = (
+    event: React.KeyboardEvent<HTMLInputElement>
+  ): void => {
+    if (
+      event.key === 'Enter' &&
+      !event.nativeEvent.isComposing
+    ) {
+      // set popover hide
+      setFilterOpen(false)
+    }
+  }
+
   const filteredList = useMemo(() => {
-    if (!debouncedFilterPattern) return list
-    return (
-      list?.filter(item =>
-        item.node.name.toLowerCase().includes(debouncedFilterPattern)
-      ) ?? []
-    )
+    if (!debouncedFilterPattern || !list?.length) return list ?? []
+
+    const result = fuzzy(debouncedFilterPattern, list, {
+      key: item => item.node.name
+    })
+    return result.map(o => o.obj)
   }, [debouncedFilterPattern, list])
 
   const currentList = useMemo(() => {
@@ -242,36 +261,54 @@ export default function PresetDocument() {
 
   return (
     <>
-      <div className="mb-4 flex items-center gap-4">
-        <div className="relative">
-          <IconSearch
-            className="absolute left-3 top-2.5 cursor-text text-muted-foreground"
-            onClick={() => inputRef.current?.focus()}
-          />
-          <Input
-            className="w-50 px-8"
-            value={filterPattern}
-            onChange={e => setFilterPattern(e.target.value)}
-            ref={inputRef}
-            placeholder="Search..."
-          />
-          {filterPattern ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-3 top-1.5 h-6 w-6 cursor-pointer"
-              onClick={clearFilter}
-            >
-              <IconClose />
-            </Button>
-          ) : null}
-        </div>
-      </div>
       <LoadingWrapper loading={!data || stale}>
         <Table className="table-fixed border-b">
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
+              <TableHead className='flex items-center gap-1.5'>
+                Name
+                <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+                  <PopoverTrigger asChild>
+                    <Button size='icon' variant='ghost' className='relative'>
+                      <IconListFilter />
+                      {!!debouncedFilterPattern && (
+                        <div className='w-1.5 h-1.5 rounded-full bg-red-400 absolute right-0 top-1'></div>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align='end'
+                    side='right'
+                    className='p-1'
+                  >
+                    <div className="relative">
+                      <IconSearch
+                        className="absolute left-3 top-2.5 cursor-text text-muted-foreground"
+                        onClick={() => inputRef.current?.focus()}
+                      />
+                      <Input
+                        size={30}
+                        className='w-48 px-8'
+                        value={filterPattern}
+                        onChange={e => setFilterPattern(e.target.value)}
+                        ref={inputRef}
+                        placeholder="Search..."
+                        onKeyDown={onInputKeyDown}
+                      />
+                      {filterPattern ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-3 top-1.5 h-6 w-6 cursor-pointer"
+                          onClick={clearFilter}
+                        >
+                          <IconClose />
+                        </Button>
+                      ) : null}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </TableHead>
               <TableHead className="w-[100px] lg:w-[200px]">Job</TableHead>
               <TableHead className="w-[100px] text-right">Enabled</TableHead>
             </TableRow>
