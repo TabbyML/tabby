@@ -22,6 +22,7 @@ use tabby_schema::{
     job::JobService,
     repository::{GitRepositoryService, RepositoryService, ThirdPartyRepositoryService},
     web_crawler::WebCrawlerService,
+    web_documents::WebDocumentService,
 };
 use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::{debug, warn};
@@ -64,6 +65,7 @@ pub async fn start(
     integration_service: Arc<dyn IntegrationService>,
     repository_service: Arc<dyn RepositoryService>,
     web_crawler_service: Arc<dyn WebCrawlerService>,
+    web_document_service: Arc<dyn WebDocumentService>,
     embedding: Arc<dyn Embedding>,
 ) {
     let mut hourly =
@@ -110,7 +112,7 @@ pub async fn start(
                         }
                         BackgroundJobEvent::IndexGarbageCollection => {
                             let job = IndexGarbageCollection;
-                            job.run(repository_service.clone(), web_crawler_service.clone()).await
+                            job.run(repository_service.clone(), web_crawler_service.clone(), web_document_service.clone()).await
                         }
                     } {
                         logkit::info!(exit_code = 1; "Job failed {}", err);
@@ -137,7 +139,7 @@ pub async fn start(
                         warn!("Index issues job failed: {err:?}");
                     }
 
-                    if let Err(err) = IndexGarbageCollection.run(repository_service.clone(), web_crawler_service.clone()).await {
+                    if let Err(err) = IndexGarbageCollection.run(repository_service.clone(), web_crawler_service.clone(), web_document_service.clone()).await {
                         warn!("Index garbage collection job failed: {err:?}");
                     }
 
