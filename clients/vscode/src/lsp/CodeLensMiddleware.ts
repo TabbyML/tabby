@@ -33,7 +33,6 @@ const decorationTypeComments = window.createTextEditorDecorationType({
 });
 const decorationTypeUnchanged = window.createTextEditorDecorationType({});
 const decorationTypePending = window.createTextEditorDecorationType({
-  backgroundColor: new ThemeColor("editorInlayHint.background"),
   isWholeLine: true,
   rangeBehavior: DecorationRangeBehavior.ClosedClosed,
 });
