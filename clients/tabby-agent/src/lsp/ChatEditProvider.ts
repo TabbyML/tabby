@@ -320,7 +320,7 @@ export class ChatEditProvider {
               },
             ],
           },
-        }
+        };
       }
 
       await this.applyWorkspaceEdit({
@@ -332,11 +332,11 @@ export class ChatEditProvider {
       });
 
       if (fullUpdate) {
-      edit.editedRange = {
-        start: { line: edit.editedRange.start.line, character: 0 },
-        end: { line: edit.editedRange.start.line + editedLines.length, character: 0 },
-      };
-    }
+        edit.editedRange = {
+          start: { line: edit.editedRange.start.line, character: 0 },
+          end: { line: edit.editedRange.start.line + editedLines.length, character: 0 },
+        };
+      }
     };
 
     const processBuffer = (edit: Edit, inTag: "document" | "comment", openTag: string, closeTag: string) => {
