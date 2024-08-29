@@ -89,6 +89,7 @@ impl Webserver {
             integration.clone(),
             repository.clone(),
             web_crawler.clone(),
+            web_documents.clone(),
             embedding,
         )
         .await;
