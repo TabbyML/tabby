@@ -203,7 +203,8 @@ export class CodeLensProvider {
             default:
               break;
           }
-          if (codeLens) {
+          const showProgressOnly = previewBlockMarkers.includes(".");
+          if (codeLens && (showProgressOnly ? marker === "." : true)) {
             codeLenses.push(codeLens);
           }
         }

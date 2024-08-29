@@ -294,16 +294,34 @@ export class ChatEditProvider {
       }
 
       const editedLines = this.generateChangesPreview(edit);
-      const workspaceEdit: WorkspaceEdit = {
-        changes: {
-          [edit.location.uri]: [
-            {
-              range: edit.editedRange,
-              newText: editedLines.join("\n") + "\n",
-            },
-          ],
-        },
-      };
+      const fullUpdate = isFirst || this.currentEdit?.state == "completed";
+      let workspaceEdit: WorkspaceEdit;
+      if (fullUpdate) {
+        workspaceEdit = {
+          changes: {
+            [edit.location.uri]: [
+              {
+                range: edit.editedRange,
+                newText: editedLines.join("\n") + "\n",
+              },
+            ],
+          },
+        };
+      } else {
+        workspaceEdit = {
+          changes: {
+            [edit.location.uri]: [
+              {
+                range: {
+                  start: { line: edit.editedRange.end.line - 1, character: 0 },
+                  end: { line: edit.editedRange.end.line, character: 0 },
+                },
+                newText: editedLines[editedLines.length - 1]! + "\n",
+              },
+            ],
+          },
+        }
+      }
 
       await this.applyWorkspaceEdit({
         edit: workspaceEdit,
@@ -313,10 +331,12 @@ export class ChatEditProvider {
         },
       });
 
+      if (fullUpdate) {
       edit.editedRange = {
         start: { line: edit.editedRange.start.line, character: 0 },
         end: { line: edit.editedRange.start.line + editedLines.length, character: 0 },
       };
+    }
     };
 
     const processBuffer = (edit: Edit, inTag: "document" | "comment", openTag: string, closeTag: string) => {
