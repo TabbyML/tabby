@@ -26,7 +26,8 @@
   "types": "./dist/protocol.d.ts",
   "scripts": {
     "build": "tsup --minify",
-    "watch": "tsup --watch",
+    "watch": "tsup --watch --onSuccess \"echo '' >> dist/protocol.d.ts\"",
+    "vscode:dev": "pnpm watch",
     "openapi-codegen": "openapi-typescript ./openapi/tabby.json -o ./src/types/tabbyApi.d.ts",
     "test": "mocha",
     "lint": "eslint --ext .ts ./src && prettier --check .",
