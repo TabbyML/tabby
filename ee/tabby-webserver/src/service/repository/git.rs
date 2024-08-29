@@ -126,7 +126,7 @@ impl RepositoryProvider for GitRepositoryServiceImpl {
 
 fn to_git_repository(repo: RepositoryDAO, job_info: JobInfo) -> GitRepository {
     let source_id = GitRepository::format_source_id(&repo.id.as_id());
-    let dir = RepositoryConfig::resolve_dir(&source_id);
+    let dir = RepositoryConfig::generate_absolute_path(&source_id);
     GitRepository {
         id: repo.id.as_id(),
         name: repo.name,

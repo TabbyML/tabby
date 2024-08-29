@@ -204,7 +204,7 @@ fn to_sub_match(m: tabby_git::GrepSubMatch) -> tabby_schema::repository::GrepSub
 }
 
 fn list_refs(git_url: &str) -> Vec<tabby_git::GitReference> {
-    let dir = RepositoryConfig::resolve_dir(git_url);
+    let dir = RepositoryConfig::resolve_dir(git_url, git_url);
     tabby_git::list_refs(&dir).unwrap_or_default()
 }
 
@@ -214,7 +214,7 @@ fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
         id: repo.id,
         name: repo.display_name,
         kind,
-        dir: RepositoryConfig::resolve_dir(&repo.git_url),
+        dir: RepositoryConfig::resolve_dir(&repo.git_url, &repo.git_url),
         git_url: RepositoryConfig::canonicalize_url(&repo.git_url),
         refs: list_refs(&repo.git_url)
             .into_iter()
@@ -228,7 +228,7 @@ fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
 
 fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> Result<Repository> {
     let source_id = config_index_to_id(index);
-    let dir = RepositoryConfig::get_dir(config.git_url(), &source_id);
+    let dir = RepositoryConfig::resolve_dir(config.git_url(), &source_id);
     Ok(Repository {
         id: ID::new(source_id.clone()),
         source_id,

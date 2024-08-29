@@ -64,7 +64,7 @@ impl From<GitRepository> for Repository {
     fn from(value: GitRepository) -> Self {
         let source_id = value.source_id();
         Self {
-            dir: RepositoryConfig::resolve_dir(&source_id),
+            dir: RepositoryConfig::generate_absolute_path(&source_id),
             source_id,
             id: value.id,
             name: value.name,

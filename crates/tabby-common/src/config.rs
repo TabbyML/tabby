@@ -1,4 +1,4 @@
-use std::{collections::HashSet, path::PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
@@ -8,11 +8,7 @@ use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
-use crate::{
-    api::code::CodeSearchParams,
-    path::repositories_dir,
-    terminal::{HeaderFormat, InfoMessage},
-};
+use crate::{api::code::CodeSearchParams, path::repositories_dir};
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct Config {
@@ -42,45 +38,14 @@ impl Config {
             );
             return Ok(Default::default());
         }
-        let mut cfg: Self = serdeconv::from_toml_file(cfg_path.as_path())
-            .context(format!("Config file '{}' is not valid", cfg_path.display()))?;
-
-        if let Err(e) = cfg.validate_dirs() {
-            cfg = Default::default();
-            InfoMessage::new(
-                "Parsing config failed",
-                HeaderFormat::BoldRed,
-                &[
-                    &format!(
-                        "Warning: Could not parse the Tabby configuration at {}",
-                        crate::path::config_file().as_path().to_string_lossy()
-                    ),
-                    &format!("Reason: {e}"),
-                    "Falling back to default config, please resolve the errors and restart Tabby",
-                ],
-            )
-            .print();
-        }
-
-        Ok(cfg)
+        serdeconv::from_toml_file(cfg_path.as_path())
+            .context(format!("Config file '{}' is not valid", cfg_path.display()))
     }
 
     #[cfg(feature = "testutils")]
     pub fn save(&self) {
         serdeconv::to_toml_file(self, crate::path::config_file().as_path())
             .expect("Failed to write config file");
-    }
-
-    fn validate_dirs(&self) -> Result<()> {
-        let mut dirs = HashSet::new();
-        for (i, repo) in self.repositories.iter().enumerate() {
-            let source_id = config_index_to_id(i);
-            let dir = repo.dir(&source_id).display().to_string();
-            if !dirs.insert(dir.clone()) {
-                return Err(anyhow!("Duplicate directory in `repositories`: {}", dir));
-            }
-        }
-        Ok(())
     }
 }
 
@@ -130,29 +95,24 @@ impl RepositoryConfig {
     }
 
     pub fn dir(&self, source_id: &str) -> PathBuf {
-        Self::get_dir(&self.git_url, source_id)
-    }
-
-    pub fn get_dir(git_url: &str, source_id: &str) -> PathBuf {
-        if Self::resolve_is_local_dir(git_url) {
-            let path = git_url.strip_prefix("file://").unwrap();
-            path.into()
-        } else {
-            repositories_dir().join(Self::resolve_dir_name(source_id))
-        }
+        Self::resolve_dir(&self.git_url, source_id)
     }
 
     pub fn display_name(&self) -> String {
         Self::resolve_dir_name(&self.git_url)
     }
 
-    pub fn resolve_dir(git_url: &str) -> PathBuf {
+    pub fn resolve_dir(git_url: &str, dir_name: &str) -> PathBuf {
         if Self::resolve_is_local_dir(git_url) {
             let path = git_url.strip_prefix("file://").unwrap();
             path.into()
         } else {
-            repositories_dir().join(Self::resolve_dir_name(git_url))
+            Self::generate_absolute_path(dir_name)
         }
+    }
+
+    pub fn generate_absolute_path(dir_name: &str) -> PathBuf {
+        repositories_dir().join(Self::resolve_dir_name(dir_name))
     }
 
     pub fn resolve_dir_name(git_url: &str) -> String {
@@ -353,7 +313,7 @@ impl CodeRepository {
     }
 
     pub fn dir(&self) -> PathBuf {
-        RepositoryConfig::resolve_dir(&self.dir)
+        RepositoryConfig::resolve_dir(&self.git_url, &self.source_id)
     }
 
     pub fn dir_name(&self) -> String {
