@@ -272,7 +272,10 @@ export class ChatEditProvider {
           changes: {
             [edit.location.uri]: [
               {
-                range: edit.editedRange,
+                range: {
+                  start: { line: edit.editedRange.start.line, character: 0 },
+                  end: { line: edit.editedRange.start.line, character: 0 },
+                },
                 newText: `<<<<<<< ${edit.id}\n`,
               },
             ],
@@ -289,7 +292,7 @@ export class ChatEditProvider {
 
         edit.editedRange = {
           start: { line: edit.editedRange.start.line + 1, character: 0 },
-          end: { line: edit.editedRange.start.line + 1, character: 0 },
+          end: { line: edit.editedRange.end.line + 1, character: 0 },
         };
       }
 
