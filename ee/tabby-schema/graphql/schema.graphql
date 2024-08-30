@@ -477,6 +477,7 @@ type MessageEdge {
 type Mutation {
   resetRegistrationToken: String!
   requestInvitationEmail(input: RequestInvitationInput!): Invitation!
+  generateResetPasswordUrl(userId: ID!): String!
   requestPasswordResetEmail(input: RequestPasswordResetEmailInput!): Boolean!
   passwordReset(input: PasswordResetInput!): Boolean!
   passwordChange(input: PasswordChangeInput!): Boolean!

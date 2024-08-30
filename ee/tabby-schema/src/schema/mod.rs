@@ -659,12 +659,12 @@ impl Mutation {
         ctx.locator.auth().request_invitation_email(input).await
     }
 
-    async fn generate_reset_password_url(
-        ctx: &Context,
-        user_id: ID,
-    ) -> Result<String> {
+    async fn generate_reset_password_url(ctx: &Context, user_id: ID) -> Result<String> {
         check_admin(ctx).await?;
-        ctx.locator.auth().generate_reset_password_url(&user_id).await
+        ctx.locator
+            .auth()
+            .generate_reset_password_url(&user_id)
+            .await
     }
 
     async fn request_password_reset_email(

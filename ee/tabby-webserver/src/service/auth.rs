@@ -1629,28 +1629,50 @@ mod tests {
     #[serial]
     async fn test_generate_reset_password_url() {
         let (service, _smtp) = test_authentication_service_with_mail().await;
-    
+
         // Create an active user
         let _id = service
             .db
-            .create_user("active_user@example.com".into(), Some("pass".into()), false, None)
+            .create_user(
+                "active_user@example.com".into(),
+                Some("pass".into()),
+                false,
+                None,
+            )
             .await
             .unwrap();
-        let active_user = service.get_user_by_email("active_user@example.com").await.unwrap();
-    
+        let active_user = service
+            .get_user_by_email("active_user@example.com")
+            .await
+            .unwrap();
+
         // Test generating reset URL for an active user
-        let url = service.generate_reset_password_url(&active_user.id).await.unwrap();
+        let url = service
+            .generate_reset_password_url(&active_user.id)
+            .await
+            .unwrap();
         assert!(url.contains("/reset-password?code="));
-    
+
         // Create an inactive user
         let id = service
             .db
-            .create_user("inactive_user@example.com".into(), Some("pass".into()), false, None)
+            .create_user(
+                "inactive_user@example.com".into(),
+                Some("pass".into()),
+                false,
+                None,
+            )
             .await
             .unwrap();
-        service.update_user_active(&id.as_id(), false).await.unwrap();
-        let inactive_user = service.get_user_by_email("inactive_user@example.com").await.unwrap();
-    
+        service
+            .update_user_active(&id.as_id(), false)
+            .await
+            .unwrap();
+        let inactive_user = service
+            .get_user_by_email("inactive_user@example.com")
+            .await
+            .unwrap();
+
         // Test generating reset URL for an inactive user
         let result = service.generate_reset_password_url(&inactive_user.id).await;
         assert!(result.is_err());
