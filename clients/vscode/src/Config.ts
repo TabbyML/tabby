@@ -18,7 +18,12 @@ export class Config extends EventEmitter {
     super();
     context.subscriptions.push(
       workspace.onDidChangeConfiguration(async (event) => {
-        if (event.affectsConfiguration("tabby")) {
+        if (
+          event.affectsConfiguration("tabby") ||
+          event.affectsConfiguration("http.proxy") ||
+          event.affectsConfiguration("https.proxy") ||
+          event.affectsConfiguration("http.proxyAuthorization")
+        ) {
           this.emit("updated");
         }
       }),
@@ -145,8 +150,47 @@ export class Config extends EventEmitter {
     this.serverEndpoint = config.endpoint;
   }
 
+  get httpConfig() {
+    return workspace.getConfiguration("http");
+  }
+
+  get authorization() {
+    return this.httpConfig.get("authorization", "");
+  }
+
+  set authorization(value: string) {
+    if (value !== this.authorization) {
+      this.httpConfig.update("authorization", value);
+    }
+  }
+
+  get url() {
+    const https = workspace.getConfiguration("https");
+    const httpsProxy = https.get("proxy", "");
+    const httpProxy = this.httpConfig.get("proxy", "");
+
+    return httpsProxy || httpProxy;
+  }
+
+  set url(value: string) {
+    if (value !== this.url) {
+      const isHTTPS = value.includes("https");
+      if (isHTTPS) {
+        workspace.getConfiguration("https").update("proxy", value);
+      } else {
+        this.httpConfig.update("proxy", value);
+      }
+    }
+  }
+
   buildClientProvidedConfig(): ClientProvidedConfig {
     return {
+      // Note: current we only support http.proxy | http.authorization
+      // More properties we will land later.
+      proxy: {
+        url: this.url,
+        authorization: this.authorization,
+      },
       server: {
         endpoint: this.serverEndpoint,
         token: this.serverToken,
