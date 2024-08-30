@@ -1,8 +1,10 @@
-## 1.11.0 (Pre-release)
+## 1.11.1 (Pre-release)
 
 ### Fixes & Improvements
 
 - Polished inline-editing experience with line-by-line streaming.
+- Display "Edit with Tabby" in the quickfix menu.
+- Support vscode proxy settings.
 
 ## 1.10.0
 
