@@ -90,7 +90,7 @@ type ListItem = ArrayElementType<
 
 export default function PresetDocument() {
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(5)
+  const [pageSize, setPageSize] = useState(8);
   const [filterPattern, setFilterPattern] = useState<string | undefined>()
   const [debouncedFilterPattern] = useDebounceValue(filterPattern, 200)
   const [list, setList] = useState<ListItem[] | undefined>()
@@ -351,7 +351,6 @@ export default function PresetDocument() {
           page={page}
           pageSize={pageSize}
           showQuickJumper
-          showSizeChanger
           totalCount={filteredList?.length ?? 0}
           onChange={(page: number, pageSize: number) => {
             setPage(page)

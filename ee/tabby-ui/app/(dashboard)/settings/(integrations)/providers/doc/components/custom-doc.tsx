@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { CustomWebDocumentsQuery } from '@/lib/gql/generates/graphql'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
@@ -15,6 +14,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import {
   IconClose,
   IconListFilter,
+  IconPlus,
   IconSearch,
   IconTrash
 } from '@/components/ui/icons'
@@ -91,11 +91,9 @@ type ListItem = ArrayElementType<
   CustomWebDocumentsQuery['customWebDocuments']['edges']
 >
 
-const PAGE_SIZE = DEFAULT_PAGE_SIZE
-
 export default function CustomDocument() {
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(PAGE_SIZE)
+  const [pageSize, setPageSize] = useState(8)
   const [filterPattern, setFilterPattern] = useState<string | undefined>()
   const [debouncedFilterPattern] = useDebounceValue(filterPattern, 200)
   const [list, setList] = useState<ListItem[] | undefined>()
@@ -160,7 +158,7 @@ export default function CustomDocument() {
           })
         )
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   const triggerJobRun = useMutation(triggerJobRunMutation)
@@ -210,11 +208,6 @@ export default function CustomDocument() {
 
   return (
     <>
-      <div className="mb-1 flex justify-end">
-        <Link href={`./doc/new`} className={buttonVariants()}>
-          Create
-        </Link>
-      </div>
       <LoadingWrapper loading={fetching || stale}>
         <Table className="table-fixed border-b">
           <TableHeader>
@@ -262,6 +255,11 @@ export default function CustomDocument() {
                     </div>
                   </PopoverContent>
                 </Popover>
+                <div>
+                  <Link href={`./doc/new`} className={buttonVariants({ size: "icon", variant: "ghost" })}>
+                    <IconPlus />
+                  </Link>
+                </div>
               </TableHead>
               <TableHead>URL</TableHead>
               <TableHead className="w-[100px] lg:w-[200px]">Job</TableHead>
@@ -320,7 +318,6 @@ export default function CustomDocument() {
           page={page}
           pageSize={pageSize}
           showQuickJumper
-          showSizeChanger
           totalCount={filteredList?.length ?? 0}
           onChange={(page: number, pageSize: number) => {
             setPage(page)
