@@ -1,5 +1,6 @@
 import React from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import moment from 'moment'
 
 import { cn } from '@/lib/utils'
@@ -31,10 +32,22 @@ interface JobInfoProps {
 
 function JobTrigger({
   onTrigger,
-  isPending
-}: Pick<JobInfoProps, 'onTrigger'> & { isPending?: boolean }) {
+  isPending,
+  jobLink
+}: Pick<JobInfoProps, 'onTrigger'> & {
+  isPending?: boolean
+  jobLink?: string
+}) {
+  const router = useRouter()
   const [loading, setLoading] = React.useState(false)
-  const handleTrigger = () => {
+  const handleClick = () => {
+    if (isPending) {
+      if (jobLink) {
+        router.push(jobLink)
+      }
+      return
+    }
+
     const res = onTrigger()
 
     if (res && res instanceof Promise) {
@@ -51,8 +64,8 @@ function JobTrigger({
         <Button
           size="icon"
           variant="ghost"
-          onClick={handleTrigger}
-          disabled={loading || isPending}
+          onClick={handleClick}
+          disabled={loading}
         >
           {loading || isPending ? (
             <IconSpinner />
@@ -68,13 +81,19 @@ function JobTrigger({
   )
 }
 
-function LastJobRunInfo({ jobInfo }: Pick<JobInfoProps, 'jobInfo'>) {
+function LastJobRunInfo({
+  jobInfo,
+  className
+}: Pick<JobInfoProps, 'jobInfo'> & { className?: string }) {
   if (!jobInfo?.lastJobRun) return null
 
   return (
     <Link
       href={`/jobs/detail?id=${jobInfo.lastJobRun.id}`}
-      className="flex items-center gap-1 underline hover:text-foreground/50"
+      className={cn(
+        'flex items-center gap-1 underline hover:text-foreground/50',
+        className
+      )}
     >
       {moment(jobInfo.lastJobRun.createdAt).format('YYYY-MM-DD HH:mm')}
     </Link>
@@ -85,13 +104,18 @@ export function JobInfoView(props: JobInfoProps) {
   const { jobInfo, onTrigger, className } = props
   const isJobPending =
     !!jobInfo?.lastJobRun && jobInfo.lastJobRun.exitCode === null
+  const jobLink = jobInfo?.lastJobRun?.id
+    ? `/jobs/detail?id=${jobInfo.lastJobRun.id}`
+    : undefined
 
   return (
-    <div
-      className={cn('flex flex-col items-center gap-1 lg:flex-row', className)}
-    >
-      <LastJobRunInfo jobInfo={jobInfo} />
-      <JobTrigger onTrigger={onTrigger} isPending={isJobPending} />
+    <div className={cn('flex items-center gap-1', className)}>
+      <LastJobRunInfo jobInfo={jobInfo} className="hidden lg:block" />
+      <JobTrigger
+        onTrigger={onTrigger}
+        isPending={isJobPending}
+        jobLink={jobLink}
+      />
     </div>
   )
 }

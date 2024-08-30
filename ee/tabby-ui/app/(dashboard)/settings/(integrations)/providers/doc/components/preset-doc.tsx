@@ -249,7 +249,7 @@ export default function PresetDocument() {
   return (
     <>
       <LoadingWrapper loading={!data || stale}>
-        <Table className="table-fixed border-b">
+        <Table className="min-w-[300px] table-fixed border-b">
           <TableHeader>
             <TableRow>
               <TableHead className="flex items-center gap-1.5">
@@ -337,6 +337,7 @@ export default function PresetDocument() {
                           onCheckedChange={checked =>
                             onCheckedChange(x.node.id, checked)
                           }
+                          className="my-1"
                         />
                       </TableCell>
                     </TableRow>
