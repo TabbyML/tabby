@@ -249,7 +249,7 @@ export default function PresetDocument() {
   return (
     <>
       <LoadingWrapper loading={!data || stale}>
-        <Table className="table-fixed border-b min-w-[300px]">
+        <Table className="min-w-[300px] table-fixed border-b">
           <TableHeader>
             <TableRow>
               <TableHead className="flex items-center gap-1.5">
