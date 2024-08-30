@@ -46,9 +46,7 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
   const { isCopied, copyToClipboard } = useCopyToClipboard({ timeout: 2000 })
   const isSticky = useIsSticky(containerRef)
 
-  const showChatPanelTrigger =
-    isChatEnabled &&
-    !chatSideBarVisible
+  const showChatPanelTrigger = isChatEnabled && !chatSideBarVisible
 
   const contentLengthText = contentLength ? prettyBytes(contentLength) : ''
 

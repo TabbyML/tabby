@@ -1,8 +1,6 @@
 'use client'
 
-import {
-  useEnableDeveloperMode,
-} from '@/lib/experiment-flags'
+import { useEnableDeveloperMode } from '@/lib/experiment-flags'
 import { Switch } from '@/components/ui/switch'
 
 export default function FeatureList() {

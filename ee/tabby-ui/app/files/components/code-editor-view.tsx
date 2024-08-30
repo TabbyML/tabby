@@ -91,11 +91,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
       }),
       drawSelection()
     ]
-    if (
-      isChatEnabled &&
-      activePath &&
-      basename
-    ) {
+    if (isChatEnabled && activePath && basename) {
       result.push(
         ActionBarWidgetExtension({ language, path: basename, gitUrl })
       )
