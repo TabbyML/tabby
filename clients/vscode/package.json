@@ -439,6 +439,7 @@
   "devDependencies": {
     "@quilted/threads": "^2.2.0",
     "@types/deep-equal": "^1.0.4",
+    "@types/diff": "^5.2.1",
     "@types/mocha": "^10.0.1",
     "@types/node": "18.x",
     "@types/object-hash": "^3.0.0",
@@ -466,5 +467,8 @@
     "tsup": "^8.0.2",
     "typescript": "^5.3.2",
     "vscode-languageclient": "^9.0.1"
+  },
+  "dependencies": {
+    "diff": "^5.2.0"
   }
 }

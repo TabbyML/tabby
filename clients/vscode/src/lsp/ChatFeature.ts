@@ -1,6 +1,15 @@
 import { EventEmitter } from "events";
-import { window, workspace, Range, Position, Disposable, CancellationToken, TextEditorEdit } from "vscode";
-import { BaseLanguageClient, DynamicFeature, FeatureState, RegistrationData } from "vscode-languageclient";
+import {
+  window,
+  workspace,
+  Range,
+  Position,
+  Disposable,
+  CancellationToken,
+  TextEditorEdit,
+  TextDocument,
+} from "vscode";
+import { BaseLanguageClient, DynamicFeature, FeatureState, RegistrationData, TextEdit } from "vscode-languageclient";
 import {
   ServerCapabilities,
   ChatFeatureRegistration,
@@ -18,6 +27,7 @@ import {
   ApplyWorkspaceEditParams,
   ApplyWorkspaceEditRequest,
 } from "tabby-agent";
+import { diffLines } from "diff";
 
 export class ChatFeature extends EventEmitter implements DynamicFeature<unknown> {
   private registration: string | undefined = undefined;
@@ -130,13 +140,18 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
           Object.entries(edit.changes || {}).forEach(([uri, textEdits]) => {
             const document = workspace.textDocuments.find((doc) => doc.uri.toString() === uri);
             if (document && document === activeEditor.document) {
-              textEdits.forEach((textEdit) => {
-                const range = new Range(
-                  new Position(textEdit.range.start.line, textEdit.range.start.character),
-                  new Position(textEdit.range.end.line, textEdit.range.end.character),
-                );
-                editBuilder.replace(range, textEdit.newText);
-              });
+              const textEdit = textEdits[0];
+              if (textEdits.length === 1 && textEdit) {
+                applyTextEditMinimalLineChange(editBuilder, textEdit, document);
+              } else {
+                textEdits.forEach((textEdit) => {
+                  const range = new Range(
+                    new Position(textEdit.range.start.line, textEdit.range.start.character),
+                    new Position(textEdit.range.end.line, textEdit.range.end.character),
+                  );
+                  editBuilder.replace(range, textEdit.newText);
+                });
+              }
             }
           });
         },
@@ -154,5 +169,33 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
 
   async resolveEdit(params: ChatEditResolveParams): Promise<boolean> {
     return this.client.sendRequest(ChatEditResolveRequest.method, params);
+  }
+}
+
+function applyTextEditMinimalLineChange(editBuilder: TextEditorEdit, textEdit: TextEdit, document: TextDocument) {
+  const documentRange = new Range(
+    new Position(textEdit.range.start.line, textEdit.range.start.character),
+    new Position(textEdit.range.end.line, textEdit.range.end.character),
+  );
+
+  const text = document.getText(documentRange);
+  const newText = textEdit.newText;
+  const diffs = diffLines(text, newText);
+
+  let line = documentRange.start.line;
+  for (const diff of diffs) {
+    if (!diff.count) {
+      continue;
+    }
+
+    if (diff.added) {
+      editBuilder.insert(new Position(line, 0), diff.value);
+    } else if (diff.removed) {
+      const range = new Range(new Position(line + 0, 0), new Position(line + diff.count, 0));
+      editBuilder.delete(range);
+      line += diff.count;
+    } else {
+      line += diff.count;
+    }
   }
 }
