@@ -368,6 +368,7 @@ pub trait AuthenticationService: Send + Sync {
 
     async fn reset_user_auth_token(&self, id: &ID) -> Result<()>;
     async fn password_reset(&self, code: &str, password: &str) -> Result<()>;
+    async fn generate_reset_password_url(&self, id: &ID) -> Result<String>;
     async fn request_password_reset_email(&self, email: String) -> Result<Option<JoinHandle<()>>>;
     async fn update_user_password(
         &self,
