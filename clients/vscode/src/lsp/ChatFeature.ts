@@ -1,5 +1,14 @@
 import { EventEmitter } from "events";
-import { window, workspace, Range, Position, Disposable, CancellationToken, TextEditorEdit, TextDocument } from "vscode";
+import {
+  window,
+  workspace,
+  Range,
+  Position,
+  Disposable,
+  CancellationToken,
+  TextEditorEdit,
+  TextDocument,
+} from "vscode";
 import { BaseLanguageClient, DynamicFeature, FeatureState, RegistrationData, TextEdit } from "vscode-languageclient";
 import {
   ServerCapabilities,
@@ -176,17 +185,14 @@ function applyTextEditMinimalLineChange(editBuilder: TextEditorEdit, textEdit: T
   let line = documentRange.start.line;
   for (const diff of diffs) {
     if (!diff.count) {
-      continue
+      continue;
     }
 
     if (diff.added) {
       editBuilder.insert(new Position(line, 0), diff.value);
     } else if (diff.removed) {
-      const range = new Range(
-        new Position(line + 0, 0),
-        new Position(line + diff.count, 0),
-      );
-      editBuilder.delete(range)
+      const range = new Range(new Position(line + 0, 0), new Position(line + diff.count, 0));
+      editBuilder.delete(range);
       line += diff.count;
     } else {
       line += diff.count;
