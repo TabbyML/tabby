@@ -13,7 +13,7 @@ pub use oauth_credential::OAuthCredentialDAO;
 pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
-use sqlx::{query, query_scalar, sqlite::{SqliteQueryResult, SqliteRow}, Column, Pool, Row, Sqlite, SqlitePool};
+use sqlx::{query, query_scalar, sqlite::{SqliteQueryResult, SqliteRow}, Acquire, Column, Pool, Row, Sqlite, SqlitePool};
 pub use threads::{
     ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
     ThreadMessageAttachmentDoc, ThreadMessageDAO,
@@ -173,19 +173,17 @@ impl DbConn {
 
     /// Initialize database, create tables and insert first token if not exist
     async fn init_db(pool: SqlitePool) -> Result<Self> {
-        
+        use sqlx::migrate::Migrate;
         let local_migrations = sqlx::migrate!();
-        let mut applied_migrations = sqlx::query("SELECT version FROM _sqlx_migrations")
-        .fetch_all(&pool)
-        .await?.into_iter();
+        let applied_migrations = pool.acquire().await?.acquire().await?.list_applied_migrations().await?;
+
 
         let should_confirm = if local_migrations.iter().len() / 2 != applied_migrations.len() {
             true
         } else {
-            local_migrations.iter().any(|migration| {
-                !applied_migrations.any(|row| {
-                    let version: i64 = row.get(0);
-                    version == migration.version
+            local_migrations.iter().any(|local_migration| {
+                !applied_migrations.iter().any(|db_migration| {
+                    db_migration.version == local_migration.version
                 })
             })
         };
