@@ -1,5 +1,5 @@
 .dropdown-menu {
-  background: var(--popover);
+  /* background: var(--popover);
   border: 1px solid var(--gray-1);
   border-radius: 0.7rem;
   box-shadow: var(--shadow);
@@ -7,9 +7,8 @@
   flex-direction: column;
   gap: 0.1rem;
   overflow: auto;
-  padding: 0.4rem;
-  position: relative;
-
+  padding: 0.4rem; */
+  /* position: relative; */
   
 }
 

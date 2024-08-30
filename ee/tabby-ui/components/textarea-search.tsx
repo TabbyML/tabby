@@ -33,9 +33,9 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 
+import { PromptEditor } from './prompt-editor'
 import { buttonVariants } from './ui/button'
 import { IconArrowRight, IconCheck, IconCode, IconSpinner } from './ui/icons'
-import { PromptEditor } from './prompt-editor'
 
 export default function TextAreaSearch({
   onSearch,
@@ -182,7 +182,7 @@ export default function TextAreaSearch({
         minRows={isFollowup ? 1 : 2}
         ref={textareaRef}
       /> */}
-      <PromptEditor />
+      <PromptEditor editable />
       <div
         className={cn('flex items-center justify-between gap-2', {
           'pb-2': showRepoSelect
