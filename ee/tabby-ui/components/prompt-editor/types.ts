@@ -1,3 +1,5 @@
+import { ContextInfo, ContextSource } from '@/lib/gql/generates/graphql'
+
 export type CategoryOptionItem = {
   type: 'category'
   label: string
@@ -9,6 +11,7 @@ export type SourceOptionItem = {
   label: string
   id: string
   kind: 'doc' | 'code'
+  data: ContextSource
 }
 
 export type OptionItem = CategoryOptionItem | SourceOptionItem

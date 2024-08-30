@@ -329,3 +329,17 @@ export const repositorySearch = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const contextInfoQuery = graphql(/* GraphQL */ `
+  query ContextInfo {
+    contextInfo {
+      sources {
+        id
+        kind
+        sourceId
+        displayName
+      }
+      canSearchPublic
+    }
+  }
+`)

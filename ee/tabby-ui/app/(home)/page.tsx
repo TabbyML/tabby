@@ -40,6 +40,9 @@ import Stats from './components/stats'
 
 import 'aos/dist/aos.css'
 
+import { useQuery } from 'urql'
+
+import { contextInfoQuery } from '@/lib/tabby/query'
 import { AnswerEngineExtraContext } from '@/lib/types'
 import { Separator } from '@/components/ui/separator'
 import { PromptEditor } from '@/components/prompt-editor'
@@ -59,6 +62,9 @@ function MainPanel() {
   const elementRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
+    query: contextInfoQuery
+  })
 
   // Initialize the page's entry animation
   useEffect(() => {
@@ -152,6 +158,8 @@ function MainPanel() {
                 loadingWithSpinning
                 isLoading={isLoading}
                 cleanAfterSearch={false}
+                contextInfo={contextInfoData?.contextInfo}
+                fetchingContextInfo={fetchingContextInfo}
               />
             </div>
           )}

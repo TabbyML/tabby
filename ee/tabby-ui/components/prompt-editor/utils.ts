@@ -1,8 +1,16 @@
 import { Editor, JSONContent } from '@tiptap/react'
 
+import { ContextKind, ContextSource } from '@/lib/gql/generates/graphql'
+
 export type MentionDataItem = {
   id: string
   start: number
+}
+
+export const isRepositorySource = (kind: ContextKind) => {
+  return [ContextKind.Git, ContextKind.Github, ContextKind.Gitlab].includes(
+    kind
+  )
 }
 
 export const getMentionsWithIndices = (editor: Editor) => {
@@ -33,4 +41,16 @@ export const getMentionsWithIndices = (editor: Editor) => {
 
   traverse(json)
   return mentions
+}
+
+export const generateMentionId = (source: ContextSource) => {
+  return `${source.kind}__${source.sourceId}`
+}
+
+export const getInfoFromMentionId = (mentionId: string) => {
+  const [kind, sourceId] = mentionId.split('__')
+  return {
+    kind: kind as ContextKind,
+    sourceId
+  }
 }

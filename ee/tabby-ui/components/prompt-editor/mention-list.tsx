@@ -1,5 +1,3 @@
-import './mention-list.css'
-
 import React, {
   forwardRef,
   useContext,
@@ -15,17 +13,23 @@ import {
 } from '@tiptap/extension-mention/dist/packages/suggestion/src/index.d'
 import { go as fuzzy } from 'fuzzysort'
 
+import { ContextKind } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
 
 import { MentionContext } from '.'
-import { IconFileText, IconGitFork, IconSpinner } from '../ui/icons'
-import { CategoryOptionItem, OptionItem } from './types'
-import { getMentionsWithIndices } from './utils'
+import { IconCode, IconFileText, IconSpinner } from '../ui/icons'
+import { CategoryOptionItem, OptionItem, SourceOptionItem } from './types'
+import {
+  generateMentionId,
+  getInfoFromMentionId,
+  getMentionsWithIndices,
+  isRepositorySource
+} from './utils'
 
-interface MetionListProps extends SuggestionProps {}
+export interface MetionListProps extends SuggestionProps {}
 
-interface MentionListActions {
-  onKeyDown: (props: SuggestionKeyDownProps) => void
+export interface MentionListActions {
+  onKeyDown: (props: SuggestionKeyDownProps) => boolean
 }
 
 const CATEGORY_OPTIONS: CategoryOptionItem[] = [
@@ -42,16 +46,18 @@ const CATEGORY_OPTIONS: CategoryOptionItem[] = [
 ]
 
 const MetionList = forwardRef<MentionListActions, MetionListProps>(
-  ({ query, command, editor, items }, ref) => {
+  ({ query, command, editor }, ref) => {
     const { list, pending } = useContext(MentionContext)
 
+    // FIXME: should be passed from parent
     const json = editor.getJSON()
     const hasSelectedRepo = useMemo(() => {
-      // FIXME walk tree?
       const mentions = getMentionsWithIndices(editor)
       return (
-        mentions?.findIndex(o => o?.id === 'tabbyCode' || o?.id === 'react') !==
-        -1
+        mentions?.findIndex(o => {
+          const { kind } = getInfoFromMentionId(o.id)
+          return isRepositorySource(kind)
+        }) !== -1
       )
     }, [json])
 
@@ -64,12 +70,33 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
           ? CATEGORY_OPTIONS.filter(o => o.kind !== 'code')
           : CATEGORY_OPTIONS
       }
-      if (!kind || !list) {
-        return list ?? []
+      if (!list?.length) {
+        return []
       }
 
-      const docSources = list.filter(o => o.kind === 'doc')
-      const codeSources = list.filter(o => o.kind === 'code')
+      const docSources: SourceOptionItem[] = list
+        .filter(o => o.kind === ContextKind.Doc)
+        .map(item => ({
+          type: 'source',
+          kind: 'doc',
+          id: generateMentionId(item),
+          label: item.displayName,
+          data: item
+        }))
+      const codeSources: SourceOptionItem[] = list
+        .filter(o => isRepositorySource(o.kind))
+        .map(item => ({
+          type: 'source',
+          kind: 'code',
+          id: generateMentionId(item),
+          label: item.displayName,
+          data: item
+        }))
+
+      if (!kind) {
+        return hasSelectedRepo ? docSources : [...docSources, ...codeSources]
+      }
+
       return kind === 'doc' ? docSources : hasSelectedRepo ? [] : codeSources
     }, [kind, list, query, hasSelectedRepo])
 
@@ -83,11 +110,13 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
     }, [query, options])
 
     const upHandler = () => {
-      setSelectedIndex((selectedIndex + options.length - 1) % options.length)
+      setSelectedIndex(
+        (selectedIndex + filteredList.length - 1) % filteredList.length
+      )
     }
 
     const downHandler = () => {
-      setSelectedIndex((selectedIndex + 1) % options.length)
+      setSelectedIndex((selectedIndex + 1) % filteredList.length)
     }
 
     const onSelectItem = (idx: number) => {
@@ -128,12 +157,12 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
     }))
 
     return (
-      <div className="dropdown-menu min-w-[12rem] overflow-hidden rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in">
+      <div className="dropdown-menu min-w-[20rem] overflow-hidden rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in">
         {filteredList.length ? (
           filteredList.map((item, index) => (
             <div
               className={cn(
-                'cursor-pointer flex items-center gap-1 rounded-md px-2 py-1.5 text-sm',
+                'cursor-pointer flex items-center gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground',
                 {
                   'bg-accent text-accent-foreground': index === selectedIndex
                 }
@@ -142,7 +171,7 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
               onClick={() => onSelectItem(index)}
             >
               <span className="shrink-0">
-                {item.kind === 'code' ? <IconGitFork /> : <IconFileText />}
+                {item.kind === 'code' ? <IconCode /> : <IconFileText />}
               </span>
               {item.label}
             </div>
@@ -152,7 +181,7 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
             <IconSpinner />
           </div>
         ) : (
-          <div className="item">No result</div>
+          <div className="px-2 py-1.5">No result</div>
         )}
       </div>
     )

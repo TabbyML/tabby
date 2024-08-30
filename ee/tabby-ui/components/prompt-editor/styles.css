@@ -1,11 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 .tiptap:first-child {
-    margin-top: 0;
+  @apply mt-0;
 }
 
 .tiptap .mention {
-  background-color: hsl(var(--secondary));
-  border-radius: 0.4rem;
-  box-decoration-break: clone;
-  color: hsl(var(--secondary-foreground));
-  padding: 0.1rem 0.3rem;
+  @apply bg-blue-100 text-blue-600 dark:bg-blue-500 dark:text-blue-100 px-1 py-0.5 rounded-sm;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  @apply text-muted-foreground cursor-text h-0 float-left;
+}
+
+.tiptap .source-mention {
+  @apply bg-[#e8e1d3] dark:bg-[#333333];
 }

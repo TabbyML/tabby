@@ -1,26 +1,20 @@
 import './styles.css'
 
-import React, { useEffect, useState } from 'react'
+import React, { forwardRef, useImperativeHandle, useLayoutEffect } from 'react'
 import Document from '@tiptap/extension-document'
 import HardBreak from '@tiptap/extension-hard-break'
 import Mention from '@tiptap/extension-mention'
 import Paragraph from '@tiptap/extension-paragraph'
 import Placeholder from '@tiptap/extension-placeholder'
 import Text from '@tiptap/extension-text'
-import {
-  Editor,
-  EditorContent,
-  Extension,
-  ReactRenderer,
-  useEditor
-} from '@tiptap/react'
-import tippy, { Instance } from 'tippy.js'
+import { Editor, EditorContent, Extension, useEditor } from '@tiptap/react'
 
+import { ContextInfo, ContextSource } from '@/lib/gql/generates/graphql'
 import { useLatest } from '@/lib/hooks/use-latest'
+import { cn } from '@/lib/utils'
 
-import MentionList from './mention-list'
-import { SourceOptionItem } from './types'
-import { getMentionsWithIndices } from './utils'
+import { CustomMention } from './custom-mention-extension'
+import suggestion from './suggestion'
 
 const DisableEnter = (onSubmit: Function) =>
   Extension.create({
@@ -37,186 +31,138 @@ const DisableEnter = (onSubmit: Function) =>
 interface PromptEditorProps {
   editable: boolean
   content?: string
+  contextInfo?: ContextInfo
+  fetchingContextInfo?: boolean
+  submitting?: boolean
+  onSubmit: (v: string) => void
+  placeholder?: string
+  onBlur?: (e: FocusEvent) => void
+  onFocus?: (e: FocusEvent) => void
+  autoFocus?: boolean
+  className?: string
+}
+
+export interface PromptEditorRef {
+  editor: Editor | null
 }
 
 interface MentionContextValue {
-  list?: SourceOptionItem[]
+  list?: ContextSource[]
   pending: boolean
+  canSearchPublic: boolean
 }
 
 export const MentionContext = React.createContext<MentionContextValue>(
   {} as MentionContextValue
 )
 
-const doc_options: SourceOptionItem[] = [
-  {
-    type: 'source',
-    kind: 'doc',
-    label: 'tabby',
-    id: 'tabbyDoc'
-  },
-  {
-    type: 'source',
-    kind: 'doc',
-    label: 'skypilot',
-    id: 'skypilot'
-  }
-]
-
-const code_options: SourceOptionItem[] = [
-  {
-    type: 'source',
-    kind: 'code',
-    label: 'https://github.com/tabbyml/tabby',
-    id: 'tabbyCode'
-  },
-  {
-    type: 'source',
-    kind: 'code',
-    label: 'https://github.com/facebook/react',
-    id: 'react'
-  }
-]
-
-export const PromptEditor: React.FC<PromptEditorProps> = ({
-  editable,
-  content
-}) => {
-  const [items, setItems] = React.useState<SourceOptionItem[]>([])
-  const [pending, setPending] = useState(true)
-
-  useEffect(() => {
-    setTimeout(() => {
-      setItems([...doc_options, ...code_options])
-      setPending(false)
-    }, 5000)
-  }, [])
-
-  const handleSubmit = useLatest((editor: Editor) => {
-    const text = editor.getText()
-    if (!text) return
-
-    console.log(text)
-    console.log(getMentionsWithIndices(editor))
-    console.log('submit')
-  })
-
-  const onSubmit = (editor: Editor) => {
-    handleSubmit.current(editor)
-  }
-
-  const editor = useEditor({
-    extensions: [
-      Document,
-      Paragraph,
-      Text,
-      HardBreak,
-      Placeholder.configure({
-        placeholder: 'Ask anything...'
-      }),
-      DisableEnter(onSubmit),
-      Mention.configure({
-        HTMLAttributes: {
-          class: 'mention'
-        },
-        suggestion: {
-          render: () => {
-            let component: ReactRenderer
-            let popup: Instance
-
-            return {
-              onStart: props => {
-                component = new ReactRenderer(MentionList, {
-                  props,
-                  editor: props.editor
-                })
-
-                if (!props.clientRect) {
-                  return
-                }
-
-                popup = tippy('body', {
-                  getReferenceClientRect: props.clientRect,
-                  appendTo: () => document.body,
-                  content: component.element,
-                  showOnCreate: true,
-                  interactive: true,
-                  trigger: 'manual',
-                  placement: 'bottom-start'
-                })
-              },
-              onUpdate(props) {
-                // call once query change
-                component.updateProps(props)
-
-                if (!props.clientRect) {
-                  return
-                }
-
-                // FIXME
-                popup[0].setProps({
-                  getReferenceClientRect: props.clientRect
-                })
-              },
-
-              onKeyDown(props) {
-                if (props.event.key === 'Escape') {
-                  // FIXME
-                  popup[0].hide()
-
-                  return true
-                }
-                // FIXME type check
-                return component.ref?.onKeyDown(props)
-              },
-
-              onExit() {
-                popup[0].destroy()
-                component.destroy()
-              }
-            }
-          }
-        }
-      })
-    ],
-    editorProps: {
-      attributes: {
-        class:
-          'prose dark:prose-invert prose-p:my-0 focus:outline-none max-w-none max-h-38 pt-5'
-      },
-      handleDOMEvents: {
-        keydown: (_, event) => {
-          if (event.key === 'Enter' && event.shiftKey) {
-            if (editor) {
-              editor.commands.setHardBreak()
-            }
-            event.preventDefault()
-            return true
-          }
-        }
-      }
+export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
+  (
+    {
+      editable,
+      content,
+      contextInfo,
+      fetchingContextInfo,
+      submitting,
+      onSubmit,
+      placeholder,
+      onBlur,
+      onFocus,
+      autoFocus,
+      className
     },
-    content,
-    editable
-    // onUpdate(props) {
-    //     console.log('upda',props)
-    // },
-  })
+    ref
+  ) => {
+    const doSubmit = useLatest((editor: Editor) => {
+      if (submitting) return
 
-  if (!editor) {
-    return null
+      const text = editor.getText()
+      if (!text) return
+
+      onSubmit?.(text)
+    })
+
+    const handleSubmit = (editor: Editor) => {
+      doSubmit.current(editor)
+    }
+
+    const editor = useEditor({
+      extensions: [
+        Document,
+        Paragraph,
+        Text,
+        HardBreak,
+        Placeholder.configure({
+          placeholder: placeholder || 'Ask anything...'
+        }),
+        DisableEnter(handleSubmit),
+        CustomMention.configure({
+          HTMLAttributes: {
+            class: 'mention'
+          },
+          suggestion
+        })
+      ],
+      editorProps: {
+        attributes: {
+          class: cn(
+            'prose dark:prose-invert prose-p:my-0 focus:outline-none font-sans max-w-none max-h-38 min-h-[5rem]'
+          )
+        },
+        handleDOMEvents: {
+          keydown: (_, event) => {
+            if (event.key === 'Enter' && event.shiftKey) {
+              if (editor) {
+                editor.commands.setHardBreak()
+              }
+              event.preventDefault()
+              return true
+            }
+          }
+        }
+      },
+      content,
+      editable,
+      onBlur(props) {
+        onBlur?.(props?.event)
+      },
+      onFocus(props) {
+        onFocus?.(props?.event)
+      }
+    })
+
+    useImperativeHandle(ref, () => ({
+      editor
+    }))
+
+    useLayoutEffect(() => {
+      if (editor && autoFocus) {
+        editor.commands.focus()
+      }
+    }, [editor])
+
+    if (!editor) {
+      return null
+    }
+
+    return (
+      <MentionContext.Provider
+        value={{
+          list: contextInfo?.sources,
+          // FIXME
+          canSearchPublic: !!contextInfo?.canSearchPublic,
+          pending: !!fetchingContextInfo
+        }}
+      >
+        <div
+          className={cn(
+            'text-area-autosize pr-1 max-h-36 overflow-y-auto',
+            className
+          )}
+        >
+          <EditorContent editor={editor} />
+        </div>
+      </MentionContext.Provider>
+    )
   }
-
-  return (
-    <MentionContext.Provider
-      value={{
-        list: items,
-        pending
-      }}
-    >
-      <div className="text-area-autosize pr-1 max-h-36 overflow-y-auto">
-        <EditorContent editor={editor} />
-      </div>
-    </MentionContext.Provider>
-  )
-}
+)

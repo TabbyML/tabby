@@ -3,11 +3,11 @@
 import { MouseEvent, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { omit } from 'lodash-es'
-import TextareaAutosize from 'react-textarea-autosize'
+// import TextareaAutosize from 'react-textarea-autosize'
 import { useQuery } from 'urql'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
-import { Repository } from '@/lib/gql/generates/graphql'
+import { ContextInfo, Repository } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { repositoryListQuery } from '@/lib/tabby/query'
 import { AnswerEngineExtraContext } from '@/lib/types'
@@ -33,7 +33,7 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 
-import { PromptEditor } from './prompt-editor'
+import { PromptEditor, PromptEditorRef } from './prompt-editor'
 import { buttonVariants } from './ui/button'
 import { IconArrowRight, IconCheck, IconCode, IconSpinner } from './ui/icons'
 
@@ -47,7 +47,9 @@ export default function TextAreaSearch({
   loadingWithSpinning,
   cleanAfterSearch = true,
   isFollowup,
-  extraContext
+  extraContext,
+  contextInfo,
+  fetchingContextInfo
 }: {
   onSearch: (value: string, extraContext: AnswerEngineExtraContext) => void
   className?: string
@@ -59,6 +61,8 @@ export default function TextAreaSearch({
   cleanAfterSearch?: boolean
   isFollowup?: boolean
   extraContext?: AnswerEngineExtraContext
+  contextInfo?: ContextInfo
+  fetchingContextInfo: boolean
 }) {
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
@@ -67,7 +71,7 @@ export default function TextAreaSearch({
     AnswerEngineExtraContext['repository'] | undefined
   >()
   const { theme } = useCurrentTheme()
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const editorRef = useRef<PromptEditorRef>(null)
 
   const getPreviouslySelectedRepo = () => {
     try {
@@ -110,7 +114,7 @@ export default function TextAreaSearch({
 
   const onWrapperClick = () => {
     if (isFollowup) {
-      textareaRef.current?.focus()
+      editorRef.current?.editor?.commands.focus()
     }
   }
 
@@ -120,15 +124,13 @@ export default function TextAreaSearch({
     }
   }, [extraContext])
 
-  const showRepoSelect = !isFollowup || !!extraContext?.repository
+  const showRepoSelect = false
 
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-lg border border-muted-foreground bg-background px-4 transition-all hover:border-muted-foreground/60',
+        'relative flex w-full items-center overflow-hidden rounded-lg border border-muted-foreground bg-background px-4 transition-all hover:border-muted-foreground/60',
         {
-          'flex-col gap-1 w-full': showRepoSelect,
-          'flex w-full items-center ': !showRepoSelect,
           '!border-zinc-400': isFocus && isFollowup && theme !== 'dark',
           '!border-primary': isFocus && (!isFollowup || theme === 'dark'),
           'py-0': showBetaBadge,
@@ -160,9 +162,21 @@ export default function TextAreaSearch({
           </TooltipContent>
         </Tooltip>
       )}
-      {/* <TextareaAutosize
+      <PromptEditor
+        editable
+        contextInfo={contextInfo}
+        fetchingContextInfo={fetchingContextInfo}
+        onSubmit={(text: string) => {
+          onSearch(text, {})
+          if (cleanAfterSearch) setValue('')
+        }}
+        placeholder={placeholder || 'Ask anything...'}
+        autoFocus={autoFocus}
+        onFocus={() => setIsFocus(true)}
+        onBlur={() => setIsFocus(false)}
+        ref={editorRef}
         className={cn(
-          'text-area-autosize mr-1 w-full flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
+          'text-area-autosize mr-1 flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
           {
             '!h-[48px]': !isShow,
             'pt-4': !showBetaBadge,
@@ -171,53 +185,30 @@ export default function TextAreaSearch({
             'pb-5': !showRepoSelect && showBetaBadge
           }
         )}
-        placeholder={placeholder || 'Ask anything...'}
-        maxRows={5}
-        onKeyDown={onSearchKeyDown}
-        onFocus={() => setIsFocus(true)}
-        onBlur={() => setIsFocus(false)}
-        onChange={e => setValue(e.target.value)}
-        value={value}
-        autoFocus={autoFocus}
-        minRows={isFollowup ? 1 : 2}
-        ref={textareaRef}
-      /> */}
-      <PromptEditor editable />
+        // minRows={isFollowup ? 1 : 2}
+        // maxRows={5}
+      />
       <div
-        className={cn('flex items-center justify-between gap-2', {
-          'pb-2': showRepoSelect
-        })}
-      >
-        {showRepoSelect && (
-          <RepoSelect
-            className="overflow-hidden"
-            value={selectedRepo}
-            onChange={setSelectedRepo}
-            disabled={isFollowup}
-          />
+        className={cn(
+          'flex items-center justify-center rounded-lg p-1 transition-all',
+          {
+            'bg-primary text-primary-foreground cursor-pointer':
+              value.length > 0,
+            '!bg-muted !text-primary !cursor-default':
+              isLoading || value.length === 0,
+            'mr-1.5': !showBetaBadge,
+            'h-6 w-6': !isFollowup
+            // 'mr-6': showBetaBadge,
+          }
         )}
-        <div
-          className={cn(
-            'flex items-center justify-center rounded-lg p-1 transition-all',
-            {
-              'bg-primary text-primary-foreground cursor-pointer':
-                value.length > 0,
-              '!bg-muted !text-primary !cursor-default':
-                isLoading || value.length === 0,
-              'mr-1.5': !showBetaBadge,
-              'h-6 w-6': !isFollowup
-              // 'mr-6': showBetaBadge,
-            }
-          )}
-          onClick={search}
-        >
-          {loadingWithSpinning && isLoading && (
-            <IconSpinner className="h-3.5 w-3.5" />
-          )}
-          {(!loadingWithSpinning || !isLoading) && (
-            <IconArrowRight className="h-3.5 w-3.5" />
-          )}
-        </div>
+        onClick={search}
+      >
+        {loadingWithSpinning && isLoading && (
+          <IconSpinner className="h-3.5 w-3.5" />
+        )}
+        {(!loadingWithSpinning || !isLoading) && (
+          <IconArrowRight className="h-3.5 w-3.5" />
+        )}
       </div>
     </div>
   )
