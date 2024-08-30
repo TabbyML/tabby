@@ -140,7 +140,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
 
             if include_active {
                 let event = BackgroundJobEvent::WebCrawler(
-                    CustomWebDocument::format_source_id(&url.id.as_id()),
+                    PresetWebDocument::format_source_id(&url.id.as_id()),
                     url.url.clone(),
                 );
 
@@ -203,7 +203,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
                 .job_service
                 .trigger(
                     BackgroundJobEvent::WebCrawler(
-                        CustomWebDocument::format_source_id(&id.as_id()),
+                        PresetWebDocument::format_source_id(&id.as_id()),
                         url.clone(),
                     )
                     .to_command(),
@@ -234,6 +234,7 @@ fn to_preset_web_document(value: WebDocumentDAO, job_info: JobInfo) -> PresetWeb
         is_active: true,
     }
 }
+
 #[cfg(test)]
 mod tests {
     use tabby_db::DbConn;

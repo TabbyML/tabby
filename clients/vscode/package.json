@@ -7,7 +7,7 @@
   "repository": "https://github.com/TabbyML/tabby",
   "bugs": "https://github.com/TabbyML/tabby/issues",
   "license": "Apache-2.0",
-  "version": "1.9.0-dev",
+  "version": "1.11.0-dev",
   "keywords": [
     "ai",
     "autocomplete",
@@ -423,9 +423,10 @@
     }
   },
   "scripts": {
-    "build": "tsc --noEmit && tsup --minify",
+    "build": "tsc -p ./tsconfig.build.json --noEmit && tsup --minify",
     "watch": "tsc-watch --noEmit --onSuccess \"tsup\"",
     "dev": "code --extensionDevelopmentPath=$PWD --disable-extensions && pnpm watch",
+    "vscode:dev": "pnpm run dev",
     "dev:browser": "vscode-test-web --extensionDevelopmentPath=$PWD --browserType=chromium --port=3000 && pnpm watch",
     "lint": "eslint --ext .ts ./src && prettier --check .",
     "lint:fix": "eslint --fix --ext .ts ./src && prettier --write .",

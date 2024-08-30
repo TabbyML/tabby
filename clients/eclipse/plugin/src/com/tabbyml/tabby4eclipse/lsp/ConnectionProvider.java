@@ -14,6 +14,7 @@ import org.osgi.framework.Bundle;
 
 import com.tabbyml.tabby4eclipse.Activator;
 import com.tabbyml.tabby4eclipse.Logger;
+import com.tabbyml.tabby4eclipse.git.GitProvider;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientCapabilities;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientCapabilities.TabbyClientCapabilities;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientCapabilities.TextDocumentClientCapabilities;
@@ -113,7 +114,7 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 		tabbyClientCapabilities.setConfigDidChangeListener(true);
 		tabbyClientCapabilities.setStatusDidChangeListener(true);
 		tabbyClientCapabilities.setWorkspaceFileSystem(true);
-		tabbyClientCapabilities.setGitProvider(true);
+		tabbyClientCapabilities.setGitProvider(GitProvider.getInstance().isAvailable());
 		tabbyClientCapabilities.setLanguageSupport(true);
 
 		ClientCapabilities clientCapabilities = new ClientCapabilities();

@@ -200,7 +200,7 @@ export const defaultAgentConfig: AgentConfig = {
       maxDiffLength: 3600,
       promptTemplate: generateCommitMessagePrompt,
       responseMatcher:
-        /(?<=(["'`]+)?\s*)(feat|fix|docs|refactor|style|test|build|ci|chore)(\(\w+\))?:.+(?=\s*\1)/gi.toString(),
+        /(?<=(["'`]+)?\s*)(feat|fix|docs|refactor|style|test|build|ci|chore)(\(\S+\))?:.+(?=\s*\1)/gis.toString(),
     },
   },
   logs: {

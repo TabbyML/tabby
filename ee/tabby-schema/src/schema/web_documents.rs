@@ -16,6 +16,16 @@ pub struct CustomWebDocument {
     pub job_info: JobInfo,
 }
 
+impl CustomWebDocument {
+    pub fn source_id(&self) -> String {
+        Self::format_source_id(&self.id)
+    }
+
+    pub fn format_source_id(id: &ID) -> String {
+        format!("custom_web_document:{}", id)
+    }
+}
+
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
 pub struct PresetWebDocument {
@@ -29,13 +39,13 @@ pub struct PresetWebDocument {
     pub is_active: bool,
 }
 
-impl CustomWebDocument {
+impl PresetWebDocument {
     pub fn source_id(&self) -> String {
         Self::format_source_id(&self.id)
     }
 
     pub fn format_source_id(id: &ID) -> String {
-        format!("web_document:{}", id)
+        format!("preset_web_document:{}", id)
     }
 }
 
