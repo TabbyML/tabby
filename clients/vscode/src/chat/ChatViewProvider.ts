@@ -334,6 +334,10 @@ export class ChatViewProvider implements WebviewViewProvider {
         Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
       );
 
+      const logoUri = this.webview?.webview.asWebviewUri(
+        Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"),
+      );
+
       this.webview.webview.html = `
         <!DOCTYPE html>
         <html lang="en">
@@ -370,6 +374,7 @@ export class ChatViewProvider implements WebviewViewProvider {
 
               window.onload = function () {
                 const chatIframe = document.getElementById("chat");
+                const loadingOverlay = document.getElementById("loading-overlay");
 
                 if (chatIframe) {
                   const fontSize = getCssVariableValue('--vscode-font-size');
@@ -385,6 +390,11 @@ export class ChatViewProvider implements WebviewViewProvider {
                     vscode.postMessage({ action: 'rendered' });
                     setTimeout(() => {
                       syncTheme()
+
+                      setTimeout(() => {
+                        loadingOverlay.style.display = 'none';
+                        chatIframe.style.display = 'block';
+                      }, 0)
                     }, 300)
                   });
 
@@ -414,6 +424,14 @@ export class ChatViewProvider implements WebviewViewProvider {
             </script>
           </head>
           <body>
+            <main class='static-content' id='loading-overlay'>
+              <div class='avatar'>
+                <img src="${logoUri}" />
+                <p>Tabby</p>
+              </div>
+              <p>Just a moment while we get things ready...</p>
+              <span class='loader'></span>
+            </main>
             <iframe
               id="chat"
               allow="clipboard-read; clipboard-write" />
