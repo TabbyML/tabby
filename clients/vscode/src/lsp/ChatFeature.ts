@@ -175,17 +175,21 @@ function applyTextEditMinimalLineChange(editBuilder: TextEditorEdit, textEdit: T
 
   let line = documentRange.start.line;
   for (const diff of diffs) {
+    if (!diff.count) {
+      continue
+    }
+
     if (diff.added) {
       editBuilder.insert(new Position(line, 0), diff.value);
     } else if (diff.removed) {
       const range = new Range(
         new Position(line + 0, 0),
-        new Position(line + diff.count!, 0),
+        new Position(line + diff.count, 0),
       );
       editBuilder.delete(range)
-      line += diff.count!;
+      line += diff.count;
     } else {
-      line += diff.count!;
+      line += diff.count;
     }
   }
 }
