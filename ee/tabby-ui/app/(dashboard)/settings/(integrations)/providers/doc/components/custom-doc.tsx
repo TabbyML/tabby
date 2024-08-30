@@ -158,7 +158,7 @@ export default function CustomDocument() {
           })
         )
       }
-    } catch (e) { }
+    } catch (e) {}
   }
 
   const triggerJobRun = useMutation(triggerJobRunMutation)
@@ -256,7 +256,13 @@ export default function CustomDocument() {
                   </PopoverContent>
                 </Popover>
                 <div>
-                  <Link href={`./doc/new`} className={buttonVariants({ size: "icon", variant: "ghost" })}>
+                  <Link
+                    href={`./doc/new`}
+                    className={buttonVariants({
+                      size: 'icon',
+                      variant: 'ghost'
+                    })}
+                  >
                     <IconPlus />
                   </Link>
                 </div>
@@ -279,7 +285,9 @@ export default function CustomDocument() {
                     <TableRow key={x.node.id}>
                       <TableCell className="break-all lg:break-words">
                         <p>{x.node.name}</p>
-                        <p className='text-xs text-muted-foreground'>{x.node.url}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {x.node.url}
+                        </p>
                       </TableCell>
                       <TableCell>
                         <JobInfoView

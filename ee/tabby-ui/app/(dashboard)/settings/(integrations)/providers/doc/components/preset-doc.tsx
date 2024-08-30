@@ -90,7 +90,7 @@ type ListItem = ArrayElementType<
 
 export default function PresetDocument() {
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(8);
+  const [pageSize, setPageSize] = useState(8)
   const [filterPattern, setFilterPattern] = useState<string | undefined>()
   const [debouncedFilterPattern] = useDebounceValue(filterPattern, 200)
   const [list, setList] = useState<ListItem[] | undefined>()
