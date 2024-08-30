@@ -5,7 +5,6 @@ import { drawSelection, EditorView } from '@codemirror/view'
 import { isNil } from 'lodash-es'
 import { useTheme } from 'next-themes'
 
-import { EXP_enable_code_browser_quick_action_bar } from '@/lib/experiment-flags'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { useHash } from '@/lib/hooks/use-hash'
 import { TCodeTag } from '@/lib/types'
@@ -93,7 +92,6 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
       drawSelection()
     ]
     if (
-      EXP_enable_code_browser_quick_action_bar.value &&
       isChatEnabled &&
       activePath &&
       basename

@@ -95,26 +95,6 @@ class ExperimentFlagFactory {
   }
 }
 
-const enableCodeBrowserQuickActionBarFactory = new ExperimentFlagFactory(
-  'enable_code_browser_quick_action_bar',
-  'Quick Action Bar',
-  'Enable Quick Action Bar to display a convenient toolbar when you select code, offering options to explain the code, add unit tests, and more.',
-  true
-)
-export const EXP_enable_code_browser_quick_action_bar =
-  enableCodeBrowserQuickActionBarFactory.defineGlobalVar()
-export const useEnableCodeBrowserQuickActionBar =
-  enableCodeBrowserQuickActionBarFactory.defineHook()
-
-const enableSearchFactory = new ExperimentFlagFactory(
-  'enable_search',
-  'Search',
-  'Enable the search on the home page to search for anything you want to know using the local chat model.',
-  true
-)
-export const EXP_enable_search = enableSearchFactory.defineGlobalVar()
-export const useEnableSearch = enableSearchFactory.defineHook()
-
 const enableDeveloperModeFactory = new ExperimentFlagFactory(
   'enable_developer_mode',
   'Developer Mode',
