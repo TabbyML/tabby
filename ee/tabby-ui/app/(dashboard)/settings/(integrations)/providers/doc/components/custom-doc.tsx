@@ -209,7 +209,7 @@ export default function CustomDocument() {
   return (
     <>
       <LoadingWrapper loading={fetching || stale}>
-        <Table className="table-fixed border-b">
+        <Table className="table-fixed border-b min-w-[300px]">
           <TableHeader>
             <TableRow>
               <TableHead className="flex items-center gap-1.5">
