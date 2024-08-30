@@ -212,7 +212,7 @@ export default function CustomDocument() {
         <Table className="table-fixed border-b">
           <TableHeader>
             <TableRow>
-              <TableHead className="flex w-[25%] items-center gap-1.5">
+              <TableHead className="flex items-center gap-1.5">
                 Name
                 <Popover open={filterOpen} onOpenChange={setFilterOpen}>
                   <PopoverTrigger asChild>
@@ -261,7 +261,6 @@ export default function CustomDocument() {
                   </Link>
                 </div>
               </TableHead>
-              <TableHead>URL</TableHead>
               <TableHead className="w-[100px] lg:w-[200px]">Job</TableHead>
               <TableHead className="w-[100px] text-right"></TableHead>
             </TableRow>
@@ -279,10 +278,8 @@ export default function CustomDocument() {
                   return (
                     <TableRow key={x.node.id}>
                       <TableCell className="break-all lg:break-words">
-                        {x.node.name}
-                      </TableCell>
-                      <TableCell className="break-all lg:break-words">
-                        {x.node.url}
+                        <p>{x.node.name}</p>
+                        <p className='text-xs text-muted-foreground'>{x.node.url}</p>
                       </TableCell>
                       <TableCell>
                         <JobInfoView

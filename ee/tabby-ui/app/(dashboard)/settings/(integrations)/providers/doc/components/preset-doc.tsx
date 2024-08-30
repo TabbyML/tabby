@@ -297,7 +297,7 @@ export default function PresetDocument() {
                 </Popover>
               </TableHead>
               <TableHead className="w-[100px] lg:w-[200px]">Job</TableHead>
-              <TableHead className="w-[100px] text-right">Enabled</TableHead>
+              <TableHead className="w-[100px] text-right"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
