@@ -2,6 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 import moment from 'moment'
 
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconCirclePlay, IconSpinner } from '@/components/ui/icons'
 import {
@@ -11,17 +12,21 @@ import {
 } from '@/components/ui/tooltip'
 
 interface JobInfoProps {
-  jobInfo: {
-    command: string
-    lastJobRun?: {
-      id: string
-      job: string
-      createdAt: any
-      finishedAt?: any | null
-      exitCode?: number | null
-    } | null
-  }
+  jobInfo:
+    | {
+        command: string
+        lastJobRun?: {
+          id: string
+          job: string
+          createdAt: any
+          finishedAt?: any | null
+          exitCode?: number | null
+        } | null
+      }
+    | undefined
+    | null
   onTrigger: () => Promise<any>
+  className?: string
 }
 
 function JobTrigger({
@@ -77,12 +82,14 @@ function LastJobRunInfo({ jobInfo }: Pick<JobInfoProps, 'jobInfo'>) {
 }
 
 export function JobInfoView(props: JobInfoProps) {
-  const { jobInfo, onTrigger } = props
+  const { jobInfo, onTrigger, className } = props
   const isJobPending =
     !!jobInfo?.lastJobRun && jobInfo.lastJobRun.exitCode === null
 
   return (
-    <div className="flex flex-col items-center gap-1 lg:flex-row">
+    <div
+      className={cn('flex flex-col items-center gap-1 lg:flex-row', className)}
+    >
       <LastJobRunInfo jobInfo={jobInfo} />
       <JobTrigger onTrigger={onTrigger} isPending={isJobPending} />
     </div>

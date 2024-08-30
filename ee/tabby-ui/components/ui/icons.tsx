@@ -15,6 +15,7 @@ import {
   IndentIncrease,
   Layers2,
   Link,
+  ListFilter,
   Mail,
   Search,
   Sparkles,
@@ -1545,6 +1546,13 @@ function IconLink({ className, ...props }: React.ComponentProps<typeof Link>) {
   return <Link className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconListFilter({
+  className,
+  ...props
+}: React.ComponentProps<typeof ListFilter>) {
+  return <ListFilter className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1633,5 +1641,6 @@ export {
   IconBug,
   IconFilter,
   IconRemove,
-  IconLink
+  IconLink,
+  IconListFilter
 }

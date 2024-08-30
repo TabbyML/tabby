@@ -68,6 +68,7 @@
     "downshift": "^8.2.2",
     "eventsource-parser": "^1.1.2",
     "focus-trap-react": "^10.1.1",
+    "fuzzysort": "^3.0.2",
     "graphql": "^16.8.1",
     "graphql-ws": "^5.16.0",
     "humanize-duration": "^3.31.0",
