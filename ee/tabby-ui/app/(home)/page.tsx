@@ -42,6 +42,7 @@ import 'aos/dist/aos.css'
 
 import { AnswerEngineExtraContext } from '@/lib/types'
 import { Separator } from '@/components/ui/separator'
+import { PromptEditor } from '@/components/prompt-editor'
 
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
   mutation ResetUserAuthToken {

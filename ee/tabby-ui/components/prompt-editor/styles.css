@@ -1,0 +1,11 @@
+.tiptap:first-child {
+    margin-top: 0;
+}
+
+.tiptap .mention {
+  background-color: hsl(var(--secondary));
+  border-radius: 0.4rem;
+  box-decoration-break: clone;
+  color: hsl(var(--secondary-foreground));
+  padding: 0.1rem 0.3rem;
+}

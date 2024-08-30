@@ -35,6 +35,7 @@ import {
 
 import { buttonVariants } from './ui/button'
 import { IconArrowRight, IconCheck, IconCode, IconSpinner } from './ui/icons'
+import { PromptEditor } from './prompt-editor'
 
 export default function TextAreaSearch({
   onSearch,
@@ -159,7 +160,7 @@ export default function TextAreaSearch({
           </TooltipContent>
         </Tooltip>
       )}
-      <TextareaAutosize
+      {/* <TextareaAutosize
         className={cn(
           'text-area-autosize mr-1 w-full flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
           {
@@ -180,7 +181,8 @@ export default function TextAreaSearch({
         autoFocus={autoFocus}
         minRows={isFollowup ? 1 : 2}
         ref={textareaRef}
-      />
+      /> */}
+      <PromptEditor />
       <div
         className={cn('flex items-center justify-between gap-2', {
           'pb-2': showRepoSelect
