@@ -14,6 +14,7 @@ pub enum ContextKind {
     Github,
     Gitlab,
     Doc,
+    Web,
 }
 
 #[derive(GraphQLObject)]
@@ -80,9 +81,6 @@ impl From<CustomWebDocument> for ContextSource {
 #[derive(GraphQLObject)]
 pub struct ContextInfo {
     pub sources: Vec<ContextSource>,
-
-    /// Whether the deployment has capability to search public web.
-    pub can_search_public: bool,
 }
 
 #[async_trait]

@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
+use juniper::ID;
 use tabby_schema::{
-    context::{ContextInfo, ContextService},
+    context::{ContextInfo, ContextKind, ContextService, ContextSource},
     repository::RepositoryService,
     web_documents::WebDocumentService,
     Result,
@@ -42,16 +43,17 @@ impl ContextService for ContextServiceImpl {
                 .map(Into::into),
         );
 
-        let info = ContextInfo {
-            sources,
-            can_search_public: self
-                .answer
-                .as_ref()
-                .map(|x| x.can_search_public())
-                .unwrap_or_default(),
-        };
+        if self.answer.as_ref().map(|x| x.can_search_public_web()).unwrap_or_default() {
+            let source_id = "web";
+            sources.push(ContextSource {
+                id: ID::from(source_id.to_owned()),
+                kind: ContextKind::Web,
+                source_id: source_id.into(),
+                display_name: "Web".to_string(),
+            });
+        }
 
-        Ok(info)
+        Ok(ContextInfo { sources })
     }
 }
 

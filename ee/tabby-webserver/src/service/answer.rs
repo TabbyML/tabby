@@ -309,7 +309,7 @@ Remember, based on the original question and related contexts, suggest three suc
             .collect()
     }
 
-    pub fn can_search_public(&self) -> bool {
+    pub fn can_search_public_web(&self) -> bool {
         self.serper.is_some()
     }
 }
