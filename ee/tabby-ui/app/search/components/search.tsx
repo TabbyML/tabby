@@ -17,7 +17,7 @@ import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
-import { useEnableDeveloperMode, useEnableSearch } from '@/lib/experiment-flags'
+import { useEnableDeveloperMode } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
@@ -201,7 +201,6 @@ export function Search() {
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const isChatEnabled = useIsChatEnabled()
-  const [searchFlag] = useEnableSearch()
   const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [stopButtonVisible, setStopButtonVisible] = useState(true)
   const [isReady, setIsReady] = useState(false)
@@ -650,7 +649,7 @@ export function Search() {
     )
   }
 
-  if (!searchFlag.value || !isChatEnabled || !isReady) {
+  if (!isChatEnabled || !isReady) {
     return <></>
   }
 
