@@ -128,10 +128,6 @@ impl SchedulerGithubGitlabJob {
             let mut count = 0;
             let mut num_updated = 0;
 
-            let log_progress = || {
-                logkit::info!("Processed {} docs, updated {}", count, num_updated);
-            };
-
             for await (updated_at, doc) in s {
                 if index.add(updated_at, doc).await {
                     num_updated += 1
@@ -139,13 +135,15 @@ impl SchedulerGithubGitlabJob {
 
                 count += 1;
                 if count % 100 == 0 {
-                    log_progress();
+                    logkit::info!("Processed {} docs, updated {}", count, num_updated);
                 };
             }
 
-            log_progress();
+            logkit::info!("Processed {} docs, updated {}", count, num_updated);
             index.commit();
-        }.count().await;
+        }
+        .count()
+        .await;
 
         Ok(())
     }
