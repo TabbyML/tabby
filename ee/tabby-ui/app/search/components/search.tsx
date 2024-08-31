@@ -599,24 +599,18 @@ export function Search() {
     }
 
     // FIXME utils
+    // FIXME should get context from the user message
     const repoSourceIds = extraContext?.codeSourceIds
     const repoSourceId = repoSourceIds?.[0]
-    const repo = repoSourceId
-      ? contextInfoData?.contextInfo?.sources?.find(
-          o => o.sourceId === repoSourceId
-        )
-      : undefined
-    const codeQuery: InputMaybe<CodeQueryInput> = repo
-      ? { sourceId: repo.sourceId, content: newUserMessage.content }
+    const codeQuery: InputMaybe<CodeQueryInput> = repoSourceId
+      ? { sourceId: repoSourceId, content: newUserMessage.content }
       : null
 
     const docSourceIds = extraContext?.docSourceIds
     const docQuery: InputMaybe<DocQueryInput> = {
       sourceIds: docSourceIds,
       content: newUserMessage.content,
-      // todo store searchPublic
-      searchPublic: false
-      // searchPublic: !!ctx?.searchPublic
+      searchPublic: !!extraContext?.searchPublic
     }
 
     setCurrentUserMessageId(newUserMessage.id)
