@@ -155,6 +155,18 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(is_email_configured && !domain_list.is_empty())
     }
 
+    async fn generate_reset_password_url(&self, id: &ID) -> Result<String> {
+        let external_url = self.setting.read_network_setting().await?.external_url;
+        let id = id.as_rowid()?;
+        let user = self.db.get_user(id).await?.context("User doesn't exits")?;
+        if !user.active {
+            bail!("Inactive user's password cannot be reset");
+        }
+        let code = self.db.create_password_reset(id).await?;
+        let url = format!("{}/reset-password?code={}", external_url, code);
+        Ok(url)
+    }
+
     async fn request_password_reset_email(&self, email: String) -> Result<Option<JoinHandle<()>>> {
         let user = self.get_user_by_email(&email).await.ok();
 
@@ -163,6 +175,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
         };
 
         let id = user.id.as_rowid()?;
+
+        // request_password_reset_email is invoked by the user, so we need to check for existing password reset requests to prevent spamming
         let existing = self.db.get_password_reset_by_user_id(id).await?;
         if let Some(existing) = existing {
             if Utc::now().signed_duration_since(existing.created_at) < Duration::minutes(5) {
@@ -1609,5 +1623,58 @@ mod tests {
             .token_auth("abc@example.com".to_owned(), "123456".to_owned())
             .await
             .is_ok());
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_generate_reset_password_url() {
+        let (service, _smtp) = test_authentication_service_with_mail().await;
+
+        // Create an active user
+        let _id = service
+            .db
+            .create_user(
+                "active_user@example.com".into(),
+                Some("pass".into()),
+                false,
+                None,
+            )
+            .await
+            .unwrap();
+        let active_user = service
+            .get_user_by_email("active_user@example.com")
+            .await
+            .unwrap();
+
+        // Test generating reset URL for an active user
+        let url = service
+            .generate_reset_password_url(&active_user.id)
+            .await
+            .unwrap();
+        assert!(url.contains("/reset-password?code="));
+
+        // Create an inactive user
+        let id = service
+            .db
+            .create_user(
+                "inactive_user@example.com".into(),
+                Some("pass".into()),
+                false,
+                None,
+            )
+            .await
+            .unwrap();
+        service
+            .update_user_active(&id.as_id(), false)
+            .await
+            .unwrap();
+        let inactive_user = service
+            .get_user_by_email("inactive_user@example.com")
+            .await
+            .unwrap();
+
+        // Test generating reset URL for an inactive user
+        let result = service.generate_reset_password_url(&inactive_user.id).await;
+        assert!(result.is_err());
     }
 }
