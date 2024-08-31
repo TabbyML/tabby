@@ -453,7 +453,7 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
 
 #[cfg(test)]
 mod tests {
-    
+
     use juniper::ID;
     use tabby_schema::{
         context::{ContextInfo, ContextKind, ContextSource},
