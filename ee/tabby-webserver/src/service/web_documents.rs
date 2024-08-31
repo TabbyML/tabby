@@ -337,7 +337,7 @@ mod tests {
 
         assert_eq!(0, urls.len());
 
-        let id1 = service
+        let _id1 = service
             .create_custom_web_document("example1".to_string(), "https://example1.com".to_string())
             .await
             .unwrap();
