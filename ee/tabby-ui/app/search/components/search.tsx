@@ -83,14 +83,13 @@ import {
   Maybe,
   Message,
   MessageAttachmentCode,
-  RepositoryListQuery,
   Role
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { useMutation } from '@/lib/tabby/gql'
-import { repositoryListQuery } from '@/lib/tabby/query'
+import { contextInfoQuery } from '@/lib/tabby/query'
 import {
   Tooltip,
   TooltipContent,
@@ -126,7 +125,6 @@ type SearchContextValue = {
   onRegenerateResponse: (id: string) => void
   onSubmitSearch: (question: string) => void
   extraRequestContext: Record<string, any>
-  repositoryList: RepositoryListQuery['repositoryList'] | undefined
   setDevPanelOpen: (v: boolean) => void
   setConversationIdForDev: (v: string | undefined) => void
   enableDeveloperMode: boolean
@@ -234,10 +232,9 @@ export function Search() {
     }
   }, [threadIdFromURL])
 
-  const [{ data }] = useQuery({
-    query: repositoryListQuery
+  const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
+    query: contextInfoQuery
   })
-  const repositoryList = data?.repositoryList
 
   const [afterCursor, setAfterCursor] = useState<string | undefined>()
   const [
@@ -532,7 +529,7 @@ export function Search() {
     }
   }, [devPanelOpen])
 
-  const onSubmitSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
+  const onSubmitSearch = (question: string, ctx?: any) => {
     const newUserMessageId = nanoid()
     const newAssistantMessageId = nanoid()
     const newUserMessage: ConversationMessage = {
@@ -546,6 +543,7 @@ export function Search() {
       content: ''
     }
 
+    // FIXME
     const _repository = ctx?.repository || extraContext?.repository
     const codeQuery: InputMaybe<CodeQueryInput> = _repository
       ? { gitUrl: _repository.gitUrl, content: question }
@@ -664,7 +662,6 @@ export function Search() {
         onRegenerateResponse,
         onSubmitSearch,
         extraRequestContext: extraContext,
-        repositoryList,
         setDevPanelOpen,
         setConversationIdForDev: setMessageIdForDev,
         isPathnameInitialized,
@@ -740,7 +737,7 @@ export function Search() {
 
               <div
                 className={cn(
-                  'fixed bottom-5 left-0 z-30 flex min-h-[5rem] w-full flex-col items-center gap-y-2',
+                  'fixed bottom-5 left-0 z-30 flex min-h-[3rem] w-full flex-col items-center gap-y-2',
                   {
                     'opacity-100 translate-y-0': showSearchInput,
                     'opacity-0 translate-y-10': !showSearchInput,
@@ -779,7 +776,9 @@ export function Search() {
                     placeholder="Ask a follow up question"
                     isLoading={isLoading}
                     isFollowup
-                    extraContext={extraContext}
+                    contextInfo={contextInfoData?.contextInfo}
+                    fetchingContextInfo={fetchingContextInfo}
+                    // todo
                   />
                 </div>
               </div>

@@ -6,6 +6,9 @@ import MentionList, {
   MentionListActions,
   MetionListProps
 } from './mention-list'
+import { getMentionsWithIndices } from './utils'
+
+import 'tippy.js/animations/shift-away.css'
 
 const suggestion: MentionOptions['suggestion'] = {
   render: () => {
@@ -14,8 +17,11 @@ const suggestion: MentionOptions['suggestion'] = {
 
     return {
       onStart: props => {
+        // get existing mentions
+        const mentions = getMentionsWithIndices(props.editor)
+
         component = new ReactRenderer(MentionList, {
-          props,
+          props: { ...props, mentions },
           editor: props.editor
         })
 
@@ -30,11 +36,13 @@ const suggestion: MentionOptions['suggestion'] = {
           showOnCreate: true,
           interactive: true,
           trigger: 'manual',
-          placement: 'bottom-start'
+          placement: 'bottom-start',
+          animation: 'shift-away',
+          maxWidth: '400px'
         })
       },
       onUpdate(props) {
-        // call once query change
+        // called on query change
         component.updateProps(props)
 
         if (!props.clientRect) {

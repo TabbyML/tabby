@@ -18,15 +18,21 @@ import { cn } from '@/lib/utils'
 
 import { MentionContext } from '.'
 import { IconCode, IconFileText, IconSpinner } from '../ui/icons'
-import { CategoryOptionItem, OptionItem, SourceOptionItem } from './types'
+import {
+  CategoryOptionItem,
+  MentionDataItem,
+  OptionItem,
+  SourceOptionItem
+} from './types'
 import {
   generateMentionId,
   getInfoFromMentionId,
-  getMentionsWithIndices,
   isRepositorySource
 } from './utils'
 
-export interface MetionListProps extends SuggestionProps {}
+export interface MetionListProps extends SuggestionProps {
+  mentions?: MentionDataItem[]
+}
 
 export interface MentionListActions {
   onKeyDown: (props: SuggestionKeyDownProps) => boolean
@@ -46,20 +52,17 @@ const CATEGORY_OPTIONS: CategoryOptionItem[] = [
 ]
 
 const MetionList = forwardRef<MentionListActions, MetionListProps>(
-  ({ query, command, editor }, ref) => {
+  ({ query, command, mentions }, ref) => {
     const { list, pending } = useContext(MentionContext)
 
-    // FIXME: should be passed from parent
-    const json = editor.getJSON()
     const hasSelectedRepo = useMemo(() => {
-      const mentions = getMentionsWithIndices(editor)
       return (
         mentions?.findIndex(o => {
           const { kind } = getInfoFromMentionId(o.id)
           return isRepositorySource(kind)
         }) !== -1
       )
-    }, [json])
+    }, [mentions])
 
     const [selectedIndex, setSelectedIndex] = useState(0)
     const [kind, setKind] = useState<'doc' | 'code' | undefined>()
@@ -162,18 +165,20 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
           filteredList.map((item, index) => (
             <div
               className={cn(
-                'cursor-pointer flex items-center gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground',
+                'cursor-pointer flex gap-1 rounded-md px-2 py-1.5 text-sm',
                 {
                   'bg-accent text-accent-foreground': index === selectedIndex
                 }
               )}
               key={index}
               onClick={() => onSelectItem(index)}
+              onMouseEnter={() => setSelectedIndex(index)}
+              title={item.label}
             >
-              <span className="shrink-0">
+              <span className="shrink-0 flex h-5 items-center">
                 {item.kind === 'code' ? <IconCode /> : <IconFileText />}
               </span>
-              {item.label}
+              <span>{item.label}</span>
             </div>
           ))
         ) : pending ? (
@@ -181,7 +186,13 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
             <IconSpinner />
           </div>
         ) : (
-          <div className="px-2 py-1.5">No result</div>
+          <div className="px-2 py-1.5">
+            {list?.length ? (
+              <span>No matches results</span>
+            ) : (
+              <span>No results, please configure in 'Context Providers'</span>
+            )}
+          </div>
         )}
       </div>
     )

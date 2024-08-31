@@ -3,6 +3,7 @@
 import * as React from 'react'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
 import {
+  AtSign,
   Blocks,
   BookOpenText,
   Box,
@@ -1553,6 +1554,13 @@ function IconListFilter({
   return <ListFilter className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconAtSign({
+  className,
+  ...props
+}: React.ComponentProps<typeof AtSign>) {
+  return <AtSign className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1642,5 +1650,6 @@ export {
   IconFilter,
   IconRemove,
   IconLink,
-  IconListFilter
+  IconListFilter,
+  IconAtSign
 }

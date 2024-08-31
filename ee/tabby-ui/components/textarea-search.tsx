@@ -34,8 +34,14 @@ import {
 } from '@/components/ui/tooltip'
 
 import { PromptEditor, PromptEditorRef } from './prompt-editor'
-import { buttonVariants } from './ui/button'
-import { IconArrowRight, IconCheck, IconCode, IconSpinner } from './ui/icons'
+import { Button, buttonVariants } from './ui/button'
+import {
+  IconArrowRight,
+  IconAtSign,
+  IconCheck,
+  IconCode,
+  IconSpinner
+} from './ui/icons'
 
 export default function TextAreaSearch({
   onSearch,
@@ -124,13 +130,15 @@ export default function TextAreaSearch({
     }
   }, [extraContext])
 
-  const showRepoSelect = false
+  const showFooterToolbar = true
 
   return (
     <div
       className={cn(
-        'relative flex w-full items-center overflow-hidden rounded-lg border border-muted-foreground bg-background px-4 transition-all hover:border-muted-foreground/60',
+        'relative overflow-hidden rounded-lg border border-muted-foreground bg-background px-4 transition-all hover:border-muted-foreground/60',
         {
+          'flex-col gap-1 w-full': showFooterToolbar,
+          'flex w-full items-center ': !showFooterToolbar,
           '!border-zinc-400': isFocus && isFollowup && theme !== 'dark',
           '!border-primary': isFocus && (!isFollowup || theme === 'dark'),
           'py-0': showBetaBadge,
@@ -181,34 +189,62 @@ export default function TextAreaSearch({
             '!h-[48px]': !isShow,
             'pt-4': !showBetaBadge,
             'pt-5': showBetaBadge,
-            'pb-4': !showRepoSelect && !showBetaBadge,
-            'pb-5': !showRepoSelect && showBetaBadge
+            'pb-4': !showFooterToolbar && !showBetaBadge,
+            'pb-5': !showFooterToolbar && showBetaBadge
           }
         )}
-        // minRows={isFollowup ? 1 : 2}
-        // maxRows={5}
+        editorClassName={isFollowup ? 'min-h-[1.75rem]' : 'min-h-[3.5rem]'}
       />
       <div
-        className={cn(
-          'flex items-center justify-center rounded-lg p-1 transition-all',
-          {
-            'bg-primary text-primary-foreground cursor-pointer':
-              value.length > 0,
-            '!bg-muted !text-primary !cursor-default':
-              isLoading || value.length === 0,
-            'mr-1.5': !showBetaBadge,
-            'h-6 w-6': !isFollowup
-            // 'mr-6': showBetaBadge,
-          }
-        )}
-        onClick={search}
+        className={cn('flex items-center justify-between gap-2', {
+          'pb-2': showFooterToolbar
+        })}
       >
-        {loadingWithSpinning && isLoading && (
-          <IconSpinner className="h-3.5 w-3.5" />
+        {showFooterToolbar && (
+          <div
+            className={cn(
+              buttonVariants({ variant: 'ghost' }),
+              '-ml-2 cursor-pointer rounded-full px-2',
+              className
+            )}
+            onClick={() => {
+              editorRef.current?.editor
+                ?.chain()
+                .insertContent(' @')
+                .focus()
+                .run()
+            }}
+          >
+            <div className="flex items-center gap-1 overflow-hidden">
+              <IconAtSign className={cn('shrink-0 text-foreground/70')} />
+              <span className={cn('flex-1 truncate text-foreground/70')}>
+                Add Context
+              </span>
+            </div>
+          </div>
         )}
-        {(!loadingWithSpinning || !isLoading) && (
-          <IconArrowRight className="h-3.5 w-3.5" />
-        )}
+        <div
+          className={cn(
+            'flex items-center justify-center rounded-lg p-1 transition-all',
+            {
+              'bg-primary text-primary-foreground cursor-pointer':
+                value.length > 0,
+              '!bg-muted !text-primary !cursor-default':
+                isLoading || value.length === 0,
+              'mr-1.5': !showBetaBadge,
+              'h-6 w-6': !isFollowup
+              // 'mr-6': showBetaBadge,
+            }
+          )}
+          onClick={search}
+        >
+          {loadingWithSpinning && isLoading && (
+            <IconSpinner className="h-3.5 w-3.5" />
+          )}
+          {(!loadingWithSpinning || !isLoading) && (
+            <IconArrowRight className="h-3.5 w-3.5" />
+          )}
+        </div>
       </div>
     </div>
   )

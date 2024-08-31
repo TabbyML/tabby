@@ -2,10 +2,7 @@ import { Editor, JSONContent } from '@tiptap/react'
 
 import { ContextKind, ContextSource } from '@/lib/gql/generates/graphql'
 
-export type MentionDataItem = {
-  id: string
-  start: number
-}
+import { MentionDataItem } from './types'
 
 export const isRepositorySource = (kind: ContextKind) => {
   return [ContextKind.Git, ContextKind.Github, ContextKind.Gitlab].includes(

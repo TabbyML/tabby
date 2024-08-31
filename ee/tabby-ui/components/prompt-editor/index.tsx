@@ -40,6 +40,7 @@ interface PromptEditorProps {
   onFocus?: (e: FocusEvent) => void
   autoFocus?: boolean
   className?: string
+  editorClassName?: string
 }
 
 export interface PromptEditorRef {
@@ -69,7 +70,8 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       onBlur,
       onFocus,
       autoFocus,
-      className
+      className,
+      editorClassName
     },
     ref
   ) => {
@@ -106,7 +108,8 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       editorProps: {
         attributes: {
           class: cn(
-            'prose dark:prose-invert prose-p:my-0 focus:outline-none font-sans max-w-none max-h-38 min-h-[5rem]'
+            'prose dark:prose-invert prose-p:my-0 focus:outline-none font-sans max-w-none max-h-38 min-h-[3.5rem]',
+            editorClassName
           )
         },
         handleDOMEvents: {
