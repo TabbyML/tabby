@@ -127,7 +127,6 @@ impl SchedulerGithubGitlabJob {
         stream! {
             let mut count = 0;
             let mut num_updated = 0;
-
             for await (updated_at, doc) in s {
                 if index.add(updated_at, doc).await {
                     num_updated += 1
