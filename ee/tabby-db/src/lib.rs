@@ -1,4 +1,4 @@
-use std::{arch::aarch64::int64x1_t, fmt, path::Path, sync::Arc};
+use std::{arch::aarch64::int64x1_t, fmt, path::Path, process, sync::Arc};
 
 use anyhow::anyhow;
 use cache::Cache;
@@ -13,7 +13,11 @@ pub use oauth_credential::OAuthCredentialDAO;
 pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
-use sqlx::{query, query_scalar, sqlite::{SqliteQueryResult, SqliteRow}, Acquire, Column, Pool, Row, Sqlite, SqlitePool};
+use sqlx::{
+    query, query_scalar,
+    sqlite::{SqliteQueryResult, SqliteRow},
+    Acquire, Column, Pool, Row, Sqlite, SqlitePool,
+};
 pub use threads::{
     ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
     ThreadMessageAttachmentDoc, ThreadMessageDAO,
@@ -100,10 +104,6 @@ fn make_pagination_query_with_condition(
     select.as_string()
 }
 
-
-
-
-
 impl DbConn {
     #[cfg(any(test, feature = "testutils"))]
     pub async fn new_in_memory() -> Result<Self> {
@@ -160,35 +160,38 @@ impl DbConn {
     }
 
     fn prompt_confirm() -> Result<bool> {
-        let user_input: String = input("The database is from an older version. Type 'confirm' to run database migrations:")
-            .interact()?;
+        let user_input: String = input(
+            r#"Tabby needs to upgrade database. Please backup database before proceeding.
+(see https://tabby.tabbyml.com/docs/administration/upgrade/ for upgrading instructions).
+
+Once you have completed the backup, Type 'confirm' to continue:"#,
+        )
+        .interact()?;
         if user_input != "confirm" {
-            outro("Database initialization cancelled.")?;
-            return Err(anyhow!("Database initialization cancelled by user"));
+            outro("Database upgrading cancelled.")?;
+            std::process::exit(1);
         }
         Ok(true)
     }
-
-
 
     /// Initialize database, create tables and insert first token if not exist
     async fn init_db(pool: SqlitePool) -> Result<Self> {
         use sqlx::migrate::Migrate;
         let local_migrations = sqlx::migrate!();
-        let applied_migrations = pool.acquire().await?.acquire().await?.list_applied_migrations().await?;
+        let applied_migrations = pool
+            .acquire()
+            .await?
+            .acquire()
+            .await?
+            .list_applied_migrations()
+            .await?;
+        let has_diff = local_migrations.iter().len() / 2 != applied_migrations.len()
+            || applied_migrations
+                .iter()
+                .any(|db_migration| !local_migrations.version_exists(db_migration.version));
 
-
-        let should_confirm = if local_migrations.iter().len() / 2 != applied_migrations.len() {
-            true
-        } else {
-            local_migrations.iter().any(|local_migration| {
-                !applied_migrations.iter().any(|db_migration| {
-                    db_migration.version == local_migration.version
-                })
-            })
-        };
-
-        if should_confirm {
+        // There's a difference between the local migrations and the applied migrations, prompt user to confirm
+        if has_diff {
             Self::prompt_confirm()?;
         }
 
