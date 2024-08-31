@@ -34,7 +34,6 @@ pub struct AnswerService {
     chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
-    repository: Arc<dyn RepositoryService>,
     serper: Option<Box<dyn DocSearch>>,
 }
 
@@ -47,7 +46,6 @@ impl AnswerService {
         chat: Arc<dyn ChatCompletionStream>,
         code: Arc<dyn CodeSearch>,
         doc: Arc<dyn DocSearch>,
-        repository: Arc<dyn RepositoryService>,
         serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
     ) -> Self {
         let serper: Option<Box<dyn DocSearch>> =
@@ -62,7 +60,6 @@ impl AnswerService {
             chat,
             code,
             doc,
-            repository,
             serper,
         }
     }
@@ -326,10 +323,9 @@ pub fn create(
     chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
-    repository: Arc<dyn RepositoryService>,
     serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
 ) -> AnswerService {
-    AnswerService::new(config, chat, code, doc, repository, serper_factory_fn)
+    AnswerService::new(config, chat, code, doc, serper_factory_fn)
 }
 
 fn convert_messages_to_chat_completion_request(

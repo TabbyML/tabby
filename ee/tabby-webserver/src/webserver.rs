@@ -96,7 +96,6 @@ impl Webserver {
                 chat.clone(),
                 code.clone(),
                 docsearch.clone(),
-                self.repository.clone(),
                 serper_factory_fn,
             ))
         });

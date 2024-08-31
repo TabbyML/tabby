@@ -101,10 +101,12 @@ impl ServerContext {
         let setting = Arc::new(setting::create(db_conn.clone()));
         let thread = Arc::new(thread::create(db_conn.clone(), answer.clone()));
         let web_documents = Arc::new(web_documents::create(db_conn.clone(), job.clone()));
+
+        let can_search_public_web = answer.as_ref().map(|x| x.can_search_public_web()).unwrap_or_default();
         let context = Arc::new(context::create(
             repository.clone(),
             web_documents.clone(),
-            answer.clone(),
+            can_search_public_web,
         ));
 
         background_job::start(
