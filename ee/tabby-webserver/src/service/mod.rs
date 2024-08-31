@@ -2,7 +2,7 @@ mod analytic;
 pub mod answer;
 mod auth;
 pub mod background_job;
-mod context;
+pub mod context;
 mod email;
 pub mod event_logger;
 pub mod integration;
@@ -13,7 +13,7 @@ pub mod repository;
 mod setting;
 mod thread;
 mod user_event;
-mod web_documents;
+pub mod web_documents;
 
 use std::sync::Arc;
 
@@ -83,6 +83,8 @@ impl ServerContext {
         integration: Arc<dyn IntegrationService>,
         job: Arc<dyn JobService>,
         answer: Option<Arc<AnswerService>>,
+        context: Arc<dyn ContextService>,
+        web_documents: Arc<dyn WebDocumentService>,
         db_conn: DbConn,
         embedding: Arc<dyn Embedding>,
         is_chat_enabled_locally: bool,
@@ -100,14 +102,6 @@ impl ServerContext {
         let user_event = Arc::new(user_event::create(db_conn.clone()));
         let setting = Arc::new(setting::create(db_conn.clone()));
         let thread = Arc::new(thread::create(db_conn.clone(), answer.clone()));
-        let web_documents = Arc::new(web_documents::create(db_conn.clone(), job.clone()));
-
-        let can_search_public_web = answer.as_ref().map(|x| x.can_search_public_web()).unwrap_or_default();
-        let context = Arc::new(context::create(
-            repository.clone(),
-            web_documents.clone(),
-            can_search_public_web,
-        ));
 
         background_job::start(
             db_conn.clone(),
@@ -302,6 +296,8 @@ pub async fn create_service_locator(
     integration: Arc<dyn IntegrationService>,
     job: Arc<dyn JobService>,
     answer: Option<Arc<AnswerService>>,
+    context: Arc<dyn ContextService>,
+    web_documents: Arc<dyn WebDocumentService>,
     db: DbConn,
     embedding: Arc<dyn Embedding>,
     is_chat_enabled: bool,
@@ -314,6 +310,8 @@ pub async fn create_service_locator(
             integration,
             job,
             answer,
+            context,
+            web_documents,
             db,
             embedding,
             is_chat_enabled,

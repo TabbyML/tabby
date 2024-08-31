@@ -13,13 +13,16 @@ use tabby_db::DbConn;
 use tabby_inference::{ChatCompletionStream, Embedding};
 use tabby_schema::{
     integration::IntegrationService, job::JobService, repository::RepositoryService,
+    web_documents::WebDocumentService,
 };
+use tracing::debug;
 
 use crate::{
     path::db_file,
     routes,
     service::{
         create_service_locator, event_logger::create_event_logger, integration, job, repository,
+        web_documents,
     },
 };
 
@@ -29,6 +32,7 @@ pub struct Webserver {
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
     job: Arc<dyn JobService>,
+    web_documents: Arc<dyn WebDocumentService>,
     embedding: Arc<dyn Embedding>,
 }
 
@@ -66,12 +70,15 @@ impl Webserver {
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
 
+        let web_documents = Arc::new(web_documents::create(db.clone(), job.clone()));
+
         Arc::new(Webserver {
             db: db.clone(),
             logger,
             repository: repository.clone(),
             integration: integration.clone(),
             job: job.clone(),
+            web_documents,
             embedding,
         })
     }
@@ -90,13 +97,28 @@ impl Webserver {
         docsearch: Arc<dyn DocSearch>,
         serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
     ) -> (Router, Router) {
+        let serper: Option<Box<dyn DocSearch>> =
+            if let Ok(api_key) = std::env::var("SERPER_API_KEY") {
+                debug!("Serper API key found, enabling serper...");
+                Some(serper_factory_fn(&api_key))
+            } else {
+                None
+            };
+
+        let context = Arc::new(crate::service::context::create(
+            self.repository.clone(),
+            self.web_documents.clone(),
+            serper.is_some(),
+        ));
+
         let answer = chat.as_ref().map(|chat| {
             Arc::new(crate::service::answer::create(
                 &config.answer,
                 chat.clone(),
                 code.clone(),
                 docsearch.clone(),
-                serper_factory_fn,
+                context.clone(),
+                serper,
             ))
         });
 
@@ -108,6 +130,8 @@ impl Webserver {
             self.integration.clone(),
             self.job.clone(),
             answer.clone(),
+            context.clone(),
+            self.web_documents.clone(),
             self.db.clone(),
             self.embedding.clone(),
             is_chat_enabled,

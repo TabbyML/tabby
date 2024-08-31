@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use juniper::{GraphQLEnum, GraphQLObject, ID};
+use regex::{Captures, Regex};
 
 use super::{
     repository::{Repository, RepositoryKind},
@@ -81,6 +82,23 @@ impl From<CustomWebDocument> for ContextSource {
 #[derive(GraphQLObject)]
 pub struct ContextInfo {
     pub sources: Vec<ContextSource>,
+}
+
+impl ContextInfo {
+    /// Replace content tagged with `[[source:${id}]]` with its display name.
+    pub fn rewrite_text(&self, content: &str) -> String {
+         let re = Regex::new(r"\[\[source:(.*?)\]\]").unwrap();
+         let new_content = re.replace_all(content, |caps: &Captures| {
+             let source_id = caps.get(1).unwrap().as_str();
+             let source = self.sources.iter().find(|s| s.source_id == source_id);
+             if let Some(source) = source {
+                 source.display_name.clone()
+             } else {
+                 caps[0].to_owned()
+             }
+         });
+         new_content.to_string()
+    }
 }
 
 #[async_trait]

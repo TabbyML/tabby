@@ -8,8 +8,6 @@ use tabby_schema::{
     Result,
 };
 
-use super::answer::AnswerService;
-
 struct ContextServiceImpl {
     repository: Arc<dyn RepositoryService>,
     web_document: Arc<dyn WebDocumentService>,
