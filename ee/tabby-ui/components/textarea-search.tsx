@@ -1,6 +1,7 @@
 'use client'
 
-import { MouseEvent, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Editor } from '@tiptap/react'
 
 import { ContextInfo } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
@@ -61,25 +62,18 @@ export default function TextAreaSearch({
     setIsShow(true)
   }, [])
 
-  const search = (e?: MouseEvent<HTMLDivElement>) => {
-    if (!value || isLoading) return
-    e?.stopPropagation()
-    onSearch(value, { searchPublic })
-    if (cleanAfterSearch) setValue('')
-  }
-
   const onWrapperClick = () => {
     if (isFollowup) {
       editorRef.current?.editor?.commands.focus()
     }
   }
 
-  const handleSubmit = (text: string) => {
-    const editor = editorRef.current?.editor
+  const handleSubmit = (editor: Editor | undefined | null) => {
     if (!editor) {
       return
     }
 
+    const text = editor.getText()
     const mentions = getMentionsWithIndices(editor)
     const docSourceIds: string[] = []
     const codeSourceIds: string[] = []
@@ -157,6 +151,7 @@ export default function TextAreaSearch({
         autoFocus={autoFocus}
         onFocus={() => setIsFocus(true)}
         onBlur={() => setIsFocus(false)}
+        onUpdate={({ editor }) => setValue(editor.getText())}
         ref={editorRef}
         className={cn(
           'text-area-autosize mr-1 flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
@@ -191,8 +186,8 @@ export default function TextAreaSearch({
             }}
           >
             <div className="flex items-center gap-1 overflow-hidden">
-              <IconAtSign className={cn('shrink-0 text-foreground/70')} />
-              <span className={cn('flex-1 truncate text-foreground/70')}>
+              <IconAtSign className={cn('shrink-0 text-foreground/60')} />
+              <span className={cn('flex-1 truncate text-foreground/60')}>
                 Add Context
               </span>
             </div>
@@ -237,7 +232,7 @@ export default function TextAreaSearch({
               // 'mr-6': showBetaBadge,
             }
           )}
-          onClick={search}
+          onClick={() => handleSubmit(editorRef.current?.editor)}
         >
           {loadingWithSpinning && isLoading && (
             <IconSpinner className="h-3.5 w-3.5" />

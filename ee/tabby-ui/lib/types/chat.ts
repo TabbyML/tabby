@@ -5,8 +5,7 @@ import {
   MessageAttachmentCode,
   MessageAttachmentDoc,
   MessageCodeSearchHit,
-  MessageDocSearchHit,
-  Repository
+  MessageDocSearchHit
 } from '../gql/generates/graphql'
 
 export interface UserMessage extends ChatMessage {

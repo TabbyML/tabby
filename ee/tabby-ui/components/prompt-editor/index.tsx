@@ -7,7 +7,13 @@ import Mention from '@tiptap/extension-mention'
 import Paragraph from '@tiptap/extension-paragraph'
 import Placeholder from '@tiptap/extension-placeholder'
 import Text from '@tiptap/extension-text'
-import { Editor, EditorContent, Extension, useEditor } from '@tiptap/react'
+import {
+  Editor,
+  EditorContent,
+  EditorEvents,
+  Extension,
+  useEditor
+} from '@tiptap/react'
 
 import { ContextInfo, ContextSource } from '@/lib/gql/generates/graphql'
 import { useLatest } from '@/lib/hooks/use-latest'
@@ -16,7 +22,7 @@ import { cn } from '@/lib/utils'
 import { CustomMention } from './custom-mention-extension'
 import suggestion from './suggestion'
 
-const DisableEnter = (onSubmit: Function) =>
+const DisableEnter = (onSubmit: (editor: Editor) => void) =>
   Extension.create({
     addKeyboardShortcuts() {
       return {
@@ -34,10 +40,11 @@ interface PromptEditorProps {
   contextInfo?: ContextInfo
   fetchingContextInfo?: boolean
   submitting?: boolean
-  onSubmit: (v: string) => void
+  onSubmit?: (editor: Editor) => void
   placeholder?: string
-  onBlur?: (e: FocusEvent) => void
-  onFocus?: (e: FocusEvent) => void
+  onBlur?: (p: EditorEvents['blur']) => void
+  onFocus?: (p: EditorEvents['focus']) => void
+  onUpdate?: (p: EditorEvents['update']) => void
   autoFocus?: boolean
   className?: string
   editorClassName?: string
@@ -69,6 +76,7 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       placeholder,
       onBlur,
       onFocus,
+      onUpdate,
       autoFocus,
       className,
       editorClassName
@@ -81,7 +89,7 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       const text = editor.getText()
       if (!text) return
 
-      onSubmit?.(text)
+      onSubmit?.(editor)
     })
 
     const handleSubmit = (editor: Editor) => {
@@ -127,10 +135,15 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       content,
       editable,
       onBlur(props) {
-        onBlur?.(props?.event)
+        console.log(props.editor.getJSON())
+        console.log(props.editor.getText())
+        onBlur?.(props)
       },
       onFocus(props) {
-        onFocus?.(props?.event)
+        onFocus?.(props)
+      },
+      onUpdate(props) {
+        onUpdate?.(props)
       }
     })
 

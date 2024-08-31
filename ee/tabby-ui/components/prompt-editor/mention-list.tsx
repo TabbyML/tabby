@@ -6,7 +6,6 @@ import React, {
   useMemo,
   useState
 } from 'react'
-// import { MentionNodeAttrs } from '@tiptap/extension-mention'
 import {
   SuggestionKeyDownProps,
   SuggestionProps

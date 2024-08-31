@@ -79,6 +79,7 @@ import { useQuery } from 'urql'
 import { graphql } from '@/lib/gql/generates'
 import {
   CodeQueryInput,
+  ContextInfo,
   DocQueryInput,
   InputMaybe,
   Maybe,
@@ -102,6 +103,7 @@ import {
   MessageMarkdown,
   SiteFavicon
 } from '@/components/message-markdown'
+import { PromptEditor } from '@/components/prompt-editor'
 
 import { DevPanel } from './dev-panel'
 import { MessagesSkeleton } from './messages-skeleton'
@@ -129,6 +131,8 @@ type SearchContextValue = {
   setDevPanelOpen: (v: boolean) => void
   setConversationIdForDev: (v: string | undefined) => void
   enableDeveloperMode: boolean
+  contextInfo: ContextInfo | undefined
+  fetchingContextInfo: boolean
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -681,7 +685,9 @@ export function Search() {
         setDevPanelOpen,
         setConversationIdForDev: setMessageIdForDev,
         isPathnameInitialized,
-        enableDeveloperMode: enableDeveloperMode.value
+        enableDeveloperMode: enableDeveloperMode.value,
+        contextInfo: contextInfoData?.contextInfo,
+        fetchingContextInfo
       }}
     >
       <div className="transition-all" style={style}>
@@ -703,9 +709,12 @@ export function Search() {
                           <div key={item.id}>
                             {idx !== 0 && <Separator />}
                             <div className="pb-2 pt-8">
-                              <MessageMarkdown
-                                message={item.content}
-                                headline
+                              {/* todo convert message to jsonContent */}
+                              <PromptEditor
+                                editable={false}
+                                content={item.content}
+                                contextInfo={contextInfoData?.contextInfo}
+                                fetchingContextInfo={fetchingContextInfo}
                               />
                             </div>
                           </div>
@@ -794,7 +803,6 @@ export function Search() {
                     isFollowup
                     contextInfo={contextInfoData?.contextInfo}
                     fetchingContextInfo={fetchingContextInfo}
-                    // todo
                   />
                 </div>
               </div>
@@ -843,7 +851,9 @@ function AnswerBlock({
     onSubmitSearch,
     setDevPanelOpen,
     setConversationIdForDev,
-    enableDeveloperMode
+    enableDeveloperMode,
+    contextInfo,
+    fetchingContextInfo
   } = useContext(SearchContext)
 
   const [showMoreSource, setShowMoreSource] = useState(false)
