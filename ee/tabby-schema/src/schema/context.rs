@@ -1,3 +1,5 @@
+use std::{collections::HashMap, hash::Hash};
+
 use async_trait::async_trait;
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 use regex::{Captures, Regex};
@@ -85,19 +87,38 @@ pub struct ContextInfo {
 }
 
 impl ContextInfo {
+    pub fn rewriter(&self) -> SourceTagRewriter {
+        SourceTagRewriter::new(self)
+    }
+}
+
+pub struct SourceTagRewriter<'k, 'v> {
+    sources: HashMap<&'k str, &'v str>,
+}
+
+impl<'a> SourceTagRewriter<'a, 'a> {
+    pub fn new(context_info: &'a ContextInfo) -> Self {
+        Self {
+            sources: context_info
+                .sources
+                .iter()
+                .map(|source| (source.source_id.as_str(), source.display_name.as_str()))
+                .collect(),
+        }
+    }
+
     /// Replace content tagged with `[[source:${id}]]` with its display name.
-    pub fn rewrite_text(&self, content: &str) -> String {
-         let re = Regex::new(r"\[\[source:(.*?)\]\]").unwrap();
-         let new_content = re.replace_all(content, |caps: &Captures| {
-             let source_id = caps.get(1).unwrap().as_str();
-             let source = self.sources.iter().find(|s| s.source_id == source_id);
-             if let Some(source) = source {
-                 source.display_name.clone()
-             } else {
-                 caps[0].to_owned()
-             }
-         });
-         new_content.to_string()
+    pub fn rewrite(&self, content: &str) -> String {
+        let re = Regex::new(r"\[\[source:(.*?)\]\]").unwrap();
+        let new_content = re.replace_all(content, |caps: &Captures| {
+            let source_id = caps.get(1).unwrap().as_str();
+            if let Some(display_name) = self.sources.get(source_id){
+                display_name.to_string()
+            } else {
+                caps[0].to_owned()
+            }
+        });
+        new_content.to_string()
     }
 }
 

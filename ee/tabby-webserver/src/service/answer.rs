@@ -19,7 +19,7 @@ use tabby_common::{
 };
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
-    context::{ContextInfo, ContextService},
+    context::{ContextInfo, ContextService, SourceTagRewriter},
     repository::RepositoryService,
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
@@ -72,6 +72,9 @@ impl AnswerService {
         let user_attachment_input = user_attachment_input.cloned();
 
         let s = stream! {
+            let context_info = self.context.read().await?;
+            let source_tag_rewriter = context_info.rewriter();
+
             let query = match messages.last() {
                 Some(query) => query,
                 None => {
@@ -95,11 +98,9 @@ impl AnswerService {
                 }
             };
 
-            let context_info = self.context.read().await?;
-
             // 2. Collect relevant docs if needed.
             if let Some(doc_query) = options.doc_query.as_ref() {
-                let hits = self.collect_relevant_docs(&context_info, doc_query)
+                let hits = self.collect_relevant_docs(&source_tag_rewriter, doc_query)
                     .await;
                 attachment.doc = hits.iter()
                         .map(|x| x.doc.clone().into())
@@ -116,7 +117,7 @@ impl AnswerService {
             // 3. Generate relevant questions.
             if options.generate_relevant_questions {
                 // Rewrite [[source:${id}]] tags to the actual source name for generate relevant questions.
-                let content = context_info.rewrite_text(&query.content);
+                let content = source_tag_rewriter.rewrite(&query.content);
                 let questions = self
                     .generate_relevant_questions_v2(&attachment, &content)
                     .await;
@@ -125,7 +126,7 @@ impl AnswerService {
 
             // 4. Prepare requesting LLM
             let request = {
-                let chat_messages = convert_messages_to_chat_completion_request(&context_info, &messages, &attachment, user_attachment_input.as_ref())?;
+                let chat_messages = convert_messages_to_chat_completion_request(&source_tag_rewriter, &messages, &attachment, user_attachment_input.as_ref())?;
 
                 CreateChatCompletionRequestArgs::default()
                     .messages(chat_messages)
@@ -199,9 +200,9 @@ impl AnswerService {
         }
     }
 
-    async fn collect_relevant_docs(
+    async fn collect_relevant_docs<'a>(
         &self,
-        context_info: &ContextInfo,
+        source_tag_rewriter: &SourceTagRewriter<'a, 'a>,
         doc_query: &DocQueryInput,
     ) -> Vec<DocSearchHit> {
         let source_ids = doc_query.source_ids.as_deref().unwrap_or_default();
@@ -211,7 +212,7 @@ impl AnswerService {
         }
 
         // Rewrite [[source:${id}]] tags to the actual source name for doc search.
-        let content = context_info.rewrite_text(&doc_query.content);
+        let content = source_tag_rewriter.rewrite(&doc_query.content);
 
         // 1. Collect relevant docs from the tantivy doc search.
         let mut hits = vec![];
@@ -332,8 +333,8 @@ pub fn create(
     AnswerService::new(config, chat, code, doc, context, serper)
 }
 
-fn convert_messages_to_chat_completion_request(
-    context_info: &ContextInfo,
+fn convert_messages_to_chat_completion_request<'a>(
+    rewriter: &SourceTagRewriter<'a, 'a>,
     messages: &[tabby_schema::thread::Message],
     attachment: &tabby_schema::thread::MessageAttachment,
     user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
@@ -362,7 +363,7 @@ fn convert_messages_to_chat_completion_request(
 
         output.push(ChatCompletionRequestMessage::System(
             ChatCompletionRequestSystemMessage {
-                content: context_info.rewrite_text(&content),
+                content: rewriter.rewrite(&content),
                 role,
                 name: None,
             },
@@ -371,7 +372,7 @@ fn convert_messages_to_chat_completion_request(
 
     output.push(ChatCompletionRequestMessage::System(
         ChatCompletionRequestSystemMessage {
-            content: context_info.rewrite_text(&build_user_prompt(
+            content: rewriter.rewrite(&build_user_prompt(
                 &messages[messages.len() - 1].content,
                 attachment,
                 user_attachment_input,
@@ -527,8 +528,10 @@ mod tests {
                 ],
         };
 
+        let rewriter = context_info.rewriter();
+
         let output = super::convert_messages_to_chat_completion_request(
-            &context_info,
+            &rewriter,
             &messages,
             &tabby_schema::thread::MessageAttachment::default(),
             Some(&user_attachment_input),
