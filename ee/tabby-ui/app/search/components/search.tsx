@@ -79,6 +79,7 @@ import { useQuery } from 'urql'
 import { graphql } from '@/lib/gql/generates'
 import {
   CodeQueryInput,
+  DocQueryInput,
   InputMaybe,
   Maybe,
   Message,
@@ -362,7 +363,8 @@ export function Search() {
       const initialExtraContextStr = sessionStorage.getItem(
         SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
       )
-      const initialExtraInfo = initialExtraContextStr
+
+      const initialExtraContext = initialExtraContextStr
         ? JSON.parse(initialExtraContextStr)
         : undefined
 
@@ -372,13 +374,8 @@ export function Search() {
           SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
         )
         setIsReady(true)
-        setExtraContext(p => ({
-          ...p,
-          repository: initialExtraInfo?.repository
-        }))
-        onSubmitSearch(initialMessage, {
-          repository: initialExtraInfo?.repository
-        })
+        setExtraContext(initialExtraContext)
+        onSubmitSearch(initialMessage, initialExtraContext)
         return
       }
 
@@ -529,7 +526,7 @@ export function Search() {
     }
   }, [devPanelOpen])
 
-  const onSubmitSearch = (question: string, ctx?: any) => {
+  const onSubmitSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
     const newUserMessageId = nanoid()
     const newAssistantMessageId = nanoid()
     const newUserMessage: ConversationMessage = {
@@ -543,11 +540,19 @@ export function Search() {
       content: ''
     }
 
-    // FIXME
-    const _repository = ctx?.repository || extraContext?.repository
-    const codeQuery: InputMaybe<CodeQueryInput> = _repository
-      ? { gitUrl: _repository.gitUrl, content: question }
+    const repoSourceIds = ctx?.codeSourceIds || extraContext?.codeSourceIds
+    const repoSourceId = repoSourceIds?.[0]
+
+    const codeQuery: InputMaybe<CodeQueryInput> = repoSourceId
+      ? { sourceId: repoSourceId, content: question }
       : null
+
+    const docSourceIds = ctx?.docSourceIds || extraContext?.docSourceIds
+    const docQuery: InputMaybe<DocQueryInput> = {
+      sourceIds: docSourceIds,
+      content: question,
+      searchPublic: !!ctx?.searchPublic
+    }
 
     setCurrentUserMessageId(newUserMessageId)
     setCurrentAssistantMessageId(newAssistantMessageId)
@@ -560,7 +565,7 @@ export function Search() {
       {
         generateRelevantQuestions: true,
         codeQuery,
-        docQuery: { content: question }
+        docQuery
       }
     )
   }
@@ -592,10 +597,27 @@ export function Search() {
       },
       error: undefined
     }
-    const _repository = extraContext?.repository
-    const codeQuery: InputMaybe<CodeQueryInput> = _repository
-      ? { gitUrl: _repository.gitUrl, content: newUserMessage.content }
+
+    // FIXME utils
+    const repoSourceIds = extraContext?.codeSourceIds
+    const repoSourceId = repoSourceIds?.[0]
+    const repo = repoSourceId
+      ? contextInfoData?.contextInfo?.sources?.find(
+          o => o.sourceId === repoSourceId
+        )
+      : undefined
+    const codeQuery: InputMaybe<CodeQueryInput> = repo
+      ? { sourceId: repo.sourceId, content: newUserMessage.content }
       : null
+
+    const docSourceIds = extraContext?.docSourceIds
+    const docQuery: InputMaybe<DocQueryInput> = {
+      sourceIds: docSourceIds,
+      content: newUserMessage.content,
+      // todo store searchPublic
+      searchPublic: false
+      // searchPublic: !!ctx?.searchPublic
+    }
 
     setCurrentUserMessageId(newUserMessage.id)
     setCurrentAssistantMessageId(newAssistantMessage.id)
@@ -611,7 +633,7 @@ export function Search() {
       threadRunOptions: {
         generateRelevantQuestions: true,
         codeQuery,
-        docQuery: { content: newUserMessage.content }
+        docQuery
       }
     })
   }

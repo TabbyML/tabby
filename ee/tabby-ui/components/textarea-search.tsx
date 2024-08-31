@@ -1,32 +1,11 @@
 'use client'
 
-import { MouseEvent, useEffect, useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
-import { omit } from 'lodash-es'
-// import TextareaAutosize from 'react-textarea-autosize'
-import { useQuery } from 'urql'
+import { MouseEvent, useEffect, useRef, useState } from 'react'
 
-import { SESSION_STORAGE_KEY } from '@/lib/constants'
-import { ContextInfo, Repository } from '@/lib/gql/generates/graphql'
+import { ContextInfo } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
-import { repositoryListQuery } from '@/lib/tabby/query'
 import { AnswerEngineExtraContext } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator
-} from '@/components/ui/command'
-import {
-  Popover,
-  PopoverContent,
-  PopoverPortal,
-  PopoverTrigger
-} from '@/components/ui/popover'
 import {
   Tooltip,
   TooltipContent,
@@ -34,14 +13,14 @@ import {
 } from '@/components/ui/tooltip'
 
 import { PromptEditor, PromptEditorRef } from './prompt-editor'
-import { Button, buttonVariants } from './ui/button'
 import {
-  IconArrowRight,
-  IconAtSign,
-  IconCheck,
-  IconCode,
-  IconSpinner
-} from './ui/icons'
+  getInfoFromMentionId,
+  getMentionsWithIndices,
+  isRepositorySource
+} from './prompt-editor/utils'
+import { buttonVariants } from './ui/button'
+import { Checkbox } from './ui/checkbox'
+import { IconArrowRight, IconAtSign, IconSpinner } from './ui/icons'
 
 export default function TextAreaSearch({
   onSearch,
@@ -53,11 +32,10 @@ export default function TextAreaSearch({
   loadingWithSpinning,
   cleanAfterSearch = true,
   isFollowup,
-  extraContext,
   contextInfo,
   fetchingContextInfo
 }: {
-  onSearch: (value: string, extraContext: AnswerEngineExtraContext) => void
+  onSearch: (value: string, ctx: AnswerEngineExtraContext) => void
   className?: string
   placeholder?: string
   showBetaBadge?: boolean
@@ -73,48 +51,20 @@ export default function TextAreaSearch({
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
   const [value, setValue] = useState('')
-  const [selectedRepo, setSelectedRepo] = useState<
-    AnswerEngineExtraContext['repository'] | undefined
-  >()
+  const [searchPublic, setSearchPublic] = useState(false)
+
   const { theme } = useCurrentTheme()
   const editorRef = useRef<PromptEditorRef>(null)
-
-  const getPreviouslySelectedRepo = () => {
-    try {
-      const selectedRepoValue = sessionStorage.getItem(
-        SESSION_STORAGE_KEY.SEARCH_SELECTED_REPO
-      )
-      if (selectedRepoValue) {
-        const temp = JSON.parse(selectedRepoValue)
-        if (temp) {
-          setSelectedRepo(temp)
-        }
-      }
-    } catch (e) {}
-  }
 
   useEffect(() => {
     // Ensure the textarea height remains consistent during rendering
     setIsShow(true)
-    // try to load cached repo selection
-    getPreviouslySelectedRepo()
   }, [])
-
-  const onSearchKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (
-      event.key === 'Enter' &&
-      !event.shiftKey &&
-      !event.nativeEvent.isComposing
-    ) {
-      event.preventDefault()
-      search()
-    }
-  }
 
   const search = (e?: MouseEvent<HTMLDivElement>) => {
     if (!value || isLoading) return
     e?.stopPropagation()
-    onSearch(value, { repository: selectedRepo })
+    onSearch(value, { searchPublic })
     if (cleanAfterSearch) setValue('')
   }
 
@@ -124,11 +74,39 @@ export default function TextAreaSearch({
     }
   }
 
-  useEffect(() => {
-    if (extraContext?.repository) {
-      setSelectedRepo(extraContext?.repository)
+  const handleSubmit = (text: string) => {
+    const editor = editorRef.current?.editor
+    if (!editor) {
+      return
     }
-  }, [extraContext])
+
+    const mentions = getMentionsWithIndices(editor)
+    const docSourceIds: string[] = []
+    const codeSourceIds: string[] = []
+
+    for (let mention of mentions) {
+      const { kind, sourceId } = getInfoFromMentionId(mention.id)
+      if (isRepositorySource(kind)) {
+        codeSourceIds.push(sourceId)
+      } else {
+        docSourceIds.push(sourceId)
+      }
+    }
+
+    const ctx: AnswerEngineExtraContext = {
+      searchPublic,
+      docSourceIds,
+      codeSourceIds
+    }
+
+    // do submit
+    onSearch(text, ctx)
+
+    // clear content
+    if (cleanAfterSearch) {
+      editorRef.current?.editor?.chain().clearContent().focus().run()
+    }
+  }
 
   const showFooterToolbar = true
 
@@ -174,10 +152,7 @@ export default function TextAreaSearch({
         editable
         contextInfo={contextInfo}
         fetchingContextInfo={fetchingContextInfo}
-        onSubmit={(text: string) => {
-          onSearch(text, {})
-          if (cleanAfterSearch) setValue('')
-        }}
+        onSubmit={handleSubmit}
         placeholder={placeholder || 'Ask anything...'}
         autoFocus={autoFocus}
         onFocus={() => setIsFocus(true)}
@@ -200,7 +175,7 @@ export default function TextAreaSearch({
           'pb-2': showFooterToolbar
         })}
       >
-        {showFooterToolbar && (
+        <div className="flex items-center gap-4">
           <div
             className={cn(
               buttonVariants({ variant: 'ghost' }),
@@ -222,7 +197,33 @@ export default function TextAreaSearch({
               </span>
             </div>
           </div>
-        )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center space-x-1.5">
+                <Checkbox
+                  id="searchPublic"
+                  className="w-3.5 h-3.5"
+                  disabled={!contextInfo?.canSearchPublic}
+                  checked={searchPublic}
+                  onCheckedChange={checked =>
+                    setSearchPublic(
+                      checked === 'indeterminate' ? false : checked
+                    )
+                  }
+                ></Checkbox>
+                <label
+                  htmlFor="searchPublic"
+                  className="text-sm font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Search Public
+                </label>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Search Public</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
         <div
           className={cn(
             'flex items-center justify-center rounded-lg p-1 transition-all',
@@ -247,153 +248,5 @@ export default function TextAreaSearch({
         </div>
       </div>
     </div>
-  )
-}
-interface RepoSelectProps {
-  value: AnswerEngineExtraContext['repository'] | undefined
-  onChange: (val: AnswerEngineExtraContext['repository'] | undefined) => void
-  className?: string
-  disabled?: boolean
-}
-function RepoSelect({ value, onChange, className, disabled }: RepoSelectProps) {
-  const [commandVisible, setCommandVisible] = useState(false)
-  const [{ data, fetching }] = useQuery({
-    query: repositoryListQuery
-  })
-  const repos = data?.repositoryList
-
-  const emptyText = useMemo(() => {
-    if (!repos?.length) {
-      return (
-        <div className="space-y-4 py-2">
-          <p className="font-semibold">No repositories</p>
-          <Link
-            href="/settings/providers/git"
-            className={cn(buttonVariants({ size: 'sm' }), 'gap-1')}
-          >
-            Connect
-            <IconArrowRight />
-          </Link>
-        </div>
-      )
-    } else {
-      return 'No results found'
-    }
-  }, [repos])
-
-  const onSelectRepo = (repo: Repository) => {
-    onChange(repo)
-    setCommandVisible(false)
-    sessionStorage.setItem(
-      SESSION_STORAGE_KEY.SEARCH_SELECTED_REPO,
-      JSON.stringify(omit(repo, 'refs'))
-    )
-  }
-
-  return (
-    <Tooltip delayDuration={0}>
-      <Popover
-        open={commandVisible}
-        onOpenChange={e => {
-          if (disabled) return
-          setCommandVisible(e)
-        }}
-      >
-        <PopoverTrigger asChild>
-          <TooltipTrigger asChild>
-            <div
-              className={cn(
-                buttonVariants({ variant: 'ghost' }),
-                '-ml-2 cursor-pointer rounded-full px-2',
-                {
-                  'cursor-default hover:bg-transparent': disabled
-                },
-                className
-              )}
-            >
-              <div className="flex items-center gap-2 overflow-hidden">
-                <IconCode
-                  className={cn(
-                    'shrink-0',
-                    value ? 'text-foreground/70' : 'text-foreground/50'
-                  )}
-                />
-                <span
-                  className={cn(
-                    'flex-1 truncate',
-                    value ? 'text-foreground/70' : 'text-foreground/50'
-                  )}
-                >
-                  {value?.name ?? 'Select repository'}
-                </span>
-              </div>
-            </div>
-          </TooltipTrigger>
-        </PopoverTrigger>
-        <PopoverPortal>
-          <PopoverContent
-            className="min-w-[300px] lg:max-w-[60vw]"
-            align="start"
-            side="bottom"
-          >
-            <Command>
-              <CommandInput placeholder="Search" />
-              <CommandList className="max-h-[200px]">
-                <CommandEmpty>
-                  {fetching ? (
-                    <div className="flex justify-center">
-                      <IconSpinner className="h-6 w-6" />
-                    </div>
-                  ) : (
-                    emptyText
-                  )}
-                </CommandEmpty>
-                <CommandGroup>
-                  {repos?.map(repo => {
-                    const isSelected =
-                      !!value?.id &&
-                      `${repo.kind}_${repo.id}` === `${value.kind}_${value.id}`
-                    return (
-                      <CommandItem
-                        value={`${repo.kind}_${repo.id}`}
-                        key={`${repo.kind}_${repo.id}`}
-                        onSelect={() => onSelectRepo(repo)}
-                        className="flex cursor-pointer items-center gap-2 overflow-hidden"
-                      >
-                        <div className="h-4 w-4 shrink-0">
-                          {isSelected && <IconCheck className="shrink-0" />}
-                        </div>
-                        <span className="truncate">{repo.name}</span>
-                      </CommandItem>
-                    )
-                  })}
-                </CommandGroup>
-              </CommandList>
-              {!!value && (
-                <>
-                  <CommandSeparator />
-                  <CommandItem
-                    onSelect={() => {
-                      onChange(undefined)
-                      setCommandVisible(false)
-                      sessionStorage.removeItem(
-                        SESSION_STORAGE_KEY.SEARCH_SELECTED_REPO
-                      )
-                    }}
-                    className="!pointer-events-auto mt-1 cursor-pointer justify-center text-center !opacity-100"
-                  >
-                    Clear
-                  </CommandItem>
-                </>
-              )}
-            </Command>
-          </PopoverContent>
-        </PopoverPortal>
-      </Popover>
-      <TooltipContent className="max-w-md">
-        Effortlessly interact with your repositories for contextualized search
-        and assistance.
-      </TooltipContent>
-    </Tooltip>
   )
 }

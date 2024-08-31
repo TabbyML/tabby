@@ -67,7 +67,9 @@ type MergeUnionType<T> = {
 }
 
 export type AnswerEngineExtraContext = {
-  repository?: Omit<Repository, 'refs'>
+  searchPublic?: boolean
+  docSourceIds?: string[]
+  codeSourceIds?: string[]
 }
 
 export interface RelevantCodeContext extends Context {

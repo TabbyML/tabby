@@ -93,9 +93,7 @@ function MainPanel() {
     sessionStorage.setItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG, question)
     sessionStorage.setItem(
       SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT,
-      JSON.stringify({
-        repository: ctx?.repository ? omit(ctx.repository, 'refs') : undefined
-      })
+      JSON.stringify(ctx)
     )
     router.push('/search')
   }
