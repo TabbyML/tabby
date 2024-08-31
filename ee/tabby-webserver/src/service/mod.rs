@@ -13,7 +13,6 @@ pub mod repository;
 mod setting;
 mod thread;
 mod user_event;
-pub mod web_crawler;
 mod web_documents;
 
 use std::sync::Arc;
@@ -47,7 +46,6 @@ use tabby_schema::{
     setting::SettingService,
     thread::ThreadService,
     user_event::UserEventService,
-    web_crawler::WebCrawlerService,
     web_documents::WebDocumentService,
     worker::WorkerService,
     AsID, AsRowid, CoreError, Result, ServiceLocator,
@@ -65,7 +63,6 @@ struct ServerContext {
     integration: Arc<dyn IntegrationService>,
     user_event: Arc<dyn UserEventService>,
     job: Arc<dyn JobService>,
-    web_crawler: Arc<dyn WebCrawlerService>,
     web_documents: Arc<dyn WebDocumentService>,
     thread: Arc<dyn ThreadService>,
     context: Arc<dyn ContextService>,
@@ -84,7 +81,6 @@ impl ServerContext {
         code: Arc<dyn CodeSearch>,
         repository: Arc<dyn RepositoryService>,
         integration: Arc<dyn IntegrationService>,
-        web_crawler: Arc<dyn WebCrawlerService>,
         job: Arc<dyn JobService>,
         answer: Option<Arc<AnswerService>>,
         db_conn: DbConn,
@@ -107,7 +103,6 @@ impl ServerContext {
         let web_documents = Arc::new(web_documents::create(db_conn.clone(), job.clone()));
         let context = Arc::new(context::create(
             repository.clone(),
-            web_crawler.clone(),
             web_documents.clone(),
             answer.clone(),
         ));
@@ -132,7 +127,6 @@ impl ServerContext {
                 license.clone(),
                 setting.clone(),
             )),
-            web_crawler,
             web_documents,
             thread,
             context,
@@ -286,10 +280,6 @@ impl ServiceLocator for ArcServerContext {
         self.0.integration.clone()
     }
 
-    fn web_crawler(&self) -> Arc<dyn WebCrawlerService> {
-        self.0.web_crawler.clone()
-    }
-
     fn web_documents(&self) -> Arc<dyn WebDocumentService> {
         self.0.web_documents.clone()
     }
@@ -308,7 +298,6 @@ pub async fn create_service_locator(
     code: Arc<dyn CodeSearch>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
-    web_crawler: Arc<dyn WebCrawlerService>,
     job: Arc<dyn JobService>,
     answer: Option<Arc<AnswerService>>,
     db: DbConn,
@@ -321,7 +310,6 @@ pub async fn create_service_locator(
             code,
             repository,
             integration,
-            web_crawler,
             job,
             answer,
             db,

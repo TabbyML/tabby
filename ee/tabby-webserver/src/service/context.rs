@@ -27,14 +27,6 @@ impl ContextService for ContextServiceImpl {
             .collect();
 
         sources.extend(
-            self.web_crawler
-                .list_web_crawler_urls(None, None, None, None)
-                .await?
-                .into_iter()
-                .map(Into::into),
-        );
-
-        sources.extend(
             self.web_document
                 .list_custom_web_documents(None, None, None, None, None)
                 .await?
@@ -65,13 +57,11 @@ impl ContextService for ContextServiceImpl {
 
 pub fn create(
     repository: Arc<dyn RepositoryService>,
-    web_crawler: Arc<dyn WebCrawlerService>,
     web_document: Arc<dyn WebDocumentService>,
     answer: Option<Arc<AnswerService>>,
 ) -> impl ContextService {
     ContextServiceImpl {
         repository,
-        web_crawler,
         web_document,
         answer,
     }

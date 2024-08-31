@@ -13,7 +13,6 @@ use tabby_db::DbConn;
 use tabby_inference::{ChatCompletionStream, Embedding};
 use tabby_schema::{
     integration::IntegrationService, job::JobService, repository::RepositoryService,
-    web_crawler::WebCrawlerService,
 };
 
 use crate::{
@@ -21,7 +20,6 @@ use crate::{
     routes,
     service::{
         create_service_locator, event_logger::create_event_logger, integration, job, repository,
-        web_crawler,
     },
 };
 
@@ -30,7 +28,6 @@ pub struct Webserver {
     logger: Arc<dyn EventLogger>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
-    web_crawler: Arc<dyn WebCrawlerService>,
     job: Arc<dyn JobService>,
     embedding: Arc<dyn Embedding>,
 }
@@ -66,8 +63,6 @@ impl Webserver {
         let integration = Arc::new(integration::create(db.clone(), job.clone()));
         let repository = repository::create(db.clone(), integration.clone(), job.clone());
 
-        let web_crawler = Arc::new(web_crawler::create(db.clone(), job.clone()));
-
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
 
@@ -76,7 +71,6 @@ impl Webserver {
             logger,
             repository: repository.clone(),
             integration: integration.clone(),
-            web_crawler: web_crawler.clone(),
             job: job.clone(),
             embedding,
         })
@@ -102,7 +96,6 @@ impl Webserver {
                 chat.clone(),
                 code.clone(),
                 docsearch.clone(),
-                self.web_crawler.clone(),
                 self.repository.clone(),
                 serper_factory_fn,
             ))
@@ -114,7 +107,6 @@ impl Webserver {
             code.clone(),
             self.repository.clone(),
             self.integration.clone(),
-            self.web_crawler.clone(),
             self.job.clone(),
             answer.clone(),
             self.db.clone(),
