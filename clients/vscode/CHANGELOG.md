@@ -1,4 +1,4 @@
-## 1.11.1 (Pre-release)
+## 1.11.2 (Pre-release)
 
 ### Fixes & Improvements
 
