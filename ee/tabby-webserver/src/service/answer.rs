@@ -108,7 +108,7 @@ impl AnswerService {
 
             // 2. Collect relevant docs if needed.
             if let Some(doc_query) = options.doc_query.as_ref() {
-                let hits = self.collect_relevant_docs(git_url.as_deref(), doc_query)
+                let hits = self.collect_relevant_docs(doc_query)
                     .await;
                 attachment.doc = hits.iter()
                         .map(|x| x.doc.clone().into())
@@ -185,6 +185,7 @@ impl AnswerService {
             input.filepath.clone(),
             input.language.clone(),
             input.content.clone(),
+            input.source_id.clone(),
         );
 
         let mut params = params.clone();
@@ -205,33 +206,8 @@ impl AnswerService {
         }
     }
 
-    async fn collect_relevant_docs(
-        &self,
-        code_query_git_url: Option<&str>,
-        doc_query: &DocQueryInput,
-    ) -> Vec<DocSearchHit> {
-        let source_ids = {
-            // 1. By default only web sources are considered.
-            let mut source_ids: Vec<_> = self
-                .web
-                .list_web_crawler_urls(None, None, None, None)
-                .await
-                .unwrap_or_default()
-                .into_iter()
-                .map(|url| url.source_id())
-                .collect();
-
-            // 2. If code_query is available, we also issues / PRs coming from the source.
-            if let Some(git_url) = code_query_git_url {
-                if let Ok(git_source_id) =
-                    self.repository.resolve_source_id_by_git_url(git_url).await
-                {
-                    source_ids.push(git_source_id);
-                }
-            }
-
-            source_ids
-        };
+    async fn collect_relevant_docs(&self, doc_query: &DocQueryInput) -> Vec<DocSearchHit> {
+        let source_ids = doc_query.source_ids.as_deref().unwrap_or_default();
 
         if source_ids.is_empty() {
             return vec![];
@@ -239,7 +215,7 @@ impl AnswerService {
 
         // 1. Collect relevant docs from the tantivy doc search.
         let mut hits = vec![];
-        let doc_hits = match self.doc.search(&source_ids, &doc_query.content, 5).await {
+        let doc_hits = match self.doc.search(source_ids, &doc_query.content, 5).await {
             Ok(docs) => docs.hits,
             Err(err) => {
                 if let DocSearchError::NotReady = err {
@@ -253,15 +229,17 @@ impl AnswerService {
         hits.extend(doc_hits);
 
         // 2. If serper is available, we also collect from serper
-        if let Some(serper) = self.serper.as_ref() {
-            let serper_hits = match serper.search(&[], &doc_query.content, 5).await {
-                Ok(docs) => docs.hits,
-                Err(err) => {
-                    warn!("Failed to search serper: {:?}", err);
-                    vec![]
-                }
-            };
-            hits.extend(serper_hits);
+        if doc_query.search_public {
+            if let Some(serper) = self.serper.as_ref() {
+                let serper_hits = match serper.search(&[], &doc_query.content, 5).await {
+                    Ok(docs) => docs.hits,
+                    Err(err) => {
+                        warn!("Failed to search serper: {:?}", err);
+                        vec![]
+                    }
+                };
+                hits.extend(serper_hits);
+            }
         }
 
         hits
@@ -333,6 +311,10 @@ Remember, based on the original question and related contexts, suggest three suc
             .map(remove_bullet_prefix)
             .filter(|x| !x.is_empty())
             .collect()
+    }
+
+    pub fn can_search_public(&self) -> bool {
+        self.serper.is_some()
     }
 }
 

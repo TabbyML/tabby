@@ -466,9 +466,7 @@
     "tsc-watch": "^6.2.0",
     "tsup": "^8.0.2",
     "typescript": "^5.3.2",
-    "vscode-languageclient": "^9.0.1"
-  },
-  "dependencies": {
+    "vscode-languageclient": "^9.0.1",
     "diff": "^5.2.0"
   }
 }

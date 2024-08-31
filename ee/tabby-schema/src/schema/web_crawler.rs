@@ -46,6 +46,7 @@ impl NodeType for WebCrawlerUrl {
     }
 }
 
+#[deprecated(note = "Use `WebDocument` instead. This will be removed in the future.")]
 #[async_trait]
 pub trait WebCrawlerService: Send + Sync {
     async fn list_web_crawler_urls(
