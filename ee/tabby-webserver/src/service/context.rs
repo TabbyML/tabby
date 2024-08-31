@@ -43,7 +43,12 @@ impl ContextService for ContextServiceImpl {
                 .map(Into::into),
         );
 
-        if self.answer.as_ref().map(|x| x.can_search_public_web()).unwrap_or_default() {
+        if self
+            .answer
+            .as_ref()
+            .map(|x| x.can_search_public_web())
+            .unwrap_or_default()
+        {
             let source_id = "web";
             sources.push(ContextSource {
                 id: ID::from(source_id.to_owned()),
