@@ -2,6 +2,7 @@ mod analytic;
 pub mod answer;
 mod auth;
 pub mod background_job;
+mod context;
 mod email;
 pub mod event_logger;
 pub mod integration;
@@ -13,7 +14,7 @@ mod setting;
 mod thread;
 mod user_event;
 pub mod web_crawler;
-pub mod web_documents;
+mod web_documents;
 
 use std::sync::Arc;
 
@@ -32,9 +33,11 @@ use tabby_common::{
     constants::USER_HEADER_FIELD_NAME,
 };
 use tabby_db::DbConn;
+use tabby_inference::Embedding;
 use tabby_schema::{
     analytic::AnalyticService,
     auth::AuthenticationService,
+    context::ContextService,
     email::EmailService,
     integration::IntegrationService,
     is_demo_mode,
@@ -65,6 +68,7 @@ struct ServerContext {
     web_crawler: Arc<dyn WebCrawlerService>,
     web_documents: Arc<dyn WebDocumentService>,
     thread: Arc<dyn ThreadService>,
+    context: Arc<dyn ContextService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -81,10 +85,10 @@ impl ServerContext {
         repository: Arc<dyn RepositoryService>,
         integration: Arc<dyn IntegrationService>,
         web_crawler: Arc<dyn WebCrawlerService>,
-        web_documents: Arc<dyn WebDocumentService>,
         job: Arc<dyn JobService>,
         answer: Option<Arc<AnswerService>>,
         db_conn: DbConn,
+        embedding: Arc<dyn Embedding>,
         is_chat_enabled_locally: bool,
     ) -> Self {
         let mail = Arc::new(
@@ -99,7 +103,26 @@ impl ServerContext {
         );
         let user_event = Arc::new(user_event::create(db_conn.clone()));
         let setting = Arc::new(setting::create(db_conn.clone()));
-        let thread = Arc::new(thread::create(db_conn.clone(), answer));
+        let thread = Arc::new(thread::create(db_conn.clone(), answer.clone()));
+        let web_documents = Arc::new(web_documents::create(db_conn.clone(), job.clone()));
+        let context = Arc::new(context::create(
+            repository.clone(),
+            web_crawler.clone(),
+            web_documents.clone(),
+            answer.clone(),
+        ));
+
+        background_job::start(
+            db_conn.clone(),
+            job.clone(),
+            repository.git(),
+            repository.third_party(),
+            integration.clone(),
+            repository.clone(),
+            context.clone(),
+            embedding,
+        )
+        .await;
 
         Self {
             mail: mail.clone(),
@@ -112,6 +135,7 @@ impl ServerContext {
             web_crawler,
             web_documents,
             thread,
+            context,
             license,
             repository,
             integration,
@@ -273,6 +297,10 @@ impl ServiceLocator for ArcServerContext {
     fn thread(&self) -> Arc<dyn ThreadService> {
         self.0.thread.clone()
     }
+
+    fn context(&self) -> Arc<dyn ContextService> {
+        self.0.context.clone()
+    }
 }
 
 pub async fn create_service_locator(
@@ -281,10 +309,10 @@ pub async fn create_service_locator(
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
     web_crawler: Arc<dyn WebCrawlerService>,
-    web_documents: Arc<dyn WebDocumentService>,
     job: Arc<dyn JobService>,
     answer: Option<Arc<AnswerService>>,
     db: DbConn,
+    embedding: Arc<dyn Embedding>,
     is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(ArcServerContext::new(
@@ -294,10 +322,10 @@ pub async fn create_service_locator(
             repository,
             integration,
             web_crawler,
-            web_documents,
             job,
             answer,
             db,
+            embedding,
             is_chat_enabled,
         )
         .await,

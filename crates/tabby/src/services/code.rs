@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use cached::{CachedAsync, TimedCache};
 use parse_git_url::GitUrl;
@@ -75,16 +75,23 @@ impl CodeSearchImpl {
             })
             .await?;
 
-        let Some(source_id) = closest_match(&query.git_url, repos.iter()) else {
-            return Ok(CodeSearchResponse::default());
-        };
+        if query.source_id.is_empty() {
+            let Some(git_url) = &query.git_url else {
+                return Err(CodeSearchError::Other(anyhow!(
+                    "One of git_url or source_id need to be set"
+                )));
+            };
 
-        debug!(
-            "query.git_url: {:?}, matched source_id: {:?}",
-            query.git_url, source_id
-        );
+            let Some(source_id) = closest_match(git_url, repos.iter()) else {
+                return Ok(CodeSearchResponse::default());
+            };
 
-        query.source_id = source_id.to_owned();
+            debug!(
+                "query.git_url: {:?}, matched source_id: {:?}",
+                query.git_url, source_id
+            );
+            query.source_id = source_id.to_owned();
+        }
 
         let docs_from_embedding = {
             let embedding = self.embedding.embed(&query.content).await?;
