@@ -3,7 +3,6 @@ use juniper::{GraphQLEnum, GraphQLObject, ID};
 
 use super::{
     repository::{Repository, RepositoryKind},
-    web_crawler::WebCrawlerUrl,
     web_documents::{CustomWebDocument, PresetWebDocument},
 };
 use crate::Result;
@@ -52,17 +51,6 @@ impl From<Repository> for ContextSource {
             kind,
             source_id: repo.source_id,
             display_name: repo.git_url,
-        }
-    }
-}
-
-impl From<WebCrawlerUrl> for ContextSource {
-    fn from(url: WebCrawlerUrl) -> Self {
-        Self {
-            id: ID::from(url.source_id()),
-            kind: ContextKind::Doc,
-            source_id: url.source_id(),
-            display_name: url.url,
         }
     }
 }

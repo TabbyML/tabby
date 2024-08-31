@@ -140,10 +140,6 @@ input CreateThreadRunInput {
   options: ThreadRunOptionsInput! = {codeQuery: null, debugOptions: null, docQuery: null, generateRelevantQuestions: false}
 }
 
-input CreateWebCrawlerUrlInput {
-  url: String!
-}
-
 input DocQueryInput {
   content: String!
   "Whether to collect documents from public web." searchPublic: Boolean!
@@ -536,8 +532,6 @@ type Mutation {
   updateIntegratedRepositoryActive(id: ID!, active: Boolean!): Boolean!
   "Trigger a job run given its param string."
   triggerJobRun(command: String!): ID!
-  createWebCrawlerUrl(input: CreateWebCrawlerUrlInput!): ID!
-  deleteWebCrawlerUrl(id: ID!): Boolean!
   "Delete pair of user message and bot response in a thread."
   deleteThreadMessagePair(threadId: ID!, userMessageId: ID!, assistantMessageId: ID!): Boolean!
   "Turn on persisted status for a thread."
@@ -649,7 +643,6 @@ type Query {
   contextInfo: ContextInfo!
   integrations(ids: [ID!], kind: IntegrationKind, after: String, before: String, first: Int, last: Int): IntegrationConnection!
   integratedRepositories(ids: [ID!], kind: IntegrationKind, active: Boolean, after: String, before: String, first: Int, last: Int): ProvidedRepositoryConnection!
-  webCrawlerUrls(after: String, before: String, first: Int, last: Int): WebCrawlerUrlConnection!
   threads(ids: [ID!], after: String, before: String, first: Int, last: Int): ThreadConnection!
   """
     Read thread messages by thread ID.
@@ -784,22 +777,5 @@ type UserEventConnection {
 
 type UserEventEdge {
   node: UserEvent!
-  cursor: String!
-}
-
-type WebCrawlerUrl {
-  url: String!
-  id: ID!
-  createdAt: DateTime!
-  jobInfo: JobInfo!
-}
-
-type WebCrawlerUrlConnection {
-  edges: [WebCrawlerUrlEdge!]!
-  pageInfo: PageInfo!
-}
-
-type WebCrawlerUrlEdge {
-  node: WebCrawlerUrl!
   cursor: String!
 }

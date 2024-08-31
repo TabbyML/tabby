@@ -3,7 +3,6 @@ use std::sync::Arc;
 use tabby_schema::{
     context::{ContextInfo, ContextService},
     repository::RepositoryService,
-    web_crawler::WebCrawlerService,
     web_documents::WebDocumentService,
     Result,
 };
@@ -12,7 +11,6 @@ use super::answer::AnswerService;
 
 struct ContextServiceImpl {
     repository: Arc<dyn RepositoryService>,
-    web_crawler: Arc<dyn WebCrawlerService>,
     web_document: Arc<dyn WebDocumentService>,
     answer: Option<Arc<AnswerService>>,
 }
@@ -27,14 +25,6 @@ impl ContextService for ContextServiceImpl {
             .into_iter()
             .map(Into::into)
             .collect();
-
-        sources.extend(
-            self.web_crawler
-                .list_web_crawler_urls(None, None, None, None)
-                .await?
-                .into_iter()
-                .map(Into::into),
-        );
 
         sources.extend(
             self.web_document
@@ -67,13 +57,11 @@ impl ContextService for ContextServiceImpl {
 
 pub fn create(
     repository: Arc<dyn RepositoryService>,
-    web_crawler: Arc<dyn WebCrawlerService>,
     web_document: Arc<dyn WebDocumentService>,
     answer: Option<Arc<AnswerService>>,
 ) -> impl ContextService {
     ContextServiceImpl {
         repository,
-        web_crawler,
         web_document,
         answer,
     }

@@ -156,12 +156,6 @@ CREATE TABLE provided_repositories(
   FOREIGN KEY(integration_id) REFERENCES integrations(id) ON DELETE CASCADE,
   CONSTRAINT idx_unique_integration_id_vendor_id UNIQUE(integration_id, vendor_id)
 );
-CREATE TABLE web_crawler_urls(
-  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-  url TEXT NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
-  CONSTRAINT `unique_url` UNIQUE(url)
-);
 CREATE INDEX `idx_job_runs_command` ON job_runs(command);
 CREATE TABLE threads(
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
