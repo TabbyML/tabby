@@ -135,8 +135,6 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       content,
       editable,
       onBlur(props) {
-        console.log(props.editor.getJSON())
-        console.log(props.editor.getText())
         onBlur?.(props)
       },
       onFocus(props) {
