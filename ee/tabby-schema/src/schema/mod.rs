@@ -9,7 +9,6 @@ pub mod repository;
 pub mod setting;
 pub mod thread;
 pub mod user_event;
-pub mod web_crawler;
 pub mod web_documents;
 pub mod worker;
 
@@ -51,7 +50,6 @@ use self::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
     user_event::{UserEvent, UserEventService},
-    web_crawler::{CreateWebCrawlerUrlInput, WebCrawlerService, WebCrawlerUrl},
     web_documents::{CreateCustomDocumentInput, CustomWebDocument, WebDocumentService},
 };
 use crate::{
@@ -73,7 +71,6 @@ pub trait ServiceLocator: Send + Sync {
     fn license(&self) -> Arc<dyn LicenseService>;
     fn analytic(&self) -> Arc<dyn AnalyticService>;
     fn user_event(&self) -> Arc<dyn UserEventService>;
-    fn web_crawler(&self) -> Arc<dyn WebCrawlerService>;
     fn web_documents(&self) -> Arc<dyn WebDocumentService>;
     fn thread(&self) -> Arc<dyn ThreadService>;
 }
@@ -505,28 +502,6 @@ impl Query {
                     .repository()
                     .third_party()
                     .list_repositories_with_filter(ids, kind, active, after, before, first, last)
-                    .await
-            },
-        )
-        .await
-    }
-
-    async fn web_crawler_urls(
-        ctx: &Context,
-        after: Option<String>,
-        before: Option<String>,
-        first: Option<i32>,
-        last: Option<i32>,
-    ) -> Result<Connection<WebCrawlerUrl>> {
-        query_async(
-            after,
-            before,
-            first,
-            last,
-            |after, before, first, last| async move {
-                ctx.locator
-                    .web_crawler()
-                    .list_web_crawler_urls(after, before, first, last)
                     .await
             },
         )
@@ -966,21 +941,6 @@ impl Mutation {
     async fn trigger_job_run(ctx: &Context, command: String) -> Result<ID> {
         check_admin(ctx).await?;
         ctx.locator.job().trigger(command).await
-    }
-
-    async fn create_web_crawler_url(ctx: &Context, input: CreateWebCrawlerUrlInput) -> Result<ID> {
-        input.validate()?;
-        let id = ctx
-            .locator
-            .web_crawler()
-            .create_web_crawler_url(input.url)
-            .await?;
-        Ok(id)
-    }
-
-    async fn delete_web_crawler_url(ctx: &Context, id: ID) -> Result<bool> {
-        ctx.locator.web_crawler().delete_web_crawler_url(id).await?;
-        Ok(true)
     }
 
     /// Delete pair of user message and bot response in a thread.
