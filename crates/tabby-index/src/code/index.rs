@@ -46,9 +46,7 @@ pub async fn index_repository(embedding: Arc<dyn Embedding>, repository: &CodeRe
     while let Some(files) = file_stream.next().await {
         count_files += files.len();
         count_chunks += add_changed_documents(repository, embedding.clone(), files).await;
-        logkit::info!(
-            "Processed {count_files}/{total_files} files, updated {count_chunks} chunks",
-        );
+        logkit::info!("Processed {count_files}/{total_files} files, updated {count_chunks} chunks",);
     }
 }
 
