@@ -19,8 +19,7 @@ use tabby_common::{
 };
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
-    context::{ContextInfo, ContextService, SourceTagRewriter},
-    repository::RepositoryService,
+    context::{ContextService, SourceTagRewriter},
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
         ThreadRunItem, ThreadRunOptionsInput,
@@ -454,9 +453,12 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Context;
+    
     use juniper::ID;
-    use tabby_schema::{context::{ContextInfo, ContextKind, ContextSource}, AsID};
+    use tabby_schema::{
+        context::{ContextInfo, ContextKind, ContextSource},
+        AsID,
+    };
 
     fn make_message(
         id: i32,
@@ -518,14 +520,12 @@ mod tests {
         };
 
         let context_info = ContextInfo {
-            sources: vec![
-                    ContextSource {
-                        id: ID::from("1".to_owned()),
-                        kind: ContextKind::Doc,
-                        source_id: "1".to_owned(),
-                        display_name: "source-1".to_owned(),
-                    },
-                ],
+            sources: vec![ContextSource {
+                id: ID::from("1".to_owned()),
+                kind: ContextKind::Doc,
+                source_id: "1".to_owned(),
+                display_name: "source-1".to_owned(),
+            }],
         };
 
         let rewriter = context_info.rewriter();

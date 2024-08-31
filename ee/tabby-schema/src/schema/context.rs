@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::Hash};
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 use juniper::{GraphQLEnum, GraphQLObject, ID};
@@ -112,7 +112,7 @@ impl<'a> SourceTagRewriter<'a, 'a> {
         let re = Regex::new(r"\[\[source:(.*?)\]\]").unwrap();
         let new_content = re.replace_all(content, |caps: &Captures| {
             let source_id = caps.get(1).unwrap().as_str();
-            if let Some(display_name) = self.sources.get(source_id){
+            if let Some(display_name) = self.sources.get(source_id) {
                 display_name.to_string()
             } else {
                 caps[0].to_owned()
