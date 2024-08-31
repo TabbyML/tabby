@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
 import AOS from 'aos'
-import { noop, omit } from 'lodash-es'
+import { noop } from 'lodash-es'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
@@ -45,7 +45,6 @@ import { useQuery } from 'urql'
 import { contextInfoQuery } from '@/lib/tabby/query'
 import { AnswerEngineExtraContext } from '@/lib/types'
 import { Separator } from '@/components/ui/separator'
-import { PromptEditor } from '@/components/prompt-editor'
 
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
   mutation ResetUserAuthToken {

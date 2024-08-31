@@ -197,7 +197,7 @@ export default function TextAreaSearch({
               <div className="flex items-center space-x-1.5">
                 <Checkbox
                   id="searchPublic"
-                  className="w-3.5 h-3.5"
+                  className="h-3.5 w-3.5"
                   disabled={!contextInfo?.canSearchPublic}
                   checked={searchPublic}
                   onCheckedChange={checked =>

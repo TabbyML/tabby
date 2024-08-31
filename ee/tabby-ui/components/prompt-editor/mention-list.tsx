@@ -164,7 +164,7 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
           filteredList.map((item, index) => (
             <div
               className={cn(
-                'cursor-pointer flex gap-1 rounded-md px-2 py-1.5 text-sm',
+                'flex cursor-pointer gap-1 rounded-md px-2 py-1.5 text-sm',
                 {
                   'bg-accent text-accent-foreground': index === selectedIndex
                 }
@@ -174,7 +174,7 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
               onMouseEnter={() => setSelectedIndex(index)}
               title={item.label}
             >
-              <span className="shrink-0 flex h-5 items-center">
+              <span className="flex h-5 shrink-0 items-center">
                 {item.kind === 'code' ? <IconCode /> : <IconFileText />}
               </span>
               <span>{item.label}</span>
@@ -189,7 +189,7 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
             {list?.length ? (
               <span>No matches results</span>
             ) : (
-              <span>No results, please configure in 'Context Providers'</span>
+              <span>No results, please configure in Context Providers</span>
             )}
           </div>
         )}

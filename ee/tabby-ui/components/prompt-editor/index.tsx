@@ -3,7 +3,6 @@ import './styles.css'
 import React, { forwardRef, useImperativeHandle, useLayoutEffect } from 'react'
 import Document from '@tiptap/extension-document'
 import HardBreak from '@tiptap/extension-hard-break'
-import Mention from '@tiptap/extension-mention'
 import Paragraph from '@tiptap/extension-paragraph'
 import Placeholder from '@tiptap/extension-placeholder'
 import Text from '@tiptap/extension-text'
@@ -116,7 +115,7 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       editorProps: {
         attributes: {
           class: cn(
-            'prose dark:prose-invert prose-p:my-0 focus:outline-none font-sans max-w-none max-h-38 min-h-[3.5rem]',
+            'max-h-38 prose min-h-[3.5rem] max-w-none font-sans dark:prose-invert focus:outline-none prose-p:my-0',
             editorClassName
           )
         },
@@ -170,7 +169,7 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       >
         <div
           className={cn(
-            'text-area-autosize pr-1 max-h-36 overflow-y-auto',
+            'text-area-autosize max-h-36 overflow-y-auto pr-1',
             className
           )}
         >
@@ -180,3 +179,4 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
     )
   }
 )
+PromptEditor.displayName = 'PromptEditor'
