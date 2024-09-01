@@ -1,9 +1,10 @@
-import type { components as ApiComponents } from "./types/tabbyApi";
+import type { components as ApiComponents } from "tabby-openapi/compatible";
 import type { AgentConfig, PartialAgentConfig } from "./AgentConfig";
 import type { DataStore } from "./dataStore";
 import type { Logger } from "./logger";
-import type { CompletionRequest, CompletionResponse } from "./CompletionContext";
-
+import type { CompletionRequest } from "./CompletionContext";
+import type { InlineCompletionList } from "./CompletionSolution";
+type CompletionResponse = InlineCompletionList;
 export type { CompletionRequest, CompletionResponse };
 
 export type ClientProperties = Partial<{
@@ -24,7 +25,7 @@ export type LogEventRequest = ApiComponents["schemas"]["LogEventRequest"] & {
   select_kind?: "line";
 };
 
-export type AbortSignalOption = { signal: AbortSignal };
+export type AbortSignalOption = { signal?: AbortSignal };
 
 export type SlowCompletionResponseTimeIssue = {
   name: "slowCompletionResponseTime";
@@ -151,6 +152,16 @@ export interface AgentFunction {
    * @throws Error if agent is not initialized
    */
   postEvent(event: LogEventRequest, options?: AbortSignalOption): Promise<boolean>;
+
+  /**
+   * Generate a commit message for the given diff.
+   * @param diff The diff to generate a commit message for. It could be a list of diff for each single
+   *             file, sorted by the priority. This will be useful when the full diff is too large,
+   *             agent will select from the split diffs to generate a prompt under the tokens limit.
+   * @returns
+   * @throws Error if agent is not initialized
+   */
+  generateCommitMessage(diff: string | string[], options?: AbortSignalOption): Promise<string>;
 }
 
 export type StatusChangedEvent = {

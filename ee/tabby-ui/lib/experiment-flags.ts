@@ -95,14 +95,13 @@ class ExperimentFlagFactory {
   }
 }
 
-const enableCodeBrowserQuickActionBarFactory = new ExperimentFlagFactory(
-  'enable_code_browser_quick_action_bar',
-  'Quick Action Bar',
-  'Enable Quick Action Bar to display a convenient toolbar when you select code, offering options to explain the code, add unit tests, and more.',
-  true
+const enableDeveloperModeFactory = new ExperimentFlagFactory(
+  'enable_developer_mode',
+  'Developer Mode',
+  'Enable the developer mode. The features involved include the Answer Engine.',
+  false
 )
 
-export const EXP_enable_code_browser_quick_action_bar =
-  enableCodeBrowserQuickActionBarFactory.defineGlobalVar()
-export const useEnableCodeBrowserQuickActionBar =
-  enableCodeBrowserQuickActionBarFactory.defineHook()
+export const EXP_enable_developer_mode =
+  enableDeveloperModeFactory.defineGlobalVar()
+export const useEnableDeveloperMode = enableDeveloperModeFactory.defineHook()

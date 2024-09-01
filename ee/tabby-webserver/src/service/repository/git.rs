@@ -2,21 +2,25 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use juniper::ID;
-use tabby_db::DbConn;
+use tabby_common::config::{CodeRepository, RepositoryConfig};
+use tabby_db::{DbConn, RepositoryDAO};
 use tabby_schema::{
-    repository::{GitRepository, GitRepositoryService, Repository, RepositoryProvider},
+    job::{JobInfo, JobService},
+    repository::{
+        GitReference, GitRepository, GitRepositoryService, Repository, RepositoryProvider,
+    },
     AsID, AsRowid, Result,
 };
 
-use crate::service::{background_job::BackgroundJob, graphql_pagination_to_filter};
+use crate::service::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
 
 struct GitRepositoryServiceImpl {
     db: DbConn,
-    background_job: Arc<dyn BackgroundJob>,
+    job_service: Arc<dyn JobService>,
 }
 
-pub fn create(db: DbConn, background_job: Arc<dyn BackgroundJob>) -> impl GitRepositoryService {
-    GitRepositoryServiceImpl { db, background_job }
+pub fn create(db: DbConn, job_service: Arc<dyn JobService>) -> impl GitRepositoryService {
+    GitRepositoryServiceImpl { db, job_service }
 }
 
 #[async_trait]
@@ -33,24 +37,64 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
             .db
             .list_repositories_with_filter(limit, skip_id, backwards)
             .await?;
-        Ok(repositories.into_iter().map(Into::into).collect())
+
+        let mut converted_repositories = vec![];
+
+        for repository in repositories {
+            let event = BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
+                &repository.git_url,
+                &GitRepository::format_source_id(&repository.id.as_id()),
+            ));
+            let job_info = self.job_service.get_job_info(event.to_command()).await?;
+
+            converted_repositories.push(to_git_repository(repository, job_info));
+        }
+        Ok(converted_repositories)
     }
 
     async fn create(&self, name: String, git_url: String) -> Result<ID> {
-        let id = self.db.create_repository(name, git_url).await?.as_id();
-        self.background_job.trigger_scheduler().await;
+        let id = self
+            .db
+            .create_repository(name, git_url.clone())
+            .await?
+            .as_id();
+        let _ = self
+            .job_service
+            .trigger(
+                BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
+                    &git_url,
+                    &GitRepository::format_source_id(&id),
+                ))
+                .to_command(),
+            )
+            .await;
         Ok(id)
     }
 
     async fn delete(&self, id: &ID) -> Result<bool> {
-        Ok(self.db.delete_repository(id.as_rowid()?).await?)
+        let success = self.db.delete_repository(id.as_rowid()?).await?;
+        if success {
+            self.job_service
+                .trigger(BackgroundJobEvent::IndexGarbageCollection.to_command())
+                .await?;
+        }
+        Ok(success)
     }
 
     async fn update(&self, id: &ID, name: String, git_url: String) -> Result<bool> {
         self.db
-            .update_repository(id.as_rowid()?, name, git_url)
+            .update_repository(id.as_rowid()?, name, git_url.clone())
             .await?;
-        self.background_job.trigger_scheduler().await;
+        let _ = self
+            .job_service
+            .trigger(
+                BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
+                    &git_url,
+                    &GitRepository::format_source_id(id),
+                ))
+                .to_command(),
+            )
+            .await;
         Ok(true)
     }
 }
@@ -67,8 +111,33 @@ impl RepositoryProvider for GitRepositoryServiceImpl {
     }
 
     async fn get_repository(&self, id: &ID) -> Result<Repository> {
-        let git_repo: GitRepository = self.db.get_repository(id.as_rowid()?).await?.into();
+        let dao = self.db.get_repository(id.as_rowid()?).await?;
+
+        let event = BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
+            &dao.git_url,
+            &GitRepository::format_source_id(&dao.id.as_id()),
+        ));
+
+        let job_info = self.job_service.get_job_info(event.to_command()).await?;
+        let git_repo = to_git_repository(dao, job_info);
         Ok(git_repo.into())
+    }
+}
+
+fn to_git_repository(repo: RepositoryDAO, job_info: JobInfo) -> GitRepository {
+    GitRepository {
+        id: repo.id.as_id(),
+        name: repo.name,
+        refs: tabby_git::list_refs(&RepositoryConfig::resolve_dir(&repo.git_url))
+            .unwrap_or_default()
+            .into_iter()
+            .map(|r| GitReference {
+                name: r.name,
+                commit: r.commit,
+            })
+            .collect(),
+        git_url: repo.git_url,
+        job_info,
     }
 }
 
@@ -77,12 +146,14 @@ mod tests {
     use tabby_db::DbConn;
 
     use super::*;
-    use crate::background_job::create_fake;
 
     #[tokio::test]
     pub async fn test_duplicate_repository_error() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let svc = create(db.clone(), create_fake());
+        let svc = create(
+            db.clone(),
+            Arc::new(crate::service::job::create(db.clone()).await),
+        );
 
         GitRepositoryService::create(
             &svc,
@@ -109,7 +180,8 @@ mod tests {
     #[tokio::test]
     pub async fn test_repository_mutations() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service = create(db.clone(), create_fake());
+        let job = Arc::new(crate::service::job::create(db.clone()).await);
+        let service = create(db.clone(), job);
 
         let id_1 = service
             .create(

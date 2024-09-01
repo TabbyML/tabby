@@ -1,6 +1,9 @@
 import { clsx, type ClassValue } from 'clsx'
+import { compact, isNil } from 'lodash-es'
 import { customAlphabet } from 'nanoid'
 import { twMerge } from 'tailwind-merge'
+
+import { AttachmentCodeItem } from './types'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -77,4 +80,42 @@ export const delay = (ms: number) => {
   return new Promise(resolve => {
     setTimeout(() => resolve(null), ms)
   })
+}
+
+export function formatLineHashForCodeBrowser(
+  range:
+    | {
+        start: number
+        end?: number
+      }
+    | undefined
+): string {
+  if (!range) return ''
+
+  const { start, end } = range
+  if (isNil(start) || isNaN(start)) return ''
+  if (start === end) return `L${start}`
+  return compact(
+    [start, end].map(num =>
+      typeof num === 'number' && !isNaN(num) ? `L${num}` : undefined
+    )
+  ).join('-')
+}
+
+export function getRangeFromAttachmentCode(code: AttachmentCodeItem) {
+  const startLine = code?.startLine ?? 0
+  const lineCount = code?.content.split('\n').length
+  const endLine = startLine + lineCount - 1
+
+  return {
+    startLine,
+    endLine,
+    isValid: !!startLine,
+    isMultiLine: !!startLine && startLine <= endLine
+  }
+}
+
+export function getRangeTextFromAttachmentCode(code: AttachmentCodeItem) {
+  const { startLine, endLine } = getRangeFromAttachmentCode(code)
+  return formatLineHashForCodeBrowser({ start: startLine, end: endLine })
 }

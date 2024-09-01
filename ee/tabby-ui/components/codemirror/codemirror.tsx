@@ -1,5 +1,9 @@
 import React from 'react'
-import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import {
+  defaultHighlightStyle,
+  LanguageSupport,
+  syntaxHighlighting
+} from '@codemirror/language'
 import {
   Annotation,
   EditorState,
@@ -12,6 +16,7 @@ import {
   loadLanguage,
   type LanguageName
 } from '@uiw/codemirror-extensions-langs'
+import { graphqlLanguage } from 'cm6-graphql'
 import { compact } from 'lodash-es'
 
 import { basicSetup } from '@/components/codemirror/basic-setup'
@@ -26,10 +31,11 @@ interface CodeMirrorEditorProps {
   height?: string
   width?: string
   extensions?: Extension[]
+  viewDidUpdate?: (view: EditorView | null) => void
 }
 
 export interface CodeMirrorEditorRef {
-  editorView: EditorView | null
+  getView: () => EditorView | null
 }
 
 const External = Annotation.define<boolean>()
@@ -45,7 +51,8 @@ const CodeMirrorEditor = React.forwardRef<
     readonly = true,
     extensions: propsExtensions,
     height = null,
-    width = null
+    width = null,
+    viewDidUpdate
   } = props
 
   const initialized = React.useRef(false)
@@ -59,8 +66,12 @@ const CodeMirrorEditor = React.forwardRef<
       outline: 'none !important',
       background: 'hsl(var(--background))'
     },
+    '&.cm-focused': {
+      outline: 'none !important'
+    },
     '& .cm-scroller': {
-      height: '100% !important'
+      height: '100% !important',
+      outline: 'none'
     },
     '& .cm-gutters': {
       background: 'hsl(var(--background))'
@@ -76,11 +87,30 @@ const CodeMirrorEditor = React.forwardRef<
   const extensions = [
     defaultThemeOption,
     basicSetup,
+    EditorView.baseTheme({
+      '.cm-line': {
+        lineHeight: '20px'
+      },
+      '.cm-scroller': {
+        fontSize: '14px'
+      },
+      '.cm-gutters': {
+        backgroundColor: 'transparent',
+        borderRight: 'none'
+      }
+    }),
     EditorState.readOnly.of(readonly)
   ]
 
+  const languageHandler = (language: string) => {
+    if (language === 'graphql') {
+      return new LanguageSupport(graphqlLanguage)
+    }
+    return loadLanguage(getLanguage(language))
+  }
+
   const getExtensions = (): Extension[] => {
-    let result = compact([...extensions, loadLanguage(getLanguage(language))])
+    let result = compact([...extensions, languageHandler(language)])
     if (theme === 'dark') {
       result.push(oneDarkTheme)
       result.push(syntaxHighlighting(oneDarkHighlightStyle))
@@ -149,13 +179,19 @@ const CodeMirrorEditor = React.forwardRef<
         setEditorView(null)
       }
     },
-    [editorView]
+    []
   )
+
+  React.useEffect(() => {
+    viewDidUpdate?.(editorView)
+  }, [editorView])
 
   React.useImperativeHandle(
     ref,
     () => {
-      return { editorView }
+      return {
+        getView: () => editorView
+      }
     },
     [editorView]
   )

@@ -6,7 +6,8 @@ on:
     tags:
       - 'v*'
       - 'nightly'
-      - '!*-dev'
+      - "!*-dev.*"
+      - '!vscode@*'
   pull_request:
     branches: [ "main" ]
     paths:
@@ -22,7 +23,7 @@ env:
   RUST_TOOLCHAIN: 1.76.0
 
 jobs:
-  release-binary:
+  release-llama-server-binary:
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     strategy:
@@ -35,62 +36,63 @@ jobs:
           - x86_64-manylinux2014-vulkan
           - x86_64-windows-msvc
           - x86_64-windows-msvc-vulkan
-          - x86_64-windows-msvc-cuda117
-          - x86_64-windows-msvc-cuda122
+          # - x86_64-windows-msvc-cuda117
+          # - x86_64-windows-msvc-cuda122
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
             binary: aarch64-apple-darwin
-            build_args: --no-default-features --features prod
-          - os: dimerun-k3-ubuntu2204
+            build_args: --features binary
+          - os: buildjet-2vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014
             container: quay.io/pypa/manylinux2014_x86_64
-            build_args: --no-default-features --features static-ssl,prod
-          - os: dimerun-k3-ubuntu2204
+            build_args: --features binary
+          - os: buildjet-2vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-cuda117
             container: sameli/manylinux2014_x86_64_cuda_11.7
-            build_args: --no-default-features --features static-ssl,cuda,prod
-          - os: dimerun-k3-ubuntu2204
+            build_args: --features binary,cuda
+          - os: buildjet-2vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-cuda122
             container: sameli/manylinux2014_x86_64_cuda_12.2
-            build_args: --no-default-features --features static-ssl,cuda,prod
-          - os: dimerun-k3-ubuntu2204
+            build_args: --features binary,cuda
+          - os: buildjet-2vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-vulkan
             container: quay.io/pypa/manylinux2014_x86_64
-            build_args: --no-default-features --features static-ssl,vulkan,prod
+            build_args: --features binary,vulkan
             vulkan_sdk: '1.3.239.0'
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary: x86_64-windows-msvc
-            build_args: --no-default-features --features prod
+            build_args: --features binary
             ext: .exe
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary: x86_64-windows-msvc-vulkan
             ext: .exe
-            build_args: --no-default-features --features vulkan,prod
+            build_args: --features vulkan,binary
             vulkan_sdk: '1.3.280.0'
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            binary: x86_64-windows-msvc-cuda117
-            ext: .exe
-            build_args: --no-default-features --features cuda,prod
-            windows_cuda: '11.7.1'
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            binary: x86_64-windows-msvc-cuda122
-            ext: .exe
-            build_args: --no-default-features --features cuda,prod
-            windows_cuda: '12.2.0'
+          # - os: windows-2019
+          #   target: x86_64-pc-windows-msvc
+          #   binary: x86_64-windows-msvc-cuda117
+          #   ext: .exe
+          #   build_args: --features cuda,binary
+          #   windows_cuda: '11.7.1'
+          # - os: windows-2019
+          #   target: x86_64-pc-windows-msvc
+          #   binary: x86_64-windows-msvc-cuda122
+          #   ext: .exe
+          #   build_args: --features cuda,binary
+          #   windows_cuda: '12.2.0'
 
     env:
       SCCACHE_GHA_ENABLED: true
       RUSTC_WRAPPER: sccache
       CARGO_INCREMENTAL: 0
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     steps:
       - name: Checkout
@@ -148,6 +150,90 @@ jobs:
         if: matrix.vulkan_sdk != ''
 
       - name: Bulid release binary
+        run: cargo build ${{ matrix.build_args }} --release --target ${{ matrix.target }} --package llama-cpp-server
+
+      - name: Rename release binary
+        run: mv target/${{ matrix.target }}/release/llama-server${{ matrix.ext }} llama-server_${{ matrix.binary }}${{ matrix.ext }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          retention-days: 3
+          name: llama-server_${{ matrix.binary }}${{ matrix.ext }}
+          path: llama-server_${{ matrix.binary }}${{ matrix.ext }}
+
+  release-binary:
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    strategy:
+      matrix:
+        binary:
+          - aarch64-apple-darwin
+          - x86_64-manylinux2014
+          - x86_64-windows-msvc
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            binary: aarch64-apple-darwin
+            build_args: --no-default-features --features prod
+          - os: buildjet-2vcpu-ubuntu-2204
+            target: x86_64-unknown-linux-gnu
+            binary: x86_64-manylinux2014
+            container: quay.io/pypa/manylinux2014_x86_64
+            build_args: --no-default-features --features static-ssl,prod
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary: x86_64-windows-msvc
+            build_args: --no-default-features --features prod
+            ext: .exe
+
+    env:
+      SCCACHE_GHA_ENABLED: true
+      RUSTC_WRAPPER: sccache
+      CARGO_INCREMENTAL: 0
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          target: ${{ matrix.target }}
+          components: clippy
+
+      - name: Set default rust version
+        run: rustup default ${{ env.RUST_TOOLCHAIN }}
+
+      - name: Sccache cache
+        uses: mozilla-actions/sccache-action@v0.0.3
+        with:
+          version: "v0.4.0"
+
+      - name: Cargo registry cache
+        uses: actions/cache@v3
+        with:
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-${{ github.sha }}
+          restore-keys: |
+            cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-
+            cargo-${{ runner.os }}-
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - name: Prepare build environment for macOS & Linux
+        run: bash ./ci/prepare_build_environment.sh
+        if: runner.os != 'Windows'
+
+      - name: Prepare build environment for Windows
+        run: ./ci/prepare_build_environment.ps1
+        if: runner.os == 'Windows'
+
+      - name: Bulid release binary
         run: cargo build ${{ matrix.build_args }} --release --target ${{ matrix.target }} --package tabby
 
       - name: Rename release binary
@@ -159,10 +245,42 @@ jobs:
           retention-days: 3
           name: tabby_${{ matrix.binary }}${{ matrix.ext }}
           path: tabby_${{ matrix.binary }}${{ matrix.ext }}
+  
+  package-win-cuda:
+    runs-on: ubuntu-latest
+    env:
+      LLAMA_CPP_VERSION: b3571
+    needs: [release-binary]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+      
+      - name: Display structure of downloaded files
+        run: ls -R
+      
+      - name: Package CUDA 11.7
+        run: >
+          LLAMA_CPP_PLATFORM=cuda-cu11.7.1-x64 OUTPUT_NAME=tabby_x86_64-windows-msvc-cuda117 ./ci/package-win.sh
+
+      - name: Package CUDA 12.2
+        run: >
+          LLAMA_CPP_PLATFORM=cuda-cu12.2.0-x64 OUTPUT_NAME=tabby_x86_64-windows-msvc-cuda122 ./ci/package-win.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          retention-days: 3
+          name: dist
+          path: dist/
+
 
   pre-release:
-    if: github.event_name == 'push'
-    needs: release-binary
+    needs: [release-llama-server-binary, release-binary, package-win-cuda]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -170,10 +288,52 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v3
 
+      - name: Display structure of downloaded files
+        run: ls -R
+
+      - name: Creating distribution bundles
+        run: >
+          get_file_extension() {
+              local filename="$1"
+              # Check if the file has an extension
+              if [[ "$filename" == *.* && ! "$filename" == .* ]]; then
+                echo ".${filename##*.}"
+              else
+                echo ""
+              fi
+          }
+
+          for llama_server in llama-server_*/llama-server_*; do
+            for tabby in tabby_*/tabby_*; do
+              llamab=$(basename $llama_server)
+              tabbyb=$(basename $tabby)
+              extname=$(get_file_extension $tabbyb)
+
+              llaman=${llamab%.*}
+              tabbyn=${tabbyb%.*}
+
+              llamav=${llaman#llama-server_}
+              tabbyv=${tabbyn#tabby_}
+              if [[ $llamav == *"$tabbyv"* ]]; then
+                echo "Creating bundle for $llamav"
+                distdir=dist/tabby_$llamav
+                mkdir -p $distdir
+                cp $llama_server $distdir/llama-server${extname}
+                cp $tabby $distdir/tabby${extname}
+                zip -r $distdir.zip $distdir
+                rm -rf $distdir
+              fi
+            done
+          done
+      
+      - name: Display structure of created files
+        run: ls -R dist
+
       - uses: ncipollo/release-action@v1
+        if: github.event_name == 'push'
         with:
           allowUpdates: true          
           prerelease: true
-          artifacts: "tabby_*/tabby_*"
+          artifacts: "dist/tabby_*.zip"
           tag: ${{ github.ref_name }}
           removeArtifacts: true

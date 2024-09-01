@@ -8,7 +8,12 @@ import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useAllowSelfSignup } from '@/lib/hooks/use-server-info'
 import { useSession, useSignIn } from '@/lib/tabby/auth'
 import fetcher from '@/lib/tabby/fetcher'
-import { IconGithub, IconGoogle, IconSpinner } from '@/components/ui/icons'
+import {
+  IconGithub,
+  IconGitLab,
+  IconGoogle,
+  IconSpinner
+} from '@/components/ui/icons'
 
 import UserSignInForm from './user-signin-form'
 
@@ -78,7 +83,7 @@ export default function SigninSection() {
           <div className="grow border-t "></div>
         </div>
       )}
-      <div className="mx-auto flex items-center gap-6">
+      <div className="mx-auto flex items-center gap-8">
         {data?.includes('github') && (
           <a href={`/oauth/signin?provider=github`}>
             <IconGithub className="h-8 w-8" />
@@ -87,6 +92,11 @@ export default function SigninSection() {
         {data?.includes('google') && (
           <a href={`/oauth/signin?provider=google`}>
             <IconGoogle className="h-8 w-8" />
+          </a>
+        )}
+        {data?.includes('gitlab') && (
+          <a href={`/oauth/signin?provider=gitlab`}>
+            <IconGitLab className="h-8 w-8" />
           </a>
         )}
       </div>

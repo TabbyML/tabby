@@ -10,6 +10,7 @@ on:
       - 'crates/**'
       - 'ee/**'
       - '!ee/tabby-ui/**'
+      - '!ee/tabby-email/**'
 
 permissions:
   contents: read
@@ -61,12 +62,10 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
 
-      - run: bash ./ci/prepare_build_environment.sh
+      - run: sudo bash ./ci/prepare_build_environment.sh
 
       - run: make fix
 
       - run: make update-graphql-schema
-
-      - run: make update-db-schema
 
       - uses: autofix-ci/action@d3e591514b99d0fca6779455ff8338516663f7cc

@@ -24,6 +24,7 @@ CREATE TABLE users(
   active BOOLEAN NOT NULL DEFAULT 1,
   password_encrypted VARCHAR(128),
   avatar BLOB DEFAULT NULL,
+  name VARCHAR(255),
   CONSTRAINT `idx_email` UNIQUE(`email`)
   CONSTRAINT `idx_auth_token` UNIQUE(`auth_token`)
 );
@@ -45,6 +46,9 @@ CREATE TABLE job_runs(
   stderr TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP DEFAULT(DATETIME('now'))
+  ,
+  command TEXT,
+  started_at TIMESTAMP
 );
 CREATE TABLE repositories(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,21 +107,6 @@ CREATE INDEX idx_user_completion_user_id_created_at_language ON user_completions
   created_at,
   language
 );
-CREATE TABLE github_provided_repositories(
-  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-  github_repository_provider_id INTEGER NOT NULL,
-  -- vendor_id from https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repositories-for-a-user
-  vendor_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  git_url TEXT NOT NULL,
-  active BOOLEAN NOT NULL DEFAULT FALSE,
-  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
-  FOREIGN KEY(github_repository_provider_id) REFERENCES github_repository_provider(id) ON DELETE CASCADE,
-  CONSTRAINT `idx_vendor_id_provider_id` UNIQUE(vendor_id, github_repository_provider_id)
-);
-CREATE INDEX github_provided_repositories_updated_at ON github_provided_repositories(
-  updated_at
-);
 CREATE TABLE user_events(
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
@@ -144,51 +133,64 @@ CREATE TABLE password_reset(
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   FOREIGN KEY(user_id) REFERENCES users(id)
 );
-CREATE TABLE github_repository_provider(
-  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-  display_name TEXT NOT NULL,
-  access_token TEXT,
-  synced_at TIMESTAMP
-);
-CREATE TABLE gitlab_repository_provider(
-  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-  display_name TEXT NOT NULL,
-  access_token TEXT,
-  synced_at TIMESTAMP
-);
-CREATE TABLE gitlab_provided_repositories(
-  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-  gitlab_repository_provider_id INTEGER NOT NULL,
-  -- vendor_id from https://docs.gitlab.com/ee/api/repositories.html
-  vendor_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  git_url TEXT NOT NULL,
-  active BOOLEAN NOT NULL DEFAULT FALSE,
-  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
-  FOREIGN KEY(gitlab_repository_provider_id) REFERENCES gitlab_repository_provider(id) ON DELETE CASCADE,
-  CONSTRAINT `idx_vendor_id_provider_id` UNIQUE(vendor_id, gitlab_repository_provider_id)
-);
-CREATE INDEX gitlab_provided_repositories_updated_at ON gitlab_provided_repositories(
-  updated_at
-);
-CREATE TABLE integration_access_tokens(
+CREATE TABLE integrations(
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   kind TEXT NOT NULL,
   display_name TEXT NOT NULL,
-  access_token TEXT,
+  access_token TEXT NOT NULL,
+  api_base TEXT,
   error TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
-  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now'))
+  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  synced BOOLEAN NOT NULL DEFAULT FALSE
 );
 CREATE TABLE provided_repositories(
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-  integration_access_token_id INTEGER NOT NULL,
+  integration_id INTEGER NOT NULL,
   vendor_id TEXT NOT NULL,
   name TEXT NOT NULL,
   git_url TEXT NOT NULL,
   active BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
-  FOREIGN KEY(integration_access_token_id) REFERENCES integration_access_tokens(id) ON DELETE CASCADE,
-  CONSTRAINT idx_unique_provider_id_vendor_id UNIQUE(integration_access_token_id, vendor_id)
+  FOREIGN KEY(integration_id) REFERENCES integrations(id) ON DELETE CASCADE,
+  CONSTRAINT idx_unique_integration_id_vendor_id UNIQUE(integration_id, vendor_id)
+);
+CREATE INDEX `idx_job_runs_command` ON job_runs(command);
+CREATE TABLE threads(
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  -- Whether the thread is ephemeral(e.g from chat sidebar)
+  is_ephemeral BOOLEAN NOT NULL,
+  -- The user who created the thread
+  user_id INTEGER NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  -- Array of relevant questions, in format of `String`
+  relevant_questions BLOB,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE thread_messages(
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  thread_id INTEGER NOT NULL,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL,
+  -- Array of code attachments, in format of `ThreadMessageAttachmentCode`
+  code_attachments BLOB,
+  -- Array of client code attachments, in format of `ThreadMessageAttachmentClientCode`
+  client_code_attachments BLOB,
+  -- Array of doc attachments, in format of `ThreadMessageAttachmentDoc`
+  doc_attachments BLOB,
+  created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  FOREIGN KEY(thread_id) REFERENCES threads(id) ON DELETE CASCADE
+);
+CREATE TABLE web_documents(
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  name VARCHAR(255) NOT NULL,
+  url TEXT NOT NULL,
+  is_preset BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  CONSTRAINT idx_name UNIQUE(name),
+  CONSTRAINT idx_url UNIQUE(url)
 );

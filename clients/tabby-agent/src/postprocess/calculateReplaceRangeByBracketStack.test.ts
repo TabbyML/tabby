@@ -1,229 +1,148 @@
-import { expect } from "chai";
-import { documentContext, inline } from "./testUtils";
+import { documentContext, inline, assertFilterResult, assertFilterResultNotEqual } from "./testUtils";
 import { calculateReplaceRangeByBracketStack } from "./calculateReplaceRangeByBracketStack";
 
 describe("postprocess", () => {
   describe("calculateReplaceRangeByBracketStack", () => {
-    it("should handle auto closing quotes", () => {
-      const context = {
-        ...documentContext`
+    const filter = calculateReplaceRangeByBracketStack;
+    it("should handle auto closing quotes", async () => {
+      const context = documentContext`
         const hello = "║"
-        `,
-        language: "typescript",
-      };
-      const choice = {
-        index: 0,
+      `;
+      context.language = "typescript";
+      const completion = {
         text: inline`
                        ├hello";┤
         `,
-        replaceRange: {
-          start: context.position,
-          end: context.position,
-        },
       };
       const expected = {
-        index: 0,
         text: inline`
                        ├hello";┤
         `,
-        replaceRange: {
-          start: context.position,
-          end: context.position + 1,
-        },
+        replaceSuffix: '"',
       };
-      expect(calculateReplaceRangeByBracketStack(choice, context)).to.deep.equal(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should handle auto closing quotes", () => {
-      const context = {
-        ...documentContext`
+    it("should handle auto closing quotes", async () => {
+      const context = documentContext`
         let htmlMarkup = \`║\`
-        `,
-        language: "typescript",
-      };
-      const choice = {
-        index: 0,
+      `;
+      context.language = "typescript";
+      const completion = {
         text: inline`
                            ├<h1>\${message}</h1>\`;┤
         `,
-        replaceRange: {
-          start: context.position,
-          end: context.position,
-        },
       };
       const expected = {
-        index: 0,
         text: inline`
                            ├<h1>\${message}</h1>\`;┤
         `,
-        replaceRange: {
-          start: context.position,
-          end: context.position + 1,
-        },
+        replaceSuffix: "`",
       };
-      expect(calculateReplaceRangeByBracketStack(choice, context)).to.deep.equal(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should handle multiple auto closing brackets", () => {
-      const context = {
-        ...documentContext`
+    it("should handle multiple auto closing brackets", async () => {
+      const context = documentContext`
         process.on('data', (data) => {║})
-        `,
-        language: "typescript",
-      };
-      const choice = {
-        index: 0,
+      `;
+      context.language = "typescript";
+      const completion = {
         text: inline`
                                       ├
           console.log(data);
         });┤
         `,
-        replaceRange: {
-          start: context.position,
-          end: context.position,
-        },
       };
       const expected = {
-        index: 0,
         text: inline`
                                       ├
           console.log(data);
         });┤
         `,
-        replaceRange: {
-          start: context.position,
-          end: context.position + 2,
-        },
+        replaceSuffix: "})",
       };
-      expect(calculateReplaceRangeByBracketStack(choice, context)).to.deep.equal(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should handle multiple auto closing brackets", () => {
-      const context = {
-        ...documentContext`
+    it("should handle multiple auto closing brackets", async () => {
+      const context = documentContext`
         let mat: number[][][] = [[[║]]]
-        `,
-        language: "typescript",
-      };
-      const choice = {
-        index: 0,
+      `;
+      context.language = "typescript";
+      const completion = {
         text: inline`
                                    ├1, 2], [3, 4]], [[5, 6], [7, 8]]];┤
         `,
-        replaceRange: {
-          start: context.position,
-          end: context.position,
-        },
       };
       const expected = {
-        index: 0,
         text: inline`
                                    ├1, 2], [3, 4]], [[5, 6], [7, 8]]];┤
         `,
-        replaceRange: {
-          start: context.position,
-          end: context.position + 3,
-        },
+        replaceSuffix: "]]]",
       };
-      expect(calculateReplaceRangeByBracketStack(choice, context)).to.deep.equal(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should handle html tags", () => {
-      const context = {
-        ...documentContext`
+    it("should handle html tags", async () => {
+      const context = documentContext`
         <html></h║>
-        `,
-        language: "html",
-      };
-      const choice = {
-        index: 0,
+      `;
+      context.language = "html";
+      const completion = {
         text: inline`
                  ├tml>┤
         `,
-        replaceRange: {
-          start: context.position,
-          end: context.position,
-        },
       };
       const expected = {
-        index: 0,
         text: inline`
                  ├tml>┤
         `,
-        replaceRange: {
-          start: context.position,
-          end: context.position + 1,
-        },
+        replaceSuffix: ">",
       };
-      expect(calculateReplaceRangeByBracketStack(choice, context)).to.deep.equal(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should handle jsx tags", () => {
-      const context = {
-        ...documentContext`
+    it("should handle jsx tags", async () => {
+      const context = documentContext`
         root.render(
           <React.StrictMode>
             <App m║/>
           </React.StrictMode>
         );
-        `,
-        language: "javascriptreact",
-      };
-      const choice = {
-        index: 0,
+      `;
+      context.language = "javascriptreact";
+      const completion = {
         text: inline`
                   ├essage={message} />┤
         `,
-        replaceRange: {
-          start: context.position,
-          end: context.position,
-        },
       };
       const expected = {
-        index: 0,
         text: inline`
                   ├essage={message} />┤
         `,
-        replaceRange: {
-          start: context.position,
-          end: context.position + 2,
-        },
+        replaceSuffix: "/>",
       };
-      expect(calculateReplaceRangeByBracketStack(choice, context)).to.deep.equal(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
   });
 
   describe("calculateReplaceRangeByBracketStack: bad cases", () => {
-    it("cannot handle the case of completion bracket stack is same with suffix but should not be replaced", () => {
-      const context = {
-        ...documentContext`
+    const filter = calculateReplaceRangeByBracketStack;
+    it("cannot handle the case of completion bracket stack is same with suffix but should not be replaced", async () => {
+      const context = documentContext`
         function clamp(n: number, max: number, min: number): number {
           return Math.max(Math.min(║);
         }
-        `,
-        language: "typescript",
-      };
-      const choice = {
-        index: 0,
+      `;
+      context.language = "typescript";
+      const completion = {
         text: inline`
                                    ├n, max), min┤
         `,
-        replaceRange: {
-          start: context.position,
-          end: context.position,
-        },
       };
-      const expected = {
-        index: 0,
-        text: inline`
-                                   ├n, max), min┤
-        `,
-        replaceRange: {
-          start: context.position,
-          end: context.position,
-        },
-      };
-      expect(calculateReplaceRangeByBracketStack(choice, context)).not.to.deep.equal(expected);
+      const expected = completion;
+      await assertFilterResultNotEqual(filter, context, completion, expected);
     });
   });
 });

@@ -116,6 +116,7 @@ export default function UsersTable() {
             <Table className="border-b">
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[20%]">Name</TableHead>
                   <TableHead className="w-[25%]">Email</TableHead>
                   <TableHead className="w-[15%]">Joined</TableHead>
                   <TableHead className="w-[20%] text-center">Status</TableHead>
@@ -130,6 +131,7 @@ export default function UsersTable() {
 
                   return (
                     <TableRow key={x.node.id}>
+                      <TableCell>{x.node.name}</TableCell>
                       <TableCell>{x.node.email}</TableCell>
                       <TableCell>
                         {moment.utc(x.node.createdAt).fromNow()}

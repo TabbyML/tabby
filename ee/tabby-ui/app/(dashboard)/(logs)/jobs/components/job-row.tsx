@@ -20,6 +20,8 @@ import {
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListRowSkeleton } from '@/components/skeleton'
 
+import { getJobDisplayName } from '../utils'
+
 function JobAggregateState({
   count,
   activeClass,
@@ -36,13 +38,10 @@ function JobAggregateState({
           <div
             className={cn(
               'flex h-8 w-8 cursor-default items-center justify-center rounded-full',
-              {
-                [activeClass]: count,
-                'bg-muted text-muted': !count
-              }
+              activeClass
             )}
           >
-            {count || ''}
+            {count || 0}
           </div>
         </TooltipTrigger>
         <TooltipContent>
@@ -106,6 +105,7 @@ export default function JobRow({ name }: { name: string }) {
   const lastSuccessAt = lastFinishedJob
     ? moment(lastFinishedJob.node.finishedAt).format('YYYY-MM-DD HH:mm')
     : null
+
   return (
     <LoadingWrapper
       loading={fetching}
@@ -118,15 +118,16 @@ export default function JobRow({ name }: { name: string }) {
       }
     >
       <TableRow className="h-16">
-        <TableCell className="font-bold">{name}</TableCell>
+        <TableCell className="font-bold">{getJobDisplayName(name)}</TableCell>
         <TableCell>
           <div className="grid grid-cols-5 flex-wrap gap-1.5  xl:flex">
             {displayJobs?.map(job => {
-              const { createdAt, finishedAt } = job.node
-              const startAt =
+              const { createdAt, finishedAt, startedAt } = job.node
+              const isJobRunning = !finishedAt && !!startedAt
+              const createAt =
                 createdAt && moment(createdAt).format('YYYY-MM-DD HH:mm')
               const duration: string | null =
-                (createdAt &&
+                (startedAt &&
                   finishedAt &&
                   humanizerDuration.humanizer({
                     language: 'shortEn',
@@ -140,11 +141,11 @@ export default function JobRow({ name }: { name: string }) {
                     }
                   })(
                     moment
-                      .duration(moment(finishedAt).diff(createdAt))
+                      .duration(moment(finishedAt).diff(startedAt))
                       .asMilliseconds(),
                     {
                       units: ['d', 'h', 'm', 's'],
-                      round: true,
+                      round: false,
                       largest: 1,
                       spacer: '',
                       language: 'shortEn'
@@ -182,11 +183,11 @@ export default function JobRow({ name }: { name: string }) {
                         )}
                       >
                         {displayedDuration}
-                        {!displayedDuration && <IconSpinner />}
+                        {isJobRunning && <IconSpinner />}
                       </Link>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {startAt && <p>{startAt}</p>}
+                      {createAt && <p>{createAt}</p>}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

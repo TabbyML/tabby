@@ -1,20 +1,17 @@
 # Code Completion
 
-## Basic Usage
+## Autocomplete
 
-Tabby will show inline suggestions when you stop typing, and you can accept suggestions by just pressing the `Tab` key.
+Tabby suggests multi-line code completions and full functions in real-time as you write code. You can accept suggestions by simply pressing the `Tab` key.
 
-![Demo](https://tabby.tabbyml.com/img/demo.gif)
+![Autocomplete Demo](https://tabby.tabbyml.com/img/demo.gif)
 
-## Manual Trigger
+### Multiple Choice
 
-If you select manual trigger in the [settings](command:tabby.openSettings), you can trigger code completion by pressing `Alt + \`.
+To access more suggestion choices, hover over a suggestion, or press `Alt + [` or `Alt + ]` to cycle through the suggestions. There may be a slight delay as the alternative choices are generated upon your request.
 
-## Keybindings
+![Multiple Choice Demo](./multipleChoice.png)
 
-You can select a keybinding profile in the [settings](command:tabby.openSettings), or customize your own [keybindings](command:tabby.openKeybindings).
+## Manual Trigger Mode
 
-|                                   | Next Line | Full Completion | Next Word                                       |
-| :-------------------------------- | :-------- | :-------------- | :---------------------------------------------- |
-| _vscode-style_                    | -         | Tab             | Ctrl + RightArrow <br> Cmd + RightArrow (macOS) |
-| _tabby-style_<br>_(experimental)_ | Tab       | Ctrl + Tab      | Ctrl + RightArrow <br> Cmd + RightArrow (macOS) |
+If you prefer to use Tabby code completion in a more manual way. You can select the manual trigger mode in the [Settings](command:tabby.openSettings). This mode allows you to trigger code completion by pressing `Alt + \`.

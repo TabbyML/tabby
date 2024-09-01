@@ -1,0 +1,49 @@
+---
+sidebar_position: 3
+---
+
+import releaseImage from './assets.png';
+import successImage from '../windows/success.png';
+
+# Linux
+Running Tabby on Linux using Tabby's standalone executable distribution.
+
+## Find the Linux release
+* Go to the Tabby release page: https://github.com/TabbyML/tabby/releases
+* Click on the **Assets** dropdown for a specific release to find the manylinux zip files.
+<div align="left">
+  <img src={releaseImage} alt="Linux release" style={{ width: 626 }} />
+</div>
+
+## Download the release
+* If you are using a CPU-only system, download the **tabby_x86_64-manylinux2014.zip**.
+* If you are using a GPU-enabled system, download the **tabby_x86_64-manylinux2014-cuda117.zip**, In this example, we assume you are using CUDA 11.7.
+* If you want to use a non-nvidia GPU, download the **tabby_x86_64-manylinux2014-vulkan.zip**. See https://tabby.tabbyml.com/blog/2024/05/01/vulkan-support/ for more info.
+
+**Tips:**
+* For the CUDA versions, you will need the nvidia-cuda-toolkit installed for your distribution.
+  * In ubuntu, this would be `sudo apt install nvidia-cuda-toolkit`.
+  * The CUDA Toolkit is available directly from Nvidia: https://developer.nvidia.com/cuda-toolkit
+  * Ensure that you have CUDA version 11 or higher installed.
+  * Check your local CUDA version by running the following command in a terminal: `nvcc --version`
+* For the Vulkan version you'll need the vulkan library. In ubuntu, this would be `sudo apt install libvulkan1`.
+
+## Find the Linux executable file
+* Unzip the file you downloaded. The `tabby` executable will be in a subdirectory of dist.
+* Change to this subdirectory or relocate `tabby` to a folder of your choice.
+* Make it executable: `chmod +x tabby llama-server`
+
+Run the following command:
+```
+# For CPU-only environments
+./tabby serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct
+
+# For GPU-enabled environments (where DEVICE is cuda or vulkan)
+./tabby serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct --device $DEVICE
+```
+You can choose different models, as shown in [the model registry](https://tabby.tabbyml.com/docs/models/)
+
+You should see a success message similar to the one in the screenshot below. After that, you can visit http://localhost:8080 to access your Tabby instance.
+<div align="left">
+  <img src={successImage} alt="Linux running success" style={{ width: 800 }} />
+</div>

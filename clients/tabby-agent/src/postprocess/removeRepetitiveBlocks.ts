@@ -1,4 +1,4 @@
-import { CompletionContext } from "../CompletionContext";
+import { CompletionItem } from "../CompletionSolution";
 import { PostprocessFilter, logger } from "./base";
 import { isBlank, calcDistance } from "../utils";
 
@@ -10,8 +10,9 @@ function blockSplitter(_: string) {
 
 // FIXME: refactor this because it is very similar to `removeRepetitiveLines`
 export function removeRepetitiveBlocks(): PostprocessFilter {
-  return (input: string, context: CompletionContext) => {
-    const inputBlocks = input.split(blockSplitter(context.language));
+  return (item: CompletionItem): CompletionItem => {
+    const context = item.context;
+    const inputBlocks = item.text.split(blockSplitter(context.language));
     let repetitionCount = 0;
     const repetitionThreshold = 2;
     // skip last block, it maybe cut
@@ -39,18 +40,17 @@ export function removeRepetitiveBlocks(): PostprocessFilter {
       }
     }
     if (repetitionCount >= repetitionThreshold) {
-      logger.debug(
-        {
-          inputBlocks,
-          repetitionCount,
-        },
-        "Remove repetitive blocks.",
+      logger.trace("Remove repetitive blocks.", {
+        inputBlocks,
+        repetitionCount,
+      });
+      return item.withText(
+        inputBlocks
+          .slice(0, index + 1)
+          .join("")
+          .trimEnd(),
       );
-      return inputBlocks
-        .slice(0, index + 1)
-        .join("")
-        .trimEnd();
     }
-    return input;
+    return item;
   };
 }

@@ -1,12 +1,16 @@
 pub mod analytic;
 pub mod auth;
 pub mod constants;
+pub mod context;
 pub mod email;
+pub mod integration;
 pub mod job;
 pub mod license;
 pub mod repository;
 pub mod setting;
+pub mod thread;
 pub mod user_event;
+pub mod web_documents;
 pub mod worker;
 
 use std::sync::Arc;
@@ -17,15 +21,18 @@ use auth::{
 };
 use base64::Engine;
 use chrono::{DateTime, Utc};
+use context::{ContextInfo, ContextService};
 use job::{JobRun, JobService};
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLObject, IntoFieldError,
+    graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLObject, IntoFieldError,
     Object, RootNode, ScalarValue, Value, ID,
 };
+use repository::RepositoryGrepOutput;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
-use tracing::error;
+use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
+use tracing::{error, warn};
 use validator::{Validate, ValidationErrors};
-use worker::{Worker, WorkerService};
+use worker::WorkerService;
 
 use self::{
     analytic::{AnalyticService, CompletionStats, DiskUsageStats},
@@ -34,17 +41,23 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
+    integration::{Integration, IntegrationKind, IntegrationService},
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
-    repository::{FileEntrySearchResult, Repository, RepositoryKind, RepositoryService},
+    repository::{
+        CreateIntegrationInput, FileEntrySearchResult, ProvidedRepository, Repository,
+        RepositoryKind, RepositoryService, UpdateIntegrationInput,
+    },
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
     user_event::{UserEvent, UserEventService},
+    web_documents::{CreateCustomDocumentInput, CustomWebDocument, WebDocumentService},
 };
 use crate::{
     env,
-    juniper::relay::{self, Connection},
+    juniper::relay::{self, query_async, Connection},
+    web_documents::{PresetWebDocument, SetPresetDocumentActiveInput},
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -54,11 +67,15 @@ pub trait ServiceLocator: Send + Sync {
     fn logger(&self) -> Arc<dyn EventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
     fn repository(&self) -> Arc<dyn RepositoryService>;
+    fn integration(&self) -> Arc<dyn IntegrationService>;
     fn email(&self) -> Arc<dyn EmailService>;
     fn setting(&self) -> Arc<dyn SettingService>;
     fn license(&self) -> Arc<dyn LicenseService>;
     fn analytic(&self) -> Arc<dyn AnalyticService>;
     fn user_event(&self) -> Arc<dyn UserEventService>;
+    fn web_documents(&self) -> Arc<dyn WebDocumentService>;
+    fn thread(&self) -> Arc<dyn ThreadService>;
+    fn context(&self) -> Arc<dyn ContextService>;
 }
 
 pub struct Context {
@@ -85,7 +102,7 @@ pub enum CoreError {
     #[error("Invalid input parameters")]
     InvalidInput(#[from] ValidationErrors),
 
-    #[error("Email is not configured")]
+    #[error("SMTP is not configured")]
     EmailNotConfigured,
 
     #[error("{0}")]
@@ -124,7 +141,23 @@ async fn check_admin(ctx: &Context) -> Result<(), CoreError> {
 }
 
 async fn check_user(ctx: &Context) -> Result<User, CoreError> {
+    check_user_and_auth_token(ctx, false).await
+}
+
+async fn check_user_allow_auth_token(ctx: &Context) -> Result<User, CoreError> {
+    check_user_and_auth_token(ctx, true).await
+}
+
+async fn check_user_and_auth_token(
+    ctx: &Context,
+    allow_auth_token: bool,
+) -> Result<User, CoreError> {
     let claims = check_claims(ctx)?;
+    if !allow_auth_token && claims.is_generated_from_auth_token {
+        return Err(CoreError::Forbidden(
+            "Invoking this API with an auth token is not allowed",
+        ));
+    }
     let user = ctx.locator.auth().get_user(&claims.sub).await?;
     Ok(user)
 }
@@ -146,12 +179,6 @@ pub struct Query;
 
 #[graphql_object(context = Context)]
 impl Query {
-    async fn workers(ctx: &Context) -> Result<Vec<Worker>> {
-        check_admin(ctx).await?;
-        let workers = ctx.locator.worker().list().await;
-        Ok(workers)
-    }
-
     async fn registration_token(ctx: &Context) -> Result<String> {
         check_admin(ctx).await?;
         ctx.locator.worker().read_registration_token().await
@@ -202,108 +229,6 @@ impl Query {
                 ctx.locator
                     .auth()
                     .list_invitations(after, before, first, last)
-                    .await
-            },
-        )
-        .await
-    }
-
-    async fn github_repository_providers(
-        ctx: &Context,
-        ids: Option<Vec<ID>>,
-        after: Option<String>,
-        before: Option<String>,
-        first: Option<i32>,
-        last: Option<i32>,
-    ) -> Result<Connection<repository::GithubRepositoryProvider>> {
-        check_admin(ctx).await?;
-        relay::query_async(
-            after,
-            before,
-            first,
-            last,
-            |after, before, first, last| async move {
-                ctx.locator
-                    .repository()
-                    .github()
-                    .list_providers(ids.unwrap_or_default(), after, before, first, last)
-                    .await
-            },
-        )
-        .await
-    }
-
-    async fn github_repositories(
-        ctx: &Context,
-        provider_ids: Vec<ID>,
-        active: Option<bool>,
-        after: Option<String>,
-        before: Option<String>,
-        first: Option<i32>,
-        last: Option<i32>,
-    ) -> Result<Connection<repository::GithubProvidedRepository>> {
-        check_admin(ctx).await?;
-        relay::query_async(
-            after,
-            before,
-            first,
-            last,
-            |after, before, first, last| async move {
-                ctx.locator
-                    .repository()
-                    .github()
-                    .list_repositories(provider_ids, active, after, before, first, last)
-                    .await
-            },
-        )
-        .await
-    }
-
-    async fn gitlab_repository_providers(
-        ctx: &Context,
-        ids: Option<Vec<ID>>,
-        after: Option<String>,
-        before: Option<String>,
-        first: Option<i32>,
-        last: Option<i32>,
-    ) -> Result<Connection<repository::GitlabRepositoryProvider>> {
-        check_admin(ctx).await?;
-        relay::query_async(
-            after,
-            before,
-            first,
-            last,
-            |after, before, first, last| async move {
-                ctx.locator
-                    .repository()
-                    .gitlab()
-                    .list_providers(ids.unwrap_or_default(), after, before, first, last)
-                    .await
-            },
-        )
-        .await
-    }
-
-    async fn gitlab_repositories(
-        ctx: &Context,
-        provider_ids: Vec<ID>,
-        active: Option<bool>,
-        after: Option<String>,
-        before: Option<String>,
-        first: Option<i32>,
-        last: Option<i32>,
-    ) -> Result<Connection<repository::GitlabProvidedRepository>> {
-        check_admin(ctx).await?;
-        relay::query_async(
-            after,
-            before,
-            first,
-            last,
-            |after, before, first, last| async move {
-                ctx.locator
-                    .repository()
-                    .gitlab()
-                    .list_repositories(provider_ids, active, after, before, first, last)
                     .await
             },
         )
@@ -379,17 +304,51 @@ impl Query {
         .await
     }
 
+    /// Search files that matches the pattern in the repository.
     async fn repository_search(
         ctx: &Context,
         kind: RepositoryKind,
         id: ID,
+        rev: Option<String>,
         pattern: String,
     ) -> Result<Vec<FileEntrySearchResult>> {
         check_claims(ctx)?;
         ctx.locator
             .repository()
-            .search_files(&kind, &id, &pattern, 40)
+            .search_files(&kind, &id, rev.as_deref(), &pattern, 40)
             .await
+    }
+
+    /// File content search with a grep-like experience.
+    ///
+    /// Syntax:
+    ///
+    /// 1. Unprefixed text will be treated as a regex pattern for file content search.
+    /// 2. 'f:' to search by file name with a regex pattern.
+    /// 3. 'lang:' to search by file language.
+    /// 4. All tokens can be negated by prefixing them with '-'.
+    ///
+    /// Examples:
+    /// * `f:schema -lang:rust fn`
+    /// * `func_name lang:go`
+    async fn repository_grep(
+        ctx: &Context,
+        kind: RepositoryKind,
+        id: ID,
+        rev: Option<String>,
+        query: String,
+    ) -> Result<RepositoryGrepOutput> {
+        check_claims(ctx)?;
+
+        let start_time = chrono::offset::Utc::now();
+        let files = ctx
+            .locator
+            .repository()
+            .grep(&kind, &id, rev.as_deref(), &query, 40)
+            .await?;
+        let end_time = chrono::offset::Utc::now();
+        let elapsed_ms = (end_time - start_time).num_milliseconds() as i32;
+        Ok(RepositoryGrepOutput { files, elapsed_ms })
     }
 
     async fn oauth_credential(
@@ -421,7 +380,12 @@ impl Query {
 
     // FIXME(meng): This is a temporary solution to expose the list of jobs, we should consider switching to a enum based approach.
     async fn jobs() -> Result<Vec<String>> {
-        Ok(vec!["scheduler"].into_iter().map(Into::into).collect())
+        Ok(
+            vec!["scheduler_git", "scheduler_github_gitlab", "web_crawler"]
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
     }
 
     async fn daily_stats_in_past_year(
@@ -492,8 +456,162 @@ impl Query {
     }
 
     async fn repository_list(ctx: &Context) -> Result<Vec<Repository>> {
-        check_admin(ctx).await?;
+        check_user(ctx).await?;
+
         ctx.locator.repository().repository_list().await
+    }
+
+    async fn context_info(ctx: &Context) -> Result<ContextInfo> {
+        check_user(ctx).await?;
+        ctx.locator.context().read().await
+    }
+
+    async fn integrations(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        kind: Option<IntegrationKind>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<Integration>> {
+        query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .integration()
+                    .list_integrations(ids, kind, after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
+
+    async fn integrated_repositories(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        kind: Option<IntegrationKind>,
+        active: Option<bool>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<ProvidedRepository>> {
+        query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .repository()
+                    .third_party()
+                    .list_repositories_with_filter(ids, kind, active, after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
+
+    async fn threads(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<thread::Thread>> {
+        check_user(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .thread()
+                    .list(ids.as_deref(), after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
+
+    /// Read thread messages by thread ID.
+    ///
+    /// Thread is public within an instance, so no need to check for ownership.
+    async fn thread_messages(
+        ctx: &Context,
+        thread_id: ID,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<thread::Message>> {
+        check_user(ctx).await?;
+
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .thread()
+                    .list_thread_messages(&thread_id, after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
+
+    async fn custom_web_documents(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<CustomWebDocument>> {
+        query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .web_documents()
+                    .list_custom_web_documents(ids, after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
+    async fn preset_web_documents(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+        is_active: Option<bool>,
+    ) -> Result<Connection<PresetWebDocument>> {
+        query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .web_documents()
+                    .list_preset_web_documents(ids, after, before, first, last, is_active)
+                    .await
+            },
+        )
+        .await
     }
 }
 
@@ -522,6 +640,14 @@ impl Mutation {
     ) -> Result<Invitation> {
         input.validate()?;
         ctx.locator.auth().request_invitation_email(input).await
+    }
+
+    async fn generate_reset_password_url(ctx: &Context, user_id: ID) -> Result<String> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .auth()
+            .generate_reset_password_url(&user_id)
+            .await
     }
 
     async fn request_password_reset_email(
@@ -616,12 +742,26 @@ impl Mutation {
         Ok(true)
     }
 
+    async fn update_user_name(ctx: &Context, id: ID, name: String) -> Result<bool> {
+        let claims = check_claims(ctx)?;
+        if claims.sub != id {
+            return Err(CoreError::Unauthorized(
+                "You cannot change another user's name",
+            ));
+        }
+        let input = auth::UpdateUserNameInput { name };
+        input.validate()?;
+        ctx.locator.auth().update_user_name(&id, input.name).await?;
+        Ok(true)
+    }
+
     async fn register(
         ctx: &Context,
         email: String,
         password1: String,
         password2: String,
         invitation_code: Option<String>,
+        name: String,
     ) -> Result<RegisterResponse> {
         let input = auth::RegisterInput {
             email,
@@ -632,7 +772,7 @@ impl Mutation {
 
         ctx.locator
             .auth()
-            .register(input.email, input.password1, invitation_code)
+            .register(input.email, input.password1, invitation_code, Some(name))
             .await
     }
 
@@ -762,106 +902,135 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn create_github_repository_provider(
-        ctx: &Context,
-        input: repository::CreateRepositoryProviderInput,
-    ) -> Result<ID> {
-        check_admin(ctx).await?;
+    async fn create_integration(ctx: &Context, input: CreateIntegrationInput) -> Result<ID> {
         input.validate()?;
         let id = ctx
             .locator
-            .repository()
-            .github()
-            .create_provider(input.display_name, input.access_token)
+            .integration()
+            .create_integration(
+                input.kind,
+                input.display_name,
+                input.access_token,
+                input.api_base,
+            )
             .await?;
         Ok(id)
     }
 
-    async fn delete_github_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
-        check_admin(ctx).await?;
-        ctx.locator
-            .repository()
-            .github()
-            .delete_provider(id)
-            .await?;
-        Ok(true)
-    }
-
-    async fn update_github_repository_provider(
-        ctx: &Context,
-        input: repository::UpdateRepositoryProviderInput,
-    ) -> Result<bool> {
-        check_admin(ctx).await?;
+    async fn update_integration(ctx: &Context, input: UpdateIntegrationInput) -> Result<bool> {
         input.validate()?;
         ctx.locator
-            .repository()
-            .github()
-            .update_provider(input.id, input.display_name, input.access_token)
+            .integration()
+            .update_integration(
+                input.id,
+                input.kind,
+                input.display_name,
+                input.access_token,
+                input.api_base,
+            )
             .await?;
         Ok(true)
     }
 
-    async fn update_github_provided_repository_active(
+    async fn delete_integration(ctx: &Context, id: ID, kind: IntegrationKind) -> Result<bool> {
+        ctx.locator
+            .integration()
+            .delete_integration(id, kind)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_integrated_repository_active(
         ctx: &Context,
         id: ID,
         active: bool,
     ) -> Result<bool> {
         ctx.locator
             .repository()
-            .github()
+            .third_party()
             .update_repository_active(id, active)
             .await?;
         Ok(true)
     }
 
-    async fn create_gitlab_repository_provider(
-        ctx: &Context,
-        input: repository::CreateRepositoryProviderInput,
-    ) -> Result<ID> {
+    /// Trigger a job run given its param string.
+    async fn trigger_job_run(ctx: &Context, command: String) -> Result<ID> {
         check_admin(ctx).await?;
+        ctx.locator.job().trigger(command).await
+    }
+
+    /// Delete pair of user message and bot response in a thread.
+    async fn delete_thread_message_pair(
+        ctx: &Context,
+        thread_id: ID,
+        user_message_id: ID,
+        assistant_message_id: ID,
+    ) -> Result<bool> {
+        // ast-grep-ignore: use-schema-result
+        use anyhow::Context;
+
+        let user = check_user_allow_auth_token(ctx).await?;
+        let svc = ctx.locator.thread();
+        let thread = svc.get(&thread_id).await?.context("Thread not found")?;
+
+        if thread.user_id != user.id {
+            return Err(CoreError::Forbidden(
+                "You must be the thread owner to delete the latest message pair",
+            ));
+        }
+
+        ctx.locator
+            .thread()
+            .delete_thread_message_pair(&thread_id, &user_message_id, &assistant_message_id)
+            .await?;
+        Ok(true)
+    }
+
+    /// Turn on persisted status for a thread.
+    async fn set_thread_persisted(ctx: &Context, thread_id: ID) -> Result<bool> {
+        // ast-grep-ignore: use-schema-result
+        use anyhow::Context;
+
+        let user = check_user(ctx).await?;
+        let svc = ctx.locator.thread();
+        let thread = svc.get(&thread_id).await?.context("Thread not found")?;
+
+        if thread.user_id != user.id {
+            return Err(CoreError::Forbidden(
+                "You must be the thread owner to set persisted status",
+            ));
+        }
+
+        ctx.locator.thread().set_persisted(&thread_id).await?;
+        Ok(true)
+    }
+
+    async fn create_custom_document(ctx: &Context, input: CreateCustomDocumentInput) -> Result<ID> {
         input.validate()?;
         let id = ctx
             .locator
-            .repository()
-            .gitlab()
-            .create_provider(input.display_name, input.access_token)
+            .web_documents()
+            .create_custom_web_document(input.name, input.url)
             .await?;
         Ok(id)
     }
 
-    async fn delete_gitlab_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
-        check_admin(ctx).await?;
+    async fn delete_custom_document(ctx: &Context, id: ID) -> Result<bool> {
         ctx.locator
-            .repository()
-            .gitlab()
-            .delete_provider(id)
+            .web_documents()
+            .delete_custom_web_document(id)
             .await?;
         Ok(true)
     }
 
-    async fn update_gitlab_repository_provider(
+    async fn set_preset_document_active(
         ctx: &Context,
-        input: repository::UpdateRepositoryProviderInput,
+        input: SetPresetDocumentActiveInput,
     ) -> Result<bool> {
-        check_admin(ctx).await?;
         input.validate()?;
         ctx.locator
-            .repository()
-            .gitlab()
-            .update_provider(input.id, input.display_name, input.access_token)
-            .await?;
-        Ok(true)
-    }
-
-    async fn update_gitlab_provided_repository_active(
-        ctx: &Context,
-        id: ID,
-        active: bool,
-    ) -> Result<bool> {
-        ctx.locator
-            .repository()
-            .gitlab()
-            .update_repository_active(id, active)
+            .web_documents()
+            .set_preset_web_documents_active(input.id, input.active)
             .await?;
         Ok(true)
     }
@@ -889,21 +1058,40 @@ async fn check_analytic_access(ctx: &Context, users: &[ID]) -> Result<(), CoreEr
 }
 
 fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError<S> {
-    let errors = error
-        .field_errors()
-        .into_iter()
-        .flat_map(|(_, errs)| errs)
-        .cloned()
-        .map(|err| {
-            let mut obj = Object::with_capacity(2);
-            obj.add_field("path", Value::scalar(err.code.to_string()));
-            obj.add_field(
-                "message",
-                Value::scalar(err.message.unwrap_or_default().to_string()),
-            );
-            obj.into()
-        })
-        .collect::<Vec<_>>();
+    let mut errors: Vec<Value<S>> = vec![];
+
+    error.errors().iter().for_each(|(field, kind)| match kind {
+        validator::ValidationErrorsKind::Struct(e) => {
+            for (_, error) in e.0.iter() {
+                if let validator::ValidationErrorsKind::Field(field_errors) = error {
+                    for error in field_errors {
+                        let mut obj = Object::with_capacity(2);
+                        obj.add_field("path", Value::scalar(field.to_string()));
+                        obj.add_field(
+                            "message",
+                            Value::scalar(error.message.clone().unwrap_or_default().to_string()),
+                        );
+                        errors.push(obj.into());
+                    }
+                }
+            }
+        }
+        validator::ValidationErrorsKind::List(_) => {
+            warn!("List errors are not handled");
+        }
+        validator::ValidationErrorsKind::Field(e) => {
+            for error in e {
+                let mut obj = Object::with_capacity(2);
+                obj.add_field("path", Value::scalar(field.to_string()));
+                obj.add_field(
+                    "message",
+                    Value::scalar(error.message.clone().unwrap_or_default().to_string()),
+                );
+                errors.push(obj.into());
+            }
+        }
+    });
+
     let mut error = Object::with_capacity(1);
     error.add_field("errors", Value::list(errors));
 
@@ -913,8 +1101,71 @@ fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError
     FieldError::new("Invalid input parameters", ext.into())
 }
 
-pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<Context>>;
+#[derive(Clone, Copy, Debug)]
+pub struct Subscription;
+
+#[graphql_subscription]
+impl Subscription {
+    async fn create_thread_and_run(
+        ctx: &Context,
+        input: CreateThreadAndRunInput,
+    ) -> Result<ThreadRunStream> {
+        let user = check_user_allow_auth_token(ctx).await?;
+        input.validate()?;
+
+        let thread = ctx.locator.thread();
+
+        let thread_id = thread.create(&user.id, &input.thread).await?;
+
+        thread
+            .create_run(
+                &thread_id,
+                &input.options,
+                input.thread.user_message.attachments.as_ref(),
+                true,
+                true,
+            )
+            .await
+    }
+
+    async fn create_thread_run(
+        ctx: &Context,
+        input: CreateThreadRunInput,
+    ) -> Result<ThreadRunStream> {
+        // ast-grep-ignore: use-schema-result
+        use anyhow::Context;
+
+        let user = check_user_allow_auth_token(ctx).await?;
+        input.validate()?;
+
+        let svc = ctx.locator.thread();
+        let thread = svc
+            .get(&input.thread_id)
+            .await?
+            .context("Thread not found")?;
+
+        if thread.user_id != user.id {
+            return Err(CoreError::Forbidden(
+                "You must be the thread owner to create a run",
+            ));
+        }
+
+        svc.append_user_message(&input.thread_id, &input.additional_user_message)
+            .await?;
+
+        svc.create_run(
+            &input.thread_id,
+            &input.options,
+            input.additional_user_message.attachments.as_ref(),
+            true,
+            false,
+        )
+        .await
+    }
+}
+
+pub type Schema = RootNode<'static, Query, Mutation, Subscription>;
 
 pub fn create_schema() -> Schema {
-    Schema::new(Query, Mutation, EmptySubscription::new())
+    Schema::new(Query, Mutation, Subscription)
 }

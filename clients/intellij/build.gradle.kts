@@ -1,24 +1,29 @@
+// Configure Gradle IntelliJ Plugin
+// Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
+
 plugins {
   id("java")
-  id("org.jetbrains.kotlin.jvm") version "1.8.21"
-  id("org.jetbrains.intellij") version "1.13.3"
+  id("org.jetbrains.kotlin.jvm") version "1.9.25"
+  id("org.jetbrains.intellij.platform") version "2.0.0"
   id("org.jetbrains.changelog") version "2.2.0"
 }
 
-group = "com.tabbyml"
-version = "1.4.0"
-
 repositories {
   mavenCentral()
+  intellijPlatform {
+    defaultRepositories()
+  }
 }
 
-// Configure Gradle IntelliJ Plugin
-// Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
-intellij {
-  version.set("2022.2.5")
-  type.set("IC") // Target IDE Platform
-
-  plugins.set(listOf(/* Plugin Dependencies */))
+dependencies {
+  intellijPlatform {
+    intellijIdeaCommunity("2023.1")
+    bundledPlugins(listOf("Git4Idea"))
+    pluginVerifier()
+    zipSigner()
+    instrumentationTools()
+  }
+  implementation("org.eclipse.lsp4j:org.eclipse.lsp4j:0.23.1")
 }
 
 tasks {
@@ -31,39 +36,52 @@ tasks {
     kotlinOptions.jvmTarget = "17"
   }
 
-  patchPluginXml {
-    sinceBuild.set("222")
-    untilBuild.set("233.*")
-    changeNotes.set(provider {
-      changelog.renderItem(
-        changelog.getLatest(),
-        org.jetbrains.changelog.Changelog.OutputType.HTML
-      )
-    })
+  intellijPlatform {
+    pluginConfiguration {
+      version.set("1.7.0-dev")
+      changeNotes.set(provider {
+        changelog.renderItem(
+          changelog.getLatest(),
+          org.jetbrains.changelog.Changelog.OutputType.HTML
+        )
+      })
+      ideaVersion {
+        sinceBuild.set("231")
+        untilBuild.set("242.*")
+      }
+    }
+    pluginVerification {
+      ides {
+        recommended()
+      }
+    }
+    signing {
+      certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
+      privateKey.set(System.getenv("PRIVATE_KEY"))
+      password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
+    }
+    publishing {
+      token.set(System.getenv("PUBLISH_TOKEN"))
+      channels.set(listOf(System.getenv("PUBLISH_CHANNEL")))
+    }
   }
 
-  val copyNodeScripts by register<Copy>("copyNodeScripts") {
-    dependsOn(prepareSandbox)
-    from("node_scripts")
-    into("build/idea-sandbox/plugins/intellij-tabby/node_scripts")
+  register("buildAgent") {
+    exec {
+      commandLine("pnpm", "turbo", "build")
+    }
   }
 
-  buildSearchableOptions {
-    dependsOn(copyNodeScripts)
-  }
-
-  runIde {
-    dependsOn(copyNodeScripts)
-  }
-
-  signPlugin {
-    certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
-    privateKey.set(System.getenv("PRIVATE_KEY"))
-    password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
-  }
-
-  publishPlugin {
-    token.set(System.getenv("PUBLISH_TOKEN"))
-    channels.set(listOf("alpha"))
+  prepareSandbox {
+    dependsOn("buildAgent")
+    from(
+      fileTree("node_modules/tabby-agent/dist/") {
+        include("node/**/*")
+        exclude("**/*.js.map")
+      }
+    ) {
+      into("intellij-tabby/tabby-agent/")
+    }
   }
 }
+

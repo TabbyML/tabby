@@ -4,19 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { useWindowSize } from '@uidotdev/usehooks'
 import { eachDayOfInterval } from 'date-fns'
 import moment from 'moment'
-import { useTheme } from 'next-themes'
 import ReactActivityCalendar from 'react-activity-calendar'
-import {
-  Bar,
-  BarChart,
-  Cell,
-  LabelList,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-  type LabelProps
-} from 'recharts'
 import seedrandom from 'seedrandom'
 import { useQuery } from 'urql'
 
@@ -25,30 +13,14 @@ import {
   DailyStatsQuery,
   Language
 } from '@/lib/gql/generates/graphql'
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useMe } from '@/lib/hooks/use-me'
 import { useIsDemoMode } from '@/lib/hooks/use-server-info'
-import { getLanguageColor, getLanguageDisplayName } from '@/lib/language-utils'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
-import { Card, CardContent } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import LoadingWrapper from '@/components/loading-wrapper'
 
 import { CompletionCharts } from './completion-charts'
 
 const DATE_RANGE = 6
-
-type LanguageData = {
-  name: Language | 'NONE'
-  views: number
-}[]
-
-type LanguageStats = Record<
-  Language,
-  {
-    views: number
-    name: Language
-  }
->
 
 function ActivityCalendar({
   data
@@ -59,11 +31,10 @@ function ActivityCalendar({
     level: number
   }[]
 }) {
-  const { theme } = useTheme()
+  const { theme } = useCurrentTheme()
   const size = useWindowSize()
   const width = size.width || 0
-  const blockSize =
-    width >= 1300 ? 13 : width >= 1000 ? 8 : width >= 800 ? 10 : 9
+  const blockSize = width >= 800 ? 7 : 9
 
   return (
     <ReactActivityCalendar
@@ -76,72 +47,13 @@ function ActivityCalendar({
       blockSize={blockSize}
       hideTotalCount
       showWeekdayLabels
+      fontSize={11}
     />
   )
 }
 
-const LanguageLabel: React.FC<
-  LabelProps & { languageData: LanguageData; theme?: string }
-> = props => {
-  const { x, y, value, languageData, theme } = props
-  const myLanguageData = languageData.find(data => data.name === value)
-
-  if (!myLanguageData || myLanguageData.views === 0) {
-    return null
-  }
-
-  return (
-    <text
-      x={+x!}
-      y={+y! - 7}
-      fill={theme === 'dark' ? '#e8e1d3' : '#54452c'}
-      fontSize={10}
-      fontWeight="bold"
-      textAnchor="start"
-      dominantBaseline="middle"
-    >
-      {getLanguageDisplayName(value as Language)}
-    </text>
-  )
-}
-
-function LanguageTooltip({
-  active,
-  payload
-}: {
-  active?: boolean
-  payload?: {
-    name: string
-    payload: {
-      name: Language | 'NONE'
-      views: number
-    }
-  }[]
-}) {
-  if (active && payload && payload.length) {
-    const { views, name } = payload[0].payload
-    if (!views || name === 'NONE') return null
-    return (
-      <Card>
-        <CardContent className="flex flex-col gap-y-0.5 px-4 py-2 text-sm">
-          <p className="flex items-center">
-            <span className="mr-3 inline-block w-20">Completions:</span>
-            <b>{views}</b>
-          </p>
-          <p className="text-muted-foreground">
-            {getLanguageDisplayName(name)}
-          </p>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  return null
-}
-
 export default function Stats() {
   const [{ data }] = useMe()
-  const { theme } = useTheme()
   const searchParams = useSearchParams()
   const isDemoMode = useIsDemoMode()
 
@@ -250,118 +162,22 @@ export default function Stats() {
     })
     .reverse()
 
-  // Prepare and structure data for populating the language usage charts
-  const languageStats = {} as LanguageStats
-  dailyStats?.forEach(stats => {
-    languageStats[stats.language] = languageStats[stats.language] || {
-      views: 0,
-      name: stats.language
-    }
-    languageStats[stats.language].views += stats.views
-  })
-  let languageData: LanguageData = Object.entries(languageStats)
-    .map(([_, stats]) => {
-      return {
-        name: stats.name,
-        views: stats.views
-      }
-    })
-    .filter(item => item.views)
-    .sort((a, b) => b.views - a.views)
-    .slice(0, 5)
-  if (languageData.length === 0) {
-    // Placeholder when there is no views
-    languageData = [
-      {
-        name: 'NONE',
-        views: 0.01
-      }
-    ]
-  }
-
   if (!data?.me?.id) return <></>
   return (
-    <div className="flex w-full flex-col gap-y-8">
-      <LoadingWrapper
-        loading={fetchingYearlyStats}
-        fallback={<Skeleton className="h-48" />}
-      >
-        <div>
-          <h3 className="mb-2 text-sm font-medium tracking-tight">
-            <b>{lastYearActivities}</b> activities in the last year
-          </h3>
-          <div className="flex items-end justify-center rounded-xl border p-5">
-            <ActivityCalendar data={activities} />
-          </div>
+    <div className="flex w-full flex-col gap-y-4">
+      <div data-aos="fade-up" data-aos-delay="150">
+        <h3 className="mb-2 text-xs font-medium tracking-tight">
+          <b>{lastYearActivities}</b> activities in the last year
+        </h3>
+        <div className="flex items-end justify-center rounded-xl border px-5 py-4">
+          <ActivityCalendar data={activities} />
         </div>
-      </LoadingWrapper>
-
-      <LoadingWrapper
-        loading={fetchingDailyState}
-        fallback={<Skeleton className="h-48" />}
-      >
-        <CompletionCharts
-          dailyStats={dailyStats}
-          from={moment().subtract(DATE_RANGE, 'day').toDate()}
-          to={moment().toDate()}
-        />
-      </LoadingWrapper>
-
-      <LoadingWrapper
-        loading={fetchingDailyState}
-        fallback={<Skeleton className="h-48" />}
-      >
-        <div>
-          <h3 className="mb-2 text-sm font-medium tracking-tight">
-            Top programming languages
-          </h3>
-          <div className="flex items-end justify-center rounded-xl border p-5">
-            <ResponsiveContainer
-              width="100%"
-              height={(languageData.length + 1) * 50}
-            >
-              <BarChart
-                layout="vertical"
-                data={languageData}
-                barCategoryGap={12}
-                margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-              >
-                <Bar dataKey="views" radius={3}>
-                  <LabelList
-                    dataKey="name"
-                    content={
-                      <LanguageLabel
-                        languageData={languageData}
-                        theme={theme}
-                      />
-                    }
-                  />
-                  {languageData.map((entry, index) => {
-                    const lanColor = getLanguageColor(entry.name)
-                    const color = lanColor
-                      ? lanColor
-                      : theme === 'dark'
-                      ? '#e8e1d3'
-                      : '#54452c'
-                    return <Cell key={`cell-${index}`} fill={color} />
-                  })}
-                </Bar>
-                <XAxis type="number" fontSize={12} allowDecimals={false} />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  hide
-                  padding={{ bottom: 10 }}
-                />
-                <Tooltip
-                  cursor={{ fill: 'transparent' }}
-                  content={<LanguageTooltip />}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </LoadingWrapper>
+      </div>
+      <CompletionCharts
+        dailyStats={dailyStats}
+        from={moment().subtract(DATE_RANGE, 'day').toDate()}
+        to={moment().toDate()}
+      />
     </div>
   )
 }

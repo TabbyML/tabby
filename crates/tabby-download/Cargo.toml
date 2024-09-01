@@ -1,6 +1,6 @@
 [package]
 name = "tabby-download"
-version = "0.11.0-dev.0"
+version = "0.17.0-dev.0"
 edition = "2021"
 
 [dependencies]
@@ -9,4 +9,3 @@ tabby-common = { path = "../tabby-common" }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 tokio-retry = "0.3.0"
-sha256 = "1.4.0"

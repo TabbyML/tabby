@@ -7,8 +7,30 @@ import { cn } from '@/lib/utils'
 import { Button, type ButtonProps } from '@/components/ui/button'
 import { IconArrowDown } from '@/components/ui/icons'
 
-export function ButtonScrollToBottom({ className, ...props }: ButtonProps) {
-  const isAtBottom = useAtBottom()
+export function ButtonScrollToBottom({
+  className,
+  container,
+  offset,
+  ...props
+}: ButtonProps & {
+  container?: HTMLDivElement
+  offset?: number
+}) {
+  const isAtBottom = useAtBottom(offset || 0, container)
+
+  const onButtonClick = () => {
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
+      })
+    } else {
+      window.scrollTo({
+        top: document.body.offsetHeight,
+        behavior: 'smooth'
+      })
+    }
+  }
 
   return (
     <Button
@@ -19,12 +41,7 @@ export function ButtonScrollToBottom({ className, ...props }: ButtonProps) {
         isAtBottom ? 'opacity-0' : 'opacity-100',
         className
       )}
-      onClick={() =>
-        window.scrollTo({
-          top: document.body.offsetHeight,
-          behavior: 'smooth'
-        })
-      }
+      onClick={onButtonClick}
       {...props}
     >
       <IconArrowDown />

@@ -12,6 +12,7 @@
     "unused-imports"
   ],
   "rules": {
+    "curly": ["error", "multi-line"],
     "unused-imports/no-unused-imports": "error",
     "tailwindcss/no-custom-classname": "off",
     "import/no-restricted-paths": [
@@ -28,7 +29,8 @@
           }
         ]
       }
-    ]
+    ],
+    "no-console": "error"
   },
   "settings": {
     "tailwindcss": {

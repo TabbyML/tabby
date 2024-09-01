@@ -8,7 +8,7 @@ import deepEqual from "deep-equal";
 import { getProperty, deleteProperty } from "dot-prop";
 import type { PartialAgentConfig } from "./AgentConfig";
 import { isBrowser } from "./env";
-import { logger } from "./logger";
+import { getLogger } from "./logger";
 
 const configTomlTemplate = `## Tabby agent configuration file
 
@@ -17,15 +17,20 @@ const configTomlTemplate = `## Tabby agent configuration file
 ## Configurations in this file have lower priority than the IDE settings.
 
 ## Server
-## You can set the server endpoint here and an optional authentication token if required.
+## You can set the server endpoint and token here.
 # [server]
 # endpoint = "http://localhost:8080" # http or https URL
-# token = "your-token-here" # if token is set, request header Authorization = "Bearer $token" will be added automatically
+# token = "your-token-here" # if set, request header Authorization = "Bearer $token" will be added
 
 ## You can add custom request headers.
 # [server.requestHeaders]
 # Header1 = "Value1" # list your custom headers here
 # Header2 = "Value2" # values can be strings, numbers or booleans
+
+## Proxy
+## You can specify an optional http/https proxy when required, overrides environment variable settings.
+# [proxy]
+# url = "http://your-proxy-server" # the URL of the proxy
 
 ## Logs
 ## You can set the log level here. The log file is located at ~/.tabby-client/agent/logs/.
@@ -48,6 +53,8 @@ const typeCheckSchema: Record<string, string> = {
   "server.token": "string",
   "server.requestHeaders": "object",
   "server.requestTimeout": "number",
+  proxy: "object",
+  "proxy.url": "string",
   completion: "object",
   "completion.prompt": "object",
   "completion.prompt.maxPrefixLines": "number",
@@ -73,6 +80,15 @@ const typeCheckSchema: Record<string, string> = {
   "completion.debounce": "object",
   "completion.debounce.mode": "string",
   "completion.debounce.interval": "number",
+  "completion.solution": "object",
+  "completion.solution.maxItems": "number",
+  "completion.solution.maxTries": "number",
+  "completion.solution.temperature": "number",
+  chat: "object",
+  "chat.edit": "object",
+  "chat.generateCommitMessage": "object",
+  "chat.generateCommitMessage.maxDiffLength": "number",
+  "chat.generateCommitMessage.promptTemplate": "string",
   logs: "object",
   "logs.level": "string",
   tls: "object",
@@ -93,7 +109,7 @@ function validateConfig(config: PartialAgentConfig): PartialAgentConfig {
 class ConfigFile extends EventEmitter {
   private data: PartialAgentConfig = {};
   private watcher?: chokidar.FSWatcher;
-  private logger = logger("ConfigFile");
+  private logger = getLogger("ConfigFile");
 
   constructor(private readonly filepath: string) {
     super();
@@ -107,17 +123,13 @@ class ConfigFile extends EventEmitter {
     try {
       const fileContent = await fs.readFile(this.filepath, "utf8");
       const data = toml.parse(fileContent);
-      // If the config file contains no value, overwrite it with the new template.
-      if (Object.keys(data).length === 0 && fileContent.trim() !== configTomlTemplate.trim()) {
-        await this.createTemplate();
-        return;
-      }
       this.data = validateConfig(data);
     } catch (error) {
       if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+        this.logger.info("Config file not exist, creating template config file.");
         await this.createTemplate();
       } else {
-        this.logger.error({ error }, "Failed to load config file");
+        this.logger.error("Failed to load config file.", error);
       }
     }
   }
@@ -141,7 +153,7 @@ class ConfigFile extends EventEmitter {
     try {
       await fs.outputFile(this.filepath, configTomlTemplate);
     } catch (error) {
-      this.logger.error({ error }, "Failed to create config template file");
+      this.logger.error("Failed to create config template file.", error);
     }
   }
 }

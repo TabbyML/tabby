@@ -38,7 +38,7 @@
 
     --radius: 0.5rem;
 
-    --selection: 200, 100%, 90%
+    --selection: 200, 100%, 90%;
   }
 
   .dark {
@@ -74,7 +74,7 @@
 
     --ring: 39 32% 87%;
 
-    --selection: 221, 13%, 28%
+    --selection: 221, 13%, 28%;
   }
 }
 
@@ -84,10 +84,26 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground; 
   }
 }
 
 .prose-full-width {
   max-width: none !important;
+}
+
+.prose {
+  overflow-wrap: anywhere;
+}
+
+.dialog-without-close-btn > button {
+  display: none;
+}
+
+[data-aos][data-aos=fade-down] {
+  transform: translate3d(0, -20px, 0);
+}
+
+[data-aos][data-aos=fade-up] {
+  transform: translate3d(0, 20px, 0);
 }

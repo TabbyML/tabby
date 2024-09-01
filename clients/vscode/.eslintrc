@@ -6,8 +6,11 @@
   },
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint"],
-  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "prettier"],
-  "rules": {
-    "@typescript-eslint/no-explicit-any": 0
-  }
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/strict",
+    "plugin:@typescript-eslint/stylistic",
+    "prettier"
+  ],
+  "ignorePatterns": ["dist", "node_modules"]
 }

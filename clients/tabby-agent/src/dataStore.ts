@@ -6,11 +6,13 @@ import deepEqual from "deep-equal";
 import chokidar from "chokidar";
 import { isBrowser } from "./env";
 import type { PartialAgentConfig } from "./AgentConfig";
+import type { StatusIssuesName } from "./lsp/protocol";
 
 export type StoredData = {
   anonymousId: string;
   auth: { [endpoint: string]: { jwt: string } };
   serverConfig: { [endpoint: string]: PartialAgentConfig };
+  statusIgnoredIssues: StatusIssuesName[];
 };
 
 export interface DataStore {

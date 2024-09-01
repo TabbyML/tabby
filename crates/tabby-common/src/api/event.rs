@@ -67,6 +67,7 @@ pub enum Event {
         #[serde(skip_serializing_if = "Option::is_none")]
         segments: Option<Segments>,
         choices: Vec<Choice>,
+        user_agent: String,
     },
     ChatCompletion {
         completion_id: String,
@@ -84,6 +85,7 @@ pub struct Message {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Segments {
     pub prefix: String,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub suffix: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -94,6 +96,9 @@ pub struct Segments {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub declarations: Option<Vec<Declaration>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filepath: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

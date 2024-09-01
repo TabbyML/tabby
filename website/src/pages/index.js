@@ -19,12 +19,12 @@ function HomepageHeader() {
           <Link
             rel="noopener"
             className="button button--secondary button--lg"
-            to="https://links.tabbyml.com/live-demo">
+            to="#tally-open=mZJ10o&tally-layout=modal&tally-width=720&tally-hide-title=0&tally-emoji-text=👋&tally-emoji-animation=wave">
             View Live Demo 🚀
           </Link>
           <Link
             className="button button--ghost button--lg flex flex-col items-center hover:opacity-80 font-medium"
-            to="/docs/getting-started">
+            to="/docs/quick-start/installation/docker">
             Tutorial - 5min ⏱️
             <div className='w-full h-[2px] bg-green-200 rounded-sm'></div>
           </Link>
@@ -40,8 +40,7 @@ export default function Home() {
   const { siteConfig } = useDocusaurusContext();
   return (
     <Layout
-      title={`Home`}
-      description="Description will go into a meta tag in <head />">
+      description="Tabby is a self-hosted AI coding assistant, offering an open-source and on-premises alternative to GitHub Copilot">
       <HomepageHeader />
       <main>
         <HomepageFeatures />

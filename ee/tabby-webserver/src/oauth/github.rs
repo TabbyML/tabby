@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
 use tabby_schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
@@ -33,6 +33,12 @@ struct GithubUserEmail {
     primary: bool,
     verified: bool,
     visibility: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct GithubUser {
+    name: String,
 }
 
 pub struct GithubClient {
@@ -87,7 +93,7 @@ impl GithubClient {
 
 #[async_trait]
 impl OAuthClient for GithubClient {
-    async fn fetch_user_email(&self, code: String) -> Result<String> {
+    async fn exchange_code_for_token(&self, code: String) -> Result<String> {
         let credentials = self.read_credential().await?;
         let token_resp = self.exchange_access_token(code, credentials).await?;
         if !token_resp.error.is_empty() {
@@ -97,6 +103,10 @@ impl OAuthClient for GithubClient {
             );
         }
 
+        Ok(token_resp.access_token)
+    }
+
+    async fn fetch_user_email(&self, access_token: &str) -> Result<String> {
         let resp = self
             .client
             .get("https://api.github.com/user/emails")
@@ -104,21 +114,33 @@ impl OAuthClient for GithubClient {
             .header(reqwest::header::ACCEPT, "application/vnd.github+json")
             .header(
                 reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", token_resp.access_token),
+                format!("Bearer {}", access_token),
             )
             .header("X-GitHub-Api-Version", "2022-11-28")
             .send()
             .await?;
 
         let emails = resp.json::<Vec<GithubUserEmail>>().await?;
+        select_primary_email(emails)
+    }
 
-        for item in &emails {
-            if item.primary {
-                return Ok(item.email.clone());
-            }
-        }
+    async fn fetch_user_full_name(&self, access_token: &str) -> Result<String> {
+        let resp = self
+            .client
+            .get("https://api.github.com/user")
+            .header(reqwest::header::USER_AGENT, "Tabby")
+            .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+            .header(
+                reqwest::header::AUTHORIZATION,
+                format!("Bearer {}", access_token),
+            )
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .send()
+            .await?;
 
-        bail!("No primary email address found");
+        let user: serde_json::Value = resp.json().await?;
+        let name = user["name"].as_str().unwrap_or_default();
+        Ok(name.to_string())
     }
 
     async fn get_authorization_url(&self) -> Result<String> {
@@ -140,13 +162,56 @@ fn create_authorization_url(client_id: &str) -> Result<String> {
     Ok(url.to_string())
 }
 
+fn select_primary_email(emails: Vec<GithubUserEmail>) -> Result<String> {
+    emails
+        .into_iter()
+        .find(|item| item.primary)
+        .map(|item| item.email)
+        .ok_or(anyhow!("No primary email address found"))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::create_authorization_url;
+    use super::*;
 
     #[test]
     fn test_create_authorization_url() {
         let url = create_authorization_url("client_id").unwrap();
         assert_eq!(url, "https://github.com/login/oauth/authorize?client_id=client_id&response_type=code&scope=read%3Auser+user%3Aemail");
+    }
+
+    #[test]
+    fn test_select_primary_email() {
+        let emails = vec![
+            GithubUserEmail {
+                email: "a@example.com".into(),
+                primary: false,
+                verified: true,
+                visibility: None,
+            },
+            GithubUserEmail {
+                email: "b@example.com".into(),
+                primary: true,
+                verified: true,
+                visibility: None,
+            },
+            GithubUserEmail {
+                email: "c@example.com".into(),
+                primary: false,
+                verified: true,
+                visibility: None,
+            },
+        ];
+
+        assert_eq!(select_primary_email(emails).unwrap(), "b@example.com");
+
+        let emails = vec![GithubUserEmail {
+            email: "a@example.com".into(),
+            primary: false,
+            verified: true,
+            visibility: None,
+        }];
+
+        assert!(select_primary_email(emails).is_err());
     }
 }

@@ -4,19 +4,21 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use tabby_common::{
-    api,
     api::{
+        self,
         code::CodeSearch,
         event::{Event, EventLogger},
     },
+    config::{CompletionConfig, ModelConfig},
     languages::get_language,
 };
-use tabby_inference::{CodeGeneration, CodeGenerationOptions, CodeGenerationOptionsBuilder};
+use tabby_inference::{
+    ChatCompletionStream, CodeGeneration, CodeGenerationOptions, CodeGenerationOptionsBuilder,
+};
 use thiserror::Error;
 use utoipa::ToSchema;
 
 use super::model;
-use crate::Device;
 
 #[derive(Error, Debug)]
 pub enum CompletionError {
@@ -147,6 +149,7 @@ impl From<Segments> for api::event::Segments {
             declarations: val
                 .declarations
                 .map(|x| x.into_iter().map(Into::into).collect()),
+            filepath: val.filepath,
         }
     }
 }
@@ -186,7 +189,7 @@ impl Choice {
     }
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, PartialEq)]
 pub struct Snippet {
     filepath: String,
     body: String,
@@ -226,6 +229,7 @@ pub struct DebugData {
 }
 
 pub struct CompletionService {
+    config: CompletionConfig,
     engine: Arc<CodeGeneration>,
     logger: Arc<dyn EventLogger>,
     prompt_builder: completion_prompt::PromptBuilder,
@@ -233,6 +237,7 @@ pub struct CompletionService {
 
 impl CompletionService {
     fn new(
+        config: CompletionConfig,
         engine: Arc<CodeGeneration>,
         code: Arc<dyn CodeSearch>,
         logger: Arc<dyn EventLogger>,
@@ -240,7 +245,12 @@ impl CompletionService {
     ) -> Self {
         Self {
             engine,
-            prompt_builder: completion_prompt::PromptBuilder::new(prompt_template, Some(code)),
+            prompt_builder: completion_prompt::PromptBuilder::new(
+                &config.code_search_params,
+                prompt_template,
+                Some(code),
+            ),
+            config,
             logger,
         }
     }
@@ -262,11 +272,13 @@ impl CompletionService {
         language: &str,
         temperature: Option<f32>,
         seed: Option<u64>,
+        max_input_length: usize,
+        max_output_tokens: usize,
     ) -> CodeGenerationOptions {
         let mut builder = CodeGenerationOptionsBuilder::default();
         builder
-            .max_input_length(1024 + 512)
-            .max_decoding_tokens(64)
+            .max_input_length(max_input_length)
+            .max_decoding_tokens(max_output_tokens as i32)
             .language(Some(get_language(language)));
         temperature.inspect(|x| {
             builder.sampling_temperature(*x);
@@ -282,11 +294,17 @@ impl CompletionService {
     pub async fn generate(
         &self,
         request: &CompletionRequest,
+        user_agent: &str,
     ) -> Result<CompletionResponse, CompletionError> {
         let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
         let language = request.language_or_unknown();
-        let options =
-            Self::text_generation_options(language.as_str(), request.temperature, request.seed);
+        let options = Self::text_generation_options(
+            language.as_str(),
+            request.temperature,
+            request.seed,
+            self.config.max_input_length,
+            self.config.max_decoding_tokens,
+        );
 
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
             (prompt, None, vec![])
@@ -320,6 +338,7 @@ impl CompletionService {
                     index: 0,
                     text: text.clone(),
                 }],
+                user_agent: user_agent.to_string(),
             },
         );
 
@@ -339,19 +358,118 @@ impl CompletionService {
     }
 }
 
-pub async fn create_completion_service(
+pub async fn create_completion_service_and_chat(
+    config: &CompletionConfig,
     code: Arc<dyn CodeSearch>,
     logger: Arc<dyn EventLogger>,
-    model: &str,
-    device: &Device,
-    parallelism: u8,
-) -> CompletionService {
-    let (
-        engine,
-        model::PromptInfo {
-            prompt_template, ..
-        },
-    ) = model::load_code_generation(model, device, parallelism).await;
+    completion: Option<ModelConfig>,
+    chat: Option<ModelConfig>,
+) -> (
+    Option<CompletionService>,
+    Option<Arc<dyn ChatCompletionStream>>,
+) {
+    let (code_generation, prompt, chat) =
+        model::load_code_generation_and_chat(completion, chat).await;
 
-    CompletionService::new(engine.clone(), code, logger, prompt_template)
+    let completion = code_generation.map(|code_generation| {
+        CompletionService::new(
+            config.to_owned(),
+            code_generation.clone(),
+            code,
+            logger,
+            prompt
+                .unwrap_or_else(|| panic!("Prompt template is required for code completion"))
+                .prompt_template,
+        )
+    });
+
+    (completion, chat)
+}
+
+#[cfg(test)]
+mod tests {
+    use api::code::CodeSearchParams;
+    use async_stream::stream;
+    use async_trait::async_trait;
+    use futures::stream::BoxStream;
+    use tabby_common::api::code::{CodeSearchError, CodeSearchQuery, CodeSearchResponse};
+    use tabby_inference::{CompletionOptions, CompletionStream};
+
+    use super::*;
+
+    struct MockEventLogger;
+
+    impl EventLogger for MockEventLogger {
+        fn write(&self, _x: api::event::LogEntry) {}
+    }
+
+    struct MockCompletionStream;
+
+    #[async_trait]
+    impl CompletionStream for MockCompletionStream {
+        async fn generate(&self, _prompt: &str, _options: CompletionOptions) -> BoxStream<String> {
+            let s = stream! {
+                yield r#""Hello, world!""#.into();
+            };
+
+            Box::pin(s)
+        }
+    }
+
+    struct MockCodeSearch;
+
+    #[async_trait]
+    impl CodeSearch for MockCodeSearch {
+        async fn search_in_language(
+            &self,
+            _query: CodeSearchQuery,
+            _params: CodeSearchParams,
+        ) -> Result<CodeSearchResponse, CodeSearchError> {
+            Ok(CodeSearchResponse { hits: vec![] })
+        }
+    }
+
+    fn mock_completion_service() -> CompletionService {
+        let generation = CodeGeneration::new(Arc::new(MockCompletionStream));
+        CompletionService::new(
+            CompletionConfig::default(),
+            Arc::new(generation),
+            Arc::new(MockCodeSearch),
+            Arc::new(MockEventLogger),
+            Some("<pre>{prefix}<mid>{suffix}<end>".into()),
+        )
+    }
+
+    #[tokio::test]
+    async fn test_completion_service() {
+        let completion_service = mock_completion_service();
+        let segment = Segments {
+            prefix: "fn hello_world() -> &'static str {".into(),
+            suffix: Some("}".into()),
+            filepath: None,
+            git_url: None,
+            declarations: None,
+            relevant_snippets_from_changed_files: None,
+            clipboard: None,
+        };
+        let request = CompletionRequest {
+            language: Some("rust".into()),
+            segments: Some(segment.clone()),
+            user: None,
+            debug_options: None,
+            temperature: None,
+            seed: None,
+        };
+
+        let response = completion_service
+            .generate(&request, "test user agent")
+            .await
+            .unwrap();
+        assert_eq!(response.choices[0].text, r#""Hello, world!""#);
+
+        let prompt = completion_service
+            .prompt_builder
+            .build("rust", segment.clone(), &[]);
+        assert_eq!(prompt, "<pre>fn hello_world() -> &'static str {<mid>}<end>");
+    }
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import React, { ReactNode } from 'react'
 import NiceAvatar, { genConfig } from 'react-nice-avatar'
 import { mutate } from 'swr'
 import useSWRImmutable from 'swr/immutable'
@@ -17,7 +18,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 const NOT_FOUND_ERROR = 'not_found'
 let shouldFetchAvatar = true
 
-export function UserAvatar({ className }: { className?: string }) {
+export function UserAvatar({
+  className,
+  fallback
+}: {
+  className?: string
+  fallback?: string | ReactNode
+}) {
   const [{ data }] = useMe()
   const userId = data?.me.id
 
@@ -41,7 +48,10 @@ export function UserAvatar({ className }: { className?: string }) {
     })
   })
 
-  if (!userId) return null
+  const avatarConfigFromEmail = React.useMemo(() => {
+    if (!data?.me?.email) return undefined
+    return genConfig(data.me.email)
+  }, [data?.me?.email])
 
   if (isLoading) {
     return <Skeleton className={cn('h-16 w-16 rounded-full', className)} />
@@ -51,19 +61,24 @@ export function UserAvatar({ className }: { className?: string }) {
     shouldFetchAvatar = false
   }
 
-  if (!avatarImageSrc) {
-    const config = genConfig(data.me.email)
-    return <NiceAvatar className={cn('h-16 w-16', className)} {...config} />
+  if (!avatarImageSrc && !avatarConfigFromEmail && fallback) return fallback
+  if (!avatarImageSrc && avatarConfigFromEmail) {
+    return (
+      <NiceAvatar
+        className={cn('h-16 w-16', className)}
+        {...avatarConfigFromEmail}
+      />
+    )
   }
 
   return (
     <AvatarComponent className={cn('h-16 w-16', className)}>
       <AvatarImage
         src={avatarImageSrc}
-        alt={data.me.email}
+        alt={data?.me?.email}
         className="object-cover"
       />
-      <AvatarFallback>{data.me?.email.substring(0, 2)}</AvatarFallback>
+      <AvatarFallback>{data?.me?.email?.substring(0, 2)}</AvatarFallback>
     </AvatarComponent>
   )
 }

@@ -1,22 +1,22 @@
 'use client'
 
 import React, { PropsWithChildren } from 'react'
+import { usePathname } from 'next/navigation'
 import { createRequest } from '@urql/core'
-import { compact, isEmpty, toNumber } from 'lodash-es'
+import { compact, isEmpty, isNil, toNumber } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
-import { toast } from 'sonner'
-import { SWRResponse } from 'swr'
-import useSWRImmutable from 'swr/immutable'
+import useSWR from 'swr'
 
 import { graphql } from '@/lib/gql/generates'
-import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
+import { GitReference, RepositoryListQuery } from '@/lib/gql/generates/graphql'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { filename2prism } from '@/lib/language-utils'
 import fetcher from '@/lib/tabby/fetcher'
 import { client } from '@/lib/tabby/gql'
+import { repositoryListQuery } from '@/lib/tabby/query'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { cn, formatLineHashForCodeBrowser } from '@/lib/utils'
 import {
   ResizableHandle,
   ResizablePanel,
@@ -27,32 +27,39 @@ import { ListSkeleton } from '@/components/skeleton'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
 import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
+import { BlobModeView } from './blob-mode-view'
 import { ChatSideBar } from './chat-side-bar'
+import { CodeSearchBar } from './code-search-bar'
+import { CodeSearchResultView } from './code-search-result-view'
+import { ErrorView } from './error-view'
 import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
-import { DirectoryView } from './file-directory-view'
 import { mapToFileTree, sortFileTree, type TFileTreeNode } from './file-tree'
 import { FileTreePanel } from './file-tree-panel'
-import { RawFileView } from './raw-file-view'
-import { TextFileView } from './text-file-view'
+import { TreeModeView } from './tree-mode-view'
+import type { FileDisplayType, RepositoryRefKind } from './types'
 import {
-  fetchEntriesFromPath,
+  CodeBrowserError,
+  generateEntryPath,
+  getDefaultRepoRef,
   getDirectoriesFromBasename,
+  parseLineNumberFromHash,
   repositoryList2Map,
   resolveFileNameFromPath,
+  resolveRepoRef,
   resolveRepositoryInfoFromPath,
-  resolveRepoSpecifierFromRepoInfo
+  toEntryRequestUrl
 } from './utils'
 
 /**
  * FileMap example
  * {
- *   'tabby/ee/tabby-ui/README.md': {
+ *   'ee/tabby-ui/README.md': {
  *     file: {
  *      kind: 'file',
  *      basename: 'ee/tabby-ui/README.md'
  *     },
  *     name: 'README.md',
- *     fullPath: 'tabby/ee/tabby-ui/README.md',
+ *     fullPath: 'ee/tabby-ui/README.md',
  *     treeExpanded: false
  *   },
  *   ...
@@ -69,23 +76,43 @@ type TFileMapItem = {
 type TFileMap = Record<string, TFileMapItem>
 type RepositoryItem = RepositoryListQuery['repositoryList'][0]
 
-const repositoryListQuery = graphql(/* GraphQL */ `
-  query RepositoryList {
-    repositoryList {
-      id
-      name
-      kind
+const repositoryGrepQuery = graphql(/* GraphQL */ `
+  query RepositoryGrep($id: ID!, $kind: RepositoryKind!, $query: String!) {
+    repositoryGrep(kind: $kind, id: $id, query: $query) {
+      files {
+        path
+        lines {
+          line {
+            text
+            base64
+          }
+          byteOffset
+          lineNumber
+          subMatches {
+            bytesStart
+            bytesEnd
+          }
+        }
+      }
+      elapsedMs
     }
   }
 `)
 
 type SourceCodeBrowserContextValue = {
   activePath: string | undefined
-  setActivePath: (path: string | undefined, replace?: boolean) => void
+  updateActivePath: (
+    path: string | undefined,
+    options?: {
+      hash?: string
+      replace?: boolean
+      plain?: boolean
+    }
+  ) => Promise<void>
   repoMap: Record<string, RepositoryItem>
   setRepoMap: (map: Record<string, RepositoryItem>) => void
   fileMap: TFileMap
-  updateFileMap: (map: TFileMap) => void
+  updateFileMap: (map: TFileMap, replace?: boolean) => void
   expandedKeys: Set<string>
   setExpandedKeys: React.Dispatch<React.SetStateAction<Set<string>>>
   toggleExpandedKey: (key: string) => void
@@ -99,6 +126,16 @@ type SourceCodeBrowserContextValue = {
   setPendingEvent: (d: QuickActionEventPayload | undefined) => void
   isChatEnabled: boolean | undefined
   activeRepo: RepositoryItem | undefined
+  activeRepoRef:
+    | {
+        kind?: 'branch' | 'tag' | 'commit'
+        name?: string
+        ref: GitReference | undefined
+      }
+    | undefined
+  isPathInitialized: boolean
+  activeEntryInfo: ReturnType<typeof resolveRepositoryInfoFromPath>
+  prevActivePath: React.MutableRefObject<string | undefined>
 }
 
 const SourceCodeBrowserContext =
@@ -109,20 +146,15 @@ const SourceCodeBrowserContext =
 const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   children
 }) => {
-  const { searchParams, updateSearchParams } = useRouterStuff()
-  const activePath = React.useMemo(() => {
-    return searchParams.get('path')?.toString() ?? ''
-  }, [searchParams])
+  const pathname = usePathname()
+  const { updateUrlComponents } = useRouterStuff()
+  const [isPathInitialized, setIsPathInitialized] = React.useState(false)
+  const [activePath, setActivePath] = React.useState<string | undefined>()
+  const activeEntryInfo = React.useMemo(() => {
+    return resolveRepositoryInfoFromPath(activePath)
+  }, [activePath])
+
   const isChatEnabled = useIsChatEnabled()
-
-  const setActivePath = (path: string | undefined, replace?: boolean) => {
-    if (!path) {
-      updateSearchParams({ del: ['path', 'plain'], replace })
-    } else {
-      updateSearchParams({ set: { path }, del: 'plain', replace })
-    }
-  }
-
   const [initialized, setInitialized] = React.useState(false)
   const [fileMap, setFileMap] = React.useState<TFileMap>({})
   const [repoMap, setRepoMap] = React.useState<
@@ -133,14 +165,52 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   const [pendingEvent, setPendingEvent] = React.useState<
     QuickActionEventPayload | undefined
   >()
+  const prevActivePath = React.useRef<string | undefined>()
 
-  const updateFileMap = (map: TFileMap) => {
+  const updateActivePath: SourceCodeBrowserContextValue['updateActivePath'] =
+    React.useCallback(async (path, options) => {
+      const replace = options?.replace
+      if (!path) {
+        // To maintain compatibility with older versions, remove the path params
+        updateUrlComponents({
+          pathname: '/files',
+          searchParams: {
+            del: ['path', 'plain', 'line']
+          },
+          hash: options?.hash,
+          replace
+        })
+      } else {
+        const setParams: Record<string, string> = {}
+        let delList = ['redirect_filepath', 'redirect_git_url', 'line']
+        if (options?.plain) {
+          setParams['plain'] = '1'
+        } else {
+          delList.push('plain')
+        }
+
+        updateUrlComponents({
+          pathname: `/files/${path}`,
+          searchParams: {
+            set: setParams,
+            del: delList
+          },
+          replace,
+          hash: options?.hash
+        })
+      }
+    }, [])
+
+  const updateFileMap = (map: TFileMap, replace?: boolean) => {
     if (!map) return
-
-    setFileMap(prevMap => ({
-      ...prevMap,
-      ...map
-    }))
+    if (replace) {
+      setFileMap(map)
+    } else {
+      setFileMap(prevMap => ({
+        ...prevMap,
+        ...map
+      }))
+    }
   }
 
   const toggleExpandedKey = (key: string) => {
@@ -154,27 +224,72 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
     setExpandedKeys(newSet)
   }
 
-  const currentFileRoutes = React.useMemo(() => {
-    if (!activePath) return []
-    let result: TFileMapItem[] = []
-    const pathSegments = activePath.split('/')
-    for (let i = 0; i < pathSegments.length; i++) {
-      const p = pathSegments.slice(0, i + 1).join('/')
-      result.push(fileMap?.[p])
-    }
-    return compact(result)
-  }, [activePath, fileMap])
-
   const fileTreeData: TFileTreeNode[] = React.useMemo(() => {
     return sortFileTree(mapToFileTree(fileMap))
   }, [fileMap])
 
   const activeRepo = React.useMemo(() => {
     const { repositoryKind, repositoryName, repositorySpecifier } =
-      resolveRepositoryInfoFromPath(activePath)
+      activeEntryInfo
     if (!repositoryKind || !repositoryName) return undefined
     return repositorySpecifier ? repoMap[repositorySpecifier] : undefined
-  }, [activePath, repoMap])
+  }, [repoMap, activeEntryInfo])
+
+  const activeRepoRef = React.useMemo(() => {
+    if (!activeEntryInfo || !activeRepo) return undefined
+    const rev = activeEntryInfo?.rev ?? ''
+    const _activeRepoRef = activeRepo.refs?.find(
+      ref =>
+        ref?.name === `refs/heads/${rev}` ||
+        ref?.name === `refs/tags/${rev}` ||
+        ref?.commit === rev
+    )
+    if (_activeRepoRef) {
+      let refKind: RepositoryRefKind | undefined
+      if (_activeRepoRef.name === `refs/heads/${rev}`) {
+        refKind = 'branch'
+      } else if (_activeRepoRef.name === `refs/tags/${rev}`) {
+        refKind = 'tag'
+      } else if (_activeRepoRef.commit === rev) {
+        refKind = 'commit'
+      }
+      return resolveRepoRef(_activeRepoRef, refKind)
+    }
+  }, [activeEntryInfo, activeRepo])
+
+  const currentFileRoutes = React.useMemo(() => {
+    if (!activePath) return []
+    const { basename = '' } = activeEntryInfo
+    let result: TFileMapItem[] = [
+      {
+        file: {
+          kind: 'dir',
+          basename: ''
+        },
+        isRepository: true,
+        repository: activeRepo,
+        name: activeRepo?.name ?? '',
+        fullPath: ''
+      }
+    ]
+
+    const pathSegments = basename?.split('/') || []
+    for (let i = 0; i < pathSegments.length; i++) {
+      const p = pathSegments.slice(0, i + 1).join('/')
+      result.push(fileMap?.[p])
+    }
+    return compact(result)
+  }, [activePath, fileMap, activeEntryInfo])
+
+  React.useEffect(() => {
+    const regex = /^\/files\/(.*)/
+    const path = pathname.match(regex)?.[1]
+    prevActivePath.current = activePath
+    setActivePath(path ?? '')
+    if (!isPathInitialized) {
+      setIsPathInitialized(true)
+    }
+  }, [pathname])
 
   return (
     <SourceCodeBrowserContext.Provider
@@ -182,7 +297,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         initialized,
         setInitialized,
         activePath,
-        setActivePath,
+        updateActivePath,
         fileMap,
         updateFileMap,
         expandedKeys,
@@ -197,7 +312,11 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         isChatEnabled,
         repoMap,
         setRepoMap,
-        activeRepo
+        activeRepo,
+        activeRepoRef,
+        isPathInitialized,
+        activeEntryInfo,
+        prevActivePath
       }}
     >
       {children}
@@ -209,107 +328,145 @@ interface SourceCodeBrowserProps {
   className?: string
 }
 
-type FileDisplayType = 'image' | 'text' | 'raw' | ''
+const ENTRY_CONTENT_TYPE = 'application/vnd.directory+json'
 
 const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   className
 }) => {
   const {
     activePath,
-    setActivePath,
-    updateFileMap,
-    fileMap,
+    updateActivePath,
     initialized,
     setInitialized,
-    setExpandedKeys,
     chatSideBarVisible,
     setChatSideBarVisible,
     setPendingEvent,
-    fileTreeData,
     repoMap,
     setRepoMap,
-    activeRepo
+    activeRepo,
+    isPathInitialized,
+    activeEntryInfo,
+    prevActivePath,
+    updateFileMap,
+    setExpandedKeys
   } = React.useContext(SourceCodeBrowserContext)
 
+  const { searchParams } = useRouterStuff()
   const initializing = React.useRef(false)
-  const { setProgress } = useTopbarProgress()
+  const { progress, setProgress } = useTopbarProgress()
   const chatSideBarPanelRef = React.useRef<ImperativePanelHandle>(null)
   const [chatSideBarPanelSize, setChatSideBarPanelSize] = React.useState(35)
+  const searchQuery = searchParams.get('q')?.toString()
 
-  const activeRepoIdentity = React.useMemo(() => {
-    const repoId = activeRepo?.id
-    const kind = activeRepo?.kind
-    if (!repoId || !kind) return ''
-    return `${activeRepo.kind?.toLowerCase()}/${repoId}`
-  }, [activeRepo])
-
-  const activeBasename = React.useMemo(() => {
-    return resolveRepositoryInfoFromPath(activePath)?.basename
+  const parsedEntryInfo = React.useMemo(() => {
+    return resolveRepositoryInfoFromPath(activePath)
   }, [activePath])
 
-  const [fileViewType, setFileViewType] = React.useState<FileDisplayType>()
+  const activeBasename = parsedEntryInfo?.basename
 
-  const isFileSelected =
-    activePath && fileMap?.[activePath]?.file?.kind === 'file'
-  const activeEntry = activePath ? fileMap?.[activePath]?.file : undefined
+  const isBlobMode = activeEntryInfo?.viewMode === 'blob'
+  const isSearchMode = activeEntryInfo?.viewMode === 'search'
 
-  const shouldFetchSubDir = React.useMemo(() => {
-    if (!initialized) return false
+  const shouldFetchTree =
+    !!initialized && !isEmpty(repoMap) && !!activePath && !isSearchMode
+  const shouldFetchRepositoryGrep =
+    !!initialized && !isEmpty(repoMap) && !!activePath && isSearchMode
+  const shouldFetchRawFile = !!initialized && isBlobMode && activeRepo
 
-    const isDir = activePath && fileMap?.[activePath]?.file?.kind === 'dir'
-    return isDir && !fileMap?.[activePath]?.treeExpanded
-  }, [activePath, fileMap, initialized])
+  // fetch tree
+  const {
+    data: entriesResponse,
+    isLoading: fetchingTreeEntries,
+    error: entriesError
+  } = useSWR<{
+    entries: TFile[]
+    requestPathname: string
+  }>(
+    shouldFetchTree ? activePath : null,
+    (path: string) => {
+      const { repositorySpecifier } = resolveRepositoryInfoFromPath(path)
+      return fetchEntriesFromPath(
+        path,
+        repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined
+      ).then(data => ({ entries: data, requestPathname: path }))
+    },
+    {
+      revalidateOnFocus: false,
+      shouldRetryOnError: false
+    }
+  )
 
   // fetch raw file
-  const { data: rawFileResponse, isLoading: fetchingRawFile } =
-    useSWRImmutable<{
-      blob?: Blob
-      contentLength?: number
-    }>(
-      isFileSelected
-        ? `/repositories/${activeRepoIdentity}/resolve/${activeBasename}`
-        : null,
-      (url: string) =>
-        fetcher(url, {
-          responseFormatter: async response => {
-            if (!response.ok) return undefined
-
-            const contentLength = toNumber(
-              response.headers.get('Content-Length')
-            )
-            // todo abort big size request and truncate
-            const blob = await response.blob()
-            return {
-              contentLength,
-              blob
-            }
+  const {
+    data: rawFileResponse,
+    isLoading: fetchingRawFile,
+    error: rawFileError
+  } = useSWR<{
+    blob?: Blob
+    contentLength?: number
+    fileDisplayType: FileDisplayType
+  }>(
+    shouldFetchRawFile
+      ? [
+          toEntryRequestUrl(activeRepo, activeEntryInfo.rev, activeBasename),
+          activeBasename
+        ]
+      : null,
+    ([url, basename]: [string, string]) =>
+      fetcher(url, {
+        responseFormatter: async response => {
+          const contentType = response.headers.get('Content-Type')
+          if (contentType === ENTRY_CONTENT_TYPE) {
+            throw new Error(CodeBrowserError.INVALID_URL)
           }
-        }),
-      {
-        onError(err) {
-          toast.error('Fail to fetch')
+          const contentLength = toNumber(response.headers.get('Content-Length'))
+          // FIXME(jueliang) abort big size request and truncate the response data
+          const blob = await response.blob()
+          const fileDisplayType = await getFileViewType(basename ?? '', blob)
+          return {
+            contentLength,
+            blob,
+            fileDisplayType
+          }
+        },
+        errorHandler() {
+          throw new Error(CodeBrowserError.NOT_FOUND)
         }
-      }
-    )
+      }),
+    {
+      revalidateOnFocus: false,
+      shouldRetryOnError: false
+    }
+  )
+
+  const {
+    data: repositoryGreps,
+    isLoading: fetchingRepositoryGrep,
+    error: repositoryGrepError
+  } = useSWR(
+    shouldFetchRepositoryGrep && searchQuery ? [activePath, searchQuery] : null,
+    ([activePath, searchQuery]) => {
+      const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
+      return fetchRepositoryGrep(
+        searchQuery,
+        repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined
+      )
+    },
+    {
+      revalidateOnFocus: false,
+      shouldRetryOnError: false
+    }
+  )
 
   const fileBlob = rawFileResponse?.blob
   const contentLength = rawFileResponse?.contentLength
+  const fileDisplayType = rawFileResponse?.fileDisplayType
+  const error = rawFileError || entriesError
 
-  // fetch active dir
-  const {
-    data: subTree,
-    isLoading: fetchingSubTree
-  }: SWRResponse<ResolveEntriesResponse> = useSWRImmutable(
-    shouldFetchSubDir
-      ? `/repositories/${activeRepoIdentity}/resolve/${activeBasename}`
-      : null,
-    fetcher
-  )
+  const showErrorView = !!error
 
-  const showDirectoryView = activeEntry?.kind === 'dir' || activePath === ''
-  const showTextFileView = isFileSelected && fileViewType === 'text'
-  const showRawFileView =
-    isFileSelected && (fileViewType === 'image' || fileViewType === 'raw')
+  const isTreeMode =
+    activeEntryInfo?.viewMode === 'tree' || !activeEntryInfo?.viewMode
 
   const onPanelLayout = (sizes: number[]) => {
     if (sizes?.[2]) {
@@ -317,96 +474,138 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     }
   }
 
-  // todo check if params is valid
   React.useEffect(() => {
     const init = async () => {
       if (initializing.current) return
 
       initializing.current = true
-      const { patchMap, expandedKeys, repos } = await getInitialFileData(
-        activePath
-      )
+      const repos = await fetchAllRepositories()
+      const redirect_filepath = searchParams.get('redirect_filepath')
+      const redirect_git_url = searchParams.get('redirect_git_url')
 
-      // By default, selecting the first repository if initialPath is empty
-      if (repos?.length && !activePath) {
-        const repoSpecifier = resolveRepoSpecifierFromRepoInfo(repos?.[0])
-        setActivePath(repoSpecifier, true)
-        initializing.current = false
-        return
+      if (repos?.length && redirect_filepath && redirect_git_url) {
+        const targetRepo = repos.find(repo => repo.gitUrl === redirect_git_url)
+        if (targetRepo) {
+          // use default rev
+          const defaultRef = getDefaultRepoRef(targetRepo.refs)
+          const refName = resolveRepoRef(defaultRef)?.name || ''
+
+          const lineRangeInHash = parseLineNumberFromHash(window.location.hash)
+          const isValidLineHash = !isNil(lineRangeInHash?.start)
+
+          // for backward compatibility, redirecting param likes `?line=1`
+          const startLineNumber = parseInt(
+            searchParams.get('line')?.toString() ?? ''
+          )
+
+          const nextHash = isValidLineHash
+            ? window.location.hash
+            : formatLineHashForCodeBrowser({ start: startLineNumber })
+
+          const detectedLanguage = redirect_filepath
+            ? filename2prism(redirect_filepath)[0]
+            : undefined
+          const isMarkdown = detectedLanguage === 'markdown'
+
+          updateActivePath(
+            generateEntryPath(targetRepo, refName, redirect_filepath, 'file'),
+            {
+              replace: true,
+              hash: nextHash,
+              plain: isMarkdown && !!nextHash
+            }
+          )
+          initializing.current = false
+          return
+        }
       }
 
       if (repos) setRepoMap(repositoryList2Map(repos))
-      if (patchMap) updateFileMap(patchMap)
-      if (expandedKeys?.length) setExpandedKeys(new Set(expandedKeys))
       setInitialized(true)
     }
 
-    if (!initialized) {
+    if (!initialized && isPathInitialized) {
       init()
     }
-  }, [activePath])
+  }, [activePath, initialized, isPathInitialized])
 
   React.useEffect(() => {
-    if (!initialized) return
-    if (fetchingSubTree || fetchingRawFile) {
-      setProgress(true)
-    } else if (!fetchingSubTree && !fetchingRawFile) {
-      setProgress(false)
-    }
-  }, [fetchingSubTree, fetchingRawFile])
+    if (!entriesResponse) return
 
-  React.useEffect(() => {
-    const onFetchSubTree = () => {
-      if (Array.isArray(subTree?.entries) && activePath) {
-        const { repositorySpecifier } =
-          resolveRepositoryInfoFromPath(activePath)
-        let patchMap: TFileMap = {}
-        if (fileMap?.[activePath]) {
-          patchMap[activePath] = {
-            ...fileMap[activePath],
-            treeExpanded: true
-          }
-        }
-        if (subTree?.entries?.length) {
-          for (const entry of subTree.entries) {
-            const path = `${repositorySpecifier}/${entry.basename}`
-            patchMap[path] = {
-              file: entry,
-              name: resolveFileNameFromPath(path),
-              fullPath: path,
-              treeExpanded: false
-            }
-          }
-        }
-        updateFileMap(patchMap)
-        const expandedKeysToAdd = getDirectoriesFromBasename(activePath, true)
-        if (expandedKeysToAdd?.length) {
-          setExpandedKeys(keys => {
-            const newSet = new Set(keys)
-            for (const k of expandedKeysToAdd) {
-              newSet.add(k)
-            }
-            return newSet
-          })
+    const { entries, requestPathname } = entriesResponse
+    const { repositorySpecifier, viewMode, basename, rev } =
+      resolveRepositoryInfoFromPath(requestPathname)
+    const { repositorySpecifier: prevRepositorySpecifier, rev: prevRev } =
+      resolveRepositoryInfoFromPath(prevActivePath.current)
+    const expandedDirs = getDirectoriesFromBasename(
+      basename,
+      viewMode === 'tree'
+    )
+    const patchMap: TFileMap = {}
+    if (entries.length) {
+      for (const entry of entries) {
+        const _basename = entry.basename
+        patchMap[_basename] = {
+          file: entry,
+          name: resolveFileNameFromPath(_basename),
+          // custom pathmane
+          fullPath: _basename,
+          treeExpanded: expandedDirs.includes(entry.basename)
         }
       }
     }
 
-    onFetchSubTree()
-  }, [subTree])
+    const expandedKeys = expandedDirs.filter(Boolean)
+    const shouldReplace =
+      repositorySpecifier !== prevRepositorySpecifier || rev !== prevRev
+    if (patchMap) {
+      updateFileMap(patchMap, shouldReplace)
+    }
+    if (expandedKeys?.length) {
+      if (shouldReplace) {
+        setExpandedKeys(new Set(expandedKeys))
+      } else {
+        setExpandedKeys(keys => {
+          const newSet = new Set(keys)
+          for (const k of expandedKeys) {
+            newSet.add(k)
+          }
+          return newSet
+        })
+      }
+    }
+  }, [entriesResponse])
 
   React.useEffect(() => {
-    const calculateViewType = async () => {
-      const displayType = await getFileViewType(activePath ?? '', fileBlob)
-      setFileViewType(displayType)
+    if (!initialized) return
+    if (!progress && (fetchingRawFile || fetchingTreeEntries)) {
+      setProgress(true)
+    } else if (!fetchingRawFile && !fetchingTreeEntries) {
+      setProgress(false)
     }
+  }, [fetchingRawFile, fetchingTreeEntries])
 
-    if (isFileSelected) {
-      calculateViewType()
+  React.useEffect(() => {
+    if (chatSideBarVisible) {
+      chatSideBarPanelRef.current?.expand()
+      chatSideBarPanelRef.current?.resize(chatSideBarPanelSize)
     } else {
-      setFileViewType('')
+      chatSideBarPanelRef.current?.collapse()
     }
-  }, [activePath, isFileSelected, fileBlob])
+  }, [chatSideBarVisible])
+
+  React.useEffect(() => {
+    if (!(fetchingRawFile || fetchingTreeEntries)) return
+
+    const { repositorySpecifier, rev } = activeEntryInfo
+    const { repositorySpecifier: prevRepositorySpecifier, rev: prevRev } =
+      resolveRepositoryInfoFromPath(prevActivePath.current)
+    if (repositorySpecifier !== prevRepositorySpecifier || rev !== prevRev) {
+      // cleanup cache
+      updateFileMap({}, true)
+      setExpandedKeys(new Set())
+    }
+  }, [activeEntryInfo])
 
   React.useEffect(() => {
     const onCallCompletion = (data: QuickActionEventPayload) => {
@@ -420,15 +619,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     }
   }, [])
 
-  React.useEffect(() => {
-    if (chatSideBarVisible) {
-      chatSideBarPanelRef.current?.expand()
-      chatSideBarPanelRef.current?.resize(chatSideBarPanelSize)
-    } else {
-      chatSideBarPanelRef.current?.collapse()
-    }
-  }, [chatSideBarVisible])
-
   return (
     <ResizablePanelGroup
       direction="horizontal"
@@ -441,35 +631,59 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         maxSize={40}
         className="hidden lg:block"
       >
-        <FileTreePanel />
+        <FileTreePanel fetchingTreeEntries={fetchingTreeEntries} />
       </ResizablePanel>
       <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
       <ResizablePanel defaultSize={80} minSize={30}>
-        <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
-          <FileDirectoryBreadcrumb className="py-4" />
-          {!initialized ? (
-            <ListSkeleton className="rounded-lg border p-4" />
-          ) : (
-            <div>
-              {showDirectoryView && (
-                <DirectoryView
-                  loading={fetchingSubTree}
-                  initialized={initialized}
-                  className={`rounded-lg border`}
-                />
-              )}
-              {showTextFileView && (
-                <TextFileView blob={fileBlob} contentLength={contentLength} />
-              )}
-              {showRawFileView && (
-                <RawFileView
-                  blob={fileBlob}
-                  isImage={fileViewType === 'image'}
-                  contentLength={contentLength}
-                />
-              )}
-            </div>
-          )}
+        <div className="flex h-full flex-col">
+          <CodeSearchBar
+            className={cn(
+              'z-40',
+              !!activeEntryInfo?.repositorySpecifier ? 'block' : 'hidden'
+            )}
+          />
+          <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
+            {(isTreeMode || isBlobMode) && (
+              <FileDirectoryBreadcrumb
+                className={cn('pb-4', {
+                  'pt-4': !activeEntryInfo?.repositorySpecifier
+                })}
+              />
+            )}
+            {!initialized ? (
+              <ListSkeleton className="rounded-lg border p-4" />
+            ) : showErrorView ? (
+              <ErrorView
+                className={`rounded-lg border p-4`}
+                error={entriesError || rawFileError}
+              />
+            ) : (
+              <>
+                {isTreeMode && (
+                  <TreeModeView
+                    loading={fetchingTreeEntries}
+                    initialized={initialized}
+                    className={`rounded-lg border`}
+                  />
+                )}
+                {isBlobMode && (
+                  <BlobModeView
+                    blob={fileBlob}
+                    contentLength={contentLength}
+                    fileDisplayType={fileDisplayType}
+                    loading={fetchingRawFile || fetchingTreeEntries}
+                  />
+                )}
+                {isSearchMode && (
+                  <CodeSearchResultView
+                    results={repositoryGreps?.files}
+                    requestDuration={repositoryGreps?.elapsedMs}
+                    loading={fetchingRepositoryGrep}
+                  />
+                )}
+              </>
+            )}
+          </div>
         </div>
       </ResizablePanel>
       <>
@@ -485,6 +699,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           defaultSize={0}
           minSize={25}
           ref={chatSideBarPanelRef}
+          onCollapse={() => setChatSideBarVisible(false)}
         >
           <ChatSideBar />
         </ResizablePanel>
@@ -507,102 +722,16 @@ const SourceCodeBrowser: React.FC<SourceCodeBrowserProps> = props => {
   )
 }
 
-async function getInitialFileData(path?: string) {
-  try {
-    const {
-      repositoryKind: initialRepositoryKind,
-      repositoryName: initialRepositoryName,
-      basename: initialBasename,
-      repositorySpecifier
-    } = resolveRepositoryInfoFromPath(path)
-    const repos = await fetchAllRepositories()
-    const repoMap = repositoryList2Map(repos)
-    const initialRepo = repositorySpecifier
-      ? repoMap?.[repositorySpecifier]
-      : undefined
-    const initialEntries =
-      path && initialRepo ? await fetchInitialEntries(path, repoMap) : []
-    const initialExpandedDirs = path
-      ? getDirectoriesFromBasename(initialBasename)
-      : []
-
-    const patchMap: TFileMap = {}
-    for (const repo of repos) {
-      const repoSpecifier = resolveRepoSpecifierFromRepoInfo(repo)
-      if (repoSpecifier) {
-        patchMap[repoSpecifier] = {
-          file: {
-            kind: 'dir',
-            basename: repo.name
-          },
-          name: repo.name,
-          fullPath: repoSpecifier,
-          treeExpanded:
-            repo.name === initialRepositoryName &&
-            repo.kind === initialRepositoryKind,
-          isRepository: true,
-          repository: repo
-        }
-      }
-    }
-    for (const entry of initialEntries) {
-      const path = `${resolveRepoSpecifierFromRepoInfo({
-        kind: initialRepositoryKind,
-        name: initialRepositoryName
-      })}/${entry.basename}`
-      patchMap[path] = {
-        file: entry,
-        name: resolveFileNameFromPath(entry.basename),
-        fullPath: path,
-        treeExpanded: initialExpandedDirs.includes(entry.basename)
-      }
-    }
-    const expandedKeys = initialExpandedDirs.map(dir =>
-      [resolveRepoSpecifierFromRepoInfo(initialRepo), dir]
-        .filter(Boolean)
-        .join('/')
-    )
-
-    return { patchMap, expandedKeys, repos }
-  } catch (e) {
-    console.error(e)
-    return {}
-  }
-
-  async function fetchAllRepositories(): Promise<
-    RepositoryListQuery['repositoryList']
-  > {
-    const query = client.createRequestOperation(
-      'query',
-      createRequest(repositoryListQuery, {})
-    )
-    return client
-      .executeQuery(query)
-      .then(data => data?.data?.repositoryList || [])
-  }
-
-  async function fetchInitialEntries(
-    path: string,
-    repoMap: Record<string, RepositoryItem>
-  ) {
-    let result: TFile[] = []
-    try {
-      const { repositorySpecifier } = resolveRepositoryInfoFromPath(path)
-      if (!isEmpty(repoMap) && repositorySpecifier) {
-        const repo = repoMap[repositorySpecifier]
-        if (!repo) {
-          return result
-        }
-
-        const defaultEntries = await fetchEntriesFromPath(path, repo)
-        result = defaultEntries ?? []
-      }
-    } catch (e) {
-      console.error(e)
-      return result
-    }
-    return result
-  }
+async function fetchAllRepositories(): Promise<
+  RepositoryListQuery['repositoryList']
+> {
+  const query = client.createRequestOperation(
+    'query',
+    createRequest(repositoryListQuery, {})
+  )
+  return client
+    .executeQuery(query)
+    .then(data => data?.data?.repositoryList || [])
 }
 
 function isReadableTextFile(blob: Blob) {
@@ -636,8 +765,9 @@ function isReadableTextFile(blob: Blob) {
 async function getFileViewType(
   path: string,
   blob: Blob | undefined
-): Promise<FileDisplayType> {
-  if (!blob) return ''
+): Promise<FileDisplayType | undefined> {
+  if (!blob) return undefined
+
   const mimeType = blob?.type
   const detectedLanguage = filename2prism(path)?.[0]
 
@@ -646,6 +776,79 @@ async function getFileViewType(
 
   const isReadableText = await isReadableTextFile(blob)
   return isReadableText ? 'text' : 'raw'
+}
+
+async function fetchEntriesFromPath(
+  path: string | undefined,
+  repository: RepositoryListQuery['repositoryList'][0] | undefined
+) {
+  if (!path) return []
+  if (!repository) {
+    throw new Error(CodeBrowserError.REPOSITORY_NOT_FOUND)
+  }
+  if (isEmpty(repository.refs)) {
+    throw new Error(CodeBrowserError.REPOSITORY_SYNC_FAILED)
+  }
+
+  const { basename, rev, viewMode } = resolveRepositoryInfoFromPath(path)
+
+  if (!rev || !viewMode) throw new Error(CodeBrowserError.INVALID_URL)
+
+  // array of dir basename that do not include the repo name.
+  const directoryPaths = getDirectoriesFromBasename(
+    basename,
+    viewMode === 'tree'
+  )
+  // fetch all dirs from path
+  const requests: Array<() => Promise<ResolveEntriesResponse>> =
+    directoryPaths.map(
+      dir => () =>
+        fetcher(toEntryRequestUrl(repository, rev, dir) as string, {
+          responseFormatter(response) {
+            const contentType = response.headers.get('Content-Type')
+            if (contentType !== ENTRY_CONTENT_TYPE) {
+              throw new Error(CodeBrowserError.INVALID_URL)
+            }
+            return response.json()
+          },
+          errorHandler() {
+            throw new Error(CodeBrowserError.NOT_FOUND)
+          }
+        })
+    )
+  const entries = await Promise.all(requests.map(fn => fn()))
+  let result: TFile[] = []
+  for (let entry of entries) {
+    if (entry?.entries?.length) {
+      result = [...result, ...entry.entries]
+    }
+  }
+  return result
+}
+
+async function fetchRepositoryGrep(
+  query: string,
+  repository: RepositoryListQuery['repositoryList'][0] | undefined
+) {
+  if (!repository) {
+    throw new Error(CodeBrowserError.REPOSITORY_NOT_FOUND)
+  }
+  const result = client
+    .query(repositoryGrepQuery, {
+      id: repository.id,
+      kind: repository.kind,
+      query,
+      pause: !repository
+    })
+    .toPromise()
+
+  return result?.then(res => {
+    if (res?.error) {
+      throw new Error(CodeBrowserError.FAILED_TO_FETCH)
+    }
+
+    return res?.data?.repositoryGrep
+  })
 }
 
 export type { TFileMap, TFileMapItem }

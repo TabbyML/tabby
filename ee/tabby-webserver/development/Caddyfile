@@ -1,7 +1,11 @@
 :8080 {
+	rewrite /files/* /files
+	rewrite /search/* /search
+
 	@backend {
 		path /graphql
 		path /graphiql
+		path /subscriptions
 
 		path /v1/*
 		path /v1beta/*

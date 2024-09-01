@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "target": "ES2020",
-    "lib": ["ES2020", "dom"],
+    "lib": ["esnext", "webworker"],
+    "target": "es2020",
     "sourceMap": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
@@ -15,5 +15,9 @@
     "noUnusedParameters": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["./src", "./tests/**/*.test.ts"]
+  "include": ["./src"],
+  "ts-node": {
+    "files": true,
+    "require": ["./register-loader.js"]
+  }
 }

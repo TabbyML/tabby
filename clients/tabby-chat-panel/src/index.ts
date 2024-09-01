@@ -1,4 +1,4 @@
-import { MessageEndpoint, createEndpoint, fromIframe, fromInsideIframe } from '@remote-ui/rpc'
+import { createThreadFromIframe, createThreadFromInsideIframe } from '@quilted/threads'
 
 export interface LineRange {
   start: number
@@ -8,8 +8,9 @@ export interface LineRange {
 export interface FileContext {
   kind: 'file'
   range: LineRange
-  filename: string
-  link: string
+  filepath: string
+  content: string
+  git_url: string
 }
 
 export type Context = FileContext
@@ -19,24 +20,65 @@ export interface FetcherOptions {
 }
 
 export interface InitRequest {
-  message?: string
-  selectContext?: Context
-  relevantContext?: Array<Context>
-  fetcherOptions?: FetcherOptions
+  fetcherOptions: FetcherOptions
 }
 
-export interface Api {
+export interface ErrorMessage {
+  title?: string
+  content: string
+}
+
+export interface NavigateOpts {
+  openInEditor?: boolean
+}
+
+export interface ServerApi {
   init: (request: InitRequest) => void
+  sendMessage: (message: ChatMessage) => void
+  showError: (error: ErrorMessage) => void
+  cleanError: () => void
+  addRelevantContext: (context: Context) => void
 }
 
-export function createClient(endpoint: MessageEndpoint) {
-  return createEndpoint<Api>(endpoint)
+export interface ClientApi {
+  navigate: (context: Context, opts?: NavigateOpts) => void
+  refresh: () => Promise<void>
+  onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
+  onApplyInEditor?: (content: string) => void
 }
 
-export function createServer(endpoint: MessageEndpoint, api: Api) {
-    const server = createEndpoint(endpoint)
-    server.expose({
+export interface ChatMessage {
+  message: string
+
+  // Client side context - displayed in user message
+  selectContext?: Context
+
+  // Client side contexts - displayed in assistant message
+  relevantContext?: Array<Context>
+
+  // Client side active selection context - displayed in assistant message
+  activeContext?: Context
+}
+
+export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerApi {
+  return createThreadFromIframe(target, {
+    expose: {
+      navigate: api.navigate,
+      refresh: api.refresh,
+      onSubmitMessage: api.onSubmitMessage,
+      onApplyInEditor: api.onApplyInEditor,
+    },
+  })
+}
+
+export function createServer(api: ServerApi): ClientApi {
+  return createThreadFromInsideIframe({
+    expose: {
       init: api.init,
-    })
-    return server;
+      sendMessage: api.sendMessage,
+      showError: api.showError,
+      cleanError: api.cleanError,
+      addRelevantContext: api.addRelevantContext,
+    },
+  })
 }

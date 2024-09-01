@@ -1,0 +1,25 @@
+[package]
+name = "tabby-git"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+git2.workspace = true
+nucleo.workspace = true
+serde.workspace = true
+temp_testdir.workspace = true
+axum.workspace = true
+serde_json.workspace = true
+mime_guess.workspace = true
+futures.workspace = true
+async-stream.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+ignore.workspace = true
+grep = "0.3.1"
+
+[dev-dependencies]
+assert_matches.workspace = true

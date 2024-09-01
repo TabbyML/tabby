@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="com.tabbyml.features.tabby4eclipse"
+      label="Tabby"
+      version="0.0.1.15"
+      provider-name="com.tabbyml">
+
+   <description url="http://www.example.com/description">
+      [Enter Feature Description here.]
+   </description>
+
+   <copyright url="http://www.example.com/copyright">
+      [Enter Copyright Description here.]
+   </copyright>
+
+   <license url="http://www.example.com/license">
+      [Enter License Description here.]
+   </license>
+
+   <plugin
+         id="com.tabbyml.tabby4eclipse"
+         version="0.0.1.15"/>
+
+</feature>

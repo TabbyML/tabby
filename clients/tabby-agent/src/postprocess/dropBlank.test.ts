@@ -1,22 +1,24 @@
-import { expect } from "chai";
 import { dropBlank } from "./dropBlank";
-import { documentContext } from "./testUtils";
+import { documentContext, assertFilterResult } from "./testUtils";
+import { CompletionItem } from "../CompletionSolution";
 
 describe("postprocess", () => {
   describe("dropBlank", () => {
-    const dummyContext = {
-      ...documentContext`
+    const filter = dropBlank();
+    const context = documentContext`
       dummy║
-      `,
-      language: "plaintext",
-    };
+    `;
+    context.language = "plaintext";
 
-    it("should return null if input is blank", () => {
-      expect(dropBlank()("\n", dummyContext)).to.be.null;
-      expect(dropBlank()("\t\n", dummyContext)).to.be.null;
+    it("should return null if input is blank", async () => {
+      const expected = CompletionItem.createBlankItem(context);
+      await assertFilterResult(filter, context, "\n", expected);
+      await assertFilterResult(filter, context, "\t\n", expected);
     });
-    it("should keep unchanged if input is not blank", () => {
-      expect(dropBlank()("Not blank", dummyContext)).to.eq("Not blank");
+    it("should keep unchanged if input is not blank", async () => {
+      const completion = "Not blank";
+      const expected = completion;
+      await assertFilterResult(filter, context, completion, expected);
     });
   });
 });

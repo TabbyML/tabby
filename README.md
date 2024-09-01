@@ -2,7 +2,7 @@
   
 # 🐾 Tabby
 
-[📚 Docs](https://tabby.tabbyml.com) • [💬 Slack](https://links.tabbyml.com/join-slack) • [✨ Live Demo](https://links.tabbyml.com/live-demo)
+[📚 Docs](https://tabby.tabbyml.com/docs/welcome/) • [💬 Slack](https://links.tabbyml.com/join-slack) • [🗺️ Roadmap](https://tabby.tabbyml.com/docs/roadmap/)
 
 [![latest release](https://shields.io/github/v/release/TabbyML/tabby?sort=semver)](https://github.com/TabbyML/tabby/releases/latest)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://makeapullrequest.com)
@@ -17,7 +17,7 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 * Supports consumer-grade GPUs.
 
 <p align="center">
-  <a target="_blank" href="https://tabbyml.github.io/tabby/playground"><img alt="Open in Playground" src="https://img.shields.io/badge/OPEN%20IN%20PLAYGROUND-blue?logo=xcode&style=for-the-badge&logoColor=green"></a>
+  <a target="_blank" href="https://tabby.tabbyml.com"><img alt="Open Live Demo" src="https://img.shields.io/badge/OPEN_LIVE_DEMO-blue?logo=xcode&style=for-the-badge&logoColor=green"></a>
 </p>
 
 <p align="center">
@@ -26,9 +26,13 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 
 ## 🔥 What's New
 
-* **04/22/2024** [v0.10.0](https://github.com/TabbyML/tabby/releases/tag/v0.10.0) released, featuring the latest **Reports** tab with team-wise analytics for Tabby usage.
-* **04/19/2024** 📣 Tabby now incorporates [locally relevant snippets](https://github.com/TabbyML/tabby/pull/1844)(declarations from local LSP, and recently modified code) for code completion!
-* **04/17/2024** CodeGemma and CodeQwen model series have now been added to the [official registry](https://tabby.tabbyml.com/docs/models/)!
+* **07/09/2024** 🎉Announce [Codestral integration in Tabby](https://tabby.tabbyml.com/blog/2024/07/09/tabby-codestral/)!
+* **07/05/2024** Tabby [v0.13.0](https://github.com/TabbyML/tabby/releases/tag/v0.13.0) introduces ***Answer Engine***, a central knowledge engine for internal engineering teams. It seamlessly integrates with dev team's internal data, delivering reliable and precise answers to empower developers.
+* **06/13/2024** [VSCode 1.7](https://marketplace.visualstudio.com/items/TabbyML.vscode-tabby/changelog) marks a significant milestone with a versatile Chat experience throughout your coding experience. Come and they the latest **chat in side-panel** and **editing via chat command**!
+* **06/10/2024** Latest 📃blogpost drop on [an enhanced code context understanding](https://tabby.tabbyml.com/blog/2024/06/11/rank-fusion-in-tabby-code-completion/) in Tabby!
+* **06/06/2024** Tabby [v0.12.0](https://github.com/TabbyML/tabby/releases/tag/v0.12.0) release brings 🔗**seamless integrations** (Gitlab SSO, Self-hosted GitHub/GitLab, etc.), to ⚙️**flexible configurations** (HTTP API integration) and 🌐**expanded capabilities** (repo-context in Code Browser)! 
+* **05/22/2024** Tabby [VSCode 1.6](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby) comes with **multiple choices** in inline completion, and the **auto-generated commit messages**🐱💻!
+
 
 
 
@@ -36,6 +40,10 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 <details>
   <summary>Archived</summary>
 
+* **05/11/2024** [v0.11.0](https://github.com/TabbyML/tabby/releases/tag/v0.11.0) brings significant enterprise upgrades, including 📊**storage usage** stats, 🔗**GitHub & GitLab** integration, 📋**Activities** page, and the long-awaited 🤖**Ask Tabby** feature!
+* **04/22/2024** [v0.10.0](https://github.com/TabbyML/tabby/releases/tag/v0.10.0) released, featuring the latest **Reports** tab with team-wise analytics for Tabby usage.
+* **04/19/2024** 📣 Tabby now incorporates [locally relevant snippets](https://github.com/TabbyML/tabby/pull/1844)(declarations from local LSP, and recently modified code) for code completion!
+* **04/17/2024** CodeGemma and CodeQwen model series have now been added to the [official registry](https://tabby.tabbyml.com/docs/models/)!
 * **03/20/2024** [v0.9](https://github.com/TabbyML/tabby/releases/tag/v0.9.1) released, highlighting a full feature admin UI.
 * **12/23/2023** Seamlessly [deploy Tabby on any cloud](https://tabby.tabbyml.com/docs/installation/skypilot/) with [SkyServe](https://skypilot.readthedocs.io/en/latest/serving/sky-serve.html) 🛫 from SkyPilot.
 * **12/15/2023** [v0.7.0](https://github.com/TabbyML/tabby/releases/tag/v0.7.0) released with team management and secured access!
@@ -65,7 +73,7 @@ The easiest way to start a Tabby server is by using the following Docker command
 docker run -it \
   --gpus all -p 8080:8080 -v $HOME/.tabby:/data \
   tabbyml/tabby \
-  serve --model TabbyML/StarCoder-1B --device cuda
+  serve --model StarCoder-1B --device cuda --chat-model Qwen2-1.5B-Instruct
 ```
 For additional options (e.g inference type, parallelism), please refer to the [documentation page](https://tabbyml.github.io/tabby).
 
@@ -92,10 +100,16 @@ If you have already cloned the repository, you could run the `git submodule upda
 brew install protobuf
 
 # For Ubuntu / Debian
-apt-get install protobuf-compiler libopenblas-dev
+apt install protobuf-compiler libopenblas-dev
 ```
 
-3. Now, you can build Tabby by running the command `cargo build`.
+3. Install useful tools:
+```bash
+# For Ubuntu
+apt install make sqlite3 graphviz
+```
+
+4. Now, you can build Tabby by running the command `cargo build`.
 
 ### Start Hacking!
 ... and don't forget to submit a [Pull Request](https://github.com/TabbyML/tabby/compare)

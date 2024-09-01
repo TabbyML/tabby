@@ -5,6 +5,7 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
+    "prebuild": "cat docs/models/index.mdx.tmpl > docs/models/index.mdx && curl https://raw.githubusercontent.com/TabbyML/registry-tabby/main/README.md | tail -n +2 >> docs/models/index.mdx",
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
@@ -23,7 +24,6 @@
     "axios": "^1.4.0",
     "clsx": "^1.2.1",
     "docusaurus-preset-openapi": "^0.7.4",
-    "marked": "^9.1.5",
     "postcss": "^8.4.24",
     "posthog-docusaurus": "^2.0.0",
     "prism-react-renderer": "^2.1.0",

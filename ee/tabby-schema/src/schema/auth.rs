@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, ID};
 use serde::{Deserialize, Serialize};
+use strum::EnumIter;
 use thiserror::Error;
 use tokio::task::JoinHandle;
 use tracing::error;
@@ -57,13 +58,9 @@ pub struct TokenAuthInput {
     pub email: String,
     #[validate(length(
         min = 8,
-        code = "password",
-        message = "Password must be at least 8 characters"
-    ))]
-    #[validate(length(
         max = 20,
         code = "password",
-        message = "Password must be at most 20 characters"
+        message = "Password must be between 8 and 20 characters"
     ))]
     pub password: String,
 }
@@ -84,15 +81,11 @@ pub struct RegisterInput {
     pub email: String,
     #[validate(length(
         min = 8,
-        code = "password1",
-        message = "Password must be at least 8 characters"
-    ))]
-    #[validate(length(
         max = 20,
         code = "password1",
-        message = "Password must be at most 20 characters"
+        message = "Password must be between 8 and 20 characters"
     ))]
-    #[validate(custom = "validate_password")]
+    #[validate(custom(function = "validate_password"))]
     pub password1: String,
     #[validate(must_match(
         code = "password2",
@@ -162,11 +155,20 @@ pub struct JWTPayload {
 
     /// User id string
     pub sub: ID,
+
+    /// Whether the token is generated from auth token based authentication
+    #[serde(skip)]
+    pub is_generated_from_auth_token: bool,
 }
 
 impl JWTPayload {
-    pub fn new(id: ID, iat: i64, exp: i64) -> Self {
-        Self { sub: id, iat, exp }
+    pub fn new(id: ID, iat: i64, exp: i64, is_generated_from_auth_token: bool) -> Self {
+        Self {
+            sub: id,
+            iat,
+            exp,
+            is_generated_from_auth_token,
+        }
     }
 }
 
@@ -175,6 +177,7 @@ impl JWTPayload {
 pub struct User {
     pub id: juniper::ID,
     pub email: String,
+    pub name: String,
     pub is_admin: bool,
     pub is_owner: bool,
     pub auth_token: String,
@@ -216,25 +219,17 @@ pub struct PasswordResetInput {
     pub code: String,
     #[validate(length(
         min = 8,
-        code = "password1",
-        message = "Password must be at least 8 characters"
-    ))]
-    #[validate(length(
         max = 20,
         code = "password1",
-        message = "Password must be at most 20 characters"
+        message = "Password must be between 8 and 20 characters"
     ))]
-    #[validate(custom = "validate_password")]
+    #[validate(custom(function = "validate_password"))]
     pub password1: String,
     #[validate(length(
         min = 8,
-        code = "password2",
-        message = "Password must be at least 8 characters"
-    ))]
-    #[validate(length(
         max = 20,
         code = "password2",
-        message = "Password must be at most 20 characters"
+        message = "Password must be between 8 and 20 characters"
     ))]
     #[validate(must_match(
         code = "password2",
@@ -250,25 +245,17 @@ pub struct PasswordChangeInput {
 
     #[validate(length(
         min = 8,
-        code = "newPassword1",
-        message = "Password must be at least 8 characters"
-    ))]
-    #[validate(length(
         max = 20,
         code = "newPassword1",
-        message = "Password must be at most 20 characters"
+        message = "Password must be between 8 and 20 characters"
     ))]
-    #[validate(custom = "validate_new_password")]
+    #[validate(custom(function = "validate_new_password"))]
     pub new_password1: String,
     #[validate(length(
         min = 8,
-        code = "newPassword2",
-        message = "Password must be at least 8 characters"
-    ))]
-    #[validate(length(
         max = 20,
         code = "newPassword2",
-        message = "Password must be at most 20 characters"
+        message = "Password must be between 8 and 20 characters"
     ))]
     #[validate(must_match(
         code = "newPassword2",
@@ -276,6 +263,22 @@ pub struct PasswordChangeInput {
         other = "new_password1"
     ))]
     pub new_password2: String,
+}
+
+#[derive(Validate)]
+pub struct UpdateUserNameInput {
+    #[validate(length(
+        min = 2,
+        max = 20,
+        code = "name",
+        message = "Name must be between 2 and 20 characters"
+    ))]
+    #[validate(regex(
+        code = "name",
+        path = "*crate::schema::constants::USERNAME_REGEX",
+        message = "Invalid name, name may contain numbers or special characters which are not supported"
+    ))]
+    pub name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, GraphQLObject)]
@@ -304,11 +307,12 @@ impl relay::NodeType for Invitation {
     }
 }
 
-#[derive(GraphQLEnum, Clone, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(GraphQLEnum, Clone, Serialize, Deserialize, PartialEq, Debug, EnumIter)]
 #[serde(rename_all = "lowercase")]
 pub enum OAuthProvider {
     Github,
     Google,
+    Gitlab,
 }
 
 #[derive(GraphQLObject)]
@@ -344,6 +348,7 @@ pub trait AuthenticationService: Send + Sync {
         email: String,
         password1: String,
         invitation_code: Option<String>,
+        name: Option<String>,
     ) -> Result<RegisterResponse>;
     async fn allow_self_signup(&self) -> Result<bool>;
 
@@ -351,6 +356,7 @@ pub trait AuthenticationService: Send + Sync {
 
     async fn refresh_token(&self, refresh_token: String) -> Result<RefreshTokenResponse>;
     async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload>;
+    async fn verify_auth_token(&self, token: &str) -> Result<ID>;
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
     async fn get_user(&self, id: &ID) -> Result<User>;
@@ -362,6 +368,7 @@ pub trait AuthenticationService: Send + Sync {
 
     async fn reset_user_auth_token(&self, id: &ID) -> Result<()>;
     async fn password_reset(&self, code: &str, password: &str) -> Result<()>;
+    async fn generate_reset_password_url(&self, id: &ID) -> Result<String>;
     async fn request_password_reset_email(&self, email: String) -> Result<Option<JoinHandle<()>>>;
     async fn update_user_password(
         &self,
@@ -406,6 +413,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn update_user_role(&self, id: &ID, is_admin: bool) -> Result<()>;
     async fn update_user_avatar(&self, id: &ID, avatar: Option<Box<[u8]>>) -> Result<()>;
     async fn get_user_avatar(&self, id: &ID) -> Result<Option<Box<[u8]>>>;
+    async fn update_user_name(&self, id: &ID, name: String) -> Result<()>;
 }
 
 fn validate_password(value: &str) -> Result<(), validator::ValidationError> {

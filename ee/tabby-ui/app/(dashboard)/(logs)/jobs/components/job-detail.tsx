@@ -14,13 +14,14 @@ import {
   IconChevronLeft,
   IconClock,
   IconHistory,
+  IconSpinner,
   IconStopWatch,
   IconTerminalSquare
 } from '@/components/ui/icons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
 
-import { getLabelByExitCode } from '../utils/state'
+import { getJobDisplayName, getLabelByJobRun } from '../utils'
 
 export default function JobRunDetail() {
   const router = useRouter()
@@ -33,6 +34,12 @@ export default function JobRunDetail() {
   })
 
   const currentNode = data?.jobRuns?.edges?.[0]?.node
+
+  const stateLabel = getLabelByJobRun(currentNode)
+  const isPending =
+    (stateLabel === 'Pending' || stateLabel === 'Running') &&
+    !currentNode?.stdout &&
+    !currentNode?.stderr
 
   React.useEffect(() => {
     let timer: number
@@ -63,21 +70,31 @@ export default function JobRunDetail() {
               >
                 <IconChevronLeft className="mr-1 h-6 w-6" />
                 <h2 className="scroll-m-20 text-3xl font-bold tracking-tight first:mt-0">
-                  {currentNode.job}
+                  {getJobDisplayName(currentNode.job)}
                 </h2>
               </div>
               <div className="mb-8 flex gap-x-5 text-sm text-muted-foreground lg:gap-x-10">
                 <div className="flex items-center gap-1">
                   <IconStopWatch />
-                  <p>State: {getLabelByExitCode(currentNode.exitCode)}</p>
+                  <p>State: {stateLabel}</p>
                 </div>
 
                 {currentNode.createdAt && (
                   <div className="flex items-center gap-1">
                     <IconClock />
                     <p>
-                      Started:{' '}
+                      Created:{' '}
                       {moment(currentNode.createdAt).format('YYYY-MM-DD HH:mm')}
+                    </p>
+                  </div>
+                )}
+
+                {currentNode.startedAt && (
+                  <div className="flex items-center gap-1">
+                    <IconClock />
+                    <p>
+                      Started:{' '}
+                      {moment(currentNode.startedAt).format('YYYY-MM-DD HH:mm')}
                     </p>
                   </div>
                 )}
@@ -91,7 +108,7 @@ export default function JobRunDetail() {
                         moment
                           .duration(
                             moment(currentNode.finishedAt).diff(
-                              currentNode.createdAt
+                              currentNode.startedAt
                             )
                           )
                           .asMilliseconds()
@@ -113,10 +130,16 @@ export default function JobRunDetail() {
                 </TabsList>
                 <div className="flex flex-1 flex-col">
                   <TabsContent value="stdout">
-                    <StdoutView value={currentNode?.stdout} />
+                    <StdoutView
+                      value={currentNode?.stdout}
+                      pending={isPending}
+                    />
                   </TabsContent>
                   <TabsContent value="stderr">
-                    <StdoutView value={currentNode?.stderr} />
+                    <StdoutView
+                      value={currentNode?.stderr}
+                      pending={isPending}
+                    />
                   </TabsContent>
                 </div>
               </Tabs>
@@ -132,22 +155,29 @@ function StdoutView({
   children,
   className,
   value,
+  pending,
   ...rest
-}: React.HTMLAttributes<HTMLDivElement> & { value?: string }) {
+}: React.HTMLAttributes<HTMLDivElement> & {
+  value?: string
+  pending?: boolean
+}) {
   return (
     <div
       className={cn(
-        'mt-2 h-[66vh] w-full overflow-y-auto overflow-x-hidden rounded-lg border bg-gray-50 font-mono text-[0.9rem] dark:bg-gray-800',
+        'relative mt-2 h-[66vh] w-full overflow-y-auto overflow-x-hidden rounded-lg border bg-gray-50 font-mono text-[0.9rem] dark:bg-gray-800',
         className
       )}
       {...rest}
     >
-      {value ? (
+      {pending && !value && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/60">
+          <IconSpinner className="h-8 w-8" />
+        </div>
+      )}
+      {value && (
         <pre className="whitespace-pre-wrap p-4">
           <Ansi>{value}</Ansi>
         </pre>
-      ) : (
-        <div className="p-4">No Data</div>
       )}
     </div>
   )

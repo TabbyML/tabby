@@ -4,14 +4,11 @@ mod services;
 mod download;
 mod serve;
 
-#[cfg(feature = "ee")]
-mod worker;
-
 #[cfg(target_family = "unix")]
 use std::os::unix::fs::PermissionsExt;
 
 use clap::{Parser, Subcommand};
-use tabby_common::config::{Config, ConfigRepositoryAccess};
+use tabby_common::config::{Config, ModelConfig};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
@@ -34,36 +31,6 @@ pub enum Commands {
 
     /// Download the language model for serving.
     Download(download::DownloadArgs),
-
-    /// Run scheduler progress for cron jobs integrating external code repositories.
-    Scheduler(SchedulerArgs),
-
-    /// Run completion model as worker
-    #[cfg(feature = "ee")]
-    #[clap(name = "worker::completion", hide = true)]
-    WorkerCompletion(worker::WorkerArgs),
-
-    /// Run chat model as worker
-    #[cfg(feature = "ee")]
-    #[clap(name = "worker::chat", hide = true)]
-    WorkerChat(worker::WorkerArgs),
-}
-
-#[derive(clap::Args)]
-pub struct SchedulerArgs {
-    /// If true, runs scheduler jobs immediately.
-    #[clap(long, default_value_t = false)]
-    now: bool,
-
-    /// URL to register this worker.
-    #[cfg(feature = "ee")]
-    #[clap(long)]
-    url: Option<String>,
-
-    /// Server token to register this worker to.
-    #[cfg(feature = "ee")]
-    #[clap(long)]
-    token: Option<String>,
 }
 
 #[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
@@ -71,68 +38,27 @@ pub enum Device {
     #[strum(serialize = "cpu")]
     Cpu,
 
-    #[cfg(feature = "cuda")]
     #[strum(serialize = "cuda")]
     Cuda,
 
-    #[cfg(feature = "rocm")]
     #[strum(serialize = "rocm")]
     Rocm,
 
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     #[strum(serialize = "metal")]
     Metal,
 
-    #[cfg(feature = "vulkan")]
     #[strum(serialize = "vulkan")]
     Vulkan,
-
-    #[strum(serialize = "experimental_http")]
-    #[clap(hide = true)]
-    ExperimentalHttp,
-}
-
-impl Device {
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    pub fn ggml_use_gpu(&self) -> bool {
-        *self == Device::Metal
-    }
-
-    #[cfg(feature = "cuda")]
-    pub fn ggml_use_gpu(&self) -> bool {
-        *self == Device::Cuda
-    }
-
-    #[cfg(feature = "rocm")]
-    pub fn ggml_use_gpu(&self) -> bool {
-        *self == Device::Rocm
-    }
-
-    #[cfg(feature = "vulkan")]
-    pub fn ggml_use_gpu(&self) -> bool {
-        *self == Device::Vulkan
-    }
-
-    #[cfg(not(any(
-        all(target_os = "macos", target_arch = "aarch64"),
-        feature = "cuda",
-        feature = "rocm",
-        feature = "vulkan",
-    )))]
-    pub fn ggml_use_gpu(&self) -> bool {
-        false
-    }
 }
 
 #[tokio::main]
 async fn main() {
-    #[cfg(feature = "dep:color-eyre")]
     color_eyre::install().expect("Must be able to install color_eyre");
 
     let cli = Cli::parse();
     init_logging();
 
-    let config = Config::load().unwrap_or_default();
+    let config = Config::load().expect("Must be able to load config");
     let root = tabby_common::path::tabby_root();
     std::fs::create_dir_all(&root).expect("Must be able to create tabby root");
     #[cfg(target_family = "unix")]
@@ -145,26 +71,6 @@ async fn main() {
     match cli.command {
         Commands::Serve(ref args) => serve::main(&config, args).await,
         Commands::Download(ref args) => download::main(args).await,
-        #[cfg(feature = "ee")]
-        Commands::Scheduler(SchedulerArgs {
-            now,
-            url: Some(url),
-            token: Some(token),
-        }) => {
-            let client = tabby_webserver::public::create_scheduler_client(&url, &token).await;
-            tabby_scheduler::scheduler(now, client).await
-        }
-        Commands::Scheduler(SchedulerArgs { now, .. }) => {
-            tabby_scheduler::scheduler(now, ConfigRepositoryAccess).await
-        }
-        #[cfg(feature = "ee")]
-        Commands::WorkerCompletion(ref args) => {
-            worker::main(tabby_webserver::public::WorkerKind::Completion, args).await
-        }
-        #[cfg(feature = "ee")]
-        Commands::WorkerChat(ref args) => {
-            worker::main(tabby_webserver::public::WorkerKind::Chat, args).await
-        }
     }
 }
 
@@ -196,9 +102,9 @@ fn init_logging() {
     layers.push(fmt_layer);
 
     let mut dirs = if cfg!(feature = "prod") {
-        "tabby=info,otel=debug".into()
+        "tabby=info,otel=debug,http_api_bindings=info,llama_cpp_server=info".into()
     } else {
-        "tabby=debug,otel=debug".into()
+        "tabby=debug,otel=debug,http_api_bindings=debug,llama_cpp_server=debug".into()
     };
 
     if let Ok(env) = std::env::var(EnvFilter::DEFAULT_ENV) {
@@ -213,4 +119,18 @@ fn init_logging() {
         .with(layers)
         .with(env_filter)
         .init();
+}
+
+fn to_local_config(model: &str, parallelism: u8, device: &Device) -> ModelConfig {
+    let num_gpu_layers = if *device != Device::Cpu {
+        std::env::var("LLAMA_CPP_N_GPU_LAYERS")
+            .map(|s| s.parse::<u16>().ok())
+            .ok()
+            .flatten()
+            .unwrap_or(9999)
+    } else {
+        0
+    };
+
+    ModelConfig::new_local(model, parallelism, num_gpu_layers)
 }

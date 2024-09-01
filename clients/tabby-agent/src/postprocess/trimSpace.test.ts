@@ -1,83 +1,75 @@
-import { expect } from "chai";
-import { documentContext, inline } from "./testUtils";
+import { documentContext, inline, assertFilterResult } from "./testUtils";
 import { trimSpace } from "./trimSpace";
 
 describe("postprocess", () => {
   describe("trimSpace", () => {
-    it("should remove trailing space", () => {
-      const context = {
-        ...documentContext`
+    const filter = trimSpace();
+    it("should remove trailing space", async () => {
+      const context = documentContext`
         let foo = new ║
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
                       ├Foo(); ┤
         `;
       const expected = inline`
                       ├Foo();┤
       `;
-      expect(trimSpace()(completion, context)).to.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should not remove trailing space if filling in line", () => {
-      const context = {
-        ...documentContext`
+    it("should not remove trailing space if filling in line", async () => {
+      const context = documentContext`
         let foo = sum(║baz)
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
                       ├bar, ┤
-        `;
-      expect(trimSpace()(completion, context)).to.eq(completion);
+      `;
+      const expected = completion;
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should remove trailing space if filling in line with suffix starts with space", () => {
-      const context = {
-        ...documentContext`
+    it("should remove trailing space if filling in line with suffix starts with space", async () => {
+      const context = documentContext`
         let foo = sum(║ baz)
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
                       ├bar, ┤
-        `;
+      `;
       const expected = inline`
                       ├bar,┤
-        `;
-      expect(trimSpace()(completion, context)).to.eq(expected);
+      `;
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should not remove leading space if current line is blank", () => {
-      const context = {
-        ...documentContext`
+    it("should not remove leading space if current line is blank", async () => {
+      const context = documentContext`
         function sum(a, b) {
         ║
         }
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
         ├  return a + b;┤
-        `;
-      expect(trimSpace()(completion, context)).to.eq(completion);
+      `;
+      const expected = completion;
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should remove leading space if current line is not blank and ends with space", () => {
-      const context = {
-        ...documentContext`
+    it("should remove leading space if current line is not blank and ends with space", async () => {
+      const context = documentContext`
         let foo = ║
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
                   ├ sum(bar, baz);┤
-        `;
+      `;
       const expected = inline`
                   ├sum(bar, baz);┤
-        `;
-      expect(trimSpace()(completion, context)).to.eq(expected);
+      `;
+      await assertFilterResult(filter, context, completion, expected);
     });
   });
 });

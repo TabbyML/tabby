@@ -5,7 +5,7 @@ If you encounter any problem or have any suggestion, please [open an issue](http
 
 ## Table of Contents
 
-- [Tabby Plugin for Vim and NeoVim](#tabby-plugin-for-vim-and-neovim)
+- Tabby Plugin for Vim and NeoVim
   - [Table of Contents](#table-of-contents)
   - [Requirements](#requirements)
   - [Installation](#installation)
@@ -47,14 +47,31 @@ You can install Tabby plugin using your favorite plugin manager. Here are some e
 filetype plugin on
 
 " Section for plugins managed by vim-plug
-plug#begin()
+call plug#begin()
 
 " Tabby plugin
 Plug 'TabbyML/vim-tabby'
 " Add config here. Example config:
 let g:tabby_keybinding_accept = '<Tab>'
 
-plug#end()
+call plug#end()
+```
+
+### 🥡 [Vundle.vim](https://github.com/VundleVim/Vundle.vim)
+
+```vim
+--- Example ~/.vim configuration
+filetype plugin on
+
+" Section for plugins managed vundle.vim
+call vundle#begin()
+
+" Tabby plugin
+Plugin 'TabbyML/vim-tabby'
+" Add config here. Example config:
+let g:tabby_keybinding_accept = '<Tab>'
+
+call vundle#end()
 ```
 
 ### 📦 [Packer.nvim](https://github.com/wbthomason/packer.nvim)

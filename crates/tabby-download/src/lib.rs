@@ -1,21 +1,24 @@
 //! Responsible for downloading ML models for use with tabby.
 use std::{
-    fs::{self, File, OpenOptions},
-    io::{BufRead, BufReader, Write},
+    fs::{self},
     path::Path,
 };
 
-use aim_downloader::{bar::WrappedBar, error::DownloadError, https};
+use aim_downloader::{bar::WrappedBar, error::DownloadError, hash::HashChecker, https};
 use anyhow::{anyhow, bail, Result};
-use tabby_common::registry::{parse_model_id, ModelInfo, ModelRegistry};
+use tabby_common::registry::{parse_model_id, ModelRegistry};
 use tokio_retry::{
     strategy::{jitter, ExponentialBackoff},
     Retry,
 };
 use tracing::{info, warn};
 
-fn download_host() -> String {
-    std::env::var("TABBY_DOWNLOAD_HOST").unwrap_or("huggingface.co".to_owned())
+fn select_by_download_host(url: &String) -> bool {
+    if let Ok(host) = std::env::var("TABBY_DOWNLOAD_HOST") {
+        url.contains(&host)
+    } else {
+        true
+    }
 }
 
 async fn download_model_impl(
@@ -31,11 +34,9 @@ async fn download_model_impl(
     if model_path.exists() {
         if !prefer_local_file {
             info!("Checking model integrity..");
-            let checksum = sha256::try_digest(&model_path)?;
-            if checksum == model_info.sha256 {
+            if HashChecker::check(&model_path.display().to_string(), &model_info.sha256).is_ok() {
                 return Ok(());
             }
-
             warn!(
                 "Checksum doesn't match for <{}/{}>, re-downloading...",
                 registry.name, name
@@ -46,92 +47,31 @@ async fn download_model_impl(
         }
     }
 
-    if model_info.partition_urls.is_some() {
-        return download_split_model(model_info, &model_path).await;
-    }
-
-    let registry = download_host();
     let Some(model_url) = model_info
         .urls
         .iter()
         .flatten()
-        .find(|x| x.contains(&registry))
+        .find(|x| select_by_download_host(x))
     else {
-        return Err(anyhow!(
-            "Invalid mirror <{}> for model urls: {:?}",
-            registry,
-            model_info.urls
-        ));
+        return Err(anyhow!("No valid url for model <{}>", model_info.name));
+    };
+
+    // Replace the huggingface.co domain with the mirror host if it is set.
+    let model_url = if let Ok(host) = std::env::var("TABBY_HUGGINGFACE_HOST_OVERRIDE") {
+        model_url.replace("huggingface.co", &host)
+    } else {
+        model_url.to_owned()
     };
 
     let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
-    let download_job = Retry::spawn(strategy, || download_file(model_url, model_path.as_path()));
+    let download_job = Retry::spawn(strategy, || {
+        download_file(&model_url, model_path.as_path(), &model_info.sha256)
+    });
     download_job.await?;
     Ok(())
 }
 
-async fn download_split_model(model_info: &ModelInfo, model_path: &Path) -> Result<()> {
-    if model_info.urls.is_some() {
-        return Err(anyhow!(
-            "{}: Cannot specify both `urls` and `partition_urls`",
-            model_info.name
-        ));
-    }
-    let mut paths = vec![];
-    let partition_urls = model_info.partition_urls.clone().unwrap_or_default();
-    let mirror = download_host();
-
-    let Some(urls) = partition_urls
-        .iter()
-        .find(|urls| urls.iter().all(|url| url.contains(&mirror)))
-    else {
-        return Err(anyhow!(
-            "Invalid mirror <{}> for model urls: {:?}",
-            mirror,
-            partition_urls
-        ));
-    };
-
-    for (index, url) in urls.iter().enumerate() {
-        let ext = format!(
-            "{}.{}",
-            model_path.extension().unwrap_or_default().to_string_lossy(),
-            index
-        );
-        let path = model_path.with_extension(ext);
-        info!(
-            "Downloading {path:?} ({index} / {total})",
-            index = index + 1,
-            total = partition_urls.len()
-        );
-        let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
-        let download_job = Retry::spawn(strategy, || download_file(url, &path));
-        download_job.await?;
-        paths.push(path);
-    }
-    info!("Merging split model files...");
-    println!("{model_path:?}");
-    let mut file = OpenOptions::new()
-        .append(true)
-        .create(true)
-        .open(model_path)?;
-    for path in paths {
-        let mut reader = BufReader::new(File::open(&path)?);
-        loop {
-            let buffer = reader.fill_buf()?;
-            file.write_all(buffer)?;
-            let len = buffer.len();
-            reader.consume(len);
-            if len == 0 {
-                break;
-            }
-        }
-        std::fs::remove_file(path)?;
-    }
-    Ok(())
-}
-
-async fn download_file(url: &str, path: &Path) -> Result<()> {
+async fn download_file(url: &str, path: &Path, expected_sha256: &str) -> Result<()> {
     let dir = path
         .parent()
         .ok_or_else(|| anyhow!("Must not be in root directory"))?;
@@ -144,7 +84,9 @@ async fn download_file(url: &str, path: &Path) -> Result<()> {
 
     let mut bar = WrappedBar::new(0, url, false);
 
-    if let Err(e) = https::HTTPSHandler::get(url, &intermediate_filename, &mut bar, "").await {
+    if let Err(e) =
+        https::HTTPSHandler::get(url, &intermediate_filename, &mut bar, expected_sha256).await
+    {
         match e {
             DownloadError::HttpError { name, code } => {
                 bail!("Fetching '{name}' failed: Server returned {code} HTTP status")

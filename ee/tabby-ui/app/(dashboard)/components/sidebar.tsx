@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import logoDarkUrl from '@/assets/logo-dark.png'
 import logoUrl from '@/assets/logo.png'
 import { cva } from 'class-variance-authority'
+import { escapeRegExp } from 'lodash-es'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { cn } from '@/lib/utils'
@@ -103,8 +104,8 @@ export default function Sidebar({ children, className }: SidebarProps) {
                       </>
                     }
                   >
-                    <SidebarButton href="/settings/repository/git">
-                      Repository Providers
+                    <SidebarButton href="/settings/providers/git">
+                      Context Providers
                     </SidebarButton>
                     <SidebarButton href="/settings/sso">SSO</SidebarButton>
                     <SidebarButton href="/settings/mail">
@@ -145,8 +146,8 @@ function SidebarButton({ href, children }: SidebarButtonProps) {
   const pathname = usePathname()
   const isSelected = React.useMemo(() => {
     if (href === '/') return href === pathname
-    if (href.startsWith('/settings/repository')) {
-      return pathname.startsWith('/settings/repository/')
+    if (href.startsWith('/settings/providers')) {
+      return pathname.startsWith('/settings/providers/')
     }
 
     return shouldPathnameHighlight(pathname, href)
@@ -166,10 +167,6 @@ function shouldPathnameHighlight(
 ) {
   const regex = new RegExp(`^${escapeRegExp(pathToHighlight)}(/|\\?|$)`)
   return regex.test(currentPathname)
-}
-
-function escapeRegExp(string: String) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 interface SidebarCollapsibleProps {

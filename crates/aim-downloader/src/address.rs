@@ -92,7 +92,7 @@ impl ParsedAddress {
                     name = name + ":" + &port.to_string()[..];
                 }
                 if server == name {
-                    user = machine.login.clone();
+                    user.clone_from(&machine.login);
                     pass = machine.password.clone().unwrap();
                     break;
                 }

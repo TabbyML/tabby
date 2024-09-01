@@ -98,7 +98,7 @@ Tabby is broken up into several crates, each responsible for a different part of
 - `crates/tabby-scheduler` - Defines jobs that need to run periodically for syncing and indexing code
 - `crates/tabby-inference` - Defines interfaces for interacting with text generation models
 - `crates/llama-cpp-bindings` - Raw bindings to talk with the actual models in C++ from Rust
-- `ee/tabby-webserver` - The webserver for Tabby with privilege management and a chatbot playground. Also includes GraphQL API implementation. Must use `--webserver` on CLI to enable
+- `ee/tabby-webserver` - The webserver for Tabby with privilege management and a chatbot playground. Also includes GraphQL API implementation.
 - `ee/tabby-db` - The database backing the webserver
 - `ee/tabby-ui` - Frontend for the Tabby webserver
 
@@ -114,3 +114,7 @@ Most issues will have a link to the related location in the code, and if they do
 You can feel free to open PRs that aren't quite ready yet, to work on them. If you do this, please make sure to [mark the pull request as a draft](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request).
 
 Once your PR is ready, please request review from one of the [Tabby team members](https://github.com/orgs/TabbyML/people), and watch for replies asking for any changes. Once approved, you can merge your code into Tabby!
+
+# Changelog
+
+Tabby used [changie](changie.dev) to track unreleased features, it's preferred the changelog is added as part of implementation pr. To create an unreleased feature, use `change new` command.

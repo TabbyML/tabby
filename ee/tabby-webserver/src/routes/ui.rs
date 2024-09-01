@@ -32,7 +32,7 @@ where
                 let body = Body::from(content.data);
                 let mime = mime_guess::from_path(&path).first_or_octet_stream();
                 let mut builder = Response::builder().header(header::CONTENT_TYPE, mime.as_ref());
-                if !path.ends_with(".html") {
+                if path.starts_with("_next/") {
                     builder = builder.header(header::CACHE_CONTROL, "public, max-age=604800");
                 };
                 builder
@@ -46,8 +46,21 @@ where
 
 pub async fn handler(uri: Uri) -> impl IntoResponse {
     let mut path = uri.path().trim_start_matches('/').to_string();
+    let query = uri.query();
     if path.is_empty() {
-        path = "index.html".to_owned()
+        "index.html".clone_into(&mut path)
+    } else if path.starts_with("files/") {
+        if query.is_some_and(|x| x.contains("_rsc=")) {
+            "files.txt".clone_into(&mut path)
+        } else {
+            "files.html".clone_into(&mut path)
+        }
+    } else if path.starts_with("search/") {
+        if query.is_some_and(|x| x.contains("_rsc=")) {
+            "search.txt".clone_into(&mut path)
+        } else {
+            "search.html".clone_into(&mut path)
+        }
     } else if !path.contains('.') && WebAssets::get(&format!("{}.html", path)).is_some() {
         path += ".html"
     }

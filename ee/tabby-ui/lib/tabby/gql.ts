@@ -2,6 +2,7 @@ import { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { authExchange } from '@urql/exchange-auth'
 import { cacheExchange } from '@urql/exchange-graphcache'
 import { relayPagination } from '@urql/exchange-graphcache/extras'
+import { createClient as createWSClient } from 'graphql-ws'
 import { jwtDecode } from 'jwt-decode'
 import { isNil } from 'lodash-es'
 import { FieldValues, UseFormReturn } from 'react-hook-form'
@@ -11,16 +12,25 @@ import {
   CombinedError,
   errorExchange,
   fetchExchange,
+  OperationContext,
   OperationResult,
+  subscriptionExchange,
   useMutation as useUrqlMutation
 } from 'urql'
 
 import {
   GitRepositoriesQueryVariables,
-  ListInvitationsQueryVariables
+  ListIntegrationsQueryVariables,
+  ListInvitationsQueryVariables,
+  WebCrawlerUrlsQueryVariables
 } from '../gql/generates/graphql'
 import { refreshTokenMutation } from './auth'
-import { listInvitations, listRepositories } from './query'
+import {
+  listIntegrations,
+  listInvitations,
+  listRepositories,
+  listWebCrawlerUrl
+} from './query'
 import { getAuthToken, isTokenExpired, tokenManager } from './token-management'
 
 interface ValidationError {
@@ -45,11 +55,14 @@ function useMutation<TResult, TVariables extends AnyVariables>(
     ? makeFormErrorHandler(options.form)
     : undefined
 
-  const fn = async (variables?: TVariables) => {
+  const fn = async (
+    variables?: TVariables,
+    context?: Partial<OperationContext>
+  ) => {
     let response: OperationResult<TResult, AnyVariables> | undefined
 
     try {
-      response = await executeMutation(variables)
+      response = await executeMutation(variables, context)
       if (response?.error) {
         onFormError && onFormError(response.error)
         options?.onError && options.onError(response.error)
@@ -94,12 +107,25 @@ const client = new Client({
         CompletionStats: () => null,
         ServerInfo: () => null,
         RepositorySearch: () => null,
-        RepositoryList: () => null
+        RepositoryList: () => null,
+        RepositoryGrep: () => null,
+        GrepLine: () => null,
+        GrepFile: () => null,
+        GrepTextOrBase64: () => null,
+        GrepSubMatch: () => null,
+        Repository: (data: any) => (data ? `${data.kind}_${data.id}` : null),
+        GitReference: () => null,
+        MessageAttachment: () => null,
+        MessageAttachmentCode: () => null,
+        MessageAttachmentDoc: () => null,
+        NetworkSetting: () => null
       },
       resolvers: {
         Query: {
           invitations: relayPagination(),
-          repositories: relayPagination()
+          gitRepositories: relayPagination(),
+          webCrawlerUrls: relayPagination(),
+          integrations: relayPagination()
         }
       },
       updates: {
@@ -152,6 +178,71 @@ const client = new Client({
                   )
                 })
             }
+          },
+          deleteWebCrawlerUrl(result, args, cache, info) {
+            if (result.deleteWebCrawlerUrl) {
+              cache
+                .inspectFields('Query')
+                .filter(field => field.fieldName === 'webCrawlerUrls')
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listWebCrawlerUrl,
+                      variables: field.arguments as WebCrawlerUrlsQueryVariables
+                    },
+                    data => {
+                      if (data?.webCrawlerUrls?.edges) {
+                        data.webCrawlerUrls.edges =
+                          data.webCrawlerUrls.edges.filter(
+                            e => e.node.id !== args.id
+                          )
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          },
+          deleteIntegration(result, args, cache, info) {
+            if (result.deleteIntegration) {
+              cache
+                .inspectFields('Query')
+                .filter(field => field.fieldName === 'integrations')
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listIntegrations,
+                      variables:
+                        field.arguments as ListIntegrationsQueryVariables
+                    },
+                    data => {
+                      if (data?.integrations) {
+                        data.integrations.edges =
+                          data.integrations.edges.filter(
+                            e => e.node.id !== args.id
+                          )
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          },
+          createIntegration(result, args, cache) {
+            const key = 'Query'
+            cache
+              .inspectFields(key)
+              .filter(field => {
+                return (
+                  field.fieldName === 'integrations' &&
+                  !!field.arguments?.kind &&
+                  // @ts-ignore
+                  field.arguments?.kind === args?.input?.kind
+                )
+              })
+              .forEach(field => {
+                cache.invalidate(key, field.fieldName, field.arguments)
+              })
           }
         }
       }
@@ -173,9 +264,14 @@ const client = new Client({
           })
         },
         didAuthError(error, _operation) {
-          return error.graphQLErrors.some(
+          const isUnauthorized = error.graphQLErrors.some(
             e => e?.extensions?.code === 'UNAUTHORIZED'
           )
+          if (isUnauthorized) {
+            tokenManager.clearAccessToken()
+          }
+
+          return isUnauthorized
         },
         willAuthError(operation) {
           // Sync tokens on every operation
@@ -231,6 +327,7 @@ const client = new Client({
               return true
             }
           } else {
+            tokenManager.clearAccessToken()
             return true
           }
         },
@@ -255,7 +352,30 @@ const client = new Client({
         }
       }
     }),
-    fetchExchange
+    fetchExchange,
+    subscriptionExchange({
+      forwardSubscription(request, operation) {
+        const authorization =
+          // @ts-ignore
+          operation.context.fetchOptions?.headers?.Authorization ?? ''
+        const protocol = window.location.protocol
+        const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:'
+        const host = window.location.host
+        const wsClient = createWSClient({
+          url: `${wsProtocol}//${host}/subscriptions`,
+          connectionParams: {
+            authorization
+          }
+        })
+        const input = { ...request, query: request.query || '' }
+        return {
+          subscribe(sink) {
+            const unsubscribe = wsClient.subscribe(input, sink)
+            return { unsubscribe }
+          }
+        }
+      }
+    })
   ]
 })
 

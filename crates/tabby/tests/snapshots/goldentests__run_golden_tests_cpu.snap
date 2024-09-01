@@ -7,4 +7,3 @@ choices:
     text: "    if n == 2:\n        return True\n    if n % 2 == 0:\n        return False\n    for i in range(3, int(n ** 0.5) + 1, 2):\n        if n % i == 0:\n            return False\n    return True"
 debug_data: {}
 id: test-id
-

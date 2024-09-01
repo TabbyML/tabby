@@ -28,50 +28,103 @@
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
+    <depends optional="true" config-file="plugin-Git4Idea.xml">Git4Idea</depends>
+
 
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <postStartupActivity implementation="com.tabbyml.intellijtabby.events.StartupActivity"/>
+        <editorFactoryListener implementation="com.tabbyml.intellijtabby.events.EditorFactoryListener"/>
+        <statusBarWidgetFactory id="com.tabbyml.intellijtabby.status.StatusBarWidgetFactory"
+                                implementation="com.tabbyml.intellijtabby.widgets.StatusBarWidgetFactory"/>
+        <actionPromoter order="last" implementation="com.tabbyml.intellijtabby.actionPromoter.EditorActionPromoter"/>
         <projectConfigurable
                 parentId="editor"
-                instance="com.tabbyml.intellijtabby.settings.ApplicationConfigurable"
-                id="com.tabbyml.intellijtabby.settings.ApplicationConfigurable"
-                displayName="Tabby"
-                nonDefaultProject="true"/>
-        <actionPromoter order="last" implementation="com.tabbyml.intellijtabby.editor.EditorActionPromoter"/>
-        <editorFactoryListener implementation="com.tabbyml.intellijtabby.editor.EditorListener"/>
-        <statusBarWidgetFactory id="com.tabbyml.intellijtabby.status.StatusBarWidgetFactory"
-                                implementation="com.tabbyml.intellijtabby.status.StatusBarWidgetFactory"/>
-        <notificationGroup id="com.tabbyml.intellijtabby.notification.info"
+                instance="com.tabbyml.intellijtabby.settings.Configurable"
+                id="com.tabbyml.intellijtabby.settings.Configurable"
+                displayName="Tabby"/>
+        <notificationGroup id="com.tabbyml.intellijtabby.notifications.info"
                            displayType="BALLOON"
                            bundle="strings"
                            key="tabby.info"/>
-        <notificationGroup id="com.tabbyml.intellijtabby.notification.warning"
+        <notificationGroup id="com.tabbyml.intellijtabby.notifications.warning"
                            displayType="STICKY_BALLOON"
                            bundle="strings"
                            key="tabby.warning"/>
+        <projectService serviceInterface="com.tabbyml.intellijtabby.git.GitProvider"
+                        serviceImplementation="com.tabbyml.intellijtabby.git.DummyGitProvider"/>
+        <toolWindow
+                id="Tabby"
+                anchor="right"
+                icon="com.tabbyml.intellijtabby.Icons.Chat"
+                factoryClass="com.tabbyml.intellijtabby.widgets.ChatToolWindowFactory" />
     </extensions>
 
     <actions>
         <group id="Tabby.ToolsMenu" popup="true" text="Tabby" description="Tabby AI code assistant">
             <add-to-group group-id="CodeMenu" anchor="after" relative-to-action="CodeCompletionGroup"/>
-            <action id="Tabby.TriggerCompletion"
-                    class="com.tabbyml.intellijtabby.actions.TriggerCompletion"
+            <action id="Tabby.TriggerInlineCompletion"
+                    class="com.tabbyml.intellijtabby.actions.TriggerInlineCompletion"
                     text="Show Inline Completion"
                     description="Show inline completion suggestions at the caret's position.">
                 <keyboard-shortcut first-keystroke="ctrl BACK_SLASH" keymap="$default"/>
                 <keyboard-shortcut first-keystroke="alt BACK_SLASH" keymap="$default"/>
             </action>
             <separator/>
-            <action id="Tabby.CheckIssueDetail"
-                    class="com.tabbyml.intellijtabby.actions.CheckIssueDetail"
-                    text="Check Issue Detail..."
-                    description="Show detail information for current issue.">
+            <group id="Tabby.InlineCompletionContextMenu">
+                <action id="Tabby.InlineCompletion.Accept"
+                        class="com.tabbyml.intellijtabby.actions.inlineCompletion.Accept"
+                        text="Accept Completion"
+                        description="Accept the shown suggestions and insert the text.">
+                </action>
+                <action id="Tabby.InlineCompletion.TabAccept"
+                        class="com.tabbyml.intellijtabby.actions.inlineCompletion.TabAccept"
+                        text="Accept Completion with Tab"
+                        description="Accept the shown suggestions if the insert text does not start with indentation.">
+                    <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
+                </action>
+                <action id="Tabby.InlineCompletion.AcceptNextLine"
+                        class="com.tabbyml.intellijtabby.actions.inlineCompletion.AcceptNextLine"
+                        text="Accept Next Line"
+                        description="Accept the next line of shown suggestions.">
+                    <keyboard-shortcut first-keystroke="ctrl TAB" keymap="$default"/>
+                </action>
+                <action id="Tabby.InlineCompletion.AcceptNextWord"
+                        class="com.tabbyml.intellijtabby.actions.inlineCompletion.AcceptNextWord"
+                        text="Accept Next Word"
+                        description="Accept the next word of shown suggestions.">
+                    <keyboard-shortcut first-keystroke="control RIGHT" keymap="$default"/>
+                </action>
+                <action id="Tabby.InlineCompletion.CycleNext"
+                        class="com.tabbyml.intellijtabby.actions.inlineCompletion.CycleNext"
+                        text="Cycle Next"
+                        description="Cycle to next suggestion.">
+                    <keyboard-shortcut first-keystroke="alt OPEN_BRACKET" keymap="$default"/>
+                </action>
+                <action id="Tabby.InlineCompletion.CyclePrevious"
+                        class="com.tabbyml.intellijtabby.actions.inlineCompletion.CyclePrevious"
+                        text="Cycle Previous"
+                        description="Cycle to previous suggestion.">
+                    <keyboard-shortcut first-keystroke="alt CLOSE_BRACKET" keymap="$default"/>
+                </action>
+                <action id="Tabby.InlineCompletion.Dismiss"
+                        class="com.tabbyml.intellijtabby.actions.inlineCompletion.Dismiss"
+                        text="Dismiss Completion"
+                        description="Hide the shown suggestions.">
+                    <keyboard-shortcut first-keystroke="ESCAPE" keymap="$default"/>
+                </action>
+            </group>
+            <separator/>
+            <action id="Tabby.OpenChatToolWindow"
+                    class="com.tabbyml.intellijtabby.actions.OpenChatToolWindow"
+                    text="Open Tabby Chat..."
+                    description="Open a tool window to chat with Tabby.">
             </action>
+            <separator/>
             <action id="Tabby.ToggleInlineCompletionTriggerMode"
                     class="com.tabbyml.intellijtabby.actions.ToggleInlineCompletionTriggerMode">
             </action>
-            <separator/>
             <action id="Tabby.OpenSettings"
                     class="com.tabbyml.intellijtabby.actions.OpenSettings"
                     text="Open Settings..."
@@ -102,41 +155,17 @@
                         description="View the source code for Tabby, and open issues.">
                 </action>
             </group>
-        </group>
-
-        <group id="Tabby.InlineCompletionContextMenu">
-            <action id="Tabby.AcceptCompletion"
-                    class="com.tabbyml.intellijtabby.actions.AcceptCompletion"
-                    text="Accept Completion"
-                    description="Accept the shown suggestions and insert the text.">
-                <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
-            </action>
-            <action id="Tabby.AcceptCompletionNextLine"
-                    class="com.tabbyml.intellijtabby.actions.AcceptCompletionNextLine"
-                    text="Accept Next Line"
-                    description="Accept the next line of shown suggestions.">
-                <keyboard-shortcut first-keystroke="ctrl TAB" keymap="$default"/>
-            </action>
-            <action id="Tabby.AcceptCompletionNextWord"
-                    class="com.tabbyml.intellijtabby.actions.AcceptCompletionNextWord"
-                    text="Accept Next Word"
-                    description="Accept the next word of shown suggestions.">
-                <keyboard-shortcut first-keystroke="control RIGHT" keymap="$default"/>
-            </action>
-            <action id="Tabby.DismissCompletion"
-                    class="com.tabbyml.intellijtabby.actions.DismissCompletion"
-                    text="Dismiss Completion"
-                    description="Hide the shown suggestions.">
-                <keyboard-shortcut first-keystroke="ESCAPE" keymap="$default"/>
+            <separator/>
+            <action id="Tabby.CheckIssueDetail"
+                    class="com.tabbyml.intellijtabby.actions.CheckIssueDetail"
+                    text="Check Issue Detail..."
+                    description="Show detail information for current issue.">
             </action>
         </group>
 
         <group id="Tabby.StatusBarPopupMenu">
-            <reference id="Tabby.TriggerCompletion"/>
-            <separator/>
-            <reference id="Tabby.ToggleInlineCompletionTriggerMode"/>
-            <separator/>
             <reference id="Tabby.CheckIssueDetail"/>
+            <reference id="Tabby.OpenChatToolWindow"/>
             <reference id="Tabby.OpenSettings"/>
             <reference id="Tabby.OpenOnlineHelp"/>
         </group>

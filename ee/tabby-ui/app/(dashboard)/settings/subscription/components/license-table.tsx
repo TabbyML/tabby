@@ -83,12 +83,12 @@ const PLANS: Plan[] = [
   {
     name: 'Community',
     pricing: '$0 per user/month',
-    limit: 'Up to 5 users, single node'
+    limit: 'Up to 5 users'
   },
   {
     name: 'Team',
     pricing: '$19 per user/month',
-    limit: 'Up to 30 users, up to 2 nodes'
+    limit: 'Up to 200 users'
   },
   {
     name: 'Enterprise',
@@ -145,13 +145,7 @@ const FEATURES: FeatureGroup[] = [
       {
         name: 'User count',
         community: 'Up to 5',
-        team: 'Up to 30',
-        enterprise: 'Unlimited'
-      },
-      {
-        name: 'Node count',
-        community: dashed,
-        team: 'Up to 2',
+        team: 'Up to 200',
         enterprise: 'Unlimited'
       },
       {
@@ -161,23 +155,24 @@ const FEATURES: FeatureGroup[] = [
         enterprise: checked
       },
       {
-        name: (
-          <FeatureWithTooltip name="Bring your own LLM">
-            Tabby builds on top of open technologies, allowing customers to
-            bring their own LLM models.
-          </FeatureWithTooltip>
-        ),
+        name: 'Answer Engine',
+        community: checked,
+        team: checked,
+        enterprise: checked
+      },
+      {
+        name: 'Code Browser',
         community: checked,
         team: checked,
         enterprise: checked
       },
       {
         name: (
-          <FeatureWithTooltip name="Git Providers">
-            Tabby can retrieve the codebase context to enhance responses.
-            Underlying Tabby pulls context from git providers with a code search
-            index. This method enables Tabby to utilize the team&apos;s past
-            practices at scale.
+          <FeatureWithTooltip name="Context Providers">
+            Tabby can retrieve various contexts to enhance responses for code
+            completion and answering questions. Context providers offer the
+            ability to retrieve context from various sources, such as source
+            code repositories and issue trackers.
           </FeatureWithTooltip>
         ),
         community: checked,
@@ -187,12 +182,6 @@ const FEATURES: FeatureGroup[] = [
       {
         name: 'Usage Reports and Analytics',
         community: checked,
-        team: checked,
-        enterprise: checked
-      },
-      {
-        name: 'Admin Controls',
-        community: dashed,
         team: checked,
         enterprise: checked
       },

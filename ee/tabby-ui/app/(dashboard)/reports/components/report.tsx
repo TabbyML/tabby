@@ -210,7 +210,7 @@ export function Report() {
   }
 
   return (
-    <div className="mx-auto w-[calc(100vw-2rem)] max-w-5xl md:w-auto">
+    <div className="w-[calc(100vw-2rem)] md:w-auto 2xl:mx-auto 2xl:max-w-5xl">
       <div className="mb-4 flex flex-col items-center justify-between gap-y-2 lg:flex-row lg:items-end lg:gap-y-0">
         <SubHeader className="mb-0">
           Statistics around Tabby IDE / Extensions
@@ -237,7 +237,7 @@ export function Report() {
                 <SelectItem value={KEY_SELECT_ALL}>All members</SelectItem>
                 {members.map(member => (
                   <SelectItem value={member.id} key={member.id}>
-                    {member.email}
+                    {member.name || member.email}
                   </SelectItem>
                 ))}
               </SelectGroup>

@@ -1,13 +1,17 @@
 {
   "private": true,
-  "workspaces": [
-    "clients/tabby-agent",
-    "clients/vscode",
-    "clients/vim",
-    "clients/intellij",
-    "clients/example-vscode-lsp"
-  ],
+  "scripts": {
+    "build": "turbo build",
+    "vscode:dev": "turbo vscode:dev",
+    "lint": "turbo lint",
+    "lint:fix": "turbo lint:fix",
+    "test": "turbo test"
+  },
   "engines": {
-    "node": ">=18"
+    "node": ">=18",
+    "pnpm": ">=9"
+  },
+  "devDependencies": {
+    "turbo": "^1.13.3"
   }
 }

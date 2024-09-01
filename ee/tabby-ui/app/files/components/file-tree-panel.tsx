@@ -7,34 +7,38 @@ import { useScrollTop } from '@/lib/hooks/use-scroll-top'
 import { FileTree, TFileTreeNode } from './file-tree'
 import { FileTreeHeader } from './file-tree-header'
 import { SourceCodeBrowserContext } from './source-code-browser'
-import { resolveRepositoryInfoFromPath } from './utils'
+import { generateEntryPath } from './utils'
 
-interface FileTreePanelProps extends React.HTMLAttributes<HTMLDivElement> {}
+interface FileTreePanelProps extends React.HTMLAttributes<HTMLDivElement> {
+  fetchingTreeEntries: boolean
+}
 
-export const FileTreePanel: React.FC<FileTreePanelProps> = () => {
+export const FileTreePanel: React.FC<FileTreePanelProps> = ({
+  fetchingTreeEntries
+}) => {
   const {
     activePath,
-    setActivePath,
+    updateActivePath,
     expandedKeys,
     updateFileMap,
     toggleExpandedKey,
     initialized,
     fileTreeData,
-    fileMap
+    fileMap,
+    activeRepo,
+    activeEntryInfo
   } = React.useContext(SourceCodeBrowserContext)
   const containerRef = React.useRef<HTMLDivElement>(null)
   const scrollTop = useScrollTop(containerRef, 200)
   const onSelectTreeNode = (treeNode: TFileTreeNode) => {
-    setActivePath(treeNode.fullPath)
-  }
-
-  const currentFileTreeData = React.useMemo(() => {
-    const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
-    const repo = fileTreeData.find(
-      treeNode => treeNode.fullPath === repositorySpecifier
+    const nextPath = generateEntryPath(
+      activeRepo,
+      activeEntryInfo.rev,
+      treeNode.file.basename,
+      treeNode.file.kind
     )
-    return repo?.children ?? []
-  }, [activePath, fileTreeData])
+    updateActivePath(nextPath)
+  }
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -51,7 +55,8 @@ export const FileTreePanel: React.FC<FileTreePanelProps> = () => {
           expandedKeys={expandedKeys}
           toggleExpandedKey={toggleExpandedKey}
           initialized={initialized}
-          fileTreeData={currentFileTreeData}
+          fileTreeData={fileTreeData}
+          fetchingTreeEntries={fetchingTreeEntries}
         />
       </div>
     </div>

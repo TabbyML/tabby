@@ -14,6 +14,7 @@ import {
 } from '@/lib/gql/generates/graphql'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { IconGitHub, IconGitLab, IconGoogle } from '@/components/ui/icons'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LicenseGuard } from '@/components/license-guard'
 import LoadingWrapper from '@/components/loading-wrapper'
@@ -41,11 +42,19 @@ const OAuthCredentialList = () => {
     query: oauthCredential,
     variables: { provider: OAuthProvider.Google }
   })
+  const [{ data: gitlabData, fetching: fetchingGitlab }] = useQuery({
+    query: oauthCredential,
+    variables: { provider: OAuthProvider.Gitlab }
+  })
 
-  const isLoading = fetchingGithub || fetchingGoogle
+  const isLoading = fetchingGithub || fetchingGoogle || fetchingGitlab
   const credentialList = React.useMemo(() => {
-    return compact([githubData?.oauthCredential, googleData?.oauthCredential])
-  }, [githubData, googleData])
+    return compact([
+      githubData?.oauthCredential,
+      googleData?.oauthCredential,
+      gitlabData?.oauthCredential
+    ])
+  }, [githubData, googleData, gitlabData])
 
   const router = useRouter()
   const createButton = (
@@ -100,7 +109,7 @@ const OAuthCredentialList = () => {
           )
         })}
       </div>
-      {credentialList.length < 2 && (
+      {credentialList.length < 3 && (
         <div className="mt-4 flex justify-end">{createButton}</div>
       )}
     </div>
@@ -115,15 +124,19 @@ const OauthCredentialCard = ({
   const meta = React.useMemo(() => {
     return find(PROVIDER_METAS, { enum: data?.provider })?.meta
   }, [data])
+
+  if (!data) return null
+
   return (
     <Card>
       <CardHeader className="border-b p-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xl">
-            {meta?.displayName || data?.provider}
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <OAuthProviderIcon provider={data.provider} />
+            {meta?.displayName || data.provider}
           </CardTitle>
           <Link
-            href={`/settings/sso/detail/${data?.provider.toLowerCase()}`}
+            href={`/settings/sso/detail/${data.provider.toLowerCase()}`}
             className={buttonVariants({ variant: 'secondary' })}
           >
             View
@@ -144,4 +157,17 @@ const OauthCredentialCard = ({
   )
 }
 
-export { OAuthCredentialList as OauthCredentialList }
+function OAuthProviderIcon({ provider }: { provider: OAuthProvider }) {
+  switch (provider) {
+    case OAuthProvider.Github:
+      return <IconGitHub className="h-6 w-6" />
+    case OAuthProvider.Google:
+      return <IconGoogle className="h-6 w-6" />
+    case OAuthProvider.Gitlab:
+      return <IconGitLab className="h-6 w-6" />
+    default:
+      return null
+  }
+}
+
+export { OAuthCredentialList }

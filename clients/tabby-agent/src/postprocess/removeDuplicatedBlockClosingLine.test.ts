@@ -1,18 +1,16 @@
-import { expect } from "chai";
-import { documentContext, inline } from "./testUtils";
+import { documentContext, inline, assertFilterResult } from "./testUtils";
 import { removeDuplicatedBlockClosingLine } from "./removeDuplicatedBlockClosingLine";
 
 describe("postprocess", () => {
   describe("removeDuplicatedBlockClosingLine", () => {
-    it("should remove duplicated block closing line.", () => {
-      const context = {
-        ...documentContext`
+    const filter = removeDuplicatedBlockClosingLine();
+    it("should remove duplicated block closing line.", async () => {
+      const context = documentContext`
         function hello() {
           ║
         }
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
           ├console.log("hello");
         }┤
@@ -21,12 +19,11 @@ describe("postprocess", () => {
           ├console.log("hello");┤
         ┴┴
       `;
-      expect(removeDuplicatedBlockClosingLine()(completion, context)).to.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should remove duplicated block closing line.", () => {
-      const context = {
-        ...documentContext`
+    it("should remove duplicated block closing line.", async () => {
+      const context = documentContext`
         function check(condition) {
           if (!condition) {
             ║
@@ -34,9 +31,8 @@ describe("postprocess", () => {
             return;
           }
         }
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
             ├throw new Error("check not passed");
           }┤
@@ -46,25 +42,24 @@ describe("postprocess", () => {
             ├throw new Error("check not passed");┤
         ┴┴┴┴
       `;
-      expect(removeDuplicatedBlockClosingLine()(completion, context)).to.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should not remove non-duplicated block closing line.", () => {
-      const context = {
-        ...documentContext`
+    it("should not remove non-duplicated block closing line.", async () => {
+      const context = documentContext`
         function check(condition) {
           if (!condition) {
             ║
         }
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
             ├throw new Error("check not passed");
           }┤
         ┴┴
       `;
-      expect(removeDuplicatedBlockClosingLine()(completion, context)).to.eq(completion);
+      const expected = completion;
+      await assertFilterResult(filter, context, completion, expected);
     });
   });
 });

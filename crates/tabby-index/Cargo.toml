@@ -1,0 +1,50 @@
+[package]
+name = "tabby-index"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+tabby-common = { path = "../tabby-common" }
+tantivy = { workspace = true }
+tracing = { workspace = true }
+tree-sitter-tags = "0.22.6"
+lazy_static = { workspace = true }
+tree-sitter-python = "0.21.0"
+tree-sitter-java = "0.21.0"
+tree-sitter-kotlin = "0.3.6"
+tree-sitter-rust = "0.21.2"
+tree-sitter-typescript = "0.21.1"
+tree-sitter-go = "0.21.0"
+tree-sitter-ruby = "0.21.0"
+tree-sitter-c = { git = "https://github.com/tree-sitter/tree-sitter-c/", rev = "00ed08f" }
+tree-sitter-cpp = { git = "https://github.com/tree-sitter/tree-sitter-cpp", rev = "d29fbff" }
+tree-sitter-c-sharp = "0.21.2"
+tree-sitter-solidity = { git = "https://github.com/JoranHonig/tree-sitter-solidity", rev = "0e86ae647bda22c9bee00ec59752df7b3d3b000b" }
+tree-sitter-lua = "0.1.0"
+tree-sitter-elixir = "0.2.0"
+ignore.workspace = true
+tokio = { workspace = true, features = ["process"] }
+text-splitter = { version = "0.13.3", features = ["code"] }
+serde.workspace = true
+serde_json.workspace = true
+futures.workspace = true
+async-stream.workspace = true
+tabby-inference = { path = "../tabby-inference" }
+git2.workspace = true
+insta.workspace = true
+async-trait.workspace = true
+logkit.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+temp_testdir = { workspace = true }
+tabby-common = { path = "../tabby-common", features = [ "testutils" ] }
+tracing-test.workspace = true
+tokio = { workspace = true, features = ["rt", "macros", "rt-multi-thread"] }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+tracing-subscriber = { workspace = true }
+serial_test = { workspace = true }

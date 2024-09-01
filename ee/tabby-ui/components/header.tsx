@@ -5,6 +5,7 @@ import { compare } from 'compare-versions'
 
 import { useHealth } from '@/lib/hooks/use-health'
 import { ReleaseInfo, useLatestRelease } from '@/lib/hooks/use-latest-release'
+import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { IconNotice } from '@/components/ui/icons'
 
@@ -20,14 +21,14 @@ export function Header() {
   const newVersionAvailable = isNewVersionAvailable(version, latestRelease)
 
   return (
-    <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b px-4 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b px-4 backdrop-blur-xl lg:px-10">
       <div className="flex items-center">
         {newVersionAvailable && (
           <a
             target="_blank"
             href="https://github.com/TabbyML/tabby/releases/latest"
             rel="noopener noreferrer"
-            className={buttonVariants({ variant: 'ghost' })}
+            className={cn('!pl-0', buttonVariants({ variant: 'ghost' }))}
           >
             <IconNotice className="text-yellow-600 dark:text-yellow-400" />
             <span className="ml-2 hidden md:flex">
@@ -52,8 +53,10 @@ function isNewVersionAvailable(version?: string, latestRelease?: ReleaseInfo) {
   try {
     return version && latestRelease && compare(latestRelease.name, version, '>')
   } catch (err) {
-    // Handle invalid semver
+    // eslint-disable-next-line no-console
     console.warn(err)
+
+    // Handle invalid semver
     return true
   }
 }

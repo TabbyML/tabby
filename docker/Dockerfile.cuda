@@ -6,7 +6,7 @@ ARG BASE_CUDA_DEV_CONTAINER=nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VER
 # Target the CUDA runtime image
 ARG BASE_CUDA_RUN_CONTAINER=nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
 
-FROM ${BASE_CUDA_DEV_CONTAINER} as build
+FROM ${BASE_CUDA_DEV_CONTAINER} AS build
 
 # Rust toolchain version
 ARG RUST_TOOLCHAIN=stable
@@ -27,6 +27,7 @@ RUN apt-get update && \
 # setup rust.
 RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain ${RUST_TOOLCHAIN} -y
 ENV PATH="/root/.cargo/bin:${PATH}"
+ENV LD_LIBRARY_PATH="/usr/local/cuda/compat/:${LD_LIBRARY_PATH}"
 
 WORKDIR /root/workspace
 
@@ -39,24 +40,31 @@ COPY . .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
     cargo build --no-default-features --features cuda,prod --release --package tabby && \
+    cp target/release/llama-server /opt/tabby/bin/ && \
     cp target/release/tabby /opt/tabby/bin/
 
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/root/workspace/target \
-    cargo build --no-default-features --features prod --release --package tabby && \
-    cp target/release/tabby /opt/tabby/bin/tabby-cpu
+# For compatibility with the legacy cpu build.
+RUN cp /opt/tabby/bin/tabby /opt/tabby/bin/tabby-cpu
 
-FROM ${BASE_CUDA_RUN_CONTAINER} as runtime
+FROM ${BASE_CUDA_RUN_CONTAINER} AS runtime
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        git \
-        curl \
+        git   \
+        curl  \
+        unzip \
         openssh-client \
         ca-certificates \
+        libgomp1 \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Install katana
+RUN curl -L https://github.com/projectdiscovery/katana/releases/download/v1.1.0/katana_1.1.0_linux_amd64.zip -o katana.zip \
+  && unzip katana.zip katana \
+  && mv katana /usr/bin/ \
+  && rm katana.zip
 
 # Disable safe directory in docker
 # Context: https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9

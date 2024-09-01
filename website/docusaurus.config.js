@@ -65,7 +65,7 @@ export default {
           showReadingTime: true,
           editUrl:
             'https://github.com/TabbyML/tabby/edit/main/website',
-          blogSidebarCount: 10,
+          blogSidebarCount: 20,
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
@@ -78,6 +78,11 @@ export default {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       image: 'img/tabby-social-card.png',
+      docs: {
+        sidebar: {
+          autoCollapseCategories: true
+        },
+      },
       navbar: {
         logo: {
           alt: 'Tabby',
@@ -90,7 +95,6 @@ export default {
             position: 'left',
             label: 'Docs',
           },
-          { to: '/playground', label: 'Playground', position: 'left' },
           { to: '/blog', label: 'Blog', position: 'left' },
           { to: '/api', label: 'API', position: 'left' },
           {
@@ -110,11 +114,7 @@ export default {
             items: [
               {
                 label: 'Docs',
-                to: '/docs/getting-started',
-              },
-              {
-                label: 'Playground',
-                to: '/playground',
+                to: '/docs/welcome',
               },
               {
                 label: 'API',
@@ -164,7 +164,11 @@ export default {
         defaultMode: "light",
         respectPrefersColorScheme: false,
         disableSwitch: true
-      }
+      },
+      tableOfContents: {
+        minHeadingLevel: 2,
+        maxHeadingLevel: 5,
+      },
     }),
 
   plugins: [
@@ -196,15 +200,74 @@ export default {
             from: '/blog/running-tabby-as-a-language-server'
           },
           {
-            to: '/docs/installation/docker',
+            to: '/docs/quick-start/installation/docker',
             from: '/docs/self-hosting/docker'
           },
           {
             to: '/docs/extensions/installation/vscode',
             from: '/docs/extensions/vscode'
           },
-        ]
+          {
+            to: '/docs/administration/context',
+            from: '/docs/configuration'
+          },
+          {
+            to: '/docs/welcome',
+            from: '/docs/getting-started'
+          },
+          {
+            to: '/docs/extensions/installation/vscode',
+            from: '/docs/extensions'
+          },
+          {
+            to: '/docs/extensions/installation/vscode',
+            from: '/docs/extensions/installation'
+          },
+          {
+            to: '/docs/quick-start/installation/docker',
+            from: '/docs/installation'
+          },
+          {
+            to: '/docs/administration/upgrade',
+            from: '/docs/administration'
+          },
+          {
+            to: '/docs/welcome',
+            from: '/docs',
+          },
+          {
+            to: '/docs/quick-start/installation/docker',
+            from: '/docs/quick-start/installation'
+          },
+          {
+            to: '/docs/references/programming-languages',
+            from: '/docs/programming-languages'
+          },
+        ],
+        createRedirects(existingPath) {
+          // Create redirection from /docs/installation/* to /docs/quick-start/installation/*
+          if (existingPath.startsWith("/docs/quick-start/installation")) {
+            return [
+              existingPath.replace("/docs/quick-start/installation", "/docs/installation"),
+            ]
+          }
+
+          // Create redirection from /docs/quick-start/installation/* to /docs/references/cloud-deployment/*
+          if (existingPath.startsWith("/docs/references/cloud-deployment/")) {
+            return [
+              existingPath.replace("/docs/references/cloud-deployment/", "/docs/quick-start/installation/"),
+              existingPath.replace("/docs/references/cloud-deployment/", "/docs/installation/"),
+            ]
+          }
+        }
       },
     ],
   ],
+
+  scripts: [
+    {
+      src: "https://tally.so/widgets/embed.js",
+      async: true
+    }
+  ]
 };

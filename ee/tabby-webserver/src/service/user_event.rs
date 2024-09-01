@@ -34,7 +34,7 @@ impl UserEventService for UserEventServiceImpl {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let events = self
             .db
-            .list_user_events(limit, skip_id, backwards, users, start.into(), end.into())
+            .list_user_events(limit, skip_id, backwards, users, start, end)
             .await?;
         Ok(events
             .into_iter()
@@ -76,7 +76,7 @@ mod tests {
     async fn test_list_user_events() {
         let db = DbConn::new_in_memory().await.unwrap();
         let user1 = db
-            .create_user("test@example.com".into(), Some("pass".into()), true)
+            .create_user("test@example.com".into(), Some("pass".into()), true, None)
             .await
             .unwrap();
 
@@ -85,7 +85,7 @@ mod tests {
             .unwrap();
 
         let user2 = db
-            .create_user("test2@example.com".into(), Some("pass".into()), true)
+            .create_user("test2@example.com".into(), Some("pass".into()), true, None)
             .await
             .unwrap();
 

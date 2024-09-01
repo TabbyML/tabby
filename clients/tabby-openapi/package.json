@@ -1,0 +1,19 @@
+{
+  "name": "tabby-openapi",
+  "version": "0.12.0-dev",
+  "description": "Tabby API schema for typescript.",
+  "files": [
+    "lib/**/*.d.ts",
+    "compatible/**/*.d.ts"
+  ],
+  "types": "./lib/index.d.ts",
+  "scripts": {
+    "codegen": "node scripts/codegen.js",
+    "codegen:fetch": "node scripts/codegen.js --fetch"
+  },
+  "devDependencies": {
+    "openai": "^4.52.7",
+    "openapi-typescript": "^7.0.2",
+    "typescript": "^5.3.2"
+  }
+}

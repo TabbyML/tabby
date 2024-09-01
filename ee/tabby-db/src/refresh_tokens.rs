@@ -1,26 +1,26 @@
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use sqlx::{query, FromRow};
 use uuid::Uuid;
 
-use super::DbConn;
-use crate::DateTimeUtc;
+use super::{AsSqliteDateTimeString, DbConn};
 
 #[allow(unused)]
 #[derive(FromRow)]
 pub struct RefreshTokenDAO {
     pub id: i64,
-    pub created_at: DateTimeUtc,
+    pub created_at: DateTime<Utc>,
 
     pub user_id: i64,
     pub token: String,
-    pub expires_at: DateTimeUtc,
+    pub expires_at: DateTime<Utc>,
 }
 
 impl RefreshTokenDAO {
     pub fn is_expired(&self) -> bool {
-        let now = DateTimeUtc::now();
+        let now = Utc::now();
         self.expires_at < now
     }
 }
@@ -61,7 +61,7 @@ impl DbConn {
     }
 
     pub async fn delete_expired_token(&self) -> Result<i32> {
-        let time = DateTimeUtc::now();
+        let time = Utc::now().as_sqlite_datetime();
         let res = query!(r#"DELETE FROM refresh_tokens WHERE expires_at < ?"#, time)
             .execute(&self.pool)
             .await?;
@@ -72,7 +72,7 @@ impl DbConn {
     pub async fn get_refresh_token(&self, token: &str) -> Result<Option<RefreshTokenDAO>> {
         let token = sqlx::query_as!(
             RefreshTokenDAO,
-            r#"SELECT id as "id!", created_at as "created_at!", expires_at, user_id, token FROM refresh_tokens WHERE token = ?"#,
+            r#"SELECT id as "id!", created_at as "created_at!: DateTime<Utc>", expires_at as "expires_at!: DateTime<Utc>", user_id, token FROM refresh_tokens WHERE token = ?"#,
             token
         )
         .fetch_optional(&self.pool)
@@ -111,7 +111,7 @@ mod tests {
     async fn test_create_refresh_token() {
         let conn = DbConn::new_in_memory().await.unwrap();
         let user_id = conn
-            .create_user("email@email".into(), None, true)
+            .create_user("email@email".into(), None, true, None)
             .await
             .unwrap();
         let token = conn.create_refresh_token(user_id).await.unwrap();
@@ -120,8 +120,8 @@ mod tests {
 
         assert_eq!(dao.user_id, 1);
         assert_eq!(dao.token, token);
-        assert!(dao.expires_at > DateTimeUtc::now() + chrono::Duration::days(6));
-        assert!(dao.expires_at < DateTimeUtc::now() + chrono::Duration::days(7));
+        assert!(dao.expires_at > Utc::now() + chrono::Duration::days(6));
+        assert!(dao.expires_at < Utc::now() + chrono::Duration::days(7));
     }
 
     #[tokio::test]
@@ -129,7 +129,7 @@ mod tests {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         let user_id = conn
-            .create_user("email@email".into(), None, true)
+            .create_user("email@email".into(), None, true, None)
             .await
             .unwrap();
         let old = conn.create_refresh_token(user_id).await.unwrap();

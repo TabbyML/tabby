@@ -1,0 +1,4 @@
+packages:
+  - clients/*
+  - ee/tabby-ui
+  - ee/tabby-email

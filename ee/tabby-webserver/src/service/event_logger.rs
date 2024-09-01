@@ -151,7 +151,7 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         let logger = create_event_logger(db.clone());
         let user_id = db
-            .create_user("testuser".into(), Some("pass".into()), true)
+            .create_user("testuser".into(), Some("pass".into()), true, None)
             .await
             .unwrap();
 
@@ -165,6 +165,7 @@ mod tests {
                 prompt: "testprompt".into(),
                 segments: None,
                 choices: vec![],
+                user_agent: "ide: version test".into(),
             },
         );
 
@@ -241,6 +242,7 @@ mod tests {
                 prompt: "testprompt".into(),
                 segments: None,
                 choices: vec![],
+                user_agent: "ide: version unknown".into(),
             },
         );
 
@@ -255,6 +257,7 @@ mod tests {
                 prompt: "testprompt".into(),
                 segments: None,
                 choices: vec![],
+                user_agent: "ide: version unknown".into(),
             },
         );
 

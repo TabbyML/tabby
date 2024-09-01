@@ -1,26 +1,25 @@
 'use client'
 
-import { useEnableCodeBrowserQuickActionBar } from '@/lib/experiment-flags'
+import { useEnableDeveloperMode } from '@/lib/experiment-flags'
 import { Switch } from '@/components/ui/switch'
 
 export default function FeatureList() {
-  const [quickActionBar, toggleQuickActionBar] =
-    useEnableCodeBrowserQuickActionBar()
+  const [developerMode, toggleDeveloperMode] = useEnableDeveloperMode()
   return (
     <>
-      {!quickActionBar.loading && (
+      {!developerMode.loading && (
         <div className="flex items-center space-x-4 rounded-md border p-4">
           <div className="flex-1 space-y-1">
             <p className="text-sm font-medium leading-none">
-              {quickActionBar.title}
+              {developerMode.title}
             </p>
             <p className="text-sm text-muted-foreground">
-              {quickActionBar.description}
+              {developerMode.description}
             </p>
           </div>
           <Switch
-            checked={quickActionBar.value}
-            onCheckedChange={toggleQuickActionBar}
+            checked={developerMode.value}
+            onCheckedChange={toggleDeveloperMode}
           />
         </div>
       )}

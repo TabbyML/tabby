@@ -2,27 +2,23 @@ import React, { useContext } from 'react'
 
 import { cn } from '@/lib/utils'
 
-import { BlobHeader } from './blob-header'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { resolveFileNameFromPath } from './utils'
 
-interface RawContentViewProps extends React.HTMLAttributes<HTMLDivElement> {
+interface RawFileViewProps extends React.HTMLAttributes<HTMLDivElement> {
   blob: Blob | undefined
-  contentLength: number | undefined
   isImage?: boolean
 }
 
-export const RawFileView: React.FC<RawContentViewProps> = ({
+export const RawFileView: React.FC<RawFileViewProps> = ({
   className,
   blob,
-  isImage,
-  contentLength
+  isImage
 }) => {
   const { activePath } = useContext(SourceCodeBrowserContext)
 
   return (
     <div className={cn(className)}>
-      <BlobHeader blob={blob} contentLength={contentLength} />
       <div className="rounded-b-lg border border-t-0 p-2 text-center">
         {isImage ? (
           <img

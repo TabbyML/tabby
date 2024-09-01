@@ -1,6 +1,6 @@
 import readline from "readline";
 import { AgentFunction, AgentEvent, Agent, agentEventNames } from "./Agent";
-import { logger } from "./logger";
+import { getLogger } from "./logger";
 import { isCanceledError } from "./utils";
 
 type AgentFunctionRequest<T extends keyof AgentFunction> = [
@@ -45,7 +45,7 @@ export class JsonLineServer {
   private readonly process: NodeJS.Process = process;
   private readonly inStream: NodeJS.ReadStream = process.stdin;
   private readonly outStream: NodeJS.WriteStream = process.stdout;
-  private readonly logger = logger("JsonLineServer");
+  private readonly logger = getLogger("JsonLineServer");
 
   private abortControllers: { [id: string]: AbortController } = {};
 
@@ -58,13 +58,15 @@ export class JsonLineServer {
     try {
       request = JSON.parse(line) as JsonLineRequest;
     } catch (error) {
-      this.logger.error({ error }, `Failed to parse request: ${line}`);
+      this.logger.error(`Failed to parse request: ${line}`, error);
       return;
     }
-    this.logger.debug({ request }, "Received request");
+    this.logger.debug(`Processing request ${request[0]} ${request[1].func}.`);
+    this.logger.trace("Request data:", { request });
     const response = await this.handleRequest(request);
     this.sendResponse(response);
-    this.logger.debug({ response }, "Sent response");
+    this.logger.debug(`Completed processing request ${request[0]}.`);
+    this.logger.trace("Response data:", { response });
   }
 
   private async handleRequest(request: JsonLineRequest): Promise<JsonLineResponse> {
@@ -97,9 +99,9 @@ export class JsonLineServer {
       }
     } catch (error) {
       if (isCanceledError(error)) {
-        this.logger.debug({ error, request }, `Request canceled`);
+        this.logger.debug(`Request ${request[0]} canceled.`);
       } else {
-        this.logger.error({ error, request }, `Failed to handle request`);
+        this.logger.error(`Failed to handle request ${request[0]}`, error);
       }
     } finally {
       if (this.abortControllers[requestId]) {

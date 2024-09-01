@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic'
 import { capitalize } from 'lodash-es'
 import moment from 'moment'
 import momentTimezone from 'moment-timezone'
-import { useTheme } from 'next-themes'
 import { DateRange } from 'react-day-picker'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
@@ -14,6 +13,7 @@ import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { EventKind, ListUserEventsQuery } from '@/lib/gql/generates/graphql'
 import { Member, useAllMembers } from '@/lib/hooks/use-all-members'
+import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { QueryVariables } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -93,7 +93,7 @@ export const listUserEvents = graphql(/* GraphQL */ `
 `)
 
 export default function Activity() {
-  const defaultFromDate = moment().add(parseInt(DEFAULT_DATE_RANGE, 10), 'day')
+  const defaultFromDate = moment().add(parseInt(DEFAULT_DATE_RANGE, 10), 'hour')
   const defaultToDate = moment()
 
   const [members] = useAllMembers()
@@ -169,7 +169,7 @@ export default function Activity() {
                         </SelectItem>
                         {members.map(member => (
                           <SelectItem value={member.id} key={member.id}>
-                            {member.email}
+                            {member.name || member.email}
                           </SelectItem>
                         ))}
                       </SelectGroup>
@@ -302,7 +302,7 @@ function ActivityRow({
   activity: ListUserEventsQuery['userEvents']['edges'][0]['node']
   members: Member[]
 }) {
-  const { theme } = useTheme()
+  const { theme } = useCurrentTheme()
   const [isExpanded, setIsExpanded] = React.useState(false)
 
   let payloadJson
@@ -338,6 +338,10 @@ function ActivityRow({
       break
     }
   }
+
+  let displayUser = activity.userId
+  const user = members.find(user => user.id === activity.userId)
+  if (user) displayUser = user.name || user.email
   return (
     <>
       <TableRow
@@ -359,10 +363,7 @@ function ActivityRow({
             </TooltipContent>
           </Tooltip>
         </TableCell>
-        <TableCell>
-          {members.find(user => user.id === activity.userId)?.email ||
-            activity.userId}
-        </TableCell>
+        <TableCell>{displayUser}</TableCell>
         <TableCell className="pr-4 md:pr-8">
           <Tooltip>
             <TooltipTrigger>
