@@ -13,6 +13,8 @@ import {
   Extension,
   useEditor
 } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import { compact } from 'lodash-es'
 
 import { ContextInfo, ContextSource } from '@/lib/gql/generates/graphql'
 import { useLatest } from '@/lib/hooks/use-latest'
@@ -47,6 +49,7 @@ interface PromptEditorProps {
   autoFocus?: boolean
   className?: string
   editorClassName?: string
+  enabledMarkdown?: boolean
 }
 
 export interface PromptEditorRef {
@@ -78,7 +81,8 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       onUpdate,
       autoFocus,
       className,
-      editorClassName
+      editorClassName,
+      enabledMarkdown
     },
     ref
   ) => {
@@ -96,7 +100,7 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
     }
 
     const editor = useEditor({
-      extensions: [
+      extensions: compact([
         Document,
         Paragraph,
         Text,
@@ -109,9 +113,13 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
           HTMLAttributes: {
             class: 'mention'
           },
+          renderText({ node }) {
+            return `[[source:${node.attrs.id}]]`
+          },
           suggestion
-        })
-      ],
+        }),
+        enabledMarkdown ? undefined : StarterKit
+      ]),
       editorProps: {
         attributes: {
           class: cn(

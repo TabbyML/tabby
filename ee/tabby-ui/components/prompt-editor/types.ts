@@ -15,8 +15,3 @@ export type SourceOptionItem = {
 }
 
 export type OptionItem = CategoryOptionItem | SourceOptionItem
-
-export type MentionDataItem = {
-  id: string
-  start: number
-}

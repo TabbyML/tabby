@@ -715,6 +715,7 @@ export function Search() {
                                 content={item.content}
                                 contextInfo={contextInfoData?.contextInfo}
                                 fetchingContextInfo={fetchingContextInfo}
+                                enabledMarkdown
                               />
                             </div>
                           </div>

@@ -1,8 +1,7 @@
 import { Editor, JSONContent } from '@tiptap/react'
 
-import { ContextKind, ContextSource } from '@/lib/gql/generates/graphql'
-
-import { MentionDataItem } from './types'
+import { ContextKind } from '@/lib/gql/generates/graphql'
+import { MentionAttributes } from '@/lib/types'
 
 export const isRepositorySource = (kind: ContextKind) => {
   return [ContextKind.Git, ContextKind.Github, ContextKind.Gitlab].includes(
@@ -12,7 +11,7 @@ export const isRepositorySource = (kind: ContextKind) => {
 
 export const getMentionsWithIndices = (editor: Editor) => {
   const json = editor.getJSON()
-  const mentions: MentionDataItem[] = []
+  const mentions: MentionAttributes[] = []
   let textLength = 0
 
   const traverse = (node: JSONContent) => {
@@ -22,13 +21,10 @@ export const getMentionsWithIndices = (editor: Editor) => {
       if (node?.attrs?.id) {
         mentions.push({
           id: node.attrs.id,
-          start: textLength
+          label: node.attrs.label,
+          kind: node.attrs.kind
         })
-        textLength += (node.attrs.label || node.attrs.id).length
       }
-    } else if (node.type === 'hardBreak') {
-      // Assuming hardBreak is represented as a single character
-      textLength += 1
     }
 
     if (node.content) {
@@ -38,16 +34,4 @@ export const getMentionsWithIndices = (editor: Editor) => {
 
   traverse(json)
   return mentions
-}
-
-export const generateMentionId = (source: ContextSource) => {
-  return `${source.kind}__${source.sourceId}`
-}
-
-export const getInfoFromMentionId = (mentionId: string) => {
-  const [kind, sourceId] = mentionId.split('__')
-  return {
-    kind: kind as ContextKind,
-    sourceId
-  }
 }

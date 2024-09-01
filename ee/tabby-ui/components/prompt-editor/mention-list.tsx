@@ -13,24 +13,16 @@ import {
 import { go as fuzzy } from 'fuzzysort'
 
 import { ContextKind } from '@/lib/gql/generates/graphql'
+import { MentionAttributes } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 import { MentionContext } from '.'
 import { IconCode, IconFileText, IconSpinner } from '../ui/icons'
-import {
-  CategoryOptionItem,
-  MentionDataItem,
-  OptionItem,
-  SourceOptionItem
-} from './types'
-import {
-  generateMentionId,
-  getInfoFromMentionId,
-  isRepositorySource
-} from './utils'
+import { CategoryOptionItem, OptionItem, SourceOptionItem } from './types'
+import { isRepositorySource } from './utils'
 
 export interface MetionListProps extends SuggestionProps {
-  mentions?: MentionDataItem[]
+  mentions?: MentionAttributes[]
 }
 
 export interface MentionListActions {
@@ -57,8 +49,7 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
     const hasSelectedRepo = useMemo(() => {
       return (
         mentions?.findIndex(o => {
-          const { kind } = getInfoFromMentionId(o.id)
-          return isRepositorySource(kind)
+          return isRepositorySource(o.kind)
         }) !== -1
       )
     }, [mentions])
@@ -81,7 +72,7 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
         .map(item => ({
           type: 'source',
           kind: 'doc',
-          id: generateMentionId(item),
+          id: item.sourceId,
           label: item.displayName,
           data: item
         }))
@@ -90,7 +81,7 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
         .map(item => ({
           type: 'source',
           kind: 'code',
-          id: generateMentionId(item),
+          id: item.sourceId,
           label: item.displayName,
           data: item
         }))
@@ -127,7 +118,7 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
       if (item.type === 'category') {
         setKind(item.kind)
       } else {
-        command({ id: item.id, label: item.label })
+        command({ id: item.id, label: item.label, kind: item.kind })
       }
     }
 
