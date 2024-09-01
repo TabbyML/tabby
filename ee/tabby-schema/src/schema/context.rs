@@ -1,5 +1,8 @@
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use juniper::{GraphQLEnum, GraphQLObject, ID};
+use regex::{Captures, Regex};
 
 use super::{
     repository::{Repository, RepositoryKind},
@@ -14,6 +17,7 @@ pub enum ContextKind {
     Github,
     Gitlab,
     Doc,
+    Web,
 }
 
 #[derive(GraphQLObject)]
@@ -80,9 +84,42 @@ impl From<CustomWebDocument> for ContextSource {
 #[derive(GraphQLObject)]
 pub struct ContextInfo {
     pub sources: Vec<ContextSource>,
+}
 
-    /// Whether the deployment has capability to search public web.
-    pub can_search_public: bool,
+impl ContextInfo {
+    pub fn rewriter(&self) -> SourceTagRewriter {
+        SourceTagRewriter::new(self)
+    }
+}
+
+pub struct SourceTagRewriter<'k, 'v> {
+    sources: HashMap<&'k str, &'v str>,
+}
+
+impl<'a> SourceTagRewriter<'a, 'a> {
+    pub fn new(context_info: &'a ContextInfo) -> Self {
+        Self {
+            sources: context_info
+                .sources
+                .iter()
+                .map(|source| (source.source_id.as_str(), source.display_name.as_str()))
+                .collect(),
+        }
+    }
+
+    /// Replace content tagged with `[[source:${id}]]` with its display name.
+    pub fn rewrite(&self, content: &str) -> String {
+        let re = Regex::new(r"\[\[source:(.*?)\]\]").unwrap();
+        let new_content = re.replace_all(content, |caps: &Captures| {
+            let source_id = caps.get(1).unwrap().as_str();
+            if let Some(display_name) = self.sources.get(source_id) {
+                display_name.to_string()
+            } else {
+                caps[0].to_owned()
+            }
+        });
+        new_content.to_string()
+    }
 }
 
 #[async_trait]

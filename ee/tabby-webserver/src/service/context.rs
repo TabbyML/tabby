@@ -1,18 +1,17 @@
 use std::sync::Arc;
 
+use juniper::ID;
 use tabby_schema::{
-    context::{ContextInfo, ContextService},
+    context::{ContextInfo, ContextKind, ContextService, ContextSource},
     repository::RepositoryService,
     web_documents::WebDocumentService,
     Result,
 };
 
-use super::answer::AnswerService;
-
 struct ContextServiceImpl {
     repository: Arc<dyn RepositoryService>,
     web_document: Arc<dyn WebDocumentService>,
-    answer: Option<Arc<AnswerService>>,
+    can_search_public_web: bool,
 }
 
 #[async_trait::async_trait]
@@ -42,27 +41,28 @@ impl ContextService for ContextServiceImpl {
                 .map(Into::into),
         );
 
-        let info = ContextInfo {
-            sources,
-            can_search_public: self
-                .answer
-                .as_ref()
-                .map(|x| x.can_search_public())
-                .unwrap_or_default(),
-        };
+        if self.can_search_public_web {
+            let source_id = "web";
+            sources.push(ContextSource {
+                id: ID::from(source_id.to_owned()),
+                kind: ContextKind::Web,
+                source_id: source_id.into(),
+                display_name: "Web".to_string(),
+            });
+        }
 
-        Ok(info)
+        Ok(ContextInfo { sources })
     }
 }
 
 pub fn create(
     repository: Arc<dyn RepositoryService>,
     web_document: Arc<dyn WebDocumentService>,
-    answer: Option<Arc<AnswerService>>,
+    can_search_public_web: bool,
 ) -> impl ContextService {
     ContextServiceImpl {
         repository,
         web_document,
-        answer,
+        can_search_public_web,
     }
 }

@@ -19,7 +19,7 @@ use tabby_common::{
 };
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
-    repository::RepositoryService,
+    context::{ContextService, SourceTagRewriter},
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
         ThreadRunItem, ThreadRunOptionsInput,
@@ -34,7 +34,7 @@ pub struct AnswerService {
     chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
-    repository: Arc<dyn RepositoryService>,
+    context: Arc<dyn ContextService>,
     serper: Option<Box<dyn DocSearch>>,
 }
 
@@ -47,22 +47,15 @@ impl AnswerService {
         chat: Arc<dyn ChatCompletionStream>,
         code: Arc<dyn CodeSearch>,
         doc: Arc<dyn DocSearch>,
-        repository: Arc<dyn RepositoryService>,
-        serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
+        context: Arc<dyn ContextService>,
+        serper: Option<Box<dyn DocSearch>>,
     ) -> Self {
-        let serper: Option<Box<dyn DocSearch>> =
-            if let Ok(api_key) = std::env::var("SERPER_API_KEY") {
-                debug!("Serper API key found, enabling serper...");
-                Some(serper_factory_fn(&api_key))
-            } else {
-                None
-            };
         Self {
             config: config.clone(),
             chat,
             code,
             doc,
-            repository,
+            context,
             serper,
         }
     }
@@ -78,6 +71,9 @@ impl AnswerService {
         let user_attachment_input = user_attachment_input.cloned();
 
         let s = stream! {
+            let context_info = self.context.read().await?;
+            let source_tag_rewriter = context_info.rewriter();
+
             let query = match messages.last() {
                 Some(query) => query,
                 None => {
@@ -86,7 +82,6 @@ impl AnswerService {
                 }
             };
 
-            let git_url = options.code_query.as_ref().map(|x| x.git_url.clone());
             let mut attachment = MessageAttachment::default();
 
             // 1. Collect relevant code if needed.
@@ -104,7 +99,7 @@ impl AnswerService {
 
             // 2. Collect relevant docs if needed.
             if let Some(doc_query) = options.doc_query.as_ref() {
-                let hits = self.collect_relevant_docs(doc_query)
+                let hits = self.collect_relevant_docs(&source_tag_rewriter, doc_query)
                     .await;
                 attachment.doc = hits.iter()
                         .map(|x| x.doc.clone().into())
@@ -120,15 +115,17 @@ impl AnswerService {
 
             // 3. Generate relevant questions.
             if options.generate_relevant_questions {
+                // Rewrite [[source:${id}]] tags to the actual source name for generate relevant questions.
+                let content = source_tag_rewriter.rewrite(&query.content);
                 let questions = self
-                    .generate_relevant_questions_v2(&attachment, &query.content)
+                    .generate_relevant_questions_v2(&attachment, &content)
                     .await;
                 yield Ok(ThreadRunItem::ThreadRelevantQuestions(questions));
             }
 
             // 4. Prepare requesting LLM
             let request = {
-                let chat_messages = convert_messages_to_chat_completion_request(&messages, &attachment, user_attachment_input.as_ref())?;
+                let chat_messages = convert_messages_to_chat_completion_request(&source_tag_rewriter, &messages, &attachment, user_attachment_input.as_ref())?;
 
                 CreateChatCompletionRequestArgs::default()
                     .messages(chat_messages)
@@ -202,16 +199,23 @@ impl AnswerService {
         }
     }
 
-    async fn collect_relevant_docs(&self, doc_query: &DocQueryInput) -> Vec<DocSearchHit> {
+    async fn collect_relevant_docs<'a>(
+        &self,
+        source_tag_rewriter: &SourceTagRewriter<'a, 'a>,
+        doc_query: &DocQueryInput,
+    ) -> Vec<DocSearchHit> {
         let source_ids = doc_query.source_ids.as_deref().unwrap_or_default();
 
         if source_ids.is_empty() {
             return vec![];
         }
 
+        // Rewrite [[source:${id}]] tags to the actual source name for doc search.
+        let content = source_tag_rewriter.rewrite(&doc_query.content);
+
         // 1. Collect relevant docs from the tantivy doc search.
         let mut hits = vec![];
-        let doc_hits = match self.doc.search(source_ids, &doc_query.content, 5).await {
+        let doc_hits = match self.doc.search(source_ids, &content, 5).await {
             Ok(docs) => docs.hits,
             Err(err) => {
                 if let DocSearchError::NotReady = err {
@@ -308,10 +312,6 @@ Remember, based on the original question and related contexts, suggest three suc
             .filter(|x| !x.is_empty())
             .collect()
     }
-
-    pub fn can_search_public(&self) -> bool {
-        self.serper.is_some()
-    }
 }
 
 fn remove_bullet_prefix(s: &str) -> String {
@@ -326,13 +326,14 @@ pub fn create(
     chat: Arc<dyn ChatCompletionStream>,
     code: Arc<dyn CodeSearch>,
     doc: Arc<dyn DocSearch>,
-    repository: Arc<dyn RepositoryService>,
-    serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
+    context: Arc<dyn ContextService>,
+    serper: Option<Box<dyn DocSearch>>,
 ) -> AnswerService {
-    AnswerService::new(config, chat, code, doc, repository, serper_factory_fn)
+    AnswerService::new(config, chat, code, doc, context, serper)
 }
 
-fn convert_messages_to_chat_completion_request(
+fn convert_messages_to_chat_completion_request<'a>(
+    rewriter: &SourceTagRewriter<'a, 'a>,
     messages: &[tabby_schema::thread::Message],
     attachment: &tabby_schema::thread::MessageAttachment,
     user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
@@ -361,7 +362,7 @@ fn convert_messages_to_chat_completion_request(
 
         output.push(ChatCompletionRequestMessage::System(
             ChatCompletionRequestSystemMessage {
-                content,
+                content: rewriter.rewrite(&content),
                 role,
                 name: None,
             },
@@ -370,11 +371,11 @@ fn convert_messages_to_chat_completion_request(
 
     output.push(ChatCompletionRequestMessage::System(
         ChatCompletionRequestSystemMessage {
-            content: build_user_prompt(
+            content: rewriter.rewrite(&build_user_prompt(
                 &messages[messages.len() - 1].content,
                 attachment,
                 user_attachment_input,
-            ),
+            )),
             role: Role::User,
             name: None,
         },
@@ -452,8 +453,12 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
 
 #[cfg(test)]
 mod tests {
+
     use juniper::ID;
-    use tabby_schema::AsID;
+    use tabby_schema::{
+        context::{ContextInfo, ContextKind, ContextSource},
+        AsID,
+    };
 
     fn make_message(
         id: i32,
@@ -499,7 +504,7 @@ mod tests {
             make_message(1, "Hello", tabby_schema::thread::Role::User, None),
             make_message(
                 2,
-                "Hi",
+                "Hi, [[source:1]], [[source:2]]",
                 tabby_schema::thread::Role::Assistant,
                 Some(attachment),
             ),
@@ -514,7 +519,19 @@ mod tests {
             }],
         };
 
+        let context_info = ContextInfo {
+            sources: vec![ContextSource {
+                id: ID::from("1".to_owned()),
+                kind: ContextKind::Doc,
+                source_id: "1".to_owned(),
+                display_name: "source-1".to_owned(),
+            }],
+        };
+
+        let rewriter = context_info.rewriter();
+
         let output = super::convert_messages_to_chat_completion_request(
+            &rewriter,
             &messages,
             &tabby_schema::thread::MessageAttachment::default(),
             Some(&user_attachment_input),

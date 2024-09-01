@@ -16,6 +16,7 @@ enum ContextKind {
   GITHUB
   GITLAB
   DOC
+  WEB
 }
 
 enum Encryption {
@@ -252,8 +253,6 @@ type CompletionStats {
 
 type ContextInfo {
   sources: [ContextSource!]!
-  "Whether the deployment has capability to search public web."
-  canSearchPublic: Boolean!
 }
 
 type ContextSource {
