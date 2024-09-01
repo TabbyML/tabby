@@ -10,6 +10,7 @@ import remarkMath from 'remark-math'
 
 import {
   ContextInfo,
+  ContextKind,
   Maybe,
   MessageAttachmentCode,
   MessageAttachmentDoc
@@ -310,6 +311,12 @@ function SourceTag({ sourceId }: { sourceId: string | undefined }) {
 
   if (!sourceId) return null
   const source = contextInfo?.sources?.find(o => o.sourceId === sourceId)
+
+  // FIXME for testing
+  if (sourceId === 'WEB') {
+    return <Mention id={'WEB'} label={'Search Public'} kind={ContextKind.Web} />
+  }
+
   if (!source) return null
 
   return (

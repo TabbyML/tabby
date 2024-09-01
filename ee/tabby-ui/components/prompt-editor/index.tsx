@@ -67,7 +67,6 @@ export interface PromptEditorRef {
 interface MentionContextValue {
   list?: ContextSource[]
   pending: boolean
-  canSearchPublic: boolean
 }
 
 export const MentionContext = React.createContext<MentionContextValue>(
@@ -166,7 +165,6 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       <MentionContext.Provider
         value={{
           list: contextInfo?.sources,
-          canSearchPublic: !!contextInfo?.canSearchPublic,
           pending: !!fetchingContextInfo
         }}
       >

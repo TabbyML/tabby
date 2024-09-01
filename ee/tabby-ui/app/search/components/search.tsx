@@ -551,10 +551,11 @@ export function Search() {
       : null
 
     const docSourceIds = ctx?.docSourceIds || extraContext?.docSourceIds
+    const searchPublic = ctx?.searchPublic || extraContext?.searchPublic
     const docQuery: InputMaybe<DocQueryInput> = {
       sourceIds: docSourceIds,
       content: question,
-      searchPublic: !!ctx?.searchPublic
+      searchPublic: !!searchPublic
     }
 
     setCurrentUserMessageId(newUserMessageId)

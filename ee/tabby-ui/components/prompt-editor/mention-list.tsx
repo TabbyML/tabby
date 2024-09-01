@@ -76,6 +76,21 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
           label: item.displayName,
           data: item
         }))
+
+      // FIXME for test
+      docSources.push({
+        type: 'source',
+        id: 'web',
+        kind: 'doc',
+        label: 'Search Public',
+        data: {
+          id: 'web',
+          kind: ContextKind.Web,
+          sourceId: 'WEB',
+          displayName: 'Search Public'
+        }
+      })
+
       const codeSources: SourceOptionItem[] = list
         .filter(o => isRepositorySource(o.kind))
         .map(item => ({
@@ -118,7 +133,11 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
       if (item.type === 'category') {
         setKind(item.kind)
       } else {
-        command({ id: item.id, label: item.label, kind: item.data.kind })
+        command({
+          id: item.data.sourceId,
+          label: item.label,
+          kind: item.data.kind
+        })
       }
     }
 

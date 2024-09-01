@@ -179,30 +179,30 @@ const client = new Client({
                 })
             }
           },
-          deleteWebCrawlerUrl(result, args, cache, info) {
-            if (result.deleteWebCrawlerUrl) {
-              cache
-                .inspectFields('Query')
-                .filter(field => field.fieldName === 'webCrawlerUrls')
-                .forEach(field => {
-                  cache.updateQuery(
-                    {
-                      query: listWebCrawlerUrl,
-                      variables: field.arguments as WebCrawlerUrlsQueryVariables
-                    },
-                    data => {
-                      if (data?.webCrawlerUrls?.edges) {
-                        data.webCrawlerUrls.edges =
-                          data.webCrawlerUrls.edges.filter(
-                            e => e.node.id !== args.id
-                          )
-                      }
-                      return data
-                    }
-                  )
-                })
-            }
-          },
+          // deleteWebCrawlerUrl(result, args, cache, info) {
+          //   if (result.deleteWebCrawlerUrl) {
+          //     cache
+          //       .inspectFields('Query')
+          //       .filter(field => field.fieldName === 'webCrawlerUrls')
+          //       .forEach(field => {
+          //         cache.updateQuery(
+          //           {
+          //             query: listWebCrawlerUrl,
+          //             variables: field.arguments as WebCrawlerUrlsQueryVariables
+          //           },
+          //           data => {
+          //             if (data?.webCrawlerUrls?.edges) {
+          //               data.webCrawlerUrls.edges =
+          //                 data.webCrawlerUrls.edges.filter(
+          //                   e => e.node.id !== args.id
+          //                 )
+          //             }
+          //             return data
+          //           }
+          //         )
+          //       })
+          //   }
+          // },
           deleteIntegration(result, args, cache, info) {
             if (result.deleteIntegration) {
               cache

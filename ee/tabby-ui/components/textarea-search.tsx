@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Editor } from '@tiptap/react'
 
-import { ContextInfo } from '@/lib/gql/generates/graphql'
+import { ContextInfo, ContextKind } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { AnswerEngineExtraContext } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { cn, isCodeSourceContext } from '@/lib/utils'
 import {
   Tooltip,
   TooltipContent,
@@ -14,12 +14,8 @@ import {
 } from '@/components/ui/tooltip'
 
 import { PromptEditor, PromptEditorRef } from './prompt-editor'
-import {
-  getMentionsWithIndices,
-  isRepositorySource
-} from './prompt-editor/utils'
+import { getMentionsWithIndices } from './prompt-editor/utils'
 import { buttonVariants } from './ui/button'
-import { Checkbox } from './ui/checkbox'
 import { IconArrowRight, IconAtSign, IconSpinner } from './ui/icons'
 
 export default function TextAreaSearch({
@@ -51,8 +47,6 @@ export default function TextAreaSearch({
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)
   const [value, setValue] = useState('')
-  const [searchPublic, setSearchPublic] = useState(false)
-
   const { theme } = useCurrentTheme()
   const editorRef = useRef<PromptEditorRef>(null)
 
@@ -78,11 +72,13 @@ export default function TextAreaSearch({
     const mentions = getMentionsWithIndices(editor)
     const docSourceIds: string[] = []
     const codeSourceIds: string[] = []
-
+    let searchPublic = false
     for (let mention of mentions) {
       const { kind, id } = mention
-      if (isRepositorySource(kind)) {
+      if (isCodeSourceContext(kind)) {
         codeSourceIds.push(id)
+      } else if (kind === ContextKind.Web) {
+        searchPublic = true
       } else {
         docSourceIds.push(id)
       }
@@ -193,7 +189,7 @@ export default function TextAreaSearch({
               </span>
             </div>
           </div>
-          <Tooltip>
+          {/* <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center space-x-1.5">
                 <Checkbox
@@ -218,7 +214,7 @@ export default function TextAreaSearch({
             <TooltipContent>
               <p>Search Public</p>
             </TooltipContent>
-          </Tooltip>
+          </Tooltip> */}
         </div>
         <div
           className={cn(
