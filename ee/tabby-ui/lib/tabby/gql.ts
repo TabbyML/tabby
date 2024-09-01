@@ -21,16 +21,10 @@ import {
 import {
   GitRepositoriesQueryVariables,
   ListIntegrationsQueryVariables,
-  ListInvitationsQueryVariables,
-  WebCrawlerUrlsQueryVariables
+  ListInvitationsQueryVariables
 } from '../gql/generates/graphql'
 import { refreshTokenMutation } from './auth'
-import {
-  listIntegrations,
-  listInvitations,
-  listRepositories,
-  listWebCrawlerUrl
-} from './query'
+import { listIntegrations, listInvitations, listRepositories } from './query'
 import { getAuthToken, isTokenExpired, tokenManager } from './token-management'
 
 interface ValidationError {
