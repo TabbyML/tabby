@@ -118,7 +118,7 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
       if (item.type === 'category') {
         setKind(item.kind)
       } else {
-        command({ id: item.id, label: item.label, kind: item.kind })
+        command({ id: item.id, label: item.label, kind: item.data.kind })
       }
     }
 

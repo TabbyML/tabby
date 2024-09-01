@@ -2,7 +2,7 @@ import './styles.css'
 
 import React, { forwardRef, useImperativeHandle, useLayoutEffect } from 'react'
 import Document from '@tiptap/extension-document'
-import HardBreak from '@tiptap/extension-hard-break'
+// import HardBreak from '@tiptap/extension-hard-break'
 import Paragraph from '@tiptap/extension-paragraph'
 import Placeholder from '@tiptap/extension-placeholder'
 import Text from '@tiptap/extension-text'
@@ -23,13 +23,21 @@ import { cn } from '@/lib/utils'
 import { CustomMention } from './custom-mention-extension'
 import suggestion from './suggestion'
 
-const DisableEnter = (onSubmit: (editor: Editor) => void) =>
+const CustomKeyboardShortcuts = (onSubmit: (editor: Editor) => void) =>
   Extension.create({
     addKeyboardShortcuts() {
       return {
         Enter: ({ editor }) => {
           onSubmit(editor)
           return true
+        },
+        'Shift-Enter': () => {
+          return this.editor.commands.first(({ commands }) => [
+            () => commands.newlineInCode(),
+            () => commands.createParagraphNear(),
+            () => commands.liftEmptyBlock(),
+            () => commands.splitBlock()
+          ])
         }
       }
     }
@@ -104,11 +112,10 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
         Document,
         Paragraph,
         Text,
-        HardBreak,
         Placeholder.configure({
           placeholder: placeholder || 'Ask anything...'
         }),
-        DisableEnter(handleSubmit),
+        CustomKeyboardShortcuts(handleSubmit),
         CustomMention.configure({
           HTMLAttributes: {
             class: 'mention'
@@ -126,17 +133,6 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
             'max-h-38 prose min-h-[3.5rem] max-w-none font-sans dark:prose-invert focus:outline-none prose-p:my-0',
             editorClassName
           )
-        },
-        handleDOMEvents: {
-          keydown: (_, event) => {
-            if (event.key === 'Enter' && event.shiftKey) {
-              if (editor) {
-                editor.commands.setHardBreak()
-              }
-              event.preventDefault()
-              return true
-            }
-          }
         }
       },
       content,
@@ -170,7 +166,6 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       <MentionContext.Provider
         value={{
           list: contextInfo?.sources,
-          // FIXME
           canSearchPublic: !!contextInfo?.canSearchPublic,
           pending: !!fetchingContextInfo
         }}

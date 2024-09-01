@@ -15,7 +15,6 @@ import {
 
 import { PromptEditor, PromptEditorRef } from './prompt-editor'
 import {
-  getInfoFromMentionId,
   getMentionsWithIndices,
   isRepositorySource
 } from './prompt-editor/utils'
@@ -73,17 +72,19 @@ export default function TextAreaSearch({
       return
     }
 
-    const text = editor.getText()
+    const text = editor.getText({
+      blockSeparator: '\n\n'
+    })
     const mentions = getMentionsWithIndices(editor)
     const docSourceIds: string[] = []
     const codeSourceIds: string[] = []
 
     for (let mention of mentions) {
-      const { kind, sourceId } = getInfoFromMentionId(mention.id)
+      const { kind, id } = mention
       if (isRepositorySource(kind)) {
-        codeSourceIds.push(sourceId)
+        codeSourceIds.push(id)
       } else {
-        docSourceIds.push(sourceId)
+        docSourceIds.push(id)
       }
     }
 

@@ -103,7 +103,6 @@ import {
   MessageMarkdown,
   SiteFavicon
 } from '@/components/message-markdown'
-import { PromptEditor } from '@/components/prompt-editor'
 
 import { DevPanel } from './dev-panel'
 import { MessagesSkeleton } from './messages-skeleton'
@@ -709,13 +708,10 @@ export function Search() {
                           <div key={item.id}>
                             {idx !== 0 && <Separator />}
                             <div className="pb-2 pt-8">
-                              {/* todo convert message to jsonContent */}
-                              <PromptEditor
-                                editable={false}
-                                content={item.content}
+                              <MessageMarkdown
+                                message={item.content}
                                 contextInfo={contextInfoData?.contextInfo}
                                 fetchingContextInfo={fetchingContextInfo}
-                                enabledMarkdown
                               />
                             </div>
                           </div>
@@ -1069,6 +1065,8 @@ function AnswerBlock({
           onCodeCitationClick={onCodeCitationClick}
           onCodeCitationMouseEnter={onCodeCitationMouseEnter}
           onCodeCitationMouseLeave={onCodeCitationMouseLeave}
+          contextInfo={contextInfo}
+          fetchingContextInfo={fetchingContextInfo}
         />
         {answer.error && <ErrorMessageBlock error={answer.error} />}
 
