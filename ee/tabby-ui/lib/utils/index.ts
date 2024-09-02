@@ -3,9 +3,9 @@ import { compact, isNil } from 'lodash-es'
 import { customAlphabet } from 'nanoid'
 import { twMerge } from 'tailwind-merge'
 
-import { ContextKind } from '@/lib/gql/generates/graphql'
+import { AttachmentCodeItem } from '../types'
 
-import { AttachmentCodeItem } from './types'
+export * from './chat'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -120,14 +120,4 @@ export function getRangeFromAttachmentCode(code: AttachmentCodeItem) {
 export function getRangeTextFromAttachmentCode(code: AttachmentCodeItem) {
   const { startLine, endLine } = getRangeFromAttachmentCode(code)
   return formatLineHashForCodeBrowser({ start: startLine, end: endLine })
-}
-
-export const isCodeSourceContext = (kind: ContextKind) => {
-  return [ContextKind.Git, ContextKind.Github, ContextKind.Gitlab].includes(
-    kind
-  )
-}
-
-export const isDocSourceContext = (kind: ContextKind) => {
-  return [ContextKind.Doc, ContextKind.Web].includes(kind)
 }

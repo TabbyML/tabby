@@ -30,8 +30,10 @@ import {
 import {
   cn,
   formatLineHashForCodeBrowser,
+  getMentionsFromText,
   getRangeFromAttachmentCode,
-  getRangeTextFromAttachmentCode
+  getRangeTextFromAttachmentCode,
+  getSourceIdsFromMentions
 } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
@@ -602,19 +604,21 @@ export function Search() {
       error: undefined
     }
 
-    // FIXME utils
-    // FIXME should get context from the user message
-    const repoSourceIds = extraContext?.codeSourceIds
-    const repoSourceId = repoSourceIds?.[0]
-    const codeQuery: InputMaybe<CodeQueryInput> = repoSourceId
-      ? { sourceId: repoSourceId, content: newUserMessage.content }
+    const mentions = getMentionsFromText(
+      newUserMessage.content,
+      contextInfoData?.contextInfo?.sources
+    )
+    const { codeSourceIds, docSourceIds, searchPublic } =
+      getSourceIdsFromMentions(mentions)
+    const codeSourceId = codeSourceIds?.[0]
+    const codeQuery: InputMaybe<CodeQueryInput> = codeSourceId
+      ? { sourceId: codeSourceId, content: newUserMessage.content }
       : null
 
-    const docSourceIds = extraContext?.docSourceIds
     const docQuery: InputMaybe<DocQueryInput> = {
       sourceIds: docSourceIds,
       content: newUserMessage.content,
-      searchPublic: !!extraContext?.searchPublic
+      searchPublic
     }
 
     setCurrentUserMessageId(newUserMessage.id)
@@ -708,11 +712,12 @@ export function Search() {
                         return (
                           <div key={item.id}>
                             {idx !== 0 && <Separator />}
-                            <div className="pb-2 pt-8">
+                            <div className="pb-2 pt-8 font-semibold">
                               <MessageMarkdown
                                 message={item.content}
                                 contextInfo={contextInfoData?.contextInfo}
                                 fetchingContextInfo={fetchingContextInfo}
+                                className="text-[1.25rem]"
                               />
                             </div>
                           </div>

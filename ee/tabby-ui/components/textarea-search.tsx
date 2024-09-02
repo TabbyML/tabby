@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Editor } from '@tiptap/react'
 
-import { ContextInfo, ContextKind } from '@/lib/gql/generates/graphql'
+import { ContextInfo } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { AnswerEngineExtraContext } from '@/lib/types'
-import { cn, isCodeSourceContext } from '@/lib/utils'
+import { cn, getMentionsFromText, getSourceIdsFromMentions } from '@/lib/utils'
 import {
   Tooltip,
   TooltipContent,
@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/tooltip'
 
 import { PromptEditor, PromptEditorRef } from './prompt-editor'
-import { getMentionsWithIndices } from './prompt-editor/utils'
 import { buttonVariants } from './ui/button'
 import { IconArrowRight, IconAtSign, IconSpinner } from './ui/icons'
 
@@ -67,26 +66,8 @@ export default function TextAreaSearch({
     }
 
     const text = editor.getText()
-    const mentions = getMentionsWithIndices(editor)
-    const docSourceIds: string[] = []
-    const codeSourceIds: string[] = []
-    let searchPublic = false
-    for (let mention of mentions) {
-      const { kind, id } = mention
-      if (isCodeSourceContext(kind)) {
-        codeSourceIds.push(id)
-      } else if (kind === ContextKind.Web) {
-        searchPublic = true
-      } else {
-        docSourceIds.push(id)
-      }
-    }
-
-    const ctx: AnswerEngineExtraContext = {
-      searchPublic,
-      docSourceIds,
-      codeSourceIds
-    }
+    const mentions = getMentionsFromText(text, contextInfo?.sources)
+    const ctx = getSourceIdsFromMentions(mentions)
 
     // do submit
     onSearch(text, ctx)
@@ -94,6 +75,30 @@ export default function TextAreaSearch({
     // clear content
     if (cleanAfterSearch) {
       editorRef.current?.editor?.chain().clearContent().focus().run()
+    }
+  }
+
+  const handleClickMentionIcon = () => {
+    const editor = editorRef.current?.editor
+    if (editor) {
+      const { state } = editor
+      const { selection } = state
+      const { from } = selection
+
+      // const $from = state.doc.resolve(from)
+      // const type = state.schema.nodes['mention']
+      // const allow = !!$from.parent.type.contentMatch.matchType(type)
+      const charBeforeCursor = state.doc.textBetween(from - 1, from, ' ')
+      const isAtLineStart =
+        from === 1 || state.doc.textBetween(from - 1, from, '\n') === '\n'
+      const hasSpaceBeforeCursor = charBeforeCursor === ' '
+
+      // FIXME
+      if (isAtLineStart || hasSpaceBeforeCursor) {
+        editor.chain().focus().insertContent('@').run()
+      } else {
+        editor.chain().focus().insertContent(' @').run()
+      }
     }
   }
 
@@ -173,13 +178,7 @@ export default function TextAreaSearch({
               '-ml-2 cursor-pointer rounded-full px-2',
               className
             )}
-            onClick={() => {
-              editorRef.current?.editor
-                ?.chain()
-                .insertContent(' @')
-                .focus()
-                .run()
-            }}
+            onClick={handleClickMentionIcon}
           >
             <div className="flex items-center gap-1 overflow-hidden">
               <IconAtSign className={cn('shrink-0 text-foreground/60')} />

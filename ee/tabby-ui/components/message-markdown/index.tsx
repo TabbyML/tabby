@@ -66,6 +66,7 @@ export interface MessageMarkdownProps {
   onCodeCitationMouseLeave?: (index: number) => void
   contextInfo: ContextInfo | undefined
   fetchingContextInfo: boolean
+  className?: string
 }
 
 type MessageMarkdownContextValue = {
@@ -91,6 +92,7 @@ export function MessageMarkdown({
   onCopyContent,
   contextInfo,
   fetchingContextInfo,
+  className,
   ...rest
 }: MessageMarkdownProps) {
   const messageAttachments: MessageAttachments = useMemo(() => {
@@ -169,7 +171,10 @@ export function MessageMarkdown({
       }}
     >
       <MemoizedReactMarkdown
-        className="message-markdown prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
+        className={cn(
+          'message-markdown prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0',
+          className
+        )}
         remarkPlugins={[remarkGfm, remarkMath]}
         components={{
           p({ children }) {
@@ -311,16 +316,10 @@ function SourceTag({ sourceId }: { sourceId: string | undefined }) {
 
   if (!sourceId) return null
   const source = contextInfo?.sources?.find(o => o.sourceId === sourceId)
-
-  // FIXME for testing
-  if (sourceId === ContextKind.Web) {
-    return <Mention id={'Web'} label={'Web'} kind={ContextKind.Web} />
-  }
-
   if (!source) return null
 
   return (
-    <div className="inline-flex leading-7">
+    <div className="inline-flex">
       {fetchingContextInfo ? (
         <Skeleton className="w-16" />
       ) : (

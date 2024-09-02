@@ -19,8 +19,8 @@ export function Mention({ kind, label }: MentionAttributes) {
     <Tooltip>
       <TooltipTrigger asChild>
         <NodeViewWrapper as={'span'}>
-          <span className="source-mention gap-1 space-x-0.5 rounded-sm px-1 py-0 leading-7">
-            <SourceIcon kind={kind} className="-mt-[2px] inline h-3.5 w-3.5" />
+          <span className="source-mention rounded-sm px-1 py-0">
+            <SourceIcon kind={kind} className="inline h-3.5 w-3.5" />
             <span className="text-base">{label}</span>
           </span>
         </NodeViewWrapper>
