@@ -39,7 +39,7 @@ export interface MentionListActions {
 const CATEGORY_OPTIONS: CategoryOptionItem[] = [
   {
     type: 'category',
-    label: 'Repository',
+    label: 'Codebase',
     category: 'code'
   },
   {
