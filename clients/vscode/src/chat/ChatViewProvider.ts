@@ -24,6 +24,7 @@ import type { ServerInfo } from "tabby-agent";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
 import { createClient } from "./chatPanel";
 import { GitProvider } from "../git/GitProvider";
+import { getLogger } from "../logger";
 
 export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
@@ -251,6 +252,10 @@ export class ChatViewProvider implements WebviewViewProvider {
           env.clipboard.writeText(message.data);
           return;
         }
+        case "trigger": {
+          getLogger().info("test here trigger");
+          return;
+        }
       }
     });
 
@@ -350,37 +355,63 @@ export class ChatViewProvider implements WebviewViewProvider {
         
             <script defer>
               const vscode = acquireVsCodeApi();
-
-              function getTheme () {
+  
+              function getTheme() {
                 return document.body.className === 'vscode-dark' ? 'dark' : 'light'
               }
-
+  
               function getCssVariableValue(variableName) {
                 const root = document.documentElement;
                 return getComputedStyle(root).getPropertyValue(variableName).trim();
               }
-
+  
               const syncTheme = () => {
                 const chatIframe = document.getElementById("chat");
                 if (!chatIframe) return
-
+  
                 const parentHtmlStyle = document.documentElement.getAttribute('style');
                 chatIframe.contentWindow.postMessage({ style: parentHtmlStyle }, "${endpoint}");
-
+  
                 let themeClass = getTheme()
                 themeClass += ' vscode'
                 chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${endpoint}");
               }
-
+  
               window.onload = function () {
                 const chatIframe = document.getElementById("chat");
                 const loadingOverlay = document.getElementById("loading-overlay");
+  
+              window.addEventListener('keydown', function(e) {
+                console.log('Keydown event on window:', e.key);
+                if (e.key === 'l') {
+                  console.log('L key pressed on window');
+                  vscode.postMessage({ action: 'trigger' });
+                  e.preventDefault();
+                }
+              }, true);
+              document.addEventListener('keydown', function(e) {
+                console.log('Keydown event on document:', e.key);
+                if (e.key === 'l') {
+                  console.log('L key pressed on document');
+                  vscode.postMessage({ action: 'trigger' });
+                  e.preventDefault();
+                }
+              }, true);
+
+              document.body.addEventListener('keydown', function(e) {
+                console.log('Keydown event on body:', e.key);
+                if (e.key === 'l') {
+                  console.log('L key pressed on body');
+                  vscode.postMessage({ action: 'trigger' });
+                  e.preventDefault(); 
+              }, true);
+
+
 
                 if (chatIframe) {
                   const fontSize = getCssVariableValue('--vscode-font-size');
                   const foreground = getCssVariableValue('--vscode-editor-foreground');
                   const theme = getTheme()
-
                   const clientQuery = "&client=vscode"
                   const themeQuery = "&theme=" + theme
                   const fontSizeQuery = "&font-size=" + fontSize
@@ -388,6 +419,14 @@ export class ChatViewProvider implements WebviewViewProvider {
       
                   chatIframe.addEventListener('load', function() {
                     vscode.postMessage({ action: 'rendered' });
+  
+                    chatIframe.addEventListener('keydown', e => {
+                      if (e.key === 'l') {
+                        vscode.postMessage({ action: 'trigger' });
+                      }
+                    });
+                    
+                    
                     setTimeout(() => {
                       syncTheme()
 
@@ -412,7 +451,7 @@ export class ChatViewProvider implements WebviewViewProvider {
                       vscode.postMessage(event.data);
                       return;
                     }
-
+  
                     if (event.data.data) {
                       chatIframe.contentWindow.postMessage(event.data.data[0], "${endpoint}");
                     } else {
@@ -432,15 +471,12 @@ export class ChatViewProvider implements WebviewViewProvider {
               <p>Just a moment while we get things ready...</p>
               <span class='loader'></span>
             </main>
-            <iframe
-              id="chat"
-              allow="clipboard-read; clipboard-write" />
+            <iframe id="chat" allow="clipboard-read; clipboard-write"></iframe>
           </body>
         </html>
       `;
     }
   }
-
   private displayDisconnectedPage() {
     if (this.webview) {
       this.isChatPageDisplayed = false;
