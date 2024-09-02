@@ -88,7 +88,7 @@ impl AnswerService {
             if let Some(code_query) = options.code_query.as_ref() {
                 let hits = self.collect_relevant_code(
                     &source_tag_rewriter,
-                    &code_query,
+                    code_query,
                     &self.config.code_search_params,
                     options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref()
                 )).await;
