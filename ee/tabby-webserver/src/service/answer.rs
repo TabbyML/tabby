@@ -352,7 +352,7 @@ pub fn create(
 }
 
 fn convert_messages_to_chat_completion_request<'a>(
-    rewriter: &ContextInfoHelper<'a, 'a>,
+    helper: &ContextInfoHelper<'a, 'a>,
     messages: &[tabby_schema::thread::Message],
     attachment: &tabby_schema::thread::MessageAttachment,
     user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
@@ -381,7 +381,7 @@ fn convert_messages_to_chat_completion_request<'a>(
 
         output.push(ChatCompletionRequestMessage::System(
             ChatCompletionRequestSystemMessage {
-                content: rewriter.rewrite_tag(&content),
+                content: helper.rewrite_tag(&content),
                 role,
                 name: None,
             },
@@ -390,7 +390,7 @@ fn convert_messages_to_chat_completion_request<'a>(
 
     output.push(ChatCompletionRequestMessage::System(
         ChatCompletionRequestSystemMessage {
-            content: rewriter.rewrite_tag(&build_user_prompt(
+            content: helper.rewrite_tag(&build_user_prompt(
                 &messages[messages.len() - 1].content,
                 attachment,
                 user_attachment_input,
