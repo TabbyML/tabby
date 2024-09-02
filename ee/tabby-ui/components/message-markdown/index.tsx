@@ -63,8 +63,8 @@ export interface MessageMarkdownProps {
   onCodeCitationClick?: (code: MessageAttachmentCode) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
-  contextInfo: ContextInfo | undefined
-  fetchingContextInfo: boolean
+  contextInfo?: ContextInfo
+  fetchingContextInfo?: boolean
   className?: string
 }
 
