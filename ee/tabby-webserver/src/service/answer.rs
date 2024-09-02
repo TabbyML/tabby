@@ -86,7 +86,12 @@ impl AnswerService {
 
             // 1. Collect relevant code if needed.
             if let Some(code_query) = options.code_query.as_ref() {
-                let hits = self.collect_relevant_code(code_query, &self.config.code_search_params, options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref())).await;
+                let hits = self.collect_relevant_code(
+                    &source_tag_rewriter,
+                    &code_query,
+                    &self.config.code_search_params,
+                    options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref()
+                )).await;
                 attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
 
                 if !hits.is_empty() {
@@ -167,8 +172,9 @@ impl AnswerService {
         Ok(Box::pin(s))
     }
 
-    async fn collect_relevant_code(
+    async fn collect_relevant_code<'a>(
         &self,
+        source_tag_rewriter: &SourceTagRewriter<'a, 'a>,
         input: &CodeQueryInput,
         params: &CodeSearchParams,
         override_params: Option<&CodeSearchParamsOverrideInput>,
@@ -177,7 +183,7 @@ impl AnswerService {
             input.git_url.clone(),
             input.filepath.clone(),
             input.language.clone(),
-            input.content.clone(),
+            source_tag_rewriter.rewrite(&input.content),
             input.source_id.clone(),
         );
 
@@ -186,7 +192,8 @@ impl AnswerService {
             .as_ref()
             .inspect(|x| x.override_params(&mut params));
 
-        match self.code.search_in_language(query, params.clone()).await {
+        debug!(?query, ?params, "searching code");
+        match self.code.search_in_language(query, params).await {
             Ok(docs) => docs.hits,
             Err(err) => {
                 if let CodeSearchError::NotReady = err {
