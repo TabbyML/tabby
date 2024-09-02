@@ -15,8 +15,6 @@ import { go as fuzzy } from 'fuzzysort'
 import { ContextKind } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
 import { cn, isCodeSourceContext, isDocSourceContext } from '@/lib/utils'
-
-import { MentionContext } from '.'
 import {
   IconCode,
   IconFileText,
@@ -24,9 +22,10 @@ import {
   IconGitLab,
   IconGlobe,
   IconSpinner
-} from '../ui/icons'
+} from '@/components/ui/icons'
+
+import { MentionContext } from '.'
 import { CategoryOptionItem, OptionItem, SourceOptionItem } from './types'
-import { isRepositorySource } from './utils'
 
 export interface MetionListProps extends SuggestionProps {
   mentions?: MentionAttributes[]
@@ -56,7 +55,7 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
     const hasSelectedRepo = useMemo(() => {
       return (
         mentions?.findIndex(o => {
-          return isRepositorySource(o.kind)
+          return isCodeSourceContext(o.kind)
         }) !== -1
       )
     }, [mentions])

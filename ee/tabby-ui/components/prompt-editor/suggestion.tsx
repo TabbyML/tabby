@@ -1,14 +1,42 @@
 import { MentionOptions } from '@tiptap/extension-mention'
-import { ReactRenderer } from '@tiptap/react'
+import { Editor, JSONContent, ReactRenderer } from '@tiptap/react'
 import tippy, { GetReferenceClientRect, Instance, Placement } from 'tippy.js'
+
+import { MentionAttributes } from '@/lib/types'
 
 import MentionList, {
   MentionListActions,
   MetionListProps
 } from './mention-list'
-import { getMentionsWithIndices } from './utils'
 
 import 'tippy.js/animations/shift-away.css'
+
+const getMentionsFromEditor = (editor: Editor) => {
+  const json = editor.getJSON()
+  const mentions: MentionAttributes[] = []
+  let textLength = 0
+
+  const traverse = (node: JSONContent) => {
+    if (node.type === 'text') {
+      textLength += node?.text?.length || 0
+    } else if (node.type === 'mention') {
+      if (node?.attrs?.id) {
+        mentions.push({
+          id: node.attrs.id,
+          label: node.attrs.label,
+          kind: node.attrs.kind
+        })
+      }
+    }
+
+    if (node.content) {
+      node.content.forEach(traverse)
+    }
+  }
+
+  traverse(json)
+  return mentions
+}
 
 const suggestion: (options: {
   placement?: Placement
@@ -20,7 +48,7 @@ const suggestion: (options: {
     return {
       onStart: props => {
         // get existing mentions
-        const mentions = getMentionsWithIndices(props.editor)
+        const mentions = getMentionsFromEditor(props.editor)
 
         component = new ReactRenderer(MentionList, {
           props: { ...props, mentions },
