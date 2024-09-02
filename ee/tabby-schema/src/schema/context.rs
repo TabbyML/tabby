@@ -51,12 +51,11 @@ impl From<Repository> for ContextSource {
         };
 
         let display_name = match repo.kind {
-            RepositoryKind::Git | RepositoryKind::GitConfig | RepositoryKind::GithubSelfHosted | RepositoryKind::GitlabSelfHosted => {
-                repo.git_url
-            },
-            RepositoryKind::Github  | RepositoryKind::Gitlab => {
-                repo.name
-            },
+            RepositoryKind::Git
+            | RepositoryKind::GitConfig
+            | RepositoryKind::GithubSelfHosted
+            | RepositoryKind::GitlabSelfHosted => repo.git_url,
+            RepositoryKind::Github | RepositoryKind::Gitlab => repo.name,
         };
 
         Self {
