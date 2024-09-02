@@ -426,20 +426,28 @@ export function Search() {
     currentAssistantMessage.content =
       answer?.threadAssistantMessageContentDelta || ''
 
-    if (!currentAssistantMessage?.attachment?.code) {
+    // get and format scores from streaming answer
+    if (
+      !currentAssistantMessage?.attachment?.code &&
+      !!answer?.threadAssistantMessageAttachmentsCode
+    ) {
       currentAssistantMessage.attachment = {
-        doc: currentAssistantMessage.attachment?.doc ?? null,
+        doc: currentAssistantMessage.attachment?.doc || null,
         code:
           answer?.threadAssistantMessageAttachmentsCode?.map(hit => ({
             ...hit.code,
             extra: {
               scores: hit.scores
             }
-          })) ?? null
+          })) || null
       }
     }
 
-    if (!currentAssistantMessage?.attachment?.doc) {
+    // get and format scores from streaming answer
+    if (
+      !currentAssistantMessage?.attachment?.doc &&
+      !!answer?.threadAssistantMessageAttachmentsDoc
+    ) {
       currentAssistantMessage.attachment = {
         doc:
           answer?.threadAssistantMessageAttachmentsDoc?.map(hit => ({
@@ -447,8 +455,8 @@ export function Search() {
             extra: {
               score: hit.score
             }
-          })) ?? null,
-        code: currentAssistantMessage.attachment?.code ?? null
+          })) || null,
+        code: currentAssistantMessage.attachment?.code || null
       }
     }
 
@@ -599,8 +607,8 @@ export function Search() {
       role: Role.Assistant,
       content: '',
       attachment: {
-        code: [],
-        doc: []
+        code: null,
+        doc: null
       },
       error: undefined
     }
