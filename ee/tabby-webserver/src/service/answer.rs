@@ -184,7 +184,7 @@ impl AnswerService {
     ) -> Vec<CodeSearchHit> {
         if let Some(source_id) = &input.source_id {
             // If source_id doesn't exist, return empty result.
-            if !helper.has_source_id(source_id) {
+            if !helper.can_access_source_id(source_id) {
                 return vec![];
             }
         }
@@ -223,7 +223,7 @@ impl AnswerService {
         let mut source_ids = doc_query.source_ids.as_deref().unwrap_or_default().to_vec();
 
         // Only keep source_ids that are valid.
-        source_ids.retain(|x| helper.has_source_id(x));
+        source_ids.retain(|x| helper.can_access_source_id(x));
 
         if source_ids.is_empty() {
             return vec![];

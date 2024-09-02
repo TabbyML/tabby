@@ -129,7 +129,7 @@ impl<'a> ContextInfoHelper<'a, 'a> {
         new_content.to_string()
     }
 
-    pub fn has_source_id(&self, source_id: &str) -> bool {
+    pub fn can_access_source_id(&self, source_id: &str) -> bool {
         self.sources.contains_key(source_id)
     }
 }
