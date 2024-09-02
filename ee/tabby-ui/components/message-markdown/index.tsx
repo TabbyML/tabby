@@ -10,7 +10,6 @@ import remarkMath from 'remark-math'
 
 import {
   ContextInfo,
-  ContextKind,
   Maybe,
   MessageAttachmentCode,
   MessageAttachmentDoc
