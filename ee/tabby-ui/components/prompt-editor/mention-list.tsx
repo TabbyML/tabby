@@ -166,7 +166,7 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
     }))
 
     return (
-      <div className="dropdown-menu min-w-[20rem] overflow-x-hidden overflow-y-auto max-h-[30vh] rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in">
+      <div className="dropdown-menu max-h-[30vh] min-w-[20rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in">
         {filteredList.length ? (
           filteredList.map((item, index) => (
             <div
