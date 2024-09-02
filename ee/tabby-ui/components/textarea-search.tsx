@@ -6,7 +6,11 @@ import { Editor } from '@tiptap/react'
 import { ContextInfo } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { ThreadRunContexts } from '@/lib/types'
-import { cn, getMentionsFromText, getSourceIdsFromMentions } from '@/lib/utils'
+import {
+  cn,
+  getMentionsFromText,
+  getThreadRunContextsFromMentions
+} from '@/lib/utils'
 import {
   Tooltip,
   TooltipContent,
@@ -66,7 +70,7 @@ export default function TextAreaSearch({
 
     const text = editor.getText()
     const mentions = getMentionsFromText(text, contextInfo?.sources)
-    const ctx = getSourceIdsFromMentions(mentions)
+    const ctx = getThreadRunContextsFromMentions(mentions)
 
     // do submit
     onSearch(text, ctx)

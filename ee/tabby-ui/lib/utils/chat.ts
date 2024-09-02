@@ -1,7 +1,7 @@
 import { uniq } from 'lodash-es'
 
-import { ContextInfo, ContextKind } from '../gql/generates/graphql'
-import { MentionAttributes } from '../types'
+import { ContextInfo, ContextKind } from '@/lib/gql/generates/graphql'
+import { MentionAttributes } from '@/lib/types'
 
 export const isCodeSourceContext = (kind: ContextKind) => {
   return [ContextKind.Git, ContextKind.Github, ContextKind.Gitlab].includes(
@@ -36,7 +36,9 @@ export const getMentionsFromText = (
   return mentions
 }
 
-export const getSourceIdsFromMentions = (mentions: MentionAttributes[]) => {
+export const getThreadRunContextsFromMentions = (
+  mentions: MentionAttributes[]
+) => {
   const docSourceIds: string[] = []
   const codeSourceIds: string[] = []
   let searchPublic = false

@@ -3,8 +3,8 @@ import { TooltipContent, TooltipTrigger } from '@radix-ui/react-tooltip'
 import { NodeViewProps, NodeViewWrapper } from '@tiptap/react'
 
 import { ContextKind } from '@/lib/gql/generates/graphql'
+import { MentionAttributes } from '@/lib/types'
 
-import { MentionAttributes } from '../lib/types'
 import {
   IconCode,
   IconFileText,

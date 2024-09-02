@@ -33,7 +33,7 @@ import {
   getMentionsFromText,
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode,
-  getSourceIdsFromMentions
+  getThreadRunContextsFromMentions
 } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
@@ -612,7 +612,7 @@ export function Search() {
       contextInfoData?.contextInfo?.sources
     )
     const { codeSourceIds, docSourceIds, searchPublic } =
-      getSourceIdsFromMentions(mentions)
+      getThreadRunContextsFromMentions(mentions)
     const codeSourceId = codeSourceIds?.[0]
     const codeQuery: InputMaybe<CodeQueryInput> = codeSourceId
       ? { sourceId: codeSourceId, content: newUserMessage.content }
