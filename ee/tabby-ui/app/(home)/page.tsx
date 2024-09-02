@@ -91,7 +91,7 @@ function MainPanel() {
     setIsLoading(true)
     sessionStorage.setItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG, question)
     sessionStorage.setItem(
-      SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT,
+      SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS,
       JSON.stringify(ctx)
     )
     router.push('/search')

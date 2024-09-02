@@ -363,21 +363,19 @@ export function Search() {
         SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
       )
       // initial extra context from home page
-      const initialExtraContextStr = sessionStorage.getItem(
-        SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
+      const initialThreadRunContextStr = sessionStorage.getItem(
+        SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS
       )
 
-      const initialExtraContext = initialExtraContextStr
-        ? JSON.parse(initialExtraContextStr)
+      const initialThreadRunContext = initialThreadRunContextStr
+        ? JSON.parse(initialThreadRunContextStr)
         : undefined
 
       if (initialMessage) {
         sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
-        sessionStorage.removeItem(
-          SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
-        )
+        sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS)
         setIsReady(true)
-        onSubmitSearch(initialMessage, initialExtraContext)
+        onSubmitSearch(initialMessage, initialThreadRunContext)
         return
       }
 
