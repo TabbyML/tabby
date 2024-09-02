@@ -579,6 +579,8 @@ export function Search() {
   // regenerate ths last assistant message
   const onRegenerateResponse = () => {
     if (!threadId) return
+    // need to get the sources from contextInfo
+    if (fetchingContextInfo) return
 
     const assistantMessageIndex = messages.length - 1
     const userMessageIndex = assistantMessageIndex - 1
@@ -1083,7 +1085,7 @@ function AnswerBlock({
               value={getCopyContent(answer)}
               text="Copy"
             />
-            {!isLoading && isLastAssistantMessage && (
+            {!isLoading && !fetchingContextInfo && isLastAssistantMessage && (
               <Button
                 className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
                 variant="ghost"

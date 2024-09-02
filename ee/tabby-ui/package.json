@@ -53,7 +53,6 @@
     "@tiptap/extension-placeholder": "^2.6.6",
     "@tiptap/extension-text": "^2.6.6",
     "@tiptap/react": "^2.6.6",
-    "@tiptap/starter-kit": "^2.6.6",
     "@uidotdev/usehooks": "^2.4.1",
     "@uiw/codemirror-extensions-langs": "^4.21.21",
     "@urql/core": "^4.2.3",

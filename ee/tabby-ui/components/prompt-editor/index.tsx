@@ -13,8 +13,6 @@ import {
   Extension,
   useEditor
 } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import { compact } from 'lodash-es'
 
 import { ContextInfo, ContextSource } from '@/lib/gql/generates/graphql'
 import { useLatest } from '@/lib/hooks/use-latest'
@@ -109,7 +107,7 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
     }
 
     const editor = useEditor({
-      extensions: compact([
+      extensions: [
         Document,
         Paragraph,
         Text,
@@ -127,9 +125,8 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
           suggestion: suggestion({
             placement: placement === 'bottom' ? 'top-start' : 'bottom-start'
           })
-        }),
-        enabledMarkdown ? undefined : StarterKit
-      ]),
+        })
+      ],
       editorProps: {
         attributes: {
           class: cn(
