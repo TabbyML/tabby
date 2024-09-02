@@ -12,7 +12,7 @@
 }
 
 .node-mention {
-  @apply bg-[#e8e1d3] dark:bg-[#333333] rounded-sm;
+  @apply bg-[#e8e1d3] dark:bg-[#333333] rounded-sm py-0.5;
 }
 .source-mention {
   @apply inline-flex items-baseline space-x-1;
