@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use futures::stream::BoxStream;
 use juniper::ID;
 
-use crate::schema::Result;
+use crate::{policy::AccessPolicy, schema::Result};
 
 mod types;
 pub use types::*;
@@ -36,6 +36,7 @@ pub trait ThreadService: Send + Sync {
     /// Create a new thread run
     async fn create_run(
         &self,
+        policy: &AccessPolicy,
         id: &ID,
         options: &ThreadRunOptionsInput,
         attachment_input: Option<&MessageAttachmentInput>,

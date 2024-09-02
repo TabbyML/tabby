@@ -312,10 +312,10 @@ impl Query {
         rev: Option<String>,
         pattern: String,
     ) -> Result<Vec<FileEntrySearchResult>> {
-        check_claims(ctx)?;
+        let user = check_user(ctx).await?;
         ctx.locator
             .repository()
-            .search_files(&kind, &id, rev.as_deref(), &pattern, 40)
+            .search_files(&user.policy, &kind, &id, rev.as_deref(), &pattern, 40)
             .await
     }
 
@@ -338,13 +338,13 @@ impl Query {
         rev: Option<String>,
         query: String,
     ) -> Result<RepositoryGrepOutput> {
-        check_claims(ctx)?;
+        let user = check_user(ctx).await?;
 
         let start_time = chrono::offset::Utc::now();
         let files = ctx
             .locator
             .repository()
-            .grep(&kind, &id, rev.as_deref(), &query, 40)
+            .grep(&user.policy, &kind, &id, rev.as_deref(), &query, 40)
             .await?;
         let end_time = chrono::offset::Utc::now();
         let elapsed_ms = (end_time - start_time).num_milliseconds() as i32;
@@ -458,14 +458,17 @@ impl Query {
     }
 
     async fn repository_list(ctx: &Context) -> Result<Vec<Repository>> {
-        check_user(ctx).await?;
+        let user = check_user(ctx).await?;
 
-        ctx.locator.repository().repository_list().await
+        ctx.locator
+            .repository()
+            .repository_list(Some(&user.policy))
+            .await
     }
 
     async fn context_info(ctx: &Context) -> Result<ContextInfo> {
-        check_user(ctx).await?;
-        ctx.locator.context().read().await
+        let user = check_user(ctx).await?;
+        ctx.locator.context().read(Some(&user.policy)).await
     }
 
     async fn integrations(
@@ -1093,6 +1096,7 @@ impl Subscription {
 
         thread
             .create_run(
+                &user.policy,
                 &thread_id,
                 &input.options,
                 input.thread.user_message.attachments.as_ref(),
@@ -1128,6 +1132,7 @@ impl Subscription {
             .await?;
 
         svc.create_run(
+            &user.policy,
             &input.thread_id,
             &input.options,
             input.additional_user_message.attachments.as_ref(),

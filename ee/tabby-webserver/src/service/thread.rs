@@ -6,6 +6,7 @@ use juniper::ID;
 use tabby_db::{DbConn, ThreadMessageDAO};
 use tabby_schema::{
     bail,
+    policy::AccessPolicy,
     thread::{
         self, CreateMessageInput, CreateThreadInput, MessageAttachmentInput, ThreadRunItem,
         ThreadRunOptionsInput, ThreadRunStream, ThreadService,
@@ -60,6 +61,7 @@ impl ThreadService for ThreadServiceImpl {
 
     async fn create_run(
         &self,
+        policy: &AccessPolicy,
         thread_id: &ID,
         options: &ThreadRunOptionsInput,
         attachment_input: Option<&MessageAttachmentInput>,
@@ -96,7 +98,7 @@ impl ThreadService for ThreadServiceImpl {
             .await?;
 
         let s = answer
-            .answer_v2(&messages, options, attachment_input)
+            .answer_v2(policy, &messages, options, attachment_input)
             .await?;
 
         // Copy ownership of db and thread_id for the stream

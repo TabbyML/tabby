@@ -8,7 +8,7 @@ use super::{
     repository::{Repository, RepositoryKind},
     web_documents::{CustomWebDocument, PresetWebDocument},
 };
-use crate::Result;
+use crate::{policy::AccessPolicy, Result};
 
 /// Represents the kind of context source.
 #[derive(GraphQLEnum)]
@@ -95,16 +95,16 @@ pub struct ContextInfo {
 }
 
 impl ContextInfo {
-    pub fn rewriter(&self) -> SourceTagRewriter {
-        SourceTagRewriter::new(self)
+    pub fn helper(&self) -> ContextInfoHelper {
+        ContextInfoHelper::new(self)
     }
 }
 
-pub struct SourceTagRewriter<'k, 'v> {
+pub struct ContextInfoHelper<'k, 'v> {
     sources: HashMap<&'k str, &'v str>,
 }
 
-impl<'a> SourceTagRewriter<'a, 'a> {
+impl<'a> ContextInfoHelper<'a, 'a> {
     pub fn new(context_info: &'a ContextInfo) -> Self {
         Self {
             sources: context_info
@@ -116,7 +116,7 @@ impl<'a> SourceTagRewriter<'a, 'a> {
     }
 
     /// Replace content tagged with `[[source:${id}]]` with its display name.
-    pub fn rewrite(&self, content: &str) -> String {
+    pub fn rewrite_tag(&self, content: &str) -> String {
         let re = Regex::new(r"\[\[source:(.*?)\]\]").unwrap();
         let new_content = re.replace_all(content, |caps: &Captures| {
             let source_id = caps.get(1).unwrap().as_str();
@@ -128,9 +128,14 @@ impl<'a> SourceTagRewriter<'a, 'a> {
         });
         new_content.to_string()
     }
+
+    pub fn has_source_id(&self, source_id: &str) -> bool {
+        self.sources.contains_key(source_id)
+    }
 }
 
 #[async_trait]
 pub trait ContextService: Send + Sync {
-    async fn read(&self) -> Result<ContextInfo>;
+    /// Read context information from the backend. If `policy` is `None`, this retrieves all context information without applying any access policy.
+    async fn read(&self, policy: Option<&AccessPolicy>) -> Result<ContextInfo>;
 }

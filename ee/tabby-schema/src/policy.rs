@@ -2,7 +2,7 @@ use juniper::ID;
 
 use crate::{CoreError, Result};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AccessPolicy {
     user_id: ID,
     is_admin: bool,
