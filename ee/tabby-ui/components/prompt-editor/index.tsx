@@ -107,6 +107,7 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
     }
 
     const editor = useEditor({
+      immediatelyRender: false,
       extensions: [
         Document,
         Paragraph,
