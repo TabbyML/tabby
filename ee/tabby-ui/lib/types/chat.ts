@@ -66,7 +66,7 @@ type MergeUnionType<T> = {
   [k in Keys<T>]?: Pick<T, k>
 }
 
-export type AnswerEngineExtraContext = {
+export type ThreadRunContexts = {
   searchPublic?: boolean
   docSourceIds?: string[]
   codeSourceIds?: string[]

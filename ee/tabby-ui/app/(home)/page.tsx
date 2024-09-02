@@ -43,7 +43,7 @@ import 'aos/dist/aos.css'
 import { useQuery } from 'urql'
 
 import { contextInfoQuery } from '@/lib/tabby/query'
-import { AnswerEngineExtraContext } from '@/lib/types'
+import { ThreadRunContexts } from '@/lib/types'
 import { Separator } from '@/components/ui/separator'
 
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
@@ -87,7 +87,7 @@ function MainPanel() {
 
   if (!healthInfo || !data?.me) return <></>
 
-  const onSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
+  const onSearch = (question: string, ctx?: ThreadRunContexts) => {
     setIsLoading(true)
     sessionStorage.setItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG, question)
     sessionStorage.setItem(

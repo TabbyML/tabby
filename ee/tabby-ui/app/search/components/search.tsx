@@ -22,10 +22,10 @@ import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import {
-  AnswerEngineExtraContext,
   AttachmentCodeItem,
   AttachmentDocItem,
-  RelevantCodeContext
+  RelevantCodeContext,
+  ThreadRunContexts
 } from '@/lib/types'
 import {
   cn,
@@ -128,7 +128,6 @@ type SearchContextValue = {
   isLoading: boolean
   onRegenerateResponse: (id: string) => void
   onSubmitSearch: (question: string) => void
-  extraRequestContext: Record<string, any>
   setDevPanelOpen: (v: boolean) => void
   setConversationIdForDev: (v: string | undefined) => void
   enableDeveloperMode: boolean
@@ -208,7 +207,6 @@ export function Search() {
   const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [stopButtonVisible, setStopButtonVisible] = useState(true)
   const [isReady, setIsReady] = useState(false)
-  const [extraContext, setExtraContext] = useState<AnswerEngineExtraContext>({})
   const [currentUserMessageId, setCurrentUserMessageId] = useState<string>('')
   const [currentAssistantMessageId, setCurrentAssistantMessageId] =
     useState<string>('')
@@ -379,7 +377,6 @@ export function Search() {
           SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
         )
         setIsReady(true)
-        setExtraContext(initialExtraContext)
         onSubmitSearch(initialMessage, initialExtraContext)
         return
       }
@@ -531,7 +528,7 @@ export function Search() {
     }
   }, [devPanelOpen])
 
-  const onSubmitSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
+  const onSubmitSearch = (question: string, ctx?: ThreadRunContexts) => {
     const newUserMessageId = nanoid()
     const newAssistantMessageId = nanoid()
     const newUserMessage: ConversationMessage = {
@@ -544,16 +541,20 @@ export function Search() {
       role: Role.Assistant,
       content: ''
     }
+    let docSourceIds: string[] = []
+    let codeSourceId: string | undefined
+    let searchPublic = false
 
-    const repoSourceIds = ctx?.codeSourceIds || extraContext?.codeSourceIds
-    const repoSourceId = repoSourceIds?.[0]
+    if (ctx) {
+      docSourceIds = ctx.docSourceIds ?? []
+      searchPublic = ctx.searchPublic ?? false
+      codeSourceId = ctx.codeSourceIds?.[0] ?? undefined
+    }
 
-    const codeQuery: InputMaybe<CodeQueryInput> = repoSourceId
-      ? { sourceId: repoSourceId, content: question }
+    const codeQuery: InputMaybe<CodeQueryInput> = codeSourceId
+      ? { sourceId: codeSourceId, content: question }
       : null
 
-    const docSourceIds = ctx?.docSourceIds || extraContext?.docSourceIds
-    const searchPublic = ctx?.searchPublic || extraContext?.searchPublic
     const docQuery: InputMaybe<DocQueryInput> = {
       sourceIds: docSourceIds,
       content: question,
@@ -687,7 +688,6 @@ export function Search() {
         isLoading,
         onRegenerateResponse,
         onSubmitSearch,
-        extraRequestContext: extraContext,
         setDevPanelOpen,
         setConversationIdForDev: setMessageIdForDev,
         isPathnameInitialized,
@@ -1110,18 +1110,20 @@ function AnswerBlock({
               <p className="text-sm font-bold leading-none">Suggestions</p>
             </div>
             <div className="mt-2 flex flex-col gap-y-3">
-              {answer.threadRelevantQuestions?.map((related, index) => (
-                <div
-                  key={index}
-                  className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
-                  onClick={onSubmitSearch.bind(null, related)}
-                >
-                  <p className="w-full overflow-hidden text-ellipsis text-sm">
-                    {related}
-                  </p>
-                  <IconPlus />
-                </div>
-              ))}
+              {answer.threadRelevantQuestions?.map(
+                (relevantQuestion, index) => (
+                  <div
+                    key={index}
+                    className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
+                    onClick={onSubmitSearch.bind(null, relevantQuestion)}
+                  >
+                    <p className="w-full overflow-hidden text-ellipsis text-sm">
+                      {relevantQuestion}
+                    </p>
+                    <IconPlus />
+                  </div>
+                )
+              )}
             </div>
           </div>
         )}

@@ -5,7 +5,7 @@ import { Editor } from '@tiptap/react'
 
 import { ContextInfo } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
-import { AnswerEngineExtraContext } from '@/lib/types'
+import { ThreadRunContexts } from '@/lib/types'
 import { cn, getMentionsFromText, getSourceIdsFromMentions } from '@/lib/utils'
 import {
   Tooltip,
@@ -30,7 +30,7 @@ export default function TextAreaSearch({
   contextInfo,
   fetchingContextInfo
 }: {
-  onSearch: (value: string, ctx: AnswerEngineExtraContext) => void
+  onSearch: (value: string, ctx: ThreadRunContexts) => void
   className?: string
   placeholder?: string
   showBetaBadge?: boolean
@@ -39,7 +39,6 @@ export default function TextAreaSearch({
   loadingWithSpinning?: boolean
   cleanAfterSearch?: boolean
   isFollowup?: boolean
-  extraContext?: AnswerEngineExtraContext
   contextInfo?: ContextInfo
   fetchingContextInfo: boolean
 }) {
