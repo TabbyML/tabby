@@ -718,6 +718,7 @@ export function Search() {
                                 contextInfo={contextInfoData?.contextInfo}
                                 fetchingContextInfo={fetchingContextInfo}
                                 className="text-[1.25rem]"
+                                headline
                               />
                             </div>
                           </div>

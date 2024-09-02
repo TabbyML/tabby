@@ -149,7 +149,8 @@ export function MessageMarkdown({
     })
     processMatches(sourceRegex, SourceTag, (match: string) => {
       const sourceId = match[1]
-      return { sourceId }
+      const className = headline ? 'text-[1rem] font-semibold' : undefined
+      return { sourceId, className }
     })
 
     addTextNode(text.slice(lastIndex))
@@ -308,7 +309,13 @@ function CitationTag({
   )
 }
 
-function SourceTag({ sourceId }: { sourceId: string | undefined }) {
+function SourceTag({
+  sourceId,
+  className
+}: {
+  sourceId: string | undefined
+  className?: string
+}) {
   const { contextInfo, fetchingContextInfo } = useContext(
     MessageMarkdownContext
   )
@@ -318,17 +325,20 @@ function SourceTag({ sourceId }: { sourceId: string | undefined }) {
   if (!source) return null
 
   return (
-    <div className="inline-flex">
-      {fetchingContextInfo ? (
-        <Skeleton className="w-16" />
-      ) : (
-        <Mention
-          id={source.sourceId}
-          label={source.displayName}
-          kind={source.kind}
-        />
-      )}
-    </div>
+    <span className="node-mention">
+      <span>
+        {fetchingContextInfo ? (
+          <Skeleton className="w-16" />
+        ) : (
+          <Mention
+            id={source.sourceId}
+            label={source.displayName}
+            kind={source.kind}
+            className={className}
+          />
+        )}
+      </span>
+    </span>
   )
 }
 

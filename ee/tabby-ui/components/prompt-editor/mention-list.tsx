@@ -16,6 +16,7 @@ import { ContextKind } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
 import { cn, isCodeSourceContext, isDocSourceContext } from '@/lib/utils'
 import {
+  IconChevronRight,
   IconCode,
   IconFileText,
   IconGitHub,
@@ -60,14 +61,31 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
       )
     }, [mentions])
 
+    const hasCodeSources = useMemo(() => {
+      if (!list?.length) return false
+      return list.some(o => isCodeSourceContext(o.kind))
+    }, [list])
+
+    const hasDocSources = useMemo(() => {
+      if (!list?.length) return false
+      return list.some(o => isDocSourceContext(o.kind))
+    }, [list])
+
     const [selectedIndex, setSelectedIndex] = useState(0)
     const [category, setCategory] = useState<'doc' | 'code' | undefined>()
 
     const options: OptionItem[] = useMemo(() => {
       if (!query && !category) {
-        return hasSelectedRepo
+        let _list = hasSelectedRepo
           ? CATEGORY_OPTIONS.filter(o => o.category !== 'code')
           : CATEGORY_OPTIONS
+        if (!hasCodeSources) {
+          _list = _list.filter(o => o.category !== 'code')
+        }
+        if (!hasDocSources) {
+          _list = _list.filter(o => o.category !== 'doc')
+        }
+        return _list
       }
       if (!list?.length) {
         return []
@@ -166,7 +184,11 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
 
     return (
       <div className="dropdown-menu max-h-[30vh] min-w-[20rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in">
-        {filteredList.length ? (
+        {pending ? (
+          <div className="px-2 py-1.5">
+            <IconSpinner />
+          </div>
+        ) : filteredList.length ? (
           filteredList.map((item, index) => (
             <div
               className={cn(
@@ -183,20 +205,22 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
               <span className="flex h-5 shrink-0 items-center">
                 <OptionIcon option={item} />
               </span>
-              <span>{item.label}</span>
+              <span className="flex-1">{item.label}</span>
+              {item.type === 'category' && (
+                <span className="h-5 shrink-0 items-center">
+                  <IconChevronRight />
+                </span>
+              )}
             </div>
           ))
-        ) : pending ? (
-          <div className="px-2 py-1.5">
-            <IconSpinner />
-          </div>
         ) : (
           <div className="px-2 py-1.5">
-            {list?.length ? (
+            No results
+            {/* {list?.length ? (
               <span>No matches results</span>
             ) : (
               <span>No results, please configure in Context Providers</span>
-            )}
+            )} */}
           </div>
         )}
       </div>

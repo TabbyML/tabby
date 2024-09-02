@@ -1,36 +1,30 @@
 import React from 'react'
-import { TooltipContent, TooltipTrigger } from '@radix-ui/react-tooltip'
 import { NodeViewProps, NodeViewWrapper } from '@tiptap/react'
 
 import { ContextKind } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
-
+import { cn } from '@/lib/utils'
 import {
   IconCode,
   IconFileText,
   IconGitHub,
   IconGitLab,
   IconGlobe
-} from './ui/icons'
-import { Tooltip } from './ui/tooltip'
+} from '@/components/ui/icons'
 
-export function Mention({ kind, label }: MentionAttributes) {
+export function Mention({
+  kind,
+  label,
+  className
+}: MentionAttributes & { className?: string }) {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <NodeViewWrapper as={'span'}>
-          <span className="source-mention rounded-sm px-1 py-0">
-            <SourceIcon kind={kind} className="inline h-3.5 w-3.5" />
-            <span className="text-base">{label}</span>
-          </span>
-        </NodeViewWrapper>
-      </TooltipTrigger>
-      <TooltipContent sideOffset={4}>
-        <p className="rounded-md bg-popover px-3 py-1.5 text-popover-foreground">
-          {label}
-        </p>
-      </TooltipContent>
-    </Tooltip>
+    <NodeViewWrapper
+      as={'span'}
+      className={cn('source-mention rounded-sm px-1', className)}
+    >
+      <SourceIcon kind={kind} className="self-center" />
+      <span>{label}</span>
+    </NodeViewWrapper>
   )
 }
 

@@ -11,6 +11,9 @@
   @apply text-muted-foreground cursor-text h-0 float-left;
 }
 
+.node-mention {
+  @apply bg-[#e8e1d3] dark:bg-[#333333] rounded-sm;
+}
 .source-mention {
-  @apply bg-[#e8e1d3] dark:bg-[#333333] inline-flex items-center space-x-0.5;
+  @apply inline-flex items-baseline space-x-1;
 }
