@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
 import AOS from 'aos'
-import { noop, omit } from 'lodash-es'
+import { noop } from 'lodash-es'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
@@ -40,7 +40,10 @@ import Stats from './components/stats'
 
 import 'aos/dist/aos.css'
 
-import { AnswerEngineExtraContext } from '@/lib/types'
+import { useQuery } from 'urql'
+
+import { contextInfoQuery } from '@/lib/tabby/query'
+import { ThreadRunContexts } from '@/lib/types'
 import { Separator } from '@/components/ui/separator'
 
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
@@ -58,6 +61,9 @@ function MainPanel() {
   const elementRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
+    query: contextInfoQuery
+  })
 
   // Initialize the page's entry animation
   useEffect(() => {
@@ -81,14 +87,12 @@ function MainPanel() {
 
   if (!healthInfo || !data?.me) return <></>
 
-  const onSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
+  const onSearch = (question: string, ctx?: ThreadRunContexts) => {
     setIsLoading(true)
     sessionStorage.setItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG, question)
     sessionStorage.setItem(
-      SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT,
-      JSON.stringify({
-        repository: ctx?.repository ? omit(ctx.repository, 'refs') : undefined
-      })
+      SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS,
+      JSON.stringify(ctx)
     )
     router.push('/search')
   }
@@ -151,6 +155,8 @@ function MainPanel() {
                 loadingWithSpinning
                 isLoading={isLoading}
                 cleanAfterSearch={false}
+                contextInfo={contextInfoData?.contextInfo}
+                fetchingContextInfo={fetchingContextInfo}
               />
             </div>
           )}

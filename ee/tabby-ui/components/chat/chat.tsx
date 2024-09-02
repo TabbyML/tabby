@@ -335,7 +335,7 @@ function ChatRenderer(
         }
       },
       {
-        docQuery: docQuery ? { content } : null,
+        docQuery: docQuery ? { content, searchPublic: false } : null,
         generateRelevantQuestions: !!generateRelevantQuestions,
         codeQuery
       }

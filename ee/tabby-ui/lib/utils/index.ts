@@ -3,7 +3,9 @@ import { compact, isNil } from 'lodash-es'
 import { customAlphabet } from 'nanoid'
 import { twMerge } from 'tailwind-merge'
 
-import { AttachmentCodeItem } from './types'
+import { AttachmentCodeItem } from '@/lib/types'
+
+export * from './chat'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

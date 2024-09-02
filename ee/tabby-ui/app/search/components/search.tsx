@@ -22,16 +22,18 @@ import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import {
-  AnswerEngineExtraContext,
   AttachmentCodeItem,
   AttachmentDocItem,
-  RelevantCodeContext
+  RelevantCodeContext,
+  ThreadRunContexts
 } from '@/lib/types'
 import {
   cn,
   formatLineHashForCodeBrowser,
+  getMentionsFromText,
   getRangeFromAttachmentCode,
-  getRangeTextFromAttachmentCode
+  getRangeTextFromAttachmentCode,
+  getThreadRunContextsFromMentions
 } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
@@ -79,18 +81,19 @@ import { useQuery } from 'urql'
 import { graphql } from '@/lib/gql/generates'
 import {
   CodeQueryInput,
+  ContextInfo,
+  DocQueryInput,
   InputMaybe,
   Maybe,
   Message,
   MessageAttachmentCode,
-  RepositoryListQuery,
   Role
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { useMutation } from '@/lib/tabby/gql'
-import { repositoryListQuery } from '@/lib/tabby/query'
+import { contextInfoQuery } from '@/lib/tabby/query'
 import {
   Tooltip,
   TooltipContent,
@@ -125,11 +128,11 @@ type SearchContextValue = {
   isLoading: boolean
   onRegenerateResponse: (id: string) => void
   onSubmitSearch: (question: string) => void
-  extraRequestContext: Record<string, any>
-  repositoryList: RepositoryListQuery['repositoryList'] | undefined
   setDevPanelOpen: (v: boolean) => void
   setConversationIdForDev: (v: string | undefined) => void
   enableDeveloperMode: boolean
+  contextInfo: ContextInfo | undefined
+  fetchingContextInfo: boolean
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -204,7 +207,6 @@ export function Search() {
   const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [stopButtonVisible, setStopButtonVisible] = useState(true)
   const [isReady, setIsReady] = useState(false)
-  const [extraContext, setExtraContext] = useState<AnswerEngineExtraContext>({})
   const [currentUserMessageId, setCurrentUserMessageId] = useState<string>('')
   const [currentAssistantMessageId, setCurrentAssistantMessageId] =
     useState<string>('')
@@ -234,10 +236,9 @@ export function Search() {
     }
   }, [threadIdFromURL])
 
-  const [{ data }] = useQuery({
-    query: repositoryListQuery
+  const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
+    query: contextInfoQuery
   })
-  const repositoryList = data?.repositoryList
 
   const [afterCursor, setAfterCursor] = useState<string | undefined>()
   const [
@@ -362,26 +363,19 @@ export function Search() {
         SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
       )
       // initial extra context from home page
-      const initialExtraContextStr = sessionStorage.getItem(
-        SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
+      const initialThreadRunContextStr = sessionStorage.getItem(
+        SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS
       )
-      const initialExtraInfo = initialExtraContextStr
-        ? JSON.parse(initialExtraContextStr)
+
+      const initialThreadRunContext = initialThreadRunContextStr
+        ? JSON.parse(initialThreadRunContextStr)
         : undefined
 
       if (initialMessage) {
         sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
-        sessionStorage.removeItem(
-          SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
-        )
+        sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS)
         setIsReady(true)
-        setExtraContext(p => ({
-          ...p,
-          repository: initialExtraInfo?.repository
-        }))
-        onSubmitSearch(initialMessage, {
-          repository: initialExtraInfo?.repository
-        })
+        onSubmitSearch(initialMessage, initialThreadRunContext)
         return
       }
 
@@ -532,7 +526,7 @@ export function Search() {
     }
   }, [devPanelOpen])
 
-  const onSubmitSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
+  const onSubmitSearch = (question: string, ctx?: ThreadRunContexts) => {
     const newUserMessageId = nanoid()
     const newAssistantMessageId = nanoid()
     const newUserMessage: ConversationMessage = {
@@ -545,11 +539,25 @@ export function Search() {
       role: Role.Assistant,
       content: ''
     }
+    let docSourceIds: string[] = []
+    let codeSourceId: string | undefined
+    let searchPublic = false
 
-    const _repository = ctx?.repository || extraContext?.repository
-    const codeQuery: InputMaybe<CodeQueryInput> = _repository
-      ? { gitUrl: _repository.gitUrl, content: question }
+    if (ctx) {
+      docSourceIds = ctx.docSourceIds ?? []
+      searchPublic = ctx.searchPublic ?? false
+      codeSourceId = ctx.codeSourceIds?.[0] ?? undefined
+    }
+
+    const codeQuery: InputMaybe<CodeQueryInput> = codeSourceId
+      ? { sourceId: codeSourceId, content: question }
       : null
+
+    const docQuery: InputMaybe<DocQueryInput> = {
+      sourceIds: docSourceIds,
+      content: question,
+      searchPublic: !!searchPublic
+    }
 
     setCurrentUserMessageId(newUserMessageId)
     setCurrentAssistantMessageId(newAssistantMessageId)
@@ -562,7 +570,7 @@ export function Search() {
       {
         generateRelevantQuestions: true,
         codeQuery,
-        docQuery: { content: question }
+        docQuery
       }
     )
   }
@@ -570,6 +578,8 @@ export function Search() {
   // regenerate ths last assistant message
   const onRegenerateResponse = () => {
     if (!threadId) return
+    // need to get the sources from contextInfo
+    if (fetchingContextInfo) return
 
     const assistantMessageIndex = messages.length - 1
     const userMessageIndex = assistantMessageIndex - 1
@@ -594,10 +604,23 @@ export function Search() {
       },
       error: undefined
     }
-    const _repository = extraContext?.repository
-    const codeQuery: InputMaybe<CodeQueryInput> = _repository
-      ? { gitUrl: _repository.gitUrl, content: newUserMessage.content }
+
+    const mentions = getMentionsFromText(
+      newUserMessage.content,
+      contextInfoData?.contextInfo?.sources
+    )
+    const { codeSourceIds, docSourceIds, searchPublic } =
+      getThreadRunContextsFromMentions(mentions)
+    const codeSourceId = codeSourceIds?.[0]
+    const codeQuery: InputMaybe<CodeQueryInput> = codeSourceId
+      ? { sourceId: codeSourceId, content: newUserMessage.content }
       : null
+
+    const docQuery: InputMaybe<DocQueryInput> = {
+      sourceIds: docSourceIds,
+      content: newUserMessage.content,
+      searchPublic
+    }
 
     setCurrentUserMessageId(newUserMessage.id)
     setCurrentAssistantMessageId(newAssistantMessage.id)
@@ -613,7 +636,7 @@ export function Search() {
       threadRunOptions: {
         generateRelevantQuestions: true,
         codeQuery,
-        docQuery: { content: newUserMessage.content }
+        docQuery
       }
     })
   }
@@ -663,12 +686,12 @@ export function Search() {
         isLoading,
         onRegenerateResponse,
         onSubmitSearch,
-        extraRequestContext: extraContext,
-        repositoryList,
         setDevPanelOpen,
         setConversationIdForDev: setMessageIdForDev,
         isPathnameInitialized,
-        enableDeveloperMode: enableDeveloperMode.value
+        enableDeveloperMode: enableDeveloperMode.value,
+        contextInfo: contextInfoData?.contextInfo,
+        fetchingContextInfo
       }}
     >
       <div className="transition-all" style={style}>
@@ -689,9 +712,12 @@ export function Search() {
                         return (
                           <div key={item.id}>
                             {idx !== 0 && <Separator />}
-                            <div className="pb-2 pt-8">
+                            <div className="pb-2 pt-8 font-semibold">
                               <MessageMarkdown
                                 message={item.content}
+                                contextInfo={contextInfoData?.contextInfo}
+                                fetchingContextInfo={fetchingContextInfo}
+                                className="text-[1.25rem]"
                                 headline
                               />
                             </div>
@@ -740,7 +766,7 @@ export function Search() {
 
               <div
                 className={cn(
-                  'fixed bottom-5 left-0 z-30 flex min-h-[5rem] w-full flex-col items-center gap-y-2',
+                  'fixed bottom-5 left-0 z-30 flex min-h-[3rem] w-full flex-col items-center gap-y-2',
                   {
                     'opacity-100 translate-y-0': showSearchInput,
                     'opacity-0 translate-y-10': !showSearchInput,
@@ -779,7 +805,8 @@ export function Search() {
                     placeholder="Ask a follow up question"
                     isLoading={isLoading}
                     isFollowup
-                    extraContext={extraContext}
+                    contextInfo={contextInfoData?.contextInfo}
+                    fetchingContextInfo={fetchingContextInfo}
                   />
                 </div>
               </div>
@@ -828,7 +855,9 @@ function AnswerBlock({
     onSubmitSearch,
     setDevPanelOpen,
     setConversationIdForDev,
-    enableDeveloperMode
+    enableDeveloperMode,
+    contextInfo,
+    fetchingContextInfo
   } = useContext(SearchContext)
 
   const [showMoreSource, setShowMoreSource] = useState(false)
@@ -1043,6 +1072,8 @@ function AnswerBlock({
           onCodeCitationClick={onCodeCitationClick}
           onCodeCitationMouseEnter={onCodeCitationMouseEnter}
           onCodeCitationMouseLeave={onCodeCitationMouseLeave}
+          contextInfo={contextInfo}
+          fetchingContextInfo={fetchingContextInfo}
         />
         {answer.error && <ErrorMessageBlock error={answer.error} />}
 
@@ -1053,7 +1084,7 @@ function AnswerBlock({
               value={getCopyContent(answer)}
               text="Copy"
             />
-            {!isLoading && isLastAssistantMessage && (
+            {!isLoading && !fetchingContextInfo && isLastAssistantMessage && (
               <Button
                 className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
                 variant="ghost"
@@ -1078,18 +1109,20 @@ function AnswerBlock({
               <p className="text-sm font-bold leading-none">Suggestions</p>
             </div>
             <div className="mt-2 flex flex-col gap-y-3">
-              {answer.threadRelevantQuestions?.map((related, index) => (
-                <div
-                  key={index}
-                  className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
-                  onClick={onSubmitSearch.bind(null, related)}
-                >
-                  <p className="w-full overflow-hidden text-ellipsis text-sm">
-                    {related}
-                  </p>
-                  <IconPlus />
-                </div>
-              ))}
+              {answer.threadRelevantQuestions?.map(
+                (relevantQuestion, index) => (
+                  <div
+                    key={index}
+                    className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
+                    onClick={onSubmitSearch.bind(null, relevantQuestion)}
+                  >
+                    <p className="w-full overflow-hidden text-ellipsis text-sm">
+                      {relevantQuestion}
+                    </p>
+                    <IconPlus />
+                  </div>
+                )
+              )}
             </div>
           </div>
         )}
