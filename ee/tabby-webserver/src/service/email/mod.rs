@@ -49,15 +49,15 @@ fn make_smtp_builder(
 ) -> Result<AsyncSmtpTransportBuilder> {
     let mut tls_parameters = TlsParameters::builder(host.into());
 
-    if let Ok(cert_path) = std::env::var("TABBY_EMAIL_CERT_PATH") {
-        let cert = Certificate::from_pem(&std::fs::read(cert_path)?)
-            .map_err(|_| CoreError::EmailInvalidCert)?;
+    if let Ok(cert_string) = std::env::var("TABBY_WEBSERVER_EMAIL_CERT") {
+        let cert = Certificate::from_pem(cert_string.as_bytes())
+            .map_err(|e| CoreError::Other(e.into()))?;
         tls_parameters = tls_parameters.add_root_certificate(cert);
     }
 
     let tls_parameters = tls_parameters
         .build()
-        .map_err(|_| CoreError::EmailInvalidCert)?;
+        .map_err(|e| CoreError::Other(e.into()))?;
 
     let builder = match encryption {
         Encryption::StartTls => AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(host)
