@@ -50,11 +50,19 @@ impl From<Repository> for ContextSource {
             RepositoryKind::Gitlab | RepositoryKind::GitlabSelfHosted => ContextKind::Gitlab,
         };
 
+        let display_name = match repo.kind {
+            RepositoryKind::Git
+            | RepositoryKind::GitConfig
+            | RepositoryKind::GithubSelfHosted
+            | RepositoryKind::GitlabSelfHosted => repo.git_url,
+            RepositoryKind::Github | RepositoryKind::Gitlab => repo.name,
+        };
+
         Self {
             id: ID::from(repo.source_id.clone()),
             kind,
             source_id: repo.source_id,
-            display_name: repo.git_url,
+            display_name,
         }
     }
 }
