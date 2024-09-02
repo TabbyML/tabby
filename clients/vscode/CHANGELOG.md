@@ -1,3 +1,11 @@
+## 1.10.1
+
+### Fixes & Improvements
+
+- Enhanced inline editing streaming experience.
+- Added the option to utilize `Edit with Tabby` in the quick fix menu for quicker access.
+- Supported using the http proxy configuration in the VSCode settings.
+
 ## 1.10.0
 
 ### Features
