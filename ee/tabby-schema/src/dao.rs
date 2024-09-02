@@ -9,6 +9,7 @@ use tabby_db::{
 
 use crate::{
     integration::{Integration, IntegrationKind, IntegrationStatus},
+    policy,
     repository::RepositoryKind,
     schema::{
         auth::{self, OAuthCredential, OAuthProvider},
@@ -54,8 +55,10 @@ impl From<JobRunDAO> for job::JobRun {
 impl From<UserDAO> for auth::User {
     fn from(val: UserDAO) -> Self {
         let is_owner = val.is_owner();
+        let id = val.id.as_id();
         auth::User {
-            id: val.id.as_id(),
+            policy: policy::AccessPolicy::new(&id, val.is_admin),
+            id,
             email: val.email,
             name: val.name.unwrap_or_default(),
             is_owner,

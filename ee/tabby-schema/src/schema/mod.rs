@@ -393,7 +393,8 @@ impl Query {
         users: Option<Vec<ID>>,
     ) -> Result<Vec<CompletionStats>> {
         let users = users.unwrap_or_default();
-        check_analytic_access(ctx, &users).await?;
+        let user = check_user(ctx).await?;
+        user.policy.check_read_analytic(&users)?;
         ctx.locator.analytic().daily_stats_in_past_year(users).await
     }
 
@@ -405,7 +406,8 @@ impl Query {
         languages: Option<Vec<analytic::Language>>,
     ) -> Result<Vec<CompletionStats>> {
         let users = users.unwrap_or_default();
-        check_analytic_access(ctx, &users).await?;
+        let user = check_user(ctx).await?;
+        user.policy.check_read_analytic(&users)?;
         ctx.locator
             .analytic()
             .daily_stats(start, end, users, languages.unwrap_or_default())
@@ -973,11 +975,7 @@ impl Mutation {
         let svc = ctx.locator.thread();
         let thread = svc.get(&thread_id).await?.context("Thread not found")?;
 
-        if thread.user_id != user.id {
-            return Err(CoreError::Forbidden(
-                "You must be the thread owner to delete the latest message pair",
-            ));
-        }
+        user.policy.check_delete_thread_messages(&thread.user_id)?;
 
         ctx.locator
             .thread()
@@ -995,11 +993,8 @@ impl Mutation {
         let svc = ctx.locator.thread();
         let thread = svc.get(&thread_id).await?.context("Thread not found")?;
 
-        if thread.user_id != user.id {
-            return Err(CoreError::Forbidden(
-                "You must be the thread owner to set persisted status",
-            ));
-        }
+        user.policy
+            .check_update_thread_persistence(&thread.user_id)?;
 
         ctx.locator.thread().set_persisted(&thread_id).await?;
         Ok(true)
@@ -1034,27 +1029,6 @@ impl Mutation {
             .await?;
         Ok(true)
     }
-}
-
-async fn check_analytic_access(ctx: &Context, users: &[ID]) -> Result<(), CoreError> {
-    let user = check_user(ctx).await?;
-    if users.is_empty() && !user.is_admin {
-        return Err(CoreError::Forbidden(
-            "You must be admin to read other users' data",
-        ));
-    }
-
-    if !user.is_admin {
-        for id in users {
-            if user.id != *id {
-                return Err(CoreError::Forbidden(
-                    "You must be admin to read other users' data",
-                ));
-            }
-        }
-    }
-
-    Ok(())
 }
 
 fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError<S> {
