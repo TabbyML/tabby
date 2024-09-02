@@ -144,7 +144,7 @@ public class InlineCompletionService {
 	}
 
 	public boolean isInlineCompletionVisible() {
-		return isInlineCompletionVisible(Utils.getActiveTextEditor());
+		return isInlineCompletionVisible(EditorUtils.getActiveTextEditor());
 	}
 
 	public boolean isInlineCompletionVisible(ITextEditor textEditor) {
@@ -156,7 +156,7 @@ public class InlineCompletionService {
 	}
 
 	public void accept() {
-		accept(Utils.getActiveTextEditor());
+		accept(EditorUtils.getActiveTextEditor());
 	}
 
 	public void accept(ITextEditor textEditor) {
@@ -263,7 +263,7 @@ public class InlineCompletionService {
 	}
 
 	private boolean isActiveEditor(ITextEditor textEditor) {
-		return textEditor == Utils.getActiveTextEditor();
+		return textEditor == EditorUtils.getActiveTextEditor();
 	}
 
 	private class TriggerEvent {
