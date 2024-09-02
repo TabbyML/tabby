@@ -105,7 +105,7 @@ export default function TextAreaSearch({
     }
   }
 
-  const showFooterToolbar = true
+  const showFooterToolbar = !isFollowup
 
   return (
     <div
@@ -178,16 +178,22 @@ export default function TextAreaSearch({
           <div
             className={cn(
               buttonVariants({ variant: 'ghost' }),
-              '-ml-2 cursor-pointer rounded-full px-2',
+              '-ml-2 cursor-pointer px-2',
+              {
+                'rounded-full': showFooterToolbar,
+                'rounded-md': !showFooterToolbar
+              },
               className
             )}
             onClick={handleClickMentionIcon}
           >
             <div className="flex items-center gap-1 overflow-hidden">
               <IconAtSign className={cn('shrink-0 text-foreground/60')} />
-              <span className={cn('flex-1 truncate text-foreground/60')}>
-                Add Context
-              </span>
+              {showFooterToolbar && (
+                <span className={cn('flex-1 truncate text-foreground/60')}>
+                  Add Context
+                </span>
+              )}
             </div>
           </div>
         </div>
