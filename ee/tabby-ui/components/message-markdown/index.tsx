@@ -166,7 +166,7 @@ export function MessageMarkdown({
         onCodeCitationMouseEnter: rest.onCodeCitationMouseEnter,
         onCodeCitationMouseLeave: rest.onCodeCitationMouseLeave,
         contextInfo,
-        fetchingContextInfo
+        fetchingContextInfo: !!fetchingContextInfo
       }}
     >
       <MemoizedReactMarkdown
