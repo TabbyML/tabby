@@ -192,7 +192,6 @@ impl AnswerService {
             .as_ref()
             .inspect(|x| x.override_params(&mut params));
 
-        debug!(?query, ?params, "searching code");
         match self.code.search_in_language(query, params).await {
             Ok(docs) => docs.hits,
             Err(err) => {
