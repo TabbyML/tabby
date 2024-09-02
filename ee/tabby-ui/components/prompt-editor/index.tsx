@@ -58,6 +58,7 @@ interface PromptEditorProps {
   className?: string
   editorClassName?: string
   enabledMarkdown?: boolean
+  placement?: 'top' | 'bottom'
 }
 
 export interface PromptEditorRef {
@@ -89,7 +90,8 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       autoFocus,
       className,
       editorClassName,
-      enabledMarkdown
+      enabledMarkdown,
+      placement
     },
     ref
   ) => {
@@ -122,7 +124,9 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
           renderText({ node }) {
             return `[[source:${node.attrs.id}]]`
           },
-          suggestion
+          suggestion: suggestion({
+            placement: placement === 'bottom' ? 'top-start' : 'bottom-start'
+          })
         }),
         enabledMarkdown ? undefined : StarterKit
       ]),

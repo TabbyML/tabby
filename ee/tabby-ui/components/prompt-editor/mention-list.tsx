@@ -14,10 +14,17 @@ import { go as fuzzy } from 'fuzzysort'
 
 import { ContextKind } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { cn, isCodeSourceContext, isDocSourceContext } from '@/lib/utils'
 
 import { MentionContext } from '.'
-import { IconCode, IconFileText, IconSpinner } from '../ui/icons'
+import {
+  IconCode,
+  IconFileText,
+  IconGitHub,
+  IconGitLab,
+  IconGlobe,
+  IconSpinner
+} from '../ui/icons'
 import { CategoryOptionItem, OptionItem, SourceOptionItem } from './types'
 import { isRepositorySource } from './utils'
 
@@ -33,12 +40,12 @@ const CATEGORY_OPTIONS: CategoryOptionItem[] = [
   {
     type: 'category',
     label: 'Repository',
-    kind: 'code'
+    category: 'code'
   },
   {
     type: 'category',
     label: 'Document',
-    kind: 'doc'
+    category: 'doc'
   }
 ]
 
@@ -55,12 +62,12 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
     }, [mentions])
 
     const [selectedIndex, setSelectedIndex] = useState(0)
-    const [kind, setKind] = useState<'doc' | 'code' | undefined>()
+    const [category, setCategory] = useState<'doc' | 'code' | undefined>()
 
     const options: OptionItem[] = useMemo(() => {
-      if (!query && !kind) {
+      if (!query && !category) {
         return hasSelectedRepo
-          ? CATEGORY_OPTIONS.filter(o => o.kind !== 'code')
+          ? CATEGORY_OPTIONS.filter(o => o.category !== 'code')
           : CATEGORY_OPTIONS
       }
       if (!list?.length) {
@@ -68,45 +75,35 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
       }
 
       const docSources: SourceOptionItem[] = list
-        .filter(o => o.kind === ContextKind.Doc)
+        .filter(o => isDocSourceContext(o.kind))
         .map(item => ({
           type: 'source',
-          kind: 'doc',
+          category: 'doc',
           id: item.sourceId,
           label: item.displayName,
           data: item
         }))
-
-      // FIXME for test
-      docSources.push({
-        type: 'source',
-        id: 'web',
-        kind: 'doc',
-        label: 'Search Public',
-        data: {
-          id: 'web',
-          kind: ContextKind.Web,
-          sourceId: 'WEB',
-          displayName: 'Search Public'
-        }
-      })
 
       const codeSources: SourceOptionItem[] = list
-        .filter(o => isRepositorySource(o.kind))
+        .filter(o => isCodeSourceContext(o.kind))
         .map(item => ({
           type: 'source',
-          kind: 'code',
+          category: 'code',
           id: item.sourceId,
           label: item.displayName,
           data: item
         }))
 
-      if (!kind) {
+      if (!category) {
         return hasSelectedRepo ? docSources : [...docSources, ...codeSources]
       }
 
-      return kind === 'doc' ? docSources : hasSelectedRepo ? [] : codeSources
-    }, [kind, list, query, hasSelectedRepo])
+      return category === 'doc'
+        ? docSources
+        : hasSelectedRepo
+        ? []
+        : codeSources
+    }, [category, list, query, hasSelectedRepo])
 
     const filteredList = useMemo(() => {
       if (!query) return options
@@ -131,7 +128,7 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
       const item = filteredList[idx]
       if (!item) return
       if (item.type === 'category') {
-        setKind(item.kind)
+        setCategory(item.category)
       } else {
         command({
           id: item.data.sourceId,
@@ -169,7 +166,7 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
     }))
 
     return (
-      <div className="dropdown-menu min-w-[20rem] overflow-hidden rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in">
+      <div className="dropdown-menu min-w-[20rem] overflow-x-hidden overflow-y-auto max-h-[30vh] rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in">
         {filteredList.length ? (
           filteredList.map((item, index) => (
             <div
@@ -185,7 +182,7 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
               title={item.label}
             >
               <span className="flex h-5 shrink-0 items-center">
-                {item.kind === 'code' ? <IconCode /> : <IconFileText />}
+                <OptionIcon option={item} />
               </span>
               <span>{item.label}</span>
             </div>
@@ -209,5 +206,28 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
 )
 
 MetionList.displayName = 'MetionList'
+
+function OptionIcon({ option }: { option: OptionItem }) {
+  if (option.type === 'category') {
+    return option.category === 'code' ? <IconCode /> : <IconFileText />
+  }
+
+  if (option.type === 'source') {
+    switch (option.data.kind) {
+      case ContextKind.Doc:
+        return <IconFileText />
+      case ContextKind.Web:
+        return <IconGlobe />
+      case ContextKind.Git:
+        return <IconCode />
+      case ContextKind.Github:
+        return <IconGitHub />
+      case ContextKind.Gitlab:
+        return <IconGitLab />
+      default:
+        return null
+    }
+  }
+}
 
 export default MetionList

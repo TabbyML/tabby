@@ -66,9 +66,7 @@ export default function TextAreaSearch({
       return
     }
 
-    const text = editor.getText({
-      blockSeparator: '\n\n'
-    })
+    const text = editor.getText()
     const mentions = getMentionsWithIndices(editor)
     const docSourceIds: string[] = []
     const codeSourceIds: string[] = []
@@ -150,6 +148,7 @@ export default function TextAreaSearch({
         onBlur={() => setIsFocus(false)}
         onUpdate={({ editor }) => setValue(editor.getText())}
         ref={editorRef}
+        placement={isFollowup ? 'bottom' : 'top'}
         className={cn(
           'text-area-autosize mr-1 flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
           {
@@ -189,32 +188,6 @@ export default function TextAreaSearch({
               </span>
             </div>
           </div>
-          {/* <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center space-x-1.5">
-                <Checkbox
-                  id="searchPublic"
-                  className="h-3.5 w-3.5"
-                  disabled={!contextInfo?.canSearchPublic}
-                  checked={searchPublic}
-                  onCheckedChange={checked =>
-                    setSearchPublic(
-                      checked === 'indeterminate' ? false : checked
-                    )
-                  }
-                ></Checkbox>
-                <label
-                  htmlFor="searchPublic"
-                  className="text-sm font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Search Public
-                </label>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Search Public</p>
-            </TooltipContent>
-          </Tooltip> */}
         </div>
         <div
           className={cn(

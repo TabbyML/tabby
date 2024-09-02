@@ -1,6 +1,6 @@
 import { MentionOptions } from '@tiptap/extension-mention'
 import { ReactRenderer } from '@tiptap/react'
-import tippy, { GetReferenceClientRect, Instance } from 'tippy.js'
+import tippy, { GetReferenceClientRect, Instance, Placement } from 'tippy.js'
 
 import MentionList, {
   MentionListActions,
@@ -10,7 +10,9 @@ import { getMentionsWithIndices } from './utils'
 
 import 'tippy.js/animations/shift-away.css'
 
-const suggestion: MentionOptions['suggestion'] = {
+const suggestion: (options: {
+  placement?: Placement
+}) => MentionOptions['suggestion'] = ({ placement }) => ({
   render: () => {
     let component: ReactRenderer<MentionListActions, MetionListProps>
     let popup: Instance[]
@@ -36,7 +38,7 @@ const suggestion: MentionOptions['suggestion'] = {
           showOnCreate: true,
           interactive: true,
           trigger: 'manual',
-          placement: 'bottom-start',
+          placement: placement || 'bottom-start',
           animation: 'shift-away',
           maxWidth: '400px'
         })
@@ -69,6 +71,6 @@ const suggestion: MentionOptions['suggestion'] = {
       }
     }
   }
-}
+})
 
 export default suggestion

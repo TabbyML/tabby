@@ -313,8 +313,8 @@ function SourceTag({ sourceId }: { sourceId: string | undefined }) {
   const source = contextInfo?.sources?.find(o => o.sourceId === sourceId)
 
   // FIXME for testing
-  if (sourceId === 'WEB') {
-    return <Mention id={'WEB'} label={'Search Public'} kind={ContextKind.Web} />
+  if (sourceId === ContextKind.Web) {
+    return <Mention id={'Web'} label={'Web'} kind={ContextKind.Web} />
   }
 
   if (!source) return null

@@ -127,3 +127,7 @@ export const isCodeSourceContext = (kind: ContextKind) => {
     kind
   )
 }
+
+export const isDocSourceContext = (kind: ContextKind) => {
+  return [ContextKind.Doc, ContextKind.Web].includes(kind)
+}

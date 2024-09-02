@@ -13,6 +13,7 @@ import {
   FileText,
   Filter,
   GitFork,
+  Globe,
   IndentIncrease,
   Layers2,
   Link,
@@ -1561,6 +1562,13 @@ function IconAtSign({
   return <AtSign className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconGlobe({
+  className,
+  ...props
+}: React.ComponentProps<typeof Globe>) {
+  return <Globe className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1651,5 +1659,6 @@ export {
   IconRemove,
   IconLink,
   IconListFilter,
-  IconAtSign
+  IconAtSign,
+  IconGlobe
 }
