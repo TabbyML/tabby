@@ -9,8 +9,8 @@ Tabby uses an SMTP server of your choice to send emails. Some functionaties like
 You can configure the SMTP server settings in the **Mail Delivery** page.
 
  ## Configuring SMTP via Amazon SES
- 
- To use Amazon SES, first [follow these steps to creating and verifying identities](https://docs.aws.amazon.com/ses/latest/dg/creating-identities.html). 
+
+ To use Amazon SES, first [follow these steps to creating and verifying identities](https://docs.aws.amazon.com/ses/latest/dg/creating-identities.html).
  Then, use [AWS Access Management(IAM)](https://aws.amazon.com/iam/) to create an SMTP credential.
  Once you have an IAM user with the necessary permissions, you can use the credentials to configure Tabby like below:
 
@@ -20,6 +20,20 @@ You can configure the SMTP server settings in the **Mail Delivery** page.
 
 Other providers such as [SendGrid](https://sendgrid.com/), [Mailgun](https://www.mailgun.com/) or [Resend](https://resend.com) can be configured by providing the SMTP server details. You can find the SMTP server details in the respective provider's documentation.
 
+## Use Self-Signed Certificate
+
+Self-signed Certificate can also be used in Tabby Mail Delivery,
+to use self-signed certificate, you can add an environment variable `TABBY_WEBSERVER_EMAIL_CERT`
+before running Tabby, and set its value to the certificate, for example, in bash:
+
+```bash
+export TABBY_WEBSERVER_EMAIL_CERT=$(cat ./self-signed.crt)
+```
+
+Due to some limitations on macOS, the self-signed certificate is not working under macOS,
+you can add the certificate to the macOS `Keychain Access` and set it to `Always Trusted` if needed.
+Please refer to [Apple Support](https://support.apple.com/en-hk/guide/keychain-access/kyca11871/mac)
+for more detail.
 
 
 ## Send a Test Email
