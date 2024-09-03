@@ -274,7 +274,7 @@ export default function CustomDocument() {
           <TableBody>
             {!currentList?.length && !fetching ? (
               <TableRow>
-                <TableCell colSpan={4} className="h-[100px] text-center">
+                <TableCell colSpan={3} className="h-[100px] text-center">
                   {!list?.length ? 'No data' : 'No matches data'}
                 </TableCell>
               </TableRow>
