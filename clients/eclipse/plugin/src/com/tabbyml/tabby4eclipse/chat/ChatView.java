@@ -425,6 +425,7 @@ public class ChatView extends ViewPart {
 						put("fetcherOptions", new HashMap<>() {
 							{
 								put("authorization", currentConfig.getToken());
+								put("headers", currentConfig.getRequestHeaders());
 							}
 						});
 					}
