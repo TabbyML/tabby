@@ -45,7 +45,7 @@ fn make_smtp_builder(
     host: &str,
     port: u16,
     encryption: Encryption,
-    cert_pem: Option<String>,
+    _cert_pem: Option<String>,
 ) -> Result<AsyncSmtpTransportBuilder> {
     let mut tls_parameters = TlsParameters::builder(host.into());
 

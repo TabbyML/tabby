@@ -84,7 +84,7 @@ pub fn create(
 pub(crate) async fn require_login_middleware(
     State(auth): State<Arc<dyn AuthenticationService>>,
     AuthBearer(token): AuthBearer,
-    request: Request<Body>,
+    mut request: Request<Body>,
     next: Next,
 ) -> axum::response::Response {
     let unauthorized = axum::response::Response::builder()
@@ -97,9 +97,15 @@ pub(crate) async fn require_login_middleware(
         return unauthorized;
     };
 
-    let Ok(_) = auth.verify_access_token(&token).await else {
+    let Ok(jwt) = auth.verify_access_token(&token).await else {
         return unauthorized;
     };
+
+    let Ok(user) = auth.get_user(&jwt.sub).await else {
+        return unauthorized;
+    };
+
+    request.extensions_mut().insert(user.policy);
 
     next.run(request).await
 }

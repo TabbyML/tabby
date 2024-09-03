@@ -312,10 +312,10 @@ impl Query {
         rev: Option<String>,
         pattern: String,
     ) -> Result<Vec<FileEntrySearchResult>> {
-        check_claims(ctx)?;
+        let user = check_user(ctx).await?;
         ctx.locator
             .repository()
-            .search_files(&kind, &id, rev.as_deref(), &pattern, 40)
+            .search_files(&user.policy, &kind, &id, rev.as_deref(), &pattern, 40)
             .await
     }
 
@@ -338,13 +338,13 @@ impl Query {
         rev: Option<String>,
         query: String,
     ) -> Result<RepositoryGrepOutput> {
-        check_claims(ctx)?;
+        let user = check_user(ctx).await?;
 
         let start_time = chrono::offset::Utc::now();
         let files = ctx
             .locator
             .repository()
-            .grep(&kind, &id, rev.as_deref(), &query, 40)
+            .grep(&user.policy, &kind, &id, rev.as_deref(), &query, 40)
             .await?;
         let end_time = chrono::offset::Utc::now();
         let elapsed_ms = (end_time - start_time).num_milliseconds() as i32;
@@ -393,7 +393,8 @@ impl Query {
         users: Option<Vec<ID>>,
     ) -> Result<Vec<CompletionStats>> {
         let users = users.unwrap_or_default();
-        check_analytic_access(ctx, &users).await?;
+        let user = check_user(ctx).await?;
+        user.policy.check_read_analytic(&users)?;
         ctx.locator.analytic().daily_stats_in_past_year(users).await
     }
 
@@ -405,7 +406,8 @@ impl Query {
         languages: Option<Vec<analytic::Language>>,
     ) -> Result<Vec<CompletionStats>> {
         let users = users.unwrap_or_default();
-        check_analytic_access(ctx, &users).await?;
+        let user = check_user(ctx).await?;
+        user.policy.check_read_analytic(&users)?;
         ctx.locator
             .analytic()
             .daily_stats(start, end, users, languages.unwrap_or_default())
@@ -456,14 +458,17 @@ impl Query {
     }
 
     async fn repository_list(ctx: &Context) -> Result<Vec<Repository>> {
-        check_user(ctx).await?;
+        let user = check_user(ctx).await?;
 
-        ctx.locator.repository().repository_list().await
+        ctx.locator
+            .repository()
+            .repository_list(Some(&user.policy))
+            .await
     }
 
     async fn context_info(ctx: &Context) -> Result<ContextInfo> {
-        check_user(ctx).await?;
-        ctx.locator.context().read().await
+        let user = check_user(ctx).await?;
+        ctx.locator.context().read(Some(&user.policy)).await
     }
 
     async fn integrations(
@@ -973,11 +978,7 @@ impl Mutation {
         let svc = ctx.locator.thread();
         let thread = svc.get(&thread_id).await?.context("Thread not found")?;
 
-        if thread.user_id != user.id {
-            return Err(CoreError::Forbidden(
-                "You must be the thread owner to delete the latest message pair",
-            ));
-        }
+        user.policy.check_delete_thread_messages(&thread.user_id)?;
 
         ctx.locator
             .thread()
@@ -995,11 +996,8 @@ impl Mutation {
         let svc = ctx.locator.thread();
         let thread = svc.get(&thread_id).await?.context("Thread not found")?;
 
-        if thread.user_id != user.id {
-            return Err(CoreError::Forbidden(
-                "You must be the thread owner to set persisted status",
-            ));
-        }
+        user.policy
+            .check_update_thread_persistence(&thread.user_id)?;
 
         ctx.locator.thread().set_persisted(&thread_id).await?;
         Ok(true)
@@ -1034,27 +1032,6 @@ impl Mutation {
             .await?;
         Ok(true)
     }
-}
-
-async fn check_analytic_access(ctx: &Context, users: &[ID]) -> Result<(), CoreError> {
-    let user = check_user(ctx).await?;
-    if users.is_empty() && !user.is_admin {
-        return Err(CoreError::Forbidden(
-            "You must be admin to read other users' data",
-        ));
-    }
-
-    if !user.is_admin {
-        for id in users {
-            if user.id != *id {
-                return Err(CoreError::Forbidden(
-                    "You must be admin to read other users' data",
-                ));
-            }
-        }
-    }
-
-    Ok(())
 }
 
 fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError<S> {
@@ -1119,6 +1096,7 @@ impl Subscription {
 
         thread
             .create_run(
+                &user.policy,
                 &thread_id,
                 &input.options,
                 input.thread.user_message.attachments.as_ref(),
@@ -1154,6 +1132,7 @@ impl Subscription {
             .await?;
 
         svc.create_run(
+            &user.policy,
             &input.thread_id,
             &input.options,
             input.additional_user_message.attachments.as_ref(),

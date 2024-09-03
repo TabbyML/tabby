@@ -19,7 +19,7 @@ impl IndexGarbageCollection {
     ) -> tabby_schema::Result<()> {
         // Run garbage collection on the index
         let sources = context
-            .read()
+            .read(None)
             .await?
             .sources
             .into_iter()

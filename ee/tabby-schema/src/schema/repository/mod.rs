@@ -15,7 +15,7 @@ use tabby_common::config::{CodeRepository, RepositoryConfig};
 pub use third_party::{ProvidedRepository, ThirdPartyRepositoryService};
 
 use super::Result;
-use crate::{juniper::relay::NodeType, Context};
+use crate::{juniper::relay::NodeType, policy::AccessPolicy, Context};
 
 #[derive(GraphQLObject)]
 pub struct FileEntrySearchResult {
@@ -200,10 +200,18 @@ pub trait RepositoryProvider {
 
 #[async_trait]
 pub trait RepositoryService: Send + Sync {
-    async fn repository_list(&self) -> Result<Vec<Repository>>;
-    async fn resolve_repository(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository>;
+    /// Read repositories. If `policy` is `None`, this retrieves all repositories without applying any access policy.
+    async fn repository_list(&self, policy: Option<&AccessPolicy>) -> Result<Vec<Repository>>;
+    async fn resolve_repository(
+        &self,
+        policy: &AccessPolicy,
+        kind: &RepositoryKind,
+        id: &ID,
+    ) -> Result<Repository>;
+
     async fn search_files(
         &self,
+        policy: &AccessPolicy,
         kind: &RepositoryKind,
         id: &ID,
         rev: Option<&str>,
@@ -213,6 +221,7 @@ pub trait RepositoryService: Send + Sync {
 
     async fn grep(
         &self,
+        policy: &AccessPolicy,
         kind: &RepositoryKind,
         id: &ID,
         rev: Option<&str>,

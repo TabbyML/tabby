@@ -12,6 +12,7 @@ use validator::Validate;
 
 use crate::{
     juniper::relay,
+    policy::AccessPolicy,
     schema::{Context, Result},
 };
 
@@ -184,6 +185,9 @@ pub struct User {
     pub created_at: DateTime<Utc>,
     pub active: bool,
     pub is_password_set: bool,
+
+    #[graphql(skip)]
+    pub policy: AccessPolicy,
 }
 
 impl relay::NodeType for User {

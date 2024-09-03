@@ -3,6 +3,7 @@ use std::sync::Arc;
 use juniper::ID;
 use tabby_schema::{
     context::{ContextInfo, ContextKind, ContextService, ContextSource},
+    policy::AccessPolicy,
     repository::RepositoryService,
     web_documents::WebDocumentService,
     Result,
@@ -16,10 +17,10 @@ struct ContextServiceImpl {
 
 #[async_trait::async_trait]
 impl ContextService for ContextServiceImpl {
-    async fn read(&self) -> Result<ContextInfo> {
+    async fn read(&self, policy: Option<&AccessPolicy>) -> Result<ContextInfo> {
         let mut sources: Vec<_> = self
             .repository
-            .repository_list()
+            .repository_list(policy)
             .await?
             .into_iter()
             .map(Into::into)
@@ -49,6 +50,11 @@ impl ContextService for ContextServiceImpl {
                 source_id: source_id.into(),
                 display_name: "Web".to_string(),
             });
+        }
+
+        if let Some(policy) = policy {
+            // Keep only sources that the user has access to.
+            sources.retain(|x| policy.check_read_source(&x.source_id).is_ok());
         }
 
         Ok(ContextInfo { sources })
