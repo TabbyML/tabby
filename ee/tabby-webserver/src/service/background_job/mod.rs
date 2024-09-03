@@ -25,7 +25,7 @@ use tabby_schema::{
 };
 use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::{debug, warn};
-use web_crawler::WebCrawlerJob;
+pub use web_crawler::WebCrawlerJob;
 
 use self::{db::DbMaintainanceJob, third_party_integration::SyncIntegrationJob};
 
@@ -34,7 +34,7 @@ pub enum BackgroundJobEvent {
     SchedulerGitRepository(CodeRepository),
     SchedulerGithubGitlabRepository(ID),
     SyncThirdPartyRepositories(ID),
-    WebCrawler(String, String),
+    WebCrawler(WebCrawlerJob),
     IndexGarbageCollection,
 }
 
@@ -46,7 +46,7 @@ impl BackgroundJobEvent {
                 SchedulerGithubGitlabJob::NAME
             }
             BackgroundJobEvent::SyncThirdPartyRepositories(_) => SyncIntegrationJob::NAME,
-            BackgroundJobEvent::WebCrawler(_, _) => WebCrawlerJob::NAME,
+            BackgroundJobEvent::WebCrawler(_) => WebCrawlerJob::NAME,
             BackgroundJobEvent::IndexGarbageCollection => IndexGarbageCollection::NAME,
         }
     }
@@ -104,8 +104,7 @@ pub async fn start(
                             let job = SchedulerGithubGitlabJob::new(integration_id);
                             job.run(embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await
                         }
-                        BackgroundJobEvent::WebCrawler(source_id, url) => {
-                            let job = WebCrawlerJob::new(source_id, url);
+                        BackgroundJobEvent::WebCrawler(job) => {
                             job.run(embedding.clone()).await
                         }
                         BackgroundJobEvent::IndexGarbageCollection => {
