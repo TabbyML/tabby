@@ -473,5 +473,8 @@
     "tsup": "^8.0.2",
     "typescript": "^5.3.2",
     "vscode-languageclient": "^9.0.1"
+  },
+  "dependencies": {
+    "openai": "^4.52.7"
   }
 }
