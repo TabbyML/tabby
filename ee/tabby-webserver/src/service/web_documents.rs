@@ -222,7 +222,10 @@ impl WebDocumentService for WebDocumentServiceImpl {
                     name
                 ))));
             };
-            let id = self.db.create_web_document(name.clone(), url.clone(), true).await?;
+            let id = self
+                .db
+                .create_web_document(name.clone(), url.clone(), true)
+                .await?;
             let _ = self
                 .job_service
                 .trigger(

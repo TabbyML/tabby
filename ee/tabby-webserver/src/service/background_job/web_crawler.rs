@@ -38,7 +38,7 @@ impl WebCrawlerJob {
         let indexer = DocIndexer::new(embedding.clone());
 
         let url_prefix = self.url_prefix.as_ref().unwrap_or(&self.url);
-        let mut pipeline = Box::pin(crawl_pipeline(&self.url, &url_prefix).await?);
+        let mut pipeline = Box::pin(crawl_pipeline(&self.url, url_prefix).await?);
         while let Some(doc) = pipeline.next().await {
             logkit::info!("Fetching {}", doc.url);
             let source_doc = WebDocument {
