@@ -137,6 +137,17 @@ export default function ChatPage() {
       } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyA') {
         document.execCommand('selectAll')
       }
+      const message = {
+        action: 'keydown',
+        key: event.key,
+        code: event.code,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey
+      }
+
+      parent.postMessage(message, '*')
     }
 
     window.addEventListener('keydown', onKeyDown)

@@ -32,13 +32,20 @@ export class ChatViewProvider implements WebviewViewProvider {
   private pendingMessages: ChatMessage[] = [];
   private pendingRelevantContexts: Context[] = [];
   private isChatPageDisplayed = false;
+  private lastActiveTextEditor: TextEditor | undefined;
 
   constructor(
     private readonly context: ExtensionContext,
     private readonly agent: Agent,
     private readonly logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
-  ) {}
+  ) {
+    window.onDidChangeActiveTextEditor((editor) => {
+      if (editor && editor.document.uri.scheme !== "output") {
+        this.lastActiveTextEditor = editor;
+      }
+    });
+  }
 
   static getFileContextFromSelection({
     editor,
@@ -252,8 +259,20 @@ export class ChatViewProvider implements WebviewViewProvider {
           env.clipboard.writeText(message.data);
           return;
         }
-        case "trigger": {
-          getLogger().info("test here trigger");
+        case "keydown": {
+          getLogger().info("dd");
+          if (
+            typeof message.key === "string" &&
+            message.key.toLowerCase() === "l" &&
+            (message.ctrlKey === true || message.metaKey === true)
+          ) {
+            const editor = window.activeTextEditor;
+            if (editor) {
+              getLogger().info("Focus back to active editor");
+              commands.executeCommand("workbench.action.focusFirstEditorGroup");
+            }
+          }
+
           return;
         }
       }
@@ -380,34 +399,6 @@ export class ChatViewProvider implements WebviewViewProvider {
               window.onload = function () {
                 const chatIframe = document.getElementById("chat");
                 const loadingOverlay = document.getElementById("loading-overlay");
-  
-              window.addEventListener('keydown', function(e) {
-                console.log('Keydown event on window:', e.key);
-                if (e.key === 'l') {
-                  console.log('L key pressed on window');
-                  vscode.postMessage({ action: 'trigger' });
-                  e.preventDefault();
-                }
-              }, true);
-              document.addEventListener('keydown', function(e) {
-                console.log('Keydown event on document:', e.key);
-                if (e.key === 'l') {
-                  console.log('L key pressed on document');
-                  vscode.postMessage({ action: 'trigger' });
-                  e.preventDefault();
-                }
-              }, true);
-
-              document.body.addEventListener('keydown', function(e) {
-                console.log('Keydown event on body:', e.key);
-                if (e.key === 'l') {
-                  console.log('L key pressed on body');
-                  vscode.postMessage({ action: 'trigger' });
-                  e.preventDefault(); 
-              }, true);
-
-
-
                 if (chatIframe) {
                   const fontSize = getCssVariableValue('--vscode-font-size');
                   const foreground = getCssVariableValue('--vscode-editor-foreground');
@@ -419,13 +410,6 @@ export class ChatViewProvider implements WebviewViewProvider {
       
                   chatIframe.addEventListener('load', function() {
                     vscode.postMessage({ action: 'rendered' });
-  
-                    chatIframe.addEventListener('keydown', e => {
-                      if (e.key === 'l') {
-                        vscode.postMessage({ action: 'trigger' });
-                      }
-                    });
-                    
                     
                     setTimeout(() => {
                       syncTheme()
@@ -443,6 +427,11 @@ export class ChatViewProvider implements WebviewViewProvider {
                 window.addEventListener("message", (event) => {
                   if (!chatIframe) return
                   if (event.data) {
+
+                    if (event.data.action === 'keydown') {
+                      vscode.postMessage(event.data);
+                      return;
+                    }
                     if (event.data.action === 'sync-theme') {
                       syncTheme();
                       return;
