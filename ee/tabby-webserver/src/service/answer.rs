@@ -314,15 +314,17 @@ Remember, based on the original question and related contexts, suggest three suc
             .expect("Failed to get content from chat completion");
         content
             .lines()
-            .map(remove_bullet_prefix)
+            .map(trim_bullet)
             .filter(|x| !x.is_empty())
             .collect()
     }
 }
 
-fn remove_bullet_prefix(s: &str) -> String {
+fn trim_bullet(s: &str) -> String {
+    let is_bullet = |c: char| c == '-' || c == '*' || c == '.' || c.is_numeric();
     s.trim()
-        .trim_start_matches(|c: char| c == '-' || c == '*' || c == '.' || c.is_numeric())
+        .trim_start_matches(is_bullet)
+        .trim_end_matches(is_bullet)
         .trim()
         .to_owned()
 }
