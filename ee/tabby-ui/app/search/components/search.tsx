@@ -1351,7 +1351,7 @@ function getTitleFromMessages(messages: ConversationMessage[] | undefined) {
   if (!messages?.length) return ''
 
   const firstLine = messages[0]?.content.split('\n')[0] ?? ''
-  const cleanedLine = firstLine.replace(/\[\[source:(\S+)+\]\]/g, '').trim()
+  const cleanedLine = firstLine.replace(/\[\[source:(\S+)\]\]/g, '').trim()
   const title = cleanedLine.slice(0, 48)
   return title
 }
