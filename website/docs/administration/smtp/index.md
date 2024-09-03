@@ -30,11 +30,6 @@ before running Tabby, and set its value to the certificate, for example, in bash
 export TABBY_WEBSERVER_EMAIL_CERT=$(cat ./self-signed.crt)
 ```
 
-Due to some limitations on macOS, the self-signed certificate is not working under macOS,
-you can add the certificate to the macOS `Keychain Access` and set it to `Always Trusted` if needed.
-Please refer to [Apple Support](https://support.apple.com/en-hk/guide/keychain-access/kyca11871/mac)
-for more detail.
-
 
 ## Send a Test Email
 
