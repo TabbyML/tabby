@@ -109,7 +109,7 @@ export default function TextAreaSearch({
   return (
     <div
       className={cn(
-        'flex w-full items-center relative overflow-hidden rounded-lg border border-muted-foreground bg-background px-4 transition-all hover:border-muted-foreground/60',
+        'relative flex w-full items-center overflow-hidden rounded-lg border border-muted-foreground bg-background px-4 transition-all hover:border-muted-foreground/60',
         {
           '!border-zinc-400': isFocus && isFollowup && theme !== 'dark',
           '!border-primary': isFocus && (!isFollowup || theme === 'dark'),
