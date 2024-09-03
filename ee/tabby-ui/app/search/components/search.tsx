@@ -725,7 +725,7 @@ export function Search() {
                                 message={item.content}
                                 contextInfo={contextInfoData?.contextInfo}
                                 fetchingContextInfo={fetchingContextInfo}
-                                className="text-[1.25rem]"
+                                className="text-[1.25rem] prose-p:my-0"
                                 headline
                               />
                             </div>

@@ -80,30 +80,6 @@ export default function TextAreaSearch({
     }
   }
 
-  const handleClickMentionIcon = () => {
-    const editor = editorRef.current?.editor
-    if (editor) {
-      const { state } = editor
-      const { selection } = state
-      const { from } = selection
-
-      // const $from = state.doc.resolve(from)
-      // const type = state.schema.nodes['mention']
-      // const allow = !!$from.parent.type.contentMatch.matchType(type)
-      const charBeforeCursor = state.doc.textBetween(from - 1, from, ' ')
-      const isAtLineStart =
-        from === 1 || state.doc.textBetween(from - 1, from, '\n') === '\n'
-      const hasSpaceBeforeCursor = charBeforeCursor === ' '
-
-      // FIXME
-      if (isAtLineStart || hasSpaceBeforeCursor) {
-        editor.chain().focus().insertContent('@').run()
-      } else {
-        editor.chain().focus().insertContent(' @').run()
-      }
-    }
-  }
-
   return (
     <div
       className={cn(
