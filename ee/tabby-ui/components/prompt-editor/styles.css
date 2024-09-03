@@ -12,11 +12,11 @@
 }
 
 .node-mention {
-  @apply bg-[#e8e1d3] dark:bg-[#333333] rounded-md pb-0.5 pt-0 px-0.5;
+  @apply bg-[#e8e1d3] border border-[#b3ada0] dark:bg-[#333333] rounded-md pb-0.5 pt-0 px-0.5;
 }
 
 .tiptap .node-mention {
-  @apply bg-[#e8e1d3] dark:bg-[#333333] rounded-md py-0.5;
+  @apply py-0.5;
 }
 
 .source-mention {
