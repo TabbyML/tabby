@@ -11,9 +11,7 @@
   @apply text-muted-foreground cursor-text h-0 float-left;
 }
 
-.node-mention,
-.node-mention-doc,
-.node-mention-code {
+.node-mention {
   @apply bg-[#e8e1d3] dark:bg-[#333333] rounded-sm py-0.5;
 }
 .source-mention {

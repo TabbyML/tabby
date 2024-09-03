@@ -8,7 +8,7 @@ import tippy, { GetReferenceClientRect, Instance, Placement } from 'tippy.js'
 import { MentionAttributes } from '@/lib/types'
 import { isCodeSourceContext } from '@/lib/utils'
 
-import { MENTION_EXTENSION_NAME } from './mention-extensions'
+import { MENTION_EXTENSION_NAME } from './mention-extension'
 import MentionList, {
   MentionListActions,
   MetionListProps

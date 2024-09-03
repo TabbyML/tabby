@@ -47,7 +47,6 @@
     "@radix-ui/react-tooltip": "^1.0.6",
     "@sindresorhus/slugify": "^2.2.1",
     "@tiptap/extension-document": "^2.6.6",
-    "@tiptap/extension-hard-break": "^2.6.6",
     "@tiptap/extension-mention": "^2.6.6",
     "@tiptap/extension-paragraph": "^2.6.6",
     "@tiptap/extension-placeholder": "^2.6.6",

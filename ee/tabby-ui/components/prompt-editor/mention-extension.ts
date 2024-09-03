@@ -15,12 +15,12 @@ export const MentionExtension = Mention.extend({
   parseHTML() {
     return [
       {
-        tag: 'mention-doc'
+        tag: 'mention'
       }
     ]
   },
   renderHTML({ HTMLAttributes }) {
-    return ['mentioas', mergeAttributes(HTMLAttributes)]
+    return ['mention', mergeAttributes(HTMLAttributes)]
   },
   addAttributes() {
     return {

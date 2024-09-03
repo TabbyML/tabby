@@ -18,7 +18,7 @@ import { ContextInfo, ContextSource } from '@/lib/gql/generates/graphql'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { cn } from '@/lib/utils'
 
-import { MentionExtension } from './mention-extensions'
+import { MentionExtension } from './mention-extension'
 import suggestion from './suggestion'
 
 const DocumentMentionPluginKey = new PluginKey('mention-doc')
@@ -120,7 +120,7 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
         // for document mention
         MentionExtension.configure({
           HTMLAttributes: {
-            class: 'mention-doc'
+            class: 'mention'
           },
           suggestion: suggestion({
             category: 'doc',

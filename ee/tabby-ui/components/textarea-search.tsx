@@ -104,8 +104,6 @@ export default function TextAreaSearch({
     }
   }
 
-  const showFooterToolbar = false
-
   return (
     <div
       className={cn(
@@ -158,19 +156,13 @@ export default function TextAreaSearch({
           'text-area-autosize mr-1 flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
           {
             '!h-[48px]': !isShow,
-            'pt-4': !showBetaBadge,
-            'pt-5': showBetaBadge,
-            'pb-4': !showFooterToolbar && !showBetaBadge,
-            'pb-5': !showFooterToolbar && showBetaBadge
+            'py-4': !showBetaBadge,
+            'py-5': showBetaBadge
           }
         )}
         editorClassName={isFollowup ? 'min-h-[1.75rem]' : 'min-h-[3.5rem]'}
       />
-      <div
-        className={cn('flex items-center justify-between gap-2', {
-          'pb-2': showFooterToolbar
-        })}
-      >
+      <div className={cn('flex items-center justify-between gap-2')}>
         <div
           className={cn(
             'flex items-center justify-center rounded-lg p-1 transition-all',
