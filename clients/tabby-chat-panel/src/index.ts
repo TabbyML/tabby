@@ -17,6 +17,7 @@ export type Context = FileContext
 
 export interface FetcherOptions {
   authorization: string
+  headers?: Record<string, unknown>
 }
 
 export interface InitRequest {

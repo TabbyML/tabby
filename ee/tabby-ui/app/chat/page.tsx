@@ -328,7 +328,8 @@ export default function ChatPage() {
   }
 
   const headers = {
-    Authorization: `Bearer ${fetcherOptions.authorization}`
+    Authorization: `Bearer ${fetcherOptions.authorization}`,
+    ...fetcherOptions.headers,
   }
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
