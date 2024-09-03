@@ -301,7 +301,6 @@ export default function PresetDocument() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {/* FIXME */}
             {!currentList?.length ? (
               <TableRow>
                 <TableCell colSpan={3} className="h-[100px] text-center">
