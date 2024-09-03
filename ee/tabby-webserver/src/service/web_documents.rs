@@ -163,7 +163,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
                 };
 
                 let event = BackgroundJobEvent::WebCrawler(WebCrawlerJob::new(
-                    PresetWebDocument::format_source_id(&url.id.as_id()),
+                    PresetWebDocument::format_source_id(&url.name),
                     url.url.clone(),
                     Some(url_prefix.clone()),
                 ));
@@ -222,12 +222,12 @@ impl WebDocumentService for WebDocumentServiceImpl {
                     name
                 ))));
             };
-            let id = self.db.create_web_document(name, url.clone(), true).await?;
+            let id = self.db.create_web_document(name.clone(), url.clone(), true).await?;
             let _ = self
                 .job_service
                 .trigger(
                     BackgroundJobEvent::WebCrawler(WebCrawlerJob::new(
-                        PresetWebDocument::format_source_id(&id.as_id()),
+                        PresetWebDocument::format_source_id(&name),
                         url.clone(),
                         Some(url_prefix.clone()),
                     ))

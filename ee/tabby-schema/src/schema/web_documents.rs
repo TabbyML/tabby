@@ -41,11 +41,11 @@ pub struct PresetWebDocument {
 
 impl PresetWebDocument {
     pub fn source_id(&self) -> String {
-        Self::format_source_id(&self.id)
+        Self::format_source_id(&self.name)
     }
 
-    pub fn format_source_id(id: &ID) -> String {
-        format!("preset_web_document:{}", id)
+    pub fn format_source_id(name: &String) -> String {
+        format!("preset_web_document:{}", name)
     }
 }
 
