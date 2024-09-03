@@ -1,4 +1,4 @@
-import { window, ExtensionContext, Uri } from "vscode";
+import { window, ExtensionContext, Uri, languages } from "vscode";
 import { LanguageClientOptions } from "vscode-languageclient";
 import { LanguageClient as NodeLanguageClient, ServerOptions, TransportKind } from "vscode-languageclient/node";
 import { LanguageClient as BrowserLanguageClient } from "vscode-languageclient/browser";
@@ -13,6 +13,7 @@ import { StatusBarItem } from "./StatusBarItem";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { Commands } from "./Commands";
 import { Status } from "tabby-agent";
+import { NLOutlinesProvider } from "./NLOutlinesProvider";
 
 const isBrowser = !!process.env["IS_BROWSER"];
 const logger = getLogger();
@@ -52,6 +53,7 @@ export async function activate(context: ExtensionContext) {
   const config = new Config(context);
   const inlineCompletionProvider = new InlineCompletionProvider(client, config);
   const gitProvider = new GitProvider();
+
   client.registerConfigManager(config);
   client.registerInlineCompletionProvider(inlineCompletionProvider);
   client.registerGitProvider(gitProvider);
@@ -74,6 +76,9 @@ export async function activate(context: ExtensionContext) {
       });
     }
   });
+
+  const nlOutlinesProvider = new NLOutlinesProvider(config);
+  context.subscriptions.push(languages.registerCodeLensProvider({ scheme: "file" }, nlOutlinesProvider));
 
   // Register chat panel
   const chatViewProvider = new ChatViewProvider(context, client.agent, logger, gitProvider);
@@ -100,6 +105,7 @@ export async function activate(context: ExtensionContext) {
     inlineCompletionProvider,
     chatViewProvider,
     gitProvider,
+    nlOutlinesProvider,
   );
 
   logger.info("Tabby extension activated.");

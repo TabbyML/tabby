@@ -14,6 +14,7 @@ import {
   ThemeIcon,
   QuickPickItem,
   QuickPickItemKind,
+  Location,
 } from "vscode";
 import os from "os";
 import path from "path";
@@ -26,8 +27,9 @@ import { InlineCompletionProvider } from "./InlineCompletionProvider";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { GitProvider, Repository } from "./git/GitProvider";
 import CommandPalette from "./CommandPalette";
-import { showOutputPanel } from "./logger";
+import { getLogger, showOutputPanel } from "./logger";
 import { Issues } from "./Issues";
+import { NLOutlinesProvider } from "./NLOutlinesProvider";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -42,6 +44,7 @@ export class Commands {
     private readonly inlineCompletionProvider: InlineCompletionProvider,
     private readonly chatViewProvider: ChatViewProvider,
     private readonly gitProvider: GitProvider,
+    private readonly nlOutlinesProvider: NLOutlinesProvider,
   ) {
     const registrations = Object.keys(this.commands).map((key) => {
       const commandName = `tabby.${key}`;
@@ -436,20 +439,23 @@ export class Commands {
       quickPick.show();
     },
     "chat.edit.generateNatureLanguageOutlines": async () => {
+      getLogger().info("Entering generateNatureLanguageOutlines method");
       const editor = window.activeTextEditor;
       if (!editor) {
+        getLogger().info("No active text editor found");
         return;
       }
       const editLocation = {
-        uri: editor.document.uri.toString(),
+        uri: editor.document.uri,
         range: {
-          start: { line: editor.selection.start.line, character: 0 },
-          end: {
-            line: editor.selection.end.character === 0 ? editor.selection.end.line : editor.selection.end.line + 1,
-            character: 0,
-          },
+          start: editor.selection.start,
+          end: new Position(
+            editor.selection.end.character === 0 ? editor.selection.end.line : editor.selection.end.line + 1,
+            0,
+          ),
         },
-      };
+      } as Location;
+      getLogger().info(`Edit location set: ${JSON.stringify(editLocation)}`);
       window.withProgress(
         {
           location: ProgressLocation.Notification,
@@ -457,33 +463,38 @@ export class Commands {
           cancellable: true,
         },
         async (_, token) => {
+          getLogger().info("Starting progress window");
           this.contextVariables.nlOutlinesGenerationInProgress = true;
           if (token.isCancellationRequested) {
+            getLogger().info("Cancellation requested before starting");
             return;
           }
           this.nlOutlinesCancellationTokenSource = new CancellationTokenSource();
           token.onCancellationRequested(() => {
+            getLogger().info("Cancellation requested during execution");
             this.nlOutlinesCancellationTokenSource?.cancel();
           });
-
           try {
-            await this.client.chat.provideNLOutlinesGenerate(
-              {
-                location: editLocation,
-              },
-              this.nlOutlinesCancellationTokenSource.token,
-            );
+            getLogger().info("Calling nlOutlinesProvider.provideNLOutlinesGenerate");
+            await this.nlOutlinesProvider.provideNLOutlinesGenerate({
+              location: editLocation,
+              editor: editor,
+            });
+            getLogger().info("Natural language outlines generated successfully");
           } catch (error) {
+            getLogger().error(`Error generating outlines: ${error}`);
             if (typeof error === "object" && error && "message" in error && typeof error.message === "string") {
               window.showErrorMessage(`Error generating outlines: ${error.message}`);
             }
           } finally {
+            getLogger().info("Cleaning up resources");
             this.nlOutlinesCancellationTokenSource?.dispose();
             this.nlOutlinesCancellationTokenSource = null;
             this.contextVariables.nlOutlinesGenerationInProgress = false;
           }
         },
       );
+      getLogger().info("Exiting generateNatureLanguageOutlines method");
     },
     "chat.edit.stop": async () => {
       this.chatEditCancellationTokenSource?.cancel();
