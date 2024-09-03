@@ -119,6 +119,7 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
         CustomKeyboardShortcuts(handleSubmit),
         // for document mention
         MentionExtension.configure({
+          deleteTriggerWithBackspace: true,
           HTMLAttributes: {
             class: 'mention'
           },
@@ -131,6 +132,7 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
         }),
         // for codebase mention
         MentionExtension.configure({
+          deleteTriggerWithBackspace: true,
           HTMLAttributes: {
             class: 'mention-code'
           },
