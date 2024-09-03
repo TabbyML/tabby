@@ -260,7 +260,6 @@ export class ChatViewProvider implements WebviewViewProvider {
           return;
         }
         case "keydown": {
-          getLogger().info("dd");
           if (
             typeof message.key === "string" &&
             message.key.toLowerCase() === "l" &&
@@ -272,7 +271,6 @@ export class ChatViewProvider implements WebviewViewProvider {
               commands.executeCommand("workbench.action.focusFirstEditorGroup");
             }
           }
-
           return;
         }
       }
