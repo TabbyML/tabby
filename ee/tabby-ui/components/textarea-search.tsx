@@ -18,8 +18,7 @@ import {
 } from '@/components/ui/tooltip'
 
 import { PromptEditor, PromptEditorRef } from './prompt-editor'
-import { buttonVariants } from './ui/button'
-import { IconArrowRight, IconAtSign, IconSpinner } from './ui/icons'
+import { IconArrowRight, IconSpinner } from './ui/icons'
 
 export default function TextAreaSearch({
   onSearch,
@@ -105,15 +104,13 @@ export default function TextAreaSearch({
     }
   }
 
-  const showFooterToolbar = !isFollowup
+  const showFooterToolbar = false
 
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-lg border border-muted-foreground bg-background px-4 transition-all hover:border-muted-foreground/60',
+        'flex w-full items-center relative overflow-hidden rounded-lg border border-muted-foreground bg-background px-4 transition-all hover:border-muted-foreground/60',
         {
-          'flex-col gap-1 w-full': showFooterToolbar,
-          'flex w-full items-center ': !showFooterToolbar,
           '!border-zinc-400': isFocus && isFollowup && theme !== 'dark',
           '!border-primary': isFocus && (!isFollowup || theme === 'dark'),
           'py-0': showBetaBadge,
@@ -174,29 +171,6 @@ export default function TextAreaSearch({
           'pb-2': showFooterToolbar
         })}
       >
-        <div className="flex items-center gap-4">
-          <div
-            className={cn(
-              buttonVariants({ variant: 'ghost' }),
-              '-ml-2 cursor-pointer px-2',
-              {
-                'rounded-full': showFooterToolbar,
-                'rounded-md': !showFooterToolbar
-              },
-              className
-            )}
-            onClick={handleClickMentionIcon}
-          >
-            <div className="flex items-center gap-1 overflow-hidden">
-              <IconAtSign className={cn('shrink-0 text-foreground/60')} />
-              {showFooterToolbar && (
-                <span className={cn('flex-1 truncate text-foreground/60')}>
-                  Add Context
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
         <div
           className={cn(
             'flex items-center justify-center rounded-lg p-1 transition-all',
@@ -207,7 +181,6 @@ export default function TextAreaSearch({
                 isLoading || value.length === 0,
               'mr-1.5': !showBetaBadge,
               'h-6 w-6': !isFollowup
-              // 'mr-6': showBetaBadge,
             }
           )}
           onClick={() => handleSubmit(editorRef.current?.editor)}

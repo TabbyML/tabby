@@ -52,6 +52,7 @@
     "@tiptap/extension-paragraph": "^2.6.6",
     "@tiptap/extension-placeholder": "^2.6.6",
     "@tiptap/extension-text": "^2.6.6",
+    "@tiptap/pm": "^2.6.6",
     "@tiptap/react": "^2.6.6",
     "@uidotdev/usehooks": "^2.4.1",
     "@uiw/codemirror-extensions-langs": "^4.21.21",

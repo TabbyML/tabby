@@ -2,10 +2,10 @@ import './styles.css'
 
 import React, { forwardRef, useImperativeHandle, useLayoutEffect } from 'react'
 import Document from '@tiptap/extension-document'
-// import HardBreak from '@tiptap/extension-hard-break'
 import Paragraph from '@tiptap/extension-paragraph'
 import Placeholder from '@tiptap/extension-placeholder'
 import Text from '@tiptap/extension-text'
+import { PluginKey } from '@tiptap/pm/state'
 import {
   Editor,
   EditorContent,
@@ -18,8 +18,11 @@ import { ContextInfo, ContextSource } from '@/lib/gql/generates/graphql'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { cn } from '@/lib/utils'
 
-import { CustomMention } from './custom-mention-extension'
+import { MentionExtension } from './mention-extensions'
 import suggestion from './suggestion'
+
+const DocumentMentionPluginKey = new PluginKey('mention-doc')
+const CodeMentionPluginKey = new PluginKey('mention-code')
 
 const CustomKeyboardShortcuts = (onSubmit: (editor: Editor) => void) =>
   Extension.create({
@@ -55,7 +58,6 @@ interface PromptEditorProps {
   autoFocus?: boolean
   className?: string
   editorClassName?: string
-  enabledMarkdown?: boolean
   placement?: 'top' | 'bottom'
 }
 
@@ -88,7 +90,6 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       autoFocus,
       className,
       editorClassName,
-      enabledMarkdown,
       placement
     },
     ref
@@ -116,14 +117,27 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
           placeholder: placeholder || 'Ask anything...'
         }),
         CustomKeyboardShortcuts(handleSubmit),
-        CustomMention.configure({
+        // for document mention
+        MentionExtension.configure({
           HTMLAttributes: {
-            class: 'mention'
-          },
-          renderText({ node }) {
-            return `[[source:${node.attrs.id}]]`
+            class: 'mention-doc'
           },
           suggestion: suggestion({
+            category: 'doc',
+            char: '@',
+            pluginKey: DocumentMentionPluginKey,
+            placement: placement === 'bottom' ? 'top-start' : 'bottom-start'
+          })
+        }),
+        // for codebase mention
+        MentionExtension.configure({
+          HTMLAttributes: {
+            class: 'mention-code'
+          },
+          suggestion: suggestion({
+            category: 'code',
+            char: '#',
+            pluginKey: CodeMentionPluginKey,
             placement: placement === 'bottom' ? 'top-start' : 'bottom-start'
           })
         })
