@@ -13,6 +13,7 @@ fn main() {
     config.define("LLAMA_NATIVE", "OFF");
     config.define("BUILD_SHARED_LIBS", "OFF");
     config.define("INS_ENB", "ON");
+    config.define("GGML_AVX2", "OFF")
 
     if cfg!(target_os = "macos") {
         config.define("LLAMA_METAL", "ON");
