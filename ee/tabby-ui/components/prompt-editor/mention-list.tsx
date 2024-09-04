@@ -1,9 +1,12 @@
 import React, {
   forwardRef,
+  HTMLAttributes,
   useContext,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState
 } from 'react'
 import {
@@ -134,23 +137,14 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
           </div>
         ) : filteredList.length ? (
           filteredList.map((item, index) => (
-            <div
-              className={cn(
-                'flex cursor-pointer gap-1 rounded-md px-2 py-1.5 text-sm',
-                {
-                  'bg-accent text-accent-foreground': index === selectedIndex
-                }
-              )}
-              key={index}
+            <OptionItemView
+              key={item.id}
               onClick={() => onSelectItem(index)}
               onMouseEnter={() => setSelectedIndex(index)}
               title={item.label}
-            >
-              <span className="flex h-5 shrink-0 items-center">
-                <OptionIcon option={item} />
-              </span>
-              <span className="flex-1">{item.label}</span>
-            </div>
+              data={item}
+              isSelected={index === selectedIndex}
+            />
           ))
         ) : (
           <div className="px-2 py-1.5">
@@ -168,8 +162,8 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
 
 MetionList.displayName = 'MetionList'
 
-function OptionIcon({ option }: { option: OptionItem }) {
-  switch (option.data.kind) {
+function OptionIcon({ kind }: { kind: ContextKind }) {
+  switch (kind) {
     case ContextKind.Doc:
       return <IconFileText />
     case ContextKind.Web:
@@ -183,6 +177,40 @@ function OptionIcon({ option }: { option: OptionItem }) {
     default:
       return null
   }
+}
+
+interface OptionItemView extends HTMLAttributes<HTMLDivElement> {
+  isSelected: boolean
+  data: OptionItem
+}
+function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
+  const ref = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    if (isSelected && ref.current) {
+      ref.current?.scrollIntoView({
+        block: 'nearest',
+        inline: 'nearest'
+      })
+    }
+  }, [isSelected])
+
+  return (
+    <div
+      className={cn(
+        'flex cursor-pointer gap-1 rounded-md px-2 py-1.5 text-sm',
+        {
+          'bg-accent text-accent-foreground': isSelected
+        }
+      )}
+      {...rest}
+      ref={ref}
+    >
+      <span className="flex h-5 shrink-0 items-center">
+        <OptionIcon kind={data.data.kind} />
+      </span>
+      <span className="flex-1">{data.label}</span>
+    </div>
+  )
 }
 
 export default MetionList
