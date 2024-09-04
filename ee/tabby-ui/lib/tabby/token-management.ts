@@ -7,7 +7,7 @@ import { AuthData } from './auth'
 
 export const AUTH_TOKEN_KEY = '_tabby_auth'
 export const AUTH_LOCK_KEY = '_tabby_auth_lock'
-export const FETCHER_OPTIONS_KEY = '_tabby_fetcher_options'
+export const FETCHER_OPTIONS_KEY = '_tabby_chat_sdk_fetcher_options'
 
 const getAuthToken = (): AuthData | undefined => {
   if (isClientSide()) {
