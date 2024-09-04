@@ -7,6 +7,7 @@ import tabbyLogo from '@/assets/tabby.png'
 import { compact, isEmpty, isEqual, isNil, uniqWith } from 'lodash-es'
 import type { Context } from 'tabby-chat-panel'
 
+import { MARKDOWN_CITATION_FUZZY_REGEX } from '@/lib/constants/regex'
 import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
 import {
@@ -30,7 +31,6 @@ import { Skeleton } from '../ui/skeleton'
 import { UserAvatar } from '../user-avatar'
 import { ChatContext } from './chat'
 import { CodeReferences } from './code-references'
-import { MARKDOWN_CITATION_FUZZY_REGEX } from '@/lib/constants/regex'
 
 interface QuestionAnswerListProps {
   messages: QuestionAnswerPair[]

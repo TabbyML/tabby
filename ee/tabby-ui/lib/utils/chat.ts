@@ -2,6 +2,7 @@ import { uniq } from 'lodash-es'
 
 import { ContextInfo, ContextKind } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
+
 import { MARKDOWN_SOURCE_REGEX } from '../constants/regex'
 
 export const isCodeSourceContext = (kind: ContextKind) => {

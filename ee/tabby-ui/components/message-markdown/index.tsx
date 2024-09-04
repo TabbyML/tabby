@@ -26,9 +26,13 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './style.css'
 
+import {
+  MARKDOWN_CITATION_REGEX,
+  MARKDOWN_SOURCE_REGEX
+} from '@/lib/constants/regex'
+
 import { Mention } from '../mention-tag'
 import { Skeleton } from '../ui/skeleton'
-import { MARKDOWN_CITATION_REGEX, MARKDOWN_SOURCE_REGEX } from '@/lib/constants/regex'
 
 type RelevantDocItem = {
   type: 'doc'
