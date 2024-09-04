@@ -1,10 +1,10 @@
 package com.tabbyml.tabby4eclipse.editor;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.jface.text.IDocument;
-import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4e.LanguageServerWrapper;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IEditorReference;
@@ -16,15 +16,16 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.tabbyml.tabby4eclipse.Logger;
+import com.tabbyml.tabby4eclipse.inlineCompletion.InlineCompletionTrigger;
 import com.tabbyml.tabby4eclipse.lsp.LanguageServerService;
 
-public class EditorListener implements IPartListener {
-	public static EditorListener getInstance() {
+public class WorkbenchPartListener implements IPartListener {
+	public static WorkbenchPartListener getInstance() {
 		return LazyHolder.INSTANCE;
 	}
 
 	private static class LazyHolder {
-		private static final EditorListener INSTANCE = new EditorListener();
+		private static final WorkbenchPartListener INSTANCE = new WorkbenchPartListener();
 	}
 
 	private Logger logger = new Logger("EditorListener");
@@ -32,6 +33,7 @@ public class EditorListener implements IPartListener {
 
 	public void init() {
 		try {
+			logger.debug("Init WorkbenchListener.");
 			IWorkbenchWindow[] windows = PlatformUI.getWorkbench().getWorkbenchWindows();
 			for (IWorkbenchWindow window : windows) {
 				IWorkbenchPage[] pages = window.getPages();
@@ -43,17 +45,18 @@ public class EditorListener implements IPartListener {
 					for (IEditorReference editorRef : editorReferences) {
 						IEditorPart editorPart = editorRef.getEditor(false);
 						if (editorPart instanceof ITextEditor textEditor) {
-							IDocument document = LSPEclipseUtils.getDocument(textEditor.getEditorInput());
+							IDocument document = EditorUtils.getDocument(textEditor);
+							URI uri = EditorUtils.getUri(textEditor);
 							getLanguageServerWrapper().connectDocument(document);
-							logger.info("Connect " + LSPEclipseUtils.toUri(document) + " to LS when init.");
+							logger.info("Connect " + uri.toString() + " to LS when init.");
 
-							getInlineCompletionService().register(textEditor);
+							InlineCompletionTrigger.getInstance().register(textEditor);
 						}
 					}
 				}
 			}
 		} catch (Exception e) {
-			logger.error("Error when initializing editor manager.", e);
+			logger.error("Failed to init WorkbenchListener.", e);
 		}
 	}
 
@@ -61,18 +64,20 @@ public class EditorListener implements IPartListener {
 	public void partOpened(IWorkbenchPart part) {
 		try {
 			if (part != null) {
+				logger.debug("Handle event partOpened: " + part.toString());
 				ITextEditor textEditor = (ITextEditor) part.getAdapter(ITextEditor.class);
 				if (textEditor != null) {
-					IDocument document = LSPEclipseUtils.getDocument(textEditor.getEditorInput());
+					IDocument document = EditorUtils.getDocument(textEditor);
+					URI uri = EditorUtils.getUri(textEditor);
 					getLanguageServerWrapper().connectDocument(document);
-					logger.info("Connect " + LSPEclipseUtils.toUri(document) + " to LS when partOpened.");
+					logger.info("Connect " + uri.toString() + " to LS when partOpened.");
 
-					getInlineCompletionService().register(textEditor);
+					InlineCompletionTrigger.getInstance().register(textEditor);
 					editors.add(textEditor);
 				}
 			}
 		} catch (Exception e) {
-			logger.error("Error when partOpened.", e);
+			logger.error("Failed to handle event partOpened.", e);
 		}
 	}
 
@@ -80,18 +85,19 @@ public class EditorListener implements IPartListener {
 	public void partClosed(IWorkbenchPart part) {
 		try {
 			if (part != null) {
+				logger.debug("Handle event partClosed: " + part.toString());
 				ITextEditor textEditor = (ITextEditor) part.getAdapter(ITextEditor.class);
 				if (editors.contains(textEditor)) {
-					IDocument document = LSPEclipseUtils.getDocument(textEditor.getEditorInput());
-					getLanguageServerWrapper().disconnect(LSPEclipseUtils.toUri(document));
-					logger.info("Disconnect " + LSPEclipseUtils.toUri(document) + " from LS.");
+					URI uri = EditorUtils.getUri(textEditor);
+					getLanguageServerWrapper().disconnect(uri);
+					logger.info("Disconnect " + uri.toString() + " from LS.");
 
-					getInlineCompletionService().unregister(textEditor);
+					InlineCompletionTrigger.getInstance().unregister(textEditor);
 					editors.remove(textEditor);
 				}
 			}
 		} catch (Exception e) {
-			logger.error("Error when partClosed.", e);
+			logger.error("Failed to handle event partClosed.", e);
 		}
 	}
 
@@ -109,13 +115,6 @@ public class EditorListener implements IPartListener {
 
 	private LanguageServerWrapper getLanguageServerWrapper() {
 		LanguageServerWrapper server = LanguageServerService.getInstance().getServer();
-		if (server == null) {
-			logger.error("Cannot initialize EditorManager. Language server is not available.");
-		}
 		return server;
-	}
-
-	private InlineCompletionService getInlineCompletionService() {
-		return InlineCompletionService.getInstance();
 	}
 }

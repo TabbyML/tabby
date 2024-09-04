@@ -1,4 +1,4 @@
-package com.tabbyml.tabby4eclipse.editor;
+package com.tabbyml.tabby4eclipse.inlineCompletion;
 
 import java.util.List;
 

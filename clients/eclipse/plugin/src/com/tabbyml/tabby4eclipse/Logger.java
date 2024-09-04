@@ -4,6 +4,9 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
 public class Logger {
+	private static String TABBY4ECLIPSE_LOG_DEBUG = System.getenv("TABBY4ECLIPSE_LOG_DEBUG");
+	private static boolean LOG_DEBUG = TABBY4ECLIPSE_LOG_DEBUG != null && !TABBY4ECLIPSE_LOG_DEBUG.isEmpty();
+
 	private String tag;
 
 	public Logger(String tag) {
@@ -17,6 +20,9 @@ public class Logger {
 
 	public void debug(String message) {
 		System.out.println(tagString(message));
+		if (LOG_DEBUG) {
+			logStatus(IStatus.INFO, String.format("[DEBUG] %s", message), null);
+		}
 	}
 
 	public void info(String message) {

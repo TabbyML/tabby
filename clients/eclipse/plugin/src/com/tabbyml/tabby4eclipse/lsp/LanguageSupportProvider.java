@@ -48,7 +48,7 @@ public class LanguageSupportProvider {
 					});
 			return future;
 		} catch (Exception e) {
-			logger.error("Error while processing languageSupport/declaration.", e);
+			logger.error("Failed to handle request languageSupport/declaration.", e);
 			return CompletableFuture.completedFuture(null);
 		}
 	}
@@ -79,7 +79,7 @@ public class LanguageSupportProvider {
 					});
 			return future;
 		} catch (Exception e) {
-			logger.error("Error while processing languageSupport/semanticTokens/range.", e);
+			logger.error("Failed to handle request languageSupport/semanticTokens/range.", e);
 			return CompletableFuture.completedFuture(null);
 		}
 	}

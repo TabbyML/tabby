@@ -181,7 +181,7 @@ public class ChatView extends ViewPart {
 			Bundle bundle = Platform.getBundle(Activator.PLUGIN_ID);
 			URL chatPanelPath = FileLocator.find(bundle, new Path("chat-panel/index.html"));
 			if (chatPanelPath == null) {
-				logger.error("Cannot find chat panel html file");
+				logger.error("Failed to find chat panel html file.");
 				return;
 			}
 			URL url = FileLocator.toFileURL(chatPanelPath);
@@ -190,7 +190,7 @@ public class ChatView extends ViewPart {
 				browser.setUrl(url.toString());
 			});
 		} catch (Exception e) {
-			logger.error("Cannot load chat panel html file", e);
+			logger.error("Failed to load chat panel html file.", e);
 		}
 	}
 
@@ -569,7 +569,7 @@ public class ChatView extends ViewPart {
 				}
 			}
 		} catch (Exception e) {
-			logger.error("Error to navigate to file: " + context.getFilePath(), e);
+			logger.error("Failed to navigate to file: " + context.getFilePath(), e);
 		}
 	}
 
@@ -583,7 +583,7 @@ public class ChatView extends ViewPart {
 				ITextSelection selection = (ITextSelection) activeTextEditor.getSelectionProvider().getSelection();
 				document.replace(selection.getOffset(), selection.getLength(), content);
 			} catch (Exception e) {
-				logger.error("Error to apply content to the active text editor.", e);
+				logger.error("Failed to apply content to the active text editor.", e);
 			}
 		}
 	}

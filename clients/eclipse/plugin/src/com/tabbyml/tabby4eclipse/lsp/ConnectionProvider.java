@@ -32,14 +32,14 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 			// Find node executable
 			File nodeExecutableFile = null;
 			String systemPath = System.getenv("PATH");
-			logger.info("System env PATH: " + systemPath);
+			logger.debug("System env PATH: " + systemPath);
 			if (systemPath != null) {
 				String[] paths = systemPath.split(File.pathSeparator);
 				for (String p : paths) {
 					File file = new File(p, Utils.isWindows() ? "node.exe" : "node");
 					if (file.exists() && file.canExecute()) {
 						nodeExecutableFile = file;
-						logger.info("Node executable: " + file.getAbsolutePath());
+						logger.debug("Node executable: " + file.getAbsolutePath());
 						break;
 					}
 				}
@@ -61,7 +61,7 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 			// Setup command to start tabby-agent
 			List<String> commands = List.of(nodeExecutableFile.getAbsolutePath(), agentScriptFile.getAbsolutePath(),
 					"--stdio");
-			logger.info("Will use command " + commands.toString() + " to start Tabby language server.");
+			logger.info("Command to start Tabby language server: " + commands.toString());
 			this.setCommands(commands);
 		} catch (IOException e) {
 			StatusInfoHolder.getInstance().setConnectionFailed(true);

@@ -18,7 +18,7 @@ import com.tabbyml.tabby4eclipse.lsp.protocol.GitRepositoryParams;
 
 public class EclipseJGitProvider implements IGitProvider {
 	private Logger logger = new Logger("EclipseJGitProvider");
-	
+
 	@Override
 	public boolean isAvailable() {
 		try {
@@ -66,7 +66,7 @@ public class EclipseJGitProvider implements IGitProvider {
 				return null;
 			}
 		} catch (Exception e) {
-			logger.error("Failed to get repository for: " + params.getUri(), e);
+			logger.warn("Failed to get repository for: " + params.getUri(), e);
 			return null;
 		}
 	}
@@ -92,7 +92,7 @@ public class EclipseJGitProvider implements IGitProvider {
 				return null;
 			}
 		} catch (Exception e) {
-			logger.error("Failed to get diff for: " + params.getRepository(), e);
+			logger.warn("Failed to get diff for: " + params.getRepository(), e);
 			return null;
 		}
 	}

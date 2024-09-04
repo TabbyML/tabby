@@ -1,4 +1,4 @@
-package com.tabbyml.tabby4eclipse.editor;
+package com.tabbyml.tabby4eclipse.inlineCompletion;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,18 +34,18 @@ public class InlineCompletionRenderer {
 	private ITextViewer currentTextViewer = null;
 	private InlineCompletionItem currentCompletionItem = null;
 
-	public void show(ITextViewer viewer, int offset, InlineCompletionItem item, int offsetInDocument) {
+	public void show(ITextViewer viewer, InlineCompletionItem item) {
 		if (currentTextViewer != null) {
-			getPainter(currentTextViewer).update(null, 0, 0);
+			getPainter(currentTextViewer).update(null);
 		}
 		currentTextViewer = viewer;
 		currentCompletionItem = item;
-		getPainter(viewer).update(item, offset, offsetInDocument);
+		getPainter(viewer).update(item);
 	}
 
 	public void hide() {
 		if (currentTextViewer != null) {
-			getPainter(currentTextViewer).update(null, 0, 0);
+			getPainter(currentTextViewer).update(null);
 			currentTextViewer = null;
 			currentCompletionItem = null;
 		}
@@ -73,7 +73,6 @@ public class InlineCompletionRenderer {
 
 		private InlineCompletionItem item;
 		private int offset;
-		private int offsetInDocument;
 
 		private IPaintPositionManager positionManager;
 		private Font font;
@@ -89,12 +88,11 @@ public class InlineCompletionRenderer {
 			});
 		}
 
-		public void update(InlineCompletionItem item, int offset, int offsetInDocument) {
-			if (this.item != item || this.offset != offset) {
+		public void update(InlineCompletionItem item) {
+			if (this.item != item) {
 				this.item = item;
-				this.offset = offset;
-				this.offsetInDocument = offsetInDocument;
 				getDisplay().syncExec(() -> {
+					this.offset = getWidget().getCaretOffset();
 					cleanup();
 					setupPainting();
 					getWidget().redraw();
@@ -184,7 +182,7 @@ public class InlineCompletionRenderer {
 				}
 				modifiedGlyphMetrics.clear();
 			} catch (Exception e) {
-				logger.error("Error when renderer cleanup.", e);
+				logger.error("Failed to cleanup renderer.", e);
 			}
 		}
 
@@ -194,8 +192,8 @@ public class InlineCompletionRenderer {
 			}
 			StyledText widget = getWidget();
 
-			int prefixReplaceLength = offsetInDocument - item.getReplaceRange().getStart();
-			int suffixReplaceLength = item.getReplaceRange().getEnd() - offsetInDocument;
+			int prefixReplaceLength = item.getReplaceRange().getPrefixLength();
+			int suffixReplaceLength = item.getReplaceRange().getSuffixLength();
 			String text = item.getInsertText().substring(prefixReplaceLength);
 			if (text.isEmpty()) {
 				return;
@@ -295,58 +293,72 @@ public class InlineCompletionRenderer {
 		}
 
 		private void drawReplacePartText(int offset, String text, String replacedText) {
-			logger.debug("drawInsertPartText:" + offset + ":" + text + ":" + replacedText);
+			logger.debug("drawReplacePartText:" + offset + ":" + text + ":" + replacedText);
 			StyledText widget = getWidget();
 			TextWithTabs textWithTabs = splitLeadingTabs(text);
 
 			int targetOffset = offset + replacedText.length();
-			String targetChar = widget.getText(targetOffset, targetOffset);
-			StyleRange originStyleRange;
-			if (widget.getStyleRangeAtOffset(targetOffset) != null) {
-				originStyleRange = widget.getStyleRangeAtOffset(targetOffset);
-				logger.debug("Find origin StyleRange:" + originStyleRange.start + " -> " + originStyleRange.metrics);
+			if (targetOffset >= widget.getCharCount()) {
+				// End of document, draw the ghost text only
+				paintFunctions.add((gc) -> {
+					// Draw ghost text
+					setStyleToGhostText(gc);
+					int spaceWidth = gc.textExtent(" ").x;
+					int tabWidth = textWithTabs.tabs * widget.getTabs() * spaceWidth;
+					Point location = widget.getLocationAtOffset(offset);
+					gc.drawString(textWithTabs.text, location.x + tabWidth, location.y);
+				});
+				
 			} else {
-				originStyleRange = new StyleRange();
-				originStyleRange.start = targetOffset;
-				originStyleRange.length = 1;
-				logger.debug("Create StyleRange:" + originStyleRange.start + " -> " + originStyleRange.metrics);
-			}
-
-			paintFunctions.add((gc) -> {
-				// Draw ghost text
-				setStyleToGhostText(gc);
-				int spaceWidth = gc.textExtent(" ").x;
-				int tabWidth = textWithTabs.tabs * widget.getTabs() * spaceWidth;
-				int ghostTextWidth = tabWidth + gc.stringExtent(textWithTabs.text).x;
-				Point location = widget.getLocationAtOffset(offset);
-				gc.drawString(textWithTabs.text, location.x + tabWidth, location.y);
-
-				// Leave the space for the ghost text
-				setStyle(gc, originStyleRange);
-				int shiftWidth = ghostTextWidth - gc.stringExtent(replacedText).x;
-				int targetCharWidth = gc.stringExtent(targetChar).x;
-
-				StyleRange currentStyleRange = widget.getStyleRangeAtOffset(targetOffset);
-				if (currentStyleRange != null && currentStyleRange.metrics != null
-						&& currentStyleRange.metrics.width == shiftWidth + targetCharWidth) {
-					// nothing to do
+				// otherwise, draw the ghost text, and move target char after the ghost text
+				String targetChar = widget.getText(targetOffset, targetOffset);
+				StyleRange originStyleRange;
+				if (widget.getStyleRangeAtOffset(targetOffset) != null) {
+					originStyleRange = widget.getStyleRangeAtOffset(targetOffset);
+					logger.debug("Find origin StyleRange:" + originStyleRange.start + " -> " + originStyleRange.metrics);
 				} else {
-					StyleRange styleRange = (StyleRange) originStyleRange.clone();
-					styleRange.start = targetOffset;
-					styleRange.length = 1;
-					FontMetrics fontMetrics = gc.getFontMetrics();
-					GlyphMetrics glyphMetrics = new GlyphMetrics(fontMetrics.getAscent(), fontMetrics.getDescent(),
-							shiftWidth + targetCharWidth);
-					modifiedGlyphMetrics.add(glyphMetrics);
-					styleRange.metrics = glyphMetrics;
-					widget.setStyleRange(styleRange);
-					logger.debug("Set StyleRange:" + styleRange.start + " -> " + styleRange.metrics);
+					originStyleRange = new StyleRange();
+					originStyleRange.start = targetOffset;
+					originStyleRange.length = 1;
+					logger.debug("Create StyleRange:" + originStyleRange.start + " -> " + originStyleRange.metrics);
 				}
 
-				// Draw the moved char
-				Point targetCharLocation = widget.getLocationAtOffset(targetOffset);
-				gc.drawString(targetChar, targetCharLocation.x + shiftWidth, targetCharLocation.y, true);
-			});
+				paintFunctions.add((gc) -> {
+					// Draw ghost text
+					setStyleToGhostText(gc);
+					int spaceWidth = gc.textExtent(" ").x;
+					int tabWidth = textWithTabs.tabs * widget.getTabs() * spaceWidth;
+					int ghostTextWidth = tabWidth + gc.stringExtent(textWithTabs.text).x;
+					Point location = widget.getLocationAtOffset(offset);
+					gc.drawString(textWithTabs.text, location.x + tabWidth, location.y);
+
+					// Leave the space for the ghost text
+					setStyle(gc, originStyleRange);
+					int shiftWidth = ghostTextWidth - gc.stringExtent(replacedText).x;
+					int targetCharWidth = gc.stringExtent(targetChar).x;
+
+					StyleRange currentStyleRange = widget.getStyleRangeAtOffset(targetOffset);
+					if (currentStyleRange != null && currentStyleRange.metrics != null
+							&& currentStyleRange.metrics.width == shiftWidth + targetCharWidth) {
+						// nothing to do
+					} else {
+						StyleRange styleRange = (StyleRange) originStyleRange.clone();
+						styleRange.start = targetOffset;
+						styleRange.length = 1;
+						FontMetrics fontMetrics = gc.getFontMetrics();
+						GlyphMetrics glyphMetrics = new GlyphMetrics(fontMetrics.getAscent(), fontMetrics.getDescent(),
+								shiftWidth + targetCharWidth);
+						modifiedGlyphMetrics.add(glyphMetrics);
+						styleRange.metrics = glyphMetrics;
+						widget.setStyleRange(styleRange);
+						logger.debug("Set StyleRange:" + styleRange.start + " -> " + styleRange.metrics);
+					}
+
+					// Draw the moved char
+					Point targetCharLocation = widget.getLocationAtOffset(targetOffset);
+					gc.drawString(targetChar, targetCharLocation.x + shiftWidth, targetCharLocation.y, true);
+				});
+			}
 		}
 
 		private void drawSuffixLines(int offset, String text) {
@@ -413,9 +425,10 @@ public class InlineCompletionRenderer {
 			gc.setFont(font);
 		}
 
-		static final Pattern leadingTabsPattern = Pattern.compile("^(\\t*)(.*)$");
+		static final Pattern PATTERN_LEADING_TABS = Pattern.compile("^(\\t*)(.*)$");
+
 		private static TextWithTabs splitLeadingTabs(String text) {
-			Matcher matcher = leadingTabsPattern.matcher(text);
+			Matcher matcher = PATTERN_LEADING_TABS.matcher(text);
 			if (matcher.matches()) {
 				return new TextWithTabs(matcher.group(1).length(), matcher.group(2));
 			} else {
@@ -434,11 +447,11 @@ public class InlineCompletionRenderer {
 				this.modifiedIndent = modifiedIndent;
 			}
 		}
-		
+
 		private static class TextWithTabs {
 			private int tabs;
 			private String text;
-			
+
 			public TextWithTabs(int tabs, String text) {
 				this.tabs = tabs;
 				this.text = text;
