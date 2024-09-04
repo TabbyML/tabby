@@ -23,6 +23,10 @@ async fn crawl_url(
         .arg(format!("starts_with(endpoint, \"{prefix_url}\")"))
         .arg("-depth")
         .arg("9999")
+        .arg("--extension-filter").arg("js,css,png,jpg,jpeg")  // Exclude non html extensions
+        .arg("-field-scope").arg("fqdn")  // Limit crawling scope to the same origin.
+        .arg("-max-response-size").arg("10485760")  // 10MB max body size
+        .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
