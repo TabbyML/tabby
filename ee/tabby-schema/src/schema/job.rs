@@ -58,7 +58,12 @@ impl relay::NodeType for JobRun {
 
 #[async_trait]
 pub trait JobService: Send + Sync {
+    /// Trigger job run.
     async fn trigger(&self, command: String) -> Result<ID>;
+
+    /// Remove pending job run, returns number of jobs being removed.
+    async fn clear(&self, command: String) -> Result<usize>;
+
     async fn get_job_info(&self, command: String) -> Result<JobInfo>;
 
     async fn list(
