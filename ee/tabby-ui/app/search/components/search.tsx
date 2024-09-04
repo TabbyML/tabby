@@ -78,10 +78,6 @@ import { toast } from 'sonner'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
-import {
-  MARKDOWN_CITATION_FUZZY_REGEX,
-  MARKDOWN_SOURCE_REGEX
-} from '@/lib/constants/regex'
 import { graphql } from '@/lib/gql/generates'
 import {
   CodeQueryInput,
@@ -113,6 +109,7 @@ import {
 
 import { DevPanel } from './dev-panel'
 import { MessagesSkeleton } from './messages-skeleton'
+import { MARKDOWN_CITATION_FUZZY_REGEX, MARKDOWN_SOURCE_REGEX } from '@/lib/constants/regex'
 
 type ConversationMessage = Omit<
   Message,
