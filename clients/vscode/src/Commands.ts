@@ -513,17 +513,26 @@ export class Commands {
         },
       );
     },
-    "chat.edit.editNLOutline": async () => {
+    "chat.edit.editNLOutline": async (uri?: Uri, startLine?: number) => {
       const editor = window.activeTextEditor;
       if (!editor) return;
-      const position = editor.selection.active;
-      const line = position.line;
-      const content = this.nlOutlinesProvider.getOutline(editor.document.uri.toString(), line);
+
+      let documentUri: string;
+      let line: number;
+
+      if (uri && startLine !== undefined) {
+        documentUri = uri.toString();
+        line = startLine;
+      } else {
+        documentUri = editor.document.uri.toString();
+        line = editor.selection.active.line;
+      }
+
+      const content = this.nlOutlinesProvider.getOutline(documentUri, line);
       getLogger().info("get content");
       if (!content) return;
-
       getLogger().info("shown");
-      window.showInformationMessage(content);
+
       const quickPick = window.createQuickPick();
       quickPick.items = [{ label: content }];
       quickPick.placeholder = "Edit NL Outline content";
@@ -532,14 +541,11 @@ export class Commands {
       quickPick.onDidAccept(async () => {
         const newContent = quickPick.value;
         quickPick.hide();
-
-        await this.nlOutlinesProvider.updateNLOutline(editor.document.uri.toString(), line, newContent);
-
+        await this.nlOutlinesProvider.updateNLOutline(documentUri, line, newContent);
         window.showInformationMessage(`Updated NL Outline: ${newContent}`);
       });
 
       quickPick.show();
-      return;
     },
     "chat.edit.stop": async () => {
       this.chatEditCancellationTokenSource?.cancel();

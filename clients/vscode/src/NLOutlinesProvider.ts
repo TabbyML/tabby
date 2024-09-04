@@ -224,8 +224,8 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
 
       const editCommand: Command = {
         title: "Edit",
-        command: "extension.editOutline",
-        arguments: [document.uri, outline.startLine, outline.content],
+        command: "tabby.chat.edit.editNLOutline",
+        arguments: [document.uri, outline.startLine],
       };
       const editCodeLens = new CodeLens(range, editCommand);
 
@@ -259,9 +259,9 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
     return this.outlines.get(documentUri)?.find((outline) => outline.startLine === lineNumber)?.content;
   }
 
-  //TODO: do diff when adding new code with old code, user should accpet or discard the new code;
-  //TODO: dynamic update remain outline or find a new way to show new code
-  //TODO: stream prompt new code not directly prompt everything
+  //TODO(Sma1lboy): do diff when adding new code with old code, user should accpet or discard the new code;
+  //TODO(Sma1lboy): dynamic update remain outline or find a new way to show new code
+  //TODO(Sma1lboy): stream prompt new code not directly prompt everything
   async updateNLOutline(documentUri: string, lineNumber: number, newContent: string) {
     const outlines = this.outlines.get(documentUri) || [];
     const oldOutlineIndex = outlines.findIndex((outline) => outline.startLine === lineNumber);
