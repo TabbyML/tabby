@@ -63,7 +63,9 @@ export const saveFetcherOptions = (fetcherOptions: FetcherOptions) => {
   if (!fetcherOptions) return
   try {
     sessionStorage.setItem(FETCHER_OPTIONS_KEY, JSON.stringify(fetcherOptions))
-  } catch (e) {}
+  } catch (e) {
+    sessionStorage.removeItem(FETCHER_OPTIONS_KEY)
+  }
 }
 
 class TokenManager {
