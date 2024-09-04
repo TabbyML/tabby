@@ -12,7 +12,7 @@
 }
 
 .node-mention {
-  @apply bg-[#e8e1d3] dark:bg-[#333333] rounded-md pb-0.5 pt-0 px-0.5;
+  @apply bg-[#e8e1d3] dark:bg-[#333333] rounded-md pb-0.5 pt-0;
 }
 
 /* Message Markdown */

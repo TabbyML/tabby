@@ -12,16 +12,6 @@ export const MentionExtension = Mention.extend({
   renderText({ node }) {
     return `[[source:${node.attrs.id}]]`
   },
-  // parseHTML() {
-  //   return [
-  //     {
-  //       tag: 'mention'
-  //     }
-  //   ]
-  // },
-  // renderHTML({ HTMLAttributes }) {
-  //   return ['mention', mergeAttributes(HTMLAttributes)]
-  // },
   addAttributes() {
     return {
       id: {

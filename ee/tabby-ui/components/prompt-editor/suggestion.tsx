@@ -2,7 +2,7 @@ import 'tippy.js/animations/shift-away.css'
 
 import { MentionNodeAttrs, MentionOptions } from '@tiptap/extension-mention'
 import { PluginKey } from '@tiptap/pm/state'
-import { Editor, JSONContent, ReactRenderer } from '@tiptap/react'
+import { Content, Editor, JSONContent, ReactRenderer } from '@tiptap/react'
 import tippy, { GetReferenceClientRect, Instance, Placement } from 'tippy.js'
 
 import { MentionAttributes } from '@/lib/types'
@@ -114,8 +114,8 @@ const suggestion: (options: {
   pluginKey,
   command: ({ editor, range, props }) => {
     if (category === 'code') {
-      const stop = replaceExistingCodebaseMention(editor, range, props)
-      if (stop) return
+      insertCodebaseMention(editor, range, props)
+      return
     }
 
     // increase range.to by one when the next node is of type "text"
@@ -147,13 +147,16 @@ const suggestion: (options: {
   }
 })
 
-function replaceExistingCodebaseMention(
+function insertCodebaseMention(
   editor: Editor,
   range: { from: number; to: number },
   props: MentionNodeAttrs
 ) {
   const { doc } = editor.state
   let mentionPos: number | undefined
+
+  // Save the current selection
+  const currentSelection = editor.state.selection.$from
 
   // Traverse the document to find the existing mention
   doc.descendants((node, pos) => {
@@ -165,30 +168,57 @@ function replaceExistingCodebaseMention(
     return true
   })
 
-  if (mentionPos !== undefined && doc.nodeAt(mentionPos) !== null) {
-    const mentionNodeSize = doc.nodeAt(mentionPos)!.nodeSize
+  // Delete the triggering character `#`
+  editor.chain().deleteRange({ from: range.from, to: range.to }).run()
 
-    // Replace the existing mention with the new mention
-    editor
-      .chain()
-      // Delete the triggering character `#`
-      .deleteRange({ from: range.from, to: range.to })
-      .insertContentAt({ from: mentionPos, to: mentionPos + mentionNodeSize }, [
+  const isExistingCodeMentionNode = mentionPos !== undefined
+  // Check if the first node is a paragraph
+  const firstNode = doc.firstChild
+
+  const content: Content = isExistingCodeMentionNode
+    ? [
         {
           type: MENTION_EXTENSION_NAME,
           attrs: props
         }
-      ])
-      // Set the selection to the end of the newly inserted mention
-      .setTextSelection(mentionPos + mentionNodeSize)
-      .focus()
-      .run()
-
-    return true
+      ]
+    : [
+        {
+          type: MENTION_EXTENSION_NAME,
+          attrs: props
+        },
+        {
+          type: 'text',
+          text: ' '
+        }
+      ]
+  if (firstNode && firstNode.type.name === 'paragraph') {
+    // If the first child of the paragraph is a mention, replace it
+    const firstChild = firstNode.firstChild
+    if (
+      firstChild &&
+      firstChild.type.name === 'mention' &&
+      isCodeSourceContext(firstChild.attrs.kind)
+    ) {
+      const mentionNodeSize = firstChild.nodeSize
+      editor
+        .chain()
+        .deleteRange({ from: 1, to: 1 + mentionNodeSize })
+        .insertContentAt(1, content)
+        .focus()
+        .run()
+    } else {
+      // Insert the new mention as the first child of the paragraph
+      editor.chain().insertContentAt(1, content).focus().run()
+    }
+  } else {
+    // If the first node is not a paragraph, insert the new mention at the document start
+    editor.chain().insertContentAt(0, content).focus().run()
   }
 
-  // If no existing mention is found, insert the new mention at the current range
-  return false
+  editor.commands.focus(
+    isExistingCodeMentionNode ? currentSelection.pos : currentSelection.pos + 1
+  )
 }
 
 export default suggestion
