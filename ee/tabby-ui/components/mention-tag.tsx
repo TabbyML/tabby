@@ -9,7 +9,7 @@ import {
   IconEmojiBook,
   IconEmojiGlobe,
   IconGitHub,
-  IconGitLab,
+  IconGitLab
 } from '@/components/ui/icons'
 
 export function Mention({

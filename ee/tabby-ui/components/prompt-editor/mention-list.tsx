@@ -20,11 +20,11 @@ import { MentionAttributes } from '@/lib/types'
 import { cn, isCodeSourceContext, isDocSourceContext } from '@/lib/utils'
 import {
   IconCode,
-  IconEmojiGlobe,
   IconEmojiBook,
+  IconEmojiGlobe,
   IconGitHub,
   IconGitLab,
-  IconSpinner,
+  IconSpinner
 } from '@/components/ui/icons'
 
 import { MentionContext } from '.'

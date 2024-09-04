@@ -1569,28 +1569,38 @@ function IconGlobe({
   return <Globe className={cn('h-4 w-4', className)} {...props} />
 }
 
-function Emoji({ emoji, className, ...props }: React.ComponentProps<'span'> & { emoji: string }) {
-  return <span className={cn('h-full w-full flex justify-center items-center text-lg', className)} {...props}>
-    {emoji}
-  </span>
-}
-
-function IconEmojiBook({
+function Emoji({
+  emoji,
   className,
   ...props
-}: React.ComponentProps<'span'>) {
-  return <span className={cn('h-4 w-4', className)} {...props}>
-    <Emoji emoji='📚' />
-  </span>
+}: React.ComponentProps<'span'> & { emoji: string }) {
+  return (
+    <span
+      className={cn(
+        'flex h-full w-full items-center justify-center text-lg',
+        className
+      )}
+      {...props}
+    >
+      {emoji}
+    </span>
+  )
 }
 
-function IconEmojiGlobe({
-  className,
-  ...props
-}: React.ComponentProps<'span'>) {
-  return <span className={cn('h-4 w-4', className)} {...props}>
-    <Emoji emoji='🌐' />
-  </span>
+function IconEmojiBook({ className, ...props }: React.ComponentProps<'span'>) {
+  return (
+    <span className={cn('h-4 w-4', className)} {...props}>
+      <Emoji emoji="📚" />
+    </span>
+  )
+}
+
+function IconEmojiGlobe({ className, ...props }: React.ComponentProps<'span'>) {
+  return (
+    <span className={cn('h-4 w-4', className)} {...props}>
+      <Emoji emoji="🌐" />
+    </span>
+  )
 }
 
 export {
@@ -1686,5 +1696,5 @@ export {
   IconAtSign,
   IconGlobe,
   IconEmojiBook,
-  IconEmojiGlobe,
+  IconEmojiGlobe
 }
