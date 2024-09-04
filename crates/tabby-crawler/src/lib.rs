@@ -39,7 +39,7 @@ async fn crawl_url(
         .arg("-max-response-size")
         .arg("10485760") // 10MB max body size
         .arg("-rate-limit-minute")
-        .arg("30")
+        .arg("120")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
