@@ -28,15 +28,21 @@ mod types;
 pub struct CodeIndexer {}
 
 impl CodeIndexer {
-    pub async fn refresh(&mut self, embedding: Arc<dyn Embedding>, repository: &CodeRepository) {
+    pub async fn refresh(
+        &mut self,
+        embedding: Arc<dyn Embedding>,
+        repository: &CodeRepository,
+    ) -> anyhow::Result<()> {
         logkit::info!(
             "Building source code index: {}",
             repository.canonical_git_url()
         );
-        repository::sync_repository(repository);
+        repository::sync_repository(repository)?;
 
         index::index_repository(embedding, repository).await;
         index::garbage_collection().await;
+
+        Ok(())
     }
 
     pub async fn garbage_collection(&mut self, repositories: &[CodeRepository]) {

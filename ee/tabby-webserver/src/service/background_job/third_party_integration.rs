@@ -106,7 +106,7 @@ impl SchedulerGithubGitlabJob {
             embedding.clone(),
             &CodeRepository::new(&authenticated_url, &repository.source_id()),
         )
-        .await;
+        .await?;
 
         logkit::info!(
             "Indexing documents for repository {}",
