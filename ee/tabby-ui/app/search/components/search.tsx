@@ -109,6 +109,7 @@ import {
 
 import { DevPanel } from './dev-panel'
 import { MessagesSkeleton } from './messages-skeleton'
+import { MARKDOWN_CITATION_FUZZY_REGEX, MARKDOWN_SOURCE_REGEX } from '@/lib/constants/regex'
 
 type ConversationMessage = Omit<
   Message,
@@ -885,9 +886,8 @@ function AnswerBlock({
       return answer.content
     }
 
-    const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
     const content = answer.content
-      .replace(citationMatchRegex, match => {
+      .replace(MARKDOWN_CITATION_FUZZY_REGEX, match => {
         const citationNumberMatch = match?.match(/\d+/)
         return `[${citationNumberMatch}]`
       })
@@ -1358,7 +1358,7 @@ function ThreadMessagesErrorView() {
 function getTitleFromMessages(sources: ContextSource[], content: string) {
   const firstLine = content.split('\n')[0] ?? ''
   const cleanedLine = firstLine
-    .replace(/\[\[source:(\S+)\]\]/g, value => {
+    .replace(MARKDOWN_SOURCE_REGEX, value => {
       const sourceId = value.slice(9, -2)
       const source = sources.find(s => s.sourceId === sourceId)
       return source?.displayName ?? ''

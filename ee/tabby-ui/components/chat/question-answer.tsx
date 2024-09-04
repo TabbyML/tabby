@@ -30,6 +30,7 @@ import { Skeleton } from '../ui/skeleton'
 import { UserAvatar } from '../user-avatar'
 import { ChatContext } from './chat'
 import { CodeReferences } from './code-references'
+import { MARKDOWN_CITATION_FUZZY_REGEX } from '@/lib/constants/regex'
 
 interface QuestionAnswerListProps {
   messages: QuestionAnswerPair[]
@@ -389,9 +390,8 @@ function getCopyContent(
 ) {
   if (!attachmentCode || isEmpty(attachmentCode)) return content
 
-  const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
   const parsedContent = content
-    .replace(citationMatchRegex, match => {
+    .replace(MARKDOWN_CITATION_FUZZY_REGEX, match => {
       const citationNumberMatch = match?.match(/\d+/)
       return `[${citationNumberMatch}]`
     })

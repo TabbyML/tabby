@@ -28,6 +28,7 @@ import './style.css'
 
 import { Mention } from '../mention-tag'
 import { Skeleton } from '../ui/skeleton'
+import { MARKDOWN_CITATION_REGEX, MARKDOWN_SOURCE_REGEX } from '@/lib/constants/regex'
 
 type RelevantDocItem = {
   type: 'doc'
@@ -109,8 +110,6 @@ export function MessageMarkdown({
   }, [attachmentDocs, attachmentCode])
 
   const processMessagePlaceholder = (text: string) => {
-    const citationRegex = /\[\[citation:(\d+)\]\]/g
-    const sourceRegex = /\[\[source:(\S+)\]\]/g
     const elements: React.ReactNode[] = []
     let lastIndex = 0
     let match
@@ -133,7 +132,7 @@ export function MessageMarkdown({
       }
     }
 
-    processMatches(citationRegex, CitationTag, (match: string) => {
+    processMatches(MARKDOWN_CITATION_REGEX, CitationTag, (match: string) => {
       const citationIndex = parseInt(match[1], 10)
       const citationSource = !isNil(citationIndex)
         ? messageAttachments?.[citationIndex - 1]
@@ -147,7 +146,7 @@ export function MessageMarkdown({
         citationSource
       }
     })
-    processMatches(sourceRegex, SourceTag, (match: string) => {
+    processMatches(MARKDOWN_SOURCE_REGEX, SourceTag, (match: string) => {
       const sourceId = match[1]
       const className = headline ? 'text-[1rem] font-semibold' : undefined
       return { sourceId, className }
