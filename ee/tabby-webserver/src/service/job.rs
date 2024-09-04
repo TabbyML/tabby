@@ -87,8 +87,8 @@ impl JobService for JobControllerImpl {
 #[cfg(test)]
 mod tests {
     use tabby_db::DbConn;
-    use super::*;
 
+    use super::*;
     use crate::background_job::{BackgroundJobEvent, WebCrawlerJob};
 
     #[tokio::test]
@@ -115,7 +115,10 @@ mod tests {
 
         svc.trigger(job2.to_command()).await.unwrap();
 
-        assert_eq!(db.get_next_job_to_execute().await.unwrap().command, job2.to_command());
+        assert_eq!(
+            db.get_next_job_to_execute().await.unwrap().command,
+            job2.to_command()
+        );
 
         // As job1 is marked as stale, no jobs will be cleared.
         assert_eq!(0, svc.clear(job1.to_command()).await.unwrap());

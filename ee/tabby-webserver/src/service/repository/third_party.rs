@@ -139,7 +139,8 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
                 .trigger(BackgroundJobEvent::SchedulerGithubGitlabRepository(id).to_command())
                 .await;
         } else {
-            let _ = self.job
+            let _ = self
+                .job
                 .clear(BackgroundJobEvent::SchedulerGithubGitlabRepository(id).to_command())
                 .await;
             let _ = self
