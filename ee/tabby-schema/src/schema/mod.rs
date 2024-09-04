@@ -185,8 +185,7 @@ impl Query {
     }
 
     async fn me(ctx: &Context) -> Result<User> {
-        let claims = check_claims(ctx)?;
-        ctx.locator.auth().get_user(&claims.sub).await
+        check_user_allow_auth_token(ctx).await
     }
 
     async fn users(
