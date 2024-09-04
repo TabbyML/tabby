@@ -2,7 +2,7 @@ package com.tabbyml.tabby4eclipse;
 
 import org.eclipse.ui.IStartup;
 
-import com.tabbyml.tabby4eclipse.editor.EditorListener;
+import com.tabbyml.tabby4eclipse.editor.WorkbenchPartListener;
 import com.tabbyml.tabby4eclipse.lsp.LanguageServerService;
 
 public class Startup implements IStartup {
@@ -12,10 +12,10 @@ public class Startup implements IStartup {
 	@Override
 	public void earlyStartup() {
 		logger.info("Running startup actions.");
-		LanguageServerService lsManager = LanguageServerService.getInstance();
-		lsManager.init();
-		EditorListener editorManager = EditorListener.getInstance();
-		editorManager.init();
+		LanguageServerService lsService = LanguageServerService.getInstance();
+		lsService.init();
+		WorkbenchPartListener workbenchPartListener = WorkbenchPartListener.getInstance();
+		workbenchPartListener.init();
 		logger.info("Finished running startup actions.");
 	}
 }
