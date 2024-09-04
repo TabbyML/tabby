@@ -18,7 +18,10 @@ async fn crawl_url(
     let mut command = tokio::process::Command::new("katana");
 
     if std::env::var("TABBY_CRAWL_ENABLE_HEADLESS").is_ok() {
-        command.arg("-headless");
+        command
+            .arg("-headless")
+            .arg("-headless-options")
+            .arg("--disable-gpu");
     }
 
     command
@@ -35,6 +38,8 @@ async fn crawl_url(
         .arg("fqdn") // Limit crawling scope to the same origin.
         .arg("-max-response-size")
         .arg("10485760") // 10MB max body size
+        .arg("-rate-limit-minute")
+        .arg("30")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
