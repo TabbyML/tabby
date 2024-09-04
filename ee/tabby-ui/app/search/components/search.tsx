@@ -82,6 +82,7 @@ import { graphql } from '@/lib/gql/generates'
 import {
   CodeQueryInput,
   ContextInfo,
+  ContextSource,
   DocQueryInput,
   InputMaybe,
   Maybe,
@@ -276,15 +277,23 @@ export function Search() {
     }
   }, [threadMessages])
 
-  // update title
-  useEffect(() => {
-    if (messages?.[0]?.content) {
-      const title = getTitleFromMessages(messages)
-      if (title) {
-        document.title = title
-      }
+  // Compute title
+  const sources = contextInfoData?.contextInfo.sources;
+  const content = messages?.[0]?.content;
+  const title = useMemo(() => {
+    if (sources && content) {
+      return getTitleFromMessages(sources, content);
+    } else {
+      return ''
     }
-  }, [messages?.[0]?.content])
+  }, [sources, content])
+
+  // Update title
+  useEffect(() => {
+    if (title) {
+      document.title = title
+    }
+  }, [title])
 
   useEffect(() => {
     if (threadMessagesError && !isReady) {
@@ -295,7 +304,6 @@ export function Search() {
 
   // `/search` -> `/search/{slug}-{threadId}`
   const updateThreadURL = (threadId: string) => {
-    const title = getTitleFromMessages(messages)
     const slug = slugify(title)
     const slugWithThreadId = compact([slug, threadId]).join('-')
 
@@ -906,7 +914,7 @@ function AnswerBlock({
 
   const totalHeightInRem = answer.attachment?.doc?.length
     ? Math.ceil(answer.attachment.doc.length / 4) * SOURCE_CARD_STYLE.expand +
-      0.5 * Math.floor(answer.attachment.doc.length / 4)
+    0.5 * Math.floor(answer.attachment.doc.length / 4)
     : 0
 
   const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
@@ -1347,11 +1355,15 @@ function ThreadMessagesErrorView() {
   )
 }
 
-function getTitleFromMessages(messages: ConversationMessage[] | undefined) {
-  if (!messages?.length) return ''
+function getTitleFromMessages(sources: ContextSource[], content: string) {
+  const firstLine = content.split('\n')[0] ?? ''
+  const cleanedLine = firstLine.replace(/\[\[source:(\S+)\]\]/g, (value) => {
+    const sourceId = value.slice(9, -2)
+    const source = sources.find((s) => s.sourceId === sourceId)
+    return source?.displayName ?? ''
+  }).trim()
 
-  const firstLine = messages[0]?.content.split('\n')[0] ?? ''
-  const cleanedLine = firstLine.replace(/\[\[source:(\S+)\]\]/g, '').trim()
+  // Cap max length at 48 characters
   const title = cleanedLine.slice(0, 48)
   return title
 }
