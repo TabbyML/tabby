@@ -123,12 +123,14 @@ impl WebDocumentService for WebDocumentServiceImpl {
 
     async fn delete_custom_web_document(&self, id: ID) -> Result<()> {
         let rowid = id.as_rowid()?;
-        let webdoc = self
-            .db
-            .list_custom_web_documents(Some(vec![rowid]), None, None, false)
-            .await?
-            .first()
-            .context("web document doesn't exist")?;
+        let webdoc = {
+            let mut x = self
+                .db
+                .list_custom_web_documents(Some(vec![rowid]), None, None, false)
+                .await?;
+
+            x.pop().context("web document doesn't exist")?
+        };
         self.db.delete_web_document(rowid).await?;
         self.job_service
             .clear(
@@ -234,7 +236,7 @@ impl WebDocumentService for WebDocumentServiceImpl {
         };
 
         if !active {
-            self.db.deactivate_preset_web_document(name).await?;
+            self.db.deactivate_preset_web_document(&name).await?;
             self.job_service
                 .clear(
                     BackgroundJobEvent::WebCrawler(WebCrawlerJob::new(
