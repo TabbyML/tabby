@@ -3,6 +3,8 @@ import { uniq } from 'lodash-es'
 import { ContextInfo, ContextKind } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
 
+import { MARKDOWN_SOURCE_REGEX } from '../constants/regex'
+
 export const isCodeSourceContext = (kind: ContextKind) => {
   return [ContextKind.Git, ContextKind.Github, ContextKind.Gitlab].includes(
     kind
@@ -20,9 +22,8 @@ export const getMentionsFromText = (
   if (!sources?.length) return []
 
   const mentions: MentionAttributes[] = []
-  const regex = /\[\[source:(\S+)\]\]/g
   let match
-  while ((match = regex.exec(text))) {
+  while ((match = MARKDOWN_SOURCE_REGEX.exec(text))) {
     const sourceId = match[1]
     const source = sources?.find(o => o.sourceId === sourceId)
     if (source) {

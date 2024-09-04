@@ -7,3 +7,5 @@ export const SESSION_STORAGE_KEY = {
   SEARCH_INITIAL_MSG: '_tabby_search_initial_msg',
   SEARCH_INITIAL_CONTEXTS: '_tabby_search_initial_contexts'
 }
+
+export * as regex from './regex'
