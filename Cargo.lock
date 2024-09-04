@@ -5069,6 +5069,7 @@ dependencies = [
  "htmd",
  "logkit",
  "readable-readability",
+ "regex",
  "serde",
  "serde_json",
  "tokio",
