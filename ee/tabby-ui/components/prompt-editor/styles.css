@@ -12,8 +12,19 @@
 }
 
 .node-mention {
-  @apply bg-[#e8e1d3] dark:bg-[#333333] rounded-sm py-0.5;
+  @apply bg-[#e8e1d3] dark:bg-[#333333] rounded-md pb-0.5 pt-0;
 }
+
+/* Message Markdown */
+.message-markdown .node-mention {
+  @apply border border-[#b3ada0];
+}
+
+/* Prompt editor */
+.tiptap .node-mention {
+  @apply py-0.5;
+}
+
 .source-mention {
   @apply inline-flex items-baseline space-x-1;
 }

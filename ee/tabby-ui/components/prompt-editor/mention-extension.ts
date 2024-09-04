@@ -1,21 +1,16 @@
-import { default as MentionExtension } from '@tiptap/extension-mention'
-import { mergeAttributes, ReactNodeViewRenderer } from '@tiptap/react'
+import Mention from '@tiptap/extension-mention'
+import { ReactNodeViewRenderer } from '@tiptap/react'
 
 import { MentionForNodeView } from '@/components/mention-tag'
 
-export const CustomMention = MentionExtension.extend({
+export const MENTION_EXTENSION_NAME = 'mention'
+
+export const MentionExtension = Mention.extend({
   addNodeView() {
     return ReactNodeViewRenderer(MentionForNodeView)
   },
-  parseHTML() {
-    return [
-      {
-        tag: 'mention'
-      }
-    ]
-  },
-  renderHTML({ HTMLAttributes }) {
-    return ['mention', mergeAttributes(HTMLAttributes)]
+  renderText({ node }) {
+    return `[[source:${node.attrs.id}]]`
   },
   addAttributes() {
     return {

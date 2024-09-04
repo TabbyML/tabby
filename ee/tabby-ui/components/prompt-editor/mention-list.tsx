@@ -1,9 +1,12 @@
 import React, {
   forwardRef,
+  HTMLAttributes,
   useContext,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState
 } from 'react'
 import {
@@ -16,7 +19,6 @@ import { ContextKind } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
 import { cn, isCodeSourceContext, isDocSourceContext } from '@/lib/utils'
 import {
-  IconChevronRight,
   IconCode,
   IconFileText,
   IconGitHub,
@@ -26,67 +28,24 @@ import {
 } from '@/components/ui/icons'
 
 import { MentionContext } from '.'
-import { CategoryOptionItem, OptionItem, SourceOptionItem } from './types'
+import { OptionItem, SourceOptionItem } from './types'
 
 export interface MetionListProps extends SuggestionProps {
   mentions?: MentionAttributes[]
+  category: 'doc' | 'code'
 }
 
 export interface MentionListActions {
   onKeyDown: (props: SuggestionKeyDownProps) => boolean
 }
 
-const CATEGORY_OPTIONS: CategoryOptionItem[] = [
-  {
-    type: 'category',
-    label: 'Codebase',
-    category: 'code'
-  },
-  {
-    type: 'category',
-    label: 'Document',
-    category: 'doc'
-  }
-]
-
 const MetionList = forwardRef<MentionListActions, MetionListProps>(
-  ({ query, command, mentions }, ref) => {
+  ({ query, command, category }, ref) => {
     const { list, pending } = useContext(MentionContext)
 
-    const hasSelectedRepo = useMemo(() => {
-      return (
-        mentions?.findIndex(o => {
-          return isCodeSourceContext(o.kind)
-        }) !== -1
-      )
-    }, [mentions])
-
-    const hasCodeSources = useMemo(() => {
-      if (!list?.length) return false
-      return list.some(o => isCodeSourceContext(o.kind))
-    }, [list])
-
-    const hasDocSources = useMemo(() => {
-      if (!list?.length) return false
-      return list.some(o => isDocSourceContext(o.kind))
-    }, [list])
-
     const [selectedIndex, setSelectedIndex] = useState(0)
-    const [category, setCategory] = useState<'doc' | 'code' | undefined>()
 
     const options: OptionItem[] = useMemo(() => {
-      if (!query && !category) {
-        let _list = hasSelectedRepo
-          ? CATEGORY_OPTIONS.filter(o => o.category !== 'code')
-          : CATEGORY_OPTIONS
-        if (!hasCodeSources) {
-          _list = _list.filter(o => o.category !== 'code')
-        }
-        if (!hasDocSources) {
-          _list = _list.filter(o => o.category !== 'doc')
-        }
-        return _list
-      }
       if (!list?.length) {
         return []
       }
@@ -111,16 +70,8 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
           data: item
         }))
 
-      if (!category) {
-        return hasSelectedRepo ? docSources : [...docSources, ...codeSources]
-      }
-
-      return category === 'doc'
-        ? docSources
-        : hasSelectedRepo
-        ? []
-        : codeSources
-    }, [category, list, query, hasSelectedRepo])
+      return category === 'doc' ? docSources : codeSources
+    }, [category, list])
 
     const filteredList = useMemo(() => {
       if (!query) return options
@@ -144,15 +95,11 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
     const onSelectItem = (idx: number) => {
       const item = filteredList[idx]
       if (!item) return
-      if (item.type === 'category') {
-        setCategory(item.category)
-      } else {
-        command({
-          id: item.data.sourceId,
-          label: item.label,
-          kind: item.data.kind
-        })
-      }
+      command({
+        id: item.data.sourceId,
+        label: item.label,
+        kind: item.data.kind
+      })
     }
 
     const enterHandler = () => {
@@ -190,37 +137,22 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
           </div>
         ) : filteredList.length ? (
           filteredList.map((item, index) => (
-            <div
-              className={cn(
-                'flex cursor-pointer gap-1 rounded-md px-2 py-1.5 text-sm',
-                {
-                  'bg-accent text-accent-foreground': index === selectedIndex
-                }
-              )}
-              key={index}
+            <OptionItemView
+              key={item.id}
               onClick={() => onSelectItem(index)}
               onMouseEnter={() => setSelectedIndex(index)}
               title={item.label}
-            >
-              <span className="flex h-5 shrink-0 items-center">
-                <OptionIcon option={item} />
-              </span>
-              <span className="flex-1">{item.label}</span>
-              {item.type === 'category' && (
-                <span className="h-5 shrink-0 items-center">
-                  <IconChevronRight />
-                </span>
-              )}
-            </div>
+              data={item}
+              isSelected={index === selectedIndex}
+            />
           ))
         ) : (
           <div className="px-2 py-1.5">
-            No results
-            {/* {list?.length ? (
+            {options?.length ? (
               <span>No matches results</span>
             ) : (
               <span>No results, please configure in Context Providers</span>
-            )} */}
+            )}
           </div>
         )}
       </div>
@@ -230,27 +162,55 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
 
 MetionList.displayName = 'MetionList'
 
-function OptionIcon({ option }: { option: OptionItem }) {
-  if (option.type === 'category') {
-    return option.category === 'code' ? <IconCode /> : <IconFileText />
+function OptionIcon({ kind }: { kind: ContextKind }) {
+  switch (kind) {
+    case ContextKind.Doc:
+      return <IconFileText />
+    case ContextKind.Web:
+      return <IconGlobe />
+    case ContextKind.Git:
+      return <IconCode />
+    case ContextKind.Github:
+      return <IconGitHub />
+    case ContextKind.Gitlab:
+      return <IconGitLab />
+    default:
+      return null
   }
+}
 
-  if (option.type === 'source') {
-    switch (option.data.kind) {
-      case ContextKind.Doc:
-        return <IconFileText />
-      case ContextKind.Web:
-        return <IconGlobe />
-      case ContextKind.Git:
-        return <IconCode />
-      case ContextKind.Github:
-        return <IconGitHub />
-      case ContextKind.Gitlab:
-        return <IconGitLab />
-      default:
-        return null
+interface OptionItemView extends HTMLAttributes<HTMLDivElement> {
+  isSelected: boolean
+  data: OptionItem
+}
+function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
+  const ref = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    if (isSelected && ref.current) {
+      ref.current?.scrollIntoView({
+        block: 'nearest',
+        inline: 'nearest'
+      })
     }
-  }
+  }, [isSelected])
+
+  return (
+    <div
+      className={cn(
+        'flex cursor-pointer gap-1 rounded-md px-2 py-1.5 text-sm',
+        {
+          'bg-accent text-accent-foreground': isSelected
+        }
+      )}
+      {...rest}
+      ref={ref}
+    >
+      <span className="flex h-5 shrink-0 items-center">
+        <OptionIcon kind={data.data.kind} />
+      </span>
+      <span className="flex-1">{data.label}</span>
+    </div>
+  )
 }
 
 export default MetionList
