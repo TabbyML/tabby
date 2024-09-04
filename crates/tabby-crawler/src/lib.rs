@@ -40,6 +40,8 @@ async fn crawl_url(
         .arg("10485760") // 10MB max body size
         .arg("-rate-limit-minute")
         .arg("120")
+        .arg("-strategy")
+        .arg("breadth-first")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
