@@ -97,7 +97,7 @@ impl DbConn {
         Ok(res.last_insert_rowid())
     }
 
-    pub async fn deactivate_preset_web_document(&self, name: String) -> Result<()> {
+    pub async fn deactivate_preset_web_document(&self, name: &str) -> Result<()> {
         let res = query!("DELETE FROM web_documents WHERE name = ?;", name)
             .execute(&self.pool)
             .await?;

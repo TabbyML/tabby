@@ -112,6 +112,15 @@ impl DbConn {
         .flatten()
     }
 
+    pub async fn delete_pending_job_run(&self, command: &str) -> Result<usize> {
+        // Delete jobs that are not started and doesn't have an exit code.
+        let num_deleted = query!("UPDATE job_runs SET exit_code = -1, end_ts = datetime('now'), updated_at = datetime('now') WHERE exit_code IS NULL AND started_at IS NULL AND command = ?", command)
+            .execute(&self.pool)
+            .await?.rows_affected();
+
+        Ok(num_deleted as usize)
+    }
+
     pub async fn list_job_runs_with_filter(
         &self,
         ids: Option<Vec<i32>>,

@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::{DbConn, WebDocumentDAO};
@@ -122,7 +122,26 @@ impl WebDocumentService for WebDocumentServiceImpl {
     }
 
     async fn delete_custom_web_document(&self, id: ID) -> Result<()> {
-        self.db.delete_web_document(id.as_rowid()?).await?;
+        let rowid = id.as_rowid()?;
+        let webdoc = {
+            let mut x = self
+                .db
+                .list_custom_web_documents(Some(vec![rowid]), None, None, false)
+                .await?;
+
+            x.pop().context("web document doesn't exist")?
+        };
+        self.db.delete_web_document(rowid).await?;
+        self.job_service
+            .clear(
+                BackgroundJobEvent::WebCrawler(WebCrawlerJob::new(
+                    CustomWebDocument::format_source_id(&webdoc.id.as_id()),
+                    webdoc.url,
+                    None,
+                ))
+                .to_command(),
+            )
+            .await?;
         self.job_service
             .trigger(BackgroundJobEvent::IndexGarbageCollection.to_command())
             .await?;
@@ -209,20 +228,31 @@ impl WebDocumentService for WebDocumentServiceImpl {
 
     async fn set_preset_web_documents_active(&self, id: ID, active: bool) -> Result<()> {
         let name = id.to_string();
+        let Some((url, url_prefix)) = self.preset_web_documents.get(&name) else {
+            return Err(CoreError::Other(anyhow!(format!(
+                "name {} does not exist",
+                name
+            ))));
+        };
+
         if !active {
-            self.db.deactivate_preset_web_document(name).await?;
+            self.db.deactivate_preset_web_document(&name).await?;
+            self.job_service
+                .clear(
+                    BackgroundJobEvent::WebCrawler(WebCrawlerJob::new(
+                        PresetWebDocument::format_source_id(&name),
+                        url.clone(),
+                        Some(url_prefix.clone()),
+                    ))
+                    .to_command(),
+                )
+                .await?;
             self.job_service
                 .trigger(BackgroundJobEvent::IndexGarbageCollection.to_command())
                 .await?;
             Ok(())
         } else {
-            let Some((url, url_prefix)) = self.preset_web_documents.get(&name) else {
-                return Err(CoreError::Other(anyhow!(format!(
-                    "name {} does not exist",
-                    name
-                ))));
-            };
-            let id = self
+            let _id = self
                 .db
                 .create_web_document(name.clone(), url.clone(), true)
                 .await?;
