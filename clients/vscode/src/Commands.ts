@@ -29,7 +29,7 @@ import { InlineCompletionProvider } from "./InlineCompletionProvider";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { GitProvider, Repository } from "./git/GitProvider";
 import CommandPalette from "./CommandPalette";
-import { showOutputPanel } from "./logger";
+import { getLogger, showOutputPanel } from "./logger";
 import { Issues } from "./Issues";
 import { NLOutlinesProvider } from "./NLOutlinesProvider";
 
@@ -440,7 +440,7 @@ export class Commands {
 
       quickPick.show();
     },
-    "chat.edit.generateNatureLanguageOutlines": async () => {
+    "chat.edit.generateNLOutlines": async () => {
       const editor = window.activeTextEditor;
       if (!editor) {
         return;
@@ -512,6 +512,34 @@ export class Commands {
           }
         },
       );
+    },
+    "chat.edit.editNLOutline": async () => {
+      const editor = window.activeTextEditor;
+      if (!editor) return;
+      const position = editor.selection.active;
+      const line = position.line;
+      const content = this.nlOutlinesProvider.getOutline(editor.document.uri.toString(), line);
+      getLogger().info("get content");
+      if (!content) return;
+
+      getLogger().info("shown");
+      window.showInformationMessage(content);
+      const quickPick = window.createQuickPick();
+      quickPick.items = [{ label: content }];
+      quickPick.placeholder = "Edit NL Outline content";
+      quickPick.value = content;
+
+      quickPick.onDidAccept(async () => {
+        const newContent = quickPick.value;
+        quickPick.hide();
+
+        await this.nlOutlinesProvider.updateNLOutline(editor.document.uri.toString(), line, newContent);
+
+        window.showInformationMessage(`Updated NL Outline: ${newContent}`);
+      });
+
+      quickPick.show();
+      return;
     },
     "chat.edit.stop": async () => {
       this.chatEditCancellationTokenSource?.cancel();
