@@ -247,14 +247,12 @@ impl AnswerService {
         // 2. If serper is available, we also collect from serper
         if doc_query.search_public {
             if let Some(serper) = self.serper.as_ref() {
-                let serper_hits = match serper.search(&[], &doc_query.content, 5).await {
-                    Ok(docs) => docs.hits,
+                match serper.search(&[], &content, 5).await {
+                    Ok(docs) => hits.extend(docs.hits),
                     Err(err) => {
                         warn!("Failed to search serper: {:?}", err);
-                        vec![]
                     }
                 };
-                hits.extend(serper_hits);
             }
         }
 
