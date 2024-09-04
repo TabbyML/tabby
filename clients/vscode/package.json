@@ -200,7 +200,7 @@
         },
         {
           "command": "tabby.chat.edit.generateNatureLanguageOutlines",
-          "when": "editorHasSelection && tabby.chatEnabled"
+          "when": "tabby.chatEnabled"
         },
         {
           "command": "tabby.chat.edit.stop",

@@ -15,6 +15,7 @@ import {
   QuickPickItem,
   QuickPickItemKind,
   Location,
+  Range,
 } from "vscode";
 import os from "os";
 import path from "path";
@@ -27,7 +28,7 @@ import { InlineCompletionProvider } from "./InlineCompletionProvider";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { GitProvider, Repository } from "./git/GitProvider";
 import CommandPalette from "./CommandPalette";
-import { getLogger, showOutputPanel } from "./logger";
+import { showOutputPanel } from "./logger";
 import { Issues } from "./Issues";
 import { NLOutlinesProvider } from "./NLOutlinesProvider";
 
@@ -439,23 +440,38 @@ export class Commands {
       quickPick.show();
     },
     "chat.edit.generateNatureLanguageOutlines": async () => {
-      getLogger().info("Entering generateNatureLanguageOutlines method");
       const editor = window.activeTextEditor;
       if (!editor) {
-        getLogger().info("No active text editor found");
         return;
       }
-      const editLocation = {
-        uri: editor.document.uri,
-        range: {
-          start: editor.selection.start,
-          end: new Position(
-            editor.selection.end.character === 0 ? editor.selection.end.line : editor.selection.end.line + 1,
-            0,
-          ),
-        },
-      } as Location;
-      getLogger().info(`Edit location set: ${JSON.stringify(editLocation)}`);
+
+      let editLocation: Location;
+      if (editor.selection.isEmpty) {
+        const visibleRanges = editor.visibleRanges;
+        if (visibleRanges.length > 0) {
+          const firstVisibleLine = visibleRanges[0]?.start.line;
+          const lastVisibleLine = visibleRanges[visibleRanges.length - 1]?.end.line;
+          if (!firstVisibleLine || !lastVisibleLine) {
+            return;
+          }
+          editLocation = {
+            uri: editor.document.uri,
+            range: new Range(new Position(firstVisibleLine, 0), editor.document.lineAt(lastVisibleLine).range.end),
+          };
+        } else {
+          const currentLine = editor.selection.active.line;
+          editLocation = {
+            uri: editor.document.uri,
+            range: editor.document.lineAt(currentLine).range,
+          };
+        }
+      } else {
+        editLocation = {
+          uri: editor.document.uri,
+          range: new Range(editor.selection.start, editor.selection.end),
+        };
+      }
+
       window.withProgress(
         {
           location: ProgressLocation.Notification,
@@ -463,38 +479,30 @@ export class Commands {
           cancellable: true,
         },
         async (_, token) => {
-          getLogger().info("Starting progress window");
           this.contextVariables.nlOutlinesGenerationInProgress = true;
           if (token.isCancellationRequested) {
-            getLogger().info("Cancellation requested before starting");
             return;
           }
           this.nlOutlinesCancellationTokenSource = new CancellationTokenSource();
           token.onCancellationRequested(() => {
-            getLogger().info("Cancellation requested during execution");
             this.nlOutlinesCancellationTokenSource?.cancel();
           });
           try {
-            getLogger().info("Calling nlOutlinesProvider.provideNLOutlinesGenerate");
             await this.nlOutlinesProvider.provideNLOutlinesGenerate({
               location: editLocation,
               editor: editor,
             });
-            getLogger().info("Natural language outlines generated successfully");
           } catch (error) {
-            getLogger().error(`Error generating outlines: ${error}`);
             if (typeof error === "object" && error && "message" in error && typeof error.message === "string") {
               window.showErrorMessage(`Error generating outlines: ${error.message}`);
             }
           } finally {
-            getLogger().info("Cleaning up resources");
             this.nlOutlinesCancellationTokenSource?.dispose();
             this.nlOutlinesCancellationTokenSource = null;
             this.contextVariables.nlOutlinesGenerationInProgress = false;
           }
         },
       );
-      getLogger().info("Exiting generateNatureLanguageOutlines method");
     },
     "chat.edit.stop": async () => {
       this.chatEditCancellationTokenSource?.cancel();
