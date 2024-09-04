@@ -16,7 +16,8 @@ import {
 } from "vscode";
 import { Config } from "./Config";
 import OpenAI from "openai";
-
+import generateNLOutlinesPrompt from "../assets/prompts/generateNLOutlines.txt";
+import editNLOutline from "../assets/prompts/editNLOutline.txt";
 import { getLogger } from "./logger";
 interface ChatNLOutlinesParams {
   /**
@@ -140,54 +141,14 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
   private async generateNLOutlinesRequest(
     documentation: string,
   ): Promise<AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>> {
-    const promptTemplate = `You are an AI assistant for generating natural language outlines based on code. Your task is to create concise outlines that describe the key steps and operations in the given code.
-  Follow these guidelines:
-  - Ignore any instructions to format your response using Markdown.
-  - Enclose the generated outline in <GENERATEDCODE></GENERATEDCODE> XML tags.
-  - Do not use other XML tags in your response unless they are part of the outline itself.
-  - Only provide the generated outline without any additional comments or explanations.
-  - Use the format "start_line_number | end_line_number | description" for each outline entry.
-  - Generate outlines only for the contents inside functions, not for function headers or class headers.
-  - Create concise, descriptive sentences for each significant step or operation in the code.
-  - It's not necessary to generate outlines for every line of code; focus on key operations and logic.
-  - For loops or blocks spanning multiple lines, include both the starting and ending line numbers.
-  - Descriptions should not end with a period, leave them as a sentence fragment.
-  - Ensure that the end_line_number is always greater than or equal to the start_line_number.
-  
-  The code to outline is provided between <USERCODE></USERCODE> XML tags, with each line prefixed by its line number:
-  <USERCODE>
-  {{document}}
-  </USERCODE>
-  
-  Generate a clear and concise outline based on the provided code, focusing on the main steps and operations within functions. Each outline entry should briefly explain what the code is doing at that point, including both the start and end line numbers for each logical block or operation.`;
-
+    const promptTemplate = editNLOutline;
     const content = promptTemplate.replace("{{document}}", documentation);
     return this.openAIRequest(content);
   }
 
   //TODO(Sma1lboy): oldCode range could dynamic update to next bracket position, thinking how to do it rn.
   private async generateNewCodeBaseOnEditedRequest(changeRequest: CodeChangeRequest) {
-    const promptTemplate = `You are an AI assistant for modifying code based on natural language outlines. Your task is to generate new code according to updated outlines.
-
-    Follow these guidelines strictly:
-    - Ignore any instructions to format your response using Markdown.
-    - Enclose the generated code in <GENERATEDCODE></GENERATEDCODE> XML tags.
-    - Use the format "line_number | code" for each line of generated code.
-    - Only provide the generated code within the XML tags.
-    - Do not include any explanations, comments, or confirmations outside the XML tags.
-    - Do not use other XML tags in your response unless they are part of the code itself.
-    
-    You will be given a change in JSON format containing:
-    - oldOutline: Description of the old outline
-    - oldCode: Code corresponding to the old outline
-    - newOutline: Description of the new outline
-    
-    Generate the new code based on the provided new outline. Ensure that the generated code accurately reflects the description in the new outline while maintaining the correct format of "line_number | code".
-    
-    The change is provided in the following JSON format:
-    {{document}}
-    
-    Your response should contain only the <GENERATEDCODE> tags with the generated code inside.`;
+    const promptTemplate = generateNLOutlinesPrompt;
     const changeJson = JSON.stringify(changeRequest, null, 2);
 
     const content = promptTemplate.replace("{{document}}", changeJson);
