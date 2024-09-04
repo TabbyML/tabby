@@ -25,7 +25,12 @@ import {
 } from '../gql/generates/graphql'
 import { refreshTokenMutation } from './auth'
 import { listIntegrations, listInvitations, listRepositories } from './query'
-import { getAuthToken, isTokenExpired, tokenManager } from './token-management'
+import {
+  getAuthToken,
+  getFetcherOptions,
+  isTokenExpired,
+  tokenManager
+} from './token-management'
 
 interface ValidationError {
   path: string
@@ -173,30 +178,6 @@ const client = new Client({
                 })
             }
           },
-          // deleteWebCrawlerUrl(result, args, cache, info) {
-          //   if (result.deleteWebCrawlerUrl) {
-          //     cache
-          //       .inspectFields('Query')
-          //       .filter(field => field.fieldName === 'webCrawlerUrls')
-          //       .forEach(field => {
-          //         cache.updateQuery(
-          //           {
-          //             query: listWebCrawlerUrl,
-          //             variables: field.arguments as WebCrawlerUrlsQueryVariables
-          //           },
-          //           data => {
-          //             if (data?.webCrawlerUrls?.edges) {
-          //               data.webCrawlerUrls.edges =
-          //                 data.webCrawlerUrls.edges.filter(
-          //                   e => e.node.id !== args.id
-          //                 )
-          //             }
-          //             return data
-          //           }
-          //         )
-          //       })
-          //   }
-          // },
           deleteIntegration(result, args, cache, info) {
             if (result.deleteIntegration) {
               cache
@@ -250,12 +231,22 @@ const client = new Client({
         addAuthToOperation(operation) {
           // Sync tokens on every operation
           const authData = getAuthToken()
+          const fetcherOptions = getFetcherOptions()
           accessToken = authData?.accessToken
           refreshToken = authData?.refreshToken
-          if (!accessToken) return operation
-          return utils.appendHeaders(operation, {
-            Authorization: `Bearer ${accessToken}`
-          })
+          if (accessToken) {
+            return utils.appendHeaders(operation, {
+              Authorization: `Bearer ${accessToken}`
+            })
+          } else if (fetcherOptions) {
+            const headers = {
+              Authorization: `Bearer ${fetcherOptions.authorization}`,
+              ...fetcherOptions.headers
+            }
+            return utils.appendHeaders(operation, headers)
+          }
+
+          return operation
         },
         didAuthError(error, _operation) {
           const isUnauthorized = error.graphQLErrors.some(
@@ -270,6 +261,7 @@ const client = new Client({
         willAuthError(operation) {
           // Sync tokens on every operation
           const authData = getAuthToken()
+          const fetcherOptions = getFetcherOptions()
           accessToken = authData?.accessToken
           refreshToken = authData?.refreshToken
 
@@ -320,6 +312,8 @@ const client = new Client({
             } catch (e) {
               return true
             }
+          } else if (fetcherOptions) {
+            return !fetcherOptions?.authorization
           } else {
             tokenManager.clearAccessToken()
             return true

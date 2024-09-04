@@ -1,6 +1,7 @@
 import React from 'react'
 import { pickBy } from 'lodash-es'
-import { OperationContext } from 'urql'
+
+// import { OperationContext } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 
@@ -121,16 +122,16 @@ export function useThreadRun({
   >()
   const [error, setError] = React.useState<Error | undefined>()
 
-  const operationContext: Partial<OperationContext> = React.useMemo(() => {
-    if (headers) {
-      return {
-        fetchOptions: {
-          headers
-        }
-      }
-    }
-    return {}
-  }, [headers])
+  // const operationContext: Partial<OperationContext> = React.useMemo(() => {
+  //   if (headers) {
+  //     return {
+  //       fetchOptions: {
+  //         headers
+  //       }
+  //     }
+  //   }
+  //   return {}
+  // }, [headers])
 
   const combineThreadRunData = (
     existingData: ThreadRunItem | undefined,
@@ -177,8 +178,8 @@ export function useThreadRun({
             },
             options
           }
-        },
-        operationContext
+        }
+        // operationContext
       )
       .subscribe(res => {
         if (res?.error) {
@@ -219,8 +220,8 @@ export function useThreadRun({
             additionalUserMessage: userMessage,
             options
           }
-        },
-        operationContext
+        }
+        // operationContext
       )
       .subscribe(res => {
         if (res?.error) {
@@ -271,8 +272,8 @@ export function useThreadRun({
         threadId,
         userMessageId,
         assistantMessageId
-      },
-      operationContext
+      }
+      // operationContext
     )
       .then(res => {
         if (res?.data?.deleteThreadMessagePair) {

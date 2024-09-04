@@ -27,6 +27,8 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './page.css'
 
+import { saveFetcherOptions } from '@/lib/tabby/token-management'
+
 const convertToHSLColor = (style: string) => {
   return Color(style)
     .hsl()
@@ -170,6 +172,8 @@ export default function ChatPage() {
       if (chatRef.current) return
       setActiveChatId(nanoid())
       setIsInit(true)
+      // save fetcherOptions to session storage
+      saveFetcherOptions(request.fetcherOptions)
       setFetcherOptions(request.fetcherOptions)
     },
     sendMessage: (message: ChatMessage) => {
