@@ -29,7 +29,7 @@ async fn crawl_url(
         .arg(start_url)
         .arg("-jsonl")
         .arg("-crawl-scope")
-        .arg(format!("{}.*", regex::escape(&prefix_url)))
+        .arg(format!("{}.*", regex::escape(prefix_url)))
         .arg("-crawl-out-scope")
         .arg(r#"\.js$|\.css$|\.png$|\.jpg$|\.jpeg$"#)
         .arg("-depth")
