@@ -34,8 +34,6 @@ async fn crawl_url(
         .arg(r#"\.js$|\.css$|\.png$|\.jpg$|\.jpeg$"#)
         .arg("-depth")
         .arg("9999")
-        .arg("--extension-filter")
-        .arg("js,css,png,jpg,jpeg") // Exclude non-html extensions
         .arg("-max-response-size")
         .arg("10485760") // 10MB max body size
         .arg("-rate-limit-minute")
