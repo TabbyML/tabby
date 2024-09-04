@@ -28,7 +28,11 @@ mod types;
 pub struct CodeIndexer {}
 
 impl CodeIndexer {
-    pub async fn refresh(&mut self, embedding: Arc<dyn Embedding>, repository: &CodeRepository) -> anyhow::Result<()> {
+    pub async fn refresh(
+        &mut self,
+        embedding: Arc<dyn Embedding>,
+        repository: &CodeRepository,
+    ) -> anyhow::Result<()> {
         logkit::info!(
             "Building source code index: {}",
             repository.canonical_git_url()
