@@ -16,6 +16,7 @@ import {
   QuickPickItemKind,
   Location,
   Range,
+  TextDocument,
 } from "vscode";
 import os from "os";
 import path from "path";
@@ -445,24 +446,32 @@ export class Commands {
         return;
       }
 
+      const getOffsetRange = (document: TextDocument, start: number, end: number, offset: number): Range => {
+        const offsetStart = Math.max(0, start - offset);
+        const offsetEnd = Math.min(document.lineCount - 1, end + offset);
+        return new Range(new Position(offsetStart, 0), document.lineAt(offsetEnd).range.end);
+      };
+
       let editLocation: Location;
       if (editor.selection.isEmpty) {
         const visibleRanges = editor.visibleRanges;
         if (visibleRanges.length > 0) {
           const firstVisibleLine = visibleRanges[0]?.start.line;
           const lastVisibleLine = visibleRanges[visibleRanges.length - 1]?.end.line;
-          if (!firstVisibleLine || !lastVisibleLine) {
+          if (firstVisibleLine === undefined || lastVisibleLine === undefined) {
             return;
           }
+          const offsetRange = getOffsetRange(editor.document, firstVisibleLine, lastVisibleLine, 20);
           editLocation = {
             uri: editor.document.uri,
-            range: new Range(new Position(firstVisibleLine, 0), editor.document.lineAt(lastVisibleLine).range.end),
+            range: offsetRange,
           };
         } else {
           const currentLine = editor.selection.active.line;
+          const offsetRange = getOffsetRange(editor.document, currentLine, currentLine, 20);
           editLocation = {
             uri: editor.document.uri,
-            range: editor.document.lineAt(currentLine).range,
+            range: offsetRange,
           };
         }
       } else {
