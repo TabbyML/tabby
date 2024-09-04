@@ -20,11 +20,11 @@ import { MentionAttributes } from '@/lib/types'
 import { cn, isCodeSourceContext, isDocSourceContext } from '@/lib/utils'
 import {
   IconCode,
-  IconFileText,
+  IconEmojiGlobe,
+  IconEmojiBook,
   IconGitHub,
   IconGitLab,
-  IconGlobe,
-  IconSpinner
+  IconSpinner,
 } from '@/components/ui/icons'
 
 import { MentionContext } from '.'
@@ -165,9 +165,9 @@ MetionList.displayName = 'MetionList'
 function OptionIcon({ kind }: { kind: ContextKind }) {
   switch (kind) {
     case ContextKind.Doc:
-      return <IconFileText />
+      return <IconEmojiBook />
     case ContextKind.Web:
-      return <IconGlobe />
+      return <IconEmojiGlobe />
     case ContextKind.Git:
       return <IconCode />
     case ContextKind.Github:

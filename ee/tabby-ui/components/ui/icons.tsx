@@ -1569,6 +1569,30 @@ function IconGlobe({
   return <Globe className={cn('h-4 w-4', className)} {...props} />
 }
 
+function Emoji({ emoji, className, ...props }: React.ComponentProps<'span'> & { emoji: string }) {
+  return <span className={cn('h-full w-full flex justify-center items-center text-lg', className)} {...props}>
+    {emoji}
+  </span>
+}
+
+function IconEmojiBook({
+  className,
+  ...props
+}: React.ComponentProps<'span'>) {
+  return <span className={cn('h-4 w-4', className)} {...props}>
+    <Emoji emoji='📚' />
+  </span>
+}
+
+function IconEmojiGlobe({
+  className,
+  ...props
+}: React.ComponentProps<'span'>) {
+  return <span className={cn('h-4 w-4', className)} {...props}>
+    <Emoji emoji='🌐' />
+  </span>
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1660,5 +1684,7 @@ export {
   IconLink,
   IconListFilter,
   IconAtSign,
-  IconGlobe
+  IconGlobe,
+  IconEmojiBook,
+  IconEmojiGlobe,
 }
