@@ -173,7 +173,7 @@ export default function ChatPage() {
       setActiveChatId(nanoid())
       setIsInit(true)
       // save fetcherOptions to session storage
-      if(client) {
+      if (client) {
         saveFetcherOptions(request.fetcherOptions)
       }
       setFetcherOptions(request.fetcherOptions)
