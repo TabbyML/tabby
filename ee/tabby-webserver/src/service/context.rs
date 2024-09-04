@@ -43,7 +43,7 @@ impl ContextService for ContextServiceImpl {
         );
 
         if self.can_search_public_web {
-            let source_id = "web";
+            let source_id = "internal-public-web";
             sources.push(ContextSource {
                 id: ID::from(source_id.to_owned()),
                 kind: ContextKind::Web,

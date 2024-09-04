@@ -225,27 +225,24 @@ impl AnswerService {
         // Only keep source_ids that are valid.
         source_ids.retain(|x| helper.can_access_source_id(x));
 
-        if source_ids.is_empty() {
-            return vec![];
-        }
-
         // Rewrite [[source:${id}]] tags to the actual source name for doc search.
         let content = helper.rewrite_tag(&doc_query.content);
 
-        // 1. Collect relevant docs from the tantivy doc search.
         let mut hits = vec![];
-        let doc_hits = match self.doc.search(&source_ids, &content, 5).await {
-            Ok(docs) => docs.hits,
-            Err(err) => {
-                if let DocSearchError::NotReady = err {
-                    debug!("Doc search is not ready yet");
-                } else {
-                    warn!("Failed to search doc: {:?}", err);
+
+        // 1. Collect relevant docs from the tantivy doc search.
+        if !source_ids.is_empty() {
+            match self.doc.search(&source_ids, &content, 5).await {
+                Ok(docs) => hits.extend(docs.hits),
+                Err(err) => {
+                    if let DocSearchError::NotReady = err {
+                        debug!("Doc search is not ready yet");
+                    } else {
+                        warn!("Failed to search doc: {:?}", err);
+                    }
                 }
-                vec![]
-            }
-        };
-        hits.extend(doc_hits);
+            };
+        }
 
         // 2. If serper is available, we also collect from serper
         if doc_query.search_public {
