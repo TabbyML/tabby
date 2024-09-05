@@ -2,20 +2,27 @@ use juniper::{GraphQLInputObject, ID};
 use tabby_common::api::code::CodeSearchParams;
 use validator::{Validate, ValidationError};
 
-#[derive(GraphQLInputObject)]
+#[derive(GraphQLInputObject, Validate)]
 pub struct CreateMessageInput {
+    #[validate(length(
+        min = 1,
+        code = "content",
+        message = "Message content should not be empty"
+    ))]
     pub content: String,
 
     pub attachments: Option<MessageAttachmentInput>,
 }
 
-#[derive(GraphQLInputObject)]
+#[derive(GraphQLInputObject, Validate)]
 pub struct CreateThreadInput {
+    #[validate(nested)]
     pub user_message: CreateMessageInput,
 }
 
 #[derive(GraphQLInputObject, Validate)]
 pub struct CreateThreadAndRunInput {
+    #[validate(nested)]
     pub thread: CreateThreadInput,
 
     #[graphql(default)]
@@ -117,6 +124,7 @@ impl CodeSearchParamsOverrideInput {
 pub struct CreateThreadRunInput {
     pub thread_id: ID,
 
+    #[validate(nested)]
     pub additional_user_message: CreateMessageInput,
 
     #[graphql(default)]
@@ -133,4 +141,23 @@ pub struct MessageAttachmentCodeInput {
     pub filepath: Option<String>,
     pub start_line: Option<i32>,
     pub content: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_thread_run_input_shouldnot_allow_empty_content() {
+        let input = CreateThreadRunInput {
+            thread_id: ID::from("1".to_owned()),
+            additional_user_message: CreateMessageInput {
+                content: "".into(),
+                attachments: None,
+            },
+            options: Default::default(),
+        };
+
+        assert!(input.validate().is_err())
+    }
 }
