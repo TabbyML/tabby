@@ -4,7 +4,11 @@ use validator::{Validate, ValidationError};
 
 #[derive(GraphQLInputObject, Validate)]
 pub struct CreateMessageInput {
-    #[validate(length(min = 1, code="content", message = "Message content should not be empty"))]
+    #[validate(length(
+        min = 1,
+        code = "content",
+        message = "Message content should not be empty"
+    ))]
     pub content: String,
 
     pub attachments: Option<MessageAttachmentInput>,
@@ -151,7 +155,7 @@ mod tests {
                 content: "".into(),
                 attachments: None,
             },
-            options: Default::default()
+            options: Default::default(),
         };
 
         assert!(input.validate().is_err())
