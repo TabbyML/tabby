@@ -19,6 +19,7 @@ import OpenAI from "openai";
 import generateNLOutlinesPrompt from "../assets/prompts/generateNLOutlines.txt";
 import editNLOutline from "../assets/prompts/editNLOutline.txt";
 import { getLogger } from "./logger";
+import * as Diff from "diff";
 interface ChatNLOutlinesParams {
   /**
    * The document location to get the outlines for.
@@ -213,7 +214,7 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
 
   clearOutlines(documentUri: string) {
     this.outlines.delete(documentUri);
-    this.fire(); // Notify listeners that CodeLenses have changed
+    this.fire();
   }
 
   getOutline(documentUri: string, lineNumber: number): string | undefined {
@@ -224,49 +225,85 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
   //TODO(Sma1lboy): dynamic update remain outline or find a new way to show new code
   //TODO(Sma1lboy): stream prompt new code not directly prompt everything
   async updateNLOutline(documentUri: string, lineNumber: number, newContent: string) {
+    getLogger().info(`Starting updateNLOutline for document: ${documentUri}, line: ${lineNumber}`);
     const outlines = this.outlines.get(documentUri) || [];
     const oldOutlineIndex = outlines.findIndex((outline) => outline.startLine === lineNumber);
     if (oldOutlineIndex === -1) {
+      getLogger().info(`No matching outline found for line number: ${lineNumber}`);
       throw new Error("No matching outline found for the given line number");
     }
     const oldOutline = outlines[oldOutlineIndex];
-    if (!oldOutline) return;
-
+    if (!oldOutline) {
+      getLogger().info("Old outline is undefined, returning");
+      return;
+    }
+    getLogger().info(`Found old outline: ${JSON.stringify(oldOutline)}`);
     const document = await workspace.openTextDocument(Uri.parse(documentUri));
     if (!document) {
+      getLogger().info(`Unable to open document: ${documentUri}`);
       throw new Error("Unable to open the document");
     }
-
-    const oldCode = document.getText(new Range(oldOutline.startLine, 0, oldOutline.endLine + 1, 0));
+    const oldCodeRange = new Range(oldOutline.startLine, 0, oldOutline.endLine + 1, 0);
+    const oldCode = document.getText(oldCodeRange);
+    const oldCodeWithLineNumbers = this.formatCodeWithLineNumbers(oldCode, oldOutline.startLine);
     const changeRequest: CodeChangeRequest = {
       oldOutline: oldOutline.content,
-      oldCode: oldCode,
+      oldCode: oldCodeWithLineNumbers,
       newOutline: newContent,
     };
-
     try {
+      getLogger().info("Generating new code based on edited request");
       const stream = await this.generateNewCodeBaseOnEditedRequest(changeRequest);
       let updatedCode = "";
       for await (const chunk of stream) {
         updatedCode += chunk.choices[0]?.delta?.content || "";
       }
+      getLogger().info("Received updated code from AI model:", updatedCode);
+      // Remove XML tags while preserving newlines
+      updatedCode = updatedCode.replace(/<GENERATEDCODE>\n?/, "").replace(/\n?<\/GENERATEDCODE>/, "");
 
-      const oldLineCount = oldOutline.endLine - oldOutline.startLine + 1;
-      const newLineCount = updatedCode.split("\n").length;
-      const lineDifference = newLineCount - oldLineCount;
+      // Split the code into lines, but keep the last newline if it exists
+      let lines = updatedCode.split(/\n(?!$)/);
 
+      lines = lines.map((line) => {
+        if (line.trim() === "") {
+          return line;
+        }
+        const parts = line.split("|");
+        if (parts.length > 1) {
+          const codeContent = parts.slice(1).join("|");
+          const leadingWhitespace = codeContent.substring(0, codeContent.length - codeContent.trimStart().length);
+          return leadingWhitespace + codeContent.trim();
+        }
+        return line;
+      });
+      lines.pop();
+      getLogger().info("asd", lines);
+
+      updatedCode = lines.join("\n");
+
+      updatedCode = updatedCode.replace(/\n*$/, "") + "\n";
+
+      getLogger().info("After removing tags and line numbers:", updatedCode);
+
+      //improve this
+      const editId = `tabby-${Math.random().toString(36).substr(2, 6)}`;
+      const previewLines = this.generateChangesPreview(oldCode, updatedCode, editId);
+
+      // Apply the changes to the document
       const edit = new WorkspaceEdit();
-      edit.replace(Uri.parse(documentUri), new Range(oldOutline.startLine, 0, oldOutline.endLine + 1, 0), updatedCode);
+      edit.replace(Uri.parse(documentUri), oldCodeRange, previewLines.join("\n"));
       await workspace.applyEdit(edit);
+      getLogger().info("Applied edit with preview to workspace");
 
-      // Update the current outline
+      const newLineCount = previewLines.length;
+      const lineDifference = newLineCount - (oldOutline.endLine - oldOutline.startLine + 1);
       outlines[oldOutlineIndex] = {
         ...oldOutline,
         content: newContent,
         endLine: oldOutline.startLine + newLineCount - 1,
       };
-
-      // Update subsequent outlines
+      getLogger().info(`Updated outline: ${JSON.stringify(outlines[oldOutlineIndex])}`);
       for (let i = oldOutlineIndex + 1; i < outlines.length; i++) {
         const currentOutline = outlines[i];
         if (currentOutline) {
@@ -277,14 +314,69 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
           };
         }
       }
-
       this.outlines.set(documentUri, outlines);
       this.fire();
+      getLogger().info("Update completed successfully");
       return true;
     } catch (error) {
       getLogger().error("Error updating NL Outline:", error);
       window.showErrorMessage(`Error updating NL Outline: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
+  }
+
+  async resolveOutline(action: string) {
+    action;
+    return;
+  }
+
+  private formatCodeWithLineNumbers(code: string, startLine: number): string {
+    return code
+      .split("\n")
+      .map((line, index) => `${startLine + index} | ${line}`)
+      .join("\n");
+  }
+
+  //TODO: remove this
+  private generateChangesPreview(oldCode: string, newCode: string, editId: string): string[] {
+    const lines: string[] = [];
+    let markers = "";
+    const stateDescription = "Editing completed";
+
+    lines.push(`<<<<<<< ${stateDescription} <${markers}>[${editId}]`);
+    markers += "<";
+
+    const removeLineNumbers = (code: string) =>
+      code
+        .split("\n")
+        .map((line) => {
+          const parts = line.split("|");
+          return parts.length > 1 ? parts.slice(1).join("|").trim() : line;
+        })
+        .join("\n");
+
+    const diffs = Diff.diffLines(removeLineNumbers(oldCode), removeLineNumbers(newCode));
+    diffs.forEach((diff) => {
+      const diffLines = diff.value.split("\n").filter((line) => line !== "");
+      diffLines.forEach((line) => {
+        if (diff.added) {
+          lines.push(line);
+          markers += "+";
+        } else if (diff.removed) {
+          lines.push(line);
+          markers += "-";
+        } else {
+          lines.push(line);
+          markers += "=";
+        }
+      });
+    });
+
+    lines.push(`>>>>>>> ${stateDescription} <${markers}>[${editId}]`);
+
+    if (lines[0]) {
+      lines[0] = lines[0].replace("<>", `<${markers}>`);
+    }
+    return lines;
   }
 }
