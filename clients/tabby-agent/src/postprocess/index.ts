@@ -14,7 +14,6 @@ import { dropDuplicated } from "./dropDuplicated";
 import { dropMinimum } from "./dropMinimum";
 import { calculateReplaceRange } from "./calculateReplaceRange";
 
-
 type ItemListFilter = (items: CompletionItem[]) => Promise<CompletionItem[]>;
 
 function createListFilter(filterFactory: PostprocessFilterFactory, config: AgentConfig["postprocess"]): ItemListFilter {

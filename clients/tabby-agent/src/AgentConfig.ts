@@ -71,7 +71,7 @@ export type AgentConfig = {
   postprocess: {
     limitScope: any;
     calculateReplaceRange: any;
-    minChars: number,
+    minChars: number;
   };
   chat: {
     edit: {

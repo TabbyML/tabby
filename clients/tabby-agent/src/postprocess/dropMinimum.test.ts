@@ -4,7 +4,7 @@ import { CompletionItem } from "../CompletionSolution";
 
 describe("postprocess", () => {
   describe("dropMinimum", () => {
-    const filter = dropMinimum({limitScope: null, minChars: 4, calculateReplaceRange: null});
+    const filter = dropMinimum({ limitScope: null, minChars: 4, calculateReplaceRange: null });
     const context = documentContext`
       dummy║
     `;
