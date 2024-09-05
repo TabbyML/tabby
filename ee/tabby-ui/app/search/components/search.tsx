@@ -1152,7 +1152,7 @@ function AnswerBlock({
                 <p>Regenerate</p>
               </Button>
             )}
-            {!isLoading && deletable && (
+            {deletable && (
               <Button
                 className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
                 variant="ghost"
