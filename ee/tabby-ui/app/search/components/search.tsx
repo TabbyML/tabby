@@ -841,7 +841,7 @@ export function Search() {
                       onClick={onClickShare}
                     >
                       {isShareLinkCopied ? (
-                        <IconCheck className="mr-2" />
+                        <IconCheck className="mr-2 text-green-600" />
                       ) : (
                         <IconLink className="mr-2" />
                       )}
