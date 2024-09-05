@@ -106,21 +106,21 @@ mod tests {
         db.upsert_user_group_membership(user_id1, user_group_id, false).await.unwrap();
 
         // For source id without any access policies, it's public (readable by all users)
-        assert!(policy1.check_read_source("unexist_source_id").await.is_ok());
-        assert!(policy2.check_read_source("unexist_source_id").await.is_ok());
+        assert!(policy1.check_read_source("source").await.is_ok());
+        assert!(policy2.check_read_source("source").await.is_ok());
 
         // 2. add user_group to source id's policy, making it private
-        db.upsert_source_id_read_access_policy("private_source_id", user_group_id).await.unwrap();
+        db.upsert_source_id_read_access_policy("source", user_group_id).await.unwrap();
 
-        // user2 won't be able to access private_source_id, while user1 can.
-        assert!(policy2.check_read_source("private_source_id").await.is_err());
-        assert!(policy1.check_read_source("private_source_id").await.is_ok());
+        // user2 won't be able to access source, while user1 can.
+        assert!(policy2.check_read_source("source").await.is_err());
+        assert!(policy1.check_read_source("source").await.is_ok());
 
         // 3. remove user1 from user_group
         db.delete_user_group_membership(user_id1, user_group_id).await.unwrap();
 
-        // user1 won't be able to acces private_source_id either now.
-        assert!(policy1.check_read_source("private_source_id").await.is_err());
+        // user1 won't be able to acces source either now.
+        assert!(policy1.check_read_source("source").await.is_err());
 
     }
 }
