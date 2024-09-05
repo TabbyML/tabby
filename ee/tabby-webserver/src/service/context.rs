@@ -54,7 +54,13 @@ impl ContextService for ContextServiceImpl {
 
         if let Some(policy) = policy {
             // Keep only sources that the user has access to.
-            sources.retain(|x| policy.check_read_source(&x.source_id).is_ok());
+            let mut filtered_sources = vec![];
+            for source in sources {
+                if policy.check_read_source(&source.source_id).await.is_ok() {
+                    filtered_sources.push(source);
+                }
+            }
+            sources = filtered_sources
         }
 
         Ok(ContextInfo { sources })

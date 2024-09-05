@@ -52,6 +52,7 @@ impl From<JobRunDAO> for job::JobRun {
     }
 }
 
+/*
 impl From<UserDAO> for auth::User {
     fn from(val: UserDAO) -> Self {
         let is_owner = val.is_owner();
@@ -70,6 +71,7 @@ impl From<UserDAO> for auth::User {
         }
     }
 }
+ */
 
 impl TryFrom<OAuthCredentialDAO> for OAuthCredential {
     type Error = anyhow::Error;

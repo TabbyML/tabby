@@ -84,7 +84,13 @@ impl RepositoryService for RepositoryServiceImpl {
 
         if let Some(policy) = policy {
             // Only keep repositories that the user has read access to.
-            all.retain(|repo| policy.check_read_source(&repo.source_id).is_ok());
+            let mut filtered = Vec::new();
+            for repo in all {
+                if policy.check_read_source(&repo.source_id).await.is_ok() {
+                    filtered.push(repo);
+                }
+            }
+            all = filtered;
         }
 
         Ok(all)
@@ -115,7 +121,7 @@ impl RepositoryService for RepositoryServiceImpl {
 
         match ret {
             Ok(repo) => {
-                policy.check_read_source(&repo.source_id)?;
+                policy.check_read_source(&repo.source_id).await?;
                 Ok(repo)
             }
             _ => ret,

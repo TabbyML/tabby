@@ -1,16 +1,28 @@
 use juniper::ID;
+use tabby_db::DbConn;
 
-use crate::{CoreError, Result};
+use crate::{AsRowid, CoreError, Result};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AccessPolicy {
+    db: DbConn,
     user_id: ID,
     is_admin: bool,
 }
 
+impl std::fmt::Debug for AccessPolicy {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AccessPolicy")
+            .field("user_id", &self.user_id)
+            .field("is_admin", &self.is_admin)
+            .finish()
+    }
+}
+
 impl AccessPolicy {
-    pub fn new(user_id: &ID, is_admin: bool) -> Self {
+    pub fn new(db: DbConn, user_id: &ID, is_admin: bool) -> Self {
         Self {
+            db,
             user_id: user_id.to_owned(),
             is_admin,
         }
@@ -56,8 +68,59 @@ impl AccessPolicy {
         Ok(())
     }
 
-    pub fn check_read_source(&self, _source_id: &str) -> Result<()> {
-        // FIXME(meng): implement this
+    pub async fn check_read_source(&self, source_id: &str) -> Result<()> {
+        let allow = self.db.allow_read_source(self.user_id.as_rowid()?, source_id).await?;
+        if !allow {
+            return Err(CoreError::Forbidden(
+                "You are not allowed to read this source",
+            ));
+        }
+
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tabby_db::testutils;
+
+    use crate::AsID;
+
+    use super::*;
+
+    async fn testdb() -> DbConn {
+        DbConn::new_in_memory().await.unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_check_read_source() {
+        let db = testdb().await;
+        let user_id1 = testutils::create_user(&db).await;
+        let user_id2 = testutils::create_user2(&db).await;
+
+        let policy1 = AccessPolicy::new(db.clone(), &user_id1.as_id(), false);
+        let policy2 = AccessPolicy::new(db.clone(), &user_id2.as_id(), false);
+
+        // 1. Setup user group
+        let user_group_id = db.create_user_group("test").await.unwrap();
+        db.upsert_user_group_membership(user_id1, user_group_id, false).await.unwrap();
+
+        // For source id without any access policies, it's public (readable by all users)
+        assert!(policy1.check_read_source("unexist_source_id").await.is_ok());
+        assert!(policy2.check_read_source("unexist_source_id").await.is_ok());
+
+        // 2. add user_group to source id's policy, making it private
+        db.upsert_source_id_read_access_policy("private_source_id", user_group_id).await.unwrap();
+
+        // user2 won't be able to access private_source_id, while user1 can.
+        assert!(policy2.check_read_source("private_source_id").await.is_err());
+        assert!(policy1.check_read_source("private_source_id").await.is_ok());
+
+        // 3. remove user1 from user_group
+        db.delete_user_group_membership(user_id1, user_group_id).await.unwrap();
+
+        // user1 won't be able to acces private_source_id either now.
+        assert!(policy1.check_read_source("private_source_id").await.is_err());
+
     }
 }

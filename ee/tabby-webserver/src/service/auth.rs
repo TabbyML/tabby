@@ -9,18 +9,13 @@ use argon2::{
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use juniper::ID;
-use tabby_db::{DbConn, InvitationDAO};
+use tabby_db::{DbConn, InvitationDAO, UserDAO};
 use tabby_schema::{
     auth::{
         AuthenticationService, Invitation, JWTPayload, OAuthCredential, OAuthError, OAuthProvider,
         OAuthResponse, RefreshTokenResponse, RegisterResponse, RequestInvitationInput,
         TokenAuthResponse, UpdateOAuthCredentialInput, User,
-    },
-    email::EmailService,
-    is_demo_mode,
-    license::{LicenseInfo, LicenseService},
-    setting::SettingService,
-    AsID, AsRowid, CoreError, DbEnum, Result,
+    }, email::EmailService, is_demo_mode, license::{LicenseInfo, LicenseService}, policy, setting::SettingService, AsID, AsRowid, CoreError, DbEnum, Result
 };
 use tokio::task::JoinHandle;
 use tracing::warn;
@@ -386,8 +381,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn get_user_by_email(&self, email: &str) -> Result<User> {
         let user = self.db.get_user_by_email(email).await?;
-        if let Some(user) = user {
-            Ok(user.into())
+        if let Some(dao) = user {
+            Ok(to_user(self.db.clone(), dao))
         } else {
             bail!("User not found {}", email)
         }
@@ -395,8 +390,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn get_user(&self, id: &ID) -> Result<User> {
         let user = self.db.get_user(id.as_rowid()?).await?;
-        if let Some(user) = user {
-            Ok(user.into())
+        if let Some(dao) = user {
+            Ok(to_user(self.db.clone(), dao))
         } else {
             bail!("User not found")
         }
@@ -462,7 +457,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .list_users_with_filter(skip_id, limit, backwards)
             .await?
             .into_iter()
-            .map(|x| x.into())
+            .map(|x| to_user(self.db.clone(), x))
             .collect())
     }
 
@@ -696,6 +691,23 @@ fn password_verify(raw: &str, hash: &str) -> bool {
         argon2.verify_password(raw.as_bytes(), &parsed_hash).is_ok()
     } else {
         false
+    }
+}
+
+fn to_user(db: DbConn, val: UserDAO) -> User {
+    let is_owner = val.is_owner();
+    let id = val.id.as_id();
+    User {
+        policy: policy::AccessPolicy::new(db, &id, val.is_admin),
+        id,
+        email: val.email,
+        name: val.name.unwrap_or_default(),
+        is_owner,
+        is_admin: val.is_admin,
+        auth_token: val.auth_token,
+        created_at: val.created_at,
+        active: val.active,
+        is_password_set: val.password_encrypted.is_some(),
     }
 }
 
