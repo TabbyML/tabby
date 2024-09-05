@@ -516,10 +516,8 @@ export class Commands {
     "chat.edit.editNLOutline": async (uri?: Uri, startLine?: number) => {
       const editor = window.activeTextEditor;
       if (!editor) return;
-
       let documentUri: string;
       let line: number;
-
       if (uri && startLine !== undefined) {
         documentUri = uri.toString();
         line = startLine;
@@ -527,25 +525,69 @@ export class Commands {
         documentUri = editor.document.uri.toString();
         line = editor.selection.active.line;
       }
-
       const content = this.nlOutlinesProvider.getOutline(documentUri, line);
       getLogger().info("get content");
       if (!content) return;
       getLogger().info("shown");
-
       const quickPick = window.createQuickPick();
       quickPick.items = [{ label: content }];
       quickPick.placeholder = "Edit NL Outline content";
       quickPick.value = content;
-
       quickPick.onDidAccept(async () => {
         const newContent = quickPick.value;
         quickPick.hide();
-        await this.nlOutlinesProvider.updateNLOutline(documentUri, line, newContent);
-        window.showInformationMessage(`Updated NL Outline: ${newContent}`);
-      });
 
+        await window.withProgress(
+          {
+            location: ProgressLocation.Notification,
+            title: "Updating NL Outline",
+            cancellable: false,
+          },
+          async (progress) => {
+            progress.report({ increment: 0 });
+
+            try {
+              await this.nlOutlinesProvider.updateNLOutline(documentUri, line, newContent);
+              progress.report({ increment: 100 });
+              window.showInformationMessage(`Updated NL Outline: ${newContent}`);
+            } catch (error) {
+              getLogger().error("Error updating NL Outline:", error);
+              window.showErrorMessage(
+                `Error updating NL Outline: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
+          },
+        );
+      });
       quickPick.show();
+    },
+    "chat.edit.outline.accept": async () => {
+      const editor = window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+      // const location = {
+      //   uri: editor.document.uri.toString(),
+      //   range: {
+      //     start: { line: editor.selection.start.line, character: 0 },
+      //     end: { line: editor.selection.end.line + 1, character: 0 },
+      //   },
+      // };
+      await this.nlOutlinesProvider.resolveOutline("accept");
+    },
+    "chat.edit.outline.discard": async () => {
+      const editor = window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+      // const location = {
+      //   uri: editor.document.uri.toString(),
+      //   range: {
+      //     start: { line: editor.selection.start.line, character: 0 },
+      //     end: { line: editor.selection.end.line + 1, character: 0 },
+      //   },
+      // };
+      await this.nlOutlinesProvider.resolveOutline("discard");
     },
     "chat.edit.stop": async () => {
       this.chatEditCancellationTokenSource?.cancel();
