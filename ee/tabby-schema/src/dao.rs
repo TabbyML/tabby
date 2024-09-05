@@ -52,27 +52,6 @@ impl From<JobRunDAO> for job::JobRun {
     }
 }
 
-/*
-impl From<UserDAO> for auth::User {
-    fn from(val: UserDAO) -> Self {
-        let is_owner = val.is_owner();
-        let id = val.id.as_id();
-        auth::User {
-            policy: policy::AccessPolicy::new(&id, val.is_admin),
-            id,
-            email: val.email,
-            name: val.name.unwrap_or_default(),
-            is_owner,
-            is_admin: val.is_admin,
-            auth_token: val.auth_token,
-            created_at: val.created_at,
-            active: val.active,
-            is_password_set: val.password_encrypted.is_some(),
-        }
-    }
-}
- */
-
 impl TryFrom<OAuthCredentialDAO> for OAuthCredential {
     type Error = anyhow::Error;
 
