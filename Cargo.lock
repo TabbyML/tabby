@@ -1691,7 +1691,7 @@ dependencies = [
 
 [[package]]
 name = "hash-ids"
-version = "0.17.0-dev.0"
+version = "0.17.0-rc.0"
 
 [[package]]
 name = "hashbrown"
