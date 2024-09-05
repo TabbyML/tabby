@@ -235,15 +235,19 @@ const client = new Client({
           accessToken = authData?.accessToken
           refreshToken = authData?.refreshToken
 
-          const authorizationToken =
-            accessToken || fetcherOptions?.authorization
-          if (!authorizationToken) return operation
+          if (accessToken) {
+            return utils.appendHeaders(operation, {
+              Authorization: `Bearer ${accessToken}`
+            })
+          } else if (fetcherOptions) {
+            const headers = {
+              Authorization: `Bearer ${fetcherOptions.authorization}`,
+              ...fetcherOptions.headers
+            }
+            return utils.appendHeaders(operation, headers)
+          }
 
-          // add Authorization and custom header
-          return utils.appendHeaders(operation, {
-            Authorization: `Bearer ${authorizationToken}`,
-            ...fetcherOptions?.headers
-          })
+          return operation
         },
         didAuthError(error, _operation) {
           const isUnauthorized = error.graphQLErrors.some(
