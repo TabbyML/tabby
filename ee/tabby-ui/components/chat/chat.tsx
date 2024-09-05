@@ -464,7 +464,9 @@ function ChatRenderer(
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
-        <div className={`w-full px-4 ${chatMaxWidthClass}`}>
+        <div
+          className={`w-full px-4 md:pl-10 md:pr-[3.5rem] ${chatMaxWidthClass}`}
+        >
           {/* FIXME: pb-[200px] might not enough when adding a large number of relevantContext */}
           <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
             {qaPairs?.length ? (
