@@ -17,7 +17,7 @@
 
 /* Message Markdown */
 .message-markdown .node-mention {
-  @apply border border-[#b3ada0];
+  @apply border border-opacity-30 border-[#b3ada0];
 }
 
 /* Prompt editor */

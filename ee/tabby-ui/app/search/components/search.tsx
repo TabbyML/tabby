@@ -44,12 +44,13 @@ import {
   IconChevronRight,
   IconFileSearch,
   IconLayers,
-  IconLink,
   IconPlus,
   IconRefresh,
+  IconShare,
   IconSparkles,
   IconSpinner,
-  IconStop
+  IconStop,
+  IconTrash
 } from '@/components/ui/icons'
 import {
   ResizableHandle,
@@ -138,6 +139,7 @@ type SearchContextValue = {
   enableDeveloperMode: boolean
   contextInfo: ContextInfo | undefined
   fetchingContextInfo: boolean
+  onDeleteMessage: (id: string) => void
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -322,10 +324,17 @@ export function Search() {
     return location.origin + path
   }
 
-  const { sendUserMessage, isLoading, error, answer, stop, regenerate } =
-    useThreadRun({
-      threadId
-    })
+  const {
+    sendUserMessage,
+    isLoading,
+    error,
+    answer,
+    stop,
+    regenerate,
+    deleteThreadMessagePair
+  } = useThreadRun({
+    threadId
+  })
 
   const isLoadingRef = useLatest(isLoading)
 
@@ -409,6 +418,17 @@ export function Search() {
       }, 300)
     }
   }, [isReady])
+
+  const {
+    isCopied: isShareLinkCopied,
+    onCopy: onClickShare,
+    canShare
+  } = useShareThread({
+    threadIdFromURL,
+    threadIdFromStreaming: threadId,
+    streamingDone: !!answer?.threadAssistantMessageCompleted,
+    updateThreadURL
+  })
 
   // Handling the stream response from useThreadRun
   useEffect(() => {
@@ -673,6 +693,31 @@ export function Search() {
     prevDevPanelSize.current = devPanelSize
   }
 
+  const onDeleteMessage = (asistantMessageId: string) => {
+    if (!threadId) return
+    // find userMessageId by assistantMessageId
+    const assistantMessageIndex = messages.findIndex(
+      message => message.id === asistantMessageId
+    )
+    const userMessageIndex = assistantMessageIndex - 1
+    const userMessage = messages[assistantMessageIndex - 1]
+
+    if (assistantMessageIndex === -1 || userMessage?.role !== Role.User) {
+      return
+    }
+    deleteThreadMessagePair(
+      threadId,
+      userMessage.id,
+      asistantMessageId
+    ).finally(() => {
+      // remove userMessage and assistantMessage
+      const newMessages = messages
+        .slice(0, userMessageIndex)
+        .concat(messages.slice(assistantMessageIndex + 1))
+      setMessages(newMessages)
+    })
+  }
+
   const isFetchingMessages =
     fetchingMessages || threadMessages?.threadMessages?.pageInfo?.hasNextPage
 
@@ -711,7 +756,8 @@ export function Search() {
         isPathnameInitialized,
         enableDeveloperMode: enableDeveloperMode.value,
         contextInfo: contextInfoData?.contextInfo,
-        fetchingContextInfo
+        fetchingContextInfo,
+        onDeleteMessage
       }}
     >
       <div className="transition-all" style={style}>
@@ -719,9 +765,7 @@ export function Search() {
           <ResizablePanel>
             <Header
               threadIdFromURL={threadIdFromURL}
-              threadIdFromStreaming={threadId}
               streamingDone={!!answer?.threadAssistantMessageCompleted}
-              updateThreadURL={updateThreadURL}
             />
             <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
               <ScrollArea className="h-full" ref={contentContainerRef}>
@@ -754,6 +798,7 @@ export function Search() {
                               isLastAssistantMessage={isLastAssistantMessage}
                               showRelatedQuestion={isLastAssistantMessage}
                               isLoading={isLoading && isLastAssistantMessage}
+                              deletable={!isLoading && messages.length > 2}
                             />
                           </div>
                         )
@@ -800,20 +845,44 @@ export function Search() {
                     : {}
                 )}
               >
-                <Button
-                  className={cn('bg-background', {
-                    'opacity-0 pointer-events-none': !stopButtonVisible,
-                    'opacity-100': stopButtonVisible
-                  })}
-                  style={{
-                    transition: 'opacity 0.55s ease-out'
-                  }}
-                  variant="outline"
-                  onClick={() => stop()}
-                >
-                  <IconStop className="mr-2" />
-                  Stop generating
-                </Button>
+                <div className="flex items-center gap-4">
+                  {stopButtonVisible && (
+                    <Button
+                      className={cn('bg-background', {
+                        'opacity-0 pointer-events-none': !stopButtonVisible,
+                        'opacity-100': stopButtonVisible
+                      })}
+                      style={{
+                        transition: 'all 0.55s ease-out'
+                      }}
+                      variant="outline"
+                      onClick={() => stop()}
+                    >
+                      <IconStop className="mr-2" />
+                      Stop generating
+                    </Button>
+                  )}
+                  {canShare && (
+                    <Button
+                      className={cn('bg-background', {
+                        'opacity-0 pointer-events-none': !canShare,
+                        'opacity-100': canShare
+                      })}
+                      style={{
+                        transition: 'opacity 0.55s ease-in-out'
+                      }}
+                      variant="outline"
+                      onClick={onClickShare}
+                    >
+                      {isShareLinkCopied ? (
+                        <IconCheck className="mr-2 text-green-600" />
+                      ) : (
+                        <IconShare className="mr-2" />
+                      )}
+                      Share Link
+                    </Button>
+                  )}
+                </div>
                 <div
                   className={cn(
                     'relative z-20 flex justify-center self-stretch px-4'
@@ -863,12 +932,14 @@ function AnswerBlock({
   answer,
   showRelatedQuestion,
   isLoading,
-  isLastAssistantMessage
+  isLastAssistantMessage,
+  deletable
 }: {
   answer: ConversationMessage
   showRelatedQuestion: boolean
   isLoading?: boolean
   isLastAssistantMessage?: boolean
+  deletable?: boolean
 }) {
   const {
     onRegenerateResponse,
@@ -877,7 +948,8 @@ function AnswerBlock({
     setConversationIdForDev,
     enableDeveloperMode,
     contextInfo,
-    fetchingContextInfo
+    fetchingContextInfo,
+    onDeleteMessage
   } = useContext(SearchContext)
 
   const [showMoreSource, setShowMoreSource] = useState(false)
@@ -1113,6 +1185,16 @@ function AnswerBlock({
                 <p>Regenerate</p>
               </Button>
             )}
+            {deletable && (
+              <Button
+                className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
+                variant="ghost"
+                onClick={() => onDeleteMessage(answer.id)}
+              >
+                <IconTrash />
+                <p>Delete</p>
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -1249,44 +1331,13 @@ const setThreadPersistedMutation = graphql(/* GraphQL */ `
   }
 `)
 
-function Header({
-  threadIdFromURL,
-  threadIdFromStreaming,
-  streamingDone,
-  updateThreadURL
-}: {
+type HeaderProps = {
   threadIdFromURL?: string
-  threadIdFromStreaming?: string | null
   streamingDone?: boolean
-  updateThreadURL?: (threadId: string) => string
-}) {
+}
+
+function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
   const router = useRouter()
-  const { isCopied, copyToClipboard } = useCopyToClipboard({
-    timeout: 2000
-  })
-
-  const setThreadPersisted = useMutation(setThreadPersistedMutation, {
-    onError(err) {
-      toast.error(err.message)
-    }
-  })
-
-  const onCopy = async () => {
-    if (isCopied) return
-
-    let url = window.location.href
-    if (
-      !threadIdFromURL &&
-      streamingDone &&
-      threadIdFromStreaming &&
-      updateThreadURL
-    ) {
-      await setThreadPersisted({ threadId: threadIdFromStreaming })
-      url = updateThreadURL(threadIdFromStreaming)
-    }
-
-    copyToClipboard(url)
-  }
 
   return (
     <header className="flex h-16 items-center justify-between px-4 lg:px-10">
@@ -1309,17 +1360,6 @@ function Header({
               onClick={() => router.push('/')}
             >
               <IconPlus />
-            </Button>
-            <Button
-              variant="ghost"
-              className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
-              onClick={onCopy}
-            >
-              {isCopied ? (
-                <IconCheck className="text-green-600" />
-              ) : (
-                <IconLink />
-              )}
             </Button>
           </>
         )}
@@ -1371,4 +1411,58 @@ function getTitleFromMessages(sources: ContextSource[], content: string) {
   // Cap max length at 48 characters
   const title = cleanedLine.slice(0, 48)
   return title
+}
+
+interface UseShareThreadOptions {
+  threadIdFromURL?: string
+  threadIdFromStreaming?: string | null
+  streamingDone?: boolean
+  updateThreadURL?: (threadId: string) => string
+}
+
+function useShareThread({
+  threadIdFromURL,
+  threadIdFromStreaming,
+  streamingDone,
+  updateThreadURL
+}: UseShareThreadOptions) {
+  const { isCopied, copyToClipboard } = useCopyToClipboard({
+    timeout: 2000
+  })
+
+  const setThreadPersisted = useMutation(setThreadPersistedMutation, {
+    onError(err) {
+      toast.error(err.message)
+    }
+  })
+
+  const canSetThreadPersisted =
+    !threadIdFromURL &&
+    streamingDone &&
+    threadIdFromStreaming &&
+    updateThreadURL
+  const canShare = threadIdFromURL || canSetThreadPersisted
+
+  const onCopy = async () => {
+    if (isCopied) return
+
+    let url = window.location.href
+    if (
+      !threadIdFromURL &&
+      streamingDone &&
+      threadIdFromStreaming &&
+      updateThreadURL
+    ) {
+      await setThreadPersisted({ threadId: threadIdFromStreaming })
+      url = updateThreadURL(threadIdFromStreaming)
+    }
+
+    copyToClipboard(url)
+  }
+
+  return {
+    onCopy,
+    isCopied,
+    canShare
+  }
 }

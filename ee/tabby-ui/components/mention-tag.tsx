@@ -6,10 +6,10 @@ import { MentionAttributes } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import {
   IconCode,
-  IconFileText,
+  IconEmojiBook,
+  IconEmojiGlobe,
   IconGitHub,
-  IconGitLab,
-  IconGlobe
+  IconGitLab
 } from '@/components/ui/icons'
 
 export function Mention({
@@ -43,9 +43,9 @@ function SourceIcon({
 }) {
   switch (kind) {
     case ContextKind.Doc:
-      return <IconFileText {...rest} />
+      return <IconEmojiBook {...rest} />
     case ContextKind.Web:
-      return <IconGlobe {...rest} />
+      return <IconEmojiGlobe {...rest} />
     case ContextKind.Git:
       return <IconCode {...rest} />
     case ContextKind.Github:
