@@ -141,22 +141,19 @@ pub struct MessageAttachmentCodeInput {
 
 #[cfg(test)]
 mod tests {
-     use super::*;
+    use super::*;
 
-     #[test]
-     fn test_create_thread_run_input_shouldnot_allow_empty_content() {
-        let input = CreateThreadAndRunInput {
-            thread: CreateThreadInput {
-                user_message: CreateMessageInput {
-                    content: "".into(),
-                    attachments: None
-                },
+    #[test]
+    fn test_create_thread_run_input_shouldnot_allow_empty_content() {
+        let input = CreateThreadRunInput {
+            thread_id: ID::from("1".to_owned()),
+            additional_user_message: CreateMessageInput {
+                content: "".into(),
+                attachments: None,
             },
-            options: ThreadRunOptionsInput {
-                ..Default::default()
-            },
+            options: Default::default()
         };
 
         assert!(input.validate().is_err())
-     }
+    }
 }
