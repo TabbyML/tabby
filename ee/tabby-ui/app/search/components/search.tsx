@@ -44,9 +44,9 @@ import {
   IconChevronRight,
   IconFileSearch,
   IconLayers,
-  IconLink,
   IconPlus,
   IconRefresh,
+  IconShare,
   IconSparkles,
   IconSpinner,
   IconStop
@@ -410,6 +410,17 @@ export function Search() {
     }
   }, [isReady])
 
+  const {
+    isCopied: isShareLinkCopied,
+    onCopy: onClickShare,
+    canShare
+  } = useShareThread({
+    threadIdFromURL,
+    threadIdFromStreaming: threadId,
+    streamingDone: !!answer?.threadAssistantMessageCompleted,
+    updateThreadURL
+  })
+
   // Handling the stream response from useThreadRun
   useEffect(() => {
     if (!answer) return
@@ -719,9 +730,7 @@ export function Search() {
           <ResizablePanel>
             <Header
               threadIdFromURL={threadIdFromURL}
-              threadIdFromStreaming={threadId}
               streamingDone={!!answer?.threadAssistantMessageCompleted}
-              updateThreadURL={updateThreadURL}
             />
             <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
               <ScrollArea className="h-full" ref={contentContainerRef}>
@@ -800,20 +809,44 @@ export function Search() {
                     : {}
                 )}
               >
-                <Button
-                  className={cn('bg-background', {
-                    'opacity-0 pointer-events-none': !stopButtonVisible,
-                    'opacity-100': stopButtonVisible
-                  })}
-                  style={{
-                    transition: 'opacity 0.55s ease-out'
-                  }}
-                  variant="outline"
-                  onClick={() => stop()}
-                >
-                  <IconStop className="mr-2" />
-                  Stop generating
-                </Button>
+                <div className="flex items-center gap-4">
+                  {stopButtonVisible && (
+                    <Button
+                      className={cn('bg-background', {
+                        'opacity-0 pointer-events-none': !stopButtonVisible,
+                        'opacity-100': stopButtonVisible
+                      })}
+                      style={{
+                        transition: 'all 0.55s ease-out'
+                      }}
+                      variant="outline"
+                      onClick={() => stop()}
+                    >
+                      <IconStop className="mr-2" />
+                      Stop generating
+                    </Button>
+                  )}
+                  {canShare && (
+                    <Button
+                      className={cn('bg-background', {
+                        'opacity-0 pointer-events-none': !canShare,
+                        'opacity-100': canShare
+                      })}
+                      style={{
+                        transition: 'opacity 0.55s ease-in-out'
+                      }}
+                      variant="outline"
+                      onClick={onClickShare}
+                    >
+                      {isShareLinkCopied ? (
+                        <IconCheck className="mr-2 text-green-600" />
+                      ) : (
+                        <IconShare className="mr-2" />
+                      )}
+                      Share Link
+                    </Button>
+                  )}
+                </div>
                 <div
                   className={cn(
                     'relative z-20 flex justify-center self-stretch px-4'
@@ -1249,44 +1282,13 @@ const setThreadPersistedMutation = graphql(/* GraphQL */ `
   }
 `)
 
-function Header({
-  threadIdFromURL,
-  threadIdFromStreaming,
-  streamingDone,
-  updateThreadURL
-}: {
+type HeaderProps = {
   threadIdFromURL?: string
-  threadIdFromStreaming?: string | null
   streamingDone?: boolean
-  updateThreadURL?: (threadId: string) => string
-}) {
+}
+
+function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
   const router = useRouter()
-  const { isCopied, copyToClipboard } = useCopyToClipboard({
-    timeout: 2000
-  })
-
-  const setThreadPersisted = useMutation(setThreadPersistedMutation, {
-    onError(err) {
-      toast.error(err.message)
-    }
-  })
-
-  const onCopy = async () => {
-    if (isCopied) return
-
-    let url = window.location.href
-    if (
-      !threadIdFromURL &&
-      streamingDone &&
-      threadIdFromStreaming &&
-      updateThreadURL
-    ) {
-      await setThreadPersisted({ threadId: threadIdFromStreaming })
-      url = updateThreadURL(threadIdFromStreaming)
-    }
-
-    copyToClipboard(url)
-  }
 
   return (
     <header className="flex h-16 items-center justify-between px-4 lg:px-10">
@@ -1309,17 +1311,6 @@ function Header({
               onClick={() => router.push('/')}
             >
               <IconPlus />
-            </Button>
-            <Button
-              variant="ghost"
-              className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
-              onClick={onCopy}
-            >
-              {isCopied ? (
-                <IconCheck className="text-green-600" />
-              ) : (
-                <IconLink />
-              )}
             </Button>
           </>
         )}
@@ -1371,4 +1362,58 @@ function getTitleFromMessages(sources: ContextSource[], content: string) {
   // Cap max length at 48 characters
   const title = cleanedLine.slice(0, 48)
   return title
+}
+
+interface UseShareThreadOptions {
+  threadIdFromURL?: string
+  threadIdFromStreaming?: string | null
+  streamingDone?: boolean
+  updateThreadURL?: (threadId: string) => string
+}
+
+function useShareThread({
+  threadIdFromURL,
+  threadIdFromStreaming,
+  streamingDone,
+  updateThreadURL
+}: UseShareThreadOptions) {
+  const { isCopied, copyToClipboard } = useCopyToClipboard({
+    timeout: 2000
+  })
+
+  const setThreadPersisted = useMutation(setThreadPersistedMutation, {
+    onError(err) {
+      toast.error(err.message)
+    }
+  })
+
+  const canSetThreadPersisted =
+    !threadIdFromURL &&
+    streamingDone &&
+    threadIdFromStreaming &&
+    updateThreadURL
+  const canShare = threadIdFromURL || canSetThreadPersisted
+
+  const onCopy = async () => {
+    if (isCopied) return
+
+    let url = window.location.href
+    if (
+      !threadIdFromURL &&
+      streamingDone &&
+      threadIdFromStreaming &&
+      updateThreadURL
+    ) {
+      await setThreadPersisted({ threadId: threadIdFromStreaming })
+      url = updateThreadURL(threadIdFromStreaming)
+    }
+
+    copyToClipboard(url)
+  }
+
+  return {
+    onCopy,
+    isCopied,
+    canShare
+  }
 }
