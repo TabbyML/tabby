@@ -432,47 +432,6 @@ export type ChatEditParams = {
   format: "previewChanges";
 };
 
-/**
- * [Tabby] Chat Generate NL Outlines Request(↩️)
- *
- * This method is sent from the client to the server to generate natural language outlines for a document.
- * - method: `tabby/chat/generate/outlines`
- * - params: {@link ChatNLOutlinesParams}
- * - result: boolean
- */
-export namespace ChatNLOutlinesRequest {
-  export const method = "tabby/chat/generate/outlines";
-  export const messageDirection = MessageDirection.clientToServer;
-  export const type = new ProtocolRequestType<ChatNLOutlinesParams, boolean, never, void, void>(method);
-}
-
-export type ChatNLOutlinesParams = {
-  /**
-   * The document location to get the outlines for.
-   */
-  location: Location;
-};
-
-/**
- * [Tabby] Chat NLOutlines Sync Notification(⬅️)
- *
- * This method is sent from the server to the client to sync the outlines for the document.
- * - method: `tabby/chat/generate/outlines/sync`
- * - params: {@link ChatNLOutlinesSyncParams}
- * - result: void
- */
-export namespace ChatNLOutlinesSync {
-  export const method = "tabby/chat/generate/outlines/sync";
-  export const messageDirection = MessageDirection.serverToClient;
-  export const type = new ProtocolNotificationType<ChatNLOutlinesSyncParams, void>(method);
-}
-export type ChatNLOutlinesSyncParams = {
-  /**
-   * The document uri to sync the outlines for.
-   */
-  uri: string;
-};
-
 export type ChatEditToken = string;
 
 export type ChatFeatureNotAvailableError = {
@@ -486,9 +445,6 @@ export type ChatEditCommandTooLongError = {
 };
 export type ChatEditMutexError = {
   name: "ChatEditMutexError";
-};
-export type ChatEditNoDocumentSelectedError = {
-  name: "ChatEditNoDocumentSelectedError";
 };
 
 /**

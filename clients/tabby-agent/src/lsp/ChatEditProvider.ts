@@ -14,10 +14,6 @@ import {
   ChatEditMutexError,
   ApplyWorkspaceEditRequest,
   ApplyWorkspaceEditParams,
-  ChatNLOutlinesRequest,
-  ChatNLOutlinesParams,
-  ChatEditNoDocumentSelectedError,
-  ChatNLOutlinesSync,
 } from "./protocol";
 import { TextDocuments } from "./TextDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -39,19 +35,9 @@ export type Edit = {
   state: "editing" | "stopped" | "completed";
 };
 
-export interface Outline {
-  line: number;
-  text: string;
-}
-export interface Outlines {
-  uri: string;
-  outlines: Outline[];
-}
-
 export class ChatEditProvider {
   private currentEdit: Edit | null = null;
   private mutexAbortController: AbortController | null = null;
-  private currentOutlines: Outlines | null = null;
 
   constructor(
     private readonly connection: Connection,
@@ -66,9 +52,6 @@ export class ChatEditProvider {
     });
     this.connection.onRequest(ChatEditResolveRequest.type, async (params) => {
       return this.resolveEdit(params);
-    });
-    this.connection.onRequest(ChatNLOutlinesRequest.type, async (params, token) => {
-      return this.provideNLOutlinesGenerate(params, token);
     });
   }
 
@@ -538,168 +521,5 @@ export class ChatEditProvider {
       return "//";
     }
     return "";
-  }
-
-  async provideNLOutlinesGenerate(params: ChatNLOutlinesParams, token: CancellationToken): Promise<boolean> {
-    const document = this.documents.get(params.location.uri);
-    if (!document) {
-      return false;
-    }
-    if (!this.agent.getServerHealthState()?.chat_model) {
-      throw {
-        name: "ChatFeatureNotAvailableError",
-        message: "Chat feature not available",
-      } as ChatFeatureNotAvailableError;
-    }
-    const config = this.agent.getConfig().chat;
-    if (isEmptyRange(params.location.range)) {
-      throw {
-        name: "ChatEditNoDocumentSelectedError",
-        message: "No document selected",
-      } as ChatEditNoDocumentSelectedError;
-    }
-    const documentText = document.getText();
-    const selection = {
-      start: document.offsetAt(params.location.range.start),
-      end: document.offsetAt(params.location.range.end),
-    };
-    const selectedDocumentText = documentText.substring(selection.start, selection.end);
-    if (selection.end - selection.start > config.edit.documentMaxChars) {
-      throw { name: "ChatEditDocumentTooLongError", message: "Document too long" } as ChatEditDocumentTooLongError;
-    }
-    if (this.mutexAbortController) {
-      throw {
-        name: "ChatEditMutexError",
-        message: "Another edit/NL generate is already in progress",
-      } as ChatEditMutexError;
-    }
-    this.mutexAbortController = new AbortController();
-    token.onCancellationRequested(() => this.mutexAbortController?.abort());
-
-    const lines = selectedDocumentText.split("\n");
-    const startLine = document.positionAt(selection.start).line;
-    const numberedText = lines.map((line, index) => `${startLine + index + 1} | ${line}`).join("\n");
-    try {
-      const readableStream = await this.agent.provideNLOutlines(numberedText, {
-        signal: this.mutexAbortController.signal,
-      });
-
-      if (readableStream) {
-        const editId = "tabby-" + cryptoRandomString({ length: 6, type: "alphanumeric" });
-        let currentLine = document.positionAt(selection.start).line;
-        const endLine = document.positionAt(selection.end).line;
-
-        let startMarker = `${this.getCommentPrefix(document.languageId)}>>> [${editId}]`;
-        let endMarker = `${this.getCommentPrefix(document.languageId)}<<< [${editId}]`;
-
-        this.currentOutlines = { uri: params.location.uri, outlines: [] };
-
-        await this.applyWorkspaceEdit({
-          edit: {
-            changes: {
-              [params.location.uri]: [
-                {
-                  range: { start: { line: currentLine, character: 0 }, end: { line: currentLine, character: 0 } },
-                  newText: `${startMarker}\n`,
-                },
-              ],
-            },
-          },
-        });
-        currentLine++;
-
-        let buffer = "";
-
-        for await (const chunk of readableStream) {
-          if (typeof chunk === "string") {
-            buffer += chunk;
-
-            let newlineIndex: number;
-            while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
-              const fullLine = buffer.slice(0, newlineIndex).trim();
-              buffer = buffer.slice(newlineIndex + 1);
-
-              // Parse the line to extract line number and content
-              const match = fullLine.match(/^(\d+)\s*\|\s*(.*)$/);
-              if (match) {
-                const [, lineNumber, content] = match;
-                const parsedLineNumber = parseInt(lineNumber!, 10);
-
-                if (!isNaN(parsedLineNumber) && content) {
-                  this.currentOutlines.outlines.push({ line: parsedLineNumber - 1 + 1, text: content.trim() });
-
-                  startMarker += ".";
-                  endMarker += ".";
-
-                  await this.applyWorkspaceEdit({
-                    edit: {
-                      changes: {
-                        [params.location.uri]: [
-                          {
-                            range: {
-                              start: { line: currentLine - 1, character: 0 },
-                              end: { line: currentLine, character: 0 },
-                            },
-                            newText: `${startMarker}\n`,
-                          },
-                        ],
-                      },
-                    },
-                  });
-
-                  this.connection.sendNotification(ChatNLOutlinesSync.type, {
-                    uri: params.location.uri,
-                  });
-                }
-              }
-            }
-          }
-        }
-
-        // Insert final endMarker
-        await this.applyWorkspaceEdit({
-          edit: {
-            changes: {
-              [params.location.uri]: [
-                {
-                  range: {
-                    start: { line: endLine + 1, character: 0 },
-                    end: { line: endLine + 1, character: 0 },
-                  },
-                  newText: `${endMarker}\n`,
-                },
-              ],
-            },
-          },
-        });
-
-        if (buffer.trim()) {
-          const match = buffer.trim().match(/^(\d+)\s*\|\s*(.*)$/);
-          if (match) {
-            const [, lineNumber, content] = match;
-            const parsedLineNumber = parseInt(lineNumber!, 10);
-            if (!isNaN(parsedLineNumber) && content) {
-              this.currentOutlines.outlines.push({ line: parsedLineNumber - 1, text: content.trim() });
-            }
-          }
-          this.connection.sendNotification(ChatNLOutlinesSync.type, {
-            uri: params.location.uri,
-          });
-        }
-
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error("Error generating outlines:", error);
-      throw error;
-    } finally {
-      this.mutexAbortController = null;
-    }
-  }
-
-  getCurrentOutlines(): Outlines | null {
-    return this.currentOutlines;
   }
 }

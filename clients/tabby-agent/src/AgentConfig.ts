@@ -3,8 +3,6 @@ import generateCommitMessagePrompt from "./prompts/generate-commit-message.md";
 import generateDocsPrompt from "./prompts/generate-docs.md";
 import editCommandReplacePrompt from "./prompts/edit-command-replace.md";
 import editCommandInsertPrompt from "./prompts/edit-command-insert.md";
-import generateNLOutlinesPrompt from "./prompts/generate-nl-outlines.md";
-import editNLOutlinesPrompt from "./prompts/edit-nl-outlines.md";
 export type AgentConfig = {
   server: {
     endpoint: string;
@@ -96,12 +94,6 @@ export type AgentConfig = {
       maxDiffLength: number;
       promptTemplate: string;
       responseMatcher: string;
-    };
-    generateOutlines: {
-      promptTemplate: string;
-    };
-    regenerateCodeBaseEditedOutline: {
-      promptTemplate: string;
     };
   };
   logs: {
@@ -208,12 +200,6 @@ export const defaultAgentConfig: AgentConfig = {
       promptTemplate: generateCommitMessagePrompt,
       responseMatcher:
         /(?<=(["'`]+)?\s*)(feat|fix|docs|refactor|style|test|build|ci|chore)(\(\w+\))?:.+(?=\s*\1)/gi.toString(),
-    },
-    generateOutlines: {
-      promptTemplate: generateNLOutlinesPrompt,
-    },
-    regenerateCodeBaseEditedOutline: {
-      promptTemplate: editNLOutlinesPrompt,
     },
   },
   logs: {

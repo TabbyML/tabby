@@ -55,50 +55,6 @@ export class CodeLensProvider {
     }
     const codeLenses: CodeLens[] = [];
 
-    const currentOutlines = this.chatEditProvider.getCurrentOutlines();
-    if (currentOutlines && currentOutlines.uri === uri) {
-      for (const outline of currentOutlines.outlines) {
-        const lineNumber = outline.line;
-        const content = outline.text;
-        const range = Range.create(lineNumber, 0, lineNumber, 0);
-
-        codeLenses.push({
-          range,
-          command: {
-            title: "Edit",
-            command: "tabby.editOutline",
-            arguments: [{ uri, line: lineNumber, content: content.trim() }],
-          },
-        });
-        codeLenses.push({
-          range,
-          command: {
-            title: content.trim(),
-            command: "tabby.showOutline",
-            arguments: [{ uri, line: lineNumber, content: content.trim() }],
-          },
-        });
-      }
-
-      for (let i = 0; i < textDocument.lineCount; i++) {
-        const lineText = textDocument.getText(Range.create(i, 0, i + 1, 0));
-        if (
-          lineText.startsWith(this.chatEditProvider.getCommentPrefix(textDocument.languageId) + ">>> ") &&
-          lineText.includes("[tabby-")
-        ) {
-          codeLenses.push({
-            range: Range.create(i, 0, i, 0),
-            command: {
-              title: "Confirm",
-              command: "tabby.confirmOutlines",
-              arguments: [uri],
-            },
-          });
-          break;
-        }
-      }
-    }
-
     let lineInPreviewBlock = -1;
     let previewBlockMarkers = "";
     for (let line = 0; line < textDocument.lineCount; line++) {
