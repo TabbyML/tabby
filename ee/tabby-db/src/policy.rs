@@ -95,7 +95,8 @@ DELETE FROM user_group_memberships WHERE user_id = ? AND user_group_id = ?
         query!(
             r#"
 INSERT INTO source_id_read_access_policies (source_id, user_group_id) VALUES (?, ?)
-ON CONFLICT (source_id, user_group_id) DO NOTHING
+ON CONFLICT (source_id, user_group_id) DO UPDATE
+  SET updated_at = DATETIME("now")
         "#,
             source_id,
             user_group_id
