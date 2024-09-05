@@ -845,7 +845,7 @@ export function Search() {
                       ) : (
                         <IconLink className="mr-2" />
                       )}
-                      Share
+                      Share Link
                     </Button>
                   )}
                 </div>
