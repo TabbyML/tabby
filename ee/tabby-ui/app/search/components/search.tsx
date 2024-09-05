@@ -789,7 +789,7 @@ export function Search() {
                               isLastAssistantMessage={isLastAssistantMessage}
                               showRelatedQuestion={isLastAssistantMessage}
                               isLoading={isLoading && isLastAssistantMessage}
-                              deletable={messages.length > 2}
+                              deletable={!isLoading && messages.length > 2}
                             />
                           </div>
                         )
