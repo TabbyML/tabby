@@ -811,7 +811,7 @@ export function Search() {
                     : {}
                 )}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4">
                   {stopButtonVisible && (
                     <Button
                       className={cn('bg-background', {
