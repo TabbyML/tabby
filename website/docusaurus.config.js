@@ -5,7 +5,7 @@ import {themes as prismThemes} from 'prism-react-renderer';
 
 /** @type {import('@docusaurus/types').Config} */
 export default {
-  title: 'Tabby',
+  title: 'Tabby - Opensource, self-hosted AI coding assitant',
   tagline: 'Opensource, self-hosted AI coding assistant',
   favicon: 'img/favicon.ico',
   trailingSlash: true,

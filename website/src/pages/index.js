@@ -12,7 +12,7 @@ function HomepageHeader() {
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className="container">
-        <h1 className="hero__title">{siteConfig.title}</h1>
+        <h1 className="hero__title">Tabby</h1>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
 
         <div className="flex flex-col md:flex-row justify-center items-center gap-4">
