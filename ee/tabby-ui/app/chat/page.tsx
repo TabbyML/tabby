@@ -80,7 +80,7 @@ export default function ChatPage() {
     client || ''
   )
   const isOnApplyInEditor = CLIENT_HAS_APPLY_IN_EDITOR.includes(client || '')
-  const maxWidth = isFromVSCode ? '5xl' : undefined
+  // const maxWidth = isFromVSCode ? '860px' : undefined
 
   useEffect(() => {
     const onMessage = ({
@@ -334,13 +334,15 @@ export default function ChatPage() {
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
       <Chat
+        // className='max-w-[800px] mx-auto'
+        // promptFormClassname='max-w-[800px] mx-auto'
         chatId={activeChatId}
         key={activeChatId}
         ref={chatRef}
         headers={headers}
         onNavigateToContext={onNavigateToContext}
         onLoaded={onChatLoaded}
-        maxWidth={maxWidth}
+        maxWidth={'860px'}
         onCopyContent={client === 'vscode' ? onCopyContent : undefined}
         client={client}
         onSubmitMessage={isOnSubmitMessage ? onSubmitMessage : undefined}

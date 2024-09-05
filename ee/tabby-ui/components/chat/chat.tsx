@@ -440,7 +440,9 @@ function ChatRenderer(
     setInitialzed(true)
   }, [])
 
-  const chatMaxWidthClass = maxWidth ? `max-w-${maxWidth}` : 'max-w-2xl'
+  const chatMaxWidthClass = maxWidth
+    ? `max-w-[${maxWidth}] mx-auto`
+    : 'max-w-2xl mx-auto'
   if (!initialized) {
     return (
       <ListSkeleton className={`${chatMaxWidthClass} mx-auto pt-4 md:pt-10`} />
