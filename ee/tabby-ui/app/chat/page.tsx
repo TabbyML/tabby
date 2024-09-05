@@ -170,12 +170,14 @@ export default function ChatPage() {
   const server = useServer({
     init: (request: InitRequest) => {
       if (chatRef.current) return
-      setActiveChatId(nanoid())
-      setIsInit(true)
-      // save fetcherOptions to session storage
+
+      // save fetcherOptions to sessionStorage
       if (client) {
         saveFetcherOptions(request.fetcherOptions)
       }
+
+      setActiveChatId(nanoid())
+      setIsInit(true)
       setFetcherOptions(request.fetcherOptions)
     },
     sendMessage: (message: ChatMessage) => {
@@ -333,17 +335,12 @@ export default function ChatPage() {
     )
   }
 
-  const headers = {
-    Authorization: `Bearer ${fetcherOptions.authorization}`,
-    ...fetcherOptions.headers
-  }
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
       <Chat
         chatId={activeChatId}
         key={activeChatId}
         ref={chatRef}
-        headers={headers}
         onNavigateToContext={onNavigateToContext}
         onLoaded={onChatLoaded}
         maxWidth={maxWidth}

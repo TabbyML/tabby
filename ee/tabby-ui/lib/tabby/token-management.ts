@@ -59,6 +59,10 @@ export const getFetcherOptions = (): FetcherOptions | undefined => {
   }
 }
 
+export const clearFetcherOptions = () => {
+  sessionStorage.removeItem(FETCHER_OPTIONS_KEY)
+}
+
 export const saveFetcherOptions = (fetcherOptions: FetcherOptions) => {
   if (!fetcherOptions) return
   try {

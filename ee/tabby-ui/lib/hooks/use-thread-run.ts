@@ -14,7 +14,6 @@ import { useLatest } from './use-latest'
 interface UseThreadRunOptions {
   onError?: (err: Error) => void
   threadId?: string
-  headers?: Record<string, string> | Headers
   onAssistantMessageCompleted?: (
     threadId: string,
     threadRunId: ThreadRunItem | undefined
@@ -107,7 +106,6 @@ const DeleteThreadMessagePairMutation = graphql(/* GraphQL */ `
 
 export function useThreadRun({
   threadId: propsThreadId,
-  headers,
   onAssistantMessageCompleted
 }: UseThreadRunOptions) {
   const [threadId, setThreadId] = React.useState<string | undefined>(
