@@ -11,7 +11,7 @@ pub struct AccessPolicy {
 }
 
 impl std::fmt::Debug for AccessPolicy {
-     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AccessPolicy")
             .field("user_id", &self.user_id)
             .field("is_admin", &self.is_admin)
@@ -69,7 +69,10 @@ impl AccessPolicy {
     }
 
     pub async fn check_read_source(&self, source_id: &str) -> Result<()> {
-        let allow = self.db.allow_read_source(self.user_id.as_rowid()?, source_id).await?;
+        let allow = self
+            .db
+            .allow_read_source(self.user_id.as_rowid()?, source_id)
+            .await?;
         if !allow {
             return Err(CoreError::Forbidden(
                 "You are not allowed to read this source",
@@ -84,9 +87,8 @@ impl AccessPolicy {
 mod tests {
     use tabby_db::testutils;
 
-    use crate::AsID;
-
     use super::*;
+    use crate::AsID;
 
     #[tokio::test]
     async fn test_check_read_source() {
@@ -101,31 +103,38 @@ mod tests {
 
         // 1. Setup user group
         let user_group_id = db.create_user_group("test").await.unwrap();
-        db.upsert_user_group_membership(user_id1, user_group_id, false).await.unwrap();
+        db.upsert_user_group_membership(user_id1, user_group_id, false)
+            .await
+            .unwrap();
 
         // For source id without any access policies, it's public (readable by all users)
         assert!(policy1.check_read_source(source_id).await.is_ok());
         assert!(policy2.check_read_source(source_id).await.is_ok());
 
         // 2. add user_group to source id's policy, making it private
-        db.upsert_source_id_read_access_policy(source_id, user_group_id).await.unwrap();
+        db.upsert_source_id_read_access_policy(source_id, user_group_id)
+            .await
+            .unwrap();
 
         // user2 won't be able to access source, while user1 can.
         assert!(policy2.check_read_source(source_id).await.is_err());
         assert!(policy1.check_read_source(source_id).await.is_ok());
 
         // 3. remove user1 from user_group
-        db.delete_user_group_membership(user_id1, user_group_id).await.unwrap();
+        db.delete_user_group_membership(user_id1, user_group_id)
+            .await
+            .unwrap();
 
         // user1 won't be able to acces source either now.
         assert!(policy1.check_read_source(source_id).await.is_err());
 
         // 4. delete user_group from source id's policy, making it public again
-        db.delete_source_id_read_access_policy(source_id, user_group_id).await.unwrap();
+        db.delete_source_id_read_access_policy(source_id, user_group_id)
+            .await
+            .unwrap();
 
         // user1 and user2 can access source again
         assert!(policy1.check_read_source(source_id).await.is_ok());
         assert!(policy2.check_read_source(source_id).await.is_ok());
-
     }
 }

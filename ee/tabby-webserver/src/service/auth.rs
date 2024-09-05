@@ -15,7 +15,13 @@ use tabby_schema::{
         AuthenticationService, Invitation, JWTPayload, OAuthCredential, OAuthError, OAuthProvider,
         OAuthResponse, RefreshTokenResponse, RegisterResponse, RequestInvitationInput,
         TokenAuthResponse, UpdateOAuthCredentialInput, User,
-    }, email::EmailService, is_demo_mode, license::{LicenseInfo, LicenseService}, policy, setting::SettingService, AsID, AsRowid, CoreError, DbEnum, Result
+    },
+    email::EmailService,
+    is_demo_mode,
+    license::{LicenseInfo, LicenseService},
+    policy,
+    setting::SettingService,
+    AsID, AsRowid, CoreError, DbEnum, Result,
 };
 use tokio::task::JoinHandle;
 use tracing::warn;

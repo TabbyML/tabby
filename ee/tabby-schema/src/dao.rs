@@ -4,12 +4,11 @@ use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
     ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
-    ThreadMessageAttachmentDoc, ThreadMessageDAO, UserDAO, UserEventDAO,
+    ThreadMessageAttachmentDoc, ThreadMessageDAO, UserEventDAO,
 };
 
 use crate::{
     integration::{Integration, IntegrationKind, IntegrationStatus},
-    policy,
     repository::RepositoryKind,
     schema::{
         auth::{self, OAuthCredential, OAuthProvider},

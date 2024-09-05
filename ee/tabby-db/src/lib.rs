@@ -32,6 +32,7 @@ mod job_runs;
 mod migration_tests;
 mod oauth_credential;
 mod password_reset;
+mod policy;
 mod provided_repositories;
 mod refresh_tokens;
 mod repositories;
@@ -41,7 +42,6 @@ mod user_completions;
 mod user_events;
 mod users;
 mod web_documents;
-mod policy;
 
 use anyhow::Result;
 use sql_query_builder as sql;
