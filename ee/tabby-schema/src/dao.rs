@@ -325,8 +325,7 @@ impl AsRowid for juniper::ID {
     fn as_rowid(&self) -> std::result::Result<i64, CoreError> {
         HASHER
             .decode(self)
-            .map(|x| x.first().map(|i| *i as i64))
-            .flatten()
+            .and_then(|x| x.first().map(|i| *i as i64))
             .ok_or(CoreError::InvalidID)
     }
 }

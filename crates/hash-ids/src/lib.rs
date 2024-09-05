@@ -268,7 +268,7 @@ impl HashIds {
             number += pos;
         }
 
-        Some(number as u64)
+        Some(number)
     }
 
     fn split<I: Iterator<Item = char>>(string: I, splitters: &[char]) -> Vec<Vec<char>> {
@@ -310,7 +310,7 @@ impl HashIds {
                 .collect::<Vec<_>>();
 
             alphabet = Self::reorder(&alphabet, &alphabet_salt);
-            let mut last = Self::hash(val as usize, &alphabet);
+            let mut last = Self::hash(val, &alphabet);
             val %= (u32::from(last[0]) as usize) + i;
             encoded.append(&mut last);
             encoded.push(self.separators[val % self.separators.len()]);
@@ -318,7 +318,7 @@ impl HashIds {
 
         let _ = encoded.pop();
 
-        if encoded.len() >= self.min_length as usize {
+        if encoded.len() >= self.min_length {
             encoded.into_iter().collect::<String>()
         } else {
             let mut encoded = encoded.into_iter().collect::<VecDeque<_>>();
@@ -326,14 +326,14 @@ impl HashIds {
             let mut guard_index = (vals_hash + u32::from(encoded[0]) as usize) % self.guards.len();
             encoded.push_front(self.guards[guard_index]);
 
-            if encoded.len() < self.min_length as usize {
+            if encoded.len() < self.min_length {
                 guard_index = (vals_hash + u32::from(encoded[2]) as usize) % self.guards.len();
                 encoded.push_back(self.guards[guard_index]);
             }
 
             let split_at = alphabet.len() / 2;
 
-            while encoded.len() < self.min_length as usize {
+            while encoded.len() < self.min_length {
                 alphabet = Self::reorder(&alphabet, &alphabet);
 
                 for c in alphabet[split_at..].iter().copied().rev() {
@@ -342,11 +342,11 @@ impl HashIds {
                 for c in alphabet[..split_at].iter().copied() {
                     encoded.push_back(c);
                 }
-                if let Some(excess) = encoded.len().checked_sub(self.min_length as usize) {
+                if let Some(excess) = encoded.len().checked_sub(self.min_length) {
                     if excess > 0 {
                         let from_index = excess / 2;
                         return encoded
-                            .drain(from_index..from_index + (self.min_length as usize))
+                            .drain(from_index..from_index + self.min_length)
                             .collect::<String>();
                     }
                 }
@@ -370,10 +370,10 @@ impl HashIds {
 
         let mut hash_str = if parts.len() >= 2 && parts.len() <= 3 {
             parts.remove(1)
-        } else if parts.len() > 0 {
+        } else if !parts.is_empty() {
             parts.remove(0)
         } else {
-             return None;
+            return None;
         };
 
         let lottery = hash_str.remove(0);
@@ -607,7 +607,7 @@ mod tests {
     fn test_long() {
         let hash_ids = HashIds::builder().with_salt("arbitrary salt").finish();
 
-        let up_to_100 = (1..=100).into_iter().collect::<Vec<_>>();
+        let up_to_100 = (1..=100).collect::<Vec<_>>();
 
         assert_eq!("GaHMFdtBf0ceClsgiVIjSrUKh1TyupHXFwt5fQcXCwspilIvSYUQhoT2u0HMF5tVfVc9CEsYiqI6SDUdhyTauBHPaF66t8pfGXcnoC2Vs0ei1YIy8SZ2UPehlyTKZuYJHQyF6wtZafR7c52Cn6skLigpIbGSD7UVkhyZT9xukeHBnFR1tJ2f2ocnVCkVsEQia6IBbSDEUX3hB6TaBuDbHxkFd7tykfrjc55Crjs2GigrIx5SpKUKjhVRTdQuX7H9K", hash_ids.encode(&up_to_100));
         assert_eq!(up_to_100, hash_ids.decode_or_die("GaHMFdtBf0ceClsgiVIjSrUKh1TyupHXFwt5fQcXCwspilIvSYUQhoT2u0HMF5tVfVc9CEsYiqI6SDUdhyTauBHPaF66t8pfGXcnoC2Vs0ei1YIy8SZ2UPehlyTKZuYJHQyF6wtZafR7c52Cn6skLigpIbGSD7UVkhyZT9xukeHBnFR1tJ2f2ocnVCkVsEQia6IBbSDEUX3hB6TaBuDbHxkFd7tykfrjc55Crjs2GigrIx5SpKUKjhVRTdQuX7H9K"));
