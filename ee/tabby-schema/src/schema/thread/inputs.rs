@@ -4,7 +4,7 @@ use validator::{Validate, ValidationError};
 
 #[derive(GraphQLInputObject, Validate)]
 pub struct CreateMessageInput {
-    #[validate(length(min = 1))]
+    #[validate(length(min = 1, code = "content"))]
     pub content: String,
 
     pub attachments: Option<MessageAttachmentInput>,
