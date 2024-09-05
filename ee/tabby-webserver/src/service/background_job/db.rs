@@ -16,6 +16,8 @@ impl DbMaintainanceJob {
         db.delete_expired_token().await?;
         db.delete_expired_password_resets().await?;
         db.delete_expired_ephemeral_threads().await?;
+
+        // FIXME(meng): add maintainance job for source_id_read_access_policies
         Ok(())
     }
 }
