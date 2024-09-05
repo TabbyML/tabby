@@ -25,10 +25,9 @@ import {
 import { CopyButton } from '../copy-button'
 import { ErrorMessageBlock, MessageMarkdown } from '../message-markdown'
 import { Button } from '../ui/button'
-import { IconFile, IconRefresh, IconTrash, IconUser } from '../ui/icons'
+import { IconFile, IconRefresh, IconTrash } from '../ui/icons'
 import { Separator } from '../ui/separator'
 import { Skeleton } from '../ui/skeleton'
-import { UserAvatar } from '../user-avatar'
 import { ChatContext } from './chat'
 import { CodeReferences } from './code-references'
 
