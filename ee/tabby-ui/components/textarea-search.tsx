@@ -121,7 +121,10 @@ export default function TextAreaSearch({
         contextInfo={contextInfo}
         fetchingContextInfo={fetchingContextInfo}
         onSubmit={handleSubmit}
-        placeholder={placeholder || 'Ask anything...'}
+        placeholder={
+          placeholder ||
+          'Ask anything...\n\nUse # to select a codebase to chat with, or @ to select a document to bring into context.'
+        }
         autoFocus={autoFocus}
         onFocus={() => setIsFocus(true)}
         onBlur={() => setIsFocus(false)}
@@ -136,7 +139,7 @@ export default function TextAreaSearch({
             'py-5': showBetaBadge
           }
         )}
-        editorClassName={isFollowup ? 'min-h-[1.75rem]' : 'min-h-[3.5rem]'}
+        editorClassName={isFollowup ? 'min-h-[3.5rem]' : 'min-h-[4.5rem]'}
       />
       <div className={cn('flex items-center justify-between gap-2')}>
         <div
