@@ -44,9 +44,9 @@ import {
   IconChevronRight,
   IconFileSearch,
   IconLayers,
-  IconLink,
   IconPlus,
   IconRefresh,
+  IconShare,
   IconSparkles,
   IconSpinner,
   IconStop
@@ -730,9 +730,7 @@ export function Search() {
           <ResizablePanel>
             <Header
               threadIdFromURL={threadIdFromURL}
-              threadIdFromStreaming={threadId}
               streamingDone={!!answer?.threadAssistantMessageCompleted}
-              updateThreadURL={updateThreadURL}
             />
             <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
               <ScrollArea className="h-full" ref={contentContainerRef}>
@@ -843,7 +841,7 @@ export function Search() {
                       {isShareLinkCopied ? (
                         <IconCheck className="mr-2 text-green-600" />
                       ) : (
-                        <IconLink className="mr-2" />
+                        <IconShare className="mr-2" />
                       )}
                       Share Link
                     </Button>
@@ -1284,21 +1282,13 @@ const setThreadPersistedMutation = graphql(/* GraphQL */ `
   }
 `)
 
-interface HeaderProps extends UseShareThreadOptions {}
+type HeaderProps = {
+  threadIdFromURL?: string
+  streamingDone?: boolean
+}
 
-function Header({
-  threadIdFromURL,
-  threadIdFromStreaming,
-  streamingDone,
-  updateThreadURL
-}: HeaderProps) {
+function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
   const router = useRouter()
-  const { onCopy, isCopied } = useShareThread({
-    threadIdFromURL,
-    threadIdFromStreaming,
-    streamingDone,
-    updateThreadURL
-  })
 
   return (
     <header className="flex h-16 items-center justify-between px-4 lg:px-10">
@@ -1321,17 +1311,6 @@ function Header({
               onClick={() => router.push('/')}
             >
               <IconPlus />
-            </Button>
-            <Button
-              variant="ghost"
-              className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
-              onClick={onCopy}
-            >
-              {isCopied ? (
-                <IconCheck className="text-green-600" />
-              ) : (
-                <IconLink />
-              )}
             </Button>
           </>
         )}
