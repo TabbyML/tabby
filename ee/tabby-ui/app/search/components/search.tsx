@@ -49,7 +49,8 @@ import {
   IconRefresh,
   IconSparkles,
   IconSpinner,
-  IconStop
+  IconStop,
+  IconTrash
 } from '@/components/ui/icons'
 import {
   ResizableHandle,
@@ -138,6 +139,7 @@ type SearchContextValue = {
   enableDeveloperMode: boolean
   contextInfo: ContextInfo | undefined
   fetchingContextInfo: boolean
+  onDeleteMessage: (id: string) => void
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -322,10 +324,17 @@ export function Search() {
     return location.origin + path
   }
 
-  const { sendUserMessage, isLoading, error, answer, stop, regenerate } =
-    useThreadRun({
-      threadId
-    })
+  const {
+    sendUserMessage,
+    isLoading,
+    error,
+    answer,
+    stop,
+    regenerate,
+    deleteThreadMessagePair
+  } = useThreadRun({
+    threadId
+  })
 
   const isLoadingRef = useLatest(isLoading)
 
@@ -673,6 +682,31 @@ export function Search() {
     prevDevPanelSize.current = devPanelSize
   }
 
+  const onDeleteMessage = (asistantMessageId: string) => {
+    if (!threadId) return
+    // find userMessageId by assistantMessageId
+    const assistantMessageIndex = messages.findIndex(
+      message => message.id === asistantMessageId
+    )
+    const userMessageIndex = assistantMessageIndex - 1
+    const userMessage = messages[assistantMessageIndex - 1]
+
+    if (assistantMessageIndex === -1 || userMessage?.role !== Role.User) {
+      return
+    }
+    deleteThreadMessagePair(
+      threadId,
+      userMessage.id,
+      asistantMessageId
+    ).finally(() => {
+      // remove userMessage and assistantMessage
+      const newMessages = messages
+        .slice(0, userMessageIndex)
+        .concat(messages.slice(assistantMessageIndex + 1))
+      setMessages(newMessages)
+    })
+  }
+
   const isFetchingMessages =
     fetchingMessages || threadMessages?.threadMessages?.pageInfo?.hasNextPage
 
@@ -711,7 +745,8 @@ export function Search() {
         isPathnameInitialized,
         enableDeveloperMode: enableDeveloperMode.value,
         contextInfo: contextInfoData?.contextInfo,
-        fetchingContextInfo
+        fetchingContextInfo,
+        onDeleteMessage
       }}
     >
       <div className="transition-all" style={style}>
@@ -754,6 +789,7 @@ export function Search() {
                               isLastAssistantMessage={isLastAssistantMessage}
                               showRelatedQuestion={isLastAssistantMessage}
                               isLoading={isLoading && isLastAssistantMessage}
+                              deletable={messages.length > 2}
                             />
                           </div>
                         )
@@ -863,12 +899,14 @@ function AnswerBlock({
   answer,
   showRelatedQuestion,
   isLoading,
-  isLastAssistantMessage
+  isLastAssistantMessage,
+  deletable
 }: {
   answer: ConversationMessage
   showRelatedQuestion: boolean
   isLoading?: boolean
   isLastAssistantMessage?: boolean
+  deletable?: boolean
 }) {
   const {
     onRegenerateResponse,
@@ -877,7 +915,8 @@ function AnswerBlock({
     setConversationIdForDev,
     enableDeveloperMode,
     contextInfo,
-    fetchingContextInfo
+    fetchingContextInfo,
+    onDeleteMessage
   } = useContext(SearchContext)
 
   const [showMoreSource, setShowMoreSource] = useState(false)
@@ -1111,6 +1150,16 @@ function AnswerBlock({
               >
                 <IconRefresh />
                 <p>Regenerate</p>
+              </Button>
+            )}
+            {!isLoading && deletable && (
+              <Button
+                className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
+                variant="ghost"
+                onClick={() => onDeleteMessage(answer.id)}
+              >
+                <IconTrash />
+                <p>Delete</p>
               </Button>
             )}
           </div>
