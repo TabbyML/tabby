@@ -6,5 +6,6 @@ files:
 - ./ee/tabby-schema/src/**
 ignores:
 - ./ee/tabby-schema/src/dao.rs
+- ./ee/tabby-schema/src/policy.rs
 rule:
   pattern: tabby_db
