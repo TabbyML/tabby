@@ -92,7 +92,7 @@ function ChatPanelRenderer(
             <Button
               variant="outline"
               onClick={onClearMessages}
-              className="bg-background lg:hidden"
+              className="bg-background"
             >
               <IconTrash className="mr-2" />
               Clear
