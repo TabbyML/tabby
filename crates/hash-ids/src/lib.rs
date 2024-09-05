@@ -11,7 +11,7 @@ fn main() {
         .with_salt("Arbitrary string")
         .finish();
     assert_eq!("neHrCa", hash_ids.encode(&[1, 2, 3]));
-    assert_eq!(vec![1, 2, 3], hash_ids.decode_or_die("neHrCa"));
+    assert_eq!(Some(vec![1, 2, 3]), hash_ids.decode("neHrCa"));
 }
 ```
 */
