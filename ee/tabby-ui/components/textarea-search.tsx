@@ -121,7 +121,10 @@ export default function TextAreaSearch({
         contextInfo={contextInfo}
         fetchingContextInfo={fetchingContextInfo}
         onSubmit={handleSubmit}
-        placeholder={placeholder || 'Ask anything...\n\nUse # to select a codebase to chat with, or @ to select a document to bring into context.'}
+        placeholder={
+          placeholder ||
+          'Ask anything...\n\nUse # to select a codebase to chat with, or @ to select a document to bring into context.'
+        }
         autoFocus={autoFocus}
         onFocus={() => setIsFocus(true)}
         onBlur={() => setIsFocus(false)}
