@@ -88,13 +88,9 @@ mod tests {
 
     use super::*;
 
-    async fn testdb() -> DbConn {
-        DbConn::new_in_memory().await.unwrap()
-    }
-
     #[tokio::test]
     async fn test_check_read_source() {
-        let db = testdb().await;
+        let db = DbConn::new_in_memory().await.unwrap();
         let source_id = "source_id";
 
         let user_id1 = testutils::create_user(&db).await;
