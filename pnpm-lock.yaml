@@ -284,10 +284,6 @@ importers:
         version: 1.5.0
 
   clients/vscode:
-    dependencies:
-      openai:
-        specifier: ^4.52.7
-        version: 4.52.7(encoding@0.1.13)
     devDependencies:
       '@quilted/threads':
         specifier: ^2.2.0
@@ -295,6 +291,9 @@ importers:
       '@types/deep-equal':
         specifier: ^1.0.4
         version: 1.0.4
+      '@types/diff':
+        specifier: ^5.2.1
+        version: 5.2.1
       '@types/mocha':
         specifier: ^10.0.1
         version: 10.0.6
@@ -334,6 +333,9 @@ importers:
       deep-equal:
         specifier: ^2.2.1
         version: 2.2.3
+      diff:
+        specifier: ^5.2.0
+        version: 5.2.0
       esbuild-plugin-copy:
         specifier: ^2.1.1
         version: 2.1.1(esbuild@0.19.12)
@@ -352,6 +354,9 @@ importers:
       object-hash:
         specifier: ^3.0.0
         version: 3.0.0
+      openai:
+        specifier: ^4.52.7
+        version: 4.52.7(encoding@0.1.13)
       prettier:
         specifier: ^3.0.0
         version: 3.2.5
@@ -5243,10 +5248,6 @@ packages:
 
   diff@5.0.0:
     resolution: {integrity: sha512-/VTCrvm5Z0JGty/BWHljh+BAiw3IK+2j87NGMu8Nwc/f48WoDAC395uomO9ZD117ZOBaHmkX1oyLvkVM/aIT3w==}
-    engines: {node: '>=0.3.1'}
-
-  diff@5.1.0:
-    resolution: {integrity: sha512-D+mk+qE8VC/PAUrlAU34N+VfXev0ghe5ywmpqrawphmVZc1bEfn56uo9qpyGp1p4xpzOHkSW4ztBd6L7Xx4ACw==}
     engines: {node: '>=0.3.1'}
 
   diff@5.2.0:
@@ -15789,8 +15790,6 @@ snapshots:
 
   diff@5.0.0: {}
 
-  diff@5.1.0: {}
-
   diff@5.2.0: {}
 
   digest-fetch@1.3.0:
@@ -21629,7 +21628,7 @@ snapshots:
   uvu@0.5.6:
     dependencies:
       dequal: 2.0.3
-      diff: 5.1.0
+      diff: 5.2.0
       kleur: 4.1.5
       sade: 1.8.1
 
