@@ -838,13 +838,21 @@ export function Search() {
               >
                 <div className="flex items-center gap-4">
                   {stopButtonVisible && (
-                    <Button variant="outline" onClick={() => stop()}>
+                    <Button
+                      className="bg-background"
+                      variant="outline"
+                      onClick={() => stop()}
+                    >
                       <IconStop className="mr-2" />
                       Stop generating
                     </Button>
                   )}
                   {!stopButtonVisible && (
-                    <Button variant="outline" onClick={onClickShare}>
+                    <Button
+                      className="bg-background"
+                      variant="outline"
+                      onClick={onClickShare}
+                    >
                       {isShareLinkCopied ? (
                         <IconCheck className="mr-2 text-green-600" />
                       ) : (
