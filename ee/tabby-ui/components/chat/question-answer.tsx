@@ -102,7 +102,7 @@ function UserMessageCard(props: { message: UserMessage }) {
   const { message } = props
   const [{ data }] = useMe()
   const selectContext = message.selectContext
-  const { onNavigateToContext, client } = React.useContext(ChatContext)
+  const { onNavigateToContext } = React.useContext(ChatContext)
   const selectCodeSnippet = React.useMemo(() => {
     if (!selectContext?.content) return ''
     const language = selectContext?.filepath
@@ -163,7 +163,7 @@ function UserMessageCard(props: { message: UserMessage }) {
               className="flex cursor-pointer items-center gap-1 overflow-x-auto text-xs text-muted-foreground hover:underline"
               onClick={() =>
                 onNavigateToContext?.(message.selectContext!, {
-                  openInEditor: client === 'vscode'
+                  openInEditor: true
                 })
               }
             >
@@ -233,7 +233,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     enableRegenerating,
     ...rest
   } = props
-  const { onNavigateToContext, client, onApplyInEditor, onCopyContent } =
+  const { onNavigateToContext, onApplyInEditor, onCopyContent } =
     React.useContext(ChatContext)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
     React.useState<number | undefined>(undefined)
@@ -314,7 +314,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       }
     }
     onNavigateToContext?.(ctx, {
-      openInEditor: client === 'vscode' && code.isClient
+      openInEditor: code.isClient
     })
   }
 
@@ -349,10 +349,9 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           userContexts={clientCode}
           onContextClick={(ctx, isInWorkspace) => {
             onNavigateToContext?.(ctx, {
-              openInEditor: client === 'vscode' && isInWorkspace
+              openInEditor: isInWorkspace
             })
           }}
-          isExternalLink={!!client}
           highlightIndex={relevantCodeHighlightIndex}
         />
         {isLoading && !message?.message ? (
