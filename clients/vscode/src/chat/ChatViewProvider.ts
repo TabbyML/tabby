@@ -38,7 +38,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     private readonly agent: Agent,
     private readonly logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
-  ) { }
+  ) {}
 
   static getFileContextFromSelection({
     editor,
@@ -210,7 +210,7 @@ export class ChatViewProvider implements WebviewViewProvider {
       },
       onCopy: (content) => {
         env.clipboard.writeText(content);
-      }
+      },
     });
 
     // At this point, if the server instance is not set up, agent.status is 'notInitialized'.
@@ -251,7 +251,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage((message) => {
       switch (message.action) {
         case "sync-theme": {
-          this.client?.updateTheme(message.style, getColorThemeString(window.activeColorTheme.kind) + " vscode")
+          this.client?.updateTheme(message.style, getColorThemeString(window.activeColorTheme.kind) + " vscode");
           return;
         }
       }
@@ -491,9 +491,9 @@ export class ChatViewProvider implements WebviewViewProvider {
   private formatLineHashForCodeBrowser(
     range:
       | {
-        start: number;
-        end?: number;
-      }
+          start: number;
+          end?: number;
+        }
       | undefined,
   ): string {
     if (!range) return "";
@@ -557,12 +557,11 @@ async function resolveDocument(
   return null;
 }
 
-
 function getColorThemeString(kind: ColorThemeKind) {
   switch (kind) {
     case ColorThemeKind.Light:
     case ColorThemeKind.HighContrastLight:
-      return "light"
+      return "light";
     case ColorThemeKind.Dark:
     case ColorThemeKind.HighContrast:
       return "dark";

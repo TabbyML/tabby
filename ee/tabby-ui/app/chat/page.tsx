@@ -153,7 +153,7 @@ export default function ChatPage() {
     if (server) {
       server?.onLoaded?.()
     }
-  }, [server]);
+  }, [server])
 
   useLayoutEffect(() => {
     if (!chatLoaded) return

@@ -89,7 +89,7 @@ export function createServer(api: ServerApi): ClientApi {
       showError: api.showError,
       cleanError: api.cleanError,
       addRelevantContext: api.addRelevantContext,
-      updateTheme: api.updateTheme
+      updateTheme: api.updateTheme,
     },
   })
 }
