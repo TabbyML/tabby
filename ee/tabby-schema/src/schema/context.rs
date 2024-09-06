@@ -20,6 +20,8 @@ pub enum ContextKind {
     Web,
 }
 
+pub const PUBLIC_WEB_INTERNAL_SOURCE_ID: &str = "internal-public-web";
+
 #[derive(GraphQLObject)]
 pub struct ContextSource {
     pub id: ID,
@@ -120,6 +122,10 @@ impl<'a> ContextInfoHelper<'a, 'a> {
         let re = Regex::new(r"\[\[source:(.*?)\]\]").unwrap();
         let new_content = re.replace_all(content, |caps: &Captures| {
             let source_id = caps.get(1).unwrap().as_str();
+            if source_id == PUBLIC_WEB_INTERNAL_SOURCE_ID {
+                // For public-web source, don't include it in the content.
+                return "".to_owned();
+            }
             if let Some(display_name) = self.sources.get(source_id) {
                 display_name.to_string()
             } else {

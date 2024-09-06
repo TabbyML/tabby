@@ -63,11 +63,13 @@ export default function TextAreaSearch({
   }
 
   const handleSubmit = (editor: Editor | undefined | null) => {
-    if (!editor) {
+    if (!editor || isLoading) {
       return
     }
 
-    const text = editor.getText()
+    const text = editor.getText().trim()
+    if (!text) return
+
     const mentions = getMentionsFromText(text, contextInfo?.sources)
     const ctx = getThreadRunContextsFromMentions(mentions)
 
@@ -123,12 +125,14 @@ export default function TextAreaSearch({
         onSubmit={handleSubmit}
         placeholder={
           placeholder ||
-          'Ask anything...\n\nUse # to select a codebase to chat with, or @ to select a document to bring into context.'
+          (contextInfo?.sources?.length
+            ? 'Ask anything...\n\nUse # to select a codebase to chat with, or @ to select a document to bring into context.'
+            : 'Ask anything...')
         }
         autoFocus={autoFocus}
         onFocus={() => setIsFocus(true)}
         onBlur={() => setIsFocus(false)}
-        onUpdate={({ editor }) => setValue(editor.getText())}
+        onUpdate={({ editor }) => setValue(editor.getText().trim())}
         ref={editorRef}
         placement={isFollowup ? 'bottom' : 'top'}
         className={cn(

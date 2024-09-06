@@ -12,7 +12,7 @@ api_endpoint = "https://api.mistral.ai"
 api_key = "secret-api-key"
 
 # Chat Model
-[model.completion.http]
+[model.chat.http]
 kind = "mistral/chat"
 api_endpoint = "https://api.mistral.ai"
 api_key = "secret-api-key"

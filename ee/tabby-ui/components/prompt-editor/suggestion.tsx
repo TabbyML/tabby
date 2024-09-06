@@ -42,11 +42,13 @@ const getMentionsFromEditor = (editor: Editor) => {
 }
 
 const suggestion: (options: {
+  disabled?: boolean
   category: 'doc' | 'code'
   placement?: Placement
   pluginKey: PluginKey
   char?: string
 }) => MentionOptions['suggestion'] = ({
+  disabled,
   category,
   placement,
   char = '@',
@@ -144,6 +146,17 @@ const suggestion: (options: {
 
     // get reference to `window` object from editor element, to support cross-frame JS usage
     editor.view.dom.ownerDocument.defaultView?.getSelection()?.collapseToEnd()
+  },
+  allow: ({ state, range }) => {
+    if (disabled) {
+      return false
+    }
+
+    const $from = state.doc.resolve(range.from)
+    const type = state.schema.nodes[MENTION_EXTENSION_NAME]
+    const allow = !!$from.parent.type.contentMatch.matchType(type)
+
+    return allow
   }
 })
 

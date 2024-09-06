@@ -7,7 +7,7 @@ import tabbyLogo from '@/assets/tabby.png'
 import { compact, isEmpty, isEqual, isNil, uniqWith } from 'lodash-es'
 import type { Context } from 'tabby-chat-panel'
 
-import { MARKDOWN_CITATION_FUZZY_REGEX } from '@/lib/constants/regex'
+import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
 import {
@@ -391,7 +391,7 @@ function getCopyContent(
   if (!attachmentCode || isEmpty(attachmentCode)) return content
 
   const parsedContent = content
-    .replace(MARKDOWN_CITATION_FUZZY_REGEX, match => {
+    .replace(MARKDOWN_CITATION_REGEX, match => {
       const citationNumberMatch = match?.match(/\d+/)
       return `[${citationNumberMatch}]`
     })

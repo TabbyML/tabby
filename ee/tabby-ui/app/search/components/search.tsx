@@ -73,14 +73,14 @@ import './search.css'
 
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
-import { compact, isEmpty, pick, uniqBy } from 'lodash-es'
+import { compact, isEmpty, pick, uniq, uniqBy } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import { toast } from 'sonner'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
 import {
-  MARKDOWN_CITATION_FUZZY_REGEX,
+  MARKDOWN_CITATION_REGEX,
   MARKDOWN_SOURCE_REGEX
 } from '@/lib/constants/regex'
 import { graphql } from '@/lib/gql/generates'
@@ -419,14 +419,10 @@ export function Search() {
     }
   }, [isReady])
 
-  const {
-    isCopied: isShareLinkCopied,
-    onCopy: onClickShare,
-    canShare
-  } = useShareThread({
+  const { isCopied: isShareLinkCopied, onCopy: onClickShare } = useShareThread({
     threadIdFromURL,
     threadIdFromStreaming: threadId,
-    streamingDone: !!answer?.threadAssistantMessageCompleted,
+    streamingDone: !isLoading,
     updateThreadURL
   })
 
@@ -579,22 +575,16 @@ export function Search() {
       role: Role.Assistant,
       content: ''
     }
-    let docSourceIds: string[] = []
-    let codeSourceId: string | undefined
-    let searchPublic = false
 
-    if (ctx) {
-      docSourceIds = ctx.docSourceIds ?? []
-      searchPublic = ctx.searchPublic ?? false
-      codeSourceId = ctx.codeSourceIds?.[0] ?? undefined
-    }
+    const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
+      getSourceInputs(ctx)
 
-    const codeQuery: InputMaybe<CodeQueryInput> = codeSourceId
-      ? { sourceId: codeSourceId, content: question }
+    const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
+      ? { sourceId: sourceIdForCodeQuery, content: question }
       : null
 
     const docQuery: InputMaybe<DocQueryInput> = {
-      sourceIds: docSourceIds,
+      sourceIds: sourceIdsForDocQuery,
       content: question,
       searchPublic: !!searchPublic
     }
@@ -649,15 +639,16 @@ export function Search() {
       newUserMessage.content,
       contextInfoData?.contextInfo?.sources
     )
-    const { codeSourceIds, docSourceIds, searchPublic } =
-      getThreadRunContextsFromMentions(mentions)
-    const codeSourceId = codeSourceIds?.[0]
-    const codeQuery: InputMaybe<CodeQueryInput> = codeSourceId
-      ? { sourceId: codeSourceId, content: newUserMessage.content }
+
+    const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
+      getSourceInputs(getThreadRunContextsFromMentions(mentions))
+
+    const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
+      ? { sourceId: sourceIdForCodeQuery, content: newUserMessage.content }
       : null
 
     const docQuery: InputMaybe<DocQueryInput> = {
-      sourceIds: docSourceIds,
+      sourceIds: sourceIdsForDocQuery,
       content: newUserMessage.content,
       searchPublic
     }
@@ -848,13 +839,7 @@ export function Search() {
                 <div className="flex items-center gap-4">
                   {stopButtonVisible && (
                     <Button
-                      className={cn('bg-background', {
-                        'opacity-0 pointer-events-none': !stopButtonVisible,
-                        'opacity-100': stopButtonVisible
-                      })}
-                      style={{
-                        transition: 'all 0.55s ease-out'
-                      }}
+                      className="bg-background"
                       variant="outline"
                       onClick={() => stop()}
                     >
@@ -862,15 +847,9 @@ export function Search() {
                       Stop generating
                     </Button>
                   )}
-                  {canShare && (
+                  {!stopButtonVisible && (
                     <Button
-                      className={cn('bg-background', {
-                        'opacity-0 pointer-events-none': !canShare,
-                        'opacity-100': canShare
-                      })}
-                      style={{
-                        transition: 'opacity 0.55s ease-in-out'
-                      }}
+                      className="bg-background"
                       variant="outline"
                       onClick={onClickShare}
                     >
@@ -890,7 +869,7 @@ export function Search() {
                 >
                   <TextAreaSearch
                     onSearch={onSubmitSearch}
-                    className="lg:max-w-4xl"
+                    className="min-h-[5.5rem] lg:max-w-4xl"
                     placeholder="Ask a follow up question"
                     isLoading={isLoading}
                     isFollowup
@@ -962,7 +941,7 @@ function AnswerBlock({
     }
 
     const content = answer.content
-      .replace(MARKDOWN_CITATION_FUZZY_REGEX, match => {
+      .replace(MARKDOWN_CITATION_REGEX, match => {
         const citationNumberMatch = match?.match(/\d+/)
         return `[${citationNumberMatch}]`
       })
@@ -1413,6 +1392,25 @@ function getTitleFromMessages(sources: ContextSource[], content: string) {
   return title
 }
 
+function getSourceInputs(ctx: ThreadRunContexts | undefined) {
+  let sourceIdsForDocQuery: string[] = []
+  let sourceIdForCodeQuery: string | undefined
+  let searchPublic = false
+
+  if (ctx) {
+    sourceIdsForDocQuery = uniq(
+      compact([ctx?.codeSourceIds?.[0]].concat(ctx.docSourceIds))
+    )
+    searchPublic = ctx.searchPublic ?? false
+    sourceIdForCodeQuery = ctx.codeSourceIds?.[0] ?? undefined
+  }
+  return {
+    sourceIdsForDocQuery,
+    sourceIdForCodeQuery,
+    searchPublic
+  }
+}
+
 interface UseShareThreadOptions {
   threadIdFromURL?: string
   threadIdFromStreaming?: string | null
@@ -1436,23 +1434,17 @@ function useShareThread({
     }
   })
 
-  const canSetThreadPersisted =
+  const shouldSetThreadPersisted =
     !threadIdFromURL &&
     streamingDone &&
     threadIdFromStreaming &&
     updateThreadURL
-  const canShare = threadIdFromURL || canSetThreadPersisted
 
   const onCopy = async () => {
     if (isCopied) return
 
     let url = window.location.href
-    if (
-      !threadIdFromURL &&
-      streamingDone &&
-      threadIdFromStreaming &&
-      updateThreadURL
-    ) {
+    if (shouldSetThreadPersisted) {
       await setThreadPersisted({ threadId: threadIdFromStreaming })
       url = updateThreadURL(threadIdFromStreaming)
     }
@@ -1462,7 +1454,6 @@ function useShareThread({
 
   return {
     onCopy,
-    isCopied,
-    canShare
+    isCopied
   }
 }
