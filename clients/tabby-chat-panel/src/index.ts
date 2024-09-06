@@ -78,7 +78,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerA
       onSubmitMessage: api.onSubmitMessage,
       onApplyInEditor: api.onApplyInEditor,
       onLoaded: api.onLoaded,
-      onCopy: api.onCopy
+      onCopy: api.onCopy,
     },
   })
 }

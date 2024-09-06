@@ -61,13 +61,13 @@ export default function ChatPage() {
   const prevWidthRef = useRef(width)
 
   const searchParams = useSearchParams()
-  const client = (searchParams.get('client')) as ClientType;
-  const isInEditor = !!client || undefined;
+  const client = searchParams.get('client') as ClientType
+  const isInEditor = !!client || undefined
 
   // VSCode bug: not support shortcuts like copy/paste
   // @see - https://github.com/microsoft/vscode/issues/129178
   useEffect(() => {
-    if (client !== "vscode") return
+    if (client !== 'vscode') return
 
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.code === 'KeyC') {
@@ -143,7 +143,8 @@ export default function ChatPage() {
       document.documentElement.style.cssText = styleWithHslValue
 
       // Sync with edit theme
-      document.documentElement.className = themeClass + ` client client-${client}`
+      document.documentElement.className =
+        themeClass + ` client client-${client}`
     }
   })
 
@@ -190,7 +191,7 @@ export default function ChatPage() {
       <div
         className="h-screen w-screen"
         style={{
-          padding: client == "intellij" ? '20px' : '5px 18px'
+          padding: client == 'intellij' ? '20px' : '5px 18px'
         }}
       >
         <div className="flex items-center" style={{ marginBottom: '0.55em' }}>
@@ -286,7 +287,7 @@ export default function ChatPage() {
         headers={headers}
         onNavigateToContext={onNavigateToContext}
         onLoaded={onChatLoaded}
-        maxWidth={client === "vscode" ? "5xl" : undefined}
+        maxWidth={client === 'vscode' ? '5xl' : undefined}
         onCopyContent={isInEditor && server?.onCopy}
         onSubmitMessage={isInEditor && server?.onSubmitMessage}
         onApplyInEditor={isInEditor && server?.onApplyInEditor}
@@ -295,4 +296,4 @@ export default function ChatPage() {
   )
 }
 
-type ClientType = "vscode" | "intellij" | "vim" | "eclipse" | null;
+type ClientType = 'vscode' | 'intellij' | 'vim' | 'eclipse' | null
