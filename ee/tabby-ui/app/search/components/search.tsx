@@ -419,11 +419,7 @@ export function Search() {
     }
   }, [isReady])
 
-  const {
-    isCopied: isShareLinkCopied,
-    onCopy: onClickShare,
-    canShare
-  } = useShareThread({
+  const { isCopied: isShareLinkCopied, onCopy: onClickShare } = useShareThread({
     threadIdFromURL,
     threadIdFromStreaming: threadId,
     streamingDone: !!answer?.threadAssistantMessageCompleted,
@@ -847,33 +843,13 @@ export function Search() {
               >
                 <div className="flex items-center gap-4">
                   {stopButtonVisible && (
-                    <Button
-                      className={cn('bg-background', {
-                        'opacity-0 pointer-events-none': !stopButtonVisible,
-                        'opacity-100': stopButtonVisible
-                      })}
-                      style={{
-                        transition: 'all 0.55s ease-out'
-                      }}
-                      variant="outline"
-                      onClick={() => stop()}
-                    >
+                    <Button variant="outline" onClick={() => stop()}>
                       <IconStop className="mr-2" />
                       Stop generating
                     </Button>
                   )}
-                  {canShare && (
-                    <Button
-                      className={cn('bg-background', {
-                        'opacity-0 pointer-events-none': !canShare,
-                        'opacity-100': canShare
-                      })}
-                      style={{
-                        transition: 'opacity 0.55s ease-in-out'
-                      }}
-                      variant="outline"
-                      onClick={onClickShare}
-                    >
+                  {!isLoading && (
+                    <Button variant="outline" onClick={onClickShare}>
                       {isShareLinkCopied ? (
                         <IconCheck className="mr-2 text-green-600" />
                       ) : (
@@ -1436,23 +1412,17 @@ function useShareThread({
     }
   })
 
-  const canSetThreadPersisted =
+  const shouldSetThreadPersisted =
     !threadIdFromURL &&
     streamingDone &&
     threadIdFromStreaming &&
     updateThreadURL
-  const canShare = threadIdFromURL || canSetThreadPersisted
 
   const onCopy = async () => {
     if (isCopied) return
 
     let url = window.location.href
-    if (
-      !threadIdFromURL &&
-      streamingDone &&
-      threadIdFromStreaming &&
-      updateThreadURL
-    ) {
+    if (shouldSetThreadPersisted) {
       await setThreadPersisted({ threadId: threadIdFromStreaming })
       url = updateThreadURL(threadIdFromStreaming)
     }
@@ -1462,7 +1432,6 @@ function useShareThread({
 
   return {
     onCopy,
-    isCopied,
-    canShare
+    isCopied
   }
 }
