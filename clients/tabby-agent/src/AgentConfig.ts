@@ -71,6 +71,7 @@ export type AgentConfig = {
   postprocess: {
     limitScope: any;
     calculateReplaceRange: any;
+    minCompletionChars: number;
   };
   chat: {
     edit: {
@@ -172,6 +173,7 @@ export const defaultAgentConfig: AgentConfig = {
   postprocess: {
     limitScope: {},
     calculateReplaceRange: {},
+    minCompletionChars: 4,
   },
   chat: {
     edit: {
