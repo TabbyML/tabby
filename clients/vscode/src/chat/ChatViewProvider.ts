@@ -266,7 +266,7 @@ export class ChatViewProvider implements WebviewViewProvider {
       return "You need to launch the server with the chat model enabled; for example, use `--chat-model Qwen2-1.5B-Instruct`.";
     }
 
-    const MIN_VERSION = "0.16.0";
+    const MIN_VERSION = "0.18.0";
 
     if (serverInfo.health["version"]) {
       let version: semver.SemVer | undefined | null = undefined;
@@ -362,7 +362,7 @@ export class ChatViewProvider implements WebviewViewProvider {
 
                 let themeClass = getTheme()
                 themeClass += ' vscode'
-                chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${endpoint}");
+                chatIframe.contentWindow.postMessage({ themeClass: themeClass, style: parentHtmlStyle }, "${endpoint}");
               }
 
               window.onload = function () {
@@ -375,9 +375,6 @@ export class ChatViewProvider implements WebviewViewProvider {
                   const theme = getTheme()
 
                   const clientQuery = "&client=vscode"
-                  const themeQuery = "&theme=" + theme
-                  const fontSizeQuery = "&font-size=" + fontSize
-                  const foregroundQuery = "&foreground=" + foreground.replace('#', '')
       
                   chatIframe.addEventListener('load', function() {
                     setTimeout(() => {
@@ -390,7 +387,7 @@ export class ChatViewProvider implements WebviewViewProvider {
                     }, 300)
                   });
 
-                  chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery + themeQuery + fontSizeQuery + foregroundQuery)
+                  chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery;
                 }
                 
                 window.addEventListener("message", (event) => {

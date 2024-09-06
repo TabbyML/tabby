@@ -55,7 +55,6 @@ export default function ChatPage() {
   const [pendingRelevantContexts, setPendingRelevantContexts] = useState<
     Context[]
   >([])
-  const [isThemeSynced, setIsThemeSynced] = useState(false)
   const [errorMessage, setErrorMessage] = useState<ErrorMessage | null>(null)
   const [isRefreshLoading, setIsRefreshLoading] = useState(false)
 
@@ -66,14 +65,6 @@ export default function ChatPage() {
 
   const searchParams = useSearchParams()
   const client = searchParams.get('client') || undefined
-  const initialFontSize = searchParams.get('font-size') || undefined
-  const initialForeground = searchParams.get('foreground')
-    ? `#${searchParams.get('foreground')}`
-    : undefined
-  const initialBackground = searchParams.get('background')
-    ? `#${searchParams.get('background')}`
-    : undefined
-
   const isFromVSCode = client === 'vscode'
   const isFromIntellij = client === 'intellij'
   const isOnSubmitMessage = CLIENT_TO_HANDLE_MESSAGE_SUBMIT.includes(
@@ -116,7 +107,6 @@ export default function ChatPage() {
           })
           .join(';')
         document.documentElement.style.cssText = styleWithHslValue
-        setIsThemeSynced(true)
       }
 
       // Sync with edit theme
@@ -240,9 +230,6 @@ export default function ChatPage() {
       <div
         className="h-screen w-screen"
         style={{
-          fontSize: isThemeSynced ? 'inherit' : initialFontSize,
-          color: isThemeSynced ? 'inherit' : initialForeground,
-          background: isThemeSynced ? 'inherit' : initialBackground,
           padding: isFromIntellij ? '20px' : '5px 18px'
         }}
       >
