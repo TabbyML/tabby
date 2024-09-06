@@ -422,7 +422,7 @@ export function Search() {
   const { isCopied: isShareLinkCopied, onCopy: onClickShare } = useShareThread({
     threadIdFromURL,
     threadIdFromStreaming: threadId,
-    streamingDone: !!answer?.threadAssistantMessageCompleted,
+    streamingDone: !isLoading,
     updateThreadURL
   })
 
@@ -848,7 +848,7 @@ export function Search() {
                       Stop generating
                     </Button>
                   )}
-                  {!isLoading && (
+                  {!stopButtonVisible && (
                     <Button variant="outline" onClick={onClickShare}>
                       {isShareLinkCopied ? (
                         <IconCheck className="mr-2 text-green-600" />
