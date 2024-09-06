@@ -85,6 +85,7 @@ function MainPanel() {
     router.prefetch('/search')
   }, [router])
 
+  // FIXME add loading skeleton
   if (!healthInfo || !data?.me) return <></>
 
   const onSearch = (question: string, ctx?: ThreadRunContexts) => {
@@ -157,6 +158,7 @@ function MainPanel() {
                 cleanAfterSearch={false}
                 contextInfo={contextInfoData?.contextInfo}
                 fetchingContextInfo={fetchingContextInfo}
+                className="min-h-[7rem]"
               />
             </div>
           )}

@@ -869,7 +869,7 @@ export function Search() {
                 >
                   <TextAreaSearch
                     onSearch={onSubmitSearch}
-                    className="lg:max-w-4xl"
+                    className="min-h-[5.5rem] lg:max-w-4xl"
                     placeholder="Ask a follow up question"
                     isLoading={isLoading}
                     isFollowup
