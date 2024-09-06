@@ -2,13 +2,13 @@ import {
   CancellationToken,
   CodeLens,
   CodeLensProvider,
-  Command,
   EventEmitter,
   Location,
   ProviderResult,
   Range,
   TextDocument,
   TextEditor,
+  TextEditorDecorationType,
   Uri,
   window,
   workspace,
@@ -20,10 +20,8 @@ import generateNLOutlinesPrompt from "../assets/prompts/generateNLOutlines.txt";
 import editNLOutline from "../assets/prompts/editNLOutline.txt";
 import { getLogger } from "./logger";
 import * as Diff from "diff";
+
 interface ChatNLOutlinesParams {
-  /**
-   * The document location to get the outlines for.
-   */
   location: Location;
   editor?: TextEditor;
 }
@@ -40,9 +38,31 @@ interface CodeChangeRequest {
   newOutline: string;
 }
 
+interface PendingChange {
+  oldLines: string[];
+  newLines: string[];
+  decorations: { added: Range[]; removed: Range[] };
+  editRange: Range;
+  newContent: string;
+  originalStartLine: number;
+}
+
+interface ChangesPreview {
+  oldLines: string[];
+  newLines: string[];
+  decorations: { added: Range[]; removed: Range[] };
+  editRange: Range;
+}
+
+type OpenAIResponse = AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
+
 export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensProvider {
   private client: OpenAI;
   private outlines: Map<string, Outline[]>;
+  private addedDecorationType: TextEditorDecorationType;
+  private removedDecorationType: TextEditorDecorationType;
+  private pendingChanges: Map<string, PendingChange>;
+  private pendingCodeLenses: Map<string, CodeLens[]>;
 
   constructor(private readonly config: Config) {
     super();
@@ -51,6 +71,20 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
       baseURL: config.serverEndpoint + "/v1",
     });
     this.outlines = new Map();
+    this.pendingChanges = new Map();
+    this.pendingCodeLenses = new Map();
+    this.addedDecorationType = window.createTextEditorDecorationType({
+      backgroundColor: "rgba(0, 255, 0, 0.2)",
+      isWholeLine: true,
+    });
+    this.removedDecorationType = window.createTextEditorDecorationType({
+      backgroundColor: "rgba(255, 0, 0, 0.2)",
+      isWholeLine: true,
+    });
+
+    window.onDidChangeActiveTextEditor(() => {
+      this.clearAllPendingChanges();
+    });
   }
 
   async provideNLOutlinesGenerate(params: ChatNLOutlinesParams): Promise<boolean> {
@@ -125,7 +159,7 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
       getLogger().info(`Processed ${documentOutlines.length} outline entries`);
       this.outlines.set(document.uri.toString(), documentOutlines);
       getLogger().info(`Set outlines for document: ${document.uri}`);
-      this.fire(); // Notify listeners that CodeLenses have changed
+      this.fire();
       getLogger().info("Notified listeners of CodeLenses change");
 
       return true;
@@ -139,33 +173,97 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
     }
   }
 
-  private async generateNLOutlinesRequest(
-    documentation: string,
-  ): Promise<AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>> {
+  async updateNLOutline(documentUri: string, lineNumber: number, newContent: string): Promise<boolean> {
+    const outlines = this.outlines.get(documentUri) || [];
+    const oldOutline = outlines.find((outline) => outline.startLine === lineNumber);
+    if (!oldOutline) {
+      throw new Error("No matching outline found for the given line number");
+    }
+
+    const document = await workspace.openTextDocument(Uri.parse(documentUri));
+    const oldCodeRange = new Range(oldOutline.startLine, 0, oldOutline.endLine + 1, 0);
+    const oldCode = document.getText(oldCodeRange);
+    const oldCodeWithLineNumbers = this.formatCodeWithLineNumbers(oldCode, oldOutline.startLine);
+
+    const changeRequest: CodeChangeRequest = {
+      oldOutline: oldOutline.content,
+      oldCode: oldCodeWithLineNumbers,
+      newOutline: newContent,
+    };
+
+    try {
+      const stream = await this.generateNewCodeBaseOnEditedRequest(changeRequest);
+      let updatedCode = "";
+      for await (const chunk of stream) {
+        updatedCode += chunk.choices[0]?.delta?.content || "";
+      }
+      updatedCode = updatedCode.replace(/<GENERATEDCODE>\n?/, "").replace(/\n?<\/GENERATEDCODE>/, "");
+
+      const lines = updatedCode.split("\n").map((line) => {
+        const parts = line.split("|");
+        if (parts.length > 1) {
+          const leftWhitespace = line.match(/^\s*/)?.[0] || "";
+          const processedPart = parts.slice(1).join("|").trimEnd();
+          return leftWhitespace + processedPart;
+        }
+        return line.trimEnd();
+      });
+
+      if (lines[lines.length - 1] === "") {
+        lines.pop();
+      }
+
+      getLogger().info("Updated code:", lines);
+      const { oldLines, newLines, decorations, editRange } = this.generateChangesPreview(
+        oldCode,
+        lines.join("\n"),
+        oldOutline.startLine,
+      );
+      getLogger().info("old codes: ", oldLines);
+
+      this.pendingChanges.set(documentUri, {
+        oldLines,
+        newLines,
+        decorations,
+        editRange,
+        newContent,
+        originalStartLine: oldOutline.startLine,
+      });
+
+      const edit = new WorkspaceEdit();
+      edit.replace(Uri.parse(documentUri), oldCodeRange, newLines.join("\n"));
+      await workspace.applyEdit(edit);
+
+      const editor = window.activeTextEditor;
+      if (editor && editor.document.uri.toString() === documentUri) {
+        this.applyDecorations(editor, decorations);
+        this.addAcceptDiscardCodeLens(editor, editRange, newContent, oldOutline.startLine);
+      }
+
+      this.fire();
+      return true;
+    } catch (error) {
+      window.showErrorMessage(`Error updating NL Outline: ${error instanceof Error ? error.message : String(error)}`);
+      return false;
+    }
+  }
+
+  private async generateNLOutlinesRequest(documentation: string): Promise<OpenAIResponse> {
     const promptTemplate = editNLOutline;
     const content = promptTemplate.replace("{{document}}", documentation);
     return this.openAIRequest(content);
   }
 
-  //TODO(Sma1lboy): oldCode range could dynamic update to next bracket position, thinking how to do it rn.
-  private async generateNewCodeBaseOnEditedRequest(changeRequest: CodeChangeRequest) {
+  private async generateNewCodeBaseOnEditedRequest(changeRequest: CodeChangeRequest): Promise<OpenAIResponse> {
     const promptTemplate = generateNLOutlinesPrompt;
     const changeJson = JSON.stringify(changeRequest, null, 2);
-
     const content = promptTemplate.replace("{{document}}", changeJson);
     return this.openAIRequest(content);
   }
 
-  private async openAIRequest(question: string) {
-    const messages = [
-      {
-        role: "user" as const,
-        content: question,
-      },
-    ];
-
+  private async openAIRequest(question: string): Promise<OpenAIResponse> {
+    const messages = [{ role: "user" as const, content: question }];
     getLogger().info("Prepared messages for API call" + messages[0]?.content);
-
     return await this.client.chat.completions.create({
       model: "",
       messages: messages,
@@ -177,28 +275,31 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
     if (token.isCancellationRequested) {
       return [];
     }
+
+    const pendingCodeLenses = this.pendingCodeLenses.get(document.uri.toString());
+    if (pendingCodeLenses) {
+      return pendingCodeLenses;
+    }
+
     const documentOutlines = this.outlines.get(document.uri.toString());
     if (!documentOutlines) {
       return [];
     }
+
     return documentOutlines.flatMap((outline) => {
       const range = document.lineAt(outline.startLine).range;
-
-      const editCommand: Command = {
-        title: "Edit",
-        command: "tabby.chat.edit.editNLOutline",
-        arguments: [document.uri, outline.startLine],
-      };
-      const editCodeLens = new CodeLens(range, editCommand);
-
-      const outlineCommand: Command = {
-        title: outline.content,
-        command: "",
-        arguments: [],
-      };
-      const outlineCodeLens = new CodeLens(range, outlineCommand);
-
-      return [editCodeLens, outlineCodeLens];
+      return [
+        new CodeLens(range, {
+          title: "Edit",
+          command: "tabby.chat.edit.editNLOutline",
+          arguments: [document.uri, outline.startLine],
+        }),
+        new CodeLens(range, {
+          title: outline.content,
+          command: "",
+          arguments: [],
+        }),
+      ];
     });
   }
 
@@ -208,6 +309,7 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
     }
     return codeLens;
   }
+
   get onDidChangeCodeLenses() {
     return this.event;
   }
@@ -221,162 +323,167 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
     return this.outlines.get(documentUri)?.find((outline) => outline.startLine === lineNumber)?.content;
   }
 
-  //TODO(Sma1lboy): do diff when adding new code with old code, user should accpet or discard the new code;
-  //TODO(Sma1lboy): dynamic update remain outline or find a new way to show new code
-  //TODO(Sma1lboy): stream prompt new code not directly prompt everything
-  async updateNLOutline(documentUri: string, lineNumber: number, newContent: string) {
-    getLogger().info(`Starting updateNLOutline for document: ${documentUri}, line: ${lineNumber}`);
-    const outlines = this.outlines.get(documentUri) || [];
-    const oldOutlineIndex = outlines.findIndex((outline) => outline.startLine === lineNumber);
-    if (oldOutlineIndex === -1) {
-      getLogger().info(`No matching outline found for line number: ${lineNumber}`);
-      throw new Error("No matching outline found for the given line number");
-    }
-    const oldOutline = outlines[oldOutlineIndex];
-    if (!oldOutline) {
-      getLogger().info("Old outline is undefined, returning");
-      return;
-    }
-    getLogger().info(`Found old outline: ${JSON.stringify(oldOutline)}`);
-    const document = await workspace.openTextDocument(Uri.parse(documentUri));
-    if (!document) {
-      getLogger().info(`Unable to open document: ${documentUri}`);
-      throw new Error("Unable to open the document");
-    }
-    const oldCodeRange = new Range(oldOutline.startLine, 0, oldOutline.endLine + 1, 0);
-    const oldCode = document.getText(oldCodeRange);
-    const oldCodeWithLineNumbers = this.formatCodeWithLineNumbers(oldCode, oldOutline.startLine);
-    const changeRequest: CodeChangeRequest = {
-      oldOutline: oldOutline.content,
-      oldCode: oldCodeWithLineNumbers,
-      newOutline: newContent,
-    };
-    try {
-      getLogger().info("Generating new code based on edited request");
-      const stream = await this.generateNewCodeBaseOnEditedRequest(changeRequest);
-      let updatedCode = "";
-      for await (const chunk of stream) {
-        updatedCode += chunk.choices[0]?.delta?.content || "";
-      }
-      getLogger().info("Received updated code from AI model:", updatedCode);
-      // Remove XML tags while preserving newlines
-      updatedCode = updatedCode.replace(/<GENERATEDCODE>\n?/, "").replace(/\n?<\/GENERATEDCODE>/, "");
-
-      // Split the code into lines, but keep the last newline if it exists
-      let lines = updatedCode.split(/\n(?!$)/);
-
-      lines = lines.map((line) => {
-        if (line.trim() === "") {
-          return line;
-        }
-        const parts = line.split("|");
-        if (parts.length > 1) {
-          const codeContent = parts.slice(1).join("|");
-          const leadingWhitespace = codeContent.substring(0, codeContent.length - codeContent.trimStart().length);
-          return leadingWhitespace + codeContent.trim();
-        }
-        return line;
-      });
-      lines.pop();
-      getLogger().info("asd", lines);
-
-      updatedCode = lines.join("\n");
-
-      updatedCode = updatedCode.replace(/\n*$/, "") + "\n";
-
-      getLogger().info("After removing tags and line numbers:", updatedCode);
-
-      //improve this
-      const editId = `tabby-${Math.random().toString(36).substr(2, 6)}`;
-      const previewLines = this.generateChangesPreview(oldCode, updatedCode, editId);
-
-      // Apply the changes to the document
-      const edit = new WorkspaceEdit();
-      edit.replace(Uri.parse(documentUri), oldCodeRange, previewLines.join("\n"));
-      await workspace.applyEdit(edit);
-      getLogger().info("Applied edit with preview to workspace");
-
-      const newLineCount = previewLines.length;
-      const lineDifference = newLineCount - (oldOutline.endLine - oldOutline.startLine + 1);
-      outlines[oldOutlineIndex] = {
-        ...oldOutline,
-        content: newContent,
-        endLine: oldOutline.startLine + newLineCount - 1,
-      };
-      getLogger().info(`Updated outline: ${JSON.stringify(outlines[oldOutlineIndex])}`);
-      for (let i = oldOutlineIndex + 1; i < outlines.length; i++) {
-        const currentOutline = outlines[i];
-        if (currentOutline) {
-          outlines[i] = {
-            ...currentOutline,
-            startLine: currentOutline.startLine + lineDifference,
-            endLine: currentOutline.endLine + lineDifference,
-          };
-        }
-      }
-      this.outlines.set(documentUri, outlines);
-      this.fire();
-      getLogger().info("Update completed successfully");
-      return true;
-    } catch (error) {
-      getLogger().error("Error updating NL Outline:", error);
-      window.showErrorMessage(`Error updating NL Outline: ${error instanceof Error ? error.message : String(error)}`);
-      return false;
-    }
-  }
-
-  async resolveOutline(action: string) {
-    action;
-    return;
-  }
-
   private formatCodeWithLineNumbers(code: string, startLine: number): string {
     return code
       .split("\n")
       .map((line, index) => `${startLine + index} | ${line}`)
       .join("\n");
   }
+  private generateChangesPreview(oldCode: string, newCode: string, startLine: number): ChangesPreview {
+    const oldLines = oldCode.split("\n");
+    const decorations: { added: Range[]; removed: Range[] } = { added: [], removed: [] };
+    const added: string[] = [];
+    const removed: string[] = [];
+    const unchanged: string[] = [];
 
-  //TODO: remove this
-  private generateChangesPreview(oldCode: string, newCode: string, editId: string): string[] {
-    const lines: string[] = [];
-    let markers = "";
-    const stateDescription = "Editing completed";
-
-    lines.push(`<<<<<<< ${stateDescription} <${markers}>[${editId}]`);
-    markers += "<";
-
-    const removeLineNumbers = (code: string) =>
-      code
-        .split("\n")
-        .map((line) => {
-          const parts = line.split("|");
-          return parts.length > 1 ? parts.slice(1).join("|").trim() : line;
-        })
-        .join("\n");
-
-    const diffs = Diff.diffLines(removeLineNumbers(oldCode), removeLineNumbers(newCode));
-    diffs.forEach((diff) => {
-      const diffLines = diff.value.split("\n").filter((line) => line !== "");
-      diffLines.forEach((line) => {
-        if (diff.added) {
-          lines.push(line);
-          markers += "+";
-        } else if (diff.removed) {
-          lines.push(line);
-          markers += "-";
-        } else {
-          lines.push(line);
-          markers += "=";
-        }
-      });
+    Diff.diffLines(oldCode, newCode).forEach((diff) => {
+      const lines = diff.value.split("\n").filter((line) => line !== "");
+      if (diff.added) {
+        added.push(...lines);
+      } else if (diff.removed) {
+        removed.push(...lines);
+      } else {
+        unchanged.push(...lines);
+      }
     });
 
-    lines.push(`>>>>>>> ${stateDescription} <${markers}>[${editId}]`);
+    const finalLines = [...added, ...unchanged, ...removed];
 
-    if (lines[0]) {
-      lines[0] = lines[0].replace("<>", `<${markers}>`);
+    const lastRemovedIndex = finalLines.findLastIndex((line) => removed.includes(line));
+    if (lastRemovedIndex !== -1) {
+      finalLines.splice(lastRemovedIndex + 1, 0, "");
     }
-    return lines;
+
+    let currentLine = startLine;
+    finalLines.forEach((line) => {
+      if (added.includes(line)) {
+        decorations.added.push(new Range(currentLine, 0, currentLine, line.length));
+      } else if (removed.includes(line)) {
+        decorations.removed.push(new Range(currentLine, 0, currentLine, line.length));
+      }
+      currentLine++;
+    });
+
+    const editRange = new Range(
+      startLine,
+      0,
+      startLine + finalLines.length - 1,
+      finalLines[finalLines.length - 1]?.length || 0,
+    );
+
+    getLogger().info("oldLines", oldLines);
+    getLogger().info("finalLines", finalLines);
+    getLogger().info("decorations", decorations);
+
+    return { oldLines, newLines: finalLines, decorations, editRange };
+  }
+
+  private applyDecorations(editor: TextEditor, decorations: { added: Range[]; removed: Range[] }) {
+    editor.setDecorations(this.addedDecorationType, decorations.added);
+    editor.setDecorations(this.removedDecorationType, decorations.removed);
+  }
+
+  private addAcceptDiscardCodeLens(
+    editor: TextEditor,
+    editRange: Range,
+    newOutline: string,
+    originalStartLine: number,
+  ) {
+    const codeLenses = [
+      new CodeLens(editRange, {
+        title: "Accept",
+        command: "tabby.chat.edit.acceptChanges1",
+        arguments: [editor.document.uri, editRange, newOutline, originalStartLine],
+      }),
+      new CodeLens(editRange, {
+        title: "Discard",
+        command: "tabby.chat.edit.discardChanges2",
+        arguments: [editor.document.uri, editRange],
+      }),
+      new CodeLens(editRange, {
+        title: newOutline,
+        command: "",
+        arguments: [],
+      }),
+    ];
+
+    this.pendingCodeLenses.set(editor.document.uri.toString(), codeLenses);
+  }
+
+  async acceptChanges(documentUri: Uri, editRange: Range, newOutline: string, originalStartLine: number) {
+    const pendingChange = this.pendingChanges.get(documentUri.toString());
+    if (pendingChange) {
+      const { newLines } = pendingChange;
+      const edit = new WorkspaceEdit();
+      edit.replace(documentUri, editRange, newLines.join("\n"));
+      await workspace.applyEdit(edit);
+
+      const outlines = this.outlines.get(documentUri.toString()) || [];
+      const outlineIndex = outlines.findIndex((o) => o.startLine === originalStartLine);
+      if (outlineIndex !== -1) {
+        outlines[outlineIndex] = {
+          startLine: originalStartLine,
+          endLine: originalStartLine + newLines.length - 1,
+          content: newOutline,
+        };
+        this.outlines.set(documentUri.toString(), outlines);
+      }
+
+      this.clearPendingChanges(documentUri.toString());
+    }
+  }
+
+  async discardChanges(documentUri: Uri, editRange: Range) {
+    const pendingChange = this.pendingChanges.get(documentUri.toString());
+    if (pendingChange) {
+      const { oldLines } = pendingChange;
+      const edit = new WorkspaceEdit();
+      edit.replace(documentUri, editRange, oldLines.join("\n"));
+      await workspace.applyEdit(edit);
+
+      this.clearPendingChanges(documentUri.toString());
+    }
+  }
+
+  private clearPendingChanges(documentUri: string) {
+    this.pendingChanges.delete(documentUri);
+    this.pendingCodeLenses.delete(documentUri);
+    const editor = window.activeTextEditor;
+    if (editor && editor.document.uri.toString() === documentUri) {
+      editor.setDecorations(this.addedDecorationType, []);
+      editor.setDecorations(this.removedDecorationType, []);
+    }
+    this.fire();
+  }
+  private clearAllPendingChanges() {
+    for (const documentUri of this.pendingChanges.keys()) {
+      this.clearPendingChanges(documentUri);
+    }
+  }
+
+  async resolveOutline(action: "accept" | "discard") {
+    const editor = window.activeTextEditor;
+    if (!editor) {
+      window.showInformationMessage("No active editor.");
+      return;
+    }
+
+    const documentUri = editor.document.uri;
+    const pendingChange = this.pendingChanges.get(documentUri.toString());
+
+    if (!pendingChange) {
+      window.showInformationMessage("No pending changes to resolve.");
+      return;
+    }
+
+    const { editRange, newContent, originalStartLine } = pendingChange;
+
+    if (action === "accept") {
+      await this.acceptChanges(documentUri, editRange, newContent, originalStartLine);
+      window.showInformationMessage("Changes accepted.");
+    } else if (action === "discard") {
+      await this.discardChanges(documentUri, editRange);
+      window.showInformationMessage("Changes discarded.");
+    }
   }
 }
