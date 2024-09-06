@@ -83,6 +83,15 @@ export default function ChatPage() {
   const maxWidth = isFromVSCode ? '5xl' : undefined
 
   useEffect(() => {
+    const onLoaded = () => server?.onLoaded();
+    document.addEventListener("load", onLoaded);
+
+    return () => {
+       document.removeEventListener("load", onLoaded);
+    }
+  }, [])
+
+  useEffect(() => {
     const onMessage = ({
       data
     }: {
@@ -212,16 +221,6 @@ export default function ChatPage() {
     server?.navigate(context, opts)
   }
 
-  const onCopyContent = (value: string) => {
-    parent.postMessage(
-      {
-        action: 'copy',
-        data: value
-      },
-      '*'
-    )
-  }
-
   const refresh = async () => {
     setIsRefreshLoading(true)
     await server?.refresh()
@@ -341,7 +340,7 @@ export default function ChatPage() {
         onNavigateToContext={onNavigateToContext}
         onLoaded={onChatLoaded}
         maxWidth={maxWidth}
-        onCopyContent={client === 'vscode' ? onCopyContent : undefined}
+        onCopyContent={server?.onCopy}
         client={client}
         onSubmitMessage={isOnSubmitMessage ? onSubmitMessage : undefined}
         onApplyInEditor={isOnApplyInEditor ? onApplyInEditor : undefined}

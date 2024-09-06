@@ -46,6 +46,12 @@ export interface ClientApi {
   refresh: () => Promise<void>
   onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
   onApplyInEditor?: (content: string) => void
+
+  // On current page is loaded.
+  onLoaded: () => void
+
+  // On user copy content to clipboard.
+  onCopy: (content: string) => void
 }
 
 export interface ChatMessage {

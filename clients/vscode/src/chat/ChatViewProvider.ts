@@ -37,7 +37,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     private readonly agent: Agent,
     private readonly logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
-  ) {}
+  ) { }
 
   static getFileContextFromSelection({
     editor,
@@ -202,6 +202,14 @@ export class ChatViewProvider implements WebviewViewProvider {
           });
         }
       },
+      onLoaded: () => {
+        setTimeout(() => {
+          this.refreshChatPage();
+        }, 300);
+      },
+      onCopy: (content) => {
+        env.clipboard.writeText(content);
+      }
     });
 
     // At this point, if the server instance is not set up, agent.status is 'notInitialized'.
@@ -237,21 +245,6 @@ export class ChatViewProvider implements WebviewViewProvider {
       }
 
       commands.executeCommand("setContext", "tabby.chatViewVisible", webviewView.visible);
-    });
-
-    webviewView.webview.onDidReceiveMessage((message) => {
-      switch (message.action) {
-        case "rendered": {
-          setTimeout(() => {
-            this.refreshChatPage();
-          }, 300);
-          return;
-        }
-        case "copy": {
-          env.clipboard.writeText(message.data);
-          return;
-        }
-      }
     });
 
     workspace.onDidChangeConfiguration((e) => {
@@ -387,7 +380,6 @@ export class ChatViewProvider implements WebviewViewProvider {
                   const foregroundQuery = "&foreground=" + foreground.replace('#', '')
       
                   chatIframe.addEventListener('load', function() {
-                    vscode.postMessage({ action: 'rendered' });
                     setTimeout(() => {
                       syncTheme()
 
@@ -406,10 +398,6 @@ export class ChatViewProvider implements WebviewViewProvider {
                   if (event.data) {
                     if (event.data.action === 'sync-theme') {
                       syncTheme();
-                      return;
-                    }
-                    if (event.data.action === 'copy') {
-                      vscode.postMessage(event.data);
                       return;
                     }
 
@@ -502,9 +490,9 @@ export class ChatViewProvider implements WebviewViewProvider {
   private formatLineHashForCodeBrowser(
     range:
       | {
-          start: number;
-          end?: number;
-        }
+        start: number;
+        end?: number;
+      }
       | undefined,
   ): string {
     if (!range) return "";
