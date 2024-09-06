@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use juniper::ID;
 use tabby_schema::{
-    context::{ContextInfo, ContextKind, ContextService, ContextSource, PUBLIC_WEB_INTERNAL_SOURCE_ID},
+    context::{
+        ContextInfo, ContextKind, ContextService, ContextSource, PUBLIC_WEB_INTERNAL_SOURCE_ID,
+    },
     policy::AccessPolicy,
     repository::RepositoryService,
     web_documents::WebDocumentService,
