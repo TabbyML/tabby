@@ -133,7 +133,7 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
 
     const editor = useEditor(
       {
-        editable: initialized,
+        editable: initialized ? editable : false,
         immediatelyRender: false,
         extensions: [
           Document,
