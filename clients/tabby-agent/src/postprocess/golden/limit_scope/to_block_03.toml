@@ -1,7 +1,7 @@
 description = 'Limit scope: limit to block scope: case 03'
 
 [config]
-minChars = 1
+minCompletionChars = 1
 
 [context]
 filepath = 'checks.js'
