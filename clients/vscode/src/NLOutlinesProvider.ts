@@ -19,7 +19,6 @@ import { Config } from "./Config";
 import OpenAI from "openai";
 import generateNLOutlinesPrompt from "../assets/prompts/generateNLOutlines.txt";
 import editNLOutline from "../assets/prompts/editNLOutline.txt";
-import { getLogger } from "./logger";
 import * as Diff from "diff";
 
 interface ChatNLOutlinesParams {
@@ -65,7 +64,7 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
   private pendingChanges: Map<string, PendingChange>;
   private pendingCodeLenses: Map<string, CodeLens[]>;
 
-  constructor(private readonly config: Config) {
+  constructor(config: Config) {
     super();
     this.client = new OpenAI({
       apiKey: config.serverToken,
@@ -89,39 +88,28 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
   }
 
   async provideNLOutlinesGenerate(params: ChatNLOutlinesParams): Promise<boolean> {
-    getLogger().info(this.config.serverEndpoint);
-    getLogger().info(this.config.serverToken);
-    getLogger().info("Entering provideNLOutlinesGenerate method");
-
     if (!params.editor) {
-      getLogger().info("No editor provided in params");
       return false;
     }
 
     const document = params.editor.document;
-    getLogger().info(`Processing document: ${document.uri}`);
 
     try {
       const selection = new Range(params.location.range.start, params.location.range.end);
       if (selection.isEmpty) {
-        getLogger().warn("Empty selection detected");
         throw new Error("No document selected");
       }
 
       const selectedText = document.getText(selection);
-      getLogger().info(`Selected text length: ${selectedText.length}`);
       if (selectedText.length > 3000) {
-        getLogger().warn("Selected text exceeds maximum length");
         throw new Error("Document too long");
       }
 
       const lines = selectedText.split("\n");
       const startLine = selection.start.line;
       const numberedText = lines.map((line, index) => `${startLine + index + 1} | ${line}`).join("\n");
-      getLogger().info("Prepared numbered text for processing");
 
       const stream = await this.generateNLOutlinesRequest(numberedText);
-      getLogger().info("Started streaming API response");
 
       let buffer = "";
       const documentOutlines: Outline[] = [];
@@ -135,8 +123,6 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
           const fullLine = buffer.slice(0, newlineIndex).trim();
           buffer = buffer.slice(newlineIndex + 1);
           const match = fullLine.match(/^(\d+)\s*\|\s*(\d+)\s*\|\s*(.*)$/);
-          getLogger().info(`Processing line: ${fullLine}`);
-          getLogger().info(`Match result: ${JSON.stringify(match)}`);
 
           if (match) {
             const [, startLineNumber, endLineNumber, content] = match;
@@ -151,26 +137,18 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
               });
               this.outlines.set(document.uri.toString(), documentOutlines);
               this.fire();
-              getLogger().info(`Added outline: Lines ${parsedStartLine - 1}-${parsedEndLine - 1}, Content: ${content}`);
             }
           }
         }
       }
 
-      getLogger().info(`Processed ${documentOutlines.length} outline entries`);
       this.outlines.set(document.uri.toString(), documentOutlines);
-      getLogger().info(`Set outlines for document: ${document.uri}`);
       this.fire();
-      getLogger().info("Notified listeners of CodeLenses change");
 
       return true;
     } catch (error) {
-      getLogger().error("Error generating outlines:", error);
-      console.error("Error generating outlines:", error);
       window.showErrorMessage(`Error generating outlines: ${error instanceof Error ? error.message : String(error)}`);
       return false;
-    } finally {
-      getLogger().info("Exiting provideNLOutlinesGenerate method");
     }
   }
 
@@ -214,13 +192,11 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
         lines.pop();
       }
 
-      getLogger().info("Updated code:", lines);
       const { oldLines, newLines, decorations, editRange } = this.generateChangesPreview(
         oldCode,
         lines.join("\n"),
         oldOutline.startLine,
       );
-      getLogger().info("old codes: ", oldLines);
 
       this.pendingChanges.set(documentUri, {
         oldLines,
@@ -264,7 +240,6 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
 
   private async openAIRequest(question: string): Promise<OpenAIResponse> {
     const messages = [{ role: "user" as const, content: question }];
-    getLogger().info("Prepared messages for API call" + messages[0]?.content);
     return await this.client.chat.completions.create({
       model: "",
       messages: messages,
@@ -330,6 +305,7 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
       .map((line, index) => `${startLine + index} | ${line}`)
       .join("\n");
   }
+
   private generateChangesPreview(oldCode: string, newCode: string, startLine: number): ChangesPreview {
     const oldLines = oldCode.split("\n");
     const decorations: { added: Range[]; removed: Range[] } = { added: [], removed: [] };
@@ -372,10 +348,6 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
       finalLines[finalLines.length - 1]?.length || 0,
     );
 
-    getLogger().info("oldLines", oldLines);
-    getLogger().info("finalLines", finalLines);
-    getLogger().info("decorations", decorations);
-
     return { oldLines, newLines: finalLines, decorations, editRange };
   }
 
@@ -404,34 +376,26 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
     this.pendingCodeLenses.set(editor.document.uri.toString(), codeLenses);
   }
 
-  async acceptChanges(documentUri: Uri, editRange: Range, newOutline: string, originalStartLine: number) {
+  async acceptChanges(documentUri: Uri, newOutline: string, originalStartLine: number) {
     const pendingChange = this.pendingChanges.get(documentUri.toString());
-    getLogger().info(`Attempting to accept changes for document: ${documentUri.toString()}`);
 
     if (pendingChange) {
       const { oldLines, newLines } = pendingChange;
-      getLogger().info(`Found pending change. Old lines: ${oldLines.length}, New lines: ${newLines.length}`);
 
+      const startLine = pendingChange.originalStartLine;
       const edit = new WorkspaceEdit();
 
-      getLogger().info(
-        `Replacing old code with new code in the range: ${editRange.start.line} to ${editRange.end.line}`,
-      );
-
-      const oldCodeLength = oldLines.length;
-      const newCodeLength = newLines.length;
-      const startDeleteLine = editRange.start.line + (newCodeLength - oldCodeLength);
-      const endDeleteLine = editRange.start.line + newCodeLength - 1;
+      const oldLinesCount = oldLines.length;
+      const newLinesCount = newLines.length;
+      const startDeleteLine = startLine + (newLinesCount - oldLinesCount);
+      const endDeleteLine = startLine + newLinesCount - 1;
       const deleteRange = new Range(new Position(startDeleteLine, 0), new Position(endDeleteLine, 0));
-      getLogger().info(`Deleting extra lines from ${startDeleteLine} to ${endDeleteLine}`);
       edit.delete(documentUri, deleteRange);
 
       await workspace.applyEdit(edit);
-      getLogger().info(`Applied edits to document: ${documentUri.toString()}`);
 
       const outlines = this.outlines.get(documentUri.toString()) || [];
       const outlineIndex = outlines.findIndex((o) => o.startLine === originalStartLine);
-      getLogger().info(`Updating outline at index: ${outlineIndex}`);
 
       if (outlineIndex !== -1) {
         outlines[outlineIndex] = {
@@ -439,64 +403,75 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
           endLine: originalStartLine + newLines.length - 1,
           content: newOutline,
         };
-        getLogger().info(
-          `Outline updated: Start line: ${originalStartLine}, End line: ${
-            originalStartLine + newLines.length - 1
-          }, Content: ${newOutline}`,
-        );
 
         const lineDifference = newLines.length - oldLines.length;
-        getLogger().info(`Line difference calculated: ${lineDifference}`);
 
         for (let i = outlineIndex + 1; i < outlines.length; i++) {
           const outline = outlines[i];
           if (outline) {
             outline.startLine += lineDifference;
             outline.endLine += lineDifference;
-            getLogger().info(
-              `Updated outline at index ${i}: Start line: ${outline.startLine}, End line: ${outline.endLine}`,
-            );
           }
         }
 
         this.outlines.set(documentUri.toString(), outlines);
-        getLogger().info(`Outlines set for document: ${documentUri.toString()}`);
       }
 
-      this.clearPendingChanges(documentUri.toString());
-      getLogger().info(`Cleared pending changes for document: ${documentUri.toString()}`);
+      await this.clearPendingChanges(documentUri.toString(), true);
       this.fire();
-      getLogger().info(`Fired event to notify listeners of outline changes`);
-    } else {
-      getLogger().info(`No pending changes found for document: ${documentUri.toString()}`);
     }
   }
 
-  async discardChanges(documentUri: Uri, editRange: Range) {
+  async discardChanges(documentUri: Uri) {
     const pendingChange = this.pendingChanges.get(documentUri.toString());
     if (pendingChange) {
-      const { oldLines } = pendingChange;
+      const { oldLines, newLines } = pendingChange;
+      const startLine = pendingChange.originalStartLine;
+
       const edit = new WorkspaceEdit();
-      edit.replace(documentUri, editRange, oldLines.join("\n"));
+
+      const oldLinesCount = oldLines.length;
+      const newLinesCount = newLines.length;
+      const startDeleteLine = startLine;
+      const endDeleteLine = startLine + (newLinesCount - oldLinesCount);
+      const deleteRange = new Range(new Position(startDeleteLine, 0), new Position(endDeleteLine, 0));
+      edit.delete(documentUri, deleteRange);
       await workspace.applyEdit(edit);
-      this.clearPendingChanges(documentUri.toString());
+      this.clearPendingChanges(documentUri.toString(), true);
       this.fire();
     }
   }
 
-  private clearPendingChanges(documentUri: string) {
+  private async clearPendingChanges(documentUri: string, isDeleted: boolean) {
+    const pendingChange = this.pendingChanges.get(documentUri.toString());
+    const editor = window.activeTextEditor;
+
+    if (pendingChange && !isDeleted) {
+      const { oldLines, newLines } = pendingChange;
+      const startLine = pendingChange.originalStartLine;
+
+      const edit = new WorkspaceEdit();
+
+      const oldLinesCount = oldLines.length;
+      const newLinesCount = newLines.length;
+      const startDeleteLine = startLine;
+      const endDeleteLine = startLine + (newLinesCount - oldLinesCount);
+      const deleteRange = new Range(new Position(startDeleteLine, 0), new Position(endDeleteLine, 0));
+      edit.delete(Uri.parse(documentUri), deleteRange);
+      await workspace.applyEdit(edit);
+    }
     this.pendingChanges.delete(documentUri);
     this.pendingCodeLenses.delete(documentUri);
-    const editor = window.activeTextEditor;
     if (editor && editor.document.uri.toString() === documentUri) {
       editor.setDecorations(this.addedDecorationType, []);
       editor.setDecorations(this.removedDecorationType, []);
     }
     this.fire();
   }
-  private clearAllPendingChanges() {
+
+  private async clearAllPendingChanges() {
     for (const documentUri of this.pendingChanges.keys()) {
-      this.clearPendingChanges(documentUri);
+      await this.clearPendingChanges(documentUri, false);
     }
   }
 
@@ -515,13 +490,13 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
       return;
     }
 
-    const { editRange, newContent, originalStartLine } = pendingChange;
+    const { newContent, originalStartLine } = pendingChange;
 
     if (action === "accept") {
-      await this.acceptChanges(documentUri, editRange, newContent, originalStartLine);
+      await this.acceptChanges(documentUri, newContent, originalStartLine);
       window.showInformationMessage("Changes accepted.");
     } else if (action === "discard") {
-      await this.discardChanges(documentUri, editRange);
+      await this.discardChanges(documentUri);
       window.showInformationMessage("Changes discarded.");
     }
   }
