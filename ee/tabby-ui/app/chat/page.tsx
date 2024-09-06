@@ -61,7 +61,7 @@ export default function ChatPage() {
   const prevWidthRef = useRef(width)
 
   const searchParams = useSearchParams()
-  const client = searchParams.get('client') as ClientType;
+  const client = (searchParams.get('client')) as ClientType;
   const isInEditor = !!client || undefined;
 
   // VSCode bug: not support shortcuts like copy/paste
@@ -143,7 +143,7 @@ export default function ChatPage() {
       document.documentElement.style.cssText = styleWithHslValue
 
       // Sync with edit theme
-      document.documentElement.className = themeClass
+      document.documentElement.className = themeClass + ` client client-${client}`
     }
   })
 
