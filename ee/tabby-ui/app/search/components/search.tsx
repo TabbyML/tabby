@@ -73,7 +73,7 @@ import './search.css'
 
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
-import { compact, isEmpty, pick, uniqBy } from 'lodash-es'
+import { compact, isEmpty, pick, uniq, uniqBy } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import { toast } from 'sonner'
 import { Context } from 'tabby-chat-panel/index'
@@ -575,22 +575,16 @@ export function Search() {
       role: Role.Assistant,
       content: ''
     }
-    let docSourceIds: string[] = []
-    let codeSourceId: string | undefined
-    let searchPublic = false
 
-    if (ctx) {
-      docSourceIds = ctx.docSourceIds ?? []
-      searchPublic = ctx.searchPublic ?? false
-      codeSourceId = ctx.codeSourceIds?.[0] ?? undefined
-    }
+    const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
+      getSourceInputs(ctx)
 
-    const codeQuery: InputMaybe<CodeQueryInput> = codeSourceId
-      ? { sourceId: codeSourceId, content: question }
+    const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
+      ? { sourceId: sourceIdForCodeQuery, content: question }
       : null
 
     const docQuery: InputMaybe<DocQueryInput> = {
-      sourceIds: docSourceIds,
+      sourceIds: sourceIdsForDocQuery,
       content: question,
       searchPublic: !!searchPublic
     }
@@ -645,15 +639,16 @@ export function Search() {
       newUserMessage.content,
       contextInfoData?.contextInfo?.sources
     )
-    const { codeSourceIds, docSourceIds, searchPublic } =
-      getThreadRunContextsFromMentions(mentions)
-    const codeSourceId = codeSourceIds?.[0]
-    const codeQuery: InputMaybe<CodeQueryInput> = codeSourceId
-      ? { sourceId: codeSourceId, content: newUserMessage.content }
+
+    const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
+      getSourceInputs(getThreadRunContextsFromMentions(mentions))
+
+    const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
+      ? { sourceId: sourceIdForCodeQuery, content: newUserMessage.content }
       : null
 
     const docQuery: InputMaybe<DocQueryInput> = {
-      sourceIds: docSourceIds,
+      sourceIds: sourceIdsForDocQuery,
       content: newUserMessage.content,
       searchPublic
     }
@@ -1387,6 +1382,25 @@ function getTitleFromMessages(sources: ContextSource[], content: string) {
   // Cap max length at 48 characters
   const title = cleanedLine.slice(0, 48)
   return title
+}
+
+function getSourceInputs(ctx: ThreadRunContexts | undefined) {
+  let sourceIdsForDocQuery: string[] = []
+  let sourceIdForCodeQuery: string | undefined
+  let searchPublic = false
+
+  if (ctx) {
+    sourceIdsForDocQuery = uniq(
+      compact([ctx?.codeSourceIds?.[0]].concat(ctx.docSourceIds))
+    )
+    searchPublic = ctx.searchPublic ?? false
+    sourceIdForCodeQuery = ctx.codeSourceIds?.[0] ?? undefined
+  }
+  return {
+    sourceIdsForDocQuery,
+    sourceIdForCodeQuery,
+    searchPublic
+  }
 }
 
 interface UseShareThreadOptions {
