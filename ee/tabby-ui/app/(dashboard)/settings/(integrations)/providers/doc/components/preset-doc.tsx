@@ -247,7 +247,7 @@ export default function PresetDocument() {
   }, [debouncedFilterPattern])
 
   return (
-    <>
+    <div className="min-h-[30.5rem]">
       <LoadingWrapper loading={!data || stale}>
         <Table className="min-w-[300px] table-fixed border-b">
           <TableHeader>
@@ -358,6 +358,6 @@ export default function PresetDocument() {
           }}
         />
       </LoadingWrapper>
-    </>
+    </div>
   )
 }
