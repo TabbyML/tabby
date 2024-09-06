@@ -67,7 +67,9 @@ export default function TextAreaSearch({
       return
     }
 
-    const text = editor.getText()
+    const text = editor.getText().trim()
+    if (!text) return
+
     const mentions = getMentionsFromText(text, contextInfo?.sources)
     const ctx = getThreadRunContextsFromMentions(mentions)
 
@@ -128,7 +130,7 @@ export default function TextAreaSearch({
         autoFocus={autoFocus}
         onFocus={() => setIsFocus(true)}
         onBlur={() => setIsFocus(false)}
-        onUpdate={({ editor }) => setValue(editor.getText())}
+        onUpdate={({ editor }) => setValue(editor.getText().trim())}
         ref={editorRef}
         placement={isFollowup ? 'bottom' : 'top'}
         className={cn(
