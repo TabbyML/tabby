@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use juniper::ID;
 use tabby_schema::{
-    context::{ContextInfo, ContextKind, ContextService, ContextSource},
+    context::{ContextInfo, ContextKind, ContextService, ContextSource, PUBLIC_WEB_INTERNAL_SOURCE_ID},
     policy::AccessPolicy,
     repository::RepositoryService,
     web_documents::WebDocumentService,
@@ -43,11 +43,10 @@ impl ContextService for ContextServiceImpl {
         );
 
         if self.can_search_public_web {
-            let source_id = "internal-public-web";
             sources.push(ContextSource {
-                id: ID::from(source_id.to_owned()),
+                id: ID::from(PUBLIC_WEB_INTERNAL_SOURCE_ID.to_owned()),
                 kind: ContextKind::Web,
-                source_id: source_id.into(),
+                source_id: PUBLIC_WEB_INTERNAL_SOURCE_ID.into(),
                 display_name: "Web".to_string(),
             });
         }
