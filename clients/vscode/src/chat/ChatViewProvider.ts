@@ -266,7 +266,7 @@ export class ChatViewProvider implements WebviewViewProvider {
       return "You need to launch the server with the chat model enabled; for example, use `--chat-model Qwen2-1.5B-Instruct`.";
     }
 
-    const MIN_VERSION = "0.18.0";
+    const MIN_VERSION = "0.16.0";
 
     if (serverInfo.health["version"]) {
       let version: semver.SemVer | undefined | null = undefined;
