@@ -63,7 +63,7 @@ export default function TextAreaSearch({
   }
 
   const handleSubmit = (editor: Editor | undefined | null) => {
-    if (!editor) {
+    if (!editor || isLoading) {
       return
     }
 
