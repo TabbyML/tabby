@@ -147,11 +147,11 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
             />
           ))
         ) : (
-          <div className="px-2 py-1.5">
+          <div className="px-2 py-1.5 text-muted-foreground text-sm">
             {options?.length ? (
               <span>No matches results</span>
             ) : (
-              <span>No results, please configure in Context Providers</span>
+              <span>No results</span>
             )}
           </div>
         )}

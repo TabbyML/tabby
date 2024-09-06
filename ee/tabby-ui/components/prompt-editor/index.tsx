@@ -1,6 +1,13 @@
 import './styles.css'
 
-import React, { forwardRef, useImperativeHandle, useLayoutEffect } from 'react'
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useState
+} from 'react'
 import Document from '@tiptap/extension-document'
 import Paragraph from '@tiptap/extension-paragraph'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -16,7 +23,7 @@ import {
 
 import { ContextInfo, ContextSource } from '@/lib/gql/generates/graphql'
 import { useLatest } from '@/lib/hooks/use-latest'
-import { cn } from '@/lib/utils'
+import { cn, isCodeSourceContext, isDocSourceContext } from '@/lib/utils'
 
 import { MentionExtension } from './mention-extension'
 import suggestion from './suggestion'
@@ -94,6 +101,7 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
     },
     ref
   ) => {
+    const [initialized, setInitialized] = useState(!fetchingContextInfo)
     const doSubmit = useLatest((editor: Editor) => {
       if (submitting) return
 
@@ -107,63 +115,87 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
       doSubmit.current(editor)
     }
 
-    const editor = useEditor({
-      immediatelyRender: false,
-      extensions: [
-        Document,
-        Paragraph,
-        Text,
-        Placeholder.configure({
-          placeholder: placeholder || 'Ask anything...'
-        }),
-        CustomKeyboardShortcuts(handleSubmit),
-        // for document mention
-        MentionExtension.configure({
-          deleteTriggerWithBackspace: true,
-          HTMLAttributes: {
-            class: 'mention'
-          },
-          suggestion: suggestion({
-            category: 'doc',
-            char: '@',
-            pluginKey: DocumentMentionPluginKey,
-            placement: placement === 'bottom' ? 'top-start' : 'bottom-start'
+    const hasCodebaseSources = useMemo(() => {
+      if (!contextInfo?.sources) {
+        return false
+      }
+
+      return contextInfo.sources.some(o => isCodeSourceContext(o.kind))
+    }, [contextInfo?.sources])
+
+    const hasDocSources = useMemo(() => {
+      if (!contextInfo?.sources) {
+        return false
+      }
+
+      return contextInfo.sources.some(o => isDocSourceContext(o.kind))
+    }, [contextInfo?.sources])
+
+    const editor = useEditor(
+      {
+        editable: initialized,
+        immediatelyRender: false,
+        extensions: [
+          Document,
+          Paragraph,
+          Text,
+          Placeholder.configure({
+            showOnlyWhenEditable: false,
+            placeholder: !initialized
+              ? 'Loading...'
+              : placeholder || 'Ask anything...'
+          }),
+          CustomKeyboardShortcuts(handleSubmit),
+          // for document mention
+          MentionExtension.configure({
+            deleteTriggerWithBackspace: true,
+            HTMLAttributes: {
+              class: 'mention'
+            },
+            suggestion: suggestion({
+              category: 'doc',
+              char: '@',
+              pluginKey: DocumentMentionPluginKey,
+              placement: placement === 'bottom' ? 'top-start' : 'bottom-start',
+              disabled: !hasDocSources
+            })
+          }),
+          // for codebase mention
+          MentionExtension.configure({
+            deleteTriggerWithBackspace: true,
+            HTMLAttributes: {
+              class: 'mention-code'
+            },
+            suggestion: suggestion({
+              category: 'code',
+              char: '#',
+              pluginKey: CodeMentionPluginKey,
+              placement: placement === 'bottom' ? 'top-start' : 'bottom-start',
+              disabled: !hasCodebaseSources
+            })
           })
-        }),
-        // for codebase mention
-        MentionExtension.configure({
-          deleteTriggerWithBackspace: true,
-          HTMLAttributes: {
-            class: 'mention-code'
-          },
-          suggestion: suggestion({
-            category: 'code',
-            char: '#',
-            pluginKey: CodeMentionPluginKey,
-            placement: placement === 'bottom' ? 'top-start' : 'bottom-start'
-          })
-        })
-      ],
-      editorProps: {
-        attributes: {
-          class: cn(
-            'max-h-38 prose min-h-[3.5rem] max-w-none font-sans dark:prose-invert focus:outline-none prose-p:my-0',
-            editorClassName
-          )
+        ],
+        editorProps: {
+          attributes: {
+            class: cn(
+              'max-h-38 prose min-h-[3.5rem] max-w-none font-sans dark:prose-invert focus:outline-none prose-p:my-0',
+              editorClassName
+            )
+          }
+        },
+        content,
+        onBlur(props) {
+          onBlur?.(props)
+        },
+        onFocus(props) {
+          onFocus?.(props)
+        },
+        onUpdate(props) {
+          onUpdate?.(props)
         }
       },
-      content,
-      editable,
-      onBlur(props) {
-        onBlur?.(props)
-      },
-      onFocus(props) {
-        onFocus?.(props)
-      },
-      onUpdate(props) {
-        onUpdate?.(props)
-      }
-    })
+      [initialized]
+    )
 
     useImperativeHandle(ref, () => ({
       editor
@@ -174,6 +206,12 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
         editor.commands.focus()
       }
     }, [editor])
+
+    useEffect(() => {
+      if (!fetchingContextInfo && !initialized) {
+        setInitialized(true)
+      }
+    }, [fetchingContextInfo])
 
     if (!editor) {
       return null
