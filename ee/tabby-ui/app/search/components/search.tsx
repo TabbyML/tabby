@@ -80,7 +80,7 @@ import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
 import {
-  MARKDOWN_CITATION_FUZZY_REGEX,
+  MARKDOWN_CITATION_REGEX,
   MARKDOWN_SOURCE_REGEX
 } from '@/lib/constants/regex'
 import { graphql } from '@/lib/gql/generates'
@@ -941,7 +941,7 @@ function AnswerBlock({
     }
 
     const content = answer.content
-      .replace(MARKDOWN_CITATION_FUZZY_REGEX, match => {
+      .replace(MARKDOWN_CITATION_REGEX, match => {
         const citationNumberMatch = match?.match(/\d+/)
         return `[${citationNumberMatch}]`
       })
