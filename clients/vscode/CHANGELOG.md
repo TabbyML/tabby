@@ -1,3 +1,9 @@
+## 1.10.2
+
+### Fixes & Improvements
+
+- Enhanced post-processing for generating commit messages to address the issue of quotation marks not being removed in certain scenarios.
+
 ## 1.10.1
 
 ### Fixes & Improvements
