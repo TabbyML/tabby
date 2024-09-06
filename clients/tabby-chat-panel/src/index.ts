@@ -46,15 +46,15 @@ export interface ClientApi {
   navigate: (context: Context, opts?: NavigateOpts) => void
   refresh: () => Promise<void>
 
-  onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
+  onSubmitMessage: (msg: string, relevantContext?: Context[]) => Promise<void>
 
-  onApplyInEditor?: (content: string) => void
+  onApplyInEditor: (content: string) => void
 
   // On current page is loaded.
-  onLoaded?: () => void
+  onLoaded: () => void
 
   // On user copy content to clipboard.
-  onCopy?: (content: string) => void
+  onCopy: (content: string) => void
 }
 
 export interface ChatMessage {
@@ -77,6 +77,8 @@ export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerA
       refresh: api.refresh,
       onSubmitMessage: api.onSubmitMessage,
       onApplyInEditor: api.onApplyInEditor,
+      onLoaded: api.onLoaded,
+      onCopy: api.onCopy,
     },
   })
 }

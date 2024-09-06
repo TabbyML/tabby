@@ -251,7 +251,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage((message) => {
       switch (message.action) {
         case "sync-theme": {
-          this.client?.updateTheme(message.style, getColorThemeString(window.activeColorTheme.kind) + " vscode");
+          this.client?.updateTheme(message.style, getColorThemeString(window.activeColorTheme.kind));
           return;
         }
       }

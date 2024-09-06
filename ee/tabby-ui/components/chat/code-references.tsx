@@ -27,7 +27,6 @@ interface ContextReferencesProps {
   ) => void
   enableTooltip?: boolean
   onTooltipClick?: () => void
-  isExternalLink?: boolean
   highlightIndex?: number | undefined
 }
 
@@ -43,7 +42,6 @@ export const CodeReferences = forwardRef<
       onContextClick,
       enableTooltip,
       onTooltipClick,
-      isExternalLink,
       highlightIndex
     },
     ref
@@ -100,7 +98,7 @@ export const CodeReferences = forwardRef<
                   onContextClick={ctx => onContextClick?.(ctx, false)}
                   enableTooltip={enableTooltip}
                   onTooltipClick={onTooltipClick}
-                  isExternalLink={isExternalLink}
+                  isExternalLink={true}
                   isHighlighted={
                     highlightIndex === index + (userContexts?.length || 0)
                   }
