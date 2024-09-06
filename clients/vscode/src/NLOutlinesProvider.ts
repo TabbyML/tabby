@@ -4,6 +4,7 @@ import {
   CodeLensProvider,
   EventEmitter,
   Location,
+  Position,
   ProviderResult,
   Range,
   TextDocument,
@@ -237,7 +238,7 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
       const editor = window.activeTextEditor;
       if (editor && editor.document.uri.toString() === documentUri) {
         this.applyDecorations(editor, decorations);
-        this.addAcceptDiscardCodeLens(editor, editRange, newContent, oldOutline.startLine);
+        this.addAcceptDiscardCodeLens(editor, editRange, newContent);
       }
 
       this.fire();
@@ -383,22 +384,15 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
     editor.setDecorations(this.removedDecorationType, decorations.removed);
   }
 
-  private addAcceptDiscardCodeLens(
-    editor: TextEditor,
-    editRange: Range,
-    newOutline: string,
-    originalStartLine: number,
-  ) {
+  private addAcceptDiscardCodeLens(editor: TextEditor, editRange: Range, newOutline: string) {
     const codeLenses = [
       new CodeLens(editRange, {
         title: "Accept",
-        command: "tabby.chat.edit.acceptChanges1",
-        arguments: [editor.document.uri, editRange, newOutline, originalStartLine],
+        command: "tabby.chat.edit.outline.accept",
       }),
       new CodeLens(editRange, {
         title: "Discard",
-        command: "tabby.chat.edit.discardChanges2",
-        arguments: [editor.document.uri, editRange],
+        command: "tabby.chat.edit.outline.discard",
       }),
       new CodeLens(editRange, {
         title: newOutline,
@@ -412,24 +406,69 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
 
   async acceptChanges(documentUri: Uri, editRange: Range, newOutline: string, originalStartLine: number) {
     const pendingChange = this.pendingChanges.get(documentUri.toString());
+    getLogger().info(`Attempting to accept changes for document: ${documentUri.toString()}`);
+
     if (pendingChange) {
-      const { newLines } = pendingChange;
+      const { oldLines, newLines } = pendingChange;
+      getLogger().info(`Found pending change. Old lines: ${oldLines.length}, New lines: ${newLines.length}`);
+
       const edit = new WorkspaceEdit();
-      edit.replace(documentUri, editRange, newLines.join("\n"));
+
+      getLogger().info(
+        `Replacing old code with new code in the range: ${editRange.start.line} to ${editRange.end.line}`,
+      );
+
+      const oldCodeLength = oldLines.length;
+      const newCodeLength = newLines.length;
+      const startDeleteLine = editRange.start.line + (newCodeLength - oldCodeLength);
+      const endDeleteLine = editRange.start.line + newCodeLength - 1;
+      const deleteRange = new Range(new Position(startDeleteLine, 0), new Position(endDeleteLine, 0));
+      getLogger().info(`Deleting extra lines from ${startDeleteLine} to ${endDeleteLine}`);
+      edit.delete(documentUri, deleteRange);
+
       await workspace.applyEdit(edit);
+      getLogger().info(`Applied edits to document: ${documentUri.toString()}`);
 
       const outlines = this.outlines.get(documentUri.toString()) || [];
       const outlineIndex = outlines.findIndex((o) => o.startLine === originalStartLine);
+      getLogger().info(`Updating outline at index: ${outlineIndex}`);
+
       if (outlineIndex !== -1) {
         outlines[outlineIndex] = {
           startLine: originalStartLine,
           endLine: originalStartLine + newLines.length - 1,
           content: newOutline,
         };
+        getLogger().info(
+          `Outline updated: Start line: ${originalStartLine}, End line: ${
+            originalStartLine + newLines.length - 1
+          }, Content: ${newOutline}`,
+        );
+
+        const lineDifference = newLines.length - oldLines.length;
+        getLogger().info(`Line difference calculated: ${lineDifference}`);
+
+        for (let i = outlineIndex + 1; i < outlines.length; i++) {
+          const outline = outlines[i];
+          if (outline) {
+            outline.startLine += lineDifference;
+            outline.endLine += lineDifference;
+            getLogger().info(
+              `Updated outline at index ${i}: Start line: ${outline.startLine}, End line: ${outline.endLine}`,
+            );
+          }
+        }
+
         this.outlines.set(documentUri.toString(), outlines);
+        getLogger().info(`Outlines set for document: ${documentUri.toString()}`);
       }
 
       this.clearPendingChanges(documentUri.toString());
+      getLogger().info(`Cleared pending changes for document: ${documentUri.toString()}`);
+      this.fire();
+      getLogger().info(`Fired event to notify listeners of outline changes`);
+    } else {
+      getLogger().info(`No pending changes found for document: ${documentUri.toString()}`);
     }
   }
 
@@ -440,8 +479,8 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
       const edit = new WorkspaceEdit();
       edit.replace(documentUri, editRange, oldLines.join("\n"));
       await workspace.applyEdit(edit);
-
       this.clearPendingChanges(documentUri.toString());
+      this.fire();
     }
   }
 

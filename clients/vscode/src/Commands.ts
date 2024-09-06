@@ -566,13 +566,6 @@ export class Commands {
       if (!editor) {
         return;
       }
-      // const location = {
-      //   uri: editor.document.uri.toString(),
-      //   range: {
-      //     start: { line: editor.selection.start.line, character: 0 },
-      //     end: { line: editor.selection.end.line + 1, character: 0 },
-      //   },
-      // };
       await this.nlOutlinesProvider.resolveOutline("accept");
     },
     "chat.edit.outline.discard": async () => {
@@ -580,13 +573,6 @@ export class Commands {
       if (!editor) {
         return;
       }
-      // const location = {
-      //   uri: editor.document.uri.toString(),
-      //   range: {
-      //     start: { line: editor.selection.start.line, character: 0 },
-      //     end: { line: editor.selection.end.line + 1, character: 0 },
-      //   },
-      // };
       await this.nlOutlinesProvider.resolveOutline("discard");
     },
     "chat.edit.stop": async () => {
