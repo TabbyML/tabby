@@ -42,9 +42,6 @@ const convertToHSLColor = (style: string) => {
     .join('')
 }
 
-const CLIENT_TO_HANDLE_MESSAGE_SUBMIT = ['vscode']
-const CLIENT_HAS_APPLY_IN_EDITOR = ['vscode']
-
 export default function ChatPage() {
   const [isInit, setIsInit] = useState(false)
   const [fetcherOptions, setFetcherOptions] = useState<FetcherOptions | null>(
@@ -67,50 +64,7 @@ export default function ChatPage() {
   const client = searchParams.get('client') || undefined
   const isFromVSCode = client === 'vscode'
   const isFromIntellij = client === 'intellij'
-  const isOnSubmitMessage = CLIENT_TO_HANDLE_MESSAGE_SUBMIT.includes(
-    client || ''
-  )
-  const isOnApplyInEditor = CLIENT_HAS_APPLY_IN_EDITOR.includes(client || '')
   const maxWidth = isFromVSCode ? '5xl' : undefined
-
-  useEffect(() => {
-    const onMessage = ({
-      data
-    }: {
-      data: {
-        style?: string
-        themeClass?: string
-      }
-    }) => {
-      // Sync with Editor's CSS variable
-      if (data.style) {
-        const styleWithHslValue = data.style
-          .split(';')
-          .filter((style: string) => style)
-          .map((style: string) => {
-            const [key, value] = style.split(':')
-            const styleValue = value.trim()
-            const isColorValue =
-              styleValue.startsWith('#') || styleValue.startsWith('rgb')
-            if (!isColorValue) return `${key}: ${value}`
-            const hslValue = convertToHSLColor(styleValue)
-            return `${key}: ${hslValue}`
-          })
-          .join(';')
-        document.documentElement.style.cssText = styleWithHslValue
-      }
-
-      // Sync with edit theme
-      if (data.themeClass) {
-        document.documentElement.className = data.themeClass
-      }
-    }
-
-    window.addEventListener('message', onMessage)
-    return () => {
-      window.removeEventListener('message', onMessage)
-    }
-  }, [])
 
   // VSCode bug: not support shortcuts like copy/paste
   // @see - https://github.com/microsoft/vscode/issues/129178
@@ -173,6 +127,25 @@ export default function ChatPage() {
     },
     addRelevantContext: context => {
       return addRelevantContext(context)
+    },
+    updateTheme: (style, themeClass) => {
+      const styleWithHslValue = style
+        .split(';')
+        .filter((style: string) => style)
+        .map((style: string) => {
+          const [key, value] = style.split(':')
+          const styleValue = value.trim()
+          const isColorValue =
+            styleValue.startsWith('#') || styleValue.startsWith('rgb')
+          if (!isColorValue) return `${key}: ${value}`
+          const hslValue = convertToHSLColor(styleValue)
+          return `${key}: ${hslValue}`
+        })
+        .join(';')
+      document.documentElement.style.cssText = styleWithHslValue
+
+      // Sync with edit theme
+      document.documentElement.className = themeClass
     }
   })
 
@@ -212,14 +185,6 @@ export default function ChatPage() {
     setIsRefreshLoading(true)
     await server?.refresh()
     setIsRefreshLoading(false)
-  }
-
-  const onSubmitMessage = async (msg: string, relevantContext?: Context[]) => {
-    return server?.onSubmitMessage?.(msg, relevantContext)
-  }
-
-  const onApplyInEditor = async (content: string) => {
-    return server?.onApplyInEditor?.(content)
   }
 
   function StaticContent({ children }: { children: React.ReactNode }) {
@@ -326,8 +291,8 @@ export default function ChatPage() {
         maxWidth={maxWidth}
         onCopyContent={server?.onCopy}
         client={client}
-        onSubmitMessage={isOnSubmitMessage ? onSubmitMessage : undefined}
-        onApplyInEditor={isOnApplyInEditor ? onApplyInEditor : undefined}
+        onSubmitMessage={server?.onSubmitMessage}
+        onApplyInEditor={server?.onApplyInEditor}
       />
     </ErrorBoundary>
   )

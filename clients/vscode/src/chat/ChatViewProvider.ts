@@ -16,6 +16,7 @@ import {
   WorkspaceFolder,
   TextDocument,
   commands,
+  ColorThemeKind,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context, NavigateOpts } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -247,9 +248,12 @@ export class ChatViewProvider implements WebviewViewProvider {
       commands.executeCommand("setContext", "tabby.chatViewVisible", webviewView.visible);
     });
 
-    workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("workbench.colorTheme")) {
-        this.webview?.webview.postMessage({ action: "sync-theme" });
+    webviewView.webview.onDidReceiveMessage((message) => {
+      switch (message.action) {
+        case "sync-theme": {
+          this.client?.updateTheme(message.style, getColorThemeString(window.activeColorTheme.kind) + " vscode")
+          return;
+        }
       }
     });
   }
@@ -354,16 +358,18 @@ export class ChatViewProvider implements WebviewViewProvider {
               }
 
               const syncTheme = () => {
-                const chatIframe = document.getElementById("chat");
-                if (!chatIframe) return
-
                 const parentHtmlStyle = document.documentElement.getAttribute('style');
-                chatIframe.contentWindow.postMessage({ style: parentHtmlStyle }, "${endpoint}");
-
-                let themeClass = getTheme()
-                themeClass += ' vscode'
-                chatIframe.contentWindow.postMessage({ themeClass: themeClass, style: parentHtmlStyle }, "${endpoint}");
+                vscode.postMessage({
+                  action: "sync-theme",
+                  style: parentHtmlStyle
+                })
               }
+
+              const observer = new MutationObserver(function(mutations) {
+                syncTheme();
+              });
+              
+              observer.observe(document.documentElement, { attributes : true, attributeFilter : ['style'] });
 
               window.onload = function () {
                 const chatIframe = document.getElementById("chat");
@@ -549,4 +555,16 @@ async function resolveDocument(
   }
 
   return null;
+}
+
+
+function getColorThemeString(kind: ColorThemeKind) {
+  switch (kind) {
+    case ColorThemeKind.Light:
+    case ColorThemeKind.HighContrastLight:
+      return "light"
+    case ColorThemeKind.Dark:
+    case ColorThemeKind.HighContrast:
+      return "dark";
+  }
 }

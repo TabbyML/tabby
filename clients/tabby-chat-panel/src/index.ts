@@ -39,12 +39,15 @@ export interface ServerApi {
   showError: (error: ErrorMessage) => void
   cleanError: () => void
   addRelevantContext: (context: Context) => void
+  updateTheme: (style: string, themeClass: string) => void
 }
 
 export interface ClientApi {
   navigate: (context: Context, opts?: NavigateOpts) => void
   refresh: () => Promise<void>
+
   onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
+
   onApplyInEditor?: (content: string) => void
 
   // On current page is loaded.
@@ -86,6 +89,7 @@ export function createServer(api: ServerApi): ClientApi {
       showError: api.showError,
       cleanError: api.cleanError,
       addRelevantContext: api.addRelevantContext,
+      updateTheme: api.updateTheme
     },
   })
 }
