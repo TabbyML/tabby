@@ -74,15 +74,6 @@ export default function ChatPage() {
   const maxWidth = isFromVSCode ? '5xl' : undefined
 
   useEffect(() => {
-    const onLoaded = () => server?.onLoaded?.();
-    document.addEventListener("load", onLoaded);
-
-    return () => {
-       document.removeEventListener("load", onLoaded);
-    }
-  }, [])
-
-  useEffect(() => {
     const onMessage = ({
       data
     }: {
@@ -184,6 +175,12 @@ export default function ChatPage() {
       return addRelevantContext(context)
     }
   })
+
+  useEffect(() => {
+    if (server) {
+      server?.onLoaded?.()
+    }
+  }, [server]);
 
   useLayoutEffect(() => {
     if (!chatLoaded) return

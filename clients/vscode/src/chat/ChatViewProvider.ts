@@ -374,8 +374,6 @@ export class ChatViewProvider implements WebviewViewProvider {
                   const foreground = getCssVariableValue('--vscode-editor-foreground');
                   const theme = getTheme()
 
-                  const clientQuery = "&client=vscode"
-      
                   chatIframe.addEventListener('load', function() {
                     setTimeout(() => {
                       syncTheme()
@@ -387,7 +385,7 @@ export class ChatViewProvider implements WebviewViewProvider {
                     }, 300)
                   });
 
-                  chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery;
+                  chatIframe.src=encodeURI("${endpoint}/chat?client=vscode")
                 }
                 
                 window.addEventListener("message", (event) => {
