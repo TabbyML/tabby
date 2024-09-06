@@ -83,7 +83,7 @@ export default function ChatPage() {
   const maxWidth = isFromVSCode ? '5xl' : undefined
 
   useEffect(() => {
-    const onLoaded = () => server?.onLoaded();
+    const onLoaded = () => server?.onLoaded?.();
     document.addEventListener("load", onLoaded);
 
     return () => {

@@ -75,7 +75,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
       await new Promise(resolve => {
         setTimeout(() => resolve(null), 1000)
       })
-    }
+    },
   })
 
   const getPrompt = ({ action }: QuickActionEventPayload) => {

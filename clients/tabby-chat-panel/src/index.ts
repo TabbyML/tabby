@@ -48,10 +48,10 @@ export interface ClientApi {
   onApplyInEditor?: (content: string) => void
 
   // On current page is loaded.
-  onLoaded: () => void
+  onLoaded?: () => void
 
   // On user copy content to clipboard.
-  onCopy: (content: string) => void
+  onCopy?: (content: string) => void
 }
 
 export interface ChatMessage {
