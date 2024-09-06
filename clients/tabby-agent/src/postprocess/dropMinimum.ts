@@ -4,7 +4,7 @@ import { AgentConfig } from "../AgentConfig";
 
 export function dropMinimum(config: AgentConfig["postprocess"]): PostprocessFilter {
   return (item: CompletionItem): CompletionItem => {
-    if (item.fullText.trim().length < config.minChars || item.text.trim().length < config.minChars) {
+    if (item.fullText.trim().length < config.minCompletionChars || item.text.trim().length < config.minCompletionChars) {
       return CompletionItem.createBlankItem(item.context);
     }
     return item;
