@@ -39,13 +39,22 @@ export interface ServerApi {
   showError: (error: ErrorMessage) => void
   cleanError: () => void
   addRelevantContext: (context: Context) => void
+  updateTheme: (style: string, themeClass: string) => void
 }
 
 export interface ClientApi {
   navigate: (context: Context, opts?: NavigateOpts) => void
   refresh: () => Promise<void>
+
   onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
+
   onApplyInEditor?: (content: string) => void
+
+  // On current page is loaded.
+  onLoaded?: () => void
+
+  // On user copy content to clipboard.
+  onCopy?: (content: string) => void
 }
 
 export interface ChatMessage {
@@ -80,6 +89,7 @@ export function createServer(api: ServerApi): ClientApi {
       showError: api.showError,
       cleanError: api.cleanError,
       addRelevantContext: api.addRelevantContext,
+      updateTheme: api.updateTheme,
     },
   })
 }

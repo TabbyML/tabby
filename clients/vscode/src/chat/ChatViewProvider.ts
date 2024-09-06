@@ -16,6 +16,7 @@ import {
   WorkspaceFolder,
   TextDocument,
   commands,
+  ColorThemeKind,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context, NavigateOpts } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -202,6 +203,14 @@ export class ChatViewProvider implements WebviewViewProvider {
           });
         }
       },
+      onLoaded: () => {
+        setTimeout(() => {
+          this.refreshChatPage();
+        }, 300);
+      },
+      onCopy: (content) => {
+        env.clipboard.writeText(content);
+      },
     });
 
     // At this point, if the server instance is not set up, agent.status is 'notInitialized'.
@@ -241,22 +250,10 @@ export class ChatViewProvider implements WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage((message) => {
       switch (message.action) {
-        case "rendered": {
-          setTimeout(() => {
-            this.refreshChatPage();
-          }, 300);
+        case "sync-theme": {
+          this.client?.updateTheme(message.style, getColorThemeString(window.activeColorTheme.kind) + " vscode");
           return;
         }
-        case "copy": {
-          env.clipboard.writeText(message.data);
-          return;
-        }
-      }
-    });
-
-    workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("workbench.colorTheme")) {
-        this.webview?.webview.postMessage({ action: "sync-theme" });
       }
     });
   }
@@ -273,7 +270,7 @@ export class ChatViewProvider implements WebviewViewProvider {
       return "You need to launch the server with the chat model enabled; for example, use `--chat-model Qwen2-1.5B-Instruct`.";
     }
 
-    const MIN_VERSION = "0.16.0";
+    const MIN_VERSION = "0.18.0";
 
     if (serverInfo.health["version"]) {
       let version: semver.SemVer | undefined | null = undefined;
@@ -361,16 +358,18 @@ export class ChatViewProvider implements WebviewViewProvider {
               }
 
               const syncTheme = () => {
-                const chatIframe = document.getElementById("chat");
-                if (!chatIframe) return
-
                 const parentHtmlStyle = document.documentElement.getAttribute('style');
-                chatIframe.contentWindow.postMessage({ style: parentHtmlStyle }, "${endpoint}");
-
-                let themeClass = getTheme()
-                themeClass += ' vscode'
-                chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${endpoint}");
+                vscode.postMessage({
+                  action: "sync-theme",
+                  style: parentHtmlStyle
+                })
               }
+
+              const observer = new MutationObserver(function(mutations) {
+                syncTheme();
+              });
+              
+              observer.observe(document.documentElement, { attributes : true, attributeFilter : ['style'] });
 
               window.onload = function () {
                 const chatIframe = document.getElementById("chat");
@@ -381,13 +380,7 @@ export class ChatViewProvider implements WebviewViewProvider {
                   const foreground = getCssVariableValue('--vscode-editor-foreground');
                   const theme = getTheme()
 
-                  const clientQuery = "&client=vscode"
-                  const themeQuery = "&theme=" + theme
-                  const fontSizeQuery = "&font-size=" + fontSize
-                  const foregroundQuery = "&foreground=" + foreground.replace('#', '')
-      
                   chatIframe.addEventListener('load', function() {
-                    vscode.postMessage({ action: 'rendered' });
                     setTimeout(() => {
                       syncTheme()
 
@@ -398,7 +391,7 @@ export class ChatViewProvider implements WebviewViewProvider {
                     }, 300)
                   });
 
-                  chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery + themeQuery + fontSizeQuery + foregroundQuery)
+                  chatIframe.src=encodeURI("${endpoint}/chat?client=vscode")
                 }
                 
                 window.addEventListener("message", (event) => {
@@ -406,10 +399,6 @@ export class ChatViewProvider implements WebviewViewProvider {
                   if (event.data) {
                     if (event.data.action === 'sync-theme') {
                       syncTheme();
-                      return;
-                    }
-                    if (event.data.action === 'copy') {
-                      vscode.postMessage(event.data);
                       return;
                     }
 
@@ -566,4 +555,15 @@ async function resolveDocument(
   }
 
   return null;
+}
+
+function getColorThemeString(kind: ColorThemeKind) {
+  switch (kind) {
+    case ColorThemeKind.Light:
+    case ColorThemeKind.HighContrastLight:
+      return "light";
+    case ColorThemeKind.Dark:
+    case ColorThemeKind.HighContrast:
+      return "dark";
+  }
 }
