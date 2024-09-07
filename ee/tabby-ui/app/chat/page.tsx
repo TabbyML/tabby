@@ -65,7 +65,7 @@ export default function ChatPage() {
   const searchParams = useSearchParams()
   const client = searchParams.get('client') as ClientType
   const isInEditor = !!client || undefined
-  const [focusKeybinding, setFocusKeyBinding] = useState<FocusKeybinding>()
+  const focusKeybinding = useRef<FocusKeybinding>()
 
   const sendMessage = (message: ChatMessage) => {
     if (chatRef.current) {
@@ -93,7 +93,7 @@ export default function ChatPage() {
       setActiveChatId(nanoid())
       setIsInit(true)
       setFetcherOptions(request.fetcherOptions)
-      setFocusKeyBinding(request.focusKey)
+      focusKeybinding.current = request.focusKey
     },
     sendMessage: (message: ChatMessage) => {
       return sendMessage(message)
@@ -135,6 +135,7 @@ export default function ChatPage() {
     if (client !== 'vscode') return
 
     const onKeyDown = (event: KeyboardEvent) => {
+      const focusKeyInfo = focusKeybinding.current
       if ((event.ctrlKey || event.metaKey) && event.code === 'KeyC') {
         document.execCommand('copy')
       } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyX') {
@@ -144,12 +145,12 @@ export default function ChatPage() {
       } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyA') {
         document.execCommand('selectAll')
       } else if (
-        focusKeybinding &&
-        event.key == focusKeybinding.key &&
-        (event.ctrlKey == focusKeybinding.ctrlKey ||
-          event.metaKey == focusKeybinding.metaKey) &&
-        event.altKey == focusKeybinding.altKey &&
-        event.shiftKey == focusKeybinding.shiftKey
+        focusKeyInfo &&
+        event.key == focusKeyInfo.key &&
+        (event.ctrlKey == focusKeyInfo.ctrlKey ||
+          event.metaKey == focusKeyInfo.metaKey) &&
+        event.altKey == focusKeyInfo.altKey &&
+        event.shiftKey == focusKeyInfo.shiftKey
       ) {
         if (
           chatInputRef.current &&
@@ -166,7 +167,7 @@ export default function ChatPage() {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [focusKeybinding, server, client])
+  }, [server, client])
 
   useEffect(() => {
     if (server) {
