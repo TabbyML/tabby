@@ -86,6 +86,7 @@ impl JobService for JobControllerImpl {
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
     use tabby_db::DbConn;
 
     use super::*;
@@ -123,5 +124,12 @@ mod tests {
         // As job1 is marked as stale, no jobs will be cleared.
         assert_eq!(0, svc.clear(job1.to_command()).await.unwrap());
         assert_eq!(1, svc.clear(job2.to_command()).await.unwrap());
+
+        // Regression test case, cleared job shouldn't be pending.
+        // job2 started_at is NULL, but exit code is -1
+        let job2dao = db.get_latest_job_run(job2.to_command()).await.unwrap();
+        assert!(job2dao.started_at.is_none());
+        assert_matches!(job2dao.exit_code, Some(-1));
+        assert!(!job2dao.is_pending())
     }
 }
