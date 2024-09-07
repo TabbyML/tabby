@@ -25,7 +25,9 @@ import type { ServerInfo } from "tabby-agent";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
 import { createClient } from "./chatPanel";
 import { GitProvider } from "../git/GitProvider";
-
+import { getLogger } from "../logger";
+import { contributes } from "../../package.json";
+import { parseKeybinding } from "../util/KeybindingParser";
 export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
@@ -211,6 +213,13 @@ export class ChatViewProvider implements WebviewViewProvider {
       onCopy: (content) => {
         env.clipboard.writeText(content);
       },
+      focusOnEditor: () => {
+        const editor = window.activeTextEditor;
+        if (editor) {
+          getLogger().info("Focus back to active editor");
+          commands.executeCommand("workbench.action.focusFirstEditorGroup");
+        }
+      },
     });
 
     // At this point, if the server instance is not set up, agent.status is 'notInitialized'.
@@ -313,10 +322,25 @@ export class ChatViewProvider implements WebviewViewProvider {
     if (serverInfo.config.token) {
       this.client?.cleanError();
       // Duplicate init won't break or reload the current chat page
+      const focusKey = contributes.keybindings.find((cmd) => cmd.command === "tabby.chatView.focus");
+      let focusKeybinding;
+      if (focusKey) {
+        focusKeybinding = parseKeybinding(focusKey.key);
+      }
+      getLogger().info("keybinding: ", focusKeybinding);
       this.client?.init({
         fetcherOptions: {
           authorization: serverInfo.config.token,
         },
+        focusKey: focusKeybinding
+          ? focusKeybinding
+          : {
+              key: "l",
+              altKey: false,
+              metaKey: true,
+              ctrlKey: true,
+              shiftKey: false,
+            },
       });
     }
   }

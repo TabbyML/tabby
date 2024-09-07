@@ -14,6 +14,7 @@ import type {
   Context,
   ErrorMessage,
   FetcherOptions,
+  FocusKeybinding,
   InitRequest,
   NavigateOpts
 } from 'tabby-chat-panel'
@@ -63,29 +64,7 @@ export default function ChatPage() {
   const searchParams = useSearchParams()
   const client = searchParams.get('client') as ClientType
   const isInEditor = !!client || undefined
-
-  // VSCode bug: not support shortcuts like copy/paste
-  // @see - https://github.com/microsoft/vscode/issues/129178
-  useEffect(() => {
-    if (client !== 'vscode') return
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.code === 'KeyC') {
-        document.execCommand('copy')
-      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyX') {
-        document.execCommand('cut')
-      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyV') {
-        document.execCommand('paste')
-      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyA') {
-        document.execCommand('selectAll')
-      }
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-    }
-  }, [])
+  const [focusKeybinding, setFocusKeyBinding] = useState<FocusKeybinding>()
 
   const sendMessage = (message: ChatMessage) => {
     if (chatRef.current) {
@@ -113,6 +92,7 @@ export default function ChatPage() {
       setActiveChatId(nanoid())
       setIsInit(true)
       setFetcherOptions(request.fetcherOptions)
+      setFocusKeyBinding(request.focusKey)
     },
     sendMessage: (message: ChatMessage) => {
       return sendMessage(message)
@@ -147,6 +127,38 @@ export default function ChatPage() {
         themeClass + ` client client-${client}`
     }
   })
+
+  // VSCode bug: not support shortcuts like copy/paste
+  // @see - https://github.com/microsoft/vscode/issues/129178
+  useEffect(() => {
+    if (client !== 'vscode') return
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.code === 'KeyC') {
+        document.execCommand('copy')
+      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyX') {
+        document.execCommand('cut')
+      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyV') {
+        document.execCommand('paste')
+      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyA') {
+        document.execCommand('selectAll')
+      } else if (
+        focusKeybinding &&
+        event.key == focusKeybinding.key &&
+        (event.ctrlKey == focusKeybinding.ctrlKey ||
+          event.metaKey == focusKeybinding.metaKey) &&
+        event.altKey == focusKeybinding.altKey &&
+        event.shiftKey == focusKeybinding.shiftKey
+      ) {
+        server?.focusOnEditor()
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [focusKeybinding, server, client])
 
   useEffect(() => {
     if (server) {
