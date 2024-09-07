@@ -22,7 +22,7 @@ export interface FetcherOptions {
 
 export interface InitRequest {
   fetcherOptions: FetcherOptions
-  focusKey: FocusKeybinding
+  focusKey?: FocusKeybinding
 }
 
 export interface FocusKeybinding {
