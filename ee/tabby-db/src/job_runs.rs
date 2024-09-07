@@ -30,11 +30,7 @@ impl JobRunDAO {
     }
 
     pub fn is_pending(&self) -> bool {
-        self.started_at.is_none()
-    }
-
-    pub fn is_finished(&self) -> bool {
-        self.finished_at.is_some()
+        self.started_at.is_none() && self.exit_code.is_none()
     }
 }
 
