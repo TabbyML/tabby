@@ -86,11 +86,11 @@ impl JobService for JobControllerImpl {
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
     use tabby_db::DbConn;
 
     use super::*;
     use crate::background_job::{BackgroundJobEvent, WebCrawlerJob};
-    use assert_matches::assert_matches;
 
     #[tokio::test]
     async fn test_clear() {
