@@ -21,6 +21,14 @@ export interface FetcherOptions {
 
 export interface InitRequest {
   fetcherOptions: FetcherOptions
+  focusKey: FocusKeybinding
+}
+export interface FocusKeybinding {
+  key: string
+  ctrlKey: boolean
+  metaKey: boolean
+  shiftKey: boolean
+  altKey: boolean
 }
 
 export interface ErrorMessage {
@@ -45,6 +53,7 @@ export interface ClientApi {
   refresh: () => Promise<void>
   onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
   onApplyInEditor?: (content: string) => void
+  focusOnEditor: () => void
 }
 
 export interface ChatMessage {

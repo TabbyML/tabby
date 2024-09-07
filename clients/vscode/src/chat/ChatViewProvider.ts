@@ -25,27 +25,21 @@ import type { AgentFeature as Agent } from "../lsp/AgentFeature";
 import { createClient } from "./chatPanel";
 import { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
-
+import { contributes } from "../../package.json";
+import { parseKeybinding } from "../util/KeyBindingParser";
 export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
   private pendingMessages: ChatMessage[] = [];
   private pendingRelevantContexts: Context[] = [];
   private isChatPageDisplayed = false;
-  private lastActiveTextEditor: TextEditor | undefined;
 
   constructor(
     private readonly context: ExtensionContext,
     private readonly agent: Agent,
     private readonly logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
-  ) {
-    window.onDidChangeActiveTextEditor((editor) => {
-      if (editor && editor.document.uri.scheme !== "output") {
-        this.lastActiveTextEditor = editor;
-      }
-    });
-  }
+  ) {}
 
   static getFileContextFromSelection({
     editor,
@@ -210,6 +204,13 @@ export class ChatViewProvider implements WebviewViewProvider {
           });
         }
       },
+      focusOnEditor: () => {
+        const editor = window.activeTextEditor;
+        if (editor) {
+          getLogger().info("Focus back to active editor");
+          commands.executeCommand("workbench.action.focusFirstEditorGroup");
+        }
+      },
     });
 
     // At this point, if the server instance is not set up, agent.status is 'notInitialized'.
@@ -257,20 +258,6 @@ export class ChatViewProvider implements WebviewViewProvider {
         }
         case "copy": {
           env.clipboard.writeText(message.data);
-          return;
-        }
-        case "keydown": {
-          if (
-            typeof message.key === "string" &&
-            message.key.toLowerCase() === "l" &&
-            (message.ctrlKey === true || message.metaKey === true)
-          ) {
-            const editor = window.activeTextEditor;
-            if (editor) {
-              getLogger().info("Focus back to active editor");
-              commands.executeCommand("workbench.action.focusFirstEditorGroup");
-            }
-          }
           return;
         }
       }
@@ -338,10 +325,25 @@ export class ChatViewProvider implements WebviewViewProvider {
     if (serverInfo.config.token) {
       this.client?.cleanError();
       // Duplicate init won't break or reload the current chat page
+      const focusKey = contributes.keybindings.find((cmd) => cmd.command === "tabby.chatView.focus");
+      let focusKeybinding;
+      if (focusKey) {
+        focusKeybinding = parseKeybinding(focusKey.key);
+      }
+      getLogger().info("keybinding: ", focusKeybinding);
       this.client?.init({
         fetcherOptions: {
           authorization: serverInfo.config.token,
         },
+        focusKey: focusKeybinding
+          ? focusKeybinding
+          : {
+              key: "l",
+              altKey: false,
+              metaKey: true,
+              ctrlKey: true,
+              shiftKey: false,
+            },
       });
     }
   }
@@ -425,11 +427,6 @@ export class ChatViewProvider implements WebviewViewProvider {
                 window.addEventListener("message", (event) => {
                   if (!chatIframe) return
                   if (event.data) {
-
-                    if (event.data.action === 'keydown') {
-                      vscode.postMessage(event.data);
-                      return;
-                    }
                     if (event.data.action === 'sync-theme') {
                       syncTheme();
                       return;
