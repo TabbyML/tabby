@@ -31,6 +31,7 @@ export interface PromptProps
   extends Pick<UseChatHelpers, 'input' | 'setInput'> {
   onSubmit: (value: string) => Promise<void>
   isLoading: boolean
+  chatInputRef: React.RefObject<HTMLTextAreaElement>
 }
 
 export interface PromptFormRef {
@@ -38,7 +39,7 @@ export interface PromptFormRef {
 }
 
 function PromptFormRenderer(
-  { onSubmit, input, setInput, isLoading }: PromptProps,
+  { onSubmit, input, setInput, isLoading, chatInputRef }: PromptProps,
   ref: React.ForwardedRef<PromptFormRef>
 ) {
   const { formRef, onKeyDown } = useEnterSubmit()
@@ -46,7 +47,6 @@ function PromptFormRenderer(
     string | null
   >(null)
   const [suggestionOpen, setSuggestionOpen] = React.useState(false)
-  const inputRef = React.useRef<HTMLTextAreaElement>(null)
   // store the input selection for replacing inputValue
   const prevInputSelectionEnd = React.useRef<number>()
   // for updating the input selection after replacing
@@ -72,33 +72,29 @@ function PromptFormRenderer(
     setSuggestionOpen(!!suggestions?.length)
   }, [completionData?.hits])
 
-  React.useImperativeHandle(ref, () => {
-    return {
-      focus: () => {
-        inputRef.current?.focus()
-      }
-    }
-  })
+  React.useImperativeHandle(ref, () => ({
+    focus: () => chatInputRef.current?.focus()
+  }))
 
   React.useEffect(() => {
     if (
       input &&
-      inputRef.current &&
-      inputRef.current !== document.activeElement
+      chatInputRef.current &&
+      chatInputRef.current !== document.activeElement
     ) {
-      inputRef.current.focus()
+      chatInputRef.current.focus()
     }
-  }, [input])
+  }, [input, chatInputRef])
 
   React.useLayoutEffect(() => {
     if (nextInputSelectionRange.current?.length) {
-      inputRef.current?.setSelectionRange?.(
+      chatInputRef.current?.setSelectionRange?.(
         nextInputSelectionRange.current[0],
         nextInputSelectionRange.current[1]
       )
       nextInputSelectionRange.current = undefined
     }
-  })
+  }, [chatInputRef])
 
   const handleSearchCompletion = React.useMemo(() => {
     return debounce((e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -130,9 +126,7 @@ function PromptFormRenderer(
         .substring(0, selectionEnd)
         .replace(new RegExp(queryNameMatches[0]), '')
       const nextSelectionEnd = prevInput.length + replaceString.length
-      // store the selection range and update it when layout
       nextInputSelectionRange.current = [nextSelectionEnd, nextSelectionEnd]
-      // insert a space to break the search query
       setInput(prevInput + replaceString + input.slice(selectionEnd))
     }
     setOptions([])
@@ -143,16 +137,11 @@ function PromptFormRenderer(
     HTMLFormElement
   > = async e => {
     e.preventDefault()
-    if (!input?.trim()) {
-      return
-    }
-
-    if (isLoading) {
+    if (!input?.trim() || isLoading) {
       return
     }
 
     let finalInput = input
-    // replace queryname to doc.body of selected completions
     Object.keys(selectedCompletionsMap).forEach(key => {
       const completion = selectedCompletionsMap[key]
       if (!completion?.doc) return
@@ -225,7 +214,7 @@ function PromptFormRenderer(
                     spellCheck={false}
                     className="min-h-[60px] w-full resize-none bg-transparent px-4 py-[1.3rem] focus-within:outline-none"
                     value={input}
-                    ref={inputRef}
+                    ref={chatInputRef}
                     onChange={e => {
                       if (has(e, 'target.value')) {
                         prevInputSelectionEnd.current = e.target.selectionEnd

@@ -60,6 +60,7 @@ export default function ChatPage() {
   const [chatLoaded, setChatLoaded] = useState(false)
   const { width } = useWindowSize()
   const prevWidthRef = useRef(width)
+  const chatInputRef = useRef<HTMLTextAreaElement>(null)
 
   const searchParams = useSearchParams()
   const client = searchParams.get('client') as ClientType
@@ -150,7 +151,14 @@ export default function ChatPage() {
         event.altKey == focusKeybinding.altKey &&
         event.shiftKey == focusKeybinding.shiftKey
       ) {
-        server?.focusOnEditor()
+        if (
+          chatInputRef.current &&
+          document.activeElement !== chatInputRef.current
+        ) {
+          chatInputRef.current.focus()
+        } else {
+          server?.focusOnEditor()
+        }
       }
     }
 
@@ -296,6 +304,7 @@ export default function ChatPage() {
         chatId={activeChatId}
         key={activeChatId}
         ref={chatRef}
+        chatInputRef={chatInputRef}
         headers={headers}
         onNavigateToContext={onNavigateToContext}
         onLoaded={onChatLoaded}

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { RefObject } from 'react'
 import { compact, findIndex, isEqual, uniqWith } from 'lodash-es'
 import type { Context, FileContext, NavigateOpts } from 'tabby-chat-panel'
 
@@ -42,6 +42,7 @@ type ChatContextValue = {
   onApplyInEditor?: (value: string) => void
   relevantContext: Context[]
   removeRelevantContext: (index: number) => void
+  chatInputRef: RefObject<HTMLTextAreaElement>
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -83,6 +84,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   onCopyContent?: (value: string) => void
   onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
   onApplyInEditor?: (value: string) => void
+  chatInputRef: RefObject<HTMLTextAreaElement>
 }
 
 function ChatRenderer(
@@ -102,7 +104,8 @@ function ChatRenderer(
     promptFormClassname,
     onCopyContent,
     onSubmitMessage,
-    onApplyInEditor
+    onApplyInEditor,
+    chatInputRef
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -456,7 +459,8 @@ function ChatRenderer(
         onCopyContent,
         onApplyInEditor,
         relevantContext,
-        removeRelevantContext
+        removeRelevantContext,
+        chatInputRef
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
@@ -489,6 +493,7 @@ function ChatRenderer(
             setInput={setInput}
             chatMaxWidthClass={chatMaxWidthClass}
             ref={chatPanelRef}
+            chatInputRef={chatInputRef}
           />
         </div>
       </div>
