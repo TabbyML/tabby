@@ -27,8 +27,8 @@ interface ContextReferencesProps {
   ) => void
   enableTooltip?: boolean
   onTooltipClick?: () => void
-  highlightIndex?: number | undefined,
-  showExternalLink: boolean,
+  highlightIndex?: number | undefined
+  showExternalLink: boolean
 }
 
 export const CodeReferences = forwardRef<
@@ -44,7 +44,7 @@ export const CodeReferences = forwardRef<
       enableTooltip,
       onTooltipClick,
       highlightIndex,
-      showExternalLink,
+      showExternalLink
     },
     ref
   ) => {
