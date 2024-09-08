@@ -135,7 +135,7 @@ export default function ChatPage() {
       setTimeout(() => {
         chatInputRef.current?.focus()
       }, 0)
-    };
+    }
 
     window.addEventListener('focus', onFocus)
     return () => {
