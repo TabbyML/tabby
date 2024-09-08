@@ -352,6 +352,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               openInEditor: isInWorkspace
             })
           }}
+          // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
           showExternalLink={!!onApplyInEditor}
           highlightIndex={relevantCodeHighlightIndex}
         />
