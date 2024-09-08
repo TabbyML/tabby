@@ -352,6 +352,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               openInEditor: isInWorkspace
             })
           }}
+          showExternalLink={!!onApplyInEditor}
           highlightIndex={relevantCodeHighlightIndex}
         />
         {isLoading && !message?.message ? (
