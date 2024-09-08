@@ -34,6 +34,7 @@ export class ChatViewProvider implements WebviewViewProvider {
   private pendingMessages: ChatMessage[] = [];
   private pendingRelevantContexts: Context[] = [];
   private isChatPageDisplayed = false;
+  private isMac = process.platform === "darwin";
 
   constructor(
     private readonly context: ExtensionContext,
@@ -325,9 +326,9 @@ export class ChatViewProvider implements WebviewViewProvider {
       const focusKey = contributes.keybindings.find((cmd) => cmd.command === "tabby.chatView.focus");
       let focusKeybinding;
       if (focusKey) {
-        focusKeybinding = parseKeybinding(focusKey.key);
+        focusKeybinding = parseKeybinding(this.isMac && focusKey.mac ? focusKey.mac : focusKey.key);
       }
-      getLogger().info("keybinding: ", focusKeybinding);
+      getLogger().info("focus key binding: ", focusKeybinding);
       this.client?.init({
         fetcherOptions: {
           authorization: serverInfo.config.token,

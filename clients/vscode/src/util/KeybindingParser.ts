@@ -14,9 +14,10 @@ export function parseKeybinding(keybinding: string): FocusKeybinding {
     switch (part) {
       case "ctrl":
       case "control":
+        focusKeybinding.ctrlKey = true;
+        break;
       case "cmd":
       case "meta":
-        focusKeybinding.ctrlKey = true;
         focusKeybinding.metaKey = true;
         break;
       case "shift":

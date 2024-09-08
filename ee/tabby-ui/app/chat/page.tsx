@@ -161,8 +161,8 @@ export default function ChatPage() {
       } else if (
         focusKeyInfo &&
         event.key == focusKeyInfo.key &&
-        (event.ctrlKey == focusKeyInfo.ctrlKey ||
-          event.metaKey == focusKeyInfo.metaKey) &&
+        event.ctrlKey == focusKeyInfo.ctrlKey &&
+        event.metaKey == focusKeyInfo.metaKey &&
         event.altKey == focusKeyInfo.altKey &&
         event.shiftKey == focusKeyInfo.shiftKey
       ) {
