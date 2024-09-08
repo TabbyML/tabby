@@ -1,21 +1,12 @@
-" Handles virtual text (aka ghost text) for rendering inline completion
-
-if exists('g:autoloaded_tabby_virtual_text')
+if exists('g:autoloaded_tabby_inline_completion_virtual_text')
   finish
 endif
-let g:autoloaded_tabby_virtual_text = 1
+let g:autoloaded_tabby_inline_completion_virtual_text = 1
 
 let s:vim = exists('*prop_type_add')
 let s:nvim = !s:vim && has('nvim') && exists('*nvim_buf_set_extmark')
 
-function! tabby#virtual_text#Check()
-  return #{
-    \ ok: s:vim || s:nvim,
-    \ message: 'Tabby requires Vim 9.0.0534+ with +textprop feature support, or NeoVim 0.6.0+.',
-    \ }
-endfunction
-
-function! tabby#virtual_text#Init()
+function! tabby#inline_completion#virtual_text#Setup()
   hi def TabbyCompletion guifg=#808080 ctermfg=245
   hi def TabbyCompletionReplaceRange guifg=#303030 ctermfg=236 guibg=#808080 ctermbg=245
   if s:vim
@@ -48,13 +39,14 @@ function! tabby#virtual_text#Init()
   endif
 endfunction
 
-function! tabby#virtual_text#Render(request, choice)
-  if (type(a:choice.text) != v:t_string) || (len(a:choice.text) == 0)
+function! tabby#inline_completion#virtual_text#Render(item)
+  if (type(a:item.insertText) != v:t_string) || (len(a:item.insertText) == 0)
     return
   endif
-  let prefix_replace_chars = a:request.position - a:choice.replaceRange.start 
-  let suffix_replace_chars = a:choice.replaceRange.end - a:request.position
-  let text = strcharpart(a:choice.text, prefix_replace_chars)
+  let char_count_col = tabby#inline_completion#utils#GetCharCountFromCol()
+  let prefix_replace_chars = char_count_col - a:item.range.start.character
+  let suffix_replace_chars = a:item.range.end.character - char_count_col
+  let text = strcharpart(a:item.insertText, prefix_replace_chars)
   if len(text) == 0
     return
   endif
@@ -76,7 +68,7 @@ function! tabby#virtual_text#Render(request, choice)
     let text_lines[-1] .= strcharpart(current_line_suffix, suffix_replace_chars)
     call s:AddInlay(text_lines[0], col('.'))
     if len(text_lines) > 1
-      call s:AddLinesBelow(text_lines[1:])
+      call s:AddSuffixLines(text_lines[1:])
     endif
     return
   endif
@@ -88,7 +80,7 @@ function! tabby#virtual_text#Render(request, choice)
         call s:MarkReplaceRange(range(col('.'), col('.') + len(current_line_suffix)))
         let text_lines[-1] .= current_line_suffix
       endif
-      call s:AddLinesBelow(text_lines[1:])
+      call s:AddSuffixLines(text_lines[1:])
     endif
   elseif suffix_replace_chars == 1
     let replace_char = strcharpart(current_line_suffix, 0, 1)
@@ -110,7 +102,7 @@ function! tabby#virtual_text#Render(request, choice)
         call s:MarkReplaceRange(range(range_start, col('.') + len(current_line_suffix)))
         let text_lines[-1] .= strcharpart(current_line_suffix, 1)
       endif
-      call s:AddLinesBelow(text_lines[1:])
+      call s:AddSuffixLines(text_lines[1:])
     endif
   else
     let replace_char = strcharpart(current_line_suffix, 0, suffix_replace_chars)
@@ -121,7 +113,7 @@ function! tabby#virtual_text#Render(request, choice)
         call s:MarkReplaceRange(range(col('.') + len(replace_char), col('.') + len(current_line_suffix)))
         let text_lines[-1] .= strcharpart(current_line_suffix, suffix_replace_chars)
       endif
-      call s:AddLinesBelow(text_lines[1:])
+      call s:AddSuffixLines(text_lines[1:])
     endif
   endif
 endfunction
@@ -146,9 +138,9 @@ function! s:AddInlay(inlay, column)
   endif
 endfunction
 
-function! s:AddLinesBelow(lines_below)
+function! s:AddSuffixLines(suffix_lines)
   if s:vim
-    for line_blow in a:lines_below
+    for line_blow in a:suffix_lines
       let text = line_blow
       if len(text) == 0
         let text = ' '
@@ -162,7 +154,7 @@ function! s:AddLinesBelow(lines_below)
   endif
   if s:nvim
     call nvim_buf_set_extmark(0, s:nvim_namespace, line('.') - 1, col('.') - 1, #{
-      \ virt_lines: map(a:lines_below, { i, l -> [[l, s:nvim_highlight_completion]] })
+      \ virt_lines: map(a:suffix_lines, { i, l -> [[l, s:nvim_highlight_completion]] })
       \ })
   endif
 endfunction
@@ -180,7 +172,7 @@ function! s:MarkReplaceRange(replace_range)
   endif
 endfunction
 
-function! tabby#virtual_text#Clear()
+function! tabby#inline_completion#virtual_text#Clear()
   if s:vim
     call prop_remove(#{
       \ type: s:prop_type_completion,
