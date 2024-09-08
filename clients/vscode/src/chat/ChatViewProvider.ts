@@ -417,6 +417,16 @@ export class ChatViewProvider implements WebviewViewProvider {
 
                   chatIframe.src=encodeURI("${endpoint}/chat?client=vscode")
                 }
+
+                window.onfocus = (e) => {
+                  if (chatIframe) {
+                    // Directly call the focus method on the iframe's content window won't work in a focus event callback.
+                    // Here we use a timeout to defer the focus call.
+                    setTimeout(() => {
+                      chatIframe.contentWindow.focus();
+                    }, 0)
+                  }
+                }
                 
                 window.addEventListener("message", (event) => {
                   if (!chatIframe) return

@@ -129,6 +129,20 @@ export default function ChatPage() {
     }
   })
 
+  useEffect(() => {
+    const onFocus = () => {
+      // When we receive top level focus, just focus chatInputRef
+      setTimeout(() => {
+        chatInputRef.current?.focus()
+      }, 0)
+    };
+
+    window.addEventListener('focus', onFocus)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+    }
+  })
+
   // VSCode bug: not support shortcuts like copy/paste
   // @see - https://github.com/microsoft/vscode/issues/129178
   useEffect(() => {
@@ -152,14 +166,7 @@ export default function ChatPage() {
         event.altKey == focusKeyInfo.altKey &&
         event.shiftKey == focusKeyInfo.shiftKey
       ) {
-        if (
-          chatInputRef.current &&
-          document.activeElement !== chatInputRef.current
-        ) {
-          chatInputRef.current.focus()
-        } else {
-          server?.focusOnEditor()
-        }
+        server?.focusOnEditor()
       }
     }
 
