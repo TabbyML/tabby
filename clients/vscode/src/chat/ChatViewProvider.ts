@@ -352,7 +352,7 @@ export class ChatViewProvider implements WebviewViewProvider {
               const vscode = acquireVsCodeApi();
 
               function getTheme () {
-                return document.body.className === 'vscode-dark' ? 'dark' : 'light'
+                return document.body.className.includes('vscode-dark') ? 'dark' : 'light'
               }
 
               function getCssVariableValue(variableName) {
