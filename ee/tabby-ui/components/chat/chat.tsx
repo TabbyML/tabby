@@ -48,16 +48,6 @@ export const ChatContext = React.createContext<ChatContextValue>(
   {} as ChatContextValue
 )
 
-// FIXME remove
-function selectContextToMessageContent(
-  context: UserMessage['selectContext']
-): string {
-  if (!context || !context.content) return ''
-  const { content, filepath } = context
-  const language = filename2prism(filepath)?.[0]
-  return `\n${'```'}${language ?? ''}\n${content ?? ''}\n${'```'}\n`
-}
-
 export interface ChatRef {
   sendUserChat: (message: UserMessageWithOptionalId) => void
   stop: () => void

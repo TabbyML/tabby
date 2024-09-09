@@ -1124,6 +1124,7 @@ function AnswerBlock({
             className="mt-1 text-sm"
             onContextClick={onCodeContextClick}
             enableTooltip={enableDeveloperMode}
+            showExternalLink={false}
             onTooltipClick={() => {
               setConversationIdForDev(answer.id)
               setDevPanelOpen(true)
