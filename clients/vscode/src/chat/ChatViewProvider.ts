@@ -338,8 +338,8 @@ export class ChatViewProvider implements WebviewViewProvider {
           : {
               key: "l",
               altKey: false,
-              metaKey: true,
-              ctrlKey: true,
+              metaKey: isMac,
+              ctrlKey: !isMac,
               shiftKey: false,
             },
       });
