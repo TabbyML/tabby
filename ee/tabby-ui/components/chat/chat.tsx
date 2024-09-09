@@ -49,16 +49,6 @@ export const ChatContext = React.createContext<ChatContextValue>(
   {} as ChatContextValue
 )
 
-// FIXME remove
-function selectContextToMessageContent(
-  context: UserMessage['selectContext']
-): string {
-  if (!context || !context.content) return ''
-  const { content, filepath } = context
-  const language = filename2prism(filepath)?.[0]
-  return `\n${'```'}${language ?? ''}\n${content ?? ''}\n${'```'}\n`
-}
-
 export interface ChatRef {
   sendUserChat: (message: UserMessageWithOptionalId) => void
   stop: () => void
@@ -70,7 +60,6 @@ export interface ChatRef {
 interface ChatProps extends React.ComponentProps<'div'> {
   chatId: string
   api?: string
-  headers?: Record<string, string> | Headers
   initialMessages?: QuestionAnswerPair[]
   onLoaded?: () => void
   onThreadUpdates?: (messages: QuestionAnswerPair[]) => void
@@ -92,7 +81,6 @@ function ChatRenderer(
     className,
     chatId,
     initialMessages,
-    headers,
     onLoaded,
     onThreadUpdates,
     onNavigateToContext,
@@ -126,8 +114,7 @@ function ChatRenderer(
     regenerate,
     deleteThreadMessagePair
   } = useThreadRun({
-    threadId,
-    headers
+    threadId
   })
 
   const onDeleteMessage = async (userMessageId: string) => {
