@@ -1,3 +1,9 @@
+## 1.10.3
+
+### Fixes & Improvements
+
+- Fixed theme detection issue in the chat side panel. (https://github.com/TabbyML/tabby/issues/3031)
+
 ## 1.10.2
 
 ### Fixes & Improvements
