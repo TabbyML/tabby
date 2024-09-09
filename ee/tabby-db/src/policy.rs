@@ -1,6 +1,18 @@
-use sqlx::query;
+use anyhow::bail;
+use chrono::{DateTime, Utc};
+use sqlx::{query, query_as, FromRow};
 
 use crate::DbConn;
+
+#[derive(FromRow)]
+struct UserGroupMemberDAO {
+    id: i64,
+    user_id: i64,
+    user_group_id: i64,
+    is_group_admin: bool,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
 
 impl DbConn {
     pub async fn allow_read_source(&self, user_id: i64, source_id: &str) -> anyhow::Result<bool> {
@@ -40,6 +52,41 @@ WHERE user_group_memberships.user_id = ? AND source_id = ?
             .last_insert_rowid();
 
         Ok(id)
+    }
+
+    pub async fn delete_user_group(&self, id: i64) -> anyhow::Result<()> {
+        let res = query!("DELETE FROM user_groups WHERE id = ?", id)
+            .execute(&self.pool)
+            .await?;
+
+        if res.rows_affected() != 1 {
+            bail!("User group not found");
+        }
+
+        Ok(())
+    }
+
+    pub async fn is_user_group_admin(
+        &self,
+        user_id: i64,
+        user_group_id: i64,
+    ) -> anyhow::Result<bool> {
+        struct Result {
+            is_group_admin: bool,
+        }
+
+        let res = query_as!(
+            Result,
+            r#"SELECT
+                is_group_admin
+            FROM user_group_memberships WHERE user_id = ? AND user_group_id = ? AND is_group_admin"#,
+            user_id,
+            user_group_id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(res.is_some_and(|x| x.is_group_admin))
     }
 
     pub async fn upsert_user_group_membership(

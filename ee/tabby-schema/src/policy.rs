@@ -81,6 +81,22 @@ impl AccessPolicy {
 
         Ok(())
     }
+
+    pub async fn check_update_user_group_membership(&self, user_group_id: &ID) -> Result<()> {
+        if !self.is_admin /* Admin can change any user group membership */
+            && !self
+                .db
+                .is_user_group_admin(self.user_id.as_rowid()?, user_group_id.as_rowid()?)
+                .await?
+        /* User group admin can change membership within their group */
+        {
+            return Err(CoreError::Forbidden(
+                "You are not allowed to update this user group membership",
+            ));
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

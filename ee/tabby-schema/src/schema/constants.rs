@@ -7,6 +7,8 @@ lazy_static! {
         Regex::new(r"^[^0-9±!@£$%^&*_+§¡€#¢¶•ªº«\\/<>?:;|=.,]{2,20}$").unwrap();
     pub static ref WEB_DOCUMENT_NAME_REGEX: Regex =
         Regex::new(r"^[A-Za-z][A-Za-z0-9#]*(?:[\s.-][A-Za-z0-9]+)*$").unwrap();
+    pub static ref USER_GROUP_NAME_REGEX: Regex =
+        Regex::new(r"^[a-z][a-z0-9_-]*$").unwrap();
 }
 
 #[cfg(test)]
