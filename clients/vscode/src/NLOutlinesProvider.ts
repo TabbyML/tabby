@@ -376,7 +376,7 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
     this.pendingCodeLenses.set(editor.document.uri.toString(), codeLenses);
   }
 
-  async acceptChanges(documentUri: Uri, newOutline: string, originalStartLine: number) {
+  async acceptChanges(documentUri: Uri, newOutline: string) {
     const pendingChange = this.pendingChanges.get(documentUri.toString());
 
     if (pendingChange) {
@@ -387,25 +387,25 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
 
       const oldLinesCount = oldLines.length;
       const newLinesCount = newLines.length;
-      const startDeleteLine = startLine + (newLinesCount - oldLinesCount);
-      const endDeleteLine = startLine + newLinesCount - 1;
+      const newCodeCount = newLinesCount - oldLinesCount;
+      const startDeleteLine = startLine + newCodeCount;
+      const endDeleteLine = startDeleteLine + oldLinesCount - 1;
       const deleteRange = new Range(new Position(startDeleteLine, 0), new Position(endDeleteLine, 0));
       edit.delete(documentUri, deleteRange);
 
       await workspace.applyEdit(edit);
 
       const outlines = this.outlines.get(documentUri.toString()) || [];
-      const outlineIndex = outlines.findIndex((o) => o.startLine === originalStartLine);
+      const outlineIndex = outlines.findIndex((o) => o.startLine === startLine);
 
       if (outlineIndex !== -1) {
         outlines[outlineIndex] = {
-          startLine: originalStartLine,
-          endLine: originalStartLine + newLines.length - 1,
+          startLine: startLine,
+          endLine: startLine + newCodeCount - 1,
           content: newOutline,
         };
 
-        const lineDifference = newLines.length - oldLines.length;
-
+        const lineDifference = newLines.length - 2 * oldLines.length + 1;
         for (let i = outlineIndex + 1; i < outlines.length; i++) {
           const outline = outlines[i];
           if (outline) {
@@ -490,10 +490,10 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
       return;
     }
 
-    const { newContent, originalStartLine } = pendingChange;
+    const { newContent } = pendingChange;
 
     if (action === "accept") {
-      await this.acceptChanges(documentUri, newContent, originalStartLine);
+      await this.acceptChanges(documentUri, newContent);
       window.showInformationMessage("Changes accepted.");
     } else if (action === "discard") {
       await this.discardChanges(documentUri);
