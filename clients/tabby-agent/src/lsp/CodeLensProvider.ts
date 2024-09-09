@@ -10,7 +10,6 @@ import {
 import { ServerCapabilities, CodeLens, CodeLensType, ChangesPreviewLineType } from "./protocol";
 import { TextDocuments } from "./TextDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { ChatEditProvider } from "./ChatEditProvider";
 
 const codeLensType: CodeLensType = "previewChanges";
 const changesPreviewLineType = {
@@ -28,7 +27,6 @@ const changesPreviewLineType = {
 export class CodeLensProvider {
   constructor(
     private readonly connection: Connection,
-    private readonly chatEditProvider: ChatEditProvider,
     private readonly documents: TextDocuments<TextDocument>,
   ) {
     this.connection.onCodeLens(async (params, token, workDoneProgress, resultProgress) => {
@@ -54,7 +52,6 @@ export class CodeLensProvider {
       return null;
     }
     const codeLenses: CodeLens[] = [];
-
     let lineInPreviewBlock = -1;
     let previewBlockMarkers = "";
     for (let line = 0; line < textDocument.lineCount; line++) {

@@ -3,6 +3,7 @@ import generateCommitMessagePrompt from "./prompts/generate-commit-message.md";
 import generateDocsPrompt from "./prompts/generate-docs.md";
 import editCommandReplacePrompt from "./prompts/edit-command-replace.md";
 import editCommandInsertPrompt from "./prompts/edit-command-insert.md";
+
 export type AgentConfig = {
   server: {
     endpoint: string;

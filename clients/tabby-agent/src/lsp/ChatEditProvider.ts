@@ -23,6 +23,7 @@ import * as Diff from "diff";
 import { TabbyAgent } from "../TabbyAgent";
 import { isEmptyRange } from "../utils/range";
 import { isBlank } from "../utils";
+
 export type Edit = {
   id: ChatEditToken;
   location: Location;
@@ -496,7 +497,7 @@ export class ChatEditProvider {
   }
 
   // FIXME: improve this
-  public getCommentPrefix(languageId: string) {
+  private getCommentPrefix(languageId: string) {
     if (["plaintext", "markdown"].includes(languageId)) {
       return "";
     }
