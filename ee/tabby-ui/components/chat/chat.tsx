@@ -69,7 +69,6 @@ export interface ChatRef {
 interface ChatProps extends React.ComponentProps<'div'> {
   chatId: string
   api?: string
-  headers?: Record<string, string> | Headers
   initialMessages?: QuestionAnswerPair[]
   onLoaded?: () => void
   onThreadUpdates?: (messages: QuestionAnswerPair[]) => void
@@ -90,7 +89,6 @@ function ChatRenderer(
     className,
     chatId,
     initialMessages,
-    headers,
     onLoaded,
     onThreadUpdates,
     onNavigateToContext,
@@ -123,8 +121,7 @@ function ChatRenderer(
     regenerate,
     deleteThreadMessagePair
   } = useThreadRun({
-    threadId,
-    headers
+    threadId
   })
 
   const onDeleteMessage = async (userMessageId: string) => {
