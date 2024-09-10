@@ -50,6 +50,9 @@ export interface ClientApi {
 
   onApplyInEditor: (content: string) => void
 
+  // smart apply into editor
+  onSmartApplyInEditor: (content: string) => void
+
   // On current page is loaded.
   onLoaded: () => void
 

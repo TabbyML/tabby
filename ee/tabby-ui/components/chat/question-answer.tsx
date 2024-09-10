@@ -233,8 +233,12 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     enableRegenerating,
     ...rest
   } = props
-  const { onNavigateToContext, onApplyInEditor, onCopyContent } =
-    React.useContext(ChatContext)
+  const {
+    onNavigateToContext,
+    onApplyInEditor,
+    onSmartApplyInEditor,
+    onCopyContent
+  } = React.useContext(ChatContext)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
     React.useState<number | undefined>(undefined)
   const serverCode: Array<Context> = React.useMemo(() => {
@@ -363,6 +367,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
             <MessageMarkdown
               message={message.message}
               onApplyInEditor={onApplyInEditor}
+              onSmartApplyInEditor={onSmartApplyInEditor}
               onCopyContent={onCopyContent}
               attachmentCode={attachmentCode}
               onCodeCitationClick={onCodeCitationClick}

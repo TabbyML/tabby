@@ -25,6 +25,7 @@ import type { ServerInfo } from "tabby-agent";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
 import { createClient } from "./chatPanel";
 import { GitProvider } from "../git/GitProvider";
+import { getLogger } from "../logger";
 
 export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
@@ -202,6 +203,9 @@ export class ChatViewProvider implements WebviewViewProvider {
             editBuilder.replace(selection, indentedContent);
           });
         }
+      },
+      onSmartApplyInEditor: (content: string) => {
+        getLogger("Tabby").info("Smart apply in editor is not implemented yet.", content);
       },
       onLoaded: () => {
         setTimeout(() => {

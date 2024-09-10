@@ -65,6 +65,7 @@ export interface MessageMarkdownProps {
   attachmentCode?: Maybe<Array<AttachmentCodeItem>>
   onCopyContent?: ((value: string) => void) | undefined
   onApplyInEditor?: ((value: string) => void) | undefined
+  onSmartApplyInEditor?: ((value: string) => void) | undefined
   onCodeCitationClick?: (code: MessageAttachmentCode) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
@@ -93,6 +94,7 @@ export function MessageMarkdown({
   attachmentDocs,
   attachmentCode,
   onApplyInEditor,
+  onSmartApplyInEditor,
   onCopyContent,
   contextInfo,
   fetchingContextInfo,
@@ -236,6 +238,7 @@ export function MessageMarkdown({
                 language={(match && match[1]) || ''}
                 value={String(children).replace(/\n$/, '')}
                 onApplyInEditor={onApplyInEditor}
+                onSmartApplyInEditor={onSmartApplyInEditor}
                 onCopyContent={onCopyContent}
                 {...props}
               />

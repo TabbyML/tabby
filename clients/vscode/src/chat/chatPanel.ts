@@ -34,6 +34,7 @@ export function createClient(webview: WebviewView, api: ClientApi): ServerApi {
       onApplyInEditor: api.onApplyInEditor,
       onCopy: api.onCopy,
       onLoaded: api.onLoaded,
+      onSmartApplyInEditor: api.onSmartApplyInEditor,
     },
   });
 }
