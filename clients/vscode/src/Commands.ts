@@ -14,9 +14,6 @@ import {
   ThemeIcon,
   QuickPickItem,
   QuickPickItemKind,
-  Location,
-  Range,
-  TextDocument,
 } from "vscode";
 import os from "os";
 import path from "path";
@@ -29,13 +26,13 @@ import { InlineCompletionProvider } from "./InlineCompletionProvider";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { GitProvider, Repository } from "./git/GitProvider";
 import CommandPalette from "./CommandPalette";
-import { getLogger, showOutputPanel } from "./logger";
+import { showOutputPanel } from "./logger";
 import { Issues } from "./Issues";
-import { NLOutlinesProvider } from "./NLOutlinesProvider";
+import { NLOutlinesProvider } from "./outline/NLOutlinesProvider";
+import { OutlinesGenerator } from "./outline";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
-  private nlOutlinesCancellationTokenSource: CancellationTokenSource | null = null;
 
   constructor(
     private readonly context: ExtensionContext,
@@ -441,139 +438,16 @@ export class Commands {
       quickPick.show();
     },
     "chat.edit.generateNLOutlines": async () => {
-      const editor = window.activeTextEditor;
-      if (!editor) {
-        return;
-      }
-
-      const getOffsetRange = (document: TextDocument, start: number, end: number, offset: number): Range => {
-        const offsetStart = Math.max(0, start - offset);
-        const offsetEnd = Math.min(document.lineCount - 1, end + offset);
-        return new Range(new Position(offsetStart, 0), document.lineAt(offsetEnd).range.end);
-      };
-
-      let editLocation: Location;
-      if (editor.selection.isEmpty) {
-        const visibleRanges = editor.visibleRanges;
-        if (visibleRanges.length > 0) {
-          const firstVisibleLine = visibleRanges[0]?.start.line;
-          const lastVisibleLine = visibleRanges[visibleRanges.length - 1]?.end.line;
-          if (firstVisibleLine === undefined || lastVisibleLine === undefined) {
-            return;
-          }
-          const offsetRange = getOffsetRange(editor.document, firstVisibleLine, lastVisibleLine, 20);
-          editLocation = {
-            uri: editor.document.uri,
-            range: offsetRange,
-          };
-        } else {
-          const currentLine = editor.selection.active.line;
-          const offsetRange = getOffsetRange(editor.document, currentLine, currentLine, 20);
-          editLocation = {
-            uri: editor.document.uri,
-            range: offsetRange,
-          };
-        }
-      } else {
-        editLocation = {
-          uri: editor.document.uri,
-          range: new Range(editor.selection.start, editor.selection.end),
-        };
-      }
-
-      window.withProgress(
-        {
-          location: ProgressLocation.Notification,
-          title: "Generating natural language outlines...",
-          cancellable: true,
-        },
-        async (_, token) => {
-          this.contextVariables.nlOutlinesGenerationInProgress = true;
-          if (token.isCancellationRequested) {
-            return;
-          }
-          this.nlOutlinesCancellationTokenSource = new CancellationTokenSource();
-          token.onCancellationRequested(() => {
-            this.nlOutlinesCancellationTokenSource?.cancel();
-          });
-          try {
-            await this.nlOutlinesProvider.provideNLOutlinesGenerate({
-              location: editLocation,
-              editor: editor,
-            });
-          } catch (error) {
-            if (typeof error === "object" && error && "message" in error && typeof error.message === "string") {
-              window.showErrorMessage(`Error generating outlines: ${error.message}`);
-            }
-          } finally {
-            this.nlOutlinesCancellationTokenSource?.dispose();
-            this.nlOutlinesCancellationTokenSource = null;
-            this.contextVariables.nlOutlinesGenerationInProgress = false;
-          }
-        },
-      );
+      await new OutlinesGenerator(this.contextVariables, this.nlOutlinesProvider).generate();
     },
     "chat.edit.editNLOutline": async (uri?: Uri, startLine?: number) => {
-      const editor = window.activeTextEditor;
-      if (!editor) return;
-      let documentUri: string;
-      let line: number;
-      if (uri && startLine !== undefined) {
-        documentUri = uri.toString();
-        line = startLine;
-      } else {
-        documentUri = editor.document.uri.toString();
-        line = editor.selection.active.line;
-      }
-      const content = this.nlOutlinesProvider.getOutline(documentUri, line);
-      getLogger().info("get content");
-      if (!content) return;
-      getLogger().info("shown");
-      const quickPick = window.createQuickPick();
-      quickPick.items = [{ label: content }];
-      quickPick.placeholder = "Edit NL Outline content";
-      quickPick.value = content;
-      quickPick.onDidAccept(async () => {
-        const newContent = quickPick.value;
-        quickPick.hide();
-
-        await window.withProgress(
-          {
-            location: ProgressLocation.Notification,
-            title: "Updating NL Outline",
-            cancellable: false,
-          },
-          async (progress) => {
-            progress.report({ increment: 0 });
-
-            try {
-              await this.nlOutlinesProvider.updateNLOutline(documentUri, line, newContent);
-              progress.report({ increment: 100 });
-              window.showInformationMessage(`Updated NL Outline: ${newContent}`);
-            } catch (error) {
-              getLogger().error("Error updating NL Outline:", error);
-              window.showErrorMessage(
-                `Error updating NL Outline: ${error instanceof Error ? error.message : String(error)}`,
-              );
-            }
-          },
-        );
-      });
-      quickPick.show();
+      await new OutlinesGenerator(this.contextVariables, this.nlOutlinesProvider).editNLOutline(uri, startLine);
     },
     "chat.edit.outline.accept": async () => {
-      const editor = window.activeTextEditor;
-      if (!editor) {
-        return;
-      }
-      await this.nlOutlinesProvider.resolveOutline("accept");
+      await new OutlinesGenerator(this.contextVariables, this.nlOutlinesProvider).acceptOutline();
     },
     "chat.edit.outline.discard": async () => {
-      const editor = window.activeTextEditor;
-      if (!editor) {
-        return;
-      }
-      await this.nlOutlinesProvider.resolveOutline("discard");
+      await new OutlinesGenerator(this.contextVariables, this.nlOutlinesProvider).discardOutline();
     },
     "chat.edit.stop": async () => {
       this.chatEditCancellationTokenSource?.cancel();

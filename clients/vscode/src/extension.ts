@@ -13,7 +13,7 @@ import { StatusBarItem } from "./StatusBarItem";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { Commands } from "./Commands";
 import { Status } from "tabby-agent";
-import { NLOutlinesProvider } from "./NLOutlinesProvider";
+import { NLOutlinesProvider } from "./outline/NLOutlinesProvider";
 
 const isBrowser = !!process.env["IS_BROWSER"];
 const logger = getLogger();

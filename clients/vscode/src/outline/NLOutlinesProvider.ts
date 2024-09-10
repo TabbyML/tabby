@@ -15,10 +15,10 @@ import {
   workspace,
   WorkspaceEdit,
 } from "vscode";
-import { Config } from "./Config";
+import { Config } from "../Config";
 import OpenAI from "openai";
-import generateNLOutlinesPrompt from "../assets/prompts/generateNLOutlines.txt";
-import editNLOutline from "../assets/prompts/editNLOutline.txt";
+import generateNLOutlinesPrompt from "../../assets/prompts/generateNLOutlines.txt";
+import editNLOutline from "../../assets/prompts/editNLOutline.txt";
 import * as Diff from "diff";
 
 interface ChatNLOutlinesParams {
