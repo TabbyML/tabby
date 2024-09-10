@@ -14,7 +14,7 @@ use tabby_schema::{
     auth::{
         AuthenticationService, Invitation, JWTPayload, OAuthCredential, OAuthError, OAuthProvider,
         OAuthResponse, RefreshTokenResponse, RegisterResponse, RequestInvitationInput,
-        TokenAuthResponse, UpdateOAuthCredentialInput, User,
+        TokenAuthResponse, UpdateOAuthCredentialInput, UserSecured,
     },
     email::EmailService,
     is_demo_mode,
@@ -25,7 +25,7 @@ use tabby_schema::{
 use tokio::task::JoinHandle;
 use tracing::warn;
 
-use super::{graphql_pagination_to_filter, UserExt};
+use super::{graphql_pagination_to_filter, UserSecuredExt};
 use crate::{
     bail,
     jwt::{generate_jwt, validate_jwt},
@@ -170,7 +170,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     async fn request_password_reset_email(&self, email: String) -> Result<Option<JoinHandle<()>>> {
         let user = self.get_user_by_email(&email).await.ok();
 
-        let Some(user @ User { active: true, .. }) = user else {
+        let Some(user @ UserSecured { active: true, .. }) = user else {
             return Ok(None);
         };
 
@@ -384,19 +384,19 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(self.db.update_user_role(id, is_admin).await?)
     }
 
-    async fn get_user_by_email(&self, email: &str) -> Result<User> {
+    async fn get_user_by_email(&self, email: &str) -> Result<UserSecured> {
         let user = self.db.get_user_by_email(email).await?;
         if let Some(dao) = user {
-            Ok(User::new(self.db.clone(), dao))
+            Ok(UserSecured::new(self.db.clone(), dao))
         } else {
             bail!("User not found {}", email)
         }
     }
 
-    async fn get_user(&self, id: &ID) -> Result<User> {
+    async fn get_user(&self, id: &ID) -> Result<UserSecured> {
         let user = self.db.get_user(id.as_rowid()?).await?;
         if let Some(dao) = user {
-            Ok(User::new(self.db.clone(), dao))
+            Ok(UserSecured::new(self.db.clone(), dao))
         } else {
             bail!("User not found")
         }
@@ -454,7 +454,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<User>> {
+    ) -> Result<Vec<UserSecured>> {
         let (skip_id, limit, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
 
         Ok(self
@@ -462,7 +462,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .list_users_with_filter(skip_id, limit, backwards)
             .await?
             .into_iter()
-            .map(|x| User::new(self.db.clone(), x))
+            .map(|x| UserSecured::new(self.db.clone(), x))
             .collect())
     }
 
@@ -985,7 +985,7 @@ mod tests {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Connection<User> {
+    ) -> Connection<UserSecured> {
         relay::query_async(
             after,
             before,

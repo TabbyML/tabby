@@ -10,7 +10,7 @@ use tokio::task::JoinHandle;
 use tracing::error;
 use validator::Validate;
 
-use super::interface::UserInfoValue;
+use super::interface::UserValue;
 use crate::{
     juniper::relay,
     policy::AccessPolicy,
@@ -175,14 +175,15 @@ impl JWTPayload {
 }
 
 #[derive(Debug, GraphQLObject)]
-#[graphql(context = Context, impl = [UserInfoValue])]
-pub struct User {
-    // === implements UserInfoValue ===
+#[graphql(context = Context, impl = [UserValue])]
+pub struct UserSecured {
+    // === implements User ===
     pub id: juniper::ID,
     pub email: String,
     pub name: String,
     pub created_at: DateTime<Utc>,
-    // === end UserInfoValue ===
+    // === end User ===
+
     pub is_admin: bool,
     pub is_owner: bool,
     pub auth_token: String,
@@ -193,7 +194,7 @@ pub struct User {
     pub policy: AccessPolicy,
 }
 
-impl relay::NodeType for User {
+impl relay::NodeType for UserSecured {
     type Cursor = String;
 
     fn cursor(&self) -> Self::Cursor {
@@ -201,11 +202,11 @@ impl relay::NodeType for User {
     }
 
     fn connection_type_name() -> &'static str {
-        "UserConnection"
+        "UserSecuredConnection"
     }
 
     fn edge_type_name() -> &'static str {
-        "UserEdge"
+        "UserSecuredEdge"
     }
 }
 
@@ -365,8 +366,8 @@ pub trait AuthenticationService: Send + Sync {
     async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload>;
     async fn verify_auth_token(&self, token: &str) -> Result<ID>;
     async fn is_admin_initialized(&self) -> Result<bool>;
-    async fn get_user_by_email(&self, email: &str) -> Result<User>;
-    async fn get_user(&self, id: &ID) -> Result<User>;
+    async fn get_user_by_email(&self, email: &str) -> Result<UserSecured>;
+    async fn get_user(&self, id: &ID) -> Result<UserSecured>;
     async fn logout_all_sessions(&self, id: &ID) -> Result<()>;
 
     async fn create_invitation(&self, email: String) -> Result<Invitation>;
@@ -390,7 +391,7 @@ pub trait AuthenticationService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<User>>;
+    ) -> Result<Vec<UserSecured>>;
 
     async fn list_invitations(
         &self,

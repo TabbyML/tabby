@@ -3,7 +3,7 @@ import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { QueryVariables } from '@/lib/tabby/gql'
-import { listUsers } from '@/lib/tabby/query'
+import { listSecuredUsers } from '@/lib/tabby/query'
 
 export type Member = {
   id: string
@@ -13,14 +13,14 @@ export type Member = {
 
 export function useAllMembers() {
   const [queryVariables, setQueryVariables] = useState<
-    QueryVariables<typeof listUsers>
+    QueryVariables<typeof listSecuredUsers>
   >({ first: DEFAULT_PAGE_SIZE })
 
   const [list, setList] = useState<Member[]>([])
   const [isAllLoaded, setIsAllLoaded] = useState(false)
 
   const [{ data, fetching }] = useQuery({
-    query: listUsers,
+    query: listSecuredUsers,
     variables: queryVariables
   })
 

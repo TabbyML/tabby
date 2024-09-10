@@ -369,15 +369,15 @@ pub async fn create_gitlab_client(
     Ok(builder.build_async().await?)
 }
 
-trait UserExt {
-    fn new(db: DbConn, val: UserDAO) -> tabby_schema::auth::User;
+trait UserSecuredExt {
+    fn new(db: DbConn, val: UserDAO) -> tabby_schema::auth::UserSecured;
 }
 
-impl UserExt for tabby_schema::auth::User {
-    fn new(db: DbConn, val: UserDAO) -> tabby_schema::auth::User {
+impl UserSecuredExt for tabby_schema::auth::UserSecured {
+    fn new(db: DbConn, val: UserDAO) -> tabby_schema::auth::UserSecured {
         let is_owner = val.is_owner();
         let id = val.id.as_id();
-        tabby_schema::auth::User {
+        tabby_schema::auth::UserSecured {
             policy: policy::AccessPolicy::new(db, &id, val.is_admin),
             id,
             email: val.email,

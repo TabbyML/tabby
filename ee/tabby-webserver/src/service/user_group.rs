@@ -2,8 +2,8 @@ use anyhow::Context;
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
-    auth::User,
-    interface::UserInfoValue,
+    auth::UserSecured,
+    interface::UserValue,
     policy::AccessPolicy,
     user_group::{
         CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupMembership,
@@ -12,7 +12,7 @@ use tabby_schema::{
     AsID, AsRowid, Result,
 };
 
-use super::UserExt;
+use super::UserSecuredExt;
 
 struct UserGroupServiceImpl {
     db: DbConn,
@@ -34,7 +34,7 @@ impl UserGroupService for UserGroupServiceImpl {
                     is_group_admin: x.is_group_admin,
                     created_at: x.created_at,
                     updated_at: x.updated_at,
-                    user: UserInfoValue::User(User::new(
+                    user: UserValue::UserSecured(UserSecured::new(
                         self.db.clone(),
                         self.db
                             .get_user(x.user_id)
@@ -160,10 +160,10 @@ mod tests {
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].id, user_group1);
         assert_eq!(result[0].members.len(), 2);
-        assert_matches!(&result[0].members[0].user, UserInfoValue::User(user) => {
+        assert_matches!(&result[0].members[0].user, UserValue::UserSecured(user) => {
             assert_eq!(user.id, user1);
         });
-        assert_matches!(&result[0].members[1].user, UserInfoValue::User(user) => {
+        assert_matches!(&result[0].members[1].user, UserValue::UserSecured(user) => {
             assert_eq!(user.id, user2);
         });
 
@@ -173,7 +173,7 @@ mod tests {
         assert_eq!(result[0].id, user_group1);
         assert_eq!(result[1].id, user_group2);
         assert_eq!(result[1].members.len(), 1);
-        assert_matches!(&result[1].members[0].user, UserInfoValue::User(user) => {
+        assert_matches!(&result[1].members[0].user, UserValue::UserSecured(user) => {
             assert_eq!(user.id, user2);
         });
     }

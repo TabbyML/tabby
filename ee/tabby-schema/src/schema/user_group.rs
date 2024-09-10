@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use juniper::{GraphQLInputObject, GraphQLObject, ID};
 use validator::Validate;
 
-use super::{interface::UserInfoValue, Context};
+use super::{interface::UserValue, Context};
 use crate::{policy::AccessPolicy, Result};
 
 #[derive(GraphQLObject)]
@@ -19,7 +19,7 @@ pub struct UserGroup {
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
 pub struct UserGroupMembership {
-    pub user: UserInfoValue,
+    pub user: UserValue,
 
     pub is_group_admin: bool,
 

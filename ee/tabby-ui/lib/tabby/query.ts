@@ -124,9 +124,9 @@ export const listJobs = graphql(/* GraphQL */ `
   }
 `)
 
-export const listUsers = graphql(/* GraphQL */ `
+export const listSecuredUsers = graphql(/* GraphQL */ `
   query ListUsers($after: String, $before: String, $first: Int, $last: Int) {
-    users(after: $after, before: $before, first: $first, last: $last) {
+    users: securedUsers(after: $after, before: $before, first: $first, last: $last) {
       edges {
         node {
           id

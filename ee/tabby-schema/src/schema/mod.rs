@@ -19,12 +19,12 @@ use std::sync::Arc;
 
 use auth::{
     AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
-    User,
+    UserSecured,
 };
 use base64::Engine;
 use chrono::{DateTime, Utc};
 use context::{ContextInfo, ContextService};
-use interface::UserInfoValue;
+use interface::UserValue;
 use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLObject, IntoFieldError,
@@ -147,18 +147,18 @@ async fn check_admin(ctx: &Context) -> Result<(), CoreError> {
     Ok(())
 }
 
-async fn check_user(ctx: &Context) -> Result<User, CoreError> {
+async fn check_user(ctx: &Context) -> Result<UserSecured, CoreError> {
     check_user_and_auth_token(ctx, false).await
 }
 
-async fn check_user_allow_auth_token(ctx: &Context) -> Result<User, CoreError> {
+async fn check_user_allow_auth_token(ctx: &Context) -> Result<UserSecured, CoreError> {
     check_user_and_auth_token(ctx, true).await
 }
 
 async fn check_user_and_auth_token(
     ctx: &Context,
     allow_auth_token: bool,
-) -> Result<User, CoreError> {
+) -> Result<UserSecured, CoreError> {
     let claims = check_claims(ctx)?;
     if !allow_auth_token && claims.is_generated_from_auth_token {
         return Err(CoreError::Forbidden(
@@ -191,18 +191,18 @@ impl Query {
         ctx.locator.worker().read_registration_token().await
     }
 
-    async fn me(ctx: &Context) -> Result<User> {
+    async fn me(ctx: &Context) -> Result<UserSecured> {
         check_user_allow_auth_token(ctx).await
     }
 
-    /// List user info, accessible for all login users.
-    async fn user_info(
+    /// List users, accessible for all login users.
+    async fn users(
         ctx: &Context,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<UserInfoValue>> {
+    ) -> Result<Connection<UserValue>> {
         check_user(ctx).await?;
         relay::query_async(
             after,
@@ -214,20 +214,20 @@ impl Query {
                     .auth()
                     .list_users(after, before, first, last)
                     .await
-                    .map(|users| users.into_iter().map(UserInfoValue::User).collect())
+                    .map(|users| users.into_iter().map(UserValue::UserSecured).collect())
             },
         )
         .await
     }
 
-    /// List user info, accessible for admin users.
-    async fn users(
+    /// List users, accessible for admin users.
+    async fn secured_users(
         ctx: &Context,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<User>> {
+    ) -> Result<Connection<UserSecured>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
