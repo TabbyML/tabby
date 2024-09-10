@@ -183,7 +183,6 @@ pub struct User {
     pub name: String,
     pub created_at: DateTime<Utc>,
     // === end UserInfoValue ===
-
     pub is_admin: bool,
     pub is_owner: bool,
     pub auth_token: String,
