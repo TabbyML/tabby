@@ -76,7 +76,7 @@ mod tests {
             ("group name", false), // Invalid: contains space
             ("group*name", false), // Invalid: contains special character
         ];
-    
+
         for (name, expected) in test_cases {
             let result = USER_GROUP_NAME_REGEX.is_match(name);
             assert_eq!(result, expected, "Failed for name: {}", name);

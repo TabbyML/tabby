@@ -72,3 +72,92 @@ impl UserGroupService for UserGroupServiceImpl {
 pub fn create(db: DbConn) -> impl UserGroupService {
     UserGroupServiceImpl { db }
 }
+
+#[cfg(test)]
+mod tests {
+    use tabby_db::testutils;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_list_user_groups() {
+        // Create an in-memory database connection
+        let db = DbConn::new_in_memory().await.unwrap();
+        let svc = create(db.clone());
+
+        // Insert test users into the database
+        let user1 = testutils::create_user(&db).await.as_id();
+        let user2 = testutils::create_user2(&db).await.as_id();
+
+        // Insert test user groups associated with the users
+        let user_group1 = svc
+            .create(&CreateUserGroupInput {
+                name: "group1".to_owned(),
+            })
+            .await
+            .unwrap();
+        let user_group2 = svc
+            .create(&CreateUserGroupInput {
+                name: "group2".to_owned(),
+            })
+            .await
+            .unwrap();
+
+        // Add user1 / user2 to user_group1
+        svc.upsert_membership(&UpsertUserGroupMembershipInput {
+            user_group_id: user_group1.clone(),
+            user_id: user1.clone(),
+            is_group_admin: true,
+        })
+        .await
+        .unwrap();
+
+        svc.upsert_membership(&UpsertUserGroupMembershipInput {
+            user_group_id: user_group1.clone(),
+            user_id: user2.clone(),
+            is_group_admin: false,
+        })
+        .await
+        .unwrap();
+
+        // Add user2 to user_group2
+        svc.upsert_membership(&UpsertUserGroupMembershipInput {
+            user_group_id: user_group2.clone(),
+            user_id: user2.clone(),
+            is_group_admin: false,
+        })
+        .await
+        .unwrap();
+
+        // Test listing user groups as admin
+        let result = svc.list(None).await.unwrap();
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].id, user_group1);
+        assert_eq!(result[1].id, user_group2);
+
+        // Test listing user groups as user1
+        let result = svc.list(Some(&user1)).await.unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].id, user_group1);
+
+        // Test listing user groups as user2
+        let result = svc.list(Some(&user2)).await.unwrap();
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].id, user_group1);
+        assert_eq!(result[1].id, user_group2);
+
+        // Test list user group membership as group admin
+        let result = svc.list_membership(&user_group1, None).await.unwrap();
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].user_id, user1);
+        assert_eq!(result[1].user_id, user2);
+
+        // Test list user group membership in user_group1 as user2
+        let result = svc
+            .list_membership(&user_group1, Some(&user2))
+            .await
+            .unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].user_id, user2);
+    }
+}

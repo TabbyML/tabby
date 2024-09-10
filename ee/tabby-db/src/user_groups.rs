@@ -27,19 +27,34 @@ impl DbConn {
         &self,
         user_id: Option<i64>,
     ) -> anyhow::Result<Vec<UserGroupDAO>> {
-        let user_groups = query_as!(
+        let user_groups = if let Some(user_id) = user_id {
+            query_as!(
             UserGroupDAO,
             r#"SELECT
                 user_groups.id as "id",
                 name,
                 user_groups.created_at as "created_at: DateTime<Utc>",
                 user_groups.updated_at as "updated_at: DateTime<Utc>"
-            FROM user_groups LEFT JOIN user_group_memberships ON (user_group_memberships.user_group_id = user_groups.id)
-            WHERE (user_group_memberships.user_id = ?1 OR NULL = ?1)
+            FROM user_groups LEFT JOIN user_group_memberships ON (user_groups.id = user_group_memberships.user_group_id)
+            WHERE user_group_memberships.user_id = ?
             "#,
             user_id
         ).fetch_all(&self.pool)
-        .await?;
+        .await?
+        } else {
+            query_as!(
+                UserGroupDAO,
+                r#"SELECT
+                id,
+                name,
+                created_at as "created_at: DateTime<Utc>",
+                updated_at as "updated_at: DateTime<Utc>"
+            FROM user_groups
+            "#,
+            )
+            .fetch_all(&self.pool)
+            .await?
+        };
 
         Ok(user_groups)
     }
@@ -49,10 +64,9 @@ impl DbConn {
         id: i64,
         user_id: Option<i64>,
     ) -> anyhow::Result<Vec<UserGroupMembershipDAO>> {
-        let memberships: Vec<_> = if let Some(user_id) = user_id {
-            query_as!(
-                UserGroupMembershipDAO,
-                r#"SELECT
+        let memberships: Vec<_> = query_as!(
+            UserGroupMembershipDAO,
+            r#"SELECT
               id,
               user_id,
               user_group_id,
@@ -60,29 +74,12 @@ impl DbConn {
               created_at as "created_at: DateTime<Utc>",
               updated_at as "updated_at: DateTime<Utc>"
             FROM user_group_memberships
-            WHERE user_group_id = ? AND user_id = ?"#,
-                id,
-                user_id
-            )
-            .fetch_all(&self.pool)
-            .await?
-        } else {
-            query_as!(
-                UserGroupMembershipDAO,
-                r#"SELECT
-              id,
-              user_id,
-              user_group_id,
-              is_group_admin,
-              created_at as "created_at: DateTime<Utc>",
-              updated_at as "updated_at: DateTime<Utc>"
-            FROM user_group_memberships
-            WHERE user_group_id = ?"#,
-                id,
-            )
-            .fetch_all(&self.pool)
-            .await?
-        };
+            WHERE user_group_id = ?1 AND (user_id = ?2 OR ?2 IS NULL)"#,
+            id,
+            user_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
 
         Ok(memberships)
     }
