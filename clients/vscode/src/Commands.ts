@@ -437,7 +437,7 @@ export class Commands {
 
       quickPick.show();
     },
-    "chat.edit.generateNLOutlines": async () => {
+    "chat.edit.outline.generate": async () => {
       await new OutlinesGenerator(this.contextVariables, this.nlOutlinesProvider).generate();
     },
     "chat.edit.editNLOutline": async (uri?: Uri, startLine?: number) => {
