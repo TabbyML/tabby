@@ -1,50 +1,21 @@
 'use client'
 
 import React from 'react'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
-import { graphql } from '@/lib/gql/generates'
-import type { ListUsersQuery } from '@/lib/gql/generates/graphql'
-import { useMe } from '@/lib/hooks/use-me'
-import { QueryVariables, useMutation } from '@/lib/tabby/gql'
-import { listUsers } from '@/lib/tabby/query'
-import type { ArrayElementType } from '@/lib/types'
+import { userGroupsQuery } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
 import LoadingWrapper from '@/components/loading-wrapper'
+import { ListSkeleton } from '@/components/skeleton'
 
 import CreateUserGroupDialog from './create-user-group'
 import { UserGroupItem } from './user-group-item'
 
-const updateUserActiveMutation = graphql(/* GraphQL */ `
-  mutation UpdateUserActive($id: ID!, $active: Boolean!) {
-    updateUserActive(id: $id, active: $active)
-  }
-`)
-
-type UserNode = ArrayElementType<ListUsersQuery['users']['edges']>['node']
-
-const PAGE_SIZE = DEFAULT_PAGE_SIZE
 export default function UsersTable() {
-  const router = useRouter()
-  const [{ data: me }] = useMe()
-  const [queryVariables, setQueryVariables] = React.useState<
-    QueryVariables<typeof listUsers>
-  >({ first: PAGE_SIZE })
-  const [{ data, error, fetching }, reexecuteQuery] = useQuery({
-    query: listUsers,
-    variables: queryVariables
+  const [{ data, error, fetching }, reexcute] = useQuery({
+    query: userGroupsQuery
   })
-  const [users, setUsers] = React.useState<ListUsersQuery['users']>()
-
-  React.useEffect(() => {
-    const _users = data?.users
-    if (_users?.edges?.length) {
-      setUsers(_users)
-    }
-  }, [data])
 
   React.useEffect(() => {
     if (error?.message) {
@@ -52,44 +23,42 @@ export default function UsersTable() {
     }
   }, [error])
 
-  const updateUserActive = useMutation(updateUserActiveMutation)
-
-  const onUpdateUserActive = (node: UserNode, active: boolean) => {
-    updateUserActive({ id: node.id, active }).then(response => {
-      if (response?.error || !response?.data?.updateUserActive) {
-        toast.error(
-          response?.error?.message ||
-            `${active ? 'activate' : 'deactivate'} failed`
-        )
-        return
-      }
-
-      reexecuteQuery()
-    })
-  }
-
   const onCreateUserGroup = async () => {
     // console.log('submit')
-    // refetch list
+    reexcute()
   }
 
-  const pageInfo = users?.pageInfo
+  const userGroups = data?.userGroups
 
   return (
-    <LoadingWrapper loading={fetching}>
+    <LoadingWrapper
+      loading={fetching}
+      fallback={<ListSkeleton className="mt-12" />}
+    >
       <div className="flex justify-end mb-4">
         <CreateUserGroupDialog onSubmit={onCreateUserGroup}>
           <Button type="button">Create</Button>
         </CreateUserGroupDialog>
       </div>
-      {!!users?.edges?.length && (
-        <div className="border border-b-0">
-          {users.edges.map(group => {
-            // FIXME
+      {userGroups?.length ? (
+        <div className="border rounded-lg overflow-hidden">
+          <div className="border-b bg-muted font-semibold py-3 px-4">
+            Groups
+          </div>
+          {userGroups.map((group, idx) => {
             return (
-              <UserGroupItem key={group.node.id} userGroup={group as any} />
+              <UserGroupItem
+                key={group.id}
+                userGroup={group}
+                onSuccess={() => reexcute()}
+                isLastItem={idx === userGroups.length - 1}
+              />
             )
           })}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-4 rounded-lg border-4 border-dashed py-8">
+          <div>No Data</div>
         </div>
       )}
     </LoadingWrapper>

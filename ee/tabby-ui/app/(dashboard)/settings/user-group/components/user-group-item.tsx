@@ -1,5 +1,9 @@
 import { HTMLAttributes, useState } from 'react'
+import { toast } from 'sonner'
 
+import { graphql } from '@/lib/gql/generates'
+import { UserGroup } from '@/lib/gql/generates/graphql'
+import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import {
   AlertDialog,
@@ -23,31 +27,56 @@ import {
 
 import { MembershipView } from './membership-view'
 
+const deleteUserGroupMutation = graphql(/* GraphQL */ `
+  mutation DeleteUserGroup($id: ID!) {
+    deleteUserGroup(id: $id)
+  }
+`)
+
 interface UserGroupItemProps extends HTMLAttributes<HTMLDivElement> {
-  // todo type
-  userGroup: any
+  userGroup: UserGroup
+  onSuccess?: () => void
+  isLastItem?: boolean
 }
 
-export function UserGroupItem({ userGroup, className }: UserGroupItemProps) {
+export function UserGroupItem({
+  onSuccess,
+  userGroup,
+  isLastItem
+}: UserGroupItemProps) {
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false)
   const [membershipOpen, setMembershipOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const toggleMembership = () => setMembershipOpen(!membershipOpen)
 
-  const onDelete: React.MouseEventHandler<HTMLButtonElement> = e => {
+  const deleteUserGroup = useMutation(deleteUserGroupMutation)
+
+  const handleDeleteUserGroup: React.MouseEventHandler<
+    HTMLButtonElement
+  > = e => {
     e.preventDefault()
     setIsDeleting(true)
-    // todo delete user group
-    // deleteOAuthCredential({ provider: providerValue }).then(res => {
-    //   if (res?.data?.deleteOauthCredential) {
-    //     navigateToSSOSettings()
-    //   } else {
-    //     setIsDeleting(false)
-    //     if (res?.error) {
-    //       toast.error(res?.error?.message)
-    //     }
-    //   }
-    // })
+
+    deleteUserGroup({
+      id: userGroup.id
+    })
+      .then(res => {
+        if (!res?.data?.deleteUserGroup) {
+          const errorMessage = res?.error?.message || 'Failed to delete'
+          // todo show errorMsg in dialog content
+          toast.error(errorMessage)
+        } else {
+          onSuccess?.()
+          setMembershipOpen(false)
+        }
+      })
+      .catch(e => {
+        const errorMessage = e?.message || 'Failed to delete'
+        toast.error(errorMessage)
+      })
+      .finally(() => {
+        setIsDeleting(false)
+      })
   }
 
   return (
@@ -55,7 +84,9 @@ export function UserGroupItem({ userGroup, className }: UserGroupItemProps) {
       <div
         className={cn(
           'flex items-center gap-2 p-3 hover:bg-muted/50 cursor-pointer border-b',
-          className
+          {
+            'border-b-0': !!isLastItem && !membershipOpen
+          }
         )}
         onClick={toggleMembership}
         // onDoubleClick={e => e.preventDefault()}
@@ -66,14 +97,13 @@ export function UserGroupItem({ userGroup, className }: UserGroupItemProps) {
           })}
         />
         <IconUsers className="shrink-0" />
-        <div className="flex-1 overflow-hidden">Group Name</div>
+        <div className="flex-1 overflow-hidden font-semibold">
+          {userGroup.name}
+        </div>
         <div
           onClick={e => e.stopPropagation()}
           className="flex items-center gap-2"
         >
-          {/* <Button size='icon' variant='ghost'>
-            <IconPlus />
-          </Button> */}
           <AlertDialog
             open={deleteAlertVisible}
             onOpenChange={setDeleteAlertVisible}
@@ -95,7 +125,7 @@ export function UserGroupItem({ userGroup, className }: UserGroupItemProps) {
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   className={buttonVariants({ variant: 'destructive' })}
-                  onClick={onDelete}
+                  onClick={handleDeleteUserGroup}
                 >
                   {isDeleting && (
                     <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
@@ -107,7 +137,12 @@ export function UserGroupItem({ userGroup, className }: UserGroupItemProps) {
           </AlertDialog>
         </div>
       </div>
-      {membershipOpen && <MembershipView userGroupId="1" />}
+      {membershipOpen && (
+        <MembershipView
+          userGroupId={userGroup.id}
+          className={isLastItem ? 'border-b-0' : undefined}
+        />
+      )}
     </div>
   )
 }

@@ -28,8 +28,8 @@ import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 
 const createUserGroupMutation = graphql(/* GraphQL */ `
-  mutation createGitRepository($name: String!, $gitUrl: String!) {
-    createGitRepository(name: $name, gitUrl: $gitUrl)
+  mutation createUserGroup($input: CreateUserGroupInput!) {
+    createUserGroup(input: $input)
   }
 `)
 
@@ -41,28 +41,13 @@ export default function CreateUserGroupDialog({
   onSubmit,
   children
 }: {
-  onSubmit: () => Promise<any>
+  onSubmit: (userId: string) => void
   children: React.ReactNode
 }) {
   const [open, setOpen] = React.useState(false)
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema)
   })
-
-  const createUserGroup = useMutation(createUserGroupMutation, {
-    form
-  })
-
-  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
-    return createUserGroup({
-      name: values.name
-    })
-      .then(() => {
-        onSubmit?.()
-        // setOpen(false)
-      })
-      .catch(() => {})
-  }
 
   const { isSubmitting } = form.formState
 
@@ -78,6 +63,27 @@ export default function CreateUserGroupDialog({
       }, 500)
     }
     setOpen(open)
+  }
+
+  const createUserGroup = useMutation(createUserGroupMutation, {
+    form
+  })
+
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
+    return createUserGroup({
+      input: {
+        name: values.name
+      }
+    })
+      .then(res => {
+        if (!res?.data?.createUserGroup) {
+          return
+        }
+
+        onSubmit?.(res.data.createUserGroup)
+        onOpenChange(false)
+      })
+      .catch(() => {})
   }
 
   return (

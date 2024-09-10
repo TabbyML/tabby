@@ -304,3 +304,14 @@ export const contextInfoQuery = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const userGroupsQuery = graphql(/* GraphQL */ `
+  query UserGroups {
+    userGroups {
+      id
+      name
+      createdAt
+      updatedAt
+    }
+  }
+`)
