@@ -3,7 +3,10 @@ use chrono::{DateTime, Utc};
 use juniper::{GraphQLInputObject, GraphQLObject, ID};
 use validator::Validate;
 
-use crate::{policy::{self, AccessPolicy}, Result};
+use crate::{
+    policy::{AccessPolicy},
+    Result,
+};
 
 #[derive(GraphQLObject)]
 pub struct UserGroup {
