@@ -13,8 +13,8 @@ pub mod repository;
 mod setting;
 mod thread;
 mod user_event;
-pub mod web_documents;
 mod user_group;
+pub mod web_documents;
 
 use std::sync::Arc;
 
@@ -35,7 +35,22 @@ use tabby_common::{
 use tabby_db::DbConn;
 use tabby_inference::Embedding;
 use tabby_schema::{
-    analytic::AnalyticService, auth::AuthenticationService, context::ContextService, email::EmailService, integration::IntegrationService, is_demo_mode, job::JobService, license::{IsLicenseValid, LicenseService}, repository::RepositoryService, setting::SettingService, thread::ThreadService, user_event::UserEventService, user_group::UserGroupService, web_documents::WebDocumentService, worker::WorkerService, AsID, AsRowid, CoreError, Result, ServiceLocator
+    analytic::AnalyticService,
+    auth::AuthenticationService,
+    context::ContextService,
+    email::EmailService,
+    integration::IntegrationService,
+    is_demo_mode,
+    job::JobService,
+    license::{IsLicenseValid, LicenseService},
+    repository::RepositoryService,
+    setting::SettingService,
+    thread::ThreadService,
+    user_event::UserEventService,
+    user_group::UserGroupService,
+    web_documents::WebDocumentService,
+    worker::WorkerService,
+    AsID, AsRowid, CoreError, Result, ServiceLocator,
 };
 
 use self::{
@@ -277,7 +292,7 @@ impl ServiceLocator for ArcServerContext {
     fn context(&self) -> Arc<dyn ContextService> {
         self.0.context.clone()
     }
-    
+
     fn user_group(&self) -> Arc<dyn UserGroupService> {
         self.0.user_group.clone()
     }

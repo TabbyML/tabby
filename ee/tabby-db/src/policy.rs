@@ -1,7 +1,6 @@
 use anyhow::bail;
 use chrono::{DateTime, Utc};
 use sqlx::{query, query_as, FromRow};
-use tabby_db_macros::query_paged_as;
 
 use crate::DbConn;
 
@@ -95,7 +94,8 @@ WHERE user_group_memberships.user_id = ? AND source_id = ?
                 id,
                 user_id
             )
-            .fetch_all(&self.pool).await?
+            .fetch_all(&self.pool)
+            .await?
         } else {
             query_as!(
                 UserGroupMembershipDAO,
@@ -110,7 +110,8 @@ WHERE user_group_memberships.user_id = ? AND source_id = ?
             WHERE user_group_id = ?"#,
                 id,
             )
-            .fetch_all(&self.pool).await?
+            .fetch_all(&self.pool)
+            .await?
         };
 
         Ok(memberships)

@@ -1,8 +1,9 @@
-use crate::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLInputObject, GraphQLObject, ID};
 use validator::Validate;
+
+use crate::Result;
 
 #[derive(GraphQLObject)]
 pub struct UserGroup {

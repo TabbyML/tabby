@@ -9,6 +9,7 @@ pub use integrations::IntegrationDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use oauth_credential::OAuthCredentialDAO;
+pub use policy::{UserGroupDAO, UserGroupMembershipDAO};
 pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
@@ -22,7 +23,6 @@ use user_completions::UserCompletionDailyStatsDAO;
 pub use user_events::UserEventDAO;
 pub use users::UserDAO;
 pub use web_documents::WebDocumentDAO;
-pub use policy::{UserGroupDAO, UserGroupMembershipDAO};
 
 pub mod cache;
 mod email_setting;

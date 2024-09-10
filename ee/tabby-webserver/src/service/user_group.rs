@@ -1,12 +1,14 @@
 use juniper::ID;
 use tabby_db::DbConn;
-use tabby_schema::user_group::{
-    CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupMembership,
-    UserGroupService,
+use tabby_schema::{
+    user_group::{
+        CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupMembership,
+        UserGroupService,
+    },
+    AsID, AsRowid, Result,
 };
-use tabby_schema::{AsID, AsRowid, Result};
 
-use super::graphql_pagination_to_filter;
+
 
 struct UserGroupServiceImpl {
     db: DbConn,
@@ -14,10 +16,7 @@ struct UserGroupServiceImpl {
 
 #[async_trait::async_trait]
 impl UserGroupService for UserGroupServiceImpl {
-    async fn list(
-        &self,
-        user_id: Option<&ID>,
-    ) -> Result<Vec<UserGroup>> {
+    async fn list(&self, user_id: Option<&ID>) -> Result<Vec<UserGroup>> {
         let user_id = user_id.map(|id| id.as_rowid()).transpose()?;
 
         Ok(self
