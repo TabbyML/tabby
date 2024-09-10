@@ -24,7 +24,7 @@ use auth::{
 use base64::Engine;
 use chrono::{DateTime, Utc};
 use context::{ContextInfo, ContextService};
-use interface::{UserInfoValue};
+use interface::UserInfoValue;
 use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLObject, IntoFieldError,
@@ -35,8 +35,7 @@ use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
 use tracing::{error, warn};
 use user_group::{
-    CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup,
-    UserGroupService,
+    CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupService,
 };
 use validator::{Validate, ValidationErrors};
 use worker::WorkerService;
@@ -196,6 +195,7 @@ impl Query {
         check_user_allow_auth_token(ctx).await
     }
 
+    /// List user info, accessible for all login users.
     async fn user_info(
         ctx: &Context,
         after: Option<String>,
@@ -214,17 +214,13 @@ impl Query {
                     .auth()
                     .list_users(after, before, first, last)
                     .await
-                    .map(|users| {
-                        users
-                            .into_iter()
-                            .map(UserInfoValue::User)
-                            .collect()
-                    })
+                    .map(|users| users.into_iter().map(UserInfoValue::User).collect())
             },
         )
         .await
     }
 
+    /// List user info, accessible for admin users.
     async fn users(
         ctx: &Context,
         after: Option<String>,

@@ -626,7 +626,9 @@ type ProvidedRepositoryEdge {
 type Query {
   registrationToken: String!
   me: User!
+  "List user info, accessible for all login users."
   userInfo(after: String, before: String, first: Int, last: Int): UserInfoConnection!
+  "List user info, accessible for admin users."
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
