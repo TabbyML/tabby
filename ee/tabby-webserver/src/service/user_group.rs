@@ -8,8 +8,6 @@ use tabby_schema::{
     AsID, AsRowid, Result,
 };
 
-
-
 struct UserGroupServiceImpl {
     db: DbConn,
 }

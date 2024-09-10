@@ -9,7 +9,6 @@ pub use integrations::IntegrationDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use oauth_credential::OAuthCredentialDAO;
-pub use policy::{UserGroupDAO, UserGroupMembershipDAO};
 pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
@@ -21,6 +20,7 @@ pub use threads::{
 use tokio::sync::Mutex;
 use user_completions::UserCompletionDailyStatsDAO;
 pub use user_events::UserEventDAO;
+pub use user_groups::{UserGroupDAO, UserGroupMembershipDAO};
 pub use users::UserDAO;
 pub use web_documents::WebDocumentDAO;
 
@@ -41,6 +41,7 @@ mod server_setting;
 mod threads;
 mod user_completions;
 mod user_events;
+mod user_groups;
 mod users;
 mod web_documents;
 
