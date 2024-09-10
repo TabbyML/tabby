@@ -183,7 +183,6 @@ pub struct UserSecured {
     pub name: String,
     pub created_at: DateTime<Utc>,
     // === end User ===
-
     pub is_admin: bool,
     pub is_owner: bool,
     pub auth_token: String,
