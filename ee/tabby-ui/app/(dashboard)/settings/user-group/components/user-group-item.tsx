@@ -19,7 +19,6 @@ import {
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   IconChevronRight,
-  IconPlus,
   IconSpinner,
   IconTrash,
   IconUsers
@@ -83,7 +82,7 @@ export function UserGroupItem({
     <div>
       <div
         className={cn(
-          'flex items-center gap-2 p-3 hover:bg-muted/50 cursor-pointer border-b',
+          'flex cursor-pointer items-center gap-2 border-b p-3 hover:bg-muted/50',
           {
             'border-b-0': !!isLastItem && !membershipOpen
           }

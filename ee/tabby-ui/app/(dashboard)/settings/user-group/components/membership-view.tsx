@@ -50,7 +50,7 @@ export function MembershipView({
   return (
     <div
       className={cn(
-        'border-b flex-col gap-1 max-h-[300px] overflow-hidden',
+        'max-h-[300px] flex-col gap-1 overflow-hidden border-b',
         className
       )}
     >
@@ -61,7 +61,7 @@ export function MembershipView({
             return (
               <div
                 key={item.id}
-                className="pl-10 pr-3 flex items-center gap-2 py-3 hover:bg-muted/50 border-b"
+                className="flex items-center gap-2 border-b py-3 pl-10 pr-3 hover:bg-muted/50"
               >
                 <IconUser className="shrink-0" />
                 <div className="flex-1">
@@ -82,7 +82,7 @@ export function MembershipView({
                     loading={fetchingAllUsers}
                     fallback={<Skeleton className="w-14" />}
                   >
-                    <div className="text-muted-foreground text-sm">
+                    <div className="text-sm text-muted-foreground">
                       {member?.email}
                     </div>
                   </LoadingWrapper>
@@ -115,7 +115,7 @@ export function MembershipView({
           <div className="px-3 py-4 text-center">No members</div>
         )}
       </ScrollArea>
-      <div className="flex justify-center mt-4 mb-8">
+      <div className="mb-8 mt-4 flex justify-center">
         <UpsertMemberDialog
           isNew
           userGroupId={userGroupId}

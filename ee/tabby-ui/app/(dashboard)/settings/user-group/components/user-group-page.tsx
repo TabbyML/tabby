@@ -52,14 +52,14 @@ export default function UsersTable() {
         loading={fetching}
         fallback={<ListSkeleton className="mt-12" />}
       >
-        <div className="flex justify-end mb-4">
+        <div className="mb-4 flex justify-end">
           <CreateUserGroupDialog onSubmit={onCreateUserGroup}>
             <Button type="button">Create</Button>
           </CreateUserGroupDialog>
         </div>
         {userGroups?.length ? (
-          <div className="border rounded-lg overflow-hidden">
-            <div className="border-b bg-muted font-semibold py-3 px-4">
+          <div className="overflow-hidden rounded-lg border">
+            <div className="border-b bg-muted px-4 py-3 font-semibold">
               Groups
             </div>
             {userGroups.map((group, idx) => {

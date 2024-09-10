@@ -1,16 +1,13 @@
 import { useState } from 'react'
 
 import { UserGroupMembership } from '@/lib/gql/generates/graphql'
-import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
-import { IconPlus } from '@/components/ui/icons'
 
 import UpsertMembershipForm from './upsert-member-form'
 
