@@ -428,11 +428,9 @@ export function Search() {
 
   // Handling the stream response from useThreadRun
   useEffect(() => {
-    if (!answer) return
-
     // update threadId
-    if (answer?.threadCreated && answer.threadCreated !== threadId) {
-      setThreadId(answer.threadCreated)
+    if (answer.threadId && answer.threadId !== threadId) {
+      setThreadId(answer.threadId)
     }
 
     let newMessages = [...messages]
@@ -451,18 +449,14 @@ export function Search() {
     const currentAssistantMessage = newMessages[currentAssistantMessageIdx]
 
     // update assistant message
-    currentAssistantMessage.content =
-      answer?.threadAssistantMessageContentDelta || ''
+    currentAssistantMessage.content = answer.content
 
     // get and format scores from streaming answer
-    if (
-      !currentAssistantMessage?.attachment?.code &&
-      !!answer?.threadAssistantMessageAttachmentsCode
-    ) {
+    if (!currentAssistantMessage.attachment?.code && !!answer.attachmentsCode) {
       currentAssistantMessage.attachment = {
         doc: currentAssistantMessage.attachment?.doc || null,
         code:
-          answer?.threadAssistantMessageAttachmentsCode?.map(hit => ({
+          answer.attachmentsCode.map(hit => ({
             ...hit.code,
             extra: {
               scores: hit.scores
@@ -472,13 +466,10 @@ export function Search() {
     }
 
     // get and format scores from streaming answer
-    if (
-      !currentAssistantMessage?.attachment?.doc &&
-      !!answer?.threadAssistantMessageAttachmentsDoc
-    ) {
+    if (!currentAssistantMessage.attachment?.doc && !!answer.attachmentsDoc) {
       currentAssistantMessage.attachment = {
         doc:
-          answer?.threadAssistantMessageAttachmentsDoc?.map(hit => ({
+          answer.attachmentsDoc.map(hit => ({
             ...hit.doc,
             extra: {
               score: hit.score
@@ -488,12 +479,11 @@ export function Search() {
       }
     }
 
-    currentAssistantMessage.threadRelevantQuestions =
-      answer?.threadRelevantQuestions
+    currentAssistantMessage.threadRelevantQuestions = answer?.relevantQuestions
 
     // update message pair ids
-    const newUserMessageId = answer?.threadUserMessageCreated
-    const newAssistantMessageId = answer?.threadAssistantMessageCreated
+    const newUserMessageId = answer.userMessageId
+    const newAssistantMessageId = answer.assistantMessageId
     if (
       newUserMessageId &&
       newAssistantMessageId &&
@@ -756,7 +746,7 @@ export function Search() {
           <ResizablePanel>
             <Header
               threadIdFromURL={threadIdFromURL}
-              streamingDone={!!answer?.threadAssistantMessageCompleted}
+              streamingDone={answer.completed}
             />
             <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
               <ScrollArea className="h-full" ref={contentContainerRef}>

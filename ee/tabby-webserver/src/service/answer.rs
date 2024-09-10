@@ -23,7 +23,9 @@ use tabby_schema::{
     policy::AccessPolicy,
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        ThreadRunItem, ThreadRunOptionsInput,
+        ThreadAssistantMessageAttachmentsCode, ThreadAssistantMessageAttachmentsDoc,
+        ThreadAssistantMessageContentDelta, ThreadRelevantQuestions, ThreadRunItem,
+        ThreadRunOptionsInput,
     },
 };
 use tracing::{debug, error, warn};
@@ -98,9 +100,9 @@ impl AnswerService {
                 attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
 
                 if !hits.is_empty() {
-                    let message_hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
+                    let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
                     yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
-                        message_hits
+                        ThreadAssistantMessageAttachmentsCode { hits }
                     ));
                 }
             };
@@ -114,9 +116,9 @@ impl AnswerService {
                         .collect::<Vec<_>>();
 
                 if !attachment.doc.is_empty() {
-                    let message_hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
+                    let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
                     yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(
-                        message_hits
+                        ThreadAssistantMessageAttachmentsDoc { hits }
                     ));
                 }
             };
@@ -128,7 +130,9 @@ impl AnswerService {
                 let questions = self
                     .generate_relevant_questions_v2(&attachment, &content)
                     .await;
-                yield Ok(ThreadRunItem::ThreadRelevantQuestions(questions));
+                yield Ok(ThreadRunItem::ThreadRelevantQuestions(ThreadRelevantQuestions{
+                    questions
+            }));
             }
 
             // 4. Prepare requesting LLM
@@ -167,7 +171,9 @@ impl AnswerService {
                 };
 
                 if let Some(content) = chunk.choices[0].delta.content.as_deref() {
-                    yield Ok(ThreadRunItem::ThreadAssistantMessageContentDelta(content.to_owned()));
+                    yield Ok(ThreadRunItem::ThreadAssistantMessageContentDelta(ThreadAssistantMessageContentDelta {
+                        delta: content.to_owned()
+                }));
                 }
             }
         };

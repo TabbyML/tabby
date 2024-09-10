@@ -206,22 +206,18 @@ function ChatRenderer(
     const lastQaPairs = qaPairs[qaPairs.length - 1]
 
     // update threadId
-    if (answer?.threadCreated && !threadId) {
-      setThreadId(answer.threadCreated)
+    if (answer.threadId && !threadId) {
+      setThreadId(answer.threadId)
     }
 
     setQaPairs(prev => {
       const assisatntMessage = prev[prev.length - 1].assistant
       const nextAssistantMessage: AssistantMessage = {
         ...assisatntMessage,
-        id:
-          answer?.threadAssistantMessageCreated ||
-          assisatntMessage?.id ||
-          nanoid(),
-        message: answer.threadAssistantMessageContentDelta ?? '',
+        id: answer.assistantMessageId || assisatntMessage?.id || nanoid(),
+        message: answer.content,
         error: undefined,
-        relevant_code:
-          answer?.threadAssistantMessageAttachmentsCode?.map(o => o.code) ?? []
+        relevant_code: answer.attachmentsCode?.map(o => o.code) ?? []
       }
       // merge assistantMessage
       return [
@@ -229,7 +225,7 @@ function ChatRenderer(
         {
           user: {
             ...lastQaPairs.user,
-            id: answer?.threadUserMessageCreated || lastQaPairs.user.id
+            id: answer?.userMessageId || lastQaPairs.user.id
           },
           assistant: nextAssistantMessage
         }
