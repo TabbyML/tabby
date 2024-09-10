@@ -177,11 +177,12 @@ impl JWTPayload {
 #[derive(Debug, GraphQLObject)]
 #[graphql(context = Context, impl = [UserInfoValue])]
 pub struct User {
-    // implementing UserInterface
+    // === implements UserInfoValue ===
     pub id: juniper::ID,
     pub email: String,
     pub name: String,
     pub created_at: DateTime<Utc>,
+    // === end UserInfoValue ===
 
     pub is_admin: bool,
     pub is_owner: bool,
