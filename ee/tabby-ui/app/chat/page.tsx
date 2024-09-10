@@ -168,7 +168,7 @@ export default function ChatPage() {
         document.execCommand('selectAll')
       } else if (
         focusKeyInfo &&
-        event.key == focusKeyInfo.key &&
+        event.key.toLowerCase() == focusKeyInfo.key &&
         event.ctrlKey == focusKeyInfo.ctrlKey &&
         event.metaKey == focusKeyInfo.metaKey &&
         event.altKey == focusKeyInfo.altKey &&

@@ -18,7 +18,7 @@ import {
   commands,
   ColorThemeKind,
 } from "vscode";
-import type { ServerApi, ChatMessage, Context, NavigateOpts } from "tabby-chat-panel";
+import type { ServerApi, ChatMessage, Context, NavigateOpts, FocusKeybinding } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
 import type { ServerInfo } from "tabby-agent";
@@ -27,14 +27,14 @@ import { createClient } from "./chatPanel";
 import { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
 import { contributes } from "../../package.json";
-import { parseKeybinding } from "../util/KeybindingParser";
+import { parseKeybinding, readUserKeybindingsConfig } from "../util/KeybindingParser";
 export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
   private pendingMessages: ChatMessage[] = [];
   private pendingRelevantContexts: Context[] = [];
   private isChatPageDisplayed = false;
-  private isMac = process.platform === "darwin";
+  private isUnix = Boolean(env.appHost === "desktop" && env.appRoot && env.appRoot[10] === "/");
 
   constructor(
     private readonly context: ExtensionContext,
@@ -320,30 +320,33 @@ export class ChatViewProvider implements WebviewViewProvider {
 
     this.pendingRelevantContexts.forEach((ctx) => this.addRelevantContext(ctx));
     this.pendingMessages.forEach((message) => this.sendMessageToChatPanel(message));
+
     if (serverInfo.config.token) {
       this.client?.cleanError();
-      // Duplicate init won't break or reload the current chat page
-      const focusKey = contributes.keybindings.find((cmd) => cmd.command === "tabby.chatView.focus");
-      let focusKeybinding;
-      if (focusKey) {
-        focusKeybinding = parseKeybinding(this.isMac && focusKey.mac ? focusKey.mac : focusKey.key);
-      }
+
+      const focusKeybinding = await this.getFocusKeybinding();
       getLogger().info("focus key binding: ", focusKeybinding);
+
       this.client?.init({
         fetcherOptions: {
           authorization: serverInfo.config.token,
         },
-        focusKey: focusKeybinding
-          ? focusKeybinding
-          : {
-              key: "l",
-              altKey: false,
-              metaKey: this.isMac,
-              ctrlKey: !this.isMac,
-              shiftKey: false,
-            },
+        focusKey: focusKeybinding,
       });
     }
+  }
+
+  private async getFocusKeybinding(): Promise<FocusKeybinding | undefined> {
+    const focusCommand = "tabby.chatView.focus";
+    const defaultFocusKey = contributes.keybindings.find((cmd) => cmd.command === focusCommand);
+    const defaultKeybinding = defaultFocusKey
+      ? parseKeybinding(this.isUnix && defaultFocusKey.mac ? defaultFocusKey.mac : defaultFocusKey.key)
+      : undefined;
+
+    const allKeybindings = await readUserKeybindingsConfig();
+    const userShortcut = allKeybindings?.find((keybinding) => keybinding.command === focusCommand);
+
+    return userShortcut ? parseKeybinding(userShortcut.key) : defaultKeybinding;
   }
 
   private async displayChatPage(endpoint: string, opts?: { force: boolean }) {
