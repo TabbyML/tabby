@@ -140,6 +140,7 @@ export function UserGroupItem({
       {membershipOpen && (
         <MembershipView
           userGroupId={userGroup.id}
+          userGroupName={userGroup.name}
           className={isLastItem ? 'border-b-0' : undefined}
         />
       )}
