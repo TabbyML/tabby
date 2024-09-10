@@ -29,7 +29,7 @@ impl UserGroupService for UserGroupServiceImpl {
         let mut user_groups = Vec::new();
         for x in self.db.list_user_groups(user_id).await? {
             let mut members = Vec::new();
-            for x in self.db.list_user_group_memberships(x.id, user_id).await? {
+            for x in self.db.list_user_group_memberships(x.id, None).await? {
                 members.push(UserGroupMembership {
                     is_group_admin: x.is_group_admin,
                     created_at: x.created_at,
@@ -89,6 +89,7 @@ pub fn create(db: DbConn) -> impl UserGroupService {
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
     use tabby_db::testutils;
 
     use super::*;
@@ -158,28 +159,22 @@ mod tests {
         let result = svc.list(&user1_policy).await.unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].id, user_group1);
+        assert_eq!(result[0].members.len(), 2);
+        assert_matches!(&result[0].members[0].user, UserInfoValue::User(user) => {
+            assert_eq!(user.id, user1);
+        });
+        assert_matches!(&result[0].members[1].user, UserInfoValue::User(user) => {
+            assert_eq!(user.id, user2);
+        });
 
         // Test listing user groups as user2
         let result = svc.list(&user2_policy).await.unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].id, user_group1);
         assert_eq!(result[1].id, user_group2);
-
-        // Test list user group membership as user1 (group admin)
-        let result = svc
-            .list_membership(&user1_policy, &user_group1)
-            .await
-            .unwrap();
-        assert_eq!(result.len(), 2);
-        assert_eq!(result[0].user_id, user1);
-        assert_eq!(result[1].user_id, user2);
-
-        // Test list user group membership in user_group1 as user2
-        let result = svc
-            .list_membership(&user2_policy, &user_group1)
-            .await
-            .unwrap();
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].user_id, user2);
+        assert_eq!(result[1].members.len(), 1);
+        assert_matches!(&result[1].members[0].user, UserInfoValue::User(user) => {
+            assert_eq!(user.id, user2);
+        });
     }
 }
