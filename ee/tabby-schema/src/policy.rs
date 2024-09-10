@@ -81,6 +81,56 @@ impl AccessPolicy {
 
         Ok(())
     }
+
+    pub async fn check_update_user_group_membership(&self, user_group_id: &ID) -> Result<()> {
+        if !self.is_admin /* Admin can change any user group membership */
+            && !self
+                .is_user_group_admin(user_group_id)
+                .await
+        /* User group admin can change membership within their group */
+        {
+            return Err(CoreError::Forbidden(
+                "You are not allowed to update this user group membership",
+            ));
+        }
+
+        Ok(())
+    }
+
+    pub fn list_user_group_user_id_filter(&self) -> Option<&ID> {
+        if self.is_admin {
+            // Admin can list all user groups.
+            None
+        } else {
+            // Non-admin can only list user groups they are a member of.
+            Some(&self.user_id)
+        }
+    }
+
+    pub async fn list_user_group_memberships_user_id_filter(
+        &self,
+        user_group_id: &ID,
+    ) -> Option<&ID> {
+        if self.is_admin || self.is_user_group_admin(user_group_id).await {
+            None
+        } else {
+            Some(&self.user_id)
+        }
+    }
+
+    async fn is_user_group_admin(&self, user_group_id: &ID) -> bool {
+        self.is_user_group_admin_impl(user_group_id)
+            .await
+            .unwrap_or_default()
+    }
+
+    async fn is_user_group_admin_impl(&self, user_group_id: &ID) -> Result<bool> {
+        let x = self
+            .db
+            .is_user_group_admin(self.user_id.as_rowid()?, user_group_id.as_rowid()?)
+            .await?;
+        Ok(x)
+    }
 }
 
 #[cfg(test)]

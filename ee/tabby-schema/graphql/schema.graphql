@@ -141,6 +141,10 @@ input CreateThreadRunInput {
   options: ThreadRunOptionsInput! = {codeQuery: null, debugOptions: null, docQuery: null, generateRelevantQuestions: false}
 }
 
+input CreateUserGroupInput {
+  "User group name, can only start with a lowercase letter, and contain characters, numbers, and `-` or `_`" name: String!
+}
+
 input DocQueryInput {
   content: String!
   "Whether to collect documents from public web." searchPublic: Boolean!
@@ -224,6 +228,12 @@ input UpdateOAuthCredentialInput {
   provider: OAuthProvider!
   clientId: String!
   clientSecret: String
+}
+
+input UpsertUserGroupMembershipInput {
+  userGroupId: ID!
+  userId: ID!
+  isGroupAdmin: Boolean!
 }
 
 """
@@ -539,6 +549,10 @@ type Mutation {
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
   deleteCustomDocument(id: ID!): Boolean!
   setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
+  createUserGroup(input: CreateUserGroupInput!): ID!
+  deleteUserGroup(id: ID!): Boolean!
+  upsertUserGroupMembership(input: UpsertUserGroupMembershipInput!): Boolean!
+  deleteUserGroupMembership(userGroupId: ID!, userId: ID!): Boolean!
 }
 
 type NetworkSetting {
@@ -652,6 +666,18 @@ type Query {
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
   customWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
   presetWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int, isActive: Boolean): PresetDocumentConnection!
+  """
+    List user groups.
+
+    When the requesting user is an admin, all user groups will be returned. Otherwise, they can only see groups they are a member of.
+  """
+  userGroups: [UserGroup!]!
+  """
+    List memberships for user groups.
+
+    When the requesting user is an group admin of the group, all memberships of the group will be returned. Otherwise, they can only see themselves.
+  """
+  userGroupMemberships(userGroupId: ID!): [UserGroupMembership!]!
 }
 
 type RefreshTokenResponse {
@@ -778,4 +804,20 @@ type UserEventConnection {
 type UserEventEdge {
   node: UserEvent!
   cursor: String!
+}
+
+type UserGroup {
+  id: ID!
+  name: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type UserGroupMembership {
+  id: ID!
+  userGroupId: ID!
+  userId: ID!
+  isGroupAdmin: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }

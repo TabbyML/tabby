@@ -7,6 +7,7 @@ lazy_static! {
         Regex::new(r"^[^0-9±!@£$%^&*_+§¡€#¢¶•ªº«\\/<>?:;|=.,]{2,20}$").unwrap();
     pub static ref WEB_DOCUMENT_NAME_REGEX: Regex =
         Regex::new(r"^[A-Za-z][A-Za-z0-9#]*(?:[\s.-][A-Za-z0-9]+)*$").unwrap();
+    pub static ref USER_GROUP_NAME_REGEX: Regex = Regex::new(r"^[a-z][a-z0-9_-]*$").unwrap();
 }
 
 #[cfg(test)]
@@ -59,6 +60,25 @@ mod tests {
 
         for (name, expected) in test_cases {
             let result = WEB_DOCUMENT_NAME_REGEX.is_match(name);
+            assert_eq!(result, expected, "Failed for name: {}", name);
+        }
+    }
+
+    #[test]
+    fn test_user_group_name_regex() {
+        let test_cases = vec![
+            ("group", true),       // Valid name
+            ("group123", true),    // Valid name with numbers
+            ("group-name", true),  // Valid name with hyphen
+            ("group_name", true),  // Valid name with underscore
+            ("Group", false),      // Invalid: starts with uppercase letter
+            ("1group", false),     // Invalid: starts with number
+            ("group name", false), // Invalid: contains space
+            ("group*name", false), // Invalid: contains special character
+        ];
+
+        for (name, expected) in test_cases {
+            let result = USER_GROUP_NAME_REGEX.is_match(name);
             assert_eq!(result, expected, "Failed for name: {}", name);
         }
     }

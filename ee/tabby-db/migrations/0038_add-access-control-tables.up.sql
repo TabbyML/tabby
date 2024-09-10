@@ -1,5 +1,5 @@
 CREATE TABLE user_groups (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   name VARCHAR(255) NOT NULL,
 
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
@@ -9,7 +9,7 @@ CREATE TABLE user_groups (
 );
 
 CREATE TABLE user_group_memberships (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 
   user_id INTEGER NOT NULL,
   user_group_id INTEGER NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE user_group_memberships (
 );
 
 CREATE TABLE source_id_read_access_policies (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 
   -- source_id doesn't come with DB constraint, need individual garbage collection job
   source_id VARCHAR(255) NOT NULL,

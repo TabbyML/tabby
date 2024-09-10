@@ -10,6 +10,7 @@ pub mod repository;
 pub mod setting;
 pub mod thread;
 pub mod user_event;
+pub mod user_group;
 pub mod web_documents;
 pub mod worker;
 
@@ -31,6 +32,10 @@ use repository::RepositoryGrepOutput;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
 use tracing::{error, warn};
+use user_group::{
+    CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupMembership,
+    UserGroupService,
+};
 use validator::{Validate, ValidationErrors};
 use worker::WorkerService;
 
@@ -76,6 +81,7 @@ pub trait ServiceLocator: Send + Sync {
     fn web_documents(&self) -> Arc<dyn WebDocumentService>;
     fn thread(&self) -> Arc<dyn ThreadService>;
     fn context(&self) -> Arc<dyn ContextService>;
+    fn user_group(&self) -> Arc<dyn UserGroupService>;
 }
 
 pub struct Context {
@@ -617,6 +623,28 @@ impl Query {
         )
         .await
     }
+
+    /// List user groups.
+    ///
+    /// When the requesting user is an admin, all user groups will be returned. Otherwise, they can only see groups they are a member of.
+    async fn user_groups(ctx: &Context) -> Result<Vec<UserGroup>> {
+        let user = check_user(ctx).await?;
+        ctx.locator.user_group().list(&user.policy).await
+    }
+
+    /// List memberships for user groups.
+    ///
+    /// When the requesting user is an group admin of the group, all memberships of the group will be returned. Otherwise, they can only see themselves.
+    async fn user_group_memberships(
+        ctx: &Context,
+        user_group_id: ID,
+    ) -> Result<Vec<UserGroupMembership>> {
+        let user = check_user(ctx).await?;
+        ctx.locator
+            .user_group()
+            .list_membership(&user.policy, &user_group_id)
+            .await
+    }
 }
 
 #[derive(GraphQLObject)]
@@ -1028,6 +1056,51 @@ impl Mutation {
         ctx.locator
             .web_documents()
             .set_preset_web_documents_active(input.id, input.active)
+            .await?;
+        Ok(true)
+    }
+
+    async fn create_user_group(ctx: &Context, input: CreateUserGroupInput) -> Result<ID> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        let id = ctx.locator.user_group().create(&input).await?;
+        Ok(id)
+    }
+
+    async fn delete_user_group(ctx: &Context, id: ID) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator.user_group().delete(&id).await?;
+        Ok(true)
+    }
+
+    async fn upsert_user_group_membership(
+        ctx: &Context,
+        input: UpsertUserGroupMembershipInput,
+    ) -> Result<bool> {
+        let user = check_user(ctx).await?;
+        user.policy
+            .check_update_user_group_membership(&input.user_group_id)
+            .await?;
+
+        input.validate()?;
+        ctx.locator.user_group().upsert_membership(&input).await?;
+        Ok(true)
+    }
+
+    async fn delete_user_group_membership(
+        ctx: &Context,
+        user_group_id: ID,
+        user_id: ID,
+    ) -> Result<bool> {
+        let user = check_user(ctx).await?;
+        user.policy
+            .check_update_user_group_membership(&user_group_id)
+            .await?;
+
+        check_admin(ctx).await?;
+        ctx.locator
+            .user_group()
+            .delete_membership(&user_group_id, &user_id)
             .await?;
         Ok(true)
     }

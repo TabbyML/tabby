@@ -13,6 +13,7 @@ pub mod repository;
 mod setting;
 mod thread;
 mod user_event;
+mod user_group;
 pub mod web_documents;
 
 use std::sync::Arc;
@@ -46,6 +47,7 @@ use tabby_schema::{
     setting::SettingService,
     thread::ThreadService,
     user_event::UserEventService,
+    user_group::UserGroupService,
     web_documents::WebDocumentService,
     worker::WorkerService,
     AsID, AsRowid, CoreError, Result, ServiceLocator,
@@ -66,6 +68,7 @@ struct ServerContext {
     web_documents: Arc<dyn WebDocumentService>,
     thread: Arc<dyn ThreadService>,
     context: Arc<dyn ContextService>,
+    user_group: Arc<dyn UserGroupService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -102,6 +105,7 @@ impl ServerContext {
         let user_event = Arc::new(user_event::create(db_conn.clone()));
         let setting = Arc::new(setting::create(db_conn.clone()));
         let thread = Arc::new(thread::create(db_conn.clone(), answer.clone()));
+        let user_group = Arc::new(user_group::create(db_conn.clone()));
 
         background_job::start(
             db_conn.clone(),
@@ -134,6 +138,7 @@ impl ServerContext {
             logger,
             code,
             setting,
+            user_group,
             db_conn,
             is_chat_enabled_locally,
         }
@@ -286,6 +291,10 @@ impl ServiceLocator for ArcServerContext {
 
     fn context(&self) -> Arc<dyn ContextService> {
         self.0.context.clone()
+    }
+
+    fn user_group(&self) -> Arc<dyn UserGroupService> {
+        self.0.user_group.clone()
     }
 }
 

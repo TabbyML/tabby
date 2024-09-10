@@ -33,60 +33,6 @@ WHERE user_group_memberships.user_id = ? AND source_id = ?
         Ok(row.is_some())
     }
 
-    pub async fn create_user_group(&self, name: &str) -> anyhow::Result<i64> {
-        let id = query!("INSERT INTO user_groups (name) VALUES (?)", name)
-            .execute(&self.pool)
-            .await?
-            .last_insert_rowid();
-
-        Ok(id)
-    }
-
-    pub async fn upsert_user_group_membership(
-        &self,
-        user_id: i64,
-        user_group_id: i64,
-        is_group_admin: bool,
-    ) -> anyhow::Result<()> {
-        let _ = query!(
-            r#"
-INSERT INTO user_group_memberships (user_id, user_group_id, is_group_admin) VALUES (?, ?, ?)
-ON CONFLICT (user_id, user_group_id) DO UPDATE
-  SET is_group_admin = excluded.is_group_admin, updated_at = DATETIME('now')
-        "#,
-            user_id,
-            user_group_id,
-            is_group_admin
-        )
-        .execute(&self.pool)
-        .await?;
-
-        Ok(())
-    }
-
-    pub async fn delete_user_group_membership(
-        &self,
-        user_id: i64,
-        user_group_id: i64,
-    ) -> anyhow::Result<()> {
-        let rows_deleted = query!(
-            r#"
-DELETE FROM user_group_memberships WHERE user_id = ? AND user_group_id = ?
-        "#,
-            user_id,
-            user_group_id
-        )
-        .execute(&self.pool)
-        .await?
-        .rows_affected();
-
-        if rows_deleted == 1 {
-            Ok(())
-        } else {
-            Err(anyhow::anyhow!("User group membership not found"))
-        }
-    }
-
     pub async fn upsert_source_id_read_access_policy(
         &self,
         source_id: &str,
