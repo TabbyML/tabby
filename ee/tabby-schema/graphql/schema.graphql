@@ -560,6 +560,8 @@ type Mutation {
   deleteUserGroup(id: ID!): Boolean!
   upsertUserGroupMembership(input: UpsertUserGroupMembershipInput!): Boolean!
   deleteUserGroupMembership(userGroupId: ID!, userId: ID!): Boolean!
+  grantSourceIdReadAccess(sourceId: String!, userGroupId: ID!): Boolean!
+  revokeSourceIdReadAccess(sourceId: String!, userGroupId: ID!): Boolean!
 }
 
 type NetworkSetting {
@@ -682,6 +684,7 @@ type Query {
     When the requesting user is an admin, all user groups will be returned. Otherwise, they can only see groups they are a member of.
   """
   userGroups: [UserGroup!]!
+  sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
 }
 
 type RefreshTokenResponse {
@@ -730,6 +733,11 @@ type ServerInfo {
   isEmailConfigured: Boolean!
   allowSelfSignup: Boolean!
   isDemoMode: Boolean!
+}
+
+type SourceIdAccessPolicy {
+  sourceId: String!
+  read: [UserGroup!]!
 }
 
 type Subscription {

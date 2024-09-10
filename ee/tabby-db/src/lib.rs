@@ -24,6 +24,7 @@ pub use user_groups::{UserGroupDAO, UserGroupMembershipDAO};
 pub use users::UserDAO;
 pub use web_documents::WebDocumentDAO;
 
+mod access_policy;
 pub mod cache;
 mod email_setting;
 mod integrations;
@@ -33,7 +34,6 @@ mod job_runs;
 mod migration_tests;
 mod oauth_credential;
 mod password_reset;
-mod policy;
 mod provided_repositories;
 mod refresh_tokens;
 mod repositories;

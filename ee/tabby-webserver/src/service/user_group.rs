@@ -1,18 +1,14 @@
-use anyhow::Context;
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
-    auth::UserSecured,
-    interface::UserValue,
     policy::AccessPolicy,
     user_group::{
-        CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupMembership,
-        UserGroupService,
+        CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupService,
     },
     AsID, AsRowid, Result,
 };
 
-use super::UserSecuredExt;
+use super::{UserGroupExt, UserSecuredExt};
 
 struct UserGroupServiceImpl {
     db: DbConn,
@@ -28,29 +24,7 @@ impl UserGroupService for UserGroupServiceImpl {
 
         let mut user_groups = Vec::new();
         for x in self.db.list_user_groups(user_id).await? {
-            let mut members = Vec::new();
-            for x in self.db.list_user_group_memberships(x.id, None).await? {
-                members.push(UserGroupMembership {
-                    is_group_admin: x.is_group_admin,
-                    created_at: x.created_at,
-                    updated_at: x.updated_at,
-                    user: UserValue::UserSecured(UserSecured::new(
-                        self.db.clone(),
-                        self.db
-                            .get_user(x.user_id)
-                            .await?
-                            .context("User doesn't exists")?,
-                    )),
-                });
-            }
-
-            user_groups.push(UserGroup {
-                id: x.id.as_id(),
-                name: x.name,
-                created_at: x.created_at,
-                updated_at: x.updated_at,
-                members,
-            });
+            user_groups.push(UserGroup::new(self.db.clone(), x).await?);
         }
         Ok(user_groups)
     }
@@ -91,6 +65,7 @@ pub fn create(db: DbConn) -> impl UserGroupService {
 mod tests {
     use assert_matches::assert_matches;
     use tabby_db::testutils;
+    use tabby_schema::interface::UserValue;
 
     use super::*;
 
