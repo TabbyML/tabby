@@ -105,29 +105,6 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn is_user_group_admin(
-        &self,
-        user_id: i64,
-        user_group_id: i64,
-    ) -> anyhow::Result<bool> {
-        struct Result {
-            is_group_admin: bool,
-        }
-
-        let res = query_as!(
-            Result,
-            r#"SELECT
-                is_group_admin
-            FROM user_group_memberships WHERE user_id = ? AND user_group_id = ? AND is_group_admin"#,
-            user_id,
-            user_group_id
-        )
-        .fetch_optional(&self.pool)
-        .await?;
-
-        Ok(res.is_some_and(|x| x.is_group_admin))
-    }
-
     pub async fn upsert_user_group_membership(
         &self,
         user_id: i64,

@@ -127,9 +127,9 @@ impl AccessPolicy {
     async fn is_user_group_admin_impl(&self, user_group_id: &ID) -> Result<bool> {
         let x = self
             .db
-            .is_user_group_admin(self.user_id.as_rowid()?, user_group_id.as_rowid()?)
+            .list_user_group_memberships(user_group_id.as_rowid()?, Some(self.user_id.as_rowid()?))
             .await?;
-        Ok(x)
+        Ok(x.first().is_some_and(|x| x.is_group_admin))
     }
 }
 
