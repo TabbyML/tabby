@@ -1,17 +1,26 @@
 use anyhow::bail;
 use chrono::{DateTime, Utc};
 use sqlx::{query, query_as, FromRow};
+use tabby_db_macros::query_paged_as;
 
 use crate::DbConn;
 
 #[derive(FromRow)]
-struct UserGroupMemberDAO {
-    id: i64,
-    user_id: i64,
-    user_group_id: i64,
-    is_group_admin: bool,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+pub struct UserGroupDAO {
+    pub id: i64,
+    pub name: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(FromRow)]
+pub struct UserGroupMembershipDAO {
+    pub id: i64,
+    pub user_id: i64,
+    pub user_group_id: i64,
+    pub is_group_admin: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl DbConn {
@@ -43,6 +52,68 @@ WHERE user_group_memberships.user_id = ? AND source_id = ?
         .await?;
 
         Ok(row.is_some())
+    }
+
+    pub async fn list_user_groups(
+        &self,
+        user_id: Option<i64>,
+    ) -> anyhow::Result<Vec<UserGroupDAO>> {
+        let user_groups = query_as!(
+            UserGroupDAO,
+            r#"SELECT
+                user_groups.id as "id",
+                name,
+                user_groups.created_at as "created_at: DateTime<Utc>",
+                user_groups.updated_at as "updated_at: DateTime<Utc>"
+            FROM user_groups LEFT JOIN user_group_memberships ON (user_group_memberships.user_group_id = user_groups.id)
+            WHERE (user_group_memberships.user_id = ?1 OR NULL = ?1)
+            "#,
+            user_id
+        ).fetch_all(&self.pool)
+        .await?;
+
+        Ok(user_groups)
+    }
+
+    pub async fn list_user_group_memberships(
+        &self,
+        id: i64,
+        user_id: Option<i64>,
+    ) -> anyhow::Result<Vec<UserGroupMembershipDAO>> {
+        let memberships: Vec<_> = if let Some(user_id) = user_id {
+            query_as!(
+                UserGroupMembershipDAO,
+                r#"SELECT
+              id,
+              user_id,
+              user_group_id,
+              is_group_admin,
+              created_at as "created_at: DateTime<Utc>",
+              updated_at as "updated_at: DateTime<Utc>"
+            FROM user_group_memberships
+            WHERE user_group_id = ? AND user_id = ?"#,
+                id,
+                user_id
+            )
+            .fetch_all(&self.pool).await?
+        } else {
+            query_as!(
+                UserGroupMembershipDAO,
+                r#"SELECT
+              id,
+              user_id,
+              user_group_id,
+              is_group_admin,
+              created_at as "created_at: DateTime<Utc>",
+              updated_at as "updated_at: DateTime<Utc>"
+            FROM user_group_memberships
+            WHERE user_group_id = ?"#,
+                id,
+            )
+            .fetch_all(&self.pool).await?
+        };
+
+        Ok(memberships)
     }
 
     pub async fn create_user_group(&self, name: &str) -> anyhow::Result<i64> {

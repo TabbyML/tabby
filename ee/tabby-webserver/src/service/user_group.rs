@@ -1,9 +1,12 @@
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::user_group::{
-    CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupService,
+    CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupMembership,
+    UserGroupService,
 };
 use tabby_schema::{AsID, AsRowid, Result};
+
+use super::graphql_pagination_to_filter;
 
 struct UserGroupServiceImpl {
     db: DbConn,
@@ -13,12 +16,17 @@ struct UserGroupServiceImpl {
 impl UserGroupService for UserGroupServiceImpl {
     async fn list(
         &self,
-        after: Option<String>,
-        before: Option<String>,
-        first: Option<usize>,
-        last: Option<usize>,
+        user_id: Option<&ID>,
     ) -> Result<Vec<UserGroup>> {
-        todo!()
+        let user_id = user_id.map(|id| id.as_rowid()).transpose()?;
+
+        Ok(self
+            .db
+            .list_user_groups(user_id)
+            .await?
+            .into_iter()
+            .map(Into::into)
+            .collect())
     }
 
     async fn create(&self, input: &CreateUserGroupInput) -> Result<ID> {
@@ -29,6 +37,21 @@ impl UserGroupService for UserGroupServiceImpl {
     async fn delete(&self, user_group_id: &ID) -> Result<()> {
         self.db.delete_user_group(user_group_id.as_rowid()?).await?;
         Ok(())
+    }
+
+    async fn list_membership(
+        &self,
+        user_group_id: &ID,
+        user_id: Option<&ID>,
+    ) -> Result<Vec<UserGroupMembership>> {
+        let user_id = user_id.map(|id| id.as_rowid()).transpose()?;
+        Ok(self
+            .db
+            .list_user_group_memberships(user_group_id.as_rowid()?, user_id)
+            .await?
+            .into_iter()
+            .map(Into::into)
+            .collect())
     }
 
     async fn upsert_membership(&self, input: &UpsertUserGroupMembershipInput) -> Result<()> {

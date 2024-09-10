@@ -32,7 +32,10 @@ use repository::RepositoryGrepOutput;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
 use tracing::{error, warn};
-use user_group::{CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroupService};
+use user_group::{
+    CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupMembership,
+    UserGroupService,
+};
 use validator::{Validate, ValidationErrors};
 use worker::WorkerService;
 
@@ -620,6 +623,44 @@ impl Query {
         )
         .await
     }
+
+    /// List user groups.
+    ///
+    /// When the requesting user is an admin, all user groups will be returned. Otherwise, they can only see groups they are a member of.
+    async fn user_groups(ctx: &Context) -> Result<Vec<UserGroup>> {
+        let user = check_user(ctx).await?;
+        let user_id_filter = if user.is_admin { None } else { Some(user.id) };
+
+        ctx.locator.user_group().list(user_id_filter.as_ref()).await
+    }
+
+    /// List memberships for user groups.
+    ///
+    /// When the requesting user is an group admin of the group, all memberships of the group will be returned. Otherwise, they can only see themselves.
+    async fn user_group_memberships(
+        ctx: &Context,
+        user_group_id: ID,
+    ) -> Result<Vec<UserGroupMembership>> {
+        let user = check_user(ctx).await?;
+        let can_update_user_group_membership = user
+            .policy
+            .check_update_user_group_membership(&user_group_id)
+            .await
+            .is_ok();
+
+        let user_id_filter = if can_update_user_group_membership {
+            // If user is allowed to update user group membership, they can see all members
+            None
+        } else {
+            // Otherwise, they can only see themselves
+            Some(user.id)
+        };
+
+        ctx.locator
+            .user_group()
+            .list_membership(&user_group_id, user_id_filter.as_ref())
+            .await
+    }
 }
 
 #[derive(GraphQLObject)]
@@ -1053,13 +1094,12 @@ impl Mutation {
         input: UpsertUserGroupMembershipInput,
     ) -> Result<bool> {
         let user = check_user(ctx).await?;
-        user.policy.check_update_user_group_membership(&input.user_group_id).await?;
+        user.policy
+            .check_update_user_group_membership(&input.user_group_id)
+            .await?;
 
         input.validate()?;
-        ctx.locator
-            .user_group()
-            .upsert_membership(&input)
-            .await?;
+        ctx.locator.user_group().upsert_membership(&input).await?;
         Ok(true)
     }
 
@@ -1069,7 +1109,9 @@ impl Mutation {
         user_id: ID,
     ) -> Result<bool> {
         let user = check_user(ctx).await?;
-        user.policy.check_update_user_group_membership(&user_group_id).await?;
+        user.policy
+            .check_update_user_group_membership(&user_group_id)
+            .await?;
 
         check_admin(ctx).await?;
         ctx.locator

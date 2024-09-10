@@ -6,22 +6,22 @@ use validator::Validate;
 
 #[derive(GraphQLObject)]
 pub struct UserGroup {
-    id: ID,
-    name: String,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
-
-    members: Vec<UserGroupMember>,
+    pub id: ID,
+    pub name: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(GraphQLObject)]
-pub struct UserGroupMember {
-    user_id: ID,
+pub struct UserGroupMembership {
+    pub id: ID,
+    pub user_group_id: ID,
+    pub user_id: ID,
 
-    is_group_admin: bool,
+    pub is_group_admin: bool,
 
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(GraphQLInputObject, Validate)]
@@ -42,24 +42,30 @@ pub struct CreateUserGroupInput {
 }
 
 #[derive(GraphQLInputObject, Validate)]
-pub struct  UpsertUserGroupMembershipInput {
-     pub user_group_id: ID,
-     pub user_id: ID,
-     pub is_group_admin: bool,
+pub struct UpsertUserGroupMembershipInput {
+    pub user_group_id: ID,
+    pub user_id: ID,
+    pub is_group_admin: bool,
 }
 
 #[async_trait]
 pub trait UserGroupService: Send + Sync {
-    async fn list(
-        &self,
-        after: Option<String>,
-        before: Option<String>,
-        first: Option<usize>,
-        last: Option<usize>,
-    ) -> Result<Vec<UserGroup>>;
+    // List user groups.
+    //
+    // * When user_id is provided, it acts as a filter and returns user groups that the user is a member of.
+    async fn list(&self, user_id: Option<&ID>) -> Result<Vec<UserGroup>>;
 
     async fn create(&self, input: &CreateUserGroupInput) -> Result<ID>;
     async fn delete(&self, user_group_id: &ID) -> Result<()>;
+
+    // List user group memberships.
+    //
+    // * When user_id is provided, it acts as a filter, returning either 1 or 0 results.
+    async fn list_membership(
+        &self,
+        user_group_id: &ID,
+        user_id: Option<&ID>,
+    ) -> Result<Vec<UserGroupMembership>>;
 
     async fn upsert_membership(&self, input: &UpsertUserGroupMembershipInput) -> Result<()>;
     async fn delete_membership(&self, user_group_id: &ID, user_id: &ID) -> Result<()>;
