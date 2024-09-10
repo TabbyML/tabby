@@ -4,6 +4,7 @@ pub mod constants;
 pub mod context;
 pub mod email;
 pub mod integration;
+pub mod interface;
 pub mod job;
 pub mod license;
 pub mod repository;
@@ -23,6 +24,7 @@ use auth::{
 use base64::Engine;
 use chrono::{DateTime, Utc};
 use context::{ContextInfo, ContextService};
+use interface::{UserInfoValue};
 use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLObject, IntoFieldError,
@@ -33,7 +35,7 @@ use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
 use tracing::{error, warn};
 use user_group::{
-    CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupMembership,
+    CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup,
     UserGroupService,
 };
 use validator::{Validate, ValidationErrors};
@@ -192,6 +194,35 @@ impl Query {
 
     async fn me(ctx: &Context) -> Result<User> {
         check_user_allow_auth_token(ctx).await
+    }
+
+    async fn user_info(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<UserInfoValue>> {
+        check_user(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .auth()
+                    .list_users(after, before, first, last)
+                    .await
+                    .map(|users| {
+                        users
+                            .into_iter()
+                            .map(UserInfoValue::User)
+                            .collect()
+                    })
+            },
+        )
+        .await
     }
 
     async fn users(
@@ -630,20 +661,6 @@ impl Query {
     async fn user_groups(ctx: &Context) -> Result<Vec<UserGroup>> {
         let user = check_user(ctx).await?;
         ctx.locator.user_group().list(&user.policy).await
-    }
-
-    /// List memberships for user groups.
-    ///
-    /// When the requesting user is an group admin of the group, all memberships of the group will be returned. Otherwise, they can only see themselves.
-    async fn user_group_memberships(
-        ctx: &Context,
-        user_group_id: ID,
-    ) -> Result<Vec<UserGroupMembership>> {
-        let user = check_user(ctx).await?;
-        ctx.locator
-            .user_group()
-            .list_membership(&user.policy, &user_group_id)
-            .await
     }
 }
 

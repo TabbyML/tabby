@@ -10,6 +10,7 @@ use tokio::task::JoinHandle;
 use tracing::error;
 use validator::Validate;
 
+use super::interface::UserInfoValue;
 use crate::{
     juniper::relay,
     policy::AccessPolicy,
@@ -174,15 +175,17 @@ impl JWTPayload {
 }
 
 #[derive(Debug, GraphQLObject)]
-#[graphql(context = Context)]
+#[graphql(context = Context, impl = [UserInfoValue])]
 pub struct User {
+    // implementing UserInterface
     pub id: juniper::ID,
     pub email: String,
     pub name: String,
+    pub created_at: DateTime<Utc>,
+
     pub is_admin: bool,
     pub is_owner: bool,
     pub auth_token: String,
-    pub created_at: DateTime<Utc>,
     pub active: bool,
     pub is_password_set: bool,
 

@@ -32,7 +32,7 @@ use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
     constants::USER_HEADER_FIELD_NAME,
 };
-use tabby_db::DbConn;
+use tabby_db::{DbConn, UserDAO};
 use tabby_inference::Embedding;
 use tabby_schema::{
     analytic::AnalyticService,
@@ -43,6 +43,7 @@ use tabby_schema::{
     is_demo_mode,
     job::JobService,
     license::{IsLicenseValid, LicenseService},
+    policy,
     repository::RepositoryService,
     setting::SettingService,
     thread::ThreadService,
@@ -366,4 +367,27 @@ pub async fn create_gitlab_client(
         builder.insecure();
     };
     Ok(builder.build_async().await?)
+}
+
+trait UserExt {
+    fn new(db: DbConn, val: UserDAO) -> tabby_schema::auth::User;
+}
+
+impl UserExt for tabby_schema::auth::User {
+    fn new(db: DbConn, val: UserDAO) -> tabby_schema::auth::User {
+        let is_owner = val.is_owner();
+        let id = val.id.as_id();
+        tabby_schema::auth::User {
+            policy: policy::AccessPolicy::new(db, &id, val.is_admin),
+            id,
+            email: val.email,
+            name: val.name.unwrap_or_default(),
+            is_owner,
+            is_admin: val.is_admin,
+            auth_token: val.auth_token,
+            created_at: val.created_at,
+            active: val.active,
+            is_password_set: val.password_encrypted.is_some(),
+        }
+    }
 }

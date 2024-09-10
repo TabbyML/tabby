@@ -61,7 +61,7 @@ impl DbConn {
 
     pub async fn list_user_group_memberships(
         &self,
-        id: i64,
+        user_group_id: i64,
         user_id: Option<i64>,
     ) -> anyhow::Result<Vec<UserGroupMembershipDAO>> {
         let memberships: Vec<_> = query_as!(
@@ -75,7 +75,7 @@ impl DbConn {
               updated_at as "updated_at: DateTime<Utc>"
             FROM user_group_memberships
             WHERE user_group_id = ?1 AND (user_id = ?2 OR ?2 IS NULL)"#,
-            id,
+            user_group_id,
             user_id
         )
         .fetch_all(&self.pool)
