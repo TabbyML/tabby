@@ -1,6 +1,7 @@
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
+    policy::AccessPolicy,
     user_group::{
         CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupMembership,
         UserGroupService,
@@ -14,8 +15,11 @@ struct UserGroupServiceImpl {
 
 #[async_trait::async_trait]
 impl UserGroupService for UserGroupServiceImpl {
-    async fn list(&self, user_id: Option<&ID>) -> Result<Vec<UserGroup>> {
-        let user_id = user_id.map(|id| id.as_rowid()).transpose()?;
+    async fn list(&self, policy: &AccessPolicy) -> Result<Vec<UserGroup>> {
+        let user_id = policy
+            .list_user_group_user_id_filter()
+            .map(AsRowid::as_rowid)
+            .transpose()?;
 
         Ok(self
             .db
@@ -38,10 +42,14 @@ impl UserGroupService for UserGroupServiceImpl {
 
     async fn list_membership(
         &self,
+        policy: &AccessPolicy,
         user_group_id: &ID,
-        user_id: Option<&ID>,
     ) -> Result<Vec<UserGroupMembership>> {
-        let user_id = user_id.map(|id| id.as_rowid()).transpose()?;
+        let user_id = policy
+            .list_user_group_memberships_user_id_filter(user_group_id)
+            .await
+            .map(AsRowid::as_rowid)
+            .transpose()?;
         Ok(self
             .db
             .list_user_group_memberships(user_group_id.as_rowid()?, user_id)
@@ -88,6 +96,11 @@ mod tests {
         // Insert test users into the database
         let user1 = testutils::create_user(&db).await.as_id();
         let user2 = testutils::create_user2(&db).await.as_id();
+        let user3 = testutils::create_user3(&db).await.as_id();
+
+        let user1_policy = AccessPolicy::new(db.clone(), &user1, false);
+        let user2_policy = AccessPolicy::new(db.clone(), &user2, false);
+        let user3_policy = AccessPolicy::new(db.clone(), &user3, true);
 
         // Insert test user groups associated with the users
         let user_group1 = svc
@@ -129,32 +142,35 @@ mod tests {
         .await
         .unwrap();
 
-        // Test listing user groups as admin
-        let result = svc.list(None).await.unwrap();
+        // Test listing user groups as user3 (global admin, returns all groups)
+        let result = svc.list(&user3_policy).await.unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].id, user_group1);
         assert_eq!(result[1].id, user_group2);
 
         // Test listing user groups as user1
-        let result = svc.list(Some(&user1)).await.unwrap();
+        let result = svc.list(&user1_policy).await.unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].id, user_group1);
 
         // Test listing user groups as user2
-        let result = svc.list(Some(&user2)).await.unwrap();
+        let result = svc.list(&user2_policy).await.unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].id, user_group1);
         assert_eq!(result[1].id, user_group2);
 
-        // Test list user group membership as group admin
-        let result = svc.list_membership(&user_group1, None).await.unwrap();
+        // Test list user group membership as user1 (group admin)
+        let result = svc
+            .list_membership(&user1_policy, &user_group1)
+            .await
+            .unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].user_id, user1);
         assert_eq!(result[1].user_id, user2);
 
         // Test list user group membership in user_group1 as user2
         let result = svc
-            .list_membership(&user_group1, Some(&user2))
+            .list_membership(&user2_policy, &user_group1)
             .await
             .unwrap();
         assert_eq!(result.len(), 1);

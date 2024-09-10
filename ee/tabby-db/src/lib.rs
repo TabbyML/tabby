@@ -331,4 +331,12 @@ pub mod testutils {
             .await
             .unwrap()
     }
+
+    pub async fn create_user3(conn: &DbConn) -> i64 {
+        let email: &str = "test3@example.com";
+        let password: &str = "123456789";
+        conn.create_user(email.to_string(), Some(password.to_string()), true, None)
+            .await
+            .unwrap()
+    }
 }

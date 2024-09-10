@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use juniper::{GraphQLInputObject, GraphQLObject, ID};
 use validator::Validate;
 
-use crate::Result;
+use crate::{policy::{self, AccessPolicy}, Result};
 
 #[derive(GraphQLObject)]
 pub struct UserGroup {
@@ -53,8 +53,9 @@ pub struct UpsertUserGroupMembershipInput {
 pub trait UserGroupService: Send + Sync {
     // List user groups.
     //
-    // * When user_id is provided, it acts as a filter and returns user groups that the user is a member of.
-    async fn list(&self, user_id: Option<&ID>) -> Result<Vec<UserGroup>>;
+    // * When user is admin, returns all user groups.
+    // * Otherwise, returns user groups that the user is a member of.
+    async fn list(&self, policy: &AccessPolicy) -> Result<Vec<UserGroup>>;
 
     async fn create(&self, input: &CreateUserGroupInput) -> Result<ID>;
     async fn delete(&self, user_group_id: &ID) -> Result<()>;
@@ -64,8 +65,8 @@ pub trait UserGroupService: Send + Sync {
     // * When user_id is provided, it acts as a filter, returning either 1 or 0 results.
     async fn list_membership(
         &self,
+        policy: &AccessPolicy,
         user_group_id: &ID,
-        user_id: Option<&ID>,
     ) -> Result<Vec<UserGroupMembership>>;
 
     async fn upsert_membership(&self, input: &UpsertUserGroupMembershipInput) -> Result<()>;
