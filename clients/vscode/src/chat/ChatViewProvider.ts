@@ -348,10 +348,6 @@ export class ChatViewProvider implements WebviewViewProvider {
             <script defer>
               const vscode = acquireVsCodeApi();
 
-              function getTheme () {
-                return document.body.className === 'vscode-dark' ? 'dark' : 'light'
-              }
-
               function getCssVariableValue(variableName) {
                 const root = document.documentElement;
                 return getComputedStyle(root).getPropertyValue(variableName).trim();
@@ -378,7 +374,6 @@ export class ChatViewProvider implements WebviewViewProvider {
                 if (chatIframe) {
                   const fontSize = getCssVariableValue('--vscode-font-size');
                   const foreground = getCssVariableValue('--vscode-editor-foreground');
-                  const theme = getTheme()
 
                   chatIframe.addEventListener('load', function() {
                     setTimeout(() => {
