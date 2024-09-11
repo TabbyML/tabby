@@ -9,6 +9,7 @@ import { Member, useAllMembers } from '@/lib/hooks/use-all-members'
 import { useMe } from '@/lib/hooks/use-me'
 import { userGroupsQuery } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
+import { IconPlus } from '@/components/ui/icons'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
@@ -56,21 +57,18 @@ export default function UserGroups() {
         me: meData?.me
       }}
     >
-      <LoadingWrapper
-        loading={fetching}
-        fallback={<ListSkeleton className="mt-12" />}
-      >
-        {isAdmin && (
-          <div className="mb-4 flex justify-end">
-            <CreateUserGroupDialog onSubmit={onCreateUserGroup}>
-              <Button type="button">Create</Button>
-            </CreateUserGroupDialog>
-          </div>
-        )}
+      <LoadingWrapper loading={fetching} fallback={<ListSkeleton />}>
         {userGroups?.length ? (
           <div className="overflow-hidden rounded-lg border">
-            <div className="border-b bg-muted px-4 py-3 font-semibold">
+            <div className="border-b bg-muted pl-4 pr-3 py-3 font-semibold flex items-center justify-between">
               Groups
+              {isAdmin && (
+                <CreateUserGroupDialog onSubmit={onCreateUserGroup}>
+                  <Button type="button" size="icon" variant="ghost">
+                    <IconPlus />
+                  </Button>
+                </CreateUserGroupDialog>
+              )}
             </div>
             {userGroups.map((group, idx) => {
               return (
@@ -86,6 +84,13 @@ export default function UserGroups() {
         ) : (
           <div className="flex flex-col items-center gap-4 rounded-lg border-4 border-dashed py-8">
             <div>No Data</div>
+            {isAdmin && (
+              <div className="mb-4 flex justify-end">
+                <CreateUserGroupDialog onSubmit={onCreateUserGroup}>
+                  <Button type="button">Create</Button>
+                </CreateUserGroupDialog>
+              </div>
+            )}
           </div>
         )}
       </LoadingWrapper>

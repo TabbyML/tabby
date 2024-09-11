@@ -13,7 +13,7 @@ export default function UserGroupLayout({
 }) {
   return (
     <>
-      <SubHeader>
+      <SubHeader className="mb-8">
         Assign and regulate member access to different source contexts with User
         Groups, ensuring secure and customized interactions.
       </SubHeader>
