@@ -132,7 +132,7 @@ export function UserGroupItem({
                   <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                   <AlertDialogDescription>
                     It will permanently delete
-                    <span className="ml-1 font-bold">"{userGroup.name}"</span>
+                    <span className="ml-1 font-bold">{`"${userGroup.name}"`}</span>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
