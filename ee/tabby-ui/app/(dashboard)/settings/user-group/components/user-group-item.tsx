@@ -107,9 +107,9 @@ export function UserGroupItem({
           })}
         />
         <IconUsers className="shrink-0" />
-        <div className="flex-1 flex gap-2 items-center overflow-hidden">
+        <div className="flex flex-1 items-center gap-2 overflow-hidden">
           <div className="font-semibold">{userGroup.name}</div>
-          <span className="text-muted-foreground text-sm">
+          <span className="text-sm text-muted-foreground">
             {`(${memberLen} member${memberLen > 1 ? 's' : ''})`}
           </span>
         </div>

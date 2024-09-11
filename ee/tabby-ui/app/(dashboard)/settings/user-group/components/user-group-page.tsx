@@ -59,7 +59,7 @@ export default function UserGroups() {
       <LoadingWrapper loading={fetching} fallback={<ListSkeleton />}>
         {userGroups?.length ? (
           <div className="overflow-hidden rounded-lg border">
-            <div className="border-b bg-muted pl-4 pr-3 py-3 font-semibold flex items-center justify-between">
+            <div className="flex items-center justify-between border-b bg-muted py-3 pl-4 pr-3 font-semibold">
               Groups
               {isAdmin && (
                 <CreateUserGroupDialog onSubmit={onCreateUserGroup}>
