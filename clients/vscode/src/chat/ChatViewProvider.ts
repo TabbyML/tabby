@@ -26,6 +26,7 @@ import type { AgentFeature as Agent } from "../lsp/AgentFeature";
 import { createClient } from "./chatPanel";
 import { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
+import { ChatFeature } from "../lsp/ChatFeature";
 
 export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
@@ -39,6 +40,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     private readonly agent: Agent,
     private readonly logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
+    private readonly chat: ChatFeature,
   ) {}
 
   static getFileContextFromSelection({
@@ -204,8 +206,24 @@ export class ChatViewProvider implements WebviewViewProvider {
           });
         }
       },
-      onSmartApplyInEditor: (content: string) => {
+      onSmartApplyInEditor: async (languageId: string, content: string) => {
+        const editor = window.activeTextEditor;
+        if (!editor) {
+          window.showErrorMessage("No active editor found.");
+          return;
+        }
+        if (editor.document.languageId !== languageId) {
+          window.showErrorMessage("The active editor is not in the correct language.");
+          return;
+        }
+
         getLogger("Tabby").info("Smart apply in editor is not implemented yet.", content);
+        const lineRangeRes = await this.chat.provideLineRange({
+          uri: editor.document.uri.toString(),
+          applyCode: content,
+        });
+        getLogger().info("asd ", lineRangeRes?.start, lineRangeRes?.end);
+        //TODO: inline edit to apply code into range
       },
       onLoaded: () => {
         setTimeout(() => {

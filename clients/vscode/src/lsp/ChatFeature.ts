@@ -26,8 +26,12 @@ import {
   ChatEditResolveParams,
   ApplyWorkspaceEditParams,
   ApplyWorkspaceEditRequest,
+  ChatLineRangeSmartApplyParams,
+  ChatLineRangeSmartApplyRequest,
+  ChatLineRangeSmartApplyResult,
 } from "tabby-agent";
 import { diffLines } from "diff";
+import { getLogger } from "../logger";
 
 export class ChatFeature extends EventEmitter implements DynamicFeature<unknown> {
   private registration: string | undefined = undefined;
@@ -125,6 +129,18 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
       return null;
     }
     return this.client.sendRequest(ChatEditRequest.method, params, token);
+  }
+
+  async provideLineRange(
+    params: ChatLineRangeSmartApplyParams,
+    token?: CancellationToken,
+  ): Promise<ChatLineRangeSmartApplyResult | null> {
+    if (!this.isAvailable) {
+      return null;
+    }
+    const res = await this.client.sendRequest(ChatLineRangeSmartApplyRequest.type, params, token);
+    getLogger().info("provideLineRange", res);
+    return res;
   }
 
   private async handleApplyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<boolean> {

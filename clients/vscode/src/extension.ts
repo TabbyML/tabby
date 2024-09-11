@@ -79,7 +79,7 @@ export async function activate(context: ExtensionContext) {
   });
 
   // Register chat panel
-  const chatViewProvider = new ChatViewProvider(context, client.agent, logger, gitProvider);
+  const chatViewProvider = new ChatViewProvider(context, client.agent, logger, gitProvider, client.chat);
   context.subscriptions.push(
     window.registerWebviewViewProvider("tabby.chatView", chatViewProvider, {
       webviewOptions: { retainContextWhenHidden: true },
