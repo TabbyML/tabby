@@ -26,7 +26,7 @@ interface Props {
   value: string
   onCopyContent?: (value: string) => void
   onApplyInEditor?: (value: string) => void
-  onSmartApplyInEditor?: (value: string) => void
+  onSmartApplyInEditor?: (languageId: string, value: string) => void
 }
 
 interface languageMap {
@@ -102,7 +102,7 @@ const CodeBlock: FC<Props> = memo(
                     variant="ghost"
                     size="icon"
                     className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                    onClick={() => onSmartApplyInEditor(value)}
+                    onClick={() => onSmartApplyInEditor(language, value)}
                   >
                     <IconSmartApplyInEditor />
                     <span className="sr-only">Smart Apply in Editor</span>

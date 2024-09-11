@@ -65,7 +65,9 @@ export interface MessageMarkdownProps {
   attachmentCode?: Maybe<Array<AttachmentCodeItem>>
   onCopyContent?: ((value: string) => void) | undefined
   onApplyInEditor?: ((value: string) => void) | undefined
-  onSmartApplyInEditor?: ((value: string) => void) | undefined
+  onSmartApplyInEditor?:
+    | ((languageId: string, value: string) => void)
+    | undefined
   onCodeCitationClick?: (code: MessageAttachmentCode) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void

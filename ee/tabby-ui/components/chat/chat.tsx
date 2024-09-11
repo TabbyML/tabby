@@ -40,7 +40,7 @@ type ChatContextValue = {
   container?: HTMLDivElement
   onCopyContent?: (value: string) => void
   onApplyInEditor?: (value: string) => void
-  onSmartApplyInEditor?: (value: string) => void
+  onSmartApplyInEditor?: (languageId: string, value: string) => void
   relevantContext: Context[]
   removeRelevantContext: (index: number) => void
 }
@@ -73,7 +73,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   onCopyContent?: (value: string) => void
   onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
   onApplyInEditor?: (value: string) => void
-  onSmartApplyInEditor?: (value: string) => void
+  onSmartApplyInEditor?: (languageId: string, value: string) => void
 }
 
 function ChatRenderer(
