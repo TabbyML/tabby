@@ -17,6 +17,8 @@ import {
   ChatLineRangeSmartApplyRequest,
   ChatLineRangeSmartApplyParams,
   ChatLineRangeSmartApplyResult,
+  SmartApplyCodeRequest,
+  SmartApplyCodeParams,
 } from "./protocol";
 import { TextDocuments } from "./TextDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -59,6 +61,9 @@ export class ChatEditProvider {
 
     this.connection.onRequest(ChatLineRangeSmartApplyRequest.type, async (params) => {
       return this.provideSmartApplyLineRange(params);
+    });
+    this.connection.onRequest(SmartApplyCodeRequest.type, async (params, token) => {
+      return this.provideSmartApplyEdit(params, token);
     });
   }
 
@@ -488,6 +493,72 @@ export class ChatEditProvider {
     const endLine = parseInt(range[1] ? range[1] : "0");
     this.mutexAbortController = null;
     return { start: startLine, end: endLine };
+  }
+
+  async provideSmartApplyEdit(params: SmartApplyCodeParams, token: CancellationToken): Promise<boolean> {
+    if (params.format !== "previewChanges") {
+      return false;
+    }
+    const document = this.documents.get(params.location.uri);
+    if (!document) {
+      return false;
+    }
+    if (!this.agent.getServerHealthState()?.chat_model) {
+      throw {
+        name: "ChatFeatureNotAvailableError",
+        message: "Chat feature not available",
+      } as ChatFeatureNotAvailableError;
+    }
+    const config = this.agent.getConfig().chat;
+
+    const documentText = document.getText();
+    const selection = {
+      start: document.offsetAt(params.location.range.start),
+      end: document.offsetAt(params.location.range.end),
+    };
+    const selectedDocumentText = documentText.substring(selection.start, selection.end);
+    if (selection.end - selection.start > config.edit.documentMaxChars) {
+      throw { name: "ChatEditDocumentTooLongError", message: "Document too long" } as ChatEditDocumentTooLongError;
+    }
+    if (this.mutexAbortController) {
+      throw {
+        name: "ChatEditMutexError",
+        message: "Another smart edit is already in progress",
+      } as ChatEditMutexError;
+    }
+    this.mutexAbortController = new AbortController();
+    token.onCancellationRequested(() => this.mutexAbortController?.abort());
+
+    const readableStream = await this.agent.provideChatEdit(
+      documentText,
+      selection,
+      params.location.uri,
+      true,
+      params.applyCode,
+      document.languageId,
+      {
+        signal: this.mutexAbortController.signal,
+        useForSmartApplyEdit: true,
+      },
+    );
+
+    const editId = "tabby-" + cryptoRandomString({ length: 6, type: "alphanumeric" });
+    this.currentEdit = {
+      id: editId,
+      location: params.location,
+      languageId: document.languageId,
+      originalText: selectedDocumentText,
+      editedRange: { start: params.location.range.end, end: params.location.range.end },
+      editedText: "",
+      comments: "",
+      buffer: "",
+      state: "editing",
+    };
+    if (!readableStream) {
+      return false;
+    }
+    await this.readResponseStream(readableStream, config.edit.responseDocumentTag, config.edit.responseCommentTag);
+    return true;
   }
 
   // header line

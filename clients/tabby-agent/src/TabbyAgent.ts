@@ -906,7 +906,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     insertMode = false,
     command: string,
     languageId = "",
-    options?: AbortSignalOption & { useBetaVersion?: boolean },
+    options?: AbortSignalOption & { useBetaVersion?: boolean } & { useForSmartApplyEdit?: boolean },
   ): Promise<Readable | null> {
     if (this.status === "notInitialized") {
       throw new Error("Agent is not initialized");
@@ -916,7 +916,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     if (selection.end - selection.start > documentMaxChars) {
       throw new Error("Document to edit is too long");
     }
-    if (command.length > this.config.chat.edit.commandMaxChars) {
+    if (!options?.useForSmartApplyEdit && command.length > this.config.chat.edit.commandMaxChars) {
       throw new Error("Command is too long");
     }
 
