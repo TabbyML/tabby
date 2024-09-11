@@ -66,7 +66,7 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
     const { externalUrl } = form.getValues()
     await updateNetworkSetting({
       input: {
-        externalUrl: externalUrl.trim().replace(/(\/)+$/, '')
+        externalUrl: new URL(externalUrl).origin
       }
     })
   }
