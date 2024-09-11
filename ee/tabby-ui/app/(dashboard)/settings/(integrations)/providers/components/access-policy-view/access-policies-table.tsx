@@ -120,7 +120,7 @@ export function ReadAccessPoliciesTable({
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full">
       {/* FIXME: height */}
       <Table className="h-[300px]">
         <TableHeader>
