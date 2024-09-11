@@ -8,7 +8,6 @@ import {
   LogOutputChannel,
   TextEditor,
   window,
-  Position,
   Range,
   Selection,
   TextEditorRevealType,
@@ -17,6 +16,8 @@ import {
   TextDocument,
   commands,
   ColorThemeKind,
+  Position,
+  CancellationTokenSource,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context, NavigateOpts } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -27,6 +28,7 @@ import { createClient } from "./chatPanel";
 import { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
 import { ChatFeature } from "../lsp/ChatFeature";
+import smartApplyInsertPrompt from "../prompts/smart-apply-insert.txt";
 
 export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
@@ -34,6 +36,7 @@ export class ChatViewProvider implements WebviewViewProvider {
   private pendingMessages: ChatMessage[] = [];
   private pendingRelevantContexts: Context[] = [];
   private isChatPageDisplayed = false;
+  private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
 
   constructor(
     private readonly context: ExtensionContext,
@@ -212,6 +215,11 @@ export class ChatViewProvider implements WebviewViewProvider {
           window.showErrorMessage("No active editor found.");
           return;
         }
+        //TODO: possible languageId not passing
+        getLogger().info("lanuage id detecet,", languageId);
+        getLogger().info("test equal", languageId === null);
+        getLogger().info("test equal", languageId === undefined);
+        getLogger().info("conetnt", content);
         if (editor.document.languageId !== languageId) {
           window.showErrorMessage("The active editor is not in the correct language.");
           return;
@@ -223,7 +231,42 @@ export class ChatViewProvider implements WebviewViewProvider {
           applyCode: content,
         });
         getLogger().info("asd ", lineRangeRes?.start, lineRangeRes?.end);
+        if (!lineRangeRes?.start || !lineRangeRes?.end) {
+          window.showErrorMessage("Failed to apply code.");
+          //TODO: if no line range, lets do normal apply
+          return;
+        }
+        const applyCode = smartApplyInsertPrompt
+          .replace("{{code}}", content)
+          .replace("{{start_line}}", lineRangeRes.start.toString())
+          .replace("{{end_line}}", lineRangeRes.end.toString());
         //TODO: inline edit to apply code into range
+        try {
+          getLogger().info("getting provide edit command", applyCode);
+          this.chatEditCancellationTokenSource = new CancellationTokenSource();
+          await this.chat.provideSmartApplyEdit(
+            {
+              location: {
+                uri: editor.document.uri.toString(),
+                range: {
+                  start: { line: lineRangeRes.start, character: 0 },
+                  end: { line: lineRangeRes.end, character: 0 },
+                },
+              },
+              applyCode,
+              format: "previewChanges",
+            },
+            this.chatEditCancellationTokenSource.token,
+          );
+          getLogger().info("provide edit command done");
+        } catch (error) {
+          if (typeof error === "object" && error && "message" in error && typeof error["message"] === "string") {
+            window.showErrorMessage(error["message"]);
+          }
+        } finally {
+          this.chatEditCancellationTokenSource?.dispose();
+          this.chatEditCancellationTokenSource = null;
+        }
       },
       onLoaded: () => {
         setTimeout(() => {

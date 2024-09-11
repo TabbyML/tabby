@@ -1,0 +1,9 @@
+Please insert the following code block:
+
+```
+{{code}}
+```
+
+into the file between line numbers {{start_line}} and {{end_line}}. Ensure that the inserted code block maintains consistent indentation and formatting with the existing code.
+If there is already code in the specified range, insert the new code block at the beginning of the specified range and adjust the position of the existing code accordingly.
+After insertion, please display the updated file content.

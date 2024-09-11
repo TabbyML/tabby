@@ -29,9 +29,10 @@ import {
   ChatLineRangeSmartApplyParams,
   ChatLineRangeSmartApplyRequest,
   ChatLineRangeSmartApplyResult,
+  SmartApplyCodeParams,
+  SmartApplyCodeRequest,
 } from "tabby-agent";
 import { diffLines } from "diff";
-import { getLogger } from "../logger";
 
 export class ChatFeature extends EventEmitter implements DynamicFeature<unknown> {
   private registration: string | undefined = undefined;
@@ -139,7 +140,14 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
       return null;
     }
     const res = await this.client.sendRequest(ChatLineRangeSmartApplyRequest.type, params, token);
-    getLogger().info("provideLineRange", res);
+    return res;
+  }
+
+  async provideSmartApplyEdit(params: SmartApplyCodeParams, token?: CancellationToken): Promise<boolean | null> {
+    if (!this.isAvailable) {
+      return null;
+    }
+    const res = await this.client.sendRequest(SmartApplyCodeRequest.type, params, token);
     return res;
   }
 
