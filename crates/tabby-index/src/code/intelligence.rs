@@ -250,7 +250,10 @@ mod tests {
     use std::path::PathBuf;
 
     use serial_test::serial;
-    use tabby_common::{config::config_index_to_id, path::set_tabby_root};
+    use tabby_common::{
+        config::{config_index_to_id, RepositoryConfig},
+        path::set_tabby_root,
+    };
     use tracing_test::traced_test;
 
     use super::*;
@@ -265,10 +268,10 @@ mod tests {
         CodeRepository::new("https://github.com/TabbyML/tabby", &config_index_to_id(0))
     }
 
-    fn get_rust_source_file() -> PathBuf {
+    fn get_rust_source_file(source_id: &str) -> PathBuf {
         let mut path = get_tabby_root();
         path.push("repositories");
-        path.push("https_github.com_TabbyML_tabby");
+        path.push(RepositoryConfig::resolve_dir_name(source_id));
         path.push("rust.rs");
         path
     }
@@ -279,8 +282,11 @@ mod tests {
     fn test_create_source_file() {
         set_tabby_root(get_tabby_root());
         let config = get_repository_config();
-        let source_file = CodeIntelligence::compute_source_file(&config, &get_rust_source_file())
-            .expect("Failed to create source file");
+        let source_file = CodeIntelligence::compute_source_file(
+            &config,
+            &get_rust_source_file(&config.source_id),
+        )
+        .expect("Failed to create source file");
 
         // check source_file properties
         assert_eq!(source_file.language, "rust");

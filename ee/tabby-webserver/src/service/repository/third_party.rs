@@ -290,14 +290,17 @@ fn to_provided_repository(value: ProvidedRepositoryDAO, job_info: JobInfo) -> Pr
         vendor_id: value.vendor_id,
         created_at: value.created_at,
         updated_at: value.updated_at,
-        refs: tabby_git::list_refs(&RepositoryConfig::resolve_dir(&value.git_url))
-            .unwrap_or_default()
-            .into_iter()
-            .map(|r| GitReference {
-                name: r.name,
-                commit: r.commit,
-            })
-            .collect(),
+        refs: tabby_git::list_refs(&RepositoryConfig::resolve_dir(
+            &value.git_url,
+            &value.git_url,
+        ))
+        .unwrap_or_default()
+        .into_iter()
+        .map(|r| GitReference {
+            name: r.name,
+            commit: r.commit,
+        })
+        .collect(),
         git_url: value.git_url,
         job_info,
     }

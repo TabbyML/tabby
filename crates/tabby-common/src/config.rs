@@ -1,4 +1,4 @@
-use std::{collections::HashSet, path::PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
@@ -8,11 +8,7 @@ use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
-use crate::{
-    api::code::CodeSearchParams,
-    path::repositories_dir,
-    terminal::{HeaderFormat, InfoMessage},
-};
+use crate::{api::code::CodeSearchParams, path::repositories_dir};
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct Config {
@@ -42,44 +38,14 @@ impl Config {
             );
             return Ok(Default::default());
         }
-        let mut cfg: Self = serdeconv::from_toml_file(cfg_path.as_path())
-            .context(format!("Config file '{}' is not valid", cfg_path.display()))?;
-
-        if let Err(e) = cfg.validate_dirs() {
-            cfg = Default::default();
-            InfoMessage::new(
-                "Parsing config failed",
-                HeaderFormat::BoldRed,
-                &[
-                    &format!(
-                        "Warning: Could not parse the Tabby configuration at {}",
-                        crate::path::config_file().as_path().to_string_lossy()
-                    ),
-                    &format!("Reason: {e}"),
-                    "Falling back to default config, please resolve the errors and restart Tabby",
-                ],
-            )
-            .print();
-        }
-
-        Ok(cfg)
+        serdeconv::from_toml_file(cfg_path.as_path())
+            .context(format!("Config file '{}' is not valid", cfg_path.display()))
     }
 
     #[cfg(feature = "testutils")]
     pub fn save(&self) {
         serdeconv::to_toml_file(self, crate::path::config_file().as_path())
             .expect("Failed to write config file");
-    }
-
-    fn validate_dirs(&self) -> Result<()> {
-        let mut dirs = HashSet::new();
-        for repo in self.repositories.iter() {
-            let dir = repo.dir().display().to_string();
-            if !dirs.insert(dir.clone()) {
-                return Err(anyhow!("Duplicate directory in `repositories`: {}", dir));
-            }
-        }
-        Ok(())
     }
 }
 
@@ -127,21 +93,25 @@ impl RepositoryConfig {
             .unwrap_or_else(|_| url.to_string())
     }
 
-    pub fn dir(&self) -> PathBuf {
-        Self::resolve_dir(&self.git_url)
+    pub fn dir(&self, source_id: &str) -> PathBuf {
+        Self::resolve_dir(&self.git_url, source_id)
     }
 
     pub fn display_name(&self) -> String {
         Self::resolve_dir_name(&self.git_url)
     }
 
-    pub fn resolve_dir(git_url: &str) -> PathBuf {
+    pub fn resolve_dir(git_url: &str, dir_name: &str) -> PathBuf {
         if Self::resolve_is_local_dir(git_url) {
             let path = git_url.strip_prefix("file://").unwrap();
             path.into()
         } else {
-            repositories_dir().join(Self::resolve_dir_name(git_url))
+            Self::generate_absolute_path(dir_name)
         }
+    }
+
+    pub fn generate_absolute_path(dir_name: &str) -> PathBuf {
+        repositories_dir().join(Self::resolve_dir_name(dir_name))
     }
 
     pub fn resolve_dir_name(git_url: &str) -> String {
@@ -324,22 +294,29 @@ pub struct AnswerConfig {
 pub struct CodeRepository {
     pub git_url: String,
     pub source_id: String,
+    pub dir: String,
 }
 
 impl CodeRepository {
     pub fn new(git_url: &str, source_id: &str) -> Self {
+        let dir = if RepositoryConfig::resolve_is_local_dir(git_url) {
+            git_url.to_owned()
+        } else {
+            source_id.to_owned()
+        };
         Self {
             git_url: git_url.to_owned(),
             source_id: source_id.to_owned(),
+            dir,
         }
     }
 
     pub fn dir(&self) -> PathBuf {
-        RepositoryConfig::resolve_dir(&self.git_url)
+        RepositoryConfig::resolve_dir(&self.git_url, &self.source_id)
     }
 
     pub fn dir_name(&self) -> String {
-        RepositoryConfig::resolve_dir_name(&self.git_url)
+        RepositoryConfig::resolve_dir_name(&self.dir)
     }
 
     pub fn canonical_git_url(&self) -> String {
@@ -347,7 +324,7 @@ impl CodeRepository {
     }
 
     pub fn is_local_dir(&self) -> bool {
-        RepositoryConfig::resolve_is_local_dir(&self.git_url)
+        RepositoryConfig::resolve_is_local_dir(&self.dir)
     }
 }
 
@@ -365,14 +342,14 @@ impl CodeRepositoryAccess for StaticCodeRepositoryAccess {
             .repositories
             .into_iter()
             .enumerate()
-            .map(|(i, repo)| CodeRepository::new(&repo.git_url, &config_index_to_id(i)))
+            .map(|(i, repo)| CodeRepository::new(repo.git_url(), &config_index_to_id(i)))
             .collect())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{sanitize_name, Config, RepositoryConfig};
+    use super::{sanitize_name, CodeRepository, Config, RepositoryConfig};
 
     #[test]
     fn it_parses_empty_config() {
@@ -385,7 +362,7 @@ mod tests {
         let repo = RepositoryConfig {
             git_url: "file:///home/user".to_owned(),
         };
-        let _ = repo.dir();
+        let _ = repo.dir("");
     }
 
     #[test]
@@ -393,7 +370,8 @@ mod tests {
         let repo = RepositoryConfig {
             git_url: "https://github.com/TabbyML/tabby.git".to_owned(),
         };
-        assert!(repo.dir().ends_with("https_github.com_TabbyML_tabby"));
+        assert!(repo.dir("aBc").ends_with("aBc"));
+        assert!(repo.dir("config:aBc").ends_with("config_aBc"));
     }
 
     #[test]
@@ -431,6 +409,16 @@ mod tests {
         assert_eq!(
             RepositoryConfig::canonicalize_url("file:///home/TabbyML/tabby"),
             "file:///home/TabbyML/tabby"
+        );
+    }
+
+    #[test]
+    fn test_code_repository() {
+        let repo = CodeRepository::new("https://github.com/TabbyML/tabby.git", "config:123");
+        assert_eq!(repo.dir_name(), "config_123");
+        assert_eq!(
+            repo.dir().file_name().unwrap().to_str().unwrap(),
+            "config_123"
         );
     }
 }

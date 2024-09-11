@@ -46,9 +46,7 @@ impl SourceCode {
     pub fn to_index_id(source_id: &str, source_file_id: &str) -> IndexId {
         IndexId {
             source_id: source_id.to_owned(),
-            // Source file id might be duplicated across different source_ids, we prefix it with
-            // source_id to make it unique within corpus.
-            id: format!("{}:::{}", source_id, source_file_id),
+            id: source_file_id.to_owned(),
         }
     }
 }
