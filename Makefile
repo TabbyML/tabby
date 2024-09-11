@@ -20,10 +20,7 @@ update-db-schema:
 caddy:
 	caddy run --watch --config ee/tabby-webserver/development/Caddyfile
 
-MODEL ?= ""
-CHAT_MODEL ?= ""
-
-dev:
+ui-dev:
 	@echo "Starting development environment..."
 	@bash -c '\
 		trap cleanup EXIT SIGINT SIGTERM; \
@@ -37,7 +34,7 @@ dev:
 			exit 0; \
 		}; \
 		(cd ee/tabby-ui && pnpm dev) & \
-		cargo run serve --port 8081 $(if $(MODEL),--model $(MODEL)) $(if $(CHAT_MODEL),--chat-model $(CHAT_MODEL)) & \
+		cargo run serve --port 8081  & \
 		make caddy &  \
 		wait'
 		
