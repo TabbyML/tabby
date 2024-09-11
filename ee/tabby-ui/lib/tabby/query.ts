@@ -312,6 +312,17 @@ export const userGroupsQuery = graphql(/* GraphQL */ `
       name
       createdAt
       updatedAt
+      members {
+        user {
+          id
+          email
+          name
+          createdAt
+        }
+        isGroupAdmin
+        createdAt
+        updatedAt
+      }
     }
   }
 `)

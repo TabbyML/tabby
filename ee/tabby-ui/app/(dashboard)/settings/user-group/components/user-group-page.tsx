@@ -4,7 +4,9 @@ import React from 'react'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
+import { MeQueryQuery } from '@/lib/gql/generates/graphql'
 import { Member, useAllMembers } from '@/lib/hooks/use-all-members'
+import { useMe } from '@/lib/hooks/use-me'
 import { userGroupsQuery } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
 import LoadingWrapper from '@/components/loading-wrapper'
@@ -16,17 +18,21 @@ import { UserGroupItem } from './user-group-item'
 interface UserGroupContextValue {
   fetchingAllUsers: boolean
   allUsers: Member[]
+  me: MeQueryQuery['me'] | undefined
+  refreshUserGroups: () => void
 }
 
 export const UserGroupContext = React.createContext<UserGroupContextValue>(
   {} as UserGroupContextValue
 )
 
-export default function UsersTable() {
+export default function UserGroups() {
   const [allUsers, fetchingAllUsers] = useAllMembers()
   const [{ data, error, fetching }, reexcute] = useQuery({
     query: userGroupsQuery
   })
+  const [{ data: meData }] = useMe()
+  const isAdmin = !!(meData?.me.isOwner || meData?.me.isAdmin)
 
   React.useEffect(() => {
     if (error?.message) {
@@ -45,18 +51,22 @@ export default function UsersTable() {
     <UserGroupContext.Provider
       value={{
         allUsers,
-        fetchingAllUsers
+        fetchingAllUsers,
+        refreshUserGroups: reexcute,
+        me: meData?.me
       }}
     >
       <LoadingWrapper
         loading={fetching}
         fallback={<ListSkeleton className="mt-12" />}
       >
-        <div className="mb-4 flex justify-end">
-          <CreateUserGroupDialog onSubmit={onCreateUserGroup}>
-            <Button type="button">Create</Button>
-          </CreateUserGroupDialog>
-        </div>
+        {isAdmin && (
+          <div className="mb-4 flex justify-end">
+            <CreateUserGroupDialog onSubmit={onCreateUserGroup}>
+              <Button type="button">Create</Button>
+            </CreateUserGroupDialog>
+          </div>
+        )}
         {userGroups?.length ? (
           <div className="overflow-hidden rounded-lg border">
             <div className="border-b bg-muted px-4 py-3 font-semibold">

@@ -1,7 +1,11 @@
+import { on } from 'events'
 import { HTMLAttributes, useContext } from 'react'
+import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
+import { UserGroupMembership } from '@/lib/gql/generates/graphql'
+import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,39 +17,53 @@ import LoadingWrapper from '@/components/loading-wrapper'
 import UpsertMemberDialog from './upsert-member-dialog'
 import { UserGroupContext } from './user-group-page'
 
+const deleteUserGroupMembershipMutation = graphql(/* GraphQL */ `
+  mutation DeleteUserGroupMembership($userGroupId: ID!, $userId: ID!) {
+    deleteUserGroupMembership(userGroupId: $userGroupId, userId: $userId)
+  }
+`)
+
 interface MembershipViewProps extends HTMLAttributes<HTMLDivElement> {
   userGroupId: string
   userGroupName: string
+  members: UserGroupMembership[]
+  onUpdate: () => void
+  editable: boolean
 }
-
-const userGroupMembershipsQuery = graphql(/* GraphQL */ `
-  query UserGroupMemberships($userGroupId: ID!) {
-    userGroupMemberships(userGroupId: $userGroupId) {
-      id
-      userGroupId
-      userId
-      isGroupAdmin
-      createdAt
-      updatedAt
-    }
-  }
-`)
 
 export function MembershipView({
   userGroupId,
   userGroupName,
-  className
+  className,
+  members,
+  onUpdate,
+  editable
 }: MembershipViewProps) {
   const { allUsers, fetchingAllUsers } = useContext(UserGroupContext)
-  const [{ data, fetching, error }, reexcute] = useQuery({
-    query: userGroupMembershipsQuery,
-    variables: {
-      userGroupId
-    }
-  })
+  const deleteUserGroupMembership = useMutation(
+    deleteUserGroupMembershipMutation
+  )
 
-  const memberships = data?.userGroupMemberships
-  const existingMemberIds = memberships?.map(o => o.userId)
+  const handleDeleteUserGroupMembership = (userId: string) => {
+    return deleteUserGroupMembership({
+      userGroupId,
+      userId
+    })
+      .then(res => {
+        if (!res?.data?.deleteUserGroupMembership) {
+          const errorMessage = res?.error?.message || 'Failed to delete'
+          toast.error(errorMessage)
+          return
+        }
+
+        onUpdate()
+      })
+      .catch(error => {
+        toast.error(error.message || 'Failed to delete')
+      })
+  }
+
+  const existingMemberIds = members.map(o => o.user.id)
 
   return (
     <div
@@ -55,12 +73,12 @@ export function MembershipView({
       )}
     >
       <ScrollArea className="flex-1">
-        {memberships?.length ? (
-          memberships.map(item => {
-            const member = allUsers.find(o => o.id === item.userId)
+        {members?.length ? (
+          members.map(item => {
+            const member = allUsers.find(o => o.id === item.user.id)
             return (
               <div
-                key={item.id}
+                key={item.user.id}
                 className="flex items-center gap-2 border-b py-3 pl-10 pr-3 hover:bg-muted/50"
               >
                 <IconUser className="shrink-0" />
@@ -92,7 +110,7 @@ export function MembershipView({
                     isNew={false}
                     userGroupId={userGroupId}
                     userGroupName={userGroupName}
-                    onSuccess={() => reexcute()}
+                    onSuccess={onUpdate}
                     existingMemberIds={existingMemberIds}
                     initialValues={item}
                   >
@@ -104,6 +122,7 @@ export function MembershipView({
                     className="shrink-0"
                     variant="hover-destructive"
                     size="icon"
+                    onClick={e => handleDeleteUserGroupMembership(item.user.id)}
                   >
                     <IconTrash />
                   </Button>
@@ -115,20 +134,22 @@ export function MembershipView({
           <div className="px-3 py-4 text-center">No members</div>
         )}
       </ScrollArea>
-      <div className="mb-8 mt-4 flex justify-center">
-        <UpsertMemberDialog
-          isNew
-          userGroupId={userGroupId}
-          userGroupName={userGroupName}
-          onSuccess={() => reexcute()}
-          existingMemberIds={existingMemberIds}
-        >
-          <Button>
-            <IconPlus />
-            Add Member
-          </Button>
-        </UpsertMemberDialog>
-      </div>
+      {editable && (
+        <div className="mb-8 mt-4 flex justify-center">
+          <UpsertMemberDialog
+            isNew
+            userGroupId={userGroupId}
+            userGroupName={userGroupName}
+            onSuccess={onUpdate}
+            existingMemberIds={existingMemberIds}
+          >
+            <Button>
+              <IconPlus />
+              Add Member
+            </Button>
+          </UpsertMemberDialog>
+        </div>
+      )}
     </div>
   )
 }

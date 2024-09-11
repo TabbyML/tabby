@@ -1,4 +1,4 @@
-import { HTMLAttributes, useState } from 'react'
+import { HTMLAttributes, useContext, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { graphql } from '@/lib/gql/generates'
@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/icons'
 
 import { MembershipView } from './membership-view'
+import { UserGroupContext } from './user-group-page'
 
 const deleteUserGroupMutation = graphql(/* GraphQL */ `
   mutation DeleteUserGroup($id: ID!) {
@@ -43,6 +44,14 @@ export function UserGroupItem({
   userGroup,
   isLastItem
 }: UserGroupItemProps) {
+  const { refreshUserGroups, me } = useContext(UserGroupContext)
+  const isServerAdmin = !!(me?.isOwner || me?.isAdmin)
+  const isGroupAdmin = useMemo(() => {
+    const groupAdmins = userGroup.members
+      .filter(o => o.isGroupAdmin)
+      .map(o => o.user.id)
+    return me?.id ? groupAdmins.includes(me.id) : false
+  }, [me, userGroup])
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false)
   const [membershipOpen, setMembershipOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -78,6 +87,8 @@ export function UserGroupItem({
       })
   }
 
+  const memberLen = userGroup.members.length
+
   return (
     <div>
       <div
@@ -96,51 +107,59 @@ export function UserGroupItem({
           })}
         />
         <IconUsers className="shrink-0" />
-        <div className="flex-1 overflow-hidden font-semibold">
-          {userGroup.name}
+        <div className="flex-1 flex gap-2 items-center overflow-hidden">
+          <div className="font-semibold">{userGroup.name}</div>
+          <span className="text-muted-foreground text-sm">
+            {`(${memberLen} member${memberLen > 1 ? 's' : ''})`}
+          </span>
         </div>
         <div
           onClick={e => e.stopPropagation()}
           className="flex items-center gap-2"
         >
-          <AlertDialog
-            open={deleteAlertVisible}
-            onOpenChange={setDeleteAlertVisible}
-          >
-            <AlertDialogTrigger asChild>
-              <Button size="icon" variant="hover-destructive">
-                <IconTrash />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  It will permanently delete
-                  <span className="ml-1 font-bold">Group Name</span>.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  className={buttonVariants({ variant: 'destructive' })}
-                  onClick={handleDeleteUserGroup}
-                >
-                  {isDeleting && (
-                    <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Yes, delete it
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {isServerAdmin && (
+            <AlertDialog
+              open={deleteAlertVisible}
+              onOpenChange={setDeleteAlertVisible}
+            >
+              <AlertDialogTrigger asChild>
+                <Button size="icon" variant="hover-destructive">
+                  <IconTrash />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    It will permanently delete
+                    <span className="ml-1 font-bold">"{userGroup.name}"</span>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className={buttonVariants({ variant: 'destructive' })}
+                    onClick={handleDeleteUserGroup}
+                  >
+                    {isDeleting && (
+                      <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Yes, delete it
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
       {membershipOpen && (
         <MembershipView
+          members={userGroup.members}
           userGroupId={userGroup.id}
           userGroupName={userGroup.name}
           className={isLastItem ? 'border-b-0' : undefined}
+          onUpdate={() => refreshUserGroups()}
+          editable={isServerAdmin || isGroupAdmin}
         />
       )}
     </div>

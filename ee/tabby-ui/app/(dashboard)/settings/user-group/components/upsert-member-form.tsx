@@ -80,8 +80,8 @@ export default function UpsertMembershipForm({
   const [open, setOpen] = React.useState(false)
   const defaultValues: Partial<FormValues> | undefined = initialValues
     ? {
-        isGroupAdmin: initialValues?.isGroupAdmin ? '1' : '0',
-        userId: initialValues?.userId
+        isGroupAdmin: initialValues.isGroupAdmin ? '1' : '0',
+        userId: initialValues.user.id
       }
     : undefined
   const form = useForm<FormValues>({
