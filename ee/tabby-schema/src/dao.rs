@@ -4,8 +4,7 @@ use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
     ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
-    ThreadMessageAttachmentDoc, ThreadMessageDAO, UserEventDAO, UserGroupDAO,
-    UserGroupMembershipDAO,
+    ThreadMessageAttachmentDoc, ThreadMessageDAO, UserEventDAO,
 };
 
 use crate::{
@@ -23,7 +22,6 @@ use crate::{
         CoreError,
     },
     thread::{self, MessageAttachment},
-    user_group::{UserGroup, UserGroupMembership},
 };
 
 impl From<InvitationDAO> for auth::Invitation {
@@ -289,30 +287,6 @@ impl TryFrom<ThreadMessageDAO> for thread::Message {
             created_at: value.created_at,
             updated_at: value.updated_at,
         })
-    }
-}
-
-impl From<UserGroupDAO> for UserGroup {
-    fn from(value: UserGroupDAO) -> Self {
-        Self {
-            id: value.id.as_id(),
-            name: value.name,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
-        }
-    }
-}
-
-impl From<UserGroupMembershipDAO> for UserGroupMembership {
-    fn from(value: UserGroupMembershipDAO) -> Self {
-        Self {
-            id: value.id.as_id(),
-            user_group_id: value.user_group_id.as_id(),
-            user_id: value.user_id.as_id(),
-            is_group_admin: value.is_group_admin,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
-        }
     }
 }
 

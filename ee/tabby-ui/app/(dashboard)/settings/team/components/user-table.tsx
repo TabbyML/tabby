@@ -10,7 +10,7 @@ import { graphql } from '@/lib/gql/generates'
 import type { ListUsersQuery } from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
 import { QueryVariables, useMutation } from '@/lib/tabby/gql'
-import { listUsers } from '@/lib/tabby/query'
+import { listSecuredUsers } from '@/lib/tabby/query'
 import type { ArrayElementType } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -52,10 +52,10 @@ const PAGE_SIZE = DEFAULT_PAGE_SIZE
 export default function UsersTable() {
   const [{ data: me }] = useMe()
   const [queryVariables, setQueryVariables] = React.useState<
-    QueryVariables<typeof listUsers>
+    QueryVariables<typeof listSecuredUsers>
   >({ first: PAGE_SIZE })
   const [{ data, error, fetching }, reexecuteQuery] = useQuery({
-    query: listUsers,
+    query: listSecuredUsers,
     variables: queryVariables
   })
   const [users, setUsers] = React.useState<ListUsersQuery['users']>()

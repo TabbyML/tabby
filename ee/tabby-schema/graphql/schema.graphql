@@ -236,6 +236,13 @@ input UpsertUserGroupMembershipInput {
   isGroupAdmin: Boolean!
 }
 
+interface User {
+  id: ID!
+  email: String!
+  name: String!
+  createdAt: DateTime!
+}
+
 """
   Combined date and time (with time zone) in [RFC 3339][0] format.
 
@@ -553,6 +560,8 @@ type Mutation {
   deleteUserGroup(id: ID!): Boolean!
   upsertUserGroupMembership(input: UpsertUserGroupMembershipInput!): Boolean!
   deleteUserGroupMembership(userGroupId: ID!, userId: ID!): Boolean!
+  grantSourceIdReadAccess(sourceId: String!, userGroupId: ID!): Boolean!
+  revokeSourceIdReadAccess(sourceId: String!, userGroupId: ID!): Boolean!
 }
 
 type NetworkSetting {
@@ -618,8 +627,11 @@ type ProvidedRepositoryEdge {
 
 type Query {
   registrationToken: String!
-  me: User!
+  me: UserSecured!
+  "List users, accessible for all login users."
   users(after: String, before: String, first: Int, last: Int): UserConnection!
+  "List users, accessible for admin users."
+  securedUsers(after: String, before: String, first: Int, last: Int): UserSecuredConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
@@ -672,12 +684,7 @@ type Query {
     When the requesting user is an admin, all user groups will be returned. Otherwise, they can only see groups they are a member of.
   """
   userGroups: [UserGroup!]!
-  """
-    List memberships for user groups.
-
-    When the requesting user is an group admin of the group, all memberships of the group will be returned. Otherwise, they can only see themselves.
-  """
-  userGroupMemberships(userGroupId: ID!): [UserGroupMembership!]!
+  sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
 }
 
 type RefreshTokenResponse {
@@ -726,6 +733,11 @@ type ServerInfo {
   isEmailConfigured: Boolean!
   allowSelfSignup: Boolean!
   isDemoMode: Boolean!
+}
+
+type SourceIdAccessPolicy {
+  sourceId: String!
+  read: [UserGroup!]!
 }
 
 type Subscription {
@@ -787,18 +799,6 @@ type TokenAuthResponse {
   refreshToken: String!
 }
 
-type User {
-  id: ID!
-  email: String!
-  name: String!
-  isAdmin: Boolean!
-  isOwner: Boolean!
-  authToken: String!
-  createdAt: DateTime!
-  active: Boolean!
-  isPasswordSet: Boolean!
-}
-
 type UserConnection {
   edges: [UserEdge!]!
   pageInfo: PageInfo!
@@ -832,15 +832,36 @@ type UserGroup {
   name: String!
   createdAt: DateTime!
   updatedAt: DateTime!
+  members: [UserGroupMembership!]!
 }
 
 type UserGroupMembership {
-  id: ID!
-  userGroupId: ID!
-  userId: ID!
+  user: User!
   isGroupAdmin: Boolean!
   createdAt: DateTime!
   updatedAt: DateTime!
+}
+
+type UserSecured implements User {
+  id: ID!
+  email: String!
+  name: String!
+  createdAt: DateTime!
+  isAdmin: Boolean!
+  isOwner: Boolean!
+  authToken: String!
+  active: Boolean!
+  isPasswordSet: Boolean!
+}
+
+type UserSecuredConnection {
+  edges: [UserSecuredEdge!]!
+  pageInfo: PageInfo!
+}
+
+type UserSecuredEdge {
+  node: UserSecured!
+  cursor: String!
 }
 
 """
