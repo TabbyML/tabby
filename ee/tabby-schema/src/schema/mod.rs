@@ -4,6 +4,7 @@ pub mod constants;
 pub mod context;
 pub mod email;
 pub mod integration;
+pub mod interface;
 pub mod job;
 pub mod license;
 pub mod repository;
@@ -18,11 +19,12 @@ use std::sync::Arc;
 
 use auth::{
     AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
-    User,
+    UserSecured,
 };
 use base64::Engine;
 use chrono::{DateTime, Utc};
 use context::{ContextInfo, ContextService};
+use interface::UserValue;
 use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLObject, IntoFieldError,
@@ -33,8 +35,7 @@ use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
 use tracing::{error, warn};
 use user_group::{
-    CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupMembership,
-    UserGroupService,
+    CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupService,
 };
 use validator::{Validate, ValidationErrors};
 use worker::WorkerService;
@@ -146,18 +147,18 @@ async fn check_admin(ctx: &Context) -> Result<(), CoreError> {
     Ok(())
 }
 
-async fn check_user(ctx: &Context) -> Result<User, CoreError> {
+async fn check_user(ctx: &Context) -> Result<UserSecured, CoreError> {
     check_user_and_auth_token(ctx, false).await
 }
 
-async fn check_user_allow_auth_token(ctx: &Context) -> Result<User, CoreError> {
+async fn check_user_allow_auth_token(ctx: &Context) -> Result<UserSecured, CoreError> {
     check_user_and_auth_token(ctx, true).await
 }
 
 async fn check_user_and_auth_token(
     ctx: &Context,
     allow_auth_token: bool,
-) -> Result<User, CoreError> {
+) -> Result<UserSecured, CoreError> {
     let claims = check_claims(ctx)?;
     if !allow_auth_token && claims.is_generated_from_auth_token {
         return Err(CoreError::Forbidden(
@@ -190,17 +191,43 @@ impl Query {
         ctx.locator.worker().read_registration_token().await
     }
 
-    async fn me(ctx: &Context) -> Result<User> {
+    async fn me(ctx: &Context) -> Result<UserSecured> {
         check_user_allow_auth_token(ctx).await
     }
 
+    /// List users, accessible for all login users.
     async fn users(
         ctx: &Context,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<User>> {
+    ) -> Result<Connection<UserValue>> {
+        check_user(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .auth()
+                    .list_users(after, before, first, last)
+                    .await
+                    .map(|users| users.into_iter().map(UserValue::UserSecured).collect())
+            },
+        )
+        .await
+    }
+
+    /// List users, accessible for admin users.
+    async fn secured_users(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<UserSecured>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -630,20 +657,6 @@ impl Query {
     async fn user_groups(ctx: &Context) -> Result<Vec<UserGroup>> {
         let user = check_user(ctx).await?;
         ctx.locator.user_group().list(&user.policy).await
-    }
-
-    /// List memberships for user groups.
-    ///
-    /// When the requesting user is an group admin of the group, all memberships of the group will be returned. Otherwise, they can only see themselves.
-    async fn user_group_memberships(
-        ctx: &Context,
-        user_group_id: ID,
-    ) -> Result<Vec<UserGroupMembership>> {
-        let user = check_user(ctx).await?;
-        ctx.locator
-            .user_group()
-            .list_membership(&user.policy, &user_group_id)
-            .await
     }
 }
 

@@ -1,6 +1,9 @@
+use anyhow::Context;
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
+    auth::UserSecured,
+    interface::UserValue,
     policy::AccessPolicy,
     user_group::{
         CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupMembership,
@@ -8,6 +11,8 @@ use tabby_schema::{
     },
     AsID, AsRowid, Result,
 };
+
+use super::UserSecuredExt;
 
 struct UserGroupServiceImpl {
     db: DbConn,
@@ -21,13 +26,33 @@ impl UserGroupService for UserGroupServiceImpl {
             .map(AsRowid::as_rowid)
             .transpose()?;
 
-        Ok(self
-            .db
-            .list_user_groups(user_id)
-            .await?
-            .into_iter()
-            .map(Into::into)
-            .collect())
+        let mut user_groups = Vec::new();
+        for x in self.db.list_user_groups(user_id).await? {
+            let mut members = Vec::new();
+            for x in self.db.list_user_group_memberships(x.id, None).await? {
+                members.push(UserGroupMembership {
+                    is_group_admin: x.is_group_admin,
+                    created_at: x.created_at,
+                    updated_at: x.updated_at,
+                    user: UserValue::UserSecured(UserSecured::new(
+                        self.db.clone(),
+                        self.db
+                            .get_user(x.user_id)
+                            .await?
+                            .context("User doesn't exists")?,
+                    )),
+                });
+            }
+
+            user_groups.push(UserGroup {
+                id: x.id.as_id(),
+                name: x.name,
+                created_at: x.created_at,
+                updated_at: x.updated_at,
+                members,
+            });
+        }
+        Ok(user_groups)
     }
 
     async fn create(&self, input: &CreateUserGroupInput) -> Result<ID> {
@@ -38,25 +63,6 @@ impl UserGroupService for UserGroupServiceImpl {
     async fn delete(&self, user_group_id: &ID) -> Result<()> {
         self.db.delete_user_group(user_group_id.as_rowid()?).await?;
         Ok(())
-    }
-
-    async fn list_membership(
-        &self,
-        policy: &AccessPolicy,
-        user_group_id: &ID,
-    ) -> Result<Vec<UserGroupMembership>> {
-        let user_id = policy
-            .list_user_group_memberships_user_id_filter(user_group_id)
-            .await
-            .map(AsRowid::as_rowid)
-            .transpose()?;
-        Ok(self
-            .db
-            .list_user_group_memberships(user_group_id.as_rowid()?, user_id)
-            .await?
-            .into_iter()
-            .map(Into::into)
-            .collect())
     }
 
     async fn upsert_membership(&self, input: &UpsertUserGroupMembershipInput) -> Result<()> {
@@ -83,6 +89,7 @@ pub fn create(db: DbConn) -> impl UserGroupService {
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
     use tabby_db::testutils;
 
     use super::*;
@@ -152,28 +159,22 @@ mod tests {
         let result = svc.list(&user1_policy).await.unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].id, user_group1);
+        assert_eq!(result[0].members.len(), 2);
+        assert_matches!(&result[0].members[0].user, UserValue::UserSecured(user) => {
+            assert_eq!(user.id, user1);
+        });
+        assert_matches!(&result[0].members[1].user, UserValue::UserSecured(user) => {
+            assert_eq!(user.id, user2);
+        });
 
         // Test listing user groups as user2
         let result = svc.list(&user2_policy).await.unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].id, user_group1);
         assert_eq!(result[1].id, user_group2);
-
-        // Test list user group membership as user1 (group admin)
-        let result = svc
-            .list_membership(&user1_policy, &user_group1)
-            .await
-            .unwrap();
-        assert_eq!(result.len(), 2);
-        assert_eq!(result[0].user_id, user1);
-        assert_eq!(result[1].user_id, user2);
-
-        // Test list user group membership in user_group1 as user2
-        let result = svc
-            .list_membership(&user2_policy, &user_group1)
-            .await
-            .unwrap();
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].user_id, user2);
+        assert_eq!(result[1].members.len(), 1);
+        assert_matches!(&result[1].members[0].user, UserValue::UserSecured(user) => {
+            assert_eq!(user.id, user2);
+        });
     }
 }
