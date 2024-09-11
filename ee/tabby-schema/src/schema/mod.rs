@@ -1,3 +1,4 @@
+pub mod access_policy;
 pub mod analytic;
 pub mod auth;
 pub mod constants;
@@ -17,6 +18,7 @@ pub mod worker;
 
 use std::sync::Arc;
 
+use access_policy::{AccessPolicyService, SourceIdAccessPolicy};
 use auth::{
     AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
     UserSecured,
@@ -83,6 +85,7 @@ pub trait ServiceLocator: Send + Sync {
     fn thread(&self) -> Arc<dyn ThreadService>;
     fn context(&self) -> Arc<dyn ContextService>;
     fn user_group(&self) -> Arc<dyn UserGroupService>;
+    fn access_policy(&self) -> Arc<dyn AccessPolicyService>;
 }
 
 pub struct Context {
@@ -658,6 +661,20 @@ impl Query {
         let user = check_user(ctx).await?;
         ctx.locator.user_group().list(&user.policy).await
     }
+
+    async fn source_id_access_policies(
+        ctx: &Context,
+        source_id: String,
+    ) -> Result<SourceIdAccessPolicy> {
+        check_admin(ctx).await?;
+        let read = ctx
+            .locator
+            .access_policy()
+            .list_source_id_read_access(&source_id)
+            .await?;
+
+        Ok(SourceIdAccessPolicy { source_id, read })
+    }
 }
 
 #[derive(GraphQLObject)]
@@ -1114,6 +1131,32 @@ impl Mutation {
         ctx.locator
             .user_group()
             .delete_membership(&user_group_id, &user_id)
+            .await?;
+        Ok(true)
+    }
+
+    async fn grant_source_id_read_access(
+        ctx: &Context,
+        source_id: String,
+        user_group_id: ID,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .access_policy()
+            .grant_source_id_read_access(&source_id, &user_group_id)
+            .await?;
+        Ok(true)
+    }
+
+    async fn revoke_source_id_read_access(
+        ctx: &Context,
+        source_id: String,
+        user_group_id: ID,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .access_policy()
+            .revoke_source_id_read_access(&source_id, &user_group_id)
             .await?;
         Ok(true)
     }
