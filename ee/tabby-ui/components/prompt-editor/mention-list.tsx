@@ -15,7 +15,7 @@ import {
 } from '@tiptap/extension-mention/dist/packages/suggestion/src/index.d'
 import { go as fuzzy } from 'fuzzysort'
 
-import { ContextKind } from '@/lib/gql/generates/graphql'
+import { ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
 import { cn, isCodeSourceContext, isDocSourceContext } from '@/lib/utils'
 import {
@@ -51,22 +51,22 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
       }
 
       const docSources: SourceOptionItem[] = list
-        .filter(o => isDocSourceContext(o.kind))
+        .filter(o => isDocSourceContext(o.sourceKind))
         .map(item => ({
           type: 'source',
           category: 'doc',
           id: item.sourceId,
-          label: item.displayName,
+          label: item.sourceName,
           data: item
         }))
 
       const codeSources: SourceOptionItem[] = list
-        .filter(o => isCodeSourceContext(o.kind))
+        .filter(o => isCodeSourceContext(o.sourceKind))
         .map(item => ({
           type: 'source',
           category: 'code',
           id: item.sourceId,
-          label: item.displayName,
+          label: item.sourceName,
           data: item
         }))
 
@@ -98,7 +98,7 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
       command({
         id: item.data.sourceId,
         label: item.label,
-        kind: item.data.kind
+        kind: item.data.sourceKind
       })
     }
 
@@ -162,17 +162,17 @@ const MetionList = forwardRef<MentionListActions, MetionListProps>(
 
 MetionList.displayName = 'MetionList'
 
-function OptionIcon({ kind }: { kind: ContextKind }) {
+function OptionIcon({ kind }: { kind: ContextSourceKind }) {
   switch (kind) {
-    case ContextKind.Doc:
+    case ContextSourceKind.Doc:
       return <IconEmojiBook />
-    case ContextKind.Web:
+    case ContextSourceKind.Web:
       return <IconEmojiGlobe />
-    case ContextKind.Git:
+    case ContextSourceKind.Git:
       return <IconCode />
-    case ContextKind.Github:
+    case ContextSourceKind.Github:
       return <IconGitHub />
-    case ContextKind.Gitlab:
+    case ContextSourceKind.Gitlab:
       return <IconGitLab />
     default:
       return null
@@ -206,7 +206,7 @@ function OptionItemView({ isSelected, data, ...rest }: OptionItemView) {
       ref={ref}
     >
       <span className="flex h-5 shrink-0 items-center">
-        <OptionIcon kind={data.data.kind} />
+        <OptionIcon kind={data.data.sourceKind} />
       </span>
       <span className="flex-1">{data.label}</span>
     </div>
