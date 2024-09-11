@@ -3,7 +3,7 @@ import generateCommitMessagePrompt from "./prompts/generate-commit-message.md";
 import generateDocsPrompt from "./prompts/generate-docs.md";
 import editCommandReplacePrompt from "./prompts/edit-command-replace.md";
 import editCommandInsertPrompt from "./prompts/edit-command-insert.md";
-
+import provideSmartApplyLineRangePrompt from "./prompts/provide-smart-apply-line-range.md";
 export type AgentConfig = {
   server: {
     endpoint: string;
@@ -97,6 +97,9 @@ export type AgentConfig = {
       maxDiffLength: number;
       promptTemplate: string;
       responseMatcher: string;
+    };
+    provideSmartApplyLineRange: {
+      promptTemplate: string;
     };
   };
   logs: {
@@ -205,6 +208,9 @@ export const defaultAgentConfig: AgentConfig = {
       promptTemplate: generateCommitMessagePrompt,
       responseMatcher:
         /(?<=(["'`]+)?\s*)(feat|fix|docs|refactor|style|test|build|ci|chore)(\(\S+\))?:.+(?=\s*\1)/gis.toString(),
+    },
+    provideSmartApplyLineRange: {
+      promptTemplate: provideSmartApplyLineRangePrompt,
     },
   },
   logs: {

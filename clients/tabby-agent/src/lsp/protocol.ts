@@ -521,6 +521,37 @@ export type ChatEditResolveCommand = LspCommand & {
 };
 
 /**
+ * [Tabby] Provide Best fit line range for smart apply request(↩️)
+ *
+ * This method is sent from the client to server to smart apply from chat panel.
+ * - method: `tabby/chat/smartApply`
+ * - params: {@link ChatLineRangeSmartApplyParams}
+ * - result: {@link ChatLineRangeSmartApplyResult} | null
+ */
+export namespace ChatLineRangeSmartApplyRequest {
+  export const method = "tabby/chat/smartApply";
+  export const messageDirection = MessageDirection.clientToServer;
+  export const type = new ProtocolRequestType<
+    ChatLineRangeSmartApplyParams,
+    ChatLineRangeSmartApplyResult | null,
+    void,
+    ChatFeatureNotAvailableError,
+    void
+  >(method);
+}
+
+export type ChatLineRangeSmartApplyParams = {
+  //the uri of the document
+  uri: string;
+  applyCode: string;
+};
+
+export type ChatLineRangeSmartApplyResult = {
+  start: number;
+  end: number;
+};
+
+/**
  * [Tabby] GenerateCommitMessage Request(↩️)
  *
  * This method is sent from the client to the server to generate a commit message for a git repository.

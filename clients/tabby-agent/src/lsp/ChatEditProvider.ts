@@ -14,6 +14,9 @@ import {
   ChatEditMutexError,
   ApplyWorkspaceEditRequest,
   ApplyWorkspaceEditParams,
+  ChatLineRangeSmartApplyRequest,
+  ChatLineRangeSmartApplyParams,
+  ChatLineRangeSmartApplyResult,
 } from "./protocol";
 import { TextDocuments } from "./TextDocuments";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -23,7 +26,6 @@ import * as Diff from "diff";
 import { TabbyAgent } from "../TabbyAgent";
 import { isEmptyRange } from "../utils/range";
 import { isBlank } from "../utils";
-
 export type Edit = {
   id: ChatEditToken;
   location: Location;
@@ -53,6 +55,10 @@ export class ChatEditProvider {
     });
     this.connection.onRequest(ChatEditResolveRequest.type, async (params) => {
       return this.resolveEdit(params);
+    });
+
+    this.connection.onRequest(ChatLineRangeSmartApplyRequest.type, async (params) => {
+      return this.provideSmartApplyLineRange(params);
     });
   }
 
@@ -426,6 +432,62 @@ export class ChatEditProvider {
         return false;
       }
     }
+  }
+
+  async provideSmartApplyLineRange(
+    params: ChatLineRangeSmartApplyParams,
+  ): Promise<ChatLineRangeSmartApplyResult | undefined> {
+    const document = this.documents.get(params.uri);
+    if (!document) {
+      return undefined;
+    }
+    if (!this.agent.getServerHealthState()?.chat_model) {
+      throw {
+        name: "ChatFeatureNotAvailableError",
+        message: "Chat feature not available",
+      } as ChatFeatureNotAvailableError;
+    }
+
+    //TODO(Sma1lboy): maybe visible range with huge offset, don't do whole file
+    const documentText = document
+      .getText()
+      .split("\n")
+      .map((line, idx) => `${idx + 1} | ${line}`)
+      .join("\n");
+
+    if (this.mutexAbortController) {
+      throw {
+        name: "ChatEditMutexError",
+        message: "Another edit is already in progress",
+      } as ChatEditMutexError;
+    }
+    this.mutexAbortController = new AbortController();
+
+    const stream = await this.agent.provideSmartApplyLineRange(documentText, params.applyCode);
+    if (!stream) {
+      return undefined;
+    }
+    let response = "";
+    for await (const delta of stream) {
+      response += delta;
+    }
+
+    const regex = /<GENERATEDCODE>(.*?)<\/GENERATEDCODE>/s;
+    const match = response.match(regex);
+
+    if (match && match[1]) {
+      response = match[1].trim();
+    }
+
+    const range = response.split("-");
+
+    if (range.length !== 2) {
+      return undefined;
+    }
+    const startLine = parseInt(range[0] ? range[0] : "0");
+    const endLine = parseInt(range[1] ? range[1] : "0");
+    this.mutexAbortController = null;
+    return { start: startLine, end: endLine };
   }
 
   // header line

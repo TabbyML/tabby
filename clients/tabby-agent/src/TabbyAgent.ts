@@ -47,7 +47,6 @@ import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
 import { loadTlsCaCerts } from "./loadCaCerts";
 import { createProxyForUrl, ProxyConfig } from "./http/proxy";
 import { name as agentName, version as agentVersion } from "../package.json";
-
 export class TabbyAgent extends EventEmitter implements Agent {
   private readonly logger = getLogger("TabbyAgent");
   private anonymousUsageLogger = new AnonymousUsageLogger();
@@ -1020,6 +1019,72 @@ export class TabbyAgent extends EventEmitter implements Agent {
         this.logger.error(`Chat request failed. [${requestId}]`, error);
       }
       this.healthCheck(); // schedule a health check
+      return null;
+    }
+  }
+
+  public async provideSmartApplyLineRange(document: string, applyCode: string): Promise<Readable | null> {
+    if (this.status === "notInitialized") {
+      throw new Error("Agent is not initialized");
+    }
+
+    const promptTemplate = this.config.chat.provideSmartApplyLineRange.promptTemplate;
+
+    // request chat api
+    const requestId = uuid();
+    try {
+      if (!this.api) {
+        throw new Error("http client not initialized");
+      }
+      const requestPath = "/v1/chat/completions";
+      const messages: { role: "user"; content: string }[] = [
+        {
+          role: "user",
+          content: promptTemplate.replace(/{{document}}|{{applyCode}}/g, (pattern: string) => {
+            switch (pattern) {
+              case "{{document}}":
+                return document;
+              case "{{applyCode}}":
+                return applyCode;
+              default:
+                return "";
+            }
+          }),
+        },
+      ];
+      const requestOptions = {
+        body: {
+          messages,
+          model: "",
+          stream: true,
+        },
+        parseAs: "stream" as ParseAs,
+      };
+      const requestDescription = `POST ${this.config.server.endpoint + requestPath}`;
+      this.logger.debug(`Chat request: ${requestDescription}. [${requestId}]`);
+      this.logger.trace(`Chat request body: [${requestId}]`, requestOptions.body);
+      const response = await this.api.POST(requestPath, requestOptions);
+      this.logger.debug(`Chat response status: ${response.response.status}. [${requestId}]`);
+      if (response.error || !response.response.ok) {
+        throw new HttpError(response.response);
+      }
+      if (!response.response.body) {
+        return null;
+      }
+      const readableStream = readChatStream(response.response.body);
+      return readableStream;
+    } catch (error) {
+      if (error instanceof HttpError && error.status == 404) {
+        return await this.provideSmartApplyLineRange(document, applyCode);
+      }
+      if (isCanceledError(error)) {
+        this.logger.debug(`Chat request canceled. [${requestId}]`);
+      } else if (isUnauthorizedError(error)) {
+        this.logger.debug(`Chat request failed due to unauthorized. [${requestId}]`);
+      } else {
+        this.logger.error(`Chat request failed. [${requestId}]`, error);
+      }
+      this.healthCheck();
       return null;
     }
   }
