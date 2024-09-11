@@ -42,7 +42,6 @@ export default function UserGroups() {
   }, [error])
 
   const onCreateUserGroup = async () => {
-    // console.log('submit')
     reexcute()
   }
 
