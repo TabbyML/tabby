@@ -6,10 +6,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
 import AOS from 'aos'
-import { noop, omit } from 'lodash-es'
+import { noop } from 'lodash-es'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
-import { useEnableSearch } from '@/lib/experiment-flags'
 import { graphql } from '@/lib/gql/generates'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useHealth } from '@/lib/hooks/use-health'
@@ -41,7 +40,10 @@ import Stats from './components/stats'
 
 import 'aos/dist/aos.css'
 
-import { AnswerEngineExtraContext } from '@/lib/types'
+import { useQuery } from 'urql'
+
+import { contextInfoQuery } from '@/lib/tabby/query'
+import { ThreadRunContexts } from '@/lib/types'
 import { Separator } from '@/components/ui/separator'
 
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
@@ -51,7 +53,6 @@ const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
 `)
 
 function MainPanel() {
-  const [searchFlag] = useEnableSearch()
   const { data: healthInfo } = useHealth()
   const [{ data }] = useMe()
   const isChatEnabled = useIsChatEnabled()
@@ -60,6 +61,9 @@ function MainPanel() {
   const elementRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
+    query: contextInfoQuery
+  })
 
   // Initialize the page's entry animation
   useEffect(() => {
@@ -81,16 +85,15 @@ function MainPanel() {
     router.prefetch('/search')
   }, [router])
 
+  // FIXME add loading skeleton
   if (!healthInfo || !data?.me) return <></>
 
-  const onSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
+  const onSearch = (question: string, ctx?: ThreadRunContexts) => {
     setIsLoading(true)
     sessionStorage.setItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG, question)
     sessionStorage.setItem(
-      SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT,
-      JSON.stringify({
-        repository: ctx?.repository ? omit(ctx.repository, 'refs') : undefined
-      })
+      SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS,
+      JSON.stringify(ctx)
     )
     router.push('/search')
   }
@@ -100,7 +103,7 @@ function MainPanel() {
     : { height: '100vh' }
   return (
     <div className="transition-all" style={style}>
-      <header className="flex h-16 items-center justify-end px-4">
+      <header className="flex h-16 items-center justify-end px-4 lg:px-10">
         <div className="flex items-center gap-x-6">
           <ClientOnly>
             <ThemeToggle />
@@ -121,8 +124,8 @@ function MainPanel() {
             alt="logo"
             width={192}
             className={cn('mt-4 invert dark:invert-0', {
-              'mb-4': isChatEnabled && searchFlag.value,
-              'mb-2': !isChatEnabled || !searchFlag.value
+              'mb-4': isChatEnabled,
+              'mb-2': !isChatEnabled
             })}
             data-aos="fade-down"
             data-aos-delay="150"
@@ -131,8 +134,8 @@ function MainPanel() {
             className={cn(
               ' flex scroll-m-20 items-center gap-2 text-sm tracking-tight text-secondary-foreground',
               {
-                'mb-6': isChatEnabled && searchFlag.value,
-                'mb-9': !isChatEnabled || !searchFlag.value
+                'mb-6': isChatEnabled,
+                'mb-9': !isChatEnabled
               }
             )}
             data-aos="fade-down"
@@ -144,7 +147,7 @@ function MainPanel() {
             <Separator orientation="vertical" className="h-[80%]" />
             <span>debug</span>
           </div>
-          {isChatEnabled && searchFlag.value && (
+          {isChatEnabled && (
             <div className="mb-10 w-full" data-aos="fade-down">
               <TextAreaSearch
                 onSearch={onSearch}
@@ -153,6 +156,9 @@ function MainPanel() {
                 loadingWithSpinning
                 isLoading={isLoading}
                 cleanAfterSearch={false}
+                contextInfo={contextInfoData?.contextInfo}
+                fetchingContextInfo={fetchingContextInfo}
+                className="min-h-[7rem]"
               />
             </div>
           )}

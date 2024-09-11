@@ -16,6 +16,7 @@ import {
   WorkspaceFolder,
   TextDocument,
   commands,
+  ColorThemeKind,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context, NavigateOpts } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -202,6 +203,14 @@ export class ChatViewProvider implements WebviewViewProvider {
           });
         }
       },
+      onLoaded: () => {
+        setTimeout(() => {
+          this.refreshChatPage();
+        }, 300);
+      },
+      onCopy: (content) => {
+        env.clipboard.writeText(content);
+      },
     });
 
     // At this point, if the server instance is not set up, agent.status is 'notInitialized'.
@@ -224,7 +233,9 @@ export class ChatViewProvider implements WebviewViewProvider {
       }
     });
 
-    this.agent.on("didUpdateServerInfo", () => {
+    this.agent.on("didUpdateServerInfo", async () => {
+      const serverInfo = await this.agent.fetchServerInfo();
+      this.displayChatPage(serverInfo.config.endpoint, { force: true });
       this.refreshChatPage();
     });
 
@@ -239,22 +250,10 @@ export class ChatViewProvider implements WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage((message) => {
       switch (message.action) {
-        case "rendered": {
-          setTimeout(() => {
-            this.refreshChatPage();
-          }, 300);
+        case "sync-theme": {
+          this.client?.updateTheme(message.style, getColorThemeString(window.activeColorTheme.kind));
           return;
         }
-        case "copy": {
-          env.clipboard.writeText(message.data);
-          return;
-        }
-      }
-    });
-
-    workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("workbench.colorTheme")) {
-        this.webview?.webview.postMessage({ action: "sync-theme" });
       }
     });
   }
@@ -271,7 +270,7 @@ export class ChatViewProvider implements WebviewViewProvider {
       return "You need to launch the server with the chat model enabled; for example, use `--chat-model Qwen2-1.5B-Instruct`.";
     }
 
-    const MIN_VERSION = "0.16.0";
+    const MIN_VERSION = "0.18.0";
 
     if (serverInfo.health["version"]) {
       let version: semver.SemVer | undefined | null = undefined;
@@ -332,6 +331,10 @@ export class ChatViewProvider implements WebviewViewProvider {
         Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
       );
 
+      const logoUri = this.webview?.webview.asWebviewUri(
+        Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"),
+      );
+
       this.webview.webview.html = `
         <!DOCTYPE html>
         <html lang="en">
@@ -345,48 +348,45 @@ export class ChatViewProvider implements WebviewViewProvider {
             <script defer>
               const vscode = acquireVsCodeApi();
 
-              function getTheme () {
-                return document.body.className === 'vscode-dark' ? 'dark' : 'light'
-              }
-
               function getCssVariableValue(variableName) {
                 const root = document.documentElement;
                 return getComputedStyle(root).getPropertyValue(variableName).trim();
               }
 
               const syncTheme = () => {
-                const chatIframe = document.getElementById("chat");
-                if (!chatIframe) return
-
                 const parentHtmlStyle = document.documentElement.getAttribute('style');
-                chatIframe.contentWindow.postMessage({ style: parentHtmlStyle }, "${endpoint}");
-
-                let themeClass = getTheme()
-                themeClass += ' vscode'
-                chatIframe.contentWindow.postMessage({ themeClass: themeClass }, "${endpoint}");
+                vscode.postMessage({
+                  action: "sync-theme",
+                  style: parentHtmlStyle
+                })
               }
+
+              const observer = new MutationObserver(function(mutations) {
+                syncTheme();
+              });
+              
+              observer.observe(document.documentElement, { attributes : true, attributeFilter : ['style'] });
 
               window.onload = function () {
                 const chatIframe = document.getElementById("chat");
+                const loadingOverlay = document.getElementById("loading-overlay");
 
                 if (chatIframe) {
                   const fontSize = getCssVariableValue('--vscode-font-size');
                   const foreground = getCssVariableValue('--vscode-editor-foreground');
-                  const theme = getTheme()
 
-                  const clientQuery = "&client=vscode"
-                  const themeQuery = "&theme=" + theme
-                  const fontSizeQuery = "&font-size=" + fontSize
-                  const foregroundQuery = "&foreground=" + foreground.replace('#', '')
-      
                   chatIframe.addEventListener('load', function() {
-                    vscode.postMessage({ action: 'rendered' });
                     setTimeout(() => {
                       syncTheme()
+
+                      setTimeout(() => {
+                        loadingOverlay.style.display = 'none';
+                        chatIframe.style.display = 'block';
+                      }, 0)
                     }, 300)
                   });
 
-                  chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery + themeQuery + fontSizeQuery + foregroundQuery)
+                  chatIframe.src=encodeURI("${endpoint}/chat?client=vscode")
                 }
                 
                 window.addEventListener("message", (event) => {
@@ -394,10 +394,6 @@ export class ChatViewProvider implements WebviewViewProvider {
                   if (event.data) {
                     if (event.data.action === 'sync-theme') {
                       syncTheme();
-                      return;
-                    }
-                    if (event.data.action === 'copy') {
-                      vscode.postMessage(event.data);
                       return;
                     }
 
@@ -412,6 +408,14 @@ export class ChatViewProvider implements WebviewViewProvider {
             </script>
           </head>
           <body>
+            <main class='static-content' id='loading-overlay'>
+              <div class='avatar'>
+                <img src="${logoUri}" />
+                <p>Tabby</p>
+              </div>
+              <p>Just a moment while we get things ready...</p>
+              <span class='loader'></span>
+            </main>
             <iframe
               id="chat"
               allow="clipboard-read; clipboard-write" />
@@ -546,4 +550,15 @@ async function resolveDocument(
   }
 
   return null;
+}
+
+function getColorThemeString(kind: ColorThemeKind) {
+  switch (kind) {
+    case ColorThemeKind.Light:
+    case ColorThemeKind.HighContrastLight:
+      return "light";
+    case ColorThemeKind.Dark:
+    case ColorThemeKind.HighContrast:
+      return "dark";
+  }
 }

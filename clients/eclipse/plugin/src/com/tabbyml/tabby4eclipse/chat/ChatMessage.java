@@ -50,6 +50,7 @@ public class ChatMessage {
 	}
 
 	public static class FileContext {
+		@SuppressWarnings("unused")
 		private String kind = "file";
 		private LineRange range;
 		private String filepath;

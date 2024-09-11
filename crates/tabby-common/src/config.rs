@@ -102,8 +102,7 @@ pub fn config_id_to_index(id: &str) -> Result<usize, anyhow::Error> {
 
     HASHER
         .decode(id)
-        .first()
-        .map(|i| *i as usize)
+        .and_then(|x| x.first().map(|i| *i as usize))
         .ok_or_else(|| anyhow!("Invalid config ID"))
 }
 

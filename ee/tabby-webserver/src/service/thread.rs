@@ -6,6 +6,7 @@ use juniper::ID;
 use tabby_db::{DbConn, ThreadMessageDAO};
 use tabby_schema::{
     bail,
+    policy::AccessPolicy,
     thread::{
         self, CreateMessageInput, CreateThreadInput, MessageAttachmentInput, ThreadRunItem,
         ThreadRunOptionsInput, ThreadRunStream, ThreadService,
@@ -35,7 +36,8 @@ impl ThreadService for ThreadServiceImpl {
     async fn create(&self, user_id: &ID, input: &CreateThreadInput) -> Result<ID> {
         let thread_id = self
             .db
-            .create_thread(user_id.as_rowid()?, input.is_ephemeral)
+            // By default, all new threads are ephemeral
+            .create_thread(user_id.as_rowid()?, true)
             .await?;
         self.append_user_message(&thread_id.as_id(), &input.user_message)
             .await?;
@@ -50,8 +52,16 @@ impl ThreadService for ThreadServiceImpl {
             .next())
     }
 
+    async fn set_persisted(&self, id: &ID) -> Result<()> {
+        self.db
+            .update_thread_ephemeral(id.as_rowid()?, false)
+            .await?;
+        Ok(())
+    }
+
     async fn create_run(
         &self,
+        policy: &AccessPolicy,
         thread_id: &ID,
         options: &ThreadRunOptionsInput,
         attachment_input: Option<&MessageAttachmentInput>,
@@ -88,7 +98,7 @@ impl ThreadService for ThreadServiceImpl {
             .await?;
 
         let s = answer
-            .answer_v2(&messages, options, attachment_input)
+            .answer_v2(policy, &messages, options, attachment_input)
             .await?;
 
         // Copy ownership of db and thread_id for the stream
@@ -116,10 +126,9 @@ impl ThreadService for ThreadServiceImpl {
                             .iter()
                             .map(|x| (&x.code).into())
                             .collect::<Vec<_>>();
-                        db.update_thread_message_attachments(
+                        db.update_thread_message_code_attachments(
                             assistant_message_id,
-                            Some(&code),
-                            None,
+                            &code,
                         ).await?;
                     }
 
@@ -128,10 +137,9 @@ impl ThreadService for ThreadServiceImpl {
                             .iter()
                             .map(|x| (&x.doc).into())
                             .collect::<Vec<_>>();
-                        db.update_thread_message_attachments(
+                        db.update_thread_message_doc_attachments(
                             assistant_message_id,
-                            None,
-                            Some(&doc),
+                            &doc,
                         ).await?;
                     }
 
@@ -272,7 +280,6 @@ mod tests {
         let service = create(db, None);
 
         let input = CreateThreadInput {
-            is_ephemeral: false,
             user_message: CreateMessageInput {
                 content: "Hello, world!".to_string(),
                 attachments: None,
@@ -292,7 +299,6 @@ mod tests {
             .create(
                 &user_id,
                 &CreateThreadInput {
-                    is_ephemeral: false,
                     user_message: CreateMessageInput {
                         content: "Ping!".to_string(),
                         attachments: Some(MessageAttachmentInput {
@@ -339,7 +345,6 @@ mod tests {
             .create(
                 &user_id,
                 &CreateThreadInput {
-                    is_ephemeral: false,
                     user_message: CreateMessageInput {
                         content: "Ping!".to_string(),
                         attachments: None,

@@ -1,6 +1,5 @@
 import React from 'react'
 import { pickBy } from 'lodash-es'
-import { OperationContext } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 
@@ -15,8 +14,6 @@ import { useLatest } from './use-latest'
 interface UseThreadRunOptions {
   onError?: (err: Error) => void
   threadId?: string
-  isEphemeral?: boolean
-  headers?: Record<string, string> | Headers
   onAssistantMessageCompleted?: (
     threadId: string,
     threadRunId: ThreadRunItem | undefined
@@ -109,9 +106,7 @@ const DeleteThreadMessagePairMutation = graphql(/* GraphQL */ `
 
 export function useThreadRun({
   threadId: propsThreadId,
-  headers,
-  onAssistantMessageCompleted,
-  isEphemeral
+  onAssistantMessageCompleted
 }: UseThreadRunOptions) {
   const [threadId, setThreadId] = React.useState<string | undefined>(
     propsThreadId
@@ -122,18 +117,6 @@ export function useThreadRun({
     ThreadRunItem | undefined
   >()
   const [error, setError] = React.useState<Error | undefined>()
-
-  const operationContext: Partial<OperationContext> = React.useMemo(() => {
-    if (headers) {
-      return {
-        fetchOptions: {
-          headers
-        }
-      }
-    }
-    return {}
-  }, [headers])
-
   const combineThreadRunData = (
     existingData: ThreadRunItem | undefined,
     data: ThreadRunItem | undefined
@@ -170,19 +153,14 @@ export function useThreadRun({
     options?: ThreadRunOptionsInput
   ) => {
     const { unsubscribe } = client
-      .subscription(
-        CreateThreadAndRunSubscription,
-        {
-          input: {
-            thread: {
-              isEphemeral: !!isEphemeral,
-              userMessage
-            },
-            options
-          }
-        },
-        operationContext
-      )
+      .subscription(CreateThreadAndRunSubscription, {
+        input: {
+          thread: {
+            userMessage
+          },
+          options
+        }
+      })
       .subscribe(res => {
         if (res?.error) {
           setIsLoading(false)
@@ -214,17 +192,13 @@ export function useThreadRun({
   ) => {
     if (!threadId) return
     const { unsubscribe } = client
-      .subscription(
-        CreateThreadRunSubscription,
-        {
-          input: {
-            threadId,
-            additionalUserMessage: userMessage,
-            options
-          }
-        },
-        operationContext
-      )
+      .subscription(CreateThreadRunSubscription, {
+        input: {
+          threadId,
+          additionalUserMessage: userMessage,
+          options
+        }
+      })
       .subscribe(res => {
         if (res?.error) {
           setIsLoading(false)
@@ -269,14 +243,11 @@ export function useThreadRun({
     userMessageId: string,
     assistantMessageId: string
   ) => {
-    return deleteThreadMessagePair(
-      {
-        threadId,
-        userMessageId,
-        assistantMessageId
-      },
-      operationContext
-    )
+    return deleteThreadMessagePair({
+      threadId,
+      userMessageId,
+      assistantMessageId
+    })
       .then(res => {
         if (res?.data?.deleteThreadMessagePair) {
           return true

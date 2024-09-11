@@ -5,7 +5,7 @@ import { JobRun } from '@/lib/gql/generates/graphql'
 const JOB_DISPLAY_NAME_MAPPINGS = {
   scheduler_git: 'Git',
   scheduler_github_gitlab: 'Github / Gitlab',
-  web_crawler: 'Web'
+  web_crawler: 'Docs'
 }
 
 export function getJobDisplayName(name: string): string {

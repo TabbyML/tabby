@@ -4,9 +4,10 @@
 import React, { useMemo } from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
-import { compact, isEmpty, isNil } from 'lodash-es'
+import { compact, isEmpty, isEqual, isNil, uniqWith } from 'lodash-es'
 import type { Context } from 'tabby-chat-panel'
 
+import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
 import {
@@ -101,7 +102,7 @@ function UserMessageCard(props: { message: UserMessage }) {
   const { message } = props
   const [{ data }] = useMe()
   const selectContext = message.selectContext
-  const { onNavigateToContext, client } = React.useContext(ChatContext)
+  const { onNavigateToContext } = React.useContext(ChatContext)
   const selectCodeSnippet = React.useMemo(() => {
     if (!selectContext?.content) return ''
     const language = selectContext?.filepath
@@ -162,7 +163,7 @@ function UserMessageCard(props: { message: UserMessage }) {
               className="flex cursor-pointer items-center gap-1 overflow-x-auto text-xs text-muted-foreground hover:underline"
               onClick={() =>
                 onNavigateToContext?.(message.selectContext!, {
-                  openInEditor: client === 'vscode'
+                  openInEditor: true
                 })
               }
             >
@@ -232,7 +233,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     enableRegenerating,
     ...rest
   } = props
-  const { onNavigateToContext, client, onApplyInEditor, onCopyContent } =
+  const { onNavigateToContext, onApplyInEditor, onCopyContent } =
     React.useContext(ChatContext)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
     React.useState<number | undefined>(undefined)
@@ -256,10 +257,13 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
   }, [message?.relevant_code])
 
   const clientCode: Array<Context> = React.useMemo(() => {
-    return compact([
-      userMessage.activeContext,
-      ...(userMessage?.relevantContext ?? [])
-    ])
+    return uniqWith(
+      compact([
+        userMessage.activeContext,
+        ...(userMessage?.relevantContext ?? [])
+      ]),
+      isEqual
+    )
   }, [userMessage.activeContext, userMessage.relevantContext])
 
   const attachmentDocsLen = 0
@@ -310,7 +314,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       }
     }
     onNavigateToContext?.(ctx, {
-      openInEditor: client === 'vscode' && code.isClient
+      openInEditor: code.isClient
     })
   }
 
@@ -345,10 +349,11 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           userContexts={clientCode}
           onContextClick={(ctx, isInWorkspace) => {
             onNavigateToContext?.(ctx, {
-              openInEditor: client === 'vscode' && isInWorkspace
+              openInEditor: isInWorkspace
             })
           }}
-          isExternalLink={!!client}
+          // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
+          showExternalLink={!!onApplyInEditor}
           highlightIndex={relevantCodeHighlightIndex}
         />
         {isLoading && !message?.message ? (
@@ -386,9 +391,8 @@ function getCopyContent(
 ) {
   if (!attachmentCode || isEmpty(attachmentCode)) return content
 
-  const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
   const parsedContent = content
-    .replace(citationMatchRegex, match => {
+    .replace(MARKDOWN_CITATION_REGEX, match => {
       const citationNumberMatch = match?.match(/\d+/)
       return `[${citationNumberMatch}]`
     })
@@ -461,7 +465,7 @@ function ChatMessageActionsWrapper({
   return (
     <div
       className={cn(
-        'flex items-center justify-end transition-opacity group-hover:opacity-100 md:absolute md:-right-[5rem] md:-top-2 md:opacity-0',
+        'flex items-center justify-end transition-opacity group-hover:opacity-100 md:absolute md:-right-[4rem] md:-top-2 md:opacity-0',
         className
       )}
       {...props}

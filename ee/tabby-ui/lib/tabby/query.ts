@@ -124,9 +124,14 @@ export const listJobs = graphql(/* GraphQL */ `
   }
 `)
 
-export const listUsers = graphql(/* GraphQL */ `
+export const listSecuredUsers = graphql(/* GraphQL */ `
   query ListUsers($after: String, $before: String, $first: Int, $last: Int) {
-    users(after: $after, before: $before, first: $first, last: $last) {
+    users: securedUsers(
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
       edges {
         node {
           id
@@ -264,42 +269,6 @@ export const listIntegratedRepositories = graphql(/* GraphQL */ `
   }
 `)
 
-export const listWebCrawlerUrl = graphql(/* GraphQL */ `
-  query WebCrawlerUrls(
-    $after: String
-    $before: String
-    $first: Int
-    $last: Int
-  ) {
-    webCrawlerUrls(after: $after, before: $before, first: $first, last: $last) {
-      edges {
-        node {
-          url
-          id
-          createdAt
-          jobInfo {
-            lastJobRun {
-              id
-              job
-              createdAt
-              finishedAt
-              exitCode
-            }
-            command
-          }
-        }
-        cursor
-      }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-    }
-  }
-`)
-
 export const repositoryListQuery = graphql(/* GraphQL */ `
   query RepositoryList {
     repositoryList {
@@ -326,6 +295,19 @@ export const repositorySearch = graphql(/* GraphQL */ `
       type
       path
       indices
+    }
+  }
+`)
+
+export const contextInfoQuery = graphql(/* GraphQL */ `
+  query ContextInfo {
+    contextInfo {
+      sources {
+        id
+        kind
+        sourceId
+        displayName
+      }
     }
   }
 `)

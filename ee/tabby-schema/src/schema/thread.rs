@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use futures::stream::BoxStream;
 use juniper::ID;
 
-use crate::schema::Result;
+use crate::{policy::AccessPolicy, schema::Result};
 
 mod types;
 pub use types::*;
@@ -20,6 +20,9 @@ pub trait ThreadService: Send + Sync {
     /// Get a thread by ID
     async fn get(&self, id: &ID) -> Result<Option<Thread>>;
 
+    /// Converting a ephemeral thread to a persisted thread
+    async fn set_persisted(&self, id: &ID) -> Result<()>;
+
     /// List threads
     async fn list(
         &self,
@@ -33,6 +36,7 @@ pub trait ThreadService: Send + Sync {
     /// Create a new thread run
     async fn create_run(
         &self,
+        policy: &AccessPolicy,
         id: &ID,
         options: &ThreadRunOptionsInput,
         attachment_input: Option<&MessageAttachmentInput>,

@@ -12,6 +12,7 @@ export type AgentConfig = {
     requestTimeout: number;
   };
   proxy: {
+    authorization: string;
     url: string;
   };
   completion: {
@@ -70,6 +71,7 @@ export type AgentConfig = {
   postprocess: {
     limitScope: any;
     calculateReplaceRange: any;
+    minCompletionChars: number;
   };
   chat: {
     edit: {
@@ -128,6 +130,7 @@ export const defaultAgentConfig: AgentConfig = {
     requestTimeout: 2 * 60 * 1000, // 2 minutes
   },
   proxy: {
+    authorization: "",
     url: "",
   },
   completion: {
@@ -170,6 +173,7 @@ export const defaultAgentConfig: AgentConfig = {
   postprocess: {
     limitScope: {},
     calculateReplaceRange: {},
+    minCompletionChars: 4,
   },
   chat: {
     edit: {
@@ -200,7 +204,7 @@ export const defaultAgentConfig: AgentConfig = {
       maxDiffLength: 3600,
       promptTemplate: generateCommitMessagePrompt,
       responseMatcher:
-        /(?<=(["'`]+)?\s*)(feat|fix|docs|refactor|style|test|build|ci|chore)(\(\w+\))?:.+(?=\s*\1)/gi.toString(),
+        /(?<=(["'`]+)?\s*)(feat|fix|docs|refactor|style|test|build|ci|chore)(\(\S+\))?:.+(?=\s*\1)/gis.toString(),
     },
   },
   logs: {

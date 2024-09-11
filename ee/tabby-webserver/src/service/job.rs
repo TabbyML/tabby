@@ -37,6 +37,11 @@ impl JobService for JobControllerImpl {
             .as_id())
     }
 
+    async fn clear(&self, command: String) -> Result<usize> {
+        let num_deleted = self.db.delete_pending_job_run(&command).await?;
+        Ok(num_deleted)
+    }
+
     async fn list(
         &self,
         ids: Option<Vec<ID>>,
@@ -76,5 +81,55 @@ impl JobService for JobControllerImpl {
             failed: stats.failed,
             pending: stats.pending,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use assert_matches::assert_matches;
+    use tabby_db::DbConn;
+
+    use super::*;
+    use crate::background_job::{BackgroundJobEvent, WebCrawlerJob};
+
+    #[tokio::test]
+    async fn test_clear() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let svc = super::create(db.clone()).await;
+
+        let job1 = BackgroundJobEvent::WebCrawler(WebCrawlerJob::new(
+            "s1".into(),
+            "http://abc.com".into(),
+            None,
+        ));
+
+        let job2 = BackgroundJobEvent::WebCrawler(WebCrawlerJob::new(
+            "s2".into(),
+            "http://def.com".into(),
+            None,
+        ));
+
+        svc.trigger(job1.to_command()).await.unwrap();
+
+        // job1 is marked as stale.
+        let _ = db.finalize_stale_job_runs().await;
+
+        svc.trigger(job2.to_command()).await.unwrap();
+
+        assert_eq!(
+            db.get_next_job_to_execute().await.unwrap().command,
+            job2.to_command()
+        );
+
+        // As job1 is marked as stale, no jobs will be cleared.
+        assert_eq!(0, svc.clear(job1.to_command()).await.unwrap());
+        assert_eq!(1, svc.clear(job2.to_command()).await.unwrap());
+
+        // Regression test case, cleared job shouldn't be pending.
+        // job2 started_at is NULL, but exit code is -1
+        let job2dao = db.get_latest_job_run(job2.to_command()).await.unwrap();
+        assert!(job2dao.started_at.is_none());
+        assert_matches!(job2dao.exit_code, Some(-1));
+        assert!(!job2dao.is_pending())
     }
 }

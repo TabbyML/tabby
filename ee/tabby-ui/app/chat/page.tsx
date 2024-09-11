@@ -27,6 +27,8 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './page.css'
 
+import { saveFetcherOptions } from '@/lib/tabby/token-management'
+
 const convertToHSLColor = (style: string) => {
   return Color(style)
     .hsl()
@@ -42,9 +44,6 @@ const convertToHSLColor = (style: string) => {
     .join('')
 }
 
-const CLIENT_TO_HANDLE_MESSAGE_SUBMIT = ['vscode']
-const CLIENT_HAS_APPLY_IN_EDITOR = ['vscode']
-
 export default function ChatPage() {
   const [isInit, setIsInit] = useState(false)
   const [fetcherOptions, setFetcherOptions] = useState<FetcherOptions | null>(
@@ -55,7 +54,6 @@ export default function ChatPage() {
   const [pendingRelevantContexts, setPendingRelevantContexts] = useState<
     Context[]
   >([])
-  const [isThemeSynced, setIsThemeSynced] = useState(false)
   const [errorMessage, setErrorMessage] = useState<ErrorMessage | null>(null)
   const [isRefreshLoading, setIsRefreshLoading] = useState(false)
 
@@ -65,67 +63,13 @@ export default function ChatPage() {
   const prevWidthRef = useRef(width)
 
   const searchParams = useSearchParams()
-  const client = searchParams.get('client') || undefined
-  const initialFontSize = searchParams.get('font-size') || undefined
-  const initialForeground = searchParams.get('foreground')
-    ? `#${searchParams.get('foreground')}`
-    : undefined
-  const initialBackground = searchParams.get('background')
-    ? `#${searchParams.get('background')}`
-    : undefined
-
-  const isFromVSCode = client === 'vscode'
-  const isFromIntellij = client === 'intellij'
-  const isOnSubmitMessage = CLIENT_TO_HANDLE_MESSAGE_SUBMIT.includes(
-    client || ''
-  )
-  const isOnApplyInEditor = CLIENT_HAS_APPLY_IN_EDITOR.includes(client || '')
-  const maxWidth = isFromVSCode ? '5xl' : undefined
-
-  useEffect(() => {
-    const onMessage = ({
-      data
-    }: {
-      data: {
-        style?: string
-        themeClass?: string
-      }
-    }) => {
-      // Sync with Editor's CSS variable
-      if (data.style) {
-        const styleWithHslValue = data.style
-          .split(';')
-          .filter((style: string) => style)
-          .map((style: string) => {
-            const [key, value] = style.split(':')
-            const styleValue = value.trim()
-            const isColorValue =
-              styleValue.startsWith('#') || styleValue.startsWith('rgb')
-            if (!isColorValue) return `${key}: ${value}`
-            const hslValue = convertToHSLColor(styleValue)
-            return `${key}: ${hslValue}`
-          })
-          .join(';')
-        document.documentElement.style.cssText = styleWithHslValue
-        setIsThemeSynced(true)
-      }
-
-      // Sync with edit theme
-      if (data.themeClass) {
-        document.documentElement.className = data.themeClass
-      }
-    }
-
-    window.addEventListener('message', onMessage)
-    return () => {
-      window.removeEventListener('message', onMessage)
-    }
-  }, [])
+  const client = searchParams.get('client') as ClientType
+  const isInEditor = !!client || undefined
 
   // VSCode bug: not support shortcuts like copy/paste
   // @see - https://github.com/microsoft/vscode/issues/129178
   useEffect(() => {
-    if (!isFromVSCode) return
+    if (client !== 'vscode') return
 
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.code === 'KeyC') {
@@ -168,6 +112,12 @@ export default function ChatPage() {
   const server = useServer({
     init: (request: InitRequest) => {
       if (chatRef.current) return
+
+      // save fetcherOptions to sessionStorage
+      if (client) {
+        saveFetcherOptions(request.fetcherOptions)
+      }
+
       setActiveChatId(nanoid())
       setIsInit(true)
       setFetcherOptions(request.fetcherOptions)
@@ -183,8 +133,34 @@ export default function ChatPage() {
     },
     addRelevantContext: context => {
       return addRelevantContext(context)
+    },
+    updateTheme: (style, themeClass) => {
+      const styleWithHslValue = style
+        .split(';')
+        .filter((style: string) => style)
+        .map((style: string) => {
+          const [key, value] = style.split(':')
+          const styleValue = value.trim()
+          const isColorValue =
+            styleValue.startsWith('#') || styleValue.startsWith('rgb')
+          if (!isColorValue) return `${key}: ${value}`
+          const hslValue = convertToHSLColor(styleValue)
+          return `${key}: ${hslValue}`
+        })
+        .join(';')
+      document.documentElement.style.cssText = styleWithHslValue
+
+      // Sync with edit theme
+      document.documentElement.className =
+        themeClass + ` client client-${client}`
     }
   })
+
+  useEffect(() => {
+    if (server) {
+      server?.onLoaded()
+    }
+  }, [server])
 
   useLayoutEffect(() => {
     if (!chatLoaded) return
@@ -212,28 +188,10 @@ export default function ChatPage() {
     server?.navigate(context, opts)
   }
 
-  const onCopyContent = (value: string) => {
-    parent.postMessage(
-      {
-        action: 'copy',
-        data: value
-      },
-      '*'
-    )
-  }
-
   const refresh = async () => {
     setIsRefreshLoading(true)
     await server?.refresh()
     setIsRefreshLoading(false)
-  }
-
-  const onSubmitMessage = async (msg: string, relevantContext?: Context[]) => {
-    return server?.onSubmitMessage?.(msg, relevantContext)
-  }
-
-  const onApplyInEditor = async (content: string) => {
-    return server?.onApplyInEditor?.(content)
   }
 
   function StaticContent({ children }: { children: React.ReactNode }) {
@@ -241,10 +199,7 @@ export default function ChatPage() {
       <div
         className="h-screen w-screen"
         style={{
-          fontSize: isThemeSynced ? 'inherit' : initialFontSize,
-          color: isThemeSynced ? 'inherit' : initialForeground,
-          background: isThemeSynced ? 'inherit' : initialBackground,
-          padding: isFromIntellij ? '20px' : '5px 18px'
+          padding: client == 'intellij' ? '20px' : '5px 18px'
         }}
       >
         <div className="flex items-center" style={{ marginBottom: '0.55em' }}>
@@ -327,25 +282,21 @@ export default function ChatPage() {
     )
   }
 
-  const headers = {
-    Authorization: `Bearer ${fetcherOptions.authorization}`
-  }
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
       <Chat
         chatId={activeChatId}
         key={activeChatId}
         ref={chatRef}
-        headers={headers}
-        isEphemeral
         onNavigateToContext={onNavigateToContext}
         onLoaded={onChatLoaded}
-        maxWidth={maxWidth}
-        onCopyContent={client === 'vscode' ? onCopyContent : undefined}
-        client={client}
-        onSubmitMessage={isOnSubmitMessage ? onSubmitMessage : undefined}
-        onApplyInEditor={isOnApplyInEditor ? onApplyInEditor : undefined}
+        maxWidth={client === 'vscode' ? '5xl' : undefined}
+        onCopyContent={isInEditor && server?.onCopy}
+        onSubmitMessage={isInEditor && server?.onSubmitMessage}
+        onApplyInEditor={isInEditor && server?.onApplyInEditor}
       />
     </ErrorBoundary>
   )
 }
+
+type ClientType = 'vscode' | 'intellij' | 'vim' | 'eclipse' | null

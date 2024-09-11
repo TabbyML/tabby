@@ -7,6 +7,7 @@ pub mod juniper;
 pub use dao::*;
 pub use env::is_demo_mode;
 pub use schema::*;
+pub mod policy;
 
 #[macro_export]
 macro_rules! bail {

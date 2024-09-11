@@ -46,12 +46,7 @@ pub async fn index_repository(embedding: Arc<dyn Embedding>, repository: &CodeRe
     while let Some(files) = file_stream.next().await {
         count_files += files.len();
         count_chunks += add_changed_documents(repository, embedding.clone(), files).await;
-        logkit::info!(
-            "{}/{} files has been processed, {} has been indexed",
-            count_files,
-            total_files,
-            count_chunks
-        );
+        logkit::info!("Processed {count_files}/{total_files} files, updated {count_chunks} chunks",);
     }
 }
 
@@ -99,7 +94,9 @@ async fn add_changed_documents(
                 continue;
             };
 
-            if cloned_index.is_indexed(&key) {
+            let id = SourceCode::to_index_id(&repository.source_id, &key).id;
+
+            if cloned_index.is_indexed(&id) {
                 // Skip if already indexed
                 continue;
             }

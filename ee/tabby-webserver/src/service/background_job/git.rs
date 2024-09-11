@@ -30,10 +30,10 @@ impl SchedulerGitJob {
         let repository = self.repository;
         tokio::spawn(async move {
             let mut code = CodeIndexer::default();
-            code.refresh(embedding, &repository).await;
+            code.refresh(embedding, &repository).await
         })
         .await
-        .context("Job execution failed")?;
+        .context("Job execution failed")??;
         Ok(())
     }
 

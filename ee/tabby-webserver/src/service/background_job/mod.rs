@@ -18,14 +18,14 @@ use tabby_common::config::CodeRepository;
 use tabby_db::DbConn;
 use tabby_inference::Embedding;
 use tabby_schema::{
+    context::ContextService,
     integration::IntegrationService,
     job::JobService,
     repository::{GitRepositoryService, RepositoryService, ThirdPartyRepositoryService},
-    web_crawler::WebCrawlerService,
 };
 use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::{debug, warn};
-use web_crawler::WebCrawlerJob;
+pub use web_crawler::WebCrawlerJob;
 
 use self::{db::DbMaintainanceJob, third_party_integration::SyncIntegrationJob};
 
@@ -34,7 +34,7 @@ pub enum BackgroundJobEvent {
     SchedulerGitRepository(CodeRepository),
     SchedulerGithubGitlabRepository(ID),
     SyncThirdPartyRepositories(ID),
-    WebCrawler(String, String),
+    WebCrawler(WebCrawlerJob),
     IndexGarbageCollection,
 }
 
@@ -46,7 +46,7 @@ impl BackgroundJobEvent {
                 SchedulerGithubGitlabJob::NAME
             }
             BackgroundJobEvent::SyncThirdPartyRepositories(_) => SyncIntegrationJob::NAME,
-            BackgroundJobEvent::WebCrawler(_, _) => WebCrawlerJob::NAME,
+            BackgroundJobEvent::WebCrawler(_) => WebCrawlerJob::NAME,
             BackgroundJobEvent::IndexGarbageCollection => IndexGarbageCollection::NAME,
         }
     }
@@ -63,7 +63,7 @@ pub async fn start(
     third_party_repository_service: Arc<dyn ThirdPartyRepositoryService>,
     integration_service: Arc<dyn IntegrationService>,
     repository_service: Arc<dyn RepositoryService>,
-    web_crawler_service: Arc<dyn WebCrawlerService>,
+    context_service: Arc<dyn ContextService>,
     embedding: Arc<dyn Embedding>,
 ) {
     let mut hourly =
@@ -104,13 +104,12 @@ pub async fn start(
                             let job = SchedulerGithubGitlabJob::new(integration_id);
                             job.run(embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await
                         }
-                        BackgroundJobEvent::WebCrawler(source_id, url) => {
-                            let job = WebCrawlerJob::new(source_id, url);
+                        BackgroundJobEvent::WebCrawler(job) => {
                             job.run(embedding.clone()).await
                         }
                         BackgroundJobEvent::IndexGarbageCollection => {
                             let job = IndexGarbageCollection;
-                            job.run(repository_service.clone(), web_crawler_service.clone()).await
+                            job.run(repository_service.clone(), context_service.clone()).await
                         }
                     } {
                         logkit::info!(exit_code = 1; "Job failed {}", err);
@@ -121,7 +120,7 @@ pub async fn start(
                     debug!("Background job {} completed", job.id);
                 },
                 Some(now) = hourly.next() => {
-                    if let Err(err) = DbMaintainanceJob::cron(now, db.clone()).await {
+                    if let Err(err) = DbMaintainanceJob::cron(now, context_service.clone(), db.clone()).await {
                         warn!("Database maintainance failed: {:?}", err);
                     }
 
@@ -137,7 +136,7 @@ pub async fn start(
                         warn!("Index issues job failed: {err:?}");
                     }
 
-                    if let Err(err) = IndexGarbageCollection.run(repository_service.clone(), web_crawler_service.clone()).await {
+                    if let Err(err) = IndexGarbageCollection.run(repository_service.clone(), context_service.clone()).await {
                         warn!("Index garbage collection job failed: {err:?}");
                     }
 

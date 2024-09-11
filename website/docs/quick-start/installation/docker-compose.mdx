@@ -21,7 +21,7 @@ version: '3.5'
 services:
   tabby:
     restart: always
-    image: tabbyml/tabby
+    image: registry.tabbyml.com/tabbyml/tabby
     command: serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct --device cuda
     volumes:
       - "$HOME/.tabby:/data"
@@ -45,7 +45,7 @@ version: '3.5'
 services:
   tabby:
     restart: always
-    image: tabbyml/tabby
+    image: registry.tabbyml.com/tabbyml/tabby
     entrypoint: /opt/tabby/bin/tabby-cpu
     command: serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct
     volumes:

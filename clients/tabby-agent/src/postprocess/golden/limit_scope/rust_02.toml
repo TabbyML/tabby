@@ -1,7 +1,7 @@
 description = 'Limit scope: rust 02'
 
 [config]
-# use default config
+minCompletionChars = 1
 
 [context]
 filepath = 'stop.rs'

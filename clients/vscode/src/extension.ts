@@ -14,6 +14,7 @@ import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { Commands } from "./Commands";
 import { Status } from "tabby-agent";
 import { NLOutlinesProvider } from "./outline/NLOutlinesProvider";
+import { CodeActionProvider } from "./CodeAction";
 
 const isBrowser = !!process.env["IS_BROWSER"];
 const logger = getLogger();
@@ -51,12 +52,14 @@ export async function activate(context: ExtensionContext) {
     client = new Client(context, languageClient);
   }
   const config = new Config(context);
+  const contextVariables = new ContextVariables(client, config);
   const inlineCompletionProvider = new InlineCompletionProvider(client, config);
   const gitProvider = new GitProvider();
 
   client.registerConfigManager(config);
   client.registerInlineCompletionProvider(inlineCompletionProvider);
   client.registerGitProvider(gitProvider);
+  client.registerCodeActionProvider(new CodeActionProvider(contextVariables));
 
   // Register config callback for past ServerConfig
   client.agent.addListener("didChangeStatus", async (status: Status) => {
@@ -92,10 +95,11 @@ export async function activate(context: ExtensionContext) {
   await client.start();
 
   const issues = new Issues(client, config);
-  const contextVariables = new ContextVariables(client, config);
-  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ /* @ts-expect-error noUnusedLocals */
+  /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */ /* eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error */
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ // @ts-ignore noUnusedLocals
   const statusBarItem = new StatusBarItem(context, client, config, issues, inlineCompletionProvider);
-  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ /* @ts-expect-error noUnusedLocals */
+  /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */ /* eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error */
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ // @ts-ignore noUnusedLocals
   const commands = new Commands(
     context,
     client,

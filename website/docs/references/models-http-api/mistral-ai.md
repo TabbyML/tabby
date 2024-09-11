@@ -8,12 +8,14 @@ To connect Tabby with Mistral's models, you need to apply the following configur
 # Completion Model
 [model.completion.http]
 kind = "mistral/completion"
+model_name = "codestral-latest"
 api_endpoint = "https://api.mistral.ai"
 api_key = "secret-api-key"
 
 # Chat Model
-[model.completion.http]
+[model.chat.http]
 kind = "mistral/chat"
-api_endpoint = "https://api.mistral.ai"
+model_name = "codestral-latest"
+api_endpoint = "https://api.mistral.ai/v1"
 api_key = "secret-api-key"
 ```

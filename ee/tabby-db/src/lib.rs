@@ -20,10 +20,11 @@ pub use threads::{
 use tokio::sync::Mutex;
 use user_completions::UserCompletionDailyStatsDAO;
 pub use user_events::UserEventDAO;
+pub use user_groups::{UserGroupDAO, UserGroupMembershipDAO};
 pub use users::UserDAO;
-pub use web_crawler::WebCrawlerUrlDAO;
 pub use web_documents::WebDocumentDAO;
 
+mod access_policy;
 pub mod cache;
 mod email_setting;
 mod integrations;
@@ -40,8 +41,8 @@ mod server_setting;
 mod threads;
 mod user_completions;
 mod user_events;
+mod user_groups;
 mod users;
-mod web_crawler;
 mod web_documents;
 
 use anyhow::Result;
@@ -317,6 +318,22 @@ pub mod testutils {
 
     pub async fn create_user(conn: &DbConn) -> i64 {
         let email: &str = "test@example.com";
+        let password: &str = "123456789";
+        conn.create_user(email.to_string(), Some(password.to_string()), true, None)
+            .await
+            .unwrap()
+    }
+
+    pub async fn create_user2(conn: &DbConn) -> i64 {
+        let email: &str = "test2@example.com";
+        let password: &str = "123456789";
+        conn.create_user(email.to_string(), Some(password.to_string()), true, None)
+            .await
+            .unwrap()
+    }
+
+    pub async fn create_user3(conn: &DbConn) -> i64 {
+        let email: &str = "test3@example.com";
         let password: &str = "123456789";
         conn.create_user(email.to_string(), Some(password.to_string()), true, None)
             .await

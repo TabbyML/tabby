@@ -200,6 +200,10 @@ export namespace ConfigurationRequest {
  * [Tabby] Defines the config supported to be changed on the client side (IDE).
  */
 export type ClientProvidedConfig = {
+  proxy?: {
+    authorization: string;
+    url: string;
+  };
   /**
    * Specifies the endpoint and token for connecting to the Tabby server.
    */
@@ -469,7 +473,7 @@ export type ChatEditResolveParams = {
   /**
    * The action to take for this edit.
    */
-  action: "accept" | "discard";
+  action: "accept" | "discard" | "cancel";
 };
 
 /**

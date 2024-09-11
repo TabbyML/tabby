@@ -2,6 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use chrono::Utc;
 use futures::StreamExt;
+use serde::{Deserialize, Serialize};
 use tabby_crawler::crawl_pipeline;
 use tabby_index::public::{DocIndexer, WebDocument};
 use tabby_inference::Embedding;
@@ -10,9 +11,11 @@ use super::helper::Job;
 
 const CRAWLER_TIMEOUT_SECS: u64 = 7200;
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct WebCrawlerJob {
     source_id: String,
     url: String,
+    url_prefix: Option<String>,
 }
 
 impl Job for WebCrawlerJob {
@@ -20,8 +23,12 @@ impl Job for WebCrawlerJob {
 }
 
 impl WebCrawlerJob {
-    pub fn new(source_id: String, url: String) -> Self {
-        Self { source_id, url }
+    pub fn new(source_id: String, url: String, url_prefix: Option<String>) -> Self {
+        Self {
+            source_id,
+            url,
+            url_prefix,
+        }
     }
 
     pub async fn run_impl(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
@@ -30,7 +37,8 @@ impl WebCrawlerJob {
         let mut num_docs = 0;
         let indexer = DocIndexer::new(embedding.clone());
 
-        let mut pipeline = Box::pin(crawl_pipeline(&self.url).await?);
+        let url_prefix = self.url_prefix.as_ref().unwrap_or(&self.url);
+        let mut pipeline = Box::pin(crawl_pipeline(&self.url, url_prefix).await?);
         while let Some(doc) = pipeline.next().await {
             logkit::info!("Fetching {}", doc.url);
             let source_doc = WebDocument {

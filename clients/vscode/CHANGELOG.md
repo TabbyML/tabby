@@ -1,3 +1,19 @@
+## 1.10.0
+
+### Features
+
+- Introduced a new UI for the Tabby command palette, helping you quickly inspect status and navigate to commands. Access the command palette by clicking the `Tabby` label in the status bar.
+- Added a new keybinding `Ctrl/Cmd + L` to open the chat panel.
+- Enhanced the chat panel conversation context by allowing you to manually add code snippets through right-click menu or `Ctrl/Cmd + L`.
+- Added a button in the source control view title to easily generate commit messages.
+
+### Fixes & Improvements
+
+- Renamed the command `Tabby: Edit...` to `Tabby: Start Inline Editing`. You can edit commands from the history now.
+- Inline edit streaming steps are now considered as one undo-redo step.
+- Fixed a bug where the chat panel did not refresh when server configuration was changed.
+- Decreased the delay in navigating to files when clicking on context references in the chat panel.
+
 ## 1.8.2
 
 **stable**

@@ -183,25 +183,35 @@ export class ChatEditProvider {
   }
 
   async resolveEdit(params: ChatEditResolveParams): Promise<boolean> {
+    if (params.action === "cancel") {
+      this.mutexAbortController?.abort();
+      return false;
+    }
+
     const document = this.documents.get(params.location.uri);
     if (!document) {
       return false;
     }
-    const header = document.getText({
-      start: {
-        line: params.location.range.start.line,
-        character: 0,
-      },
-      end: {
-        line: params.location.range.start.line + 1,
-        character: 0,
-      },
-    });
-    const match = /^<<<<<<<.+(<.*>)\[(tabby-[0-9|a-z|A-Z]{6})\]/g.exec(header);
-    const markers = match?.[1];
-    if (!match || !markers) {
+
+    let markers;
+    let line = params.location.range.start.line;
+    for (; line < document.lineCount; line++) {
+      const lineText = document.getText({
+        start: { line, character: 0 },
+        end: { line: line + 1, character: 0 },
+      });
+
+      const match = /^>>>>>>> (tabby-[0-9|a-z|A-Z]{6}) (\[.*\])/g.exec(lineText);
+      markers = match?.[2];
+      if (markers) {
+        break;
+      }
+    }
+
+    if (!markers) {
       return false;
     }
+
     const previewRange = {
       start: {
         line: params.location.range.start.line,
@@ -257,6 +267,35 @@ export class ChatEditProvider {
     responseCommentTag?: string[],
   ): Promise<void> {
     const applyEdit = async (edit: Edit, isFirst: boolean = false, isLast: boolean = false) => {
+      if (isFirst) {
+        const workspaceEdit: WorkspaceEdit = {
+          changes: {
+            [edit.location.uri]: [
+              {
+                range: {
+                  start: { line: edit.editedRange.start.line, character: 0 },
+                  end: { line: edit.editedRange.start.line, character: 0 },
+                },
+                newText: `<<<<<<< ${edit.id}\n`,
+              },
+            ],
+          },
+        };
+
+        await this.applyWorkspaceEdit({
+          edit: workspaceEdit,
+          options: {
+            undoStopBefore: true,
+            undoStopAfter: false,
+          },
+        });
+
+        edit.editedRange = {
+          start: { line: edit.editedRange.start.line + 1, character: 0 },
+          end: { line: edit.editedRange.end.line + 1, character: 0 },
+        };
+      }
+
       const editedLines = this.generateChangesPreview(edit);
       const workspaceEdit: WorkspaceEdit = {
         changes: {
@@ -272,7 +311,7 @@ export class ChatEditProvider {
       await this.applyWorkspaceEdit({
         edit: workspaceEdit,
         options: {
-          undoStopBefore: isFirst,
+          undoStopBefore: false,
           undoStopAfter: isLast,
         },
       });
@@ -321,11 +360,17 @@ export class ChatEditProvider {
     };
 
     try {
+      if (!this.currentEdit) {
+        throw new Error("No current edit");
+      }
+
       let inTag: "document" | "comment" | false = false;
-      let isFirstEdit = true;
+
+      // Insert the first line as early as possible so codelens can be shown
+      await applyEdit(this.currentEdit, true, false);
 
       for await (const delta of stream) {
-        if (!this.currentEdit || !this.mutexAbortController || this.mutexAbortController.signal.aborted) {
+        if (!this.mutexAbortController || this.mutexAbortController.signal.aborted) {
           break;
         }
 
@@ -341,8 +386,9 @@ export class ChatEditProvider {
           const closeTag = inTag === "document" ? responseDocumentTag[1] : responseCommentTag?.[1];
           if (!closeTag || !openTag) break;
           inTag = processBuffer(edit, inTag, openTag, closeTag);
-          await applyEdit(edit, isFirstEdit, false);
-          isFirstEdit = false;
+          if (delta.includes("\n")) {
+            await applyEdit(edit, false, false);
+          }
         }
       }
 
@@ -393,20 +439,14 @@ export class ChatEditProvider {
   // [+] inserted
   // [-] deleted
   // [>] footer
+  // [x] stopped
   // footer line
   // >>>>>>> End of changes
   private generateChangesPreview(edit: Edit): string[] {
     const lines: string[] = [];
     let markers = "";
-    // header
-    let stateDescription = "Editing in progress";
-    if (edit.state === "stopped") {
-      stateDescription = "Editing stopped";
-    } else if (edit.state == "completed") {
-      stateDescription = "Editing completed";
-    }
-    lines.push(`<<<<<<< ${stateDescription} {{markers}}[${edit.id}]`);
-    markers += "<";
+    // lines.push(`<<<<<<< ${stateDescription} {{markers}}[${edit.id}]`);
+    markers += "[";
     // comments: split by new line or 80 chars
     const commentLines = edit.comments
       .trim()
@@ -468,22 +508,30 @@ export class ChatEditProvider {
         lineIndex++;
       }
       if (inProgressChunk && lastDiff) {
-        pushDiffValue(lastDiff.value, "|");
+        if (edit.state === "stopped") {
+          pushDiffValue(lastDiff.value, "x");
+        } else {
+          pushDiffValue(lastDiff.value, "|");
+        }
       }
       while (lineIndex < diffs.length - inProgressChunk) {
         const diff = diffs[lineIndex];
         if (!diff) {
           break;
         }
-        pushDiffValue(diff.value, ".");
+        if (edit.state === "stopped") {
+          pushDiffValue(diff.value, "x");
+        } else {
+          pushDiffValue(diff.value, ".");
+        }
         lineIndex++;
       }
     }
     // footer
-    lines.push(`>>>>>>> ${stateDescription} {{markers}}[${edit.id}]`);
-    markers += ">";
+    lines.push(`>>>>>>> ${edit.id} {{markers}}`);
+    markers += "]";
     // replace markers
-    lines[0] = lines[0]!.replace("{{markers}}", markers);
+    // lines[0] = lines[0]!.replace("{{markers}}", markers);
     lines[lines.length - 1] = lines[lines.length - 1]!.replace("{{markers}}", markers);
     return lines;
   }

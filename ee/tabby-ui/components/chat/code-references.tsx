@@ -27,8 +27,8 @@ interface ContextReferencesProps {
   ) => void
   enableTooltip?: boolean
   onTooltipClick?: () => void
-  isExternalLink?: boolean
   highlightIndex?: number | undefined
+  showExternalLink: boolean
 }
 
 export const CodeReferences = forwardRef<
@@ -43,8 +43,8 @@ export const CodeReferences = forwardRef<
       onContextClick,
       enableTooltip,
       onTooltipClick,
-      isExternalLink,
-      highlightIndex
+      highlightIndex,
+      showExternalLink
     },
     ref
   ) => {
@@ -100,7 +100,7 @@ export const CodeReferences = forwardRef<
                   onContextClick={ctx => onContextClick?.(ctx, false)}
                   enableTooltip={enableTooltip}
                   onTooltipClick={onTooltipClick}
-                  isExternalLink={isExternalLink}
+                  showExternalLinkIcon={showExternalLink}
                   isHighlighted={
                     highlightIndex === index + (userContexts?.length || 0)
                   }
@@ -121,7 +121,7 @@ function ContextItem({
   onContextClick,
   enableTooltip,
   onTooltipClick,
-  isExternalLink,
+  showExternalLinkIcon,
   isHighlighted
 }: {
   context: RelevantCodeContext
@@ -129,7 +129,7 @@ function ContextItem({
   onContextClick?: (context: RelevantCodeContext) => void
   enableTooltip?: boolean
   onTooltipClick?: () => void
-  isExternalLink?: boolean
+  showExternalLinkIcon?: boolean
   isHighlighted?: boolean
 }) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
@@ -178,7 +178,7 @@ function ContextItem({
               )}
               <span className="ml-2 text-xs text-muted-foreground">{path}</span>
             </div>
-            {isExternalLink && (
+            {showExternalLinkIcon && (
               <IconExternalLink className="shrink-0 text-muted-foreground" />
             )}
           </div>

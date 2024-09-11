@@ -31,7 +31,7 @@ const updateNetworkSettingMutation = graphql(/* GraphQL */ `
 `)
 
 const formSchema = z.object({
-  externalUrl: z.string()
+  externalUrl: z.string().url()
 })
 
 type NetworkFormValues = z.infer<typeof formSchema>
@@ -63,8 +63,11 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
   })
 
   const onSubmit = async () => {
+    const { externalUrl } = form.getValues()
     await updateNetworkSetting({
-      input: form.getValues()
+      input: {
+        externalUrl: new URL(externalUrl).origin
+      }
     })
   }
 

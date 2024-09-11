@@ -13,15 +13,16 @@ use tabby_db::DbConn;
 use tabby_inference::{ChatCompletionStream, Embedding};
 use tabby_schema::{
     integration::IntegrationService, job::JobService, repository::RepositoryService,
-    web_crawler::WebCrawlerService, web_documents::WebDocumentService,
+    web_documents::WebDocumentService,
 };
+use tracing::debug;
 
 use crate::{
     path::db_file,
     routes,
     service::{
-        background_job, create_service_locator, event_logger::create_event_logger, integration,
-        job, repository, web_crawler, web_documents,
+        create_service_locator, event_logger::create_event_logger, integration, job, repository,
+        web_documents,
     },
 };
 
@@ -30,9 +31,9 @@ pub struct Webserver {
     logger: Arc<dyn EventLogger>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
-    web_crawler: Arc<dyn WebCrawlerService>,
-    web_documents: Arc<dyn WebDocumentService>,
     job: Arc<dyn JobService>,
+    web_documents: Arc<dyn WebDocumentService>,
+    embedding: Arc<dyn Embedding>,
 }
 
 #[async_trait::async_trait]
@@ -66,34 +67,20 @@ impl Webserver {
         let integration = Arc::new(integration::create(db.clone(), job.clone()));
         let repository = repository::create(db.clone(), integration.clone(), job.clone());
 
-        let web_crawler = Arc::new(web_crawler::create(db.clone(), job.clone()));
-        let web_documents = Arc::new(web_documents::create(db.clone(), job.clone()));
-
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
-        let ws = Arc::new(Webserver {
+
+        let web_documents = Arc::new(web_documents::create(db.clone(), job.clone()));
+
+        Arc::new(Webserver {
             db: db.clone(),
             logger,
             repository: repository.clone(),
             integration: integration.clone(),
-            web_crawler: web_crawler.clone(),
-            web_documents: web_documents.clone(),
             job: job.clone(),
-        });
-
-        background_job::start(
-            db.clone(),
-            job,
-            repository.git(),
-            repository.third_party(),
-            integration.clone(),
-            repository.clone(),
-            web_crawler.clone(),
+            web_documents,
             embedding,
-        )
-        .await;
-
-        ws
+        })
     }
 
     pub fn logger(&self) -> Arc<dyn EventLogger + 'static> {
@@ -110,15 +97,28 @@ impl Webserver {
         docsearch: Arc<dyn DocSearch>,
         serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
     ) -> (Router, Router) {
+        let serper: Option<Box<dyn DocSearch>> =
+            if let Ok(api_key) = std::env::var("SERPER_API_KEY") {
+                debug!("Serper API key found, enabling serper...");
+                Some(serper_factory_fn(&api_key))
+            } else {
+                None
+            };
+
+        let context = Arc::new(crate::service::context::create(
+            self.repository.clone(),
+            self.web_documents.clone(),
+            serper.is_some(),
+        ));
+
         let answer = chat.as_ref().map(|chat| {
             Arc::new(crate::service::answer::create(
                 &config.answer,
                 chat.clone(),
                 code.clone(),
                 docsearch.clone(),
-                self.web_crawler.clone(),
-                self.repository.clone(),
-                serper_factory_fn,
+                context.clone(),
+                serper,
             ))
         });
 
@@ -128,11 +128,12 @@ impl Webserver {
             code.clone(),
             self.repository.clone(),
             self.integration.clone(),
-            self.web_crawler.clone(),
-            self.web_documents.clone(),
             self.job.clone(),
             answer.clone(),
+            context.clone(),
+            self.web_documents.clone(),
             self.db.clone(),
+            self.embedding.clone(),
             is_chat_enabled,
         )
         .await;
