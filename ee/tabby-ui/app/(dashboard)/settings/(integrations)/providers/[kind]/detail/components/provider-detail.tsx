@@ -18,7 +18,11 @@ import {
   QueryVariables,
   useMutation
 } from '@/lib/tabby/gql'
-import { listIntegratedRepositories, listIntegrations } from '@/lib/tabby/query'
+import {
+  listIntegratedRepositories,
+  listIntegrations,
+  userGroupsQuery
+} from '@/lib/tabby/query'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { CardContent, CardTitle } from '@/components/ui/card'
@@ -49,6 +53,7 @@ import {
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
+import { AccessPolicyView } from '../../../components/access-policy-view'
 import { JobInfoView } from '../../../components/job-trigger'
 import { triggerJobRunMutation } from '../../../query'
 import { useIntegrationKind } from '../../hooks/use-repository-kind'
@@ -133,23 +138,15 @@ const ProviderDetail: React.FC = () => {
   )
 }
 
-function toStatusBadge(status: IntegrationStatus) {
-  switch (status) {
-    case IntegrationStatus.Ready:
-      return <Badge variant="successful">Ready</Badge>
-    case IntegrationStatus.Failed:
-      return <Badge variant="destructive">Error</Badge>
-    case IntegrationStatus.Pending:
-      return <Badge>Pending</Badge>
-  }
-}
-
 const ActiveRepoTable: React.FC<{
   providerId: string
   providerStatus: IntegrationStatus | undefined
   kind: IntegrationKind
 }> = ({ providerStatus, providerId, kind }) => {
   const [page, setPage] = React.useState(1)
+  const [{ data: userGroupData, fetching: fetchingUserGroups }] = useQuery({
+    query: userGroupsQuery
+  })
   const {
     repositories: inactiveRepositories,
     setRepositories: setInactiveRepositories,
@@ -291,9 +288,10 @@ const ActiveRepoTable: React.FC<{
         <TableHeader>
           <TableRow>
             <TableHead className="w-[25%]">Name</TableHead>
-            <TableHead className="w-[40%]">URL</TableHead>
-            <TableHead>Job</TableHead>
-            <TableHead className="w-[100px] text-right">
+            <TableHead className="w-[35%]">URL</TableHead>
+            <TableHead className="w-[180px]">Job</TableHead>
+            <TableHead className="w-[140px]">Access Granted</TableHead>
+            <TableHead className="w-[60px] text-right">
               <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="top-[20vh]">
                   <DialogHeader className="gap-3">
@@ -333,6 +331,7 @@ const ActiveRepoTable: React.FC<{
                       {x.node.gitUrl}
                     </TableCell>
                     <TableCell></TableCell>
+                    <TableCell></TableCell>
                     <TableCell className="flex justify-end">
                       <div
                         className={buttonVariants({
@@ -363,6 +362,15 @@ const ActiveRepoTable: React.FC<{
                         }
                       />
                     </TableCell>
+                    <TableCell className="break-all lg:break-words">
+                      <AccessPolicyView
+                        sourceId={x.node.id}
+                        sourceName={x.node.displayName}
+                        editable
+                        fetchingUserGroups={fetchingUserGroups}
+                        userGroups={userGroupData?.userGroups}
+                      />
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         size="icon"
@@ -380,7 +388,7 @@ const ActiveRepoTable: React.FC<{
             </>
           ) : (
             <TableRow>
-              <TableCell colSpan={4} className="h-[100px] text-center">
+              <TableCell colSpan={5} className="h-[100px] text-center">
                 No repositories
               </TableCell>
             </TableRow>
@@ -419,6 +427,17 @@ const ActiveRepoTable: React.FC<{
       )}
     </LoadingWrapper>
   )
+}
+
+function toStatusBadge(status: IntegrationStatus) {
+  switch (status) {
+    case IntegrationStatus.Ready:
+      return <Badge variant="successful">Ready</Badge>
+    case IntegrationStatus.Failed:
+      return <Badge variant="destructive">Error</Badge>
+    case IntegrationStatus.Pending:
+      return <Badge>Pending</Badge>
+  }
 }
 
 function useAllInactiveRepositories(id: string, kind: IntegrationKind) {
