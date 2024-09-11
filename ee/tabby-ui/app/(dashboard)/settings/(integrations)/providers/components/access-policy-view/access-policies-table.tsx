@@ -37,7 +37,6 @@ import {
   PopoverContent,
   PopoverTrigger
 } from '@/components/ui/popover'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Table,
   TableBody,
@@ -122,46 +121,45 @@ export function ReadAccessPoliciesTable({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <ScrollArea className="flex-1">
-        <Table>
-          <TableHeader>
+      {/* FIXME: height */}
+      <Table className="h-[300px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Granted User Groups</TableHead>
+            <TableHead className="w-[80px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {readAccessPolicies?.length ? (
+            readAccessPolicies?.map(policy => {
+              return (
+                <TableRow key={policy.id}>
+                  <TableCell className="break-all lg:break-words">
+                    {policy.name}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      size="icon"
+                      variant="hover-destructive"
+                      onClick={() => {
+                        onRevoke(policy.id)
+                      }}
+                    >
+                      <IconTrash />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )
+            })
+          ) : (
             <TableRow>
-              <TableHead>User Group</TableHead>
-              <TableHead className="w-[80px]"></TableHead>
+              <TableCell colSpan={2} className="text-center font-semibold">
+                No Data
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {readAccessPolicies?.length ? (
-              readAccessPolicies?.map(policy => {
-                return (
-                  <TableRow key={policy.id}>
-                    <TableCell className="break-all lg:break-words">
-                      {policy.name}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="icon"
-                        variant="hover-destructive"
-                        onClick={() => {
-                          onRevoke(policy.id)
-                        }}
-                      >
-                        <IconTrash />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              })
-            ) : (
-              <TableRow>
-                <TableCell colSpan={2} className="text-center font-semibold">
-                  No Data
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </ScrollArea>
+          )}
+        </TableBody>
+      </Table>
       <Form {...form}>
         <div className="grid gap-2 mt-8">
           <form
