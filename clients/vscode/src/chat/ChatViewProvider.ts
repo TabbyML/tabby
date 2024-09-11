@@ -341,7 +341,7 @@ export class ChatViewProvider implements WebviewViewProvider {
     const focusCommand = "tabby.chatView.focus";
     const defaultFocusKey = contributes.keybindings.find((cmd) => cmd.command === focusCommand);
     const defaultKeybinding = defaultFocusKey
-      ? parseKeybinding(this.isUnix && defaultFocusKey.mac ? defaultFocusKey.mac : defaultFocusKey.key)
+      ? parseKeybinding(this.isMac && defaultFocusKey.mac ? defaultFocusKey.mac : defaultFocusKey.key)
       : undefined;
 
     const allKeybindings = await readUserKeybindingsConfig();
