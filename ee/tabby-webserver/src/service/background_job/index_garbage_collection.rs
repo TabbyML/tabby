@@ -21,9 +21,9 @@ impl IndexGarbageCollection {
         let sources = context
             .read(None)
             .await?
-            .helper()
-            .iter_source_ids()
-            .map(Into::into)
+            .sources
+            .into_iter()
+            .map(|x| x.source_id())
             .collect::<Vec<_>>();
         run_index_garbage_collection(sources)?;
 

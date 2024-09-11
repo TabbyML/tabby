@@ -28,9 +28,9 @@ impl DbMaintainanceJob {
         let active_source_ids = context
             .read(None)
             .await?
-            .helper()
-            .iter_source_ids()
-            .map(Into::into)
+            .sources
+            .into_iter()
+            .map(|x| x.source_id())
             .collect::<Vec<_>>();
 
         db.delete_unused_source_id_read_access_policy(&active_source_ids)

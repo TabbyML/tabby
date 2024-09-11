@@ -120,10 +120,6 @@ impl ContextInfoHelper {
     pub fn can_access_source_id(&self, source_id: &str) -> bool {
         self.sources.contains_key(source_id)
     }
-
-    pub fn iter_source_ids(&self) -> impl Iterator<Item = &str> {
-        self.sources.keys().map(|s| s.as_str())
-    }
 }
 
 #[async_trait]

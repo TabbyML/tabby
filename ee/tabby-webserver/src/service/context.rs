@@ -1,11 +1,7 @@
 use std::sync::Arc;
 
-
 use tabby_schema::{
-    context::{
-        ContextInfo, ContextService, ContextSourceValue,
-        WebContextSource,
-    },
+    context::{ContextInfo, ContextService, ContextSourceValue, WebContextSource},
     policy::AccessPolicy,
     repository::RepositoryService,
     web_documents::WebDocumentService,
@@ -21,7 +17,7 @@ struct ContextServiceImpl {
 #[async_trait::async_trait]
 impl ContextService for ContextServiceImpl {
     async fn read(&self, policy: Option<&AccessPolicy>) -> Result<ContextInfo> {
-        let mut sources: Vec<_> = self
+        let mut sources: Vec<ContextSourceValue> = self
             .repository
             .repository_list(policy)
             .await?
@@ -34,7 +30,7 @@ impl ContextService for ContextServiceImpl {
                 .list_custom_web_documents(None, None, None, None, None)
                 .await?
                 .into_iter()
-                .map(ContextSourceValue::CustomWebDocument),
+                .map(Into::into),
         );
 
         sources.extend(
@@ -42,11 +38,11 @@ impl ContextService for ContextServiceImpl {
                 .list_preset_web_documents(None, None, None, None, None, Some(true))
                 .await?
                 .into_iter()
-                .map(ContextSourceValue::PresetWebDocument),
+                .map(Into::into),
         );
 
         if self.can_search_public_web {
-            sources.push(ContextSourceValue::WebContextSource(WebContextSource));
+            sources.push(WebContextSource.into());
         }
 
         if let Some(policy) = policy {
