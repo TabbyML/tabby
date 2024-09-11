@@ -20,6 +20,27 @@ update-db-schema:
 caddy:
 	caddy run --watch --config ee/tabby-webserver/development/Caddyfile
 
+MODEL ?= ""
+CHAT_MODEL ?= ""
+
+dev:
+	@echo "Starting development environment..."
+	@bash -c '\
+		trap cleanup EXIT SIGINT SIGTERM; \
+		cleanup() { \
+			echo "Cleaning up..."; \
+			kill $$(jobs -p) 2>/dev/null; \
+			pkill -f "cargo run serve" 2>/dev/null; \
+			pkill -f "pnpm dev" 2>/dev/null; \
+			pkill tabby 2>/dev/null; \
+			pkill caddy 2>/dev/null; \
+			exit 0; \
+		}; \
+		(cd ee/tabby-ui && pnpm dev) & \
+		cargo run serve --port 8081 $(if $(MODEL),--model $(MODEL)) $(if $(CHAT_MODEL),--chat-model $(CHAT_MODEL)) & \
+		make caddy &  \
+		wait'
+		
 bump-version:
 	cargo ws version --force "*" --no-individual-tags --allow-branch "main"
 
