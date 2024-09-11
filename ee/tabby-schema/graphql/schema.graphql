@@ -11,7 +11,7 @@ enum AuthMethod {
 }
 
 "Represents the kind of context source."
-enum ContextKind {
+enum ContextSourceKind {
   GIT
   GITHUB
   GITLAB
@@ -236,6 +236,14 @@ input UpsertUserGroupMembershipInput {
   isGroupAdmin: Boolean!
 }
 
+interface ContextSource {
+  sourceKind: ContextSourceKind!
+  "Represents the source of the context, which is the value mapped to `source_id` in the index."
+  sourceId: String!
+  "Display name of the source, used to provide a human-readable name for user selection, such as in a dropdown menu."
+  sourceName: String!
+}
+
 interface User {
   id: ID!
   email: String!
@@ -272,15 +280,6 @@ type ContextInfo {
   sources: [ContextSource!]!
 }
 
-type ContextSource {
-  id: ID!
-  kind: ContextKind!
-  "Represents the source of the context, which is the value mapped to `source_id` in the index."
-  sourceId: String!
-  "Display name of the context, used to provide a human-readable name for user selection, such as in a dropdown menu."
-  displayName: String!
-}
-
 type CustomDocumentConnection {
   edges: [CustomDocumentEdge!]!
   pageInfo: PageInfo!
@@ -291,13 +290,16 @@ type CustomDocumentEdge {
   cursor: String!
 }
 
-type CustomWebDocument {
+type CustomWebDocument implements ContextSource {
   url: String!
   name: String!
   id: ID!
   createdAt: DateTime!
   updatedAt: DateTime!
   jobInfo: JobInfo!
+  sourceKind: ContextSourceKind!
+  sourceId: String!
+  sourceName: String!
 }
 
 type DiskUsage {
@@ -592,14 +594,17 @@ type PresetDocumentEdge {
   cursor: String!
 }
 
-type PresetWebDocument {
-  id: ID!
+type PresetWebDocument implements ContextSource {
   name: String!
+  id: ID!
   "`updated_at` is only filled when the preset is active."
   updatedAt: DateTime
   "`job_info` is only filled when the preset is active."
   jobInfo: JobInfo
   isActive: Boolean!
+  sourceKind: ContextSourceKind!
+  sourceId: String!
+  sourceName: String!
 }
 
 type ProvidedRepository {
@@ -698,8 +703,11 @@ type RegisterResponse {
   refreshToken: String!
 }
 
-type Repository {
+type Repository implements ContextSource {
   id: ID!
+  sourceId: String!
+  sourceKind: ContextSourceKind!
+  sourceName: String!
   name: String!
   kind: RepositoryKind!
   gitUrl: String!
@@ -841,4 +849,10 @@ type UserSecuredConnection {
 type UserSecuredEdge {
   node: UserSecured!
   cursor: String!
+}
+
+type WebContextSource implements ContextSource {
+  sourceKind: ContextSourceKind!
+  sourceId: String!
+  sourceName: String!
 }
