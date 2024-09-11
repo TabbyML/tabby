@@ -34,7 +34,8 @@ export class ChatViewProvider implements WebviewViewProvider {
   private pendingMessages: ChatMessage[] = [];
   private pendingRelevantContexts: Context[] = [];
   private isChatPageDisplayed = false;
-  private isUnix = Boolean(env.appHost === "desktop" && env.appRoot && env.appRoot[10] === "/");
+  // FIXME: this check is not compatible with the environment of a browser in macOS
+  private isMac = Boolean(env.appHost === "desktop" && process.platform === "darwin");
 
   constructor(
     private readonly context: ExtensionContext,
