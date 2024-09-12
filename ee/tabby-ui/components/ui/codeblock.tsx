@@ -25,8 +25,10 @@ interface Props {
   language: string
   value: string
   onCopyContent?: (value: string) => void
-  onApplyInEditor?: (value: string) => void
-  onSmartApplyInEditor?: (languageId: string, value: string) => void
+  onApplyInEditor?: (
+    content: string,
+    opts?: { languageId: string; smart: boolean }
+  ) => void
 }
 
 interface languageMap {
@@ -70,13 +72,7 @@ export const generateRandomString = (length: number, lowercase = false) => {
 }
 
 const CodeBlock: FC<Props> = memo(
-  ({
-    language,
-    value,
-    onCopyContent,
-    onApplyInEditor,
-    onSmartApplyInEditor
-  }) => {
+  ({ language, value, onCopyContent, onApplyInEditor }) => {
     const { isCopied, copyToClipboard } = useCopyToClipboard({
       timeout: 2000,
       onCopyContent
@@ -95,14 +91,19 @@ const CodeBlock: FC<Props> = memo(
         <div className="flex w-full items-center justify-between bg-zinc-800 px-6 py-2 pr-4 text-zinc-100">
           <span className="text-xs lowercase">{language}</span>
           <div className="flex items-center space-x-1">
-            {onSmartApplyInEditor && (
+            {onApplyInEditor && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                    onClick={() => onSmartApplyInEditor(language, value)}
+                    onClick={() =>
+                      onApplyInEditor(value, {
+                        languageId: language,
+                        smart: true
+                      })
+                    }
                   >
                     <IconSmartApplyInEditor />
                     <span className="sr-only">Smart Apply in Editor</span>
@@ -120,7 +121,7 @@ const CodeBlock: FC<Props> = memo(
                     variant="ghost"
                     size="icon"
                     className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                    onClick={onApplyInEditor.bind(null, value)}
+                    onClick={onApplyInEditor.bind(null, value, undefined)}
                   >
                     <IconApplyInEditor />
                     <span className="sr-only">Apply in Editor</span>

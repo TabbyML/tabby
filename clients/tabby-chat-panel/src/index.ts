@@ -48,10 +48,7 @@ export interface ClientApi {
 
   onSubmitMessage: (msg: string, relevantContext?: Context[]) => Promise<void>
 
-  onApplyInEditor: (content: string) => void
-
-  // smart apply into editor
-  onSmartApplyInEditor: (languageId: string, content: string) => void
+  onApplyInEditor: (content: string, opts?: { languageId: string, smart: boolean }) => void
 
   // On current page is loaded.
   onLoaded: () => void
@@ -82,7 +79,6 @@ export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerA
       onApplyInEditor: api.onApplyInEditor,
       onLoaded: api.onLoaded,
       onCopy: api.onCopy,
-      onSmartApplyInEditor: api.onSmartApplyInEditor,
     },
   })
 }

@@ -180,9 +180,13 @@ export class ChatViewProvider implements WebviewViewProvider {
         // FIXME: maybe deduplicate on chatMessage.relevantContext
         this.sendMessage(chatMessage);
       },
-      onApplyInEditor: (content: string) => {
+      onApplyInEditor: async (content: string, opts?: { languageId: string; smart: boolean }) => {
         const editor = window.activeTextEditor;
-        if (editor) {
+        if (!editor) {
+          window.showErrorMessage("No active editor found.");
+          return;
+        }
+        if (!opts || !opts.smart) {
           const document = editor.document;
           const selection = editor.selection;
 
@@ -207,65 +211,55 @@ export class ChatViewProvider implements WebviewViewProvider {
           editor.edit((editBuilder) => {
             editBuilder.replace(selection, indentedContent);
           });
-        }
-      },
-      onSmartApplyInEditor: async (languageId: string, content: string) => {
-        const editor = window.activeTextEditor;
-        if (!editor) {
-          window.showErrorMessage("No active editor found.");
-          return;
-        }
-        //TODO: possible languageId not passing
-        getLogger().info("lanuage id detecet,", languageId);
-        getLogger().info("test equal", languageId === null);
-        getLogger().info("test equal", languageId === undefined);
-        getLogger().info("conetnt", content);
-        if (editor.document.languageId !== languageId) {
-          window.showErrorMessage("The active editor is not in the correct language.");
-          return;
-        }
-
-        getLogger("Tabby").info("Smart apply in editor is not implemented yet.", content);
-        const lineRangeRes = await this.chat.provideLineRange({
-          uri: editor.document.uri.toString(),
-          applyCode: content,
-        });
-        getLogger().info("asd ", lineRangeRes?.start, lineRangeRes?.end);
-        if (!lineRangeRes?.start || !lineRangeRes?.end) {
-          window.showErrorMessage("Failed to apply code.");
-          //TODO: if no line range, lets do normal apply
-          return;
-        }
-        const applyCode = smartApplyInsertPrompt
-          .replace("{{code}}", content)
-          .replace("{{start_line}}", lineRangeRes.start.toString())
-          .replace("{{end_line}}", lineRangeRes.end.toString());
-        //TODO: inline edit to apply code into range
-        try {
-          getLogger().info("getting provide edit command", applyCode);
-          this.chatEditCancellationTokenSource = new CancellationTokenSource();
-          await this.chat.provideSmartApplyEdit(
-            {
-              location: {
-                uri: editor.document.uri.toString(),
-                range: {
-                  start: { line: lineRangeRes.start, character: 0 },
-                  end: { line: lineRangeRes.end, character: 0 },
-                },
-              },
-              applyCode,
-              format: "previewChanges",
-            },
-            this.chatEditCancellationTokenSource.token,
-          );
-          getLogger().info("provide edit command done");
-        } catch (error) {
-          if (typeof error === "object" && error && "message" in error && typeof error["message"] === "string") {
-            window.showErrorMessage(error["message"]);
+        } else {
+          //TODO: possible languageId not passing
+          if (editor.document.languageId !== opts.languageId) {
+            window.showErrorMessage("The active editor is not in the correct language.");
+            return;
           }
-        } finally {
-          this.chatEditCancellationTokenSource?.dispose();
-          this.chatEditCancellationTokenSource = null;
+
+          getLogger("Tabby").info("Smart apply in editor is not implemented yet.", content);
+          const lineRangeRes = await this.chat.provideLineRange({
+            uri: editor.document.uri.toString(),
+            applyCode: content,
+          });
+          getLogger().info("asd ", lineRangeRes?.start, lineRangeRes?.end);
+          if (!lineRangeRes?.start || !lineRangeRes?.end) {
+            window.showErrorMessage("Failed to apply code.");
+            //TODO: if no line range, lets do normal apply
+            return;
+          }
+          const applyCode = smartApplyInsertPrompt
+            .replace("{{code}}", content)
+            .replace("{{start_line}}", lineRangeRes.start.toString())
+            .replace("{{end_line}}", lineRangeRes.end.toString());
+          //TODO: inline edit to apply code into range
+          try {
+            getLogger().info("getting provide edit command", applyCode);
+            this.chatEditCancellationTokenSource = new CancellationTokenSource();
+            await this.chat.provideSmartApplyEdit(
+              {
+                location: {
+                  uri: editor.document.uri.toString(),
+                  range: {
+                    start: { line: lineRangeRes.start, character: 0 },
+                    end: { line: lineRangeRes.end, character: 0 },
+                  },
+                },
+                applyCode,
+                format: "previewChanges",
+              },
+              this.chatEditCancellationTokenSource.token,
+            );
+            getLogger().info("provide edit command done");
+          } catch (error) {
+            if (typeof error === "object" && error && "message" in error && typeof error["message"] === "string") {
+              window.showErrorMessage(error["message"]);
+            }
+          } finally {
+            this.chatEditCancellationTokenSource?.dispose();
+            this.chatEditCancellationTokenSource = null;
+          }
         }
       },
       onLoaded: () => {

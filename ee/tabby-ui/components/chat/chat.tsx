@@ -39,8 +39,10 @@ type ChatContextValue = {
   onClearMessages: () => void
   container?: HTMLDivElement
   onCopyContent?: (value: string) => void
-  onApplyInEditor?: (value: string) => void
-  onSmartApplyInEditor?: (languageId: string, value: string) => void
+  onApplyInEditor?: (
+    content: string,
+    opts?: { languageId: string; smart: boolean }
+  ) => void
   relevantContext: Context[]
   removeRelevantContext: (index: number) => void
 }
@@ -72,8 +74,10 @@ interface ChatProps extends React.ComponentProps<'div'> {
   promptFormClassname?: string
   onCopyContent?: (value: string) => void
   onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
-  onApplyInEditor?: (value: string) => void
-  onSmartApplyInEditor?: (languageId: string, value: string) => void
+  onApplyInEditor?: (
+    content: string,
+    opts?: { languageId: string; smart: boolean }
+  ) => void
 }
 
 function ChatRenderer(
@@ -92,8 +96,7 @@ function ChatRenderer(
     promptFormClassname,
     onCopyContent,
     onSubmitMessage,
-    onApplyInEditor,
-    onSmartApplyInEditor
+    onApplyInEditor
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -445,7 +448,6 @@ function ChatRenderer(
         container,
         onCopyContent,
         onApplyInEditor,
-        onSmartApplyInEditor,
         relevantContext,
         removeRelevantContext
       }}
