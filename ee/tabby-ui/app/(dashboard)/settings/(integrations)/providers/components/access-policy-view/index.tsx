@@ -4,6 +4,8 @@ import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 import { UserGroupsQuery } from '@/lib/gql/generates/graphql'
+import { useMutation } from '@/lib/tabby/gql'
+import { listSourceIdAccessPolicies } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,7 +16,7 @@ import {
   CommandItem,
   CommandList
 } from '@/components/ui/command'
-import { IconChevronUpDown, IconEdit, IconSpinner } from '@/components/ui/icons'
+import { IconEdit, IconSpinner } from '@/components/ui/icons'
 import {
   Popover,
   PopoverContent,
@@ -22,19 +24,6 @@ import {
 } from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
-import { useMutation } from '@/lib/tabby/gql'
-
-const listSourceIdAccessPolicies = graphql(/* GraphQL */ `
-  query sourceIdAccessPolicies($sourceId: String!) {
-    sourceIdAccessPolicies(sourceId: $sourceId) {
-      sourceId
-      read {
-        id
-        name
-      }
-    }
-  }
-`)
 
 const grantSourceIdReadAccessMutation = graphql(/* GraphQL */ `
   mutation grantSourceIdReadAccess($sourceId: String!, $userGroupId: ID!) {
@@ -93,14 +82,38 @@ export function AccessPolicyView({
   // }, [sourceIdAccessPolicies])
 
   // FIXME demo code
-  const handleSelectGroup = (id: string, grant: boolean) => {
-    // FIXME grantSourceIdReadAccess & revokeSourceIdReadAccess
+  const handleSelectGroup = (
+    userGroupId: string,
+    userGroupName: string,
+    grant: boolean
+  ) => {
+    // FIXME sourceId && error handling
+    // if (grant) {
+    //   grantSourceIdReadAccess({
+    //     sourceId,
+    //     userGroupId
+    //   }, {
+    //     extraParams: {
+    //       userGroupName
+    //     }
+    //   })
+    // } else {
+    //   revokeSourceIdReadAccess({
+    //     sourceId,
+    //     userGroupId
+    //   }, {
+    //     extraParams: {
+    //       userGroupName
+    //     }
+    //   })
+    // }
+
     setSelectedIdSet(prev => {
       const nextSet = new Set(prev)
       if (grant) {
-        nextSet.add(id)
+        nextSet.add(userGroupId)
       } else {
-        nextSet.delete(id)
+        nextSet.delete(userGroupId)
       }
       return nextSet
     })
@@ -142,8 +155,10 @@ export function AccessPolicyView({
                       return (
                         <CommandItem
                           key={group.id}
-                          onSelect={id => handleSelectGroup(id, !isSelected)}
-                          value={group.id}
+                          value={group.name}
+                          onSelect={() =>
+                            handleSelectGroup(group.id, group.name, !isSelected)
+                          }
                         >
                           <div
                             className={cn(
@@ -157,8 +172,9 @@ export function AccessPolicyView({
                           </div>
                           <span>
                             {group.name}
-                            <span className="text-muted-foreground ml-1">{`(${memberLen} member${memberLen > 1 ? 's' : ''
-                              })`}</span>
+                            <span className="text-muted-foreground ml-1">{`(${memberLen} member${
+                              memberLen > 1 ? 's' : ''
+                            })`}</span>
                           </span>
                         </CommandItem>
                       )

@@ -326,3 +326,15 @@ export const userGroupsQuery = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const listSourceIdAccessPolicies = graphql(/* GraphQL */ `
+  query sourceIdAccessPolicies($sourceId: String!) {
+    sourceIdAccessPolicies(sourceId: $sourceId) {
+      sourceId
+      read {
+        id
+        name
+      }
+    }
+  }
+`)

@@ -23,6 +23,7 @@ import {
   GitRepositoriesQueryVariables,
   ListIntegrationsQueryVariables,
   ListInvitationsQueryVariables,
+  SourceIdAccessPoliciesQueryVariables,
   UpsertUserGroupMembershipInput
 } from '../gql/generates/graphql'
 import { refreshTokenMutation } from './auth'
@@ -30,6 +31,7 @@ import {
   listIntegrations,
   listInvitations,
   listRepositories,
+  listSourceIdAccessPolicies,
   userGroupsQuery
 } from './query'
 import {
@@ -288,7 +290,44 @@ const client = new Client({
                 return data
               })
             }
-          }
+          },
+          grantSourceIdReadAccess(
+            result,
+            args: { sourceId: string; userGroupId: string },
+            cache,
+            info
+          ) {
+            if (result.grantSourceIdReadAccess) {
+              cache
+                .inspectFields('Query')
+                .filter(field => field.fieldName === 'sourceIdAccessPolicies')
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listSourceIdAccessPolicies,
+                      variables:
+                        field.arguments as SourceIdAccessPoliciesQueryVariables
+                    },
+                    data => {
+                      if (data?.sourceIdAccessPolicies?.read) {
+                        const { userGroupName } = (info.variables.extraParams ||
+                          {}) as any
+                        data.sourceIdAccessPolicies.read = [
+                          ...data.sourceIdAccessPolicies.read,
+                          {
+                            __typename: 'UserGroup',
+                            id: args.userGroupId,
+                            name: userGroupName
+                          }
+                        ]
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          },
+          revokeSourceIdReadAccess(result, args, cache, info) {}
         }
       },
       optimistic: {
@@ -296,6 +335,12 @@ const client = new Client({
           return true
         },
         deleteUserGroupMembership() {
+          return true
+        },
+        grantSourceIdReadAccess() {
+          return true
+        },
+        revokeSourceIdReadAccess() {
           return true
         }
       }
