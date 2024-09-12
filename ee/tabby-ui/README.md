@@ -11,24 +11,13 @@ The Caddy configuration file is located [here](https://github.com/TabbyML/tabby/
 
 Regarding the Tabby binary in production distribution, we do not start the tabby-ui server and Caddy server. Instead, tabby-ui is solely built and outputs static assets. Routing is configured within Tabby to distribute the static assets produced by tabby-ui.
 
+The setup has been wrapped in to a tmuxinator config, before running it, make sure you have `tmux` and `tmuxinator` installed (can be installed through homebrew in mac)
+
 #### 1. Start the development frontend server
 
 ```
-cd tabby/ee/tabby-ui
-pnpm dev
+make dev
 ```
 
-#### 2. Start the development backend server
-
-```
-cargo run serve --port 8081
-```
-
-#### 3.Start the caddy server
-
-```
-make caddy
-```
-
-#### 4. Start hacking
+#### 2. Start hacking
 Now, you can open `http://localhost:8080` to see the tabby webserver!
