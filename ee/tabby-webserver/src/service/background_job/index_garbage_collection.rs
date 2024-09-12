@@ -23,7 +23,7 @@ impl IndexGarbageCollection {
             .await?
             .sources
             .into_iter()
-            .map(|source| source.source_id)
+            .map(|x| x.source_id())
             .collect::<Vec<_>>();
         run_index_garbage_collection(sources)?;
 

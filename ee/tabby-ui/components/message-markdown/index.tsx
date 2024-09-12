@@ -335,8 +335,8 @@ function SourceTag({
         ) : (
           <Mention
             id={source.sourceId}
-            label={source.displayName}
-            kind={source.kind}
+            label={source.sourceName}
+            kind={source.sourceKind}
             className={className}
           />
         )}

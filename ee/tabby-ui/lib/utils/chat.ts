@@ -1,18 +1,20 @@
 import { uniq } from 'lodash-es'
 
-import { ContextInfo, ContextKind } from '@/lib/gql/generates/graphql'
+import { ContextInfo, ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
 
 import { MARKDOWN_SOURCE_REGEX } from '../constants/regex'
 
-export const isCodeSourceContext = (kind: ContextKind) => {
-  return [ContextKind.Git, ContextKind.Github, ContextKind.Gitlab].includes(
-    kind
-  )
+export const isCodeSourceContext = (kind: ContextSourceKind) => {
+  return [
+    ContextSourceKind.Git,
+    ContextSourceKind.Github,
+    ContextSourceKind.Gitlab
+  ].includes(kind)
 }
 
-export const isDocSourceContext = (kind: ContextKind) => {
-  return [ContextKind.Doc, ContextKind.Web].includes(kind)
+export const isDocSourceContext = (kind: ContextSourceKind) => {
+  return [ContextSourceKind.Doc, ContextSourceKind.Web].includes(kind)
 }
 
 export const getMentionsFromText = (
@@ -29,8 +31,8 @@ export const getMentionsFromText = (
     if (source) {
       mentions.push({
         id: sourceId,
-        label: source.displayName,
-        kind: source.kind
+        label: source.sourceName,
+        kind: source.sourceKind
       })
     }
   }
@@ -47,7 +49,7 @@ export const getThreadRunContextsFromMentions = (
     const { kind, id } = mention
     if (isCodeSourceContext(kind)) {
       codeSourceIds.push(id)
-    } else if (kind === ContextKind.Web) {
+    } else if (kind === ContextSourceKind.Web) {
       searchPublic = true
     } else {
       docSourceIds.push(id)

@@ -303,10 +303,9 @@ export const contextInfoQuery = graphql(/* GraphQL */ `
   query ContextInfo {
     contextInfo {
       sources {
-        id
-        kind
+        sourceKind
         sourceId
-        displayName
+        sourceName
       }
     }
   }
