@@ -1,6 +1,4 @@
 import {
-  WebviewViewProvider,
-  WebviewView,
   workspace,
   Uri,
   env,
@@ -14,16 +12,18 @@ import {
   WorkspaceFolder,
   TextDocument,
   commands,
+  WebviewPanel,
 } from "vscode";
 import type { ChatMessage, Context, NavigateOpts } from "tabby-chat-panel";
 import { createClient } from "./chatPanel";
 import { BaseChatView } from "./BaseChatView";
 
-export class ChatViewProvider extends BaseChatView implements WebviewViewProvider {
-  webview?: WebviewView;
+// TODO(zhizhg): abstruct a base class with ChatViewProvider
+export class ChatPanelViewProvider extends BaseChatView {
+  webview?: WebviewPanel;
 
   // The method is called when the chat panel first opened
-  public async resolveWebviewView(webviewView: WebviewView) {
+  public async resolveWebviewView(webviewView: WebviewPanel) {
     this.webview = webviewView;
     const extensionUri = this.context.extensionUri;
 
@@ -85,7 +85,10 @@ export class ChatViewProvider extends BaseChatView implements WebviewViewProvide
           relevantContext: [],
         };
         if (editor) {
-          const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+          const fileContext = ChatPanelViewProvider.getFileContextFromSelection({
+            editor,
+            gitProvider: this.gitProvider,
+          });
           if (fileContext)
             // active selection
             chatMessage.activeContext = fileContext;
@@ -131,6 +134,7 @@ export class ChatViewProvider extends BaseChatView implements WebviewViewProvide
     // At this point, if the server instance is not set up, agent.status is 'notInitialized'.
     // We check for the presence of the server instance by verifying serverInfo.health["webserver"].
     const serverInfo = await this.agent.fetchServerInfo();
+
     if (serverInfo.health && serverInfo.health["webserver"]) {
       const serverInfo = await this.agent.fetchServerInfo();
       this.displayChatPage(serverInfo.config.endpoint);
@@ -155,7 +159,7 @@ export class ChatViewProvider extends BaseChatView implements WebviewViewProvide
     });
 
     // The event will not be triggered during the initial rendering.
-    webviewView.onDidChangeVisibility(() => {
+    webviewView.onDidChangeViewState(() => {
       if (webviewView.visible) {
         this.refreshChatPage();
       }

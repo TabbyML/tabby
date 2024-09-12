@@ -1,9 +1,9 @@
 import { createThread, type ThreadOptions } from "@quilted/threads";
 import type { ServerApi, ClientApi } from "tabby-chat-panel";
-import { WebviewView } from "vscode";
+import { WebviewView, WebviewPanel } from "vscode";
 
 export function createThreadFromWebview<Self = Record<string, never>, Target = Record<string, never>>(
-  webview: WebviewView,
+  webview: WebviewView | WebviewPanel,
   options?: ThreadOptions<Self, Target>,
 ) {
   return createThread(
@@ -25,7 +25,7 @@ export function createThreadFromWebview<Self = Record<string, never>, Target = R
   );
 }
 
-export function createClient(webview: WebviewView, api: ClientApi): ServerApi {
+export function createClient(webview: WebviewView | WebviewPanel, api: ClientApi): ServerApi {
   return createThreadFromWebview(webview, {
     expose: {
       navigate: api.navigate,
