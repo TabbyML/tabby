@@ -1,11 +1,16 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use juniper::{graphql_object, GraphQLObject, ID};
+use juniper::{graphql_object, ID};
 use tabby_common::config::CodeRepository;
 
 use super::{GitReference, RepositoryProvider};
 use crate::{
-    context::{ContextSourceIdValue, ContextSourceValue}, integration::IntegrationKind, job::JobInfo, juniper::relay::NodeType, schema::Result, Context
+    context::ContextSourceIdValue,
+    integration::IntegrationKind,
+    job::JobInfo,
+    juniper::relay::NodeType,
+    schema::Result,
+    Context,
 };
 
 pub struct ProvidedRepository {

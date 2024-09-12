@@ -1,10 +1,13 @@
 use async_trait::async_trait;
-use juniper::{graphql_object, GraphQLObject, ID};
+use juniper::{graphql_object, ID};
 use validator::Validate;
 
 use super::{GitReference, RepositoryProvider};
 use crate::{
-    context::ContextSourceIdValue, job::JobInfo, juniper::relay::NodeType, schema::{Context, Result}
+    context::ContextSourceIdValue,
+    job::JobInfo,
+    juniper::relay::NodeType,
+    schema::{Context, Result},
 };
 
 #[derive(Validate)]

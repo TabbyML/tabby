@@ -5,7 +5,7 @@ use juniper::{graphql_interface, graphql_object, GraphQLEnum, GraphQLInterface, 
 use regex::{Captures, Regex};
 
 use super::{
-    repository::{ProvidedRepository, Repository, GitRepository},
+    repository::{GitRepository, ProvidedRepository, Repository},
     web_documents::{CustomWebDocument, PresetWebDocument},
     Context,
 };
@@ -34,7 +34,6 @@ pub struct ContextSource {
     // start implements ContextSource
     pub source_id: String,
     // end   implements ContextSource
-
     pub source_kind: ContextSourceKind,
 
     /// Display name of the source, used to provide a human-readable name for user selection, such as in a dropdown menu.
