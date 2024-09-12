@@ -236,12 +236,16 @@ input UpsertUserGroupMembershipInput {
   isGroupAdmin: Boolean!
 }
 
-interface ContextSource {
-  sourceKind: ContextSourceKind!
-  "Represents the source of the context, which is the value mapped to `source_id` in the index."
+interface ContextSource implements ContextSourceId {
   sourceId: String!
+  sourceKind: ContextSourceKind!
   "Display name of the source, used to provide a human-readable name for user selection, such as in a dropdown menu."
   sourceName: String!
+}
+
+interface ContextSourceId {
+  "Represents the source of the context, which is the value mapped to `source_id` in the index."
+  sourceId: String!
 }
 
 interface User {
@@ -293,7 +297,7 @@ type CustomDocumentEdge {
   cursor: String!
 }
 
-type CustomWebDocument implements ContextSource {
+type CustomWebDocument implements ContextSourceId & ContextSource {
   url: String!
   name: String!
   id: ID!
@@ -339,8 +343,9 @@ type GitReference {
   commit: String!
 }
 
-type GitRepository {
+type GitRepository implements ContextSourceId {
   id: ID!
+  sourceId: String!
   name: String!
   gitUrl: String!
   refs: [GitReference!]!
@@ -597,7 +602,7 @@ type PresetDocumentEdge {
   cursor: String!
 }
 
-type PresetWebDocument implements ContextSource {
+type PresetWebDocument implements ContextSourceId & ContextSource {
   name: String!
   id: ID!
   "`updated_at` is only filled when the preset is active."
@@ -610,7 +615,7 @@ type PresetWebDocument implements ContextSource {
   sourceName: String!
 }
 
-type ProvidedRepository {
+type ProvidedRepository implements ContextSourceId {
   id: ID!
   integrationId: ID!
   active: Boolean!
@@ -621,6 +626,7 @@ type ProvidedRepository {
   updatedAt: DateTime!
   refs: [GitReference!]!
   jobInfo: JobInfo!
+  sourceId: String!
 }
 
 type ProvidedRepositoryConnection {
@@ -704,7 +710,7 @@ type RegisterResponse {
   refreshToken: String!
 }
 
-type Repository implements ContextSource {
+type Repository implements ContextSourceId & ContextSource {
   id: ID!
   sourceId: String!
   sourceKind: ContextSourceKind!
@@ -863,7 +869,7 @@ type UserSecured implements User {
   isPasswordSet: Boolean!
 }
 
-type WebContextSource implements ContextSource {
+type WebContextSource implements ContextSourceId & ContextSource {
   sourceKind: ContextSourceKind!
   sourceId: String!
   sourceName: String!

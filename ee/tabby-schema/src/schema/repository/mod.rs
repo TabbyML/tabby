@@ -15,7 +15,7 @@ use tabby_common::config::{CodeRepository, RepositoryConfig};
 pub use third_party::{ProvidedRepository, ThirdPartyRepositoryService};
 
 use super::{
-    context::{ContextSourceKind, ContextSourceValue},
+    context::{ContextSourceIdValue, ContextSourceKind, ContextSourceValue},
     Result,
 };
 use crate::{juniper::relay::NodeType, policy::AccessPolicy, Context};
@@ -55,7 +55,7 @@ pub struct Repository {
     pub refs: Vec<GitReference>,
 }
 
-#[graphql_object(context = Context, impl = [ContextSourceValue])]
+#[graphql_object(context = Context, impl = [ContextSourceIdValue, ContextSourceValue])]
 impl Repository {
     fn id(&self) -> &ID {
         &self.id

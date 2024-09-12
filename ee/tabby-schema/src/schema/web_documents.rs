@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use juniper::{graphql_object, GraphQLInputObject, ID};
 use validator::Validate;
 
-use super::context::{ContextSourceKind, ContextSourceValue};
+use super::context::{ContextSourceIdValue, ContextSourceKind, ContextSourceValue};
 use crate::{job::JobInfo, juniper::relay::NodeType, Context, Result};
 
 pub struct CustomWebDocument {
@@ -21,7 +21,7 @@ impl CustomWebDocument {
     }
 }
 
-#[graphql_object(context = Context, impl = [ContextSourceValue])]
+#[graphql_object(context = Context, impl = [ContextSourceIdValue, ContextSourceValue])]
 impl CustomWebDocument {
     fn url(&self) -> &str {
         &self.url
@@ -75,7 +75,7 @@ impl PresetWebDocument {
     }
 }
 
-#[graphql_object(context = Context, impl = [ContextSourceValue])]
+#[graphql_object(context = Context, impl = [ContextSourceIdValue, ContextSourceValue])]
 impl PresetWebDocument {
     fn name(&self) -> &str {
         &self.name
