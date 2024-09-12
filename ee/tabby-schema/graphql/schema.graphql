@@ -761,9 +761,33 @@ type Thread {
   updatedAt: DateTime!
 }
 
+type ThreadAssistantMessageAttachmentsCode {
+  hits: [MessageCodeSearchHit!]!
+}
+
+type ThreadAssistantMessageAttachmentsDoc {
+  hits: [MessageDocSearchHit!]!
+}
+
+type ThreadAssistantMessageCompleted {
+  id: ID!
+}
+
+type ThreadAssistantMessageContentDelta {
+  delta: String!
+}
+
+type ThreadAssistantMessageCreated {
+  id: ID!
+}
+
 type ThreadConnection {
   edges: [ThreadEdge!]!
   pageInfo: PageInfo!
+}
+
+type ThreadCreated {
+  id: ID!
 }
 
 type ThreadEdge {
@@ -771,15 +795,12 @@ type ThreadEdge {
   cursor: String!
 }
 
-type ThreadRunItem {
-  threadCreated: ID
-  threadRelevantQuestions: [String!]
-  threadUserMessageCreated: ID
-  threadAssistantMessageCreated: ID
-  threadAssistantMessageAttachmentsCode: [MessageCodeSearchHit!]
-  threadAssistantMessageAttachmentsDoc: [MessageDocSearchHit!]
-  threadAssistantMessageContentDelta: String
-  threadAssistantMessageCompleted: ID
+type ThreadRelevantQuestions {
+  questions: [String!]!
+}
+
+type ThreadUserMessageCreated {
+  id: ID!
 }
 
 type TokenAuthResponse {
@@ -847,3 +868,10 @@ type WebContextSource implements ContextSource {
   sourceId: String!
   sourceName: String!
 }
+
+"""
+  Schema of thread run stream.
+
+  Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
+"""
+union ThreadRunItem = ThreadCreated | ThreadRelevantQuestions | ThreadUserMessageCreated | ThreadAssistantMessageCreated | ThreadAssistantMessageAttachmentsCode | ThreadAssistantMessageAttachmentsDoc | ThreadAssistantMessageContentDelta | ThreadAssistantMessageCompleted
