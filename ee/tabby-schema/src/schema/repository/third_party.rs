@@ -5,12 +5,8 @@ use tabby_common::config::CodeRepository;
 
 use super::{GitReference, RepositoryProvider};
 use crate::{
-    context::ContextSourceIdValue,
-    integration::IntegrationKind,
-    job::JobInfo,
-    juniper::relay::NodeType,
-    schema::Result,
-    Context,
+    context::ContextSourceIdValue, integration::IntegrationKind, job::JobInfo,
+    juniper::relay::NodeType, schema::Result, Context,
 };
 
 pub struct ProvidedRepository {
