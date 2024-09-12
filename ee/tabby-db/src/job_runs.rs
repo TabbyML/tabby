@@ -13,7 +13,6 @@ pub struct JobRunDAO {
     pub command: String,
     pub exit_code: Option<i64>,
     pub stdout: String,
-    pub stderr: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 
@@ -66,15 +65,6 @@ impl DbConn {
         query!(
             r#"UPDATE job_runs SET stdout = stdout || ?, updated_at = datetime('now') WHERE id = ?"#,
             stdout,
-            job_id
-        ).execute(&self.pool).await?;
-        Ok(())
-    }
-
-    pub async fn update_job_stderr(&self, job_id: i64, stderr: String) -> Result<()> {
-        query!(
-            r#"UPDATE job_runs SET stderr = stderr || ?, updated_at = datetime('now') WHERE id = ?"#,
-            stderr,
             job_id
         ).execute(&self.pool).await?;
         Ok(())
@@ -148,7 +138,6 @@ impl DbConn {
                 "job" as "name",
                 "exit_code",
                 "stdout",
-                "stderr",
                 "command"!,
                 "created_at" as "created_at!: DateTime<Utc>",
                 "updated_at" as "updated_at!: DateTime<Utc>",
