@@ -186,7 +186,6 @@ pub struct UserSecured {
     pub is_owner: bool,
     pub active: bool,
     // === end User ===
-
     pub auth_token: String,
     pub is_password_set: bool,
 
