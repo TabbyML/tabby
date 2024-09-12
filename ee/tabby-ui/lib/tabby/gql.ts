@@ -4,7 +4,7 @@ import { cacheExchange } from '@urql/exchange-graphcache'
 import { relayPagination } from '@urql/exchange-graphcache/extras'
 import { createClient as createWSClient } from 'graphql-ws'
 import { jwtDecode } from 'jwt-decode'
-import { isNil, pick } from 'lodash-es'
+import { isNil } from 'lodash-es'
 import { FieldValues, UseFormReturn } from 'react-hook-form'
 import {
   AnyVariables,
@@ -125,10 +125,6 @@ const client = new Client({
         MessageAttachmentCode: () => null,
         MessageAttachmentDoc: () => null,
         NetworkSetting: () => null
-        // UserGroupMembership: (data) => {
-        //   console.log(data, 'data===========')
-        //   return null
-        // }
       },
       resolvers: {
         Query: {

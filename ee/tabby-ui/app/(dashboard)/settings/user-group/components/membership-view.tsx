@@ -7,15 +7,13 @@ import {
   useState
 } from 'react'
 import { pick } from 'lodash-es'
-import { useInView } from 'react-intersection-observer'
 import { toast } from 'sonner'
 
 import { graphql } from '@/lib/gql/generates'
 import {
   UpsertUserGroupMembershipInput,
   User,
-  UserGroupMembership,
-  UserGroupsQuery
+  UserGroupMembership
 } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
@@ -40,7 +38,6 @@ import {
   PopoverContent,
   PopoverTrigger
 } from '@/components/ui/popover'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Select,
   SelectContent,
@@ -102,19 +99,14 @@ export function MembershipView({
   }
 
   return (
-    <div className={cn('flex-col gap-1 overflow-hidden border-b', className)}>
-      {/* <ScrollArea ref={containerRef} className="flex-1 pt-2 px-1"> */}
-      <Table>
+    <div className={cn('flex flex-col gap-2 border-b py-2', className)}>
+      <Table className="px-1">
         <TableBody>
           {members?.map(member => {
             return (
               <MembershipItem
                 key={member.user.id}
                 member={member}
-                // onUpdate={() => {
-                //   // todo cache?
-                //   refreshUserGroups()
-                // }}
                 onRemoveEmptyItem={() => setEmptyItemVisible(false)}
               />
             )
@@ -126,9 +118,8 @@ export function MembershipView({
           )}
         </TableBody>
       </Table>
-      {/* </ScrollArea> */}
       {editable && (
-        <div className="mb-4 mt-2 ml-3 flex justify-start">
+        <div className="mb-2 ml-3 flex justify-start">
           <Button variant="outline" onClick={handleAddMember}>
             <IconPlus className="mr-2" />
             Add Member
@@ -150,7 +141,7 @@ function roleToSelectItemValue(role: string) {
 }
 
 function MembershipItem({ member, onRemoveEmptyItem }: MembershipItemProps) {
-  const { isServerAdmin, memberIds, userGroupId } =
+  const { isServerAdmin, isGroupAdmin, memberIds, userGroupId } =
     useContext(UserGroupItemContext)
 
   const [role, setRole] = useState(
@@ -272,13 +263,15 @@ function MembershipItem({ member, onRemoveEmptyItem }: MembershipItemProps) {
         </Select>
       </TableCell>
       <TableCell className="text-right">
-        <Button
-          size="icon"
-          variant="hover-destructive"
-          onClick={handleDeleteUserGroupMembership}
-        >
-          <IconTrash />
-        </Button>
+        {(isServerAdmin || isGroupAdmin) && (
+          <Button
+            size="icon"
+            variant="hover-destructive"
+            onClick={handleDeleteUserGroupMembership}
+          >
+            <IconTrash />
+          </Button>
+        )}
       </TableCell>
     </TableRow>
   )

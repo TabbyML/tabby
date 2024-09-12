@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
-import { MeQueryQuery, UserGroupsQuery } from '@/lib/gql/generates/graphql'
+import { MeQueryQuery } from '@/lib/gql/generates/graphql'
 import { Member, useAllMembers } from '@/lib/hooks/use-all-members'
 import { useMe } from '@/lib/hooks/use-me'
 import { userGroupsQuery } from '@/lib/tabby/query'
@@ -44,10 +44,7 @@ export default function UserGroups() {
   const onCreateUserGroup = async () => {
     reexcute()
   }
-
   const userGroups = data?.userGroups
-
-  console.log(userGroups, '--------')
 
   return (
     <UserGroupContext.Provider
