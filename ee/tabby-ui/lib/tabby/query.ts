@@ -94,7 +94,6 @@ export const listJobRuns = graphql(/* GraphQL */ `
           finishedAt
           exitCode
           stdout
-          stderr
         }
         cursor
       }

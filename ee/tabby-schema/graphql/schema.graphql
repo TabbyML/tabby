@@ -432,7 +432,6 @@ type JobRun {
   finishedAt: DateTime
   exitCode: Int
   stdout: String!
-  stderr: String!
 }
 
 type JobRunConnection {
