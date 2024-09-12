@@ -11,6 +11,7 @@ import { GitProvider } from "./git/GitProvider";
 import { ContextVariables } from "./ContextVariables";
 import { StatusBarItem } from "./StatusBarItem";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
+import { ChatPanelViewProvider } from "./chat/ChatPanelViewProvider";
 import { Commands } from "./Commands";
 import { Status } from "tabby-agent";
 import { CodeActionProvider } from "./CodeAction";
@@ -85,7 +86,8 @@ export async function activate(context: ExtensionContext) {
       webviewOptions: { retainContextWhenHidden: true },
     }),
   );
-
+  // Create chat panel view
+  const chatPanelViewProvider = new ChatPanelViewProvider(context, client.agent, logger, gitProvider);
   await gitProvider.init();
   await client.start();
 
@@ -104,6 +106,7 @@ export async function activate(context: ExtensionContext) {
     inlineCompletionProvider,
     chatViewProvider,
     gitProvider,
+    chatPanelViewProvider
   );
 
   logger.info("Tabby extension activated.");

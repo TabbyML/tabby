@@ -11,6 +11,7 @@ import {
   ProgressLocation,
   ThemeIcon,
   QuickPickItem,
+  ViewColumn,
 } from "vscode";
 import os from "os";
 import path from "path";
@@ -20,6 +21,7 @@ import { Config, PastServerConfig } from "./Config";
 import { ContextVariables } from "./ContextVariables";
 import { InlineCompletionProvider } from "./InlineCompletionProvider";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
+import { ChatPanelViewProvider } from "./chat/ChatPanelViewProvider";
 import { GitProvider, Repository } from "./git/GitProvider";
 import CommandPalette from "./CommandPalette";
 import { showOutputPanel } from "./logger";
@@ -38,6 +40,7 @@ export class Commands {
     private readonly inlineCompletionProvider: InlineCompletionProvider,
     private readonly chatViewProvider: ChatViewProvider,
     private readonly gitProvider: GitProvider,
+    private readonly chatPanelViewProvider: ChatPanelViewProvider,
   ) {
     const registrations = Object.keys(this.commands).map((key) => {
       const commandName = `tabby.${key}`;
@@ -275,6 +278,16 @@ export class Commands {
     },
     "chat.generateCodeBlockTest": async () => {
       this.sendMessageToChatPanel("Generate a unit test for the selected code:");
+    },
+    "chat.createPanel": async () => {
+      const panel = window.createWebviewPanel(
+        'tabby.chatView',
+        'Tabby Chat',
+        ViewColumn.One,
+        {}
+      );
+
+      this.chatPanelViewProvider.resolveWebviewView(panel);
     },
     "chat.edit.start": async () => {
       const editor = window.activeTextEditor;
