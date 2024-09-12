@@ -1,10 +1,10 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
-import { MeQueryQuery } from '@/lib/gql/generates/graphql'
+import { MeQueryQuery, UserGroupsQuery } from '@/lib/gql/generates/graphql'
 import { Member, useAllMembers } from '@/lib/hooks/use-all-members'
 import { useMe } from '@/lib/hooks/use-me'
 import { userGroupsQuery } from '@/lib/tabby/query'
@@ -32,9 +32,9 @@ export default function UserGroups() {
   const [{ data, error, fetching }, reexcute] = useQuery({
     query: userGroupsQuery
   })
+
   const [{ data: meData }] = useMe()
   const isAdmin = !!(meData?.me.isOwner || meData?.me.isAdmin)
-
   React.useEffect(() => {
     if (error?.message) {
       toast.error(error.message)
@@ -47,6 +47,8 @@ export default function UserGroups() {
 
   const userGroups = data?.userGroups
 
+  console.log(userGroups, '--------')
+
   return (
     <UserGroupContext.Provider
       value={{
@@ -54,6 +56,7 @@ export default function UserGroups() {
         fetchingAllUsers,
         refreshUserGroups: reexcute,
         me: meData?.me
+        // setUserGroups
       }}
     >
       <LoadingWrapper loading={fetching} fallback={<ListSkeleton />}>

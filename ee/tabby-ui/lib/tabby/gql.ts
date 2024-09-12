@@ -4,7 +4,7 @@ import { cacheExchange } from '@urql/exchange-graphcache'
 import { relayPagination } from '@urql/exchange-graphcache/extras'
 import { createClient as createWSClient } from 'graphql-ws'
 import { jwtDecode } from 'jwt-decode'
-import { isNil } from 'lodash-es'
+import { isNil, pick } from 'lodash-es'
 import { FieldValues, UseFormReturn } from 'react-hook-form'
 import {
   AnyVariables,
@@ -19,12 +19,19 @@ import {
 } from 'urql'
 
 import {
+  DeleteUserGroupMembershipMutationVariables,
   GitRepositoriesQueryVariables,
   ListIntegrationsQueryVariables,
-  ListInvitationsQueryVariables
+  ListInvitationsQueryVariables,
+  UpsertUserGroupMembershipInput
 } from '../gql/generates/graphql'
 import { refreshTokenMutation } from './auth'
-import { listIntegrations, listInvitations, listRepositories } from './query'
+import {
+  listIntegrations,
+  listInvitations,
+  listRepositories,
+  userGroupsQuery
+} from './query'
 import {
   getAuthToken,
   getFetcherOptions,
@@ -55,7 +62,7 @@ function useMutation<TResult, TVariables extends AnyVariables>(
     : undefined
 
   const fn = async (
-    variables?: TVariables,
+    variables?: TVariables & { extraParams?: any },
     context?: Partial<OperationContext>
   ) => {
     let response: OperationResult<TResult, AnyVariables> | undefined
@@ -118,6 +125,10 @@ const client = new Client({
         MessageAttachmentCode: () => null,
         MessageAttachmentDoc: () => null,
         NetworkSetting: () => null
+        // UserGroupMembership: (data) => {
+        //   console.log(data, 'data===========')
+        //   return null
+        // }
       },
       resolvers: {
         Query: {
@@ -218,7 +229,77 @@ const client = new Client({
               .forEach(field => {
                 cache.invalidate(key, field.fieldName, field.arguments)
               })
+          },
+          upsertUserGroupMembership(result, args, cache, info) {
+            const { userGroupId, userId, isGroupAdmin } =
+              args.input as UpsertUserGroupMembershipInput
+            const { user, isInsert } = (info.variables.extraParams || {}) as any
+            if (result.upsertUserGroupMembership) {
+              cache.updateQuery({ query: userGroupsQuery }, data => {
+                if (data?.userGroups) {
+                  data.userGroups = data.userGroups.map(group => {
+                    if (group.id !== userGroupId) return group
+                    let newMembers = [...group.members]
+                    if (isInsert) {
+                      newMembers.push({
+                        user: {
+                          ...user,
+                          __typename: 'UserSecured'
+                        },
+                        isGroupAdmin,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        __typename: 'UserGroupMembership'
+                      })
+                    } else {
+                      newMembers = newMembers.map(m => {
+                        if (m.user.id !== userId) return m
+                        return {
+                          ...m,
+                          isGroupAdmin
+                        }
+                      })
+                    }
+                    return {
+                      ...group,
+                      members: newMembers
+                    }
+                  })
+                }
+
+                return data
+              })
+            }
+          },
+          deleteUserGroupMembership(result, args, cache, info) {
+            const { userGroupId, userId } =
+              args as DeleteUserGroupMembershipMutationVariables
+            if (result.deleteUserGroupMembership) {
+              cache.updateQuery({ query: userGroupsQuery }, data => {
+                if (data?.userGroups) {
+                  data.userGroups = data.userGroups.map(group => {
+                    if (group.id !== userGroupId) return group
+                    let newMembers = [...group.members].filter(
+                      o => o.user.id !== userId
+                    )
+                    return {
+                      ...group,
+                      members: newMembers
+                    }
+                  })
+                }
+                return data
+              })
+            }
           }
+        }
+      },
+      optimistic: {
+        upsertUserGroupMembership() {
+          return true
+        },
+        deleteUserGroupMembership() {
+          return true
         }
       }
     }),
