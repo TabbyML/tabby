@@ -14,6 +14,7 @@ import type {
   Context,
   ErrorMessage,
   FetcherOptions,
+  FocusKeybinding,
   InitRequest,
   NavigateOpts
 } from 'tabby-chat-panel'
@@ -61,33 +62,12 @@ export default function ChatPage() {
   const [chatLoaded, setChatLoaded] = useState(false)
   const { width } = useWindowSize()
   const prevWidthRef = useRef(width)
+  const chatInputRef = useRef<HTMLTextAreaElement>(null)
 
   const searchParams = useSearchParams()
   const client = searchParams.get('client') as ClientType
   const isInEditor = !!client || undefined
-
-  // VSCode bug: not support shortcuts like copy/paste
-  // @see - https://github.com/microsoft/vscode/issues/129178
-  useEffect(() => {
-    if (client !== 'vscode') return
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.code === 'KeyC') {
-        document.execCommand('copy')
-      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyX') {
-        document.execCommand('cut')
-      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyV') {
-        document.execCommand('paste')
-      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyA') {
-        document.execCommand('selectAll')
-      }
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-    }
-  }, [])
+  const focusKeybinding = useRef<FocusKeybinding>()
 
   const sendMessage = (message: ChatMessage) => {
     if (chatRef.current) {
@@ -121,6 +101,7 @@ export default function ChatPage() {
       setActiveChatId(nanoid())
       setIsInit(true)
       setFetcherOptions(request.fetcherOptions)
+      focusKeybinding.current = request.focusKey
     },
     sendMessage: (message: ChatMessage) => {
       return sendMessage(message)
@@ -155,6 +136,53 @@ export default function ChatPage() {
         themeClass + ` client client-${client}`
     }
   })
+
+  useEffect(() => {
+    const onFocus = () => {
+      // When we receive top level focus, just focus chatInputRef
+      setTimeout(() => {
+        chatInputRef.current?.focus()
+      }, 0)
+    }
+
+    window.addEventListener('focus', onFocus)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+    }
+  })
+
+  // VSCode bug: not support shortcuts like copy/paste
+  // @see - https://github.com/microsoft/vscode/issues/129178
+  useEffect(() => {
+    if (client !== 'vscode') return
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      const focusKeyInfo = focusKeybinding.current
+      if ((event.ctrlKey || event.metaKey) && event.code === 'KeyC') {
+        document.execCommand('copy')
+      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyX') {
+        document.execCommand('cut')
+      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyV') {
+        document.execCommand('paste')
+      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyA') {
+        document.execCommand('selectAll')
+      } else if (
+        focusKeyInfo &&
+        event.key.toLowerCase() == focusKeyInfo.key &&
+        event.ctrlKey == focusKeyInfo.ctrlKey &&
+        event.metaKey == focusKeyInfo.metaKey &&
+        event.altKey == focusKeyInfo.altKey &&
+        event.shiftKey == focusKeyInfo.shiftKey
+      ) {
+        server?.focusOnEditor()
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [server, client])
 
   useEffect(() => {
     if (server) {
@@ -288,6 +316,7 @@ export default function ChatPage() {
         chatId={activeChatId}
         key={activeChatId}
         ref={chatRef}
+        chatInputRef={chatInputRef}
         onNavigateToContext={onNavigateToContext}
         onLoaded={onChatLoaded}
         maxWidth={client === 'vscode' ? '5xl' : undefined}

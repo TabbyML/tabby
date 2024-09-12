@@ -2,7 +2,7 @@ import type { ChatMessage, Context } from 'tabby-chat-panel'
 import type { components } from 'tabby-openapi'
 
 import {
-  ContextKind,
+  ContextSourceKind,
   MessageAttachmentCode,
   MessageAttachmentDoc,
   MessageCodeSearchHit,
@@ -91,5 +91,5 @@ export type AttachmentDocItem = MessageAttachmentDoc & {
 export type MentionAttributes = {
   id: string
   label: string
-  kind: ContextKind
+  kind: ContextSourceKind
 }

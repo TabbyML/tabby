@@ -1187,7 +1187,7 @@ fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError
         validator::ValidationErrorsKind::Field(e) => {
             for error in e {
                 let mut obj = Object::with_capacity(2);
-                obj.add_field("path", Value::scalar(field.to_string()));
+                obj.add_field("path", Value::scalar(error.code.to_string()));
                 obj.add_field(
                     "message",
                     Value::scalar(error.message.clone().unwrap_or_default().to_string()),

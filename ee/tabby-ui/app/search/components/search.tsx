@@ -1374,7 +1374,7 @@ function getTitleFromMessages(sources: ContextSource[], content: string) {
     .replace(MARKDOWN_SOURCE_REGEX, value => {
       const sourceId = value.slice(9, -2)
       const source = sources.find(s => s.sourceId === sourceId)
-      return source?.displayName ?? ''
+      return source?.sourceName ?? ''
     })
     .trim()
 

@@ -1,10 +1,7 @@
 use std::sync::Arc;
 
-use juniper::ID;
 use tabby_schema::{
-    context::{
-        ContextInfo, ContextKind, ContextService, ContextSource, PUBLIC_WEB_INTERNAL_SOURCE_ID,
-    },
+    context::{ContextInfo, ContextService, ContextSourceValue, WebContextSource},
     policy::AccessPolicy,
     repository::RepositoryService,
     web_documents::WebDocumentService,
@@ -20,7 +17,7 @@ struct ContextServiceImpl {
 #[async_trait::async_trait]
 impl ContextService for ContextServiceImpl {
     async fn read(&self, policy: Option<&AccessPolicy>) -> Result<ContextInfo> {
-        let mut sources: Vec<_> = self
+        let mut sources: Vec<ContextSourceValue> = self
             .repository
             .repository_list(policy)
             .await?
@@ -45,19 +42,14 @@ impl ContextService for ContextServiceImpl {
         );
 
         if self.can_search_public_web {
-            sources.push(ContextSource {
-                id: ID::from(PUBLIC_WEB_INTERNAL_SOURCE_ID.to_owned()),
-                kind: ContextKind::Web,
-                source_id: PUBLIC_WEB_INTERNAL_SOURCE_ID.into(),
-                display_name: "Web".to_string(),
-            });
+            sources.push(WebContextSource.into());
         }
 
         if let Some(policy) = policy {
             // Keep only sources that the user has access to.
             let mut filtered_sources = vec![];
             for source in sources {
-                if policy.check_read_source(&source.source_id).await.is_ok() {
+                if policy.check_read_source(&source.source_id()).await.is_ok() {
                     filtered_sources.push(source);
                 }
             }

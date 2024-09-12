@@ -30,7 +30,7 @@ impl DbMaintainanceJob {
             .await?
             .sources
             .into_iter()
-            .map(|source| source.source_id)
+            .map(|x| x.source_id())
             .collect::<Vec<_>>();
 
         db.delete_unused_source_id_read_access_policy(&active_source_ids)
