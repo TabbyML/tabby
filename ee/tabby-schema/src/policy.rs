@@ -1,4 +1,3 @@
-use std::sync::Arc;
 
 use juniper::ID;
 use tabby_db::DbConn;
@@ -134,14 +133,14 @@ impl AccessPolicy {
         ));
 
         if !self
-            .is_user_group_admin(&user_group_id, &self.user_id)
+            .is_user_group_admin(user_group_id, &self.user_id)
             .await
         {
             return err;
         }
 
         // Cannot remove admin from group
-        if self.is_user_group_admin(&user_group_id, &user_id).await {
+        if self.is_user_group_admin(user_group_id, user_id).await {
             return err;
         }
 

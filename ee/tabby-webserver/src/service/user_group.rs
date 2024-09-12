@@ -1,7 +1,6 @@
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
-    policy::AccessPolicy,
     user_group::{
         CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupService,
     },

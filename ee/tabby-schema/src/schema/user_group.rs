@@ -4,7 +4,7 @@ use juniper::{GraphQLInputObject, GraphQLObject, ID};
 use validator::Validate;
 
 use super::{interface::UserValue, Context};
-use crate::{policy::AccessPolicy, Result};
+use crate::Result;
 
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
