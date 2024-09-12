@@ -690,11 +690,7 @@ type Query {
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
   customWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
   presetWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int, isActive: Boolean): PresetDocumentConnection!
-  """
-    List user groups.
-
-    When the requesting user is an admin, all user groups will be returned. Otherwise, they can only see groups they are a member of.
-  """
+  "List user groups."
   userGroups: [UserGroup!]!
   sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
 }

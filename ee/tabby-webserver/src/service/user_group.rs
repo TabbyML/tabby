@@ -1,7 +1,6 @@
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
-    policy::AccessPolicy,
     user_group::{
         CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupService,
     },
@@ -16,14 +15,9 @@ struct UserGroupServiceImpl {
 
 #[async_trait::async_trait]
 impl UserGroupService for UserGroupServiceImpl {
-    async fn list(&self, policy: &AccessPolicy) -> Result<Vec<UserGroup>> {
-        let user_id = policy
-            .list_user_group_user_id_filter()
-            .map(AsRowid::as_rowid)
-            .transpose()?;
-
+    async fn list(&self) -> Result<Vec<UserGroup>> {
         let mut user_groups = Vec::new();
-        for x in self.db.list_user_groups(user_id).await? {
+        for x in self.db.list_user_groups(None).await? {
             user_groups.push(UserGroup::new(self.db.clone(), x).await?);
         }
         Ok(user_groups)
@@ -80,10 +74,6 @@ mod tests {
         let user2 = testutils::create_user2(&db).await.as_id();
         let user3 = testutils::create_user3(&db).await.as_id();
 
-        let user1_policy = AccessPolicy::new(db.clone(), &user1, false);
-        let user2_policy = AccessPolicy::new(db.clone(), &user2, false);
-        let user3_policy = AccessPolicy::new(db.clone(), &user3, true);
-
         // Insert test user groups associated with the users
         let user_group1 = svc
             .create(&CreateUserGroupInput {
@@ -124,15 +114,15 @@ mod tests {
         .await
         .unwrap();
 
-        // Test listing user groups as user3 (global admin, returns all groups)
-        let result = svc.list(&user3_policy).await.unwrap();
+        // Test listing user groups as user3
+        let result = svc.list().await.unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].id, user_group1);
         assert_eq!(result[1].id, user_group2);
 
         // Test listing user groups as user1
-        let result = svc.list(&user1_policy).await.unwrap();
-        assert_eq!(result.len(), 1);
+        let result = svc.list().await.unwrap();
+        assert_eq!(result.len(), 2);
         assert_eq!(result[0].id, user_group1);
         assert_eq!(result[0].members.len(), 2);
         assert_matches!(&result[0].members[0].user, UserValue::UserSecured(user) => {
@@ -143,7 +133,7 @@ mod tests {
         });
 
         // Test listing user groups as user2
-        let result = svc.list(&user2_policy).await.unwrap();
+        let result = svc.list().await.unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].id, user_group1);
         assert_eq!(result[1].id, user_group2);

@@ -426,6 +426,8 @@ impl UserGroupExt for UserGroup {
             });
         }
 
+        members.sort_by_key(|x| (!x.is_group_admin, x.updated_at));
+
         Ok(UserGroup {
             id: val.id.as_id(),
             name: val.name,
