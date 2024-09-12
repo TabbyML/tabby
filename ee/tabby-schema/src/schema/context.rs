@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use juniper::{graphql_object, GraphQLEnum, GraphQLInterface, GraphQLObject};
+use juniper::{graphql_interface, graphql_object, GraphQLEnum, GraphQLInterface, GraphQLObject};
 use regex::{Captures, Regex};
 
 use super::{
-    repository::Repository,
+    repository::{GitRepository, ProvidedRepository, Repository},
     web_documents::{CustomWebDocument, PresetWebDocument},
     Context,
 };
@@ -21,13 +21,20 @@ pub enum ContextSourceKind {
     Web,
 }
 
-#[derive(GraphQLInterface)]
-#[graphql(context = Context, for = [CustomWebDocument, PresetWebDocument, Repository, WebContextSource])]
-pub struct ContextSource {
-    pub source_kind: ContextSourceKind,
-
+#[graphql_interface]
+#[graphql(context = Context, for = [ProvidedRepository, GitRepository, ContextSourceValue, CustomWebDocument, PresetWebDocument, Repository, WebContextSource])]
+pub trait ContextSourceId {
     /// Represents the source of the context, which is the value mapped to `source_id` in the index.
+    fn source_id(&self) -> String;
+}
+
+#[derive(GraphQLInterface)]
+#[graphql(context = Context, impl = [ContextSourceIdValue], for = [CustomWebDocument, PresetWebDocument, Repository, WebContextSource])]
+pub struct ContextSource {
+    // start implements ContextSource
     pub source_id: String,
+    // end   implements ContextSource
+    pub source_kind: ContextSourceKind,
 
     /// Display name of the source, used to provide a human-readable name for user selection, such as in a dropdown menu.
     pub source_name: String,
@@ -57,7 +64,7 @@ pub struct WebContextSource;
 
 const PUBLIC_WEB_INTERNAL_SOURCE_ID: &str = "internal-public-web";
 
-#[graphql_object(context = Context, impl = [ContextSourceValue])]
+#[graphql_object(context = Context, impl = [ContextSourceIdValue, ContextSourceValue])]
 impl WebContextSource {
     fn source_kind(&self) -> ContextSourceKind {
         ContextSourceKind::Web
