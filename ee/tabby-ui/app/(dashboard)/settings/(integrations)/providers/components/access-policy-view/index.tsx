@@ -1,4 +1,4 @@
-import { HTMLAttributes, useMemo, useState } from 'react'
+import { HTMLAttributes, useState } from 'react'
 import { CheckIcon } from '@radix-ui/react-icons'
 import { useQuery } from 'urql'
 
@@ -162,7 +162,7 @@ export function AccessPolicyView({
                         >
                           <div
                             className={cn(
-                              'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary cursor-pointer',
+                              'mr-2 flex h-4 w-4 cursor-pointer items-center justify-center rounded-sm border border-primary',
                               isSelected
                                 ? 'bg-primary text-primary-foreground'
                                 : 'opacity-50 [&_svg]:invisible'
@@ -172,7 +172,7 @@ export function AccessPolicyView({
                           </div>
                           <span>
                             {group.name}
-                            <span className="text-muted-foreground ml-1">{`(${memberLen} member${
+                            <span className="ml-1 text-muted-foreground">{`(${memberLen} member${
                               memberLen > 1 ? 's' : ''
                             })`}</span>
                           </span>
