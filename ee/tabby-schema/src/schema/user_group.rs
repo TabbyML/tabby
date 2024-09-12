@@ -54,10 +54,7 @@ pub struct UpsertUserGroupMembershipInput {
 #[async_trait]
 pub trait UserGroupService: Send + Sync {
     // List user groups.
-    //
-    // * When user is admin, returns all user groups.
-    // * Otherwise, returns user groups that the user is a member of.
-    async fn list(&self, policy: &AccessPolicy) -> Result<Vec<UserGroup>>;
+    async fn list(&self) -> Result<Vec<UserGroup>>;
 
     async fn create(&self, input: &CreateUserGroupInput) -> Result<ID>;
     async fn delete(&self, user_group_id: &ID) -> Result<()>;

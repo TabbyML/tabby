@@ -16,14 +16,9 @@ struct UserGroupServiceImpl {
 
 #[async_trait::async_trait]
 impl UserGroupService for UserGroupServiceImpl {
-    async fn list(&self, policy: &AccessPolicy) -> Result<Vec<UserGroup>> {
-        let user_id = policy
-            .list_user_group_user_id_filter()
-            .map(AsRowid::as_rowid)
-            .transpose()?;
-
+    async fn list(&self) -> Result<Vec<UserGroup>> {
         let mut user_groups = Vec::new();
-        for x in self.db.list_user_groups(user_id).await? {
+        for x in self.db.list_user_groups(None).await? {
             user_groups.push(UserGroup::new(self.db.clone(), x).await?);
         }
         Ok(user_groups)

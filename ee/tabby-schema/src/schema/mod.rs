@@ -631,11 +631,9 @@ impl Query {
     }
 
     /// List user groups.
-    ///
-    /// When the requesting user is an admin, all user groups will be returned. Otherwise, they can only see groups they are a member of.
     async fn user_groups(ctx: &Context) -> Result<Vec<UserGroup>> {
-        let user = check_user(ctx).await?;
-        ctx.locator.user_group().list(&user.policy).await
+        check_user(ctx).await?;
+        ctx.locator.user_group().list().await
     }
 
     async fn source_id_access_policies(
@@ -1085,7 +1083,7 @@ impl Mutation {
     ) -> Result<bool> {
         let user = check_user(ctx).await?;
         user.policy
-            .check_update_user_group_membership(&input.user_group_id)
+            .check_upsert_user_group_membership(&input)
             .await?;
 
         input.validate()?;
@@ -1100,10 +1098,9 @@ impl Mutation {
     ) -> Result<bool> {
         let user = check_user(ctx).await?;
         user.policy
-            .check_update_user_group_membership(&user_group_id)
+            .check_delete_user_group_membership(&user_group_id, &user_id)
             .await?;
 
-        check_admin(ctx).await?;
         ctx.locator
             .user_group()
             .delete_membership(&user_group_id, &user_id)
