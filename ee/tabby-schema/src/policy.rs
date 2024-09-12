@@ -1,4 +1,3 @@
-
 use juniper::ID;
 use tabby_db::DbConn;
 
@@ -132,10 +131,7 @@ impl AccessPolicy {
             "You are not allowed to modify group membership",
         ));
 
-        if !self
-            .is_user_group_admin(user_group_id, &self.user_id)
-            .await
-        {
+        if !self.is_user_group_admin(user_group_id, &self.user_id).await {
             return err;
         }
 
