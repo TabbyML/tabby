@@ -11,6 +11,9 @@ pub struct User {
     pub email: String,
     pub name: String,
     pub created_at: DateTime<Utc>,
+    pub is_admin: bool,
+    pub is_owner: bool,
+    pub active: bool,
 }
 
 impl relay::NodeType for UserValue {

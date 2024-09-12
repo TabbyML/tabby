@@ -249,6 +249,9 @@ interface User {
   email: String!
   name: String!
   createdAt: DateTime!
+  isAdmin: Boolean!
+  isOwner: Boolean!
+  active: Boolean!
 }
 
 """
@@ -635,8 +638,6 @@ type Query {
   me: UserSecured!
   "List users, accessible for all login users."
   users(after: String, before: String, first: Int, last: Int): UserConnection!
-  "List users, accessible for admin users."
-  securedUsers(after: String, before: String, first: Int, last: Int): UserSecuredConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
@@ -836,19 +837,9 @@ type UserSecured implements User {
   createdAt: DateTime!
   isAdmin: Boolean!
   isOwner: Boolean!
-  authToken: String!
   active: Boolean!
+  authToken: String!
   isPasswordSet: Boolean!
-}
-
-type UserSecuredConnection {
-  edges: [UserSecuredEdge!]!
-  pageInfo: PageInfo!
-}
-
-type UserSecuredEdge {
-  node: UserSecured!
-  cursor: String!
 }
 
 type WebContextSource implements ContextSource {

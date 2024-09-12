@@ -182,11 +182,12 @@ pub struct UserSecured {
     pub email: String,
     pub name: String,
     pub created_at: DateTime<Utc>,
-    // === end User ===
     pub is_admin: bool,
     pub is_owner: bool,
-    pub auth_token: String,
     pub active: bool,
+    // === end User ===
+
+    pub auth_token: String,
     pub is_password_set: bool,
 
     #[graphql(skip)]

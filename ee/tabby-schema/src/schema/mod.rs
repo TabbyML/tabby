@@ -223,30 +223,6 @@ impl Query {
         .await
     }
 
-    /// List users, accessible for admin users.
-    async fn secured_users(
-        ctx: &Context,
-        after: Option<String>,
-        before: Option<String>,
-        first: Option<i32>,
-        last: Option<i32>,
-    ) -> Result<Connection<UserSecured>> {
-        check_admin(ctx).await?;
-        relay::query_async(
-            after,
-            before,
-            first,
-            last,
-            |after, before, first, last| async move {
-                ctx.locator
-                    .auth()
-                    .list_users(after, before, first, last)
-                    .await
-            },
-        )
-        .await
-    }
-
     async fn invitations(
         ctx: &Context,
         after: Option<String>,
