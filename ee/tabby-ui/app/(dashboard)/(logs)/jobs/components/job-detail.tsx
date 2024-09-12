@@ -10,15 +10,12 @@ import { useQuery } from 'urql'
 import { listJobRuns } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import {
-  IconAlertTriangle,
   IconChevronLeft,
   IconClock,
   IconHistory,
   IconSpinner,
-  IconStopWatch,
-  IconTerminalSquare
+  IconStopWatch
 } from '@/components/ui/icons'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
 
 import { getJobDisplayName, getLabelByJobRun } from '../utils'
@@ -38,7 +35,7 @@ export default function JobRunDetail() {
   const stateLabel = getLabelByJobRun(currentNode)
   const isPending =
     (stateLabel === 'Pending' || stateLabel === 'Running') &&
-    !currentNode?.stdout;
+    !currentNode?.stdout
 
   React.useEffect(() => {
     let timer: number
@@ -117,10 +114,7 @@ export default function JobRunDetail() {
                 )}
               </div>
               <div className="flex flex-1 flex-col">
-                <StdoutView
-                  value={currentNode?.stdout}
-                  pending={isPending}
-                />
+                <StdoutView value={currentNode?.stdout} pending={isPending} />
               </div>
             </>
           )}
