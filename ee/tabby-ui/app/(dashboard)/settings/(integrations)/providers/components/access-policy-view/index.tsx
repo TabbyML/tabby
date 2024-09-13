@@ -148,15 +148,18 @@ export function AccessPolicyView({
       })
   }
 
+  let accessText =
+    policiesLen === 0
+      ? 'Everyone'
+      : `${policiesLen} ${policiesLen <= 1 ? 'group' : 'groups'}`
+
   return (
     <LoadingWrapper
       loading={fetching}
       fallback={<Skeleton className={cn(className)} />}
     >
       <div className={cn('flex items-center gap-2', className)}>
-        <span className="w-[60px]">{`${policiesLen} ${
-          policiesLen <= 1 ? 'group' : 'groups'
-        }`}</span>
+        <span className="w-[60px]">{accessText}</span>
         {editable && (
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>

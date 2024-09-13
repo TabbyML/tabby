@@ -274,7 +274,7 @@ export default function CustomDocument() {
                   </Link>
                 </div>
               </TableHead>
-              <TableHead className="w-[140px]">Access Granted</TableHead>
+              <TableHead className="w-[140px]">Access</TableHead>
               <TableHead className="w-[180px]">Job</TableHead>
               <TableHead className="w-[60px]"></TableHead>
             </TableRow>

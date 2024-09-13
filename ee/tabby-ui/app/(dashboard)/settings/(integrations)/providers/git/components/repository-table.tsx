@@ -135,7 +135,7 @@ export default function RepositoryTable() {
           <TableRow>
             <TableHead className="w-[25%]">Name</TableHead>
             <TableHead className="w-[45%]">Git URL</TableHead>
-            <TableHead className="w-[140px]">Access Granted</TableHead>
+            <TableHead className="w-[140px]">Access</TableHead>
             <TableHead className="w-[180px]">Job</TableHead>
             <TableHead className="w-[60px]"></TableHead>
           </TableRow>

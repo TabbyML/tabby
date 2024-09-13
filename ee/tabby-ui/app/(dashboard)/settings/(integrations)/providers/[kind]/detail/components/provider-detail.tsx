@@ -289,7 +289,7 @@ const ActiveRepoTable: React.FC<{
           <TableRow>
             <TableHead className="w-[25%]">Name</TableHead>
             <TableHead className="w-[35%]">URL</TableHead>
-            <TableHead className="w-[140px]">Access Granted</TableHead>
+            <TableHead className="w-[140px]">Access</TableHead>
             <TableHead className="w-[180px]">Job</TableHead>
             <TableHead className="w-[60px] text-right">
               <Dialog open={open} onOpenChange={setOpen}>
