@@ -143,7 +143,7 @@ export default function RepositoryTable() {
         <TableBody>
           {!currentPageRepos?.length && currentPage === 1 ? (
             <TableRow>
-              <TableCell colSpan={4} className="h-[100px] text-center">
+              <TableCell colSpan={5} className="h-[100px] text-center">
                 No Data
               </TableCell>
             </TableRow>
