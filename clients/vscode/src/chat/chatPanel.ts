@@ -1,18 +1,18 @@
 import { createThread, type ThreadOptions } from "@quilted/threads";
 import type { ServerApi, ClientApi } from "tabby-chat-panel";
-import { WebviewView, WebviewPanel } from "vscode";
+import { Webview } from "vscode";
 
 export function createThreadFromWebview<Self = Record<string, never>, Target = Record<string, never>>(
-  webview: WebviewView | WebviewPanel,
+  webview: Webview,
   options?: ThreadOptions<Self, Target>,
 ) {
   return createThread(
     {
       send(...args) {
-        webview.webview.postMessage({ data: args });
+        webview.postMessage({ data: args });
       },
       listen(listen, { signal }) {
-        const { dispose } = webview.webview.onDidReceiveMessage((data) => {
+        const { dispose } = webview.onDidReceiveMessage((data) => {
           listen(data);
         });
 
@@ -25,7 +25,7 @@ export function createThreadFromWebview<Self = Record<string, never>, Target = R
   );
 }
 
-export function createClient(webview: WebviewView | WebviewPanel, api: ClientApi): ServerApi {
+export function createClient(webview: Webview, api: ClientApi): ServerApi {
   return createThreadFromWebview(webview, {
     expose: {
       navigate: api.navigate,

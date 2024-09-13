@@ -115,7 +115,7 @@ export class ChatPanelViewProvider {
     };
     this.webviewHelper.setWebview(webviewView.webview);
 
-    this.client = createClient(webviewView, {
+    this.client = createClient(webviewView.webview, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
         if (opts?.openInEditor) {
           const document = await resolveDocument(this.logger, workspace.workspaceFolders, context.filepath);
