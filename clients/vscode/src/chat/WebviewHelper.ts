@@ -313,4 +313,13 @@ export class WebviewHelper {
       .filter((o) => o !== undefined)
       .join("-");
   }
+
+  public sendMessage(message: ChatMessage) {
+    if (!this.client) {
+      this.pendingMessages.push(message);
+    } else {
+      this.sendMessageToChatPanel(message);
+    }
+  }
+
 }

@@ -183,7 +183,7 @@ export class ChatPanelViewProvider {
         }
 
         // FIXME: maybe deduplicate on chatMessage.relevantContext
-        this.sendMessage(chatMessage);
+        this.webviewHelper.sendMessage(chatMessage);
       },
       onApplyInEditor: (content: string) => {
         const editor = window.activeTextEditor;
@@ -282,11 +282,7 @@ export class ChatPanelViewProvider {
   }
 
   public sendMessage(message: ChatMessage) {
-    if (!this.client) {
-      this.pendingMessages.push(message);
-    } else {
-      this.webviewHelper.sendMessageToChatPanel(message);
-    }
+    this.webviewHelper.sendMessage(message);
   }
 
   public addRelevantContext(context: Context) {
