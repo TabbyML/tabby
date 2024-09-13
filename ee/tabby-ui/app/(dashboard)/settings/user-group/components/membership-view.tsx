@@ -66,17 +66,16 @@ interface MembershipViewProps extends HTMLAttributes<HTMLDivElement> {
   userGroupId: string
   userGroupName: string
   members: UserGroupMembership[]
-  editable: boolean
 }
 
 export function MembershipView({
   className,
-  members: propsMembers,
-  editable
+  members: propsMembers
 }: MembershipViewProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
+  const { isServerAdmin, isGroupAdmin } = useContext(UserGroupItemContext)
   const [members, setMembers] = useState(propsMembers)
   const [emptyItemVisible, setEmptyItemVisible] = useState(false)
+  const editable = isServerAdmin || isGroupAdmin
 
   useEffect(() => {
     setMembers(propsMembers)
@@ -86,41 +85,39 @@ export function MembershipView({
     if (!emptyItemVisible) {
       setEmptyItemVisible(true)
     }
-
-    // const container = containerRef.current?.children?.[1] as HTMLDivElement
-    // if (container) {
-    //   setTimeout(() => {
-    //     container.scrollTo({
-    //       top: container.scrollHeight,
-    //       behavior: 'smooth'
-    //     })
-    //   }, 100)
-    // }
   }
 
   return (
-    <div className={cn('flex flex-col gap-2 border-b py-2', className)}>
-      <Table className="px-1">
-        <TableBody>
-          {members?.map(member => {
-            return (
+    <div className={cn('flex flex-col gap-2 border-b py-2 px-1', className)}>
+      {members.length || emptyItemVisible ? (
+        <Table className="table-fixed">
+          <TableBody>
+            {members.map(member => {
+              return (
+                <MembershipItem
+                  key={member.user.id}
+                  member={member}
+                  onRemoveEmptyItem={() => setEmptyItemVisible(false)}
+                />
+              )
+            })}
+            {emptyItemVisible && (
               <MembershipItem
-                key={member.user.id}
-                member={member}
                 onRemoveEmptyItem={() => setEmptyItemVisible(false)}
               />
-            )
-          })}
-          {emptyItemVisible && (
-            <MembershipItem
-              onRemoveEmptyItem={() => setEmptyItemVisible(false)}
-            />
-          )}
-        </TableBody>
-      </Table>
+            )}
+          </TableBody>
+        </Table>
+      ) : (
+        <div className="p-3 pl-4 text-muted-foreground">No members</div>
+      )}
       {editable && (
-        <div className="mb-2 ml-3 flex justify-start">
-          <Button variant="outline" onClick={handleAddMember}>
+        <div className="mb-2 ml-2 flex justify-start">
+          <Button
+            variant="outline"
+            disabled={emptyItemVisible}
+            onClick={handleAddMember}
+          >
             <IconPlus className="mr-2" />
             Add Member
           </Button>
@@ -132,7 +129,6 @@ export function MembershipView({
 
 interface MembershipItemProps {
   member?: UserGroupMembership
-  // onUpdate: () => void
   onRemoveEmptyItem: () => void
 }
 
@@ -242,6 +238,9 @@ function MembershipItem({ member, onRemoveEmptyItem }: MembershipItemProps) {
     onRemoveEmptyItem()
   }
 
+  const deletable =
+    isServerAdmin || (isGroupAdmin && (!member || !member.isGroupAdmin))
+
   return (
     <TableRow className="border-0 !bg-background pl-1">
       <TableCell>
@@ -262,8 +261,8 @@ function MembershipItem({ member, onRemoveEmptyItem }: MembershipItemProps) {
           </SelectContent>
         </Select>
       </TableCell>
-      <TableCell className="text-right">
-        {(isServerAdmin || isGroupAdmin) && (
+      <TableCell className="text-right w-[100px]">
+        {deletable && (
           <Button
             size="icon"
             variant="hover-destructive"

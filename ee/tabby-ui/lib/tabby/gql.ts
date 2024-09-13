@@ -237,14 +237,15 @@ const client = new Client({
                     if (group.id !== userGroupId) return group
                     let newMembers = [...group.members]
                     if (isInsert) {
+                      const now = new Date().toISOString()
                       newMembers.push({
                         user: {
                           ...user,
                           __typename: 'UserSecured'
                         },
                         isGroupAdmin,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
+                        createdAt: now,
+                        updatedAt: now,
                         __typename: 'UserGroupMembership'
                       })
                     } else {

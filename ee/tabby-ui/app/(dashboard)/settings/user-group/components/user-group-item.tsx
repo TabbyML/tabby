@@ -188,7 +188,6 @@ export function UserGroupItem({
             userGroupId={userGroup.id}
             userGroupName={userGroup.name}
             className={isLastItem ? 'border-b-0' : undefined}
-            editable={isServerAdmin || isGroupAdmin}
           />
         )}
       </div>
