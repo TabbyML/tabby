@@ -159,8 +159,9 @@ export function UserGroupItem({
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete this group</AlertDialogTitle>
                     <AlertDialogDescription>
-                      It will permanently delete
+                      Are you sure you want to delete user group
                       <span className="ml-1 font-bold">{`"${userGroup.name}"`}</span>
+                      ? This operation is not revertible.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
