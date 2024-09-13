@@ -158,8 +158,8 @@ export function AccessPolicyView({
       loading={fetching}
       fallback={<Skeleton className={cn(className)} />}
     >
-      <div className={cn('flex items-center gap-2', className)}>
-        <span className="w-[60px]">{accessText}</span>
+      <div className={cn('flex items-center gap-0.5', className)}>
+        <span className="w-[68px]">{accessText}</span>
         {editable && (
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
