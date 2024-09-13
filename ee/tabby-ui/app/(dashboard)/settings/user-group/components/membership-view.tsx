@@ -12,9 +12,7 @@ import { toast } from 'sonner'
 import { graphql } from '@/lib/gql/generates'
 import {
   UpsertUserGroupMembershipInput,
-  User,
-  UserGroupMembership,
-  UserGroupsQuery
+  User
 } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
@@ -48,6 +46,7 @@ import {
 } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 
+import { MemberShips, MemberShipUser } from './types'
 import { UserGroupItemContext } from './user-group-item'
 import { UserGroupContext } from './user-group-page'
 
@@ -66,7 +65,7 @@ const upsertUserGroupMembershipMutation = graphql(/* GraphQL */ `
 interface MembershipViewProps extends HTMLAttributes<HTMLDivElement> {
   userGroupId: string
   userGroupName: string
-  members: UserGroupMembership[]
+  members: MemberShips
 }
 
 export function MembershipView({
@@ -129,7 +128,7 @@ export function MembershipView({
 }
 
 interface MembershipItemProps {
-  member?: UserGroupMembership
+  member?: MemberShips[number]
   onRemoveEmptyItem: () => void
 }
 
@@ -188,7 +187,7 @@ function MembershipItem({ member, onRemoveEmptyItem }: MembershipItemProps) {
   const handleUpsertUserGroupMembership = (
     isInsert: boolean,
     input: UpsertUserGroupMembershipInput,
-    user: UserGroupsQuery['userGroups'][0]['members'][0]['user']
+    user: MemberShipUser
   ) => {
     const prevRole = role
 
@@ -281,7 +280,7 @@ function MemberSelect({
   membership,
   onChange
 }: {
-  membership?: UserGroupMembership
+  membership?: MemberShips[number]
   onChange: (userId: string, user: User) => void
 }) {
   const userId = membership?.user.id
@@ -375,7 +374,7 @@ function MemberSelect({
   )
 }
 
-function UserInfoView({ user }: { user: UserGroupMembership['user'] }) {
+function UserInfoView({ user }: { user: MemberShips[0]['user'] }) {
   const userName = user.name
   return (
     <div className="flex items-center gap-2">

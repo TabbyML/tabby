@@ -8,7 +8,7 @@ import {
 import { toast } from 'sonner'
 
 import { graphql } from '@/lib/gql/generates'
-import { UserGroup } from '@/lib/gql/generates/graphql'
+import { UserGroupsQuery } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import {
@@ -51,7 +51,7 @@ export const UserGroupItemContext = createContext<UserGroupItemContextValue>(
 )
 
 interface UserGroupItemProps extends HTMLAttributes<HTMLDivElement> {
-  userGroup: UserGroup
+  userGroup: UserGroupsQuery['userGroups'][0]
   onSuccess?: () => void
   isLastItem?: boolean
 }
