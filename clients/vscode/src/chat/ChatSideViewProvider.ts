@@ -297,7 +297,7 @@ export class ChatSideViewProvider implements WebviewViewProvider {
     if (serverInfo.config.token) {
       this.client?.cleanError();
 
-      const focusKeybinding = await this.getFocusKeybinding();
+      const focusKeybinding = await this.webviewHelper.getFocusKeybinding();
       getLogger().info("focus key binding: ", focusKeybinding);
 
       this.client?.init({
@@ -307,19 +307,6 @@ export class ChatSideViewProvider implements WebviewViewProvider {
         focusKey: focusKeybinding,
       });
     }
-  }
-
-  private async getFocusKeybinding(): Promise<FocusKeybinding | undefined> {
-    const focusCommand = "tabby.chatView.focus";
-    const defaultFocusKey = contributes.keybindings.find((cmd) => cmd.command === focusCommand);
-    const defaultKeybinding = defaultFocusKey
-      ? parseKeybinding(this.isMac && defaultFocusKey.mac ? defaultFocusKey.mac : defaultFocusKey.key)
-      : undefined;
-
-    const allKeybindings = await readUserKeybindingsConfig();
-    const userShortcut = allKeybindings?.find((keybinding) => keybinding.command === focusCommand);
-
-    return userShortcut ? parseKeybinding(userShortcut.key) : defaultKeybinding;
   }
 
   private displayDisconnectedPage() {

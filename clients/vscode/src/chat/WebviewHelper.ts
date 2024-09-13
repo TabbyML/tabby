@@ -21,12 +21,14 @@ import {
   WebviewPanel,
   Webview
 } from "vscode";
-import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
+import type { ServerApi, ChatMessage, Context, NavigateOpts, FocusKeybinding } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
 import type { ServerInfo } from "tabby-agent";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
 import { GitProvider } from "../git/GitProvider";
+import { contributes } from "../../package.json";
+import { parseKeybinding, readUserKeybindingsConfig } from "../util/KeybindingParser";
 
 export class WebviewHelper {
   webview?: Webview;
@@ -193,5 +195,18 @@ export class WebviewHelper {
         </html>
       `;
     }
+  }
+
+  public async getFocusKeybinding(): Promise<FocusKeybinding | undefined> {
+    const focusCommand = "tabby.chatView.focus";
+    const defaultFocusKey = contributes.keybindings.find((cmd) => cmd.command === focusCommand);
+    const defaultKeybinding = defaultFocusKey
+      ? parseKeybinding(this.isMac && defaultFocusKey.mac ? defaultFocusKey.mac : defaultFocusKey.key)
+      : undefined;
+
+    const allKeybindings = await readUserKeybindingsConfig();
+    const userShortcut = allKeybindings?.find((keybinding) => keybinding.command === focusCommand);
+
+    return userShortcut ? parseKeybinding(userShortcut.key) : defaultKeybinding;
   }
 }
