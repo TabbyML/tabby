@@ -238,7 +238,7 @@ export class ChatPanelViewProvider {
       const serverInfo = await this.agent.fetchServerInfo();
       this.webviewHelper.displayChatPage(serverInfo.config.endpoint);
     } else {
-      this.displayDisconnectedPage();
+      this.webviewHelper.displayDisconnectedPage();
     }
 
     this.agent.on("didChangeStatus", async (status) => {
@@ -247,7 +247,7 @@ export class ChatPanelViewProvider {
         this.webviewHelper.displayChatPage(serverInfo.config.endpoint);
         this.refreshChatPage();
       } else if (this.isChatPageDisplayed) {
-        this.displayDisconnectedPage();
+        this.webviewHelper.displayDisconnectedPage();
       }
     });
 
@@ -310,40 +310,7 @@ export class ChatPanelViewProvider {
       });
     }
   }
-
-  private displayDisconnectedPage() {
-    if (this.webview) {
-      this.isChatPageDisplayed = false;
-
-      const logoUri = this.webview?.webview.asWebviewUri(
-        Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"),
-      );
-      const styleUri = this.webview?.webview.asWebviewUri(
-        Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
-      );
-      this.webview.webview.html = `
-        <!DOCTYPE html>
-        <html lang="en">
-          <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <link href="${styleUri}" rel="stylesheet">
-          </head>
-          <body>
-            <main class='static-content'>
-              <div class='avatar'>
-                <img src="${logoUri}" />
-                <p>Tabby</p>
-              </div>
-              <h4 class='title'>Welcome to Tabby Chat!</h4>
-              <p>To start chatting, please set up your Tabby server. Ensure that your Tabby server is properly configured and connected.</p>
-            </main>
-          </body>
-        </html>
-      `;
-    }
-  }
-
+  
   public getWebview() {
     return this.webview;
   }
