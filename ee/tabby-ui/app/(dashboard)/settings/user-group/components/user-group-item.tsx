@@ -158,7 +158,7 @@ export function UserGroupItem({
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
-                      Are you absolutely sure?
+                      Delete this group
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                       It will permanently delete
