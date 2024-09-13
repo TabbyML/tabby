@@ -252,4 +252,12 @@ export class WebviewHelper {
     this.logger.info(`Sending message to chat panel: ${JSON.stringify(message)}`);
     this.client?.sendMessage(message);
   }
+
+  public addRelevantContext(context: Context) {
+    if (!this.client) {
+      this.pendingRelevantContexts.push(context);
+    } else {
+      this.client?.addRelevantContext(context);
+    }
+  }
 }

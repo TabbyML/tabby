@@ -325,11 +325,7 @@ export class ChatPanelViewProvider {
   }
 
   public addRelevantContext(context: Context) {
-    if (!this.client) {
-      this.pendingRelevantContexts.push(context);
-    } else {
-      this.client?.addRelevantContext(context);
-    }
+    this.webviewHelper.addRelevantContext(context);
   }
 
   private formatLineHashForCodeBrowser(
