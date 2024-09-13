@@ -16,8 +16,25 @@ The setup has been wrapped in to a tmuxinator config, before running it, make su
 #### 1. Start the development frontend server
 
 ```
-make dev
+cd tabby/ee/tabby-ui
+pnpm dev
 ```
 
-#### 2. Start hacking
+#### 2. Start the development backend server
+
+```
+cargo run serve --port 8081
+```
+
+#### 3.Start the caddy server
+
+```
+make caddy
+```
+
+#### 4. Start hacking
 Now, you can open `http://localhost:8080` to see the tabby webserver!
+
+---
+
+You might also run `make dev` directly to execute the commands above simultaneously.
