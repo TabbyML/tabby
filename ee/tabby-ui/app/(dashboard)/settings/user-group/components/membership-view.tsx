@@ -88,7 +88,7 @@ export function MembershipView({
   }
 
   return (
-    <div className={cn('flex flex-col gap-2 border-b py-2 px-1', className)}>
+    <div className={cn('flex flex-col gap-2 border-b px-1 py-2', className)}>
       {members.length || emptyItemVisible ? (
         <Table className="table-fixed">
           <TableBody>
@@ -261,7 +261,7 @@ function MembershipItem({ member, onRemoveEmptyItem }: MembershipItemProps) {
           </SelectContent>
         </Select>
       </TableCell>
-      <TableCell className="text-right w-[100px]">
+      <TableCell className="w-[100px] text-right">
         {deletable && (
           <Button
             size="icon"
