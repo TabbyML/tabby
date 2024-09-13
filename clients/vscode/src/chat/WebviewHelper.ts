@@ -322,4 +322,21 @@ export class WebviewHelper {
     }
   }
 
+  public addAgentEventListeners() {
+    this.agent.on("didChangeStatus", async (status) => {
+      if (status !== "disconnected") {
+        const serverInfo = await this.agent.fetchServerInfo();
+        this.displayChatPage(serverInfo.config.endpoint);
+        this.refreshChatPage();
+      } else if (this.isChatPageDisplayed) {
+        this.displayDisconnectedPage();
+      }
+    });
+
+    this.agent.on("didUpdateServerInfo", async () => {
+      const serverInfo = await this.agent.fetchServerInfo();
+      this.displayChatPage(serverInfo.config.endpoint, { force: true });
+      this.refreshChatPage();
+    });
+  }
 }

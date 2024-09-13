@@ -35,11 +35,6 @@ export class ChatPanelViewProvider {
   webview?: WebviewPanel;
   client?: ServerApi;
   private webviewHelper : WebviewHelper;
-  private pendingMessages: ChatMessage[] = [];
-  private pendingRelevantContexts: Context[] = [];
-  private isChatPageDisplayed = false;
-  // FIXME: this check is not compatible with the environment of a browser in macOS
-  private isMac: boolean = env.appHost === "desktop" && process.platform === "darwin";
 
   constructor(
     private readonly context: ExtensionContext,
@@ -242,21 +237,7 @@ export class ChatPanelViewProvider {
       this.webviewHelper.displayDisconnectedPage();
     }
 
-    this.agent.on("didChangeStatus", async (status) => {
-      if (status !== "disconnected") {
-        const serverInfo = await this.agent.fetchServerInfo();
-        this.webviewHelper.displayChatPage(serverInfo.config.endpoint);
-        this.webviewHelper.refreshChatPage();
-      } else if (this.isChatPageDisplayed) {
-        this.webviewHelper.displayDisconnectedPage();
-      }
-    });
-
-    this.agent.on("didUpdateServerInfo", async () => {
-      const serverInfo = await this.agent.fetchServerInfo();
-      this.webviewHelper.displayChatPage(serverInfo.config.endpoint, { force: true });
-      this.webviewHelper.refreshChatPage();
-    });
+    this.webviewHelper.addAgentEventListeners();
 
     // The event will not be triggered during the initial rendering.
     webviewView.onDidChangeViewState(() => {
