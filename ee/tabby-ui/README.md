@@ -1,6 +1,6 @@
 # Tabby UI
 
-## 🤝 Contribuing
+## 🤝 Contributing
 
 ### Local Setup
 Full guide at [CONTRIBUTING.md](https://github.com/TabbyML/tabby/blob/main/CONTRIBUTING.md#local-setup)
