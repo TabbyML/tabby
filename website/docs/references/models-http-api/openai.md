@@ -25,6 +25,6 @@ api_key = "secret-api-key"
 [model.embedding.http]
 kind = "openai/embedding"
 model_name = "text-embedding-3-small"
-api_endpoint = "https://api.openai.com"
+api_endpoint = "https://api.openai.com/v1"
 api_key = "secret-api-key"
 ```
