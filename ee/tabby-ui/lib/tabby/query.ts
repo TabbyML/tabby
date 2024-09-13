@@ -45,6 +45,7 @@ export const listRepositories = graphql(/* GraphQL */ `
           id
           name
           gitUrl
+          sourceId
           jobInfo {
             lastJobRun {
               id
@@ -239,6 +240,7 @@ export const listIntegratedRepositories = graphql(/* GraphQL */ `
           displayName
           gitUrl
           active
+          sourceId
           jobInfo {
             lastJobRun {
               id
@@ -322,6 +324,18 @@ export const userGroupsQuery = graphql(/* GraphQL */ `
         isGroupAdmin
         createdAt
         updatedAt
+      }
+    }
+  }
+`)
+
+export const listSourceIdAccessPolicies = graphql(/* GraphQL */ `
+  query sourceIdAccessPolicies($sourceId: String!) {
+    sourceIdAccessPolicies(sourceId: $sourceId) {
+      sourceId
+      read {
+        id
+        name
       }
     }
   }
