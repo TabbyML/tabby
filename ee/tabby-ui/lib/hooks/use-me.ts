@@ -9,6 +9,7 @@ const meQuery = graphql(/* GraphQL */ `
       authToken
       email
       isAdmin
+      isOwner
       isPasswordSet
       name
     }
