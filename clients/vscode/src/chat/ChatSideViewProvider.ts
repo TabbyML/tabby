@@ -18,7 +18,8 @@ import {
   commands,
   ColorThemeKind,
 } from "vscode";
-import type { ServerApi, ChatMessage, Context, NavigateOpts, FocusKeybinding } from "tabby-chat-panel";
+import type { ServerApi, ChatMessage, Context, NavigateOpts, FocusKeybinding } from "tabby-chat-panel";{}
+import { WebviewHelper } from "./WebviewHelper";
 import hashObject from "object-hash";
 import * as semver from "semver";
 import type { ServerInfo } from "tabby-agent";
@@ -28,9 +29,10 @@ import { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
 import { contributes } from "../../package.json";
 import { parseKeybinding, readUserKeybindingsConfig } from "../util/KeybindingParser";
-export class ChatViewProvider implements WebviewViewProvider {
+export class ChatSideViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
+  private webviewHelper : WebviewHelper;
   private pendingMessages: ChatMessage[] = [];
   private pendingRelevantContexts: Context[] = [];
   private isChatPageDisplayed = false;
@@ -42,7 +44,9 @@ export class ChatViewProvider implements WebviewViewProvider {
     private readonly agent: Agent,
     private readonly logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
-  ) {}
+  ) {
+    this.webviewHelper = new WebviewHelper(context, agent, logger, gitProvider);
+  }
 
   static getFileContextFromSelection({
     editor,
@@ -166,7 +170,7 @@ export class ChatViewProvider implements WebviewViewProvider {
           relevantContext: [],
         };
         if (editor) {
-          const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+          const fileContext = ChatSideViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
           if (fileContext)
             // active selection
             chatMessage.activeContext = fileContext;

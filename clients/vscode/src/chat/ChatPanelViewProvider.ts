@@ -20,6 +20,7 @@ import {
   WebviewPanel,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context, NavigateOpts, FocusKeybinding } from "tabby-chat-panel";
+import { WebviewHelper } from "./WebviewHelper";
 import hashObject from "object-hash";
 import * as semver from "semver";
 import type { ServerInfo } from "tabby-agent";
@@ -29,10 +30,11 @@ import { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
 import { contributes } from "../../package.json";
 import { parseKeybinding, readUserKeybindingsConfig } from "../util/KeybindingParser";
-// TODO(zhizhg): abstruct a base class with ChatViewProvider
+// TODO(zhizhg): abstruct a base class with ChatSideViewProvider
 export class ChatPanelViewProvider {
   webview?: WebviewPanel;
   client?: ServerApi;
+  private webviewHelper : WebviewHelper;
   private pendingMessages: ChatMessage[] = [];
   private pendingRelevantContexts: Context[] = [];
   private isChatPageDisplayed = false;
@@ -44,7 +46,9 @@ export class ChatPanelViewProvider {
     private readonly agent: Agent,
     private readonly logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
-  ) {}
+  ) {
+    this.webviewHelper = new WebviewHelper(context, agent, logger, gitProvider);
+  }
 
   static getFileContextFromSelection({
     editor,
