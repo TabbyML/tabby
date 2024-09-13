@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import moment from 'moment'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
@@ -8,6 +8,7 @@ import { useQuery } from 'urql'
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import type { ListUsersQuery } from '@/lib/gql/generates/graphql'
+import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { useMe } from '@/lib/hooks/use-me'
 import { QueryVariables, useMutation } from '@/lib/tabby/gql'
 import { listSecuredUsers } from '@/lib/tabby/query'
@@ -20,7 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { IconMore } from '@/components/ui/icons'
+import { IconCheck, IconMore, IconSpinner } from '@/components/ui/icons'
 import {
   Pagination,
   PaginationContent,
@@ -43,6 +44,12 @@ import { UpdateUserRoleDialog } from './user-role-dialog'
 const updateUserActiveMutation = graphql(/* GraphQL */ `
   mutation UpdateUserActive($id: ID!, $active: Boolean!) {
     updateUserActive(id: $id, active: $active)
+  }
+`)
+
+const generateResetPasswordUrlMutation = graphql(/* GraphQL */ `
+  mutation generateResetPasswordUrl($userId: ID!) {
+    generateResetPasswordUrl(userId: $userId)
   }
 `)
 
@@ -148,49 +155,11 @@ export default function UsersTable() {
                       </TableCell>
                       <TableCell className="text-end">
                         {showOperation && (
-                          <DropdownMenu modal={false}>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="icon" variant="ghost">
-                                <IconMore />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              collisionPadding={{ right: 16 }}
-                            >
-                              {!!x.node.active && (
-                                <DropdownMenuItem
-                                  onSelect={() => onUpdateUserRole(x.node)}
-                                  className="cursor-pointer"
-                                >
-                                  <span className="ml-2">
-                                    {x.node.isAdmin
-                                      ? 'Downgrade to member'
-                                      : 'Upgrade to admin'}
-                                  </span>
-                                </DropdownMenuItem>
-                              )}
-                              {!!x.node.active && (
-                                <DropdownMenuItem
-                                  onSelect={() =>
-                                    onUpdateUserActive(x.node, false)
-                                  }
-                                  className="cursor-pointer"
-                                >
-                                  <span className="ml-2">Deactivate</span>
-                                </DropdownMenuItem>
-                              )}
-                              {!x.node.active && (
-                                <DropdownMenuItem
-                                  onSelect={() =>
-                                    onUpdateUserActive(x.node, true)
-                                  }
-                                  className="cursor-pointer"
-                                >
-                                  <span className="ml-2">Activate</span>
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <OperationView
+                            user={x}
+                            onUpdateUserActive={onUpdateUserActive}
+                            onUpdateUserRole={onUpdateUserRole}
+                          />
                         )}
                       </TableCell>
                     </TableRow>
@@ -241,5 +210,114 @@ export default function UsersTable() {
         onOpenChange={setUpdateRoleVisible}
       />
     </>
+  )
+}
+
+function OperationView({
+  user,
+  onUpdateUserActive,
+  onUpdateUserRole
+}: {
+  user: ArrayElementType<ListUsersQuery['users']['edges']>
+  onUpdateUserActive: (node: UserNode, active: boolean) => void
+  onUpdateUserRole: (node: UserNode) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const onOpenChange = (open: boolean) => {
+    setOpen(open)
+  }
+  const { isCopied, copyToClipboard } = useCopyToClipboard({
+    timeout: 1000
+  })
+  const generateResetPasswordUrl = useMutation(generateResetPasswordUrlMutation)
+  const handleGenerateResetPassworkURL = () => {
+    if (submitting) return
+
+    setSubmitting(true)
+    generateResetPasswordUrl({ userId: user.node.id })
+      .then(res => {
+        const link = res?.data?.generateResetPasswordUrl
+        if (link) {
+          copyToClipboard(link)
+          toast('Password reset link copied to clipboard', {
+            classNames: {
+              title: 'text-sm font-semibold'
+            },
+            description: link,
+            descriptionClassName: 'underline',
+            action: {
+              label: 'Copy',
+              onClick: e => {
+                copyToClipboard(link)
+              }
+            }
+          })
+          setTimeout(() => {
+            setOpen(false)
+          }, 500)
+        } else {
+          toast.error(
+            res?.error?.message || 'Failed to generate password reset link'
+          )
+        }
+      })
+      .catch(error => {
+        toast.error(error?.message || 'Failed to generate password reset link')
+      })
+      .finally(() => {
+        setSubmitting(false)
+      })
+  }
+
+  return (
+    <DropdownMenu modal={false} open={open} onOpenChange={onOpenChange}>
+      <DropdownMenuTrigger asChild>
+        <Button size="icon" variant="ghost">
+          <IconMore />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent collisionPadding={{ right: 16 }}>
+        {!!user.node.active && (
+          <DropdownMenuItem
+            onSelect={() => onUpdateUserRole(user.node)}
+            className="cursor-pointer"
+          >
+            <span className="ml-2">
+              {user.node.isAdmin ? 'Downgrade to member' : 'Upgrade to admin'}
+            </span>
+          </DropdownMenuItem>
+        )}
+        {!!user.node.active && (
+          <DropdownMenuItem
+            onSelect={() => onUpdateUserActive(user.node, false)}
+            className="cursor-pointer"
+          >
+            <span className="ml-2">Deactivate</span>
+          </DropdownMenuItem>
+        )}
+        {!user.node.active && (
+          <DropdownMenuItem
+            onSelect={() => onUpdateUserActive(user.node, true)}
+            className="cursor-pointer"
+          >
+            <span className="ml-2">Activate</span>
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem
+          onSelect={e => {
+            e.preventDefault()
+            handleGenerateResetPassworkURL()
+          }}
+          className="cursor-pointer gap-1"
+        >
+          <span className="ml-2">Initate resetting password</span>
+          <div className="w-4 h-4">
+            {submitting && <IconSpinner />}
+            {isCopied && <IconCheck className="text-green-600" />}
+          </div>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
