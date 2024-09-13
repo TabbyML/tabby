@@ -294,7 +294,7 @@ export class ChatSideViewProvider implements WebviewViewProvider {
     }
 
     this.pendingRelevantContexts.forEach((ctx) => this.addRelevantContext(ctx));
-    this.pendingMessages.forEach((message) => this.sendMessageToChatPanel(message));
+    this.pendingMessages.forEach((message) => this.webviewHelper.sendMessageToChatPanel(message));
 
     if (serverInfo.config.token) {
       this.client?.cleanError();
@@ -319,7 +319,7 @@ export class ChatSideViewProvider implements WebviewViewProvider {
     if (!this.client) {
       this.pendingMessages.push(message);
     } else {
-      this.sendMessageToChatPanel(message);
+      this.webviewHelper.sendMessageToChatPanel(message);
     }
   }
 
@@ -329,11 +329,6 @@ export class ChatSideViewProvider implements WebviewViewProvider {
     } else {
       this.client?.addRelevantContext(context);
     }
-  }
-
-  private sendMessageToChatPanel(message: ChatMessage) {
-    this.logger.info(`Sending message to chat panel: ${JSON.stringify(message)}`);
-    this.client?.sendMessage(message);
   }
 
   private formatLineHashForCodeBrowser(

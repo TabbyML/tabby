@@ -27,6 +27,7 @@ import * as semver from "semver";
 import type { ServerInfo } from "tabby-agent";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
 import { GitProvider } from "../git/GitProvider";
+import { getLogger } from "../logger";
 import { contributes } from "../../package.json";
 import { parseKeybinding, readUserKeybindingsConfig } from "../util/KeybindingParser";
 
@@ -245,5 +246,10 @@ export class WebviewHelper {
         </html>
       `;
     }
+  }
+
+  public sendMessageToChatPanel(message: ChatMessage) {
+    this.logger.info(`Sending message to chat panel: ${JSON.stringify(message)}`);
+    this.client?.sendMessage(message);
   }
 }
