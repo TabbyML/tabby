@@ -18,7 +18,7 @@ api_key = "secret-api-key"
 [model.chat.http]
 kind = "openai/chat"
 model_name = "gpt-3.5-turbo"
-api_endpoint = "https://api.openai.com"
+api_endpoint = "https://api.openai.com/v1"
 api_key = "secret-api-key"
 
 # Embedding model
