@@ -312,7 +312,7 @@ function OperationView({
           className="cursor-pointer gap-1"
         >
           <span className="ml-2">Initate resetting password</span>
-          <div className="w-4 h-4">
+          <div className="h-4 w-4">
             {submitting && <IconSpinner />}
             {isCopied && <IconCheck className="text-green-600" />}
           </div>
