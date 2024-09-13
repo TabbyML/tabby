@@ -295,4 +295,22 @@ export class WebviewHelper {
       });
     }
   }
+
+  public formatLineHashForCodeBrowser(
+    range:
+      | {
+          start: number;
+          end?: number;
+        }
+      | undefined,
+  ): string {
+    if (!range) return "";
+    const { start, end } = range;
+    if (typeof start !== "number") return "";
+    if (start === end) return `L${start}`;
+    return [start, end]
+      .map((num) => (typeof num === "number" ? `L${num}` : undefined))
+      .filter((o) => o !== undefined)
+      .join("-");
+  }
 }
