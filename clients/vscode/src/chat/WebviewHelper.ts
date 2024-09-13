@@ -339,4 +339,16 @@ export class WebviewHelper {
       this.refreshChatPage();
     });
   }
+
+  public async displayPageBasedOnServerStatus() {
+    // At this point, if the server instance is not set up, agent.status is 'notInitialized'.
+    // We check for the presence of the server instance by verifying serverInfo.health["webserver"].
+    const serverInfo = await this.agent.fetchServerInfo();
+    if (serverInfo.health && serverInfo.health["webserver"]) {
+      const serverInfo = await this.agent.fetchServerInfo();
+      this.displayChatPage(serverInfo.config.endpoint);
+    } else {
+      this.displayDisconnectedPage();
+    }
+  }
 }

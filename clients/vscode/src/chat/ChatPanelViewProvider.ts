@@ -227,16 +227,7 @@ export class ChatPanelViewProvider {
     });
     this.webviewHelper.setClient(this.client);
 
-    // At this point, if the server instance is not set up, agent.status is 'notInitialized'.
-    // We check for the presence of the server instance by verifying serverInfo.health["webserver"].
-    const serverInfo = await this.agent.fetchServerInfo();
-    if (serverInfo.health && serverInfo.health["webserver"]) {
-      const serverInfo = await this.agent.fetchServerInfo();
-      this.webviewHelper.displayChatPage(serverInfo.config.endpoint);
-    } else {
-      this.webviewHelper.displayDisconnectedPage();
-    }
-
+    await this.webviewHelper.displayPageBasedOnServerStatus();
     this.webviewHelper.addAgentEventListeners();
 
     // The event will not be triggered during the initial rendering.
