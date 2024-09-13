@@ -160,7 +160,7 @@ export class ChatSideViewProvider implements WebviewViewProvider {
       },
       refresh: async () => {
         const serverInfo = await this.agent.fetchServerInfo();
-        await this.displayChatPage(serverInfo.config.endpoint, { force: true });
+        await this.webviewHelper.displayChatPage(serverInfo.config.endpoint, { force: true });
         return;
       },
       onSubmitMessage: async (msg: string, relevantContext?: Context[]) => {
@@ -233,7 +233,7 @@ export class ChatSideViewProvider implements WebviewViewProvider {
     const serverInfo = await this.agent.fetchServerInfo();
     if (serverInfo.health && serverInfo.health["webserver"]) {
       const serverInfo = await this.agent.fetchServerInfo();
-      this.displayChatPage(serverInfo.config.endpoint);
+      this.webviewHelper.displayChatPage(serverInfo.config.endpoint);
     } else {
       this.displayDisconnectedPage();
     }
@@ -241,7 +241,7 @@ export class ChatSideViewProvider implements WebviewViewProvider {
     this.agent.on("didChangeStatus", async (status) => {
       if (status !== "disconnected") {
         const serverInfo = await this.agent.fetchServerInfo();
-        this.displayChatPage(serverInfo.config.endpoint);
+        this.webviewHelper.displayChatPage(serverInfo.config.endpoint);
         this.refreshChatPage();
       } else if (this.isChatPageDisplayed) {
         this.displayDisconnectedPage();
@@ -250,7 +250,7 @@ export class ChatSideViewProvider implements WebviewViewProvider {
 
     this.agent.on("didUpdateServerInfo", async () => {
       const serverInfo = await this.agent.fetchServerInfo();
-      this.displayChatPage(serverInfo.config.endpoint, { force: true });
+      this.webviewHelper.displayChatPage(serverInfo.config.endpoint, { force: true });
       this.refreshChatPage();
     });
 
@@ -319,120 +319,6 @@ export class ChatSideViewProvider implements WebviewViewProvider {
     const userShortcut = allKeybindings?.find((keybinding) => keybinding.command === focusCommand);
 
     return userShortcut ? parseKeybinding(userShortcut.key) : defaultKeybinding;
-  }
-
-  private async displayChatPage(endpoint: string, opts?: { force: boolean }) {
-    if (!endpoint) return;
-    if (this.isChatPageDisplayed && !opts?.force) return;
-
-    if (this.webview) {
-      this.isChatPageDisplayed = true;
-      const styleUri = this.webview?.webview.asWebviewUri(
-        Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
-      );
-
-      const logoUri = this.webview?.webview.asWebviewUri(
-        Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"),
-      );
-
-      this.webview.webview.html = `
-        <!DOCTYPE html>
-        <html lang="en">
-          <!--hash: ${hashObject({ renderDate: new Date().toString() })}-->
-          <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <link href="${endpoint}" rel="preconnect">
-            <link href="${styleUri}" rel="stylesheet">
-        
-            <script defer>
-              const vscode = acquireVsCodeApi();
-
-              function getCssVariableValue(variableName) {
-                const root = document.documentElement;
-                return getComputedStyle(root).getPropertyValue(variableName).trim();
-              }
-
-              const syncTheme = () => {
-                const parentHtmlStyle = document.documentElement.getAttribute('style');
-                vscode.postMessage({
-                  action: "sync-theme",
-                  style: parentHtmlStyle
-                })
-              }
-
-              const observer = new MutationObserver(function(mutations) {
-                syncTheme();
-              });
-              
-              observer.observe(document.documentElement, { attributes : true, attributeFilter : ['style'] });
-
-              window.onload = function () {
-                const chatIframe = document.getElementById("chat");
-                const loadingOverlay = document.getElementById("loading-overlay");
-
-                if (chatIframe) {
-                  const fontSize = getCssVariableValue('--vscode-font-size');
-                  const foreground = getCssVariableValue('--vscode-editor-foreground');
-
-                  chatIframe.addEventListener('load', function() {
-                    setTimeout(() => {
-                      syncTheme()
-
-                      setTimeout(() => {
-                        loadingOverlay.style.display = 'none';
-                        chatIframe.style.display = 'block';
-                      }, 0)
-                    }, 300)
-                  });
-
-                  chatIframe.src=encodeURI("${endpoint}/chat?client=vscode")
-                }
-
-                window.onfocus = (e) => {
-                  if (chatIframe) {
-                    // Directly call the focus method on the iframe's content window won't work in a focus event callback.
-                    // Here we use a timeout to defer the focus call.
-                    setTimeout(() => {
-                      chatIframe.contentWindow.focus();
-                    }, 0)
-                  }
-                }
-                
-                window.addEventListener("message", (event) => {
-                  if (!chatIframe) return
-                  if (event.data) {
-                    if (event.data.action === 'sync-theme') {
-                      syncTheme();
-                      return;
-                    }
-
-                    if (event.data.data) {
-                      chatIframe.contentWindow.postMessage(event.data.data[0], "${endpoint}");
-                    } else {
-                      vscode.postMessage(event.data);
-                    }
-                  }
-                });
-              }
-            </script>
-          </head>
-          <body>
-            <main class='static-content' id='loading-overlay'>
-              <div class='avatar'>
-                <img src="${logoUri}" />
-                <p>Tabby</p>
-              </div>
-              <p>Just a moment while we get things ready...</p>
-              <span class='loader'></span>
-            </main>
-            <iframe
-              id="chat"
-              allow="clipboard-read; clipboard-write" />
-          </body>
-        </html>
-      `;
-    }
   }
 
   private displayDisconnectedPage() {
