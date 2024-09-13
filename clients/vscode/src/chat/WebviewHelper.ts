@@ -260,4 +260,39 @@ export class WebviewHelper {
       this.client?.addRelevantContext(context);
     }
   }
+
+  public async refreshChatPage() {
+    const agentStatus = this.agent.status;
+    const serverInfo = await this.agent.fetchServerInfo();
+
+    if (agentStatus === "unauthorized") {
+      return this.client?.showError({
+        content:
+          "Before you can start chatting, please take a moment to set up your credentials to connect to the Tabby server.",
+      });
+    }
+
+    const error = this.checkChatPanel(serverInfo);
+    if (error) {
+      this.client?.showError({ content: error });
+      return;
+    }
+
+    this.pendingRelevantContexts.forEach((ctx) => this.addRelevantContext(ctx));
+    this.pendingMessages.forEach((message) => this.sendMessageToChatPanel(message));
+
+    if (serverInfo.config.token) {
+      this.client?.cleanError();
+
+      const focusKeybinding = await this.getFocusKeybinding();
+      getLogger().info("focus key binding: ", focusKeybinding);
+
+      this.client?.init({
+        fetcherOptions: {
+          authorization: serverInfo.config.token,
+        },
+        focusKey: focusKeybinding,
+      });
+    }
+  }
 }

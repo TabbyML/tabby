@@ -215,7 +215,7 @@ export class ChatSideViewProvider implements WebviewViewProvider {
       },
       onLoaded: () => {
         setTimeout(() => {
-          this.refreshChatPage();
+          this.webviewHelper.refreshChatPage();
         }, 300);
       },
       onCopy: (content) => {
@@ -245,7 +245,7 @@ export class ChatSideViewProvider implements WebviewViewProvider {
       if (status !== "disconnected") {
         const serverInfo = await this.agent.fetchServerInfo();
         this.webviewHelper.displayChatPage(serverInfo.config.endpoint);
-        this.refreshChatPage();
+        this.webviewHelper.refreshChatPage();
       } else if (this.isChatPageDisplayed) {
         this.webviewHelper.displayDisconnectedPage();
       }
@@ -254,13 +254,13 @@ export class ChatSideViewProvider implements WebviewViewProvider {
     this.agent.on("didUpdateServerInfo", async () => {
       const serverInfo = await this.agent.fetchServerInfo();
       this.webviewHelper.displayChatPage(serverInfo.config.endpoint, { force: true });
-      this.refreshChatPage();
+      this.webviewHelper.refreshChatPage();
     });
 
     // The event will not be triggered during the initial rendering.
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
-        this.refreshChatPage();
+        this.webviewHelper.refreshChatPage();
       }
 
       commands.executeCommand("setContext", "tabby.chatViewVisible", webviewView.visible);
@@ -274,41 +274,6 @@ export class ChatSideViewProvider implements WebviewViewProvider {
         }
       }
     });
-  }
-
-  private async refreshChatPage() {
-    const agentStatus = this.agent.status;
-    const serverInfo = await this.agent.fetchServerInfo();
-
-    if (agentStatus === "unauthorized") {
-      return this.client?.showError({
-        content:
-          "Before you can start chatting, please take a moment to set up your credentials to connect to the Tabby server.",
-      });
-    }
-
-    const error = this.webviewHelper.checkChatPanel(serverInfo);
-    if (error) {
-      this.client?.showError({ content: error });
-      return;
-    }
-
-    this.pendingRelevantContexts.forEach((ctx) => this.addRelevantContext(ctx));
-    this.pendingMessages.forEach((message) => this.webviewHelper.sendMessageToChatPanel(message));
-
-    if (serverInfo.config.token) {
-      this.client?.cleanError();
-
-      const focusKeybinding = await this.webviewHelper.getFocusKeybinding();
-      getLogger().info("focus key binding: ", focusKeybinding);
-
-      this.client?.init({
-        fetcherOptions: {
-          authorization: serverInfo.config.token,
-        },
-        focusKey: focusKeybinding,
-      });
-    }
   }
 
   public getWebview() {
