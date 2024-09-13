@@ -13,7 +13,8 @@ import { graphql } from '@/lib/gql/generates'
 import {
   UpsertUserGroupMembershipInput,
   User,
-  UserGroupMembership
+  UserGroupMembership,
+  UserGroupsQuery
 } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
@@ -187,7 +188,7 @@ function MembershipItem({ member, onRemoveEmptyItem }: MembershipItemProps) {
   const handleUpsertUserGroupMembership = (
     isInsert: boolean,
     input: UpsertUserGroupMembershipInput,
-    user: User
+    user: UserGroupsQuery['userGroups'][0]['members'][0]['user']
   ) => {
     const prevRole = role
 
@@ -233,7 +234,7 @@ function MembershipItem({ member, onRemoveEmptyItem }: MembershipItemProps) {
         userGroupId,
         isGroupAdmin: role === '1'
       },
-      pick(user, 'createdAt', 'id', 'name', 'email')
+      pick(user, 'id', 'email', 'createdAt', 'name')
     )
     onRemoveEmptyItem()
   }
