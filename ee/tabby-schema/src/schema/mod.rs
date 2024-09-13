@@ -33,7 +33,6 @@ use juniper::{
     graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLObject, IntoFieldError,
     Object, RootNode, ScalarValue, Value, ID,
 };
-use notion_documents::NotionDocumentService;
 use repository::RepositoryGrepOutput;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
@@ -63,6 +62,7 @@ use self::{
     },
     user_event::{UserEvent, UserEventService},
     web_documents::{CreateCustomDocumentInput, CustomWebDocument, WebDocumentService},
+    notion_documents::NotionDocumentService,
 };
 use crate::{
     env,
@@ -652,7 +652,8 @@ impl Query {
 
         Ok(SourceIdAccessPolicy { source_id, read })
     }
-    
+
+    // list_notion_documents is a query that lists all the notion documents
     pub async fn list_notion_documents(
         ctx: &Context,
         ids: Option<Vec<ID>>,
@@ -677,6 +678,7 @@ impl Query {
     }
 
 }
+
 
 #[derive(GraphQLObject)]
 pub struct ServerInfo {
@@ -1159,13 +1161,16 @@ impl Mutation {
             .revoke_source_id_read_access(&source_id, &user_group_id)
             .await?;
         Ok(true)
-    
-    pub async fn create_notion_document(ctx: &Context, input: notion_documents::CreateNotionDocumentInput) -> Result<ID> {
+    }
+
+    // create_notion_document creates a new notion document integration task
+    async fn create_notion_document(ctx: &Context, input: notion_documents::CreateNotionDocumentInput) -> Result<ID> {
         input.validate()?;
         ctx.locator.notion().create_notion_document(input).await
     }
 
-    pub async fn delete_notion_document(ctx: &Context, id: ID) -> Result<bool> {
+    // delete_notion_document deletes a notion document integration task
+    async fn delete_notion_document(ctx: &Context, id: ID) -> Result<bool> {
         ctx.locator.notion().delete_notion_document(id).await
         
     }

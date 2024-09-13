@@ -3,11 +3,10 @@ use chrono::{DateTime, Utc};
 use juniper::{graphql_object, GraphQLInputObject, GraphQLObject, ID};
 use validator::{Validate,ValidationError};
 
-use crate::{job::JobInfo, Context, Result,CoreError};
+use crate::{job::JobInfo, Result,CoreError};
 use tabby_db::notion_documents:: NotionDocumentType;
 use crate::juniper::relay;
-
-use super::{Mutation, Query};
+use super::Context;
 
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]
@@ -87,3 +86,4 @@ pub trait NotionDocumentService: Send + Sync {
     async fn delete_notion_document(&self, id: ID) -> Result<bool>;
   
 }
+

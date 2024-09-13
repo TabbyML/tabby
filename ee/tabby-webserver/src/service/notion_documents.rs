@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::{DbConn};
 use tabby_schema::{
-    job::{JobInfo, JobService}, notion_documents::{self, CreateNotionDocumentInput, NotionDocument, NotionDocumentService},  AsID, AsRowid, CoreError, Result
+    job::{JobInfo, JobService}, notion_documents::{CreateNotionDocumentInput, NotionDocument, NotionDocumentService},  AsID, AsRowid, CoreError, Result
 };
 
 use super::{
@@ -125,3 +125,5 @@ impl NotionDocumentService for NotionServiceImpl {
     }
 }
     
+
+

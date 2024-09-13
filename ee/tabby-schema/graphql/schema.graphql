@@ -579,6 +579,12 @@ type Mutation {
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
   deleteCustomDocument(id: ID!): Boolean!
   setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
+  createUserGroup(input: CreateUserGroupInput!): ID!
+  deleteUserGroup(id: ID!): Boolean!
+  upsertUserGroupMembership(input: UpsertUserGroupMembershipInput!): Boolean!
+  deleteUserGroupMembership(userGroupId: ID!, userId: ID!): Boolean!
+  grantSourceIdReadAccess(sourceId: String!, userGroupId: ID!): Boolean!
+  revokeSourceIdReadAccess(sourceId: String!, userGroupId: ID!): Boolean!
   createNotionDocument(input: CreateNotionDocumentInput!): ID!
   deleteNotionDocument(id: ID!): Boolean!
 }
@@ -720,6 +726,9 @@ type Query {
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
   customWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
   presetWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int, isActive: Boolean): PresetDocumentConnection!
+  "List user groups."
+  userGroups: [UserGroup!]!
+  sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
   listNotionDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): NotionDocumentConnection!
 }
 

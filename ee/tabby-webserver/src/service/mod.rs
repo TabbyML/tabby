@@ -57,6 +57,7 @@ use tabby_schema::{
     web_documents::WebDocumentService,
     worker::WorkerService,
     AsID, AsRowid, CoreError, Result, ServiceLocator,
+    notion_documents::NotionDocumentService,
 };
 
 use self::{

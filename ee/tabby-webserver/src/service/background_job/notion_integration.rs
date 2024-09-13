@@ -4,6 +4,7 @@ use std::{sync::Arc, time::Duration};
 use anyhow::{Context};
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
+use tracing::debug;
 
 use tabby_db::notion_documents::NotionDocumentType;
 use tabby_index::public::{DocIndexer, WebDocument};

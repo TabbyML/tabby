@@ -8,6 +8,6 @@ CREATE TABLE notion_documents(
   access_token TEXT NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
-  CONSTRAINT idx_name UNIQUE(name),
-  CONSTRAINT idx_integration_id UNIQUE(integration_id)
+  CONSTRAINT notion_name UNIQUE(name),
+  CONSTRAINT notion_integration_id UNIQUE(integration_id)
 );
