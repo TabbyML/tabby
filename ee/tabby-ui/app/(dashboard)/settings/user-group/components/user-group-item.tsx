@@ -157,9 +157,7 @@ export function UserGroupItem({
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Delete this group
-                    </AlertDialogTitle>
+                    <AlertDialogTitle>Delete this group</AlertDialogTitle>
                     <AlertDialogDescription>
                       It will permanently delete
                       <span className="ml-1 font-bold">{`"${userGroup.name}"`}</span>
