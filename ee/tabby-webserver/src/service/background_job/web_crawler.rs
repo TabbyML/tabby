@@ -35,7 +35,7 @@ impl WebCrawlerJob {
         logkit::info!("Starting doc index pipeline for {}", self.url);
         let embedding = embedding.clone();
         let mut num_docs = 0;
-        let indexer = DocIndexer::new(embedding.clone());
+        let indexer: DocIndexer = DocIndexer::new(embedding.clone());
 
         let url_prefix = self.url_prefix.as_ref().unwrap_or(&self.url);
         let mut pipeline = Box::pin(crawl_pipeline(&self.url, url_prefix).await?);

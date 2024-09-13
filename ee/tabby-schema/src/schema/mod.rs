@@ -15,6 +15,7 @@ pub mod user_event;
 pub mod user_group;
 pub mod web_documents;
 pub mod worker;
+pub mod notion_documents;
 
 use std::sync::Arc;
 
@@ -32,6 +33,7 @@ use juniper::{
     graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLObject, IntoFieldError,
     Object, RootNode, ScalarValue, Value, ID,
 };
+use notion_documents::NotionDocumentService;
 use repository::RepositoryGrepOutput;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
@@ -86,6 +88,7 @@ pub trait ServiceLocator: Send + Sync {
     fn context(&self) -> Arc<dyn ContextService>;
     fn user_group(&self) -> Arc<dyn UserGroupService>;
     fn access_policy(&self) -> Arc<dyn AccessPolicyService>;
+    fn notion(&self) -> Arc<dyn NotionDocumentService>;
 }
 
 pub struct Context {
@@ -649,6 +652,30 @@ impl Query {
 
         Ok(SourceIdAccessPolicy { source_id, read })
     }
+    
+    pub async fn list_notion_documents(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<relay::Connection<notion_documents::NotionDocument>> {
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .notion()
+                    .list_notion_documents(ids, after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
+
 }
 
 #[derive(GraphQLObject)]
@@ -1132,6 +1159,15 @@ impl Mutation {
             .revoke_source_id_read_access(&source_id, &user_group_id)
             .await?;
         Ok(true)
+    
+    pub async fn create_notion_document(ctx: &Context, input: notion_documents::CreateNotionDocumentInput) -> Result<ID> {
+        input.validate()?;
+        ctx.locator.notion().create_notion_document(input).await
+    }
+
+    pub async fn delete_notion_document(ctx: &Context, id: ID) -> Result<bool> {
+        ctx.locator.notion().delete_notion_document(id).await
+        
     }
 }
 

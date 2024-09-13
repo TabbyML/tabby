@@ -4,6 +4,9 @@ mod helper;
 mod index_garbage_collection;
 mod third_party_integration;
 mod web_crawler;
+mod notion_integration;
+pub mod notion;
+
 
 use std::{str::FromStr, sync::Arc};
 
@@ -26,7 +29,7 @@ use tabby_schema::{
 use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::{debug, warn};
 pub use web_crawler::WebCrawlerJob;
-
+pub use notion_integration::NotionJob;
 use self::{db::DbMaintainanceJob, third_party_integration::SyncIntegrationJob};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -35,6 +38,7 @@ pub enum BackgroundJobEvent {
     SchedulerGithubGitlabRepository(ID),
     SyncThirdPartyRepositories(ID),
     WebCrawler(WebCrawlerJob),
+    NotionIntregration(NotionJob),
     IndexGarbageCollection,
 }
 
@@ -48,6 +52,7 @@ impl BackgroundJobEvent {
             BackgroundJobEvent::SyncThirdPartyRepositories(_) => SyncIntegrationJob::NAME,
             BackgroundJobEvent::WebCrawler(_) => WebCrawlerJob::NAME,
             BackgroundJobEvent::IndexGarbageCollection => IndexGarbageCollection::NAME,
+            BackgroundJobEvent::NotionIntregration(_) => NotionJob::NAME,
         }
     }
 
@@ -105,6 +110,9 @@ pub async fn start(
                             job.run(embedding.clone(), third_party_repository_service.clone(), integration_service.clone()).await
                         }
                         BackgroundJobEvent::WebCrawler(job) => {
+                            job.run(embedding.clone()).await
+                        }
+                        BackgroundJobEvent::NotionIntregration(job) => {
                             job.run(embedding.clone()).await
                         }
                         BackgroundJobEvent::IndexGarbageCollection => {

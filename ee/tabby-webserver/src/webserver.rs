@@ -14,6 +14,7 @@ use tabby_inference::{ChatCompletionStream, Embedding};
 use tabby_schema::{
     integration::IntegrationService, job::JobService, repository::RepositoryService,
     web_documents::WebDocumentService,
+    notion_documents::NotionDocumentService,
 };
 use tracing::debug;
 
@@ -22,7 +23,7 @@ use crate::{
     routes,
     service::{
         create_service_locator, event_logger::create_event_logger, integration, job, repository,
-        web_documents,
+        web_documents, notion_documents,
     },
 };
 
@@ -33,6 +34,7 @@ pub struct Webserver {
     integration: Arc<dyn IntegrationService>,
     job: Arc<dyn JobService>,
     web_documents: Arc<dyn WebDocumentService>,
+    notion: Arc<dyn NotionDocumentService>,
     embedding: Arc<dyn Embedding>,
 }
 
@@ -71,6 +73,7 @@ impl Webserver {
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
 
         let web_documents = Arc::new(web_documents::create(db.clone(), job.clone()));
+        let notion = Arc::new(notion_documents::create(db.clone(), job.clone()));
 
         Arc::new(Webserver {
             db: db.clone(),
@@ -79,6 +82,7 @@ impl Webserver {
             integration: integration.clone(),
             job: job.clone(),
             web_documents,
+            notion, 
             embedding,
         })
     }
@@ -132,6 +136,7 @@ impl Webserver {
             answer.clone(),
             context.clone(),
             self.web_documents.clone(),
+            self.notion.clone(),
             self.db.clone(),
             self.embedding.clone(),
             is_chat_enabled,
