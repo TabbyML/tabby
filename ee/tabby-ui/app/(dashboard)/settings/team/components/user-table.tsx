@@ -244,6 +244,7 @@ function OperationView({
             classNames: {
               title: 'text-sm font-semibold'
             },
+            duration: 10000,
             description: link,
             descriptionClassName: 'underline',
             action: {
