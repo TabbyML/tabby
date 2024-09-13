@@ -7,7 +7,7 @@ import { useQuery } from 'urql'
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
-import { listRepositories } from '@/lib/tabby/query'
+import { listRepositories, userGroupsQuery } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
 import { IconTrash } from '@/components/ui/icons'
 import {
@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/table'
 import LoadingWrapper from '@/components/loading-wrapper'
 
+import { AccessPolicyView } from '../../components/access-policy-view'
 import { JobInfoView } from '../../components/job-trigger'
 import { triggerJobRunMutation } from '../../query'
 
@@ -40,10 +41,13 @@ const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
 export default function RepositoryTable() {
   const [before, setBefore] = React.useState<string | undefined>()
-
   const [{ data, fetching }, reexecuteQuery] = useQuery({
     query: listRepositories,
     variables: { last: PAGE_SIZE, before }
+  })
+
+  const [{ data: userGroupData, fetching: fetchingUserGroups }] = useQuery({
+    query: userGroupsQuery
   })
 
   const [currentPage, setCurrentPage] = React.useState(1)
@@ -131,8 +135,9 @@ export default function RepositoryTable() {
           <TableRow>
             <TableHead className="w-[25%]">Name</TableHead>
             <TableHead className="w-[45%]">Git URL</TableHead>
-            <TableHead>Job</TableHead>
-            <TableHead className="w-[100px]"></TableHead>
+            <TableHead className="w-[140px]">Access Granted</TableHead>
+            <TableHead className="w-[180px]">Job</TableHead>
+            <TableHead className="w-[60px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -158,6 +163,15 @@ export default function RepositoryTable() {
                       title={x.node.gitUrl}
                     >
                       {x.node.gitUrl}
+                    </TableCell>
+                    <TableCell className="break-all lg:break-words">
+                      <AccessPolicyView
+                        sourceId={x.node.sourceId}
+                        sourceName={x.node.name}
+                        fetchingUserGroups={fetchingUserGroups}
+                        userGroups={userGroupData?.userGroups}
+                        editable
+                      />
                     </TableCell>
                     <TableCell>
                       <JobInfoView

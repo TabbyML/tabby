@@ -289,8 +289,8 @@ const ActiveRepoTable: React.FC<{
           <TableRow>
             <TableHead className="w-[25%]">Name</TableHead>
             <TableHead className="w-[35%]">URL</TableHead>
-            <TableHead className="w-[180px]">Job</TableHead>
             <TableHead className="w-[140px]">Access Granted</TableHead>
+            <TableHead className="w-[180px]">Job</TableHead>
             <TableHead className="w-[60px] text-right">
               <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="top-[20vh]">
@@ -354,21 +354,21 @@ const ActiveRepoTable: React.FC<{
                     <TableCell className="break-all lg:break-words">
                       {x.node.gitUrl}
                     </TableCell>
+                    <TableCell className="break-all lg:break-words">
+                      <AccessPolicyView
+                        sourceId={x.node.sourceId}
+                        sourceName={x.node.displayName}
+                        editable
+                        fetchingUserGroups={fetchingUserGroups}
+                        userGroups={userGroupData?.userGroups}
+                      />
+                    </TableCell>
                     <TableCell>
                       <JobInfoView
                         jobInfo={x.node.jobInfo}
                         onTrigger={() =>
                           handleTriggerJobRun(x.node.jobInfo.command)
                         }
-                      />
-                    </TableCell>
-                    <TableCell className="break-all lg:break-words">
-                      <AccessPolicyView
-                        sourceId={x.node.id}
-                        sourceName={x.node.displayName}
-                        editable
-                        fetchingUserGroups={fetchingUserGroups}
-                        userGroups={userGroupData?.userGroups}
                       />
                     </TableCell>
                     <TableCell className="text-right">

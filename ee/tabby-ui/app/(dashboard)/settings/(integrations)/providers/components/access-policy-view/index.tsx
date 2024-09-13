@@ -1,5 +1,6 @@
-import { HTMLAttributes, useState } from 'react'
+import { HTMLAttributes, useMemo, useState } from 'react'
 import { CheckIcon } from '@radix-ui/react-icons'
+import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -40,8 +41,6 @@ const revokeSourceIdReadAccessMutation = graphql(/* GraphQL */ `
 interface AccessPolicyViewProps extends HTMLAttributes<HTMLDivElement> {
   sourceId: string
   sourceName: string
-  // onDelete: () => void
-  // onGrant: () => void
   editable: boolean
   userGroups: UserGroupsQuery['userGroups'] | undefined
   fetchingUserGroups: boolean
@@ -57,7 +56,7 @@ export function AccessPolicyView({
   ...rest
 }: AccessPolicyViewProps) {
   const [open, setOpen] = useState(false)
-  const [{ data, fetching, error }, reexecuteQuery] = useQuery({
+  const [{ data, fetching }] = useQuery({
     query: listSourceIdAccessPolicies,
     variables: {
       sourceId
@@ -70,53 +69,83 @@ export function AccessPolicyView({
   const sourceIdAccessPolicies = data?.sourceIdAccessPolicies?.read
   const policiesLen = sourceIdAccessPolicies?.length || 0
 
-  const [selectedIdSet, setSelectedIdSet] = useState<Set<string>>(new Set())
+  const selectedIdSet = useMemo(() => {
+    if (!sourceIdAccessPolicies?.length) {
+      return new Set()
+    }
 
-  // todo optimistic update
-  // const selectedIdSet = useMemo(() => {
-  //   if (!sourceIdAccessPolicies?.length) {
-  //     return new Set()
-  //   }
+    return new Set(sourceIdAccessPolicies.map(policy => policy.id))
+  }, [sourceIdAccessPolicies])
 
-  //   return new Set(sourceIdAccessPolicies.map(policy => policy.id))
-  // }, [sourceIdAccessPolicies])
-
-  // FIXME demo code
   const handleSelectGroup = (
     userGroupId: string,
     userGroupName: string,
     grant: boolean
   ) => {
-    // FIXME sourceId && error handling
-    // if (grant) {
-    //   grantSourceIdReadAccess({
-    //     sourceId,
-    //     userGroupId
-    //   }, {
-    //     extraParams: {
-    //       userGroupName
-    //     }
-    //   })
-    // } else {
-    //   revokeSourceIdReadAccess({
-    //     sourceId,
-    //     userGroupId
-    //   }, {
-    //     extraParams: {
-    //       userGroupName
-    //     }
-    //   })
-    // }
+    if (grant) {
+      onGrantSourceIdReadAccess(userGroupId, userGroupName)
+    } else {
+      onRevokeSourceIdReadAccess(userGroupId, userGroupName)
+    }
+  }
 
-    setSelectedIdSet(prev => {
-      const nextSet = new Set(prev)
-      if (grant) {
-        nextSet.add(userGroupId)
-      } else {
-        nextSet.delete(userGroupId)
+  const onGrantSourceIdReadAccess = (
+    userGroupId: string,
+    userGroupName: string
+  ) => {
+    const defaultErrorMessage = `Failed to grant ${userGroupName}`
+    return grantSourceIdReadAccess(
+      {
+        sourceId,
+        userGroupId
+      },
+      {
+        extraParams: {
+          userGroupName
+        }
       }
-      return nextSet
-    })
+    )
+      .then(res => {
+        if (!res?.data?.grantSourceIdReadAccess) {
+          const errorMessage = res?.error?.message || defaultErrorMessage
+          toast.error(errorMessage)
+          return
+        }
+      })
+      .catch(error => {
+        const errorMessage = error?.message || defaultErrorMessage
+        toast.error(errorMessage)
+      })
+  }
+
+  const onRevokeSourceIdReadAccess = (
+    userGroupId: string,
+    userGroupName: string
+  ) => {
+    return revokeSourceIdReadAccess(
+      {
+        sourceId,
+        userGroupId
+      },
+      {
+        extraParams: {
+          userGroupName
+        }
+      }
+    )
+      .then(res => {
+        if (!res?.data?.revokeSourceIdReadAccess) {
+          const errorMessage =
+            res?.error?.message || `Failed to revoke '${userGroupName}'`
+          toast.error(errorMessage)
+          return
+        }
+      })
+      .catch(error => {
+        const errorMessage =
+          error?.message || `Failed to revoke '${userGroupName}'`
+        toast.error(errorMessage)
+      })
   }
 
   return (
@@ -125,7 +154,9 @@ export function AccessPolicyView({
       fallback={<Skeleton className={cn(className)} />}
     >
       <div className={cn('flex items-center gap-2', className)}>
-        <span>{`${policiesLen} ${policiesLen <= 1 ? 'group' : 'groups'}`}</span>
+        <span className="w-[60px]">{`${policiesLen} ${
+          policiesLen <= 1 ? 'group' : 'groups'
+        }`}</span>
         {editable && (
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>

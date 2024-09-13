@@ -298,9 +298,14 @@ const client = new Client({
             info
           ) {
             if (result.grantSourceIdReadAccess) {
+              const { sourceId } = args
               cache
                 .inspectFields('Query')
-                .filter(field => field.fieldName === 'sourceIdAccessPolicies')
+                .filter(
+                  field =>
+                    field.fieldName === 'sourceIdAccessPolicies' &&
+                    field.arguments?.sourceId === sourceId
+                )
                 .forEach(field => {
                   cache.updateQuery(
                     {
@@ -327,7 +332,44 @@ const client = new Client({
                 })
             }
           },
-          revokeSourceIdReadAccess(result, args, cache, info) {}
+          revokeSourceIdReadAccess(
+            result,
+            args: { sourceId: string; userGroupId: string },
+            cache,
+            info
+          ) {
+            if (result.revokeSourceIdReadAccess) {
+              const { userGroupId, sourceId } = args
+              cache
+                .inspectFields('Query')
+                .filter(
+                  field =>
+                    field.fieldName === 'sourceIdAccessPolicies' &&
+                    field.arguments?.sourceId === sourceId
+                )
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listSourceIdAccessPolicies,
+                      variables:
+                        field.arguments as SourceIdAccessPoliciesQueryVariables
+                    },
+                    data => {
+                      if (
+                        data?.sourceIdAccessPolicies?.sourceId === sourceId &&
+                        data?.sourceIdAccessPolicies?.read
+                      ) {
+                        data.sourceIdAccessPolicies.read =
+                          data.sourceIdAccessPolicies.read.filter(
+                            o => o.id !== userGroupId
+                          )
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          }
         }
       },
       optimistic: {
