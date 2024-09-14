@@ -764,6 +764,7 @@ export function Search() {
                                 fetchingContextInfo={fetchingContextInfo}
                                 className="text-xl prose-p:mb-2 prose-p:mt-0"
                                 headline
+                                canWrapLongLines
                               />
                             </div>
                           </div>
@@ -1135,6 +1136,7 @@ function AnswerBlock({
           onCodeCitationMouseLeave={onCodeCitationMouseLeave}
           contextInfo={contextInfo}
           fetchingContextInfo={fetchingContextInfo}
+          canWrapLongLines={isLoading}
         />
         {answer.error && <ErrorMessageBlock error={answer.error} />}
 

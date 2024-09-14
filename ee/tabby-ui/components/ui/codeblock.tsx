@@ -3,7 +3,7 @@
 
 'use client'
 
-import { FC, memo } from 'react'
+import { FC, memo, useContext, useState } from 'react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { coldarkDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 
@@ -16,11 +16,14 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 
-interface Props {
+import { Switch } from './switch'
+
+export interface CodeBlockProps {
   language: string
   value: string
   onCopyContent?: (value: string) => void
   onApplyInEditor?: (value: string) => void
+  canWrapLongLines?: boolean
 }
 
 interface languageMap {
@@ -63,8 +66,9 @@ export const generateRandomString = (length: number, lowercase = false) => {
   return lowercase ? result.toLowerCase() : result
 }
 
-const CodeBlock: FC<Props> = memo(
-  ({ language, value, onCopyContent, onApplyInEditor }) => {
+const CodeBlock: FC<CodeBlockProps> = memo(
+  ({ language, value, onCopyContent, onApplyInEditor, canWrapLongLines }) => {
+    const [wrapLongLines, setWrapLongLines] = useState(false)
     const { isCopied, copyToClipboard } = useCopyToClipboard({
       timeout: 2000,
       onCopyContent
@@ -117,6 +121,21 @@ const CodeBlock: FC<Props> = memo(
                 <p className="m-0">Copy</p>
               </TooltipContent>
             </Tooltip>
+            {canWrapLongLines && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Switch
+                    checked={wrapLongLines}
+                    onCheckedChange={setWrapLongLines}
+                    className="h-4 w-7 bg-zinc-600 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+                    thumbClassName="h-3 w-3 data-[state=checked]:translate-x-3 bg-white"
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="m-0">Wrap long lines</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </div>
         <SyntaxHighlighter
@@ -124,6 +143,7 @@ const CodeBlock: FC<Props> = memo(
           style={coldarkDark}
           PreTag="div"
           showLineNumbers
+          wrapLongLines={wrapLongLines}
           customStyle={{
             margin: 0,
             width: '100%',

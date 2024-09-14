@@ -153,7 +153,7 @@ function UserMessageCard(props: { message: UserMessage }) {
 
       <div className="group relative flex w-full justify-between gap-x-2">
         <div className="flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
-          <MessageMarkdown message={message.message} />
+          <MessageMarkdown message={message.message} canWrapLongLines />
           <div className="hidden md:block">
             <UserMessageCardActions {...props} />
           </div>
@@ -368,6 +368,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               onCodeCitationClick={onCodeCitationClick}
               onCodeCitationMouseEnter={onCodeCitationMouseEnter}
               onCodeCitationMouseLeave={onCodeCitationMouseLeave}
+              canWrapLongLines={!isLoading}
             />
             {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>
