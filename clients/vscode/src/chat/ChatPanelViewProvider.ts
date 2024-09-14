@@ -87,23 +87,6 @@ export class ChatPanelViewProvider {
     };
   }
 
-  static getFileContextFromEditor({ editor, gitProvider }: { editor: TextEditor; gitProvider: GitProvider }): Context {
-    const content = editor.document.getText();
-    const lineCount = editor.document.lineCount;
-    const uri = editor.document.uri;
-    const { filepath, git_url } = resolveFilePathAndGitUrl(uri, gitProvider);
-    return {
-      kind: "file",
-      content,
-      range: {
-        start: 1,
-        end: lineCount,
-      },
-      filepath,
-      git_url,
-    };
-  }
-
   // The method is called when the chat panel first opened
   public async resolveWebviewView(webviewView: WebviewPanel) {
     this.webview = webviewView;
