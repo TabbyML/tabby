@@ -315,7 +315,7 @@ function OperationView({
             onSelect={() => setOpen(true)}
             className="cursor-pointer gap-1"
           >
-            <span className="ml-2">reset password</span>
+            <span className="ml-2">Reset password</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -324,11 +324,12 @@ function OperationView({
           <AlertDialogHeader>
             <AlertDialogTitle>Reset password</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to create a password reset link for{' '}
+              By clicking "Yes", a password reset link will be generated for{' '}
               <span className="font-bold">
                 {user.node.name || user.node.email}
               </span>
-              ?
+              . The password won't be modified until the user follows the
+              instructions in the link to make the change.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
