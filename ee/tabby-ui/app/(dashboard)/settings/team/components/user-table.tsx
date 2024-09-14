@@ -1,6 +1,6 @@
 'use client'
 
-import React, { MouseEventHandler, useState } from 'react'
+import React, { MouseEventHandler, useEffect, useState } from 'react'
 import moment from 'moment'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
@@ -239,7 +239,7 @@ function OperationView({
     if (submitting) return
     setOpen(open)
   }
-  const { isCopied, copyToClipboard } = useCopyToClipboard({
+  const { copyToClipboard, isCopied } = useCopyToClipboard({
     timeout: 1000
   })
   const generateResetPasswordUrl = useMutation(generateResetPasswordUrlMutation)
@@ -255,7 +255,6 @@ function OperationView({
         const link = res?.data?.generateResetPasswordUrl
         if (link) {
           copyToClipboard(link)
-          toast.success('Password reset link copied to clipboard')
           setOpen(false)
         } else {
           toast.error(
@@ -270,6 +269,12 @@ function OperationView({
         setSubmitting(false)
       })
   }
+
+  useEffect(() => {
+    if (isCopied) {
+      toast.success('Password reset link copied to clipboard')
+    }
+  }, [isCopied])
 
   return (
     <>
