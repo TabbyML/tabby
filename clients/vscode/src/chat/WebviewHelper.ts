@@ -19,6 +19,7 @@ import {
   commands,
   ColorThemeKind,
   WebviewPanel,
+  Webview
 } from "vscode";
 import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -28,7 +29,7 @@ import type { AgentFeature as Agent } from "../lsp/AgentFeature";
 import { GitProvider } from "../git/GitProvider";
 
 export class WebviewHelper {
-  webview?: WebviewView | WebviewPanel;
+  webview?: Webview;
   client?: ServerApi;
   private pendingMessages: ChatMessage[] = [];
   private pendingRelevantContexts: Context[] = [];
@@ -42,6 +43,10 @@ export class WebviewHelper {
     private readonly logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
   ) {}
+
+  public setWebview(webview: Webview) {
+    this.webview = webview;
+  }
 
   // Check if server is healthy and has the chat model enabled.
   //
@@ -82,15 +87,15 @@ export class WebviewHelper {
 
     if (this.webview) {
       this.isChatPageDisplayed = true;
-      const styleUri = this.webview?.webview.asWebviewUri(
+      const styleUri = this.webview.asWebviewUri(
         Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
       );
 
-      const logoUri = this.webview?.webview.asWebviewUri(
+      const logoUri = this.webview.asWebviewUri(
         Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"),
       );
 
-      this.webview.webview.html = `
+      this.webview.html = `
         <!DOCTYPE html>
         <html lang="en">
           <!--hash: ${hashObject({ renderDate: new Date().toString() })}-->

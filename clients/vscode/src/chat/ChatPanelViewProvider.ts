@@ -118,6 +118,7 @@ export class ChatPanelViewProvider {
       enableScripts: true,
       localResourceRoots: [extensionUri],
     };
+    this.webviewHelper.setWebview(webviewView.webview);
 
     this.client = createClient(webviewView, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
