@@ -87,6 +87,23 @@ const CodeBlock: FC<CodeBlockProps> = memo(
         <div className="flex w-full items-center justify-between bg-zinc-800 px-6 py-2 pr-4 text-zinc-100">
           <span className="text-xs lowercase">{language}</span>
           <div className="flex items-center space-x-1">
+            {canWrapLongLines && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <Switch
+                      checked={wrapLongLines}
+                      onCheckedChange={setWrapLongLines}
+                      className="h-4 w-7  data-[state=checked]:bg-zinc-700 data-[state=unchecked]:bg-zinc-500"
+                      thumbClassName="h-3 w-3 data-[state=checked]:translate-x-3 bg-white"
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="m-0">Wrap long lines</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
             {onApplyInEditor && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -121,21 +138,6 @@ const CodeBlock: FC<CodeBlockProps> = memo(
                 <p className="m-0">Copy</p>
               </TooltipContent>
             </Tooltip>
-            {canWrapLongLines && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Switch
-                    checked={wrapLongLines}
-                    onCheckedChange={setWrapLongLines}
-                    className="h-4 w-7 bg-zinc-600 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                    thumbClassName="h-3 w-3 data-[state=checked]:translate-x-3 bg-white"
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="m-0">Wrap long lines</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
           </div>
         </div>
         <SyntaxHighlighter
