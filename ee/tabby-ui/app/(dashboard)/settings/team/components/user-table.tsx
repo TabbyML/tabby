@@ -322,7 +322,7 @@ function OperationView({
       <AlertDialog open={open} onOpenChange={onOpenChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Initiate resetting password</AlertDialogTitle>
+            <AlertDialogTitle>Reset password</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to create a password reset link for{' '}
               <span className="font-bold">
