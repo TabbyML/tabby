@@ -324,11 +324,12 @@ function OperationView({
           <AlertDialogHeader>
             <AlertDialogTitle>Reset password</AlertDialogTitle>
             <AlertDialogDescription>
-              By clicking "Yes", a password reset link will be generated for{' '}
+              By clicking {'"'}Yes{'"'}, a password reset link will be generated
+              for{' '}
               <span className="font-bold">
                 {user.node.name || user.node.email}
               </span>
-              . The password won't be modified until the user follows the
+              . The password won&apos;t be modified until the user follows the
               instructions in the link to make the change.
             </AlertDialogDescription>
           </AlertDialogHeader>
