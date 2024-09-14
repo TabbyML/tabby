@@ -13,6 +13,7 @@ import { useMe } from '@/lib/hooks/use-me'
 import { QueryVariables, useMutation } from '@/lib/tabby/gql'
 import { listSecuredUsers } from '@/lib/tabby/query'
 import type { ArrayElementType } from '@/lib/types'
+import { cn } from '@/lib/utils'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,8 +22,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
+  AlertDialogTitle
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -32,7 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { IconCheck, IconMore, IconSpinner } from '@/components/ui/icons'
+import { IconMore, IconSpinner } from '@/components/ui/icons'
 import {
   Pagination,
   PaginationContent,
@@ -51,7 +51,6 @@ import {
 import LoadingWrapper from '@/components/loading-wrapper'
 
 import { UpdateUserRoleDialog } from './user-role-dialog'
-import { cn } from '@/lib/utils'
 
 const updateUserActiveMutation = graphql(/* GraphQL */ `
   mutation UpdateUserActive($id: ID!, $active: Boolean!) {
@@ -102,7 +101,7 @@ export default function UsersTable() {
       if (response?.error || !response?.data?.updateUserActive) {
         toast.error(
           response?.error?.message ||
-          `${active ? 'activate' : 'deactivate'} failed`
+            `${active ? 'activate' : 'deactivate'} failed`
         )
         return
       }
@@ -244,7 +243,9 @@ function OperationView({
     timeout: 1000
   })
   const generateResetPasswordUrl = useMutation(generateResetPasswordUrlMutation)
-  const handleGenerateResetPassworkURL: MouseEventHandler<HTMLButtonElement> = (e) => {
+  const handleGenerateResetPassworkURL: MouseEventHandler<
+    HTMLButtonElement
+  > = e => {
     e.preventDefault()
     if (submitting) return
 
@@ -328,10 +329,7 @@ function OperationView({
           <AlertDialogFooter>
             <AlertDialogCancel disabled={submitting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className={cn(
-                buttonVariants(),
-                'gap-1'
-              )}
+              className={cn(buttonVariants(), 'gap-1')}
               disabled={submitting}
               onClick={handleGenerateResetPassworkURL}
             >
