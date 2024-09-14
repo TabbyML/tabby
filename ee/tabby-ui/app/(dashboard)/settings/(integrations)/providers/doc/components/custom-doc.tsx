@@ -284,7 +284,7 @@ export default function CustomDocument() {
               <TableRow className="hover:bg-background">
                 <TableCell colSpan={4} className="h-[100px] text-center">
                   {!list?.length ? (
-                    <div className="flex flex-col items-center gap-4 my-4">
+                    <div className="my-4 flex flex-col items-center gap-4">
                       No data
                       <Link href={`./doc/new`} className={buttonVariants()}>
                         <IconPlus />

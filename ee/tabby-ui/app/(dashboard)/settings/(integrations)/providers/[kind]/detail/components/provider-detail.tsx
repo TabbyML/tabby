@@ -31,8 +31,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger
+  DialogTitle
 } from '@/components/ui/dialog'
 import {
   IconChevronLeft,
@@ -378,7 +377,7 @@ const ActiveRepoTable: React.FC<{
                   colSpan={5}
                   className="h-[100px] text-center hover:bg-background"
                 >
-                  <div className="flex flex-col items-center gap-4 mt-4">
+                  <div className="mt-4 flex flex-col items-center gap-4">
                     <span>No repositories</span>
                     <Button onClick={e => setOpen(true)} className="gap-1">
                       <IconPlus />
