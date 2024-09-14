@@ -214,13 +214,13 @@ export class WebviewHelper {
     if (this.webview) {
       this.isChatPageDisplayed = false;
 
-      const logoUri = this.webview?.webview.asWebviewUri(
+      const logoUri = this.webview.asWebviewUri(
         Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"),
       );
-      const styleUri = this.webview?.webview.asWebviewUri(
+      const styleUri = this.webview.asWebviewUri(
         Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
       );
-      this.webview.webview.html = `
+      this.webview.html = `
         <!DOCTYPE html>
         <html lang="en">
           <head>
