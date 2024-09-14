@@ -58,7 +58,7 @@ export default function UserGroups() {
       }}
     >
       <CardHeader className="px-0 pt-0">
-        <CardTitle className="flex justify-between items-start min-h-[2rem]">
+        <CardTitle className="flex min-h-[2rem] items-start justify-between">
           User Groups
           {meData?.me.isAdmin && (
             <CreateUserGroupDialog onSubmit={onCreateUserGroup}>
