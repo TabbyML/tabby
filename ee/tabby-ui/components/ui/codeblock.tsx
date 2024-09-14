@@ -94,7 +94,7 @@ const CodeBlock: FC<CodeBlockProps> = memo(
                     <Switch
                       checked={wrapLongLines}
                       onCheckedChange={setWrapLongLines}
-                      className="h-4 w-7  data-[state=checked]:bg-zinc-700 data-[state=unchecked]:bg-zinc-500"
+                      className="h-4 w-7  data-[state=checked]:bg-[#51462f] data-[state=unchecked]:bg-zinc-600"
                       thumbClassName="h-3 w-3 data-[state=checked]:translate-x-3 bg-white"
                     />
                   </div>
