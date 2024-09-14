@@ -50,6 +50,10 @@ export class WebviewHelper {
     this.webview = webview;
   }
 
+  public setClient(client: ServerApi) {
+    this.client = client;
+  }
+
   // Check if server is healthy and has the chat model enabled.
   //
   // Returns undefined if it's working, otherwise returns a message to display.

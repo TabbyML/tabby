@@ -230,6 +230,7 @@ export class ChatPanelViewProvider {
         }
       },
     });
+    this.webviewHelper.setClient(this.client);
 
     // At this point, if the server instance is not set up, agent.status is 'notInitialized'.
     // We check for the presence of the server instance by verifying serverInfo.health["webserver"].

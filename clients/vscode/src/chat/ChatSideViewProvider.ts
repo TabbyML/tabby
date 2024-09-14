@@ -29,6 +29,7 @@ import { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
 import { contributes } from "../../package.json";
 import { parseKeybinding, readUserKeybindingsConfig } from "../util/KeybindingParser";
+import { throws } from "assert";
 export class ChatSideViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
@@ -228,6 +229,7 @@ export class ChatSideViewProvider implements WebviewViewProvider {
         }
       },
     });
+    this.webviewHelper.setClient(this.client);
 
     // At this point, if the server instance is not set up, agent.status is 'notInitialized'.
     // We check for the presence of the server instance by verifying serverInfo.health["webserver"].
