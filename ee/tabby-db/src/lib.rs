@@ -148,11 +148,38 @@ impl DbConn {
 
     pub async fn new(db_file: &Path) -> Result<Self> {
         tokio::fs::create_dir_all(db_file.parent().unwrap()).await?;
+        Self::backup_db(db_file).await?;
+
         let options = SqliteConnectOptions::new()
             .filename(db_file)
             .create_if_missing(true);
         let pool = SqlitePool::connect_with(options).await?;
         Self::init_db(pool).await
+    }
+
+    /// Backup existing database file before opening it.
+    /// backup format:
+    /// for prod - db.backup-${date}.sqlite
+    /// for non-prod - dev-db.backup-${date}.sqlite
+    async fn backup_db(db_file: &Path) -> Result<()> {
+        if !tokio::fs::try_exists(db_file).await? {
+            return Ok(());
+        }
+        let Some(db_file_name) = db_file.file_name() else {
+            return Err(anyhow!("failed to backup db, missing db file name"));
+        };
+        let db_file_name = db_file_name.to_string_lossy();
+        if !db_file_name.ends_with(".sqlite") {
+            return Err(anyhow!("failed to backup db, expect .sqlite extension"));
+        }
+
+        let today = Utc::now().date_naive().format("%Y%m%d").to_string();
+        let backup_file = db_file.with_file_name(
+            db_file_name.replace(".sqlite", format!(".backup-{}.sqlite", today).as_str())
+        );
+
+        tokio::fs::copy(db_file, &backup_file).await?;
+        Ok(())
     }
 
     /// Initialize database, create tables and insert first token if not exist
