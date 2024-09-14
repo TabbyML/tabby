@@ -92,12 +92,8 @@ const menus: Menu[] = [
         href: '/settings/general'
       },
       {
-        title: 'Members',
-        href: '/settings/team'
-      },
-      {
-        title: 'User Groups',
-        href: '/settings/user-group',
+        title: 'Members & Groups',
+        href: '/settings/team',
         allowUser: true
       },
       {
