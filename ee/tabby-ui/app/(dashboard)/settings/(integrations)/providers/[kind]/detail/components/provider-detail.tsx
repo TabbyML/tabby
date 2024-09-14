@@ -294,9 +294,9 @@ const ActiveRepoTable: React.FC<{
               <TableHead className="w-[180px]">Job</TableHead>
               <TableHead className="w-[60px] text-right">
                 <Button
-                  variant='outline'
+                  variant="outline"
                   size="icon"
-                  className='shadow-none'
+                  className="shadow-none"
                   onClick={e => setOpen(true)}
                 >
                   <IconPlus />
@@ -374,16 +374,14 @@ const ActiveRepoTable: React.FC<{
               </>
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="h-[100px] text-center hover:bg-background">
-                  <div className='flex flex-col items-center gap-4 mt-4'>
-                    <span>
-                      No repositories
-                    </span>
-                    <Button
-                      onClick={e => setOpen(true)}
-                      className='gap-1'
-                    >
-                      <IconPlus /> 
+                <TableCell
+                  colSpan={5}
+                  className="h-[100px] text-center hover:bg-background"
+                >
+                  <div className="flex flex-col items-center gap-4 mt-4">
+                    <span>No repositories</span>
+                    <Button onClick={e => setOpen(true)} className="gap-1">
+                      <IconPlus />
                       Add
                     </Button>
                   </div>

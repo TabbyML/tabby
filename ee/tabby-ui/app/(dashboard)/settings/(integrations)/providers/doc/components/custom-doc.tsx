@@ -215,7 +215,7 @@ export default function CustomDocument() {
 
   return (
     <>
-      <LoadingWrapper loading={fetching || stale}>
+      <LoadingWrapper loading={fetching}>
         <Table className="min-w-[300px] table-fixed border-b">
           <TableHeader>
             <TableRow>
@@ -281,9 +281,19 @@ export default function CustomDocument() {
           </TableHeader>
           <TableBody>
             {!currentList?.length && !fetching ? (
-              <TableRow>
+              <TableRow className="hover:bg-background">
                 <TableCell colSpan={4} className="h-[100px] text-center">
-                  {!list?.length ? 'No data' : 'No matches data'}
+                  {!list?.length ? (
+                    <div className="flex flex-col items-center gap-4 my-4">
+                      No data
+                      <Link href={`./doc/new`} className={buttonVariants()}>
+                        <IconPlus />
+                        Add
+                      </Link>
+                    </div>
+                  ) : (
+                    'No matches data'
+                  )}
                 </TableCell>
               </TableRow>
             ) : (
