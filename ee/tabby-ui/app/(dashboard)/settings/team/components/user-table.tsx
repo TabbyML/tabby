@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { MouseEventHandler, useState } from 'react'
 import moment from 'moment'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
@@ -13,8 +13,19 @@ import { useMe } from '@/lib/hooks/use-me'
 import { QueryVariables, useMutation } from '@/lib/tabby/gql'
 import { listSecuredUsers } from '@/lib/tabby/query'
 import type { ArrayElementType } from '@/lib/types'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +51,7 @@ import {
 import LoadingWrapper from '@/components/loading-wrapper'
 
 import { UpdateUserRoleDialog } from './user-role-dialog'
+import { cn } from '@/lib/utils'
 
 const updateUserActiveMutation = graphql(/* GraphQL */ `
   mutation UpdateUserActive($id: ID!, $active: Boolean!) {
@@ -90,7 +102,7 @@ export default function UsersTable() {
       if (response?.error || !response?.data?.updateUserActive) {
         toast.error(
           response?.error?.message ||
-            `${active ? 'activate' : 'deactivate'} failed`
+          `${active ? 'activate' : 'deactivate'} failed`
         )
         return
       }
@@ -225,13 +237,15 @@ function OperationView({
   const [open, setOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const onOpenChange = (open: boolean) => {
+    if (submitting) return
     setOpen(open)
   }
   const { isCopied, copyToClipboard } = useCopyToClipboard({
     timeout: 1000
   })
   const generateResetPasswordUrl = useMutation(generateResetPasswordUrlMutation)
-  const handleGenerateResetPassworkURL = () => {
+  const handleGenerateResetPassworkURL: MouseEventHandler<HTMLButtonElement> = (e) => {
+    e.preventDefault()
     if (submitting) return
 
     setSubmitting(true)
@@ -240,23 +254,8 @@ function OperationView({
         const link = res?.data?.generateResetPasswordUrl
         if (link) {
           copyToClipboard(link)
-          toast('Password reset link copied to clipboard', {
-            classNames: {
-              title: 'text-sm font-semibold'
-            },
-            duration: 10000,
-            description: link,
-            descriptionClassName: 'underline',
-            action: {
-              label: 'Copy',
-              onClick: e => {
-                copyToClipboard(link)
-              }
-            }
-          })
-          setTimeout(() => {
-            setOpen(false)
-          }, 500)
+          toast.success('Password reset link copied to clipboard')
+          setOpen(false)
         } else {
           toast.error(
             res?.error?.message || 'Failed to generate password reset link'
@@ -272,53 +271,76 @@ function OperationView({
   }
 
   return (
-    <DropdownMenu modal={false} open={open} onOpenChange={onOpenChange}>
-      <DropdownMenuTrigger asChild>
-        <Button size="icon" variant="ghost">
-          <IconMore />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent collisionPadding={{ right: 16 }}>
-        {!!user.node.active && (
+    <>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button size="icon" variant="ghost">
+            <IconMore />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent collisionPadding={{ right: 16 }}>
+          {!!user.node.active && (
+            <DropdownMenuItem
+              onSelect={() => onUpdateUserRole(user.node)}
+              className="cursor-pointer"
+            >
+              <span className="ml-2">
+                {user.node.isAdmin ? 'Downgrade to member' : 'Upgrade to admin'}
+              </span>
+            </DropdownMenuItem>
+          )}
+          {!!user.node.active && (
+            <DropdownMenuItem
+              onSelect={() => onUpdateUserActive(user.node, false)}
+              className="cursor-pointer"
+            >
+              <span className="ml-2">Deactivate</span>
+            </DropdownMenuItem>
+          )}
+          {!user.node.active && (
+            <DropdownMenuItem
+              onSelect={() => onUpdateUserActive(user.node, true)}
+              className="cursor-pointer"
+            >
+              <span className="ml-2">Activate</span>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
-            onSelect={() => onUpdateUserRole(user.node)}
-            className="cursor-pointer"
+            onSelect={() => setOpen(true)}
+            className="cursor-pointer gap-1"
           >
-            <span className="ml-2">
-              {user.node.isAdmin ? 'Downgrade to member' : 'Upgrade to admin'}
-            </span>
+            <span className="ml-2">Initate resetting password</span>
           </DropdownMenuItem>
-        )}
-        {!!user.node.active && (
-          <DropdownMenuItem
-            onSelect={() => onUpdateUserActive(user.node, false)}
-            className="cursor-pointer"
-          >
-            <span className="ml-2">Deactivate</span>
-          </DropdownMenuItem>
-        )}
-        {!user.node.active && (
-          <DropdownMenuItem
-            onSelect={() => onUpdateUserActive(user.node, true)}
-            className="cursor-pointer"
-          >
-            <span className="ml-2">Activate</span>
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem
-          onSelect={e => {
-            e.preventDefault()
-            handleGenerateResetPassworkURL()
-          }}
-          className="cursor-pointer gap-1"
-        >
-          <span className="ml-2">Initate resetting password</span>
-          <div className="h-4 w-4">
-            {submitting && <IconSpinner />}
-            {isCopied && <IconCheck className="text-green-600" />}
-          </div>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <AlertDialog open={open} onOpenChange={onOpenChange}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Initiate resetting password</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to create a password reset link for{' '}
+              <span className="font-bold">
+                {user.node.name || user.node.email}
+              </span>
+              ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={submitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={cn(
+                buttonVariants(),
+                'gap-1'
+              )}
+              disabled={submitting}
+              onClick={handleGenerateResetPassworkURL}
+            >
+              {submitting && <IconSpinner />}
+              Yes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }
