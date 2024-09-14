@@ -315,7 +315,7 @@ function OperationView({
             onSelect={() => setOpen(true)}
             className="cursor-pointer gap-1"
           >
-            <span className="ml-2">Initate resetting password</span>
+            <span className="ml-2">reset password</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
