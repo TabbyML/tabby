@@ -11,6 +11,9 @@ import {
   ProgressLocation,
   ThemeIcon,
   QuickPickItem,
+  CodeActionKind,
+  CodeAction,
+  Range,
 } from "vscode";
 import os from "os";
 import path from "path";
@@ -25,6 +28,8 @@ import CommandPalette from "./CommandPalette";
 import { showOutputPanel } from "./logger";
 import { Issues } from "./Issues";
 import { InlineEditController } from "./inline-edit";
+import { getLogger } from "./logger";
+
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -218,8 +223,16 @@ export class Commands {
     "inlineCompletion.trigger": () => {
       commands.executeCommand("editor.action.inlineSuggest.trigger");
     },
-    "inlineCompletion.accept": () => {
-      commands.executeCommand("editor.action.inlineSuggest.commit");
+    "inlineCompletion.accept": async () => {
+      const editor = window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+      const uri = editor.document.uri;
+      const range = new Range(editor.selection.start.line, 0, editor.selection.end.line + 1, 0);
+      await commands.executeCommand("editor.action.inlineSuggest.commit");
+      await applyQuickFixes(uri, range)
+
     },
     "inlineCompletion.acceptNextWord": () => {
       this.inlineCompletionProvider.handleEvent("accept_word");
@@ -312,12 +325,10 @@ export class Commands {
       }
       const location = {
         uri: editor.document.uri.toString(),
-        range: {
-          start: { line: editor.selection.start.line, character: 0 },
-          end: { line: editor.selection.end.line + 1, character: 0 },
-        },
+        range: new Range(editor.selection.start.line, 0, editor.selection.end.line + 1, 0),
       };
       await this.client.chat.resolveEdit({ location, action: "accept" });
+      await applyQuickFixes(editor.document.uri, location.range);
     },
     "chat.edit.discard": async () => {
       const editor = window.activeTextEditor;
@@ -428,4 +439,23 @@ export class Commands {
       quickPick.show();
     },
   };
+}
+
+async function applyQuickFixes(uri: Uri, range: Range): Promise<void> {
+  const codeActions = await commands.executeCommand<CodeAction[]>("vscode.executeCodeActionProvider", uri, range);
+  const quickFixActions = codeActions.filter(action => action.kind && action.kind.contains(CodeActionKind.QuickFix) && action.title.toLowerCase().includes('import'));
+  quickFixActions.forEach( async (action) => {
+    try {
+      getLogger().info(`Applying CodeActions for ${action.title}.`)
+      if (action.edit) {
+        await workspace.applyEdit(action.edit);
+      }
+      if (action.command) {
+        await commands.executeCommand(action.command.command, action.command.arguments);
+      }
+    } catch (error) {
+      getLogger().error(`Exception when apply CodeActions for ${action.title}`);
+      // ignore the error
+    }
+  });
 }
