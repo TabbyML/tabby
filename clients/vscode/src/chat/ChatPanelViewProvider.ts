@@ -52,39 +52,7 @@ export class ChatPanelViewProvider {
     editor: TextEditor;
     gitProvider: GitProvider;
   }): Context | null {
-    const alignIndent = (text: string) => {
-      const lines = text.split("\n");
-      const subsequentLines = lines.slice(1);
-
-      // Determine the minimum indent for subsequent lines
-      const minIndent = subsequentLines.reduce((min, line) => {
-        const match = line.match(/^(\s*)/);
-        const indent = match ? match[0].length : 0;
-        return line.trim() ? Math.min(min, indent) : min;
-      }, Infinity);
-
-      // Remove the minimum indent
-      const adjustedLines = lines.slice(1).map((line) => line.slice(minIndent));
-
-      return [lines[0]?.trim(), ...adjustedLines].join("\n");
-    };
-
-    const uri = editor.document.uri;
-    const text = editor.document.getText(editor.selection);
-    if (!text) return null;
-
-    const { filepath, git_url } = WebviewHelper.resolveFilePathAndGitUrl(uri, gitProvider);
-
-    return {
-      kind: "file",
-      content: alignIndent(text),
-      range: {
-        start: editor.selection.start.line + 1,
-        end: editor.selection.end.line + 1,
-      },
-      filepath,
-      git_url,
-    };
+    return WebviewHelper.getFileContextFromSelection({ editor, gitProvider });
   }
 
   // The method is called when the chat panel first opened
