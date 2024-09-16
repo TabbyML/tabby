@@ -120,7 +120,7 @@ pub async fn start(
                     debug!("Background job {} completed", job.id);
                 },
                 Some(now) = hourly.next() => {
-                    if let Err(err) = DbMaintainanceJob::cron(now, db.clone()).await {
+                    if let Err(err) = DbMaintainanceJob::cron(now, context_service.clone(), db.clone()).await {
                         warn!("Database maintainance failed: {:?}", err);
                     }
 

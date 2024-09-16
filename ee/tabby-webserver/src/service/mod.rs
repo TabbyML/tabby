@@ -1,3 +1,4 @@
+mod access_policy;
 mod analytic;
 pub mod answer;
 mod auth;
@@ -13,11 +14,13 @@ pub mod repository;
 mod setting;
 mod thread;
 mod user_event;
+mod user_group;
 pub mod web_documents;
 
 use std::sync::Arc;
 
 use answer::AnswerService;
+use anyhow::Context;
 use async_trait::async_trait;
 use axum::{
     body::Body,
@@ -31,21 +34,25 @@ use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
     constants::USER_HEADER_FIELD_NAME,
 };
-use tabby_db::DbConn;
+use tabby_db::{DbConn, UserDAO, UserGroupDAO};
 use tabby_inference::Embedding;
 use tabby_schema::{
+    access_policy::AccessPolicyService,
     analytic::AnalyticService,
-    auth::AuthenticationService,
+    auth::{AuthenticationService, UserSecured},
     context::ContextService,
     email::EmailService,
     integration::IntegrationService,
+    interface::UserValue,
     is_demo_mode,
     job::JobService,
     license::{IsLicenseValid, LicenseService},
+    policy,
     repository::RepositoryService,
     setting::SettingService,
     thread::ThreadService,
     user_event::UserEventService,
+    user_group::{UserGroup, UserGroupMembership, UserGroupService},
     web_documents::WebDocumentService,
     worker::WorkerService,
     AsID, AsRowid, CoreError, Result, ServiceLocator,
@@ -66,6 +73,8 @@ struct ServerContext {
     web_documents: Arc<dyn WebDocumentService>,
     thread: Arc<dyn ThreadService>,
     context: Arc<dyn ContextService>,
+    user_group: Arc<dyn UserGroupService>,
+    access_policy: Arc<dyn AccessPolicyService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -102,6 +111,8 @@ impl ServerContext {
         let user_event = Arc::new(user_event::create(db_conn.clone()));
         let setting = Arc::new(setting::create(db_conn.clone()));
         let thread = Arc::new(thread::create(db_conn.clone(), answer.clone()));
+        let user_group = Arc::new(user_group::create(db_conn.clone()));
+        let access_policy = Arc::new(access_policy::create(db_conn.clone(), context.clone()));
 
         background_job::start(
             db_conn.clone(),
@@ -134,6 +145,8 @@ impl ServerContext {
             logger,
             code,
             setting,
+            user_group,
+            access_policy,
             db_conn,
             is_chat_enabled_locally,
         }
@@ -287,6 +300,14 @@ impl ServiceLocator for ArcServerContext {
     fn context(&self) -> Arc<dyn ContextService> {
         self.0.context.clone()
     }
+
+    fn user_group(&self) -> Arc<dyn UserGroupService> {
+        self.0.user_group.clone()
+    }
+
+    fn access_policy(&self) -> Arc<dyn AccessPolicyService> {
+        self.0.access_policy.clone()
+    }
 }
 
 pub async fn create_service_locator(
@@ -357,4 +378,62 @@ pub async fn create_gitlab_client(
         builder.insecure();
     };
     Ok(builder.build_async().await?)
+}
+
+trait UserSecuredExt {
+    fn new(db: DbConn, val: UserDAO) -> tabby_schema::auth::UserSecured;
+}
+
+impl UserSecuredExt for tabby_schema::auth::UserSecured {
+    fn new(db: DbConn, val: UserDAO) -> tabby_schema::auth::UserSecured {
+        let is_owner = val.is_owner();
+        let id = val.id.as_id();
+        tabby_schema::auth::UserSecured {
+            policy: policy::AccessPolicy::new(db, &id, val.is_admin),
+            id,
+            email: val.email,
+            name: val.name.unwrap_or_default(),
+            is_owner,
+            is_admin: val.is_admin,
+            auth_token: val.auth_token,
+            created_at: val.created_at,
+            active: val.active,
+            is_password_set: val.password_encrypted.is_some(),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+trait UserGroupExt {
+    async fn new(db: DbConn, val: UserGroupDAO) -> Result<UserGroup>;
+}
+
+#[async_trait::async_trait]
+impl UserGroupExt for UserGroup {
+    async fn new(db: DbConn, val: UserGroupDAO) -> Result<UserGroup> {
+        let mut members = Vec::new();
+        for x in db.list_user_group_memberships(val.id, None).await? {
+            members.push(UserGroupMembership {
+                is_group_admin: x.is_group_admin,
+                created_at: x.created_at,
+                updated_at: x.updated_at,
+                user: UserValue::UserSecured(UserSecured::new(
+                    db.clone(),
+                    db.get_user(x.user_id)
+                        .await?
+                        .context("User doesn't exists")?,
+                )),
+            });
+        }
+
+        members.sort_by_key(|x| (!x.is_group_admin, x.updated_at));
+
+        Ok(UserGroup {
+            id: val.id.as_id(),
+            name: val.name,
+            created_at: val.created_at,
+            updated_at: val.updated_at,
+            members,
+        })
+    }
 }

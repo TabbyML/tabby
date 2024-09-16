@@ -19,7 +19,7 @@ import {
   Position,
   CancellationTokenSource,
 } from "vscode";
-import type { ServerApi, ChatMessage, Context, NavigateOpts } from "tabby-chat-panel";
+import type { ServerApi, ChatMessage, Context, NavigateOpts, FocusKeybinding } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
 import type { ServerInfo } from "tabby-agent";
@@ -27,8 +27,9 @@ import type { AgentFeature as Agent } from "../lsp/AgentFeature";
 import { createClient } from "./chatPanel";
 import { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
+import { contributes } from "../../package.json";
+import { parseKeybinding, readUserKeybindingsConfig } from "../util/KeybindingParser";
 import { ChatFeature } from "../lsp/ChatFeature";
-
 export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
@@ -36,6 +37,8 @@ export class ChatViewProvider implements WebviewViewProvider {
   private pendingRelevantContexts: Context[] = [];
   private isChatPageDisplayed = false;
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
+  // FIXME: this check is not compatible with the environment of a browser in macOS
+  private isMac: boolean = env.appHost === "desktop" && process.platform === "darwin";
 
   constructor(
     private readonly context: ExtensionContext,
@@ -272,6 +275,13 @@ export class ChatViewProvider implements WebviewViewProvider {
       onCopy: (content) => {
         env.clipboard.writeText(content);
       },
+      focusOnEditor: () => {
+        const editor = window.activeTextEditor;
+        if (editor) {
+          getLogger().info("Focus back to active editor");
+          commands.executeCommand("workbench.action.focusFirstEditorGroup");
+        }
+      },
     });
 
     // At this point, if the server instance is not set up, agent.status is 'notInitialized'.
@@ -371,15 +381,33 @@ export class ChatViewProvider implements WebviewViewProvider {
 
     this.pendingRelevantContexts.forEach((ctx) => this.addRelevantContext(ctx));
     this.pendingMessages.forEach((message) => this.sendMessageToChatPanel(message));
+
     if (serverInfo.config.token) {
       this.client?.cleanError();
-      // Duplicate init won't break or reload the current chat page
+
+      const focusKeybinding = await this.getFocusKeybinding();
+      getLogger().info("focus key binding: ", focusKeybinding);
+
       this.client?.init({
         fetcherOptions: {
           authorization: serverInfo.config.token,
         },
+        focusKey: focusKeybinding,
       });
     }
+  }
+
+  private async getFocusKeybinding(): Promise<FocusKeybinding | undefined> {
+    const focusCommand = "tabby.chatView.focus";
+    const defaultFocusKey = contributes.keybindings.find((cmd) => cmd.command === focusCommand);
+    const defaultKeybinding = defaultFocusKey
+      ? parseKeybinding(this.isMac && defaultFocusKey.mac ? defaultFocusKey.mac : defaultFocusKey.key)
+      : undefined;
+
+    const allKeybindings = await readUserKeybindingsConfig();
+    const userShortcut = allKeybindings?.find((keybinding) => keybinding.command === focusCommand);
+
+    return userShortcut ? parseKeybinding(userShortcut.key) : defaultKeybinding;
   }
 
   private async displayChatPage(endpoint: string, opts?: { force: boolean }) {
@@ -448,6 +476,16 @@ export class ChatViewProvider implements WebviewViewProvider {
                   });
 
                   chatIframe.src=encodeURI("${endpoint}/chat?client=vscode")
+                }
+
+                window.onfocus = (e) => {
+                  if (chatIframe) {
+                    // Directly call the focus method on the iframe's content window won't work in a focus event callback.
+                    // Here we use a timeout to defer the focus call.
+                    setTimeout(() => {
+                      chatIframe.contentWindow.focus();
+                    }, 0)
+                  }
                 }
                 
                 window.addEventListener("message", (event) => {

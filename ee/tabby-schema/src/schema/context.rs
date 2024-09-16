@@ -1,18 +1,19 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use juniper::{GraphQLEnum, GraphQLObject, ID};
+use juniper::{graphql_interface, graphql_object, GraphQLEnum, GraphQLInterface, GraphQLObject};
 use regex::{Captures, Regex};
 
 use super::{
-    repository::{Repository, RepositoryKind},
+    repository::{GitRepository, ProvidedRepository, Repository},
     web_documents::{CustomWebDocument, PresetWebDocument},
+    Context,
 };
 use crate::{policy::AccessPolicy, Result};
 
 /// Represents the kind of context source.
 #[derive(GraphQLEnum)]
-pub enum ContextKind {
+pub enum ContextSourceKind {
     Git,
     Github,
     Gitlab,
@@ -20,80 +21,68 @@ pub enum ContextKind {
     Web,
 }
 
-pub const PUBLIC_WEB_INTERNAL_SOURCE_ID: &str = "internal-public-web";
-
-#[derive(GraphQLObject)]
-pub struct ContextSource {
-    pub id: ID,
-
-    pub kind: ContextKind,
-
+#[graphql_interface]
+#[graphql(context = Context, for = [ProvidedRepository, GitRepository, ContextSourceValue, CustomWebDocument, PresetWebDocument, Repository, WebContextSource])]
+pub trait ContextSourceId {
     /// Represents the source of the context, which is the value mapped to `source_id` in the index.
+    fn source_id(&self) -> String;
+}
+
+#[derive(GraphQLInterface)]
+#[graphql(context = Context, impl = [ContextSourceIdValue], for = [CustomWebDocument, PresetWebDocument, Repository, WebContextSource])]
+pub struct ContextSource {
+    // start implements ContextSource
     pub source_id: String,
+    // end   implements ContextSource
+    pub source_kind: ContextSourceKind,
 
-    /// Display name of the context, used to provide a human-readable name for user selection, such as in a dropdown menu.
-    pub display_name: String,
+    /// Display name of the source, used to provide a human-readable name for user selection, such as in a dropdown menu.
+    pub source_name: String,
 }
 
-impl ContextSource {
-    pub fn is_code_repository(&self) -> bool {
-        matches!(
-            self.kind,
-            ContextKind::Git | ContextKind::Github | ContextKind::Gitlab
-        )
+impl ContextSourceValue {
+    pub fn source_id(&self) -> String {
+        match self {
+            ContextSourceValueEnum::Repository(x) => x.source_id().into(),
+            ContextSourceValueEnum::CustomWebDocument(x) => x.source_id(),
+            ContextSourceValueEnum::PresetWebDocument(x) => x.source_id(),
+            ContextSourceValueEnum::WebContextSource(x) => x.source_id().into(),
+        }
     }
-}
 
-impl From<Repository> for ContextSource {
-    fn from(repo: Repository) -> Self {
-        let kind = match repo.kind {
-            RepositoryKind::Git | RepositoryKind::GitConfig => ContextKind::Git,
-            RepositoryKind::Github | RepositoryKind::GithubSelfHosted => ContextKind::Github,
-            RepositoryKind::Gitlab | RepositoryKind::GitlabSelfHosted => ContextKind::Gitlab,
-        };
-
-        let display_name = match repo.kind {
-            RepositoryKind::Git
-            | RepositoryKind::GitConfig
-            | RepositoryKind::GithubSelfHosted
-            | RepositoryKind::GitlabSelfHosted => repo.git_url,
-            RepositoryKind::Github | RepositoryKind::Gitlab => repo.name,
-        };
-
-        Self {
-            id: ID::from(repo.source_id.clone()),
-            kind,
-            source_id: repo.source_id,
-            display_name,
+    pub fn source_name(&self) -> String {
+        match self {
+            ContextSourceValueEnum::Repository(x) => x.source_name().into(),
+            ContextSourceValueEnum::CustomWebDocument(x) => x.source_name().into(),
+            ContextSourceValueEnum::PresetWebDocument(x) => x.source_name().into(),
+            ContextSourceValueEnum::WebContextSource(x) => x.source_name().into(),
         }
     }
 }
 
-impl From<PresetWebDocument> for ContextSource {
-    fn from(doc: PresetWebDocument) -> Self {
-        Self {
-            id: ID::from(doc.source_id()),
-            kind: ContextKind::Doc,
-            source_id: doc.source_id(),
-            display_name: doc.name,
-        }
-    }
-}
+pub struct WebContextSource;
 
-impl From<CustomWebDocument> for ContextSource {
-    fn from(doc: CustomWebDocument) -> Self {
-        Self {
-            id: ID::from(doc.source_id()),
-            kind: ContextKind::Doc,
-            source_id: doc.source_id(),
-            display_name: doc.name,
-        }
+const PUBLIC_WEB_INTERNAL_SOURCE_ID: &str = "internal-public-web";
+
+#[graphql_object(context = Context, impl = [ContextSourceIdValue, ContextSourceValue])]
+impl WebContextSource {
+    fn source_kind(&self) -> ContextSourceKind {
+        ContextSourceKind::Web
+    }
+
+    pub fn source_id(&self) -> &'static str {
+        PUBLIC_WEB_INTERNAL_SOURCE_ID
+    }
+
+    pub fn source_name(&self) -> &'static str {
+        "Web"
     }
 }
 
 #[derive(GraphQLObject)]
+#[graphql(context = Context)]
 pub struct ContextInfo {
-    pub sources: Vec<ContextSource>,
+    pub sources: Vec<ContextSourceValue>,
 }
 
 impl ContextInfo {
@@ -102,17 +91,17 @@ impl ContextInfo {
     }
 }
 
-pub struct ContextInfoHelper<'k, 'v> {
-    sources: HashMap<&'k str, &'v str>,
+pub struct ContextInfoHelper {
+    sources: HashMap<String, String>,
 }
 
-impl<'a> ContextInfoHelper<'a, 'a> {
-    pub fn new(context_info: &'a ContextInfo) -> Self {
+impl ContextInfoHelper {
+    pub fn new(context_info: &ContextInfo) -> Self {
         Self {
             sources: context_info
                 .sources
                 .iter()
-                .map(|source| (source.source_id.as_str(), source.display_name.as_str()))
+                .map(|source| (source.source_id(), source.source_name()))
                 .collect(),
         }
     }

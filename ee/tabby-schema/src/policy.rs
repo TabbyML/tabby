@@ -1,7 +1,7 @@
 use juniper::ID;
 use tabby_db::DbConn;
 
-use crate::{AsRowid, CoreError, Result};
+use crate::{user_group::UpsertUserGroupMembershipInput, AsRowid, CoreError, Result};
 
 #[derive(Clone)]
 pub struct AccessPolicy {
@@ -80,6 +80,81 @@ impl AccessPolicy {
         }
 
         Ok(())
+    }
+
+    pub async fn check_upsert_user_group_membership(
+        &self,
+        input: &UpsertUserGroupMembershipInput,
+    ) -> Result<()> {
+        if self.is_admin {
+            return Ok(());
+        }
+
+        // User group admin can change membership within their group
+        if !self
+            .is_user_group_admin(&input.user_group_id, &self.user_id)
+            .await
+        {
+            return Err(CoreError::Forbidden(
+                "You are not allowed to update this user group membership",
+            ));
+        }
+
+        if input.is_group_admin {
+            return Err(CoreError::Forbidden(
+                "You are not allowed to grant group admin privileges",
+            ));
+        }
+
+        if self
+            .is_user_group_admin(&input.user_group_id, &input.user_id)
+            .await
+        {
+            return Err(CoreError::Forbidden(
+                "You are not allowed to modify group admin privileges",
+            ));
+        }
+
+        Ok(())
+    }
+
+    pub async fn check_delete_user_group_membership(
+        &self,
+        user_group_id: &ID,
+        user_id: &ID,
+    ) -> Result<()> {
+        if self.is_admin {
+            return Ok(());
+        }
+
+        let err = Err(CoreError::Forbidden(
+            "You are not allowed to modify group membership",
+        ));
+
+        if !self.is_user_group_admin(user_group_id, &self.user_id).await {
+            return err;
+        }
+
+        // Cannot remove admin from group
+        if self.is_user_group_admin(user_group_id, user_id).await {
+            return err;
+        }
+
+        Ok(())
+    }
+
+    async fn is_user_group_admin(&self, user_group_id: &ID, user_id: &ID) -> bool {
+        self.is_user_group_admin_impl(user_group_id, user_id)
+            .await
+            .unwrap_or_default()
+    }
+
+    async fn is_user_group_admin_impl(&self, user_group_id: &ID, user_id: &ID) -> Result<bool> {
+        let x = self
+            .db
+            .list_user_group_memberships(user_group_id.as_rowid()?, Some(user_id.as_rowid()?))
+            .await?;
+        Ok(x.first().is_some_and(|x| x.is_group_admin))
     }
 }
 

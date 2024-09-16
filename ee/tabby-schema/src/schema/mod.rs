@@ -1,27 +1,32 @@
+pub mod access_policy;
 pub mod analytic;
 pub mod auth;
 pub mod constants;
 pub mod context;
 pub mod email;
 pub mod integration;
+pub mod interface;
 pub mod job;
 pub mod license;
 pub mod repository;
 pub mod setting;
 pub mod thread;
 pub mod user_event;
+pub mod user_group;
 pub mod web_documents;
 pub mod worker;
 
 use std::sync::Arc;
 
+use access_policy::{AccessPolicyService, SourceIdAccessPolicy};
 use auth::{
     AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
-    User,
+    UserSecured,
 };
 use base64::Engine;
 use chrono::{DateTime, Utc};
 use context::{ContextInfo, ContextService};
+use interface::UserValue;
 use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLObject, IntoFieldError,
@@ -31,6 +36,9 @@ use repository::RepositoryGrepOutput;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
 use tracing::{error, warn};
+use user_group::{
+    CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupService,
+};
 use validator::{Validate, ValidationErrors};
 use worker::WorkerService;
 
@@ -76,6 +84,8 @@ pub trait ServiceLocator: Send + Sync {
     fn web_documents(&self) -> Arc<dyn WebDocumentService>;
     fn thread(&self) -> Arc<dyn ThreadService>;
     fn context(&self) -> Arc<dyn ContextService>;
+    fn user_group(&self) -> Arc<dyn UserGroupService>;
+    fn access_policy(&self) -> Arc<dyn AccessPolicyService>;
 }
 
 pub struct Context {
@@ -140,18 +150,18 @@ async fn check_admin(ctx: &Context) -> Result<(), CoreError> {
     Ok(())
 }
 
-async fn check_user(ctx: &Context) -> Result<User, CoreError> {
+async fn check_user(ctx: &Context) -> Result<UserSecured, CoreError> {
     check_user_and_auth_token(ctx, false).await
 }
 
-async fn check_user_allow_auth_token(ctx: &Context) -> Result<User, CoreError> {
+async fn check_user_allow_auth_token(ctx: &Context) -> Result<UserSecured, CoreError> {
     check_user_and_auth_token(ctx, true).await
 }
 
 async fn check_user_and_auth_token(
     ctx: &Context,
     allow_auth_token: bool,
-) -> Result<User, CoreError> {
+) -> Result<UserSecured, CoreError> {
     let claims = check_claims(ctx)?;
     if !allow_auth_token && claims.is_generated_from_auth_token {
         return Err(CoreError::Forbidden(
@@ -184,18 +194,19 @@ impl Query {
         ctx.locator.worker().read_registration_token().await
     }
 
-    async fn me(ctx: &Context) -> Result<User> {
+    async fn me(ctx: &Context) -> Result<UserSecured> {
         check_user_allow_auth_token(ctx).await
     }
 
+    /// List users, accessible for all login users.
     async fn users(
         ctx: &Context,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<User>> {
-        check_admin(ctx).await?;
+    ) -> Result<Connection<UserValue>> {
+        check_user(ctx).await?;
         relay::query_async(
             after,
             before,
@@ -206,6 +217,7 @@ impl Query {
                     .auth()
                     .list_users(after, before, first, last)
                     .await
+                    .map(|users| users.into_iter().map(UserValue::UserSecured).collect())
             },
         )
         .await
@@ -616,6 +628,26 @@ impl Query {
             },
         )
         .await
+    }
+
+    /// List user groups.
+    async fn user_groups(ctx: &Context) -> Result<Vec<UserGroup>> {
+        check_user(ctx).await?;
+        ctx.locator.user_group().list().await
+    }
+
+    async fn source_id_access_policies(
+        ctx: &Context,
+        source_id: String,
+    ) -> Result<SourceIdAccessPolicy> {
+        check_admin(ctx).await?;
+        let read = ctx
+            .locator
+            .access_policy()
+            .list_source_id_read_access(&source_id)
+            .await?;
+
+        Ok(SourceIdAccessPolicy { source_id, read })
     }
 }
 
@@ -1031,6 +1063,76 @@ impl Mutation {
             .await?;
         Ok(true)
     }
+
+    async fn create_user_group(ctx: &Context, input: CreateUserGroupInput) -> Result<ID> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        let id = ctx.locator.user_group().create(&input).await?;
+        Ok(id)
+    }
+
+    async fn delete_user_group(ctx: &Context, id: ID) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator.user_group().delete(&id).await?;
+        Ok(true)
+    }
+
+    async fn upsert_user_group_membership(
+        ctx: &Context,
+        input: UpsertUserGroupMembershipInput,
+    ) -> Result<bool> {
+        let user = check_user(ctx).await?;
+        user.policy
+            .check_upsert_user_group_membership(&input)
+            .await?;
+
+        input.validate()?;
+        ctx.locator.user_group().upsert_membership(&input).await?;
+        Ok(true)
+    }
+
+    async fn delete_user_group_membership(
+        ctx: &Context,
+        user_group_id: ID,
+        user_id: ID,
+    ) -> Result<bool> {
+        let user = check_user(ctx).await?;
+        user.policy
+            .check_delete_user_group_membership(&user_group_id, &user_id)
+            .await?;
+
+        ctx.locator
+            .user_group()
+            .delete_membership(&user_group_id, &user_id)
+            .await?;
+        Ok(true)
+    }
+
+    async fn grant_source_id_read_access(
+        ctx: &Context,
+        source_id: String,
+        user_group_id: ID,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .access_policy()
+            .grant_source_id_read_access(&source_id, &user_group_id)
+            .await?;
+        Ok(true)
+    }
+
+    async fn revoke_source_id_read_access(
+        ctx: &Context,
+        source_id: String,
+        user_group_id: ID,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .access_policy()
+            .revoke_source_id_read_access(&source_id, &user_group_id)
+            .await?;
+        Ok(true)
+    }
 }
 
 fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError<S> {
@@ -1058,7 +1160,7 @@ fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError
         validator::ValidationErrorsKind::Field(e) => {
             for error in e {
                 let mut obj = Object::with_capacity(2);
-                obj.add_field("path", Value::scalar(field.to_string()));
+                obj.add_field("path", Value::scalar(error.code.to_string()));
                 obj.add_field(
                     "message",
                     Value::scalar(error.message.clone().unwrap_or_default().to_string()),

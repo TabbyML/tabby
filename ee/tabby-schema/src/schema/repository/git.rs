@@ -1,9 +1,10 @@
 use async_trait::async_trait;
-use juniper::{GraphQLObject, ID};
+use juniper::{graphql_object, ID};
 use validator::Validate;
 
 use super::{GitReference, RepositoryProvider};
 use crate::{
+    context::ContextSourceIdValue,
     job::JobInfo,
     juniper::relay::NodeType,
     schema::{Context, Result},
@@ -21,8 +22,6 @@ pub struct CreateGitRepositoryInput {
     pub git_url: String,
 }
 
-#[derive(GraphQLObject, Debug)]
-#[graphql(context = Context)]
 pub struct GitRepository {
     pub id: juniper::ID,
     pub name: String,
@@ -33,12 +32,35 @@ pub struct GitRepository {
 }
 
 impl GitRepository {
+    pub fn format_source_id(id: &ID) -> String {
+        format!("git:{}", id)
+    }
+}
+
+#[graphql_object(context = Context, impl = [ContextSourceIdValue])]
+impl GitRepository {
+    fn id(&self) -> &ID {
+        &self.id
+    }
+
     pub fn source_id(&self) -> String {
         Self::format_source_id(&self.id)
     }
 
-    pub fn format_source_id(id: &ID) -> String {
-        format!("git:{}", id)
+    fn name(&self) -> &String {
+        &self.name
+    }
+
+    fn git_url(&self) -> &String {
+        &self.git_url
+    }
+
+    fn refs(&self) -> &Vec<GitReference> {
+        &self.refs
+    }
+
+    fn job_info(&self) -> &JobInfo {
+        &self.job_info
     }
 }
 

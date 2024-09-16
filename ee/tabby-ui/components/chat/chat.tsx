@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { RefObject } from 'react'
 import { compact, findIndex, isEqual, uniqWith } from 'lodash-es'
 import type { Context, FileContext, NavigateOpts } from 'tabby-chat-panel'
 
@@ -45,6 +45,7 @@ type ChatContextValue = {
   ) => void
   relevantContext: Context[]
   removeRelevantContext: (index: number) => void
+  chatInputRef: RefObject<HTMLTextAreaElement>
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
@@ -78,6 +79,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
     content: string,
     opts?: { languageId: string; smart: boolean }
   ) => void
+  chatInputRef: RefObject<HTMLTextAreaElement>
 }
 
 function ChatRenderer(
@@ -96,7 +98,8 @@ function ChatRenderer(
     promptFormClassname,
     onCopyContent,
     onSubmitMessage,
-    onApplyInEditor
+    onApplyInEditor,
+    chatInputRef
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -212,22 +215,18 @@ function ChatRenderer(
     const lastQaPairs = qaPairs[qaPairs.length - 1]
 
     // update threadId
-    if (answer?.threadCreated && !threadId) {
-      setThreadId(answer.threadCreated)
+    if (answer.threadId && !threadId) {
+      setThreadId(answer.threadId)
     }
 
     setQaPairs(prev => {
       const assisatntMessage = prev[prev.length - 1].assistant
       const nextAssistantMessage: AssistantMessage = {
         ...assisatntMessage,
-        id:
-          answer?.threadAssistantMessageCreated ||
-          assisatntMessage?.id ||
-          nanoid(),
-        message: answer.threadAssistantMessageContentDelta ?? '',
+        id: answer.assistantMessageId || assisatntMessage?.id || nanoid(),
+        message: answer.content,
         error: undefined,
-        relevant_code:
-          answer?.threadAssistantMessageAttachmentsCode?.map(o => o.code) ?? []
+        relevant_code: answer.attachmentsCode?.map(o => o.code) ?? []
       }
       // merge assistantMessage
       return [
@@ -235,7 +234,7 @@ function ChatRenderer(
         {
           user: {
             ...lastQaPairs.user,
-            id: answer?.threadUserMessageCreated || lastQaPairs.user.id
+            id: answer?.userMessageId || lastQaPairs.user.id
           },
           assistant: nextAssistantMessage
         }
@@ -449,7 +448,8 @@ function ChatRenderer(
         onCopyContent,
         onApplyInEditor,
         relevantContext,
-        removeRelevantContext
+        removeRelevantContext,
+        chatInputRef
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
@@ -482,6 +482,7 @@ function ChatRenderer(
             setInput={setInput}
             chatMaxWidthClass={chatMaxWidthClass}
             ref={chatPanelRef}
+            chatInputRef={chatInputRef}
           />
         </div>
       </div>
