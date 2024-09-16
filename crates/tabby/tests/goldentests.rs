@@ -7,6 +7,7 @@ use tokio::{
     process::Command,
     time::{sleep, Duration},
 };
+use tracing::debug;
 
 lazy_static! {
     static ref CLIENT: reqwest::Client = reqwest::Client::new();
@@ -78,6 +79,15 @@ async fn golden_test(body: serde_json::Value) -> serde_json::Value {
             "disable_retrieval_augmented_code_completion": true
         }),
     );
+
+    let resp = CLIENT
+        .post("http://127.0.0.1:9090/v1/completions")
+        .json(&body)
+        .send()
+        .await.unwrap();
+
+    let info = resp.text().await.unwrap();
+    eprintln!("info {}", info);
 
     let actual: serde_json::Value = CLIENT
         .post("http://127.0.0.1:9090/v1/completions")
