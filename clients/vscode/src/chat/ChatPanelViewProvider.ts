@@ -57,7 +57,7 @@ export class ChatPanelViewProvider {
     webviewView.webview.onDidReceiveMessage((message) => {
       switch (message.action) {
         case "sync-theme": {
-          this.client?.updateTheme(message.style, getColorThemeString(window.activeColorTheme.kind));
+          this.client?.updateTheme(message.style, WebviewHelper.getColorThemeString(window.activeColorTheme.kind));
           return;
         }
       }
@@ -74,16 +74,5 @@ export class ChatPanelViewProvider {
 
   public addRelevantContext(context: Context) {
     this.webviewHelper.addRelevantContext(context);
-  }
-}
-
-function getColorThemeString(kind: ColorThemeKind) {
-  switch (kind) {
-    case ColorThemeKind.Light:
-    case ColorThemeKind.HighContrastLight:
-      return "light";
-    case ColorThemeKind.Dark:
-    case ColorThemeKind.HighContrast:
-      return "dark";
   }
 }

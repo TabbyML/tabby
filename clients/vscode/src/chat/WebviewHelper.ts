@@ -15,6 +15,7 @@ import {
   TextDocument,
   commands,
   Webview,
+  ColorThemeKind,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context, NavigateOpts, FocusKeybinding } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -42,6 +43,17 @@ export class WebviewHelper {
     private readonly logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
   ) {}
+
+  static getColorThemeString(kind: ColorThemeKind) {
+    switch (kind) {
+      case ColorThemeKind.Light:
+      case ColorThemeKind.HighContrastLight:
+        return "light";
+      case ColorThemeKind.Dark:
+      case ColorThemeKind.HighContrast:
+        return "dark";
+    }
+  }
 
   static async resolveDocument(
     logger: LogOutputChannel,
