@@ -457,7 +457,7 @@ export class ChatEditProvider {
     const documentText = document
       .getText()
       .split("\n")
-      .map((line, idx) => `${idx + 1} | ${line}`)
+      .map((line, idx) => `${idx + 1} | ${line}`) //TODO index line number
       .join("\n");
 
     if (this.mutexAbortController) {
@@ -533,12 +533,13 @@ export class ChatEditProvider {
       documentText,
       selection,
       params.location.uri,
-      true,
-      params.applyCode,
+      false,
+      "/smartApply",
       document.languageId,
       {
         signal: this.mutexAbortController.signal,
         useForSmartApplyEdit: true,
+        applyCode: params.applyCode,
       },
     );
 

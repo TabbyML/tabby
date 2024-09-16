@@ -28,7 +28,6 @@ import { createClient } from "./chatPanel";
 import { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
 import { ChatFeature } from "../lsp/ChatFeature";
-import smartApplyInsertPrompt from "../prompts/smart-apply-insert.txt";
 
 export class ChatViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
@@ -223,30 +222,33 @@ export class ChatViewProvider implements WebviewViewProvider {
             uri: editor.document.uri.toString(),
             applyCode: content,
           });
-          getLogger().info("asd ", lineRangeRes?.start, lineRangeRes?.end);
-          if (!lineRangeRes?.start || !lineRangeRes?.end) {
+          getLogger().info("line range: ", lineRangeRes?.start, lineRangeRes?.end);
+          if (!lineRangeRes?.start && !lineRangeRes?.end) {
             window.showErrorMessage("Failed to apply code.");
             //TODO: if no line range, lets do normal apply
             return;
           }
-          const applyCode = smartApplyInsertPrompt
-            .replace("{{code}}", content)
-            .replace("{{start_line}}", lineRangeRes.start.toString())
-            .replace("{{end_line}}", lineRangeRes.end.toString());
-          //TODO: inline edit to apply code into range
           try {
-            getLogger().info("getting provide edit command", applyCode);
+            const getOffsetRange = (document: TextDocument, start: number, end: number, offset: number) => {
+              const offsetStart = Math.max(0, start - offset);
+              const offsetEnd = Math.min(document.lineCount - 1, end + offset);
+              return {
+                start: {
+                  line: offsetStart,
+                  character: 0,
+                },
+                end: { line: offsetEnd, character: 0 },
+              };
+            };
+            getLogger().info("getting provide edit command", content);
             this.chatEditCancellationTokenSource = new CancellationTokenSource();
             await this.chat.provideSmartApplyEdit(
               {
                 location: {
                   uri: editor.document.uri.toString(),
-                  range: {
-                    start: { line: lineRangeRes.start, character: 0 },
-                    end: { line: lineRangeRes.end, character: 0 },
-                  },
+                  range: getOffsetRange(editor.document, 35, 35, 0),
                 },
-                applyCode,
+                applyCode: content,
                 format: "previewChanges",
               },
               this.chatEditCancellationTokenSource.token,

@@ -4,6 +4,7 @@ import generateDocsPrompt from "./prompts/generate-docs.md";
 import editCommandReplacePrompt from "./prompts/edit-command-replace.md";
 import editCommandInsertPrompt from "./prompts/edit-command-insert.md";
 import provideSmartApplyLineRangePrompt from "./prompts/provide-smart-apply-line-range.md";
+import generateSmartApplyPrompt from "./prompts/generate-smart-apply.md";
 export type AgentConfig = {
   server: {
     endpoint: string;
@@ -200,6 +201,12 @@ export const defaultAgentConfig: AgentConfig = {
           filters: { languageIdIn: "plaintext,markdown" },
           kind: "replace",
           promptTemplate: fixSpellingAndGrammarPrompt,
+        },
+        "/smartApply": {
+          label: "Provide smart apply line range",
+          filters: { languageIdNotIn: "plaintext,markdown" },
+          kind: "insert",
+          promptTemplate: generateSmartApplyPrompt,
         },
       },
     },

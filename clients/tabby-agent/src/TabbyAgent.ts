@@ -906,7 +906,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     insertMode = false,
     command: string,
     languageId = "",
-    options?: AbortSignalOption & { useBetaVersion?: boolean } & { useForSmartApplyEdit?: boolean },
+    options?: AbortSignalOption & { useBetaVersion?: boolean } & { useForSmartApplyEdit?: boolean; applyCode?: string },
   ): Promise<Readable | null> {
     if (this.status === "notInitialized") {
       throw new Error("Agent is not initialized");
@@ -960,7 +960,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
         {
           role: "user",
           content: promptTemplate.replace(
-            /{{filepath}}|{{documentPrefix}}|{{document}}|{{documentSuffix}}|{{command}}|{{languageId}}/g,
+            /{{filepath}}|{{documentPrefix}}|{{document}}|{{documentSuffix}}|{{command}}|{{languageId}}|{{code}}/g,
             (pattern: string) => {
               switch (pattern) {
                 case "{{filepath}}":
@@ -975,6 +975,8 @@ export class TabbyAgent extends EventEmitter implements Agent {
                   return userCommand;
                 case "{{languageId}}":
                   return languageId;
+                case "{{code}}":
+                  return options?.applyCode ? options?.applyCode : "";
                 default:
                   return "";
               }
