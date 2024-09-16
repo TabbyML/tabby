@@ -6,7 +6,6 @@ import {
   TextEditor,
   window,
   commands,
-  ColorThemeKind,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import { WebviewHelper } from "./WebviewHelper";
