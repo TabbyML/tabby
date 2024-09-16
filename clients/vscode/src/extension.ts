@@ -106,7 +106,7 @@ export async function activate(context: ExtensionContext) {
     inlineCompletionProvider,
     chatViewProvider,
     gitProvider,
-    chatPanelViewProvider
+    chatPanelViewProvider,
   );
 
   logger.info("Tabby extension activated.");

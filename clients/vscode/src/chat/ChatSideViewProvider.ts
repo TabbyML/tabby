@@ -2,38 +2,20 @@ import {
   ExtensionContext,
   WebviewViewProvider,
   WebviewView,
-  workspace,
-  Uri,
-  env,
   LogOutputChannel,
   TextEditor,
   window,
-  Position,
-  Range,
-  Selection,
-  TextEditorRevealType,
-  ViewColumn,
-  WorkspaceFolder,
-  TextDocument,
   commands,
   ColorThemeKind,
 } from "vscode";
-import type { ServerApi, ChatMessage, Context, NavigateOpts, FocusKeybinding } from "tabby-chat-panel";{}
+import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import { WebviewHelper } from "./WebviewHelper";
-import hashObject from "object-hash";
-import * as semver from "semver";
-import type { ServerInfo } from "tabby-agent";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
-import { createClient } from "./chatPanel";
 import { GitProvider } from "../git/GitProvider";
-import { getLogger } from "../logger";
-import { contributes } from "../../package.json";
-import { parseKeybinding, readUserKeybindingsConfig } from "../util/KeybindingParser";
-import { throws } from "assert";
 export class ChatSideViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
-  private webviewHelper : WebviewHelper;
+  private webviewHelper: WebviewHelper;
 
   constructor(
     private readonly context: ExtensionContext,
@@ -85,7 +67,7 @@ export class ChatSideViewProvider implements WebviewViewProvider {
     this.client = this.webviewHelper.createChatClient(webviewView.webview);
     this.webviewHelper.setClient(this.client);
 
-    await this.webviewHelper.displayPageBasedOnServerStatus();    
+    await this.webviewHelper.displayPageBasedOnServerStatus();
     this.webviewHelper.addAgentEventListeners();
 
     // The event will not be triggered during the initial rendering.
@@ -118,39 +100,6 @@ export class ChatSideViewProvider implements WebviewViewProvider {
   public addRelevantContext(context: Context) {
     this.webviewHelper.addRelevantContext(context);
   }
-}
-
-async function resolveDocument(
-  logger: LogOutputChannel,
-  folders: readonly WorkspaceFolder[] | undefined,
-  filepath: string,
-): Promise<TextDocument | null> {
-  if (filepath.startsWith("file://")) {
-    const absoluteFilepath = Uri.parse(filepath, true);
-    return workspace.openTextDocument(absoluteFilepath);
-  }
-
-  if (!folders) {
-    return null;
-  }
-
-  for (const root of folders) {
-    const absoluteFilepath = Uri.joinPath(root.uri, filepath);
-    try {
-      return await workspace.openTextDocument(absoluteFilepath);
-    } catch (err) {
-      // Do nothing, file doesn't exists.
-    }
-  }
-
-  logger.info("File not found in workspace folders, trying with findFiles...");
-
-  const files = await workspace.findFiles(filepath, undefined, 1);
-  if (files[0]) {
-    return workspace.openTextDocument(files[0]);
-  }
-
-  return null;
 }
 
 function getColorThemeString(kind: ColorThemeKind) {

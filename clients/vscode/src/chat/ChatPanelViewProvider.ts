@@ -1,40 +1,13 @@
-import {
-  ExtensionContext,
-  WebviewViewProvider,
-  WebviewView,
-  workspace,
-  Uri,
-  env,
-  LogOutputChannel,
-  TextEditor,
-  window,
-  Position,
-  Range,
-  Selection,
-  TextEditorRevealType,
-  ViewColumn,
-  WorkspaceFolder,
-  TextDocument,
-  commands,
-  ColorThemeKind,
-  WebviewPanel,
-} from "vscode";
-import type { ServerApi, ChatMessage, Context, NavigateOpts, FocusKeybinding } from "tabby-chat-panel";
+import { ExtensionContext, LogOutputChannel, TextEditor, window, commands, ColorThemeKind, WebviewPanel } from "vscode";
+import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import { WebviewHelper } from "./WebviewHelper";
-import hashObject from "object-hash";
-import * as semver from "semver";
-import type { ServerInfo } from "tabby-agent";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
-import { createClient } from "./chatPanel";
 import { GitProvider } from "../git/GitProvider";
-import { getLogger } from "../logger";
-import { contributes } from "../../package.json";
-import { parseKeybinding, readUserKeybindingsConfig } from "../util/KeybindingParser";
-// TODO(zhizhg): abstruct a base class with ChatSideViewProvider
+
 export class ChatPanelViewProvider {
   webview?: WebviewPanel;
   client?: ServerApi;
-  private webviewHelper : WebviewHelper;
+  private webviewHelper: WebviewHelper;
 
   constructor(
     private readonly context: ExtensionContext,

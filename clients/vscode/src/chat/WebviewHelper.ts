@@ -1,8 +1,5 @@
-
 import {
   ExtensionContext,
-  WebviewViewProvider,
-  WebviewView,
   workspace,
   Uri,
   env,
@@ -17,9 +14,7 @@ import {
   WorkspaceFolder,
   TextDocument,
   commands,
-  ColorThemeKind,
-  WebviewPanel,
-  Webview
+  Webview,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context, NavigateOpts, FocusKeybinding } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -40,7 +35,7 @@ export class WebviewHelper {
   private isChatPageDisplayed = false;
   // FIXME: this check is not compatible with the environment of a browser in macOS
   private isMac: boolean = env.appHost === "desktop" && process.platform === "darwin";
-  
+
   constructor(
     private readonly context: ExtensionContext,
     private readonly agent: Agent,
@@ -57,11 +52,11 @@ export class WebviewHelper {
       const absoluteFilepath = Uri.parse(filepath, true);
       return workspace.openTextDocument(absoluteFilepath);
     }
-  
+
     if (!folders) {
       return null;
     }
-  
+
     for (const root of folders) {
       const absoluteFilepath = Uri.joinPath(root.uri, filepath);
       try {
@@ -70,14 +65,14 @@ export class WebviewHelper {
         // Do nothing, file doesn't exists.
       }
     }
-  
+
     logger.info("File not found in workspace folders, trying with findFiles...");
-  
+
     const files = await workspace.findFiles(filepath, undefined, 1);
     if (files[0]) {
       return workspace.openTextDocument(files[0]);
     }
-  
+
     return null;
   }
 
@@ -133,7 +128,7 @@ export class WebviewHelper {
     } else if (workspaceFolder) {
       filePath = filePath.replace(workspaceFolder.uri.toString(true), "");
     }
-  
+
     return {
       filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
       git_url: remoteUrl ?? "",
@@ -187,13 +182,9 @@ export class WebviewHelper {
 
     if (this.webview) {
       this.isChatPageDisplayed = true;
-      const styleUri = this.webview.asWebviewUri(
-        Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
-      );
+      const styleUri = this.webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"));
 
-      const logoUri = this.webview.asWebviewUri(
-        Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"),
-      );
+      const logoUri = this.webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"));
 
       this.webview.html = `
         <!DOCTYPE html>
@@ -312,12 +303,8 @@ export class WebviewHelper {
     if (this.webview) {
       this.isChatPageDisplayed = false;
 
-      const logoUri = this.webview.asWebviewUri(
-        Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"),
-      );
-      const styleUri = this.webview.asWebviewUri(
-        Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"),
-      );
+      const logoUri = this.webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "assets", "tabby.png"));
+      const styleUri = this.webview.asWebviewUri(Uri.joinPath(this.context.extensionUri, "assets", "chat-panel.css"));
       this.webview.html = `
         <!DOCTYPE html>
         <html lang="en">
@@ -449,7 +436,11 @@ export class WebviewHelper {
     return createClient(webview, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
         if (opts?.openInEditor) {
-          const document = await WebviewHelper.resolveDocument(this.logger, workspace.workspaceFolders, context.filepath);
+          const document = await WebviewHelper.resolveDocument(
+            this.logger,
+            workspace.workspaceFolders,
+            context.filepath,
+          );
           if (!document) {
             throw new Error(`File not found: ${context.filepath}`);
           }
