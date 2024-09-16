@@ -85,7 +85,7 @@ export class ChatSideViewProvider implements WebviewViewProvider {
     this.client = createClient(webviewView.webview, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
         if (opts?.openInEditor) {
-          const document = await resolveDocument(this.logger, workspace.workspaceFolders, context.filepath);
+          const document = await WebviewHelper.resolveDocument(this.logger, workspace.workspaceFolders, context.filepath);
           if (!document) {
             throw new Error(`File not found: ${context.filepath}`);
           }

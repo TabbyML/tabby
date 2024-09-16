@@ -69,7 +69,7 @@ export class ChatPanelViewProvider {
     this.client = createClient(webviewView.webview, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
         if (opts?.openInEditor) {
-          const document = await resolveDocument(this.logger, workspace.workspaceFolders, context.filepath);
+          const document = await WebviewHelper.resolveDocument(this.logger, workspace.workspaceFolders, context.filepath);
           if (!document) {
             throw new Error(`File not found: ${context.filepath}`);
           }
@@ -211,39 +211,6 @@ export class ChatPanelViewProvider {
   public addRelevantContext(context: Context) {
     this.webviewHelper.addRelevantContext(context);
   }
-}
-
-async function resolveDocument(
-  logger: LogOutputChannel,
-  folders: readonly WorkspaceFolder[] | undefined,
-  filepath: string,
-): Promise<TextDocument | null> {
-  if (filepath.startsWith("file://")) {
-    const absoluteFilepath = Uri.parse(filepath, true);
-    return workspace.openTextDocument(absoluteFilepath);
-  }
-
-  if (!folders) {
-    return null;
-  }
-
-  for (const root of folders) {
-    const absoluteFilepath = Uri.joinPath(root.uri, filepath);
-    try {
-      return await workspace.openTextDocument(absoluteFilepath);
-    } catch (err) {
-      // Do nothing, file doesn't exists.
-    }
-  }
-
-  logger.info("File not found in workspace folders, trying with findFiles...");
-
-  const files = await workspace.findFiles(filepath, undefined, 1);
-  if (files[0]) {
-    return workspace.openTextDocument(files[0]);
-  }
-
-  return null;
 }
 
 function getColorThemeString(kind: ColorThemeKind) {
