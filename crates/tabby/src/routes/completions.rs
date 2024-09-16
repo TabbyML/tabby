@@ -26,14 +26,16 @@ use crate::services::completion::{CompletionRequest, CompletionResponse, Complet
 pub async fn completions(
     State(state): State<Arc<CompletionService>>,
     TypedHeader(MaybeUser(user)): TypedHeader<MaybeUser>,
-    TypedHeader(user_agent): TypedHeader<headers::UserAgent>,
+    user_agent: Option<TypedHeader<headers::UserAgent>>,
     Json(mut request): Json<CompletionRequest>,
 ) -> Result<Json<CompletionResponse>, StatusCode> {
     if let Some(user) = user {
         request.user.replace(user);
     }
 
-    match state.generate(&request, &user_agent.to_string()).await {
+    let user_agent = user_agent.map(|x| x.0.to_string());
+
+    match state.generate(&request, user_agent.as_deref()).await {
         Ok(resp) => Ok(Json(resp)),
         Err(err) => {
             warn!("{}", err);
