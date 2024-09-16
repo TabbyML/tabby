@@ -338,7 +338,7 @@ impl CompletionService {
                     index: 0,
                     text: text.clone(),
                 }],
-                user_agent: user_agent.map(|x| x.to_owned())
+                user_agent: user_agent.map(|x| x.to_owned()),
             },
         );
 

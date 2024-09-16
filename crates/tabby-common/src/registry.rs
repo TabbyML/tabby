@@ -90,7 +90,8 @@ impl ModelRegistry {
     }
 
     pub fn get_model_path(&self, name: &str) -> PathBuf {
-        self.get_model_dir(name).join(GGML_MODEL_RELATIVE_PATH.as_str())
+        self.get_model_dir(name)
+            .join(GGML_MODEL_RELATIVE_PATH.as_str())
     }
 
     pub fn save_model_info(&self, name: &str) {
