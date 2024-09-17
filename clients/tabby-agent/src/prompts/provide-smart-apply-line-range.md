@@ -13,6 +13,14 @@ Your task:
 
 You must reply with ONLY the suggested insertion range in the format startLine-endLine, enclosed in <GENERATEDCODE></GENERATEDCODE> XML tags.
 
+Important note on the range:
+
+- startLine is inclusive (close interval)
+- endLine is exclusive (open interval)
+
+For example, if the new code should be inserted between lines 10 and 11, your response should be:
+<GENERATEDCODE>10-11</GENERATEDCODE>
+
 Do not include any explanation, existing code, or the code to be inserted in your response.
 
 File content:
@@ -25,4 +33,4 @@ Code to be inserted:
 {{applyCode}}
 </APPLYCODE>
 
-Provide only the appropriate insertion range.
+Provide only the appropriate insertion range, remembering that startLine is inclusive and endLine is exclusive.
