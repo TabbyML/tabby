@@ -10,7 +10,6 @@ import {
 } from "vscode";
 import { ContextVariables } from "../ContextVariables";
 import { getLogger } from "../logger";
-
 export class QuickFixCodeActionProvider implements CodeActionProviderInterface {
   constructor(private readonly contextVariables: ContextVariables) {}
 
@@ -27,12 +26,13 @@ export class QuickFixCodeActionProvider implements CodeActionProviderInterface {
     if (!this.contextVariables.chatEnabled) {
       return;
     }
-
-    const lspErrors = context.diagnostics.map((d) => d.message).join("\n");
-    getLogger("QuickFixCodeActionProvider").info("lspErrors", lspErrors);
-    if (lspErrors.length === 0) {
+    if (context.diagnostics.length === 0) {
       return [];
     }
+
+    //TODO: Get all diagnostics from the context and substring with max command chars
+    const lspErrors = context.diagnostics[0];
+    getLogger("QuickFixCodeActionProvider").info("lspErrors", lspErrors);
 
     const quickFixEditing = new CodeAction("Fixing with Tabby", CodeActionKind.QuickFix);
     quickFixEditing.command = {
