@@ -240,7 +240,7 @@ export class ChatViewProvider implements WebviewViewProvider {
           try {
             getLogger().info("getting provide edit command", content);
 
-            // passing line number as 0 based, [startLine, endLine]
+            // passing line number as 0 based, [startLine, endLine)
             const range = {
               start: { line: lineRangeRes.start - 1, character: 0 },
               end: { line: lineRangeRes.end - 1, character: 0 },

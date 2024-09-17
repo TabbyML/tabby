@@ -47,7 +47,6 @@ import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
 import { loadTlsCaCerts } from "./loadCaCerts";
 import { createProxyForUrl, ProxyConfig } from "./http/proxy";
 import { name as agentName, version as agentVersion } from "../package.json";
-import { writeFileSync } from "fs-extra";
 export class TabbyAgent extends EventEmitter implements Agent {
   private readonly logger = getLogger("TabbyAgent");
   private anonymousUsageLogger = new AnonymousUsageLogger();
@@ -999,7 +998,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
           ),
         },
       ];
-      writeFileSync("prompts-message.txt", messages[0]!.content);
       const requestOptions = {
         body: {
           messages,

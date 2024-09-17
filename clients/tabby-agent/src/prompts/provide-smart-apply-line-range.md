@@ -21,6 +21,40 @@ Important note on the range:
 For example, if the new code should be inserted between lines 10 and 11, your response should be:
 <GENERATEDCODE>10-11</GENERATEDCODE>
 
+
+1. <EXAMPLE_DOCUMENT></EXAMPLE_DOCUMENT> xml tags indicates the example code document.
+2. <EXAMPLE_APPLYCODE> xml tags indicates the example code to be applied.
+
+Examples:
+<EXAMPLE_DOCUMENT>
+13 |           target.trace(tagMessage(message), ...args);
+14 |         };
+15 |       }
+16 |       if (method === "debug") {
+17 |         return (message: string, ...args: unknown[]) => {
+18 |           target.debug(tagMessage(message), ...args);
+19 |         };
+20 |       }
+21 |       if (method === "info") {
+22 |         return (message: string, ...args: unknown[]) => {
+23 |           target.info(tagMessage(message), ...args);
+24 |         };
+25 |       }
+</EXAMPLE_DOCUMENT>
+<EXAMPLE_APPLYCODE>
+if (method === "add") {
+  return (message: string, ...args: unknown[]) => {
+    target.error(tagMessage(message), ...args);
+  };
+}
+</EXAMPLE_APPLYCODE>
+
+1. If the obtained range is to be inserted between lines 15-16, it should be 15-16
+2. If the obtained range is to be inserted between lines 20-21, it should be 20-21
+3. If the obtained range is to be inserted between lines 25-26, it should be 25-26
+4. If the predicted range is between lines 16-17, we only return 16-17
+5. If the inserted applyCode is between lines 16-19, we should return 16-19
+
 Do not include any explanation, existing code, or the code to be inserted in your response.
 
 File content:
