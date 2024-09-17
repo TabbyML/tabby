@@ -19,7 +19,7 @@ import { Config } from "../Config";
 import OpenAI from "openai";
 import generateNLOutlinesPrompt from "../../assets/prompts/generateNLOutlines.txt";
 import editNLOutline from "../../assets/prompts/editNLOutline.txt";
-import * as Diff from "diff";
+import { diffLines } from "diff";
 
 interface ChatNLOutlinesParams {
   location: Location;
@@ -313,7 +313,7 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
     const removed: string[] = [];
     const unchanged: string[] = [];
 
-    Diff.diffLines(oldCode, newCode).forEach((diff) => {
+    diffLines(oldCode, newCode).forEach((diff) => {
       const lines = diff.value.split("\n").filter((line) => line !== "");
       if (diff.added) {
         added.push(...lines);

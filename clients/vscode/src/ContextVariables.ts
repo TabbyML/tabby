@@ -16,13 +16,13 @@ export class ContextVariables {
   ) {
     this.chatEnabled = this.client.chat.isAvailable;
     this.inlineCompletionTriggerMode = config.inlineCompletionTriggerMode;
-    this.chatOutline = config.chatOutline;
+    this.chatOutlineEnabled = config.chatOutline;
     this.client.chat.on("didChangeAvailability", (params: boolean) => {
       this.chatEnabled = params;
     });
     this.config.on("updated", () => {
       this.inlineCompletionTriggerMode = config.inlineCompletionTriggerMode;
-      this.chatOutline = config.chatOutline;
+      this.chatOutlineEnabled = config.chatOutline;
     });
     this.updateChatEditResolving();
     window.onDidChangeTextEditorSelection((params) => {
@@ -98,12 +98,12 @@ export class ContextVariables {
     this.inlineCompletionTriggerModeValue = value;
   }
 
-  get chatOutline(): boolean {
+  get chatOutlineEnabled(): boolean {
     return this.chatOutlineValue;
   }
 
-  set chatOutline(value: boolean) {
-    commands.executeCommand("setContext", "tabby.chat.outline", value);
+  set chatOutlineEnabled(value: boolean) {
+    commands.executeCommand("setContext", "tabby.chatOutlineEnabled", value);
     this.chatOutlineValue = value;
   }
 }
