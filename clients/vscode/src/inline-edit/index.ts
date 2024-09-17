@@ -28,6 +28,7 @@ export class InlineEditController {
     private contextVariables: ContextVariables,
     private editor: TextEditor,
     private editLocation: EditLocation,
+    private args?: { errorContext: string },
   ) {
     this.recentlyCommand = this.config.chatEditRecentlyCommand.slice(0, this.config.maxChatEditHistory);
 
@@ -49,6 +50,7 @@ export class InlineEditController {
     quickPick.onDidTriggerItemButton(this.onDidTriggerItemButton, this);
 
     this.quickPick = quickPick;
+    this.quickPick.value = `Fix this error: ${this.args?.errorContext}` || "";
   }
 
   start() {
