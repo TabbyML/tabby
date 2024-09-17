@@ -50,47 +50,51 @@ export class InlineEditController {
     quickPick.onDidTriggerItemButton(this.onDidTriggerItemButton, this);
 
     this.quickPick = quickPick;
-    this.quickPick.value = `Fix this error: ${this.args?.errorContext}` || "";
   }
 
-  start() {
-    this.quickPick.show();
+  async start() {
+    this.args?.errorContext
+      ? await this.provideEditWithCommand(`Fix this error: ${this.args.errorContext}`)
+      : this.quickPick.show();
   }
 
   private async onDidAccept() {
-    const startPosition = new Position(this.editLocation.range.start.line, this.editLocation.range.start.character);
-    const quickPick = this.quickPick;
-    quickPick.hide();
-
-    const command = quickPick.selectedItems[0]?.value;
+    const command = this.quickPick.selectedItems[0]?.value;
     if (command) {
-      const updatedRecentlyCommand = [command]
-        .concat(this.recentlyCommand.filter((item) => item !== command))
-        .slice(0, this.config.maxChatEditHistory);
-      this.config.chatEditRecentlyCommand = updatedRecentlyCommand;
-
-      this.editor.selection = new Selection(startPosition, startPosition);
-      this.contextVariables.chatEditInProgress = true;
-      this.chatEditCancellationTokenSource = new CancellationTokenSource();
-      try {
-        await this.client.chat.provideEdit(
-          {
-            location: this.editLocation,
-            command,
-            format: "previewChanges",
-          },
-          this.chatEditCancellationTokenSource.token,
-        );
-      } catch (error) {
-        if (typeof error === "object" && error && "message" in error && typeof error["message"] === "string") {
-          window.showErrorMessage(error["message"]);
-        }
-      }
-      this.chatEditCancellationTokenSource.dispose();
-      this.chatEditCancellationTokenSource = null;
-      this.contextVariables.chatEditInProgress = false;
-      this.editor.selection = new Selection(startPosition, startPosition);
+      this.quickPick.hide();
+      await this.provideEditWithCommand(command);
     }
+  }
+
+  private async provideEditWithCommand(command: string) {
+    const startPosition = new Position(this.editLocation.range.start.line, this.editLocation.range.start.character);
+
+    const updatedRecentlyCommand = [command]
+      .concat(this.recentlyCommand.filter((item) => item !== command))
+      .slice(0, this.config.maxChatEditHistory);
+    this.config.chatEditRecentlyCommand = updatedRecentlyCommand;
+
+    this.editor.selection = new Selection(startPosition, startPosition);
+    this.contextVariables.chatEditInProgress = true;
+    this.chatEditCancellationTokenSource = new CancellationTokenSource();
+    try {
+      await this.client.chat.provideEdit(
+        {
+          location: this.editLocation,
+          command,
+          format: "previewChanges",
+        },
+        this.chatEditCancellationTokenSource.token,
+      );
+    } catch (error) {
+      if (typeof error === "object" && error && "message" in error && typeof error["message"] === "string") {
+        window.showErrorMessage(error["message"]);
+      }
+    }
+    this.chatEditCancellationTokenSource.dispose();
+    this.chatEditCancellationTokenSource = null;
+    this.contextVariables.chatEditInProgress = false;
+    this.editor.selection = new Selection(startPosition, startPosition);
   }
 
   private onDidTriggerItemButton(event: QuickPickItemButtonEvent<EditCommand>) {
