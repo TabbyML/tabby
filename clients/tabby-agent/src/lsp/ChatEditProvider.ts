@@ -499,49 +499,60 @@ export class ChatEditProvider {
     if (params.format !== "previewChanges") {
       return false;
     }
+
     const document = this.documents.get(params.location.uri);
     if (!document) {
       return false;
     }
+
     if (!this.agent.getServerHealthState()?.chat_model) {
       throw {
         name: "ChatFeatureNotAvailableError",
         message: "Chat feature not available",
       } as ChatFeatureNotAvailableError;
     }
-    const config = this.agent.getConfig().chat;
 
+    const config = this.agent.getConfig().chat;
     const documentText = document.getText();
     const selection = {
       start: document.offsetAt(params.location.range.start),
       end: document.offsetAt(params.location.range.end),
     };
     const selectedDocumentText = documentText.substring(selection.start, selection.end);
+
     if (selection.end - selection.start > config.edit.documentMaxChars) {
       throw { name: "ChatEditDocumentTooLongError", message: "Document too long" } as ChatEditDocumentTooLongError;
     }
+
     if (this.mutexAbortController) {
       throw {
         name: "ChatEditMutexError",
         message: "Another smart edit is already in progress",
       } as ChatEditMutexError;
     }
+
     this.mutexAbortController = new AbortController();
     token.onCancellationRequested(() => this.mutexAbortController?.abort());
 
+    const insertMode = params.location.range.start.line === params.location.range.end.line - 1;
     const readableStream = await this.agent.provideChatEdit(
       documentText,
       selection,
       params.location.uri,
-      false,
+      insertMode,
       "/smartApply",
       document.languageId,
       {
         signal: this.mutexAbortController.signal,
         useForSmartApplyEdit: true,
         applyCode: params.applyCode,
+        lineRange: `${params.location.range.start.line}-${params.location.range.end.line}`,
       },
     );
+
+    if (!readableStream) {
+      return false;
+    }
 
     const editId = "tabby-" + cryptoRandomString({ length: 6, type: "alphanumeric" });
     this.currentEdit = {
@@ -549,15 +560,15 @@ export class ChatEditProvider {
       location: params.location,
       languageId: document.languageId,
       originalText: selectedDocumentText,
-      editedRange: { start: params.location.range.end, end: params.location.range.end },
+      editedRange: insertMode
+        ? { start: params.location.range.start, end: params.location.range.start }
+        : { start: params.location.range.start, end: params.location.range.end },
       editedText: "",
       comments: "",
       buffer: "",
       state: "editing",
     };
-    if (!readableStream) {
-      return false;
-    }
+
     await this.readResponseStream(readableStream, config.edit.responseDocumentTag, config.edit.responseCommentTag);
     return true;
   }

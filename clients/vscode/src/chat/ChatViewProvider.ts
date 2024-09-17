@@ -183,12 +183,7 @@ export class ChatViewProvider implements WebviewViewProvider {
         this.sendMessage(chatMessage);
       },
       onApplyInEditor: async (content: string, opts?: { languageId: string; smart: boolean }) => {
-        const editor = window.activeTextEditor;
-        if (!editor) {
-          window.showErrorMessage("No active editor found.");
-          return;
-        }
-        if (!opts || !opts.smart) {
+        const applyInEditor = (editor: TextEditor) => {
           const document = editor.document;
           const selection = editor.selection;
 
@@ -213,49 +208,56 @@ export class ChatViewProvider implements WebviewViewProvider {
           editor.edit((editBuilder) => {
             editBuilder.replace(selection, indentedContent);
           });
-        } else {
-          //TODO: possible languageId not passing
+        };
+        const smartApplyInEditor = async (editor: TextEditor, opts: { languageId: string; smart: boolean }) => {
           if (editor.document.languageId !== opts.languageId) {
-            window.showErrorMessage("The active editor is not in the correct language.");
+            window.showInformationMessage("The active editor is not in the correct language. Did normal apply.");
+            applyInEditor(editor);
             return;
           }
 
           getLogger("Tabby").info("Smart apply in editor is not implemented yet.", content);
+
           const lineRangeRes = await this.chat.provideLineRange({
             uri: editor.document.uri.toString(),
             applyCode: content,
           });
-          getLogger().info("line range: ", lineRangeRes?.start, lineRangeRes?.end);
+
+          getLogger().info("line range(one-based): ", lineRangeRes?.start, lineRangeRes?.end);
+
           if (!lineRangeRes?.start && !lineRangeRes?.end) {
-            window.showErrorMessage("Failed to apply code.");
-            //TODO: if no line range, lets do normal apply
+            window.showInformationMessage("Failed to apply code.");
+            applyInEditor(editor);
             return;
           }
+
           try {
-            const getOffsetRange = (document: TextDocument, start: number, end: number, offset: number) => {
-              const offsetStart = Math.max(0, start - offset);
-              const offsetEnd = Math.min(document.lineCount - 1, end + offset);
-              return {
-                start: {
-                  line: offsetStart,
-                  character: 0,
-                },
-                end: { line: offsetEnd, character: 0 },
-              };
-            };
             getLogger().info("getting provide edit command", content);
             this.chatEditCancellationTokenSource = new CancellationTokenSource();
+
+            // passing line number as 0 based, [startLine, endLine)
+            const range = {
+              start: { line: lineRangeRes.start - 1, character: 0 },
+              end: { line: lineRangeRes.end, character: 0 },
+            };
+
+            // ensure the range is visible in the editor
+            const startPos = editor.document.positionAt(editor.document.offsetAt(new Position(range.start.line, 0)));
+            const endPos = editor.document.positionAt(editor.document.offsetAt(new Position(range.end.line, 0)));
+            editor.revealRange(new Range(startPos, endPos), TextEditorRevealType.InCenterIfOutsideViewport);
+
             await this.chat.provideSmartApplyEdit(
               {
                 location: {
                   uri: editor.document.uri.toString(),
-                  range: getOffsetRange(editor.document, 35, 35, 0),
+                  range: range,
                 },
                 applyCode: content,
                 format: "previewChanges",
               },
               this.chatEditCancellationTokenSource.token,
             );
+
             getLogger().info("provide edit command done");
           } catch (error) {
             if (typeof error === "object" && error && "message" in error && typeof error["message"] === "string") {
@@ -265,6 +267,17 @@ export class ChatViewProvider implements WebviewViewProvider {
             this.chatEditCancellationTokenSource?.dispose();
             this.chatEditCancellationTokenSource = null;
           }
+        };
+
+        const editor = window.activeTextEditor;
+        if (!editor) {
+          window.showErrorMessage("No active editor found.");
+          return;
+        }
+        if (!opts || !opts.smart) {
+          applyInEditor(editor);
+        } else {
+          smartApplyInEditor(editor, opts);
         }
       },
       onLoaded: () => {
