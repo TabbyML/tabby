@@ -47,6 +47,7 @@ import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
 import { loadTlsCaCerts } from "./loadCaCerts";
 import { createProxyForUrl, ProxyConfig } from "./http/proxy";
 import { name as agentName, version as agentVersion } from "../package.json";
+import { writeFileSync } from "fs-extra";
 export class TabbyAgent extends EventEmitter implements Agent {
   private readonly logger = getLogger("TabbyAgent");
   private anonymousUsageLogger = new AnonymousUsageLogger();
@@ -910,6 +911,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
       useForSmartApplyEdit?: boolean;
       applyCode?: string;
       lineRange?: string;
+      indentInfo?: {
+        indent: string;
+        indentForTheFirstLine: string;
+      };
     },
   ): Promise<Readable | null> {
     if (this.status === "notInitialized") {
@@ -964,7 +969,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
         {
           role: "user",
           content: promptTemplate.replace(
-            /{{filepath}}|{{documentPrefix}}|{{document}}|{{documentSuffix}}|{{command}}|{{languageId}}|{{code}}|{{lineRange}}|/g,
+            /{{filepath}}|{{documentPrefix}}|{{document}}|{{documentSuffix}}|{{command}}|{{languageId}}|{{code}}|{{lineRange}}|{{indentForTheFirstLine}}|{{indent}}/g,
             (pattern: string) => {
               switch (pattern) {
                 case "{{filepath}}":
@@ -983,6 +988,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
                   return options?.applyCode ? options?.applyCode : "";
                 case "{{lineRange}}":
                   return options?.lineRange ? options?.lineRange : "";
+                case "{{indentForTheFirstLine}}":
+                  return options?.indentInfo?.indentForTheFirstLine ? options?.indentInfo.indentForTheFirstLine : "";
+                case "{{indent}}":
+                  return options?.indentInfo?.indent ? options?.indentInfo.indent : "";
                 default:
                   return "";
               }
@@ -990,6 +999,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
           ),
         },
       ];
+      writeFileSync("prompts-message.txt", messages[0]!.content);
       const requestOptions = {
         body: {
           messages,

@@ -183,10 +183,7 @@ export class ChatViewProvider implements WebviewViewProvider {
         this.sendMessage(chatMessage);
       },
       onApplyInEditor: async (content: string, opts?: { languageId: string; smart: boolean }) => {
-        const applyInEditor = (editor: TextEditor) => {
-          const document = editor.document;
-          const selection = editor.selection;
-
+        const getIndentInfo = (document: TextDocument, selection: Selection) => {
           // Determine the indentation for the content
           // The calculation is based solely on the indentation of the first line
           const lineText = document.lineAt(selection.start.line).text;
@@ -201,9 +198,15 @@ export class ChatViewProvider implements WebviewViewProvider {
           const indentAmountForTheFirstLine = Math.max(indent.length - selection.start.character, 0);
           const indentForTheFirstLine = indentUnit?.repeat(indentAmountForTheFirstLine) || "";
 
+          return { indent, indentForTheFirstLine };
+        };
+
+        const applyInEditor = (editor: TextEditor) => {
+          const document = editor.document;
+          const selection = editor.selection;
+          const { indent, indentForTheFirstLine } = getIndentInfo(document, selection);
           // Indent the content
           const indentedContent = indentForTheFirstLine + content.replaceAll("\n", "\n" + indent);
-
           // Apply into the editor
           editor.edit((editBuilder) => {
             editBuilder.replace(selection, indentedContent);
@@ -211,6 +214,7 @@ export class ChatViewProvider implements WebviewViewProvider {
         };
         const smartApplyInEditor = async (editor: TextEditor, opts: { languageId: string; smart: boolean }) => {
           if (editor.document.languageId !== opts.languageId) {
+            getLogger().info("editor:", editor.document.languageId, "opts:", opts.languageId);
             window.showInformationMessage("The active editor is not in the correct language. Did normal apply.");
             applyInEditor(editor);
             return;
@@ -225,43 +229,55 @@ export class ChatViewProvider implements WebviewViewProvider {
 
           getLogger().info("line range(one-based): ", lineRangeRes?.start, lineRangeRes?.end);
 
-          if (!lineRangeRes?.start && !lineRangeRes?.end) {
+          if (!lineRangeRes?.start || !lineRangeRes?.end) {
             window.showInformationMessage("Failed to apply code.");
             applyInEditor(editor);
             return;
           }
 
+          this.chatEditCancellationTokenSource = new CancellationTokenSource();
+
           try {
             getLogger().info("getting provide edit command", content);
-            this.chatEditCancellationTokenSource = new CancellationTokenSource();
 
-            // passing line number as 0 based, [startLine, endLine)
+            // passing line number as 0 based, [startLine, endLine]
             const range = {
               start: { line: lineRangeRes.start - 1, character: 0 },
-              end: { line: lineRangeRes.end, character: 0 },
+              end: { line: lineRangeRes.end - 1, character: 0 },
             };
-
             // ensure the range is visible in the editor
-            const startPos = editor.document.positionAt(editor.document.offsetAt(new Position(range.start.line, 0)));
-            const endPos = editor.document.positionAt(editor.document.offsetAt(new Position(range.end.line, 0)));
-            editor.revealRange(new Range(startPos, endPos), TextEditorRevealType.InCenterIfOutsideViewport);
+            editor.revealRange(
+              new Range(
+                new Position(range.start.line, range.start.character),
+                new Position(range.end.line, range.end.character),
+              ),
+              TextEditorRevealType.InCenterIfOutsideViewport,
+            );
+
+            const { indent, indentForTheFirstLine } = getIndentInfo(editor.document, editor.selection);
 
             await this.chat.provideSmartApplyEdit(
               {
                 location: {
                   uri: editor.document.uri.toString(),
-                  range: range,
+                  range,
                 },
                 applyCode: content,
                 format: "previewChanges",
+                indentInfo: {
+                  indent,
+                  indentForTheFirstLine,
+                },
               },
               this.chatEditCancellationTokenSource.token,
             );
 
             getLogger().info("provide edit command done");
           } catch (error) {
-            if (typeof error === "object" && error && "message" in error && typeof error["message"] === "string") {
-              window.showErrorMessage(error["message"]);
+            if (error instanceof Error) {
+              window.showErrorMessage(error.message);
+            } else {
+              window.showErrorMessage("An unknown error occurred");
             }
           } finally {
             this.chatEditCancellationTokenSource?.dispose();

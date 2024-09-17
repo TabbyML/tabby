@@ -550,6 +550,10 @@ export type SmartApplyCodeParams = {
   location: Location;
   applyCode: string;
   format: "previewChanges";
+  indentInfo: {
+    indentForTheFirstLine: string;
+    indent: string;
+  };
 };
 
 /**

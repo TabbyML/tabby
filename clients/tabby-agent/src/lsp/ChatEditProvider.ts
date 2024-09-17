@@ -534,7 +534,7 @@ export class ChatEditProvider {
     this.mutexAbortController = new AbortController();
     token.onCancellationRequested(() => this.mutexAbortController?.abort());
 
-    const insertMode = params.location.range.start.line === params.location.range.end.line - 1;
+    const insertMode = params.location.range.start.line === params.location.range.end.line;
     const readableStream = await this.agent.provideChatEdit(
       documentText,
       selection,
@@ -547,6 +547,7 @@ export class ChatEditProvider {
         useForSmartApplyEdit: true,
         applyCode: params.applyCode,
         lineRange: `${params.location.range.start.line}-${params.location.range.end.line}`,
+        indentInfo: params.indentInfo,
       },
     );
 
