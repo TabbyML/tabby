@@ -129,7 +129,7 @@ function UserMessageCard(props: { message: UserMessage }) {
     >
       <div
         className={cn(
-          'flex w-full items-center justify-between md:w-auto min-h-[2rem]',
+          'flex min-h-[2rem] w-full items-center justify-between md:w-auto',
           {
             'hidden md:flex': !data?.me.name
           }
@@ -328,7 +328,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       )}
       {...rest}
     >
-      <div className="flex w-full items-center justify-between md:w-auto min-h-[2rem]">
+      <div className="flex min-h-[2rem] w-full items-center justify-between md:w-auto">
         <div className="flex items-center gap-x-2">
           <div className="shrink-0 select-none rounded-full border bg-background shadow">
             <IconTabby className="h-6 w-6 md:h-8 md:w-8" />
