@@ -280,7 +280,7 @@ export class Commands {
       this.sendMessageToChatPanel("Generate a unit test for the selected code:");
     },
     "chat.createPanel": async () => {
-      const panel = window.createWebviewPanel("tabby.chatView", "Tabby Chat", ViewColumn.One, {});
+      const panel = window.createWebviewPanel("tabby.chatView", "Tabby", ViewColumn.One, {});
 
       this.chatPanelViewProvider.resolveWebviewView(panel);
     },
