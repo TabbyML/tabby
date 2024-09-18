@@ -10,6 +10,7 @@ import * as z from 'zod'
 import { graphql } from '@/lib/gql/generates'
 import { AuthMethod, Encryption } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
+import { requiredString } from '@/lib/utils'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,11 +53,15 @@ const deleteEmailSettingMutation = graphql(/* GraphQL */ `
 `)
 
 const formSchema = z.object({
-  smtpUsername: z.string(),
-  smtpPassword: z.string(),
-  smtpServer: z.string(),
-  smtpPort: z.coerce.number(),
-  fromAddress: z.string(),
+  smtpUsername: requiredString(),
+  smtpPassword: requiredString(),
+  smtpServer: requiredString(),
+  smtpPort: z.coerce
+    .number()
+    .int()
+    .min(1, { message: 'Port must be at least 1' })
+    .max(65535, { message: 'Port must be at most 65535' }),
+  fromAddress: z.string().email(),
   encryption: z.nativeEnum(Encryption),
   authMethod: z.nativeEnum(AuthMethod)
 })
@@ -97,6 +102,7 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
   const [deleteAlertVisible, setDeleteAlertVisible] = React.useState(false)
 
   const updateEmailSetting = useMutation(updateEmailSettingMutation, {
+    form,
     onCompleted(data) {
       if (data?.updateEmailSetting) {
         onSuccess?.()
@@ -194,7 +200,6 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
                 <FormControl>
                   <Input
                     placeholder="e.g. from@gmail.com"
-                    type="email"
                     autoCapitalize="none"
                     autoComplete="email"
                     autoCorrect="off"

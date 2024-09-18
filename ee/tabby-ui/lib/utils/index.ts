@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from 'clsx'
 import { compact, isNil } from 'lodash-es'
 import { customAlphabet } from 'nanoid'
 import { twMerge } from 'tailwind-merge'
+import { string as zodString } from 'zod'
 
 import { AttachmentCodeItem } from '@/lib/types'
 
@@ -121,3 +122,6 @@ export function getRangeTextFromAttachmentCode(code: AttachmentCodeItem) {
   const { startLine, endLine } = getRangeFromAttachmentCode(code)
   return formatLineHashForCodeBrowser({ start: startLine, end: endLine })
 }
+
+export const requiredString = () =>
+  zodString().trim().min(1, { message: 'Required' })
