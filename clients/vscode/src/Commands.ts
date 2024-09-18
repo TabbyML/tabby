@@ -30,7 +30,6 @@ import { Issues } from "./Issues";
 import { InlineEditController } from "./inline-edit";
 import { getLogger } from "./logger";
 
-
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
 
@@ -231,8 +230,7 @@ export class Commands {
       const uri = editor.document.uri;
       const range = new Range(editor.selection.start.line, 0, editor.selection.end.line + 1, 0);
       await commands.executeCommand("editor.action.inlineSuggest.commit");
-      await applyQuickFixes(uri, range)
-
+      await applyQuickFixes(uri, range);
     },
     "inlineCompletion.acceptNextWord": () => {
       this.inlineCompletionProvider.handleEvent("accept_word");
@@ -443,10 +441,13 @@ export class Commands {
 
 async function applyQuickFixes(uri: Uri, range: Range): Promise<void> {
   const codeActions = await commands.executeCommand<CodeAction[]>("vscode.executeCodeActionProvider", uri, range);
-  const quickFixActions = codeActions.filter(action => action.kind && action.kind.contains(CodeActionKind.QuickFix) && action.title.toLowerCase().includes('import'));
-  quickFixActions.forEach( async (action) => {
+  const quickFixActions = codeActions.filter(
+    (action) =>
+      action.kind && action.kind.contains(CodeActionKind.QuickFix) && action.title.toLowerCase().includes("import"),
+  );
+  quickFixActions.forEach(async (action) => {
     try {
-      getLogger().info(`Applying CodeActions for ${action.title}.`)
+      getLogger().info(`Applying CodeActions for ${action.title}.`);
       if (action.edit) {
         await workspace.applyEdit(action.edit);
       }

@@ -76,6 +76,7 @@ export class Client {
   }
   registerCodeActionProvider(provider: CodeActionProvider, kind: CodeActionKind[]) {
     this.context.subscriptions.push(
-      languages.registerCodeActionsProvider("*", provider, {providedCodeActionKinds: kind}));
+      languages.registerCodeActionsProvider("*", provider, { providedCodeActionKinds: kind }),
+    );
   }
 }
