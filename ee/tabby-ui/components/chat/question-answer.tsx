@@ -128,9 +128,12 @@ function UserMessageCard(props: { message: UserMessage }) {
       {...props}
     >
       <div
-        className={cn('flex w-full items-center justify-between md:w-auto', {
-          'hidden md:flex': !data?.me.name
-        })}
+        className={cn(
+          'flex w-full items-center justify-between md:w-auto min-h-[2rem]',
+          {
+            'hidden md:flex': !data?.me.name
+          }
+        )}
       >
         <div className="flex items-center gap-x-2">
           <div className="shrink-0 select-none rounded-full border bg-background shadow">
@@ -325,7 +328,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       )}
       {...rest}
     >
-      <div className="flex w-full items-center justify-between md:w-auto">
+      <div className="flex w-full items-center justify-between md:w-auto min-h-[2rem]">
         <div className="flex items-center gap-x-2">
           <div className="shrink-0 select-none rounded-full border bg-background shadow">
             <IconTabby className="h-6 w-6 md:h-8 md:w-8" />
@@ -355,6 +358,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
           showExternalLink={!!onApplyInEditor}
           highlightIndex={relevantCodeHighlightIndex}
+          triggerClassname="md:pt-0"
         />
         {isLoading && !message?.message ? (
           <MessagePendingIndicator />
