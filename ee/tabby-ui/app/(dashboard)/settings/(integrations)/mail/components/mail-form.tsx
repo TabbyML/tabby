@@ -57,7 +57,7 @@ const formSchema = z.object({
   smtpPassword: requiredString(),
   smtpServer: requiredString(),
   smtpPort: z.coerce
-    .number()
+    .number({ invalid_type_error: 'Invalid Port', required_error: 'Required' })
     .int()
     .min(1, { message: 'Port must be at least 1' })
     .max(65535, { message: 'Port must be at most 65535' }),
