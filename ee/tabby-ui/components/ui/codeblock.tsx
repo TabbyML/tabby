@@ -9,7 +9,13 @@ import { coldarkDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { Button } from '@/components/ui/button'
-import { IconApplyInEditor, IconCheck, IconCopy } from '@/components/ui/icons'
+import {
+  IconAlignJustify,
+  IconApplyInEditor,
+  IconCheck,
+  IconCopy,
+  IconWrapText
+} from '@/components/ui/icons'
 import {
   Tooltip,
   TooltipContent,
@@ -90,17 +96,21 @@ const CodeBlock: FC<CodeBlockProps> = memo(
             {canWrapLongLines && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div>
-                    <Switch
-                      checked={wrapLongLines}
-                      onCheckedChange={setWrapLongLines}
-                      className="h-4 w-7  data-[state=checked]:bg-[#51462f] data-[state=unchecked]:bg-zinc-600"
-                      thumbClassName="h-3 w-3 data-[state=checked]:translate-x-3 bg-white"
-                    />
-                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
+                    onClick={() => setWrapLongLines(!wrapLongLines)}
+                  >
+                    {wrapLongLines ? <IconAlignJustify /> : <IconWrapText />}
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="m-0">Wrap long lines</p>
+                  <p className="m-0">
+                    {wrapLongLines
+                      ? 'Disable line wrapping'
+                      : 'Enable line wrapping'}
+                  </p>
                 </TooltipContent>
               </Tooltip>
             )}
