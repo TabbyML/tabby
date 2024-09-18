@@ -59,7 +59,7 @@ const formSchema = z.object({
     invalid_type_error: 'Invalid Port',
     required_error: 'Required'
   }),
-  fromAddress: z.string().email(),
+  fromAddress: z.string(),
   encryption: z.nativeEnum(Encryption),
   authMethod: z.nativeEnum(AuthMethod)
 })
