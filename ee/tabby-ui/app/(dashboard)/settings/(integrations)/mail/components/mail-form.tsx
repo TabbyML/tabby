@@ -198,6 +198,7 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
                 <FormControl>
                   <Input
                     placeholder="e.g. from@gmail.com"
+                    type="email"
                     autoCapitalize="none"
                     autoComplete="email"
                     autoCorrect="off"
