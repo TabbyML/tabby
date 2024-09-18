@@ -126,4 +126,102 @@ impl NotionDocumentService for NotionServiceImpl {
 }
     
 
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
 
+    use tabby_db::DbConn;
+    use tabby_schema::notion_documents::NotionDocumentService;
+    use super::{create,CreateNotionDocumentInput};
+    use tabby_db::notion_documents:: NotionDocumentType;
+
+    #[tokio::test]
+    async fn test_list_notion_documents() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let job = Arc::new(crate::service::job::create(db.clone()).await);
+        let service = create(db.clone(), job.clone());
+
+        let id = service
+            .create_notion_document(
+                CreateNotionDocumentInput{
+                    name: "example".to_string(),
+                    integration_id: "example".to_string(),
+                    integration_type: NotionDocumentType::Database,
+                    access_token: "example".to_string(),
+                }
+            )
+            .await
+            .unwrap();
+
+       
+        let docs = service
+            .list_notion_documents(None, None, None, None, None)
+            .await;
+        if docs.is_err (){
+            panic!("{}", docs.err().unwrap());
+        }
+        let docs = docs.unwrap();
+
+        assert_eq!(1, docs.len());
+        assert_eq!(id, docs[0].id);
+        assert!(docs[0].job_info.last_job_run.is_some());
+
+        service.delete_notion_document(id).await.unwrap();
+        let urls = service
+            .list_notion_documents(None, None, None, None, None)
+            .await
+            .unwrap();
+
+        assert_eq!(0, urls.len());
+
+        let _id1 = service
+            .create_notion_document(
+                CreateNotionDocumentInput{
+                    name: "example1".to_string(),
+                    integration_id: "example1".to_string(),
+                    integration_type: NotionDocumentType::Database,
+                    access_token: "example1".to_string(),
+                }
+            )
+            .await
+            .unwrap();
+        let id2 = service
+            .create_notion_document(
+                CreateNotionDocumentInput{
+                    name: "example2".to_string(),
+                    integration_id: "example2".to_string(),
+                    integration_type: NotionDocumentType::Database,
+                    access_token: "example2".to_string(),
+                }
+            )
+            .await
+            .unwrap();
+        let id3 = service
+            .create_notion_document(
+                CreateNotionDocumentInput{
+                    name: "example3".to_string(),
+                    integration_id: "example3".to_string(),
+                    integration_type: NotionDocumentType::Database,
+                    access_token: "example3".to_string(),
+                }
+            )
+            .await
+            .unwrap();
+        let docs = service
+            .list_notion_documents(Some(vec![id2.clone(), id3.clone()]), None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(2, docs.len());
+
+        service.delete_notion_document(_id1).await.unwrap();
+        service.delete_notion_document(id2.clone()).await.unwrap();
+        service.delete_notion_document(id3.clone()).await.unwrap();
+        let docs = service
+            .list_notion_documents(Some(vec![id2.clone(), id3.clone()]), None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(0, docs.len());
+
+    }
+
+}

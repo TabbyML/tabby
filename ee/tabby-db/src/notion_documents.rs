@@ -62,14 +62,15 @@ impl DbConn {
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<NotionDocumentDAO>> {
-        let mut condition = "".to_string();
+        let mut conditions = vec![];
+
         if let Some(ids) = ids {
             let ids: Vec<String> = ids.iter().map(i64::to_string).collect();
             let ids = ids.join(", ");
-            condition = format!(" AND id in ({ids})");
+            conditions.push(format!("id in ({ids})"));
         }
 
-        let condition = Some(condition);
+        let condition = (!conditions.is_empty()).then_some(conditions.join(" AND "));
 
         let pages = query_paged_as!(
             NotionDocumentDAO,
