@@ -104,9 +104,7 @@ const CodeBlock: FC<CodeBlockProps> = memo(
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="m-0">
-Toggle word wrap
-                  </p>
+                  <p className="m-0">Toggle word wrap</p>
                 </TooltipContent>
               </Tooltip>
             )}
