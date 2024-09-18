@@ -11,9 +11,9 @@ export class ChatPanelViewProvider {
 
   constructor(
     private readonly context: ExtensionContext,
-    private readonly agent: Agent,
-    private readonly logger: LogOutputChannel,
-    private readonly gitProvider: GitProvider,
+    agent: Agent,
+    logger: LogOutputChannel,
+    gitProvider: GitProvider,
   ) {
     this.webviewHelper = new WebviewHelper(context, agent, logger, gitProvider);
   }
