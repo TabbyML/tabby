@@ -56,7 +56,7 @@ const formSchema = z.object({
   smtpPassword: z.string(),
   smtpServer: z.string(),
   smtpPort: z.coerce.number({
-    invalid_type_error: 'Invalid Port',
+    invalid_type_error: 'Invalid port',
     required_error: 'Required'
   }),
   fromAddress: z.string(),
