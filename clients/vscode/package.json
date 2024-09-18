@@ -142,7 +142,7 @@
       },
       {
         "command": "tabby.chat.createPanel",
-        "title": "Create new panel",
+        "title": "Open Chat in Editor",
         "category": "Tabby"
       }
     ],
