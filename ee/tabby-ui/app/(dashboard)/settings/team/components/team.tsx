@@ -26,7 +26,7 @@ export default function Team() {
       )}
       <div>
         <CardHeader className="pl-0 pt-0">
-          <CardTitle>Members</CardTitle>
+          <CardTitle>Users</CardTitle>
         </CardHeader>
         <CardContent className="pl-0">
           <UsersTable />
