@@ -10,7 +10,6 @@ import * as z from 'zod'
 import { graphql } from '@/lib/gql/generates'
 import { AuthMethod, Encryption } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
-import { requiredString } from '@/lib/utils'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,14 +52,13 @@ const deleteEmailSettingMutation = graphql(/* GraphQL */ `
 `)
 
 const formSchema = z.object({
-  smtpUsername: requiredString(),
-  smtpPassword: requiredString(),
-  smtpServer: requiredString(),
-  smtpPort: z.coerce
-    .number({ invalid_type_error: 'Invalid Port', required_error: 'Required' })
-    .int()
-    .min(1, { message: 'Port must be at least 1' })
-    .max(65535, { message: 'Port must be at most 65535' }),
+  smtpUsername: z.string(),
+  smtpPassword: z.string(),
+  smtpServer: z.string(),
+  smtpPort: z.coerce.number({
+    invalid_type_error: 'Invalid Port',
+    required_error: 'Required'
+  }),
   fromAddress: z.string().email(),
   encryption: z.nativeEnum(Encryption),
   authMethod: z.nativeEnum(AuthMethod)
