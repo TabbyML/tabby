@@ -105,9 +105,7 @@ const CodeBlock: FC<CodeBlockProps> = memo(
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="m-0">
-                    {wrapLongLines
-                      ? 'Disable line wrapping'
-                      : 'Enable line wrapping'}
+Toggle word wrap
                   </p>
                 </TooltipContent>
               </Tooltip>
