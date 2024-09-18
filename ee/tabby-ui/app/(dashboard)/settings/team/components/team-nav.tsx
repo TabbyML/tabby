@@ -13,7 +13,7 @@ export function TeamNav() {
     <Tabs value={isGroupsPath ? 'groups' : 'members'} className="mb-8">
       <TabsList>
         <Link href="/settings/team">
-          <TabsTrigger value="members">Members</TabsTrigger>
+          <TabsTrigger value="members">Users</TabsTrigger>
         </Link>
         <Link href="/settings/team/groups">
           <TabsTrigger value="groups">Groups</TabsTrigger>
