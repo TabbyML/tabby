@@ -37,7 +37,7 @@ export class QuickFixCodeActionProvider implements CodeActionProviderInterface {
     const quickFixEditing = new CodeAction("Fixing with Tabby", CodeActionKind.QuickFix);
     quickFixEditing.command = {
       command: "tabby.chat.edit.start",
-      title: "Fixing with Tabby",
+      title: "Fix with Tabby",
       arguments: [
         {
           errorContext: lspErrors,
