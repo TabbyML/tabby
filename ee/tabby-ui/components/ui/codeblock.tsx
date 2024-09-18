@@ -22,8 +22,6 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 
-import { Switch } from './switch'
-
 export interface CodeBlockProps {
   language: string
   value: string
