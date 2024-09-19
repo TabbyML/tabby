@@ -121,7 +121,6 @@ const client = new Client({
         GrepFile: () => null,
         GrepTextOrBase64: () => null,
         GrepSubMatch: () => null,
-        Repository: () => null,
         GitReference: () => null,
         MessageAttachment: () => null,
         MessageAttachmentCode: () => null,
