@@ -59,8 +59,8 @@ export class ChatEditProvider {
       return this.resolveEdit(params);
     });
 
-    this.connection.onRequest(ChatLineRangeSmartApplyRequest.type, async (params) => {
-      return this.provideSmartApplyLineRange(params);
+    this.connection.onRequest(ChatLineRangeSmartApplyRequest.type, async (params, token) => {
+      return this.provideSmartApplyLineRange(params, token);
     });
     this.connection.onRequest(SmartApplyCodeRequest.type, async (params, token) => {
       return this.provideSmartApplyEdit(params, token);
@@ -441,6 +441,7 @@ export class ChatEditProvider {
 
   async provideSmartApplyLineRange(
     params: ChatLineRangeSmartApplyParams,
+    token: CancellationToken,
   ): Promise<ChatLineRangeSmartApplyResult | undefined> {
     const document = this.documents.get(params.uri);
     if (!document) {
@@ -467,6 +468,7 @@ export class ChatEditProvider {
       } as ChatEditMutexError;
     }
     this.mutexAbortController = new AbortController();
+    token.onCancellationRequested(() => this.mutexAbortController?.abort());
 
     const stream = await this.agent.provideSmartApplyLineRange(documentText, params.applyCode);
     if (!stream) {

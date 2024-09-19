@@ -17,7 +17,7 @@ import {
   commands,
   ColorThemeKind,
   Position,
-  CancellationTokenSource,
+  ProgressLocation,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context, NavigateOpts, FocusKeybinding } from "tabby-chat-panel";
 import hashObject from "object-hash";
@@ -36,7 +36,6 @@ export class ChatViewProvider implements WebviewViewProvider {
   private pendingMessages: ChatMessage[] = [];
   private pendingRelevantContexts: Context[] = [];
   private isChatPageDisplayed = false;
-  private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
   // FIXME: this check is not compatible with the environment of a browser in macOS
   private isMac: boolean = env.appHost === "desktop" && process.platform === "darwin";
 
@@ -220,69 +219,82 @@ export class ChatViewProvider implements WebviewViewProvider {
             return;
           }
 
-          getLogger("Tabby").info("Smart apply in editor is not implemented yet.", content);
+          getLogger("Tabby").info("Smart apply in editor started.", content);
 
-          const lineRangeRes = await this.chat.provideLineRange({
-            uri: editor.document.uri.toString(),
-            applyCode: content,
-          });
+          await window.withProgress(
+            {
+              location: ProgressLocation.Notification,
+              title: "Smart Apply in Progress",
+              cancellable: true,
+            },
+            async (progress, token) => {
+              progress.report({ increment: 0, message: "Analyzing code..." });
 
-          getLogger().info("line range(one-based): ", lineRangeRes?.start, lineRangeRes?.end);
-
-          if (!lineRangeRes?.start || !lineRangeRes?.end) {
-            window.showInformationMessage("Failed to apply code.");
-            applyInEditor(editor);
-            return;
-          }
-
-          this.chatEditCancellationTokenSource = new CancellationTokenSource();
-
-          try {
-            getLogger().info("getting provide edit command", content);
-
-            // passing line number as 0 based, [startLine, endLine)
-            const range = {
-              start: { line: lineRangeRes.start - 1, character: 0 },
-              end: { line: lineRangeRes.end - 1, character: 0 },
-            };
-            // ensure the range is visible in the editor
-            editor.revealRange(
-              new Range(
-                new Position(range.start.line, range.start.character),
-                new Position(range.end.line, range.end.character),
-              ),
-              TextEditorRevealType.InCenterIfOutsideViewport,
-            );
-
-            const { indent, indentForTheFirstLine } = getIndentInfo(editor.document, editor.selection);
-
-            await this.chat.provideSmartApplyEdit(
-              {
-                location: {
+              const lineRangeRes = await this.chat.provideLineRange(
+                {
                   uri: editor.document.uri.toString(),
-                  range,
+                  applyCode: content,
                 },
-                applyCode: content,
-                format: "previewChanges",
-                indentInfo: {
-                  indent,
-                  indentForTheFirstLine,
-                },
-              },
-              this.chatEditCancellationTokenSource.token,
-            );
+                token,
+              );
 
-            getLogger().info("provide edit command done");
-          } catch (error) {
-            if (error instanceof Error) {
-              window.showErrorMessage(error.message);
-            } else {
-              window.showErrorMessage("An unknown error occurred");
-            }
-          } finally {
-            this.chatEditCancellationTokenSource?.dispose();
-            this.chatEditCancellationTokenSource = null;
-          }
+              getLogger().info("line range(one-based): ", lineRangeRes?.start, lineRangeRes?.end);
+
+              if (!lineRangeRes?.start || !lineRangeRes?.end) {
+                window.showInformationMessage("Failed to apply code.");
+                applyInEditor(editor);
+                return;
+              }
+
+              progress.report({ increment: 30, message: "Preparing edit..." });
+
+              try {
+                getLogger().info("getting provide edit command", content);
+
+                const range = {
+                  start: { line: lineRangeRes.start - 1, character: 0 },
+                  end: { line: lineRangeRes.end - 1, character: 0 },
+                };
+                editor.revealRange(
+                  new Range(
+                    new Position(range.start.line, range.start.character),
+                    new Position(range.end.line, range.end.character),
+                  ),
+                  TextEditorRevealType.InCenterIfOutsideViewport,
+                );
+
+                const { indent, indentForTheFirstLine } = getIndentInfo(editor.document, editor.selection);
+
+                progress.report({ increment: 30, message: "Applying smart edit..." });
+
+                await this.chat.provideSmartApplyEdit(
+                  {
+                    location: {
+                      uri: editor.document.uri.toString(),
+                      range,
+                    },
+                    applyCode: content,
+                    format: "previewChanges",
+                    indentInfo: {
+                      indent,
+                      indentForTheFirstLine,
+                    },
+                  },
+                  token,
+                );
+
+                progress.report({ increment: 40, message: "Finalizing..." });
+
+                getLogger().info("provide edit command done");
+              } catch (error) {
+                if (error instanceof Error) {
+                  window.showErrorMessage(error.message);
+                } else {
+                  window.showErrorMessage("An unknown error occurred");
+                }
+              }
+            },
+          );
         };
 
         const editor = window.activeTextEditor;
