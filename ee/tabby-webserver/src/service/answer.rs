@@ -583,4 +583,35 @@ mod tests {
 
         insta::assert_yaml_snapshot!(output);
     }
+
+    #[test]
+    fn test_build_user_prompt() {
+        let user_input = "What is the purpose of this code?";
+        let assistant_attachment = tabby_schema::thread::MessageAttachment {
+            doc: vec![tabby_schema::thread::MessageAttachmentDoc {
+                title: "Documentation".to_owned(),
+                content: "This code implements a basic web server.".to_owned(),
+                link: "https://example.com/docs".to_owned(),
+            }],
+            code: vec![tabby_schema::thread::MessageAttachmentCode {
+                git_url: "https://github.com/".to_owned(),
+                filepath: "server.py".to_owned(),
+                language: "python".to_owned(),
+                content: "from flask import Flask\n\napp = Flask(__name__)\n\n@app.route('/')\ndef hello():\n    return 'Hello, World!'".to_owned(),
+                start_line: 1,
+            }],
+            client_code: vec![],
+        };
+        let user_attachment_input = None;
+
+        let prompt =
+            super::build_user_prompt(user_input, &assistant_attachment, user_attachment_input);
+
+        println!("{}", prompt.as_str());
+        assert!(prompt.contains(user_input));
+        assert!(prompt.contains("This code implements a basic web server."));
+        assert!(prompt.contains("from flask import Flask"));
+        assert!(prompt.contains("[[citation:1]]"));
+        assert!(prompt.contains("[[citation:2]]"));
+    }
 }
