@@ -19,6 +19,7 @@ pub enum ContextSourceKind {
     Gitlab,
     Doc,
     Web,
+    Notion,
 }
 
 #[graphql_interface]

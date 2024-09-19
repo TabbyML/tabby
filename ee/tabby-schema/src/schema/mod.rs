@@ -653,8 +653,8 @@ impl Query {
         Ok(SourceIdAccessPolicy { source_id, read })
     }
 
-    // list_notion_documents is a query that lists all the notion documents
-    pub async fn list_notion_documents(
+    // notion_documents is a query that lists all the notion documents
+    pub async fn notion_documents(
         ctx: &Context,
         ids: Option<Vec<ID>>,
         after: Option<String>,

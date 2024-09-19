@@ -729,7 +729,7 @@ type Query {
   "List user groups."
   userGroups: [UserGroup!]!
   sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
-  listNotionDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): NotionDocumentConnection!
+  notionDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): NotionDocumentConnection!
 }
 
 type RefreshTokenResponse {
