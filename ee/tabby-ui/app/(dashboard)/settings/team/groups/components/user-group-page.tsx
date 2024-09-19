@@ -13,7 +13,6 @@ import { CardHeader, CardTitle } from '@/components/ui/card'
 import { IconPlus } from '@/components/ui/icons'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
-import { SubHeader } from '@/components/sub-header'
 
 import CreateUserGroupDialog from './create-user-group'
 import { UserGroupItem } from './user-group-item'
@@ -59,7 +58,7 @@ export default function UserGroups() {
     >
       <CardHeader className="px-0 pt-0">
         <CardTitle className="flex min-h-[2rem] items-start justify-between">
-          User Groups
+          Groups
           {meData?.me.isAdmin && (
             <CreateUserGroupDialog onSubmit={onCreateUserGroup}>
               <Button className="gap-1">
@@ -70,10 +69,6 @@ export default function UserGroups() {
           )}
         </CardTitle>
       </CardHeader>
-      <SubHeader>
-        Assign and regulate member access to different source contexts with User
-        Groups, ensuring secure and customized interactions
-      </SubHeader>
       <LoadingWrapper loading={fetching} fallback={<ListSkeleton />}>
         {userGroups?.length ? (
           <div className="overflow-hidden rounded-lg border">

@@ -90,7 +90,7 @@ export default function CreateUserGroupDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader className="gap-3">
-          <DialogTitle>Create User Group</DialogTitle>
+          <DialogTitle>Create Group</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <div className="grid gap-2">
@@ -106,12 +106,12 @@ export default function CreateUserGroupDialog({
                     <FormItem>
                       <FormLabel required>Name</FormLabel>
                       <FormDescription>
-                        The name should be unique, and it cannot be changed
+                        Group name need to be unique, and it cannot be changed
                         after creation.
                       </FormDescription>
                       <FormControl>
                         <Input
-                          placeholder="User Group Name"
+                          placeholder="e.g backend-dev"
                           autoCapitalize="none"
                           autoCorrect="off"
                           autoComplete="off"
