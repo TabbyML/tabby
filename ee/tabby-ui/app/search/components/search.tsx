@@ -1136,7 +1136,7 @@ function AnswerBlock({
           onCodeCitationMouseLeave={onCodeCitationMouseLeave}
           contextInfo={contextInfo}
           fetchingContextInfo={fetchingContextInfo}
-          canWrapLongLines={isLoading}
+          canWrapLongLines={!isLoading}
         />
         {answer.error && <ErrorMessageBlock error={answer.error} />}
 
