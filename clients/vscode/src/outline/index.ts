@@ -9,15 +9,15 @@ import {
   Uri,
 } from "vscode";
 import { ContextVariables } from "../ContextVariables";
-import { NLOutlinesProvider } from "./NLOutlinesProvider";
+import { OutlinesProvider } from "./OutlinesProvider";
 import { getLogger } from "../logger";
 
 export class OutlinesGenerator {
-  private nlOutlinesCancellationTokenSource: CancellationTokenSource | null = null;
+  private outlinesCancellationTokenSource: CancellationTokenSource | null = null;
 
   constructor(
     private contextVariables: ContextVariables,
-    private nlOutlinesProvider: NLOutlinesProvider,
+    private outlinesProvider: OutlinesProvider,
   ) {}
 
   async generate() {
@@ -35,18 +35,18 @@ export class OutlinesGenerator {
         cancellable: true,
       },
       async (_, token) => {
-        this.contextVariables.nlOutlinesGenerationInProgress = true;
+        this.contextVariables.outlinesGenerationInProgress = true;
         if (token.isCancellationRequested) {
           return;
         }
 
-        this.nlOutlinesCancellationTokenSource = new CancellationTokenSource();
+        this.outlinesCancellationTokenSource = new CancellationTokenSource();
         token.onCancellationRequested(() => {
-          this.nlOutlinesCancellationTokenSource?.cancel();
+          this.outlinesCancellationTokenSource?.cancel();
         });
 
         try {
-          await this.nlOutlinesProvider.provideNLOutlinesGenerate({
+          await this.outlinesProvider.provideOutlinesGenerate({
             location: editLocation,
             editor: editor,
           });
@@ -55,15 +55,15 @@ export class OutlinesGenerator {
             window.showErrorMessage(`Error generating outlines: ${error.message}`);
           }
         } finally {
-          this.nlOutlinesCancellationTokenSource?.dispose();
-          this.nlOutlinesCancellationTokenSource = null;
-          this.contextVariables.nlOutlinesGenerationInProgress = false;
+          this.outlinesCancellationTokenSource?.dispose();
+          this.outlinesCancellationTokenSource = null;
+          this.contextVariables.outlinesGenerationInProgress = false;
         }
       },
     );
   }
 
-  async editNLOutline(uri?: Uri, startLine?: number) {
+  async editOutline(uri?: Uri, startLine?: number) {
     const editor = window.activeTextEditor;
     if (!editor) return;
 
@@ -77,7 +77,7 @@ export class OutlinesGenerator {
       line = editor.selection.active.line;
     }
 
-    const content = this.nlOutlinesProvider.getOutline(documentUri, line);
+    const content = this.outlinesProvider.getOutline(documentUri, line);
     if (!content) return;
 
     const quickPick = window.createQuickPick();
@@ -97,7 +97,7 @@ export class OutlinesGenerator {
         async (progress) => {
           progress.report({ increment: 0 });
           try {
-            await this.nlOutlinesProvider.updateNLOutline(documentUri, line, newContent);
+            await this.outlinesProvider.updateOutline(documentUri, line, newContent);
             progress.report({ increment: 100 });
             window.showInformationMessage(`Updated NL Outline: ${newContent}`);
           } catch (error) {
@@ -118,7 +118,7 @@ export class OutlinesGenerator {
     if (!editor) {
       return;
     }
-    await this.nlOutlinesProvider.resolveOutline("accept");
+    await this.outlinesProvider.resolveOutline("accept");
   }
 
   async discardOutline() {
@@ -126,7 +126,7 @@ export class OutlinesGenerator {
     if (!editor) {
       return;
     }
-    await this.nlOutlinesProvider.resolveOutline("discard");
+    await this.outlinesProvider.resolveOutline("discard");
   }
 
   private getEditLocation(editor: TextEditor): { uri: Uri; range: Range } {

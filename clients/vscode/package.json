@@ -136,13 +136,13 @@
         "category": "Tabby"
       },
       {
-        "command": "tabby.chat.edit.outline.generate",
-        "title": "Generate Nature Language Outlines for selecting range",
+        "command": "tabby.outline.generate",
+        "title": "Generate outline for code editing",
         "category": "Tabby"
       },
       {
-        "command": "tabby.chat.edit.editNLOutline",
-        "title": "Edit Outline at Current Cursor Position",
+        "command": "tabby.outline.edit",
+        "title": "Edit the outline",
         "category": "Tabby"
       },
       {
@@ -204,7 +204,7 @@
           "when": "tabby.chatEnabled"
         },
         {
-          "command": "tabby.chat.edit.outline.generate",
+          "command": "tabby.outline.generate",
           "when": "tabby.chatEnabled && tabby.chatOutlineEnabled"
         },
         {
@@ -421,7 +421,7 @@
         "when": "!editorHasSelection && tabby.chatEnabled && !tabby.chatViewVisible"
       },
       {
-        "command": "tabby.chat.edit.editNLOutline",
+        "command": "tabby.outline.edit",
         "key": "ctrl+y",
         "mac": "cmd+y",
         "when": "tabby.chatOutlineEnabled"

@@ -24,7 +24,7 @@ import { GitProvider, Repository } from "./git/GitProvider";
 import CommandPalette from "./CommandPalette";
 import { showOutputPanel } from "./logger";
 import { Issues } from "./Issues";
-import { NLOutlinesProvider } from "./outline/NLOutlinesProvider";
+import { OutlinesProvider } from "./outline/OutlinesProvider";
 import { OutlinesGenerator } from "./outline";
 import { InlineEditController } from "./inline-edit";
 
@@ -40,7 +40,7 @@ export class Commands {
     private readonly inlineCompletionProvider: InlineCompletionProvider,
     private readonly chatViewProvider: ChatViewProvider,
     private readonly gitProvider: GitProvider,
-    private readonly nlOutlinesProvider: NLOutlinesProvider,
+    private readonly outlinesProvider: OutlinesProvider,
   ) {
     const registrations = Object.keys(this.commands).map((key) => {
       const commandName = `tabby.${key}`;
@@ -311,17 +311,17 @@ export class Commands {
       );
       inlineEditController.start();
     },
-    "chat.edit.outline.generate": async () => {
-      await new OutlinesGenerator(this.contextVariables, this.nlOutlinesProvider).generate();
+    "outline.generate": async () => {
+      await new OutlinesGenerator(this.contextVariables, this.outlinesProvider).generate();
     },
-    "chat.edit.editNLOutline": async (uri?: Uri, startLine?: number) => {
-      await new OutlinesGenerator(this.contextVariables, this.nlOutlinesProvider).editNLOutline(uri, startLine);
+    "outline.edit": async (uri?: Uri, startLine?: number) => {
+      await new OutlinesGenerator(this.contextVariables, this.outlinesProvider).editOutline(uri, startLine);
     },
     "chat.edit.outline.accept": async () => {
-      await new OutlinesGenerator(this.contextVariables, this.nlOutlinesProvider).acceptOutline();
+      await new OutlinesGenerator(this.contextVariables, this.outlinesProvider).acceptOutline();
     },
     "chat.edit.outline.discard": async () => {
-      await new OutlinesGenerator(this.contextVariables, this.nlOutlinesProvider).discardOutline();
+      await new OutlinesGenerator(this.contextVariables, this.outlinesProvider).discardOutline();
     },
     "chat.edit.stop": async () => {
       this.chatEditCancellationTokenSource?.cancel();

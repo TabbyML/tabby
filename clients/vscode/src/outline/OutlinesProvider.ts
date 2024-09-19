@@ -56,7 +56,7 @@ interface ChangesPreview {
 
 type OpenAIResponse = AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
 
-export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensProvider {
+export class OutlinesProvider extends EventEmitter<void> implements CodeLensProvider {
   private client: OpenAI;
   private outlines: Map<string, Outline[]>;
   private addedDecorationType: TextEditorDecorationType;
@@ -87,7 +87,7 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
     });
   }
 
-  async provideNLOutlinesGenerate(params: ChatNLOutlinesParams): Promise<boolean> {
+  async provideOutlinesGenerate(params: ChatNLOutlinesParams): Promise<boolean> {
     if (!params.editor) {
       return false;
     }
@@ -152,7 +152,7 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
     }
   }
 
-  async updateNLOutline(documentUri: string, lineNumber: number, newContent: string): Promise<boolean> {
+  async updateOutline(documentUri: string, lineNumber: number, newContent: string): Promise<boolean> {
     const outlines = this.outlines.get(documentUri) || [];
     const oldOutline = outlines.find((outline) => outline.startLine === lineNumber);
     if (!oldOutline) {
@@ -267,7 +267,7 @@ export class NLOutlinesProvider extends EventEmitter<void> implements CodeLensPr
       return [
         new CodeLens(range, {
           title: "Edit",
-          command: "tabby.chat.edit.editNLOutline",
+          command: "tabby.outline.edit",
           arguments: [document.uri, outline.startLine],
         }),
         new CodeLens(range, {

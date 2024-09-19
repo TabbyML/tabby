@@ -13,7 +13,7 @@ import { StatusBarItem } from "./StatusBarItem";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { Commands } from "./Commands";
 import { Status } from "tabby-agent";
-import { NLOutlinesProvider } from "./outline/NLOutlinesProvider";
+import { OutlinesProvider } from "./outline/OutlinesProvider";
 import { CodeActionProvider } from "./CodeAction";
 
 const isBrowser = !!process.env["IS_BROWSER"];
@@ -80,7 +80,7 @@ export async function activate(context: ExtensionContext) {
     }
   });
 
-  const nlOutlinesProvider = new NLOutlinesProvider(config);
+  const nlOutlinesProvider = new OutlinesProvider(config);
   context.subscriptions.push(languages.registerCodeLensProvider({ scheme: "file" }, nlOutlinesProvider));
 
   // Register chat panel
