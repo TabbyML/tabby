@@ -238,7 +238,7 @@ fn list_refs(git_url: &str) -> Vec<tabby_git::GitReference> {
 fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
     Repository {
         source_id: repo.source_id(),
-        id: repo.id,
+        id: ID::new(repo.source_id()),
         name: repo.display_name,
         kind,
         dir: RepositoryConfig::resolve_dir(&repo.git_url),
@@ -254,9 +254,10 @@ fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
 }
 
 fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> Result<Repository> {
+    let source_id = config_index_to_id(index);
     Ok(Repository {
-        id: ID::new(config_index_to_id(index)),
-        source_id: config_index_to_id(index),
+        id: ID::new(source_id.clone()),
+        source_id: source_id,
         name: config.display_name(),
         kind: RepositoryKind::GitConfig,
         dir: config.dir(),
