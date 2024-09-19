@@ -30,19 +30,19 @@ export class QuickFixCodeActionProvider implements CodeActionProviderInterface {
       return [];
     }
 
-    //TODO: Get all diagnostics from the context and substring with max command chars
-    const lspErrors = context.diagnostics[0];
+    const lspErrors = context.diagnostics
+      .map((diagnostic, idx) => "Error " + idx + ": " + diagnostic.message)
+      .join("\n");
+    const userCommand = `Here is some error information that occurred in the selection:
+                        ${lspErrors}
+                        Please provide the correct command to fix the error.`;
     getLogger("QuickFixCodeActionProvider").info("lspErrors", lspErrors);
 
-    const quickFixEditing = new CodeAction("Fixing with Tabby", CodeActionKind.QuickFix);
+    const quickFixEditing = new CodeAction("Fix with Tabby", CodeActionKind.QuickFix);
     quickFixEditing.command = {
       command: "tabby.chat.edit.start",
       title: "Fix with Tabby",
-      arguments: [
-        {
-          errorContext: lspErrors,
-        },
-      ],
+      arguments: [userCommand],
     };
 
     return [quickFixEditing];

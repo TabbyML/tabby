@@ -28,7 +28,7 @@ export class InlineEditController {
     private contextVariables: ContextVariables,
     private editor: TextEditor,
     private editLocation: EditLocation,
-    private args?: { errorContext: string },
+    private userCommand?: string,
   ) {
     this.recentlyCommand = this.config.chatEditRecentlyCommand.slice(0, this.config.maxChatEditHistory);
 
@@ -53,9 +53,7 @@ export class InlineEditController {
   }
 
   async start() {
-    this.args?.errorContext
-      ? await this.provideEditWithCommand(`Fix this error: ${this.args.errorContext}`)
-      : this.quickPick.show();
+    this.userCommand ? await this.provideEditWithCommand(this.userCommand) : this.quickPick.show();
   }
 
   private async onDidAccept() {
@@ -69,10 +67,12 @@ export class InlineEditController {
   private async provideEditWithCommand(command: string) {
     const startPosition = new Position(this.editLocation.range.start.line, this.editLocation.range.start.character);
 
-    const updatedRecentlyCommand = [command]
-      .concat(this.recentlyCommand.filter((item) => item !== command))
-      .slice(0, this.config.maxChatEditHistory);
-    this.config.chatEditRecentlyCommand = updatedRecentlyCommand;
+    if (!this.userCommand) {
+      const updatedRecentlyCommand = [command]
+        .concat(this.recentlyCommand.filter((item) => item !== command))
+        .slice(0, this.config.maxChatEditHistory);
+      this.config.chatEditRecentlyCommand = updatedRecentlyCommand;
+    }
 
     this.editor.selection = new Selection(startPosition, startPosition);
     this.contextVariables.chatEditInProgress = true;
