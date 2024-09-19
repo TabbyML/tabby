@@ -272,6 +272,7 @@ export const repositoryListQuery = graphql(/* GraphQL */ `
       name
       kind
       gitUrl
+      sourceId
       refs {
         name
         commit
