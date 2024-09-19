@@ -315,7 +315,9 @@ async fn api_router(
     }
 
     let server_setting_router =
-        Router::new().route("/v1beta/server_setting", routing::get(routes::setting));
+        Router::new()
+            .route("/v1beta/server_setting", routing::get(routes::setting))
+            .route("/v1/models", routing::get(routes::models));
 
     #[cfg(feature = "ee")]
     if args.no_webserver {
