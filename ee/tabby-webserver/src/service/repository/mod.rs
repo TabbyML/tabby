@@ -257,7 +257,7 @@ fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> R
     let source_id = config_index_to_id(index);
     Ok(Repository {
         id: ID::new(source_id.clone()),
-        source_id: source_id,
+        source_id,
         name: config.display_name(),
         kind: RepositoryKind::GitConfig,
         dir: config.dir(),

@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use juniper::{graphql_interface, graphql_object, GraphQLEnum, GraphQLInterface, GraphQLObject, ID};
+use juniper::{
+    graphql_interface, graphql_object, GraphQLEnum, GraphQLInterface, GraphQLObject, ID,
+};
 use regex::{Captures, Regex};
 
 use super::{
