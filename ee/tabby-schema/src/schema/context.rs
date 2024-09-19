@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use juniper::{graphql_interface, graphql_object, GraphQLEnum, GraphQLInterface, GraphQLObject};
+use juniper::{
+    graphql_interface, graphql_object, GraphQLEnum, GraphQLInterface, GraphQLObject, ID,
+};
 use regex::{Captures, Regex};
 
 use super::{
@@ -31,6 +33,8 @@ pub trait ContextSourceId {
 #[derive(GraphQLInterface)]
 #[graphql(context = Context, impl = [ContextSourceIdValue], for = [CustomWebDocument, PresetWebDocument, Repository, WebContextSource])]
 pub struct ContextSource {
+    pub id: ID,
+
     // start implements ContextSource
     pub source_id: String,
     // end   implements ContextSource
@@ -66,6 +70,10 @@ const PUBLIC_WEB_INTERNAL_SOURCE_ID: &str = "internal-public-web";
 
 #[graphql_object(context = Context, impl = [ContextSourceIdValue, ContextSourceValue])]
 impl WebContextSource {
+    fn id(&self) -> ID {
+        ID::new(PUBLIC_WEB_INTERNAL_SOURCE_ID.to_owned())
+    }
+
     fn source_kind(&self) -> ContextSourceKind {
         ContextSourceKind::Web
     }
