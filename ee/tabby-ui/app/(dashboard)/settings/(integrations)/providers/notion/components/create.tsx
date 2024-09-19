@@ -60,6 +60,7 @@ export default function CreateNotionDocument() {
   const { isSubmitting } = form.formState
   const createNotionDocument = useMutation(createNotionDocumentMutation, {
     onCompleted() {
+      form.reset({ name: undefined, })
       onCreated()
     },
     form
@@ -140,23 +141,24 @@ export default function CreateNotionDocument() {
               control={form.control}
               name="integrationType"
               render={({ field }) => (
-
                 <FormItem>
-                  <FormLabel required>Integration Type</FormLabel>
-                  <Select
-                    value={NotionDocumentType.Database}
-                    //disabled={true}
-                    defaultValue={NotionDocumentType.Database}
-                  >
+                <FormLabel required>Integration Type</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                >
+                  <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Integration Type" />
+                      <SelectValue placeholder="Notion Integration Type" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NotionDocumentType.Database}>DATABASE</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
+                  </FormControl>
+                  <SelectContent>
+                  <SelectItem value={NotionDocumentType.Database}>DATABASE</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+
+                
 
                 
               )}

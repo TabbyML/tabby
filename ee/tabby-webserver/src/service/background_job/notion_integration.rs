@@ -30,7 +30,7 @@ impl Job for NotionJob {
 
 impl NotionJob {
 
-    pub async fn run_impl(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
+    pub async fn run(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
         
         logkit::info!("Starting notion database index pipeline for {}", self.integration_id);
         let embedding = embedding.clone();
@@ -56,25 +56,10 @@ impl NotionJob {
         logkit::info!("fetched {} pages from notion:'{}'", num_docs, self.integration_id);
         indexer.commit();
         return Ok(());
+        
     }
 
-    pub async fn run(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
-        let notion_id = self.integration_id.clone();
-        if tokio::time::timeout(
-            Duration::from_secs(CRAWLER_TIMEOUT_SECS),
-            self.run_impl(embedding),
-        )
-        .await
-        .is_err()
-        {
-            logkit::warn!(
-                "fetched for notion: {} timeout after {} seconds",
-                notion_id,
-                CRAWLER_TIMEOUT_SECS
-            );
-        }
-        Ok(())
-    }
+    
     
 }
 

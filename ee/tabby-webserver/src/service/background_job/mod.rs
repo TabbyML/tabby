@@ -121,11 +121,13 @@ pub async fn start(
                         }
                     } {
                         logkit::info!(exit_code = 1; "Job failed {}", err);
+                        debug!("Background job {} failed", job.id);
                     } else {
                         logkit::info!(exit_code = 0; "Job completed successfully");
+                        debug!("Background job {} completed", job.id);
                     }
                     logger.finalize().await;
-                    debug!("Background job {} completed", job.id);
+                    
                 },
                 Some(now) = hourly.next() => {
                     if let Err(err) = DbMaintainanceJob::cron(now, context_service.clone(), db.clone()).await {
