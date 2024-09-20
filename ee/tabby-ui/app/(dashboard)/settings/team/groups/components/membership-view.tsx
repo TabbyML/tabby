@@ -90,7 +90,7 @@ export function MembershipView({
 
   return (
     <div className={cn('flex flex-col gap-2 border-b px-1 py-2', className)}>
-      <div className="flex-1 max-h-[286px] overflow-auto">
+      <div className="max-h-[286px] flex-1 overflow-auto">
         {members.length || emptyItemVisible ? (
           <Table className="table-fixed">
             <TableBody>
