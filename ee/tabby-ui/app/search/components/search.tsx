@@ -206,6 +206,9 @@ const listThreadMessages = graphql(/* GraphQL */ `
 
 const PAGE_SIZE = 30
 
+const TEMP_MSG_ID_PREFIX = '_temp_msg_'
+const tempNanoId = () => `${TEMP_MSG_ID_PREFIX}${nanoid()}`
+
 export function Search() {
   const { updateUrlComponents, pathname } = useRouterStuff()
   const [activePathname, setActivePathname] = useState<string | undefined>()
@@ -509,7 +512,9 @@ export function Search() {
       )
       if (currentAnswer) {
         currentAnswer.error =
-          error.message === '401' ? 'Unauthorized' : 'Fail to fetch'
+          error.message === '401'
+            ? 'Unauthorized'
+            : error.message || 'Fail to fetch'
       }
     }
   }, [error])
@@ -553,8 +558,8 @@ export function Search() {
   }, [devPanelOpen])
 
   const onSubmitSearch = (question: string, ctx?: ThreadRunContexts) => {
-    const newUserMessageId = nanoid()
-    const newAssistantMessageId = nanoid()
+    const newUserMessageId = tempNanoId()
+    const newAssistantMessageId = tempNanoId()
     const newUserMessage: ConversationMessage = {
       id: newUserMessageId,
       role: Role.User,
@@ -612,10 +617,10 @@ export function Search() {
     const userMessage = messages[userMessageIndex]
     const newUserMessage: ConversationMessage = {
       ...userMessage,
-      id: nanoid()
+      id: tempNanoId()
     }
     const newAssistantMessage: ConversationMessage = {
-      id: nanoid(),
+      id: tempNanoId(),
       role: Role.Assistant,
       content: '',
       attachment: {
@@ -686,17 +691,33 @@ export function Search() {
     if (assistantMessageIndex === -1 || userMessage?.role !== Role.User) {
       return
     }
-    deleteThreadMessagePair(
-      threadId,
-      userMessage.id,
-      asistantMessageId
-    ).finally(() => {
-      // remove userMessage and assistantMessage
+
+    // message pair not successfully created in threadrun
+    if (
+      userMessage.id.startsWith(TEMP_MSG_ID_PREFIX) &&
+      asistantMessageId.startsWith(TEMP_MSG_ID_PREFIX)
+    ) {
       const newMessages = messages
         .slice(0, userMessageIndex)
         .concat(messages.slice(assistantMessageIndex + 1))
       setMessages(newMessages)
-    })
+      return
+    }
+
+    deleteThreadMessagePair(threadId, userMessage.id, asistantMessageId).then(
+      errorMessage => {
+        if (errorMessage) {
+          toast.error(errorMessage)
+          return
+        }
+
+        // remove userMessage and assistantMessage
+        const newMessages = messages
+          .slice(0, userMessageIndex)
+          .concat(messages.slice(assistantMessageIndex + 1))
+        setMessages(newMessages)
+      }
+    )
   }
 
   const isFetchingMessages =
