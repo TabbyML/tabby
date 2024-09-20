@@ -500,19 +500,16 @@ mod tests {
     use async_openai::{
         error::OpenAIError,
         types::{
-            ChatCompletionResponseStream,
-            CompletionUsage, CreateChatCompletionRequest, CreateChatCompletionResponse,
-            CreateChatCompletionStreamResponse,
+            ChatCompletionResponseStream, CompletionUsage, CreateChatCompletionRequest,
+            CreateChatCompletionResponse, CreateChatCompletionStreamResponse,
         },
     };
     use axum::async_trait;
-    
     use juniper::ID;
     use tabby_common::{
         api::{
             code::{
-                CodeSearch, CodeSearchError, CodeSearchParams, CodeSearchQuery,
-                CodeSearchResponse,
+                CodeSearch, CodeSearchError, CodeSearchParams, CodeSearchQuery, CodeSearchResponse,
             },
             doc::{DocSearch, DocSearchError, DocSearchResponse},
         },
@@ -520,10 +517,7 @@ mod tests {
     };
     use tabby_inference::ChatCompletionStream;
     use tabby_schema::{
-        context::{
-            ContextInfo, ContextInfoHelper, ContextService,
-            ContextSourceValue,
-        },
+        context::{ContextInfo, ContextInfoHelper, ContextService, ContextSourceValue},
         policy::AccessPolicy,
         repository::{Repository, RepositoryKind},
         thread::CodeQueryInput,
