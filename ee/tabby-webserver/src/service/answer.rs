@@ -489,18 +489,18 @@ mod tests {
     use async_openai::{
         error::OpenAIError,
         types::{
-            ChatChoice, ChatCompletionResponseMessage, ChatCompletionResponseStream,
+            ChatCompletionResponseStream,
             CompletionUsage, CreateChatCompletionRequest, CreateChatCompletionResponse,
             CreateChatCompletionStreamResponse,
         },
     };
     use axum::async_trait;
-    use futures::future::ok;
+    
     use juniper::ID;
     use tabby_common::{
         api::{
             code::{
-                CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
+                CodeSearch, CodeSearchError, CodeSearchParams, CodeSearchQuery,
                 CodeSearchResponse,
             },
             doc::{DocSearch, DocSearchError, DocSearchResponse},
@@ -510,12 +510,12 @@ mod tests {
     use tabby_inference::ChatCompletionStream;
     use tabby_schema::{
         context::{
-            ContextInfo, ContextInfoHelper, ContextService, ContextSource, ContextSourceKind,
+            ContextInfo, ContextInfoHelper, ContextService,
             ContextSourceValue,
         },
         policy::AccessPolicy,
         repository::{Repository, RepositoryKind},
-        thread::{CodeQueryInput, MessageAttachment, MessageAttachmentCode},
+        thread::CodeQueryInput,
         web_documents::PresetWebDocument,
         AsID, Result,
     };
@@ -890,7 +890,7 @@ mod tests {
         );
 
         let context_info_helper: ContextInfoHelper = make_context_info_helper();
-        debug_assert_eq!(context_info_helper.can_access_source_id("source-1"), true);
+        debug_assert!(context_info_helper.can_access_source_id("source-1"));
         let code_query_input = make_code_query_input();
 
         let code_search_params = make_code_search_params();
