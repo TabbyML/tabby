@@ -2,6 +2,7 @@ import {
   HTMLAttributes,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState
@@ -89,28 +90,30 @@ export function MembershipView({
 
   return (
     <div className={cn('flex flex-col gap-2 border-b px-1 py-2', className)}>
-      {members.length || emptyItemVisible ? (
-        <Table className="table-fixed">
-          <TableBody>
-            {members.map(member => {
-              return (
+      <div className="flex-1 max-h-[286px] overflow-auto">
+        {members.length || emptyItemVisible ? (
+          <Table className="table-fixed">
+            <TableBody>
+              {members.map(member => {
+                return (
+                  <MembershipItem
+                    key={member.user.id}
+                    member={member}
+                    onRemoveEmptyItem={() => setEmptyItemVisible(false)}
+                  />
+                )
+              })}
+              {emptyItemVisible && (
                 <MembershipItem
-                  key={member.user.id}
-                  member={member}
                   onRemoveEmptyItem={() => setEmptyItemVisible(false)}
                 />
-              )
-            })}
-            {emptyItemVisible && (
-              <MembershipItem
-                onRemoveEmptyItem={() => setEmptyItemVisible(false)}
-              />
-            )}
-          </TableBody>
-        </Table>
-      ) : (
-        <div className="p-3 pl-4 text-muted-foreground">No members</div>
-      )}
+              )}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="p-3 pl-4 text-muted-foreground">No members</div>
+        )}
+      </div>
       {editable && (
         <div className="mb-2 ml-2 flex justify-start">
           <Button
@@ -140,6 +143,7 @@ function MembershipItem({ member, onRemoveEmptyItem }: MembershipItemProps) {
   const { isServerAdmin, isGroupAdmin, memberIds, userGroupId } =
     useContext(UserGroupItemContext)
 
+  const trRef = useRef<HTMLTableRowElement>(null)
   const [role, setRole] = useState(
     !isServerAdmin ? '0' : memberIds.length ? '0' : '1'
   )
@@ -150,6 +154,14 @@ function MembershipItem({ member, onRemoveEmptyItem }: MembershipItemProps) {
       setRole(member.isGroupAdmin ? '1' : '0')
     }
   }, [member])
+
+  useLayoutEffect(() => {
+    if (!member) {
+      trRef.current?.scrollIntoView({
+        behavior: 'smooth'
+      })
+    }
+  }, [])
 
   const deleteUserGroupMembership = useMutation(
     deleteUserGroupMembershipMutation
@@ -242,7 +254,7 @@ function MembershipItem({ member, onRemoveEmptyItem }: MembershipItemProps) {
     isServerAdmin || (isGroupAdmin && (!member || !member.isGroupAdmin))
 
   return (
-    <TableRow className="border-0 !bg-background pl-1">
+    <TableRow className="border-0 !bg-background pl-1" ref={trRef}>
       <TableCell>
         <MemberSelect membership={member} onChange={onSelectMember} />
       </TableCell>
