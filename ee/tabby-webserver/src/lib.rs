@@ -2,6 +2,7 @@
 mod axum;
 mod hub;
 mod jwt;
+mod mock;
 mod oauth;
 mod path;
 mod routes;
@@ -12,7 +13,6 @@ mod webserver;
 pub use service::*;
 
 pub mod public {
-
     pub use super::{
         /* used by tabby workers (consumer of /hub api) */
         hub::{create_worker_client, WorkerClient},

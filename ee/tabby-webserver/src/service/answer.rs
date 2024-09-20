@@ -497,14 +497,21 @@ mod tests {
 
     use std::{path::PathBuf, sync::Arc};
 
+    use crate::mock::{
+        helper::helpers::{
+            make_answer_config, make_code_query_input, make_code_search_params,
+            make_context_info_helper, make_message,
+        },
+        MockChatCompletionStream, MockCodeSearch, MockContextService, MockDocSearch,
+    };
     use async_openai::{
         error::OpenAIError,
-        types::{
-            ChatCompletionResponseStream, CompletionUsage, CreateChatCompletionRequest,
-            CreateChatCompletionResponse, CreateChatCompletionStreamResponse,
-        },
+        types::{CreateChatCompletionResponse, CreateChatCompletionStreamResponse},
     };
+
     use axum::async_trait;
+
+    use futures::future::ok;
     use juniper::ID;
     use tabby_common::{
         api::{
@@ -520,18 +527,12 @@ mod tests {
         context::{ContextInfo, ContextInfoHelper, ContextService, ContextSourceValue},
         policy::AccessPolicy,
         repository::{Repository, RepositoryKind},
-        thread::CodeQueryInput,
+        thread::{CodeQueryInput, MessageAttachment, MessageAttachmentCode, MessageAttachmentDoc},
         web_documents::PresetWebDocument,
         AsID, Result,
     };
 
     use crate::answer::{trim_bullet, AnswerService};
-
-    const TEST_SOURCE_ID: &str = "source-1";
-    const TEST_GIT_URL: &str = "TabbyML/tabby";
-    const TEST_FILEPATH: &str = "test.rs";
-    const TEST_LANGUAGE: &str = "rust";
-    const TEST_CONTENT: &str = "fn main() {}";
 
     lazy_static::lazy_static! {
         static ref MOCK_CHAT: Arc<dyn ChatCompletionStream> = Arc::new(MockChatCompletionStream);
@@ -539,110 +540,6 @@ mod tests {
         static ref MOCK_DOC: Arc<dyn DocSearch> = Arc::new(MockDocSearch);
         static ref MOCK_CONTEXT: Arc<dyn ContextService> = Arc::new(MockContextService);
         static ref MOCK : Option<Box<dyn DocSearch>> = Some(Box::new(MockDocSearch));
-    }
-
-    fn make_message(
-        id: i32,
-        content: &str,
-        role: tabby_schema::thread::Role,
-        attachment: Option<tabby_schema::thread::MessageAttachment>,
-    ) -> tabby_schema::thread::Message {
-        tabby_schema::thread::Message {
-            id: id.as_id(),
-            thread_id: ID::new("0"),
-            content: content.to_owned(),
-            role,
-            attachment: attachment.unwrap_or_default(),
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        }
-    }
-
-    struct MockChatCompletionStream;
-
-    #[async_trait]
-    impl ChatCompletionStream for MockChatCompletionStream {
-        async fn chat(
-            &self,
-            _request: CreateChatCompletionRequest,
-        ) -> Result<CreateChatCompletionResponse, OpenAIError> {
-            Ok(CreateChatCompletionResponse {
-                id: "test-response".to_owned(),
-                created: 0,
-                model: "ChatTabby".to_owned(),
-                object: "chat.completion".to_owned(),
-                choices: vec![],
-                system_fingerprint: Some("seed".to_owned()),
-                usage: Some(CompletionUsage {
-                    prompt_tokens: 1,
-                    completion_tokens: 2,
-                    total_tokens: 3,
-                }),
-            })
-        }
-        async fn chat_stream(
-            &self,
-            _request: CreateChatCompletionRequest,
-        ) -> Result<ChatCompletionResponseStream, OpenAIError> {
-            let stream = futures::stream::iter(vec![Ok(CreateChatCompletionStreamResponse {
-                id: "test-stream-response".to_owned(),
-                created: 0,
-                model: "ChatTabby".to_owned(),
-                object: "chat.completion.chunk".to_owned(),
-                choices: vec![],
-                system_fingerprint: Some("seed".to_owned()),
-            })]);
-
-            Ok(Box::pin(stream) as ChatCompletionResponseStream)
-        }
-    }
-
-    struct MockCodeSearch;
-
-    #[async_trait]
-    impl CodeSearch for MockCodeSearch {
-        async fn search_in_language(
-            &self,
-            _query: CodeSearchQuery,
-            _params: CodeSearchParams,
-        ) -> Result<CodeSearchResponse, CodeSearchError> {
-            Ok(CodeSearchResponse { hits: vec![] })
-        }
-    }
-
-    struct MockDocSearch;
-    #[async_trait]
-    impl DocSearch for MockDocSearch {
-        async fn search(
-            &self,
-            _source_ids: &[String],
-            _q: &str,
-            _limit: usize,
-        ) -> Result<DocSearchResponse, DocSearchError> {
-            Ok(DocSearchResponse { hits: vec![] })
-        }
-    }
-
-    struct MockContextService;
-    #[async_trait]
-    impl ContextService for MockContextService {
-        async fn read(&self, _policy: Option<&AccessPolicy>) -> Result<ContextInfo> {
-            Ok(ContextInfo { sources: vec![] })
-        }
-    }
-    fn make_code_search_params() -> CodeSearchParams {
-        CodeSearchParams {
-            min_bm25_score: 0.5,
-            min_embedding_score: 0.7,
-            min_rrf_score: 0.3,
-            num_to_return: 5,
-            num_to_score: 10,
-        }
-    }
-    fn make_answer_config() -> AnswerConfig {
-        AnswerConfig {
-            code_search_params: make_code_search_params(),
-        }
     }
 
     #[test]
@@ -856,30 +753,6 @@ mod tests {
         insta::assert_yaml_snapshot!(output);
     }
 
-    fn make_code_query_input() -> CodeQueryInput {
-        CodeQueryInput {
-            filepath: Some("test.rs".to_string()),
-            content: "fn main() {}".to_string(),
-            git_url: Some("TabbyML/tabby".to_string()),
-            source_id: Some("source-1".to_string()),
-            language: Some("rust".to_string()),
-        }
-    }
-
-    fn make_context_info_helper() -> ContextInfoHelper {
-        ContextInfoHelper::new(&ContextInfo {
-            sources: vec![ContextSourceValue::Repository(Repository {
-                id: ID::from("source-1".to_owned()),
-                source_id: "source-1".to_owned(),
-                name: "tabby".to_owned(),
-                kind: RepositoryKind::Github,
-                dir: PathBuf::from("tabby"),
-                git_url: "TabbyML/tabby".to_owned(),
-                refs: vec![],
-            })],
-        })
-    }
-
     #[tokio::test]
     async fn test_collect_relevant_code() {
         let config = make_answer_config();
@@ -907,6 +780,88 @@ mod tests {
                 None,
             )
             .await;
+    }
+
+    #[tokio::test]
+    async fn test_generate_relevant_questions_v2() {
+        // Arrange
+        let config = make_answer_config();
+        let serper: Option<Box<dyn DocSearch>> = Some(Box::new(MockDocSearch));
+
+        let answer_service = AnswerService::new(
+            &config,
+            MOCK_CHAT.clone(),
+            MOCK_CODE.clone(),
+            MOCK_DOC.clone(),
+            MOCK_CONTEXT.clone(),
+            serper,
+        );
+
+        let attachment = MessageAttachment {
+            doc: vec![tabby_schema::thread::MessageAttachmentDoc {
+                title: "1. Example Document".to_owned(),
+                content: "This is an example".to_owned(),
+                link: "https://example.com".to_owned(),
+            }],
+            code: vec![tabby_schema::thread::MessageAttachmentCode {
+                git_url: "https://github.com".to_owned(),
+                filepath: "server.py".to_owned(),
+                language: "python".to_owned(),
+                content: "print('Hello, server!')".to_owned(),
+                start_line: 1,
+            }],
+            client_code: vec![tabby_schema::thread::MessageAttachmentClientCode {
+                filepath: Some("client.py".to_owned()),
+                content: "print('Hello, client!')".to_owned(),
+                start_line: Some(1),
+            }],
+        };
+
+        let question = "What is the purpose of this code?";
+
+        let result = answer_service
+            .generate_relevant_questions_v2(&attachment, question)
+            .await;
+
+        let expected = vec![
+            "What is the main functionality of the provided code?".to_string(),
+            "How does the code snippet implement a web server?".to_string(),
+            "Can you explain how the Flask app works in this context?".to_string(),
+        ];
+
+        assert_eq!(result, expected);
+    }
+    #[tokio::test]
+    async fn test_collect_relevant_docs() {
+        let config = make_answer_config();
+        let serper: Option<Box<dyn DocSearch>> = Some(Box::new(MockDocSearch));
+
+        let answer_service = AnswerService::new(
+            &config,
+            MOCK_CHAT.clone(),
+            MOCK_CODE.clone(),
+            MOCK_DOC.clone(),
+            MOCK_CONTEXT.clone(),
+            serper,
+        );
+
+        let context_info_helper = make_context_info_helper();
+        let doc_query = tabby_schema::thread::DocQueryInput {
+            content: "Test query Here[[source:source-1]]".to_string(),
+            source_ids: Some(vec!["source-1".to_string()]),
+            search_public: false,
+        };
+
+        let hits = answer_service
+            .collect_relevant_docs(&context_info_helper, &doc_query)
+            .await;
+
+        assert_eq!(hits.len(), 5, "Expected 5 hits from the doc search");
+
+        assert!(
+            hits.iter().any(|hit| hit.doc.title == "Document 1"),
+            "Expected to find a hit with title 'Document 1'"
+        );
     }
 
     #[test]
