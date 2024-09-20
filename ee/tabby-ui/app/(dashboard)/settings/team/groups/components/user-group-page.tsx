@@ -46,7 +46,6 @@ export default function UserGroups() {
     reexcute()
   }
   const userGroups = data?.userGroups
-
   return (
     <UserGroupContext.Provider
       value={{
@@ -72,16 +71,6 @@ export default function UserGroups() {
       <LoadingWrapper loading={fetching} fallback={<ListSkeleton />}>
         {userGroups?.length ? (
           <div className="overflow-hidden rounded-lg border">
-            {/* <div className="flex items-center justify-between border-b bg-muted py-3 pl-4 pr-3 font-semibold">
-              Groups
-              {isAdmin && (
-                <CreateUserGroupDialog onSubmit={onCreateUserGroup}>
-                  <Button type="button" size="icon" variant="ghost">
-                    <IconPlus />
-                  </Button>
-                </CreateUserGroupDialog>
-              )}
-            </div> */}
             {userGroups.map((group, idx) => {
               return (
                 <UserGroupItem
