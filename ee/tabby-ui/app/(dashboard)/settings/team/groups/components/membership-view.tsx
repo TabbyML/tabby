@@ -2,7 +2,6 @@ import {
   HTMLAttributes,
   useContext,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState
@@ -69,18 +68,10 @@ interface MembershipViewProps extends HTMLAttributes<HTMLDivElement> {
   members: MemberShips
 }
 
-export function MembershipView({
-  className,
-  members: propsMembers
-}: MembershipViewProps) {
+export function MembershipView({ className, members }: MembershipViewProps) {
   const { isServerAdmin, isGroupAdmin } = useContext(UserGroupItemContext)
-  const [members, setMembers] = useState(propsMembers)
   const [emptyItemVisible, setEmptyItemVisible] = useState(false)
   const editable = isServerAdmin || isGroupAdmin
-
-  useEffect(() => {
-    setMembers(propsMembers)
-  }, [propsMembers])
 
   const handleAddMember = () => {
     if (!emptyItemVisible) {
@@ -155,7 +146,7 @@ function MembershipItem({ member, onRemoveEmptyItem }: MembershipItemProps) {
     }
   }, [member])
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!member) {
       trRef.current?.scrollIntoView({
         behavior: 'smooth'
