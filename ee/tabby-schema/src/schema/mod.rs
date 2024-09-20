@@ -939,6 +939,7 @@ impl Mutation {
     }
 
     async fn create_integration(ctx: &Context, input: CreateIntegrationInput) -> Result<ID> {
+        check_admin(ctx).await?;
         input.validate()?;
         let id = ctx
             .locator
@@ -954,6 +955,7 @@ impl Mutation {
     }
 
     async fn update_integration(ctx: &Context, input: UpdateIntegrationInput) -> Result<bool> {
+        check_admin(ctx).await?;
         input.validate()?;
         ctx.locator
             .integration()
@@ -969,6 +971,7 @@ impl Mutation {
     }
 
     async fn delete_integration(ctx: &Context, id: ID, kind: IntegrationKind) -> Result<bool> {
+        check_admin(ctx).await?;
         ctx.locator
             .integration()
             .delete_integration(id, kind)
@@ -981,6 +984,7 @@ impl Mutation {
         id: ID,
         active: bool,
     ) -> Result<bool> {
+        check_admin(ctx).await?;
         ctx.locator
             .repository()
             .third_party()
@@ -1035,6 +1039,7 @@ impl Mutation {
     }
 
     async fn create_custom_document(ctx: &Context, input: CreateCustomDocumentInput) -> Result<ID> {
+        check_admin(ctx).await?;
         input.validate()?;
         let id = ctx
             .locator
@@ -1045,6 +1050,7 @@ impl Mutation {
     }
 
     async fn delete_custom_document(ctx: &Context, id: ID) -> Result<bool> {
+        check_admin(ctx).await?;
         ctx.locator
             .web_documents()
             .delete_custom_web_document(id)
@@ -1056,6 +1062,7 @@ impl Mutation {
         ctx: &Context,
         input: SetPresetDocumentActiveInput,
     ) -> Result<bool> {
+        check_admin(ctx).await?;
         input.validate()?;
         ctx.locator
             .web_documents()
