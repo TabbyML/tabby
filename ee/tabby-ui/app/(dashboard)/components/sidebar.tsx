@@ -74,7 +74,7 @@ const menus: Menu[] = [
       },
       {
         title: 'Reports',
-        href: 'reports'
+        href: '/reports'
       },
       {
         title: 'Activities',
