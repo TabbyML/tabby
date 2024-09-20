@@ -13,6 +13,8 @@ import { ContextVariables } from "./ContextVariables";
 export class CodeActionProvider implements CodeActionProviderInterface {
   constructor(private readonly contextVariables: ContextVariables) {}
 
+  public static readonly providedCodeActionKinds = [CodeActionKind.RefactorRewrite];
+
   provideCodeActions(
     _document: TextDocument,
     _range: Range | Selection,

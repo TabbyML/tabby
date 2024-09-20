@@ -21,6 +21,7 @@ let client: Client | undefined = undefined;
 
 export async function activate(context: ExtensionContext) {
   logger.info("Activating Tabby extension...");
+
   const clientOptions: LanguageClientOptions = {
     documentSelector: [
       { scheme: "file" },
@@ -57,7 +58,10 @@ export async function activate(context: ExtensionContext) {
   client.registerConfigManager(config);
   client.registerInlineCompletionProvider(inlineCompletionProvider);
   client.registerGitProvider(gitProvider);
-  client.registerCodeActionProvider(new CodeActionProvider(contextVariables));
+  client.registerCodeActionProvider(
+    new CodeActionProvider(contextVariables),
+    CodeActionProvider.providedCodeActionKinds,
+  );
 
   // Register config callback for past ServerConfig
   client.agent.addListener("didChangeStatus", async (status: Status) => {
