@@ -491,6 +491,7 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> Result<Connection<Integration>> {
+        check_admin(ctx).await?;
         query_async(
             after,
             before,
@@ -516,6 +517,7 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> Result<Connection<ProvidedRepository>> {
+        check_admin(ctx).await?;
         query_async(
             after,
             before,
@@ -592,6 +594,7 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> Result<Connection<CustomWebDocument>> {
+        check_admin(ctx).await?;
         query_async(
             after,
             before,
@@ -615,6 +618,7 @@ impl Query {
         last: Option<i32>,
         is_active: Option<bool>,
     ) -> Result<Connection<PresetWebDocument>> {
+        check_admin(ctx).await?;
         query_async(
             after,
             before,
