@@ -497,14 +497,6 @@ mod tests {
 
     use std::sync::Arc;
 
-    use crate::mock::{
-        helper::helpers::{
-            make_answer_config, make_code_query_input, make_code_search_params,
-            make_context_info_helper, make_message,
-        },
-        MockChatCompletionStream, MockCodeSearch, MockContextService, MockDocSearch,
-    };
-
     use juniper::ID;
     use tabby_common::api::{code::CodeSearch, doc::DocSearch};
     use tabby_inference::ChatCompletionStream;
@@ -514,7 +506,16 @@ mod tests {
         web_documents::PresetWebDocument,
     };
 
-    use crate::answer::{trim_bullet, AnswerService};
+    use crate::{
+        answer::{trim_bullet, AnswerService},
+        mock::{
+            helper::helpers::{
+                make_answer_config, make_code_query_input, make_code_search_params,
+                make_context_info_helper, make_message,
+            },
+            MockChatCompletionStream, MockCodeSearch, MockContextService, MockDocSearch,
+        },
+    };
 
     lazy_static::lazy_static! {
         static ref MOCK_CHAT: Arc<dyn ChatCompletionStream> = Arc::new(MockChatCompletionStream);
