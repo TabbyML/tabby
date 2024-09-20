@@ -58,10 +58,15 @@ export class InlineEditController {
 
   private async onDidAccept() {
     const command = this.quickPick.selectedItems[0]?.value;
-    if (command) {
-      this.quickPick.hide();
-      await this.provideEditWithCommand(command);
+    this.quickPick.hide();
+    if (!command) {
+      return;
     }
+    if (command && command.length > 200) {
+      window.showErrorMessage("Command is too long.");
+      return;
+    }
+    await this.provideEditWithCommand(command);
   }
 
   private async provideEditWithCommand(command: string) {

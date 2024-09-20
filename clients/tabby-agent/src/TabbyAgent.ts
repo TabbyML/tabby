@@ -917,9 +917,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
     if (selection.end - selection.start > documentMaxChars) {
       throw new Error("Document to edit is too long");
     }
-    if (command.length > this.config.chat.edit.commandMaxChars) {
-      throw new Error("Command is too long");
-    }
 
     let promptTemplate: string;
     let userCommand: string;
