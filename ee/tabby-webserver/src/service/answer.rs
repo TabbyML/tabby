@@ -484,12 +484,57 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
 #[cfg(test)]
 mod tests {
 
-    use juniper::ID;
-    use tabby_schema::{
-        context::{ContextInfo, ContextSourceValue},
-        web_documents::PresetWebDocument,
-        AsID,
+    use std::{path::PathBuf, sync::Arc};
+
+    use async_openai::{
+        error::OpenAIError,
+        types::{
+            ChatChoice, ChatCompletionResponseMessage, ChatCompletionResponseStream,
+            CompletionUsage, CreateChatCompletionRequest, CreateChatCompletionResponse,
+            CreateChatCompletionStreamResponse,
+        },
     };
+    use axum::async_trait;
+    use futures::future::ok;
+    use juniper::ID;
+    use tabby_common::{
+        api::{
+            code::{
+                CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
+                CodeSearchResponse,
+            },
+            doc::{DocSearch, DocSearchError, DocSearchResponse},
+        },
+        config::AnswerConfig,
+    };
+    use tabby_inference::ChatCompletionStream;
+    use tabby_schema::{
+        context::{
+            ContextInfo, ContextInfoHelper, ContextService, ContextSource, ContextSourceKind,
+            ContextSourceValue,
+        },
+        policy::AccessPolicy,
+        repository::{Repository, RepositoryKind},
+        thread::{CodeQueryInput, MessageAttachment, MessageAttachmentCode},
+        web_documents::PresetWebDocument,
+        AsID, Result,
+    };
+
+    use crate::answer::{trim_bullet, AnswerService};
+
+    const TEST_SOURCE_ID: &str = "source-1";
+    const TEST_GIT_URL: &str = "TabbyML/tabby";
+    const TEST_FILEPATH: &str = "test.rs";
+    const TEST_LANGUAGE: &str = "rust";
+    const TEST_CONTENT: &str = "fn main() {}";
+
+    lazy_static::lazy_static! {
+        static ref MOCK_CHAT: Arc<dyn ChatCompletionStream> = Arc::new(MockChatCompletionStream);
+        static ref MOCK_CODE: Arc<dyn CodeSearch> = Arc::new(MockCodeSearch);
+        static ref MOCK_DOC: Arc<dyn DocSearch> = Arc::new(MockDocSearch);
+        static ref MOCK_CONTEXT: Arc<dyn ContextService> = Arc::new(MockContextService);
+        static ref MOCK : Option<Box<dyn DocSearch>> = Some(Box::new(MockDocSearch));
+    }
 
     fn make_message(
         id: i32,
@@ -506,6 +551,239 @@ mod tests {
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         }
+    }
+
+    struct MockChatCompletionStream;
+
+    #[async_trait]
+    impl ChatCompletionStream for MockChatCompletionStream {
+        async fn chat(
+            &self,
+            _request: CreateChatCompletionRequest,
+        ) -> Result<CreateChatCompletionResponse, OpenAIError> {
+            Ok(CreateChatCompletionResponse {
+                id: "test-response".to_owned(),
+                created: 0,
+                model: "ChatTabby".to_owned(),
+                object: "chat.completion".to_owned(),
+                choices: vec![],
+                system_fingerprint: Some("seed".to_owned()),
+                usage: Some(CompletionUsage {
+                    prompt_tokens: 1,
+                    completion_tokens: 2,
+                    total_tokens: 3,
+                }),
+            })
+        }
+        async fn chat_stream(
+            &self,
+            _request: CreateChatCompletionRequest,
+        ) -> Result<ChatCompletionResponseStream, OpenAIError> {
+            let stream = futures::stream::iter(vec![Ok(CreateChatCompletionStreamResponse {
+                id: "test-stream-response".to_owned(),
+                created: 0,
+                model: "ChatTabby".to_owned(),
+                object: "chat.completion.chunk".to_owned(),
+                choices: vec![],
+                system_fingerprint: Some("seed".to_owned()),
+            })]);
+
+            Ok(Box::pin(stream) as ChatCompletionResponseStream)
+        }
+    }
+
+    struct MockCodeSearch;
+
+    #[async_trait]
+    impl CodeSearch for MockCodeSearch {
+        async fn search_in_language(
+            &self,
+            _query: CodeSearchQuery,
+            _params: CodeSearchParams,
+        ) -> Result<CodeSearchResponse, CodeSearchError> {
+            Ok(CodeSearchResponse { hits: vec![] })
+        }
+    }
+
+    struct MockDocSearch;
+    #[async_trait]
+    impl DocSearch for MockDocSearch {
+        async fn search(
+            &self,
+            _source_ids: &[String],
+            _q: &str,
+            _limit: usize,
+        ) -> Result<DocSearchResponse, DocSearchError> {
+            Ok(DocSearchResponse { hits: vec![] })
+        }
+    }
+
+    struct MockContextService;
+    #[async_trait]
+    impl ContextService for MockContextService {
+        async fn read(&self, _policy: Option<&AccessPolicy>) -> Result<ContextInfo> {
+            Ok(ContextInfo { sources: vec![] })
+        }
+    }
+    fn make_code_search_params() -> CodeSearchParams {
+        CodeSearchParams {
+            min_bm25_score: 0.5,
+            min_embedding_score: 0.7,
+            min_rrf_score: 0.3,
+            num_to_return: 5,
+            num_to_score: 10,
+        }
+    }
+    fn make_answer_config() -> AnswerConfig {
+        AnswerConfig {
+            code_search_params: make_code_search_params(),
+        }
+    }
+
+    #[test]
+    fn test_new() {
+        let chat: Arc<dyn ChatCompletionStream> = MOCK_CHAT.clone();
+        let code: Arc<dyn CodeSearch> = MOCK_CODE.clone();
+        let doc: Arc<dyn DocSearch> = MOCK_DOC.clone();
+        let context: Arc<dyn ContextService> = MOCK_CONTEXT.clone();
+        let serper: Option<Box<dyn DocSearch>> = Some(Box::new(MockDocSearch));
+        let config = make_answer_config();
+
+        let service = AnswerService::new(
+            &config,
+            chat.clone(),
+            code.clone(),
+            doc.clone(),
+            context.clone(),
+            serper,
+        );
+
+        assert_eq!(
+            service.config.code_search_params.min_bm25_score,
+            config.code_search_params.min_bm25_score
+        );
+        assert_eq!(
+            service.config.code_search_params.min_embedding_score,
+            config.code_search_params.min_embedding_score
+        );
+        assert_eq!(
+            service.config.code_search_params.min_rrf_score,
+            config.code_search_params.min_rrf_score
+        );
+        assert_eq!(
+            service.config.code_search_params.num_to_return,
+            config.code_search_params.num_to_return
+        );
+        assert_eq!(
+            service.config.code_search_params.num_to_score,
+            config.code_search_params.num_to_score
+        );
+        assert!(
+            Arc::ptr_eq(&service.chat, &chat),
+            "Chat service Arc pointer mismatch"
+        );
+        assert!(
+            Arc::ptr_eq(&service.code, &code),
+            "Code search service Arc pointer mismatch"
+        );
+        assert!(
+            Arc::ptr_eq(&service.doc, &doc),
+            "Doc search service Arc pointer mismatch"
+        );
+        assert!(
+            Arc::ptr_eq(&service.context, &context),
+            "Context service Arc pointer mismatch"
+        );
+        assert!(service.serper.is_some(), "Serper should be Some");
+    }
+
+    #[test]
+    fn test_create() {
+        let chat: Arc<dyn ChatCompletionStream> = Arc::new(MockChatCompletionStream);
+        let code: Arc<dyn CodeSearch> = Arc::new(MockCodeSearch);
+        let doc: Arc<dyn DocSearch> = Arc::new(MockDocSearch);
+        let context: Arc<dyn ContextService> = Arc::new(MockContextService);
+        let serper: Option<Box<dyn DocSearch>> = Some(Box::new(MockDocSearch));
+
+        let config = make_answer_config();
+
+        let service = super::create(
+            &config,
+            chat.clone(),
+            code.clone(),
+            doc.clone(),
+            context.clone(),
+            serper,
+        );
+
+        assert_eq!(
+            service.config.code_search_params.min_bm25_score,
+            config.code_search_params.min_bm25_score
+        );
+        assert_eq!(
+            service.config.code_search_params.min_embedding_score,
+            config.code_search_params.min_embedding_score
+        );
+        assert_eq!(
+            service.config.code_search_params.min_rrf_score,
+            config.code_search_params.min_rrf_score
+        );
+        assert_eq!(
+            service.config.code_search_params.num_to_return,
+            config.code_search_params.num_to_return
+        );
+        assert_eq!(
+            service.config.code_search_params.num_to_score,
+            config.code_search_params.num_to_score
+        );
+        assert!(
+            Arc::ptr_eq(&service.chat, &chat),
+            "Chat service Arc pointer mismatch"
+        );
+        assert!(
+            Arc::ptr_eq(&service.code, &code),
+            "Code search service Arc pointer mismatch"
+        );
+        assert!(
+            Arc::ptr_eq(&service.doc, &doc),
+            "Doc search service Arc pointer mismatch"
+        );
+        assert!(
+            Arc::ptr_eq(&service.context, &context),
+            "Context service Arc pointer mismatch"
+        );
+        assert!(service.serper.is_some(), "Serper should be Some");
+    }
+
+    #[test]
+    fn test_build_user_prompt() {
+        let user_input = "What is the purpose of this code?";
+        let assistant_attachment = tabby_schema::thread::MessageAttachment {
+            doc: vec![tabby_schema::thread::MessageAttachmentDoc {
+                title: "Documentation".to_owned(),
+                content: "This code implements a basic web server.".to_owned(),
+                link: "https://example.com/docs".to_owned(),
+            }],
+            code: vec![tabby_schema::thread::MessageAttachmentCode {
+                git_url: "https://github.com/".to_owned(),
+                filepath: "server.py".to_owned(),
+                language: "python".to_owned(),
+                content: "from flask import Flask\n\napp = Flask(__name__)\n\n@app.route('/')\ndef hello():\n    return 'Hello, World!'".to_owned(),
+                start_line: 1,
+            }],
+            client_code: vec![],
+        };
+        let user_attachment_input = None;
+
+        let prompt =
+            super::build_user_prompt(user_input, &assistant_attachment, user_attachment_input);
+
+        println!("{}", prompt.as_str());
+        assert!(prompt.contains(user_input));
+        assert!(prompt.contains("This code implements a basic web server."));
+        assert!(prompt.contains("from flask import Flask"));
+        assert!(prompt.contains("[[citation:1]]"));
+        assert!(prompt.contains("[[citation:2]]"));
     }
 
     #[test]
@@ -573,34 +851,79 @@ mod tests {
         insta::assert_yaml_snapshot!(output);
     }
 
+    fn make_code_query_input() -> CodeQueryInput {
+        CodeQueryInput {
+            filepath: Some("test.rs".to_string()),
+            content: "fn main() {}".to_string(),
+            git_url: Some("TabbyML/tabby".to_string()),
+            source_id: Some("source-1".to_string()),
+            language: Some("rust".to_string()),
+        }
+    }
+
+    fn make_context_info_helper() -> ContextInfoHelper {
+        ContextInfoHelper::new(&ContextInfo {
+            sources: vec![ContextSourceValue::Repository(Repository {
+                id: ID::from("source-1".to_owned()),
+                source_id: "source-1".to_owned(),
+                name: "tabby".to_owned(),
+                kind: RepositoryKind::Github,
+                dir: PathBuf::from("tabby"),
+                git_url: "TabbyML/tabby".to_owned(),
+                refs: vec![],
+            })],
+        })
+    }
+
+    #[tokio::test]
+    async fn test_collect_relevant_code() {
+        let config = make_answer_config();
+        let serper: Option<Box<dyn DocSearch>> = Some(Box::new(MockDocSearch));
+
+        let answer_service = AnswerService::new(
+            &config,
+            MOCK_CHAT.clone(),
+            MOCK_CODE.clone(),
+            MOCK_DOC.clone(),
+            MOCK_CONTEXT.clone(),
+            serper,
+        );
+
+        let context_info_helper: ContextInfoHelper = make_context_info_helper();
+        debug_assert_eq!(context_info_helper.can_access_source_id("source-1"), true);
+        let code_query_input = make_code_query_input();
+
+        let code_search_params = make_code_search_params();
+        answer_service
+            .collect_relevant_code(
+                &context_info_helper,
+                &code_query_input,
+                &code_search_params,
+                None,
+            )
+            .await;
+    }
+
     #[test]
-    fn test_build_user_prompt() {
-        let user_input = "What is the purpose of this code?";
-        let assistant_attachment = tabby_schema::thread::MessageAttachment {
-            doc: vec![tabby_schema::thread::MessageAttachmentDoc {
-                title: "Documentation".to_owned(),
-                content: "This code implements a basic web server.".to_owned(),
-                link: "https://example.com/docs".to_owned(),
-            }],
-            code: vec![tabby_schema::thread::MessageAttachmentCode {
-                git_url: "https://github.com/".to_owned(),
-                filepath: "server.py".to_owned(),
-                language: "python".to_owned(),
-                content: "from flask import Flask\n\napp = Flask(__name__)\n\n@app.route('/')\ndef hello():\n    return 'Hello, World!'".to_owned(),
-                start_line: 1,
-            }],
-            client_code: vec![],
-        };
-        let user_attachment_input = None;
+    fn test_trim_bullet() {
+        assert_eq!(trim_bullet("- Hello"), "Hello");
+        assert_eq!(trim_bullet("* World"), "World");
+        assert_eq!(trim_bullet("1. Test"), "Test");
+        assert_eq!(trim_bullet(".Dot"), "Dot");
 
-        let prompt =
-            super::build_user_prompt(user_input, &assistant_attachment, user_attachment_input);
+        assert_eq!(trim_bullet("- Hello -"), "Hello");
+        assert_eq!(trim_bullet("1. Test 1"), "Test");
 
-        println!("{}", prompt.as_str());
-        assert!(prompt.contains(user_input));
-        assert!(prompt.contains("This code implements a basic web server."));
-        assert!(prompt.contains("from flask import Flask"));
-        assert!(prompt.contains("[[citation:1]]"));
-        assert!(prompt.contains("[[citation:2]]"));
+        assert_eq!(trim_bullet("--** Mixed"), "Mixed");
+
+        assert_eq!(trim_bullet("  - Hello  "), "Hello");
+
+        assert_eq!(trim_bullet("-"), "");
+        assert_eq!(trim_bullet(""), "");
+        assert_eq!(trim_bullet("   "), "");
+
+        assert_eq!(trim_bullet("Hello World"), "Hello World");
+
+        assert_eq!(trim_bullet("1. *Bold* and -italic-"), "*Bold* and -italic");
     }
 }
