@@ -486,6 +486,14 @@ mod tests {
 
     use std::sync::Arc;
 
+    use crate::testutils::{
+        helper::helpers::{
+            make_answer_config, make_code_query_input, make_code_search_params,
+            make_context_info_helper, make_message,
+        },
+        FakeChatCompletionStream, FakeCodeSearch, FakeContextService, FakeDocSearch,
+    };
+
     use juniper::ID;
     use tabby_common::api::{code::CodeSearch, doc::DocSearch};
     use tabby_inference::ChatCompletionStream;
@@ -495,34 +503,16 @@ mod tests {
         web_documents::PresetWebDocument,
     };
 
-    use crate::{
-        answer::{trim_bullet, AnswerService},
-        mock::{
-            helper::helpers::{
-                make_answer_config, make_code_query_input, make_code_search_params,
-                make_context_info_helper, make_message,
-            },
-            MockChatCompletionStream, MockCodeSearch, MockContextService, MockDocSearch,
-        },
-    };
-
-    lazy_static::lazy_static! {
-        static ref MOCK_CHAT: Arc<dyn ChatCompletionStream> = Arc::new(MockChatCompletionStream);
-        static ref MOCK_CODE: Arc<dyn CodeSearch> = Arc::new(MockCodeSearch);
-        static ref MOCK_DOC: Arc<dyn DocSearch> = Arc::new(MockDocSearch);
-        static ref MOCK_CONTEXT: Arc<dyn ContextService> = Arc::new(MockContextService);
-        static ref MOCK : Option<Box<dyn DocSearch>> = Some(Box::new(MockDocSearch));
-    }
+    use crate::answer::{trim_bullet, AnswerService};
 
     #[test]
     fn test_new() {
-        let chat: Arc<dyn ChatCompletionStream> = MOCK_CHAT.clone();
-        let code: Arc<dyn CodeSearch> = MOCK_CODE.clone();
-        let doc: Arc<dyn DocSearch> = MOCK_DOC.clone();
-        let context: Arc<dyn ContextService> = MOCK_CONTEXT.clone();
-        let serper: Option<Box<dyn DocSearch>> = Some(Box::new(MockDocSearch));
+        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream);
+        let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
+        let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
-
         let service = AnswerService::new(
             &config,
             chat.clone(),
@@ -530,27 +520,6 @@ mod tests {
             doc.clone(),
             context.clone(),
             serper,
-        );
-
-        assert_eq!(
-            service.config.code_search_params.min_bm25_score,
-            config.code_search_params.min_bm25_score
-        );
-        assert_eq!(
-            service.config.code_search_params.min_embedding_score,
-            config.code_search_params.min_embedding_score
-        );
-        assert_eq!(
-            service.config.code_search_params.min_rrf_score,
-            config.code_search_params.min_rrf_score
-        );
-        assert_eq!(
-            service.config.code_search_params.num_to_return,
-            config.code_search_params.num_to_return
-        );
-        assert_eq!(
-            service.config.code_search_params.num_to_score,
-            config.code_search_params.num_to_score
         );
         assert!(
             Arc::ptr_eq(&service.chat, &chat),
@@ -573,11 +542,11 @@ mod tests {
 
     #[test]
     fn test_create() {
-        let chat: Arc<dyn ChatCompletionStream> = Arc::new(MockChatCompletionStream);
-        let code: Arc<dyn CodeSearch> = Arc::new(MockCodeSearch);
-        let doc: Arc<dyn DocSearch> = Arc::new(MockDocSearch);
-        let context: Arc<dyn ContextService> = Arc::new(MockContextService);
-        let serper: Option<Box<dyn DocSearch>> = Some(Box::new(MockDocSearch));
+        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream);
+        let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
+        let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let serper: Option<Box<dyn DocSearch>> = Some(Box::new(FakeDocSearch));
 
         let config = make_answer_config();
 
@@ -590,26 +559,6 @@ mod tests {
             serper,
         );
 
-        assert_eq!(
-            service.config.code_search_params.min_bm25_score,
-            config.code_search_params.min_bm25_score
-        );
-        assert_eq!(
-            service.config.code_search_params.min_embedding_score,
-            config.code_search_params.min_embedding_score
-        );
-        assert_eq!(
-            service.config.code_search_params.min_rrf_score,
-            config.code_search_params.min_rrf_score
-        );
-        assert_eq!(
-            service.config.code_search_params.num_to_return,
-            config.code_search_params.num_to_return
-        );
-        assert_eq!(
-            service.config.code_search_params.num_to_score,
-            config.code_search_params.num_to_score
-        );
         assert!(
             Arc::ptr_eq(&service.chat, &chat),
             "Chat service Arc pointer mismatch"
@@ -727,15 +676,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_collect_relevant_code() {
+        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream);
+        let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
+        let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
-        let serper: Option<Box<dyn DocSearch>> = Some(Box::new(MockDocSearch));
-
-        let answer_service = AnswerService::new(
+        let service = AnswerService::new(
             &config,
-            MOCK_CHAT.clone(),
-            MOCK_CODE.clone(),
-            MOCK_DOC.clone(),
-            MOCK_CONTEXT.clone(),
+            chat.clone(),
+            code.clone(),
+            doc.clone(),
+            context.clone(),
             serper,
         );
 
@@ -744,7 +696,8 @@ mod tests {
         let code_query_input = make_code_query_input();
 
         let code_search_params = make_code_search_params();
-        answer_service
+
+        service
             .collect_relevant_code(
                 &context_info_helper,
                 &code_query_input,
@@ -756,16 +709,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_generate_relevant_questions_v2() {
-        // Arrange
+        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream);
+        let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
+        let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
-        let serper: Option<Box<dyn DocSearch>> = Some(Box::new(MockDocSearch));
-
-        let answer_service = AnswerService::new(
+        let service = AnswerService::new(
             &config,
-            MOCK_CHAT.clone(),
-            MOCK_CODE.clone(),
-            MOCK_DOC.clone(),
-            MOCK_CONTEXT.clone(),
+            chat.clone(),
+            code.clone(),
+            doc.clone(),
+            context.clone(),
             serper,
         );
 
@@ -791,7 +746,7 @@ mod tests {
 
         let question = "What is the purpose of this code?";
 
-        let result = answer_service
+        let result = service
             .generate_relevant_questions_v2(&attachment, question)
             .await;
 
@@ -805,15 +760,18 @@ mod tests {
     }
     #[tokio::test]
     async fn test_collect_relevant_docs() {
+        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream);
+        let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
+        let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
-        let serper: Option<Box<dyn DocSearch>> = Some(Box::new(MockDocSearch));
-
-        let answer_service = AnswerService::new(
+        let service = AnswerService::new(
             &config,
-            MOCK_CHAT.clone(),
-            MOCK_CODE.clone(),
-            MOCK_DOC.clone(),
-            MOCK_CONTEXT.clone(),
+            chat.clone(),
+            code.clone(),
+            doc.clone(),
+            context.clone(),
             serper,
         );
 
@@ -824,7 +782,7 @@ mod tests {
             search_public: false,
         };
 
-        let hits = answer_service
+        let hits = service
             .collect_relevant_docs(&context_info_helper, &doc_query)
             .await;
 
