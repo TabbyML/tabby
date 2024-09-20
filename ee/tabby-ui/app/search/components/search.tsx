@@ -207,7 +207,7 @@ const listThreadMessages = graphql(/* GraphQL */ `
 const PAGE_SIZE = 30
 
 const TEMP_MSG_ID_PREFIX = '_temp_msg_'
-const nanoidForMessage = () => `${TEMP_MSG_ID_PREFIX}${nanoid()}`
+const tempNanoId = () => `${TEMP_MSG_ID_PREFIX}${nanoid()}`
 
 export function Search() {
   const { updateUrlComponents, pathname } = useRouterStuff()
@@ -558,8 +558,8 @@ export function Search() {
   }, [devPanelOpen])
 
   const onSubmitSearch = (question: string, ctx?: ThreadRunContexts) => {
-    const newUserMessageId = nanoidForMessage()
-    const newAssistantMessageId = nanoidForMessage()
+    const newUserMessageId = tempNanoId()
+    const newAssistantMessageId = tempNanoId()
     const newUserMessage: ConversationMessage = {
       id: newUserMessageId,
       role: Role.User,
@@ -617,10 +617,10 @@ export function Search() {
     const userMessage = messages[userMessageIndex]
     const newUserMessage: ConversationMessage = {
       ...userMessage,
-      id: nanoidForMessage()
+      id: tempNanoId()
     }
     const newAssistantMessage: ConversationMessage = {
-      id: nanoidForMessage(),
+      id: tempNanoId(),
       role: Role.Assistant,
       content: '',
       attachment: {
