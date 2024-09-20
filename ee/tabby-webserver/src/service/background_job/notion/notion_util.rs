@@ -3,7 +3,7 @@ use notion_client::endpoints::{
     Client,
 };
 use chrono::{DateTime, NaiveDate, Utc};
-use notion_client::objects::parent;
+use notion_client::objects::{parent, rich_text};
 use notion_client::{
     objects::page::Page,
     objects::page::PageProperty,
@@ -26,25 +26,31 @@ impl PageWithBlocks {
     // The properties are separated by a newline character.
     // Currently, only the title and rich_text properties are supported.
     fn page_properties(&self) -> String {
-        let mut res = Vec::new();
+        let mut title_vec = Vec::new();
+        let mut rich_text_vec = Vec::new();
         for (k, v) in self.page.properties.iter() {
             match v {
                 PageProperty::Title { title, .. } => {
-                    res.push(k.clone());
-                    let s = title.iter().map(|t| t.plain_text()).filter_map(|text| text).collect::<Vec<String>>().join(" ");
-                    res.push(s);
-                },
-                PageProperty::RichText { rich_text, .. } => {
-                    res.push(k.clone());
-                    let s = rich_text.iter().map(|t| t.plain_text()).filter_map(|text| text).collect::<Vec<String>>().join(" ");
-                    res.push(s);
-                },
-                _ => {
-                    
+                    let s = title.iter()
+                        .filter_map(|t| t.plain_text())
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    title_vec.push(k.to_string());
+                    title_vec.push(s);
                 }
+                PageProperty::RichText { rich_text, .. } => {
+                    let s = rich_text.iter()
+                        .filter_map(|t| t.plain_text())
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    rich_text_vec.push(k.to_string());
+                    rich_text_vec.push(s);
+                }
+                _ => {}
             }
         }
-        return res.join("\n");
+        title_vec.extend(rich_text_vec);
+        return title_vec.join("\n");
     }
     
     // dfs returns content in depth-first order.
