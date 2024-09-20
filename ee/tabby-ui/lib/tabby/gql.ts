@@ -101,6 +101,8 @@ function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
         }
       } else if (error?.originalError) {
         form.setError('root', error.originalError)
+      } else if (error?.message) {
+        form.setError('root', { message: error.message })
       }
     }
   }
