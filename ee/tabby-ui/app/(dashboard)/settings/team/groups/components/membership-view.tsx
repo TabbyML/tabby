@@ -149,7 +149,9 @@ function MembershipItem({ member, onRemoveEmptyItem }: MembershipItemProps) {
   useEffect(() => {
     if (!member) {
       trRef.current?.scrollIntoView({
-        behavior: 'smooth'
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'nearest'
       })
     }
   }, [])
