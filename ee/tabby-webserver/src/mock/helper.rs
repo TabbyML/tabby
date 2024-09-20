@@ -1,13 +1,13 @@
 pub mod helpers {
     use std::path::PathBuf;
-    use tabby_schema::{context::ContextInfo, AsID};
 
     use juniper::ID;
     use tabby_common::{api::code::CodeSearchParams, config::AnswerConfig};
     use tabby_schema::{
-        context::{ContextInfoHelper, ContextSourceValue},
+        context::{ContextInfo, ContextInfoHelper, ContextSourceValue},
         repository::{Repository, RepositoryKind},
         thread::CodeQueryInput,
+        AsID,
     };
 
     const TEST_SOURCE_ID: &str = "source-1";
