@@ -495,7 +495,7 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
 #[cfg(test)]
 mod tests {
 
-    use std::{path::PathBuf, sync::Arc};
+    use std::sync::Arc;
 
     use crate::mock::{
         helper::helpers::{
@@ -504,32 +504,14 @@ mod tests {
         },
         MockChatCompletionStream, MockCodeSearch, MockContextService, MockDocSearch,
     };
-    use async_openai::{
-        error::OpenAIError,
-        types::{CreateChatCompletionResponse, CreateChatCompletionStreamResponse},
-    };
 
-    use axum::async_trait;
-
-    use futures::future::ok;
     use juniper::ID;
-    use tabby_common::{
-        api::{
-            code::{
-                CodeSearch, CodeSearchError, CodeSearchParams, CodeSearchQuery, CodeSearchResponse,
-            },
-            doc::{DocSearch, DocSearchError, DocSearchResponse},
-        },
-        config::AnswerConfig,
-    };
+    use tabby_common::api::{code::CodeSearch, doc::DocSearch};
     use tabby_inference::ChatCompletionStream;
     use tabby_schema::{
         context::{ContextInfo, ContextInfoHelper, ContextService, ContextSourceValue},
-        policy::AccessPolicy,
-        repository::{Repository, RepositoryKind},
-        thread::{CodeQueryInput, MessageAttachment, MessageAttachmentCode, MessageAttachmentDoc},
+        thread::MessageAttachment,
         web_documents::PresetWebDocument,
-        AsID, Result,
     };
 
     use crate::answer::{trim_bullet, AnswerService};
