@@ -20,9 +20,9 @@ use tabby_schema::{
     Result,
 };
 
-pub struct MockChatCompletionStream;
+pub struct FakeChatCompletionStream;
 #[async_trait]
-impl ChatCompletionStream for MockChatCompletionStream {
+impl ChatCompletionStream for FakeChatCompletionStream {
     async fn chat(
         &self,
         _request: CreateChatCompletionRequest,
@@ -103,10 +103,10 @@ impl ChatCompletionStream for MockChatCompletionStream {
         Ok(Box::pin(stream) as ChatCompletionResponseStream)
     }
 }
-pub struct MockCodeSearch;
+pub struct FakeCodeSearch;
 
 #[async_trait]
-impl CodeSearch for MockCodeSearch {
+impl CodeSearch for FakeCodeSearch {
     async fn search_in_language(
         &self,
         _query: CodeSearchQuery,
@@ -116,9 +116,9 @@ impl CodeSearch for MockCodeSearch {
     }
 }
 
-pub struct MockDocSearch;
+pub struct FakeDocSearch;
 #[async_trait]
-impl DocSearch for MockDocSearch {
+impl DocSearch for FakeDocSearch {
     async fn search(
         &self,
         _source_ids: &[String],
@@ -171,9 +171,9 @@ impl DocSearch for MockDocSearch {
     }
 }
 
-pub struct MockContextService;
+pub struct FakeContextService;
 #[async_trait]
-impl ContextService for MockContextService {
+impl ContextService for FakeContextService {
     async fn read(&self, _policy: Option<&AccessPolicy>) -> Result<ContextInfo> {
         Ok(ContextInfo { sources: vec![] })
     }
