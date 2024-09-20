@@ -497,14 +497,6 @@ mod tests {
 
     use std::sync::Arc;
 
-    use crate::testutils::{
-        helper::helpers::{
-            make_answer_config, make_code_query_input, make_code_search_params,
-            make_context_info_helper, make_message,
-        },
-        FakeChatCompletionStream, FakeCodeSearch, FakeContextService, FakeDocSearch,
-    };
-
     use juniper::ID;
     use tabby_common::api::{code::CodeSearch, doc::DocSearch};
     use tabby_inference::ChatCompletionStream;
@@ -514,7 +506,16 @@ mod tests {
         web_documents::PresetWebDocument,
     };
 
-    use crate::answer::{trim_bullet, AnswerService};
+    use crate::{
+        answer::{trim_bullet, AnswerService},
+        testutils::{
+            helper::helpers::{
+                make_answer_config, make_code_query_input, make_code_search_params,
+                make_context_info_helper, make_message,
+            },
+            FakeChatCompletionStream, FakeCodeSearch, FakeContextService, FakeDocSearch,
+        },
+    };
 
     #[test]
     fn test_new() {
