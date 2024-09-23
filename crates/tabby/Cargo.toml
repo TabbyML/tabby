@@ -52,8 +52,6 @@ thiserror.workspace = true
 chrono.workspace = true
 axum-prometheus = "0.6"
 uuid.workspace = true
-cached = { workspace = true, features = ["async"] }
-parse-git-url = "0.5.1"
 color-eyre = { version = "0.6.3" }
 reqwest.workspace = true
 async-openai.workspace = true
