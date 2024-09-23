@@ -28,7 +28,7 @@ import { Button } from '../ui/button'
 import { IconFile, IconRefresh, IconTrash, IconUser } from '../ui/icons'
 import { Separator } from '../ui/separator'
 import { Skeleton } from '../ui/skeleton'
-import { UserAvatar } from '../user-avatar'
+import { MyAvatar } from '../user-avatar'
 import { ChatContext } from './chat'
 import { CodeReferences } from './code-references'
 
@@ -137,7 +137,7 @@ function UserMessageCard(props: { message: UserMessage }) {
       >
         <div className="flex items-center gap-x-2">
           <div className="shrink-0 select-none rounded-full border bg-background shadow">
-            <UserAvatar
+            <MyAvatar
               className="h-6 w-6 md:h-8 md:w-8"
               fallback={
                 <div className="flex h-6 w-6 items-center justify-center md:h-8 md:w-8">

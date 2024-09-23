@@ -30,7 +30,6 @@ import {
   IconPlus,
   IconSpinner,
   IconTrash,
-  IconUser
 } from '@/components/ui/icons'
 import {
   Popover,
@@ -49,6 +48,7 @@ import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import { MemberShips, MemberShipUser } from './types'
 import { UserGroupItemContext } from './user-group-item'
 import { UserGroupContext } from './user-group-page'
+import { UserAvatar } from '@/components/user-avatar'
 
 const deleteUserGroupMembershipMutation = graphql(/* GraphQL */ `
   mutation DeleteUserGroupMembership($userGroupId: ID!, $userId: ID!) {
@@ -257,7 +257,7 @@ function MembershipItem({ member, onRemoveEmptyItem }: MembershipItemProps) {
           value={role}
           disabled={!isServerAdmin}
         >
-          <SelectTrigger>
+          <SelectTrigger className='h-10'>
             <SelectValue placeholder="Select role" />
           </SelectTrigger>
           <SelectContent>
@@ -321,7 +321,7 @@ function MemberSelect({
         <Button
           variant="outline"
           role="combobox"
-          className={cn('h-9 w-full justify-between font-normal', {
+          className={cn('h-10 w-full justify-between font-normal', {
             'text-muted-foreground hover:text-muted-foreground': !userId,
             'cursor-auto shadow-none hover:bg-background': !!userId
           })}
@@ -382,8 +382,8 @@ function MemberSelect({
 function UserInfoView({ user }: { user: MemberShips[0]['user'] }) {
   const userName = user.name
   return (
-    <div className="flex items-center gap-2">
-      <IconUser />
+    <div className="flex items-center gap-2 h-10">
+      <UserAvatar user={user} className='h-7 w-7' />
       <span className="space-x-1">
         {user.name}
         <span
