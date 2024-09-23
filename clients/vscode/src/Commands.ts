@@ -276,7 +276,7 @@ export class Commands {
     "chat.generateCodeBlockTest": async () => {
       this.sendMessageToChatPanel("Generate a unit test for the selected code:");
     },
-    "chat.edit.start": async () => {
+    "chat.edit.start": async (userCommand?: string) => {
       const editor = window.activeTextEditor;
       if (!editor) {
         return;
@@ -299,6 +299,7 @@ export class Commands {
         this.contextVariables,
         editor,
         editLocation,
+        userCommand,
       );
       inlineEditController.start();
     },
