@@ -250,8 +250,8 @@ export class Commands {
         this.config.mutedNotifications = [];
       }
     },
-    "chat.explainCodeBlock": async () => {
-      this.sendMessageToChatPanel("Explain the selected code:");
+    "chat.explainCodeBlock": async (userCommand?: string) => {
+      this.sendMessageToChatPanel("Explain the selected code:".concat(userCommand ? `\n${userCommand}` : ""));
     },
     "chat.addRelevantContext": async () => {
       this.addRelevantContext();
