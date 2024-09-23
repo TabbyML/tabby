@@ -11,10 +11,7 @@ use tabby_common::{
 };
 use tabby_db::DbConn;
 use tabby_inference::{ChatCompletionStream, Embedding};
-use tabby_schema::{
-    integration::IntegrationService, job::JobService, repository::RepositoryService,
-    web_documents::WebDocumentService,
-};
+use tabby_schema::job::JobService;
 use tracing::debug;
 
 use crate::{
@@ -29,10 +26,6 @@ use crate::{
 pub struct Webserver {
     db: DbConn,
     logger: Arc<dyn EventLogger>,
-    repository: Arc<dyn RepositoryService>,
-    integration: Arc<dyn IntegrationService>,
-    job: Arc<dyn JobService>,
-    web_documents: Arc<dyn WebDocumentService>,
     embedding: Arc<dyn Embedding>,
 }
 
@@ -48,23 +41,12 @@ impl Webserver {
             .await
             .expect("Must be able to finalize stale job runs");
 
-        let job: Arc<dyn JobService> = Arc::new(job::create(db.clone()).await);
-
-        let integration = Arc::new(integration::create(db.clone(), job.clone()));
-        let repository = repository::create(db.clone(), integration.clone(), job.clone());
-
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
-
-        let web_documents = Arc::new(web_documents::create(db.clone(), job.clone()));
 
         Arc::new(Webserver {
             db: db.clone(),
             logger,
-            repository: repository.clone(),
-            integration: integration.clone(),
-            job: job.clone(),
-            web_documents,
             embedding,
         })
     }
@@ -91,9 +73,17 @@ impl Webserver {
                 None
             };
 
+        let db = self.db.clone();
+        let job: Arc<dyn JobService> = Arc::new(job::create(db.clone()).await);
+
+        let integration = Arc::new(integration::create(db.clone(), job.clone()));
+        let repository = repository::create(db.clone(), integration.clone(), job.clone());
+
+        let web_documents = Arc::new(web_documents::create(db.clone(), job.clone()));
+
         let context = Arc::new(crate::service::context::create(
-            self.repository.clone(),
-            self.web_documents.clone(),
+            repository.clone(),
+            web_documents.clone(),
             serper.is_some(),
         ));
 
@@ -112,12 +102,12 @@ impl Webserver {
         let ctx = create_service_locator(
             self.logger(),
             code.clone(),
-            self.repository.clone(),
-            self.integration.clone(),
-            self.job.clone(),
+            repository.clone(),
+            integration.clone(),
+            job.clone(),
             answer.clone(),
             context.clone(),
-            self.web_documents.clone(),
+            web_documents.clone(),
             self.db.clone(),
             self.embedding.clone(),
             is_chat_enabled,
