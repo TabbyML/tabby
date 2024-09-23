@@ -19,10 +19,13 @@ pub async fn models() -> Json<Vec<String>> {
     let models: tabby_common::config::ModelConfigGroup = Config::load().expect("Config file should be exist").model;
     let mut http_model_configs: Vec<String> = Vec::new();
 
-    println!("{:?}", models.embedding);
-    if let Some(tabby_common::config::ModelConfig::Http(embedding_http_config)) = models.embedding {
-        println!("{:?}", embedding_http_config.supported_models);
-        // http_model_configs.push(embedding_http_config);
+    match models.embedding {
+        tabby_common::config::ModelConfig::Http(http_config) => {
+            http_model_configs.extend(http_config.supported_models.unwrap());
+        }
+        tabby_common::config::ModelConfig::Local(local_config) => {
+            println!("Local Config Path:");
+        }
     }
 
     if let Some(tabby_common::config::ModelConfig::Http(completion_http_config)) = models.completion {
