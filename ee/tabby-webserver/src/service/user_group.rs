@@ -72,7 +72,6 @@ mod tests {
         // Insert test users into the database
         let user1 = testutils::create_user(&db).await.as_id();
         let user2 = testutils::create_user2(&db).await.as_id();
-        let _user3 = testutils::create_user3(&db).await.as_id();
 
         // Insert test user groups associated with the users
         let user_group1 = svc
