@@ -15,6 +15,7 @@ pub mod user_event;
 pub mod user_group;
 pub mod web_documents;
 pub mod worker;
+pub mod notion_documents;
 
 use std::sync::Arc;
 
@@ -61,6 +62,7 @@ use self::{
     },
     user_event::{UserEvent, UserEventService},
     web_documents::{CreateCustomDocumentInput, CustomWebDocument, WebDocumentService},
+    notion_documents::NotionDocumentService,
 };
 use crate::{
     env,
@@ -86,6 +88,7 @@ pub trait ServiceLocator: Send + Sync {
     fn context(&self) -> Arc<dyn ContextService>;
     fn user_group(&self) -> Arc<dyn UserGroupService>;
     fn access_policy(&self) -> Arc<dyn AccessPolicyService>;
+    fn notion(&self) -> Arc<dyn NotionDocumentService>;
 }
 
 pub struct Context {
@@ -653,7 +656,33 @@ impl Query {
 
         Ok(SourceIdAccessPolicy { source_id, read })
     }
+
+    // notion_documents is a query that lists all the notion documents
+    pub async fn notion_documents(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<relay::Connection<notion_documents::NotionDocument>> {
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .notion()
+                    .list_notion_documents(ids, after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
+
 }
+
 
 #[derive(GraphQLObject)]
 pub struct ServerInfo {
@@ -1143,6 +1172,18 @@ impl Mutation {
             .revoke_source_id_read_access(&source_id, &user_group_id)
             .await?;
         Ok(true)
+    }
+
+    // create_notion_document creates a new notion document integration task
+    async fn create_notion_document(ctx: &Context, input: notion_documents::CreateNotionDocumentInput) -> Result<ID> {
+        input.validate()?;
+        ctx.locator.notion().create_notion_document(input).await
+    }
+
+    // delete_notion_document deletes a notion document integration task
+    async fn delete_notion_document(ctx: &Context, id: ID) -> Result<bool> {
+        ctx.locator.notion().delete_notion_document(id).await
+        
     }
 }
 

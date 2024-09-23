@@ -73,6 +73,13 @@ enum LicenseType {
   ENTERPRISE
 }
 
+enum NotionDocumentType {
+  DATABASE
+  PAGE
+  WIKI
+  NONE
+}
+
 enum OAuthProvider {
   GITHUB
   GOOGLE
@@ -124,6 +131,13 @@ input CreateIntegrationInput {
 input CreateMessageInput {
   content: String!
   attachments: MessageAttachmentInput
+}
+
+input CreateNotionDocumentInput {
+  name: String!
+  integrationId: String!
+  integrationType: NotionDocumentType!
+  accessToken: String!
 }
 
 input CreateThreadAndRunInput {
@@ -572,10 +586,33 @@ type Mutation {
   deleteUserGroupMembership(userGroupId: ID!, userId: ID!): Boolean!
   grantSourceIdReadAccess(sourceId: String!, userGroupId: ID!): Boolean!
   revokeSourceIdReadAccess(sourceId: String!, userGroupId: ID!): Boolean!
+  createNotionDocument(input: CreateNotionDocumentInput!): ID!
+  deleteNotionDocument(id: ID!): Boolean!
 }
 
 type NetworkSetting {
   externalUrl: String!
+}
+
+type NotionDocument {
+  name: String!
+  id: ID!
+  accessToken: String!
+  integrationId: String!
+  integrationType: NotionDocumentType!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  jobInfo: JobInfo!
+}
+
+type NotionDocumentConnection {
+  edges: [NotionocumentEdge!]!
+  pageInfo: PageInfo!
+}
+
+type NotionocumentEdge {
+  node: NotionDocument!
+  cursor: String!
 }
 
 type OAuthCredential {
@@ -693,6 +730,7 @@ type Query {
   "List user groups."
   userGroups: [UserGroup!]!
   sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
+  notionDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): NotionDocumentConnection!
 }
 
 type RefreshTokenResponse {

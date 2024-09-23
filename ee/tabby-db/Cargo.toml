@@ -27,6 +27,7 @@ tokio = { workspace = true, features = ["fs"] }
 uuid.workspace = true
 cached = { workspace = true, features = ["async"] }
 serde.workspace = true
+juniper = "0.16"
 
 [dev-dependencies]
 assert_matches.workspace = true

@@ -23,6 +23,8 @@ pub use user_events::UserEventDAO;
 pub use user_groups::{UserGroupDAO, UserGroupMembershipDAO};
 pub use users::UserDAO;
 pub use web_documents::WebDocumentDAO;
+// pub use notion_documents::NotionDocumentType;
+// pub use notion_documents::NotionDocumentDAO;
 
 mod access_policy;
 pub mod cache;
@@ -44,6 +46,7 @@ mod user_events;
 mod user_groups;
 mod users;
 mod web_documents;
+pub mod notion_documents;
 
 use anyhow::Result;
 use sql_query_builder as sql;

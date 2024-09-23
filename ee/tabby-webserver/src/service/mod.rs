@@ -16,6 +16,7 @@ mod thread;
 mod user_event;
 mod user_group;
 pub mod web_documents;
+pub mod notion_documents;
 
 use std::sync::Arc;
 
@@ -56,6 +57,7 @@ use tabby_schema::{
     web_documents::WebDocumentService,
     worker::WorkerService,
     AsID, AsRowid, CoreError, Result, ServiceLocator,
+    notion_documents::NotionDocumentService,
 };
 
 use self::{
@@ -71,6 +73,7 @@ struct ServerContext {
     user_event: Arc<dyn UserEventService>,
     job: Arc<dyn JobService>,
     web_documents: Arc<dyn WebDocumentService>,
+    notion: Arc<dyn NotionDocumentService>,
     thread: Arc<dyn ThreadService>,
     context: Arc<dyn ContextService>,
     user_group: Arc<dyn UserGroupService>,
@@ -94,6 +97,7 @@ impl ServerContext {
         answer: Option<Arc<AnswerService>>,
         context: Arc<dyn ContextService>,
         web_documents: Arc<dyn WebDocumentService>,
+        notion: Arc<dyn NotionDocumentService>,
         db_conn: DbConn,
         embedding: Arc<dyn Embedding>,
         is_chat_enabled_locally: bool,
@@ -135,6 +139,7 @@ impl ServerContext {
                 setting.clone(),
             )),
             web_documents,
+            notion,
             thread,
             context,
             license,
@@ -293,6 +298,10 @@ impl ServiceLocator for ArcServerContext {
         self.0.web_documents.clone()
     }
 
+    fn notion(&self) -> Arc<dyn NotionDocumentService> {
+        self.0.notion.clone()
+    }
+
     fn thread(&self) -> Arc<dyn ThreadService> {
         self.0.thread.clone()
     }
@@ -319,6 +328,7 @@ pub async fn create_service_locator(
     answer: Option<Arc<AnswerService>>,
     context: Arc<dyn ContextService>,
     web_documents: Arc<dyn WebDocumentService>,
+    notion: Arc<dyn NotionDocumentService>,
     db: DbConn,
     embedding: Arc<dyn Embedding>,
     is_chat_enabled: bool,
@@ -333,6 +343,7 @@ pub async fn create_service_locator(
             answer,
             context,
             web_documents,
+            notion,
             db,
             embedding,
             is_chat_enabled,

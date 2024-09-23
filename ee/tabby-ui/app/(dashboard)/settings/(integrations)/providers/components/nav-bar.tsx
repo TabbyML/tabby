@@ -66,6 +66,8 @@ export default function NavBar({ className }: { className?: string }) {
           Beta
         </Badge>
       </SidebarButton>
+      
+      <SidebarButton href="/settings/providers/notion">Notion</SidebarButton>
     </div>
   )
 }
