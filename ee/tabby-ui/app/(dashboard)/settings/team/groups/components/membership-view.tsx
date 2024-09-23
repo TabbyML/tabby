@@ -382,7 +382,7 @@ function MemberSelect({
 function UserInfoView({ user }: { user: MemberShips[0]['user'] }) {
   const userName = user.name
   return (
-    <div className="flex items-center gap-2 h-10">
+    <div className="flex h-10 items-center gap-2">
       <UserAvatar user={user} className="h-7 w-7" />
       <span className="space-x-1">
         {user.name}
