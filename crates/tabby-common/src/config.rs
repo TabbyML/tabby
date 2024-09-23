@@ -61,8 +61,6 @@ impl Config {
             .print();
         }
 
-        println!("{:#?}", cfg);
-
         Ok(cfg)
     }
 
@@ -255,7 +253,7 @@ pub struct HttpModelConfig {
     #[builder(default)]
     pub chat_template: Option<String>,
 
-    /// Used by Chat/Completion API allowing users select different models to complete tasks.
+    /// Used by Chat/Completion API allowing users to get supported models info.
     #[builder(default)]
     pub supported_models: Option<Vec<String>>,
 }
