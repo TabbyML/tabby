@@ -98,29 +98,34 @@ impl ContextInfo {
     pub fn helper(&self) -> ContextInfoHelper {
         ContextInfoHelper::new(self)
     }
-}
 
-pub struct ContextInfoHelper {
-    sources: HashMap<String, String>,
-    pub allowed_code_repository: AllowedCodeRepository,
-}
-
-impl ContextInfoHelper {
-    pub fn new(context_info: &ContextInfo) -> Self {
+    pub fn allowed_code_repository(&self) -> AllowedCodeRepository {
         let mut repositories = vec![];
-        for x in &context_info.sources {
+        repositories.reserve(self.sources.len());
+        for x in &self.sources {
             if let ContextSourceValueEnum::Repository(x) = x {
                 repositories.push(CodeRepository::new(&x.git_url, &x.source_id));
             }
         }
 
+        AllowedCodeRepository::new(repositories)
+    }
+}
+
+pub struct ContextInfoHelper {
+    sources: HashMap<String, String>,
+    allowed_code_repository: AllowedCodeRepository,
+}
+
+impl ContextInfoHelper {
+    pub fn new(context_info: &ContextInfo) -> Self {
         Self {
             sources: context_info
                 .sources
                 .iter()
                 .map(|source| (source.source_id(), source.source_name()))
                 .collect(),
-            allowed_code_repository: AllowedCodeRepository::new(repositories),
+            allowed_code_repository: context_info.allowed_code_repository()
         }
     }
 
@@ -146,8 +151,8 @@ impl ContextInfoHelper {
         self.sources.contains_key(source_id)
     }
 
-    pub fn find_closet_git_url(&self, git_url: &str) -> Option<&str> {
-        self.allowed_code_repository.closest_match(git_url)
+    pub fn allowed_code_repository(&self) -> &AllowedCodeRepository {
+        &self.allowed_code_repository
     }
 }
 

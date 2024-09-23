@@ -234,7 +234,7 @@ impl WorkerService for ServerContext {
 
             request
                 .extensions_mut()
-                .insert(context_info.helper().allowed_code_repository);
+                .insert(context_info.allowed_code_repository());
         }
 
         next.run(request).await

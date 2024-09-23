@@ -197,7 +197,7 @@ impl AnswerService {
                     None
                 }
             } else if let Some(git_url) = &input.git_url {
-                helper.find_closet_git_url(git_url)
+                helper.allowed_code_repository().closest_match(git_url)
             } else {
                 None
             }
