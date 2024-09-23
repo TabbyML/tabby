@@ -5,6 +5,7 @@ use juniper::{
     graphql_interface, graphql_object, GraphQLEnum, GraphQLInterface, GraphQLObject, ID,
 };
 use regex::{Captures, Regex};
+use tabby_common::{axum::AllowedCodeRepository, config::CodeRepository};
 
 use super::{
     repository::{GitRepository, ProvidedRepository, Repository},
@@ -101,16 +102,25 @@ impl ContextInfo {
 
 pub struct ContextInfoHelper {
     sources: HashMap<String, String>,
+    pub allowed_code_repository: AllowedCodeRepository,
 }
 
 impl ContextInfoHelper {
     pub fn new(context_info: &ContextInfo) -> Self {
+        let mut repositories = vec![];
+        for x in &context_info.sources {
+            if let ContextSourceValueEnum::Repository(x) = x {
+                repositories.push(CodeRepository::new(&x.git_url, &x.source_id));
+            }
+        }
+
         Self {
             sources: context_info
                 .sources
                 .iter()
                 .map(|source| (source.source_id(), source.source_name()))
                 .collect(),
+            allowed_code_repository: AllowedCodeRepository::new(repositories),
         }
     }
 
@@ -134,6 +144,10 @@ impl ContextInfoHelper {
 
     pub fn can_access_source_id(&self, source_id: &str) -> bool {
         self.sources.contains_key(source_id)
+    }
+
+    pub fn find_closet_git_url(&self, git_url: &str) -> Option<&str> {
+        self.allowed_code_repository.closest_match(git_url)
     }
 }
 
