@@ -257,6 +257,9 @@ async fn api_router(
                 "/v1/health",
                 routing::get(routes::health).with_state(health_state),
             )
+            .route(
+                "/v1/models", 
+                routing::get(routes::models))
     });
 
     if let Some(completion_state) = completion_state {
@@ -316,8 +319,7 @@ async fn api_router(
 
     let server_setting_router =
         Router::new()
-            .route("/v1beta/server_setting", routing::get(routes::setting))
-            .route("/v1/models", routing::get(routes::models));
+            .route("/v1beta/server_setting", routing::get(routes::setting));
 
     #[cfg(feature = "ee")]
     if args.no_webserver {

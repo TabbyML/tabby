@@ -61,6 +61,8 @@ impl Config {
             .print();
         }
 
+        println!("{:#?}", cfg);
+
         Ok(cfg)
     }
 

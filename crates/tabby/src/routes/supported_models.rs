@@ -1,10 +1,11 @@
 use axum::Json;
 use tabby_common::api::server_setting::ServerSetting;
+use tabby_common::config::Config;
 // use tabby_common::config::HttpModelConfig;
 
 #[utoipa::path(
     get,
-    path = "/v1beta/server_setting",
+    path = "/v1/models",
     tag = "v1beta",
     operation_id = "config",
     responses(
@@ -14,7 +15,7 @@ use tabby_common::api::server_setting::ServerSetting;
         ("token" = [])
     )
 )]
-pub async fn setting() -> Json<ServerSetting> {
+pub async fn models() -> Json<ServerSetting> {
     let config = ServerSetting {
         disable_client_side_telemetry: false,
     };
