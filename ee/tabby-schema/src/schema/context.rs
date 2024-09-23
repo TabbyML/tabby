@@ -125,7 +125,7 @@ impl ContextInfoHelper {
                 .iter()
                 .map(|source| (source.source_id(), source.source_name()))
                 .collect(),
-            allowed_code_repository: context_info.allowed_code_repository()
+            allowed_code_repository: context_info.allowed_code_repository(),
         }
     }
 
