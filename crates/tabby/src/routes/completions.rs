@@ -36,8 +36,6 @@ pub async fn completions(
 
     let user_agent = user_agent.map(|x| x.0.to_string());
 
-    tracing::debug!("allowed_repos: {:?}", allowed_code_repository);
-
     match state
         .generate(&request, &allowed_code_repository, user_agent.as_deref())
         .await
