@@ -23,14 +23,15 @@ export const mutateAvatar = (userId: string) => {
   mutate(`/avatar/${userId}`)
 }
 
-
 interface UserAvatarProps {
   className?: string
   fallback?: string | ReactNode
-  user: {
-    id: string
-    email: string
-  } | undefined
+  user:
+    | {
+        id: string
+        email: string
+      }
+    | undefined
 }
 export function UserAvatar({ user, className, fallback }: UserAvatarProps) {
   const userId = user?.id
@@ -90,10 +91,9 @@ export function UserAvatar({ user, className, fallback }: UserAvatarProps) {
   )
 }
 
-
 interface MyAvatarProps extends Omit<UserAvatarProps, 'user'> {}
 export function MyAvatar(props: MyAvatarProps) {
   const [{ data }] = useMe()
-  
+
   return <UserAvatar user={data?.me} {...props} />
 }

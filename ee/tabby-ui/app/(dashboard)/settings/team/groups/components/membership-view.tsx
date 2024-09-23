@@ -29,7 +29,7 @@ import {
   IconChevronUpDown,
   IconPlus,
   IconSpinner,
-  IconTrash,
+  IconTrash
 } from '@/components/ui/icons'
 import {
   Popover,
@@ -44,11 +44,11 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
+import { UserAvatar } from '@/components/user-avatar'
 
 import { MemberShips, MemberShipUser } from './types'
 import { UserGroupItemContext } from './user-group-item'
 import { UserGroupContext } from './user-group-page'
-import { UserAvatar } from '@/components/user-avatar'
 
 const deleteUserGroupMembershipMutation = graphql(/* GraphQL */ `
   mutation DeleteUserGroupMembership($userGroupId: ID!, $userId: ID!) {
@@ -257,7 +257,7 @@ function MembershipItem({ member, onRemoveEmptyItem }: MembershipItemProps) {
           value={role}
           disabled={!isServerAdmin}
         >
-          <SelectTrigger className='h-10'>
+          <SelectTrigger className="h-10">
             <SelectValue placeholder="Select role" />
           </SelectTrigger>
           <SelectContent>
@@ -383,7 +383,7 @@ function UserInfoView({ user }: { user: MemberShips[0]['user'] }) {
   const userName = user.name
   return (
     <div className="flex items-center gap-2 h-10">
-      <UserAvatar user={user} className='h-7 w-7' />
+      <UserAvatar user={user} className="h-7 w-7" />
       <span className="space-x-1">
         {user.name}
         <span
