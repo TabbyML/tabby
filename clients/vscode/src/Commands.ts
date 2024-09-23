@@ -1,30 +1,30 @@
-import {
-  workspace,
-  window,
-  env,
-  commands,
-  ExtensionContext,
-  CancellationTokenSource,
-  Uri,
-  Disposable,
-  InputBoxValidationSeverity,
-  ProgressLocation,
-  ThemeIcon,
-  QuickPickItem,
-} from "vscode";
+import { strict as assert } from "assert";
 import os from "os";
 import path from "path";
-import { strict as assert } from "assert";
-import { Client } from "./lsp/Client";
+import {
+  CancellationTokenSource,
+  commands,
+  Disposable,
+  env,
+  ExtensionContext,
+  InputBoxValidationSeverity,
+  ProgressLocation,
+  QuickPickItem,
+  ThemeIcon,
+  Uri,
+  window,
+  workspace,
+} from "vscode";
+import CommandPalette from "./CommandPalette";
 import { Config, PastServerConfig } from "./Config";
 import { ContextVariables } from "./ContextVariables";
 import { InlineCompletionProvider } from "./InlineCompletionProvider";
+import { Issues } from "./Issues";
 import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { GitProvider, Repository } from "./git/GitProvider";
-import CommandPalette from "./CommandPalette";
-import { showOutputPanel } from "./logger";
-import { Issues } from "./Issues";
 import { InlineEditController } from "./inline-edit";
+import { showOutputPanel } from "./logger";
+import { Client } from "./lsp/Client";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -250,8 +250,8 @@ export class Commands {
         this.config.mutedNotifications = [];
       }
     },
-    "chat.explainCodeBlock": async () => {
-      this.sendMessageToChatPanel("Explain the selected code:");
+    "chat.explainCodeBlock": async (userCommand?: string) => {
+      this.sendMessageToChatPanel("Explain the selected code:".concat(userCommand ? `\n${userCommand}` : ""));
     },
     "chat.addRelevantContext": async () => {
       this.addRelevantContext();

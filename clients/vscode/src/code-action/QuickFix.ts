@@ -33,7 +33,7 @@ export class QuickFixCodeActionProvider implements CodeActionProviderInterface {
     const lspErrors = context.diagnostics
       .map((diagnostic, idx) => "Error " + idx + ": " + diagnostic.message)
       .join("\n");
-    const userCommand = `Here is some error information that occurred in the selection:
+    const quickFixCmd = `Here is some error information that occurred in the selection:
                         ${lspErrors}
                         Please provide the correct command to fix the error.`;
     getLogger("QuickFixCodeActionProvider").info("lspErrors", lspErrors);
@@ -42,9 +42,20 @@ export class QuickFixCodeActionProvider implements CodeActionProviderInterface {
     quickFixEditing.command = {
       command: "tabby.chat.edit.start",
       title: "Fix with Tabby",
-      arguments: [userCommand],
+      arguments: [quickFixCmd],
     };
 
-    return [quickFixEditing];
+    const explainErrorCmd = `\nHere is some error information that occurred in the selection:
+                        ${lspErrors}
+                        Please provide an explanation for the error.`;
+
+    const explainError = new CodeAction("Explain with Tabby", CodeActionKind.QuickFix);
+    explainError.command = {
+      command: "tabby.chat.explainCodeBlock",
+      title: "Explain with Tabby",
+      arguments: [explainErrorCmd],
+    };
+
+    return [quickFixEditing, explainError];
   }
 }
