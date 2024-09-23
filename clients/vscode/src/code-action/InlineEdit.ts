@@ -8,9 +8,9 @@ import {
   Selection,
   TextDocument,
 } from "vscode";
-import { ContextVariables } from "./ContextVariables";
+import { ContextVariables } from "../ContextVariables";
 
-export class CodeActionProvider implements CodeActionProviderInterface {
+export class InlineEditCodeActionProvider implements CodeActionProviderInterface {
   constructor(private readonly contextVariables: ContextVariables) {}
 
   provideCodeActions(
@@ -28,7 +28,6 @@ export class CodeActionProvider implements CodeActionProviderInterface {
     }
 
     const inlineEditing = new CodeAction("Edit using Tabby", CodeActionKind.RefactorRewrite);
-
     inlineEditing.command = {
       command: "tabby.chat.edit.start",
       title: "Edit using Tabby",
