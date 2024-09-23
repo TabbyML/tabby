@@ -1,6 +1,6 @@
 # Tabby UI
 
-## 🤝 Contribuing
+## 🤝 Contributing
 
 ### Local Setup
 Full guide at [CONTRIBUTING.md](https://github.com/TabbyML/tabby/blob/main/CONTRIBUTING.md#local-setup)
@@ -32,3 +32,7 @@ make caddy
 
 #### 4. Start hacking
 Now, you can open `http://localhost:8080` to see the tabby webserver!
+
+---
+
+You might also run `make dev` directly to execute the commands above simultaneously. (requires `tmux` and `tmuxinator`).
