@@ -16,12 +16,12 @@ import JobLogUrl from "./repository-job-run.png";
 
 Tabby Context supports two kinds of context currently:
 1. source code repositories
-2. documents pages
+2. developer docs
 
 The source code context is used to connect Tabby with a source code repository from Git, GitHub, GitLab, etc.
 Tabby fetches the source code from the repository, parses it into an AST, and stores it in the index. During LLM inference, this context is utilized for code completion, as well as chat and search functionalities.
 
-The Documents pages context is currently on Beta,
+The developer docs context is currently on Beta,
 it is a critical source for engineering knowledge,
 simply press the `@` button in the chat interface and select the document you wish to include,
 Tabby will include these documents when interacting with LLMs.
@@ -56,15 +56,6 @@ Tabby will include these documents when interacting with LLMs.
         <img src={JobLogUrl} alt="job-log" />
       </div>
 
-## Adding a Document through Admin UI
-
-1. Navigate to the **Integrations > Context Providers** page, and then select the `Developer Docs(Beta)`.
-
-<img src={ContextProvidersUrl} alt="Context Providers" />
-
-2. Turn on the switch to enable the integrated sites, or click the `+` button to add your own URLs
-
-<img src={DocumentUrl} alt="Document" />
 
 ## Adding a Repository through configuration file
 
@@ -85,6 +76,18 @@ git_url = "git@github.com:OpenNMT/CTranslate2.git"
 name = "repository_a"
 git_url = "file:///home/users/repository_a"
 ```
+
+
+## Adding a Developer Doc through Admin UI
+
+1. Navigate to the **Integrations > Context Providers** page, and then select the `Developer Docs(Beta)`.
+
+<img src={ContextProvidersUrl} alt="Context Providers" />
+
+2. Turn on the switch to enable the integrated sites, or click the `+` button to add your own URLs
+
+<img src={DocumentUrl} alt="Document" />
+
 
 ## Verifying the Repository Provider
 
