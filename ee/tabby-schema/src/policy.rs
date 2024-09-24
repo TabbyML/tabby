@@ -69,6 +69,10 @@ impl AccessPolicy {
     }
 
     pub async fn check_read_source(&self, source_id: &str) -> Result<()> {
+        if self.is_admin {
+            return Ok(());
+        }
+
         let allow = self
             .db
             .allow_read_source(self.user_id.as_rowid()?, source_id)

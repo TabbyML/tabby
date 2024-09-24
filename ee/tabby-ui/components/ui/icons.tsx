@@ -3,6 +3,7 @@
 import * as React from 'react'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
 import {
+  AlignJustify,
   AtSign,
   Blocks,
   BookOpenText,
@@ -24,6 +25,7 @@ import {
   Sparkles,
   Star,
   Tag,
+  WrapText,
   X
 } from 'lucide-react'
 
@@ -1597,6 +1599,20 @@ function IconEmojiGlobe({ className, ...props }: React.ComponentProps<'span'>) {
   )
 }
 
+function IconWrapText({
+  className,
+  ...props
+}: React.ComponentProps<typeof WrapText>) {
+  return <WrapText className={cn('h-4 w-4', className)} {...props} />
+}
+
+function IconAlignJustify({
+  className,
+  ...props
+}: React.ComponentProps<typeof AlignJustify>) {
+  return <AlignJustify className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1690,5 +1706,7 @@ export {
   IconAtSign,
   IconGlobe,
   IconEmojiBook,
-  IconEmojiGlobe
+  IconEmojiGlobe,
+  IconWrapText,
+  IconAlignJustify
 }

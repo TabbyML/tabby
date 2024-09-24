@@ -76,7 +76,6 @@ export type AgentConfig = {
   chat: {
     edit: {
       documentMaxChars: number;
-      commandMaxChars: number;
       responseDocumentTag: string[];
       responseCommentTag: string[] | undefined;
       promptTemplate: {
@@ -178,7 +177,6 @@ export const defaultAgentConfig: AgentConfig = {
   chat: {
     edit: {
       documentMaxChars: 3000,
-      commandMaxChars: 200,
       responseDocumentTag: ["<GENERATEDCODE>", "</GENERATEDCODE>"],
       responseCommentTag: undefined,
       promptTemplate: {

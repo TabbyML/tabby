@@ -284,7 +284,7 @@ export class Commands {
 
       this.chatPanelViewProvider.resolveWebviewView(panel);
     },
-    "chat.edit.start": async () => {
+    "chat.edit.start": async (userCommand?: string) => {
       const editor = window.activeTextEditor;
       if (!editor) {
         return;
@@ -307,6 +307,7 @@ export class Commands {
         this.contextVariables,
         editor,
         editLocation,
+        userCommand,
       );
       inlineEditController.start();
     },

@@ -402,7 +402,6 @@ export type ChatEditCommand = {
  * - result: {@link ChatEditToken}
  * - error: {@link ChatFeatureNotAvailableError}
  *        | {@link ChatEditDocumentTooLongError}
- *        | {@link ChatEditCommandTooLongError}
  *        | {@link ChatEditMutexError}
  */
 export namespace ChatEditRequest {
@@ -412,7 +411,7 @@ export namespace ChatEditRequest {
     ChatEditParams,
     ChatEditToken,
     void,
-    ChatFeatureNotAvailableError | ChatEditDocumentTooLongError | ChatEditCommandTooLongError | ChatEditMutexError,
+    ChatFeatureNotAvailableError | ChatEditDocumentTooLongError | ChatEditMutexError,
     void
   >(method);
 }

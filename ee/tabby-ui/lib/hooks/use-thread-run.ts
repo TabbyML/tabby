@@ -168,19 +168,21 @@ export interface ThreadRun {
 
   stop: (silent?: boolean) => void
 
+  // if deletion fails, an error message will be returned
   regenerate: (payload: {
     threadId: string
     userMessageId: string
     assistantMessageId: string
     userMessage: CreateMessageInput
     threadRunOptions?: ThreadRunOptionsInput
-  }) => void
+  }) => Promise<string | void>
 
+  // if deletion fails, an error message will be returned
   deleteThreadMessagePair: (
     threadId: string,
     userMessageId: string,
     assistantMessageId: string
-  ) => Promise<boolean>
+  ) => Promise<string | void>
 }
 
 export function useThreadRun({
@@ -353,20 +355,21 @@ export function useThreadRun({
     threadId: string,
     userMessageId: string,
     assistantMessageId: string
-  ) => {
+  ): Promise<string | void> => {
     return deleteThreadMessagePair({
       threadId,
       userMessageId,
       assistantMessageId
     })
       .then(res => {
-        if (res?.data?.deleteThreadMessagePair) {
-          return true
+        if (!res?.data?.deleteThreadMessagePair) {
+          const errorMessge = res?.error?.message || 'Failed to fetch'
+          return errorMessge
         }
-        return false
       })
       .catch(e => {
-        return false
+        const errorMessge = e?.message || 'Failed to fetch'
+        return errorMessge
       })
   }
 
@@ -377,7 +380,7 @@ export function useThreadRun({
     userMessage: CreateMessageInput
     threadRunOptions?: ThreadRunOptionsInput
   }) => {
-    if (!threadId) return
+    if (!threadId) return Promise.resolve(undefined)
 
     setIsLoading(true)
     // reset assistantMessage
@@ -385,21 +388,33 @@ export function useThreadRun({
     setAnswerStream(defaultAnswerStream())
 
     // 1. delete message pair
-    onDeleteThreadMessagePair(
+    return onDeleteThreadMessagePair(
       payload.threadId,
       payload.userMessageId,
       payload.assistantMessageId
-    ).finally(() => {
-      // 2. send a new user message
-      sendUserMessage(payload.userMessage, payload.threadRunOptions)
-    })
+    )
+      .then(errorMsg => {
+        if (errorMsg) {
+          setError(new Error(errorMsg))
+          setIsLoading(false)
+          return errorMsg
+        }
+
+        // 2. send a new user message
+        sendUserMessage(payload.userMessage, payload.threadRunOptions)
+      })
+      .catch(e => {
+        const errorMessage: string = e?.message || 'Failed to fetch'
+        setError(new Error(errorMessage))
+        setIsLoading(false)
+        return errorMessage
+      })
   }
 
   return {
     isLoading,
     answer: answerStream,
     error,
-    // setError,
     sendUserMessage,
     stop: stop.current,
     regenerate,

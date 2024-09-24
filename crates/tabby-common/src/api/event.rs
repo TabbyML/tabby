@@ -67,7 +67,7 @@ pub enum Event {
         #[serde(skip_serializing_if = "Option::is_none")]
         segments: Option<Segments>,
         choices: Vec<Choice>,
-        user_agent: String,
+        user_agent: Option<String>,
     },
     ChatCompletion {
         completion_id: String,
