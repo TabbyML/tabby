@@ -92,7 +92,7 @@ export function ThreadFeeds(props: ThreadFeedsProps) {
         fetchingSources
       }}
     >
-      <Card className="bg-transparent border p-4">
+      <Card className="border bg-transparent p-4">
         <CardHeader className="flex flex-row items-center justify-between p-0 pb-2">
           <CardTitle className="text-sm font-normal leading-none tracking-tight">
             Threads
@@ -152,7 +152,7 @@ function ThreadItem({ data }: ThreadItemProps) {
   return (
     <LoadingWrapper loading={fetching} fallback={<TheadsSkeleton />}>
       <div className="flex items-center gap-1">
-        <UserAvatar user={user} className="w-7 h-7 border shrink-0" />
+        <UserAvatar user={user} className="h-7 w-7 shrink-0 border" />
         <Link
           href={`/search/${title}-${threadId}`}
           className="flex-1 truncate hover:underline"
@@ -184,7 +184,7 @@ function TheadsSkeleton() {
 function ThreadItemSkeleton() {
   return (
     <div className="flex items-center gap-2">
-      <Skeleton className="w-6 h-6 rounded-full" />
+      <Skeleton className="h-6 w-6 rounded-full" />
       <Skeleton className="w-full" />
     </div>
   )

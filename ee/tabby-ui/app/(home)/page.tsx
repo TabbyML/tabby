@@ -164,7 +164,7 @@ function MainPanel() {
               />
             </div>
           )}
-          <div className="flex w-full flex-col gap-x-5 lg:flex-row pb-4">
+          <div className="flex w-full flex-col gap-x-5 pb-4 lg:flex-row">
             <div
               className="mb-10 w-full rounded-lg p-4 lg:mb-0 lg:w-[21rem]"
               style={{ background: theme === 'dark' ? '#333' : '#e8e1d3' }}
