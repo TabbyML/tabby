@@ -190,30 +190,19 @@ impl AnswerService {
         params: &CodeSearchParams,
         override_params: Option<&CodeSearchParamsOverrideInput>,
     ) -> Vec<CodeSearchHit> {
-        let source_id: Option<&str> = {
-            if let Some(source_id) = &input.source_id {
-                // If source_id doesn't exist, return empty result.
-                if helper.can_access_source_id(source_id) {
-                    Some(source_id.as_str())
-                } else {
-                    None
-                }
-            } else if let Some(git_url) = &input.git_url {
-                helper.allowed_code_repository().closest_match(git_url)
-            } else {
-                None
+        if let Some(source_id) = &input.source_id {
+            // If source_id doesn't exist, return empty result.
+            if !helper.can_access_source_id(source_id) {
+                return vec![];
             }
-        };
-
-        let Some(source_id) = source_id else {
-            return vec![];
-        };
+        }
 
         let query = CodeSearchQuery::new(
+            input.git_url.clone(),
             input.filepath.clone(),
             input.language.clone(),
             helper.rewrite_tag(&input.content),
-            source_id.to_owned(),
+            input.source_id.clone(),
         );
 
         let mut params = params.clone();
@@ -517,7 +506,10 @@ mod tests {
     };
 
     use crate::answer::{
-        testutils::{FakeChatCompletionStream, FakeCodeSearch, FakeContextService, FakeDocSearch},
+        testutils::{
+            FakeChatCompletionStream, FakeCodeSearch, FakeCodeSearchFail,
+            FakeCodeSearchFailNotReady, FakeContextService, FakeDocSearch,
+        },
         trim_bullet, AnswerService,
     };
 
@@ -542,12 +534,12 @@ mod tests {
             num_to_score: 10,
         }
     }
-    pub fn make_code_query_input() -> CodeQueryInput {
+    pub fn make_code_query_input(source_id: Option<&str>, git_url: Option<&str>) -> CodeQueryInput {
         CodeQueryInput {
             filepath: Some(TEST_FILEPATH.to_string()),
             content: TEST_CONTENT.to_string(),
-            git_url: Some(TEST_GIT_URL.to_string()),
-            source_id: Some(TEST_SOURCE_ID.to_string()),
+            git_url: git_url.map(|url| url.to_string()),
+            source_id: source_id.map(|id| id.to_string()),
             language: Some(TEST_LANGUAGE.to_string()),
         }
     }
@@ -685,9 +677,9 @@ mod tests {
         let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
         let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
-        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
+        let mut serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
-        let service = AnswerService::new(
+        let mut service = AnswerService::new(
             &config,
             chat.clone(),
             code.clone(),
@@ -695,21 +687,74 @@ mod tests {
             context.clone(),
             serper,
         );
-
+        let code_query_input_could_access =
+            make_code_query_input(Some(TEST_SOURCE_ID), Some(TEST_GIT_URL));
+        let code_search_params = make_code_search_params();
         let context_info_helper: ContextInfoHelper = make_context_info_helper();
         debug_assert!(context_info_helper.can_access_source_id("source-1"));
-        let code_query_input = make_code_query_input();
-
-        let code_search_params = make_code_search_params();
 
         service
             .collect_relevant_code(
                 &context_info_helper,
-                &code_query_input,
+                &code_query_input_could_access,
                 &code_search_params,
                 None,
             )
             .await;
+
+        let code_query_input_not_access = make_code_query_input(Some("TEST"), Some(TEST_GIT_URL));
+        service
+            .collect_relevant_code(
+                &context_info_helper,
+                &code_query_input_not_access,
+                &code_search_params,
+                None,
+            )
+            .await;
+
+        let code_query_input_with_only_git = make_code_query_input(None, Some(TEST_GIT_URL));
+        service
+            .collect_relevant_code(
+                &context_info_helper,
+                &code_query_input_with_only_git,
+                &code_search_params,
+                None,
+            )
+            .await;
+
+        let code_query_input_with_only_git = make_code_query_input(None, None);
+        service
+            .collect_relevant_code(
+                &context_info_helper,
+                &code_query_input_with_only_git,
+                &code_search_params,
+                None,
+            )
+            .await;
+
+        let code_fail_not_ready = Arc::new(FakeCodeSearchFailNotReady);
+        serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
+
+        service = AnswerService::new(
+            &config,
+            chat.clone(),
+            code_fail_not_ready.clone(),
+            doc.clone(),
+            context.clone(),
+            serper,
+        );
+
+        let code_fail = Arc::new(FakeCodeSearchFail);
+        serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
+
+        service = AnswerService::new(
+            &config,
+            chat.clone(),
+            code_fail.clone(),
+            doc.clone(),
+            context.clone(),
+            serper,
+        )
     }
 
     #[tokio::test]

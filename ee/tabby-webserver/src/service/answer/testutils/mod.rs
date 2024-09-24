@@ -116,6 +116,30 @@ impl CodeSearch for FakeCodeSearch {
     }
 }
 
+pub struct FakeCodeSearchFailNotReady;
+#[async_trait]
+impl CodeSearch for FakeCodeSearchFailNotReady {
+    async fn search_in_language(
+        &self,
+        _query: CodeSearchQuery,
+        _params: CodeSearchParams,
+    ) -> Result<CodeSearchResponse, CodeSearchError> {
+        Err(CodeSearchError::NotReady)
+    }
+}
+
+pub struct FakeCodeSearchFail;
+#[async_trait]
+impl CodeSearch for FakeCodeSearchFail {
+    async fn search_in_language(
+        &self,
+        _query: CodeSearchQuery,
+        _params: CodeSearchParams,
+    ) -> Result<CodeSearchResponse, CodeSearchError> {
+        Err(CodeSearchError::Other(anyhow::anyhow!("error")))
+    }
+}
+
 pub struct FakeDocSearch;
 #[async_trait]
 impl DocSearch for FakeDocSearch {
