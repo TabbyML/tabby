@@ -38,10 +38,10 @@ export class QuickFixCodeActionProvider implements CodeActionProviderInterface {
                         Please provide the correct command to fix the error.`;
     getLogger("QuickFixCodeActionProvider").info("lspErrors", lspErrors);
 
-    const quickFixEditing = new CodeAction("Fix with Tabby", CodeActionKind.QuickFix);
+    const quickFixEditing = new CodeAction("Fix using Tabby", CodeActionKind.QuickFix);
     quickFixEditing.command = {
       command: "tabby.chat.edit.start",
-      title: "Fix with Tabby",
+      title: "Fix using Tabby",
       arguments: [quickFixCmd],
     };
 
@@ -49,10 +49,10 @@ export class QuickFixCodeActionProvider implements CodeActionProviderInterface {
                         ${lspErrors}
                         Please provide an explanation for the error.`;
 
-    const explainError = new CodeAction("Explain with Tabby", CodeActionKind.QuickFix);
+    const explainError = new CodeAction("Explain using Tabby", CodeActionKind.QuickFix);
     explainError.command = {
       command: "tabby.chat.explainCodeBlock",
-      title: "Explain with Tabby",
+      title: "Explain using Tabby",
       arguments: [explainErrorCmd],
     };
 
