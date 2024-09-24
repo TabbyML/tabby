@@ -1,6 +1,7 @@
 use std::{fs, path::PathBuf};
 
 use anyhow::{Context, Result};
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
 use crate::path::models_dir;
@@ -76,7 +77,7 @@ impl ModelRegistry {
         let model_path = self.get_model_path(name);
         let old_model_path = self
             .get_model_dir(name)
-            .join(LEGACY_GGML_MODEL_RELATIVE_PATH);
+            .join(LEGACY_GGML_MODEL_RELATIVE_PATH.as_str());
 
         if !model_path.exists() && old_model_path.exists() {
             std::fs::rename(&old_model_path, &model_path)?;
@@ -89,7 +90,8 @@ impl ModelRegistry {
     }
 
     pub fn get_model_path(&self, name: &str) -> PathBuf {
-        self.get_model_dir(name).join(GGML_MODEL_RELATIVE_PATH)
+        self.get_model_dir(name)
+            .join(GGML_MODEL_RELATIVE_PATH.as_str())
     }
 
     pub fn save_model_info(&self, name: &str) {
@@ -118,8 +120,12 @@ pub fn parse_model_id(model_id: &str) -> (&str, &str) {
     }
 }
 
-pub static LEGACY_GGML_MODEL_RELATIVE_PATH: &str = "ggml/q8_0.v2.gguf";
-pub static GGML_MODEL_RELATIVE_PATH: &str = "ggml/model.gguf";
+lazy_static! {
+    pub static ref LEGACY_GGML_MODEL_RELATIVE_PATH: String =
+        format!("ggml{}q8_0.v2.gguf", std::path::MAIN_SEPARATOR_STR);
+    pub static ref GGML_MODEL_RELATIVE_PATH: String =
+        format!("ggml{}model.gguf", std::path::MAIN_SEPARATOR_STR);
+}
 
 #[cfg(test)]
 mod tests {
@@ -136,7 +142,7 @@ mod tests {
         let registry = ModelRegistry::new("TabbyML").await;
         let dir = registry.get_model_dir("StarCoder-1B");
 
-        let old_model_path = dir.join(LEGACY_GGML_MODEL_RELATIVE_PATH);
+        let old_model_path = dir.join(LEGACY_GGML_MODEL_RELATIVE_PATH.as_str());
         tokio::fs::create_dir_all(old_model_path.parent().unwrap())
             .await
             .unwrap();

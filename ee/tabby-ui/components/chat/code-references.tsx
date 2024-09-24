@@ -21,6 +21,7 @@ interface ContextReferencesProps {
   contexts: RelevantCodeContext[]
   userContexts?: RelevantCodeContext[]
   className?: string
+  triggerClassname?: string
   onContextClick?: (
     context: RelevantCodeContext,
     isInWorkspace?: boolean
@@ -40,6 +41,7 @@ export const CodeReferences = forwardRef<
       contexts,
       userContexts,
       className,
+      triggerClassname,
       onContextClick,
       enableTooltip,
       onTooltipClick,
@@ -76,7 +78,9 @@ export const CodeReferences = forwardRef<
         onValueChange={setAccordionValue}
       >
         <AccordionItem value="references" className="my-0 border-0">
-          <AccordionTrigger className="my-0 py-2 font-semibold">
+          <AccordionTrigger
+            className={cn('my-0 py-2 font-semibold', triggerClassname)}
+          >
             <span className="mr-2">{`Read ${totalContextLength} file${
               isMultipleReferences ? 's' : ''
             }`}</span>

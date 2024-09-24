@@ -223,30 +223,6 @@ impl Query {
         .await
     }
 
-    /// List users, accessible for admin users.
-    async fn secured_users(
-        ctx: &Context,
-        after: Option<String>,
-        before: Option<String>,
-        first: Option<i32>,
-        last: Option<i32>,
-    ) -> Result<Connection<UserSecured>> {
-        check_admin(ctx).await?;
-        relay::query_async(
-            after,
-            before,
-            first,
-            last,
-            |after, before, first, last| async move {
-                ctx.locator
-                    .auth()
-                    .list_users(after, before, first, last)
-                    .await
-            },
-        )
-        .await
-    }
-
     async fn invitations(
         ctx: &Context,
         after: Option<String>,
@@ -515,6 +491,7 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> Result<Connection<Integration>> {
+        check_admin(ctx).await?;
         query_async(
             after,
             before,
@@ -540,6 +517,7 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> Result<Connection<ProvidedRepository>> {
+        check_admin(ctx).await?;
         query_async(
             after,
             before,
@@ -616,6 +594,7 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> Result<Connection<CustomWebDocument>> {
+        check_admin(ctx).await?;
         query_async(
             after,
             before,
@@ -639,6 +618,7 @@ impl Query {
         last: Option<i32>,
         is_active: Option<bool>,
     ) -> Result<Connection<PresetWebDocument>> {
+        check_admin(ctx).await?;
         query_async(
             after,
             before,
@@ -655,11 +635,9 @@ impl Query {
     }
 
     /// List user groups.
-    ///
-    /// When the requesting user is an admin, all user groups will be returned. Otherwise, they can only see groups they are a member of.
     async fn user_groups(ctx: &Context) -> Result<Vec<UserGroup>> {
-        let user = check_user(ctx).await?;
-        ctx.locator.user_group().list(&user.policy).await
+        check_user(ctx).await?;
+        ctx.locator.user_group().list().await
     }
 
     async fn source_id_access_policies(
@@ -965,6 +943,7 @@ impl Mutation {
     }
 
     async fn create_integration(ctx: &Context, input: CreateIntegrationInput) -> Result<ID> {
+        check_admin(ctx).await?;
         input.validate()?;
         let id = ctx
             .locator
@@ -980,6 +959,7 @@ impl Mutation {
     }
 
     async fn update_integration(ctx: &Context, input: UpdateIntegrationInput) -> Result<bool> {
+        check_admin(ctx).await?;
         input.validate()?;
         ctx.locator
             .integration()
@@ -995,6 +975,7 @@ impl Mutation {
     }
 
     async fn delete_integration(ctx: &Context, id: ID, kind: IntegrationKind) -> Result<bool> {
+        check_admin(ctx).await?;
         ctx.locator
             .integration()
             .delete_integration(id, kind)
@@ -1007,6 +988,7 @@ impl Mutation {
         id: ID,
         active: bool,
     ) -> Result<bool> {
+        check_admin(ctx).await?;
         ctx.locator
             .repository()
             .third_party()
@@ -1061,6 +1043,7 @@ impl Mutation {
     }
 
     async fn create_custom_document(ctx: &Context, input: CreateCustomDocumentInput) -> Result<ID> {
+        check_admin(ctx).await?;
         input.validate()?;
         let id = ctx
             .locator
@@ -1071,6 +1054,7 @@ impl Mutation {
     }
 
     async fn delete_custom_document(ctx: &Context, id: ID) -> Result<bool> {
+        check_admin(ctx).await?;
         ctx.locator
             .web_documents()
             .delete_custom_web_document(id)
@@ -1082,6 +1066,7 @@ impl Mutation {
         ctx: &Context,
         input: SetPresetDocumentActiveInput,
     ) -> Result<bool> {
+        check_admin(ctx).await?;
         input.validate()?;
         ctx.locator
             .web_documents()
@@ -1109,7 +1094,7 @@ impl Mutation {
     ) -> Result<bool> {
         let user = check_user(ctx).await?;
         user.policy
-            .check_update_user_group_membership(&input.user_group_id)
+            .check_upsert_user_group_membership(&input)
             .await?;
 
         input.validate()?;
@@ -1124,10 +1109,9 @@ impl Mutation {
     ) -> Result<bool> {
         let user = check_user(ctx).await?;
         user.policy
-            .check_update_user_group_membership(&user_group_id)
+            .check_delete_user_group_membership(&user_group_id, &user_id)
             .await?;
 
-        check_admin(ctx).await?;
         ctx.locator
             .user_group()
             .delete_membership(&user_group_id, &user_id)

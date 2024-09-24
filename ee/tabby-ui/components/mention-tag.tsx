@@ -1,7 +1,7 @@
 import React from 'react'
 import { NodeViewProps, NodeViewWrapper } from '@tiptap/react'
 
-import { ContextKind } from '@/lib/gql/generates/graphql'
+import { ContextSourceKind } from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import {
@@ -38,19 +38,19 @@ function SourceIcon({
   kind,
   ...rest
 }: {
-  kind: ContextKind
+  kind: ContextSourceKind
   className?: string
 }) {
   switch (kind) {
-    case ContextKind.Doc:
+    case ContextSourceKind.Doc:
       return <IconEmojiBook {...rest} />
-    case ContextKind.Web:
+    case ContextSourceKind.Web:
       return <IconEmojiGlobe {...rest} />
-    case ContextKind.Git:
+    case ContextSourceKind.Git:
       return <IconCode {...rest} />
-    case ContextKind.Github:
+    case ContextSourceKind.Github:
       return <IconGitHub {...rest} />
-    case ContextKind.Gitlab:
+    case ContextSourceKind.Gitlab:
       return <IconGitLab {...rest} />
     default:
       return null

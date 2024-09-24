@@ -163,7 +163,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             bail!("Inactive user's password cannot be reset");
         }
         let code = self.db.create_password_reset(id).await?;
-        let url = format!("{}/reset-password?code={}", external_url, code);
+        let url = format!("{}/auth/reset-password?code={}", external_url, code);
         Ok(url)
     }
 
@@ -1651,7 +1651,7 @@ mod tests {
             .generate_reset_password_url(&active_user.id)
             .await
             .unwrap();
-        assert!(url.contains("/reset-password?code="));
+        assert!(url.contains("/auth/reset-password?code="));
 
         // Create an inactive user
         let id = service

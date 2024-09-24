@@ -120,7 +120,7 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
         return false
       }
 
-      return contextInfo.sources.some(o => isCodeSourceContext(o.kind))
+      return contextInfo.sources.some(o => isCodeSourceContext(o.sourceKind))
     }, [contextInfo?.sources])
 
     const hasDocSources = useMemo(() => {
@@ -128,7 +128,7 @@ export const PromptEditor = forwardRef<PromptEditorRef, PromptEditorProps>(
         return false
       }
 
-      return contextInfo.sources.some(o => isDocSourceContext(o.kind))
+      return contextInfo.sources.some(o => isDocSourceContext(o.sourceKind))
     }, [contextInfo?.sources])
 
     const editor = useEditor(

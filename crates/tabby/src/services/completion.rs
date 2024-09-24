@@ -9,6 +9,7 @@ use tabby_common::{
         code::CodeSearch,
         event::{Event, EventLogger},
     },
+    axum::AllowedCodeRepository,
     config::{CompletionConfig, ModelConfig},
     languages::get_language,
 };
@@ -259,13 +260,16 @@ impl CompletionService {
         &self,
         language: &str,
         segments: &Segments,
+        allowed_code_repository: &AllowedCodeRepository,
         disable_retrieval_augmented_code_completion: bool,
     ) -> Vec<Snippet> {
         if disable_retrieval_augmented_code_completion {
             return vec![];
         }
 
-        self.prompt_builder.collect(language, segments).await
+        self.prompt_builder
+            .collect(language, segments, allowed_code_repository)
+            .await
     }
 
     fn text_generation_options(
@@ -294,7 +298,8 @@ impl CompletionService {
     pub async fn generate(
         &self,
         request: &CompletionRequest,
-        user_agent: &str,
+        allowed_code_repository: &AllowedCodeRepository,
+        user_agent: Option<&str>,
     ) -> Result<CompletionResponse, CompletionError> {
         let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
         let language = request.language_or_unknown();
@@ -313,6 +318,7 @@ impl CompletionService {
                 .build_snippets(
                     &language,
                     segments,
+                    allowed_code_repository,
                     request.disable_retrieval_augmented_code_completion(),
                 )
                 .await;
@@ -338,7 +344,7 @@ impl CompletionService {
                     index: 0,
                     text: text.clone(),
                 }],
-                user_agent: user_agent.to_string(),
+                user_agent: user_agent.map(|x| x.to_owned()),
             },
         );
 
@@ -461,8 +467,9 @@ mod tests {
             seed: None,
         };
 
+        let allowed_code_repository = AllowedCodeRepository::default();
         let response = completion_service
-            .generate(&request, "test user agent")
+            .generate(&request, &allowed_code_repository, Some("test user agent"))
             .await
             .unwrap();
         assert_eq!(response.choices[0].text, r#""Hello, world!""#);

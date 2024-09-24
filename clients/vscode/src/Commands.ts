@@ -80,8 +80,6 @@ export class Commands {
       return;
     }
 
-    // If chat webview is not created or not visible, we shall focus on it.
-    const focusChat = !this.chatViewProvider.webview?.visible;
     const addContext = () => {
       const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
       if (fileContext) {
@@ -89,11 +87,7 @@ export class Commands {
       }
     };
 
-    if (focusChat) {
-      commands.executeCommand("tabby.chatView.focus").then(addContext);
-    } else {
-      addContext();
-    }
+    commands.executeCommand("tabby.chatView.focus").then(addContext);
   }
 
   commands: Record<string, (...args: never[]) => void> = {
@@ -285,7 +279,7 @@ export class Commands {
     "chat.generateCodeBlockTest": async () => {
       this.sendMessageToChatPanel("Generate a unit test for the selected code:");
     },
-    "chat.edit.start": async () => {
+    "chat.edit.start": async (userCommand?: string) => {
       const editor = window.activeTextEditor;
       if (!editor) {
         return;
@@ -308,6 +302,7 @@ export class Commands {
         this.contextVariables,
         editor,
         editLocation,
+        userCommand,
       );
       inlineEditController.start();
     },

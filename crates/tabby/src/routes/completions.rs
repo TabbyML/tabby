@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use axum::{extract::State, Json};
+use axum::{extract::State, Extension, Json};
 use axum_extra::{headers, TypedHeader};
 use hyper::StatusCode;
-use tabby_common::axum::MaybeUser;
+use tabby_common::axum::{AllowedCodeRepository, MaybeUser};
 use tracing::{instrument, warn};
 
 use crate::services::completion::{CompletionRequest, CompletionResponse, CompletionService};
@@ -25,15 +25,21 @@ use crate::services::completion::{CompletionRequest, CompletionResponse, Complet
 #[instrument(skip(state, request))]
 pub async fn completions(
     State(state): State<Arc<CompletionService>>,
+    Extension(allowed_code_repository): Extension<AllowedCodeRepository>,
     TypedHeader(MaybeUser(user)): TypedHeader<MaybeUser>,
-    TypedHeader(user_agent): TypedHeader<headers::UserAgent>,
+    user_agent: Option<TypedHeader<headers::UserAgent>>,
     Json(mut request): Json<CompletionRequest>,
 ) -> Result<Json<CompletionResponse>, StatusCode> {
     if let Some(user) = user {
         request.user.replace(user);
     }
 
-    match state.generate(&request, &user_agent.to_string()).await {
+    let user_agent = user_agent.map(|x| x.0.to_string());
+
+    match state
+        .generate(&request, &allowed_code_repository, user_agent.as_deref())
+        .await
+    {
         Ok(resp) => Ok(Json(resp)),
         Err(err) => {
             warn!("{}", err);

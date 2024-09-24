@@ -14,7 +14,10 @@ use serde::Deserialize;
 use tabby_common::config::{CodeRepository, RepositoryConfig};
 pub use third_party::{ProvidedRepository, ThirdPartyRepositoryService};
 
-use super::Result;
+use super::{
+    context::{ContextSourceIdValue, ContextSourceKind, ContextSourceValue},
+    Result,
+};
 use crate::{juniper::relay::NodeType, policy::AccessPolicy, Context};
 
 #[derive(GraphQLObject)]
@@ -37,21 +40,64 @@ pub enum RepositoryKind {
     GitConfig,
 }
 
-#[derive(GraphQLObject, Debug)]
+#[derive(Debug)]
 pub struct Repository {
     pub id: ID,
 
-    #[graphql(skip)]
     pub source_id: String,
 
     pub name: String,
     pub kind: RepositoryKind,
 
-    #[graphql(skip)]
     pub dir: PathBuf,
 
     pub git_url: String,
     pub refs: Vec<GitReference>,
+}
+
+#[graphql_object(context = Context, impl = [ContextSourceIdValue, ContextSourceValue])]
+impl Repository {
+    fn id(&self) -> &ID {
+        &self.id
+    }
+
+    pub fn source_id(&self) -> &str {
+        &self.source_id
+    }
+
+    fn source_kind(&self) -> ContextSourceKind {
+        match self.kind {
+            RepositoryKind::Git | RepositoryKind::GitConfig => ContextSourceKind::Git,
+            RepositoryKind::Github | RepositoryKind::GithubSelfHosted => ContextSourceKind::Github,
+            RepositoryKind::Gitlab | RepositoryKind::GitlabSelfHosted => ContextSourceKind::Gitlab,
+        }
+    }
+
+    pub fn source_name(&self) -> &str {
+        match self.kind {
+            RepositoryKind::Git
+            | RepositoryKind::GitConfig
+            | RepositoryKind::GithubSelfHosted
+            | RepositoryKind::GitlabSelfHosted => &self.git_url,
+            RepositoryKind::Github | RepositoryKind::Gitlab => &self.name,
+        }
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn kind(&self) -> RepositoryKind {
+        self.kind
+    }
+
+    fn git_url(&self) -> &str {
+        &self.git_url
+    }
+
+    fn refs(&self) -> &[GitReference] {
+        &self.refs
+    }
 }
 
 #[derive(GraphQLObject, Debug)]
@@ -64,7 +110,7 @@ impl From<GitRepository> for Repository {
     fn from(value: GitRepository) -> Self {
         Self {
             source_id: value.source_id(),
-            id: value.id,
+            id: ID::new(value.source_id()),
             name: value.name,
             kind: RepositoryKind::Git,
             dir: RepositoryConfig::resolve_dir(&value.git_url),

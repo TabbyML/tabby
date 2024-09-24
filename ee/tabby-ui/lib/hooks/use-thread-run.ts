@@ -1,10 +1,11 @@
 import React from 'react'
-import { pickBy } from 'lodash-es'
 
 import { graphql } from '@/lib/gql/generates'
 
 import {
   CreateMessageInput,
+  MessageCodeSearchHit,
+  MessageDocSearchHit,
   ThreadRunItem,
   ThreadRunOptionsInput
 } from '../gql/generates/graphql'
@@ -14,43 +15,57 @@ import { useLatest } from './use-latest'
 interface UseThreadRunOptions {
   onError?: (err: Error) => void
   threadId?: string
-  onAssistantMessageCompleted?: (
-    threadId: string,
-    threadRunId: ThreadRunItem | undefined
-  ) => void
+  onAssistantMessageCompleted?: (answer: AnswerStream) => void
 }
 
 const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
   subscription CreateThreadAndRun($input: CreateThreadAndRunInput!) {
     createThreadAndRun(input: $input) {
-      threadCreated
-      threadUserMessageCreated
-      threadAssistantMessageCreated
-      threadRelevantQuestions
-      threadAssistantMessageAttachmentsCode {
-        code {
-          gitUrl
-          filepath
-          language
-          content
-          startLine
-        }
-        scores {
-          rrf
-          bm25
-          embedding
+      __typename
+      ... on ThreadCreated {
+        id
+      }
+      ... on ThreadUserMessageCreated {
+        id
+      }
+      ... on ThreadAssistantMessageCreated {
+        id
+      }
+      ... on ThreadRelevantQuestions {
+        questions
+      }
+      ... on ThreadAssistantMessageAttachmentsCode {
+        hits {
+          code {
+            gitUrl
+            filepath
+            language
+            content
+            startLine
+          }
+          scores {
+            rrf
+            bm25
+            embedding
+          }
         }
       }
-      threadAssistantMessageAttachmentsDoc {
-        doc {
-          title
-          link
-          content
+      ... on ThreadAssistantMessageAttachmentsDoc {
+        hits {
+          doc {
+            title
+            link
+            content
+          }
+          score
         }
-        score
       }
-      threadAssistantMessageContentDelta
-      threadAssistantMessageCompleted
+      ... on ThreadAssistantMessageContentDelta {
+        delta
+      }
+      ... on ThreadAssistantMessageCompleted {
+        id
+      }
     }
   }
 `)
@@ -58,34 +73,51 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
 const CreateThreadRunSubscription = graphql(/* GraphQL */ `
   subscription CreateThreadRun($input: CreateThreadRunInput!) {
     createThreadRun(input: $input) {
-      threadCreated
-      threadUserMessageCreated
-      threadAssistantMessageCreated
-      threadRelevantQuestions
-      threadAssistantMessageAttachmentsCode {
-        code {
-          gitUrl
-          filepath
-          language
-          content
-          startLine
-        }
-        scores {
-          rrf
-          bm25
-          embedding
+      __typename
+      ... on ThreadCreated {
+        id
+      }
+      ... on ThreadUserMessageCreated {
+        id
+      }
+      ... on ThreadAssistantMessageCreated {
+        id
+      }
+      ... on ThreadRelevantQuestions {
+        questions
+      }
+      ... on ThreadAssistantMessageAttachmentsCode {
+        hits {
+          code {
+            gitUrl
+            filepath
+            language
+            content
+            startLine
+          }
+          scores {
+            rrf
+            bm25
+            embedding
+          }
         }
       }
-      threadAssistantMessageAttachmentsDoc {
-        doc {
-          title
-          link
-          content
+      ... on ThreadAssistantMessageAttachmentsDoc {
+        hits {
+          doc {
+            title
+            link
+            content
+          }
+          score
         }
-        score
       }
-      threadAssistantMessageContentDelta
-      threadAssistantMessageCompleted
+      ... on ThreadAssistantMessageContentDelta {
+        delta
+      }
+      ... on ThreadAssistantMessageCompleted {
+        id
+      }
     }
   }
 `)
@@ -104,32 +136,106 @@ const DeleteThreadMessagePairMutation = graphql(/* GraphQL */ `
   }
 `)
 
+type ID = string
+
+export interface AnswerStream {
+  threadId?: ID
+  userMessageId?: ID
+  assistantMessageId?: ID
+  relevantQuestions?: Array<string>
+  attachmentsCode?: Array<MessageCodeSearchHit>
+  attachmentsDoc?: Array<MessageDocSearchHit>
+  content: string
+  completed: boolean
+}
+
+const defaultAnswerStream = (): AnswerStream => ({
+  content: '',
+  completed: false
+})
+
+export interface ThreadRun {
+  answer: AnswerStream
+
+  isLoading: boolean
+
+  error: Error | undefined
+
+  sendUserMessage: (
+    message: CreateMessageInput,
+    options?: ThreadRunOptionsInput
+  ) => void
+
+  stop: (silent?: boolean) => void
+
+  // if deletion fails, an error message will be returned
+  regenerate: (payload: {
+    threadId: string
+    userMessageId: string
+    assistantMessageId: string
+    userMessage: CreateMessageInput
+    threadRunOptions?: ThreadRunOptionsInput
+  }) => Promise<string | void>
+
+  // if deletion fails, an error message will be returned
+  deleteThreadMessagePair: (
+    threadId: string,
+    userMessageId: string,
+    assistantMessageId: string
+  ) => Promise<string | void>
+}
+
 export function useThreadRun({
   threadId: propsThreadId,
   onAssistantMessageCompleted
-}: UseThreadRunOptions) {
+}: UseThreadRunOptions): ThreadRun {
   const [threadId, setThreadId] = React.useState<string | undefined>(
     propsThreadId
   )
   const unsubscribeFn = React.useRef<(() => void) | undefined>()
   const [isLoading, setIsLoading] = React.useState(false)
-  const [threadRunItem, setThreadRunItem] = React.useState<
-    ThreadRunItem | undefined
-  >()
+  const [answerStream, setAnswerStream] = React.useState<AnswerStream>(
+    defaultAnswerStream()
+  )
   const [error, setError] = React.useState<Error | undefined>()
-  const combineThreadRunData = (
-    existingData: ThreadRunItem | undefined,
-    data: ThreadRunItem | undefined
-  ): ThreadRunItem | undefined => {
-    if (!data) return data
-
-    return {
-      ...existingData,
-      ...pickBy(data, v => v !== null),
-      threadAssistantMessageContentDelta: `${
-        existingData?.threadAssistantMessageContentDelta ?? ''
-      }${data?.threadAssistantMessageContentDelta ?? ''}`
+  const combineAnswerStream = (
+    existingData: AnswerStream,
+    data: ThreadRunItem
+  ): AnswerStream => {
+    const x: AnswerStream = {
+      ...existingData
     }
+
+    switch (data.__typename) {
+      case 'ThreadCreated':
+        x.threadId = data.id
+        break
+      case 'ThreadUserMessageCreated':
+        x.userMessageId = data.id
+        break
+      case 'ThreadAssistantMessageCreated':
+        x.assistantMessageId = data.id
+        break
+      case 'ThreadRelevantQuestions':
+        x.relevantQuestions = data.questions
+        break
+      case 'ThreadAssistantMessageAttachmentsCode':
+        x.attachmentsCode = data.hits
+        break
+      case 'ThreadAssistantMessageAttachmentsDoc':
+        x.attachmentsDoc = data.hits
+        break
+      case 'ThreadAssistantMessageContentDelta':
+        x.content += data.delta
+        break
+      case 'ThreadAssistantMessageCompleted':
+        x.completed = true
+        break
+      default:
+        throw new Error('Unknown event ' + JSON.stringify(x))
+    }
+
+    return x
   }
 
   const stop = useLatest((silent?: boolean) => {
@@ -138,7 +244,7 @@ export function useThreadRun({
     setIsLoading(false)
 
     if (!silent && threadId) {
-      onAssistantMessageCompleted?.(threadId, threadRunItem)
+      onAssistantMessageCompleted?.(answerStream)
     }
   })
 
@@ -169,18 +275,22 @@ export function useThreadRun({
           return
         }
 
-        if (res?.data?.createThreadAndRun?.threadAssistantMessageCompleted) {
+        const value = res.data?.createThreadAndRun
+        if (!value) {
+          return
+        }
+
+        if (value?.__typename === 'ThreadAssistantMessageCompleted') {
           stop.current()
         }
 
-        const threadIdFromData = res.data?.createThreadAndRun?.threadCreated
-        if (!!threadIdFromData && threadIdFromData !== threadId) {
-          setThreadId(threadIdFromData)
+        if (value?.__typename === 'ThreadCreated') {
+          if (value.id !== threadId) {
+            setThreadId(value.id)
+          }
         }
 
-        setThreadRunItem(prevData =>
-          combineThreadRunData(prevData, res.data?.createThreadAndRun)
-        )
+        setAnswerStream(prevData => combineAnswerStream(prevData, value))
       })
 
     return unsubscribe
@@ -207,13 +317,16 @@ export function useThreadRun({
           return
         }
 
-        if (res?.data?.createThreadRun?.threadAssistantMessageCompleted) {
+        const value = res.data?.createThreadRun
+        if (!value) {
+          return
+        }
+
+        if (value.__typename === 'ThreadAssistantMessageCompleted') {
           stop.current()
         }
 
-        setThreadRunItem(prevData =>
-          combineThreadRunData(prevData, res.data?.createThreadRun)
-        )
+        setAnswerStream(prevData => combineAnswerStream(prevData, value))
       })
 
     return unsubscribe
@@ -229,7 +342,7 @@ export function useThreadRun({
 
     setIsLoading(true)
     setError(undefined)
-    setThreadRunItem(undefined)
+    setAnswerStream(defaultAnswerStream())
 
     if (threadId) {
       unsubscribeFn.current = createThreadRun(userMessage, options)
@@ -242,20 +355,21 @@ export function useThreadRun({
     threadId: string,
     userMessageId: string,
     assistantMessageId: string
-  ) => {
+  ): Promise<string | void> => {
     return deleteThreadMessagePair({
       threadId,
       userMessageId,
       assistantMessageId
     })
       .then(res => {
-        if (res?.data?.deleteThreadMessagePair) {
-          return true
+        if (!res?.data?.deleteThreadMessagePair) {
+          const errorMessge = res?.error?.message || 'Failed to fetch'
+          return errorMessge
         }
-        return false
       })
       .catch(e => {
-        return false
+        const errorMessge = e?.message || 'Failed to fetch'
+        return errorMessge
       })
   }
 
@@ -266,29 +380,41 @@ export function useThreadRun({
     userMessage: CreateMessageInput
     threadRunOptions?: ThreadRunOptionsInput
   }) => {
-    if (!threadId) return
+    if (!threadId) return Promise.resolve(undefined)
 
     setIsLoading(true)
     // reset assistantMessage
     setError(undefined)
-    setThreadRunItem(undefined)
+    setAnswerStream(defaultAnswerStream())
 
     // 1. delete message pair
-    onDeleteThreadMessagePair(
+    return onDeleteThreadMessagePair(
       payload.threadId,
       payload.userMessageId,
       payload.assistantMessageId
-    ).finally(() => {
-      // 2. send a new user message
-      sendUserMessage(payload.userMessage, payload.threadRunOptions)
-    })
+    )
+      .then(errorMsg => {
+        if (errorMsg) {
+          setError(new Error(errorMsg))
+          setIsLoading(false)
+          return errorMsg
+        }
+
+        // 2. send a new user message
+        sendUserMessage(payload.userMessage, payload.threadRunOptions)
+      })
+      .catch(e => {
+        const errorMessage: string = e?.message || 'Failed to fetch'
+        setError(new Error(errorMessage))
+        setIsLoading(false)
+        return errorMessage
+      })
   }
 
   return {
     isLoading,
-    answer: threadRunItem,
+    answer: answerStream,
     error,
-    setError,
     sendUserMessage,
     stop: stop.current,
     regenerate,

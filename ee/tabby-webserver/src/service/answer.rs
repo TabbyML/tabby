@@ -23,7 +23,9 @@ use tabby_schema::{
     policy::AccessPolicy,
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        ThreadRunItem, ThreadRunOptionsInput,
+        ThreadAssistantMessageAttachmentsCode, ThreadAssistantMessageAttachmentsDoc,
+        ThreadAssistantMessageContentDelta, ThreadRelevantQuestions, ThreadRunItem,
+        ThreadRunOptionsInput,
     },
 };
 use tracing::{debug, error, warn};
@@ -98,9 +100,9 @@ impl AnswerService {
                 attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
 
                 if !hits.is_empty() {
-                    let message_hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
+                    let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
                     yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(
-                        message_hits
+                        ThreadAssistantMessageAttachmentsCode { hits }
                     ));
                 }
             };
@@ -114,9 +116,9 @@ impl AnswerService {
                         .collect::<Vec<_>>();
 
                 if !attachment.doc.is_empty() {
-                    let message_hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
+                    let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
                     yield Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(
-                        message_hits
+                        ThreadAssistantMessageAttachmentsDoc { hits }
                     ));
                 }
             };
@@ -128,7 +130,9 @@ impl AnswerService {
                 let questions = self
                     .generate_relevant_questions_v2(&attachment, &content)
                     .await;
-                yield Ok(ThreadRunItem::ThreadRelevantQuestions(questions));
+                yield Ok(ThreadRunItem::ThreadRelevantQuestions(ThreadRelevantQuestions{
+                    questions
+            }));
             }
 
             // 4. Prepare requesting LLM
@@ -167,7 +171,9 @@ impl AnswerService {
                 };
 
                 if let Some(content) = chunk.choices[0].delta.content.as_deref() {
-                    yield Ok(ThreadRunItem::ThreadAssistantMessageContentDelta(content.to_owned()));
+                    yield Ok(ThreadRunItem::ThreadAssistantMessageContentDelta(ThreadAssistantMessageContentDelta {
+                        delta: content.to_owned()
+                }));
                 }
             }
         };
@@ -175,26 +181,37 @@ impl AnswerService {
         Ok(Box::pin(s))
     }
 
-    async fn collect_relevant_code<'a>(
+    async fn collect_relevant_code(
         &self,
-        helper: &ContextInfoHelper<'a, 'a>,
+        helper: &ContextInfoHelper,
         input: &CodeQueryInput,
         params: &CodeSearchParams,
         override_params: Option<&CodeSearchParamsOverrideInput>,
     ) -> Vec<CodeSearchHit> {
-        if let Some(source_id) = &input.source_id {
-            // If source_id doesn't exist, return empty result.
-            if !helper.can_access_source_id(source_id) {
-                return vec![];
+        let source_id: Option<&str> = {
+            if let Some(source_id) = &input.source_id {
+                // If source_id doesn't exist, return empty result.
+                if helper.can_access_source_id(source_id) {
+                    Some(source_id.as_str())
+                } else {
+                    None
+                }
+            } else if let Some(git_url) = &input.git_url {
+                helper.allowed_code_repository().closest_match(git_url)
+            } else {
+                None
             }
-        }
+        };
+
+        let Some(source_id) = source_id else {
+            return vec![];
+        };
 
         let query = CodeSearchQuery::new(
-            input.git_url.clone(),
             input.filepath.clone(),
             input.language.clone(),
             helper.rewrite_tag(&input.content),
-            input.source_id.clone(),
+            source_id.to_owned(),
         );
 
         let mut params = params.clone();
@@ -215,9 +232,9 @@ impl AnswerService {
         }
     }
 
-    async fn collect_relevant_docs<'a>(
+    async fn collect_relevant_docs(
         &self,
-        helper: &ContextInfoHelper<'a, 'a>,
+        helper: &ContextInfoHelper,
         doc_query: &DocQueryInput,
     ) -> Vec<DocSearchHit> {
         let mut source_ids = doc_query.source_ids.as_deref().unwrap_or_default().to_vec();
@@ -348,8 +365,8 @@ pub fn create(
     AnswerService::new(config, chat, code, doc, context, serper)
 }
 
-fn convert_messages_to_chat_completion_request<'a>(
-    helper: &ContextInfoHelper<'a, 'a>,
+fn convert_messages_to_chat_completion_request(
+    helper: &ContextInfoHelper,
     messages: &[tabby_schema::thread::Message],
     attachment: &tabby_schema::thread::MessageAttachment,
     user_attachment_input: Option<&tabby_schema::thread::MessageAttachmentInput>,
@@ -480,7 +497,8 @@ mod tests {
 
     use juniper::ID;
     use tabby_schema::{
-        context::{ContextInfo, ContextKind, ContextSource},
+        context::{ContextInfo, ContextSourceValue},
+        web_documents::PresetWebDocument,
         AsID,
     };
 
@@ -528,7 +546,7 @@ mod tests {
             make_message(1, "Hello", tabby_schema::thread::Role::User, None),
             make_message(
                 2,
-                "Hi, [[source:1]], [[source:2]]",
+                "Hi, [[source:preset_web_document:source-1]], [[source:2]]",
                 tabby_schema::thread::Role::Assistant,
                 Some(attachment),
             ),
@@ -544,12 +562,13 @@ mod tests {
         };
 
         let context_info = ContextInfo {
-            sources: vec![ContextSource {
-                id: ID::from("1".to_owned()),
-                kind: ContextKind::Doc,
-                source_id: "1".to_owned(),
-                display_name: "source-1".to_owned(),
-            }],
+            sources: vec![ContextSourceValue::PresetWebDocument(PresetWebDocument {
+                id: ID::from("id".to_owned()),
+                name: "source-1".into(),
+                updated_at: None,
+                job_info: None,
+                is_active: true,
+            })],
         };
 
         let rewriter = context_info.helper();

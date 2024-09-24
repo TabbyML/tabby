@@ -66,7 +66,7 @@ import { CopyButton } from '@/components/copy-button'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import TextAreaSearch from '@/components/textarea-search'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { UserAvatar } from '@/components/user-avatar'
+import { MyAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
 
 import './search.css'
@@ -205,6 +205,9 @@ const listThreadMessages = graphql(/* GraphQL */ `
 `)
 
 const PAGE_SIZE = 30
+
+const TEMP_MSG_ID_PREFIX = '_temp_msg_'
+const tempNanoId = () => `${TEMP_MSG_ID_PREFIX}${nanoid()}`
 
 export function Search() {
   const { updateUrlComponents, pathname } = useRouterStuff()
@@ -428,11 +431,9 @@ export function Search() {
 
   // Handling the stream response from useThreadRun
   useEffect(() => {
-    if (!answer) return
-
     // update threadId
-    if (answer?.threadCreated && answer.threadCreated !== threadId) {
-      setThreadId(answer.threadCreated)
+    if (answer.threadId && answer.threadId !== threadId) {
+      setThreadId(answer.threadId)
     }
 
     let newMessages = [...messages]
@@ -451,18 +452,14 @@ export function Search() {
     const currentAssistantMessage = newMessages[currentAssistantMessageIdx]
 
     // update assistant message
-    currentAssistantMessage.content =
-      answer?.threadAssistantMessageContentDelta || ''
+    currentAssistantMessage.content = answer.content
 
     // get and format scores from streaming answer
-    if (
-      !currentAssistantMessage?.attachment?.code &&
-      !!answer?.threadAssistantMessageAttachmentsCode
-    ) {
+    if (!currentAssistantMessage.attachment?.code && !!answer.attachmentsCode) {
       currentAssistantMessage.attachment = {
         doc: currentAssistantMessage.attachment?.doc || null,
         code:
-          answer?.threadAssistantMessageAttachmentsCode?.map(hit => ({
+          answer.attachmentsCode.map(hit => ({
             ...hit.code,
             extra: {
               scores: hit.scores
@@ -472,13 +469,10 @@ export function Search() {
     }
 
     // get and format scores from streaming answer
-    if (
-      !currentAssistantMessage?.attachment?.doc &&
-      !!answer?.threadAssistantMessageAttachmentsDoc
-    ) {
+    if (!currentAssistantMessage.attachment?.doc && !!answer.attachmentsDoc) {
       currentAssistantMessage.attachment = {
         doc:
-          answer?.threadAssistantMessageAttachmentsDoc?.map(hit => ({
+          answer.attachmentsDoc.map(hit => ({
             ...hit.doc,
             extra: {
               score: hit.score
@@ -488,12 +482,11 @@ export function Search() {
       }
     }
 
-    currentAssistantMessage.threadRelevantQuestions =
-      answer?.threadRelevantQuestions
+    currentAssistantMessage.threadRelevantQuestions = answer?.relevantQuestions
 
     // update message pair ids
-    const newUserMessageId = answer?.threadUserMessageCreated
-    const newAssistantMessageId = answer?.threadAssistantMessageCreated
+    const newUserMessageId = answer.userMessageId
+    const newAssistantMessageId = answer.assistantMessageId
     if (
       newUserMessageId &&
       newAssistantMessageId &&
@@ -519,7 +512,9 @@ export function Search() {
       )
       if (currentAnswer) {
         currentAnswer.error =
-          error.message === '401' ? 'Unauthorized' : 'Fail to fetch'
+          error.message === '401'
+            ? 'Unauthorized'
+            : error.message || 'Fail to fetch'
       }
     }
   }, [error])
@@ -563,8 +558,8 @@ export function Search() {
   }, [devPanelOpen])
 
   const onSubmitSearch = (question: string, ctx?: ThreadRunContexts) => {
-    const newUserMessageId = nanoid()
-    const newAssistantMessageId = nanoid()
+    const newUserMessageId = tempNanoId()
+    const newAssistantMessageId = tempNanoId()
     const newUserMessage: ConversationMessage = {
       id: newUserMessageId,
       role: Role.User,
@@ -622,10 +617,10 @@ export function Search() {
     const userMessage = messages[userMessageIndex]
     const newUserMessage: ConversationMessage = {
       ...userMessage,
-      id: nanoid()
+      id: tempNanoId()
     }
     const newAssistantMessage: ConversationMessage = {
-      id: nanoid(),
+      id: tempNanoId(),
       role: Role.Assistant,
       content: '',
       attachment: {
@@ -696,17 +691,33 @@ export function Search() {
     if (assistantMessageIndex === -1 || userMessage?.role !== Role.User) {
       return
     }
-    deleteThreadMessagePair(
-      threadId,
-      userMessage.id,
-      asistantMessageId
-    ).finally(() => {
-      // remove userMessage and assistantMessage
+
+    // message pair not successfully created in threadrun
+    if (
+      userMessage.id.startsWith(TEMP_MSG_ID_PREFIX) &&
+      asistantMessageId.startsWith(TEMP_MSG_ID_PREFIX)
+    ) {
       const newMessages = messages
         .slice(0, userMessageIndex)
         .concat(messages.slice(assistantMessageIndex + 1))
       setMessages(newMessages)
-    })
+      return
+    }
+
+    deleteThreadMessagePair(threadId, userMessage.id, asistantMessageId).then(
+      errorMessage => {
+        if (errorMessage) {
+          toast.error(errorMessage)
+          return
+        }
+
+        // remove userMessage and assistantMessage
+        const newMessages = messages
+          .slice(0, userMessageIndex)
+          .concat(messages.slice(assistantMessageIndex + 1))
+        setMessages(newMessages)
+      }
+    )
   }
 
   const isFetchingMessages =
@@ -756,7 +767,7 @@ export function Search() {
           <ResizablePanel>
             <Header
               threadIdFromURL={threadIdFromURL}
-              streamingDone={!!answer?.threadAssistantMessageCompleted}
+              streamingDone={answer.completed}
             />
             <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
               <ScrollArea className="h-full" ref={contentContainerRef}>
@@ -774,6 +785,7 @@ export function Search() {
                                 fetchingContextInfo={fetchingContextInfo}
                                 className="text-xl prose-p:mb-2 prose-p:mt-0"
                                 headline
+                                canWrapLongLines
                               />
                             </div>
                           </div>
@@ -1145,6 +1157,7 @@ function AnswerBlock({
           onCodeCitationMouseLeave={onCodeCitationMouseLeave}
           contextInfo={contextInfo}
           fetchingContextInfo={fetchingContextInfo}
+          canWrapLongLines={!isLoading}
         />
         {answer.error && <ErrorMessageBlock error={answer.error} />}
 
@@ -1347,7 +1360,7 @@ function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
           <ThemeToggle className="mr-4" />
         </ClientOnly>
         <UserPanel showHome={false} showSetting>
-          <UserAvatar className="h-10 w-10 border" />
+          <MyAvatar className="h-10 w-10 border" />
         </UserPanel>
       </div>
     </header>
@@ -1384,7 +1397,7 @@ function getTitleFromMessages(sources: ContextSource[], content: string) {
     .replace(MARKDOWN_SOURCE_REGEX, value => {
       const sourceId = value.slice(9, -2)
       const source = sources.find(s => s.sourceId === sourceId)
-      return source?.displayName ?? ''
+      return source?.sourceName ?? ''
     })
     .trim()
 

@@ -22,6 +22,15 @@ export interface FetcherOptions {
 
 export interface InitRequest {
   fetcherOptions: FetcherOptions
+  focusKey?: FocusKeybinding
+}
+
+export interface FocusKeybinding {
+  key: string
+  ctrlKey: boolean
+  metaKey: boolean
+  shiftKey: boolean
+  altKey: boolean
 }
 
 export interface ErrorMessage {
@@ -55,6 +64,8 @@ export interface ClientApi {
 
   // On user copy content to clipboard.
   onCopy: (content: string) => void
+
+  focusOnEditor: () => void
 }
 
 export interface ChatMessage {

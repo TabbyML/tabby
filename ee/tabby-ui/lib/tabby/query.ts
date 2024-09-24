@@ -45,6 +45,7 @@ export const listRepositories = graphql(/* GraphQL */ `
           id
           name
           gitUrl
+          sourceId
           jobInfo {
             lastJobRun {
               id
@@ -94,7 +95,6 @@ export const listJobRuns = graphql(/* GraphQL */ `
           finishedAt
           exitCode
           stdout
-          stderr
         }
         cursor
       }
@@ -126,12 +126,7 @@ export const listJobs = graphql(/* GraphQL */ `
 
 export const listSecuredUsers = graphql(/* GraphQL */ `
   query ListUsers($after: String, $before: String, $first: Int, $last: Int) {
-    users: securedUsers(
-      after: $after
-      before: $before
-      first: $first
-      last: $last
-    ) {
+    users(after: $after, before: $before, first: $first, last: $last) {
       edges {
         node {
           id
@@ -245,6 +240,7 @@ export const listIntegratedRepositories = graphql(/* GraphQL */ `
           displayName
           gitUrl
           active
+          sourceId
           jobInfo {
             lastJobRun {
               id
@@ -304,9 +300,43 @@ export const contextInfoQuery = graphql(/* GraphQL */ `
     contextInfo {
       sources {
         id
-        kind
+        sourceKind
         sourceId
-        displayName
+        sourceName
+      }
+    }
+  }
+`)
+
+export const userGroupsQuery = graphql(/* GraphQL */ `
+  query UserGroups {
+    userGroups {
+      id
+      name
+      createdAt
+      updatedAt
+      members {
+        user {
+          id
+          email
+          name
+          createdAt
+        }
+        isGroupAdmin
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`)
+
+export const listSourceIdAccessPolicies = graphql(/* GraphQL */ `
+  query sourceIdAccessPolicies($sourceId: String!) {
+    sourceIdAccessPolicies(sourceId: $sourceId) {
+      sourceId
+      read {
+        id
+        name
       }
     }
   }

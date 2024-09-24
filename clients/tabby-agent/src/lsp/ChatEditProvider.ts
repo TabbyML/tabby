@@ -10,7 +10,6 @@ import {
   ChatEditCommand,
   ChatFeatureNotAvailableError,
   ChatEditDocumentTooLongError,
-  ChatEditCommandTooLongError,
   ChatEditMutexError,
   ApplyWorkspaceEditRequest,
   ApplyWorkspaceEditParams,
@@ -115,9 +114,6 @@ export class ChatEditProvider {
       } as ChatFeatureNotAvailableError;
     }
     const config = this.agent.getConfig().chat;
-    if (params.command.length > config.edit.commandMaxChars) {
-      throw { name: "ChatEditCommandTooLongError", message: "Command too long" } as ChatEditCommandTooLongError;
-    }
 
     let insertMode: boolean = isEmptyRange(params.location.range);
     const presetCommand = /^\/\w+\b/g.exec(params.command)?.[0];

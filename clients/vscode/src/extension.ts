@@ -14,7 +14,6 @@ import { ChatViewProvider } from "./chat/ChatViewProvider";
 import { Commands } from "./Commands";
 import { Status } from "tabby-agent";
 import { OutlinesProvider } from "./outline/OutlinesProvider";
-import { CodeActionProvider } from "./CodeAction";
 
 const isBrowser = !!process.env["IS_BROWSER"];
 const logger = getLogger();
@@ -59,7 +58,6 @@ export async function activate(context: ExtensionContext) {
   client.registerConfigManager(config);
   client.registerInlineCompletionProvider(inlineCompletionProvider);
   client.registerGitProvider(gitProvider);
-  client.registerCodeActionProvider(new CodeActionProvider(contextVariables));
 
   // Register config callback for past ServerConfig
   client.agent.addListener("didChangeStatus", async (status: Status) => {
@@ -111,6 +109,9 @@ export async function activate(context: ExtensionContext) {
     gitProvider,
     nlOutlinesProvider,
   );
+  /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */ /* eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error */
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ // @ts-ignore noUnusedLocals
+  const codeActions = new CodeActions(client, contextVariables);
 
   logger.info("Tabby extension activated.");
 }

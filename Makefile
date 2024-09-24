@@ -17,26 +17,8 @@ update-db-schema:
 	dot -Tsvg schema.dot > ee/tabby-db/schema/schema.svg
 	rm schema.dot
 
-caddy:
-	caddy run --watch --config ee/tabby-webserver/development/Caddyfile
-
-ui-dev:
-	@echo "Starting development environment..."
-	@bash -c '\
-		trap cleanup EXIT SIGINT SIGTERM; \
-		cleanup() { \
-			echo "Cleaning up..."; \
-			kill $$(jobs -p) 2>/dev/null; \
-			pkill -f "cargo run serve" 2>/dev/null; \
-			pkill -f "pnpm dev" 2>/dev/null; \
-			pkill tabby 2>/dev/null; \
-			pkill caddy 2>/dev/null; \
-			exit 0; \
-		}; \
-		(cd ee/tabby-ui && pnpm dev) & \
-		cargo run serve --port 8081  & \
-		make caddy &  \
-		wait'
+dev:
+	tmuxinator start -p .tmuxinator/tabby.yml
 		
 bump-version:
 	cargo ws version --force "*" --no-individual-tags --allow-branch "main"

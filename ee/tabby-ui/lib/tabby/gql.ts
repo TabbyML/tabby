@@ -19,12 +19,21 @@ import {
 } from 'urql'
 
 import {
+  DeleteUserGroupMembershipMutationVariables,
   GitRepositoriesQueryVariables,
   ListIntegrationsQueryVariables,
-  ListInvitationsQueryVariables
+  ListInvitationsQueryVariables,
+  SourceIdAccessPoliciesQueryVariables,
+  UpsertUserGroupMembershipInput
 } from '../gql/generates/graphql'
 import { refreshTokenMutation } from './auth'
-import { listIntegrations, listInvitations, listRepositories } from './query'
+import {
+  listIntegrations,
+  listInvitations,
+  listRepositories,
+  listSourceIdAccessPolicies,
+  userGroupsQuery
+} from './query'
 import {
   getAuthToken,
   getFetcherOptions,
@@ -55,7 +64,7 @@ function useMutation<TResult, TVariables extends AnyVariables>(
     : undefined
 
   const fn = async (
-    variables?: TVariables,
+    variables?: TVariables & { extraParams?: any },
     context?: Partial<OperationContext>
   ) => {
     let response: OperationResult<TResult, AnyVariables> | undefined
@@ -92,6 +101,8 @@ function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
         }
       } else if (error?.originalError) {
         form.setError('root', error.originalError)
+      } else if (error?.message) {
+        form.setError('root', { message: error.message })
       }
     }
   }
@@ -112,7 +123,6 @@ const client = new Client({
         GrepFile: () => null,
         GrepTextOrBase64: () => null,
         GrepSubMatch: () => null,
-        Repository: (data: any) => (data ? `${data.kind}_${data.id}` : null),
         GitReference: () => null,
         MessageAttachment: () => null,
         MessageAttachmentCode: () => null,
@@ -218,7 +228,163 @@ const client = new Client({
               .forEach(field => {
                 cache.invalidate(key, field.fieldName, field.arguments)
               })
+          },
+          upsertUserGroupMembership(result, args, cache, info) {
+            const { userGroupId, userId, isGroupAdmin } =
+              args.input as UpsertUserGroupMembershipInput
+            const { user, isInsert } = (info.variables.extraParams || {}) as any
+            if (result.upsertUserGroupMembership) {
+              cache.updateQuery({ query: userGroupsQuery }, data => {
+                if (data?.userGroups) {
+                  data.userGroups = data.userGroups.map(group => {
+                    if (group.id !== userGroupId) return group
+                    let newMembers = [...group.members]
+                    if (isInsert) {
+                      const now = new Date().toISOString()
+                      newMembers.push({
+                        user: {
+                          ...user,
+                          __typename: 'UserSecured'
+                        },
+                        isGroupAdmin,
+                        createdAt: now,
+                        updatedAt: now,
+                        __typename: 'UserGroupMembership'
+                      })
+                    } else {
+                      newMembers = newMembers.map(m => {
+                        if (m.user.id !== userId) return m
+                        return {
+                          ...m,
+                          isGroupAdmin
+                        }
+                      })
+                    }
+                    return {
+                      ...group,
+                      members: newMembers
+                    }
+                  })
+                }
+
+                return data
+              })
+            }
+          },
+          deleteUserGroupMembership(result, args, cache, info) {
+            const { userGroupId, userId } =
+              args as DeleteUserGroupMembershipMutationVariables
+            if (result.deleteUserGroupMembership) {
+              cache.updateQuery({ query: userGroupsQuery }, data => {
+                if (data?.userGroups) {
+                  data.userGroups = data.userGroups.map(group => {
+                    if (group.id !== userGroupId) return group
+                    let newMembers = [...group.members].filter(
+                      o => o.user.id !== userId
+                    )
+                    return {
+                      ...group,
+                      members: newMembers
+                    }
+                  })
+                }
+                return data
+              })
+            }
+          },
+          grantSourceIdReadAccess(
+            result,
+            args: { sourceId: string; userGroupId: string },
+            cache,
+            info
+          ) {
+            if (result.grantSourceIdReadAccess) {
+              const { sourceId } = args
+              cache
+                .inspectFields('Query')
+                .filter(
+                  field =>
+                    field.fieldName === 'sourceIdAccessPolicies' &&
+                    field.arguments?.sourceId === sourceId
+                )
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listSourceIdAccessPolicies,
+                      variables:
+                        field.arguments as SourceIdAccessPoliciesQueryVariables
+                    },
+                    data => {
+                      if (data?.sourceIdAccessPolicies?.read) {
+                        const { userGroupName } = (info.variables.extraParams ||
+                          {}) as any
+                        data.sourceIdAccessPolicies.read = [
+                          ...data.sourceIdAccessPolicies.read,
+                          {
+                            __typename: 'UserGroup',
+                            id: args.userGroupId,
+                            name: userGroupName
+                          }
+                        ]
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          },
+          revokeSourceIdReadAccess(
+            result,
+            args: { sourceId: string; userGroupId: string },
+            cache,
+            info
+          ) {
+            if (result.revokeSourceIdReadAccess) {
+              const { userGroupId, sourceId } = args
+              cache
+                .inspectFields('Query')
+                .filter(
+                  field =>
+                    field.fieldName === 'sourceIdAccessPolicies' &&
+                    field.arguments?.sourceId === sourceId
+                )
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listSourceIdAccessPolicies,
+                      variables:
+                        field.arguments as SourceIdAccessPoliciesQueryVariables
+                    },
+                    data => {
+                      if (
+                        data?.sourceIdAccessPolicies?.sourceId === sourceId &&
+                        data?.sourceIdAccessPolicies?.read
+                      ) {
+                        data.sourceIdAccessPolicies.read =
+                          data.sourceIdAccessPolicies.read.filter(
+                            o => o.id !== userGroupId
+                          )
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
           }
+        }
+      },
+      optimistic: {
+        upsertUserGroupMembership() {
+          return true
+        },
+        deleteUserGroupMembership() {
+          return true
+        },
+        grantSourceIdReadAccess() {
+          return true
+        },
+        revokeSourceIdReadAccess() {
+          return true
         }
       }
     }),

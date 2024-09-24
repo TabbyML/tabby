@@ -87,6 +87,13 @@ export function DemoBanner() {
         <span>Book a 30-minute product demo.</span>
       </a>
 
+      {isShowDemoBanner && (
+        <img
+          referrerPolicy="no-referrer-when-downgrade"
+          src="https://static.scarf.sh/a.png?x-pxid=b1d0308a-b3c5-425a-972a-378d883a2bca"
+        />
+      )}
+
       <div className="flex items-center gap-x-4 md:gap-x-8">
         <a
           href="https://github.com/TabbyML/tabby"
