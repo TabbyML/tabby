@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct MyStruct {
+pub struct SupportedModel {
     completion: Vec<String>,
     chat: Vec<String>,
 }
@@ -21,9 +21,9 @@ pub struct MyStruct {
         ("token" = [])
     )
 )]
-pub async fn models() -> Json<MyStruct> {
+pub async fn models() -> Json<SupportedModel> {
     let models: tabby_common::config::ModelConfigGroup = Config::load().expect("Config file should be exist").model;
-    let mut http_model_configs: MyStruct = MyStruct {
+    let mut http_model_configs: SupportedModel = SupportedModel {
         completion: Vec::new(),
         chat: Vec::new(),
     };
