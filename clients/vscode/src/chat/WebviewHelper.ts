@@ -17,7 +17,8 @@ import {
   Webview,
   ColorThemeKind,
 } from "vscode";
-import type { ServerApi, ChatMessage, Context, NavigateOpts, FocusKeybinding } from "tabby-chat-panel";
+import type { ServerApi, ChatMessage, Context, NavigateOpts, FocusKeybinding, OnLoadedParams } from "tabby-chat-panel";
+import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
 import type { ServerInfo } from "tabby-agent";
@@ -186,6 +187,25 @@ export class WebviewHelper {
     }
 
     return;
+  }
+
+  public checkChatPanelApiVersion(version: string): string | undefined {
+    const serverApiVersion = semver.coerce(version);
+    if (serverApiVersion) {
+      this.logger.info(
+        `Chat panel server API version: ${serverApiVersion}, client API version: ${TABBY_CHAT_PANEL_API_VERSION}`,
+      );
+      const clientApiMajorVersion = semver.major(TABBY_CHAT_PANEL_API_VERSION);
+      const clientApiMinorVersion = semver.minor(TABBY_CHAT_PANEL_API_VERSION);
+      const clientCompatibleRange = `~${clientApiMajorVersion}.${clientApiMinorVersion}`;
+      if (semver.ltr(serverApiVersion, clientCompatibleRange)) {
+        return "Please update your Tabby server to the latest version to use chat panel.";
+      }
+      if (semver.gtr(serverApiVersion, clientCompatibleRange)) {
+        return "Please update the Tabby VSCode extension to the latest version to use chat panel.";
+      }
+    }
+    return undefined;
   }
 
   public async displayChatPage(endpoint: string, opts?: { force: boolean }) {
@@ -543,7 +563,14 @@ export class WebviewHelper {
           });
         }
       },
-      onLoaded: () => {
+      onLoaded: (params: OnLoadedParams | undefined) => {
+        if (params?.apiVersion) {
+          const error = this.checkChatPanelApiVersion(params.apiVersion);
+          if (error) {
+            this.client?.showError({ content: error });
+            return;
+          }
+        }
         setTimeout(() => {
           this.refreshChatPage();
         }, 300);
