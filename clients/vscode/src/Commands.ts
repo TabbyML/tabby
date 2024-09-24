@@ -11,6 +11,7 @@ import {
   ProgressLocation,
   ThemeIcon,
   QuickPickItem,
+  ViewColumn,
 } from "vscode";
 import os from "os";
 import path from "path";
@@ -19,7 +20,8 @@ import { Client } from "./lsp/Client";
 import { Config, PastServerConfig } from "./Config";
 import { ContextVariables } from "./ContextVariables";
 import { InlineCompletionProvider } from "./InlineCompletionProvider";
-import { ChatViewProvider } from "./chat/ChatViewProvider";
+import { ChatSideViewProvider } from "./chat/ChatSideViewProvider";
+import { ChatPanelViewProvider } from "./chat/ChatPanelViewProvider";
 import { GitProvider, Repository } from "./git/GitProvider";
 import CommandPalette from "./CommandPalette";
 import { showOutputPanel } from "./logger";
@@ -36,8 +38,9 @@ export class Commands {
     private readonly issues: Issues,
     private readonly contextVariables: ContextVariables,
     private readonly inlineCompletionProvider: InlineCompletionProvider,
-    private readonly chatViewProvider: ChatViewProvider,
+    private readonly chatViewProvider: ChatSideViewProvider,
     private readonly gitProvider: GitProvider,
+    private readonly chatPanelViewProvider: ChatPanelViewProvider,
   ) {
     const registrations = Object.keys(this.commands).map((key) => {
       const commandName = `tabby.${key}`;
@@ -55,7 +58,7 @@ export class Commands {
     const editor = window.activeTextEditor;
     if (editor) {
       commands.executeCommand("tabby.chatView.focus");
-      const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+      const fileContext = ChatSideViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
       if (!fileContext) {
         window.showInformationMessage("No selected codes");
         return;
@@ -78,7 +81,7 @@ export class Commands {
     }
 
     const addContext = () => {
-      const fileContext = ChatViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+      const fileContext = ChatSideViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
       if (fileContext) {
         this.chatViewProvider.addRelevantContext(fileContext);
       }
@@ -260,7 +263,7 @@ export class Commands {
       const editor = window.activeTextEditor;
       if (editor) {
         commands.executeCommand("tabby.chatView.focus").then(() => {
-          const fileContext = ChatViewProvider.getFileContextFromEditor({ editor, gitProvider: this.gitProvider });
+          const fileContext = ChatSideViewProvider.getFileContextFromEditor({ editor, gitProvider: this.gitProvider });
           this.chatViewProvider.addRelevantContext(fileContext);
         });
       } else {
@@ -275,6 +278,11 @@ export class Commands {
     },
     "chat.generateCodeBlockTest": async () => {
       this.sendMessageToChatPanel("Generate a unit test for the selected code:");
+    },
+    "chat.createPanel": async () => {
+      const panel = window.createWebviewPanel("tabby.chatView", "Tabby", ViewColumn.One, {});
+
+      this.chatPanelViewProvider.resolveWebviewView(panel);
     },
     "chat.edit.start": async (userCommand?: string) => {
       const editor = window.activeTextEditor;
