@@ -16,10 +16,10 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 
 const NOT_FOUND_ERROR = 'not_found'
-let shouldFetchAvatar = true
+const failedAvatarUserIds: Set<string> = new Set()
 
 export const mutateAvatar = (userId: string) => {
-  shouldFetchAvatar = true
+  failedAvatarUserIds.delete(userId)
   mutate(`/avatar/${userId}`)
 }
 
@@ -42,7 +42,8 @@ export function UserAvatar({ user, className, fallback }: UserAvatarProps) {
     isLoading,
     error
   } = useSWRImmutable(avatarUrl, (url: string) => {
-    if (!shouldFetchAvatar) return undefined
+    if (!userId || failedAvatarUserIds.has(userId)) return undefined
+
     return fetcher(url, {
       responseFormatter: async response => {
         const blob = await response.blob()
@@ -65,8 +66,8 @@ export function UserAvatar({ user, className, fallback }: UserAvatarProps) {
     return <Skeleton className={cn('h-16 w-16 rounded-full', className)} />
   }
 
-  if (error?.message === NOT_FOUND_ERROR) {
-    shouldFetchAvatar = false
+  if (error?.message === NOT_FOUND_ERROR && userId) {
+    failedAvatarUserIds.add(userId)
   }
 
   if (!avatarImageSrc && !avatarConfigFromEmail && fallback) return fallback
