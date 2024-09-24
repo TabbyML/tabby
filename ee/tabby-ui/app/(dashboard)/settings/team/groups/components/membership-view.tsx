@@ -365,8 +365,7 @@ function MemberSelect({
               {options.map(user => (
                 <CommandItem
                   key={user.id}
-                  onSelect={selectMember}
-                  value={user.id}
+                  onSelect={() => selectMember(user.id)}
                 >
                   <UserInfoView user={user} />
                 </CommandItem>

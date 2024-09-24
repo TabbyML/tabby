@@ -10,7 +10,8 @@ import { Issues } from "./Issues";
 import { GitProvider } from "./git/GitProvider";
 import { ContextVariables } from "./ContextVariables";
 import { StatusBarItem } from "./StatusBarItem";
-import { ChatViewProvider } from "./chat/ChatViewProvider";
+import { ChatSideViewProvider } from "./chat/ChatSideViewProvider";
+import { ChatPanelViewProvider } from "./chat/ChatPanelViewProvider";
 import { Commands } from "./Commands";
 import { Status } from "tabby-agent";
 import { OutlinesProvider } from "./outline/OutlinesProvider";
@@ -82,13 +83,14 @@ export async function activate(context: ExtensionContext) {
   context.subscriptions.push(languages.registerCodeLensProvider({ scheme: "file" }, nlOutlinesProvider));
 
   // Register chat panel
-  const chatViewProvider = new ChatViewProvider(context, client.agent, logger, gitProvider);
+  const chatViewProvider = new ChatSideViewProvider(context, client.agent, logger, gitProvider);
   context.subscriptions.push(
     window.registerWebviewViewProvider("tabby.chatView", chatViewProvider, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
   );
-
+  // Create chat panel view
+  const chatPanelViewProvider = new ChatPanelViewProvider(context, client.agent, logger, gitProvider);
   await gitProvider.init();
   await client.start();
 
@@ -108,6 +110,7 @@ export async function activate(context: ExtensionContext) {
     chatViewProvider,
     gitProvider,
     nlOutlinesProvider,
+    chatPanelViewProvider,
   );
   /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */ /* eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error */
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ // @ts-ignore noUnusedLocals

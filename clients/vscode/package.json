@@ -149,6 +149,11 @@
         "command": "tabby.server.selectPastServerConfig",
         "title": "Select Server Endpoint from History",
         "category": "Tabby"
+      },
+      {
+        "command": "tabby.chat.createPanel",
+        "title": "Open Chat in Editor",
+        "category": "Tabby"
       }
     ],
     "submenus": [
@@ -231,6 +236,12 @@
           "command": "tabby.chat.generateCommitMessage",
           "when": "tabby.chatEnabled",
           "group": "navigation@-1"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "tabby.chat.createPanel",
+          "when": "view == tabby.chatView"
         }
       ]
     },
