@@ -791,7 +791,7 @@ mod tests {
             .collect_relevant_docs(&context_info_helper, &doc_query)
             .await;
 
-        assert_eq!(hits.len(), 5, "Expected 5 hits from the doc search");
+        assert_eq!(hits.len(), 10, "Expected 10 hits from the doc search");
 
         assert!(
             hits.iter().any(|hit| hit.doc.title == "Document 1"),
