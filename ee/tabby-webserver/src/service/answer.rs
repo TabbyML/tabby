@@ -497,7 +497,7 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
 #[cfg(test)]
 mod tests {
 
-    use std::sync::Arc;
+    use std::{path::PathBuf, sync::Arc};
 
     use juniper::ID;
     use tabby_common::{
@@ -520,8 +520,6 @@ mod tests {
         testutils::{FakeChatCompletionStream, FakeCodeSearch, FakeContextService, FakeDocSearch},
         trim_bullet, AnswerService,
     };
-
-    use std::path::PathBuf;
 
     const TEST_SOURCE_ID: &str = "source-1";
     const TEST_GIT_URL: &str = "TabbyML/tabby";
