@@ -164,7 +164,7 @@ export default function Stats() {
 
   if (!data?.me?.id) return <></>
   return (
-    <div className="flex w-full flex-col gap-y-4">
+    <>
       <div data-aos="fade-up" data-aos-delay="150">
         <h3 className="mb-2 text-xs font-medium tracking-tight">
           <b>{lastYearActivities}</b> activities in the last year
@@ -178,6 +178,6 @@ export default function Stats() {
         from={moment().subtract(DATE_RANGE, 'day').toDate()}
         to={moment().toDate()}
       />
-    </div>
+    </>
   )
 }

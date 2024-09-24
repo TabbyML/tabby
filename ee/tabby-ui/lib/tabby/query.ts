@@ -377,3 +377,56 @@ export const listThreads = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const listThreadMessages = graphql(/* GraphQL */ `
+  query ListThreadMessages(
+    $threadId: ID!
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    threadMessages(
+      threadId: $threadId
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          threadId
+          role
+          content
+          attachment {
+            code {
+              gitUrl
+              filepath
+              language
+              content
+              startLine
+            }
+            clientCode {
+              filepath
+              content
+              startLine
+            }
+            doc {
+              title
+              link
+              content
+            }
+          }
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)

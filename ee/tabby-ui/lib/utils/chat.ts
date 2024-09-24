@@ -1,6 +1,10 @@
 import { uniq } from 'lodash-es'
 
-import { ContextInfo, ContextSourceKind } from '@/lib/gql/generates/graphql'
+import {
+  ContextInfo,
+  ContextSource,
+  ContextSourceKind
+} from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
 
 import { MARKDOWN_SOURCE_REGEX } from '../constants/regex'
@@ -61,4 +65,22 @@ export const getThreadRunContextsFromMentions = (
     docSourceIds: uniq(docSourceIds),
     codeSourceIds: uniq(codeSourceIds)
   }
+}
+
+export function getTitleFromMessages(
+  sources: ContextSource[],
+  content: string
+) {
+  const firstLine = content.split('\n')[0] ?? ''
+  const cleanedLine = firstLine
+    .replace(MARKDOWN_SOURCE_REGEX, value => {
+      const sourceId = value.slice(9, -2)
+      const source = sources.find(s => s.sourceId === sourceId)
+      return source?.sourceName ?? ''
+    })
+    .trim()
+
+  // Cap max length at 48 characters
+  const title = cleanedLine.slice(0, 48)
+  return title
 }
