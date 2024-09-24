@@ -6,7 +6,6 @@ mod oauth;
 mod path;
 mod routes;
 mod service;
-mod testutils;
 mod webserver;
 
 #[cfg(test)]

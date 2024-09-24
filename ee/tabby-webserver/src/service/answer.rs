@@ -32,6 +32,8 @@ use tracing::{debug, error, warn};
 
 use crate::bail;
 
+pub mod testutils;
+
 pub struct AnswerService {
     config: AnswerConfig,
     chat: Arc<dyn ChatCompletionStream>,
@@ -498,24 +500,90 @@ mod tests {
     use std::sync::Arc;
 
     use juniper::ID;
-    use tabby_common::api::{code::CodeSearch, doc::DocSearch};
+    use tabby_common::{
+        api::{
+            code::{CodeSearch, CodeSearchParams},
+            doc::DocSearch,
+        },
+        config::AnswerConfig,
+    };
     use tabby_inference::ChatCompletionStream;
     use tabby_schema::{
         context::{ContextInfo, ContextInfoHelper, ContextService, ContextSourceValue},
-        thread::MessageAttachment,
+        repository::{Repository, RepositoryKind},
+        thread::{CodeQueryInput, MessageAttachment},
         web_documents::PresetWebDocument,
+        AsID,
     };
 
-    use crate::{
-        answer::{trim_bullet, AnswerService},
-        testutils::{
-            helper::helpers::{
-                make_answer_config, make_code_query_input, make_code_search_params,
-                make_context_info_helper, make_message,
-            },
-            FakeChatCompletionStream, FakeCodeSearch, FakeContextService, FakeDocSearch,
-        },
+    use crate::answer::{
+        testutils::{FakeChatCompletionStream, FakeCodeSearch, FakeContextService, FakeDocSearch},
+        trim_bullet, AnswerService,
     };
+
+    use std::path::PathBuf;
+
+    const TEST_SOURCE_ID: &str = "source-1";
+    const TEST_GIT_URL: &str = "TabbyML/tabby";
+    const TEST_FILEPATH: &str = "test.rs";
+    const TEST_LANGUAGE: &str = "rust";
+    const TEST_CONTENT: &str = "fn main() {}";
+
+    pub fn make_answer_config() -> AnswerConfig {
+        AnswerConfig {
+            code_search_params: make_code_search_params(),
+        }
+    }
+
+    pub fn make_code_search_params() -> CodeSearchParams {
+        CodeSearchParams {
+            min_bm25_score: 0.5,
+            min_embedding_score: 0.7,
+            min_rrf_score: 0.3,
+            num_to_return: 5,
+            num_to_score: 10,
+        }
+    }
+    pub fn make_code_query_input() -> CodeQueryInput {
+        CodeQueryInput {
+            filepath: Some(TEST_FILEPATH.to_string()),
+            content: TEST_CONTENT.to_string(),
+            git_url: Some(TEST_GIT_URL.to_string()),
+            source_id: Some(TEST_SOURCE_ID.to_string()),
+            language: Some(TEST_LANGUAGE.to_string()),
+        }
+    }
+
+    pub fn make_context_info_helper() -> ContextInfoHelper {
+        ContextInfoHelper::new(&ContextInfo {
+            sources: vec![ContextSourceValue::Repository(Repository {
+                id: ID::from(TEST_SOURCE_ID.to_owned()),
+                source_id: TEST_SOURCE_ID.to_owned(),
+                name: "tabby".to_owned(),
+                kind: RepositoryKind::Github,
+                dir: PathBuf::from("tabby"),
+                git_url: TEST_GIT_URL.to_owned(),
+                refs: vec![],
+            })],
+        })
+    }
+
+    pub fn make_message(
+        id: i32,
+        content: &str,
+        role: tabby_schema::thread::Role,
+        attachment: Option<tabby_schema::thread::MessageAttachment>,
+    ) -> tabby_schema::thread::Message {
+        tabby_schema::thread::Message {
+            id: id.as_id(),
+            thread_id: ID::new("0"),
+            content: content.to_owned(),
+            role,
+            attachment: attachment.unwrap_or_default(),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        }
+    }
 
     #[test]
     fn test_build_user_prompt() {
@@ -718,7 +786,7 @@ mod tests {
         let doc_query = tabby_schema::thread::DocQueryInput {
             content: "Test query Here[[source:source-1]]".to_string(),
             source_ids: Some(vec!["source-1".to_string()]),
-            search_public: false,
+            search_public: true,
         };
 
         let hits = service
