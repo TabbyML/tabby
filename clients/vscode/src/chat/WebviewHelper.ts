@@ -192,7 +192,9 @@ export class WebviewHelper {
   public checkChatPanelApiVersion(version: string): string | undefined {
     const serverApiVersion = semver.coerce(version);
     if (serverApiVersion) {
-      this.logger.info(`Chat panel server API version: ${serverApiVersion}, client API version: ${TABBY_CHAT_PANEL_API_VERSION}`);
+      this.logger.info(
+        `Chat panel server API version: ${serverApiVersion}, client API version: ${TABBY_CHAT_PANEL_API_VERSION}`,
+      );
       const clientApiMajorVersion = semver.major(TABBY_CHAT_PANEL_API_VERSION);
       const clientApiMinorVersion = semver.minor(TABBY_CHAT_PANEL_API_VERSION);
       const clientCompatibleRange = `~${clientApiMajorVersion}.${clientApiMinorVersion}`;
