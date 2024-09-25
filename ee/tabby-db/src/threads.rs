@@ -70,6 +70,7 @@ impl DbConn {
     pub async fn list_threads(
         &self,
         ids: Option<&[i64]>,
+        is_ephemeral: Option<bool>,
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
@@ -80,6 +81,14 @@ impl DbConn {
             let ids: Vec<String> = ids.iter().map(i64::to_string).collect();
             let ids = ids.join(", ");
             conditions.push(format!("id in ({ids})"));
+        }
+
+        if let Some(is_ephemeral) = is_ephemeral {
+            if is_ephemeral {
+                conditions.push("is_ephemeral".to_string());
+            } else {
+                conditions.push("NOT is_ephemeral".to_string());
+            }
         }
 
         let condition = (!conditions.is_empty()).then_some(conditions.join(" AND "));
