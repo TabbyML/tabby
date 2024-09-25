@@ -120,7 +120,7 @@ function MainPanel() {
         className="h-[calc(100%-4rem)] flex-col items-center justify-center overflow-auto pb-8 lg:flex lg:pb-0"
         ref={elementRef}
       >
-        <div className="mx-auto flex min-h-0 w-full flex-col items-center px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0 pb-4">
+        <div className="mx-auto flex min-h-0 w-full flex-col items-center px-10 pb-4 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
           <Image
             src={tabbyUrl}
             alt="logo"

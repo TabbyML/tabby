@@ -181,11 +181,11 @@ function ThreadItem({ data }: ThreadItemProps) {
       >
         <Link href={`/search/${titleSlug}-${threadId}`} className="group">
           <div className="py-3">
-            <div className="scroll-m-20 font-semibold tracking-tight mb-4 break-anywhere text-base group-hover:underline line-clamp-2">
+            <div className="break-anywhere mb-4 line-clamp-2 scroll-m-20 text-base font-semibold tracking-tight group-hover:underline">
               {title}
             </div>
             <div className="flex items-center gap-1">
-              <UserAvatar user={user} className="w-10 h-10 border shrink-0" />
+              <UserAvatar user={user} className="h-10 w-10 shrink-0 border" />
               <div className="space-y-1.5">
                 <div className="text-sm">{user?.name || user?.email}</div>
                 <div className="text-xs leading-none text-muted-foreground">
@@ -220,7 +220,7 @@ function ThreadItemSkeleton({ className }: { className?: string }) {
     <div className={cn('flex flex-col gap-2', className)}>
       <Skeleton className="w-full" />
       <Skeleton className="w-[60%]" />
-      <Skeleton className="w-10 h-10 rounded-full mt-4" />
+      <Skeleton className="mt-4 h-10 w-10 rounded-full" />
     </div>
   )
 }
