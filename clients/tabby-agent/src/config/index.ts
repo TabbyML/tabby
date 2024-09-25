@@ -87,11 +87,6 @@ export class Configurations extends EventEmitter implements Feature {
   private update() {
     const old = this.mergedConfig;
     const merged = mergeConfig(this.defaultConfig, this.configFile, this.clientProvided, this.serverProvided);
-    this.logger.debug("Updated configurations." + JSON.stringify({ defaultConfig: this.defaultConfig }));
-    this.logger.debug("Updated configurations." + JSON.stringify({ configFile: this.configFile?.config }));
-    this.logger.debug("Updated configurations." + JSON.stringify({ clientProvided: this.clientProvided }));
-    this.logger.debug("Updated configurations." + JSON.stringify({ serverProvided: this.serverProvided }));
-    this.logger.debug("Updated configurations." + JSON.stringify({ merged: merged }));
     if (!deepEqual(old, merged)) {
       this.mergedConfig = merged;
       this.logger.trace("Updated configurations.", { config: merged });
