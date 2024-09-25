@@ -69,7 +69,8 @@ export const getThreadRunContextsFromMentions = (
 
 export function getTitleFromMessages(
   sources: ContextSource[],
-  content: string
+  content: string,
+  options?: { maxLength?: number }
 ) {
   const firstLine = content.split('\n')[0] ?? ''
   const cleanedLine = firstLine
@@ -80,7 +81,9 @@ export function getTitleFromMessages(
     })
     .trim()
 
-  // Cap max length at 48 characters
-  const title = cleanedLine.slice(0, 48)
+  let title = cleanedLine
+  if (options?.maxLength) {
+    title = title.slice(0, options?.maxLength)
+  }
   return title
 }

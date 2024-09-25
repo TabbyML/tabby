@@ -1,15 +1,19 @@
-import { createContext, useContext, useMemo } from 'react'
+import { createContext, useContext, useMemo, useState } from 'react'
 import Link from 'next/link'
+import slugify from '@sindresorhus/slugify'
 import moment from 'moment'
 import { useQuery } from 'urql'
 
+import { SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { ContextSource, ListThreadsQuery } from '@/lib/gql/generates/graphql'
 import { Member, useAllMembers } from '@/lib/hooks/use-all-members'
 import { contextInfoQuery, listThreadMessages } from '@/lib/tabby/query'
-import { getTitleFromMessages } from '@/lib/utils'
-import { Card, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn, getTitleFromMessages } from '@/lib/utils'
+import { CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import { LoadMoreIndicator } from '@/components/load-more-indicator'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { UserAvatar } from '@/components/user-avatar'
 
@@ -62,11 +66,14 @@ const listThreads = graphql(/* GraphQL */ `
   }
 `)
 
-export function ThreadFeeds(props: ThreadFeedsProps) {
+export function ThreadFeeds({ className }: ThreadFeedsProps) {
+  const [allUsers, fetchingUsers] = useAllMembers()
+  const [beforeCursor, setBeforeCursor] = useState<string | undefined>()
   const [{ data, fetching }] = useQuery({
     query: listThreads,
     variables: {
-      last: 4
+      last: 10,
+      before: beforeCursor
     }
   })
 
@@ -78,10 +85,16 @@ export function ThreadFeeds(props: ThreadFeedsProps) {
     const _threads = data?.threads?.edges
     if (!_threads?.length) return []
 
-    return [..._threads].reverse()
+    return _threads.slice().reverse()
   }, [data?.threads?.edges])
 
-  const [allUsers, fetchingUsers] = useAllMembers()
+  const pageInfo = data?.threads.pageInfo
+
+  const loadMore = () => {
+    if (pageInfo?.startCursor) {
+      setBeforeCursor(pageInfo.startCursor)
+    }
+  }
 
   return (
     <ThreadFeedsContext.Provider
@@ -92,17 +105,18 @@ export function ThreadFeeds(props: ThreadFeedsProps) {
         fetchingSources
       }}
     >
-      <Card className="border bg-transparent p-4">
+      <div className={cn('mb-4 mt-6', className)}>
         <CardHeader className="flex flex-row items-center justify-between p-0 pb-2">
-          <CardTitle className="text-sm font-normal leading-none tracking-tight">
+          <CardTitle className="text-base font-semibold leading-none tracking-tight">
             Threads
           </CardTitle>
         </CardHeader>
+        <Separator className="mb-3" />
         <LoadingWrapper
           loading={fetching || fetchingUsers}
-          fallback={<TheadsSkeleton />}
+          fallback={<TheadsSkeleton className="my-6" />}
         >
-          <div className="space-y-1 text-sm">
+          <div className="text-sm">
             {threads?.length ? (
               <>
                 {threads.map(thread => {
@@ -113,8 +127,13 @@ export function ThreadFeeds(props: ThreadFeedsProps) {
               <div>No data</div>
             )}
           </div>
+          {!!pageInfo?.hasPreviousPage && (
+            <LoadMoreIndicator onLoad={loadMore} isFetching={fetching}>
+              <TheadsSkeleton className="mt-6" />
+            </LoadMoreIndicator>
+          )}
         </LoadingWrapper>
-      </Card>
+      </div>
     </ThreadFeedsContext.Provider>
   )
 }
@@ -145,47 +164,63 @@ function ThreadItem({ data }: ThreadItemProps) {
     )
   }, [threadMessages, sources])
 
+  const titleSlug = useMemo(() => {
+    const titleInSlug = title.slice(0, SLUG_TITLE_MAX_LENGTH)
+    return slugify(titleInSlug)
+  }, [title])
+
   const user = useMemo(() => {
     return allUsers?.find(u => u.id === data.node.userId)
   }, [allUsers, userId])
 
   return (
-    <LoadingWrapper loading={fetching} fallback={<TheadsSkeleton />}>
-      <div className="flex items-center gap-1">
-        <UserAvatar user={user} className="h-7 w-7 shrink-0 border" />
-        <Link
-          href={`/search/${title}-${threadId}`}
-          className="flex-1 truncate hover:underline"
-        >
-          {title}
+    <>
+      <LoadingWrapper
+        loading={fetching}
+        fallback={<ThreadItemSkeleton className="py-3" />}
+      >
+        <Link href={`/search/${titleSlug}-${threadId}`} className="group">
+          <div className="py-3">
+            <div className="scroll-m-20 font-semibold tracking-tight mb-4 break-anywhere text-base group-hover:underline line-clamp-2">
+              {title}
+            </div>
+            <div className="flex items-center gap-1">
+              <UserAvatar user={user} className="w-10 h-10 border shrink-0" />
+              <div className="space-y-1.5">
+                <div className="text-sm">{user?.name || user?.email}</div>
+                <div className="text-xs leading-none text-muted-foreground">
+                  {moment(data.node.updatedAt).isBefore(
+                    moment().subtract(1, 'month')
+                  )
+                    ? moment(data.node.updatedAt).format('YYYY-MM-DD HH:mm')
+                    : moment(data.node.updatedAt).fromNow()}
+                </div>
+              </div>
+            </div>
+          </div>
         </Link>
-        <div className="w-[130px]">
-          {moment(data.node.updatedAt).isBefore(moment().subtract(1, 'days'))
-            ? moment(data.node.updatedAt).format('YYYY-MM-DD HH:mm')
-            : moment(data.node.updatedAt).fromNow()}
-        </div>
-      </div>
-    </LoadingWrapper>
+      </LoadingWrapper>
+      <Separator className="my-3" />
+    </>
   )
 }
 
-const skeletonList = new Array(4).fill('')
-
-function TheadsSkeleton() {
+function TheadsSkeleton({ className }: { className?: string }) {
   return (
-    <div className="space-y-1">
-      {skeletonList.map((_, idx) => {
-        return <ThreadItemSkeleton key={idx} />
-      })}
+    <div className={cn('space-y-6', className)}>
+      <ThreadItemSkeleton />
+      <Separator className="my-3" />
+      <ThreadItemSkeleton />
     </div>
   )
 }
 
-function ThreadItemSkeleton() {
+function ThreadItemSkeleton({ className }: { className?: string }) {
   return (
-    <div className="flex items-center gap-2">
-      <Skeleton className="h-6 w-6 rounded-full" />
+    <div className={cn('flex flex-col gap-2', className)}>
       <Skeleton className="w-full" />
+      <Skeleton className="w-[60%]" />
+      <Skeleton className="w-10 h-10 rounded-full mt-4" />
     </div>
   )
 }

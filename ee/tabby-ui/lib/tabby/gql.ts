@@ -134,7 +134,8 @@ const client = new Client({
           invitations: relayPagination(),
           gitRepositories: relayPagination(),
           webCrawlerUrls: relayPagination(),
-          integrations: relayPagination()
+          integrations: relayPagination(),
+          threads: relayPagination()
         }
       },
       updates: {

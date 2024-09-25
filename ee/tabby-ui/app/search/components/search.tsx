@@ -16,7 +16,7 @@ import he from 'he'
 import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 
-import { ERROR_CODE_NOT_FOUND, SESSION_STORAGE_KEY } from '@/lib/constants'
+import { ERROR_CODE_NOT_FOUND, SESSION_STORAGE_KEY, SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
 import { useEnableDeveloperMode } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
@@ -245,7 +245,9 @@ export function Search() {
   const content = messages?.[0]?.content
   const title = useMemo(() => {
     if (sources && content) {
-      return getTitleFromMessages(sources, content)
+      return getTitleFromMessages(sources, content, {
+        maxLength: SLUG_TITLE_MAX_LENGTH
+      })
     } else {
       return ''
     }
