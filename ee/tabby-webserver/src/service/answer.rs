@@ -41,9 +41,6 @@ pub struct AnswerService {
     serper: Option<Box<dyn DocSearch>>,
 }
 
-// FIXME(meng): make this configurable.
-const PRESENCE_PENALTY: f32 = 0.5;
-
 impl AnswerService {
     fn new(
         config: &AnswerConfig,
@@ -95,8 +92,8 @@ impl AnswerService {
                     &context_info_helper,
                     code_query,
                     &self.config.code_search_params,
-                    options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref()
-                )).await;
+                    options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref())
+                ).await;
                 attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
 
                 if !hits.is_empty() {
@@ -132,16 +129,17 @@ impl AnswerService {
                     .await;
                 yield Ok(ThreadRunItem::ThreadRelevantQuestions(ThreadRelevantQuestions{
                     questions
-            }));
+                }));
             }
 
             // 4. Prepare requesting LLM
             let request = {
                 let chat_messages = convert_messages_to_chat_completion_request(&context_info_helper, &messages, &attachment, user_attachment_input.as_ref())?;
+                let presence_penalty = validate_presence_penalty(self.config.presence_penalty);
 
                 CreateChatCompletionRequestArgs::default()
                     .messages(chat_messages)
-                    .presence_penalty(PRESENCE_PENALTY)
+                    .presence_penalty(presence_penalty)
                     .build()
                     .expect("Failed to build chat completion request")
             };
@@ -173,7 +171,7 @@ impl AnswerService {
                 if let Some(content) = chunk.choices[0].delta.content.as_deref() {
                     yield Ok(ThreadRunItem::ThreadAssistantMessageContentDelta(ThreadAssistantMessageContentDelta {
                         delta: content.to_owned()
-                }));
+                    }));
                 }
             }
         };
@@ -479,6 +477,17 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
 {user_input}
 "#
     )
+}
+
+// https://platform.openai.com/docs/api-reference/chat/create#chat-create-presence_penalty
+fn validate_presence_penalty(presence_penalty: f32) -> f32 {
+    if presence_penalty < -2.0 {
+        -2.0
+    } else if presence_penalty > 2.0 {
+        2.0
+    } else {
+        presence_penalty
+    }
 }
 
 #[cfg(test)]
