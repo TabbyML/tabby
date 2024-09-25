@@ -177,6 +177,12 @@ export class CompletionProvider implements Feature {
   }
 
   async provideCompletion(params: CompletionParams, token: CancellationToken): Promise<CompletionList | null> {
+    if (!this.tabbyApiClient.isCodeCompletionApiAvailable()) {
+      throw {
+        name: "CodeCompletionFeatureNotAvailableError",
+        message: "Code completion feature not available",
+      };
+    }
     if (token.isCancellationRequested) {
       return null;
     }
@@ -201,6 +207,12 @@ export class CompletionProvider implements Feature {
     params: InlineCompletionParams,
     token: CancellationToken,
   ): Promise<InlineCompletionList | null> {
+    if (!this.tabbyApiClient.isCodeCompletionApiAvailable()) {
+      throw {
+        name: "CodeCompletionFeatureNotAvailableError",
+        message: "Code completion feature not available",
+      };
+    }
     if (token.isCancellationRequested) {
       return null;
     }
