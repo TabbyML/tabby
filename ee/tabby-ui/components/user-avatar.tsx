@@ -16,25 +16,34 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 
 const NOT_FOUND_ERROR = 'not_found'
-let shouldFetchAvatar = true
+const failedAvatarUserIds: Set<string> = new Set()
 
-export function UserAvatar({
-  className,
-  fallback
-}: {
+export const mutateAvatar = (userId: string) => {
+  failedAvatarUserIds.delete(userId)
+  mutate(`/avatar/${userId}`)
+}
+
+interface UserAvatarProps {
   className?: string
   fallback?: string | ReactNode
-}) {
-  const [{ data }] = useMe()
-  const userId = data?.me.id
+  user:
+    | {
+        id: string
+        email: string
+      }
+    | undefined
+}
+export function UserAvatar({ user, className, fallback }: UserAvatarProps) {
+  const userId = user?.id
+  const avatarUrl = userId ? `/avatar/${userId}` : null
 
-  const avatarUrl = (userId && `/avatar/${data.me.id}`) || null
   const {
     data: avatarImageSrc,
     isLoading,
     error
   } = useSWRImmutable(avatarUrl, (url: string) => {
-    if (!shouldFetchAvatar) return undefined
+    if (!userId || failedAvatarUserIds.has(userId)) return undefined
+
     return fetcher(url, {
       responseFormatter: async response => {
         const blob = await response.blob()
@@ -49,16 +58,16 @@ export function UserAvatar({
   })
 
   const avatarConfigFromEmail = React.useMemo(() => {
-    if (!data?.me?.email) return undefined
-    return genConfig(data.me.email)
-  }, [data?.me?.email])
+    if (!user?.email) return undefined
+    return genConfig(user.email)
+  }, [user?.email])
 
   if (isLoading) {
     return <Skeleton className={cn('h-16 w-16 rounded-full', className)} />
   }
 
-  if (error?.message === NOT_FOUND_ERROR) {
-    shouldFetchAvatar = false
+  if (error?.message === NOT_FOUND_ERROR && userId) {
+    failedAvatarUserIds.add(userId)
   }
 
   if (!avatarImageSrc && !avatarConfigFromEmail && fallback) return fallback
@@ -75,15 +84,17 @@ export function UserAvatar({
     <AvatarComponent className={cn('h-16 w-16', className)}>
       <AvatarImage
         src={avatarImageSrc}
-        alt={data?.me?.email}
+        alt={user?.email}
         className="object-cover"
       />
-      <AvatarFallback>{data?.me?.email?.substring(0, 2)}</AvatarFallback>
+      <AvatarFallback>{user?.email?.substring(0, 2)}</AvatarFallback>
     </AvatarComponent>
   )
 }
 
-export const mutateAvatar = (userId: string) => {
-  shouldFetchAvatar = true
-  mutate(`/avatar/${userId}`)
+interface MyAvatarProps extends Omit<UserAvatarProps, 'user'> {}
+export function MyAvatar(props: MyAvatarProps) {
+  const [{ data }] = useMe()
+
+  return <UserAvatar user={data?.me} {...props} />
 }

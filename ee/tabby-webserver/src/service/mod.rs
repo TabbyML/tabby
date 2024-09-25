@@ -209,12 +209,13 @@ impl WorkerService for ServerContext {
         let (auth, user) = self
             .authorize_request(request.uri(), request.headers())
             .await;
+        let unauthorized = axum::response::Response::builder()
+            .status(StatusCode::UNAUTHORIZED)
+            .body(Body::empty())
+            .unwrap()
+            .into_response();
         if !auth {
-            return axum::response::Response::builder()
-                .status(StatusCode::UNAUTHORIZED)
-                .body(Body::empty())
-                .unwrap()
-                .into_response();
+            return unauthorized;
         }
 
         if let Some(user) = user {
@@ -222,6 +223,18 @@ impl WorkerService for ServerContext {
                 HeaderName::from_static(USER_HEADER_FIELD_NAME),
                 HeaderValue::from_str(&user).expect("User must be valid header"),
             );
+
+            let Ok(user) = self.auth.get_user(&user).await else {
+                return unauthorized;
+            };
+
+            let Ok(context_info) = self.context.read(Some(&user.policy)).await else {
+                return unauthorized;
+            };
+
+            request
+                .extensions_mut()
+                .insert(context_info.allowed_code_repository());
         }
 
         next.run(request).await

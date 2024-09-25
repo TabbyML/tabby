@@ -1,7 +1,7 @@
 {
   "name": "tabby-chat-panel",
   "type": "module",
-  "version": "0.0.0-dev.3",
+  "version": "0.1.0",
   "keywords": [],
   "sideEffects": false,
   "exports": {

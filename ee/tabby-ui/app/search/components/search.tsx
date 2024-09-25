@@ -66,7 +66,7 @@ import { CopyButton } from '@/components/copy-button'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import TextAreaSearch from '@/components/textarea-search'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { UserAvatar } from '@/components/user-avatar'
+import { MyAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
 
 import './search.css'
@@ -1360,7 +1360,7 @@ function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
           <ThemeToggle className="mr-4" />
         </ClientOnly>
         <UserPanel showHome={false} showSetting>
-          <UserAvatar className="h-10 w-10 border" />
+          <MyAvatar className="h-10 w-10 border" />
         </UserPanel>
       </div>
     </header>

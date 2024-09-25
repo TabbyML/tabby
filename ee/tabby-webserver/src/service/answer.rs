@@ -186,19 +186,30 @@ impl AnswerService {
         params: &CodeSearchParams,
         override_params: Option<&CodeSearchParamsOverrideInput>,
     ) -> Vec<CodeSearchHit> {
-        if let Some(source_id) = &input.source_id {
-            // If source_id doesn't exist, return empty result.
-            if !helper.can_access_source_id(source_id) {
-                return vec![];
+        let source_id: Option<&str> = {
+            if let Some(source_id) = &input.source_id {
+                // If source_id doesn't exist, return empty result.
+                if helper.can_access_source_id(source_id) {
+                    Some(source_id.as_str())
+                } else {
+                    None
+                }
+            } else if let Some(git_url) = &input.git_url {
+                helper.allowed_code_repository().closest_match(git_url)
+            } else {
+                None
             }
-        }
+        };
+
+        let Some(source_id) = source_id else {
+            return vec![];
+        };
 
         let query = CodeSearchQuery::new(
-            input.git_url.clone(),
             input.filepath.clone(),
             input.language.clone(),
             helper.rewrite_tag(&input.content),
-            input.source_id.clone(),
+            source_id.to_owned(),
         );
 
         let mut params = params.clone();
