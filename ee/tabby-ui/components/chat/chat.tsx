@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { RefObject } from 'react'
 import { compact, findIndex, isEqual, uniqWith } from 'lodash-es'
 import type { Context, FileContext, NavigateOpts } from 'tabby-chat-panel'
 
@@ -39,25 +39,15 @@ type ChatContextValue = {
   onClearMessages: () => void
   container?: HTMLDivElement
   onCopyContent?: (value: string) => void
-  client?: string
   onApplyInEditor?: (value: string) => void
   relevantContext: Context[]
   removeRelevantContext: (index: number) => void
+  chatInputRef: RefObject<HTMLTextAreaElement>
 }
 
 export const ChatContext = React.createContext<ChatContextValue>(
   {} as ChatContextValue
 )
-
-// FIXME remove
-function selectContextToMessageContent(
-  context: UserMessage['selectContext']
-): string {
-  if (!context || !context.content) return ''
-  const { content, filepath } = context
-  const language = filename2prism(filepath)?.[0]
-  return `\n${'```'}${language ?? ''}\n${content ?? ''}\n${'```'}\n`
-}
 
 export interface ChatRef {
   sendUserChat: (message: UserMessageWithOptionalId) => void
@@ -70,7 +60,6 @@ export interface ChatRef {
 interface ChatProps extends React.ComponentProps<'div'> {
   chatId: string
   api?: string
-  headers?: Record<string, string> | Headers
   initialMessages?: QuestionAnswerPair[]
   onLoaded?: () => void
   onThreadUpdates?: (messages: QuestionAnswerPair[]) => void
@@ -82,9 +71,9 @@ interface ChatProps extends React.ComponentProps<'div'> {
   welcomeMessage?: string
   promptFormClassname?: string
   onCopyContent?: (value: string) => void
-  client?: string
   onSubmitMessage?: (msg: string, relevantContext?: Context[]) => Promise<void>
   onApplyInEditor?: (value: string) => void
+  chatInputRef: RefObject<HTMLTextAreaElement>
 }
 
 function ChatRenderer(
@@ -92,7 +81,6 @@ function ChatRenderer(
     className,
     chatId,
     initialMessages,
-    headers,
     onLoaded,
     onThreadUpdates,
     onNavigateToContext,
@@ -103,9 +91,9 @@ function ChatRenderer(
     welcomeMessage,
     promptFormClassname,
     onCopyContent,
-    client,
     onSubmitMessage,
-    onApplyInEditor
+    onApplyInEditor,
+    chatInputRef
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
@@ -126,8 +114,7 @@ function ChatRenderer(
     regenerate,
     deleteThreadMessagePair
   } = useThreadRun({
-    threadId,
-    headers
+    threadId
   })
 
   const onDeleteMessage = async (userMessageId: string) => {
@@ -222,22 +209,18 @@ function ChatRenderer(
     const lastQaPairs = qaPairs[qaPairs.length - 1]
 
     // update threadId
-    if (answer?.threadCreated && !threadId) {
-      setThreadId(answer.threadCreated)
+    if (answer.threadId && !threadId) {
+      setThreadId(answer.threadId)
     }
 
     setQaPairs(prev => {
       const assisatntMessage = prev[prev.length - 1].assistant
       const nextAssistantMessage: AssistantMessage = {
         ...assisatntMessage,
-        id:
-          answer?.threadAssistantMessageCreated ||
-          assisatntMessage?.id ||
-          nanoid(),
-        message: answer.threadAssistantMessageContentDelta ?? '',
+        id: answer.assistantMessageId || assisatntMessage?.id || nanoid(),
+        message: answer.content,
         error: undefined,
-        relevant_code:
-          answer?.threadAssistantMessageAttachmentsCode?.map(o => o.code) ?? []
+        relevant_code: answer.attachmentsCode?.map(o => o.code) ?? []
       }
       // merge assistantMessage
       return [
@@ -245,7 +228,7 @@ function ChatRenderer(
         {
           user: {
             ...lastQaPairs.user,
-            id: answer?.threadUserMessageCreated || lastQaPairs.user.id
+            id: answer?.userMessageId || lastQaPairs.user.id
           },
           assistant: nextAssistantMessage
         }
@@ -335,7 +318,7 @@ function ChatRenderer(
         }
       },
       {
-        docQuery: docQuery ? { content } : null,
+        docQuery: docQuery ? { content, searchPublic: false } : null,
         generateRelevantQuestions: !!generateRelevantQuestions,
         codeQuery
       }
@@ -457,14 +440,16 @@ function ChatRenderer(
         onClearMessages,
         container,
         onCopyContent,
-        client,
         onApplyInEditor,
         relevantContext,
-        removeRelevantContext
+        removeRelevantContext,
+        chatInputRef
       }}
     >
       <div className="flex justify-center overflow-x-hidden">
-        <div className={`w-full px-4 ${chatMaxWidthClass}`}>
+        <div
+          className={`w-full px-4 md:pl-10 md:pr-[3.75rem] ${chatMaxWidthClass}`}
+        >
           {/* FIXME: pb-[200px] might not enough when adding a large number of relevantContext */}
           <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
             {qaPairs?.length ? (
@@ -491,6 +476,7 @@ function ChatRenderer(
             setInput={setInput}
             chatMaxWidthClass={chatMaxWidthClass}
             ref={chatPanelRef}
+            chatInputRef={chatInputRef}
           />
         </div>
       </div>

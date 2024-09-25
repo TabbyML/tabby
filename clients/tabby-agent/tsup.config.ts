@@ -55,7 +55,7 @@ export default defineConfig(async () => {
   return [
     {
       name: "lsp-protocol",
-      entry: ["src/lsp/protocol.ts"],
+      entry: ["src/protocol.ts"],
       dts: true,
       external: ["vscode-languageserver-protocol"],
       banner: {
@@ -67,7 +67,7 @@ export default defineConfig(async () => {
       loader: {
         ".md": "text",
       },
-      entry: ["src/lsp/index.ts"],
+      entry: ["src/index.ts"],
       outDir: "dist/node",
       platform: "node",
       target: "node18",
@@ -92,7 +92,7 @@ export default defineConfig(async () => {
       loader: {
         ".md": "text",
       },
-      entry: ["src/lsp/index.ts"],
+      entry: ["src/index.ts"],
       outDir: "dist/browser",
       platform: "browser",
       format: "esm",

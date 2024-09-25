@@ -149,6 +149,9 @@ export default {
               {
                 label: "Media Kit",
                 href: "https://www.figma.com/community/file/1299817332961215434/tabby-mediakit"
+              },
+              {
+                html: `<img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=96661b6c-b6b6-4340-9ffb-dcc46d7b970a" />`
               }
             ],
           },

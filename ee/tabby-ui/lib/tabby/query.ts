@@ -45,6 +45,7 @@ export const listRepositories = graphql(/* GraphQL */ `
           id
           name
           gitUrl
+          sourceId
           jobInfo {
             lastJobRun {
               id
@@ -94,7 +95,6 @@ export const listJobRuns = graphql(/* GraphQL */ `
           finishedAt
           exitCode
           stdout
-          stderr
         }
         cursor
       }
@@ -124,7 +124,7 @@ export const listJobs = graphql(/* GraphQL */ `
   }
 `)
 
-export const listUsers = graphql(/* GraphQL */ `
+export const listSecuredUsers = graphql(/* GraphQL */ `
   query ListUsers($after: String, $before: String, $first: Int, $last: Int) {
     users(after: $after, before: $before, first: $first, last: $last) {
       edges {
@@ -240,6 +240,7 @@ export const listIntegratedRepositories = graphql(/* GraphQL */ `
           displayName
           gitUrl
           active
+          sourceId
           jobInfo {
             lastJobRun {
               id
@@ -247,42 +248,6 @@ export const listIntegratedRepositories = graphql(/* GraphQL */ `
               createdAt
               finishedAt
               startedAt
-              exitCode
-            }
-            command
-          }
-        }
-        cursor
-      }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-    }
-  }
-`)
-
-export const listWebCrawlerUrl = graphql(/* GraphQL */ `
-  query WebCrawlerUrls(
-    $after: String
-    $before: String
-    $first: Int
-    $last: Int
-  ) {
-    webCrawlerUrls(after: $after, before: $before, first: $first, last: $last) {
-      edges {
-        node {
-          url
-          id
-          createdAt
-          jobInfo {
-            lastJobRun {
-              id
-              job
-              createdAt
-              finishedAt
               exitCode
             }
             command
@@ -326,6 +291,53 @@ export const repositorySearch = graphql(/* GraphQL */ `
       type
       path
       indices
+    }
+  }
+`)
+
+export const contextInfoQuery = graphql(/* GraphQL */ `
+  query ContextInfo {
+    contextInfo {
+      sources {
+        id
+        sourceKind
+        sourceId
+        sourceName
+      }
+    }
+  }
+`)
+
+export const userGroupsQuery = graphql(/* GraphQL */ `
+  query UserGroups {
+    userGroups {
+      id
+      name
+      createdAt
+      updatedAt
+      members {
+        user {
+          id
+          email
+          name
+          createdAt
+        }
+        isGroupAdmin
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`)
+
+export const listSourceIdAccessPolicies = graphql(/* GraphQL */ `
+  query sourceIdAccessPolicies($sourceId: String!) {
+    sourceIdAccessPolicies(sourceId: $sourceId) {
+      sourceId
+      read {
+        id
+        name
+      }
     }
   }
 `)

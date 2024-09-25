@@ -6,6 +6,7 @@ use juniper::ID;
 use tabby_db::{DbConn, ThreadMessageDAO};
 use tabby_schema::{
     bail,
+    policy::AccessPolicy,
     thread::{
         self, CreateMessageInput, CreateThreadInput, MessageAttachmentInput, ThreadRunItem,
         ThreadRunOptionsInput, ThreadRunStream, ThreadService,
@@ -60,6 +61,7 @@ impl ThreadService for ThreadServiceImpl {
 
     async fn create_run(
         &self,
+        policy: &AccessPolicy,
         thread_id: &ID,
         options: &ThreadRunOptionsInput,
         attachment_input: Option<&MessageAttachmentInput>,
@@ -96,7 +98,7 @@ impl ThreadService for ThreadServiceImpl {
             .await?;
 
         let s = answer
-            .answer_v2(&messages, options, attachment_input)
+            .answer_v2(policy, &messages, options, attachment_input)
             .await?;
 
         // Copy ownership of db and thread_id for the stream
@@ -104,23 +106,24 @@ impl ThreadService for ThreadServiceImpl {
         let thread_id = thread_id.clone();
         let s = async_stream::stream! {
             if yield_thread_created {
-                yield Ok(ThreadRunItem::ThreadCreated(thread_id.clone()));
+                yield Ok(ThreadRunItem::ThreadCreated(thread::ThreadCreated { id: thread_id.clone()}));
             }
 
             if yield_last_user_message {
-                yield Ok(ThreadRunItem::ThreadUserMessageCreated(user_message_id));
+                yield Ok(ThreadRunItem::ThreadUserMessageCreated(thread::ThreadUserMessageCreated { id: user_message_id }));
             }
 
-            yield Ok(ThreadRunItem::ThreadAssistantMessageCreated(assistant_message_id.as_id()));
+            yield Ok(ThreadRunItem::ThreadAssistantMessageCreated(thread::ThreadAssistantMessageCreated { id: assistant_message_id.as_id() }));
 
             for await item in s {
                 match &item {
-                    Ok(ThreadRunItem::ThreadAssistantMessageContentDelta(content)) => {
-                        db.append_thread_message_content(assistant_message_id, content).await?;
+                    Ok(ThreadRunItem::ThreadAssistantMessageContentDelta(x)) => {
+                        db.append_thread_message_content(assistant_message_id, &x.delta).await?;
                     }
 
-                    Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(hits)) => {
-                        let code = hits
+                    Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsCode(x)) => {
+                        let code = x
+                            .hits
                             .iter()
                             .map(|x| (&x.code).into())
                             .collect::<Vec<_>>();
@@ -130,8 +133,9 @@ impl ThreadService for ThreadServiceImpl {
                         ).await?;
                     }
 
-                    Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(doc)) => {
-                        let doc = doc
+                    Ok(ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(x)) => {
+                        let doc = x
+                            .hits
                             .iter()
                             .map(|x| (&x.doc).into())
                             .collect::<Vec<_>>();
@@ -141,8 +145,8 @@ impl ThreadService for ThreadServiceImpl {
                         ).await?;
                     }
 
-                    Ok(ThreadRunItem::ThreadRelevantQuestions(questions)) => {
-                        db.update_thread_relevant_questions(thread_id.as_rowid()?, questions).await?;
+                    Ok(ThreadRunItem::ThreadRelevantQuestions(x)) => {
+                        db.update_thread_relevant_questions(thread_id.as_rowid()?, &x.questions).await?;
                     }
 
                     _ => {}
@@ -151,7 +155,7 @@ impl ThreadService for ThreadServiceImpl {
                 yield item;
             }
 
-            yield Ok(ThreadRunItem::ThreadAssistantMessageCompleted(assistant_message_id.as_id()));
+            yield Ok(ThreadRunItem::ThreadAssistantMessageCompleted(thread::ThreadAssistantMessageCompleted { id: assistant_message_id.as_id() }));
         };
 
         Ok(s.boxed())

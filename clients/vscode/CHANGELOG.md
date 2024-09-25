@@ -1,10 +1,22 @@
-## 1.11.2 (Pre-release)
+## 1.10.3
 
 ### Fixes & Improvements
 
-- Polished inline-editing experience with line-by-line streaming.
-- Display "Edit with Tabby" in the quickfix menu.
-- Support vscode proxy settings.
+- Fixed theme detection issue in the chat side panel. (https://github.com/TabbyML/tabby/issues/3031)
+
+## 1.10.2
+
+### Fixes & Improvements
+
+- Enhanced post-processing for generating commit messages to address the issue of quotation marks not being removed in certain scenarios.
+
+## 1.10.1
+
+### Fixes & Improvements
+
+- Enhanced inline editing streaming experience.
+- Added the option to utilize `Edit with Tabby` in the quick fix menu for quicker access.
+- Supported using the http proxy configuration in the VSCode settings.
 
 ## 1.10.0
 
@@ -24,23 +36,6 @@
 
 ## 1.8.2
 
-**stable**
-
-Stable release for 1.8.1.
-
-## 1.8.1
-
-**pre-release**
-
-### Fixes & Improvements
-
-- Resolved compatibility issue with chat panel on connections to an older version of the Tabby server.
-- Users can now manually remove the history of chat edit commands. The maximum number of history entries can be configured in the advanced settings.
-
-## 1.8.0
-
-**pre-release**
-
 ### Features
 
 - Added support for HTTP proxy configuration. Users can now set up an HTTP proxy either through environment variables or in the config file.
@@ -49,10 +44,10 @@ Stable release for 1.8.1.
 
 - Enhanced the chat side panel interaction with various improvements. The chat panel improvements require the latest version of the Tabby server to fully function.
 - Updated and optimized the Tabby configurations in the VSCode Settings page.
+- Resolved compatibility issue with chat panel on connections to an older version of the Tabby server.
+- Users can now manually remove the history of chat edit commands. The maximum number of history entries can be configured in the advanced settings.
 
 ## 1.7.4
-
-**stable**
 
 ### Fixes
 
@@ -60,38 +55,18 @@ Stable release for 1.8.1.
 
 ## 1.7.3
 
-**stable**
-
-### Fixes & Improvements
-
-- Updated the walkthrough guides.
-- Fixed bugs causing the web extension initialization to fail.
-
-## 1.7.2
-
-**pre-release**
-
-### Improvements
-
-- Added a set of commands in the command palette to interact with the chat view.
-- Added some preset chat commands for chat editing.
-- Improved prompts used in generating commit messages and chat editing.
-
-## 1.7.1
-
-**pre-release**
-
-### Features
-
-- Introducing a new experimental feature for editing documents using a chat command. Select some text in the editor and press `Ctrl + i` to start.
-
-## 1.7.0
-
-**pre-release**
-
 ### Features
 
 - Introducing a new chat view feature that allows users to engage in conversations with their AI assistant. Access the chat view conveniently from the activity bar.
+
+### Fixes & Improvements
+
+- Introducing a new experimental feature for editing documents using a chat command. Select some text in the editor and press `Ctrl + i` to start.
+- Added a set of commands in the command palette to interact with the chat view.
+- Added some preset chat commands for chat editing.
+- Improved prompts used in generating commit messages and chat editing.
+- Updated the walkthrough guides.
+- Fixed bugs causing the web extension initialization to fail.
 
 ## 1.6.3
 
@@ -101,23 +76,6 @@ Stable release for 1.8.1.
 
 ## 1.6.2
 
-**stable**
-
-Stable release for 1.6.1.
-
-## 1.6.1
-
-**pre-release**
-
-### Fixes & Improvements
-
-- Fixed a bug causing the chat stream parsing to fail.
-- Improved the message extraction when generating commit messages.
-
-## 1.6.0
-
-**pre-release**
-
 ### Features
 
 - Added support for multiple choices in inline completion.
@@ -126,6 +84,8 @@ Stable release for 1.6.1.
 ### Fixes & Improvements
 
 - Improved logging in the VSCode Output channel.
+- Fixed a bug causing the chat stream parsing to fail.
+- Improved the message extraction when generating commit messages.
 
 ## 1.5.4
 
@@ -134,20 +94,6 @@ Stable release for 1.6.1.
 - Fixed settings title on the VSCode settings page.
 
 ## 1.5.3
-
-**stable**
-
-Stable release for 1.5.2.
-
-## 1.5.2
-
-**pre-release**
-
-### Fixes
-
-- Fixed an issue where the indexing worker for recently edited code may cause a stuck.
-
-## 1.5.0
 
 ### Features
 
@@ -161,6 +107,7 @@ Stable release for 1.5.2.
 ### Fixes
 
 - Corrected server-side config retrieval behavior for connections to Tabby servers with version < 0.9.
+- Fixed an issue where the indexing worker for recently edited code may cause a stuck.
 
 ## 1.4.0
 

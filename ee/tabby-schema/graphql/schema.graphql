@@ -11,11 +11,12 @@ enum AuthMethod {
 }
 
 "Represents the kind of context source."
-enum ContextKind {
+enum ContextSourceKind {
   GIT
   GITHUB
   GITLAB
   DOC
+  WEB
 }
 
 enum Encryption {
@@ -140,8 +141,8 @@ input CreateThreadRunInput {
   options: ThreadRunOptionsInput! = {codeQuery: null, debugOptions: null, docQuery: null, generateRelevantQuestions: false}
 }
 
-input CreateWebCrawlerUrlInput {
-  url: String!
+input CreateUserGroupInput {
+  "User group name, can only start with a lowercase letter, and contain characters, numbers, and `-` or `_`" name: String!
 }
 
 input DocQueryInput {
@@ -229,6 +230,35 @@ input UpdateOAuthCredentialInput {
   clientSecret: String
 }
 
+input UpsertUserGroupMembershipInput {
+  userGroupId: ID!
+  userId: ID!
+  isGroupAdmin: Boolean!
+}
+
+interface ContextSource implements ContextSourceId {
+  id: ID!
+  sourceId: String!
+  sourceKind: ContextSourceKind!
+  "Display name of the source, used to provide a human-readable name for user selection, such as in a dropdown menu."
+  sourceName: String!
+}
+
+interface ContextSourceId {
+  "Represents the source of the context, which is the value mapped to `source_id` in the index."
+  sourceId: String!
+}
+
+interface User {
+  id: ID!
+  email: String!
+  name: String!
+  createdAt: DateTime!
+  isAdmin: Boolean!
+  isOwner: Boolean!
+  active: Boolean!
+}
+
 """
   Combined date and time (with time zone) in [RFC 3339][0] format.
 
@@ -256,17 +286,6 @@ type CompletionStats {
 
 type ContextInfo {
   sources: [ContextSource!]!
-  "Whether the deployment has capability to search public web."
-  canSearchPublic: Boolean!
-}
-
-type ContextSource {
-  id: ID!
-  kind: ContextKind!
-  "Represents the source of the context, which is the value mapped to `source_id` in the index."
-  sourceId: String!
-  "Display name of the context, used to provide a human-readable name for user selection, such as in a dropdown menu."
-  displayName: String!
 }
 
 type CustomDocumentConnection {
@@ -279,13 +298,16 @@ type CustomDocumentEdge {
   cursor: String!
 }
 
-type CustomWebDocument {
+type CustomWebDocument implements ContextSourceId & ContextSource {
   url: String!
   name: String!
   id: ID!
   createdAt: DateTime!
   updatedAt: DateTime!
   jobInfo: JobInfo!
+  sourceKind: ContextSourceKind!
+  sourceId: String!
+  sourceName: String!
 }
 
 type DiskUsage {
@@ -322,8 +344,9 @@ type GitReference {
   commit: String!
 }
 
-type GitRepository {
+type GitRepository implements ContextSourceId {
   id: ID!
+  sourceId: String!
   name: String!
   gitUrl: String!
   refs: [GitReference!]!
@@ -410,7 +433,6 @@ type JobRun {
   finishedAt: DateTime
   exitCode: Int
   stdout: String!
-  stderr: String!
 }
 
 type JobRunConnection {
@@ -503,6 +525,7 @@ type MessageEdge {
 type Mutation {
   resetRegistrationToken: String!
   requestInvitationEmail(input: RequestInvitationInput!): Invitation!
+  generateResetPasswordUrl(userId: ID!): String!
   requestPasswordResetEmail(input: RequestPasswordResetEmailInput!): Boolean!
   passwordReset(input: PasswordResetInput!): Boolean!
   passwordChange(input: PasswordChangeInput!): Boolean!
@@ -536,8 +559,6 @@ type Mutation {
   updateIntegratedRepositoryActive(id: ID!, active: Boolean!): Boolean!
   "Trigger a job run given its param string."
   triggerJobRun(command: String!): ID!
-  createWebCrawlerUrl(input: CreateWebCrawlerUrlInput!): ID!
-  deleteWebCrawlerUrl(id: ID!): Boolean!
   "Delete pair of user message and bot response in a thread."
   deleteThreadMessagePair(threadId: ID!, userMessageId: ID!, assistantMessageId: ID!): Boolean!
   "Turn on persisted status for a thread."
@@ -545,6 +566,12 @@ type Mutation {
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
   deleteCustomDocument(id: ID!): Boolean!
   setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
+  createUserGroup(input: CreateUserGroupInput!): ID!
+  deleteUserGroup(id: ID!): Boolean!
+  upsertUserGroupMembership(input: UpsertUserGroupMembershipInput!): Boolean!
+  deleteUserGroupMembership(userGroupId: ID!, userId: ID!): Boolean!
+  grantSourceIdReadAccess(sourceId: String!, userGroupId: ID!): Boolean!
+  revokeSourceIdReadAccess(sourceId: String!, userGroupId: ID!): Boolean!
 }
 
 type NetworkSetting {
@@ -575,17 +602,20 @@ type PresetDocumentEdge {
   cursor: String!
 }
 
-type PresetWebDocument {
-  id: ID!
+type PresetWebDocument implements ContextSourceId & ContextSource {
   name: String!
+  id: ID!
   "`updated_at` is only filled when the preset is active."
   updatedAt: DateTime
   "`job_info` is only filled when the preset is active."
   jobInfo: JobInfo
   isActive: Boolean!
+  sourceKind: ContextSourceKind!
+  sourceId: String!
+  sourceName: String!
 }
 
-type ProvidedRepository {
+type ProvidedRepository implements ContextSourceId {
   id: ID!
   integrationId: ID!
   active: Boolean!
@@ -596,6 +626,7 @@ type ProvidedRepository {
   updatedAt: DateTime!
   refs: [GitReference!]!
   jobInfo: JobInfo!
+  sourceId: String!
 }
 
 type ProvidedRepositoryConnection {
@@ -610,7 +641,8 @@ type ProvidedRepositoryEdge {
 
 type Query {
   registrationToken: String!
-  me: User!
+  me: UserSecured!
+  "List users, accessible for all login users."
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
@@ -649,7 +681,6 @@ type Query {
   contextInfo: ContextInfo!
   integrations(ids: [ID!], kind: IntegrationKind, after: String, before: String, first: Int, last: Int): IntegrationConnection!
   integratedRepositories(ids: [ID!], kind: IntegrationKind, active: Boolean, after: String, before: String, first: Int, last: Int): ProvidedRepositoryConnection!
-  webCrawlerUrls(after: String, before: String, first: Int, last: Int): WebCrawlerUrlConnection!
   threads(ids: [ID!], after: String, before: String, first: Int, last: Int): ThreadConnection!
   """
     Read thread messages by thread ID.
@@ -659,6 +690,9 @@ type Query {
   threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
   customWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
   presetWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int, isActive: Boolean): PresetDocumentConnection!
+  "List user groups."
+  userGroups: [UserGroup!]!
+  sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
 }
 
 type RefreshTokenResponse {
@@ -672,8 +706,11 @@ type RegisterResponse {
   refreshToken: String!
 }
 
-type Repository {
+type Repository implements ContextSourceId & ContextSource {
   id: ID!
+  sourceId: String!
+  sourceKind: ContextSourceKind!
+  sourceName: String!
   name: String!
   kind: RepositoryKind!
   gitUrl: String!
@@ -709,6 +746,11 @@ type ServerInfo {
   isDemoMode: Boolean!
 }
 
+type SourceIdAccessPolicy {
+  sourceId: String!
+  read: [UserGroup!]!
+}
+
 type Subscription {
   createThreadAndRun(input: CreateThreadAndRunInput!): ThreadRunItem!
   createThreadRun(input: CreateThreadRunInput!): ThreadRunItem!
@@ -721,9 +763,33 @@ type Thread {
   updatedAt: DateTime!
 }
 
+type ThreadAssistantMessageAttachmentsCode {
+  hits: [MessageCodeSearchHit!]!
+}
+
+type ThreadAssistantMessageAttachmentsDoc {
+  hits: [MessageDocSearchHit!]!
+}
+
+type ThreadAssistantMessageCompleted {
+  id: ID!
+}
+
+type ThreadAssistantMessageContentDelta {
+  delta: String!
+}
+
+type ThreadAssistantMessageCreated {
+  id: ID!
+}
+
 type ThreadConnection {
   edges: [ThreadEdge!]!
   pageInfo: PageInfo!
+}
+
+type ThreadCreated {
+  id: ID!
 }
 
 type ThreadEdge {
@@ -731,32 +797,17 @@ type ThreadEdge {
   cursor: String!
 }
 
-type ThreadRunItem {
-  threadCreated: ID
-  threadRelevantQuestions: [String!]
-  threadUserMessageCreated: ID
-  threadAssistantMessageCreated: ID
-  threadAssistantMessageAttachmentsCode: [MessageCodeSearchHit!]
-  threadAssistantMessageAttachmentsDoc: [MessageDocSearchHit!]
-  threadAssistantMessageContentDelta: String
-  threadAssistantMessageCompleted: ID
+type ThreadRelevantQuestions {
+  questions: [String!]!
+}
+
+type ThreadUserMessageCreated {
+  id: ID!
 }
 
 type TokenAuthResponse {
   accessToken: String!
   refreshToken: String!
-}
-
-type User {
-  id: ID!
-  email: String!
-  name: String!
-  isAdmin: Boolean!
-  isOwner: Boolean!
-  authToken: String!
-  createdAt: DateTime!
-  active: Boolean!
-  isPasswordSet: Boolean!
 }
 
 type UserConnection {
@@ -787,19 +838,43 @@ type UserEventEdge {
   cursor: String!
 }
 
-type WebCrawlerUrl {
-  url: String!
+type UserGroup {
   id: ID!
+  name: String!
   createdAt: DateTime!
-  jobInfo: JobInfo!
+  updatedAt: DateTime!
+  members: [UserGroupMembership!]!
 }
 
-type WebCrawlerUrlConnection {
-  edges: [WebCrawlerUrlEdge!]!
-  pageInfo: PageInfo!
+type UserGroupMembership {
+  user: User!
+  isGroupAdmin: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
-type WebCrawlerUrlEdge {
-  node: WebCrawlerUrl!
-  cursor: String!
+type UserSecured implements User {
+  id: ID!
+  email: String!
+  name: String!
+  createdAt: DateTime!
+  isAdmin: Boolean!
+  isOwner: Boolean!
+  active: Boolean!
+  authToken: String!
+  isPasswordSet: Boolean!
 }
+
+type WebContextSource implements ContextSourceId & ContextSource {
+  id: ID!
+  sourceKind: ContextSourceKind!
+  sourceId: String!
+  sourceName: String!
+}
+
+"""
+  Schema of thread run stream.
+
+  Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
+"""
+union ThreadRunItem = ThreadCreated | ThreadRelevantQuestions | ThreadUserMessageCreated | ThreadAssistantMessageCreated | ThreadAssistantMessageAttachmentsCode | ThreadAssistantMessageAttachmentsDoc | ThreadAssistantMessageContentDelta | ThreadAssistantMessageCompleted

@@ -3,6 +3,8 @@
 import * as React from 'react'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
 import {
+  AlignJustify,
+  AtSign,
   Blocks,
   BookOpenText,
   Box,
@@ -12,15 +14,18 @@ import {
   FileText,
   Filter,
   GitFork,
+  Globe,
   IndentIncrease,
   Layers2,
   Link,
   ListFilter,
   Mail,
   Search,
+  Share2,
   Sparkles,
   Star,
   Tag,
+  WrapText,
   X
 } from 'lucide-react'
 
@@ -507,18 +512,11 @@ function IconEdit({ className, ...props }: React.ComponentProps<'svg'>) {
   )
 }
 
-function IconShare({ className, ...props }: React.ComponentProps<'svg'>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="currentColor"
-      className={cn('h-4 w-4', className)}
-      viewBox="0 0 256 256"
-      {...props}
-    >
-      <path d="m237.66 106.35-80-80A8 8 0 0 0 144 32v40.35c-25.94 2.22-54.59 14.92-78.16 34.91-28.38 24.08-46.05 55.11-49.76 87.37a12 12 0 0 0 20.68 9.58c11-11.71 50.14-48.74 107.24-52V192a8 8 0 0 0 13.66 5.65l80-80a8 8 0 0 0 0-11.3ZM160 172.69V144a8 8 0 0 0-8-8c-28.08 0-55.43 7.33-81.29 21.8a196.17 196.17 0 0 0-36.57 26.52c5.8-23.84 20.42-46.51 42.05-64.86C99.41 99.77 127.75 88 152 88a8 8 0 0 0 8-8V51.32L220.69 112Z" />
-    </svg>
-  )
+function IconShare({
+  className,
+  ...props
+}: React.ComponentProps<typeof Share2>) {
+  return <Share2 className={cn('h-4 w-4', className)} {...props} />
 }
 
 function IconUsers({ className, ...props }: React.ComponentProps<'svg'>) {
@@ -1553,6 +1551,68 @@ function IconListFilter({
   return <ListFilter className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconAtSign({
+  className,
+  ...props
+}: React.ComponentProps<typeof AtSign>) {
+  return <AtSign className={cn('h-4 w-4', className)} {...props} />
+}
+
+function IconGlobe({
+  className,
+  ...props
+}: React.ComponentProps<typeof Globe>) {
+  return <Globe className={cn('h-4 w-4', className)} {...props} />
+}
+
+function Emoji({
+  emoji,
+  className,
+  ...props
+}: React.ComponentProps<'span'> & { emoji: string }) {
+  return (
+    <span
+      className={cn(
+        'flex h-full w-full items-center justify-center text-lg',
+        className
+      )}
+      {...props}
+    >
+      {emoji}
+    </span>
+  )
+}
+
+function IconEmojiBook({ className, ...props }: React.ComponentProps<'span'>) {
+  return (
+    <span className={cn('h-4 w-4', className)} {...props}>
+      <Emoji emoji="📚" />
+    </span>
+  )
+}
+
+function IconEmojiGlobe({ className, ...props }: React.ComponentProps<'span'>) {
+  return (
+    <span className={cn('h-4 w-4', className)} {...props}>
+      <Emoji emoji="🌐" />
+    </span>
+  )
+}
+
+function IconWrapText({
+  className,
+  ...props
+}: React.ComponentProps<typeof WrapText>) {
+  return <WrapText className={cn('h-4 w-4', className)} {...props} />
+}
+
+function IconAlignJustify({
+  className,
+  ...props
+}: React.ComponentProps<typeof AlignJustify>) {
+  return <AlignJustify className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1642,5 +1702,11 @@ export {
   IconFilter,
   IconRemove,
   IconLink,
-  IconListFilter
+  IconListFilter,
+  IconAtSign,
+  IconGlobe,
+  IconEmojiBook,
+  IconEmojiGlobe,
+  IconWrapText,
+  IconAlignJustify
 }

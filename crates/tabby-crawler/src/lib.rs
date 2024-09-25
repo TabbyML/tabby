@@ -11,18 +11,40 @@ use url::Url;
 
 use self::types::{CrawledDocument, KatanaRequestResponse};
 
-async fn crawl_url(start_url: &str) -> anyhow::Result<impl Stream<Item = KatanaRequestResponse>> {
-    let mut child = tokio::process::Command::new("katana")
+async fn crawl_url(
+    start_url: &str,
+    prefix_url: &str,
+) -> anyhow::Result<impl Stream<Item = KatanaRequestResponse>> {
+    let mut command = tokio::process::Command::new("katana");
+
+    if std::env::var("TABBY_CRAWL_ENABLE_HEADLESS").is_ok() {
+        command
+            .arg("-headless")
+            .arg("-headless-options")
+            .arg("--disable-gpu");
+    }
+
+    command
         .arg("-u")
         .arg(start_url)
         .arg("-jsonl")
-        .arg("-mdc")
-        .arg(format!("starts_with(endpoint, \"{start_url}\")"))
+        .arg("-crawl-scope")
+        .arg(format!("{}.*", regex::escape(prefix_url)))
+        .arg("-crawl-out-scope")
+        .arg(r#"\.js$|\.css$|\.png$|\.jpg$|\.jpeg$"#)
         .arg("-depth")
         .arg("9999")
+        .arg("-max-response-size")
+        .arg("10485760") // 10MB max body size
+        .arg("-rate-limit-minute")
+        .arg("120")
+        .arg("-strategy")
+        .arg("breadth-first")
+        .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
+        .stderr(Stdio::piped());
+
+    let mut child = command.spawn()?;
 
     let stdout = child.stdout.take().expect("Failed to acquire stdout");
     let mut stdout = tokio::io::BufReader::new(stdout).lines();
@@ -119,8 +141,9 @@ fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
 
 pub async fn crawl_pipeline(
     start_url: &str,
+    prefix_url: &str,
 ) -> anyhow::Result<impl Stream<Item = CrawledDocument>> {
-    Ok(crawl_url(start_url)
+    Ok(crawl_url(start_url, prefix_url)
         .await?
         .filter_map(move |data| async move { to_document(data) }))
 }

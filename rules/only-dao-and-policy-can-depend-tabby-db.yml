@@ -1,0 +1,11 @@
+id: only-dao-can-depend-tabby-db
+message: Only dao can depend on tabby-db
+severity: error
+language: rust
+files:
+- ./ee/tabby-schema/src/**
+ignores:
+- ./ee/tabby-schema/src/dao.rs
+- ./ee/tabby-schema/src/policy.rs
+rule:
+  pattern: tabby_db

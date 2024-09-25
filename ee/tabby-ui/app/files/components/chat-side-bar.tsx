@@ -75,7 +75,12 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
       await new Promise(resolve => {
         setTimeout(() => resolve(null), 1000)
       })
-    }
+    },
+    async onSubmitMessage(_msg, _relevantContext) {},
+    onApplyInEditor(_content) {},
+    onLoaded() {},
+    onCopy(_content) {},
+    focusOnEditor() {}
   })
 
   const getPrompt = ({ action }: QuickActionEventPayload) => {

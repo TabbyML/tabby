@@ -21,14 +21,15 @@ interface ContextReferencesProps {
   contexts: RelevantCodeContext[]
   userContexts?: RelevantCodeContext[]
   className?: string
+  triggerClassname?: string
   onContextClick?: (
     context: RelevantCodeContext,
     isInWorkspace?: boolean
   ) => void
   enableTooltip?: boolean
   onTooltipClick?: () => void
-  isExternalLink?: boolean
   highlightIndex?: number | undefined
+  showExternalLink: boolean
 }
 
 export const CodeReferences = forwardRef<
@@ -40,11 +41,12 @@ export const CodeReferences = forwardRef<
       contexts,
       userContexts,
       className,
+      triggerClassname,
       onContextClick,
       enableTooltip,
       onTooltipClick,
-      isExternalLink,
-      highlightIndex
+      highlightIndex,
+      showExternalLink
     },
     ref
   ) => {
@@ -76,7 +78,9 @@ export const CodeReferences = forwardRef<
         onValueChange={setAccordionValue}
       >
         <AccordionItem value="references" className="my-0 border-0">
-          <AccordionTrigger className="my-0 py-2 font-semibold">
+          <AccordionTrigger
+            className={cn('my-0 py-2 font-semibold', triggerClassname)}
+          >
             <span className="mr-2">{`Read ${totalContextLength} file${
               isMultipleReferences ? 's' : ''
             }`}</span>
@@ -100,7 +104,7 @@ export const CodeReferences = forwardRef<
                   onContextClick={ctx => onContextClick?.(ctx, false)}
                   enableTooltip={enableTooltip}
                   onTooltipClick={onTooltipClick}
-                  isExternalLink={isExternalLink}
+                  showExternalLinkIcon={showExternalLink}
                   isHighlighted={
                     highlightIndex === index + (userContexts?.length || 0)
                   }
@@ -121,7 +125,7 @@ function ContextItem({
   onContextClick,
   enableTooltip,
   onTooltipClick,
-  isExternalLink,
+  showExternalLinkIcon,
   isHighlighted
 }: {
   context: RelevantCodeContext
@@ -129,7 +133,7 @@ function ContextItem({
   onContextClick?: (context: RelevantCodeContext) => void
   enableTooltip?: boolean
   onTooltipClick?: () => void
-  isExternalLink?: boolean
+  showExternalLinkIcon?: boolean
   isHighlighted?: boolean
 }) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
@@ -178,7 +182,7 @@ function ContextItem({
               )}
               <span className="ml-2 text-xs text-muted-foreground">{path}</span>
             </div>
-            {isExternalLink && (
+            {showExternalLinkIcon && (
               <IconExternalLink className="shrink-0 text-muted-foreground" />
             )}
           </div>

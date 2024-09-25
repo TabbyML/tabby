@@ -44,8 +44,9 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tabbyml.tabby4eclipse.Activator;
 import com.tabbyml.tabby4eclipse.Logger;
+import com.tabbyml.tabby4eclipse.Utils;
 import com.tabbyml.tabby4eclipse.chat.ChatMessage.FileContext;
-import com.tabbyml.tabby4eclipse.editor.Utils;
+import com.tabbyml.tabby4eclipse.editor.EditorUtils;
 import com.tabbyml.tabby4eclipse.git.GitProvider;
 import com.tabbyml.tabby4eclipse.lsp.LanguageServerService;
 import com.tabbyml.tabby4eclipse.lsp.ServerConfigHolder;
@@ -102,7 +103,7 @@ public class ChatView extends ViewPart {
 		setupThemeStyle();
 		parent.setLayout(new FillLayout());
 
-		browser = new Browser(parent, SWT.NONE);
+		browser = new Browser(parent, Utils.isWindows() ? SWT.EDGE : SWT.DEFAULT);
 		browser.setBackground(new Color(bgActiveColor));
 		browser.setVisible(false);
 
@@ -180,16 +181,16 @@ public class ChatView extends ViewPart {
 			Bundle bundle = Platform.getBundle(Activator.PLUGIN_ID);
 			URL chatPanelPath = FileLocator.find(bundle, new Path("chat-panel/index.html"));
 			if (chatPanelPath == null) {
-				logger.error("Cannot find chat panel html file");
+				logger.error("Failed to find chat panel html file.");
 				return;
 			}
 			URL url = FileLocator.toFileURL(chatPanelPath);
 			browser.getDisplay().asyncExec(() -> {
+				logger.info("Load url: " + url.toString());
 				browser.setUrl(url.toString());
-				browser.refresh();
 			});
 		} catch (Exception e) {
-			logger.error("Cannot load chat panel html file", e);
+			logger.error("Failed to load chat panel html file.", e);
 		}
 	}
 
@@ -497,7 +498,7 @@ public class ChatView extends ViewPart {
 	}
 
 	private FileContext getActiveContext() {
-		ITextEditor activeTextEditor = Utils.getActiveTextEditor();
+		ITextEditor activeTextEditor = EditorUtils.getActiveTextEditor();
 		if (activeTextEditor == null) {
 			return null;
 		}
@@ -547,7 +548,7 @@ public class ChatView extends ViewPart {
 		// FIXME(@icycode): the base path could be a git repository root, but it cannot
 		// be determined here
 		IFile file = null;
-		ITextEditor activeTextEditor = Utils.getActiveTextEditor();
+		ITextEditor activeTextEditor = EditorUtils.getActiveTextEditor();
 		if (activeTextEditor != null) {
 			// try find file in the project of the active editor
 			IFile activeFile = ResourceUtil.getFile(activeTextEditor.getEditorInput());
@@ -560,7 +561,7 @@ public class ChatView extends ViewPart {
 		}
 		try {
 			if (file != null && file.exists()) {
-				IEditorPart editorPart = IDE.openEditor(Utils.getActiveWorkbenchPage(), file);
+				IEditorPart editorPart = IDE.openEditor(EditorUtils.getActiveWorkbenchPage(), file);
 				if (editorPart instanceof ITextEditor textEditor) {
 					IDocument document = textEditor.getDocumentProvider().getDocument(textEditor.getEditorInput());
 					int offset = document.getLineOffset(context.getRange().getStart() - 1);
@@ -568,13 +569,13 @@ public class ChatView extends ViewPart {
 				}
 			}
 		} catch (Exception e) {
-			logger.error("Error to navigate to file: " + context.getFilePath(), e);
+			logger.error("Failed to navigate to file: " + context.getFilePath(), e);
 		}
 	}
 
 	private void applyContentInEditor(String content) {
 		logger.info("Apply content to the active text editor.");
-		ITextEditor activeTextEditor = Utils.getActiveTextEditor();
+		ITextEditor activeTextEditor = EditorUtils.getActiveTextEditor();
 		if (activeTextEditor != null) {
 			try {
 				IDocument document = activeTextEditor.getDocumentProvider()
@@ -582,7 +583,7 @@ public class ChatView extends ViewPart {
 				ITextSelection selection = (ITextSelection) activeTextEditor.getSelectionProvider().getSelection();
 				document.replace(selection.getOffset(), selection.getLength(), content);
 			} catch (Exception e) {
-				logger.error("Error to apply content to the active text editor.", e);
+				logger.error("Failed to apply content to the active text editor.", e);
 			}
 		}
 	}

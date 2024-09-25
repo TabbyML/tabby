@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { RefObject } from 'react'
 import type { UseChatHelpers } from 'ai/react'
 
 import { Badge } from '@/components/ui/badge'
@@ -22,6 +22,7 @@ export interface ChatPanelProps
   onSubmit: (content: string) => Promise<any>
   reload: () => void
   chatMaxWidthClass: string
+  chatInputRef: RefObject<HTMLTextAreaElement>
 }
 
 export interface ChatPanelRef {
@@ -36,7 +37,8 @@ function ChatPanelRenderer(
     setInput,
     className,
     onSubmit,
-    chatMaxWidthClass
+    chatMaxWidthClass,
+    chatInputRef
   }: ChatPanelProps,
   ref: React.Ref<ChatPanelRef>
 ) {
@@ -92,7 +94,7 @@ function ChatPanelRenderer(
             <Button
               variant="outline"
               onClick={onClearMessages}
-              className="bg-background lg:hidden"
+              className="bg-background"
             >
               <IconTrash className="mr-2" />
               Clear
@@ -130,6 +132,7 @@ function ChatPanelRenderer(
             input={input}
             setInput={setInput}
             isLoading={isLoading}
+            chatInputRef={chatInputRef}
           />
           <FooterText className="hidden sm:block" />
         </div>

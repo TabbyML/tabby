@@ -19,11 +19,11 @@ impl IndexGarbageCollection {
     ) -> tabby_schema::Result<()> {
         // Run garbage collection on the index
         let sources = context
-            .read()
+            .read(None)
             .await?
             .sources
             .into_iter()
-            .map(|source| source.source_id)
+            .map(|x| x.source_id())
             .collect::<Vec<_>>();
         run_index_garbage_collection(sources)?;
 

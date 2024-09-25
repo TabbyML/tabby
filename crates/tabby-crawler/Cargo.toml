@@ -17,6 +17,7 @@ serde.workspace = true
 serde_json.workspace = true
 logkit.workspace = true
 htmd = "0.1"
+regex.workspace = true
 
 [dev-dependencies]
 tracing-test.workspace = true

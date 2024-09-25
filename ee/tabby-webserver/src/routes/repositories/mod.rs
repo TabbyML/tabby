@@ -8,10 +8,12 @@ use axum::{
     http::StatusCode,
     middleware::from_fn_with_state,
     response::Response,
-    routing, Router,
+    routing, Extension, Router,
 };
 use resolve::{ResolveParams, ResolveState};
-use tabby_schema::{auth::AuthenticationService, repository::RepositoryService};
+use tabby_schema::{
+    auth::AuthenticationService, policy::AccessPolicy, repository::RepositoryService,
+};
 use tracing::instrument;
 
 use super::require_login_middleware;
@@ -39,6 +41,7 @@ async fn not_found() -> StatusCode {
 async fn resolve_path(
     State(rs): State<Arc<ResolveState>>,
     Path(params): Path<ResolveParams>,
+    Extension(access_policy): Extension<AccessPolicy>,
 ) -> Result<Response, StatusCode> {
-    rs.resolve(params).await
+    rs.resolve(&access_policy, params).await
 }

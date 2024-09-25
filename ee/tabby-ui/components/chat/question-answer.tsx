@@ -7,6 +7,7 @@ import tabbyLogo from '@/assets/tabby.png'
 import { compact, isEmpty, isEqual, isNil, uniqWith } from 'lodash-es'
 import type { Context } from 'tabby-chat-panel'
 
+import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import { useMe } from '@/lib/hooks/use-me'
 import { filename2prism } from '@/lib/language-utils'
 import {
@@ -27,7 +28,7 @@ import { Button } from '../ui/button'
 import { IconFile, IconRefresh, IconTrash, IconUser } from '../ui/icons'
 import { Separator } from '../ui/separator'
 import { Skeleton } from '../ui/skeleton'
-import { UserAvatar } from '../user-avatar'
+import { MyAvatar } from '../user-avatar'
 import { ChatContext } from './chat'
 import { CodeReferences } from './code-references'
 
@@ -101,7 +102,7 @@ function UserMessageCard(props: { message: UserMessage }) {
   const { message } = props
   const [{ data }] = useMe()
   const selectContext = message.selectContext
-  const { onNavigateToContext, client } = React.useContext(ChatContext)
+  const { onNavigateToContext } = React.useContext(ChatContext)
   const selectCodeSnippet = React.useMemo(() => {
     if (!selectContext?.content) return ''
     const language = selectContext?.filepath
@@ -127,13 +128,16 @@ function UserMessageCard(props: { message: UserMessage }) {
       {...props}
     >
       <div
-        className={cn('flex w-full items-center justify-between md:w-auto', {
-          'hidden md:flex': !data?.me.name
-        })}
+        className={cn(
+          'flex min-h-[2rem] w-full items-center justify-between md:w-auto',
+          {
+            'hidden md:flex': !data?.me.name
+          }
+        )}
       >
         <div className="flex items-center gap-x-2">
           <div className="shrink-0 select-none rounded-full border bg-background shadow">
-            <UserAvatar
+            <MyAvatar
               className="h-6 w-6 md:h-8 md:w-8"
               fallback={
                 <div className="flex h-6 w-6 items-center justify-center md:h-8 md:w-8">
@@ -152,7 +156,7 @@ function UserMessageCard(props: { message: UserMessage }) {
 
       <div className="group relative flex w-full justify-between gap-x-2">
         <div className="flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
-          <MessageMarkdown message={message.message} />
+          <MessageMarkdown message={message.message} canWrapLongLines />
           <div className="hidden md:block">
             <UserMessageCardActions {...props} />
           </div>
@@ -162,7 +166,7 @@ function UserMessageCard(props: { message: UserMessage }) {
               className="flex cursor-pointer items-center gap-1 overflow-x-auto text-xs text-muted-foreground hover:underline"
               onClick={() =>
                 onNavigateToContext?.(message.selectContext!, {
-                  openInEditor: client === 'vscode'
+                  openInEditor: true
                 })
               }
             >
@@ -232,7 +236,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
     enableRegenerating,
     ...rest
   } = props
-  const { onNavigateToContext, client, onApplyInEditor, onCopyContent } =
+  const { onNavigateToContext, onApplyInEditor, onCopyContent } =
     React.useContext(ChatContext)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] =
     React.useState<number | undefined>(undefined)
@@ -313,7 +317,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       }
     }
     onNavigateToContext?.(ctx, {
-      openInEditor: client === 'vscode' && code.isClient
+      openInEditor: code.isClient
     })
   }
 
@@ -324,7 +328,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       )}
       {...rest}
     >
-      <div className="flex w-full items-center justify-between md:w-auto">
+      <div className="flex min-h-[2rem] w-full items-center justify-between md:w-auto">
         <div className="flex items-center gap-x-2">
           <div className="shrink-0 select-none rounded-full border bg-background shadow">
             <IconTabby className="h-6 w-6 md:h-8 md:w-8" />
@@ -348,11 +352,13 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           userContexts={clientCode}
           onContextClick={(ctx, isInWorkspace) => {
             onNavigateToContext?.(ctx, {
-              openInEditor: client === 'vscode' && isInWorkspace
+              openInEditor: isInWorkspace
             })
           }}
-          isExternalLink={!!client}
+          // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
+          showExternalLink={!!onApplyInEditor}
           highlightIndex={relevantCodeHighlightIndex}
+          triggerClassname="md:pt-0"
         />
         {isLoading && !message?.message ? (
           <MessagePendingIndicator />
@@ -366,6 +372,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               onCodeCitationClick={onCodeCitationClick}
               onCodeCitationMouseEnter={onCodeCitationMouseEnter}
               onCodeCitationMouseLeave={onCodeCitationMouseLeave}
+              canWrapLongLines={!isLoading}
             />
             {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>
@@ -389,9 +396,8 @@ function getCopyContent(
 ) {
   if (!attachmentCode || isEmpty(attachmentCode)) return content
 
-  const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
   const parsedContent = content
-    .replace(citationMatchRegex, match => {
+    .replace(MARKDOWN_CITATION_REGEX, match => {
       const citationNumberMatch = match?.match(/\d+/)
       return `[${citationNumberMatch}]`
     })
@@ -464,7 +470,7 @@ function ChatMessageActionsWrapper({
   return (
     <div
       className={cn(
-        'flex items-center justify-end transition-opacity group-hover:opacity-100 md:absolute md:-right-[5rem] md:-top-2 md:opacity-0',
+        'flex items-center justify-end transition-opacity group-hover:opacity-100 md:absolute md:-right-[4rem] md:-top-2 md:opacity-0',
         className
       )}
       {...props}

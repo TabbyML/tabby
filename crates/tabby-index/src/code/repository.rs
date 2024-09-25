@@ -5,17 +5,18 @@ use std::{
     process::Command,
 };
 
+use anyhow::bail;
 use tabby_common::path::repositories_dir;
 use tracing::warn;
 
 use super::CodeRepository;
 
 trait RepositoryExt {
-    fn sync(&self);
+    fn sync(&self) -> anyhow::Result<()>;
 }
 
 impl RepositoryExt for CodeRepository {
-    fn sync(&self) {
+    fn sync(&self) -> anyhow::Result<()> {
         let dir = self.dir();
         let mut finished = false;
         if dir.exists() {
@@ -40,9 +41,13 @@ impl RepositoryExt for CodeRepository {
                         self.canonical_git_url()
                     );
                     fs::remove_dir_all(&dir).expect("Failed to remove directory");
+
+                    bail!("Failed to clone `{}`", self.canonical_git_url());
                 }
             }
         }
+
+        Ok(())
     }
 }
 
@@ -66,14 +71,16 @@ fn pull_remote(path: &Path) -> bool {
     true
 }
 
-pub fn sync_repository(repository: &CodeRepository) {
+pub fn sync_repository(repository: &CodeRepository) -> anyhow::Result<()> {
     if repository.is_local_dir() {
         if !repository.dir().exists() {
             panic!("Directory {} does not exist", repository.dir().display());
         }
     } else {
-        repository.sync();
+        repository.sync()?;
     }
+
+    Ok(())
 }
 
 pub fn garbage_collection(repositories: &[CodeRepository]) {

@@ -55,6 +55,7 @@ const listPresetWebDocuments = graphql(/* GraphQL */ `
           id
           name
           isActive
+          sourceId
           jobInfo {
             lastJobRun {
               id
@@ -247,7 +248,7 @@ export default function PresetDocument() {
   }, [debouncedFilterPattern])
 
   return (
-    <>
+    <div className="min-h-[30.5rem]">
       <LoadingWrapper loading={!data || stale}>
         <Table className="min-w-[300px] table-fixed border-b">
           <TableHeader>
@@ -301,7 +302,6 @@ export default function PresetDocument() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {/* FIXME */}
             {!currentList?.length ? (
               <TableRow>
                 <TableCell colSpan={3} className="h-[100px] text-center">
@@ -359,6 +359,6 @@ export default function PresetDocument() {
           }}
         />
       </LoadingWrapper>
-    </>
+    </div>
   )
 }

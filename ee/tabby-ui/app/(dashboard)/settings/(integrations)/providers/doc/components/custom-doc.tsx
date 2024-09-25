@@ -9,6 +9,7 @@ import { graphql } from '@/lib/gql/generates'
 import { CustomWebDocumentsQuery } from '@/lib/gql/generates/graphql'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { client, useMutation } from '@/lib/tabby/gql'
+import { userGroupsQuery } from '@/lib/tabby/query'
 import { ArrayElementType } from '@/lib/types'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
@@ -35,6 +36,7 @@ import {
 import LoadingWrapper from '@/components/loading-wrapper'
 import { QuickNavPagination } from '@/components/quick-nav-pagination'
 
+import { AccessPolicyView } from '../../components/access-policy-view'
 import { JobInfoView } from '../../components/job-trigger'
 import { triggerJobRunMutation } from '../../query'
 
@@ -58,6 +60,7 @@ const listCustomWebDocuments = graphql(/* GraphQL */ `
           url
           name
           id
+          sourceId
           jobInfo {
             lastJobRun {
               id
@@ -101,6 +104,10 @@ export default function CustomDocument() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [{ fetching, data, stale }] = useQuery({
     query: listCustomWebDocuments
+  })
+
+  const [{ data: userGroupData, fetching: fetchingUserGroups }] = useQuery({
+    query: userGroupsQuery
   })
 
   const clearFilter = () => {
@@ -208,7 +215,7 @@ export default function CustomDocument() {
 
   return (
     <>
-      <LoadingWrapper loading={fetching || stale}>
+      <LoadingWrapper loading={fetching}>
         <Table className="min-w-[300px] table-fixed border-b">
           <TableHeader>
             <TableRow>
@@ -267,15 +274,26 @@ export default function CustomDocument() {
                   </Link>
                 </div>
               </TableHead>
-              <TableHead className="w-[100px] lg:w-[200px]">Job</TableHead>
-              <TableHead className="w-[100px] text-right"></TableHead>
+              <TableHead className="w-[140px]">Access</TableHead>
+              <TableHead className="w-[180px]">Job</TableHead>
+              <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {!currentList?.length && !fetching ? (
-              <TableRow>
+              <TableRow className="hover:bg-background">
                 <TableCell colSpan={4} className="h-[100px] text-center">
-                  {!list?.length ? 'No data' : 'No matches data'}
+                  {!list?.length ? (
+                    <div className="my-4 flex flex-col items-center gap-4">
+                      No data
+                      <Link href={`./doc/new`} className={buttonVariants()}>
+                        <IconPlus />
+                        Add
+                      </Link>
+                    </div>
+                  ) : (
+                    'No matches data'
+                  )}
                 </TableCell>
               </TableRow>
             ) : (
@@ -288,6 +306,15 @@ export default function CustomDocument() {
                         <p className="text-xs text-muted-foreground">
                           {x.node.url}
                         </p>
+                      </TableCell>
+                      <TableCell>
+                        <AccessPolicyView
+                          sourceId={x.node.sourceId}
+                          sourceName={x.node.name}
+                          fetchingUserGroups={fetchingUserGroups}
+                          userGroups={userGroupData?.userGroups}
+                          editable
+                        />
                       </TableCell>
                       <TableCell>
                         <JobInfoView

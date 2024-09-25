@@ -29,6 +29,9 @@ regex.workspace = true
 hash-ids.workspace = true
 url.workspace = true
 
+[dev-dependencies]
+tabby-db = { path = "../../ee/tabby-db", features = ["testutils"]}
+
 [[example]]
 name = "update-schema"
 path = "examples/update-schema.rs"

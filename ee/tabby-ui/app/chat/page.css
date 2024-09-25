@@ -4,51 +4,26 @@ html {
   font-size: var(--vscode-font-size, var(--intellij-font-size));
 }
 
-.vscode body {
+.client ::-webkit-scrollbar {
+  display: none;
+}
+
+.client-vscode body {
   --background: var(--vscode-editor-background);
   --foreground: var(--vscode-editor-foreground);
-
-  /* --muted: var(--vscode-descriptionForeground);
-  --muted-foreground: var(--vscode-descriptionForeground);
-
-  --popover: var(--vscode-button-background);
-  --popover-foreground: var(--vscode-button-foreground);
-
-  --card: var(--vscode-button-background);
-  --card-foreground: var(--vscode-button-foreground); */
 
   --border: var(--vscode-widget-border);
   --input: var(--vscode-input-border);
 
   --primary: var(--vscode-minimap-infoHighlight);
   --primary-foreground: var(--vscode-button-foreground);
-
-  /* --secondary: var(--vscode-badge-background);
-  --secondary-foreground: var(--vscode-textSeparator-foreground);
-
-  --accent: var(--vscode-badge-background);
-  --accent-foreground: var(--vscode-textPreformat-foreground);
-
-  --destructive: var(--vscode-badge-background);
-  --destructive-foreground: var(--vscode-errorForeground);
-
-  --successful: var(--vscode-badge-background);
-  --successful-foreground: var(--vscode-editorInfo-foreground);
-
-  --ring: var(--vscode-focusBorder);
-
-  --selection: var(--vscode-editor-selectionBackground); */
 }
 
-.vscode ::-webkit-scrollbar, .intellij ::-webkit-scrollbar {
-  display: none;
-}
-
-.vscode .editor-bg {
+.client-vscode .editor-bg {
   background-color: hsl(var(--vscode-sideBar-background))
 }
 
-.intellij body {
+.client-intellij body {
   --background: var(--intellij-editor-background);
   --foreground: var(--intellij-editor-foreground);
   --border: var(--intellij-editor-border);

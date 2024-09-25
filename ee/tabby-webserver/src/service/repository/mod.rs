@@ -13,6 +13,7 @@ use tabby_db::DbConn;
 use tabby_schema::{
     integration::IntegrationService,
     job::JobService,
+    policy::AccessPolicy,
     repository::{
         FileEntrySearchResult, GitReference, GitRepositoryService, ProvidedRepository, Repository,
         RepositoryKind, RepositoryService, ThirdPartyRepositoryService,
@@ -69,7 +70,7 @@ impl RepositoryService for RepositoryServiceImpl {
         self.third_party.clone()
     }
 
-    async fn repository_list(&self) -> Result<Vec<Repository>> {
+    async fn repository_list(&self, policy: Option<&AccessPolicy>) -> Result<Vec<Repository>> {
         let mut all = vec![];
         all.extend(self.git().repository_list().await?);
         all.extend(self.third_party().repository_list().await?);
@@ -81,11 +82,27 @@ impl RepositoryService for RepositoryServiceImpl {
                 .collect::<Result<Vec<_>>>()?,
         );
 
+        if let Some(policy) = policy {
+            // Only keep repositories that the user has read access to.
+            let mut filtered = Vec::new();
+            for repo in all {
+                if policy.check_read_source(&repo.source_id).await.is_ok() {
+                    filtered.push(repo);
+                }
+            }
+            all = filtered;
+        }
+
         Ok(all)
     }
 
-    async fn resolve_repository(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository> {
-        match kind {
+    async fn resolve_repository(
+        &self,
+        policy: &AccessPolicy,
+        kind: &RepositoryKind,
+        id: &ID,
+    ) -> Result<Repository> {
+        let ret = match kind {
             RepositoryKind::GitConfig => {
                 let index = config_id_to_index(id)?;
                 let config = &self.config[index];
@@ -100,11 +117,20 @@ impl RepositoryService for RepositoryServiceImpl {
                 .get_provided_repository(id.clone())
                 .await
                 .map(|repo| to_repository(*kind, repo)),
+        };
+
+        match ret {
+            Ok(repo) => {
+                policy.check_read_source(&repo.source_id).await?;
+                Ok(repo)
+            }
+            _ => ret,
         }
     }
 
     async fn search_files(
         &self,
+        policy: &AccessPolicy,
         kind: &RepositoryKind,
         id: &ID,
         rev: Option<&str>,
@@ -114,7 +140,7 @@ impl RepositoryService for RepositoryServiceImpl {
         if pattern.trim().is_empty() {
             return Ok(vec![]);
         }
-        let dir = self.resolve_repository(kind, id).await?.dir;
+        let dir = self.resolve_repository(policy, kind, id).await?.dir;
 
         let pattern = pattern.to_owned();
         let matching = tabby_git::search_files(&dir, rev, &pattern, top_n)
@@ -135,6 +161,7 @@ impl RepositoryService for RepositoryServiceImpl {
 
     async fn grep(
         &self,
+        policy: &AccessPolicy,
         kind: &RepositoryKind,
         id: &ID,
         rev: Option<&str>,
@@ -145,7 +172,7 @@ impl RepositoryService for RepositoryServiceImpl {
             return Ok(vec![]);
         }
 
-        let dir = self.resolve_repository(kind, id).await?.dir;
+        let dir = self.resolve_repository(policy, kind, id).await?.dir;
 
         let ret = tabby_git::grep(&dir, rev, query)
             .await?
@@ -211,7 +238,7 @@ fn list_refs(git_url: &str) -> Vec<tabby_git::GitReference> {
 fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
     Repository {
         source_id: repo.source_id(),
-        id: repo.id,
+        id: ID::new(repo.source_id()),
         name: repo.display_name,
         kind,
         dir: RepositoryConfig::resolve_dir(&repo.git_url),
@@ -227,9 +254,10 @@ fn to_repository(kind: RepositoryKind, repo: ProvidedRepository) -> Repository {
 }
 
 fn repository_config_to_repository(index: usize, config: &RepositoryConfig) -> Result<Repository> {
+    let source_id = config_index_to_id(index);
     Ok(Repository {
-        id: ID::new(config_index_to_id(index)),
-        source_id: config_index_to_id(index),
+        id: ID::new(source_id.clone()),
+        source_id,
         name: config.display_name(),
         kind: RepositoryKind::GitConfig,
         dir: config.dir(),

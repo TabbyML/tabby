@@ -3,24 +3,31 @@
 
 'use client'
 
-import { FC, memo } from 'react'
+import { FC, memo, useState } from 'react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { coldarkDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { Button } from '@/components/ui/button'
-import { IconApplyInEditor, IconCheck, IconCopy } from '@/components/ui/icons'
+import {
+  IconAlignJustify,
+  IconApplyInEditor,
+  IconCheck,
+  IconCopy,
+  IconWrapText
+} from '@/components/ui/icons'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
 
-interface Props {
+export interface CodeBlockProps {
   language: string
   value: string
   onCopyContent?: (value: string) => void
   onApplyInEditor?: (value: string) => void
+  canWrapLongLines?: boolean
 }
 
 interface languageMap {
@@ -63,8 +70,9 @@ export const generateRandomString = (length: number, lowercase = false) => {
   return lowercase ? result.toLowerCase() : result
 }
 
-const CodeBlock: FC<Props> = memo(
-  ({ language, value, onCopyContent, onApplyInEditor }) => {
+const CodeBlock: FC<CodeBlockProps> = memo(
+  ({ language, value, onCopyContent, onApplyInEditor, canWrapLongLines }) => {
+    const [wrapLongLines, setWrapLongLines] = useState(false)
     const { isCopied, copyToClipboard } = useCopyToClipboard({
       timeout: 2000,
       onCopyContent
@@ -83,6 +91,23 @@ const CodeBlock: FC<Props> = memo(
         <div className="flex w-full items-center justify-between bg-zinc-800 px-6 py-2 pr-4 text-zinc-100">
           <span className="text-xs lowercase">{language}</span>
           <div className="flex items-center space-x-1">
+            {canWrapLongLines && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
+                    onClick={() => setWrapLongLines(!wrapLongLines)}
+                  >
+                    {wrapLongLines ? <IconAlignJustify /> : <IconWrapText />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="m-0">Toggle word wrap</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
             {onApplyInEditor && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -124,6 +149,7 @@ const CodeBlock: FC<Props> = memo(
           style={coldarkDark}
           PreTag="div"
           showLineNumbers
+          wrapLongLines={wrapLongLines}
           customStyle={{
             margin: 0,
             width: '100%',

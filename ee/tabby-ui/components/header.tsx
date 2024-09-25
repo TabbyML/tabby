@@ -11,7 +11,7 @@ import { IconNotice } from '@/components/ui/icons'
 
 import { ClientOnly } from './client-only'
 import { ThemeToggle } from './theme-toggle'
-import { UserAvatar } from './user-avatar'
+import { MyAvatar } from './user-avatar'
 import UserPanel from './user-panel'
 
 export function Header() {
@@ -42,7 +42,7 @@ export function Header() {
           <ThemeToggle />
         </ClientOnly>
         <UserPanel>
-          <UserAvatar className="h-10 w-10 border" />
+          <MyAvatar className="h-10 w-10 border" />
         </UserPanel>
       </div>
     </header>

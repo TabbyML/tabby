@@ -14,7 +14,7 @@ use tabby_schema::{
     auth::{
         AuthenticationService, Invitation, JWTPayload, OAuthCredential, OAuthError, OAuthProvider,
         OAuthResponse, RefreshTokenResponse, RegisterResponse, RequestInvitationInput,
-        TokenAuthResponse, UpdateOAuthCredentialInput, User,
+        TokenAuthResponse, UpdateOAuthCredentialInput, UserSecured,
     },
     email::EmailService,
     is_demo_mode,
@@ -25,7 +25,7 @@ use tabby_schema::{
 use tokio::task::JoinHandle;
 use tracing::warn;
 
-use super::graphql_pagination_to_filter;
+use super::{graphql_pagination_to_filter, UserSecuredExt};
 use crate::{
     bail,
     jwt::{generate_jwt, validate_jwt},
@@ -155,14 +155,28 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(is_email_configured && !domain_list.is_empty())
     }
 
+    async fn generate_reset_password_url(&self, id: &ID) -> Result<String> {
+        let external_url = self.setting.read_network_setting().await?.external_url;
+        let id = id.as_rowid()?;
+        let user = self.db.get_user(id).await?.context("User doesn't exits")?;
+        if !user.active {
+            bail!("Inactive user's password cannot be reset");
+        }
+        let code = self.db.create_password_reset(id).await?;
+        let url = format!("{}/auth/reset-password?code={}", external_url, code);
+        Ok(url)
+    }
+
     async fn request_password_reset_email(&self, email: String) -> Result<Option<JoinHandle<()>>> {
         let user = self.get_user_by_email(&email).await.ok();
 
-        let Some(user @ User { active: true, .. }) = user else {
+        let Some(user @ UserSecured { active: true, .. }) = user else {
             return Ok(None);
         };
 
         let id = user.id.as_rowid()?;
+
+        // request_password_reset_email is invoked by the user, so we need to check for existing password reset requests to prevent spamming
         let existing = self.db.get_password_reset_by_user_id(id).await?;
         if let Some(existing) = existing {
             if Utc::now().signed_duration_since(existing.created_at) < Duration::minutes(5) {
@@ -370,19 +384,19 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(self.db.update_user_role(id, is_admin).await?)
     }
 
-    async fn get_user_by_email(&self, email: &str) -> Result<User> {
+    async fn get_user_by_email(&self, email: &str) -> Result<UserSecured> {
         let user = self.db.get_user_by_email(email).await?;
-        if let Some(user) = user {
-            Ok(user.into())
+        if let Some(dao) = user {
+            Ok(UserSecured::new(self.db.clone(), dao))
         } else {
             bail!("User not found {}", email)
         }
     }
 
-    async fn get_user(&self, id: &ID) -> Result<User> {
+    async fn get_user(&self, id: &ID) -> Result<UserSecured> {
         let user = self.db.get_user(id.as_rowid()?).await?;
-        if let Some(user) = user {
-            Ok(user.into())
+        if let Some(dao) = user {
+            Ok(UserSecured::new(self.db.clone(), dao))
         } else {
             bail!("User not found")
         }
@@ -440,7 +454,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<User>> {
+    ) -> Result<Vec<UserSecured>> {
         let (skip_id, limit, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
 
         Ok(self
@@ -448,7 +462,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .list_users_with_filter(skip_id, limit, backwards)
             .await?
             .into_iter()
-            .map(|x| x.into())
+            .map(|x| UserSecured::new(self.db.clone(), x))
             .collect())
     }
 
@@ -971,7 +985,7 @@ mod tests {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Connection<User> {
+    ) -> Connection<UserSecured> {
         relay::query_async(
             after,
             before,
@@ -1609,5 +1623,58 @@ mod tests {
             .token_auth("abc@example.com".to_owned(), "123456".to_owned())
             .await
             .is_ok());
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_generate_reset_password_url() {
+        let (service, _smtp) = test_authentication_service_with_mail().await;
+
+        // Create an active user
+        let _id = service
+            .db
+            .create_user(
+                "active_user@example.com".into(),
+                Some("pass".into()),
+                false,
+                None,
+            )
+            .await
+            .unwrap();
+        let active_user = service
+            .get_user_by_email("active_user@example.com")
+            .await
+            .unwrap();
+
+        // Test generating reset URL for an active user
+        let url = service
+            .generate_reset_password_url(&active_user.id)
+            .await
+            .unwrap();
+        assert!(url.contains("/auth/reset-password?code="));
+
+        // Create an inactive user
+        let id = service
+            .db
+            .create_user(
+                "inactive_user@example.com".into(),
+                Some("pass".into()),
+                false,
+                None,
+            )
+            .await
+            .unwrap();
+        service
+            .update_user_active(&id.as_id(), false)
+            .await
+            .unwrap();
+        let inactive_user = service
+            .get_user_by_email("inactive_user@example.com")
+            .await
+            .unwrap();
+
+        // Test generating reset URL for an inactive user
+        let result = service.generate_reset_password_url(&inactive_user.id).await;
+        assert!(result.is_err());
     }
 }

@@ -2,11 +2,11 @@ import type { ChatMessage, Context } from 'tabby-chat-panel'
 import type { components } from 'tabby-openapi'
 
 import {
+  ContextSourceKind,
   MessageAttachmentCode,
   MessageAttachmentDoc,
   MessageCodeSearchHit,
-  MessageDocSearchHit,
-  Repository
+  MessageDocSearchHit
 } from '../gql/generates/graphql'
 
 export interface UserMessage extends ChatMessage {
@@ -66,8 +66,10 @@ type MergeUnionType<T> = {
   [k in Keys<T>]?: Pick<T, k>
 }
 
-export type AnswerEngineExtraContext = {
-  repository?: Omit<Repository, 'refs'>
+export type ThreadRunContexts = {
+  searchPublic?: boolean
+  docSourceIds?: string[]
+  codeSourceIds?: string[]
 }
 
 export interface RelevantCodeContext extends Context {
@@ -84,4 +86,10 @@ export type AttachmentCodeItem = MessageAttachmentCode & {
 // for rendering, including score
 export type AttachmentDocItem = MessageAttachmentDoc & {
   extra?: { score?: MessageDocSearchHit['score'] }
+}
+
+export type MentionAttributes = {
+  id: string
+  label: string
+  kind: ContextSourceKind
 }

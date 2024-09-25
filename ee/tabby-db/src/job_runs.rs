@@ -13,7 +13,6 @@ pub struct JobRunDAO {
     pub command: String,
     pub exit_code: Option<i64>,
     pub stdout: String,
-    pub stderr: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 
@@ -30,11 +29,7 @@ impl JobRunDAO {
     }
 
     pub fn is_pending(&self) -> bool {
-        self.started_at.is_none()
-    }
-
-    pub fn is_finished(&self) -> bool {
-        self.finished_at.is_some()
+        self.started_at.is_none() && self.exit_code.is_none()
     }
 }
 
@@ -75,15 +70,6 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_job_stderr(&self, job_id: i64, stderr: String) -> Result<()> {
-        query!(
-            r#"UPDATE job_runs SET stderr = stderr || ?, updated_at = datetime('now') WHERE id = ?"#,
-            stderr,
-            job_id
-        ).execute(&self.pool).await?;
-        Ok(())
-    }
-
     pub async fn update_job_status(&self, job_id: i64, exit_code: i32) -> Result<()> {
         query!(
             r#"UPDATE job_runs SET end_ts = datetime('now'), exit_code = ?, updated_at = datetime('now') WHERE id = ?"#,
@@ -110,6 +96,15 @@ impl DbConn {
         .await
         .ok()
         .flatten()
+    }
+
+    pub async fn delete_pending_job_run(&self, command: &str) -> Result<usize> {
+        // Delete jobs that are not started and doesn't have an exit code.
+        let num_deleted = query!("UPDATE job_runs SET exit_code = -1, end_ts = datetime('now'), updated_at = datetime('now') WHERE exit_code IS NULL AND started_at IS NULL AND command = ?", command)
+            .execute(&self.pool)
+            .await?.rows_affected();
+
+        Ok(num_deleted as usize)
     }
 
     pub async fn list_job_runs_with_filter(
@@ -143,7 +138,6 @@ impl DbConn {
                 "job" as "name",
                 "exit_code",
                 "stdout",
-                "stderr",
                 "command"!,
                 "created_at" as "created_at!: DateTime<Utc>",
                 "updated_at" as "updated_at!: DateTime<Utc>",

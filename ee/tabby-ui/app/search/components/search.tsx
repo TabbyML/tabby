@@ -17,21 +17,23 @@ import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
-import { useEnableDeveloperMode, useEnableSearch } from '@/lib/experiment-flags'
+import { useEnableDeveloperMode } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import {
-  AnswerEngineExtraContext,
   AttachmentCodeItem,
   AttachmentDocItem,
-  RelevantCodeContext
+  RelevantCodeContext,
+  ThreadRunContexts
 } from '@/lib/types'
 import {
   cn,
   formatLineHashForCodeBrowser,
+  getMentionsFromText,
   getRangeFromAttachmentCode,
-  getRangeTextFromAttachmentCode
+  getRangeTextFromAttachmentCode,
+  getThreadRunContextsFromMentions
 } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
@@ -42,12 +44,13 @@ import {
   IconChevronRight,
   IconFileSearch,
   IconLayers,
-  IconLink,
   IconPlus,
   IconRefresh,
+  IconShare,
   IconSparkles,
   IconSpinner,
-  IconStop
+  IconStop,
+  IconTrash
 } from '@/components/ui/icons'
 import {
   ResizableHandle,
@@ -63,34 +66,40 @@ import { CopyButton } from '@/components/copy-button'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import TextAreaSearch from '@/components/textarea-search'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { UserAvatar } from '@/components/user-avatar'
+import { MyAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
 
 import './search.css'
 
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
-import { compact, isEmpty, pick, uniqBy } from 'lodash-es'
+import { compact, isEmpty, pick, uniq, uniqBy } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import { toast } from 'sonner'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
+import {
+  MARKDOWN_CITATION_REGEX,
+  MARKDOWN_SOURCE_REGEX
+} from '@/lib/constants/regex'
 import { graphql } from '@/lib/gql/generates'
 import {
   CodeQueryInput,
+  ContextInfo,
+  ContextSource,
+  DocQueryInput,
   InputMaybe,
   Maybe,
   Message,
   MessageAttachmentCode,
-  RepositoryListQuery,
   Role
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { useMutation } from '@/lib/tabby/gql'
-import { repositoryListQuery } from '@/lib/tabby/query'
+import { contextInfoQuery } from '@/lib/tabby/query'
 import {
   Tooltip,
   TooltipContent,
@@ -125,11 +134,12 @@ type SearchContextValue = {
   isLoading: boolean
   onRegenerateResponse: (id: string) => void
   onSubmitSearch: (question: string) => void
-  extraRequestContext: Record<string, any>
-  repositoryList: RepositoryListQuery['repositoryList'] | undefined
   setDevPanelOpen: (v: boolean) => void
   setConversationIdForDev: (v: string | undefined) => void
   enableDeveloperMode: boolean
+  contextInfo: ContextInfo | undefined
+  fetchingContextInfo: boolean
+  onDeleteMessage: (id: string) => void
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -196,16 +206,17 @@ const listThreadMessages = graphql(/* GraphQL */ `
 
 const PAGE_SIZE = 30
 
+const TEMP_MSG_ID_PREFIX = '_temp_msg_'
+const tempNanoId = () => `${TEMP_MSG_ID_PREFIX}${nanoid()}`
+
 export function Search() {
   const { updateUrlComponents, pathname } = useRouterStuff()
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
   const isChatEnabled = useIsChatEnabled()
-  const [searchFlag] = useEnableSearch()
   const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [stopButtonVisible, setStopButtonVisible] = useState(true)
   const [isReady, setIsReady] = useState(false)
-  const [extraContext, setExtraContext] = useState<AnswerEngineExtraContext>({})
   const [currentUserMessageId, setCurrentUserMessageId] = useState<string>('')
   const [currentAssistantMessageId, setCurrentAssistantMessageId] =
     useState<string>('')
@@ -235,10 +246,9 @@ export function Search() {
     }
   }, [threadIdFromURL])
 
-  const [{ data }] = useQuery({
-    query: repositoryListQuery
+  const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
+    query: contextInfoQuery
   })
-  const repositoryList = data?.repositoryList
 
   const [afterCursor, setAfterCursor] = useState<string | undefined>()
   const [
@@ -276,15 +286,23 @@ export function Search() {
     }
   }, [threadMessages])
 
-  // update title
-  useEffect(() => {
-    if (messages?.[0]?.content) {
-      const title = getTitleFromMessages(messages)
-      if (title) {
-        document.title = title
-      }
+  // Compute title
+  const sources = contextInfoData?.contextInfo.sources
+  const content = messages?.[0]?.content
+  const title = useMemo(() => {
+    if (sources && content) {
+      return getTitleFromMessages(sources, content)
+    } else {
+      return ''
     }
-  }, [messages?.[0]?.content])
+  }, [sources, content])
+
+  // Update title
+  useEffect(() => {
+    if (title) {
+      document.title = title
+    }
+  }, [title])
 
   useEffect(() => {
     if (threadMessagesError && !isReady) {
@@ -295,7 +313,6 @@ export function Search() {
 
   // `/search` -> `/search/{slug}-{threadId}`
   const updateThreadURL = (threadId: string) => {
-    const title = getTitleFromMessages(messages)
     const slug = slugify(title)
     const slugWithThreadId = compact([slug, threadId]).join('-')
 
@@ -310,10 +327,17 @@ export function Search() {
     return location.origin + path
   }
 
-  const { sendUserMessage, isLoading, error, answer, stop, regenerate } =
-    useThreadRun({
-      threadId
-    })
+  const {
+    sendUserMessage,
+    isLoading,
+    error,
+    answer,
+    stop,
+    regenerate,
+    deleteThreadMessagePair
+  } = useThreadRun({
+    threadId
+  })
 
   const isLoadingRef = useLatest(isLoading)
 
@@ -363,26 +387,19 @@ export function Search() {
         SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG
       )
       // initial extra context from home page
-      const initialExtraContextStr = sessionStorage.getItem(
-        SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
+      const initialThreadRunContextStr = sessionStorage.getItem(
+        SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS
       )
-      const initialExtraInfo = initialExtraContextStr
-        ? JSON.parse(initialExtraContextStr)
+
+      const initialThreadRunContext = initialThreadRunContextStr
+        ? JSON.parse(initialThreadRunContextStr)
         : undefined
 
       if (initialMessage) {
         sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
-        sessionStorage.removeItem(
-          SESSION_STORAGE_KEY.SEARCH_INITIAL_EXTRA_CONTEXT
-        )
+        sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS)
         setIsReady(true)
-        setExtraContext(p => ({
-          ...p,
-          repository: initialExtraInfo?.repository
-        }))
-        onSubmitSearch(initialMessage, {
-          repository: initialExtraInfo?.repository
-        })
+        onSubmitSearch(initialMessage, initialThreadRunContext)
         return
       }
 
@@ -405,13 +422,18 @@ export function Search() {
     }
   }, [isReady])
 
+  const { isCopied: isShareLinkCopied, onCopy: onClickShare } = useShareThread({
+    threadIdFromURL,
+    threadIdFromStreaming: threadId,
+    streamingDone: !isLoading,
+    updateThreadURL
+  })
+
   // Handling the stream response from useThreadRun
   useEffect(() => {
-    if (!answer) return
-
     // update threadId
-    if (answer?.threadCreated && answer.threadCreated !== threadId) {
-      setThreadId(answer.threadCreated)
+    if (answer.threadId && answer.threadId !== threadId) {
+      setThreadId(answer.threadId)
     }
 
     let newMessages = [...messages]
@@ -430,41 +452,41 @@ export function Search() {
     const currentAssistantMessage = newMessages[currentAssistantMessageIdx]
 
     // update assistant message
-    currentAssistantMessage.content =
-      answer?.threadAssistantMessageContentDelta || ''
+    currentAssistantMessage.content = answer.content
 
-    if (!currentAssistantMessage?.attachment?.code) {
+    // get and format scores from streaming answer
+    if (!currentAssistantMessage.attachment?.code && !!answer.attachmentsCode) {
       currentAssistantMessage.attachment = {
-        doc: currentAssistantMessage.attachment?.doc ?? null,
+        doc: currentAssistantMessage.attachment?.doc || null,
         code:
-          answer?.threadAssistantMessageAttachmentsCode?.map(hit => ({
+          answer.attachmentsCode.map(hit => ({
             ...hit.code,
             extra: {
               scores: hit.scores
             }
-          })) ?? null
+          })) || null
       }
     }
 
-    if (!currentAssistantMessage?.attachment?.doc) {
+    // get and format scores from streaming answer
+    if (!currentAssistantMessage.attachment?.doc && !!answer.attachmentsDoc) {
       currentAssistantMessage.attachment = {
         doc:
-          answer?.threadAssistantMessageAttachmentsDoc?.map(hit => ({
+          answer.attachmentsDoc.map(hit => ({
             ...hit.doc,
             extra: {
               score: hit.score
             }
-          })) ?? null,
-        code: currentAssistantMessage.attachment?.code ?? null
+          })) || null,
+        code: currentAssistantMessage.attachment?.code || null
       }
     }
 
-    currentAssistantMessage.threadRelevantQuestions =
-      answer?.threadRelevantQuestions
+    currentAssistantMessage.threadRelevantQuestions = answer?.relevantQuestions
 
     // update message pair ids
-    const newUserMessageId = answer?.threadUserMessageCreated
-    const newAssistantMessageId = answer?.threadAssistantMessageCreated
+    const newUserMessageId = answer.userMessageId
+    const newAssistantMessageId = answer.assistantMessageId
     if (
       newUserMessageId &&
       newAssistantMessageId &&
@@ -490,7 +512,9 @@ export function Search() {
       )
       if (currentAnswer) {
         currentAnswer.error =
-          error.message === '401' ? 'Unauthorized' : 'Fail to fetch'
+          error.message === '401'
+            ? 'Unauthorized'
+            : error.message || 'Fail to fetch'
       }
     }
   }, [error])
@@ -533,9 +557,9 @@ export function Search() {
     }
   }, [devPanelOpen])
 
-  const onSubmitSearch = (question: string, ctx?: AnswerEngineExtraContext) => {
-    const newUserMessageId = nanoid()
-    const newAssistantMessageId = nanoid()
+  const onSubmitSearch = (question: string, ctx?: ThreadRunContexts) => {
+    const newUserMessageId = tempNanoId()
+    const newAssistantMessageId = tempNanoId()
     const newUserMessage: ConversationMessage = {
       id: newUserMessageId,
       role: Role.User,
@@ -547,10 +571,18 @@ export function Search() {
       content: ''
     }
 
-    const _repository = ctx?.repository || extraContext?.repository
-    const codeQuery: InputMaybe<CodeQueryInput> = _repository
-      ? { gitUrl: _repository.gitUrl, content: question }
+    const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
+      getSourceInputs(ctx)
+
+    const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
+      ? { sourceId: sourceIdForCodeQuery, content: question }
       : null
+
+    const docQuery: InputMaybe<DocQueryInput> = {
+      sourceIds: sourceIdsForDocQuery,
+      content: question,
+      searchPublic: !!searchPublic
+    }
 
     setCurrentUserMessageId(newUserMessageId)
     setCurrentAssistantMessageId(newAssistantMessageId)
@@ -563,7 +595,7 @@ export function Search() {
       {
         generateRelevantQuestions: true,
         codeQuery,
-        docQuery: { content: question }
+        docQuery
       }
     )
   }
@@ -571,6 +603,8 @@ export function Search() {
   // regenerate ths last assistant message
   const onRegenerateResponse = () => {
     if (!threadId) return
+    // need to get the sources from contextInfo
+    if (fetchingContextInfo) return
 
     const assistantMessageIndex = messages.length - 1
     const userMessageIndex = assistantMessageIndex - 1
@@ -583,22 +617,36 @@ export function Search() {
     const userMessage = messages[userMessageIndex]
     const newUserMessage: ConversationMessage = {
       ...userMessage,
-      id: nanoid()
+      id: tempNanoId()
     }
     const newAssistantMessage: ConversationMessage = {
-      id: nanoid(),
+      id: tempNanoId(),
       role: Role.Assistant,
       content: '',
       attachment: {
-        code: [],
-        doc: []
+        code: null,
+        doc: null
       },
       error: undefined
     }
-    const _repository = extraContext?.repository
-    const codeQuery: InputMaybe<CodeQueryInput> = _repository
-      ? { gitUrl: _repository.gitUrl, content: newUserMessage.content }
+
+    const mentions = getMentionsFromText(
+      newUserMessage.content,
+      contextInfoData?.contextInfo?.sources
+    )
+
+    const { sourceIdForCodeQuery, sourceIdsForDocQuery, searchPublic } =
+      getSourceInputs(getThreadRunContextsFromMentions(mentions))
+
+    const codeQuery: InputMaybe<CodeQueryInput> = sourceIdForCodeQuery
+      ? { sourceId: sourceIdForCodeQuery, content: newUserMessage.content }
       : null
+
+    const docQuery: InputMaybe<DocQueryInput> = {
+      sourceIds: sourceIdsForDocQuery,
+      content: newUserMessage.content,
+      searchPublic
+    }
 
     setCurrentUserMessageId(newUserMessage.id)
     setCurrentAssistantMessageId(newAssistantMessage.id)
@@ -614,7 +662,7 @@ export function Search() {
       threadRunOptions: {
         generateRelevantQuestions: true,
         codeQuery,
-        docQuery: { content: newUserMessage.content }
+        docQuery
       }
     })
   }
@@ -629,6 +677,47 @@ export function Search() {
     devPanelRef.current?.resize(nextSize)
     setDevPanelSize(nextSize)
     prevDevPanelSize.current = devPanelSize
+  }
+
+  const onDeleteMessage = (asistantMessageId: string) => {
+    if (!threadId) return
+    // find userMessageId by assistantMessageId
+    const assistantMessageIndex = messages.findIndex(
+      message => message.id === asistantMessageId
+    )
+    const userMessageIndex = assistantMessageIndex - 1
+    const userMessage = messages[assistantMessageIndex - 1]
+
+    if (assistantMessageIndex === -1 || userMessage?.role !== Role.User) {
+      return
+    }
+
+    // message pair not successfully created in threadrun
+    if (
+      userMessage.id.startsWith(TEMP_MSG_ID_PREFIX) &&
+      asistantMessageId.startsWith(TEMP_MSG_ID_PREFIX)
+    ) {
+      const newMessages = messages
+        .slice(0, userMessageIndex)
+        .concat(messages.slice(assistantMessageIndex + 1))
+      setMessages(newMessages)
+      return
+    }
+
+    deleteThreadMessagePair(threadId, userMessage.id, asistantMessageId).then(
+      errorMessage => {
+        if (errorMessage) {
+          toast.error(errorMessage)
+          return
+        }
+
+        // remove userMessage and assistantMessage
+        const newMessages = messages
+          .slice(0, userMessageIndex)
+          .concat(messages.slice(assistantMessageIndex + 1))
+        setMessages(newMessages)
+      }
+    )
   }
 
   const isFetchingMessages =
@@ -650,7 +739,7 @@ export function Search() {
     )
   }
 
-  if (!searchFlag.value || !isChatEnabled || !isReady) {
+  if (!isChatEnabled || !isReady) {
     return <></>
   }
 
@@ -664,12 +753,13 @@ export function Search() {
         isLoading,
         onRegenerateResponse,
         onSubmitSearch,
-        extraRequestContext: extraContext,
-        repositoryList,
         setDevPanelOpen,
         setConversationIdForDev: setMessageIdForDev,
         isPathnameInitialized,
-        enableDeveloperMode: enableDeveloperMode.value
+        enableDeveloperMode: enableDeveloperMode.value,
+        contextInfo: contextInfoData?.contextInfo,
+        fetchingContextInfo,
+        onDeleteMessage
       }}
     >
       <div className="transition-all" style={style}>
@@ -677,9 +767,7 @@ export function Search() {
           <ResizablePanel>
             <Header
               threadIdFromURL={threadIdFromURL}
-              threadIdFromStreaming={threadId}
-              streamingDone={!!answer?.threadAssistantMessageCompleted}
-              updateThreadURL={updateThreadURL}
+              streamingDone={answer.completed}
             />
             <main className="h-[calc(100%-4rem)] pb-8 lg:pb-0">
               <ScrollArea className="h-full" ref={contentContainerRef}>
@@ -690,10 +778,14 @@ export function Search() {
                         return (
                           <div key={item.id}>
                             {idx !== 0 && <Separator />}
-                            <div className="pb-2 pt-8">
+                            <div className="pb-2 pt-8 font-semibold">
                               <MessageMarkdown
                                 message={item.content}
+                                contextInfo={contextInfoData?.contextInfo}
+                                fetchingContextInfo={fetchingContextInfo}
+                                className="text-xl prose-p:mb-2 prose-p:mt-0"
                                 headline
+                                canWrapLongLines
                               />
                             </div>
                           </div>
@@ -709,6 +801,7 @@ export function Search() {
                               isLastAssistantMessage={isLastAssistantMessage}
                               showRelatedQuestion={isLastAssistantMessage}
                               isLoading={isLoading && isLastAssistantMessage}
+                              deletable={!isLoading && messages.length > 2}
                             />
                           </div>
                         )
@@ -741,7 +834,7 @@ export function Search() {
 
               <div
                 className={cn(
-                  'fixed bottom-5 left-0 z-30 flex min-h-[5rem] w-full flex-col items-center gap-y-2',
+                  'fixed bottom-5 left-0 z-30 flex min-h-[3rem] w-full flex-col items-center gap-y-2',
                   {
                     'opacity-100 translate-y-0': showSearchInput,
                     'opacity-0 translate-y-10': !showSearchInput,
@@ -755,20 +848,32 @@ export function Search() {
                     : {}
                 )}
               >
-                <Button
-                  className={cn('bg-background', {
-                    'opacity-0 pointer-events-none': !stopButtonVisible,
-                    'opacity-100': stopButtonVisible
-                  })}
-                  style={{
-                    transition: 'opacity 0.55s ease-out'
-                  }}
-                  variant="outline"
-                  onClick={() => stop()}
-                >
-                  <IconStop className="mr-2" />
-                  Stop generating
-                </Button>
+                <div className="flex items-center gap-4">
+                  {stopButtonVisible && (
+                    <Button
+                      className="bg-background"
+                      variant="outline"
+                      onClick={() => stop()}
+                    >
+                      <IconStop className="mr-2" />
+                      Stop generating
+                    </Button>
+                  )}
+                  {!stopButtonVisible && (
+                    <Button
+                      className="bg-background"
+                      variant="outline"
+                      onClick={onClickShare}
+                    >
+                      {isShareLinkCopied ? (
+                        <IconCheck className="mr-2 text-green-600" />
+                      ) : (
+                        <IconShare className="mr-2" />
+                      )}
+                      Share Link
+                    </Button>
+                  )}
+                </div>
                 <div
                   className={cn(
                     'relative z-20 flex justify-center self-stretch px-4'
@@ -776,11 +881,12 @@ export function Search() {
                 >
                   <TextAreaSearch
                     onSearch={onSubmitSearch}
-                    className="lg:max-w-4xl"
+                    className="min-h-[5.5rem] lg:max-w-4xl"
                     placeholder="Ask a follow up question"
                     isLoading={isLoading}
                     isFollowup
-                    extraContext={extraContext}
+                    contextInfo={contextInfoData?.contextInfo}
+                    fetchingContextInfo={fetchingContextInfo}
                   />
                 </div>
               </div>
@@ -817,19 +923,24 @@ function AnswerBlock({
   answer,
   showRelatedQuestion,
   isLoading,
-  isLastAssistantMessage
+  isLastAssistantMessage,
+  deletable
 }: {
   answer: ConversationMessage
   showRelatedQuestion: boolean
   isLoading?: boolean
   isLastAssistantMessage?: boolean
+  deletable?: boolean
 }) {
   const {
     onRegenerateResponse,
     onSubmitSearch,
     setDevPanelOpen,
     setConversationIdForDev,
-    enableDeveloperMode
+    enableDeveloperMode,
+    contextInfo,
+    fetchingContextInfo,
+    onDeleteMessage
   } = useContext(SearchContext)
 
   const [showMoreSource, setShowMoreSource] = useState(false)
@@ -841,9 +952,8 @@ function AnswerBlock({
       return answer.content
     }
 
-    const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
     const content = answer.content
-      .replace(citationMatchRegex, match => {
+      .replace(MARKDOWN_CITATION_REGEX, match => {
         const citationNumberMatch = match?.match(/\d+/)
         return `[${citationNumberMatch}]`
       })
@@ -1026,6 +1136,7 @@ function AnswerBlock({
             className="mt-1 text-sm"
             onContextClick={onCodeContextClick}
             enableTooltip={enableDeveloperMode}
+            showExternalLink={false}
             onTooltipClick={() => {
               setConversationIdForDev(answer.id)
               setDevPanelOpen(true)
@@ -1044,6 +1155,9 @@ function AnswerBlock({
           onCodeCitationClick={onCodeCitationClick}
           onCodeCitationMouseEnter={onCodeCitationMouseEnter}
           onCodeCitationMouseLeave={onCodeCitationMouseLeave}
+          contextInfo={contextInfo}
+          fetchingContextInfo={fetchingContextInfo}
+          canWrapLongLines={!isLoading}
         />
         {answer.error && <ErrorMessageBlock error={answer.error} />}
 
@@ -1054,7 +1168,7 @@ function AnswerBlock({
               value={getCopyContent(answer)}
               text="Copy"
             />
-            {!isLoading && isLastAssistantMessage && (
+            {!isLoading && !fetchingContextInfo && isLastAssistantMessage && (
               <Button
                 className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
                 variant="ghost"
@@ -1062,6 +1176,16 @@ function AnswerBlock({
               >
                 <IconRefresh />
                 <p>Regenerate</p>
+              </Button>
+            )}
+            {deletable && (
+              <Button
+                className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
+                variant="ghost"
+                onClick={() => onDeleteMessage(answer.id)}
+              >
+                <IconTrash />
+                <p>Delete</p>
               </Button>
             )}
           </div>
@@ -1079,18 +1203,20 @@ function AnswerBlock({
               <p className="text-sm font-bold leading-none">Suggestions</p>
             </div>
             <div className="mt-2 flex flex-col gap-y-3">
-              {answer.threadRelevantQuestions?.map((related, index) => (
-                <div
-                  key={index}
-                  className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
-                  onClick={onSubmitSearch.bind(null, related)}
-                >
-                  <p className="w-full overflow-hidden text-ellipsis text-sm">
-                    {related}
-                  </p>
-                  <IconPlus />
-                </div>
-              ))}
+              {answer.threadRelevantQuestions?.map(
+                (relevantQuestion, index) => (
+                  <div
+                    key={index}
+                    className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
+                    onClick={onSubmitSearch.bind(null, relevantQuestion)}
+                  >
+                    <p className="w-full overflow-hidden text-ellipsis text-sm">
+                      {relevantQuestion}
+                    </p>
+                    <IconPlus />
+                  </div>
+                )
+              )}
             </div>
           </div>
         )}
@@ -1198,44 +1324,13 @@ const setThreadPersistedMutation = graphql(/* GraphQL */ `
   }
 `)
 
-function Header({
-  threadIdFromURL,
-  threadIdFromStreaming,
-  streamingDone,
-  updateThreadURL
-}: {
+type HeaderProps = {
   threadIdFromURL?: string
-  threadIdFromStreaming?: string | null
   streamingDone?: boolean
-  updateThreadURL?: (threadId: string) => string
-}) {
+}
+
+function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
   const router = useRouter()
-  const { isCopied, copyToClipboard } = useCopyToClipboard({
-    timeout: 2000
-  })
-
-  const setThreadPersisted = useMutation(setThreadPersistedMutation, {
-    onError(err) {
-      toast.error(err.message)
-    }
-  })
-
-  const onCopy = async () => {
-    if (isCopied) return
-
-    let url = window.location.href
-    if (
-      !threadIdFromURL &&
-      streamingDone &&
-      threadIdFromStreaming &&
-      updateThreadURL
-    ) {
-      await setThreadPersisted({ threadId: threadIdFromStreaming })
-      url = updateThreadURL(threadIdFromStreaming)
-    }
-
-    copyToClipboard(url)
-  }
 
   return (
     <header className="flex h-16 items-center justify-between px-4 lg:px-10">
@@ -1259,24 +1354,13 @@ function Header({
             >
               <IconPlus />
             </Button>
-            <Button
-              variant="ghost"
-              className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
-              onClick={onCopy}
-            >
-              {isCopied ? (
-                <IconCheck className="text-green-600" />
-              ) : (
-                <IconLink />
-              )}
-            </Button>
           </>
         )}
         <ClientOnly>
           <ThemeToggle className="mr-4" />
         </ClientOnly>
         <UserPanel showHome={false} showSetting>
-          <UserAvatar className="h-10 w-10 border" />
+          <MyAvatar className="h-10 w-10 border" />
         </UserPanel>
       </div>
     </header>
@@ -1307,10 +1391,83 @@ function ThreadMessagesErrorView() {
   )
 }
 
-function getTitleFromMessages(messages: ConversationMessage[] | undefined) {
-  if (!messages?.length) return ''
+function getTitleFromMessages(sources: ContextSource[], content: string) {
+  const firstLine = content.split('\n')[0] ?? ''
+  const cleanedLine = firstLine
+    .replace(MARKDOWN_SOURCE_REGEX, value => {
+      const sourceId = value.slice(9, -2)
+      const source = sources.find(s => s.sourceId === sourceId)
+      return source?.sourceName ?? ''
+    })
+    .trim()
 
-  const firstLine = messages?.[0]?.content.split('\n')[0]
-  const title = firstLine.slice(0, 48)
+  // Cap max length at 48 characters
+  const title = cleanedLine.slice(0, 48)
   return title
+}
+
+function getSourceInputs(ctx: ThreadRunContexts | undefined) {
+  let sourceIdsForDocQuery: string[] = []
+  let sourceIdForCodeQuery: string | undefined
+  let searchPublic = false
+
+  if (ctx) {
+    sourceIdsForDocQuery = uniq(
+      compact([ctx?.codeSourceIds?.[0]].concat(ctx.docSourceIds))
+    )
+    searchPublic = ctx.searchPublic ?? false
+    sourceIdForCodeQuery = ctx.codeSourceIds?.[0] ?? undefined
+  }
+  return {
+    sourceIdsForDocQuery,
+    sourceIdForCodeQuery,
+    searchPublic
+  }
+}
+
+interface UseShareThreadOptions {
+  threadIdFromURL?: string
+  threadIdFromStreaming?: string | null
+  streamingDone?: boolean
+  updateThreadURL?: (threadId: string) => string
+}
+
+function useShareThread({
+  threadIdFromURL,
+  threadIdFromStreaming,
+  streamingDone,
+  updateThreadURL
+}: UseShareThreadOptions) {
+  const { isCopied, copyToClipboard } = useCopyToClipboard({
+    timeout: 2000
+  })
+
+  const setThreadPersisted = useMutation(setThreadPersistedMutation, {
+    onError(err) {
+      toast.error(err.message)
+    }
+  })
+
+  const shouldSetThreadPersisted =
+    !threadIdFromURL &&
+    streamingDone &&
+    threadIdFromStreaming &&
+    updateThreadURL
+
+  const onCopy = async () => {
+    if (isCopied) return
+
+    let url = window.location.href
+    if (shouldSetThreadPersisted) {
+      await setThreadPersisted({ threadId: threadIdFromStreaming })
+      url = updateThreadURL(threadIdFromStreaming)
+    }
+
+    copyToClipboard(url)
+  }
+
+  return {
+    onCopy,
+    isCopied
+  }
 }

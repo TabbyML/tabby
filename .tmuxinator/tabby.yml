@@ -1,0 +1,12 @@
+name: tabby
+root: ./
+
+windows:
+  - caddy:
+      panes:
+        - caddy run --watch --config ee/tabby-webserver/development/Caddyfile
+  - server:
+      layout: even-horizontal
+      panes:
+        - cargo run serve --port 8081
+        - cd ee/tabby-ui && pnpm dev

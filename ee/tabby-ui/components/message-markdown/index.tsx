@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState } from 'react'
+import { createContext, ReactNode, useContext, useMemo, useState } from 'react'
 import Image from 'next/image'
 import defaultFavicon from '@/assets/default-favicon.png'
 import DOMPurify from 'dompurify'
@@ -9,13 +9,14 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
 import {
+  ContextInfo,
   Maybe,
   MessageAttachmentCode,
   MessageAttachmentDoc
 } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { CodeBlock } from '@/components/ui/codeblock'
+import { CodeBlock, CodeBlockProps } from '@/components/ui/codeblock'
 import {
   HoverCard,
   HoverCardContent,
@@ -24,6 +25,14 @@ import {
 import { MemoizedReactMarkdown } from '@/components/markdown'
 
 import './style.css'
+
+import {
+  MARKDOWN_CITATION_REGEX,
+  MARKDOWN_SOURCE_REGEX
+} from '@/lib/constants/regex'
+
+import { Mention } from '../mention-tag'
+import { Skeleton } from '../ui/skeleton'
 
 type RelevantDocItem = {
   type: 'doc'
@@ -59,6 +68,11 @@ export interface MessageMarkdownProps {
   onCodeCitationClick?: (code: MessageAttachmentCode) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
+  contextInfo?: ContextInfo
+  fetchingContextInfo?: boolean
+  className?: string
+  // wrapLongLines for code block
+  canWrapLongLines?: boolean
 }
 
 type MessageMarkdownContextValue = {
@@ -67,6 +81,9 @@ type MessageMarkdownContextValue = {
   onCodeCitationClick?: (code: MessageAttachmentCode) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
+  contextInfo: ContextInfo | undefined
+  fetchingContextInfo: boolean
+  canWrapLongLines: boolean
 }
 
 const MessageMarkdownContext = createContext<MessageMarkdownContextValue>(
@@ -80,6 +97,10 @@ export function MessageMarkdown({
   attachmentCode,
   onApplyInEditor,
   onCopyContent,
+  contextInfo,
+  fetchingContextInfo,
+  className,
+  canWrapLongLines,
   ...rest
 }: MessageMarkdownProps) {
   const messageAttachments: MessageAttachments = useMemo(() => {
@@ -96,47 +117,52 @@ export function MessageMarkdown({
     return compact([...docs, ...code])
   }, [attachmentDocs, attachmentCode])
 
-  const renderTextWithCitation = (nodeStr: string, index: number) => {
-    const citationMatchRegex = /\[\[?citation:\s*\d+\]?\]/g
-    const textList = nodeStr.split(citationMatchRegex)
-    const citationList = nodeStr.match(citationMatchRegex)
-    return (
-      <span key={index}>
-        {textList.map((text, index) => {
-          const citation = citationList?.[index]
-          const citationNumberMatch = citation?.match(/\d+/)
-          const citationIndex = citationNumberMatch
-            ? parseInt(citationNumberMatch[0], 10)
-            : null
-          const citationSource = !isNil(citationIndex)
-            ? messageAttachments?.[citationIndex - 1]
-            : undefined
-          const citationType = citationSource?.type
-          const showcitation = citationSource && !isNil(citationIndex)
+  const processMessagePlaceholder = (text: string) => {
+    const elements: React.ReactNode[] = []
+    let lastIndex = 0
+    let match
 
-          return (
-            <span key={index}>
-              {text && <span>{text}</span>}
-              {showcitation && (
-                <>
-                  {citationType === 'doc' ? (
-                    <RelevantDocumentBadge
-                      relevantDocument={citationSource.data}
-                      citationIndex={citationIndex}
-                    />
-                  ) : citationType === 'code' ? (
-                    <RelevantCodeBadge
-                      relevantCode={citationSource.data}
-                      citationIndex={citationIndex}
-                    />
-                  ) : null}
-                </>
-              )}
-            </span>
-          )
-        })}
-      </span>
-    )
+    const addTextNode = (text: string) => {
+      if (text) {
+        elements.push(text)
+      }
+    }
+
+    const processMatches = (
+      regex: RegExp,
+      Component: (...arg: any) => ReactNode,
+      getProps: Function
+    ) => {
+      while ((match = regex.exec(text)) !== null) {
+        addTextNode(text.slice(lastIndex, match.index))
+        elements.push(<Component key={match.index} {...getProps(match)} />)
+        lastIndex = match.index + match[0].length
+      }
+    }
+
+    processMatches(MARKDOWN_CITATION_REGEX, CitationTag, (match: string) => {
+      const citationIndex = parseInt(match[1], 10)
+      const citationSource = !isNil(citationIndex)
+        ? messageAttachments?.[citationIndex - 1]
+        : undefined
+      const citationType = citationSource?.type
+      const showcitation = citationSource && !isNil(citationIndex)
+      return {
+        citationIndex,
+        showcitation,
+        citationType,
+        citationSource
+      }
+    })
+    processMatches(MARKDOWN_SOURCE_REGEX, SourceTag, (match: string) => {
+      const sourceId = match[1]
+      const className = headline ? 'text-[1rem] font-semibold' : undefined
+      return { sourceId, className }
+    })
+
+    addTextNode(text.slice(lastIndex))
+
+    return elements
   }
 
   return (
@@ -146,37 +172,31 @@ export function MessageMarkdown({
         onApplyInEditor,
         onCodeCitationClick: rest.onCodeCitationClick,
         onCodeCitationMouseEnter: rest.onCodeCitationMouseEnter,
-        onCodeCitationMouseLeave: rest.onCodeCitationMouseLeave
+        onCodeCitationMouseLeave: rest.onCodeCitationMouseLeave,
+        contextInfo,
+        fetchingContextInfo: !!fetchingContextInfo,
+        canWrapLongLines: !!canWrapLongLines
       }}
     >
       <MemoizedReactMarkdown
-        className="message-markdown prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
+        className={cn(
+          'message-markdown prose max-w-none break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0',
+          className
+        )}
         remarkPlugins={[remarkGfm, remarkMath]}
         components={{
           p({ children }) {
-            if (headline) {
-              return (
-                <h3 className="break-anywhere cursor-text scroll-m-20 text-xl font-semibold tracking-tight">
-                  {children}
-                </h3>
-              )
-            }
-
-            if (children.length) {
-              return (
-                <div className="mb-2 inline-block leading-relaxed last:mb-0">
-                  {children.map((childrenItem, index) => {
-                    if (typeof childrenItem === 'string') {
-                      return renderTextWithCitation(childrenItem, index)
-                    }
-
-                    return <span key={index}>{childrenItem}</span>
-                  })}
-                </div>
-              )
-            }
-
-            return <p className="mb-2 last:mb-0">{children}</p>
+            return (
+              <p className="mb-2 last:mb-0">
+                {children.map((child, index) =>
+                  typeof child === 'string' ? (
+                    processMessagePlaceholder(child)
+                  ) : (
+                    <span key={index}>{child}</span>
+                  )
+                )}
+              </p>
+            )
           },
           li({ children }) {
             if (children && children.length) {
@@ -184,7 +204,7 @@ export function MessageMarkdown({
                 <li>
                   {children.map((childrenItem, index) => {
                     if (typeof childrenItem === 'string') {
-                      return renderTextWithCitation(childrenItem, index)
+                      return processMessagePlaceholder(childrenItem)
                     }
 
                     return <span key={index}>{childrenItem}</span>
@@ -216,12 +236,13 @@ export function MessageMarkdown({
             }
 
             return (
-              <CodeBlock
+              <CodeBlockWrapper
                 key={Math.random()}
                 language={(match && match[1]) || ''}
                 value={String(children).replace(/\n$/, '')}
                 onApplyInEditor={onApplyInEditor}
                 onCopyContent={onCopyContent}
+                canWrapLongLines={canWrapLongLines}
                 {...props}
               />
             )
@@ -267,6 +288,72 @@ export function ErrorMessageBlock({
     >
       {errorMessage}
     </MemoizedReactMarkdown>
+  )
+}
+
+function CodeBlockWrapper(props: CodeBlockProps) {
+  const { canWrapLongLines } = useContext(MessageMarkdownContext)
+
+  return <CodeBlock {...props} canWrapLongLines={canWrapLongLines} />
+}
+
+function CitationTag({
+  citationIndex,
+  showcitation,
+  citationType,
+  citationSource
+}: any) {
+  return (
+    <div className="inline">
+      {showcitation && (
+        <>
+          {citationType === 'doc' ? (
+            <RelevantDocumentBadge
+              relevantDocument={citationSource.data}
+              citationIndex={citationIndex}
+            />
+          ) : citationType === 'code' ? (
+            <RelevantCodeBadge
+              relevantCode={citationSource.data}
+              citationIndex={citationIndex}
+            />
+          ) : null}
+        </>
+      )}
+    </div>
+  )
+}
+
+function SourceTag({
+  sourceId,
+  className
+}: {
+  sourceId: string | undefined
+  className?: string
+}) {
+  const { contextInfo, fetchingContextInfo } = useContext(
+    MessageMarkdownContext
+  )
+
+  if (!sourceId) return null
+  const source = contextInfo?.sources?.find(o => o.sourceId === sourceId)
+  if (!source) return null
+
+  return (
+    <span className="node-mention">
+      <span>
+        {fetchingContextInfo ? (
+          <Skeleton className="w-16" />
+        ) : (
+          <Mention
+            id={source.sourceId}
+            label={source.sourceName}
+            kind={source.sourceKind}
+            className={className}
+          />
+        )}
+      </span>
+    </span>
   )
 }
 

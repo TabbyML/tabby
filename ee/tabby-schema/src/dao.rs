@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, IntegrationDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
     ServerSettingDAO, ThreadDAO, ThreadMessageAttachmentClientCode, ThreadMessageAttachmentCode,
-    ThreadMessageAttachmentDoc, ThreadMessageDAO, UserDAO, UserEventDAO,
+    ThreadMessageAttachmentDoc, ThreadMessageDAO, UserEventDAO,
 };
 
 use crate::{
@@ -46,24 +46,6 @@ impl From<JobRunDAO> for job::JobRun {
             finished_at: run.finished_at,
             exit_code: run.exit_code.map(|i| i as i32),
             stdout: run.stdout,
-            stderr: run.stderr,
-        }
-    }
-}
-
-impl From<UserDAO> for auth::User {
-    fn from(val: UserDAO) -> Self {
-        let is_owner = val.is_owner();
-        auth::User {
-            id: val.id.as_id(),
-            email: val.email,
-            name: val.name.unwrap_or_default(),
-            is_owner,
-            is_admin: val.is_admin,
-            auth_token: val.auth_token,
-            created_at: val.created_at,
-            active: val.active,
-            is_password_set: val.password_encrypted.is_some(),
         }
     }
 }
@@ -322,8 +304,7 @@ impl AsRowid for juniper::ID {
     fn as_rowid(&self) -> std::result::Result<i64, CoreError> {
         HASHER
             .decode(self)
-            .first()
-            .map(|i| *i as i64)
+            .and_then(|x| x.first().map(|i| *i as i64))
             .ok_or(CoreError::InvalidID)
     }
 }

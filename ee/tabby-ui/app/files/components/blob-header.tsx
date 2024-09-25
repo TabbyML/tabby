@@ -6,7 +6,6 @@ import tabbyLogo from '@/assets/tabby.png'
 import prettyBytes from 'pretty-bytes'
 import { toast } from 'sonner'
 
-import { useEnableCodeBrowserQuickActionBar } from '@/lib/experiment-flags'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { useIsSticky } from '@/lib/hooks/use-is-sticky'
 import { cn } from '@/lib/utils'
@@ -42,16 +41,12 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
 }) => {
   const { chatSideBarVisible, setChatSideBarVisible, isChatEnabled } =
     React.useContext(SourceCodeBrowserContext)
-  const [enableCodeBrowserQuickActionBar] = useEnableCodeBrowserQuickActionBar()
   const containerRef = React.useRef<HTMLDivElement>(null)
   const { activePath } = React.useContext(SourceCodeBrowserContext)
   const { isCopied, copyToClipboard } = useCopyToClipboard({ timeout: 2000 })
   const isSticky = useIsSticky(containerRef)
 
-  const showChatPanelTrigger =
-    isChatEnabled &&
-    enableCodeBrowserQuickActionBar.value &&
-    !chatSideBarVisible
+  const showChatPanelTrigger = isChatEnabled && !chatSideBarVisible
 
   const contentLengthText = contentLength ? prettyBytes(contentLength) : ''
 

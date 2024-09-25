@@ -72,8 +72,19 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
     }
 
     async fn delete(&self, id: &ID) -> Result<bool> {
-        let success = self.db.delete_repository(id.as_rowid()?).await?;
+        let rowid = id.as_rowid()?;
+        let repository = self.db.get_repository(rowid).await?;
+        let success = self.db.delete_repository(rowid).await?;
         if success {
+            self.job_service
+                .clear(
+                    BackgroundJobEvent::SchedulerGitRepository(CodeRepository::new(
+                        &repository.git_url,
+                        &GitRepository::format_source_id(id),
+                    ))
+                    .to_command(),
+                )
+                .await?;
             self.job_service
                 .trigger(BackgroundJobEvent::IndexGarbageCollection.to_command())
                 .await?;

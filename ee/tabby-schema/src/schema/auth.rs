@@ -10,8 +10,10 @@ use tokio::task::JoinHandle;
 use tracing::error;
 use validator::Validate;
 
+use super::interface::UserValue;
 use crate::{
     juniper::relay,
+    policy::AccessPolicy,
     schema::{Context, Result},
 };
 
@@ -173,20 +175,25 @@ impl JWTPayload {
 }
 
 #[derive(Debug, GraphQLObject)]
-#[graphql(context = Context)]
-pub struct User {
+#[graphql(context = Context, impl = [UserValue])]
+pub struct UserSecured {
+    // === implements User ===
     pub id: juniper::ID,
     pub email: String,
     pub name: String,
+    pub created_at: DateTime<Utc>,
     pub is_admin: bool,
     pub is_owner: bool,
-    pub auth_token: String,
-    pub created_at: DateTime<Utc>,
     pub active: bool,
+    // === end User ===
+    pub auth_token: String,
     pub is_password_set: bool,
+
+    #[graphql(skip)]
+    pub policy: AccessPolicy,
 }
 
-impl relay::NodeType for User {
+impl relay::NodeType for UserSecured {
     type Cursor = String;
 
     fn cursor(&self) -> Self::Cursor {
@@ -194,11 +201,11 @@ impl relay::NodeType for User {
     }
 
     fn connection_type_name() -> &'static str {
-        "UserConnection"
+        "UserSecuredConnection"
     }
 
     fn edge_type_name() -> &'static str {
-        "UserEdge"
+        "UserSecuredEdge"
     }
 }
 
@@ -358,8 +365,8 @@ pub trait AuthenticationService: Send + Sync {
     async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload>;
     async fn verify_auth_token(&self, token: &str) -> Result<ID>;
     async fn is_admin_initialized(&self) -> Result<bool>;
-    async fn get_user_by_email(&self, email: &str) -> Result<User>;
-    async fn get_user(&self, id: &ID) -> Result<User>;
+    async fn get_user_by_email(&self, email: &str) -> Result<UserSecured>;
+    async fn get_user(&self, id: &ID) -> Result<UserSecured>;
     async fn logout_all_sessions(&self, id: &ID) -> Result<()>;
 
     async fn create_invitation(&self, email: String) -> Result<Invitation>;
@@ -368,6 +375,7 @@ pub trait AuthenticationService: Send + Sync {
 
     async fn reset_user_auth_token(&self, id: &ID) -> Result<()>;
     async fn password_reset(&self, code: &str, password: &str) -> Result<()>;
+    async fn generate_reset_password_url(&self, id: &ID) -> Result<String>;
     async fn request_password_reset_email(&self, email: String) -> Result<Option<JoinHandle<()>>>;
     async fn update_user_password(
         &self,
@@ -382,7 +390,7 @@ pub trait AuthenticationService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<User>>;
+    ) -> Result<Vec<UserSecured>>;
 
     async fn list_invitations(
         &self,

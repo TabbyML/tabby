@@ -28,6 +28,7 @@ export class InlineEditController {
     private contextVariables: ContextVariables,
     private editor: TextEditor,
     private editLocation: EditLocation,
+    private userCommand?: string,
   ) {
     this.recentlyCommand = this.config.chatEditRecentlyCommand.slice(0, this.config.maxChatEditHistory);
 
@@ -51,44 +52,54 @@ export class InlineEditController {
     this.quickPick = quickPick;
   }
 
-  start() {
-    this.quickPick.show();
+  async start() {
+    this.userCommand ? await this.provideEditWithCommand(this.userCommand) : this.quickPick.show();
   }
 
   private async onDidAccept() {
-    const startPosition = new Position(this.editLocation.range.start.line, this.editLocation.range.start.character);
-    const quickPick = this.quickPick;
-    quickPick.hide();
+    const command = this.quickPick.selectedItems[0]?.value;
+    this.quickPick.hide();
+    if (!command) {
+      return;
+    }
+    if (command && command.length > 200) {
+      window.showErrorMessage("Command is too long.");
+      return;
+    }
+    await this.provideEditWithCommand(command);
+  }
 
-    const command = quickPick.selectedItems[0]?.value;
-    if (command) {
+  private async provideEditWithCommand(command: string) {
+    const startPosition = new Position(this.editLocation.range.start.line, this.editLocation.range.start.character);
+
+    if (!this.userCommand) {
       const updatedRecentlyCommand = [command]
         .concat(this.recentlyCommand.filter((item) => item !== command))
         .slice(0, this.config.maxChatEditHistory);
       this.config.chatEditRecentlyCommand = updatedRecentlyCommand;
-
-      this.editor.selection = new Selection(startPosition, startPosition);
-      this.contextVariables.chatEditInProgress = true;
-      this.chatEditCancellationTokenSource = new CancellationTokenSource();
-      try {
-        await this.client.chat.provideEdit(
-          {
-            location: this.editLocation,
-            command,
-            format: "previewChanges",
-          },
-          this.chatEditCancellationTokenSource.token,
-        );
-      } catch (error) {
-        if (typeof error === "object" && error && "message" in error && typeof error["message"] === "string") {
-          window.showErrorMessage(error["message"]);
-        }
-      }
-      this.chatEditCancellationTokenSource.dispose();
-      this.chatEditCancellationTokenSource = null;
-      this.contextVariables.chatEditInProgress = false;
-      this.editor.selection = new Selection(startPosition, startPosition);
     }
+
+    this.editor.selection = new Selection(startPosition, startPosition);
+    this.contextVariables.chatEditInProgress = true;
+    this.chatEditCancellationTokenSource = new CancellationTokenSource();
+    try {
+      await this.client.chat.provideEdit(
+        {
+          location: this.editLocation,
+          command,
+          format: "previewChanges",
+        },
+        this.chatEditCancellationTokenSource.token,
+      );
+    } catch (error) {
+      if (typeof error === "object" && error && "message" in error && typeof error["message"] === "string") {
+        window.showErrorMessage(error["message"]);
+      }
+    }
+    this.chatEditCancellationTokenSource.dispose();
+    this.chatEditCancellationTokenSource = null;
+    this.contextVariables.chatEditInProgress = false;
+    this.editor.selection = new Selection(startPosition, startPosition);
   }
 
   private onDidTriggerItemButton(event: QuickPickItemButtonEvent<EditCommand>) {

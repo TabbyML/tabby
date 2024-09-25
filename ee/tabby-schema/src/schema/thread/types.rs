@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use juniper::{graphql_object, GraphQLEnum, GraphQLObject, ID};
+use juniper::{GraphQLEnum, GraphQLObject, GraphQLUnion, ID};
 use serde::Serialize;
 use tabby_common::api::{
     code::{CodeSearchDocument, CodeSearchHit, CodeSearchScores},
@@ -168,75 +168,57 @@ impl NodeType for Thread {
     }
 }
 
+#[derive(GraphQLObject)]
+pub struct ThreadCreated {
+    pub id: ID,
+}
+
+#[derive(GraphQLObject)]
+pub struct ThreadRelevantQuestions {
+    pub questions: Vec<String>,
+}
+
+#[derive(GraphQLObject)]
+pub struct ThreadUserMessageCreated {
+    pub id: ID,
+}
+
+#[derive(GraphQLObject)]
+pub struct ThreadAssistantMessageCreated {
+    pub id: ID,
+}
+
+#[derive(GraphQLObject)]
+pub struct ThreadAssistantMessageAttachmentsCode {
+    pub hits: Vec<MessageCodeSearchHit>,
+}
+
+#[derive(GraphQLObject)]
+pub struct ThreadAssistantMessageAttachmentsDoc {
+    pub hits: Vec<MessageDocSearchHit>,
+}
+
+#[derive(GraphQLObject)]
+pub struct ThreadAssistantMessageContentDelta {
+    pub delta: String,
+}
+
+#[derive(GraphQLObject)]
+pub struct ThreadAssistantMessageCompleted {
+    pub id: ID,
+}
+
 /// Schema of thread run stream.
 ///
 /// Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
+#[derive(GraphQLUnion)]
 pub enum ThreadRunItem {
-    ThreadCreated(ID),
-    ThreadRelevantQuestions(Vec<String>),
-    ThreadUserMessageCreated(ID),
-    ThreadAssistantMessageCreated(ID),
-    ThreadAssistantMessageAttachmentsCode(Vec<MessageCodeSearchHit>),
-    ThreadAssistantMessageAttachmentsDoc(Vec<MessageDocSearchHit>),
-    ThreadAssistantMessageContentDelta(String),
-    ThreadAssistantMessageCompleted(ID),
-}
-
-#[graphql_object]
-impl ThreadRunItem {
-    fn thread_created(&self) -> Option<&ID> {
-        match self {
-            ThreadRunItem::ThreadCreated(id) => Some(id),
-            _ => None,
-        }
-    }
-
-    fn thread_relevant_questions(&self) -> Option<&Vec<String>> {
-        match self {
-            ThreadRunItem::ThreadRelevantQuestions(questions) => Some(questions),
-            _ => None,
-        }
-    }
-
-    fn thread_user_message_created(&self) -> Option<&ID> {
-        match self {
-            ThreadRunItem::ThreadUserMessageCreated(id) => Some(id),
-            _ => None,
-        }
-    }
-
-    fn thread_assistant_message_created(&self) -> Option<&ID> {
-        match self {
-            ThreadRunItem::ThreadAssistantMessageCreated(id) => Some(id),
-            _ => None,
-        }
-    }
-
-    fn thread_assistant_message_attachments_code(&self) -> Option<&Vec<MessageCodeSearchHit>> {
-        match self {
-            ThreadRunItem::ThreadAssistantMessageAttachmentsCode(hits) => Some(hits),
-            _ => None,
-        }
-    }
-
-    fn thread_assistant_message_attachments_doc(&self) -> Option<&Vec<MessageDocSearchHit>> {
-        match self {
-            ThreadRunItem::ThreadAssistantMessageAttachmentsDoc(hits) => Some(hits),
-            _ => None,
-        }
-    }
-
-    fn thread_assistant_message_content_delta(&self) -> Option<&String> {
-        match self {
-            ThreadRunItem::ThreadAssistantMessageContentDelta(content) => Some(content),
-            _ => None,
-        }
-    }
-
-    fn thread_assistant_message_completed(&self) -> Option<&ID> {
-        match self {
-            ThreadRunItem::ThreadAssistantMessageCompleted(id) => Some(id),
-            _ => None,
-        }
-    }
+    ThreadCreated(ThreadCreated),
+    ThreadRelevantQuestions(ThreadRelevantQuestions),
+    ThreadUserMessageCreated(ThreadUserMessageCreated),
+    ThreadAssistantMessageCreated(ThreadAssistantMessageCreated),
+    ThreadAssistantMessageAttachmentsCode(ThreadAssistantMessageAttachmentsCode),
+    ThreadAssistantMessageAttachmentsDoc(ThreadAssistantMessageAttachmentsDoc),
+    ThreadAssistantMessageContentDelta(ThreadAssistantMessageContentDelta),
+    ThreadAssistantMessageCompleted(ThreadAssistantMessageCompleted),
 }

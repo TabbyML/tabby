@@ -19,10 +19,11 @@ members = [
     "ee/tabby-db",
     "ee/tabby-db-macros",
     "ee/tabby-schema",
+    "crates/hash-ids",
 ]
 
 [workspace.package]
-version = "0.17.0-dev.0"
+version = "0.18.0-dev.0"
 edition = "2021"
 authors = ["TabbyML Team"]
 homepage = "https://github.com/TabbyML/tabby"
@@ -55,7 +56,7 @@ juniper = "0.16"
 chrono = "0.4"
 reqwest-eventsource = "0.6"
 serial_test = "3.0.0"
-hash-ids = "0.2.1"
+hash-ids = { path = "./crates/hash-ids" }
 ignore = "0.4.20"
 nucleo = "0.5.0"
 url = "2.5.0"

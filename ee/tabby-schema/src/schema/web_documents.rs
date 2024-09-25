@@ -1,12 +1,11 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use juniper::{GraphQLInputObject, GraphQLObject, ID};
+use juniper::{graphql_object, GraphQLInputObject, ID};
 use validator::Validate;
 
+use super::context::{ContextSourceIdValue, ContextSourceKind, ContextSourceValue};
 use crate::{job::JobInfo, juniper::relay::NodeType, Context, Result};
 
-#[derive(GraphQLObject)]
-#[graphql(context = Context)]
 pub struct CustomWebDocument {
     pub url: String,
     pub name: String,
@@ -17,35 +16,99 @@ pub struct CustomWebDocument {
 }
 
 impl CustomWebDocument {
-    pub fn source_id(&self) -> String {
-        Self::format_source_id(&self.id)
-    }
-
     pub fn format_source_id(id: &ID) -> String {
         format!("custom_web_document:{}", id)
     }
 }
 
-#[derive(GraphQLObject)]
-#[graphql(context = Context)]
+#[graphql_object(context = Context, impl = [ContextSourceIdValue, ContextSourceValue])]
+impl CustomWebDocument {
+    fn url(&self) -> &str {
+        &self.url
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn id(&self) -> &ID {
+        &self.id
+    }
+
+    fn created_at(&self) -> &DateTime<Utc> {
+        &self.created_at
+    }
+
+    fn updated_at(&self) -> &DateTime<Utc> {
+        &self.updated_at
+    }
+
+    fn job_info(&self) -> &JobInfo {
+        &self.job_info
+    }
+
+    fn source_kind(&self) -> ContextSourceKind {
+        ContextSourceKind::Doc
+    }
+
+    pub fn source_id(&self) -> String {
+        Self::format_source_id(&self.id)
+    }
+
+    pub fn source_name(&self) -> &str {
+        &self.name
+    }
+}
+
 pub struct PresetWebDocument {
     pub id: ID,
 
     pub name: String,
-    /// `updated_at` is only filled when the preset is active.
     pub updated_at: Option<DateTime<Utc>>,
-    /// `job_info` is only filled when the preset is active.
     pub job_info: Option<JobInfo>,
     pub is_active: bool,
 }
 
 impl PresetWebDocument {
-    pub fn source_id(&self) -> String {
-        Self::format_source_id(&self.id)
+    pub fn format_source_id(name: &String) -> String {
+        format!("preset_web_document:{}", name)
+    }
+}
+
+#[graphql_object(context = Context, impl = [ContextSourceIdValue, ContextSourceValue])]
+impl PresetWebDocument {
+    fn name(&self) -> &str {
+        &self.name
     }
 
-    pub fn format_source_id(id: &ID) -> String {
-        format!("preset_web_document:{}", id)
+    fn id(&self) -> &ID {
+        &self.id
+    }
+
+    /// `updated_at` is only filled when the preset is active.
+    fn updated_at(&self) -> &Option<DateTime<Utc>> {
+        &self.updated_at
+    }
+
+    /// `job_info` is only filled when the preset is active.
+    fn job_info(&self) -> &Option<JobInfo> {
+        &self.job_info
+    }
+
+    fn is_active(&self) -> bool {
+        self.is_active
+    }
+
+    fn source_kind(&self) -> ContextSourceKind {
+        ContextSourceKind::Doc
+    }
+
+    pub fn source_id(&self) -> String {
+        Self::format_source_id(&self.name)
+    }
+
+    pub fn source_name(&self) -> &str {
+        &self.name
     }
 }
 

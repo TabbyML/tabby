@@ -1,40 +1,29 @@
 use std::sync::Arc;
 
 use tabby_schema::{
-    context::{ContextInfo, ContextService},
+    context::{ContextInfo, ContextService, ContextSourceValue, WebContextSource},
+    policy::AccessPolicy,
     repository::RepositoryService,
-    web_crawler::WebCrawlerService,
     web_documents::WebDocumentService,
     Result,
 };
 
-use super::answer::AnswerService;
-
 struct ContextServiceImpl {
     repository: Arc<dyn RepositoryService>,
-    web_crawler: Arc<dyn WebCrawlerService>,
     web_document: Arc<dyn WebDocumentService>,
-    answer: Option<Arc<AnswerService>>,
+    can_search_public_web: bool,
 }
 
 #[async_trait::async_trait]
 impl ContextService for ContextServiceImpl {
-    async fn read(&self) -> Result<ContextInfo> {
-        let mut sources: Vec<_> = self
+    async fn read(&self, policy: Option<&AccessPolicy>) -> Result<ContextInfo> {
+        let mut sources: Vec<ContextSourceValue> = self
             .repository
-            .repository_list()
+            .repository_list(policy)
             .await?
             .into_iter()
             .map(Into::into)
             .collect();
-
-        sources.extend(
-            self.web_crawler
-                .list_web_crawler_urls(None, None, None, None)
-                .await?
-                .into_iter()
-                .map(Into::into),
-        );
 
         sources.extend(
             self.web_document
@@ -52,29 +41,33 @@ impl ContextService for ContextServiceImpl {
                 .map(Into::into),
         );
 
-        let info = ContextInfo {
-            sources,
-            can_search_public: self
-                .answer
-                .as_ref()
-                .map(|x| x.can_search_public())
-                .unwrap_or_default(),
-        };
+        if self.can_search_public_web {
+            sources.push(WebContextSource.into());
+        }
 
-        Ok(info)
+        if let Some(policy) = policy {
+            // Keep only sources that the user has access to.
+            let mut filtered_sources = vec![];
+            for source in sources {
+                if policy.check_read_source(&source.source_id()).await.is_ok() {
+                    filtered_sources.push(source);
+                }
+            }
+            sources = filtered_sources
+        }
+
+        Ok(ContextInfo { sources })
     }
 }
 
 pub fn create(
     repository: Arc<dyn RepositoryService>,
-    web_crawler: Arc<dyn WebCrawlerService>,
     web_document: Arc<dyn WebDocumentService>,
-    answer: Option<Arc<AnswerService>>,
+    can_search_public_web: bool,
 ) -> impl ContextService {
     ContextServiceImpl {
         repository,
-        web_crawler,
         web_document,
-        answer,
+        can_search_public_web,
     }
 }

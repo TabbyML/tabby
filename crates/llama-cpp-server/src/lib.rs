@@ -279,7 +279,7 @@ pub async fn create_embedding(config: &ModelConfig) -> Arc<dyn Embedding> {
 async fn resolve_model_path(model_id: &str) -> String {
     let path = PathBuf::from(model_id);
     let path = if path.exists() {
-        path.join(GGML_MODEL_RELATIVE_PATH)
+        path.join(GGML_MODEL_RELATIVE_PATH.as_str())
     } else {
         let (registry, name) = parse_model_id(model_id);
         let registry = ModelRegistry::new(registry).await;

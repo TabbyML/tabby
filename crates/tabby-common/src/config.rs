@@ -1,7 +1,6 @@
 use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::{anyhow, Context, Result};
-use async_trait::async_trait;
 use derive_builder::Builder;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
@@ -102,8 +101,7 @@ pub fn config_id_to_index(id: &str) -> Result<usize, anyhow::Error> {
 
     HASHER
         .decode(id)
-        .first()
-        .map(|i| *i as usize)
+        .and_then(|x| x.first().map(|i| *i as usize))
         .ok_or_else(|| anyhow!("Invalid config ID"))
 }
 
@@ -349,25 +347,6 @@ impl CodeRepository {
 
     pub fn is_local_dir(&self) -> bool {
         RepositoryConfig::resolve_is_local_dir(&self.git_url)
-    }
-}
-
-#[async_trait]
-pub trait CodeRepositoryAccess: Send + Sync {
-    async fn repositories(&self) -> Result<Vec<CodeRepository>>;
-}
-
-pub struct StaticCodeRepositoryAccess;
-
-#[async_trait]
-impl CodeRepositoryAccess for StaticCodeRepositoryAccess {
-    async fn repositories(&self) -> Result<Vec<CodeRepository>> {
-        Ok(Config::load()?
-            .repositories
-            .into_iter()
-            .enumerate()
-            .map(|(i, repo)| CodeRepository::new(&repo.git_url, &config_index_to_id(i)))
-            .collect())
     }
 }
 

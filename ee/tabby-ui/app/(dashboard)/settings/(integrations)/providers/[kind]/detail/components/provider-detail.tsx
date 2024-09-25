@@ -18,7 +18,11 @@ import {
   QueryVariables,
   useMutation
 } from '@/lib/tabby/gql'
-import { listIntegratedRepositories, listIntegrations } from '@/lib/tabby/query'
+import {
+  listIntegratedRepositories,
+  listIntegrations,
+  userGroupsQuery
+} from '@/lib/tabby/query'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { CardContent, CardTitle } from '@/components/ui/card'
@@ -27,8 +31,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger
+  DialogTitle
 } from '@/components/ui/dialog'
 import {
   IconChevronLeft,
@@ -49,6 +52,7 @@ import {
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
+import { AccessPolicyView } from '../../../components/access-policy-view'
 import { JobInfoView } from '../../../components/job-trigger'
 import { triggerJobRunMutation } from '../../../query'
 import { useIntegrationKind } from '../../hooks/use-repository-kind'
@@ -133,23 +137,15 @@ const ProviderDetail: React.FC = () => {
   )
 }
 
-function toStatusBadge(status: IntegrationStatus) {
-  switch (status) {
-    case IntegrationStatus.Ready:
-      return <Badge variant="successful">Ready</Badge>
-    case IntegrationStatus.Failed:
-      return <Badge variant="destructive">Error</Badge>
-    case IntegrationStatus.Pending:
-      return <Badge>Pending</Badge>
-  }
-}
-
 const ActiveRepoTable: React.FC<{
   providerId: string
   providerStatus: IntegrationStatus | undefined
   kind: IntegrationKind
 }> = ({ providerStatus, providerId, kind }) => {
   const [page, setPage] = React.useState(1)
+  const [{ data: userGroupData, fetching: fetchingUserGroups }] = useQuery({
+    query: userGroupsQuery
+  })
   const {
     repositories: inactiveRepositories,
     setRepositories: setInactiveRepositories,
@@ -286,139 +282,175 @@ const ActiveRepoTable: React.FC<{
   }, [])
 
   return (
-    <LoadingWrapper loading={fetching}>
-      <Table className="table-fixed">
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[25%]">Name</TableHead>
-            <TableHead className="w-[40%]">URL</TableHead>
-            <TableHead>Job</TableHead>
-            <TableHead className="w-[100px] text-right">
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="top-[20vh]">
-                  <DialogHeader className="gap-3">
-                    <DialogTitle>Add new repository</DialogTitle>
-                    <DialogDescription>
-                      Add new repository from this provider
-                    </DialogDescription>
-                  </DialogHeader>
-                  <AddRepositoryForm
-                    onCancel={() => setOpen(false)}
-                    onCreated={onCreated}
-                    repositories={inactiveRepositories}
-                    kind={kind}
-                    providerStatus={providerStatus}
-                    fetchingRepos={!isInactiveRepositoriesLoaded}
-                  />
-                </DialogContent>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <IconPlus />
-                  </Button>
-                </DialogTrigger>
-              </Dialog>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {activeRepos?.length || recentlyActivatedRepositories?.length ? (
-            <>
-              {recentlyActivatedRepositories?.map(x => {
-                return (
-                  <TableRow key={x.node.id} className="!bg-muted/80">
-                    <TableCell className="break-all lg:break-words">
-                      {x.node.displayName}
-                    </TableCell>
-                    <TableCell className="break-all lg:break-words">
-                      {x.node.gitUrl}
-                    </TableCell>
-                    <TableCell></TableCell>
-                    <TableCell className="flex justify-end">
-                      <div
-                        className={buttonVariants({
-                          variant: 'ghost',
-                          size: 'icon'
-                        })}
-                      >
-                        <IconSpinner />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-              {activeRepos?.map(x => {
-                return (
-                  <TableRow key={x.node.id}>
-                    <TableCell className="break-all lg:break-words">
-                      {x.node.displayName}
-                    </TableCell>
-                    <TableCell className="break-all lg:break-words">
-                      {x.node.gitUrl}
-                    </TableCell>
-                    <TableCell>
-                      <JobInfoView
-                        jobInfo={x.node.jobInfo}
-                        onTrigger={() =>
-                          handleTriggerJobRun(x.node.jobInfo.command)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="icon"
-                        variant="hover-destructive"
-                        onClick={e =>
-                          handleDelete(x, activeRepos?.length === 1)
-                        }
-                      >
-                        <IconTrash />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </>
-          ) : (
+    <>
+      <LoadingWrapper loading={fetching}>
+        <Table className="table-fixed">
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={4} className="h-[100px] text-center">
-                No repositories
-              </TableCell>
+              <TableHead className="w-[25%]">Name</TableHead>
+              <TableHead className="w-[35%]">URL</TableHead>
+              <TableHead className="w-[140px]">Access</TableHead>
+              <TableHead className="w-[180px]">Job</TableHead>
+              <TableHead className="w-[60px] text-right">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shadow-none"
+                  onClick={e => setOpen(true)}
+                >
+                  <IconPlus />
+                </Button>
+              </TableHead>
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
-      {(page > 1 || pageInfo?.hasNextPage) && (
-        <div className="mt-2 flex justify-end">
-          <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-            {' '}
-            Page {page}
+          </TableHeader>
+          <TableBody>
+            {activeRepos?.length || recentlyActivatedRepositories?.length ? (
+              <>
+                {recentlyActivatedRepositories?.map(x => {
+                  return (
+                    <TableRow key={x.node.id} className="!bg-muted/80">
+                      <TableCell className="break-all lg:break-words">
+                        {x.node.displayName}
+                      </TableCell>
+                      <TableCell className="break-all lg:break-words">
+                        {x.node.gitUrl}
+                      </TableCell>
+                      <TableCell></TableCell>
+                      <TableCell></TableCell>
+                      <TableCell className="flex justify-end">
+                        <div
+                          className={buttonVariants({
+                            variant: 'ghost',
+                            size: 'icon'
+                          })}
+                        >
+                          <IconSpinner />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+                {activeRepos?.map(x => {
+                  return (
+                    <TableRow key={x.node.id}>
+                      <TableCell className="break-all lg:break-words">
+                        {x.node.displayName}
+                      </TableCell>
+                      <TableCell className="break-all lg:break-words">
+                        {x.node.gitUrl}
+                      </TableCell>
+                      <TableCell className="break-all lg:break-words">
+                        <AccessPolicyView
+                          sourceId={x.node.sourceId}
+                          sourceName={x.node.displayName}
+                          editable
+                          fetchingUserGroups={fetchingUserGroups}
+                          userGroups={userGroupData?.userGroups}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <JobInfoView
+                          jobInfo={x.node.jobInfo}
+                          onTrigger={() =>
+                            handleTriggerJobRun(x.node.jobInfo.command)
+                          }
+                        />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="icon"
+                          variant="hover-destructive"
+                          onClick={e =>
+                            handleDelete(x, activeRepos?.length === 1)
+                          }
+                        >
+                          <IconTrash />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </>
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={5}
+                  className="h-[100px] text-center hover:bg-background"
+                >
+                  <div className="mt-4 flex flex-col items-center gap-4">
+                    <span>No repositories</span>
+                    <Button onClick={e => setOpen(true)} className="gap-1">
+                      <IconPlus />
+                      Add
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        {(page > 1 || pageInfo?.hasNextPage) && (
+          <div className="mt-2 flex justify-end">
+            <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+              {' '}
+              Page {page}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                className="h-8 w-8 p-0"
+                disabled={fetching || page === 1}
+                onClick={e => {
+                  handleLoadPage(page - 1)
+                }}
+              >
+                <IconChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                className="h-8 w-8 p-0"
+                disabled={fetching || !pageInfo?.hasNextPage}
+                onClick={e => {
+                  handleLoadPage(page + 1)
+                }}
+              >
+                <IconChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              className="h-8 w-8 p-0"
-              disabled={fetching || page === 1}
-              onClick={e => {
-                handleLoadPage(page - 1)
-              }}
-            >
-              <IconChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="h-8 w-8 p-0"
-              disabled={fetching || !pageInfo?.hasNextPage}
-              onClick={e => {
-                handleLoadPage(page + 1)
-              }}
-            >
-              <IconChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
-    </LoadingWrapper>
+        )}
+      </LoadingWrapper>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="top-[20vh]">
+          <DialogHeader className="gap-3">
+            <DialogTitle>Add new repository</DialogTitle>
+            <DialogDescription>
+              Add new repository from this provider
+            </DialogDescription>
+          </DialogHeader>
+          <AddRepositoryForm
+            onCancel={() => setOpen(false)}
+            onCreated={onCreated}
+            repositories={inactiveRepositories}
+            kind={kind}
+            providerStatus={providerStatus}
+            fetchingRepos={!isInactiveRepositoriesLoaded}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   )
+}
+
+function toStatusBadge(status: IntegrationStatus) {
+  switch (status) {
+    case IntegrationStatus.Ready:
+      return <Badge variant="successful">Ready</Badge>
+    case IntegrationStatus.Failed:
+      return <Badge variant="destructive">Error</Badge>
+    case IntegrationStatus.Pending:
+      return <Badge>Pending</Badge>
+  }
 }
 
 function useAllInactiveRepositories(id: string, kind: IntegrationKind) {

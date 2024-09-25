@@ -25,19 +25,111 @@ import {
 } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
+import LoadingWrapper from '@/components/loading-wrapper'
 
 export interface SidebarProps {
   children?: React.ReactNode
   className?: string
 }
 
+type MenuLeaf = {
+  title: string
+  href: string
+  allowUser?: boolean
+}
+
+type Menu =
+  | {
+      title: string
+      icon: React.ReactNode
+      allowUser?: boolean
+      children: MenuLeaf[]
+    }
+  | {
+      title: string
+      href: string
+      icon: React.ReactNode
+      allowUser?: boolean
+      children?: never
+    }
+
+const menus: Menu[] = [
+  {
+    title: 'Profile',
+    icon: <IconUser />,
+    href: '/profile',
+    allowUser: true
+  },
+  {
+    title: 'Information',
+    icon: <IconBookOpenText />,
+    children: [
+      {
+        title: 'System',
+        href: '/system'
+      },
+      {
+        title: 'Jobs',
+        href: '/jobs'
+      },
+      {
+        title: 'Reports',
+        href: '/reports'
+      },
+      {
+        title: 'Activities',
+        href: '/activities'
+      }
+    ]
+  },
+  {
+    title: 'Settings',
+    icon: <IconGear />,
+    allowUser: true,
+    children: [
+      {
+        title: 'General',
+        href: '/settings/general'
+      },
+      {
+        title: 'Users & Groups',
+        href: '/settings/team',
+        allowUser: true
+      },
+      {
+        title: 'Subscription',
+        href: '/settings/subscription'
+      }
+    ]
+  },
+  {
+    title: 'Integrations',
+    icon: <IconLightingBolt />,
+    children: [
+      {
+        title: 'Context Providers',
+        href: '/settings/providers/git'
+      },
+      {
+        title: 'SSO',
+        href: '/settings/sso'
+      },
+      {
+        title: 'Mail Delivery',
+        href: '/settings/mail'
+      }
+    ]
+  }
+]
+
 export default function Sidebar({ children, className }: SidebarProps) {
-  const [{ data }] = useMe()
+  const [{ data, fetching: fetchingMe }] = useMe()
   const [isShowDemoBanner] = useShowDemoBanner()
   const isAdmin = data?.me.isAdmin
   const style = isShowDemoBanner
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
+
   return (
     <ScrollArea
       className={cn('grid overflow-hidden md:grid-cols-[280px_1fr]', className)}
@@ -63,57 +155,45 @@ export default function Sidebar({ children, className }: SidebarProps) {
           </Link>
           <div className="flex-1 overflow-y-auto">
             <div className="flex flex-col gap-2 px-4 pb-4">
-              <SidebarButton href="/profile">
-                <IconUser /> Profile
-              </SidebarButton>
-              {isAdmin && (
-                <>
-                  <SidebarCollapsible
-                    title={
-                      <>
-                        <IconBookOpenText /> Information
-                      </>
+              <LoadingWrapper loading={fetchingMe}>
+                {menus.map((menu, index) => {
+                  if (menu.allowUser || isAdmin) {
+                    if (menu.children) {
+                      return (
+                        <SidebarCollapsible
+                          key={index}
+                          title={
+                            <>
+                              {menu.icon} {menu.title}
+                            </>
+                          }
+                        >
+                          {menu.children.map((child, childIndex) => {
+                            if (child.allowUser || isAdmin) {
+                              return (
+                                <SidebarButton
+                                  key={childIndex}
+                                  href={child.href}
+                                >
+                                  {child.title}
+                                </SidebarButton>
+                              )
+                            }
+                            return null
+                          })}
+                        </SidebarCollapsible>
+                      )
+                    } else {
+                      return (
+                        <SidebarButton key={index} href={menu.href}>
+                          {menu.icon} {menu.title}
+                        </SidebarButton>
+                      )
                     }
-                  >
-                    <SidebarButton href="/system">System</SidebarButton>
-                    <SidebarButton href="/jobs">Jobs</SidebarButton>
-                    <SidebarButton href="/reports">Reports</SidebarButton>
-                    <SidebarButton href="/activities">Activities</SidebarButton>
-                  </SidebarCollapsible>
-                  <SidebarCollapsible
-                    title={
-                      <>
-                        <IconGear />
-                        Settings
-                      </>
-                    }
-                  >
-                    <SidebarButton href="/settings/general">
-                      General
-                    </SidebarButton>
-                    <SidebarButton href="/settings/team">Members</SidebarButton>
-                    <SidebarButton href="/settings/subscription">
-                      Subscription
-                    </SidebarButton>
-                  </SidebarCollapsible>
-                  <SidebarCollapsible
-                    title={
-                      <>
-                        <IconLightingBolt />
-                        Integrations
-                      </>
-                    }
-                  >
-                    <SidebarButton href="/settings/providers/git">
-                      Context Providers
-                    </SidebarButton>
-                    <SidebarButton href="/settings/sso">SSO</SidebarButton>
-                    <SidebarButton href="/settings/mail">
-                      Mail Delivery
-                    </SidebarButton>
-                  </SidebarCollapsible>
-                </>
-              )}
+                  }
+                  return null
+                })}
+              </LoadingWrapper>
             </div>
           </div>
         </nav>

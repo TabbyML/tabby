@@ -55,7 +55,10 @@ const formSchema = z.object({
   smtpUsername: z.string(),
   smtpPassword: z.string(),
   smtpServer: z.string(),
-  smtpPort: z.coerce.number(),
+  smtpPort: z.coerce.number({
+    invalid_type_error: 'Invalid port',
+    required_error: 'Required'
+  }),
   fromAddress: z.string(),
   encryption: z.nativeEnum(Encryption),
   authMethod: z.nativeEnum(AuthMethod)
@@ -97,6 +100,7 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
   const [deleteAlertVisible, setDeleteAlertVisible] = React.useState(false)
 
   const updateEmailSetting = useMutation(updateEmailSettingMutation, {
+    form,
     onCompleted(data) {
       if (data?.updateEmailSetting) {
         onSuccess?.()
@@ -194,7 +198,6 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
                 <FormControl>
                   <Input
                     placeholder="e.g. from@gmail.com"
-                    type="email"
                     autoCapitalize="none"
                     autoComplete="email"
                     autoCorrect="off"

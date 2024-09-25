@@ -19,10 +19,10 @@ public class GitProvider {
 			if (eclipseJGitProvider.isAvailable()) {
 				return eclipseJGitProvider;
 			} else {
-				logger.info("Eclipse JGitProvider is not available.");
+				logger.info("Eclipse JGit Provider is not available.");
 			}
 		} catch (NoClassDefFoundError e) {
-			logger.info("Eclipse JGitProvider is not available.");
+			logger.info("Eclipse JGit Provider is not available.");
 		}
 		return new NoOpGitProvider();
 	}

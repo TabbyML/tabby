@@ -1,0 +1,25 @@
+description = 'Limit scope: rust 02'
+
+[config]
+minCompletionChars = 1
+
+[context]
+filepath = 'stop.rs'
+language = 'rust'
+# indentation = '  ' # not specified
+text = '''
+fn add(x: i32, y: i32) -> i32 {
+    println!("x:├ {}", x);
+    println!("y: {}", y);
+    println!("x + y: {}┤", x);
+    return x + y;
+}
+'''
+
+[expected]
+text = '''
+fn add(x: i32, y: i32) -> i32 {
+    println!("x:├ {}┤", x);
+    return x + y;
+}
+'''
