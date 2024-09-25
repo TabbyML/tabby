@@ -224,6 +224,10 @@ export class Server {
         this.connection.sendNotification(AgentIssuesSync.type, { issues: this.buildAgentIssues().issues });
       });
 
+      this.tabbyApiClient.on("isConnectingUpdated", async () => {
+        this.connection.sendNotification(AgentStatusSync.type, { status: this.buildAgentStatus() });
+      });
+
       this.tabbyApiClient.on("hasCompletionResponseTimeIssueUpdated", async () => {
         this.connection.sendNotification(AgentIssuesSync.type, { issues: this.buildAgentIssues().issues });
       });
