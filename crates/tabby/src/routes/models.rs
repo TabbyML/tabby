@@ -4,9 +4,9 @@ use tabby_common::config::Config;
 use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct SupportedModel {
-    completion: Vec<String>,
-    chat: Vec<String>,
+pub struct ModelInfo {
+    completion: Option<Vec<String>>,
+    chat: Option<Vec<String>>,
 }
 
 #[utoipa::path(
@@ -21,26 +21,24 @@ pub struct SupportedModel {
         ("token" = [])
     )
 )]
-pub async fn models() -> Json<SupportedModel> {
+pub async fn models() -> Json<ModelInfo> {
     let models: tabby_common::config::ModelConfigGroup =
         Config::load().expect("Config file should be exist").model;
-    let mut http_model_configs: SupportedModel = SupportedModel {
-        completion: Vec::new(),
-        chat: Vec::new(),
+    let mut http_model_configs: ModelInfo = ModelInfo {
+        completion: None,
+        chat: None,
     };
 
     if let Some(tabby_common::config::ModelConfig::Http(completion_http_config)) = models.completion
     {
-        if let Some(not_none_supported_models) = completion_http_config.supported_models {
-            http_model_configs
-                .completion
-                .extend(not_none_supported_models);
+        if let Some(models) = completion_http_config.supported_models {
+            http_model_configs.completion = Some(models.clone());
         }
     }
 
-    if let Some(tabby_common::config::ModelConfig::Http(http_config)) = models.chat {
-        if let Some(not_none_supported_models) = http_config.supported_models {
-            http_model_configs.chat.extend(not_none_supported_models);
+    if let Some(tabby_common::config::ModelConfig::Http(chat_http_config)) = models.chat {
+        if let Some(models) = chat_http_config.supported_models {
+            http_model_configs.chat = Some(models.clone());
         }
     }
 

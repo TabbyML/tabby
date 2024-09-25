@@ -57,11 +57,11 @@ mod completions;
 mod events;
 mod health;
 mod server_setting;
-mod supported_models;
+mod models;
 
 pub use chat::*;
 pub use completions::*;
 pub use events::*;
 pub use health::*;
 pub use server_setting::*;
-pub use supported_models::*;
+pub use models::*;

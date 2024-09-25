@@ -1,6 +1,5 @@
 use axum::Json;
 use tabby_common::api::server_setting::ServerSetting;
-// use tabby_common::config::HttpModelConfig;
 
 #[utoipa::path(
     get,
