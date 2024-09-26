@@ -32,8 +32,8 @@ use tracing::{debug, error, warn};
 
 use crate::bail;
 
+#[cfg(test)]
 pub mod testutils;
-
 pub struct AnswerService {
     config: AnswerConfig,
     chat: Arc<dyn ChatCompletionStream>,
