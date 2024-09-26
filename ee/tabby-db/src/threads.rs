@@ -407,12 +407,18 @@ mod tests {
         assert_eq!(db.delete_expired_ephemeral_threads().await.unwrap(), 1);
 
         // The remaining thread should be the non-ephemeral thread
-        let threads = db.list_threads(None, None, None, None, false).await.unwrap();
+        let threads = db
+            .list_threads(None, None, None, None, false)
+            .await
+            .unwrap();
         assert_eq!(threads.len(), 1);
         assert_eq!(threads[0].id, non_ephemeral_thread_id);
 
         // No threads are ephemeral
-        let threads = db.list_threads(None, Some(true), None, None, false).await.unwrap();
+        let threads = db
+            .list_threads(None, Some(true), None, None, false)
+            .await
+            .unwrap();
         assert_eq!(threads.len(), 0);
     }
 }
