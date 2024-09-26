@@ -46,7 +46,7 @@ impl ThreadService for ThreadServiceImpl {
 
     async fn get(&self, id: &ID) -> Result<Option<thread::Thread>> {
         Ok(self
-            .list(Some(&[id.clone()]), None, None, None, None)
+            .list(Some(&[id.clone()]), None, None, None, None, None)
             .await?
             .into_iter()
             .next())
@@ -195,6 +195,7 @@ impl ThreadService for ThreadServiceImpl {
     async fn list(
         &self,
         ids: Option<&[ID]>,
+        is_ephemeral: Option<bool>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
@@ -209,7 +210,7 @@ impl ThreadService for ThreadServiceImpl {
         });
         let threads = self
             .db
-            .list_threads(ids.as_deref(), limit, skip_id, backwards)
+            .list_threads(ids.as_deref(), is_ephemeral, limit, skip_id, backwards)
             .await?;
 
         Ok(threads.into_iter().map(Into::into).collect())

@@ -54,21 +54,13 @@ export class TabbyApiClient extends EventEmitter {
 
   private healthCheckMutexAbortController: AbortController | undefined = undefined;
 
-  private readonly reconnectTimer: ReturnType<typeof setInterval>;
+  private reconnectTimer: ReturnType<typeof setInterval> | undefined = undefined;
 
   constructor(
     private readonly configurations: Configurations,
     private readonly anonymousUsageLogger: AnonymousUsageLogger,
   ) {
     super();
-
-    const reconnectInterval = 1000 * 30; // 30s
-    this.reconnectTimer = setInterval(async () => {
-      if (this.status === "noConnection" || this.status === "unauthorized") {
-        this.logger.debug("Trying to reconnect...");
-        await this.connect();
-      }
-    }, reconnectInterval);
   }
 
   async initialize(clientInfo: ClientInfo | undefined) {
@@ -91,6 +83,14 @@ export class TabbyApiClient extends EventEmitter {
         this.connect(); // no await
       }
     });
+
+    const reconnectInterval = 1000 * 30; // 30s
+    this.reconnectTimer = setInterval(async () => {
+      if (this.status === "noConnection" || this.status === "unauthorized") {
+        this.logger.debug("Trying to reconnect...");
+        await this.connect();
+      }
+    }, reconnectInterval);
   }
 
   async shutdown() {
@@ -215,12 +215,12 @@ export class TabbyApiClient extends EventEmitter {
 
   isCodeCompletionApiAvailable(): boolean {
     const health = this.serverHealth;
-    return !!(health && health["model"] && health["device"]);
+    return !!(health && health["model"]);
   }
 
   isChatApiAvailable(): boolean {
     const health = this.serverHealth;
-    return !!(health && health["chat_model"] && health["chat_device"]);
+    return !!(health && health["chat_model"]);
   }
 
   async connect(): Promise<void> {

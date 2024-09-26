@@ -70,6 +70,7 @@ impl DbConn {
     pub async fn list_threads(
         &self,
         ids: Option<&[i64]>,
+        is_ephemeral: Option<bool>,
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
@@ -80,6 +81,14 @@ impl DbConn {
             let ids: Vec<String> = ids.iter().map(i64::to_string).collect();
             let ids = ids.join(", ");
             conditions.push(format!("id in ({ids})"));
+        }
+
+        if let Some(is_ephemeral) = is_ephemeral {
+            if is_ephemeral {
+                conditions.push("is_ephemeral".to_string());
+            } else {
+                conditions.push("NOT is_ephemeral".to_string());
+            }
         }
 
         let condition = (!conditions.is_empty()).then_some(conditions.join(" AND "));
@@ -398,8 +407,18 @@ mod tests {
         assert_eq!(db.delete_expired_ephemeral_threads().await.unwrap(), 1);
 
         // The remaining thread should be the non-ephemeral thread
-        let threads = db.list_threads(None, None, None, false).await.unwrap();
+        let threads = db
+            .list_threads(None, None, None, None, false)
+            .await
+            .unwrap();
         assert_eq!(threads.len(), 1);
         assert_eq!(threads[0].id, non_ephemeral_thread_id);
+
+        // No threads are ephemeral
+        let threads = db
+            .list_threads(None, Some(true), None, None, false)
+            .await
+            .unwrap();
+        assert_eq!(threads.len(), 0);
     }
 }
