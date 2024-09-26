@@ -1,7 +1,8 @@
+use std::sync::Arc;
+
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use std::sync::Arc;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ModelInfo {
@@ -28,7 +29,8 @@ pub async fn models(State(state): State<Arc<tabby_common::config::Config>>) -> J
         chat: None,
     };
 
-    if let Some(tabby_common::config::ModelConfig::Http(completion_http_config)) = models.completion {
+    if let Some(tabby_common::config::ModelConfig::Http(completion_http_config)) = models.completion
+    {
         if let Some(models) = completion_http_config.supported_models {
             http_model_configs.completion = Some(models.clone());
         }
