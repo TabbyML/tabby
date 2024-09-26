@@ -12,6 +12,7 @@ mod webserver;
 pub use service::*;
 
 pub mod public {
+
     pub use super::{
         /* used by tabby workers (consumer of /hub api) */
         hub::{create_worker_client, WorkerClient},
