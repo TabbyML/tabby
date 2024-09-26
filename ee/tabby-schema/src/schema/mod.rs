@@ -537,6 +537,7 @@ impl Query {
     async fn threads(
         ctx: &Context,
         ids: Option<Vec<ID>>,
+        is_ephemeral: Option<bool>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -551,7 +552,7 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .thread()
-                    .list(ids.as_deref(), after, before, first, last)
+                    .list(ids.as_deref(), is_ephemeral, after, before, first, last)
                     .await
             },
         )
