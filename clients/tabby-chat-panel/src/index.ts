@@ -1,4 +1,7 @@
 import { createThreadFromIframe, createThreadFromInsideIframe } from '@quilted/threads'
+import { version } from '../package.json'
+
+export const TABBY_CHAT_PANEL_API_VERSION: string = version
 
 export interface LineRange {
   start: number
@@ -23,6 +26,10 @@ export interface FetcherOptions {
 export interface InitRequest {
   fetcherOptions: FetcherOptions
   focusKey?: FocusKeybinding
+}
+
+export interface OnLoadedParams {
+  apiVersion: string
 }
 
 export interface FocusKeybinding {
@@ -60,7 +67,7 @@ export interface ClientApi {
   onApplyInEditor: (content: string, opts?: { languageId: string, smart: boolean }) => void
 
   // On current page is loaded.
-  onLoaded: () => void
+  onLoaded: (params?: OnLoadedParams | undefined) => void
 
   // On user copy content to clipboard.
   onCopy: (content: string) => void
@@ -95,7 +102,7 @@ export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerA
 }
 
 export function createServer(api: ServerApi): ClientApi {
-  return createThreadFromInsideIframe({
+  const clientApi: ClientApi = createThreadFromInsideIframe({
     expose: {
       init: api.init,
       sendMessage: api.sendMessage,
@@ -105,4 +112,6 @@ export function createServer(api: ServerApi): ClientApi {
       updateTheme: api.updateTheme,
     },
   })
+
+  return clientApi
 }

@@ -25,6 +25,7 @@ tracing.workspace = true
 chrono.workspace = true
 axum.workspace = true
 axum-extra = { workspace = true, features = ["typed-header"] }
+parse-git-url = "0.5.1"
 
 [dev-dependencies]
 temp_testdir = { workspace = true }

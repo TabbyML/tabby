@@ -2,23 +2,35 @@
 sidebar_position: 10
 ---
 
-import RepositoryProvidersUrl from "./repository-providers.png";
+import ContextProvidersUrl from "./context-providers.png";
 import GitUrl from "./git.png";
 import GitHubGitLabUrl from "./github-gitlab.png";
 import SelectRepoUrl from "./select-repo.png";
+import CodeBrowserEntryUrl from "./code-browser-entry.png";
 import CodeBrowserUrl from "./code-browser.png";
+import DocumentUrl from "./document.png";
 import JobLinkUrl from "./repository-job.png";
 import JobLogUrl from "./repository-job-run.png";
 
-# Repository Context
+# Context Providers
 
-The repository context is used to connect Tabby with a source code repository from Git, GitHub, GitLab, etc. Tabby fetches the source code from the repository, parses it into an AST, and stores it in the index. During LLM inference, this context is utilized for code completion, as well as chat and search functionalities.
+Tabby Context supports two kinds of context currently:
+1. source code repositories
+2. developer docs
+
+The source code context is used to connect Tabby with a source code repository from Git, GitHub, GitLab, etc.
+Tabby fetches the source code from the repository, parses it into an AST, and stores it in the index. During LLM inference, this context is utilized for code completion, as well as chat and search functionalities.
+
+The developer docs context is currently on Beta,
+it is a critical source for engineering knowledge,
+simply press the `@` button in the chat interface and select the document you wish to include,
+Tabby will include these documents when interacting with LLMs.
 
 ## Adding a Repository through Admin UI
 
-1. Navigate to the **Integrations > Repository Providers** page.
+1. Navigate to the **Integrations > Context Providers** page.
 
-<img src={RepositoryProvidersUrl} alt="Repository Providers" />
+<img src={ContextProvidersUrl} alt="Context Providers" />
 
 2. Click **Create** to begin the process of adding a repository provider.
 
@@ -26,7 +38,7 @@ The repository context is used to connect Tabby with a source code repository fr
 
     <img src={GitUrl} alt="Git" width="700" />
 
-    Local repositories are supported via the file:// protocol, but if running from a Docker container, you need to make it accessible with the [`--volume` flag](https://docs.docker.com/reference/cli/docker/container/run/#volume) and use the internal Docker path.
+    Local repositories are supported via the `file://` protocol, but if running from a Docker container, you need to make it accessible with the [`--volume` flag](https://docs.docker.com/reference/cli/docker/container/run/#volume) and use the internal Docker path.
 
   - For GitHub / GitLab, a personal access token is required to access private repositories.
     * Check the instructions in the corresponding tab to create a token.
@@ -65,10 +77,24 @@ name = "repository_a"
 git_url = "file:///home/users/repository_a"
 ```
 
+
+## Adding a Developer Doc through Admin UI
+
+1. Navigate to the **Integrations > Context Providers** page, and then select the `Developer Docs(Beta)`.
+
+<img src={ContextProvidersUrl} alt="Context Providers" />
+
+2. Turn on the switch to enable the integrated sites, or click the `+` button to add your own URLs
+
+<img src={DocumentUrl} alt="Document" />
+
+
 ## Verifying the Repository Provider
 
 Once connected, the indexing job will start automatically. You can check the status of the indexing job on the **Information > Jobs** page.
 
 Additionally, you can also visit the **Code Browser** page to view the connected repository.
 
-<img src={CodeBrowserUrl} alt="code browser" width="800" />'
+<img src={CodeBrowserEntryUrl} alt="code browser entry" width="300" />
+
+<img src={CodeBrowserUrl} alt="code browser" width="800" />

@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use juniper::{graphql_interface, graphql_object, GraphQLEnum, GraphQLInterface, GraphQLObject};
+use juniper::{
+    graphql_interface, graphql_object, GraphQLEnum, GraphQLInterface, GraphQLObject, ID,
+};
 use regex::{Captures, Regex};
+use tabby_common::{axum::AllowedCodeRepository, config::CodeRepository};
 
 use super::{
     repository::{GitRepository, ProvidedRepository, Repository},
@@ -31,6 +34,8 @@ pub trait ContextSourceId {
 #[derive(GraphQLInterface)]
 #[graphql(context = Context, impl = [ContextSourceIdValue], for = [CustomWebDocument, PresetWebDocument, Repository, WebContextSource])]
 pub struct ContextSource {
+    pub id: ID,
+
     // start implements ContextSource
     pub source_id: String,
     // end   implements ContextSource
@@ -66,6 +71,10 @@ const PUBLIC_WEB_INTERNAL_SOURCE_ID: &str = "internal-public-web";
 
 #[graphql_object(context = Context, impl = [ContextSourceIdValue, ContextSourceValue])]
 impl WebContextSource {
+    fn id(&self) -> ID {
+        ID::new(PUBLIC_WEB_INTERNAL_SOURCE_ID.to_owned())
+    }
+
     fn source_kind(&self) -> ContextSourceKind {
         ContextSourceKind::Web
     }
@@ -89,10 +98,23 @@ impl ContextInfo {
     pub fn helper(&self) -> ContextInfoHelper {
         ContextInfoHelper::new(self)
     }
+
+    pub fn allowed_code_repository(&self) -> AllowedCodeRepository {
+        let mut repositories = vec![];
+        repositories.reserve(self.sources.len());
+        for x in &self.sources {
+            if let ContextSourceValueEnum::Repository(x) = x {
+                repositories.push(CodeRepository::new(&x.git_url, &x.source_id));
+            }
+        }
+
+        AllowedCodeRepository::new(repositories)
+    }
 }
 
 pub struct ContextInfoHelper {
     sources: HashMap<String, String>,
+    allowed_code_repository: AllowedCodeRepository,
 }
 
 impl ContextInfoHelper {
@@ -103,6 +125,7 @@ impl ContextInfoHelper {
                 .iter()
                 .map(|source| (source.source_id(), source.source_name()))
                 .collect(),
+            allowed_code_repository: context_info.allowed_code_repository(),
         }
     }
 
@@ -126,6 +149,10 @@ impl ContextInfoHelper {
 
     pub fn can_access_source_id(&self, source_id: &str) -> bool {
         self.sources.contains_key(source_id)
+    }
+
+    pub fn allowed_code_repository(&self) -> &AllowedCodeRepository {
+        &self.allowed_code_repository
     }
 }
 

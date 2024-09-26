@@ -10,7 +10,7 @@
       "name": "Apache 2.0",
       "url": "https://github.com/TabbyML/tabby/blob/main/LICENSE"
     },
-    "version": "0.16.0"
+    "version": "0.17.0"
   },
   "servers": [
     {
@@ -212,12 +212,12 @@
       "CodeSearchQuery": {
         "type": "object",
         "required": [
-          "git_url",
           "content"
         ],
         "properties": {
           "git_url": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "filepath": {
             "type": "string",

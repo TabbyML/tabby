@@ -110,7 +110,7 @@ impl From<GitRepository> for Repository {
     fn from(value: GitRepository) -> Self {
         Self {
             source_id: value.source_id(),
-            id: value.id,
+            id: ID::new(value.source_id()),
             name: value.name,
             kind: RepositoryKind::Git,
             dir: RepositoryConfig::resolve_dir(&value.git_url),

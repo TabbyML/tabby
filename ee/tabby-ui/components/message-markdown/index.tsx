@@ -16,7 +16,7 @@ import {
 } from '@/lib/gql/generates/graphql'
 import { AttachmentCodeItem, AttachmentDocItem } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { CodeBlock } from '@/components/ui/codeblock'
+import { CodeBlock, CodeBlockProps } from '@/components/ui/codeblock'
 import {
   HoverCard,
   HoverCardContent,
@@ -74,6 +74,8 @@ export interface MessageMarkdownProps {
   contextInfo?: ContextInfo
   fetchingContextInfo?: boolean
   className?: string
+  // wrapLongLines for code block
+  canWrapLongLines?: boolean
 }
 
 type MessageMarkdownContextValue = {
@@ -87,6 +89,7 @@ type MessageMarkdownContextValue = {
   onCodeCitationMouseLeave?: (index: number) => void
   contextInfo: ContextInfo | undefined
   fetchingContextInfo: boolean
+  canWrapLongLines: boolean
 }
 
 const MessageMarkdownContext = createContext<MessageMarkdownContextValue>(
@@ -103,6 +106,7 @@ export function MessageMarkdown({
   contextInfo,
   fetchingContextInfo,
   className,
+  canWrapLongLines,
   ...rest
 }: MessageMarkdownProps) {
   const messageAttachments: MessageAttachments = useMemo(() => {
@@ -176,7 +180,8 @@ export function MessageMarkdown({
         onCodeCitationMouseEnter: rest.onCodeCitationMouseEnter,
         onCodeCitationMouseLeave: rest.onCodeCitationMouseLeave,
         contextInfo,
-        fetchingContextInfo: !!fetchingContextInfo
+        fetchingContextInfo: !!fetchingContextInfo,
+        canWrapLongLines: !!canWrapLongLines
       }}
     >
       <MemoizedReactMarkdown
@@ -237,12 +242,13 @@ export function MessageMarkdown({
             }
 
             return (
-              <CodeBlock
+              <CodeBlockWrapper
                 key={Math.random()}
                 language={(match && match[1]) || ''}
                 value={String(children).replace(/\n$/, '')}
                 onApplyInEditor={onApplyInEditor}
                 onCopyContent={onCopyContent}
+                canWrapLongLines={canWrapLongLines}
                 {...props}
               />
             )
@@ -289,6 +295,12 @@ export function ErrorMessageBlock({
       {errorMessage}
     </MemoizedReactMarkdown>
   )
+}
+
+function CodeBlockWrapper(props: CodeBlockProps) {
+  const { canWrapLongLines } = useContext(MessageMarkdownContext)
+
+  return <CodeBlock {...props} canWrapLongLines={canWrapLongLines} />
 }
 
 function CitationTag({

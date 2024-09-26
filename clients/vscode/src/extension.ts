@@ -10,10 +10,11 @@ import { Issues } from "./Issues";
 import { GitProvider } from "./git/GitProvider";
 import { ContextVariables } from "./ContextVariables";
 import { StatusBarItem } from "./StatusBarItem";
-import { ChatViewProvider } from "./chat/ChatViewProvider";
+import { ChatSideViewProvider } from "./chat/ChatSideViewProvider";
+import { ChatPanelViewProvider } from "./chat/ChatPanelViewProvider";
 import { Commands } from "./Commands";
 import { Status } from "tabby-agent";
-import { CodeActionProvider } from "./CodeAction";
+import { CodeActions } from "./CodeActions";
 
 const isBrowser = !!process.env["IS_BROWSER"];
 const logger = getLogger();
@@ -57,7 +58,6 @@ export async function activate(context: ExtensionContext) {
   client.registerConfigManager(config);
   client.registerInlineCompletionProvider(inlineCompletionProvider);
   client.registerGitProvider(gitProvider);
-  client.registerCodeActionProvider(new CodeActionProvider(contextVariables));
 
   // Register config callback for past ServerConfig
   client.agent.addListener("didChangeStatus", async (status: Status) => {
@@ -79,13 +79,14 @@ export async function activate(context: ExtensionContext) {
   });
 
   // Register chat panel
-  const chatViewProvider = new ChatViewProvider(context, client.agent, logger, gitProvider, client.chat);
+  const chatViewProvider = new ChatSideViewProvider(context, client.agent, logger, gitProvider);
   context.subscriptions.push(
     window.registerWebviewViewProvider("tabby.chatView", chatViewProvider, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
   );
-
+  // Create chat panel view
+  const chatPanelViewProvider = new ChatPanelViewProvider(context, client.agent, logger, gitProvider);
   await gitProvider.init();
   await client.start();
 
@@ -104,7 +105,11 @@ export async function activate(context: ExtensionContext) {
     inlineCompletionProvider,
     chatViewProvider,
     gitProvider,
+    chatPanelViewProvider,
   );
+  /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */ /* eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error */
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ // @ts-ignore noUnusedLocals
+  const codeActions = new CodeActions(client, contextVariables);
 
   logger.info("Tabby extension activated.");
 }

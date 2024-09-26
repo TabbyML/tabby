@@ -165,7 +165,7 @@ mod tests {
                 prompt: "testprompt".into(),
                 segments: None,
                 choices: vec![],
-                user_agent: "ide: version test".into(),
+                user_agent: Some("ide: version test".into()),
             },
         );
 
@@ -242,7 +242,7 @@ mod tests {
                 prompt: "testprompt".into(),
                 segments: None,
                 choices: vec![],
-                user_agent: "ide: version unknown".into(),
+                user_agent: Some("ide: version unknown".into()),
             },
         );
 
@@ -257,7 +257,7 @@ mod tests {
                 prompt: "testprompt".into(),
                 segments: None,
                 choices: vec![],
-                user_agent: "ide: version unknown".into(),
+                user_agent: Some("ide: version unknown".into()),
             },
         );
 

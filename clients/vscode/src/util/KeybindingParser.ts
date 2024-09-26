@@ -2,6 +2,7 @@ import { FocusKeybinding } from "tabby-chat-panel/index";
 import { env, UIKind, Uri, workspace } from "vscode";
 import os from "os";
 import { join } from "path";
+import { getLogger } from "../logger";
 
 interface KeyBinding {
   key: string;
@@ -75,8 +76,8 @@ export async function readUserKeybindingsConfig(): Promise<KeyBinding[] | undefi
 
     return parsedContent;
   } catch (error) {
-    console.error("Error reading keybindings file:", error);
-    throw error;
+    getLogger().info("There is no default keybindings file, using Tabby default keybindings");
+    return undefined;
   }
 }
 
