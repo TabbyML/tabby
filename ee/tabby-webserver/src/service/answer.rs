@@ -41,9 +41,6 @@ pub struct AnswerService {
     serper: Option<Box<dyn DocSearch>>,
 }
 
-// FIXME(meng): make this configurable.
-const PRESENCE_PENALTY: f32 = 0.5;
-
 impl AnswerService {
     fn new(
         config: &AnswerConfig,
@@ -95,8 +92,8 @@ impl AnswerService {
                     &context_info_helper,
                     code_query,
                     &self.config.code_search_params,
-                    options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref()
-                )).await;
+                    options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref())
+                ).await;
                 attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
 
                 if !hits.is_empty() {
@@ -132,7 +129,7 @@ impl AnswerService {
                     .await;
                 yield Ok(ThreadRunItem::ThreadRelevantQuestions(ThreadRelevantQuestions{
                     questions
-            }));
+                }));
             }
 
             // 4. Prepare requesting LLM
@@ -141,7 +138,7 @@ impl AnswerService {
 
                 CreateChatCompletionRequestArgs::default()
                     .messages(chat_messages)
-                    .presence_penalty(PRESENCE_PENALTY)
+                    .presence_penalty(self.config.presence_penalty)
                     .build()
                     .expect("Failed to build chat completion request")
             };
@@ -173,7 +170,7 @@ impl AnswerService {
                 if let Some(content) = chunk.choices[0].delta.content.as_deref() {
                     yield Ok(ThreadRunItem::ThreadAssistantMessageContentDelta(ThreadAssistantMessageContentDelta {
                         delta: content.to_owned()
-                }));
+                    }));
                 }
             }
         };

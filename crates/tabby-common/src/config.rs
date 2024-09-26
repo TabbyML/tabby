@@ -303,6 +303,10 @@ fn default_max_decoding_tokens() -> usize {
     64
 }
 
+fn default_presence_penalty() -> f32 {
+    0.5
+}
+
 impl Default for CompletionConfig {
     fn default() -> Self {
         Self {
@@ -317,6 +321,9 @@ impl Default for CompletionConfig {
 pub struct AnswerConfig {
     #[serde(default)]
     pub code_search_params: CodeSearchParams,
+
+    #[serde(default = "default_presence_penalty")]
+    pub presence_penalty: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
