@@ -9,14 +9,15 @@ import Color from 'color'
 import { ErrorBoundary } from 'react-error-boundary'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
-import type {
-  ChatMessage,
-  Context,
-  ErrorMessage,
-  FetcherOptions,
-  FocusKeybinding,
-  InitRequest,
-  NavigateOpts
+import {
+  TABBY_CHAT_PANEL_API_VERSION,
+  type ChatMessage,
+  type Context,
+  type ErrorMessage,
+  type FetcherOptions,
+  type FocusKeybinding,
+  type InitRequest,
+  type NavigateOpts
 } from 'tabby-chat-panel'
 import { useServer } from 'tabby-chat-panel/react'
 
@@ -186,7 +187,9 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (server) {
-      server?.onLoaded()
+      server?.onLoaded({
+        apiVersion: TABBY_CHAT_PANEL_API_VERSION
+      })
     }
   }, [server])
 
