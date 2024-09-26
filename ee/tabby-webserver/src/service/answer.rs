@@ -32,8 +32,6 @@ use tracing::{debug, error, warn};
 
 use crate::bail;
 
-#[cfg(test)]
-pub mod testutils;
 pub struct AnswerService {
     config: AnswerConfig,
     chat: Arc<dyn ChatCompletionStream>,
@@ -493,6 +491,9 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
 "#
     )
 }
+
+#[cfg(test)]
+pub mod testutils;
 
 #[cfg(test)]
 mod tests {
