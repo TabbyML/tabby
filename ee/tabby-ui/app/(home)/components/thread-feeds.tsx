@@ -36,6 +36,7 @@ export const ThreadFeedsContext = createContext<ThreadFeedsContextValue>(
 const listThreads = graphql(/* GraphQL */ `
   query ListThreads(
     $ids: [ID!]
+    $isEphemeral: Boolean
     $after: String
     $before: String
     $first: Int
@@ -43,6 +44,7 @@ const listThreads = graphql(/* GraphQL */ `
   ) {
     threads(
       ids: $ids
+      isEphemeral: $isEphemeral
       after: $after
       before: $before
       first: $first
@@ -74,7 +76,8 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
     query: listThreads,
     variables: {
       last: 10,
-      before: beforeCursor
+      before: beforeCursor,
+      isEphemeral: false
     }
   })
 
