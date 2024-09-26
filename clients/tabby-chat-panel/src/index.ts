@@ -29,7 +29,7 @@ export interface InitRequest {
 }
 
 export interface OnLoadedParams {
-  apiVersion?: string
+  apiVersion: string
 }
 
 export interface FocusKeybinding {
@@ -112,13 +112,6 @@ export function createServer(api: ServerApi): ClientApi {
       updateTheme: api.updateTheme,
     },
   })
-  return {
-    ...clientApi,
-    onLoaded: (params?: OnLoadedParams | undefined) => {
-      clientApi.onLoaded({
-        ...params,
-        apiVersion: TABBY_CHAT_PANEL_API_VERSION,
-      })
-    },
-  }
+
+  return clientApi
 }
