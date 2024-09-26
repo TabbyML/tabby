@@ -181,16 +181,16 @@ function ThreadItem({ data }: ThreadItemProps) {
         fallback={<ThreadItemSkeleton className="py-3" />}
       >
         <Link href={`/search/${titleSlug}-${threadId}`} className="group">
-          <div className="mb-4 pt-3">
-            <div className="mb-1 flex items-center gap-2">
-              <IconFileQuestion className="h-6 w-6" />
-              <div className="break-anywhere truncate text-base font-semibold group-hover:underline">
+          <div className="pt-3 mb-4">
+            <div className="flex items-center gap-2 mb-1.5">
+              <IconFileQuestion className="w-6 h-6" />
+              <div className="font-semibold break-anywhere text-base group-hover:underline truncate">
                 {title}
               </div>
             </div>
-            <div className="ml-8 flex items-center gap-1">
-              <UserAvatar user={user} className="h-6 w-6 shrink-0 border" />
-              <div className="flex items-baseline gap-3">
+            <div className="flex items-center gap-1">
+              <UserAvatar user={user} className="w-6 h-6 border shrink-0" />
+              <div className="flex items-baseline gap-2.5">
                 <div className="text-sm">{user?.name || user?.email}</div>
                 <div className="text-xs text-muted-foreground">
                   Asked{' '}
