@@ -11,6 +11,7 @@ import { Member, useAllMembers } from '@/lib/hooks/use-all-members'
 import { contextInfoQuery, listThreadMessages } from '@/lib/tabby/query'
 import { cn, getTitleFromMessages } from '@/lib/utils'
 import { CardHeader, CardTitle } from '@/components/ui/card'
+import { IconFileQuestion } from '@/components/ui/icons'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LoadMoreIndicator } from '@/components/load-more-indicator'
@@ -180,27 +181,31 @@ function ThreadItem({ data }: ThreadItemProps) {
         fallback={<ThreadItemSkeleton className="py-3" />}
       >
         <Link href={`/search/${titleSlug}-${threadId}`} className="group">
-          <div className="py-3">
-            <div className="break-anywhere mb-4 line-clamp-2 scroll-m-20 text-base font-semibold tracking-tight group-hover:underline">
-              {title}
+          <div className="pt-3 mb-4">
+            <div className="flex items-center gap-2 mb-1">
+              <IconFileQuestion className="w-6 h-6" />
+              <div className="font-semibold break-anywhere text-base group-hover:underline truncate">
+                {title}
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <UserAvatar user={user} className="h-10 w-10 shrink-0 border" />
-              <div className="space-y-1.5">
+            <div className="flex items-center gap-1 ml-8">
+              <UserAvatar user={user} className="w-6 h-6 border shrink-0" />
+              <div className="flex items-baseline gap-3">
                 <div className="text-sm">{user?.name || user?.email}</div>
-                <div className="text-xs leading-none text-muted-foreground">
-                  {moment(data.node.updatedAt).isBefore(
+                <div className="text-xs text-muted-foreground">
+                  Asked{' '}
+                  {moment(data.node.createdAt).isBefore(
                     moment().subtract(1, 'month')
                   )
-                    ? moment(data.node.updatedAt).format('YYYY-MM-DD HH:mm')
-                    : moment(data.node.updatedAt).fromNow()}
+                    ? moment(data.node.createdAt).format('YYYY-MM-DD HH:mm')
+                    : moment(data.node.createdAt).fromNow()}
                 </div>
               </div>
             </div>
           </div>
         </Link>
       </LoadingWrapper>
-      <Separator className="my-3" />
+      {/* <Separator className="my-3" /> */}
     </>
   )
 }
