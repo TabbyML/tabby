@@ -135,11 +135,10 @@ impl AnswerService {
             // 4. Prepare requesting LLM
             let request = {
                 let chat_messages = convert_messages_to_chat_completion_request(&context_info_helper, &messages, &attachment, user_attachment_input.as_ref())?;
-                let presence_penalty = validate_presence_penalty(self.config.presence_penalty);
 
                 CreateChatCompletionRequestArgs::default()
                     .messages(chat_messages)
-                    .presence_penalty(presence_penalty)
+                    .presence_penalty(self.config.presence_penalty)
                     .build()
                     .expect("Failed to build chat completion request")
             };
@@ -488,17 +487,6 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
 {user_input}
 "#
     )
-}
-
-// https://platform.openai.com/docs/api-reference/chat/create#chat-create-presence_penalty
-fn validate_presence_penalty(presence_penalty: f32) -> f32 {
-    if presence_penalty < -2.0 {
-        -2.0
-    } else if presence_penalty > 2.0 {
-        2.0
-    } else {
-        presence_penalty
-    }
 }
 
 #[cfg(test)]
