@@ -30,7 +30,6 @@ import cryptoRandomString from "crypto-random-string";
 import * as Diff from "diff";
 import { isEmptyRange } from "../utils/range";
 import { isBlank } from "../utils/string";
-import { writeFileSync } from "fs-extra";
 
 export type Edit = {
   id: ChatEditToken;

@@ -16,6 +16,7 @@ import {
   commands,
   Webview,
   ColorThemeKind,
+  ProgressLocation,
 } from "vscode";
 import type { ServerApi, ChatMessage, Context, NavigateOpts, FocusKeybinding, OnLoadedParams } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
@@ -28,6 +29,7 @@ import { getLogger } from "../logger";
 import { contributes } from "../../package.json";
 import { parseKeybinding, readUserKeybindingsConfig } from "../util/KeybindingParser";
 import { createClient } from "./chatPanel";
+import { ChatFeature } from "../lsp/ChatFeature";
 
 export class WebviewHelper {
   webview?: Webview;
@@ -43,6 +45,7 @@ export class WebviewHelper {
     private readonly agent: Agent,
     private readonly logger: LogOutputChannel,
     private readonly gitProvider: GitProvider,
+    private readonly chat: ChatFeature | undefined,
   ) {}
 
   static getColorThemeString(kind: ColorThemeKind) {
@@ -534,12 +537,8 @@ export class WebviewHelper {
         // FIXME: maybe deduplicate on chatMessage.relevantContext
         this.sendMessage(chatMessage);
       },
-      onApplyInEditor: (content: string) => {
-        const editor = window.activeTextEditor;
-        if (editor) {
-          const document = editor.document;
-          const selection = editor.selection;
-
+      onApplyInEditor: async (content: string, opts?: { languageId: string; smart: boolean }) => {
+        const getIndentInfo = (document: TextDocument, selection: Selection) => {
           // Determine the indentation for the content
           // The calculation is based solely on the indentation of the first line
           const lineText = document.lineAt(selection.start.line).text;
@@ -554,13 +553,115 @@ export class WebviewHelper {
           const indentAmountForTheFirstLine = Math.max(indent.length - selection.start.character, 0);
           const indentForTheFirstLine = indentUnit?.repeat(indentAmountForTheFirstLine) || "";
 
+          return { indent, indentForTheFirstLine };
+        };
+
+        const applyInEditor = (editor: TextEditor) => {
+          const document = editor.document;
+          const selection = editor.selection;
+          const { indent, indentForTheFirstLine } = getIndentInfo(document, selection);
           // Indent the content
           const indentedContent = indentForTheFirstLine + content.replaceAll("\n", "\n" + indent);
-
           // Apply into the editor
           editor.edit((editBuilder) => {
             editBuilder.replace(selection, indentedContent);
           });
+        };
+        const smartApplyInEditor = async (editor: TextEditor, opts: { languageId: string; smart: boolean }) => {
+          if (editor.document.languageId !== opts.languageId) {
+            getLogger().info("editor:", editor.document.languageId, "opts:", opts.languageId);
+            window.showInformationMessage("The active editor is not in the correct language. Did normal apply.");
+            applyInEditor(editor);
+            return;
+          }
+
+          getLogger("Tabby").info("Smart apply in editor started.", content);
+
+          await window.withProgress(
+            {
+              location: ProgressLocation.Notification,
+              title: "Smart Apply in Progress",
+              cancellable: true,
+            },
+            async (progress, token) => {
+              progress.report({ increment: 0, message: "Analyzing code..." });
+
+              const lineRangeRes = await this.chat?.provideLineRange(
+                {
+                  uri: editor.document.uri.toString(),
+                  applyCode: content,
+                },
+                token,
+              );
+
+              getLogger().info("line range(one-based): ", lineRangeRes?.start, lineRangeRes?.end);
+
+              if (!lineRangeRes?.start || !lineRangeRes?.end) {
+                window.showInformationMessage("Failed to apply code.");
+                applyInEditor(editor);
+                return;
+              }
+
+              progress.report({ increment: 30, message: "Preparing edit..." });
+
+              try {
+                getLogger().info("getting provide edit command", content);
+
+                const range = {
+                  start: { line: lineRangeRes.start - 1, character: 0 },
+                  end: { line: lineRangeRes.end - 1, character: 0 },
+                };
+                editor.revealRange(
+                  new Range(
+                    new Position(range.start.line, range.start.character),
+                    new Position(range.end.line, range.end.character),
+                  ),
+                  TextEditorRevealType.InCenterIfOutsideViewport,
+                );
+
+                const { indent, indentForTheFirstLine } = getIndentInfo(editor.document, editor.selection);
+
+                progress.report({ increment: 30, message: "Applying smart edit..." });
+
+                await this.chat?.provideSmartApplyEdit(
+                  {
+                    location: {
+                      uri: editor.document.uri.toString(),
+                      range,
+                    },
+                    applyCode: content,
+                    format: "previewChanges",
+                    indentInfo: {
+                      indent,
+                      indentForTheFirstLine,
+                    },
+                  },
+                  token,
+                );
+
+                progress.report({ increment: 40, message: "Finalizing..." });
+
+                getLogger().info("provide edit command done");
+              } catch (error) {
+                if (error instanceof Error) {
+                  window.showErrorMessage(error.message);
+                } else {
+                  window.showErrorMessage("An unknown error occurred");
+                }
+              }
+            },
+          );
+        };
+
+        const editor = window.activeTextEditor;
+        if (!editor || this.chat === undefined) {
+          window.showErrorMessage("No active editor found.");
+          return;
+        }
+        if (!opts || !opts.smart) {
+          applyInEditor(editor);
+        } else {
+          smartApplyInEditor(editor, opts);
         }
       },
       onLoaded: (params: OnLoadedParams | undefined) => {
