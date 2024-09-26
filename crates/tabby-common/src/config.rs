@@ -185,6 +185,7 @@ fn default_embedding_config() -> ModelConfig {
         num_gpu_layers: 9999,
         enable_fast_attention: None,
         context_size: default_context_size(),
+        stop_words: vec![],
     })
 }
 
@@ -221,6 +222,7 @@ impl ModelConfig {
             num_gpu_layers,
             enable_fast_attention: None,
             context_size: default_context_size(),
+            stop_words: vec![],
         })
     }
 }
@@ -256,6 +258,9 @@ pub struct HttpModelConfig {
     /// Used by Chat/Completion API allowing users to get supported models info.
     #[builder(default)]
     pub supported_models: Option<Vec<String>>,
+
+    #[builder(default)]
+    pub stop_words: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -273,6 +278,9 @@ pub struct LocalModelConfig {
 
     #[serde(default = "default_context_size")]
     pub context_size: usize,
+
+    #[serde(default)]
+    pub stop_words: Vec<String>,
 }
 
 fn default_parallelism() -> u8 {

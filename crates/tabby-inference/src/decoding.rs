@@ -4,6 +4,7 @@ use trie_rs::{Trie, TrieBuilder};
 
 pub struct StopConditionFactory {
     stop_trie_cache: DashMap<String, Trie<u8>>,
+    model_stop_words: Vec<String>,
 }
 
 fn reverse<T>(s: T) -> String
@@ -17,6 +18,7 @@ impl Default for StopConditionFactory {
     fn default() -> Self {
         Self {
             stop_trie_cache: DashMap::new(),
+            model_stop_words: vec![],
         }
     }
 }
@@ -24,6 +26,13 @@ impl Default for StopConditionFactory {
 type CachedTrie<'a> = dashmap::mapref::one::Ref<'a, String, Trie<u8>>;
 
 impl StopConditionFactory {
+    pub fn with_stop_words(stop_words: Vec<String>) -> Self {
+        Self {
+            stop_trie_cache: DashMap::new(),
+            model_stop_words: stop_words,
+        }
+    }
+
     pub fn create(&self, text: &str, language: Option<&'static Language>) -> StopCondition {
         if let Some(language) = language {
             StopCondition::new(self.get_trie(language), text)
@@ -33,7 +42,10 @@ impl StopConditionFactory {
     }
 
     fn get_trie<'a>(&'a self, language: &'static Language) -> Option<CachedTrie<'a>> {
-        let stop_words = language.get_stop_words();
+        let mut stop_words = language.get_stop_words();
+        // append model stop words
+        stop_words.extend(self.model_stop_words.iter().cloned());
+
         if stop_words.is_empty() {
             None
         } else {

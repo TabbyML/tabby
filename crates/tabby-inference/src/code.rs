@@ -3,6 +3,7 @@ use std::sync::Arc;
 use async_stream::stream;
 use derive_builder::Builder;
 use futures::StreamExt;
+use tabby_common::config::ModelConfig;
 use tabby_common::languages::Language;
 
 use crate::{decoding::StopConditionFactory, CompletionOptionsBuilder, CompletionStream};
@@ -31,10 +32,20 @@ pub struct CodeGeneration {
 }
 
 impl CodeGeneration {
-    pub fn new(imp: Arc<dyn CompletionStream>) -> Self {
+    pub fn new(imp: Arc<dyn CompletionStream>, config: Option<ModelConfig>) -> Self {
+        let stop_condition_factory = match config {
+            Some(ModelConfig::Local(config)) => {
+                StopConditionFactory::with_stop_words(config.stop_words)
+            }
+            Some(ModelConfig::Http(config)) => {
+                StopConditionFactory::with_stop_words(config.stop_words)
+            }
+            _ => StopConditionFactory::default(),
+        };
+
         Self {
             imp,
-            stop_condition_factory: StopConditionFactory::default(),
+            stop_condition_factory: stop_condition_factory,
         }
     }
 }
