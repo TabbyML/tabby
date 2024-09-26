@@ -31,6 +31,7 @@ export interface CodeBlockProps {
     value: string,
     opts?: { languageId: string; smart: boolean }
   ) => void
+  canWrapLongLines: boolean | undefined
 }
 
 interface languageMap {
