@@ -496,11 +496,12 @@ mod tests {
         },
         config::AnswerConfig,
     };
+    use tabby_db::DbConn;
     use tabby_inference::ChatCompletionStream;
     use tabby_schema::{
         context::{ContextInfo, ContextInfoHelper, ContextService, ContextSourceValue},
         repository::{Repository, RepositoryKind},
-        thread::{CodeQueryInput, MessageAttachment},
+        thread::{CodeQueryInput, MessageAttachment, ThreadRunItem},
         web_documents::PresetWebDocument,
         AsID,
     };
@@ -865,5 +866,70 @@ mod tests {
         assert_eq!(trim_bullet("Hello World"), "Hello World");
 
         assert_eq!(trim_bullet("1. *Bold* and -italic-"), "*Bold* and -italic");
+    }
+    #[tokio::test]
+    async fn test_answer_v2() {
+        use futures::StreamExt;
+        use std::sync::Arc;
+        use tabby_common::config::AnswerConfig;
+        use tabby_schema::{policy::AccessPolicy, thread::ThreadRunOptionsInput};
+
+        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream);
+        let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
+        let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
+
+        let config = AnswerConfig {
+            code_search_params: make_code_search_params(),
+        };
+        let service = Arc::new(AnswerService::new(
+            &config, chat, code, doc, context, serper,
+        ));
+
+        let db = DbConn::new_in_memory().await.unwrap();
+        let policy = AccessPolicy::new(db, &1.as_id(), false);
+        let messages = vec![
+            make_message(1, "What is Rust?", tabby_schema::thread::Role::User, None),
+            make_message(
+                2,
+                "Rust is a systems programming language.",
+                tabby_schema::thread::Role::Assistant,
+                None,
+            ),
+            make_message(
+                3,
+                "Can you explain more about Rust's memory safety?",
+                tabby_schema::thread::Role::User,
+                None,
+            ),
+        ];
+        let options = ThreadRunOptionsInput {
+            code_query: Some(make_code_query_input(
+                Some(TEST_SOURCE_ID),
+                Some(TEST_GIT_URL),
+            )),
+            doc_query: Some(tabby_schema::thread::DocQueryInput {
+                content: "Rust memory safety".to_string(),
+                source_ids: Some(vec![TEST_SOURCE_ID.to_string()]),
+                search_public: true,
+            }),
+            generate_relevant_questions: true,
+            debug_options: None,
+        };
+        let user_attachment_input = None;
+
+        let result = service
+            .answer_v2(&policy, &messages, &options, user_attachment_input)
+            .await
+            .unwrap();
+
+        let collected_results: Vec<_> = result.collect().await;
+
+        assert_eq!(
+            collected_results.len(),
+            4,
+            "Expected 4 items in the result stream"
+        );
     }
 }

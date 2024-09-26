@@ -1,5 +1,3 @@
-pub mod helper;
-
 use async_openai::{
     error::OpenAIError,
     types::{
