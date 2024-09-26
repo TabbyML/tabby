@@ -1,7 +1,7 @@
-use axum::Json;
+use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
-use tabby_common::config::Config;
 use utoipa::ToSchema;
+use std::sync::Arc;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ModelInfo {
@@ -21,16 +21,14 @@ pub struct ModelInfo {
         ("token" = [])
     )
 )]
-pub async fn models() -> Json<ModelInfo> {
-    let models: tabby_common::config::ModelConfigGroup =
-        Config::load().expect("Config file should be exist").model;
+pub async fn models(State(state): State<Arc<tabby_common::config::Config>>) -> Json<ModelInfo> {
+    let models = state.as_ref().clone().model;
     let mut http_model_configs: ModelInfo = ModelInfo {
         completion: None,
         chat: None,
     };
 
-    if let Some(tabby_common::config::ModelConfig::Http(completion_http_config)) = models.completion
-    {
+    if let Some(tabby_common::config::ModelConfig::Http(completion_http_config)) = models.completion {
         if let Some(models) = completion_http_config.supported_models {
             http_model_configs.completion = Some(models.clone());
         }

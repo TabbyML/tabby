@@ -257,7 +257,10 @@ async fn api_router(
                 "/v1/health",
                 routing::get(routes::health).with_state(health_state),
             )
-            .route("/v1beta/models", routing::get(routes::models))
+            .route(
+                "/v1beta/models", 
+                routing::get(routes::models)).with_state(Arc::new(config.clone()),
+            )
     });
 
     if let Some(completion_state) = completion_state {
