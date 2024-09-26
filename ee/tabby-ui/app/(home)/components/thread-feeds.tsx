@@ -208,7 +208,6 @@ function ThreadItem({ data }: ThreadItemProps) {
           </div>
         </Link>
       </LoadingWrapper>
-      {/* <Separator className="my-3" /> */}
     </>
   )
 }
@@ -217,7 +216,6 @@ function TheadsSkeleton({ className }: { className?: string }) {
   return (
     <div className={cn('space-y-6', className)}>
       <ThreadItemSkeleton />
-      <Separator className="my-3" />
       <ThreadItemSkeleton />
     </div>
   )
