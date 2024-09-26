@@ -215,12 +215,12 @@ export class TabbyApiClient extends EventEmitter {
 
   isCodeCompletionApiAvailable(): boolean {
     const health = this.serverHealth;
-    return !!(health && health["model"] && health["device"]);
+    return !!(health && health["model"]);
   }
 
   isChatApiAvailable(): boolean {
     const health = this.serverHealth;
-    return !!(health && health["chat_model"] && health["chat_device"]);
+    return !!(health && health["chat_model"]);
   }
 
   async connect(): Promise<void> {
