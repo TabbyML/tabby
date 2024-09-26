@@ -291,7 +291,7 @@ export class WebviewHelper {
                     }
 
                     if (event.data.data) {
-                      chatIframe.contentWindow.postMessage(event.data.data[0], "${endpoint}");
+                      chatIframe.contentWindow.postMessage(event.data.data[0], "*");
                     } else {
                       vscode.postMessage(event.data);
                     }
