@@ -3,6 +3,7 @@ use std::sync::Arc;
 use strfmt::strfmt;
 use tabby_common::{
     api::code::{CodeSearch, CodeSearchError, CodeSearchParams, CodeSearchQuery},
+    axum::AllowedCodeRepository,
     languages::get_language,
 };
 use tracing::warn;
@@ -36,7 +37,12 @@ impl PromptBuilder {
         strfmt!(prompt_template, prefix => prefix, suffix => suffix).unwrap()
     }
 
-    pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
+    pub async fn collect(
+        &self,
+        language: &str,
+        segments: &Segments,
+        allowed_code_repository: &AllowedCodeRepository,
+    ) -> Vec<Snippet> {
         let quota_threshold_for_snippets_from_code_search = 256;
         let mut max_snippets_chars_in_prompt = 768;
         let mut snippets: Vec<Snippet> = vec![];
@@ -60,11 +66,15 @@ impl PromptBuilder {
             return snippets;
         };
 
+        let Some(source_id) = allowed_code_repository.closest_match(git_url) else {
+            return snippets;
+        };
+
         let snippets_from_code_search = collect_snippets(
             &self.code_search_params,
             max_snippets_chars_in_prompt,
             code.as_ref(),
-            git_url,
+            source_id,
             segments.filepath.as_deref(),
             language,
             &segments.prefix,
@@ -182,17 +192,16 @@ async fn collect_snippets(
     code_search_params: &CodeSearchParams,
     max_snippets_chars: usize,
     code: &dyn CodeSearch,
-    git_url: &str,
+    source_id: &str,
     filepath: Option<&str>,
     language: &str,
     content: &str,
 ) -> Vec<Snippet> {
     let query = CodeSearchQuery::new(
-        Some(git_url.to_owned()),
         filepath.map(|x| x.to_owned()),
         Some(language.to_owned()),
         content.to_owned(),
-        None,
+        source_id.to_owned(),
     );
 
     let mut ret = Vec::new();

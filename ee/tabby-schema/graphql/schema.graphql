@@ -237,6 +237,7 @@ input UpsertUserGroupMembershipInput {
 }
 
 interface ContextSource implements ContextSourceId {
+  id: ID!
   sourceId: String!
   sourceKind: ContextSourceKind!
   "Display name of the source, used to provide a human-readable name for user selection, such as in a dropdown menu."
@@ -680,7 +681,7 @@ type Query {
   contextInfo: ContextInfo!
   integrations(ids: [ID!], kind: IntegrationKind, after: String, before: String, first: Int, last: Int): IntegrationConnection!
   integratedRepositories(ids: [ID!], kind: IntegrationKind, active: Boolean, after: String, before: String, first: Int, last: Int): ProvidedRepositoryConnection!
-  threads(ids: [ID!], after: String, before: String, first: Int, last: Int): ThreadConnection!
+  threads(ids: [ID!], isEphemeral: Boolean, after: String, before: String, first: Int, last: Int): ThreadConnection!
   """
     Read thread messages by thread ID.
 
@@ -865,6 +866,7 @@ type UserSecured implements User {
 }
 
 type WebContextSource implements ContextSourceId & ContextSource {
+  id: ID!
   sourceKind: ContextSourceKind!
   sourceId: String!
   sourceName: String!

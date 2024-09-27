@@ -145,7 +145,7 @@ export default function UsersTable() {
               <TableBody>
                 {users.edges.map(x => {
                   const showOperation =
-                    !x.node.isOwner && me?.me && x.node.id !== me.me.id
+                    !x.node.isOwner && me?.me?.isAdmin && x.node.id !== me.me.id
 
                   return (
                     <TableRow key={x.node.id}>

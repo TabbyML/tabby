@@ -1,6 +1,6 @@
 'use client'
 
-import React, { PropsWithChildren } from 'react'
+import React, { PropsWithChildren, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { createRequest } from '@urql/core'
 import { compact, isEmpty, isNil, toNumber } from 'lodash-es'
@@ -136,6 +136,8 @@ type SourceCodeBrowserContextValue = {
   isPathInitialized: boolean
   activeEntryInfo: ReturnType<typeof resolveRepositoryInfoFromPath>
   prevActivePath: React.MutableRefObject<string | undefined>
+  error: Error | undefined
+  setError: (e: Error | undefined) => void
 }
 
 const SourceCodeBrowserContext =
@@ -147,7 +149,8 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   children
 }) => {
   const pathname = usePathname()
-  const { updateUrlComponents } = useRouterStuff()
+  const { updateUrlComponents, searchParams } = useRouterStuff()
+  const redirectGitUrl = searchParams.get('redirect_git_url')?.toString()
   const [isPathInitialized, setIsPathInitialized] = React.useState(false)
   const [activePath, setActivePath] = React.useState<string | undefined>()
   const activeEntryInfo = React.useMemo(() => {
@@ -165,6 +168,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   const [pendingEvent, setPendingEvent] = React.useState<
     QuickActionEventPayload | undefined
   >()
+  const [error, setError] = useState<Error | undefined>()
   const prevActivePath = React.useRef<string | undefined>()
 
   const updateActivePath: SourceCodeBrowserContextValue['updateActivePath'] =
@@ -289,7 +293,11 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
     if (!isPathInitialized) {
       setIsPathInitialized(true)
     }
-  }, [pathname])
+
+    if (error) {
+      setError(undefined)
+    }
+  }, [pathname, redirectGitUrl])
 
   return (
     <SourceCodeBrowserContext.Provider
@@ -316,7 +324,9 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         activeRepoRef,
         isPathInitialized,
         activeEntryInfo,
-        prevActivePath
+        prevActivePath,
+        error,
+        setError
       }}
     >
       {children}
@@ -348,7 +358,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     activeEntryInfo,
     prevActivePath,
     updateFileMap,
-    setExpandedKeys
+    setExpandedKeys,
+    error,
+    setError
   } = React.useContext(SourceCodeBrowserContext)
 
   const { searchParams } = useRouterStuff()
@@ -461,9 +473,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const fileBlob = rawFileResponse?.blob
   const contentLength = rawFileResponse?.contentLength
   const fileDisplayType = rawFileResponse?.fileDisplayType
-  const error = rawFileError || entriesError
+  const viewAffectingError = error || rawFileError || entriesError
 
-  const showErrorView = !!error
+  const showErrorView = !!viewAffectingError
 
   const isTreeMode =
     activeEntryInfo?.viewMode === 'tree' || !activeEntryInfo?.viewMode
@@ -517,6 +529,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           )
           initializing.current = false
           return
+        } else {
+          // target repository not found
+          setError(new Error(CodeBrowserError.REPOSITORY_NOT_FOUND))
         }
       }
 
@@ -655,7 +670,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
             ) : showErrorView ? (
               <ErrorView
                 className={`rounded-lg border p-4`}
-                error={entriesError || rawFileError}
+                error={viewAffectingError}
               />
             ) : (
               <>

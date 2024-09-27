@@ -74,7 +74,7 @@ const menus: Menu[] = [
       },
       {
         title: 'Reports',
-        href: 'reports'
+        href: '/reports'
       },
       {
         title: 'Activities',
@@ -92,12 +92,8 @@ const menus: Menu[] = [
         href: '/settings/general'
       },
       {
-        title: 'Members',
-        href: '/settings/team'
-      },
-      {
-        title: 'User Groups',
-        href: '/settings/user-group',
+        title: 'Users & Groups',
+        href: '/settings/team',
         allowUser: true
       },
       {

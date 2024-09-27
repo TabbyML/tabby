@@ -28,7 +28,7 @@ import { Button } from '../ui/button'
 import { IconFile, IconRefresh, IconTrash, IconUser } from '../ui/icons'
 import { Separator } from '../ui/separator'
 import { Skeleton } from '../ui/skeleton'
-import { UserAvatar } from '../user-avatar'
+import { MyAvatar } from '../user-avatar'
 import { ChatContext } from './chat'
 import { CodeReferences } from './code-references'
 
@@ -128,13 +128,16 @@ function UserMessageCard(props: { message: UserMessage }) {
       {...props}
     >
       <div
-        className={cn('flex w-full items-center justify-between md:w-auto', {
-          'hidden md:flex': !data?.me.name
-        })}
+        className={cn(
+          'flex min-h-[2rem] w-full items-center justify-between md:w-auto',
+          {
+            'hidden md:flex': !data?.me.name
+          }
+        )}
       >
         <div className="flex items-center gap-x-2">
           <div className="shrink-0 select-none rounded-full border bg-background shadow">
-            <UserAvatar
+            <MyAvatar
               className="h-6 w-6 md:h-8 md:w-8"
               fallback={
                 <div className="flex h-6 w-6 items-center justify-center md:h-8 md:w-8">
@@ -153,7 +156,7 @@ function UserMessageCard(props: { message: UserMessage }) {
 
       <div className="group relative flex w-full justify-between gap-x-2">
         <div className="flex-1 space-y-2 overflow-hidden px-1 md:ml-4">
-          <MessageMarkdown message={message.message} />
+          <MessageMarkdown message={message.message} canWrapLongLines />
           <div className="hidden md:block">
             <UserMessageCardActions {...props} />
           </div>
@@ -325,7 +328,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       )}
       {...rest}
     >
-      <div className="flex w-full items-center justify-between md:w-auto">
+      <div className="flex min-h-[2rem] w-full items-center justify-between md:w-auto">
         <div className="flex items-center gap-x-2">
           <div className="shrink-0 select-none rounded-full border bg-background shadow">
             <IconTabby className="h-6 w-6 md:h-8 md:w-8" />
@@ -355,6 +358,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           // When onApplyInEditor is null, it means isInEditor === false, thus there's no need to showExternalLink
           showExternalLink={!!onApplyInEditor}
           highlightIndex={relevantCodeHighlightIndex}
+          triggerClassname="md:pt-0"
         />
         {isLoading && !message?.message ? (
           <MessagePendingIndicator />
@@ -368,6 +372,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
               onCodeCitationClick={onCodeCitationClick}
               onCodeCitationMouseEnter={onCodeCitationMouseEnter}
               onCodeCitationMouseLeave={onCodeCitationMouseLeave}
+              canWrapLongLines={!isLoading}
             />
             {!!message.error && <ErrorMessageBlock error={message.error} />}
           </>

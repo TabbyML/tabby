@@ -101,6 +101,8 @@ function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
         }
       } else if (error?.originalError) {
         form.setError('root', error.originalError)
+      } else if (error?.message) {
+        form.setError('root', { message: error.message })
       }
     }
   }
@@ -121,7 +123,6 @@ const client = new Client({
         GrepFile: () => null,
         GrepTextOrBase64: () => null,
         GrepSubMatch: () => null,
-        Repository: (data: any) => (data ? `${data.kind}_${data.id}` : null),
         GitReference: () => null,
         MessageAttachment: () => null,
         MessageAttachmentCode: () => null,

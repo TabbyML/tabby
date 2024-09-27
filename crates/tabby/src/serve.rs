@@ -1,12 +1,13 @@
 use std::{net::IpAddr, sync::Arc, time::Duration};
 
-use axum::{routing, Router};
+use axum::{routing, Extension, Router};
 use clap::Args;
 use hyper::StatusCode;
 use spinners::{Spinner, Spinners, Stream};
 use tabby_common::{
     api::{self, code::CodeSearch, event::EventLogger},
-    config::{CodeRepositoryAccess, Config, ModelConfig, StaticCodeRepositoryAccess},
+    axum::AllowedCodeRepository,
+    config::{Config, ModelConfig},
     usage,
 };
 use tabby_inference::ChatCompletionStream;
@@ -148,12 +149,10 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     };
 
     let mut logger: Arc<dyn EventLogger> = Arc::new(create_event_logger());
-    let mut config_access: Arc<dyn CodeRepositoryAccess> = Arc::new(StaticCodeRepositoryAccess);
 
     #[cfg(feature = "ee")]
     if let Some(ws) = &ws {
         logger = ws.logger();
-        config_access = ws.clone();
     }
 
     let index_reader_provider = Arc::new(IndexReaderProvider::default());
@@ -163,7 +162,6 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     ));
 
     let code = Arc::new(create_code_search(
-        config_access,
         embedding.clone(),
         index_reader_provider.clone(),
     ));
@@ -262,16 +260,20 @@ async fn api_router(
     });
 
     if let Some(completion_state) = completion_state {
-        routers.push({
-            Router::new()
-                .route(
-                    "/v1/completions",
-                    routing::post(routes::completions).with_state(Arc::new(completion_state)),
-                )
-                .layer(TimeoutLayer::new(Duration::from_secs(
-                    config.server.completion_timeout,
-                )))
-        });
+        let mut router = Router::new()
+            .route(
+                "/v1/completions",
+                routing::post(routes::completions).with_state(Arc::new(completion_state)),
+            )
+            .layer(TimeoutLayer::new(Duration::from_secs(
+                config.server.completion_timeout,
+            )));
+
+        if webserver.is_none() || webserver.is_some_and(|x| !x) {
+            router = router.layer(Extension(AllowedCodeRepository::new_from_config()));
+        }
+
+        routers.push(router);
     } else {
         routers.push({
             Router::new().route(
