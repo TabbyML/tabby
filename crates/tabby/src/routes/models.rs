@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{extract::State, Json};
-use serde::{de::value, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -17,21 +17,22 @@ impl From<tabby_common::config::Config> for ModelInfo {
             completion: None,
             chat: None,
         };
-    
-        if let Some(tabby_common::config::ModelConfig::Http(completion_http_config)) = models.completion
+
+        if let Some(tabby_common::config::ModelConfig::Http(completion_http_config)) =
+            models.completion
         {
             if let Some(models) = completion_http_config.supported_models {
                 http_model_configs.completion = Some(models.clone());
             }
         }
-    
+
         if let Some(tabby_common::config::ModelConfig::Http(chat_http_config)) = models.chat {
             if let Some(models) = chat_http_config.supported_models {
                 http_model_configs.chat = Some(models.clone());
             }
         }
 
-        return http_model_configs;
+        http_model_configs
     }
 }
 
