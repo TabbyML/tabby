@@ -532,7 +532,7 @@ mod tests {
     pub fn make_answer_config() -> AnswerConfig {
         AnswerConfig {
             code_search_params: make_code_search_params(),
-            presence_penalty: 0.1
+            presence_penalty: 0.1,
         }
     }
 
@@ -893,7 +893,7 @@ mod tests {
 
         let config = AnswerConfig {
             code_search_params: make_code_search_params(),
-            presence_penalty: 0.1
+            presence_penalty: 0.1,
         };
         let service = Arc::new(AnswerService::new(
             &config, chat, code, doc, context, serper,
