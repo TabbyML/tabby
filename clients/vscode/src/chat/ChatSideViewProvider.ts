@@ -11,6 +11,7 @@ import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import { WebviewHelper } from "./WebviewHelper";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
 import { GitProvider } from "../git/GitProvider";
+import { ChatFeature } from "../lsp/ChatFeature";
 export class ChatSideViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
@@ -21,8 +22,9 @@ export class ChatSideViewProvider implements WebviewViewProvider {
     agent: Agent,
     logger: LogOutputChannel,
     gitProvider: GitProvider,
+    chat: ChatFeature,
   ) {
-    this.webviewHelper = new WebviewHelper(context, agent, logger, gitProvider);
+    this.webviewHelper = new WebviewHelper(context, agent, logger, gitProvider, chat);
   }
 
   static getFileContextFromSelection({

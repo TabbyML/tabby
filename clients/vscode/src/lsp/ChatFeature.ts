@@ -26,6 +26,11 @@ import {
   ChatEditResolveParams,
   ApplyWorkspaceEditParams,
   ApplyWorkspaceEditRequest,
+  ChatLineRangeSmartApplyParams,
+  ChatLineRangeSmartApplyRequest,
+  ChatLineRangeSmartApplyResult,
+  SmartApplyCodeParams,
+  SmartApplyCodeRequest,
 } from "tabby-agent";
 import { diffLines } from "diff";
 
@@ -125,6 +130,25 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
       return null;
     }
     return this.client.sendRequest(ChatEditRequest.method, params, token);
+  }
+
+  async provideLineRange(
+    params: ChatLineRangeSmartApplyParams,
+    token?: CancellationToken,
+  ): Promise<ChatLineRangeSmartApplyResult | null> {
+    if (!this.isAvailable) {
+      return null;
+    }
+    const res = await this.client.sendRequest(ChatLineRangeSmartApplyRequest.type, params, token);
+    return res;
+  }
+
+  async provideSmartApplyEdit(params: SmartApplyCodeParams, token?: CancellationToken): Promise<boolean | null> {
+    if (!this.isAvailable) {
+      return null;
+    }
+    const res = await this.client.sendRequest(SmartApplyCodeRequest.type, params, token);
+    return res;
   }
 
   private async handleApplyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<boolean> {

@@ -64,7 +64,10 @@ export interface MessageMarkdownProps {
   attachmentDocs?: Maybe<Array<AttachmentDocItem>>
   attachmentCode?: Maybe<Array<AttachmentCodeItem>>
   onCopyContent?: ((value: string) => void) | undefined
-  onApplyInEditor?: ((value: string) => void) | undefined
+  onApplyInEditor?: (
+    content: string,
+    opts?: { languageId: string; smart: boolean }
+  ) => void
   onCodeCitationClick?: (code: MessageAttachmentCode) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
@@ -77,7 +80,10 @@ export interface MessageMarkdownProps {
 
 type MessageMarkdownContextValue = {
   onCopyContent?: ((value: string) => void) | undefined
-  onApplyInEditor?: ((value: string) => void) | undefined
+  onApplyInEditor?: (
+    content: string,
+    opts?: { languageId: string; smart: boolean }
+  ) => void
   onCodeCitationClick?: (code: MessageAttachmentCode) => void
   onCodeCitationMouseEnter?: (index: number) => void
   onCodeCitationMouseLeave?: (index: number) => void
