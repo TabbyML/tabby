@@ -6,7 +6,9 @@ export class ContextVariables {
   private chatEnabledValue = false;
   private chatEditInProgressValue = false;
   private chatEditResolvingValue = false;
+  private outlinesGenerationInProgressValue = false;
   private inlineCompletionTriggerModeValue: "automatic" | "manual" = "automatic";
+  private chatOutlineValue = false;
 
   constructor(
     private readonly client: Client,
@@ -14,11 +16,13 @@ export class ContextVariables {
   ) {
     this.chatEnabled = this.client.chat.isAvailable;
     this.inlineCompletionTriggerMode = config.inlineCompletionTriggerMode;
+    this.chatOutlineEnabled = config.chatOutline;
     this.client.chat.on("didChangeAvailability", (params: boolean) => {
       this.chatEnabled = params;
     });
     this.config.on("updated", () => {
       this.inlineCompletionTriggerMode = config.inlineCompletionTriggerMode;
+      this.chatOutlineEnabled = config.chatOutline;
     });
     this.updateChatEditResolving();
     window.onDidChangeTextEditorSelection((params) => {
@@ -67,6 +71,15 @@ export class ContextVariables {
     this.chatEditInProgressValue = value;
   }
 
+  get outlinesGenerationInProgress(): boolean {
+    return this.outlinesGenerationInProgressValue;
+  }
+
+  set outlinesGenerationInProgress(value: boolean) {
+    commands.executeCommand("setContext", "tabby.outlinesGenerationInProgress", value);
+    this.outlinesGenerationInProgressValue = value;
+  }
+
   get chatEditResolving(): boolean {
     return this.chatEditResolvingValue;
   }
@@ -83,5 +96,14 @@ export class ContextVariables {
   set inlineCompletionTriggerMode(value: "automatic" | "manual") {
     commands.executeCommand("setContext", "tabby.inlineCompletionTriggerMode", value);
     this.inlineCompletionTriggerModeValue = value;
+  }
+
+  get chatOutlineEnabled(): boolean {
+    return this.chatOutlineValue;
+  }
+
+  set chatOutlineEnabled(value: boolean) {
+    commands.executeCommand("setContext", "tabby.chatOutlineEnabled", value);
+    this.chatOutlineValue = value;
   }
 }

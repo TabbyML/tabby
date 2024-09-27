@@ -1,4 +1,4 @@
-import { window, ExtensionContext, Uri } from "vscode";
+import { window, ExtensionContext, Uri, languages } from "vscode";
 import { LanguageClientOptions } from "vscode-languageclient";
 import { LanguageClient as NodeLanguageClient, ServerOptions, TransportKind } from "vscode-languageclient/node";
 import { LanguageClient as BrowserLanguageClient } from "vscode-languageclient/browser";
@@ -14,6 +14,7 @@ import { ChatSideViewProvider } from "./chat/ChatSideViewProvider";
 import { ChatPanelViewProvider } from "./chat/ChatPanelViewProvider";
 import { Commands } from "./Commands";
 import { Status } from "tabby-agent";
+import { OutlinesProvider } from "./outline/OutlinesProvider";
 import { CodeActions } from "./CodeActions";
 
 const isBrowser = !!process.env["IS_BROWSER"];
@@ -55,6 +56,7 @@ export async function activate(context: ExtensionContext) {
   const contextVariables = new ContextVariables(client, config);
   const inlineCompletionProvider = new InlineCompletionProvider(client, config);
   const gitProvider = new GitProvider();
+
   client.registerConfigManager(config);
   client.registerInlineCompletionProvider(inlineCompletionProvider);
   client.registerGitProvider(gitProvider);
@@ -77,6 +79,9 @@ export async function activate(context: ExtensionContext) {
       });
     }
   });
+
+  const nlOutlinesProvider = new OutlinesProvider(config);
+  context.subscriptions.push(languages.registerCodeLensProvider({ scheme: "file" }, nlOutlinesProvider));
 
   // Register chat panel
   const chatViewProvider = new ChatSideViewProvider(context, client.agent, logger, gitProvider);
@@ -105,6 +110,7 @@ export async function activate(context: ExtensionContext) {
     inlineCompletionProvider,
     chatViewProvider,
     gitProvider,
+    nlOutlinesProvider,
     chatPanelViewProvider,
   );
   /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */ /* eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error */
