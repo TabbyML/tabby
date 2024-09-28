@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
-use crate::path::models_dir;
+use crate::{env::use_local_model_json, path::models_dir};
 
 // default_entrypoint is legacy entrypoint for single model file
 fn default_entrypoint() -> String {
@@ -81,17 +81,29 @@ pub struct ModelRegistry {
 
 impl ModelRegistry {
     pub async fn new(registry: &str) -> Self {
-        Self {
-            name: registry.to_owned(),
-            models: load_remote_registry(registry).await.unwrap_or_else(|err| {
-                load_local_registry(registry).unwrap_or_else(|_| {
-                    panic!(
-                        "Failed to fetch model organization <{}>: {:?}",
-                        registry, err
-                    )
-                })
-            }),
+
+        if use_local_model_json() {
+            return Self {
+                name: registry.to_owned(),
+                models: load_local_registry(registry).unwrap_or_else(|_| {
+                    panic!("Failed to fetch model organization <{}>", registry)
+                }),
+            };
+        } else {
+            Self {
+                name: registry.to_owned(),
+                models: load_remote_registry(registry).await.unwrap_or_else(|err| {
+                    load_local_registry(registry).unwrap_or_else(|_| {
+                        panic!(
+                            "Failed to fetch model organization <{}>: {:?}",
+                            registry, err
+                        )
+                    })
+                }),
+            }
         }
+
+        
     }
 
     // get_model_store_dir returns {root}/{name}/ggml, e.g.. ~/.tabby/models/TABBYML/StarCoder-1B/ggml

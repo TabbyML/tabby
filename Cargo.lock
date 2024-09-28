@@ -5108,8 +5108,10 @@ dependencies = [
  "aim-downloader",
  "anyhow",
  "futures",
+ "regex",
  "reqwest",
  "tabby-common",
+ "tokio",
  "tokio-retry",
  "tracing",
 ]

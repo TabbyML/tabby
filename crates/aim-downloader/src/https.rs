@@ -294,3 +294,11 @@ async fn get_links_works_when_typical() {
 
     assert_eq!(result[0], expected);
 }
+
+
+#[ignore]
+#[tokio::test]
+async fn head_works() {
+    let result = HTTPSHandler::head("https://github.com/XAMPPRocky/tokei/releases/download/v12.0.4/tokei-x86_64-unknown-linux-gnu.tar.gz").await;
+    assert!(result.is_ok());
+}
