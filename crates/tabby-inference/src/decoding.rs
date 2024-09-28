@@ -104,7 +104,6 @@ impl<'a> StopCondition<'a> {
 
 #[cfg(test)]
 mod tests {
-    
 
     use tabby_common::languages::UNKNOWN_LANGUAGE;
 
