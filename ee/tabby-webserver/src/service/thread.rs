@@ -285,11 +285,10 @@ mod tests {
     };
     use thread::MessageAttachmentCodeInput;
 
+    use super::*;
     use crate::answer::testutils::{
         FakeChatCompletionStream, FakeCodeSearch, FakeContextService, FakeDocSearch,
     };
-
-    use super::*;
 
     #[tokio::test]
     async fn test_create_thread() {
