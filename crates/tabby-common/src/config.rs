@@ -185,7 +185,7 @@ fn default_embedding_config() -> ModelConfig {
         num_gpu_layers: 9999,
         enable_fast_attention: None,
         context_size: default_context_size(),
-        stop_words: vec![],
+        additional_stop_words: None,
     })
 }
 
@@ -222,7 +222,7 @@ impl ModelConfig {
             num_gpu_layers,
             enable_fast_attention: None,
             context_size: default_context_size(),
-            stop_words: vec![],
+            additional_stop_words: None,
         })
     }
 }
@@ -260,7 +260,7 @@ pub struct HttpModelConfig {
     pub supported_models: Option<Vec<String>>,
 
     #[builder(default)]
-    pub stop_words: Vec<String>,
+    pub additional_stop_words: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -280,7 +280,7 @@ pub struct LocalModelConfig {
     pub context_size: usize,
 
     #[serde(default)]
-    pub stop_words: Vec<String>,
+    pub additional_stop_words: Option<Vec<String>>,
 }
 
 fn default_parallelism() -> u8 {
