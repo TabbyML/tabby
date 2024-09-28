@@ -42,9 +42,9 @@ async fn load_completion_and_chat(
     let (completion, prompt) = if let Some(completion_model) = completion_model {
         match completion_model {
             ModelConfig::Http(http) => {
-                let engine = http_api_bindings::create(&http).await;
+                let engine = http_api_bindings::create(http).await;
                 let (prompt_template, chat_template) =
-                    http_api_bindings::build_completion_prompt(&http);
+                    http_api_bindings::build_completion_prompt(http);
                 (
                     Some(engine),
                     Some(PromptInfo {
@@ -54,7 +54,7 @@ async fn load_completion_and_chat(
                 )
             }
             ModelConfig::Local(llama) => {
-                let (stream, prompt) = llama_cpp_server::create_completion(&llama).await;
+                let (stream, prompt) = llama_cpp_server::create_completion(llama).await;
                 (Some(stream), Some(prompt))
             }
         }

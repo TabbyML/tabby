@@ -3,8 +3,7 @@ use std::sync::Arc;
 use async_stream::stream;
 use derive_builder::Builder;
 use futures::StreamExt;
-use tabby_common::config::ModelConfig;
-use tabby_common::languages::Language;
+use tabby_common::{config::ModelConfig, languages::Language};
 
 use crate::{decoding::StopConditionFactory, CompletionOptionsBuilder, CompletionStream};
 

@@ -104,7 +104,7 @@ impl<'a> StopCondition<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Read;
+    
 
     use tabby_common::languages::UNKNOWN_LANGUAGE;
 
