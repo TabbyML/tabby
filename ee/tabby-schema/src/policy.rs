@@ -216,4 +216,156 @@ mod tests {
         assert!(policy1.check_read_source(source_id).await.is_ok());
         assert!(policy2.check_read_source(source_id).await.is_ok());
     }
+
+    #[tokio::test]
+    async fn test_check_delete_thread_messages() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let user_id1 = testutils::create_user(&db).await;
+        let user_id2 = testutils::create_user2(&db).await;
+
+        let policy1 = AccessPolicy::new(db.clone(), &user_id1.as_id(), false);
+
+        assert!(policy1
+            .check_delete_thread_messages(&user_id1.as_id())
+            .is_ok());
+        assert!(policy1
+            .check_delete_thread_messages(&user_id2.as_id())
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn test_check_update_thread_persistence() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let user_id1 = testutils::create_user(&db).await;
+        let user_id2 = testutils::create_user2(&db).await;
+
+        let policy1 = AccessPolicy::new(db.clone(), &user_id1.as_id(), false);
+
+        assert!(policy1
+            .check_update_thread_persistence(&user_id1.as_id())
+            .is_ok());
+        assert!(policy1
+            .check_update_thread_persistence(&user_id2.as_id())
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn test_check_read_analytic() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let user_id1 = testutils::create_user(&db).await;
+        let user_id2 = testutils::create_user2(&db).await;
+
+        let policy_normal = AccessPolicy::new(db.clone(), &user_id1.as_id(), false);
+        let policy_admin = AccessPolicy::new(db.clone(), &user_id1.as_id(), true);
+
+        assert!(policy_normal
+            .check_read_analytic(&[user_id1.as_id()])
+            .is_ok());
+        assert!(policy_normal
+            .check_read_analytic(&[user_id2.as_id()])
+            .is_err());
+        assert!(policy_normal.check_read_analytic(&[]).is_err());
+
+        assert!(policy_admin
+            .check_read_analytic(&[user_id1.as_id()])
+            .is_ok());
+        assert!(policy_admin
+            .check_read_analytic(&[user_id2.as_id()])
+            .is_ok());
+        assert!(policy_admin.check_read_analytic(&[]).is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_check_upsert_user_group_membership() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let user_id1 = testutils::create_user(&db).await;
+        let user_id2 = testutils::create_user2(&db).await;
+        let user_group_id = db.create_user_group("test").await.unwrap();
+
+        db.upsert_user_group_membership(user_id1, user_group_id, true)
+            .await
+            .unwrap();
+
+        let policy_normal = AccessPolicy::new(db.clone(), &user_id2.as_id(), false);
+        let policy_group_admin = AccessPolicy::new(db.clone(), &user_id1.as_id(), false);
+        let policy_admin = AccessPolicy::new(db.clone(), &user_id1.as_id(), true);
+
+        let input = UpsertUserGroupMembershipInput {
+            user_id: user_id2.as_id(),
+            user_group_id: user_group_id.as_id(),
+            is_group_admin: false,
+        };
+
+        assert!(policy_normal
+            .check_upsert_user_group_membership(&input)
+            .await
+            .is_err());
+
+        assert!(policy_group_admin
+            .check_upsert_user_group_membership(&input)
+            .await
+            .is_ok());
+
+        let admin_input = UpsertUserGroupMembershipInput {
+            is_group_admin: true,
+            user_id: user_id2.as_id(),
+            user_group_id: user_group_id.as_id(),
+        };
+        assert!(policy_group_admin
+            .check_upsert_user_group_membership(&admin_input)
+            .await
+            .is_err());
+
+        assert!(policy_admin
+            .check_upsert_user_group_membership(&input)
+            .await
+            .is_ok());
+        assert!(policy_admin
+            .check_upsert_user_group_membership(&admin_input)
+            .await
+            .is_ok());
+    }
+    #[tokio::test]
+    async fn test_check_delete_user_group_membership() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let user_id1 = testutils::create_user(&db).await;
+        let user_id2 = testutils::create_user2(&db).await;
+        let user_group_id = db.create_user_group("test").await.unwrap();
+
+        // Make user1 a group admin and user2 a normal member
+        db.upsert_user_group_membership(user_id1, user_group_id, true)
+            .await
+            .unwrap();
+        db.upsert_user_group_membership(user_id2, user_group_id, false)
+            .await
+            .unwrap();
+
+        let policy_normal = AccessPolicy::new(db.clone(), &user_id2.as_id(), false);
+        let policy_group_admin = AccessPolicy::new(db.clone(), &user_id1.as_id(), false);
+        let policy_admin = AccessPolicy::new(db.clone(), &user_id1.as_id(), true);
+
+        assert!(policy_normal
+            .check_delete_user_group_membership(&user_group_id.as_id(), &user_id2.as_id())
+            .await
+            .is_err());
+
+        assert!(policy_group_admin
+            .check_delete_user_group_membership(&user_group_id.as_id(), &user_id2.as_id())
+            .await
+            .is_ok());
+
+        assert!(policy_group_admin
+            .check_delete_user_group_membership(&user_group_id.as_id(), &user_id1.as_id())
+            .await
+            .is_err());
+
+        assert!(policy_admin
+            .check_delete_user_group_membership(&user_group_id.as_id(), &user_id1.as_id())
+            .await
+            .is_ok());
+        assert!(policy_admin
+            .check_delete_user_group_membership(&user_group_id.as_id(), &user_id2.as_id())
+            .await
+            .is_ok());
+    }
 }
