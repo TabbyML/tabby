@@ -10,3 +10,4 @@ pub mod path;
 pub mod registry;
 pub mod terminal;
 pub mod usage;
+pub mod env;
