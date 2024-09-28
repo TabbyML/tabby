@@ -11,16 +11,9 @@ use tokio_retry::{
     strategy::{jitter, ExponentialBackoff},
     Retry,
 };
+use regex::Regex;
 use tracing::{info, warn};
 use futures::future::join_all;
-
-fn select_by_download_host(url: &String) -> bool {
-    if let Ok(host) = std::env::var("TABBY_DOWNLOAD_HOST") {
-        url.contains(&host)
-    } else {
-        true
-    }
-}
 
 fn filter_download_urls( model_info: &ModelInfo) -> Vec<String> {
     let download_host = tabby_common::env::get_download_host();
@@ -42,8 +35,6 @@ fn filter_download_urls( model_info: &ModelInfo) -> Vec<String> {
         .collect()
 
 }
-
-
 
 async fn download_model_impl(
     registry: &ModelRegistry,
@@ -142,8 +133,13 @@ async fn tryget_download_filename(url: &str) -> Result<String> {
     let response = HTTPSHandler::head(url).await?;
     if let Some(content_disposition) = response.get(reqwest::header::CONTENT_DISPOSITION) {
         if let Ok(disposition_str) = content_disposition.to_str() {
-            if let Some(file_name) = disposition_str.split("filename=").nth(1) {
-                return Ok(file_name.trim_matches('"').to_string());
+            let re = Regex::new(r#"filename="(.+?)""#).unwrap();
+            let file_name = re.captures(disposition_str).
+            and_then(|cap| cap.get(1)).
+            map(|m| m.as_str().
+            to_owned());
+            if let Some(file_name) = file_name {
+                return Ok(file_name);
             }
         }
     }
@@ -193,4 +189,55 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) {
     download_model_impl(&registry, name, prefer_local_file)
         .await
         .unwrap_or_else(handler)
+}
+
+#[cfg(test)]
+mod tests {
+    use tabby_common::registry::ModelInfo;
+    use super::*;
+    #[test]
+    fn test_filter_download_urls() {
+        // multiple urls
+        let model_info = ModelInfo {
+            name: "test".to_string(),
+            urls: Some(vec!["https://huggingface.co/test".to_string(), "https://huggingface.co/test2".to_string(), "https://modelscope.co/test2".to_string()]),
+            urls_sha256: Some(vec!["test_sha256".to_string(), "test2_sha256".to_string()]),
+            entrypoint: "test".to_string(),
+            sha256: "test_sha256".to_string(),
+            prompt_template: None,
+            chat_template: None, 
+        };
+        let urls = super::filter_download_urls(&model_info);
+        assert_eq!(urls.len(), 2);
+        assert_eq!(urls[0], "https://huggingface.co/test");
+        assert_eq!(urls[1], "https://huggingface.co/test2");
+
+
+        // single url
+        let model_info = ModelInfo {
+            name: "test".to_string(),
+            urls: Some(vec!["https://huggingface.co/test".to_string(), "https://modelscope.co/test2".to_string()]),
+            urls_sha256: None,
+            entrypoint: "model.gguf".to_string(),
+            sha256: "test_sha256".to_string(),
+            prompt_template: None,
+            chat_template: None, 
+        };
+        let urls = super::filter_download_urls(&model_info);
+        assert_eq!(urls.len(), 1);
+        assert_eq!(urls[0], "https://huggingface.co/test");
+
+
+    }
+
+    #[tokio::test]
+    async fn test_tryget_download_filename() {
+        
+        let url = "https://huggingface.co/TabbyML/models/resolve/main/.gitattributes";
+        let result = tryget_download_filename(url).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), ".gitattributes");
+    }
+
+
 }

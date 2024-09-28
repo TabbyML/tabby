@@ -11,3 +11,5 @@ tracing = { workspace = true }
 tokio-retry = "0.3.0"
 futures.workspace = true
 reqwest = { workspace = true }
+tokio = {workspace=true}
+regex = {workspace=true}
