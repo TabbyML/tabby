@@ -6,6 +6,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::path::models_dir;
 
+// default_entrypoint is legacy entrypoint for single model file
+fn default_entrypoint() -> String {
+    "model.gguf".to_string()
+}
+
+
 #[derive(Serialize, Deserialize)]
 pub struct ModelInfo {
     pub name: String,
@@ -16,6 +22,10 @@ pub struct ModelInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub urls: Option<Vec<String>>,
     pub sha256: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub urls_sha256: Option<Vec<String>>,
+    #[serde(default = "default_entrypoint")]
+    pub entrypoint: String,
 }
 
 fn models_json_file(registry: &str) -> PathBuf {
@@ -54,6 +64,21 @@ pub struct ModelRegistry {
     pub models: Vec<ModelInfo>,
 }
 
+
+// model registry tree structure
+
+// root: ~/.tabby/models/TABBYML
+
+// fn get_model_root_dir(model_name) -> {root}/{model_name}
+
+// fn get_model_dir(model_name) -> {root}/{model_name}/ggml
+
+// fn get_model_path(model_name)
+// for single model file
+// -> {root}/{model_name}/ggml/model.gguf 
+// for multiple model files
+// -> {root}/{model_name}/ggml/{entrypoint}
+
 impl ModelRegistry {
     pub async fn new(registry: &str) -> Self {
         Self {
@@ -69,15 +94,32 @@ impl ModelRegistry {
         }
     }
 
-    fn get_model_dir(&self, name: &str) -> PathBuf {
+    // get_model_store_dir returns {root}/{name}/ggml, e.g.. ~/.tabby/models/TABBYML/StarCoder-1B/ggml
+    pub fn get_model_store_dir(&self, name: &str) -> PathBuf {
+        models_dir().join(&self.name).join(name).join("ggml")
+    }
+
+    // get_model_dir returns {root}/{name}, e.g. ~/.tabby/models/TABBYML/StarCoder-1B
+    pub fn get_model_dir(&self, name: &str) -> PathBuf {
         models_dir().join(&self.name).join(name)
     }
 
+    // get_legacy_model_path returns {root}/{name}/q8_0.v2.gguf, e.g. ~/.tabby/models/TABBYML/StarCoder-1B/q8_0.v2.gguf
+    fn get_legacy_model_path(&self, name:&str) ->PathBuf {
+        self.get_model_store_dir(name).join("q8_0.v2.gguf")
+    }
+
+    // get_model_path returns the entrypoint of the model,
+    // for single model file, it returns {root}/{name}/ggml/model.gguf
+    // for multiple model files, it returns {root}/{name}/ggml/{entrypoint}
+    pub fn get_model_entry_path(&self, name: &str) -> PathBuf {
+        let model_info = self.get_model_info(name);
+        self.get_model_store_dir(name).join(model_info.entrypoint.clone())
+    }
+
     pub fn migrate_model_path(&self, name: &str) -> Result<(), std::io::Error> {
-        let model_path = self.get_model_path(name);
-        let old_model_path = self
-            .get_model_dir(name)
-            .join(LEGACY_GGML_MODEL_RELATIVE_PATH.as_str());
+        let model_path = self.get_model_entry_path(name);
+        let old_model_path = self.get_legacy_model_path(name);
 
         if !model_path.exists() && old_model_path.exists() {
             std::fs::rename(&old_model_path, &model_path)?;
@@ -89,10 +131,7 @@ impl ModelRegistry {
         Ok(())
     }
 
-    pub fn get_model_path(&self, name: &str) -> PathBuf {
-        self.get_model_dir(name)
-            .join(GGML_MODEL_RELATIVE_PATH.as_str())
-    }
+    
 
     pub fn save_model_info(&self, name: &str) {
         let model_info = self.get_model_info(name);
@@ -120,12 +159,7 @@ pub fn parse_model_id(model_id: &str) -> (&str, &str) {
     }
 }
 
-lazy_static! {
-    pub static ref LEGACY_GGML_MODEL_RELATIVE_PATH: String =
-        format!("ggml{}q8_0.v2.gguf", std::path::MAIN_SEPARATOR_STR);
-    pub static ref GGML_MODEL_RELATIVE_PATH: String =
-        format!("ggml{}model.gguf", std::path::MAIN_SEPARATOR_STR);
-}
+
 
 #[cfg(test)]
 mod tests {
@@ -140,9 +174,9 @@ mod tests {
         set_tabby_root(root.to_path_buf());
 
         let registry = ModelRegistry::new("TabbyML").await;
-        let dir = registry.get_model_dir("StarCoder-1B");
+        let name = "StarCoder-1B";
 
-        let old_model_path = dir.join(LEGACY_GGML_MODEL_RELATIVE_PATH.as_str());
+        let old_model_path = registry.get_legacy_model_path(name);
         tokio::fs::create_dir_all(old_model_path.parent().unwrap())
             .await
             .unwrap();
@@ -154,7 +188,7 @@ mod tests {
             .unwrap();
 
         registry.migrate_model_path("StarCoder-1B").unwrap();
-        assert!(registry.get_model_path("StarCoder-1B").exists());
+        assert!(registry.get_model_entry_path("StarCoder-1B").exists());
         assert!(old_model_path.exists());
     }
 }

@@ -5107,6 +5107,8 @@ version = "0.19.0-dev.0"
 dependencies = [
  "aim-downloader",
  "anyhow",
+ "futures",
+ "reqwest",
  "tabby-common",
  "tokio-retry",
  "tracing",
