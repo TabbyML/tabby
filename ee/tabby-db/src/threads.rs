@@ -397,8 +397,8 @@ mod tests {
         let _ephemeral_thread_id = db.create_thread(user_id, true).await.unwrap();
         let non_ephemeral_thread_id = db.create_thread(user_id, false).await.unwrap();
 
-        // Update the updated_at time to be 8 hours ago for all threads
-        sqlx::query!("UPDATE threads SET updated_at = DATETIME('now', '-8 hours')",)
+        // Update the updated_at time to be 8 days ago for all threads
+        sqlx::query!("UPDATE threads SET updated_at = DATETIME('now', '-8 days')",)
             .execute(&db.pool)
             .await
             .unwrap();
