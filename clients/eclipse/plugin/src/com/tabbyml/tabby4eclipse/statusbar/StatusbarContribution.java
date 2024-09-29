@@ -60,9 +60,6 @@ public class StatusbarContribution extends WorkbenchWindowControlContribution {
 			label.setToolTipText("Tabby: " + statusInfo.getStatus());
 		}
 		switch (statusInfo.getStatus()) {
-		case StatusInfo.Status.NOT_INITIALIZED:
-			label.setImage(Images.getIcon(Images.ICON_LOADING));
-			break;
 		case StatusInfo.Status.CONNECTING:
 			label.setImage(Images.getIcon(Images.ICON_LOADING));
 			break;
@@ -117,9 +114,6 @@ public class StatusbarContribution extends WorkbenchWindowControlContribution {
 			});
 		}
 		switch (statusInfo.getStatus()) {
-		case StatusInfo.Status.NOT_INITIALIZED:
-			statusItem.setImage(Images.getIcon(Images.ICON_LOADING));
-			break;
 		case StatusInfo.Status.CONNECTING:
 			statusItem.setImage(Images.getIcon(Images.ICON_LOADING));
 			break;
