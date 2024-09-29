@@ -66,12 +66,7 @@ pub fn create(
             "/repositories",
             repositories::routes(ctx.repository(), ctx.auth()),
         )
-        .route(
-            "/avatar/:id",
-            routing::get(avatar)
-                .with_state(ctx.auth())
-                .layer(from_fn_with_state(ctx.auth(), require_login_middleware)),
-        )
+        .route("/avatar/:id", routing::get(avatar).with_state(ctx.auth()))
         .nest("/oauth", oauth::routes(ctx.auth()));
 
     let ui = ui.route("/graphiql", routing::get(graphiql("/graphql", None)));
