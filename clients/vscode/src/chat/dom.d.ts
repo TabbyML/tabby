@@ -2,3 +2,5 @@
 
 // FIXME: This is required by `@quilted/threads` and `tabby-chat-panel`
 declare type HTMLIFrameElement = unknown;
+
+declare type KeyboardEventInit = unknown;
