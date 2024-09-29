@@ -9,14 +9,13 @@ use crate::{
     address::ParsedAddress,
     bar::WrappedBar,
     consts::*,
-    error::{DownloadError, ValidateError,HTTPHeaderError},
+    error::{DownloadError, HTTPHeaderError, ValidateError},
     hash::HashChecker,
     io,
 };
 
 pub struct HTTPSHandler;
 impl HTTPSHandler {
-
     pub async fn head(input: &str) -> Result<HeaderMap, HTTPHeaderError> {
         let parsed_address = ParsedAddress::parse_address(input, true);
         let res = Client::new()
@@ -157,8 +156,6 @@ impl HTTPSHandler {
                 name: input.into(),
                 code: e.to_string(),
             })?;
-        
-        
 
         let total_size = downloaded + res.content_length().unwrap_or(0);
 
@@ -294,7 +291,6 @@ async fn get_links_works_when_typical() {
 
     assert_eq!(result[0], expected);
 }
-
 
 #[ignore]
 #[tokio::test]

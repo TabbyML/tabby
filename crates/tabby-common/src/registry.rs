@@ -1,7 +1,6 @@
 use std::{fs, path::PathBuf};
 
 use anyhow::{Context, Result};
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
 use crate::{env::use_local_model_json, path::models_dir};
@@ -10,7 +9,6 @@ use crate::{env::use_local_model_json, path::models_dir};
 fn default_entrypoint() -> String {
     "model.gguf".to_string()
 }
-
 
 #[derive(Serialize, Deserialize)]
 pub struct ModelInfo {
@@ -64,7 +62,6 @@ pub struct ModelRegistry {
     pub models: Vec<ModelInfo>,
 }
 
-
 // model registry tree structure
 
 // root: ~/.tabby/models/TABBYML
@@ -75,20 +72,19 @@ pub struct ModelRegistry {
 
 // fn get_model_path(model_name)
 // for single model file
-// -> {root}/{model_name}/ggml/model.gguf 
+// -> {root}/{model_name}/ggml/model.gguf
 // for multiple model files
 // -> {root}/{model_name}/ggml/{entrypoint}
 
 impl ModelRegistry {
     pub async fn new(registry: &str) -> Self {
-
         if use_local_model_json() {
-            return Self {
+            Self {
                 name: registry.to_owned(),
                 models: load_local_registry(registry).unwrap_or_else(|_| {
                     panic!("Failed to fetch model organization <{}>", registry)
                 }),
-            };
+            }
         } else {
             Self {
                 name: registry.to_owned(),
@@ -102,8 +98,6 @@ impl ModelRegistry {
                 }),
             }
         }
-
-        
     }
 
     // get_model_store_dir returns {root}/{name}/ggml, e.g.. ~/.tabby/models/TABBYML/StarCoder-1B/ggml
@@ -117,7 +111,7 @@ impl ModelRegistry {
     }
 
     // get_legacy_model_path returns {root}/{name}/q8_0.v2.gguf, e.g. ~/.tabby/models/TABBYML/StarCoder-1B/q8_0.v2.gguf
-    fn get_legacy_model_path(&self, name:&str) ->PathBuf {
+    fn get_legacy_model_path(&self, name: &str) -> PathBuf {
         self.get_model_store_dir(name).join("q8_0.v2.gguf")
     }
 
@@ -126,7 +120,8 @@ impl ModelRegistry {
     // for multiple model files, it returns {root}/{name}/ggml/{entrypoint}
     pub fn get_model_entry_path(&self, name: &str) -> PathBuf {
         let model_info = self.get_model_info(name);
-        self.get_model_store_dir(name).join(model_info.entrypoint.clone())
+        self.get_model_store_dir(name)
+            .join(model_info.entrypoint.clone())
     }
 
     pub fn migrate_model_path(&self, name: &str) -> Result<(), std::io::Error> {
@@ -142,8 +137,6 @@ impl ModelRegistry {
         }
         Ok(())
     }
-
-    
 
     pub fn save_model_info(&self, name: &str) {
         let model_info = self.get_model_info(name);
@@ -171,13 +164,11 @@ pub fn parse_model_id(model_id: &str) -> (&str, &str) {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use temp_testdir::TempDir;
 
-    use super::{ModelRegistry, *};
+    use super::ModelRegistry;
     use crate::path::set_tabby_root;
 
     #[tokio::test]
