@@ -340,7 +340,7 @@ impl DbConn {
     }
 
     pub async fn delete_expired_ephemeral_threads(&self) -> Result<usize> {
-        let time = (Utc::now() - Duration::hours(4)).as_sqlite_datetime();
+        let time = (Utc::now() - Duration::days(7)).as_sqlite_datetime();
 
         let res = query!(
             r#"
