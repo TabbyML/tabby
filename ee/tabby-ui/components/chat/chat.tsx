@@ -1,4 +1,4 @@
-import React, { RefObject } from 'react'
+import React, { RefObject, useRef } from 'react'
 import { compact, findIndex, isEqual, some, uniqWith } from 'lodash-es'
 import type { Context, FileContext, NavigateOpts } from 'tabby-chat-panel'
 
@@ -109,7 +109,12 @@ function ChatRenderer(
   const [activeSelection, setActiveSelection] = React.useState<Context | null>(
     null
   )
+  // store the userMessage for `edit` action
+  const storedUserMessage = useRef<UserMessage | undefined>()
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
+  const clearStoredUserMessage = () => {
+    storedUserMessage.current = undefined
+  }
 
   const {
     sendUserMessage,
@@ -164,8 +169,11 @@ function ChatRenderer(
       ]
       setQaPairs(nextQaPairs)
       const [userMessage, threadRunOptions] = generateRequestPayload(
-        qaPair.user
+        qaPair.user,
+        storedUserMessage.current
       )
+      clearStoredUserMessage()
+
       return regenerate({
         threadId,
         userMessageId: qaPair.user.id,
@@ -174,6 +182,37 @@ function ChatRenderer(
         threadRunOptions
       })
     }
+  }
+
+  const onEditMessage = async (userMessageId: string) => {
+    if (!threadId) return
+
+    const qaPair = qaPairs.find(o => o.user.id === userMessageId)
+    if (!qaPair?.user || !qaPair.assistant) return
+
+    const userMessage = qaPair.user
+    let nextClientContext: Context[] = []
+
+    // restore client context
+    if (userMessage.selectContext) {
+      nextClientContext.push(userMessage.selectContext)
+    }
+    if (userMessage.activeContext) {
+      nextClientContext.push(userMessage.activeContext)
+    }
+    if (userMessage.relevantContext?.length) {
+      nextClientContext = nextClientContext.concat(userMessage.relevantContext)
+    }
+
+    storedUserMessage.current = userMessage
+    setRelevantContext(uniqWith(nextClientContext, isEqual))
+
+    // delete message pair
+    const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
+    setQaPairs(nextQaPairs)
+    setInput(userMessage.message)
+
+    deleteThreadMessagePair(threadId, qaPair?.user.id, qaPair?.assistant?.id)
   }
 
   // Reload the last AI chat response
@@ -195,7 +234,7 @@ function ChatRenderer(
 
   const handleMessageAction = (
     userMessageId: string,
-    actionType: 'delete' | 'regenerate'
+    actionType: MessageActionType
   ) => {
     switch (actionType) {
       case 'delete':
@@ -203,6 +242,9 @@ function ChatRenderer(
         break
       case 'regenerate':
         onRegenerateResponse(userMessageId)
+        break
+      case 'edit':
+        onEditMessage(userMessageId)
         break
       default:
         break
@@ -288,11 +330,28 @@ function ChatRenderer(
   }, [error])
 
   const generateRequestPayload = (
-    userMessage: UserMessage
+    userMessage: UserMessage,
+    storedUserMessage?: UserMessage
   ): [CreateMessageInput, ThreadRunOptionsInput] => {
     // use selectContext or activeContext for code query
-    const contextForCodeQuery =
+    let contextForCodeQuery =
       userMessage?.selectContext || userMessage?.activeContext
+
+    // If a stored user message exists, attempt to retrieve its context unless it has been deleted
+    if (!contextForCodeQuery && storedUserMessage?.relevantContext) {
+      const storedSelectContext = storedUserMessage?.selectContext
+        ? storedUserMessage.relevantContext.find(o =>
+            isEqual(o, userMessage.selectContext)
+          )
+        : undefined
+      const storedActiveContext = storedUserMessage?.activeContext
+        ? storedUserMessage.relevantContext.find(o =>
+            isEqual(o, userMessage.activeContext)
+          )
+        : undefined
+      contextForCodeQuery = storedSelectContext || storedActiveContext
+    }
+
     const codeQuery: InputMaybe<CodeQueryInput> = contextForCodeQuery
       ? {
           content: contextForCodeQuery.content ?? '',
@@ -336,6 +395,7 @@ function ChatRenderer(
   }
 
   const handleSendUserChat = useLatest(
+    // FIXME if should be add code snippet
     async (userMessage: UserMessageWithOptionalId) => {
       if (isLoading) return
 
@@ -374,7 +434,10 @@ function ChatRenderer(
 
       setQaPairs(nextQaPairs)
 
-      return sendUserMessage(...generateRequestPayload(newUserMessage))
+      sendUserMessage(
+        ...generateRequestPayload(newUserMessage, storedUserMessage.current)
+      )
+      clearStoredUserMessage()
     }
   )
 

@@ -25,7 +25,13 @@ import {
 import { CopyButton } from '../copy-button'
 import { ErrorMessageBlock, MessageMarkdown } from '../message-markdown'
 import { Button } from '../ui/button'
-import { IconFile, IconRefresh, IconTrash, IconUser } from '../ui/icons'
+import {
+  IconEdit,
+  IconFile,
+  IconRefresh,
+  IconTrash,
+  IconUser
+} from '../ui/icons'
 import { Separator } from '../ui/separator'
 import { Skeleton } from '../ui/skeleton'
 import { MyAvatar } from '../user-avatar'
@@ -436,6 +442,16 @@ function AssistantMessageCardActions(props: AssistantMessageActionProps) {
         >
           <IconRefresh />
           <span className="sr-only">Regenerate message</span>
+        </Button>
+      )}
+      {!isGenerating && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={e => handleMessageAction(userMessageId, 'edit')}
+        >
+          <IconEdit />
+          <span className="sr-only">Edit message</span>
         </Button>
       )}
       <CopyButton value={copyContent} onCopyContent={onCopyContent} />
