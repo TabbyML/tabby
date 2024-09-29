@@ -15,8 +15,8 @@ import { ChatPanelViewProvider } from "./chat/ChatPanelViewProvider";
 import { Commands } from "./Commands";
 import { Status } from "tabby-agent";
 import { CodeActions } from "./CodeActions";
+import { isBrowser } from "./env";
 
-const isBrowser = !!process.env["IS_BROWSER"];
 const logger = getLogger();
 let client: Client | undefined = undefined;
 
