@@ -25,13 +25,13 @@ public class InlineCompletionItem {
 	private String insertText;
 	private ReplaceRange replaceRange;
 	private CompletionEventId eventId;
-	
+
 	public InlineCompletionItem(String insertText, ReplaceRange replaceRange, CompletionEventId eventId) {
 		this.insertText = insertText;
 		this.replaceRange = replaceRange;
 		this.eventId = eventId;
 	}
-	
+
 	public String getInsertText() {
 		return insertText;
 	}
@@ -39,7 +39,7 @@ public class InlineCompletionItem {
 	public ReplaceRange getReplaceRange() {
 		return replaceRange;
 	}
-	
+
 	public CompletionEventId getEventId() {
 		return eventId;
 	}
