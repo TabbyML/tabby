@@ -8,14 +8,11 @@ export function createThreadFromWebview<Self = Record<string, never>, Target = R
 ) {
   return createThread(
     {
-      send(...args) {
-        webview.postMessage({ data: args });
+      send(message) {
+        webview.postMessage({ action: "postMessageToChatPanel", message });
       },
-      listen(listen, { signal }) {
-        const { dispose } = webview.onDidReceiveMessage((data) => {
-          listen(data);
-        });
-
+      listen(listener, { signal }) {
+        const { dispose } = webview.onDidReceiveMessage(listener);
         signal?.addEventListener("abort", () => {
           dispose();
         });
@@ -34,7 +31,7 @@ export function createClient(webview: Webview, api: ClientApi): ServerApi {
       onApplyInEditor: api.onApplyInEditor,
       onCopy: api.onCopy,
       onLoaded: api.onLoaded,
-      focusOnEditor: api.focusOnEditor,
+      onKeyboardEvent: api.onKeyboardEvent,
     },
   });
 }

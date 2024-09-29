@@ -411,19 +411,25 @@
         "key": "ctrl+l",
         "mac": "cmd+l",
         "when": "!editorHasSelection && editorTextFocus && tabby.chatEnabled"
+      },
+      {
+        "command": "workbench.action.focusActiveEditorGroup",
+        "key": "ctrl+l",
+        "mac": "cmd+l",
+        "when": "!editorFocus && focusedView == 'tabby.chatView'"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "chatView",
+          "id": "tabbyChatView",
           "title": "Tabby",
           "icon": "assets/chat.svg"
         }
       ]
     },
     "views": {
-      "chatView": [
+      "tabbyChatView": [
         {
           "type": "webview",
           "id": "tabby.chatView",
