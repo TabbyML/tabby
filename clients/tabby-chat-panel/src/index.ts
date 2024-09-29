@@ -25,19 +25,14 @@ export interface FetcherOptions {
 
 export interface InitRequest {
   fetcherOptions: FetcherOptions
-  focusKey?: FocusKeybinding
+  // Workaround for vscode webview issue:
+  // shortcut (cmd+a, cmd+c, cmd+v, cmd+x) not work in nested iframe in vscode webview
+  // see https://github.com/microsoft/vscode/issues/129178
+  useMacOSKeyboardEventHandler?: boolean
 }
 
 export interface OnLoadedParams {
   apiVersion: string
-}
-
-export interface FocusKeybinding {
-  key: string
-  ctrlKey: boolean
-  metaKey: boolean
-  shiftKey: boolean
-  altKey: boolean
 }
 
 export interface ErrorMessage {
@@ -72,7 +67,7 @@ export interface ClientApi {
   // On user copy content to clipboard.
   onCopy: (content: string) => void
 
-  focusOnEditor: () => void
+  onKeyboardEvent: (type: 'keydown' | 'keyup' | 'keypress', event: KeyboardEventInit) => void
 }
 
 export interface ChatMessage {
@@ -97,12 +92,13 @@ export function createClient(target: HTMLIFrameElement, api: ClientApi): ServerA
       onApplyInEditor: api.onApplyInEditor,
       onLoaded: api.onLoaded,
       onCopy: api.onCopy,
+      onKeyboardEvent: api.onKeyboardEvent,
     },
   })
 }
 
 export function createServer(api: ServerApi): ClientApi {
-  const clientApi: ClientApi = createThreadFromInsideIframe({
+  return createThreadFromInsideIframe({
     expose: {
       init: api.init,
       sendMessage: api.sendMessage,
@@ -112,6 +108,4 @@ export function createServer(api: ServerApi): ClientApi {
       updateTheme: api.updateTheme,
     },
   })
-
-  return clientApi
 }
