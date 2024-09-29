@@ -33,6 +33,8 @@ public class InlineCompletionRenderer {
 	private Map<ITextViewer, InlineCompletionItemPainter> painters = new HashMap<>();
 	private ITextViewer currentTextViewer = null;
 	private InlineCompletionItem currentCompletionItem = null;
+	private String currentViewId = null;
+	private Long currentDisplayAt = null;
 
 	public void show(ITextViewer viewer, InlineCompletionItem item) {
 		if (currentTextViewer != null) {
@@ -41,14 +43,24 @@ public class InlineCompletionRenderer {
 		currentTextViewer = viewer;
 		currentCompletionItem = item;
 		getPainter(viewer).update(item);
+		
+		currentDisplayAt = System.currentTimeMillis();
+		
+		String completionId = "no-cmpl-id";
+		if (item.getEventId() != null && item.getEventId().getCompletionId()!= null) {
+			completionId = item.getEventId().getCompletionId().replace("cmpl-", "");
+		}
+		currentViewId = String.format("view-%s-at-%d", completionId, currentDisplayAt);
 	}
 
 	public void hide() {
 		if (currentTextViewer != null) {
 			getPainter(currentTextViewer).update(null);
 			currentTextViewer = null;
-			currentCompletionItem = null;
 		}
+		currentCompletionItem = null;
+		currentViewId = null;
+		currentDisplayAt = null;
 	}
 
 	public ITextViewer getCurrentTextViewer() {
@@ -57,6 +69,17 @@ public class InlineCompletionRenderer {
 
 	public InlineCompletionItem getCurrentCompletionItem() {
 		return currentCompletionItem;
+	}
+	
+	public String getCurrentViewId() {
+		return currentViewId;
+	}
+	
+	public Long getCurrentDisplayedTime() {
+		if (currentDisplayAt != null) {
+			return System.currentTimeMillis() - currentDisplayAt;
+		}
+		return null;
 	}
 
 	private InlineCompletionItemPainter getPainter(ITextViewer viewer) {
