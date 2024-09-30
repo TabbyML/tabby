@@ -24,7 +24,7 @@ import { ChatSideViewProvider } from "./chat/ChatSideViewProvider";
 import { ChatPanelViewProvider } from "./chat/ChatPanelViewProvider";
 import { GitProvider, Repository } from "./git/GitProvider";
 import CommandPalette from "./CommandPalette";
-import { showOutputPanel } from "./logger";
+import { getLogger, showOutputPanel } from "./logger";
 import { Issues } from "./Issues";
 import { InlineEditController } from "./inline-edit";
 
@@ -40,7 +40,6 @@ export class Commands {
     private readonly inlineCompletionProvider: InlineCompletionProvider,
     private readonly chatViewProvider: ChatSideViewProvider,
     private readonly gitProvider: GitProvider,
-    private readonly chatPanelViewProvider: ChatPanelViewProvider,
   ) {
     const registrations = Object.keys(this.commands).map((key) => {
       const commandName = `tabby.${key}`;
@@ -284,7 +283,10 @@ export class Commands {
         retainContextWhenHidden: true,
       });
 
-      this.chatPanelViewProvider.resolveWebviewView(panel);
+      const logger = getLogger();
+      const chatPanelViewProvider = new ChatPanelViewProvider(this.context, this.client.agent, logger, this.gitProvider);
+
+      chatPanelViewProvider.resolveWebviewView(panel);
     },
     "chat.edit.start": async (userCommand?: string) => {
       const editor = window.activeTextEditor;

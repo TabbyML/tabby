@@ -204,8 +204,10 @@ export class WebviewHelper {
   }
 
   public async displayChatPage(endpoint: string, opts?: { force: boolean }) {
+    console.log("displayChatPage before cond", endpoint, this.isChatPageDisplayed, opts?.force);
     if (!endpoint) return;
     if (this.isChatPageDisplayed && !opts?.force) return;
+    console.log("displayChatPage after cond");
 
     if (this.webview) {
       this.isChatPageDisplayed = true;

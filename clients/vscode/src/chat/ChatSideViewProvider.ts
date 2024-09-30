@@ -74,8 +74,6 @@ export class ChatSideViewProvider implements WebviewViewProvider {
       if (webviewView.visible) {
         this.webviewHelper.refreshChatPage();
       }
-
-      commands.executeCommand("setContext", "tabby.chatViewVisible", webviewView.visible);
     });
 
     webviewView.webview.onDidReceiveMessage((message) => {
