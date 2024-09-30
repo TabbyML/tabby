@@ -145,7 +145,7 @@ mod tests {
     #[test]
     fn test_stop_condition_additional_stop_words() {
         let factory = StopConditionFactory::with_stop_words(vec!["<|endoftext|>".to_owned()]);
-        let mut cond = factory.create("additional_stop_words", Some(&UNKNOWN_LANGUAGE));
+        let mut cond = factory.create("", Some(&UNKNOWN_LANGUAGE));
         let (should_stop, _) = cond.should_stop("1");
         assert!(!should_stop);
         let (should_stop, _) = cond.should_stop("<|endoftext|>");
