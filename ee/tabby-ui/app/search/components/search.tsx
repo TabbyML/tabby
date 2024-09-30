@@ -99,7 +99,7 @@ import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { useMutation } from '@/lib/tabby/gql'
-import { contextInfoQuery } from '@/lib/tabby/query'
+import { contextInfoQuery, listThreads } from '@/lib/tabby/query'
 import {
   Tooltip,
   TooltipContent,
@@ -251,6 +251,16 @@ export function Search() {
   })
 
   const [afterCursor, setAfterCursor] = useState<string | undefined>()
+
+  // FIXME error view
+  const [{ error: threadError }] = useQuery({
+    query: listThreads,
+    variables: {
+      ids: [threadId]
+    },
+    pause: true
+  })
+
   const [
     {
       data: threadMessages,
@@ -514,7 +524,7 @@ export function Search() {
         currentAnswer.error =
           error.message === '401'
             ? 'Unauthorized'
-            : error.message || 'Failed to fetch'
+            : formatThreadRunErrorMessage(error.message)
       }
     }
   }, [error])
@@ -1470,4 +1480,11 @@ function useShareThread({
     onCopy,
     isCopied
   }
+}
+
+function formatThreadRunErrorMessage(message?: string) {
+  if (message === 'Thread not found') {
+    return `The thread has expired.`
+  }
+  return message || 'Failed to fetch'
 }

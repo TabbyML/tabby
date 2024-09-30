@@ -106,6 +106,9 @@ pub enum CoreError {
     #[error("{0}")]
     Forbidden(&'static str),
 
+    #[error("{0}")]
+    NotFound(&'static str),
+
     #[error("Invalid ID")]
     InvalidID,
 
@@ -129,6 +132,7 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
             Self::Unauthorized(msg) => {
                 FieldError::new(msg, graphql_value!({"code": "UNAUTHORIZED"}))
             }
+            Self::NotFound(msg) => FieldError::new(msg, graphql_value!({"code": "NOT_FOUND"})),
             Self::InvalidInput(errors) => from_validation_errors(errors),
             _ => self.into(),
         }
@@ -1232,8 +1236,13 @@ impl Subscription {
         let svc = ctx.locator.thread();
         let thread = svc
             .get(&input.thread_id)
-            .await?
-            .context("Thread not found")?;
+            .await?;
+
+        if thread.is_none() {
+            return Err(CoreError::NotFound(
+                "Thread not found",
+            ));
+        }
 
         if thread.user_id != user.id {
             return Err(CoreError::Forbidden(
