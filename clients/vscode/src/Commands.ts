@@ -24,7 +24,7 @@ import { ChatSideViewProvider } from "./chat/ChatSideViewProvider";
 import { ChatPanelViewProvider } from "./chat/ChatPanelViewProvider";
 import { GitProvider, Repository } from "./git/GitProvider";
 import CommandPalette from "./CommandPalette";
-import { getLogger, showOutputPanel } from "./logger";
+import { showOutputPanel } from "./logger";
 import { Issues } from "./Issues";
 import { InlineEditController } from "./inline-edit";
 
@@ -283,8 +283,7 @@ export class Commands {
         retainContextWhenHidden: true,
       });
 
-      const logger = getLogger();
-      const chatPanelViewProvider = new ChatPanelViewProvider(this.context, this.client.agent, logger, this.gitProvider);
+      const chatPanelViewProvider = new ChatPanelViewProvider(this.context, this.client.agent, this.gitProvider);
 
       chatPanelViewProvider.resolveWebviewView(panel);
     },
