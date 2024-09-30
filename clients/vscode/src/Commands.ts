@@ -40,7 +40,6 @@ export class Commands {
     private readonly inlineCompletionProvider: InlineCompletionProvider,
     private readonly chatViewProvider: ChatSideViewProvider,
     private readonly gitProvider: GitProvider,
-    private readonly chatPanelViewProvider: ChatPanelViewProvider,
   ) {
     const registrations = Object.keys(this.commands).map((key) => {
       const commandName = `tabby.${key}`;
@@ -284,7 +283,9 @@ export class Commands {
         retainContextWhenHidden: true,
       });
 
-      this.chatPanelViewProvider.resolveWebviewView(panel);
+      const chatPanelViewProvider = new ChatPanelViewProvider(this.context, this.client.agent, this.gitProvider);
+
+      chatPanelViewProvider.resolveWebviewView(panel);
     },
     "chat.edit.start": async (userCommand?: string) => {
       const editor = window.activeTextEditor;

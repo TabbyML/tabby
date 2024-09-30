@@ -252,6 +252,10 @@ pub struct HttpModelConfig {
     /// Used by Completion API to construct a chat model.
     #[builder(default)]
     pub chat_template: Option<String>,
+
+    /// Used by Chat/Completion API allowing users to get supported models info.
+    #[builder(default)]
+    pub supported_models: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
