@@ -109,16 +109,10 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
         fetchingSources
       }}
     >
-      <div className={cn('mb-4 mt-6', className)}>
-        <CardHeader className="flex flex-row items-center justify-between p-0 pb-2">
-          <CardTitle className="text-base font-semibold leading-none tracking-tight">
-            Threads
-          </CardTitle>
-        </CardHeader>
-        <Separator className="mb-3" />
+      <div className={cn('mb-4 mt-3', className)}>
         <LoadingWrapper
           loading={fetching || fetchingUsers}
-          fallback={<TheadsSkeleton className="my-6" />}
+          fallback={<TheadsSkeleton className="pt-3" />}
         >
           <div className="text-sm">
             {threads?.length ? (
@@ -186,7 +180,6 @@ function ThreadItem({ data }: ThreadItemProps) {
         <Link href={`/search/${titleSlug}-${threadId}`} className="group">
           <div className="mb-4 pt-3">
             <div className="mb-1.5 flex items-center gap-2">
-              <IconFileQuestion className="h-6 w-6" />
               <div className="break-anywhere truncate text-base font-semibold group-hover:underline">
                 {title}
               </div>
@@ -223,10 +216,9 @@ function TheadsSkeleton({ className }: { className?: string }) {
 
 function ThreadItemSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
+    <div className={cn('flex flex-col', className)}>
       <Skeleton className="w-full" />
-      <Skeleton className="w-[60%]" />
-      <Skeleton className="mt-4 h-10 w-10 rounded-full" />
+      <Skeleton className="mt-2.5 h-6 w-6 rounded-full" />
     </div>
   )
 }
