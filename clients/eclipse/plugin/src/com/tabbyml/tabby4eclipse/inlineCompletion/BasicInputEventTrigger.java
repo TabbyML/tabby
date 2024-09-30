@@ -100,7 +100,7 @@ public class BasicInputEventTrigger implements IInlineCompletionTrigger {
 				logger.debug("offset cahnged, check next...");
 				if (modificationStamp != lastModificationStamp) {
 					logger.debug("modificationStamp changed, trigger inline completion.");
-					inlineCompletionService.trigger();
+					inlineCompletionService.trigger(false);
 				} else {
 					logger.debug("modificationStamp not changed, dismiss inline completion.");
 					inlineCompletionService.dismiss();
