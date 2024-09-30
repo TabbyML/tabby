@@ -21,6 +21,15 @@
 		</contentTypeMapping>
 	</extension>
 
+	<extension
+		point="org.eclipse.ui.preferencePages">
+		<page
+			id="com.tabbyml.tabby4eclipse.preferences.main"
+			name="Tabby"
+			class="com.tabbyml.tabby4eclipse.preferences.MainPreferencesPage">
+		</page>
+	</extension>
+
 	<extension point="org.eclipse.ui.views">
 		<category
 			name="Tabby"

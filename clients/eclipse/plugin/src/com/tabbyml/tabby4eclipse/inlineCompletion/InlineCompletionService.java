@@ -23,6 +23,7 @@ import com.tabbyml.tabby4eclipse.lsp.protocol.ILanguageServer;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ITelemetryService;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ITextDocumentServiceExt;
 import com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionParams;
+import com.tabbyml.tabby4eclipse.preferences.PreferencesService;
 
 public class InlineCompletionService implements IInlineCompletionService {
 	public static IInlineCompletionService getInstance() {
@@ -62,7 +63,11 @@ public class InlineCompletionService implements IInlineCompletionService {
 	}
 
 	@Override
-	public void trigger() {
+	public void trigger(boolean isManualTrigger) {
+		boolean autoTriggerEnabled = PreferencesService.getInstance().getInlineCompletionTriggerAuto();
+		if (!autoTriggerEnabled && !isManualTrigger) {
+			return;
+		}
 		ITextEditor textEditor = EditorUtils.getActiveTextEditor();
 		int offset = EditorUtils.getCurrentOffsetInDocument(textEditor);
 		long modificationStamp = EditorUtils.getDocumentModificationStamp(textEditor);
@@ -79,7 +84,7 @@ public class InlineCompletionService implements IInlineCompletionService {
 
 		ITextViewer textViewer = EditorUtils.getTextViewer(textEditor);
 		InlineCompletionContext.Request request = new InlineCompletionContext.Request(textEditor, offset,
-				modificationStamp);
+				modificationStamp, isManualTrigger);
 		InlineCompletionParams params = request.toInlineCompletionParams();
 		if (params == null) {
 			return;
@@ -118,7 +123,7 @@ public class InlineCompletionService implements IInlineCompletionService {
 		int offset = current.request.offset;
 		InlineCompletionItem item = current.response.getActiveCompletionItem();
 		EventParams eventParams = buildTelemetryEventParams(EventParams.Type.SELECT);
-		
+
 		renderer.hide();
 		current = null;
 
@@ -162,7 +167,7 @@ public class InlineCompletionService implements IInlineCompletionService {
 	private EventParams buildTelemetryEventParams(String type) {
 		return buildTelemetryEventParams(type, null);
 	}
-	
+
 	private EventParams buildTelemetryEventParams(String type, String selectKind) {
 		InlineCompletionItem item = this.renderer.getCurrentCompletionItem();
 		if (item != null && item == current.response.getActiveCompletionItem()) {
@@ -176,12 +181,11 @@ public class InlineCompletionService implements IInlineCompletionService {
 		}
 		return null;
 	}
-	
+
 	private void postTelemetryEvent(EventParams params) {
 		if (params != null) {
 			LanguageServerService.getInstance().getServer().execute((server) -> {
-				ITelemetryService telemetryService = ((ILanguageServer) server)
-						.getTelemetryService();
+				ITelemetryService telemetryService = ((ILanguageServer) server).getTelemetryService();
 				telemetryService.event(params);
 				return null;
 			});
@@ -198,12 +202,12 @@ public class InlineCompletionService implements IInlineCompletionService {
 			private long modificationStamp;
 			private boolean manually;
 
-			public Request(ITextEditor textEditor, int offset, long modificationStamp) {
+			public Request(ITextEditor textEditor, int offset, long modificationStamp, boolean manually) {
 				this.textEditor = textEditor;
 				this.document = EditorUtils.getDocument(textEditor);
 				this.offset = offset;
 				this.modificationStamp = modificationStamp;
-				this.manually = false;
+				this.manually = manually;
 			}
 
 			public InlineCompletionParams toInlineCompletionParams() {
