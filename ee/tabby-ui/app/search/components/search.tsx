@@ -16,7 +16,7 @@ import he from 'he'
 import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 
-import { SESSION_STORAGE_KEY } from '@/lib/constants'
+import { ERROR_CODE_NOT_FOUND, SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useEnableDeveloperMode } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
@@ -73,7 +73,7 @@ import './search.css'
 
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
-import { compact, isEmpty, pick, uniq, uniqBy } from 'lodash-es'
+import { compact, isEmpty, pick, some, uniq, uniqBy } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import { toast } from 'sonner'
 import { Context } from 'tabby-chat-panel/index'
@@ -97,7 +97,7 @@ import {
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
-import { useThreadRun } from '@/lib/hooks/use-thread-run'
+import { ExtendedCombinedError, useThreadRun } from '@/lib/hooks/use-thread-run'
 import { useMutation } from '@/lib/tabby/gql'
 import { contextInfoQuery, listThreads } from '@/lib/tabby/query'
 import {
@@ -252,14 +252,14 @@ export function Search() {
 
   const [afterCursor, setAfterCursor] = useState<string | undefined>()
 
-  // FIXME error view
-  const [{ error: threadError }] = useQuery({
-    query: listThreads,
-    variables: {
-      ids: [threadId]
-    },
-    pause: true
-  })
+  const [{ data: threadData, fetching: fetchingThread, error: threadError }] =
+    useQuery({
+      query: listThreads,
+      variables: {
+        ids: [threadId as string]
+      },
+      pause: !threadId
+    })
 
   const [
     {
@@ -521,10 +521,7 @@ export function Search() {
         item => item.id === currentAssistantMessageId
       )
       if (currentAnswer) {
-        currentAnswer.error =
-          error.message === '401'
-            ? 'Unauthorized'
-            : formatThreadRunErrorMessage(error.message)
+        currentAnswer.error = formatThreadRunErrorMessage(error)
       }
     }
   }, [error])
@@ -730,10 +727,17 @@ export function Search() {
     )
   }
 
+  const hasThreadError = useMemo(() => {
+    if (!isReady || fetchingThread || !threadIdFromURL) return undefined
+    if (threadError || !threadData?.threads?.edges?.length) {
+      return threadError || new Error(ERROR_CODE_NOT_FOUND)
+    }
+  }, [threadData, fetchingThread, threadError, isReady, threadIdFromURL])
+
   const isFetchingMessages =
     fetchingMessages || threadMessages?.threadMessages?.pageInfo?.hasNextPage
 
-  if (isReady && threadMessagesError) {
+  if (isReady && (threadMessagesError || hasThreadError)) {
     return <ThreadMessagesErrorView />
   }
 
@@ -1482,9 +1486,18 @@ function useShareThread({
   }
 }
 
-function formatThreadRunErrorMessage(message?: string) {
-  if (message === 'Thread not found') {
-    return `The thread has expired.`
+function formatThreadRunErrorMessage(error?: ExtendedCombinedError) {
+  if (!error) return 'Failed to fetch'
+
+  if (error.message === '401') {
+    return 'Unauthorized'
   }
-  return message || 'Failed to fetch'
+
+  if (
+    some(error.graphQLErrors, o => o.extensions?.code === ERROR_CODE_NOT_FOUND)
+  ) {
+    return `The thread has expired`
+  }
+
+  return error.message || 'Failed to fetch'
 }

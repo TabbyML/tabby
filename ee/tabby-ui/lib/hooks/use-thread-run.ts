@@ -1,4 +1,6 @@
 import React from 'react'
+import { GraphQLError } from 'graphql'
+import { CombinedError } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 
@@ -11,6 +13,11 @@ import {
 } from '../gql/generates/graphql'
 import { client, useMutation } from '../tabby/gql'
 import { useLatest } from './use-latest'
+
+export interface ExtendedCombinedError
+  extends Omit<CombinedError, 'graphQLErrors'> {
+  graphQLErrors?: GraphQLError[]
+}
 
 interface UseThreadRunOptions {
   onError?: (err: Error) => void
@@ -159,7 +166,7 @@ export interface ThreadRun {
 
   isLoading: boolean
 
-  error: Error | undefined
+  error: ExtendedCombinedError | undefined
 
   sendUserMessage: (
     message: CreateMessageInput,
@@ -197,7 +204,7 @@ export function useThreadRun({
   const [answerStream, setAnswerStream] = React.useState<AnswerStream>(
     defaultAnswerStream()
   )
-  const [error, setError] = React.useState<Error | undefined>()
+  const [error, setError] = React.useState<ExtendedCombinedError | undefined>()
   const combineAnswerStream = (
     existingData: AnswerStream,
     data: ThreadRunItem
@@ -360,17 +367,15 @@ export function useThreadRun({
       threadId,
       userMessageId,
       assistantMessageId
-    })
-      .then(res => {
-        if (!res?.data?.deleteThreadMessagePair) {
-          const errorMessge = res?.error?.message || 'Failed to fetch'
-          return errorMessge
+    }).then(res => {
+      if (!res?.data?.deleteThreadMessagePair) {
+        if (res?.error) {
+          throw res.error
         }
-      })
-      .catch(e => {
-        const errorMessge = e?.message || 'Failed to fetch'
-        return errorMessge
-      })
+
+        throw new Error('Failed to fetch')
+      }
+    })
   }
 
   const regenerate = (payload: {
@@ -393,21 +398,14 @@ export function useThreadRun({
       payload.userMessageId,
       payload.assistantMessageId
     )
-      .then(errorMsg => {
-        if (errorMsg) {
-          setError(new Error(errorMsg))
-          setIsLoading(false)
-          return errorMsg
-        }
-
+      .then(() => {
         // 2. send a new user message
         sendUserMessage(payload.userMessage, payload.threadRunOptions)
       })
       .catch(e => {
-        const errorMessage: string = e?.message || 'Failed to fetch'
-        setError(new Error(errorMessage))
+        const error = e instanceof Error ? e : new Error('Failed to fetch')
+        setError(error)
         setIsLoading(false)
-        return errorMessage
       })
   }
 

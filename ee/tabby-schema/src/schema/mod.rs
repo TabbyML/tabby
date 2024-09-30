@@ -1020,7 +1020,9 @@ impl Mutation {
 
         let user = check_user_allow_auth_token(ctx).await?;
         let svc = ctx.locator.thread();
-        let thread = svc.get(&thread_id).await?.context("Thread not found")?;
+        let Some(thread) = svc.get(&thread_id).await? else {
+            return Err(CoreError::NotFound("Thread not found"));
+        };
 
         user.policy.check_delete_thread_messages(&thread.user_id)?;
 
@@ -1038,7 +1040,9 @@ impl Mutation {
 
         let user = check_user(ctx).await?;
         let svc = ctx.locator.thread();
-        let thread = svc.get(&thread_id).await?.context("Thread not found")?;
+        let Some(thread) = svc.get(&thread_id).await? else {
+            return Err(CoreError::NotFound("Thread not found"));
+        };
 
         user.policy
             .check_update_thread_persistence(&thread.user_id)?;
@@ -1234,15 +1238,9 @@ impl Subscription {
         input.validate()?;
 
         let svc = ctx.locator.thread();
-        let thread = svc
-            .get(&input.thread_id)
-            .await?;
-
-        if thread.is_none() {
-            return Err(CoreError::NotFound(
-                "Thread not found",
-            ));
-        }
+        let Some(thread) = svc.get(&input.thread_id).await? else {
+            return Err(CoreError::NotFound("Thread not found"));
+        };
 
         if thread.user_id != user.id {
             return Err(CoreError::Forbidden(
