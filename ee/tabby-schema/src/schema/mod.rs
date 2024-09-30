@@ -1015,9 +1015,6 @@ impl Mutation {
         user_message_id: ID,
         assistant_message_id: ID,
     ) -> Result<bool> {
-        // ast-grep-ignore: use-schema-result
-        use anyhow::Context;
-
         let user = check_user_allow_auth_token(ctx).await?;
         let svc = ctx.locator.thread();
         let Some(thread) = svc.get(&thread_id).await? else {
@@ -1035,9 +1032,6 @@ impl Mutation {
 
     /// Turn on persisted status for a thread.
     async fn set_thread_persisted(ctx: &Context, thread_id: ID) -> Result<bool> {
-        // ast-grep-ignore: use-schema-result
-        use anyhow::Context;
-
         let user = check_user(ctx).await?;
         let svc = ctx.locator.thread();
         let Some(thread) = svc.get(&thread_id).await? else {
@@ -1231,9 +1225,6 @@ impl Subscription {
         ctx: &Context,
         input: CreateThreadRunInput,
     ) -> Result<ThreadRunStream> {
-        // ast-grep-ignore: use-schema-result
-        use anyhow::Context;
-
         let user = check_user_allow_auth_token(ctx).await?;
         input.validate()?;
 
