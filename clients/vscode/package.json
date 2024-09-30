@@ -7,7 +7,7 @@
   "repository": "https://github.com/TabbyML/tabby",
   "bugs": "https://github.com/TabbyML/tabby/issues",
   "license": "Apache-2.0",
-  "version": "1.11.7",
+  "version": "1.11.8",
   "keywords": [
     "ai",
     "autocomplete",
