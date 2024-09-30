@@ -256,7 +256,7 @@ export function MessageMarkdown({
 }
 
 export function ErrorMessageBlock({
-  error = 'Fail to fetch'
+  error = 'Failed to fetch'
 }: {
   error?: string
 }) {
