@@ -269,11 +269,18 @@ function ChatRenderer(
               ...lastQaPairs.assistant,
               id: lastQaPairs.assistant?.id || nanoid(),
               message: lastQaPairs.assistant?.message ?? '',
-              error: error?.message === '401' ? 'Unauthorized' : 'Fail to fetch'
+              error:
+                error?.message === '401'
+                  ? 'Unauthorized'
+                  : formatErrorMessage(error?.message)
             }
           }
         ]
       })
+    }
+
+    if (error?.message === 'Thread not found' && !qaPairs?.length) {
+      onClearMessages()
     }
   }, [error])
 
@@ -495,3 +502,10 @@ function appendContextAndDedupe(
 }
 
 export const Chat = React.forwardRef<ChatRef, ChatProps>(ChatRenderer)
+
+function formatErrorMessage(message?: string) {
+  if (message === 'Thread not found') {
+    return `The thread has expired, please click ${"'"}clear${"'"} and then retry.`
+  }
+  return message || 'Failed to fetch'
+}

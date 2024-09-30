@@ -514,7 +514,7 @@ export function Search() {
         currentAnswer.error =
           error.message === '401'
             ? 'Unauthorized'
-            : error.message || 'Fail to fetch'
+            : error.message || 'Failed to fetch'
       }
     }
   }, [error])
