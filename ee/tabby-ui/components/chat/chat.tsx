@@ -511,7 +511,7 @@ function formatThreadRunErrorMessage(error: ExtendedCombinedError | undefined) {
   if (
     some(error.graphQLErrors, o => o.extensions?.code === ERROR_CODE_NOT_FOUND)
   ) {
-    return `The thread has expired, please click ${"'"}clear${"'"} and then retry.`
+    return `The thread has expired, please click ${"'"}Clear${"'"} and try again.`
   }
 
   return error.message || 'Failed to fetch'
