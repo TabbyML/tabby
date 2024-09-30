@@ -341,3 +341,39 @@ export const listSourceIdAccessPolicies = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const listThreads = graphql(/* GraphQL */ `
+  query ListThreads(
+    $ids: [ID!]
+    $isEphemeral: Boolean
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    threads(
+      ids: $ids
+      isEphemeral: $isEphemeral
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          userId
+          createdAt
+          updatedAt
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)

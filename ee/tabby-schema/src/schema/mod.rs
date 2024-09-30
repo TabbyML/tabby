@@ -106,6 +106,9 @@ pub enum CoreError {
     #[error("{0}")]
     Forbidden(&'static str),
 
+    #[error("{0}")]
+    NotFound(&'static str),
+
     #[error("Invalid ID")]
     InvalidID,
 
@@ -129,6 +132,7 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
             Self::Unauthorized(msg) => {
                 FieldError::new(msg, graphql_value!({"code": "UNAUTHORIZED"}))
             }
+            Self::NotFound(msg) => FieldError::new(msg, graphql_value!({"code": "NOT_FOUND"})),
             Self::InvalidInput(errors) => from_validation_errors(errors),
             _ => self.into(),
         }
@@ -1011,12 +1015,11 @@ impl Mutation {
         user_message_id: ID,
         assistant_message_id: ID,
     ) -> Result<bool> {
-        // ast-grep-ignore: use-schema-result
-        use anyhow::Context;
-
         let user = check_user_allow_auth_token(ctx).await?;
         let svc = ctx.locator.thread();
-        let thread = svc.get(&thread_id).await?.context("Thread not found")?;
+        let Some(thread) = svc.get(&thread_id).await? else {
+            return Err(CoreError::NotFound("Thread not found"));
+        };
 
         user.policy.check_delete_thread_messages(&thread.user_id)?;
 
@@ -1029,12 +1032,11 @@ impl Mutation {
 
     /// Turn on persisted status for a thread.
     async fn set_thread_persisted(ctx: &Context, thread_id: ID) -> Result<bool> {
-        // ast-grep-ignore: use-schema-result
-        use anyhow::Context;
-
         let user = check_user(ctx).await?;
         let svc = ctx.locator.thread();
-        let thread = svc.get(&thread_id).await?.context("Thread not found")?;
+        let Some(thread) = svc.get(&thread_id).await? else {
+            return Err(CoreError::NotFound("Thread not found"));
+        };
 
         user.policy
             .check_update_thread_persistence(&thread.user_id)?;
@@ -1223,17 +1225,13 @@ impl Subscription {
         ctx: &Context,
         input: CreateThreadRunInput,
     ) -> Result<ThreadRunStream> {
-        // ast-grep-ignore: use-schema-result
-        use anyhow::Context;
-
         let user = check_user_allow_auth_token(ctx).await?;
         input.validate()?;
 
         let svc = ctx.locator.thread();
-        let thread = svc
-            .get(&input.thread_id)
-            .await?
-            .context("Thread not found")?;
+        let Some(thread) = svc.get(&input.thread_id).await? else {
+            return Err(CoreError::NotFound("Thread not found"));
+        };
 
         if thread.user_id != user.id {
             return Err(CoreError::Forbidden(
