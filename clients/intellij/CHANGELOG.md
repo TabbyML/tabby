@@ -1,3 +1,9 @@
+## 1.8.0
+
+### Features
+
+- Updated the chat panel to compatible with Tabby server v0.18.0 or later.
+
 ## 1.7.1
 
 ### Features
