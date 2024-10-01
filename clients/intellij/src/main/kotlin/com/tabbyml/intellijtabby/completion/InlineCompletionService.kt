@@ -262,6 +262,9 @@ class InlineCompletionService(private val project: Project) : Disposable {
   }
 
   private fun calcCycleIndex(index: Int, size: Int, direction: CycleDirection): Int {
+    if (size <= 1) {
+      return index
+    }
     return when (direction) {
       CycleDirection.NEXT -> (index + 1).mod(size)
       CycleDirection.PREVIOUS -> (index - 1).mod(size)
