@@ -368,7 +368,7 @@ class ChatBrowser(private val project: Project) {
   }
 
   private fun jsShowMessage(message: String?) {
-    val script = String.format("showMessage('%s')", message ?: "undefined")
+    val script = if (message != null) "showMessage('${message}')" else "showMessage()"
     browser.cefBrowser.executeJavaScript(script, browser.cefBrowser.url, 0)
   }
 
