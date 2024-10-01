@@ -9,6 +9,7 @@ import com.tabbyml.intellijtabby.completion.InlineCompletionService
 import com.tabbyml.intellijtabby.lsp.ConnectionService
 import com.tabbyml.intellijtabby.lsp.LanguageClient
 import com.tabbyml.intellijtabby.lsp.protocol.IssueList
+import com.tabbyml.intellijtabby.lsp.protocol.ServerInfo
 import com.tabbyml.intellijtabby.lsp.protocol.Status
 import com.tabbyml.intellijtabby.notifications.notifyAuthRequired
 import com.tabbyml.intellijtabby.safeSyncPublisher
@@ -23,30 +24,35 @@ class CombinedState(private val project: Project) : Disposable {
     val connectionState: ConnectionService.State,
     val agentStatus: String,
     val agentIssue: String?,
+    val agentServerInfo: ServerInfo?,
     val isInlineCompletionLoading: Boolean,
   ) {
     fun withSettings(settings: SettingsService.Settings): State {
-      return State(settings, connectionState, agentStatus, agentIssue, isInlineCompletionLoading)
+      return State(settings, connectionState, agentStatus, agentIssue, agentServerInfo, isInlineCompletionLoading)
     }
 
     fun withConnectionState(connectionState: ConnectionService.State): State {
-      return State(settings, connectionState, agentStatus, agentIssue, isInlineCompletionLoading)
+      return State(settings, connectionState, agentStatus, agentIssue, agentServerInfo, isInlineCompletionLoading)
     }
 
     fun withAgentStatus(agentStatus: String): State {
-      return State(settings, connectionState, agentStatus, agentIssue, isInlineCompletionLoading)
+      return State(settings, connectionState, agentStatus, agentIssue, agentServerInfo, isInlineCompletionLoading)
     }
 
     fun withAgentIssue(currentIssue: String?): State {
-      return State(settings, connectionState, agentStatus, currentIssue, isInlineCompletionLoading)
+      return State(settings, connectionState, agentStatus, currentIssue, agentServerInfo, isInlineCompletionLoading)
     }
 
     fun withoutAgentIssue(): State {
       return withAgentIssue(null)
     }
 
+    fun withAgentServerInfo(serverInfo: ServerInfo?): State {
+      return State(settings, connectionState, agentStatus, agentIssue, serverInfo, isInlineCompletionLoading)
+    }
+
     fun withInlineCompletionLoading(isInlineCompletionLoading: Boolean = true): State {
-      return State(settings, connectionState, agentStatus, agentIssue, isInlineCompletionLoading)
+      return State(settings, connectionState, agentStatus, agentIssue, agentServerInfo, isInlineCompletionLoading)
     }
   }
 
@@ -55,7 +61,8 @@ class CombinedState(private val project: Project) : Disposable {
     ConnectionService.State.INITIALIZING,
     Status.NOT_INITIALIZED,
     null,
-    false
+    null,
+    false,
   )
     private set
 
@@ -86,6 +93,11 @@ class CombinedState(private val project: Project) : Disposable {
         state = issueList.issues.firstOrNull()?.let {
           state.withAgentIssue(it)
         } ?: state.withoutAgentIssue()
+        project.safeSyncPublisher(Listener.TOPIC)?.stateChanged(state)
+      }
+
+      override fun agentServerInfoUpdated(serverInfo: ServerInfo) {
+        state = state.withAgentServerInfo(serverInfo)
         project.safeSyncPublisher(Listener.TOPIC)?.stateChanged(state)
       }
     })

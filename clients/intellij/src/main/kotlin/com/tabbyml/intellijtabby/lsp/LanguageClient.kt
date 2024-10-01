@@ -19,6 +19,7 @@ import com.tabbyml.intellijtabby.lsp.protocol.ClientCapabilities
 import com.tabbyml.intellijtabby.lsp.protocol.ClientInfo
 import com.tabbyml.intellijtabby.lsp.protocol.InitializeParams
 import com.tabbyml.intellijtabby.lsp.protocol.InitializeResult
+import com.tabbyml.intellijtabby.lsp.protocol.ServerInfo
 import com.tabbyml.intellijtabby.lsp.protocol.TextDocumentClientCapabilities
 import com.tabbyml.intellijtabby.lsp.protocol.server.LanguageServer
 import com.tabbyml.intellijtabby.safeSyncPublisher
@@ -82,6 +83,7 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
     scope.launch {
       project.safeSyncPublisher(AgentListener.TOPIC)?.agentStatusChanged(server.agentFeature.status().await())
       project.safeSyncPublisher(AgentListener.TOPIC)?.agentIssueUpdated(server.agentFeature.issues().await())
+      project.safeSyncPublisher(AgentListener.TOPIC)?.agentServerInfoUpdated(server.agentFeature.serverInfo().await())
     }
   }
 
@@ -91,6 +93,10 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
 
   override fun didUpdateIssues(params: DidUpdateIssueParams) {
     project.safeSyncPublisher(AgentListener.TOPIC)?.agentIssueUpdated(params)
+  }
+
+  override fun didUpdateServerInfo(params: DidUpdateServerInfoParams) {
+    project.safeSyncPublisher(AgentListener.TOPIC)?.agentServerInfoUpdated(params.serverInfo)
   }
 
   override fun editorOptions(params: EditorOptionsParams): CompletableFuture<EditorOptions?> {
@@ -186,6 +192,7 @@ class LanguageClient(private val project: Project) : com.tabbyml.intellijtabby.l
   interface AgentListener {
     fun agentStatusChanged(status: String) {}
     fun agentIssueUpdated(issueList: IssueList) {}
+    fun agentServerInfoUpdated(serverInfo: ServerInfo) {}
 
     companion object {
       @Topic.ProjectLevel

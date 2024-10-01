@@ -16,7 +16,6 @@ import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
-import com.intellij.util.messages.MessageBusConnection
 import com.intellij.util.messages.Topic
 import com.tabbyml.intellijtabby.events.CaretListener
 import com.tabbyml.intellijtabby.events.DocumentListener
