@@ -27,6 +27,7 @@ import CommandPalette from "./CommandPalette";
 import { showOutputPanel } from "./logger";
 import { Issues } from "./Issues";
 import { InlineEditController } from "./inline-edit";
+import { QuickFileAttach } from "./quick-file-attach";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -259,7 +260,7 @@ export class Commands {
     "chat.addRelevantContext": async () => {
       this.addRelevantContext();
     },
-    "chat.addFileContext": () => {
+    "chat.addFileContext": async () => {
       const editor = window.activeTextEditor;
       if (editor) {
         commands.executeCommand("tabby.chatView.focus").then(() => {
@@ -267,7 +268,8 @@ export class Commands {
           this.chatViewProvider.addRelevantContext(fileContext);
         });
       } else {
-        window.showInformationMessage("No active editor");
+        const quickFileAttach = new QuickFileAttach(this.chatViewProvider, this.gitProvider);
+        await quickFileAttach.start();
       }
     },
     "chat.fixCodeBlock": async () => {
