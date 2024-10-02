@@ -18,7 +18,7 @@ const fileSeparator = {
 };
 
 export class QuickFileAttach {
-  private base = '/Users/eryue0220/cin/eryue/tabbyml/tabby/';
+  private base = process.cwd();
   private quickPick: QuickPick<QuickPickItem> = window.createQuickPick<QuickPickItem>();
   private current: string;
 
