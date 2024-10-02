@@ -9,3 +9,5 @@ export const SESSION_STORAGE_KEY = {
 }
 
 export * as regex from './regex'
+
+export const ERROR_CODE_NOT_FOUND = 'NOT_FOUND'

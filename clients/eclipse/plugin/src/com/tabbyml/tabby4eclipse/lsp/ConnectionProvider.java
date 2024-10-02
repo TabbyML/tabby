@@ -23,6 +23,7 @@ import com.tabbyml.tabby4eclipse.lsp.protocol.ClientInfo;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientInfo.TabbyPluginInfo;
 import com.tabbyml.tabby4eclipse.lsp.protocol.ClientProvidedConfig;
 import com.tabbyml.tabby4eclipse.lsp.protocol.InitializationOptions;
+import com.tabbyml.tabby4eclipse.preferences.PreferencesService;
 
 public class ConnectionProvider extends ProcessStreamConnectionProvider {
 	private Logger logger = new Logger("ConnectionProvider");
@@ -31,24 +32,42 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 		try {
 			// Find node executable
 			File nodeExecutableFile = null;
-			String systemPath = System.getenv("PATH");
-			logger.debug("System env PATH: " + systemPath);
-			if (systemPath != null) {
-				String[] paths = systemPath.split(File.pathSeparator);
-				for (String p : paths) {
-					File file = new File(p, Utils.isWindows() ? "node.exe" : "node");
-					if (file.exists() && file.canExecute()) {
-						nodeExecutableFile = file;
-						logger.debug("Node executable: " + file.getAbsolutePath());
-						break;
+
+			String nodePathFromPreference = PreferencesService.getInstance().getNodeBinaryPath();
+			if (nodePathFromPreference != null && !nodePathFromPreference.isEmpty()) {
+				String nodePath = nodePathFromPreference.replaceFirst("~", System.getProperty("user.home"));
+				logger.info("Node executable path from preference: " + nodePath);
+				File file = new File(nodePath);
+				if (file.exists() && file.canExecute()) {
+					nodeExecutableFile = file;
+				} else {
+					logger.info("Cannot find node executable in: " + nodePath);
+				}
+			}
+
+			if (nodeExecutableFile == null) {
+				String systemPath = System.getenv("PATH");
+				logger.info("Finding node executable in system paths: " + systemPath);
+				if (systemPath != null) {
+					String[] paths = systemPath.split(File.pathSeparator);
+					for (String p : paths) {
+						File file = new File(p, Utils.isWindows() ? "node.exe" : "node");
+						if (file.exists() && file.canExecute()) {
+							nodeExecutableFile = file;
+							break;
+						}
 					}
 				}
 			}
+
 			if (nodeExecutableFile == null) {
 				StatusInfoHolder.getInstance().setConnectionFailed(true);
 				logger.error("Cannot find node executable.");
 				return;
+			} else {
+				logger.info("Using node executable: " + nodeExecutableFile.getAbsolutePath());
 			}
+
 			// Find tabby-agent script
 			Bundle bundle = Platform.getBundle(Activator.PLUGIN_ID);
 			URL agentScriptUrl = FileLocator.find(bundle, new Path("tabby-agent/dist/node/index.js"));
@@ -87,8 +106,7 @@ public class ConnectionProvider extends ProcessStreamConnectionProvider {
 	}
 
 	private ClientProvidedConfig getProvidedConfig() {
-		ClientProvidedConfig config = new ClientProvidedConfig();
-		return config;
+		return PreferencesService.getInstance().buildClientProvidedConfig();
 	}
 
 	private ClientInfo getClientInfo() {

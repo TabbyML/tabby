@@ -1,8 +1,9 @@
-import { ExtensionContext, LogOutputChannel, TextEditor, window, commands, WebviewPanel } from "vscode";
+import { ExtensionContext, TextEditor, window, WebviewPanel } from "vscode";
 import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import { WebviewHelper } from "./WebviewHelper";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
 import { GitProvider } from "../git/GitProvider";
+import { getLogger } from "../logger";
 
 export class ChatPanelViewProvider {
   webview?: WebviewPanel;
@@ -12,9 +13,9 @@ export class ChatPanelViewProvider {
   constructor(
     private readonly context: ExtensionContext,
     agent: Agent,
-    logger: LogOutputChannel,
     gitProvider: GitProvider,
   ) {
+    const logger = getLogger();
     this.webviewHelper = new WebviewHelper(context, agent, logger, gitProvider);
   }
 
@@ -50,8 +51,6 @@ export class ChatPanelViewProvider {
       if (webviewView.visible) {
         this.webviewHelper.refreshChatPage();
       }
-
-      commands.executeCommand("setContext", "tabby.chatViewVisible", webviewView.visible);
     });
 
     webviewView.webview.onDidReceiveMessage((message) => {

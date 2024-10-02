@@ -132,4 +132,78 @@ mod tests {
         assert_matches!(job2dao.exit_code, Some(-1));
         assert!(!job2dao.is_pending())
     }
+
+    #[tokio::test]
+    async fn test_list() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let svc = super::create(db.clone()).await;
+
+        let job1 = BackgroundJobEvent::WebCrawler(WebCrawlerJob::new(
+            "s1".into(),
+            "http://abc.com".into(),
+            None,
+        ));
+        let job2 = BackgroundJobEvent::WebCrawler(WebCrawlerJob::new(
+            "s2".into(),
+            "http://def.com".into(),
+            None,
+        ));
+
+        let id1 = svc.trigger(job1.to_command()).await.unwrap();
+        let id2 = svc.trigger(job2.to_command()).await.unwrap();
+
+        let ids = Vec::from([id1.clone(), id2.clone()]);
+        let all_jobs = svc
+            .list(Some(ids), None, None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(all_jobs.len(), 2);
+
+        let specific_jobs = svc
+            .list(Some(vec![id1.clone()]), None, None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(specific_jobs.len(), 1);
+        assert_eq!(specific_jobs[0].id, id1);
+
+        let first_job = svc
+            .list(None, None, None, None, Some(1), None)
+            .await
+            .unwrap();
+        assert_eq!(first_job.len(), 1);
+        assert_eq!(first_job[0].id, id1);
+    }
+
+    #[tokio::test]
+    async fn test_compute_stats() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let svc = super::create(db.clone()).await;
+
+        let job1 = BackgroundJobEvent::WebCrawler(WebCrawlerJob::new(
+            "s1".into(),
+            "http://abc.com".into(),
+            None,
+        ));
+        let job2 = BackgroundJobEvent::WebCrawler(WebCrawlerJob::new(
+            "s2".into(),
+            "http://edf.com".into(),
+            None,
+        ));
+
+        svc.trigger(job1.to_command()).await.unwrap();
+        svc.trigger(job2.to_command()).await.unwrap();
+
+        let stats = svc.compute_stats(None).await.unwrap();
+        assert_eq!(stats.pending, 2);
+        assert_eq!(stats.success, 0);
+        assert_eq!(stats.failed, 0);
+
+        let _ = db.update_job_status(1, 0).await;
+        let _ = db.update_job_status(2, 1).await;
+
+        let updated_stats = svc.compute_stats(None).await.unwrap();
+        assert_eq!(updated_stats.pending, 0);
+        assert_eq!(updated_stats.success, 1);
+        assert_eq!(updated_stats.failed, 1);
+    }
 }

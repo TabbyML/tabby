@@ -1,3 +1,14 @@
+## 1.7.1
+
+### Features
+
+- Introduced a new chat view feature that allows users to engage in conversations with their AI assistant.
+- Added support for HTTP proxy configuration. Users can now set up an HTTP proxy either through environment variables or in the config file.
+
+### Fixes & Improvements
+
+- Fixed a bug where the inline completion service created too many jobs when receiving multiple document change events at the same time, such as during a reformat code action.
+
 ## 1.6.3
 
 ### Fixes & Improvements

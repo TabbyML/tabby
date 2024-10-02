@@ -41,7 +41,6 @@ export class Commands {
     private readonly inlineCompletionProvider: InlineCompletionProvider,
     private readonly chatViewProvider: ChatSideViewProvider,
     private readonly gitProvider: GitProvider,
-    private readonly chatPanelViewProvider: ChatPanelViewProvider,
   ) {
     const registrations = Object.keys(this.commands).map((key) => {
       const commandName = `tabby.${key}`;
@@ -282,9 +281,13 @@ export class Commands {
       this.sendMessageToChatPanel("Generate a unit test for the selected code:");
     },
     "chat.createPanel": async () => {
-      const panel = window.createWebviewPanel("tabby.chatView", "Tabby", ViewColumn.One, {});
+      const panel = window.createWebviewPanel("tabby.chatView", "Tabby", ViewColumn.One, {
+        retainContextWhenHidden: true,
+      });
 
-      this.chatPanelViewProvider.resolveWebviewView(panel);
+      const chatPanelViewProvider = new ChatPanelViewProvider(this.context, this.client.agent, this.gitProvider);
+
+      chatPanelViewProvider.resolveWebviewView(panel);
     },
     "chat.edit.start": async (userCommand?: string) => {
       const editor = window.activeTextEditor;

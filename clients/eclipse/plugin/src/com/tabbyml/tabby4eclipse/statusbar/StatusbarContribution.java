@@ -19,6 +19,7 @@ import com.tabbyml.tabby4eclipse.chat.ChatView;
 import com.tabbyml.tabby4eclipse.lsp.LanguageServerService;
 import com.tabbyml.tabby4eclipse.lsp.StatusInfoHolder;
 import com.tabbyml.tabby4eclipse.lsp.protocol.StatusInfo;
+import com.tabbyml.tabby4eclipse.preferences.MainPreferencesPage;
 
 public class StatusbarContribution extends WorkbenchWindowControlContribution {
 	private static final String TOOLTIP_INITIALIZATION_FAILED = "Tabby: Initialization Failed";
@@ -60,9 +61,6 @@ public class StatusbarContribution extends WorkbenchWindowControlContribution {
 			label.setToolTipText("Tabby: " + statusInfo.getStatus());
 		}
 		switch (statusInfo.getStatus()) {
-		case StatusInfo.Status.NOT_INITIALIZED:
-			label.setImage(Images.getIcon(Images.ICON_LOADING));
-			break;
 		case StatusInfo.Status.CONNECTING:
 			label.setImage(Images.getIcon(Images.ICON_LOADING));
 			break;
@@ -73,6 +71,12 @@ public class StatusbarContribution extends WorkbenchWindowControlContribution {
 			label.setImage(Images.getIcon(Images.ICON_ERROR));
 			break;
 		case StatusInfo.Status.READY:
+			label.setImage(Images.getIcon(Images.ICON_CHECK));
+			break;
+		case StatusInfo.Status.READY_FOR_AUTO_TRIGGER:
+			label.setImage(Images.getIcon(Images.ICON_CHECK));
+			break;
+		case StatusInfo.Status.READY_FOR_MANUAL_TRIGGER:
 			label.setImage(Images.getIcon(Images.ICON_CHECK));
 			break;
 		case StatusInfo.Status.FETCHING:
@@ -117,9 +121,6 @@ public class StatusbarContribution extends WorkbenchWindowControlContribution {
 			});
 		}
 		switch (statusInfo.getStatus()) {
-		case StatusInfo.Status.NOT_INITIALIZED:
-			statusItem.setImage(Images.getIcon(Images.ICON_LOADING));
-			break;
 		case StatusInfo.Status.CONNECTING:
 			statusItem.setImage(Images.getIcon(Images.ICON_LOADING));
 			break;
@@ -130,6 +131,12 @@ public class StatusbarContribution extends WorkbenchWindowControlContribution {
 			statusItem.setImage(Images.getIcon(Images.ICON_ERROR));
 			break;
 		case StatusInfo.Status.READY:
+			statusItem.setImage(Images.getIcon(Images.ICON_CHECK));
+			break;
+		case StatusInfo.Status.READY_FOR_AUTO_TRIGGER:
+			statusItem.setImage(Images.getIcon(Images.ICON_CHECK));
+			break;
+		case StatusInfo.Status.READY_FOR_MANUAL_TRIGGER:
 			statusItem.setImage(Images.getIcon(Images.ICON_CHECK));
 			break;
 		case StatusInfo.Status.FETCHING:
@@ -150,6 +157,16 @@ public class StatusbarContribution extends WorkbenchWindowControlContribution {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				ChatView.openChatView();
+			}
+		});
+		
+		MenuItem openPreferencesItem = new MenuItem(menu, SWT.NONE);
+		openPreferencesItem.setImage(Images.getIcon(Images.ICON_SETTINGS));
+		openPreferencesItem.setText("Open Settings");
+		openPreferencesItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				MainPreferencesPage.openPreferences();
 			}
 		});
 		

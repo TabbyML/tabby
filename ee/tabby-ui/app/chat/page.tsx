@@ -15,7 +15,6 @@ import {
   type Context,
   type ErrorMessage,
   type FetcherOptions,
-  type FocusKeybinding,
   type InitRequest,
   type NavigateOpts
 } from 'tabby-chat-panel'
@@ -68,7 +67,7 @@ export default function ChatPage() {
   const searchParams = useSearchParams()
   const client = searchParams.get('client') as ClientType
   const isInEditor = !!client || undefined
-  const focusKeybinding = useRef<FocusKeybinding>()
+  const useMacOSKeyboardEventHandler = useRef<boolean>()
 
   const sendMessage = (message: ChatMessage) => {
     if (chatRef.current) {
@@ -102,7 +101,8 @@ export default function ChatPage() {
       setActiveChatId(nanoid())
       setIsInit(true)
       setFetcherOptions(request.fetcherOptions)
-      focusKeybinding.current = request.focusKey
+      useMacOSKeyboardEventHandler.current =
+        request.useMacOSKeyboardEventHandler
     },
     sendMessage: (message: ChatMessage) => {
       return sendMessage(message)
@@ -152,36 +152,62 @@ export default function ChatPage() {
     }
   })
 
-  // VSCode bug: not support shortcuts like copy/paste
-  // @see - https://github.com/microsoft/vscode/issues/129178
   useEffect(() => {
-    if (client !== 'vscode') return
+    const dispatchKeyboardEvent = (
+      type: 'keydown' | 'keyup' | 'keypress',
+      event: KeyboardEvent
+    ) => {
+      server?.onKeyboardEvent(type, {
+        code: event.code,
+        isComposing: event.isComposing,
+        key: event.key,
+        altKey: event.altKey,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        shiftKey: event.shiftKey,
+        location: event.location,
+        repeat: event.repeat,
+        // keyCode is deprecated, but still required for VSCode on Windows
+        keyCode: event.keyCode
+      })
+    }
 
     const onKeyDown = (event: KeyboardEvent) => {
-      const focusKeyInfo = focusKeybinding.current
-      if ((event.ctrlKey || event.metaKey) && event.code === 'KeyC') {
-        document.execCommand('copy')
-      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyX') {
-        document.execCommand('cut')
-      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyV') {
-        document.execCommand('paste')
-      } else if ((event.ctrlKey || event.metaKey) && event.code === 'KeyA') {
-        document.execCommand('selectAll')
-      } else if (
-        focusKeyInfo &&
-        event.key.toLowerCase() == focusKeyInfo.key &&
-        event.ctrlKey == focusKeyInfo.ctrlKey &&
-        event.metaKey == focusKeyInfo.metaKey &&
-        event.altKey == focusKeyInfo.altKey &&
-        event.shiftKey == focusKeyInfo.shiftKey
-      ) {
-        server?.focusOnEditor()
+      if (useMacOSKeyboardEventHandler.current) {
+        // Workaround for vscode webview issue:
+        // shortcut (cmd+a, cmd+c, cmd+v, cmd+x) not work in nested iframe in vscode webview
+        // see https://github.com/microsoft/vscode/issues/129178
+        if (event.metaKey && event.code === 'KeyC') {
+          document.execCommand('copy')
+        } else if (event.metaKey && event.code === 'KeyX') {
+          document.execCommand('cut')
+        } else if (event.metaKey && event.code === 'KeyV') {
+          document.execCommand('paste')
+        } else if (event.metaKey && event.code === 'KeyA') {
+          document.execCommand('selectAll')
+        } else {
+          dispatchKeyboardEvent('keydown', event)
+        }
+      } else {
+        dispatchKeyboardEvent('keydown', event)
       }
     }
 
+    const onKeyUp = (event: KeyboardEvent) => {
+      dispatchKeyboardEvent('keyup', event)
+    }
+
+    const onKeyPress = (event: KeyboardEvent) => {
+      dispatchKeyboardEvent('keypress', event)
+    }
+
     window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('keypress', onKeyPress)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('keypress', onKeyPress)
     }
   }, [server, client])
 

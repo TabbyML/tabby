@@ -1,7 +1,8 @@
 import React, { RefObject } from 'react'
-import { compact, findIndex, isEqual, uniqWith } from 'lodash-es'
+import { compact, findIndex, isEqual, some, uniqWith } from 'lodash-es'
 import type { Context, FileContext, NavigateOpts } from 'tabby-chat-panel'
 
+import { ERROR_CODE_NOT_FOUND } from '@/lib/constants'
 import {
   CodeQueryInput,
   CreateMessageInput,
@@ -11,7 +12,7 @@ import {
 } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
-import { useThreadRun } from '@/lib/hooks/use-thread-run'
+import { ExtendedCombinedError, useThreadRun } from '@/lib/hooks/use-thread-run'
 import { filename2prism } from '@/lib/language-utils'
 import {
   AssistantMessage,
@@ -269,11 +270,15 @@ function ChatRenderer(
               ...lastQaPairs.assistant,
               id: lastQaPairs.assistant?.id || nanoid(),
               message: lastQaPairs.assistant?.message ?? '',
-              error: error?.message === '401' ? 'Unauthorized' : 'Fail to fetch'
+              error: formatThreadRunErrorMessage(error)
             }
           }
         ]
       })
+    }
+
+    if (error?.message === 'Thread not found' && !qaPairs?.length) {
+      onClearMessages()
     }
   }, [error])
 
@@ -495,3 +500,19 @@ function appendContextAndDedupe(
 }
 
 export const Chat = React.forwardRef<ChatRef, ChatProps>(ChatRenderer)
+
+function formatThreadRunErrorMessage(error: ExtendedCombinedError | undefined) {
+  if (!error) return 'Failed to fetch'
+
+  if (error.message === '401') {
+    return 'Unauthorized'
+  }
+
+  if (
+    some(error.graphQLErrors, o => o.extensions?.code === ERROR_CODE_NOT_FOUND)
+  ) {
+    return `The thread has expired, please click ${"'"}Clear${"'"} and try again.`
+  }
+
+  return error.message || 'Failed to fetch'
+}
