@@ -35,13 +35,7 @@ export class QuickFileAttach {
 
     this.quickPick.onDidAccept(this.onDidAccept, this);
     this.quickPick.onDidTriggerButton(this.onDidTriggerButton, this);
-    this.quickPick.onDidChangeValue(this.onDidChangeValue, this);
     this.quickPick.onDidHide(this.quickPick.dispose);
-  }
-
-  async start() {
-    this.quickPick.items = await this.listFiles();
-    this.quickPick.show();
   }
 
   get root() {
@@ -54,6 +48,11 @@ export class QuickFileAttach {
 
   get currentBase() {
     return this.current;
+  }
+
+  public async start() {
+    this.quickPick.items = await this.listFiles();
+    this.quickPick.show();
   }
 
   private async readDir(d: string) {
@@ -73,11 +72,6 @@ export class QuickFileAttach {
         this.quickPick.items = await this.listFiles(root);
       }
     }
-  }
-
-  private onDidChangeValue() {
-    const { items, value } = this.quickPick;
-    window.showInformationMessage(JSON.stringify({ items, value }));
   }
 
   private async onDidTriggerButton() {
@@ -132,13 +126,14 @@ export class QuickFileAttach {
   private async addFileToChat(path: string) {
     const uri = Uri.file(path);
     const content = await fs.readFile(path, "utf8");
+    const lines = content.split("\n").length;
     const { filepath, git_url } = WebviewHelper.resolveFilePathAndGitUrl(uri, this.gitProvider);
     const fileContext: Context = {
       kind: "file",
       content,
       range: {
         start: 1,
-        end: 500,
+        end: lines,
       },
       filepath,
       git_url,
