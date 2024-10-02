@@ -3,13 +3,13 @@ package com.tabbyml.intellijtabby.chat
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
-import com.intellij.ide.ui.UISettingsListener
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.colors.EditorColors
+import com.intellij.openapi.editor.colors.EditorColorsListener
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -102,7 +102,8 @@ class ChatBrowser(private val project: Project) {
       }
     })
 
-    messageBusConnection.subscribe(UISettingsListener.TOPIC, UISettingsListener {
+    messageBusConnection.subscribe(EditorColorsManager.TOPIC, EditorColorsListener {
+      logger.debug("EditorColorsManager globalSchemeChange received, updating style.")
       jsApplyStyle()
       chatPanelUpdateTheme()
     })
