@@ -1,3 +1,11 @@
+## 1.12.0
+
+### Features
+
+- Updated the chat panel to be compatible with Tabby server v0.18.0 or later.
+- Added support to open the chat panel as a tab in editor groups.
+- Introduced actions in the quick-fix menu to explain or fix errors using Tabby.
+
 ## 1.10.3
 
 ### Fixes & Improvements
