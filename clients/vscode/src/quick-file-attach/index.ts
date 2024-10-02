@@ -8,12 +8,12 @@ import { WebviewHelper } from "../chat/WebviewHelper";
 import type { GitProvider } from "../git/GitProvider";
 
 const folderSeparator = {
-  label: 'Folders',
+  label: "Folders",
   kind: QuickPickItemKind.Separator,
 };
 
 const fileSeparator = {
-  label: 'Files',
+  label: "Files",
   kind: QuickPickItemKind.Separator,
 };
 
@@ -61,7 +61,7 @@ export class QuickFileAttach {
 
   private async onDidAccept() {
     const selected = this.quickPick.selectedItems[0];
-    const root = selected?.detail
+    const root = selected?.detail;
     if (root) {
       const s = await fs.stat(root);
       if (s.isFile()) {
@@ -86,7 +86,7 @@ export class QuickFileAttach {
   }
 
   private async listFiles(p?: string) {
-    const root = p || this.root
+    const root = p || this.root;
     const currentDir = await this.readDir(root);
     const files: QuickPickItem[] = [];
     const dirs: QuickPickItem[] = [];
@@ -99,13 +99,13 @@ export class QuickFileAttach {
         files.push({
           detail: p,
           label: dir,
-          iconPath:new ThemeIcon('file'),
+          iconPath: new ThemeIcon("file"),
         });
       } else if (s.isDirectory()) {
         dirs.push({
           detail: p,
           label: dir,
-          iconPath: new ThemeIcon('file-directory'),
+          iconPath: new ThemeIcon("file-directory"),
         });
       }
     }
