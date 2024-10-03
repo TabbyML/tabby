@@ -136,6 +136,16 @@ pub struct Segments {
     /// Sorted in descending order of [Snippet::score].
     relevant_snippets_from_changed_files: Option<Vec<Snippet>>,
 
+    /// The relevant code snippets extracted from recently opened files.
+    /// These snippets are selected from candidates found within code chunks
+    /// based on the last visited location.
+    ///
+    /// Current Active file is excluded from the search candidates.
+    /// When provided with [Segments::relevant_snippets_from_changed_files], the snippets have
+    /// already been deduplicated to ensure no duplication with entries
+    /// in [Segments::relevant_snippets_from_changed_files].
+    relevant_snippets_from_recently_opened_files: Option<Vec<Snippet>>,
+
     /// Clipboard content when requesting code completion.
     clipboard: Option<String>,
 }
@@ -456,6 +466,7 @@ mod tests {
             git_url: None,
             declarations: None,
             relevant_snippets_from_changed_files: None,
+            relevant_snippets_from_recently_opened_files: None,
             clipboard: None,
         };
         let request = CompletionRequest {
