@@ -38,6 +38,10 @@ export const defaultConfigData: ConfigData = {
           overlapLines: 1,
         },
       },
+      collectSnippetsFromRecentOpenedFiles:{
+        enabled: true,
+        maxOpenedFiles: 5,
+      },
       clipboard: {
         minChars: 3,
         maxChars: 2000,

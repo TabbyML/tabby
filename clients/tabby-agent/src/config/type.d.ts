@@ -44,6 +44,10 @@ export type ConfigData = {
           overlapLines: number;
         };
       };
+      collectSnippetsFromRecentOpenedFiles: {
+        enabled: boolean;
+        maxOpenedFiles: number;
+      };
       clipboard: {
         minChars: number;
         maxChars: number;

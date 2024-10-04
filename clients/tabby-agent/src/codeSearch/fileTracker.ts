@@ -2,6 +2,7 @@ import { Connection, Range } from "vscode-languageserver";
 import { Feature } from "../feature";
 import { OpenedFileParams, OpenedFileRequest, ServerCapabilities } from "../protocol";
 import { getLogger } from "../logger";
+import { Configurations } from "../config";
 
 interface OpenedFile {
   uri: string;
@@ -88,10 +89,11 @@ export class LRUList {
 }
 export class FileTracker implements Feature {
   private readonly logger = getLogger("FileTracker");
-  private readonly fileList = new LRUList(10);
+  private fileList: LRUList = new LRUList(
+    this.configurations.getMergedConfig().completion.prompt.collectSnippetsFromRecentOpenedFiles.maxOpenedFiles,
+  );
 
-  constructor() {}
-
+  constructor(private readonly configurations: Configurations) {}
   initialize(connection: Connection): ServerCapabilities | Promise<ServerCapabilities> {
     connection.onNotification(OpenedFileRequest.type, (param: OpenedFileParams) => {
       console.log("Received opened file request:" + param.action);

@@ -844,6 +844,10 @@ export class CompletionProvider implements Feature {
   private async collectSnippetsFromOpenedFiles(): Promise<
     { filepath: string; offset: number; text: string; score: number }[] | undefined
   > {
+    const config = this.configurations.getMergedConfig();
+    if (!config.completion.prompt.collectSnippetsFromRecentOpenedFiles.enabled) {
+      return undefined;
+    }
     this.logger.debug("Starting collecting snippets from opened files.");
     const recentlyOpenedFiles = this.fileTracker.getAllFilesWithoutActive();
     const codeSnippets: { filepath: string; offset: number; text: string; score: number }[] = [];
