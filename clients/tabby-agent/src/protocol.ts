@@ -527,6 +527,31 @@ export type ChatEditResolveCommand = LspCommand & {
 };
 
 /**
+ * [Tabby] Opened File Tracking Request(➡️)
+ *
+ * This method is sent from the client to server with specific action to track opened file.
+ *
+ *
+ * - method: `tabby/agent/openedFileOperation`
+ * - params: {@link OpenedFileParams}
+ * - result: void
+ */
+export namespace OpenedFileRequest {
+  export const method = "tabby/agent/openedFileOperation";
+  export const messageDirection = MessageDirection.clientToServer;
+  export const type = new ProtocolNotificationType<OpenedFileParams, void>(method);
+}
+export interface EditorParams {
+  uri: string;
+  visibleRange: Range;
+}
+export type OpenedFileParams = {
+  action: "change" | "test";
+  activeEditor: EditorParams;
+  visibleEditors?: EditorParams[];
+};
+
+/**
  * [Tabby] GenerateCommitMessage Request(↩️)
  *
  * This method is sent from the client to the server to generate a commit message for a git repository.
