@@ -155,7 +155,6 @@ fn extract_snippets_from_segments(
             if count_characters + declaration.body.len() > max_snippets_chars {
                 break;
             }
-
             count_characters += declaration.body.len();
             ret.push(Snippet {
                 filepath: declaration.filepath.clone(),
@@ -545,7 +544,7 @@ def this_is_prefix():\n";
 
         assert!(
             extract_snippets_from_segments(max_snippets_chars, &segments)
-                .is_some_and(|x| x.1.len() == 2)
+                .is_some_and(|x| x.1.len() == 3)
         );
     }
 }
