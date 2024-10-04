@@ -38,7 +38,7 @@ export const defaultConfigData: ConfigData = {
           overlapLines: 1,
         },
       },
-      collectSnippetsFromRecentOpenedFiles:{
+      collectSnippetsFromRecentOpenedFiles: {
         enabled: true,
         maxOpenedFiles: 5,
       },
