@@ -57,6 +57,7 @@ import { abortSignalFromAnyOf } from "../utils/signal";
 import { splitLines, extractNonReservedWordList } from "../utils/string";
 import { MutexAbortError, isCanceledError } from "../utils/error";
 import { isPositionInRange, intersectionRange } from "../utils/range";
+import { FileTracker } from "../codeSearch/fileTracker";
 
 export class CompletionProvider implements Feature {
   private readonly logger = getLogger("CompletionProvider");
@@ -80,6 +81,7 @@ export class CompletionProvider implements Feature {
     private readonly anonymousUsageLogger: AnonymousUsageLogger,
     private readonly gitContextProvider: GitContextProvider,
     private readonly recentlyChangedCodeSearch: RecentlyChangedCodeSearch,
+    private readonly fileTracker: FileTracker,
   ) {}
 
   initialize(connection: Connection, clientCapabilities: ClientCapabilities): ServerCapabilities {
@@ -565,7 +567,7 @@ export class CompletionProvider implements Feature {
       request.declarations = await this.collectDeclarationSnippets(connection, document, position, token);
     }
     request.relevantSnippetsFromChangedFiles = await this.collectSnippetsFromRecentlyChangedFiles(document, position);
-
+    request.relevantSnippetsFromOpenedFiles = await this.collectSnippetsFromOpenedFiles();
     this.logger.trace("Completed completion context:", { request });
     return { request, additionalPrefixLength: additionalContext?.prefix.length };
   }
@@ -836,6 +838,34 @@ export class CompletionProvider implements Feature {
     this.logger.debug("Completed collecting snippets from recently changed files.");
     this.logger.trace("Collected snippets:", snippets);
     return snippets;
+  }
+
+  //get all recently opened files from the file tracker
+  private async collectSnippetsFromOpenedFiles(): Promise<
+    { filepath: string; offset: number; text: string; score: number }[] | undefined
+  > {
+    this.logger.debug("Starting collecting snippets from opened files.");
+    const recentlyOpenedFiles = this.fileTracker.getAllFilesWithoutActive();
+    const codeSnippets: { filepath: string; offset: number; text: string; score: number }[] = [];
+    recentlyOpenedFiles.forEach((file) => {
+      const doc = this.documents.get(file.uri);
+      if (doc) {
+        file.lastVisibleRange.forEach((range) => {
+          const startOffset = doc.offsetAt(range.start);
+          const text = doc.getText(range);
+
+          //TODO(Sma1lboy): need to dynamic cal scores
+          codeSnippets.push({
+            filepath: file.uri,
+            offset: startOffset,
+            text: text,
+            score: file.invisible ? 0.98 : 1,
+          });
+        });
+      }
+    });
+    this.logger.debug("Completed collecting snippets from opened files.");
+    return codeSnippets;
   }
 
   private async submitStats() {

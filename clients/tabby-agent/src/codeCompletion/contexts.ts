@@ -22,6 +22,7 @@ export type CompletionRequest = {
   };
   declarations?: Declaration[];
   relevantSnippetsFromChangedFiles?: CodeSnippet[];
+  relevantSnippetsFromOpenedFiles?: CodeSnippet[];
 };
 
 export type Declaration = {
@@ -68,7 +69,7 @@ export class CompletionContext {
 
   declarations?: Declaration[];
   relevantSnippetsFromChangedFiles?: CodeSnippet[];
-
+  snippetsFromOpenedFiles?: CodeSnippet[];
   // "default": the cursor is at the end of the line
   // "fill-in-line": the cursor is not at the end of the line, except auto closed characters
   //   In this case, we assume the completion should be a single line, so multiple lines completion will be dropped.
@@ -96,6 +97,7 @@ export class CompletionContext {
 
     this.declarations = request.declarations;
     this.relevantSnippetsFromChangedFiles = request.relevantSnippetsFromChangedFiles;
+    this.snippetsFromOpenedFiles = request.relevantSnippetsFromOpenedFiles;
 
     const lineEnd = isAtLineEndExcludingAutoClosedChar(this.currentLineSuffix);
     this.mode = lineEnd ? "default" : "fill-in-line";
@@ -203,6 +205,16 @@ export class CompletionContext {
       })
       .sort((a, b) => b.score - a.score);
 
+    const snippetsOpenedFiles = this.snippetsFromOpenedFiles
+      ?.map((snippet) => {
+        return {
+          filepath: snippet.filepath,
+          body: snippet.text,
+          score: snippet.score,
+        };
+      })
+      .sort((a, b) => b.score - a.score);
+
     // clipboard
     let clipboard = undefined;
     if (this.clipboard.length >= config.clipboard.minChars && this.clipboard.length <= config.clipboard.maxChars) {
@@ -215,6 +227,7 @@ export class CompletionContext {
       git_url: gitUrl,
       declarations,
       relevant_snippets_from_changed_files: relevantSnippetsFromChangedFiles,
+      relevant_snippets_from_recently_opened_files: snippetsOpenedFiles,
       clipboard,
     };
   }
