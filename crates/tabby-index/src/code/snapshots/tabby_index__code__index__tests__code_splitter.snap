@@ -1,6 +1,5 @@
 ---
 source: crates/tabby-index/src/code/index.rs
-assertion_line: 161
 expression: "format!(\"{:#?}\", rust_chunks)"
 ---
 [
@@ -23,5 +22,5 @@ expression: "format!(\"{:#?}\", rust_chunks)"
     "{\n        let text = reverse(\"void write_u32(std::uint32_t val) const {\\n        write_raw(&val, sizeof(val));\\n    }\\n\\n    ~llama_file() {\\n        if (fp) {\\n            std::fclose(fp);\\n        }\\n    }\\n};\\n\\nvoid\");\n\n        let trie = create_stop_trie(vec![\"\\n\\n\".to_owned(), \"\\n\\n  \".to_owned()]);\n        assert!(trie.common_prefix_search(&text).is_empty());",
     "let trie = create_stop_trie(vec![\n            \"\\n\\n\".to_owned(),\n            \"\\n\\n  \".to_owned(),\n            \"\\nvoid\".to_owned(),\n            \"<|file_sep|>\".to_owned(), // qwen 2.5 coder style\n        ]);\n        assert!(!trie.common_prefix_search(&text).is_empty());\n\n        let qwen25coder = reverse(\"qwen25 style stop words;<|file_sep|>\");\n        assert!(!trie.common_prefix_search(&qwen25coder).is_empty());\n    }\n\n    #[test]",
     "fn test_stop_condition_max_length() {\n        let factory = StopConditionFactory::default();\n        let mut cond = factory.create(\"\", Some(&UNKNOWN_LANGUAGE));\n        let (should_stop, _) = cond.should_stop(\"1\");\n        assert!(!should_stop);\n        let (should_stop, _) = cond.should_stop(\"2\");\n        assert!(!should_stop);\n        let (should_stop, _) = cond.should_stop(\"3\");\n        assert!(!should_stop);\n        let (should_stop, _) = cond.should_stop(\"4\");\n        assert!(!should_stop)\n    }",
-    "#[test]\n    fn test_stop_condition_additional_stop_words() {\n        let factory = StopConditionFactory::with_stop_words(vec![\"<|endoftext|>\".to_owned()]);\n        let mut cond = factory.create(\"additional_stop_words\", Some(&UNKNOWN_LANGUAGE));\n        let (should_stop, _) = cond.should_stop(\"1\");\n        assert!(!should_stop);\n        let (should_stop, _) = cond.should_stop(\"<|endoftext|>\");\n        assert!(should_stop);\n    }\n}",
+    "#[test]\n    fn test_stop_condition_additional_stop_words() {\n        let factory = StopConditionFactory::with_stop_words(vec![\"<|endoftext|>\".to_owned()]);\n        let mut cond = factory.create(\"\", Some(&UNKNOWN_LANGUAGE));\n        let (should_stop, _) = cond.should_stop(\"1\");\n        assert!(!should_stop);\n        let (should_stop, _) = cond.should_stop(\"<|endoftext|>\");\n        assert!(should_stop);\n    }\n}",
 ]

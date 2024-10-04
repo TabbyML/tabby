@@ -18,13 +18,14 @@ pub async fn load_code_generation_and_chat(
     Option<PromptInfo>,
     Option<Arc<dyn ChatCompletionStream>>,
 ) {
-    let (engine, prompt_info, chat) = load_completion_and_chat(&completion_model, chat_model).await;
+    let (engine, prompt_info, chat) =
+        load_completion_and_chat(completion_model.clone(), chat_model).await;
     let code = engine.map(|engine| Arc::new(CodeGeneration::new(engine, completion_model)));
     (code, prompt_info, chat)
 }
 
 async fn load_completion_and_chat(
-    completion_model: &Option<ModelConfig>,
+    completion_model: Option<ModelConfig>,
     chat_model: Option<ModelConfig>,
 ) -> (
     Option<Arc<dyn CompletionStream>>,
@@ -42,9 +43,9 @@ async fn load_completion_and_chat(
     let (completion, prompt) = if let Some(completion_model) = completion_model {
         match completion_model {
             ModelConfig::Http(http) => {
-                let engine = http_api_bindings::create(http).await;
+                let engine = http_api_bindings::create(&http).await;
                 let (prompt_template, chat_template) =
-                    http_api_bindings::build_completion_prompt(http);
+                    http_api_bindings::build_completion_prompt(&http);
                 (
                     Some(engine),
                     Some(PromptInfo {
@@ -54,7 +55,7 @@ async fn load_completion_and_chat(
                 )
             }
             ModelConfig::Local(llama) => {
-                let (stream, prompt) = llama_cpp_server::create_completion(llama).await;
+                let (stream, prompt) = llama_cpp_server::create_completion(&llama).await;
                 (Some(stream), Some(prompt))
             }
         }

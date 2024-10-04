@@ -32,15 +32,12 @@ pub struct CodeGeneration {
 
 impl CodeGeneration {
     pub fn new(imp: Arc<dyn CompletionStream>, config: Option<ModelConfig>) -> Self {
-        let stop_condition_factory = match config {
-            Some(ModelConfig::Local(config)) => StopConditionFactory::with_stop_words(
-                config.additional_stop_words.unwrap_or_default(),
-            ),
-            Some(ModelConfig::Http(config)) => StopConditionFactory::with_stop_words(
-                config.additional_stop_words.unwrap_or_default(),
-            ),
-            _ => StopConditionFactory::default(),
+        let additional_stop_words = match config {
+            Some(ModelConfig::Local(config)) => config.additional_stop_words.unwrap_or_default(),
+            Some(ModelConfig::Http(config)) => config.additional_stop_words.unwrap_or_default(),
+            _ => vec![],
         };
+        let stop_condition_factory = StopConditionFactory::with_stop_words(additional_stop_words);
 
         Self {
             imp,
