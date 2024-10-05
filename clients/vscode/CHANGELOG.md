@@ -1,5 +1,11 @@
 ## 1.12.0
 
+### Fixes & Improvements
+
+- Fix DataStore initialization that prevented Tabby from starting on a fresh installation. (https://github.com/TabbyML/tabby/issues/3234)
+
+## 1.12.0
+
 ### Features
 
 - Updated the chat panel to be compatible with Tabby server v0.18.0 or later.
