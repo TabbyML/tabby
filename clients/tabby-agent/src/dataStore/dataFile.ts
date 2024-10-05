@@ -7,6 +7,7 @@ import { isBrowser } from "../env";
 import { getLogger } from "../logger";
 
 export class FileDataStore extends EventEmitter {
+  private readonly logger = getLogger("DataStore");
   private watcher?: ReturnType<typeof chokidar.watch>;
 
   constructor(private readonly filepath: string) {
@@ -15,9 +16,10 @@ export class FileDataStore extends EventEmitter {
 
   async read(): Promise<unknown> {
     try {
-      return await fs.readJson(this.filepath, { throws: false });
+      const json = await fs.readJson(this.filepath, { throws: false });
+      return json ?? {};
     } catch (err) {
-      getLogger().warn(`Failed to read ${this.filepath}: ${err}`);
+      this.logger.warn(`Failed to read ${this.filepath}: ${err}`);
       return {};
     }
   }
