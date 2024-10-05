@@ -5,8 +5,8 @@ const minor = semver.minor(packageJson.version);
 
 if (minor % 2 === 0) {
   console.warn("Even minor version, release as stable channel");
-  console.log("vscode:publish");
+  console.log("publish");
 } else {
   console.warn("Odd minor version, release as prerelease channel");
-  console.log("vscode:publish-prerelease");
+  console.log("publish-prerelease");
 }
