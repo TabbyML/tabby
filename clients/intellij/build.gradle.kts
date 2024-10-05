@@ -39,7 +39,7 @@ tasks {
 
   intellijPlatform {
     pluginConfiguration {
-      version.set("1.8.1")
+      version.set("1.8.2")
       changeNotes.set(provider {
         changelog.renderItem(
           changelog.getLatest(),

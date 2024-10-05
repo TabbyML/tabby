@@ -1,3 +1,9 @@
+## 1.8.2
+
+### Fixes & Improvements
+
+- Fix DataStore initialization that prevented Tabby from starting on a fresh installation. (https://github.com/TabbyML/tabby/issues/3234)
+
 ## 1.8.1
 
 ### Features
