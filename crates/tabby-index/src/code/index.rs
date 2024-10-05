@@ -150,7 +150,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_code_splitter() {
-        // First file, chat/openai_chat.rs
+        // First file, tabby-inference/src/decoding.rs
         let file_contents = include_str!("../../../tabby-inference/src/decoding.rs");
 
         let rust_chunks = CodeIntelligence::chunks(file_contents, "rust")

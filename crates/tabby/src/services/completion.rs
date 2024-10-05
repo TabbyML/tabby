@@ -436,7 +436,7 @@ mod tests {
     }
 
     fn mock_completion_service() -> CompletionService {
-        let generation = CodeGeneration::new(Arc::new(MockCompletionStream));
+        let generation = CodeGeneration::new(Arc::new(MockCompletionStream), None);
         CompletionService::new(
             CompletionConfig::default(),
             Arc::new(generation),
