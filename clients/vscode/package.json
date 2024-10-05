@@ -451,7 +451,12 @@
     "vscode:package": "vsce package --no-dependencies",
     "vscode:prepublish": "turbo build --force",
     "vscode:publish": "vsce publish --no-dependencies",
-    "vscode:publish-prerelease": "vsce publish --no-dependencies --pre-release"
+    "vscode:publish-prerelease": "vsce publish --no-dependencies --pre-release",
+    "ovsx:publish": "ovsx publish --no-dependencies --pat $OVSX_PAT",
+    "ovsx:publish-prerelease": "ovsx publish --no-dependencies --pre-release --pat $OVSX_PAT",
+    "package": "pnpm run vscode:package",
+    "publish": "pnpm run vscode:publish && pnpm run ovsx:publish",
+    "publish-prerelease": "pnpm run vscode:publish-prerelease && pnpm run ovsx:publish-prerelease"
   },
   "devDependencies": {
     "@quilted/threads": "^2.2.0",
@@ -470,12 +475,14 @@
     "assert": "^2.0.0",
     "dedent": "^0.7.0",
     "deep-equal": "^2.2.1",
+    "diff": "^5.2.0",
     "esbuild-plugin-copy": "^2.1.1",
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "eslint": "^8.55.0",
     "eslint-config-prettier": "^9.0.0",
     "get-installed-path": "^4.0.8",
     "object-hash": "^3.0.0",
+    "ovsx": "^0.9.5",
     "prettier": "^3.0.0",
     "semver": "^7.6.0",
     "tabby-agent": "workspace:*",
@@ -483,7 +490,6 @@
     "tsc-watch": "^6.2.0",
     "tsup": "^8.0.2",
     "typescript": "^5.3.2",
-    "vscode-languageclient": "^9.0.1",
-    "diff": "^5.2.0"
+    "vscode-languageclient": "^9.0.1"
   }
 }
