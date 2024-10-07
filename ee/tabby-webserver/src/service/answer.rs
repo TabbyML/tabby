@@ -15,7 +15,6 @@ use async_openai::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
-use juniper::ID;
 use tabby_common::{
     api::{
         code::{
