@@ -1,8 +1,7 @@
 use std::{
     collections::HashMap,
-    fs::{self, File},
+    fs::{File},
     io::{BufRead, BufReader},
-    path::PathBuf,
     sync::Arc,
 };
 
@@ -16,9 +15,7 @@ use async_openai::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
-use gitlab::api::projects::repository;
 use juniper::ID;
-use octocrab::models::Repository;
 use tabby_common::{
     api::{
         code::{
@@ -41,7 +38,7 @@ use tabby_schema::{
         ThreadRunOptionsInput,
     },
 };
-use tracing::{debug, error, field::debug, warn};
+use tracing::{debug, error, warn};
 
 use crate::bail;
 
@@ -253,7 +250,7 @@ impl AnswerService {
                 for hit in docs.hits.into_iter() {
                     file_hits
                         .entry(hit.doc.filepath.clone())
-                        .or_insert_with(Vec::new)
+                        .or_default()
                         .push(hit);
                 }
 
@@ -584,7 +581,7 @@ mod tests {
 
     use std::{path::PathBuf, sync::Arc};
 
-    use anyhow::Ok;
+    
     use juniper::ID;
     use tabby_common::{
         api::{
@@ -597,27 +594,20 @@ mod tests {
     use tabby_inference::ChatCompletionStream;
     use tabby_schema::{
         context::{ContextInfo, ContextInfoHelper, ContextService, ContextSourceValue},
-        integration::IntegrationService,
-        job::JobService,
-        repository::{Repository, RepositoryKind, RepositoryService},
+        repository::{Repository, RepositoryKind},
         thread::{CodeQueryInput, MessageAttachment},
         web_documents::PresetWebDocument,
         AsID,
     };
-    use uuid::Error;
+    
 
-    use crate::{
-        answer::{
+    use crate::answer::{
             testutils::{
                 make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
                 FakeCodeSearchFail, FakeCodeSearchFailNotReady, FakeContextService, FakeDocSearch,
             },
             trim_bullet, AnswerService,
-        },
-        job,
-    };
-    use crate::{integration, repository};
-    use anyhow::Result;
+        };
 
     const TEST_SOURCE_ID: &str = "source-1";
     const TEST_GIT_URL: &str = "TabbyML/tabby";
