@@ -1,4 +1,10 @@
-use std::sync::Arc;
+use std::{
+    collections::HashMap,
+    fs::{self, File},
+    io::{BufRead, BufReader},
+    path::PathBuf,
+    sync::Arc,
+};
 
 use anyhow::anyhow;
 use async_openai::{
@@ -10,9 +16,15 @@ use async_openai::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
+use gitlab::api::projects::repository;
+use juniper::ID;
+use octocrab::models::Repository;
 use tabby_common::{
     api::{
-        code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery},
+        code::{
+            CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
+            CodeSearchScores,
+        },
         doc::{DocSearch, DocSearchError, DocSearchHit},
     },
     config::AnswerConfig,
@@ -21,6 +33,7 @@ use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     context::{ContextInfoHelper, ContextService},
     policy::AccessPolicy,
+    repository::RepositoryService,
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
         ThreadAssistantMessageAttachmentsCode, ThreadAssistantMessageAttachmentsDoc,
@@ -28,7 +41,7 @@ use tabby_schema::{
         ThreadRunOptionsInput,
     },
 };
-use tracing::{debug, error, warn};
+use tracing::{debug, error, field::debug, warn};
 
 use crate::bail;
 
@@ -39,6 +52,7 @@ pub struct AnswerService {
     doc: Arc<dyn DocSearch>,
     context: Arc<dyn ContextService>,
     serper: Option<Box<dyn DocSearch>>,
+    repository: Arc<dyn RepositoryService>,
 }
 
 impl AnswerService {
@@ -49,6 +63,7 @@ impl AnswerService {
         doc: Arc<dyn DocSearch>,
         context: Arc<dyn ContextService>,
         serper: Option<Box<dyn DocSearch>>,
+        repository: Arc<dyn RepositoryService>,
     ) -> Self {
         Self {
             config: config.clone(),
@@ -57,6 +72,7 @@ impl AnswerService {
             doc,
             context,
             serper,
+            repository,
         }
     }
 
@@ -111,6 +127,8 @@ impl AnswerService {
                 attachment.doc = hits.iter()
                         .map(|x| x.doc.clone().into())
                         .collect::<Vec<_>>();
+
+                debug!("doc content: {:?}", doc_query.content);
 
                 if !attachment.doc.is_empty() {
                     let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
@@ -187,7 +205,6 @@ impl AnswerService {
     ) -> Vec<CodeSearchHit> {
         let source_id: Option<&str> = {
             if let Some(source_id) = &input.source_id {
-                // If source_id doesn't exist, return empty result.
                 if helper.can_access_source_id(source_id) {
                     Some(source_id.as_str())
                 } else {
@@ -204,6 +221,19 @@ impl AnswerService {
             return vec![];
         };
 
+        let repo = match self
+            .repository
+            .git()
+            .get_repository(&ID::from(source_id.to_string()))
+            .await
+        {
+            Ok(repo) => repo,
+            Err(e) => {
+                warn!("Failed to get repository: {:?}", e);
+                return vec![];
+            }
+        };
+
         let query = CodeSearchQuery::new(
             input.filepath.clone(),
             input.language.clone(),
@@ -212,23 +242,79 @@ impl AnswerService {
         );
 
         let mut params = params.clone();
-        override_params
-            .as_ref()
-            .inspect(|x| x.override_params(&mut params));
+        if let Some(override_params) = override_params {
+            override_params.override_params(&mut params);
+        }
 
         match self.code.search_in_language(query, params).await {
-            Ok(docs) => docs.hits,
+            Ok(docs) => {
+                let mut file_hits: HashMap<String, Vec<CodeSearchHit>> = HashMap::new();
+
+                for hit in docs.hits.into_iter() {
+                    file_hits
+                        .entry(hit.doc.filepath.clone())
+                        .or_insert_with(Vec::new)
+                        .push(hit);
+                }
+
+                let mut result = Vec::with_capacity(file_hits.len());
+
+                for (filepath, file_hits) in file_hits {
+                    if file_hits.len() > 1 {
+                        let path = repo.dir.join(&filepath);
+
+                        let file = match File::open(&path) {
+                            Ok(file) => file,
+                            Err(e) => {
+                                warn!("Error opening file {}: {}", path.display(), e);
+                                continue;
+                            }
+                        };
+
+                        let reader = BufReader::new(file);
+                        let line_content: Vec<String> = reader
+                            .lines()
+                            .take(200)
+                            .filter_map(|line| line.ok())
+                            .collect();
+
+                        if !line_content.is_empty() {
+                            let mut insert_hit = file_hits[0].clone();
+                            insert_hit.scores = file_hits.iter().fold(
+                                CodeSearchScores::default(),
+                                |mut acc, hit| {
+                                    acc.bm25 += hit.scores.bm25;
+                                    acc.embedding += hit.scores.embedding;
+                                    acc.rrf += hit.scores.rrf;
+                                    acc
+                                },
+                            );
+
+                            let len = file_hits.len() as f32;
+                            insert_hit.scores.bm25 /= len;
+                            insert_hit.scores.embedding /= len;
+                            insert_hit.scores.rrf /= len;
+
+                            insert_hit.doc.body = line_content.join("\n");
+
+                            result.push(insert_hit);
+                        }
+                    } else {
+                        result.extend(file_hits);
+                    }
+                }
+
+                result
+            }
             Err(err) => {
-                if let CodeSearchError::NotReady = err {
-                    debug!("Code search is not ready yet");
-                } else {
-                    warn!("Failed to search code: {:?}", err);
+                match err {
+                    CodeSearchError::NotReady => debug!("Code search is not ready yet"),
+                    _ => warn!("Failed to search code: {:?}", err),
                 }
                 vec![]
             }
         }
     }
-
     async fn collect_relevant_docs(
         &self,
         helper: &ContextInfoHelper,
@@ -358,8 +444,9 @@ pub fn create(
     doc: Arc<dyn DocSearch>,
     context: Arc<dyn ContextService>,
     serper: Option<Box<dyn DocSearch>>,
+    repository: Arc<dyn RepositoryService>,
 ) -> AnswerService {
-    AnswerService::new(config, chat, code, doc, context, serper)
+    AnswerService::new(config, chat, code, doc, context, serper, repository)
 }
 
 fn convert_messages_to_chat_completion_request(
@@ -497,6 +584,7 @@ mod tests {
 
     use std::{path::PathBuf, sync::Arc};
 
+    use anyhow::Ok;
     use juniper::ID;
     use tabby_common::{
         api::{
@@ -509,19 +597,27 @@ mod tests {
     use tabby_inference::ChatCompletionStream;
     use tabby_schema::{
         context::{ContextInfo, ContextInfoHelper, ContextService, ContextSourceValue},
-        repository::{Repository, RepositoryKind},
+        integration::IntegrationService,
+        job::JobService,
+        repository::{Repository, RepositoryKind, RepositoryService},
         thread::{CodeQueryInput, MessageAttachment},
         web_documents::PresetWebDocument,
         AsID,
     };
+    use uuid::Error;
 
-    use crate::answer::{
-        testutils::{
-            FakeChatCompletionStream, FakeCodeSearch, FakeCodeSearchFail,
-            FakeCodeSearchFailNotReady, FakeContextService, FakeDocSearch,
+    use crate::{
+        answer::{
+            testutils::{
+                make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
+                FakeCodeSearchFail, FakeCodeSearchFailNotReady, FakeContextService, FakeDocSearch,
+            },
+            trim_bullet, AnswerService,
         },
-        trim_bullet, AnswerService,
+        job,
     };
+    use crate::{integration, repository};
+    use anyhow::Result;
 
     const TEST_SOURCE_ID: &str = "source-1";
     const TEST_GIT_URL: &str = "TabbyML/tabby";
@@ -690,6 +786,10 @@ mod tests {
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
         let mut serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
+
+        let db = DbConn::new_in_memory().await.unwrap();
+        let repo = make_repository_service(db).await.unwrap();
+
         let mut service = AnswerService::new(
             &config,
             chat.clone(),
@@ -697,6 +797,7 @@ mod tests {
             doc.clone(),
             context.clone(),
             serper,
+            repo.clone(),
         );
         let code_query_input_could_access =
             make_code_query_input(Some(TEST_SOURCE_ID), Some(TEST_GIT_URL));
@@ -753,6 +854,7 @@ mod tests {
             doc.clone(),
             context.clone(),
             serper,
+            repo.clone(),
         );
 
         let code_fail = Arc::new(FakeCodeSearchFail);
@@ -765,7 +867,8 @@ mod tests {
             doc.clone(),
             context.clone(),
             serper,
-        )
+            repo.clone(),
+        );
     }
 
     #[tokio::test]
@@ -776,6 +879,9 @@ mod tests {
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
+        let db = DbConn::new_in_memory().await.unwrap();
+        let repo = make_repository_service(db).await.unwrap();
+
         let service = AnswerService::new(
             &config,
             chat.clone(),
@@ -783,6 +889,7 @@ mod tests {
             doc.clone(),
             context.clone(),
             serper,
+            repo,
         );
 
         let attachment = MessageAttachment {
@@ -827,6 +934,9 @@ mod tests {
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
+        let db = DbConn::new_in_memory().await.unwrap();
+        let repo = make_repository_service(db).await.unwrap();
+
         let service = AnswerService::new(
             &config,
             chat.clone(),
@@ -834,6 +944,7 @@ mod tests {
             doc.clone(),
             context.clone(),
             serper,
+            repo,
         );
 
         let context_info_helper = make_context_info_helper();
@@ -895,8 +1006,11 @@ mod tests {
             code_search_params: make_code_search_params(),
             presence_penalty: 0.1,
         };
+        let db = DbConn::new_in_memory().await.unwrap();
+        let repo = make_repository_service(db).await.unwrap();
+
         let service = Arc::new(AnswerService::new(
-            &config, chat, code, doc, context, serper,
+            &config, chat, code, doc, context, serper, repo,
         ));
 
         let db = DbConn::new_in_memory().await.unwrap();

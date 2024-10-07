@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_openai::{
     error::OpenAIError,
     types::{
@@ -11,12 +13,18 @@ use tabby_common::api::{
     code::{CodeSearch, CodeSearchError, CodeSearchParams, CodeSearchQuery, CodeSearchResponse},
     doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse},
 };
+use tabby_db::DbConn;
 use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     context::{ContextInfo, ContextService},
+    integration::IntegrationService,
+    job::JobService,
     policy::AccessPolicy,
+    repository::RepositoryService,
     Result,
 };
+
+use crate::{integration, job, repository};
 
 pub struct FakeChatCompletionStream;
 #[async_trait]
@@ -199,4 +207,14 @@ impl ContextService for FakeContextService {
     async fn read(&self, _policy: Option<&AccessPolicy>) -> Result<ContextInfo> {
         Ok(ContextInfo { sources: vec![] })
     }
+}
+pub async fn make_repository_service(db: DbConn) -> Result<Arc<dyn RepositoryService>> {
+    let job_service: Arc<dyn JobService> = Arc::new(job::create(db.clone()).await);
+    let integration_service: Arc<dyn IntegrationService> =
+        Arc::new(integration::create(db.clone(), job_service.clone()));
+    Ok(repository::create(
+        db.clone(),
+        integration_service.clone(),
+        job_service.clone(),
+    ))
 }
