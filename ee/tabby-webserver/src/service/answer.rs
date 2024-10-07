@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    fs::{File},
+    fs::File,
     io::{BufRead, BufReader},
     sync::Arc,
 };
@@ -581,7 +581,6 @@ mod tests {
 
     use std::{path::PathBuf, sync::Arc};
 
-    
     use juniper::ID;
     use tabby_common::{
         api::{
@@ -599,15 +598,14 @@ mod tests {
         web_documents::PresetWebDocument,
         AsID,
     };
-    
 
     use crate::answer::{
-            testutils::{
-                make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
-                FakeCodeSearchFail, FakeCodeSearchFailNotReady, FakeContextService, FakeDocSearch,
-            },
-            trim_bullet, AnswerService,
-        };
+        testutils::{
+            make_repository_service, FakeChatCompletionStream, FakeCodeSearch, FakeCodeSearchFail,
+            FakeCodeSearchFailNotReady, FakeContextService, FakeDocSearch,
+        },
+        trim_bullet, AnswerService,
+    };
 
     const TEST_SOURCE_ID: &str = "source-1";
     const TEST_GIT_URL: &str = "TabbyML/tabby";
