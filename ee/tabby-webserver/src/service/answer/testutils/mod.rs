@@ -9,6 +9,7 @@ use async_openai::{
     },
 };
 use axum::async_trait;
+use juniper::ID;
 use tabby_common::api::{
     code::{CodeSearch, CodeSearchError, CodeSearchParams, CodeSearchQuery, CodeSearchResponse},
     doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse},
@@ -217,4 +218,11 @@ pub async fn make_repository_service(db: DbConn) -> Result<Arc<dyn RepositorySer
         integration_service.clone(),
         job_service.clone(),
     ))
+}
+pub async fn make_policy() -> AccessPolicy {
+    AccessPolicy::new(
+        DbConn::new_in_memory().await.unwrap(),
+        &ID::from("nihao".to_string()),
+        false,
+    )
 }

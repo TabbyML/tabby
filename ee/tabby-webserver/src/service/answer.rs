@@ -105,7 +105,8 @@ impl AnswerService {
                     &context_info_helper,
                     code_query,
                     &self.config.code_search_params,
-                    options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref())
+                    options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref()),
+                    policy.clone(),
                 ).await;
                 attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
 
@@ -199,6 +200,7 @@ impl AnswerService {
         input: &CodeQueryInput,
         params: &CodeSearchParams,
         override_params: Option<&CodeSearchParamsOverrideInput>,
+        policy: AccessPolicy,
     ) -> Vec<CodeSearchHit> {
         let source_id: Option<&str> = {
             if let Some(source_id) = &input.source_id {
@@ -216,19 +218,6 @@ impl AnswerService {
 
         let Some(source_id) = source_id else {
             return vec![];
-        };
-
-        let repo = match self
-            .repository
-            .git()
-            .get_repository(&ID::from(source_id.to_string()))
-            .await
-        {
-            Ok(repo) => repo,
-            Err(e) => {
-                warn!("Failed to get repository: {:?}", e);
-                return vec![];
-            }
         };
 
         let query = CodeSearchQuery::new(
@@ -258,7 +247,19 @@ impl AnswerService {
 
                 for (filepath, file_hits) in file_hits {
                     if file_hits.len() > 1 {
-                        let path = repo.dir.join(&filepath);
+                        let repo = match self
+                            .repository
+                            .resolve_repository_by_source_id(&policy, source_id)
+                            .await
+                        {
+                            Ok(repo) => repo,
+                            Err(e) => {
+                                warn!("Failed to get repository: {:?}", e);
+                                return vec![];
+                            }
+                        };
+
+                        let path: std::path::PathBuf = repo.dir.join(&filepath);
 
                         let file = match File::open(&path) {
                             Ok(file) => file,
@@ -601,8 +602,8 @@ mod tests {
 
     use crate::answer::{
         testutils::{
-            make_repository_service, FakeChatCompletionStream, FakeCodeSearch, FakeCodeSearchFail,
-            FakeCodeSearchFailNotReady, FakeContextService, FakeDocSearch,
+            make_policy, make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
+            FakeCodeSearchFail, FakeCodeSearchFailNotReady, FakeContextService, FakeDocSearch,
         },
         trim_bullet, AnswerService,
     };
@@ -793,12 +794,15 @@ mod tests {
         let context_info_helper: ContextInfoHelper = make_context_info_helper();
         debug_assert!(context_info_helper.can_access_source_id("source-1"));
 
+        let policy = make_policy().await;
+
         service
             .collect_relevant_code(
                 &context_info_helper,
                 &code_query_input_could_access,
                 &code_search_params,
                 None,
+                policy.clone(),
             )
             .await;
 
@@ -809,6 +813,7 @@ mod tests {
                 &code_query_input_not_access,
                 &code_search_params,
                 None,
+                policy.clone(),
             )
             .await;
 
@@ -819,6 +824,7 @@ mod tests {
                 &code_query_input_with_only_git,
                 &code_search_params,
                 None,
+                policy.clone(),
             )
             .await;
 
@@ -829,6 +835,7 @@ mod tests {
                 &code_query_input_with_only_git,
                 &code_search_params,
                 None,
+                policy.clone(),
             )
             .await;
 
