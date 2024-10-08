@@ -18,7 +18,7 @@ use futures::stream::BoxStream;
 use tabby_common::{
     api::{
         code::{
-            CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
+            CodeSearch, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
             CodeSearchScores,
         },
         doc::{DocSearch, DocSearchError, DocSearchHit},
@@ -599,7 +599,7 @@ mod tests {
     use std::{path::PathBuf, sync::Arc};
 
     use juniper::ID;
-    use logkit::source;
+    
     use tabby_common::{
         api::{
             code::{
