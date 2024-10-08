@@ -45,6 +45,7 @@ pub struct ThreadMessageAttachmentCode {
     pub filepath: String,
     pub content: String,
     pub start_line: usize,
+    pub source_id: String,
 }
 
 #[derive(Serialize, Deserialize)]
