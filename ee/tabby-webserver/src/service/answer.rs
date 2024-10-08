@@ -233,85 +233,87 @@ impl AnswerService {
 
         match self.code.search_in_language(query, params).await {
             Ok(docs) => {
-                let mut file_hits: HashMap<String, Vec<CodeSearchHit>> = HashMap::new();
-
-                for hit in docs.hits.into_iter() {
-                    file_hits
-                        .entry(hit.doc.filepath.clone())
-                        .or_default()
-                        .push(hit);
-                }
-
-                let mut result = Vec::with_capacity(file_hits.len());
-
-                for (filepath, file_hits) in file_hits {
-                    if file_hits.len() > 1 {
-                        let repo = match self
-                            .repository
-                            .resolve_repository_by_source_id(&policy, source_id)
-                            .await
-                        {
-                            Ok(repo) => repo,
-                            Err(e) => {
-                                warn!("Failed to get repository: {:?}", e);
-                                return vec![];
-                            }
-                        };
-
-                        let path: std::path::PathBuf = repo.dir.join(&filepath);
-
-                        let file = match File::open(&path) {
-                            Ok(file) => file,
-                            Err(e) => {
-                                warn!("Error opening file {}: {}", path.display(), e);
-                                continue;
-                            }
-                        };
-
-                        let reader = BufReader::new(file);
-                        let line_content: Vec<String> = reader
-                            .lines()
-                            .take(200)
-                            .filter_map(|line| line.ok())
-                            .collect();
-
-                        if !line_content.is_empty() {
-                            let mut insert_hit = file_hits[0].clone();
-                            insert_hit.scores = file_hits.iter().fold(
-                                CodeSearchScores::default(),
-                                |mut acc, hit| {
-                                    acc.bm25 += hit.scores.bm25;
-                                    acc.embedding += hit.scores.embedding;
-                                    acc.rrf += hit.scores.rrf;
-                                    acc
-                                },
-                            );
-
-                            let len = file_hits.len() as f32;
-                            insert_hit.scores.bm25 /= len;
-                            insert_hit.scores.embedding /= len;
-                            insert_hit.scores.rrf /= len;
-
-                            insert_hit.doc.body = line_content.join("\n");
-
-                            result.push(insert_hit);
-                        }
-                    } else {
-                        result.extend(file_hits);
-                    }
-                }
-
-                result
+                self.merge_code_snippets(docs.hits, &policy, source_id)
+                    .await
             }
-            Err(err) => {
-                match err {
-                    CodeSearchError::NotReady => debug!("Code search is not ready yet"),
-                    _ => warn!("Failed to search code: {:?}", err),
-                }
+            Err(e) => {
+                warn!("Error in code search: {:?}", e);
                 vec![]
             }
         }
     }
+
+    async fn merge_code_snippets(
+        &self,
+        hits: Vec<CodeSearchHit>,
+        policy: &AccessPolicy,
+        source_id: &str,
+    ) -> Vec<CodeSearchHit> {
+        let mut file_hits: HashMap<String, Vec<CodeSearchHit>> = HashMap::new();
+        for hit in hits.into_iter() {
+            file_hits
+                .entry(hit.doc.filepath.clone())
+                .or_default()
+                .push(hit);
+        }
+        let mut result = Vec::with_capacity(file_hits.len());
+        for (filepath, file_hits) in file_hits {
+            if file_hits.len() > 1 {
+                let repo = match self
+                    .repository
+                    .resolve_repository_by_source_id(policy, source_id)
+                    .await
+                {
+                    Ok(repo) => repo,
+                    Err(e) => {
+                        warn!("Failed to get repository: {:?}", e);
+                        continue;
+                    }
+                };
+                let path: std::path::PathBuf = repo.dir.join(&filepath);
+                let file = match File::open(&path) {
+                    Ok(file) => file,
+                    Err(e) => {
+                        warn!("Error opening file {}: {}", path.display(), e);
+                        continue;
+                    }
+                };
+                let reader = BufReader::new(file);
+                let all_lines: Vec<String> = reader.lines().filter_map(|line| line.ok()).collect();
+                let total_lines = all_lines.len();
+
+                let line_content = if total_lines <= 200 {
+                    all_lines
+                } else {
+                    result.extend(file_hits);
+                    continue;
+                };
+
+                if !line_content.is_empty() {
+                    let mut insert_hit = file_hits[0].clone();
+                    insert_hit.scores =
+                        file_hits
+                            .iter()
+                            .fold(CodeSearchScores::default(), |mut acc, hit| {
+                                acc.bm25 += hit.scores.bm25;
+                                acc.embedding += hit.scores.embedding;
+                                acc.rrf += hit.scores.rrf;
+                                acc
+                            });
+                    let len = file_hits.len() as f32;
+                    insert_hit.scores.bm25 /= len;
+                    insert_hit.scores.embedding /= len;
+                    insert_hit.scores.rrf /= len;
+                    insert_hit.doc.body = line_content.join("\n");
+                    result.push(insert_hit);
+                }
+            } else {
+                result.extend(file_hits);
+            }
+        }
+        result
+    }
+
     async fn collect_relevant_docs(
         &self,
         helper: &ContextInfoHelper,
@@ -582,9 +584,12 @@ mod tests {
     use std::{path::PathBuf, sync::Arc};
 
     use juniper::ID;
+    use logkit::source;
     use tabby_common::{
         api::{
-            code::{CodeSearch, CodeSearchParams},
+            code::{
+                CodeSearch, CodeSearchDocument, CodeSearchHit, CodeSearchParams, CodeSearchScores,
+            },
             doc::DocSearch,
         },
         config::AnswerConfig,
@@ -1051,5 +1056,69 @@ mod tests {
             4,
             "Expected 4 items in the result stream"
         );
+    }
+    #[tokio::test]
+    async fn test_merge_code_snippets() {
+        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream);
+        let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
+        let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
+        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
+        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
+        let config = make_answer_config();
+        let db = DbConn::new_in_memory().await.unwrap();
+        let repo = make_repository_service(db).await.unwrap();
+        let git_url = "https://github.com/test/repo.git".to_string();
+        //
+        let id = repo
+            .git()
+            .create("repo".to_string(), git_url.clone())
+            .await
+            .unwrap();
+
+        let source_id: &str = id.as_ref();
+
+        let service = AnswerService::new(&config, chat, code, doc, context, serper, repo.clone());
+
+        let hits = vec![
+            CodeSearchHit {
+                doc: CodeSearchDocument {
+                    file_id: "file1".to_string(),
+                    chunk_id: "chunk1".to_string(),
+                    body: "fn test1() {}\nfn test2() {}".to_string(),
+                    filepath: "test.rs".to_string(),
+                    git_url: "https://github.com/test/repo.git".to_string(),
+                    language: "rust".to_string(),
+                    start_line: 1,
+                },
+                scores: CodeSearchScores {
+                    bm25: 0.5,
+                    embedding: 0.7,
+                    rrf: 0.3,
+                },
+            },
+            CodeSearchHit {
+                doc: CodeSearchDocument {
+                    file_id: "file1".to_string(),
+                    chunk_id: "chunk2".to_string(),
+                    body: "fn test3() {}\nfn test4() {}".to_string(),
+                    filepath: "test.rs".to_string(),
+                    git_url: "https://github.com/test/repo.git".to_string(),
+                    language: "rust".to_string(),
+                    start_line: 3,
+                },
+                scores: CodeSearchScores {
+                    bm25: 0.6,
+                    embedding: 0.8,
+                    rrf: 0.4,
+                },
+            },
+        ];
+
+        let policy = make_policy().await;
+
+        let result = service.merge_code_snippets(hits, &policy, source_id).await;
+
+        //file doesn't exist
+        assert_eq!(result.len(), 0);
     }
 }
