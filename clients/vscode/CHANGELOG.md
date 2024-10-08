@@ -1,3 +1,17 @@
+## 1.12.1
+
+### Fixes & Improvements
+
+- Fix DataStore initialization that prevented Tabby from starting on a fresh installation. (https://github.com/TabbyML/tabby/issues/3234)
+
+## 1.12.0
+
+### Features
+
+- Updated the chat panel to be compatible with Tabby server v0.18.0 or later.
+- Added support to open the chat panel as a tab in editor groups.
+- Introduced actions in the quick-fix menu to explain or fix errors using Tabby.
+
 ## 1.10.3
 
 ### Fixes & Improvements
@@ -58,13 +72,11 @@
 ### Features
 
 - Introducing a new chat view feature that allows users to engage in conversations with their AI assistant. Access the chat view conveniently from the activity bar.
+- Introducing a new experimental feature for editing documents using a chat command. Select some text in the editor and press `Ctrl + i` to start.
+- Added a set of commands in the command palette to interact with the chat view.
 
 ### Fixes & Improvements
 
-- Introducing a new experimental feature for editing documents using a chat command. Select some text in the editor and press `Ctrl + i` to start.
-- Added a set of commands in the command palette to interact with the chat view.
-- Added some preset chat commands for chat editing.
-- Improved prompts used in generating commit messages and chat editing.
 - Updated the walkthrough guides.
 - Fixed bugs causing the web extension initialization to fail.
 
