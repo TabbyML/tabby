@@ -243,12 +243,15 @@ impl AnswerService {
         }
     }
 
+    /// Merges code snippets from search hits, potentially combining multiple hits from the same file.
+    /// If multiple hits are found in the same file, the function will attempt to merge them into a single hit.
     async fn merge_code_snippets(
         &self,
         hits: Vec<CodeSearchHit>,
         policy: &AccessPolicy,
         source_id: &str,
     ) -> Vec<CodeSearchHit> {
+        // group hits by filepath
         let mut file_hits: HashMap<String, Vec<CodeSearchHit>> = HashMap::new();
         for hit in hits.into_iter() {
             file_hits
@@ -256,9 +259,12 @@ impl AnswerService {
                 .or_default()
                 .push(hit);
         }
+
         let mut result = Vec::with_capacity(file_hits.len());
+
         for (filepath, file_hits) in file_hits {
             if file_hits.len() > 1 {
+                // multiple hits in the same file, attempt to merge
                 let repo = match self
                     .repository
                     .resolve_repository_by_source_id(policy, source_id)
@@ -270,7 +276,10 @@ impl AnswerService {
                         continue;
                     }
                 };
+
+                // construct the full path to the file
                 let path: std::path::PathBuf = repo.dir.join(&filepath);
+
                 let file = match File::open(&path) {
                     Ok(file) => file,
                     Err(e) => {
@@ -278,10 +287,12 @@ impl AnswerService {
                         continue;
                     }
                 };
+
                 let reader = BufReader::new(file);
                 let all_lines: Vec<String> = reader.lines().filter_map(|line| line.ok()).collect();
                 let total_lines = all_lines.len();
 
+                // if file is too large (> 200 lines), don't merge hits
                 let line_content = if total_lines <= 200 {
                     all_lines
                 } else {
@@ -291,6 +302,7 @@ impl AnswerService {
 
                 if !line_content.is_empty() {
                     let mut insert_hit = file_hits[0].clone();
+
                     insert_hit.scores =
                         file_hits
                             .iter()
@@ -300,10 +312,13 @@ impl AnswerService {
                                 acc.rrf += hit.scores.rrf;
                                 acc
                             });
+
+                    // average the scores
                     let len = file_hits.len() as f32;
                     insert_hit.scores.bm25 /= len;
                     insert_hit.scores.embedding /= len;
                     insert_hit.scores.rrf /= len;
+
                     insert_hit.doc.body = line_content.join("\n");
                     result.push(insert_hit);
                 }
@@ -311,9 +326,9 @@ impl AnswerService {
                 result.extend(file_hits);
             }
         }
+
         result
     }
-
     async fn collect_relevant_docs(
         &self,
         helper: &ContextInfoHelper,
