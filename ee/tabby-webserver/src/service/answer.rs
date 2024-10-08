@@ -230,8 +230,7 @@ impl AnswerService {
 
         match self.code.search_in_language(query, params).await {
             Ok(docs) => {
-                self.merge_code_snippets(docs.hits, &policy, source_id)
-                    .await
+                merge_code_snippets(self.repository.clone(), docs.hits, &policy, source_id).await
             }
             Err(e) => {
                 warn!("Error in code search: {:?}", e);
@@ -240,92 +239,6 @@ impl AnswerService {
         }
     }
 
-    /// Merges code snippets from search hits, potentially combining multiple hits from the same file.
-    /// If multiple hits are found in the same file, the function will attempt to merge them into a single hit.
-    async fn merge_code_snippets(
-        &self,
-        hits: Vec<CodeSearchHit>,
-        policy: &AccessPolicy,
-        source_id: &str,
-    ) -> Vec<CodeSearchHit> {
-        // group hits by filepath
-        let mut file_hits: HashMap<String, Vec<CodeSearchHit>> = HashMap::new();
-        for hit in hits.into_iter() {
-            file_hits
-                .entry(hit.doc.filepath.clone())
-                .or_default()
-                .push(hit);
-        }
-
-        let mut result = Vec::with_capacity(file_hits.len());
-
-        for (filepath, file_hits) in file_hits {
-            if file_hits.len() > 1 {
-                // multiple hits in the same file, attempt to merge
-                let repo = match self
-                    .repository
-                    .resolve_repository_by_source_id(policy, source_id)
-                    .await
-                {
-                    Ok(repo) => repo,
-                    Err(e) => {
-                        warn!("Failed to get repository: {:?}", e);
-                        continue;
-                    }
-                };
-
-                // construct the full path to the file
-                let path: std::path::PathBuf = repo.dir.join(&filepath);
-
-                let file = match File::open(&path) {
-                    Ok(file) => file,
-                    Err(e) => {
-                        warn!("Error opening file {}: {}", path.display(), e);
-                        continue;
-                    }
-                };
-
-                let reader = BufReader::new(file);
-                let all_lines: Vec<String> = reader.lines().filter_map(|line| line.ok()).collect();
-                let total_lines = all_lines.len();
-
-                // if file is too large (> 200 lines), don't merge hits
-                let line_content = if total_lines <= 200 {
-                    all_lines
-                } else {
-                    result.extend(file_hits);
-                    continue;
-                };
-
-                if !line_content.is_empty() {
-                    let mut insert_hit = file_hits[0].clone();
-
-                    insert_hit.scores =
-                        file_hits
-                            .iter()
-                            .fold(CodeSearchScores::default(), |mut acc, hit| {
-                                acc.bm25 += hit.scores.bm25;
-                                acc.embedding += hit.scores.embedding;
-                                acc.rrf += hit.scores.rrf;
-                                acc
-                            });
-
-                    // average the scores
-                    let len = file_hits.len() as f32;
-                    insert_hit.scores.bm25 /= len;
-                    insert_hit.scores.embedding /= len;
-                    insert_hit.scores.rrf /= len;
-
-                    insert_hit.doc.body = line_content.join("\n");
-                    result.push(insert_hit);
-                }
-            } else {
-                result.extend(file_hits);
-            }
-        }
-
-        result
-    }
     async fn collect_relevant_docs(
         &self,
         helper: &ContextInfoHelper,
@@ -587,6 +500,92 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
     )
 }
 
+/// Merges code snippets from search hits, potentially combining multiple hits from the same file.
+/// If multiple hits are found in the same file, the function will attempt to merge them into a single hit.
+pub async fn merge_code_snippets(
+    repository: Arc<dyn RepositoryService>,
+    hits: Vec<CodeSearchHit>,
+    policy: &AccessPolicy,
+    source_id: &str,
+) -> Vec<CodeSearchHit> {
+    // group hits by filepath
+    let mut file_hits: HashMap<String, Vec<CodeSearchHit>> = HashMap::new();
+    for hit in hits.into_iter() {
+        file_hits
+            .entry(hit.doc.filepath.clone())
+            .or_default()
+            .push(hit);
+    }
+
+    let mut result = Vec::with_capacity(file_hits.len());
+
+    for (filepath, file_hits) in file_hits {
+        if file_hits.len() > 1 {
+            // multiple hits in the same file, attempt to merge
+            let repo = match repository
+                .resolve_repository_by_source_id(policy, source_id)
+                .await
+            {
+                Ok(repo) => repo,
+                Err(e) => {
+                    warn!("Failed to get repository: {:?}", e);
+                    continue;
+                }
+            };
+
+            // construct the full path to the file
+            let path: std::path::PathBuf = repo.dir.join(&filepath);
+
+            let file = match File::open(&path) {
+                Ok(file) => file,
+                Err(e) => {
+                    warn!("Error opening file {}: {}", path.display(), e);
+                    continue;
+                }
+            };
+
+            let reader = BufReader::new(file);
+            let all_lines: Vec<String> = reader.lines().filter_map(|line| line.ok()).collect();
+            let total_lines = all_lines.len();
+
+            // if file is too large (> 200 lines), don't merge hits
+            let line_content = if total_lines <= 200 {
+                all_lines
+            } else {
+                result.extend(file_hits);
+                continue;
+            };
+
+            if !line_content.is_empty() {
+                let mut insert_hit = file_hits[0].clone();
+
+                insert_hit.scores =
+                    file_hits
+                        .iter()
+                        .fold(CodeSearchScores::default(), |mut acc, hit| {
+                            acc.bm25 += hit.scores.bm25;
+                            acc.embedding += hit.scores.embedding;
+                            acc.rrf += hit.scores.rrf;
+                            acc
+                        });
+
+                // average the scores
+                let len = file_hits.len() as f32;
+                insert_hit.scores.bm25 /= len;
+                insert_hit.scores.embedding /= len;
+                insert_hit.scores.rrf /= len;
+
+                insert_hit.doc.body = line_content.join("\n");
+                result.push(insert_hit);
+            }
+        } else {
+            result.extend(file_hits);
+        }
+    }
+
+    result
+}
+
 #[cfg(test)]
 pub mod testutils;
 
@@ -616,6 +615,7 @@ mod tests {
     };
 
     use crate::answer::{
+        merge_code_snippets,
         testutils::{
             make_policy, make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
             FakeCodeSearchFail, FakeCodeSearchFailNotReady, FakeContextService, FakeDocSearch,
@@ -1070,12 +1070,6 @@ mod tests {
     }
     #[tokio::test]
     async fn test_merge_code_snippets() {
-        let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream);
-        let code: Arc<dyn CodeSearch> = Arc::new(FakeCodeSearch);
-        let doc: Arc<dyn DocSearch> = Arc::new(FakeDocSearch);
-        let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
-        let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
-        let config = make_answer_config();
         let db = DbConn::new_in_memory().await.unwrap();
         let repo = make_repository_service(db).await.unwrap();
         let git_url = "https://github.com/test/repo.git".to_string();
@@ -1087,8 +1081,6 @@ mod tests {
             .unwrap();
 
         let source_id: &str = id.as_ref();
-
-        let service = AnswerService::new(&config, chat, code, doc, context, serper, repo.clone());
 
         let hits = vec![
             CodeSearchHit {
@@ -1127,7 +1119,7 @@ mod tests {
 
         let policy = make_policy().await;
 
-        let result = service.merge_code_snippets(hits, &policy, source_id).await;
+        let result = merge_code_snippets(repo.clone(), hits, &policy, source_id).await;
 
         //file doesn't exist
         assert_eq!(result.len(), 0);
