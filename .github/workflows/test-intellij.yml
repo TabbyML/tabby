@@ -17,11 +17,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      CERTIFICATE_CHAIN: ${{ secrets.INTELLIJ_PLUGIN_CERTIFICATE_CHAIN }}
-      PRIVATE_KEY: ${{ secrets.INTELLIJ_PLUGIN_PRIVATE_KEY }}
-      PRIVATE_KEY_PASSWORD: ${{ secrets.INTELLIJ_PLUGIN_PRIVATE_KEY_PASSWORD }}
-    
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -39,8 +34,8 @@ jobs:
         with:
           node-version: 18
 
-      - uses: pnpm/action-setup@v4
-        name: Install pnpm
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 9
           run_install: false
@@ -50,8 +45,8 @@ jobs:
         run: |
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
-      - uses: actions/cache@v4
-        name: Setup pnpm cache
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -66,11 +61,3 @@ jobs:
         with:
           arguments: buildPlugin
           build-root-directory: clients/intellij
-          
-      - name: Upload Plugin
-        uses: actions/upload-artifact@v4
-        with:
-          retention-days: 1
-          name: artifacts
-          path: |
-            clients/intellij/build/distributions/intellij-tabby.zip
