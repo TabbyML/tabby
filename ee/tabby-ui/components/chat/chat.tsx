@@ -109,11 +109,11 @@ function ChatRenderer(
   const [activeSelection, setActiveSelection] = React.useState<Context | null>(
     null
   )
-  // store the userMessage for `edit` action
-  const storedUserMessage = useRef<UserMessage | undefined>()
+  // hold a temporary copy of the user message being edited
+  const userMessageForEditTemp = useRef<UserMessage | undefined>()
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
-  const clearStoredUserMessage = () => {
-    storedUserMessage.current = undefined
+  const clearEditingUserMessage = () => {
+    userMessageForEditTemp.current = undefined
   }
 
   const {
@@ -169,10 +169,8 @@ function ChatRenderer(
       ]
       setQaPairs(nextQaPairs)
       const [userMessage, threadRunOptions] = generateRequestPayload(
-        qaPair.user,
-        storedUserMessage.current
+        qaPair.user
       )
-      clearStoredUserMessage()
 
       return regenerate({
         threadId,
@@ -194,17 +192,11 @@ function ChatRenderer(
     let nextClientContext: Context[] = []
 
     // restore client context
-    if (userMessage.selectContext) {
-      nextClientContext.push(userMessage.selectContext)
-    }
-    if (userMessage.activeContext) {
-      nextClientContext.push(userMessage.activeContext)
-    }
     if (userMessage.relevantContext?.length) {
       nextClientContext = nextClientContext.concat(userMessage.relevantContext)
     }
 
-    storedUserMessage.current = userMessage
+    userMessageForEditTemp.current = userMessage
     setRelevantContext(uniqWith(nextClientContext, isEqual))
 
     // delete message pair
@@ -330,27 +322,11 @@ function ChatRenderer(
   }, [error])
 
   const generateRequestPayload = (
-    userMessage: UserMessage,
-    storedUserMessage?: UserMessage
+    userMessage: UserMessage
   ): [CreateMessageInput, ThreadRunOptionsInput] => {
     // use selectContext or activeContext for code query
-    let contextForCodeQuery =
-      userMessage?.selectContext || userMessage?.activeContext
-
-    // If a stored user message exists, attempt to retrieve its context unless it has been deleted
-    if (!contextForCodeQuery && storedUserMessage?.relevantContext) {
-      const storedSelectContext = storedUserMessage?.selectContext
-        ? storedUserMessage.relevantContext.find(o =>
-            isEqual(o, userMessage.selectContext)
-          )
-        : undefined
-      const storedActiveContext = storedUserMessage?.activeContext
-        ? storedUserMessage.relevantContext.find(o =>
-            isEqual(o, userMessage.activeContext)
-          )
-        : undefined
-      contextForCodeQuery = storedSelectContext || storedActiveContext
-    }
+    const contextForCodeQuery: FileContext | undefined =
+      userMessage.selectContext || userMessage.activeContext
 
     const codeQuery: InputMaybe<CodeQueryInput> = contextForCodeQuery
       ? {
@@ -410,13 +386,14 @@ function ChatRenderer(
         }\n${'```'}\n`
       }
 
-      const newUserMessage = {
+      const newUserMessage: UserMessage = {
         ...userMessage,
-        message: userMessage.message + selectCodeSnippet,
-        // For forward compatibility
-        activeSelection: activeSelection || userMessage.activeContext,
+        message: userMessage.message + selectCodeSnippet,        
         // If no id is provided, set a fallback id.
-        id: userMessage.id ?? nanoid()
+        id: userMessage.id ?? nanoid(),
+        selectContext: userMessage.selectContext,
+        // For forward compatibility
+        activeContext: activeSelection || userMessage.activeContext
       }
 
       const nextQaPairs = [
@@ -434,10 +411,10 @@ function ChatRenderer(
 
       setQaPairs(nextQaPairs)
 
-      sendUserMessage(
-        ...generateRequestPayload(newUserMessage, storedUserMessage.current)
-      )
-      clearStoredUserMessage()
+      sendUserMessage(...generateRequestPayload(newUserMessage))
+
+      // clear the temporary user message draft after it has been sent
+      clearEditingUserMessage()
     }
   )
 
