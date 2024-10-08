@@ -534,7 +534,7 @@ mod tests {
         AnswerConfig {
             code_search_params: make_code_search_params(),
             presence_penalty: 0.1,
-            system_prompt: AnswerConfig::default_system_prompt()
+            system_prompt: AnswerConfig::default_system_prompt(),
         }
     }
 
