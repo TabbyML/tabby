@@ -17,10 +17,7 @@ use async_stream::stream;
 use futures::stream::BoxStream;
 use tabby_common::{
     api::{
-        code::{
-            CodeSearch, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
-            CodeSearchScores,
-        },
+        code::{CodeSearch, CodeSearchHit, CodeSearchParams, CodeSearchQuery, CodeSearchScores},
         doc::{DocSearch, DocSearchError, DocSearchHit},
     },
     config::AnswerConfig,
@@ -599,7 +596,6 @@ mod tests {
     use std::{path::PathBuf, sync::Arc};
 
     use juniper::ID;
-    
     use tabby_common::{
         api::{
             code::{
