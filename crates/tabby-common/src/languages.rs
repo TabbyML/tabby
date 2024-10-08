@@ -91,12 +91,12 @@ impl Language {
 
 lazy_static! {
     static ref CONFIG: ConfigList = {
-        let mut config_list: ConfigList = serdeconv::from_toml_str(include_str!("../assets/languages.toml")).unwrap();
+        let mut config_list: ConfigList =
+            serdeconv::from_toml_str(include_str!("../assets/languages.toml")).unwrap();
         let mut config = config::Config::load().unwrap();
         config_list.config.append(&mut config.additional_languages);
         config_list
     };
-
     static ref LANGUAGE_CONFIG_MAPPING: HashMap<&'static str, &'static Language> = {
         let mut map = HashMap::new();
         for c in &CONFIG.config {

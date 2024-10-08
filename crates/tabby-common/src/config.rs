@@ -8,7 +8,10 @@ use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 use crate::{
-    api::code::CodeSearchParams, languages, path::repositories_dir, terminal::{HeaderFormat, InfoMessage}
+    api::code::CodeSearchParams,
+    languages,
+    path::repositories_dir,
+    terminal::{HeaderFormat, InfoMessage},
 };
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
@@ -29,7 +32,7 @@ pub struct Config {
     pub answer: AnswerConfig,
 
     #[serde(default)]
-    pub additional_languages: Vec<languages::Language>, 
+    pub additional_languages: Vec<languages::Language>,
 }
 
 impl Config {
