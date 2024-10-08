@@ -10,7 +10,8 @@
 
 ## Installation
 
-The Tabby VSCode extension is available on the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby) and [Open VSX](https://open-vsx.org/extension/TabbyML/vscode-tabby). To install the extension in VSCode/VSCodium, launch Quick Open (shortcut: `Ctrl/Cmd+P`), paste the following command, and press enter: 
+The Tabby VSCode extension is available on the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby) and [Open VSX](https://open-vsx.org/extension/TabbyML/vscode-tabby). To install the extension in VSCode/VSCodium, launch Quick Open (shortcut: `Ctrl/Cmd+P`), paste the following command, and press enter:
+
 ```
 ext install TabbyML.vscode-tabby
 ```
