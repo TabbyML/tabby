@@ -1,19 +1,19 @@
 # Tabby VSCode Extension
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Visual Studio Marketplace Extension Version](https://img.shields.io/visual-studio-marketplace/v/TabbyML.vscode-tabby?label=marketplace)](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby)
-[![Visual Studio Marketplace Extension Installs](https://img.shields.io/visual-studio-marketplace/i/TabbyML.vscode-tabby)](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby)
-[![Open VSX Extension Version](https://img.shields.io/open-vsx/v/TabbyML/vscode-tabby)](https://open-vsx.org/extension/TabbyML/vscode-tabby)
+[![Extension Version](https://img.shields.io/visual-studio-marketplace/v/TabbyML.vscode-tabby)](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby)
+[![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/i/TabbyML.vscode-tabby?label=marketplace)](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby)
+[![Open VSX](https://img.shields.io/open-vsx/dt/TabbyML/vscode-tabby?label=Open-VSX)](https://open-vsx.org/extension/TabbyML/vscode-tabby)
 [![Slack Community](https://shields.io/badge/Tabby-Join%20Slack-red?logo=slack)](https://links.tabbyml.com/join-slack)
 
 [Tabby](https://tabby.tabbyml.com/) is an open-source, self-hosted AI coding assistant designed to help you write code more efficiently.
 
 ## Installation
 
-The Tabby extension can be installed from inside VisualStudio Code and VSCodium by copying the following command into the command palette (Ctrl+P):  
-`ext install TabbyML.vscode-tabby`
-
-It is also available for direct download on Open VSX: https://open-vsx.org/extension/TabbyML/vscode-tabby
+The Tabby VSCode extension is available on the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby) and [Open VSX](https://open-vsx.org/extension/TabbyML/vscode-tabby). To install the extension in VSCode/VSCodium, launch Quick Open (shortcut: `Ctrl/Cmd+P`), paste the following command, and press enter: 
+```
+ext install TabbyML.vscode-tabby
+```
 
 ## Autocomplete
 
