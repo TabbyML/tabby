@@ -371,7 +371,6 @@ function ChatRenderer(
   }
 
   const handleSendUserChat = useLatest(
-    // FIXME if should be add code snippet
     async (userMessage: UserMessageWithOptionalId) => {
       if (isLoading) return
 
