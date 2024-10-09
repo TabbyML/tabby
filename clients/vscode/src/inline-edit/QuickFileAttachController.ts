@@ -3,7 +3,6 @@ import path from "path";
 import { QuickInputButtons, QuickPickItemKind, Uri, ThemeIcon, window } from "vscode";
 import type { QuickPick, QuickPickItem } from "vscode";
 import type { Context } from "tabby-chat-panel";
-import type { ChatSideViewProvider } from "../chat/ChatSideViewProvider";
 import { WebviewHelper } from "../chat/WebviewHelper";
 import type { GitProvider } from "../git/GitProvider";
 
@@ -17,25 +16,24 @@ const fileSeparator = {
   kind: QuickPickItemKind.Separator,
 };
 
-export class QuickFileAttach {
+export class QuickFileAttachController {
   private base = process.cwd();
   private quickPick: QuickPick<QuickPickItem> = window.createQuickPick<QuickPickItem>();
   private current: string;
 
   constructor(
-    private readonly chatViewProvider: ChatSideViewProvider,
     private readonly gitProvider: GitProvider,
+    private readonly onDidAcceptTrigged?: (fileContext: Context) => void,
   ) {
     this.current = this.base;
 
-    this.quickPick.placeholder = "Select or search a file to add to the chat...";
+    this.quickPick.placeholder = "Select a file to attach";
     this.quickPick.canSelectMany = false;
     this.quickPick.matchOnDescription = true;
     this.quickPick.buttons = [QuickInputButtons.Back];
 
     this.quickPick.onDidAccept(this.onDidAccept, this);
     this.quickPick.onDidTriggerButton(this.onDidTriggerButton, this);
-    this.quickPick.onDidHide(this.quickPick.dispose);
   }
 
   get root() {
@@ -65,8 +63,11 @@ export class QuickFileAttach {
     if (root) {
       const s = await fs.stat(root);
       if (s.isFile()) {
-        await this.addFileToChat(root);
+        const fileContext = await this.getSelectedFileContext(root);
         this.quickPick.hide();
+        if (this.onDidAcceptTrigged) {
+          this.onDidAcceptTrigged(fileContext);
+        }
       } else {
         this.currentBase = root;
         this.quickPick.items = await this.listFiles(root);
@@ -123,7 +124,7 @@ export class QuickFileAttach {
     return result;
   }
 
-  private async addFileToChat(path: string) {
+  private async getSelectedFileContext(path: string): Promise<Context> {
     const uri = Uri.file(path);
     const content = await fs.readFile(path, "utf8");
     const lines = content.split("\n").length;
@@ -138,7 +139,6 @@ export class QuickFileAttach {
       filepath,
       git_url,
     };
-
-    this.chatViewProvider.addRelevantContext(fileContext);
+    return fileContext;
   }
 }

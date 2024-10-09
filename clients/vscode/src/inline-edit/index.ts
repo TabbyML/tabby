@@ -1,4 +1,5 @@
 import { ChatEditCommand } from "tabby-agent";
+import type { Context } from "tabby-chat-panel";
 import { Config } from "../Config";
 import {
   CancellationTokenSource,
@@ -12,8 +13,10 @@ import {
   QuickPick,
   QuickPickItemButtonEvent,
 } from "vscode";
+import { GitProvider } from "../git/GitProvider";
 import { Client } from "../lsp/Client";
 import { ContextVariables } from "../ContextVariables";
+import { QuickFileAttachController } from "./QuickFileAttachController";
 
 export class InlineEditController {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -21,11 +24,18 @@ export class InlineEditController {
 
   private recentlyCommand: string[] = [];
   private suggestedCommand: ChatEditCommand[] = [];
+  private selectedFileContext: Context | undefined = undefined;
+
+  private quickFileAttachController: QuickFileAttachController = new QuickFileAttachController(
+    this.gitProvider,
+    this.onFileSelect.bind(this),
+  );
 
   constructor(
     private client: Client,
     private config: Config,
     private contextVariables: ContextVariables,
+    private gitProvider: GitProvider,
     private editor: TextEditor,
     private editLocation: EditLocation,
     private userCommand?: string,
@@ -56,6 +66,20 @@ export class InlineEditController {
     this.userCommand ? await this.provideEditWithCommand(this.userCommand) : this.quickPick.show();
   }
 
+  async restart() {
+    if (this.userCommand) {
+      await this.provideEditWithCommand(this.userCommand);
+    } else {
+      this.updateQuickPickList();
+      this.quickPick.show();
+    }
+  }
+
+  private onFileSelect(selected: Context) {
+    this.selectedFileContext = selected;
+    this.restart();
+  }
+
   private async onDidAccept() {
     const command = this.quickPick.selectedItems[0]?.value;
     this.quickPick.hide();
@@ -66,6 +90,12 @@ export class InlineEditController {
       window.showErrorMessage("Command is too long.");
       return;
     }
+
+     if (command === '/file') {
+      this.quickFileAttachController.start();
+      return;
+    }
+
     await this.provideEditWithCommand(command);
   }
 

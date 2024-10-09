@@ -27,7 +27,6 @@ import CommandPalette from "./CommandPalette";
 import { showOutputPanel } from "./logger";
 import { Issues } from "./Issues";
 import { InlineEditController } from "./inline-edit";
-import { QuickFileAttach } from "./quick-file-attach";
 
 export class Commands {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -267,8 +266,7 @@ export class Commands {
           this.chatViewProvider.addRelevantContext(fileContext);
         });
       } else {
-        const quickFileAttach = new QuickFileAttach(this.chatViewProvider, this.gitProvider);
-        await quickFileAttach.start();
+        window.showInformationMessage("No active editor");
       }
     },
     "chat.fixCodeBlock": async () => {
@@ -310,6 +308,7 @@ export class Commands {
         this.client,
         this.config,
         this.contextVariables,
+        this.gitProvider,
         editor,
         editLocation,
         userCommand,
