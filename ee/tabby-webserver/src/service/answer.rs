@@ -500,8 +500,7 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
     )
 }
 
-/// Merges code snippets from search hits, potentially combining multiple hits from the same file.
-/// If multiple hits are found in the same file, the function will attempt to merge them into a single hit.
+/// Combine code snippets from search results rather than utilizing multiple hits: Presently, there is only one rule: if the number of lines of code (LoC) is less than 200, and there are multiple hits (number of hits > 1), include the entire file.
 pub async fn merge_code_snippets(
     repository: Arc<dyn RepositoryService>,
     hits: Vec<CodeSearchHit>,
