@@ -520,7 +520,7 @@ pub async fn merge_code_snippets(
 
     for (filepath, file_hits) in file_hits {
         if file_hits.len() > 1 {
-            // multiple hits in the same file, attempt to merge
+            // more than 1 hit in the same file, attempt to merge
             let repo = match repository
                 .resolve_repository_by_source_id(policy, source_id)
                 .await
