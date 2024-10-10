@@ -1,14 +1,13 @@
 use std::{fs, path::PathBuf};
 
 use anyhow::{Context, Result};
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
-use crate::{env::use_local_model_json, path::models_dir};
-
-// default_entrypoint is legacy entrypoint for single model file
-fn default_entrypoint() -> String {
-    "model.gguf".to_string()
-}
+use crate::{
+    env::get_download_host, env::get_huggingface_mirror_host, env::use_local_model_json,
+    path::models_dir,
+};
 
 #[derive(Serialize, Deserialize)]
 pub struct ModelInfo {
@@ -19,11 +18,61 @@ pub struct ModelInfo {
     pub chat_template: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub urls: Option<Vec<String>>,
+
+    #[serde(default)]
     pub sha256: String,
+    // partitioned_urls is used for models with multiple files
+    // must make sure the first address is the entrypoint
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub urls_sha256: Option<Vec<String>>,
-    #[serde(default = "default_entrypoint")]
-    pub entrypoint: String,
+    pub partitioned_urls: Option<Vec<ModelAddress>>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ModelAddress {
+    pub urls: Vec<String>,
+    pub sha256: String,
+}
+
+impl ModelInfo {
+    pub fn filter_download_address(&self) -> Vec<(String, String)> {
+        let download_host = get_download_host();
+        if let Some(urls) = &self.urls {
+            if !urls.is_empty() {
+                let url = self
+                    .urls
+                    .iter()
+                    .flatten()
+                    .find(|f| f.contains(&download_host));
+                if let Some(url) = url {
+                    if let Some(mirror_host) = get_huggingface_mirror_host() {
+                        return vec![(
+                            url.replace("huggingface.co", &mirror_host),
+                            self.sha256.clone(),
+                        )];
+                    }
+                    return vec![(url.to_owned(), self.sha256.clone())];
+                }
+            }
+        };
+
+        self.partitioned_urls
+            .iter()
+            .flatten()
+            .map(|x| -> (String, String) {
+                let url = x.urls.iter().find(|f| f.contains(&download_host));
+                if let Some(url) = url {
+                    if let Some(mirror_host) = get_huggingface_mirror_host() {
+                        return (
+                            url.replace("huggingface.co", &mirror_host),
+                            x.sha256.clone(),
+                        );
+                    }
+                    return (url.to_owned(), x.sha256.clone());
+                }
+                panic!("No download URLs available for <{}>", self.name);
+            })
+            .collect()
+    }
 }
 
 fn models_json_file(registry: &str) -> PathBuf {
@@ -62,27 +111,33 @@ pub struct ModelRegistry {
     pub models: Vec<ModelInfo>,
 }
 
+lazy_static! {
+    pub static ref LEGACY_GGML_MODEL_RELATIVE_PATH: String =
+        format!("ggml{}q8_0.v2.gguf", std::path::MAIN_SEPARATOR_STR);
+    pub static ref GGML_MODEL_RELATIVE_PATH: String =
+        format!("ggml{}model.gguf", std::path::MAIN_SEPARATOR_STR);
+    pub static ref GGML_MODEL_PARTITIONED_PREFIX: String = "00001-of-".into();
+}
+
 // model registry tree structure
-
-// root: ~/.tabby/models/TABBYML
-
+// root: ~/.tabby/models/TabbyML
+//
 // fn get_model_root_dir(model_name) -> {root}/{model_name}
-
+//
 // fn get_model_dir(model_name) -> {root}/{model_name}/ggml
-
+//
 // fn get_model_path(model_name)
-// for single model file
-// -> {root}/{model_name}/ggml/model.gguf
-// for multiple model files
-// -> {root}/{model_name}/ggml/{entrypoint}
-
+//   for single model file
+//     -> {root}/{model_name}/ggml/model.gguf
+//   for multiple model files
+//     -> {root}/{model_name}/ggml/{entrypoint}
 impl ModelRegistry {
     pub async fn new(registry: &str) -> Self {
         if use_local_model_json() {
             Self {
                 name: registry.to_owned(),
-                models: load_local_registry(registry).unwrap_or_else(|_| {
-                    panic!("Failed to fetch model organization <{}>", registry)
+                models: load_local_registry(registry).unwrap_or_else(|e| {
+                    panic!("Failed to fetch model organization <{}>: {}", registry, e)
                 }),
             }
         } else {
@@ -100,9 +155,9 @@ impl ModelRegistry {
         }
     }
 
-    // get_model_store_dir returns {root}/{name}/ggml, e.g.. ~/.tabby/models/TABBYML/StarCoder-1B/ggml
+    // get_model_store_dir returns {root}/{name}/ggml, e.g.. ~/.tabby/models/TabbyML/StarCoder-1B/ggml
     pub fn get_model_store_dir(&self, name: &str) -> PathBuf {
-        models_dir().join(&self.name).join(name).join("ggml")
+        self.get_model_dir(name).join("ggml")
     }
 
     // get_model_dir returns {root}/{name}, e.g. ~/.tabby/models/TABBYML/StarCoder-1B
@@ -110,31 +165,66 @@ impl ModelRegistry {
         models_dir().join(&self.name).join(name)
     }
 
-    // get_legacy_model_path returns {root}/{name}/q8_0.v2.gguf, e.g. ~/.tabby/models/TABBYML/StarCoder-1B/q8_0.v2.gguf
-    fn get_legacy_model_path(&self, name: &str) -> PathBuf {
-        self.get_model_store_dir(name).join("q8_0.v2.gguf")
-    }
-
     // get_model_path returns the entrypoint of the model,
-    // for single model file, it returns {root}/{name}/ggml/model.gguf
-    // for multiple model files, it returns {root}/{name}/ggml/{entrypoint}
-    pub fn get_model_entry_path(&self, name: &str) -> PathBuf {
-        let model_info = self.get_model_info(name);
-        self.get_model_store_dir(name)
-            .join(model_info.entrypoint.clone())
+    // will look for the file with the prefix "00001-of-"
+    pub fn get_model_entry_path(&self, name: &str) -> Option<PathBuf> {
+        for entry in fs::read_dir(self.get_model_store_dir(name)).ok()? {
+            let entry = entry.expect("Error reading directory entry");
+            let file_name = entry.file_name();
+            let file_name_str = file_name.to_string_lossy();
+
+            // Check if the file name starts with the specified prefix
+            if file_name_str.starts_with(GGML_MODEL_PARTITIONED_PREFIX.as_str()) {
+                return Some(entry.path()); // Return the full path as PathBuf
+            }
+        }
+
+        None
     }
 
-    pub fn migrate_model_path(&self, name: &str) -> Result<(), std::io::Error> {
+    pub fn migrate_q80_model_path(&self, name: &str) -> Result<(), std::io::Error> {
         let model_path = self.get_model_entry_path(name);
-        let old_model_path = self.get_legacy_model_path(name);
+        let old_model_path = self
+            .get_model_dir(name)
+            .join(LEGACY_GGML_MODEL_RELATIVE_PATH.as_str());
 
-        if !model_path.exists() && old_model_path.exists() {
-            std::fs::rename(&old_model_path, &model_path)?;
-            #[cfg(target_family = "unix")]
-            std::os::unix::fs::symlink(&model_path, &old_model_path)?;
-            #[cfg(target_family = "windows")]
-            std::os::windows::fs::symlink_file(&model_path, &old_model_path)?;
+        if model_path.is_none() && old_model_path.exists() {
+            return self.migrate_model_path(name, &old_model_path);
         }
+
+        Ok(())
+    }
+
+    pub fn migrate_relative_model_path(&self, name: &str) -> Result<(), std::io::Error> {
+        let model_path = self.get_model_entry_path(name);
+        let old_model_path = self
+            .get_model_dir(name)
+            .join(GGML_MODEL_RELATIVE_PATH.as_str());
+
+        if model_path.is_none() && old_model_path.exists() {
+            return self.migrate_model_path(name, &old_model_path);
+        }
+
+        Ok(())
+    }
+
+    pub fn get_model_path(&self, name: &str) -> PathBuf {
+        self.get_model_dir(name)
+            .join(GGML_MODEL_RELATIVE_PATH.as_str())
+    }
+
+    pub fn migrate_model_path(
+        &self,
+        name: &str,
+        old_model_path: &PathBuf,
+    ) -> Result<(), std::io::Error> {
+        // legacy model always has a single file
+        let model_path = self.get_model_store_dir(name).join("00001-of-00001.gguf");
+        std::fs::rename(&old_model_path, &model_path)?;
+        #[cfg(target_family = "unix")]
+        std::os::unix::fs::symlink(&model_path, &old_model_path)?;
+        #[cfg(target_family = "windows")]
+        std::os::windows::fs::symlink_file(&model_path, &old_model_path)?;
         Ok(())
     }
 

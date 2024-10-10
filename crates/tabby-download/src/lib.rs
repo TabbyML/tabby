@@ -13,32 +13,12 @@ use aim_downloader::{
 use anyhow::{anyhow, bail, Result};
 use futures::future::join_all;
 use regex::Regex;
-use tabby_common::registry::{parse_model_id, ModelInfo, ModelRegistry};
+use tabby_common::registry::{parse_model_id, ModelRegistry};
 use tokio_retry::{
     strategy::{jitter, ExponentialBackoff},
     Retry,
 };
 use tracing::{info, warn};
-
-fn filter_download_urls(model_info: &ModelInfo) -> Vec<String> {
-    let download_host = tabby_common::env::get_download_host();
-    model_info
-        .urls
-        .iter()
-        .flatten()
-        .filter_map(|f| {
-            if f.contains(&download_host) {
-                if let Some(mirror_host) = tabby_common::env::get_huggingface_mirror_host() {
-                    Some(f.replace("huggingface.co", &mirror_host))
-                } else {
-                    Some(f.to_owned())
-                }
-            } else {
-                None
-            }
-        })
-        .collect()
-}
 
 async fn download_model_impl(
     registry: &ModelRegistry,
@@ -48,10 +28,11 @@ async fn download_model_impl(
     let model_info = registry.get_model_info(name);
     registry.save_model_info(name);
 
-    registry.migrate_model_path(name)?;
+    registry.migrate_q80_model_path(name)?;
+    registry.migrate_relative_model_path(name)?;
 
     let model_path = registry.get_model_entry_path(name);
-    if model_path.exists() {
+    if let Some(model_path) = model_path {
         if !prefer_local_file {
             info!("Checking model integrity..");
             if HashChecker::check(&model_path.display().to_string(), &model_info.sha256).is_ok() {
@@ -68,7 +49,7 @@ async fn download_model_impl(
         }
     }
 
-    let urls = filter_download_urls(model_info);
+    let urls = model_info.filter_download_address();
 
     if urls.is_empty() {
         bail!(
@@ -77,56 +58,23 @@ async fn download_model_impl(
             model_info.name
         );
     }
-    if urls.len() > 1 {
-        // if model_info.entrypoint.is_none(){
-        //     bail!("Multiple download URLs available for <{}/{}>, but no entrypoint specified", registry.name, model_info.name);
-        // }
-        if let Some(urls_sha256) = &model_info.urls_sha256 {
-            if urls_sha256.len() != urls.len() {
-                bail!(
-                    "Number of urls_sha256 does not match number of URLs for <{}/{}>",
-                    registry.name,
-                    model_info.name
-                );
-            }
-        } else {
-            bail!(
-                "No urls_sha256 available for <{}/{}>",
-                registry.name,
-                model_info.name
-            );
-        }
-    }
 
     // prepare for download
-    let dir = model_path
-        .parent()
-        .ok_or_else(|| anyhow!("Must not be in root directory"))?;
+    let dir = registry.get_model_store_dir(name);
     fs::create_dir_all(dir)?;
 
-    let mut urls_sha256 = vec![];
-    if urls.len() > 1 {
-        urls_sha256.extend(model_info.urls_sha256.clone().unwrap());
-    } else {
-        urls_sha256.push(model_info.sha256.clone());
-    }
-
     let mut download_tasks = vec![];
-    for (url, sha256) in urls.iter().zip(urls_sha256.iter()) {
+    for (index, url) in urls.iter().enumerate() {
         let dir = registry
             .get_model_store_dir(name)
             .to_string_lossy()
             .into_owned();
-        let filename = if urls.len() == 1 {
-            Some(model_info.entrypoint.clone())
-        } else {
-            None
-        };
+        let filename = format!("{:05}-of-{:05}.gguf", index + 1, urls.len());
         let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
         download_tasks.push(Retry::spawn(strategy, move || {
             let dir = dir.clone();
             let filename = filename.clone();
-            download_file(url, dir, filename, sha256)
+            download_file(&url.0, dir, filename, &url.1)
         }));
     }
 
@@ -180,11 +128,10 @@ async fn tryget_download_filename(url: &str) -> Result<String> {
 async fn download_file(
     url: &str,
     dir: String,
-    filename: Option<String>,
+    filename: String,
     expected_sha256: &str,
 ) -> Result<()> {
-    let filename = filename.unwrap_or(tryget_download_filename(url).await?);
-    let fullpath = format! {"{}{}{}", dir,std::path::MAIN_SEPARATOR ,filename};
+    let fullpath = format! {"{}{}{}", dir, std::path::MAIN_SEPARATOR, filename};
     let intermediate_filename = fullpath.clone() + ".tmp";
     let mut bar = WrappedBar::new(0, url, false);
     if let Err(e) =
