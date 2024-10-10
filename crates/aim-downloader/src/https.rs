@@ -2,20 +2,36 @@ use std::{cmp::min, io::Error};
 
 use futures_util::StreamExt;
 use regex::Regex;
-use reqwest::Client;
+use reqwest::{header::HeaderMap, Client};
 use tokio_util::io::ReaderStream;
 
 use crate::{
     address::ParsedAddress,
     bar::WrappedBar,
     consts::*,
-    error::{DownloadError, ValidateError},
+    error::{DownloadError, HTTPHeaderError, ValidateError},
     hash::HashChecker,
     io,
 };
 
 pub struct HTTPSHandler;
 impl HTTPSHandler {
+    pub async fn head(input: &str) -> Result<HeaderMap, HTTPHeaderError> {
+        let parsed_address = ParsedAddress::parse_address(input, true);
+        let res = Client::new()
+            .head(input)
+            .header(
+                reqwest::header::USER_AGENT,
+                reqwest::header::HeaderValue::from_static(CLIENT_ID),
+            )
+            .basic_auth(parsed_address.username, Some(parsed_address.password))
+            .send()
+            .await
+            .map_err(|_| format!("Failed to HEAD from {}", &input))
+            .unwrap();
+        Ok(res.headers().clone())
+    }
+
     pub async fn get(
         input: &str,
         output: &str,
@@ -274,4 +290,11 @@ async fn get_links_works_when_typical() {
         .unwrap();
 
     assert_eq!(result[0], expected);
+}
+
+#[ignore]
+#[tokio::test]
+async fn head_works() {
+    let result = HTTPSHandler::head("https://github.com/XAMPPRocky/tokei/releases/download/v12.0.4/tokei-x86_64-unknown-linux-gnu.tar.gz").await;
+    assert!(result.is_ok());
 }
