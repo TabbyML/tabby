@@ -1,4 +1,4 @@
-import { OpenedFileParams, DidChangeActiveEditorNotification } from "tabby-agent";
+import { DidChangeActiveEditorNotification, DidChangeActiveEditorParams } from "tabby-agent";
 import { getLogger } from "../logger";
 import { Client } from "./Client";
 import { ExtensionContext, TextEditor, window } from "vscode";
@@ -45,8 +45,7 @@ export class FileTrackerFeature extends EventEmitter implements StaticFeature {
   async addingChangeEditor(editor: TextEditor | undefined) {
     if (editor && editor.visibleRanges[0] && editor.document.fileName.startsWith("/")) {
       const editorRange = editor.visibleRanges[0];
-      const params: OpenedFileParams = {
-        action: "change",
+      const params: DidChangeActiveEditorParams = {
         activeEditor: {
           uri: editor.document.uri.toString(),
           range: {

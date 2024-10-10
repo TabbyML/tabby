@@ -1,7 +1,6 @@
 import { Connection, Range } from "vscode-languageserver";
 import { Feature } from "../feature";
-import { DidChangeActiveEditorNotification, OpenedFileParams, ServerCapabilities } from "../protocol";
-import { getLogger } from "../logger";
+import { DidChangeActiveEditorNotification, DidChangeActiveEditorParams, ServerCapabilities } from "../protocol";
 import { Configurations } from "../config";
 import { LRUCache } from "lru-cache";
 import { isRangeEqual } from "../utils/range";
@@ -15,37 +14,19 @@ interface OpenedFile {
 }
 
 export class FileTracker implements Feature {
-  private readonly logger = getLogger("FileTracker");
   private fileList = new LRUCache<string, OpenedFile>({
     max: this.configurations.getMergedConfig().completion.prompt.collectSnippetsFromRecentOpenedFiles.maxOpenedFiles,
   });
 
   constructor(private readonly configurations: Configurations) {}
   initialize(connection: Connection): ServerCapabilities | Promise<ServerCapabilities> {
-    connection.onNotification(DidChangeActiveEditorNotification.type, (param: OpenedFileParams) => {
-      console.log("Received opened file request:" + param.action);
-      this.resolveOpenedFileRequest(param);
+    connection.onNotification(DidChangeActiveEditorNotification.type, (param: DidChangeActiveEditorParams) => {
+      this.resolveChangedFile(param);
     });
     return {};
   }
 
-  resolveOpenedFileRequest(param: OpenedFileParams): void {
-    switch (param.action) {
-      case "change":
-        this.changeFile(param);
-        break;
-      //TODO(Sma1lboy): This feature may change in the feature, remain this for testing
-      case "test":
-        this.logger.info("test lru list: " + this.fileList.toString());
-        this.logger.info("get all gonna return: " + JSON.stringify(this.getAllFilesWithoutActive()));
-        break;
-      default:
-        this.logger.warn(`Unhandled action: ${param.action}`);
-        break;
-    }
-  }
-
-  changeFile(param: OpenedFileParams) {
+  resolveChangedFile(param: DidChangeActiveEditorParams) {
     const { activeEditor, visibleEditors } = param;
 
     const visitedPaths = new Set<string>();

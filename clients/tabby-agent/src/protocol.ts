@@ -539,12 +539,11 @@ export type ChatEditResolveCommand = LspCommand & {
 export namespace DidChangeActiveEditorNotification {
   export const method = "tabby/editors/didChangeActiveEditor";
   export const messageDirection = MessageDirection.clientToServer;
-  export const type = new ProtocolNotificationType<OpenedFileParams, void>(method);
+  export const type = new ProtocolNotificationType<DidChangeActiveEditorParams, void>(method);
 }
-export type OpenedFileParams = {
-  action: "change" | "test";
+export type DidChangeActiveEditorParams = {
   activeEditor: Location;
-  visibleEditors?: Location[];
+  visibleEditors: Location[] | undefined;
 };
 
 /**

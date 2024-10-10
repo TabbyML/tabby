@@ -205,6 +205,7 @@ export class CompletionContext {
       })
       .sort((a, b) => b.score - a.score);
 
+    //FIXME(Sma1lboy): deduplicate in next few PR
     const snippetsOpenedFiles = this.snippetsFromOpenedFiles
       ?.map((snippet) => {
         return {
