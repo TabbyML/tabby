@@ -1,7 +1,9 @@
 use std::{collections::HashMap, ffi::OsStr};
 
 use lazy_static::lazy_static;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+
+use crate::config;
 
 lazy_static! {
     static ref DEFAULT: Vec<&'static str> = vec![
@@ -46,12 +48,12 @@ lazy_static! {
     ];
 }
 
-#[derive(Deserialize)]
-struct ConfigList {
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct ConfigList {
     config: Vec<Language>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Language {
     languages: Vec<String>,
     exts: Vec<String>,
@@ -88,8 +90,13 @@ impl Language {
 }
 
 lazy_static! {
-    static ref CONFIG: ConfigList =
-        serdeconv::from_toml_str(include_str!("../assets/languages.toml")).unwrap();
+    static ref CONFIG: ConfigList = {
+        let mut config_list: ConfigList =
+            serdeconv::from_toml_str(include_str!("../assets/languages.toml")).unwrap();
+        let mut config = config::Config::load().unwrap();
+        config_list.config.append(&mut config.additional_languages);
+        config_list
+    };
     static ref LANGUAGE_CONFIG_MAPPING: HashMap<&'static str, &'static Language> = {
         let mut map = HashMap::new();
         for c in &CONFIG.config {

@@ -9,6 +9,7 @@ use tracing::debug;
 
 use crate::{
     api::code::CodeSearchParams,
+    languages,
     path::repositories_dir,
     terminal::{HeaderFormat, InfoMessage},
 };
@@ -29,6 +30,9 @@ pub struct Config {
 
     #[serde(default)]
     pub answer: AnswerConfig,
+
+    #[serde(default)]
+    pub additional_languages: Vec<languages::Language>,
 }
 
 impl Config {
