@@ -1,5 +1,4 @@
 import { ChatEditCommand } from "tabby-agent";
-import type { Context } from "tabby-chat-panel";
 import { Config } from "../Config";
 import {
   CancellationTokenSource,
@@ -24,11 +23,9 @@ export class InlineEditController {
 
   private recentlyCommand: string[] = [];
   private suggestedCommand: ChatEditCommand[] = [];
-  private selectedFileContext: Context | undefined = undefined;
 
   private quickFileAttachController: QuickFileAttachController = new QuickFileAttachController(
     this.gitProvider,
-    this.onFileSelect.bind(this),
   );
 
   constructor(
@@ -73,11 +70,6 @@ export class InlineEditController {
       this.updateQuickPickList();
       this.quickPick.show();
     }
-  }
-
-  private onFileSelect(selected: Context) {
-    this.selectedFileContext = selected;
-    this.restart();
   }
 
   private async onDidAccept() {

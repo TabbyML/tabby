@@ -20,10 +20,10 @@ export class QuickFileAttachController {
   private base = process.cwd();
   private quickPick: QuickPick<QuickPickItem> = window.createQuickPick<QuickPickItem>();
   private current: string;
+  private fileContext: Context | undefined = undefined;
 
   constructor(
     private readonly gitProvider: GitProvider,
-    private readonly onDidAcceptTrigged?: (fileContext: Context) => void,
   ) {
     this.current = this.base;
 
@@ -48,6 +48,10 @@ export class QuickFileAttachController {
     return this.current;
   }
 
+  get selectedFileContext() {
+    return this.fileContext;
+  }
+
   public async start() {
     this.quickPick.items = await this.listFiles();
     this.quickPick.show();
@@ -64,10 +68,7 @@ export class QuickFileAttachController {
       const s = await fs.stat(root);
       if (s.isFile()) {
         const fileContext = await this.getSelectedFileContext(root);
-        this.quickPick.hide();
-        if (this.onDidAcceptTrigged) {
-          this.onDidAcceptTrigged(fileContext);
-        }
+       this.fileContext = fileContext;
       } else {
         this.currentBase = root;
         this.quickPick.items = await this.listFiles(root);
