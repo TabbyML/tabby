@@ -18,8 +18,9 @@ pub async fn load_code_generation_and_chat(
     Option<PromptInfo>,
     Option<Arc<dyn ChatCompletionStream>>,
 ) {
-    let (engine, prompt_info, chat) = load_completion_and_chat(completion_model, chat_model).await;
-    let code = engine.map(|engine| Arc::new(CodeGeneration::new(engine)));
+    let (engine, prompt_info, chat) =
+        load_completion_and_chat(completion_model.clone(), chat_model).await;
+    let code = engine.map(|engine| Arc::new(CodeGeneration::new(engine, completion_model)));
     (code, prompt_info, chat)
 }
 

@@ -155,7 +155,6 @@ fn extract_snippets_from_segments(
             if count_characters + declaration.body.len() > max_snippets_chars {
                 break;
             }
-
             count_characters += declaration.body.len();
             ret.push(Snippet {
                 filepath: declaration.filepath.clone(),
@@ -167,6 +166,22 @@ fn extract_snippets_from_segments(
 
     // then comes to the snippets from changed files.
     if let Some(relevant_snippets) = &segments.relevant_snippets_from_changed_files {
+        for snippet in relevant_snippets {
+            if count_characters + snippet.body.len() > max_snippets_chars {
+                break;
+            }
+
+            count_characters += snippet.body.len();
+            ret.push(Snippet {
+                filepath: snippet.filepath.clone(),
+                body: snippet.body.clone(),
+                score: 1.0,
+            });
+        }
+    }
+
+    // then comes to the snippets from recently opened files.
+    if let Some(relevant_snippets) = &segments.relevant_snippets_from_recently_opened_files {
         for snippet in relevant_snippets {
             if count_characters + snippet.body.len() > max_snippets_chars {
                 break;
@@ -276,6 +291,7 @@ mod tests {
             git_url: None,
             declarations: None,
             relevant_snippets_from_changed_files: None,
+            relevant_snippets_from_recently_opened_files: None,
             clipboard: None,
         }
     }
@@ -496,6 +512,7 @@ def this_is_prefix():\n";
             git_url: None,
             declarations: None,
             relevant_snippets_from_changed_files: None,
+            relevant_snippets_from_recently_opened_files: None,
             clipboard: None,
         };
 
@@ -517,12 +534,17 @@ def this_is_prefix():\n";
                 body: "res_1 = invoke_function_1(n)".to_owned(),
                 score: 1.0,
             }]),
+            relevant_snippets_from_recently_opened_files: Some(vec![Snippet {
+                filepath: "b1.py".to_owned(),
+                body: "res_1 = invoke_function_1(n)".to_owned(),
+                score: 1.0,
+            }]),
             clipboard: None,
         };
 
         assert!(
             extract_snippets_from_segments(max_snippets_chars, &segments)
-                .is_some_and(|x| x.1.len() == 2)
+                .is_some_and(|x| x.1.len() == 3)
         );
     }
 }

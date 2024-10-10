@@ -1,11 +1,20 @@
 # Tabby VSCode Extension
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![VSCode Extension Version](https://img.shields.io/visual-studio-marketplace/v/TabbyML.vscode-tabby)](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby)
-[![VSCode Extension Installs](https://img.shields.io/visual-studio-marketplace/i/TabbyML.vscode-tabby)](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby)
+[![Extension Version](https://img.shields.io/visual-studio-marketplace/v/TabbyML.vscode-tabby)](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby)
+[![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/i/TabbyML.vscode-tabby?label=marketplace)](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby)
+[![Open VSX](https://img.shields.io/open-vsx/dt/TabbyML/vscode-tabby?label=Open-VSX)](https://open-vsx.org/extension/TabbyML/vscode-tabby)
 [![Slack Community](https://shields.io/badge/Tabby-Join%20Slack-red?logo=slack)](https://links.tabbyml.com/join-slack)
 
 [Tabby](https://tabby.tabbyml.com/) is an open-source, self-hosted AI coding assistant designed to help you write code more efficiently.
+
+## Installation
+
+The Tabby VSCode extension is available on the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby) and [Open VSX](https://open-vsx.org/extension/TabbyML/vscode-tabby). To install the extension in VSCode/VSCodium, launch Quick Open (shortcut: `Ctrl/Cmd+P`), paste the following command, and press enter:
+
+```
+ext install TabbyML.vscode-tabby
+```
 
 ## Autocomplete
 
