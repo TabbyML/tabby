@@ -46,6 +46,8 @@ import { contextInfoQuery } from '@/lib/tabby/query'
 import { ThreadRunContexts } from '@/lib/types'
 import { Separator } from '@/components/ui/separator'
 
+import { ThreadFeeds } from './components/thread-feeds'
+
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
   mutation ResetUserAuthToken {
     resetUserAuthToken
@@ -118,7 +120,7 @@ function MainPanel() {
         className="h-[calc(100%-4rem)] flex-col items-center justify-center overflow-auto pb-8 lg:flex lg:pb-0"
         ref={elementRef}
       >
-        <div className="mx-auto flex min-h-0 w-full flex-col items-center px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
+        <div className="mx-auto flex min-h-0 w-full flex-col items-center px-10 pb-4 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
           <Image
             src={tabbyUrl}
             alt="logo"
@@ -162,7 +164,7 @@ function MainPanel() {
               />
             </div>
           )}
-          <div className="flex w-full flex-col gap-x-5 lg:flex-row">
+          <div className="flex w-full flex-col gap-x-5 pb-4 lg:flex-row">
             <div
               className="mb-10 w-full rounded-lg p-4 lg:mb-0 lg:w-[21rem]"
               style={{ background: theme === 'dark' ? '#333' : '#e8e1d3' }}
@@ -171,8 +173,11 @@ function MainPanel() {
             >
               <Configuration />
             </div>
-            <Stats />
+            <div className="flex w-full flex-col gap-y-4">
+              <Stats />
+            </div>
           </div>
+          <ThreadFeeds className="w-full" />
         </div>
       </main>
     </div>

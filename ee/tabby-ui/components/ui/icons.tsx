@@ -11,6 +11,7 @@ import {
   Bug,
   ChevronsDownUp,
   CirclePlay,
+  FileQuestion,
   FileText,
   Filter,
   GitFork,
@@ -20,6 +21,7 @@ import {
   Link,
   ListFilter,
   Mail,
+  MessageCircleQuestion,
   Search,
   Share2,
   Sparkles,
@@ -1613,6 +1615,22 @@ function IconAlignJustify({
   return <AlignJustify className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconFileQuestion({
+  className,
+  ...props
+}: React.ComponentProps<typeof FileQuestion>) {
+  return <FileQuestion className={cn('h-4 w-4', className)} {...props} />
+}
+
+function IconMessageCircleQuestion({
+  className,
+  ...props
+}: React.ComponentProps<typeof MessageCircleQuestion>) {
+  return (
+    <MessageCircleQuestion className={cn('h-4 w-4', className)} {...props} />
+  )
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1708,5 +1726,7 @@ export {
   IconEmojiBook,
   IconEmojiGlobe,
   IconWrapText,
-  IconAlignJustify
+  IconAlignJustify,
+  IconFileQuestion,
+  IconMessageCircleQuestion
 }

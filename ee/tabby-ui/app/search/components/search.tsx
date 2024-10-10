@@ -16,7 +16,11 @@ import he from 'he'
 import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 
-import { ERROR_CODE_NOT_FOUND, SESSION_STORAGE_KEY } from '@/lib/constants'
+import {
+  ERROR_CODE_NOT_FOUND,
+  SESSION_STORAGE_KEY,
+  SLUG_TITLE_MAX_LENGTH
+} from '@/lib/constants'
 import { useEnableDeveloperMode } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
@@ -33,7 +37,8 @@ import {
   getMentionsFromText,
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode,
-  getThreadRunContextsFromMentions
+  getThreadRunContextsFromMentions,
+  getTitleFromMessages
 } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
@@ -79,15 +84,11 @@ import { toast } from 'sonner'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
-import {
-  MARKDOWN_CITATION_REGEX,
-  MARKDOWN_SOURCE_REGEX
-} from '@/lib/constants/regex'
+import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import { graphql } from '@/lib/gql/generates'
 import {
   CodeQueryInput,
   ContextInfo,
-  ContextSource,
   DocQueryInput,
   InputMaybe,
   Maybe,
@@ -99,7 +100,11 @@ import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { ExtendedCombinedError, useThreadRun } from '@/lib/hooks/use-thread-run'
 import { useMutation } from '@/lib/tabby/gql'
-import { contextInfoQuery, listThreads } from '@/lib/tabby/query'
+import {
+  contextInfoQuery,
+  listThreadMessages,
+  listThreads
+} from '@/lib/tabby/query'
 import {
   Tooltip,
   TooltipContent,
@@ -150,59 +155,6 @@ const SOURCE_CARD_STYLE = {
   compress: 5.3,
   expand: 6.3
 }
-
-const listThreadMessages = graphql(/* GraphQL */ `
-  query ListThreadMessages(
-    $threadId: ID!
-    $after: String
-    $before: String
-    $first: Int
-    $last: Int
-  ) {
-    threadMessages(
-      threadId: $threadId
-      after: $after
-      before: $before
-      first: $first
-      last: $last
-    ) {
-      edges {
-        node {
-          id
-          threadId
-          role
-          content
-          attachment {
-            code {
-              gitUrl
-              filepath
-              language
-              content
-              startLine
-            }
-            clientCode {
-              filepath
-              content
-              startLine
-            }
-            doc {
-              title
-              link
-              content
-            }
-          }
-        }
-        cursor
-      }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-    }
-  }
-`)
 
 const PAGE_SIZE = 30
 
@@ -301,7 +253,9 @@ export function Search() {
   const content = messages?.[0]?.content
   const title = useMemo(() => {
     if (sources && content) {
-      return getTitleFromMessages(sources, content)
+      return getTitleFromMessages(sources, content, {
+        maxLength: SLUG_TITLE_MAX_LENGTH
+      })
     } else {
       return ''
     }
@@ -1403,21 +1357,6 @@ function ThreadMessagesErrorView() {
       </div>
     </div>
   )
-}
-
-function getTitleFromMessages(sources: ContextSource[], content: string) {
-  const firstLine = content.split('\n')[0] ?? ''
-  const cleanedLine = firstLine
-    .replace(MARKDOWN_SOURCE_REGEX, value => {
-      const sourceId = value.slice(9, -2)
-      const source = sources.find(s => s.sourceId === sourceId)
-      return source?.sourceName ?? ''
-    })
-    .trim()
-
-  // Cap max length at 48 characters
-  const title = cleanedLine.slice(0, 48)
-  return title
 }
 
 function getSourceInputs(ctx: ThreadRunContexts | undefined) {
