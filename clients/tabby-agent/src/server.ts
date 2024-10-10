@@ -67,7 +67,7 @@ export class Server {
 
   private readonly gitContextProvider = new GitContextProvider();
   private readonly recentlyChangedCodeSearch = new RecentlyChangedCodeSearch(this.configurations, this.documents);
-  private readonly fileTracker = new FileTracker();
+  private readonly fileTracker = new FileTracker(this.configurations);
 
   private readonly codeLensProvider = new CodeLensProvider(this.documents);
   private readonly completionProvider = new CompletionProvider(
