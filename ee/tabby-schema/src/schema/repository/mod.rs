@@ -255,6 +255,12 @@ pub trait RepositoryService: Send + Sync {
         id: &ID,
     ) -> Result<Repository>;
 
+    async fn resolve_repository_by_source_id(
+        &self,
+        policy: &AccessPolicy,
+        source_id: &str,
+    ) -> Result<Repository>;
+
     async fn search_files(
         &self,
         policy: &AccessPolicy,

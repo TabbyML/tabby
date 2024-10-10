@@ -1,4 +1,12 @@
-use std::sync::Arc;
+use std::{
+    collections::HashMap,
+    error::Error,
+    fmt,
+    fs::File,
+    io::{BufRead, BufReader, Stderr},
+    path::PathBuf,
+    sync::Arc,
+};
 
 use anyhow::anyhow;
 use async_openai::{
@@ -10,9 +18,10 @@ use async_openai::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
+use logkit::source;
 use tabby_common::{
     api::{
-        code::{CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery},
+        code::{CodeSearch, CodeSearchHit, CodeSearchParams, CodeSearchQuery, CodeSearchScores},
         doc::{DocSearch, DocSearchError, DocSearchHit},
     },
     config::AnswerConfig,
@@ -21,6 +30,7 @@ use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     context::{ContextInfoHelper, ContextService},
     policy::AccessPolicy,
+    repository::RepositoryService,
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
         ThreadAssistantMessageAttachmentsCode, ThreadAssistantMessageAttachmentsDoc,
@@ -39,6 +49,7 @@ pub struct AnswerService {
     doc: Arc<dyn DocSearch>,
     context: Arc<dyn ContextService>,
     serper: Option<Box<dyn DocSearch>>,
+    repository: Arc<dyn RepositoryService>,
 }
 
 impl AnswerService {
@@ -49,6 +60,7 @@ impl AnswerService {
         doc: Arc<dyn DocSearch>,
         context: Arc<dyn ContextService>,
         serper: Option<Box<dyn DocSearch>>,
+        repository: Arc<dyn RepositoryService>,
     ) -> Self {
         Self {
             config: config.clone(),
@@ -57,6 +69,7 @@ impl AnswerService {
             doc,
             context,
             serper,
+            repository,
         }
     }
 
@@ -92,7 +105,8 @@ impl AnswerService {
                     &context_info_helper,
                     code_query,
                     &self.config.code_search_params,
-                    options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref())
+                    options.debug_options.as_ref().and_then(|x| x.code_search_params_override.as_ref()),
+                    policy.clone(),
                 ).await;
                 attachment.code = hits.iter().map(|x| x.doc.clone().into()).collect::<Vec<_>>();
 
@@ -111,6 +125,8 @@ impl AnswerService {
                 attachment.doc = hits.iter()
                         .map(|x| x.doc.clone().into())
                         .collect::<Vec<_>>();
+
+                debug!("doc content: {:?}", doc_query.content);
 
                 if !attachment.doc.is_empty() {
                     let hits = hits.into_iter().map(|x| x.into()).collect::<Vec<_>>();
@@ -184,10 +200,10 @@ impl AnswerService {
         input: &CodeQueryInput,
         params: &CodeSearchParams,
         override_params: Option<&CodeSearchParamsOverrideInput>,
+        policy: AccessPolicy,
     ) -> Vec<CodeSearchHit> {
         let source_id: Option<&str> = {
             if let Some(source_id) = &input.source_id {
-                // If source_id doesn't exist, return empty result.
                 if helper.can_access_source_id(source_id) {
                     Some(source_id.as_str())
                 } else {
@@ -212,18 +228,16 @@ impl AnswerService {
         );
 
         let mut params = params.clone();
-        override_params
-            .as_ref()
-            .inspect(|x| x.override_params(&mut params));
+        if let Some(override_params) = override_params {
+            override_params.override_params(&mut params);
+        }
 
         match self.code.search_in_language(query, params).await {
-            Ok(docs) => docs.hits,
-            Err(err) => {
-                if let CodeSearchError::NotReady = err {
-                    debug!("Code search is not ready yet");
-                } else {
-                    warn!("Failed to search code: {:?}", err);
-                }
+            Ok(docs) => {
+                merge_code_snippets(self.repository.clone(), docs.hits, &policy, source_id).await
+            }
+            Err(e) => {
+                warn!("Error in code search: {:?}", e);
                 vec![]
             }
         }
@@ -358,8 +372,9 @@ pub fn create(
     doc: Arc<dyn DocSearch>,
     context: Arc<dyn ContextService>,
     serper: Option<Box<dyn DocSearch>>,
+    repository: Arc<dyn RepositoryService>,
 ) -> AnswerService {
-    AnswerService::new(config, chat, code, doc, context, serper)
+    AnswerService::new(config, chat, code, doc, context, serper, repository)
 }
 
 fn convert_messages_to_chat_completion_request(
@@ -490,6 +505,104 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
     )
 }
 
+/// Combine code snippets from search results rather than utilizing multiple hits: Presently, there is only one rule: if the number of lines of code (LoC) is less than 200, and there are multiple hits (number of hits > 1), include the entire file.
+pub async fn merge_code_snippets(
+    repository: Arc<dyn RepositoryService>,
+    hits: Vec<CodeSearchHit>,
+    policy: &AccessPolicy,
+    source_id: &str,
+) -> Vec<CodeSearchHit> {
+    // group hits by filepath
+    let mut file_hits: HashMap<String, Vec<CodeSearchHit>> = HashMap::new();
+    for hit in hits {
+        let key = format!("{}-{}", source_id, hit.doc.filepath);
+        file_hits.entry(key).or_default().push(hit);
+    }
+
+    let repo = match repository
+        .resolve_repository_by_source_id(policy, source_id)
+        .await
+    {
+        Ok(repo) => repo,
+        Err(e) => {
+            warn!(
+                "Error resolving repository by source id {}: {}",
+                source_id, e
+            );
+            return file_hits.into_iter().flat_map(|(_, hits)| hits).collect();
+        }
+    };
+
+    let mut result = Vec::with_capacity(file_hits.len());
+    for (_, file_hits) in file_hits {
+        if file_hits.len() > 1 {
+            // construct the full path to the file
+            let path: PathBuf = repo.dir.join(&file_hits[0].doc.filepath);
+            let all_lines = match read_file_content(&path) {
+                Ok(lines) => lines,
+                Err(e) => {
+                    warn!("Error reading file {}: {}", path.display(), e);
+                    //cannot read the file, just extend the hits
+                    result.extend(file_hits);
+                    continue;
+                }
+            };
+
+            if !all_lines.is_empty() {
+                let mut insert_hit = file_hits[0].clone();
+                insert_hit.scores =
+                    file_hits
+                        .iter()
+                        .fold(CodeSearchScores::default(), |mut acc, hit| {
+                            acc.bm25 += hit.scores.bm25;
+                            acc.embedding += hit.scores.embedding;
+                            acc.rrf += hit.scores.rrf;
+                            acc
+                        });
+                // average the scores
+                let len = file_hits.len() as f32;
+                insert_hit.scores.bm25 /= len;
+                insert_hit.scores.embedding /= len;
+                insert_hit.scores.rrf /= len;
+                insert_hit.doc.body = all_lines.join("\n");
+                result.push(insert_hit);
+            }
+        } else {
+            result.extend(file_hits);
+        }
+    }
+    result
+}
+
+#[derive(Debug)]
+// Error for when the file is too large
+struct FileTooLargeError;
+
+impl fmt::Display for FileTooLargeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "File is too large (more than 200 lines)")
+    }
+}
+
+impl Error for FileTooLargeError {}
+
+//directly read the file content
+pub fn read_file_content(path: &PathBuf) -> Result<Vec<String>, Box<dyn Error>> {
+    let file = File::open(path).map_err(|e| {
+        warn!("Error opening file {}: {}", path.display(), e);
+        e
+    })?;
+
+    let reader = BufReader::new(file);
+    let all_lines: Vec<String> = reader.lines().collect::<Result<_, _>>()?;
+
+    if all_lines.len() > 200 {
+        Err(Box::new(FileTooLargeError))
+    } else {
+        Ok(all_lines)
+    }
+}
+
 #[cfg(test)]
 pub mod testutils;
 
@@ -501,7 +614,9 @@ mod tests {
     use juniper::ID;
     use tabby_common::{
         api::{
-            code::{CodeSearch, CodeSearchParams},
+            code::{
+                CodeSearch, CodeSearchDocument, CodeSearchHit, CodeSearchParams, CodeSearchScores,
+            },
             doc::DocSearch,
         },
         config::AnswerConfig,
@@ -517,9 +632,10 @@ mod tests {
     };
 
     use crate::answer::{
+        merge_code_snippets,
         testutils::{
-            FakeChatCompletionStream, FakeCodeSearch, FakeCodeSearchFail,
-            FakeCodeSearchFailNotReady, FakeContextService, FakeDocSearch,
+            make_policy, make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
+            FakeCodeSearchFail, FakeCodeSearchFailNotReady, FakeContextService, FakeDocSearch,
         },
         trim_bullet, AnswerService,
     };
@@ -694,6 +810,10 @@ mod tests {
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
         let mut serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
+
+        let db = DbConn::new_in_memory().await.unwrap();
+        let repo = make_repository_service(db).await.unwrap();
+
         let mut service = AnswerService::new(
             &config,
             chat.clone(),
@@ -701,6 +821,7 @@ mod tests {
             doc.clone(),
             context.clone(),
             serper,
+            repo.clone(),
         );
         let code_query_input_could_access =
             make_code_query_input(Some(TEST_SOURCE_ID), Some(TEST_GIT_URL));
@@ -708,12 +829,15 @@ mod tests {
         let context_info_helper: ContextInfoHelper = make_context_info_helper();
         debug_assert!(context_info_helper.can_access_source_id("source-1"));
 
+        let policy = make_policy().await;
+
         service
             .collect_relevant_code(
                 &context_info_helper,
                 &code_query_input_could_access,
                 &code_search_params,
                 None,
+                policy.clone(),
             )
             .await;
 
@@ -724,6 +848,7 @@ mod tests {
                 &code_query_input_not_access,
                 &code_search_params,
                 None,
+                policy.clone(),
             )
             .await;
 
@@ -734,6 +859,7 @@ mod tests {
                 &code_query_input_with_only_git,
                 &code_search_params,
                 None,
+                policy.clone(),
             )
             .await;
 
@@ -744,6 +870,7 @@ mod tests {
                 &code_query_input_with_only_git,
                 &code_search_params,
                 None,
+                policy.clone(),
             )
             .await;
 
@@ -757,6 +884,7 @@ mod tests {
             doc.clone(),
             context.clone(),
             serper,
+            repo.clone(),
         );
 
         let code_fail = Arc::new(FakeCodeSearchFail);
@@ -769,7 +897,8 @@ mod tests {
             doc.clone(),
             context.clone(),
             serper,
-        )
+            repo.clone(),
+        );
     }
 
     #[tokio::test]
@@ -780,6 +909,9 @@ mod tests {
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
+        let db = DbConn::new_in_memory().await.unwrap();
+        let repo = make_repository_service(db).await.unwrap();
+
         let service = AnswerService::new(
             &config,
             chat.clone(),
@@ -787,6 +919,7 @@ mod tests {
             doc.clone(),
             context.clone(),
             serper,
+            repo,
         );
 
         let attachment = MessageAttachment {
@@ -831,6 +964,9 @@ mod tests {
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
+        let db = DbConn::new_in_memory().await.unwrap();
+        let repo = make_repository_service(db).await.unwrap();
+
         let service = AnswerService::new(
             &config,
             chat.clone(),
@@ -838,6 +974,7 @@ mod tests {
             doc.clone(),
             context.clone(),
             serper,
+            repo,
         );
 
         let context_info_helper = make_context_info_helper();
@@ -894,9 +1031,14 @@ mod tests {
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
 
-        let config = make_answer_config();
+        let config = AnswerConfig {
+            code_search_params: make_code_search_params(),
+            presence_penalty: 0.1,
+        };
+        let db = DbConn::new_in_memory().await.unwrap();
+        let repo = make_repository_service(db).await.unwrap();
         let service = Arc::new(AnswerService::new(
-            &config, chat, code, doc, context, serper,
+            &config, chat, code, doc, context, serper, repo,
         ));
 
         let db = DbConn::new_in_memory().await.unwrap();
@@ -943,5 +1085,61 @@ mod tests {
             4,
             "Expected 4 items in the result stream"
         );
+    }
+    #[tokio::test]
+    async fn test_merge_code_snippets() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let repo = make_repository_service(db).await.unwrap();
+        let git_url = "https://github.com/test/repo.git".to_string();
+        //
+        let id = repo
+            .git()
+            .create("repo".to_string(), git_url.clone())
+            .await
+            .unwrap();
+
+        let source_id: &str = id.as_ref();
+
+        let hits = vec![
+            CodeSearchHit {
+                doc: CodeSearchDocument {
+                    file_id: "file1".to_string(),
+                    chunk_id: "chunk1".to_string(),
+                    body: "fn test1() {}\nfn test2() {}".to_string(),
+                    filepath: "test.rs".to_string(),
+                    git_url: "https://github.com/test/repo.git".to_string(),
+                    language: "rust".to_string(),
+                    start_line: 1,
+                },
+                scores: CodeSearchScores {
+                    bm25: 0.5,
+                    embedding: 0.7,
+                    rrf: 0.3,
+                },
+            },
+            CodeSearchHit {
+                doc: CodeSearchDocument {
+                    file_id: "file1".to_string(),
+                    chunk_id: "chunk2".to_string(),
+                    body: "fn test3() {}\nfn test4() {}".to_string(),
+                    filepath: "test.rs".to_string(),
+                    git_url: "https://github.com/test/repo.git".to_string(),
+                    language: "rust".to_string(),
+                    start_line: 3,
+                },
+                scores: CodeSearchScores {
+                    bm25: 0.6,
+                    embedding: 0.8,
+                    rrf: 0.4,
+                },
+            },
+        ];
+
+        let policy = make_policy().await;
+
+        let result = merge_code_snippets(repo.clone(), hits, &policy, source_id).await;
+
+        //file doesn't exist
+        assert_eq!(result.len(), 0);
     }
 }
