@@ -18,7 +18,15 @@ import {
 } from '@/components/ui/tooltip'
 
 import { PromptEditor, PromptEditorRef } from './prompt-editor'
-import { IconArrowRight, IconSpinner } from './ui/icons'
+import { Button } from './ui/button'
+import {
+  IconArrowRight,
+  IconAtSign,
+  IconBox,
+  IconHash,
+  IconSpinner
+} from './ui/icons'
+import { Separator } from './ui/separator'
 
 export default function TextAreaSearch({
   onSearch,
@@ -57,9 +65,7 @@ export default function TextAreaSearch({
   }, [])
 
   const onWrapperClick = () => {
-    if (isFollowup) {
-      editorRef.current?.editor?.commands.focus()
-    }
+    editorRef.current?.editor?.commands.focus()
   }
 
   const handleSubmit = (editor: Editor | undefined | null) => {
@@ -82,16 +88,14 @@ export default function TextAreaSearch({
     }
   }
 
+  const hasSources = !!contextInfo?.sources?.length
+
   return (
     <div
       className={cn(
-        'relative flex w-full items-center overflow-hidden rounded-lg border border-muted-foreground bg-background px-4 transition-all hover:border-muted-foreground/60',
+        'relative overflow-hidden border bg-background transition-all rounded-xl hover:border-primary/80',
         {
-          '!border-zinc-400': isFocus && isFollowup && theme !== 'dark',
-          '!border-primary': isFocus && (!isFollowup || theme === 'dark'),
-          'py-0': showBetaBadge,
-          'border-2 dark:border border-zinc-400 hover:border-zinc-400/60 dark:border-muted-foreground dark:hover:border-muted-foreground/60':
-            isFollowup
+          'border-primary/80': isFocus
         },
         className
       )}
@@ -118,55 +122,88 @@ export default function TextAreaSearch({
           </TooltipContent>
         </Tooltip>
       )}
-      <PromptEditor
-        editable
-        contextInfo={contextInfo}
-        fetchingContextInfo={fetchingContextInfo}
-        onSubmit={handleSubmit}
-        placeholder={
-          placeholder ||
-          (contextInfo?.sources?.length
-            ? 'Ask anything...\n\nUse # to select a codebase to chat with, or @ to select a document to bring into context.'
-            : 'Ask anything...')
-        }
-        autoFocus={autoFocus}
-        onFocus={() => setIsFocus(true)}
-        onBlur={() => setIsFocus(false)}
-        onUpdate={({ editor }) => setValue(editor.getText().trim())}
-        ref={editorRef}
-        placement={isFollowup ? 'bottom' : 'top'}
-        className={cn(
-          'text-area-autosize mr-1 flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
-          {
-            '!h-[48px]': !isShow,
-            'py-4': !showBetaBadge,
-            'py-5': showBetaBadge
-          }
-        )}
-        editorClassName={isFollowup ? 'min-h-[3.5rem]' : 'min-h-[4.5rem]'}
-      />
-      <div className={cn('flex items-center justify-between gap-2')}>
-        <div
+      <div className="flex items-center px-4 min-h-[6rem]">
+        <PromptEditor
+          editable
+          contextInfo={contextInfo}
+          fetchingContextInfo={fetchingContextInfo}
+          onSubmit={handleSubmit}
+          // placeholder={
+          //   placeholder ||
+          //   (contextInfo?.sources?.length
+          //     ? 'Ask anything...\n\nUse # to select a codebase to chat with, or @ to select a document to bring into context.'
+          //     : 'Ask anything...')
+          // }
+          placeholder={placeholder || 'Ask anything...'}
+          autoFocus={autoFocus}
+          onFocus={() => setIsFocus(true)}
+          onBlur={() => setIsFocus(false)}
+          onUpdate={({ editor }) => setValue(editor.getText().trim())}
+          ref={editorRef}
+          placement={isFollowup ? 'bottom' : 'top'}
           className={cn(
-            'flex items-center justify-center rounded-lg p-1 transition-all',
+            'text-area-autosize mr-1 flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
             {
-              'bg-primary text-primary-foreground cursor-pointer':
-                value.length > 0,
-              '!bg-muted !text-primary !cursor-default':
-                isLoading || value.length === 0,
-              'mr-1.5': !showBetaBadge,
-              'h-6 w-6': !isFollowup
+              '!h-[48px]': !isShow,
+              'py-4': !showBetaBadge,
+              'py-5': showBetaBadge
             }
           )}
-          onClick={() => handleSubmit(editorRef.current?.editor)}
-        >
-          {loadingWithSpinning && isLoading && (
-            <IconSpinner className="h-3.5 w-3.5" />
-          )}
-          {(!loadingWithSpinning || !isLoading) && (
-            <IconArrowRight className="h-3.5 w-3.5" />
-          )}
+          editorClassName={isFollowup ? 'min-h-[1.725rem]' : 'min-h-[3.5em]'}
+        />
+        <div className={cn('flex items-center justify-between gap-2')}>
+          <div
+            className={cn(
+              'flex items-center justify-center rounded-lg p-1 transition-all',
+              {
+                'bg-primary text-primary-foreground cursor-pointer':
+                  value.length > 0,
+                '!bg-muted !text-primary !cursor-default':
+                  isLoading || value.length === 0,
+                'mr-1.5': !showBetaBadge,
+                'h-6 w-6': !isFollowup
+              }
+            )}
+            onClick={() => handleSubmit(editorRef.current?.editor)}
+          >
+            {loadingWithSpinning && isLoading && (
+              <IconSpinner className="h-3.5 w-3.5" />
+            )}
+            {(!loadingWithSpinning || !isLoading) && (
+              <IconArrowRight className="h-3.5 w-3.5" />
+            )}
+          </div>
         </div>
+      </div>
+      <div
+        className={cn(
+          'bg-popover/50 pr-4 pl-2 py-2 border-t flex items-center gap-2'
+        )}
+        onClick={e => e.stopPropagation()}
+      >
+        <Button
+          variant="ghost"
+          className="gap-1 px-1.5 py-1 text-foreground/70"
+        >
+          <IconBox />
+          Mistral-7B
+        </Button>
+        <Separator orientation="vertical" className="h-5" />
+        <Button
+          variant="ghost"
+          className="gap-1 px-1.5 py-1 text-foreground/70"
+        >
+          <IconHash />
+          Codebase
+        </Button>
+        <Separator orientation="vertical" className="h-5" />
+        <Button
+          variant="ghost"
+          className="gap-1 px-1.5 py-1 text-foreground/70"
+        >
+          <IconAtSign />
+          Documents
+        </Button>
       </div>
     </div>
   )

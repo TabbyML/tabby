@@ -16,6 +16,7 @@ import {
   Filter,
   GitFork,
   Globe,
+  Hash,
   IndentIncrease,
   Layers2,
   Link,
@@ -1631,6 +1632,10 @@ function IconMessageCircleQuestion({
   )
 }
 
+function IconHash({ className, ...props }: React.ComponentProps<typeof Hash>) {
+  return <Hash className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1728,5 +1733,6 @@ export {
   IconWrapText,
   IconAlignJustify,
   IconFileQuestion,
-  IconMessageCircleQuestion
+  IconMessageCircleQuestion,
+  IconHash
 }

@@ -18,6 +18,7 @@ import { useMe } from '@/lib/hooks/use-me'
 import { useIsDemoMode } from '@/lib/hooks/use-server-info'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 
+import { AnimationWrapper } from './animation-wrapper'
 import { CompletionCharts } from './completion-charts'
 
 const DATE_RANGE = 6
@@ -34,7 +35,7 @@ function ActivityCalendar({
   const { theme } = useCurrentTheme()
   const size = useWindowSize()
   const width = size.width || 0
-  const blockSize = width >= 800 ? 7 : 9
+  const blockSize = width >= 968 ? 12 : 11
 
   return (
     <ReactActivityCalendar
@@ -46,7 +47,6 @@ function ActivityCalendar({
       }}
       blockSize={blockSize}
       hideTotalCount
-      showWeekdayLabels
       fontSize={11}
     />
   )
@@ -163,21 +163,31 @@ export default function Stats() {
     .reverse()
 
   if (!data?.me?.id) return <></>
+
   return (
-    <>
-      <div data-aos="fade-up" data-aos-delay="150">
-        <h3 className="mb-2 text-xs font-medium tracking-tight">
-          <b>{lastYearActivities}</b> activities in the last year
-        </h3>
-        <div className="flex items-end justify-center rounded-xl border px-5 py-4">
-          <ActivityCalendar data={activities} />
+    <div className="flex w-full flex-col gap-y-4">
+      <AnimationWrapper
+        viewport={{
+          margin: '-140px 0px 0px 0px'
+        }}
+        style={{ width: '100%' }}
+        delay={0.1}
+      >
+        <div className="rounded-2xl border px-5 py-4">
+          <h3 className="mb-2 text-xs">
+            <b className="font-medium text-sm">{lastYearActivities}</b>{' '}
+            activities in the last year
+          </h3>
+          <div className="flex items-end justify-center">
+            <ActivityCalendar data={activities} />
+          </div>
         </div>
-      </div>
+      </AnimationWrapper>
       <CompletionCharts
         dailyStats={dailyStats}
         from={moment().subtract(DATE_RANGE, 'day').toDate()}
         to={moment().toDate()}
       />
-    </>
+    </div>
   )
 }

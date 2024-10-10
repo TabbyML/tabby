@@ -17,6 +17,8 @@ import { DailyStatsQuery } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
+import { AnimationWrapper } from './animation-wrapper'
+
 function LineTooltip({
   active,
   payload
@@ -153,23 +155,21 @@ export function CompletionCharts({
   })
 
   return (
-    <div>
-      <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-4 md:space-y-0 xl:justify-start">
-        <Card
-          className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block"
-          data-aos="fade-up"
-          data-aos-delay="200"
-        >
+    <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-4 md:space-y-0 xl:justify-start">
+      <AnimationWrapper
+        viewport={{
+          margin: '-140px 0px 0px 0px'
+        }}
+        delay={0.15}
+        style={{ flex: 1 }}
+      >
+        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-sm font-normal leading-none tracking-tight">
               Acceptance Rate
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 pb-2">
-            <div className="font-bold">{averageAcceptance}%</div>
-          </CardContent>
-
-          <ResponsiveContainer width="100%" height={40}>
+          <ResponsiveContainer width="100%" height={60}>
             <LineChart
               data={acceptRateData}
               margin={{ top: 10, right: 20, left: 15, bottom: 5 }}
@@ -186,23 +186,26 @@ export function CompletionCharts({
               />
             </LineChart>
           </ResponsiveContainer>
+          <CardContent className="px-4 pt-2 pb-0">
+            <div className="font-bold">{averageAcceptance}%</div>
+          </CardContent>
         </Card>
+      </AnimationWrapper>
 
-        <Card
-          className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block"
-          data-aos="fade-up"
-          data-aos-delay="250"
-        >
+      <AnimationWrapper
+        viewport={{
+          margin: '-140px 0px 0px 0px'
+        }}
+        delay={0.2}
+        style={{ flex: 1 }}
+      >
+        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-sm font-normal leading-none tracking-tight">
               Completions
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 pb-2">
-            <div className="font-bold">{numeral(totalViews).format('0,0')}</div>
-          </CardContent>
-
-          <ResponsiveContainer width="100%" height={40}>
+          <ResponsiveContainer width="100%" height={60}>
             <BarChart
               data={viewData}
               margin={{
@@ -230,25 +233,26 @@ export function CompletionCharts({
               />
             </BarChart>
           </ResponsiveContainer>
+          <CardContent className="px-4 pt-2 pb-0">
+            <div className="font-bold">{numeral(totalViews).format('0,0')}</div>
+          </CardContent>
         </Card>
+      </AnimationWrapper>
 
-        <Card
-          className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block"
-          data-aos="fade-up"
-          data-aos-delay="300"
-        >
+      <AnimationWrapper
+        viewport={{
+          margin: '-140px 0px 0px 0px'
+        }}
+        delay={0.25}
+        style={{ flex: 1 }}
+      >
+        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-sm font-normal leading-none tracking-tight">
               Acceptances
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 pb-2">
-            <div className="font-bold">
-              {numeral(totalAccepts).format('0,0')}
-            </div>
-          </CardContent>
-
-          <ResponsiveContainer width="100%" height={40}>
+          <ResponsiveContainer width="100%" height={60}>
             <BarChart
               data={viewData}
               margin={{
@@ -276,8 +280,13 @@ export function CompletionCharts({
               />
             </BarChart>
           </ResponsiveContainer>
+          <CardContent className="px-4 pt-2 pb-0">
+            <div className="font-bold">
+              {numeral(totalAccepts).format('0,0')}
+            </div>
+          </CardContent>
         </Card>
-      </div>
+      </AnimationWrapper>
     </div>
   )
 }

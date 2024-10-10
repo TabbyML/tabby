@@ -5,23 +5,25 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
-import AOS from 'aos'
 import { noop } from 'lodash-es'
+import { useQuery } from 'urql'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
-import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
 import { useExternalURL } from '@/lib/hooks/use-network-setting'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useMutation } from '@/lib/tabby/gql'
+import { contextInfoQuery } from '@/lib/tabby/query'
+import { ThreadRunContexts } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
 import { IconJetBrains, IconRotate, IconVSCode } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Tooltip,
   TooltipContent,
@@ -36,16 +38,8 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { MyAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
 
+import { AnimationWrapper } from './components/animation-wrapper'
 import Stats from './components/stats'
-
-import 'aos/dist/aos.css'
-
-import { useQuery } from 'urql'
-
-import { contextInfoQuery } from '@/lib/tabby/query'
-import { ThreadRunContexts } from '@/lib/types'
-import { Separator } from '@/components/ui/separator'
-
 import { ThreadFeeds } from './components/thread-feeds'
 
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
@@ -58,7 +52,6 @@ function MainPanel() {
   const { data: healthInfo } = useHealth()
   const [{ data }] = useMe()
   const isChatEnabled = useIsChatEnabled()
-  const { theme } = useCurrentTheme()
   const [isShowDemoBanner] = useShowDemoBanner()
   const elementRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()
@@ -66,21 +59,6 @@ function MainPanel() {
   const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
     query: contextInfoQuery
   })
-
-  // Initialize the page's entry animation
-  useEffect(() => {
-    setTimeout(() => {
-      if (elementRef.current) {
-        const disable =
-          elementRef.current.scrollHeight > elementRef.current.clientHeight
-        AOS.init({
-          once: true,
-          duration: 250,
-          disable
-        })
-      }
-    }, 100)
-  }, [elementRef.current])
 
   // Prefetch the search page
   useEffect(() => {
@@ -103,9 +81,10 @@ function MainPanel() {
   const style = isShowDemoBanner
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
+
   return (
-    <div className="transition-all" style={style}>
-      <header className="flex h-16 items-center justify-end px-4 lg:px-10">
+    <ScrollArea style={style}>
+      <header className="flex h-16 items-center justify-end px-4 backdrop-blur lg:px-10 sticky top-0 z-10">
         <div className="flex items-center gap-x-6">
           <ClientOnly>
             <ThemeToggle />
@@ -117,73 +96,54 @@ function MainPanel() {
       </header>
 
       <main
-        className="h-[calc(100%-4rem)] flex-col items-center justify-center overflow-auto pb-8 lg:flex lg:pb-0"
+        className="flex-col items-center justify-center pb-8 lg:flex lg:pb-0"
         ref={elementRef}
       >
-        <div className="mx-auto flex min-h-0 w-full flex-col items-center px-10 pb-4 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
-          <Image
-            src={tabbyUrl}
-            alt="logo"
-            width={192}
-            className={cn('mt-4 invert dark:invert-0', {
-              'mb-4': isChatEnabled,
-              'mb-2': !isChatEnabled
-            })}
-            data-aos="fade-down"
-            data-aos-delay="150"
-          />
-          <div
-            className={cn(
-              ' flex scroll-m-20 items-center gap-2 text-sm tracking-tight text-secondary-foreground',
-              {
-                'mb-6': isChatEnabled,
-                'mb-9': !isChatEnabled
-              }
-            )}
-            data-aos="fade-down"
-            data-aos-delay="100"
+        <div className="mx-auto flex min-h-0 w-full flex-col items-center px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
+          <AnimationWrapper
+            viewport={{
+              margin: '-120px 0px 0px 0px'
+            }}
           >
-            <span>research</span>
-            <Separator orientation="vertical" className="h-[80%]" />
-            <span>develop</span>
-            <Separator orientation="vertical" className="h-[80%]" />
-            <span>debug</span>
-          </div>
+            <Image
+              src={tabbyUrl}
+              alt="logo"
+              width={192}
+              className={cn('mt-4 invert dark:invert-0', {
+                'mb-4': isChatEnabled,
+                'mb-2': !isChatEnabled
+              })}
+            />
+          </AnimationWrapper>
           {isChatEnabled && (
-            <div className="mb-10 w-full" data-aos="fade-down">
-              <TextAreaSearch
-                onSearch={onSearch}
-                showBetaBadge
-                autoFocus
-                loadingWithSpinning
-                isLoading={isLoading}
-                cleanAfterSearch={false}
-                contextInfo={contextInfoData?.contextInfo}
-                fetchingContextInfo={fetchingContextInfo}
-                className="min-h-[7rem]"
-              />
-            </div>
-          )}
-          <div className="flex w-full flex-col gap-x-5 pb-4 lg:flex-row">
-            <div
-              className="mb-10 w-full rounded-lg p-4 lg:mb-0 lg:w-[21rem]"
-              style={{ background: theme === 'dark' ? '#333' : '#e8e1d3' }}
-              data-aos="fade-up"
-              data-aos-delay="100"
+            <AnimationWrapper
+              viewport={{ margin: '-180px 0px 0px 0px' }}
+              style={{ width: '100%' }}
             >
-              <Configuration />
-            </div>
-            <div className="flex w-full flex-col gap-y-4">
-              <Stats />
-            </div>
-          </div>
+              <div className="mb-6">
+                <TextAreaSearch
+                  onSearch={onSearch}
+                  showBetaBadge
+                  autoFocus
+                  loadingWithSpinning
+                  isLoading={isLoading}
+                  cleanAfterSearch={false}
+                  contextInfo={contextInfoData?.contextInfo}
+                  fetchingContextInfo={fetchingContextInfo}
+                  // className="min-h-[7rem]"
+                />
+              </div>
+            </AnimationWrapper>
+          )}
+          <Stats />
           <ThreadFeeds className="w-full" />
         </div>
       </main>
-    </div>
+    </ScrollArea>
   )
 }
 
+// todo move to header
 function Configuration({ className }: { className?: string }) {
   const [{ data }, reexecuteQuery] = useMe()
   const externalUrl = useExternalURL()

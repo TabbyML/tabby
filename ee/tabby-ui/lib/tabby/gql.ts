@@ -2,6 +2,7 @@ import { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { authExchange } from '@urql/exchange-auth'
 import { cacheExchange } from '@urql/exchange-graphcache'
 import { relayPagination } from '@urql/exchange-graphcache/extras'
+import { refocusExchange } from '@urql/exchange-refocus'
 import { createClient as createWSClient } from 'graphql-ws'
 import { jwtDecode } from 'jwt-decode'
 import { isNil } from 'lodash-es'
@@ -112,6 +113,7 @@ const client = new Client({
   url: `/graphql`,
   requestPolicy: 'cache-and-network',
   exchanges: [
+    refocusExchange(),
     cacheExchange({
       keys: {
         CompletionStats: () => null,

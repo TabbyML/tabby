@@ -99,11 +99,3 @@
 .dialog-without-close-btn > button {
   display: none;
 }
-
-[data-aos][data-aos=fade-down] {
-  transform: translate3d(0, -20px, 0);
-}
-
-[data-aos][data-aos=fade-up] {
-  transform: translate3d(0, 20px, 0);
-}

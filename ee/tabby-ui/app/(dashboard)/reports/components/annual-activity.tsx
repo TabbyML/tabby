@@ -32,7 +32,7 @@ function ActivityCalendar({
       }}
       blockSize={blockSize}
       hideTotalCount
-      showWeekdayLabels
+      // showWeekdayLabels
     />
   )
 }
