@@ -22,9 +22,7 @@ export class QuickFileAttachController {
   private current: string;
   private fileContext: Context | undefined = undefined;
 
-  constructor(
-    private readonly gitProvider: GitProvider,
-  ) {
+  constructor(private readonly gitProvider: GitProvider) {
     this.current = this.base;
 
     this.quickPick.placeholder = "Select a file to attach";
@@ -68,7 +66,7 @@ export class QuickFileAttachController {
       const s = await fs.stat(root);
       if (s.isFile()) {
         const fileContext = await this.getSelectedFileContext(root);
-       this.fileContext = fileContext;
+        this.fileContext = fileContext;
       } else {
         this.currentBase = root;
         this.quickPick.items = await this.listFiles(root);

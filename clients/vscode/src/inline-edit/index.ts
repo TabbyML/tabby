@@ -24,9 +24,7 @@ export class InlineEditController {
   private recentlyCommand: string[] = [];
   private suggestedCommand: ChatEditCommand[] = [];
 
-  private quickFileAttachController: QuickFileAttachController = new QuickFileAttachController(
-    this.gitProvider,
-  );
+  private quickFileAttachController: QuickFileAttachController = new QuickFileAttachController(this.gitProvider);
 
   constructor(
     private client: Client,
@@ -83,7 +81,7 @@ export class InlineEditController {
       return;
     }
 
-     if (command === '/file') {
+    if (command === "/file") {
       this.quickFileAttachController.start();
       return;
     }
