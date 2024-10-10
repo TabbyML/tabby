@@ -96,6 +96,7 @@ export class InlineCompletionProvider extends EventEmitter implements InlineComp
     };
     let request: Promise<InlineCompletionList | null> | undefined = undefined;
     try {
+      this.client.fileTrack.addingChangeEditor(window.activeTextEditor);
       request = this.client.languageClient.sendRequest(InlineCompletionRequest.method, params, token);
       this.ongoing = request;
       this.emit("didChangeLoading", true);
