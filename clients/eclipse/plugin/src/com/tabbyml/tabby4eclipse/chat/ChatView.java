@@ -45,6 +45,7 @@ import com.google.gson.reflect.TypeToken;
 import com.tabbyml.tabby4eclipse.Activator;
 import com.tabbyml.tabby4eclipse.Logger;
 import com.tabbyml.tabby4eclipse.Utils;
+import com.tabbyml.tabby4eclipse.Version;
 import com.tabbyml.tabby4eclipse.chat.ChatMessage.FileContext;
 import com.tabbyml.tabby4eclipse.editor.EditorUtils;
 import com.tabbyml.tabby4eclipse.git.GitProvider;
@@ -60,7 +61,8 @@ import com.tabbyml.tabby4eclipse.lsp.protocol.StatusInfo;
 import com.tabbyml.tabby4eclipse.lsp.protocol.StatusRequestParams;
 
 public class ChatView extends ViewPart {
-	private static final String MIN_SERVER_VERSION = "0.16.0";
+	private static final String MIN_SERVER_VERSION = "0.18.0";
+	private static final String CHAT_PANEL_API_VERSION = "0.2.0";
 	private static final String ID = "com.tabbyml.tabby4eclipse.views.chat";
 
 	public static void openChatView() {
@@ -122,26 +124,11 @@ public class ChatView extends ViewPart {
 			}
 		});
 
-		browserFunctions.add(new BrowserFunction(browser, "handleChatPanelLoaded") {
-			@Override
-			public Object function(Object[] arguments) {
-				handleChatPanelLoaded();
-				return null;
-			}
-		});
-
-		browserFunctions.add(new BrowserFunction(browser, "handleChatPanelStyleApplied") {
-			@Override
-			public Object function(Object[] arguments) {
-				handleChatPanelStyleApplied();
-				return null;
-			}
-		});
-
 		browserFunctions.add(new BrowserFunction(browser, "handleChatPanelRequest") {
 			@Override
 			public Object function(Object[] arguments) {
 				if (arguments.length > 0) {
+					logger.info("HandleChatPanelRequest: " + arguments[0]);
 					Request request = gson.fromJson(arguments[0].toString(), Request.class);
 					handleChatPanelRequest(request);
 				}
@@ -224,6 +211,9 @@ public class ChatView extends ViewPart {
 		if (status.equals(StatusInfo.Status.DISCONNECTED)) {
 			showMessage("Cannot connect to Tabby server, please check your settings.");
 			showChatPanel(false);
+		} else if (status.equals(StatusInfo.Status.CONNECTING)) {
+			showMessage("Connecting to Tabby server...");
+			showChatPanel(false);
 		} else if (status.equals(StatusInfo.Status.UNAUTHORIZED)) {
 			showMessage("Authorization required, please set your token in settings.");
 			showChatPanel(false);
@@ -236,10 +226,12 @@ public class ChatView extends ViewPart {
 			} else {
 				// Load main
 				Config.ServerConfig config = serverConfigHolder.getConfig().getServer();
-				if (config != null
-						&& (force || currentConfig == null || currentConfig.getEndpoint() != config.getEndpoint()
-								|| currentConfig.getToken() != config.getToken())) {
-					showMessage("Connecting to Tabby server...");
+				if (config == null) {
+					showMessage("Initializing...");
+					showChatPanel(false);
+				} else if (force || currentConfig == null || currentConfig.getEndpoint() != config.getEndpoint()
+								|| currentConfig.getToken() != config.getToken()) {
+					showMessage("Loading chat panel...");
 					showChatPanel(false);
 					currentConfig = config;
 					loadChatPanel();
@@ -258,15 +250,14 @@ public class ChatView extends ViewPart {
 		});
 	}
 
-	private void showChatPanel(boolean visiable) {
+	private void showChatPanel(boolean visible) {
 		browser.getDisplay().asyncExec(() -> {
-			browser.execute(String.format("showChatPanel(%s)", visiable ? "true" : "false"));
+			browser.execute(String.format("showChatPanel(%s)", visible ? "true" : "false"));
 		});
 	}
 
 	private void loadChatPanel() {
-		// FIXME(@icycodes): set query string to vscode for now to turn on callbacks
-		String chatUrl = String.format("%s/chat?client=vscode", currentConfig.getEndpoint());
+		String chatUrl = String.format("%s/chat?client=eclipse", currentConfig.getEndpoint());
 		browser.getDisplay().asyncExec(() -> {
 			browser.execute(String.format("loadChatPanel('%s')", chatUrl));
 		});
@@ -292,43 +283,26 @@ public class ChatView extends ViewPart {
 					version = versionStr;
 				}
 			}
-			if (version != null && !isVersionCompatible(version)) {
-				return String.format(
-						"Tabby Chat requires Tabby server version %s or later. Your server is running version %s.",
-						MIN_SERVER_VERSION, version);
+			if (version != null) {
+				Version parsedVersion = new Version(version);
+				Version requiredVersion = new Version(MIN_SERVER_VERSION);
+				if (!parsedVersion.isGreaterOrEqualThan(requiredVersion)) {
+					return String.format(
+							"Tabby Chat requires Tabby server version %s or later. Your server is running version %s.",
+							MIN_SERVER_VERSION, version);
+				}
 			}
 		}
 		return null;
 	}
 
-	private boolean isVersionCompatible(String version) {
-		String versionStr = version;
-		if (versionStr != null && versionStr.length() > 0 && versionStr.charAt(0) == 'v') {
-			versionStr = versionStr.substring(1);
+	private String checkChatPanelApiVersion(String version) {
+		Version parsedVersion = new Version(version);
+		Version requiredVersion = new Version(CHAT_PANEL_API_VERSION);
+		if (!parsedVersion.isEqual(requiredVersion, true)) {
+			return "Please update your Tabby server and Tabby plugin for Eclipse to the latest version to use chat panel.";
 		}
-		String[] versionParts = versionStr.trim().split("\\.");
-		String[] minVersionParts = MIN_SERVER_VERSION.split("\\.");
-
-		for (int i = 0; i < Math.max(versionParts.length, minVersionParts.length); i++) {
-			int versionPart = i < versionParts.length ? parseInt(versionParts[i]) : 0;
-			int minVersionPart = i < minVersionParts.length ? parseInt(minVersionParts[i]) : 0;
-
-			if (versionPart < minVersionPart) {
-				return false;
-			} else if (versionPart > minVersionPart) {
-				return true;
-			}
-		}
-
-		return true;
-	}
-
-	private int parseInt(String str) {
-		try {
-			return Integer.parseInt(str);
-		} catch (NumberFormatException e) {
-			return 0;
-		}
+		return null;
 	}
 
 	private void setupThemeStyle() {
@@ -417,27 +391,6 @@ public class ChatView extends ViewPart {
 		return String.format("%.0f, %.0f%%, %.0f%%", h, s, l);
 	}
 
-	private void handleChatPanelLoaded() {
-		sendRequestToChatPanel(new Request("init", new ArrayList<>() {
-			{
-				add(new HashMap<>() {
-					{
-						put("fetcherOptions", new HashMap<>() {
-							{
-								put("authorization", currentConfig.getToken());
-							}
-						});
-					}
-				});
-			}
-		}));
-	}
-
-	private void handleChatPanelStyleApplied() {
-		showMessage(null);
-		showChatPanel(true);
-	}
-
 	private void sendRequestToChatPanel(Request request) {
 		String json = gson.toJson(request);
 		browser.getDisplay().asyncExec(() -> {
@@ -459,6 +412,10 @@ public class ChatView extends ViewPart {
 			}
 			FileContext context = gson.fromJson(gson.toJson(params.get(0)), FileContext.class);
 			navigateToFileContext(context);
+			break;
+		}
+		case "refresh": {
+			reloadContent(true);
 			break;
 		}
 		case "onSubmitMessage": {
@@ -494,7 +451,63 @@ public class ChatView extends ViewPart {
 			applyContentInEditor(content);
 			break;
 		}
+		case "onLoaded": {
+			List<Object> params = request.getParams();
+			if (params.size() < 1) {
+				return;
+			}
+			Map<String, Object> onLoadedParams = (Map<String, Object>) params.get(0);
+			String apiVersion = (String) onLoadedParams.getOrDefault("apiVersion", "");
+			if (!apiVersion.isBlank()) {
+				String error = checkChatPanelApiVersion(apiVersion);
+				if (error != null) {
+					showMessage(error);
+					showChatPanel(false);
+					return;
+				}
+			}
+			initChatPanel();
+			break;
 		}
+		case "onCopy": {
+			List<Object> params = request.getParams();
+			if (params.size() < 1) {
+				return;
+			}
+			String content = (String) params.get(0);
+			Utils.setClipboardContent(content);
+			break;
+		}
+		case "onKeyboardEvent": {
+			break;
+		}
+		}
+	}
+	
+	private void initChatPanel() {
+		sendRequestToChatPanel(new Request("init", new ArrayList<>() {
+			{
+				add(new HashMap<>() {
+					{
+						put("fetcherOptions", new HashMap<>() {
+							{
+								put("authorization", currentConfig.getToken());
+							}
+						});
+					}
+				});
+			}
+		}));
+		sendRequestToChatPanel(new Request("updateTheme", new ArrayList<>() {
+			{
+				add(buildCss());
+				add(isDark ? "dark" : "light");
+			}
+		}));
+		browser.getDisplay().timerExec(100, () -> {
+			showMessage(null);
+			showChatPanel(true);
+		});
 	}
 
 	private FileContext getActiveContext() {

@@ -33,8 +33,8 @@
       color: hsl(var(--primary));
     }
 
-    #message div h4 {
-      margin: 16px 0;
+    #message div {
+      margin: 16px;
     }
 
     #message div p {
@@ -84,27 +84,6 @@
       const chat = getChatPanel();
       chat.src = url;
     }
-
-    getChatPanel().addEventListener('load', function () {
-      setTimeout(() => {
-        // handleChatPanelLoaded is a function injected by the client
-        handleChatPanelLoaded();
-
-        const chat = getChatPanel();
-        // override iframe style
-        const theme = document.documentElement.className;
-        const css = document.documentElement.style.cssText;
-        chat.contentWindow.postMessage({ style: css, themeClass: theme, }, new URL(chat.src).origin);
-        // alternatively:
-        // const chatDocument = chat.contentWindow.document;
-        // chatDocument.documentElement.className = theme;
-        // chatDocument.documentElement.style.cssText = css;
-        // chatDocument.body.style.cssText = css;
-
-        // handleChatPanelStyleApplied is a function injected by the client
-        setTimeout(handleChatPanelStyleApplied, 100);
-      }, 300);
-    });
 
     function applyStyle(style) {
       const { theme, css } = JSON.parse(style);
