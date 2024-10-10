@@ -280,7 +280,7 @@ async fn resolve_model_path(model_id: &str) -> String {
     let (registry, name) = parse_model_id(model_id);
     let registry = ModelRegistry::new(registry).await;
     let path = registry.get_model_entry_path(name);
-    path.display().to_string()
+    path.unwrap().display().to_string()
 }
 
 #[derive(Deserialize)]
