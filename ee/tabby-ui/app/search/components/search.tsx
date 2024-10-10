@@ -16,7 +16,11 @@ import he from 'he'
 import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 
-import { ERROR_CODE_NOT_FOUND, SESSION_STORAGE_KEY, SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
+import {
+  ERROR_CODE_NOT_FOUND,
+  SESSION_STORAGE_KEY,
+  SLUG_TITLE_MAX_LENGTH
+} from '@/lib/constants'
 import { useEnableDeveloperMode } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
@@ -96,7 +100,11 @@ import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { ExtendedCombinedError, useThreadRun } from '@/lib/hooks/use-thread-run'
 import { useMutation } from '@/lib/tabby/gql'
-import { contextInfoQuery, listThreads, listThreadMessages } from '@/lib/tabby/query'
+import {
+  contextInfoQuery,
+  listThreadMessages,
+  listThreads
+} from '@/lib/tabby/query'
 import {
   Tooltip,
   TooltipContent,
