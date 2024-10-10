@@ -1,7 +1,10 @@
 use std::{
     collections::HashMap,
+    error::Error,
+    fmt,
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Stderr},
+    path::PathBuf,
     sync::Arc,
 };
 
@@ -15,6 +18,7 @@ use async_openai::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
+use logkit::source;
 use tabby_common::{
     api::{
         code::{CodeSearch, CodeSearchHit, CodeSearchParams, CodeSearchQuery, CodeSearchScores},
@@ -509,55 +513,42 @@ pub async fn merge_code_snippets(
 ) -> Vec<CodeSearchHit> {
     // group hits by filepath
     let mut file_hits: HashMap<String, Vec<CodeSearchHit>> = HashMap::new();
-    for hit in hits.into_iter() {
-        file_hits
-            .entry(hit.doc.filepath.clone())
-            .or_default()
-            .push(hit);
+    for hit in hits {
+        let key = format!("{}-{}", source_id, hit.doc.filepath);
+        file_hits.entry(key).or_default().push(hit);
     }
 
+    let repo = match repository
+        .resolve_repository_by_source_id(policy, source_id)
+        .await
+    {
+        Ok(repo) => repo,
+        Err(e) => {
+            warn!(
+                "Error resolving repository by source id {}: {}",
+                source_id, e
+            );
+            return file_hits.into_iter().flat_map(|(_, hits)| hits).collect();
+        }
+    };
+
     let mut result = Vec::with_capacity(file_hits.len());
-
-    for (filepath, file_hits) in file_hits {
+    for (_, file_hits) in file_hits {
         if file_hits.len() > 1 {
-            // more than 1 hit in the same file, attempt to merge
-            let repo = match repository
-                .resolve_repository_by_source_id(policy, source_id)
-                .await
-            {
-                Ok(repo) => repo,
-                Err(e) => {
-                    warn!("Failed to get repository: {:?}", e);
-                    continue;
-                }
-            };
-
             // construct the full path to the file
-            let path: std::path::PathBuf = repo.dir.join(&filepath);
-
-            let file = match File::open(&path) {
-                Ok(file) => file,
+            let path: PathBuf = repo.dir.join(&file_hits[0].doc.filepath);
+            let all_lines = match read_file_content(&path) {
+                Ok(lines) => lines,
                 Err(e) => {
-                    warn!("Error opening file {}: {}", path.display(), e);
+                    warn!("Error reading file {}: {}", path.display(), e);
+                    //cannot read the file, just extend the hits
+                    result.extend(file_hits);
                     continue;
                 }
             };
 
-            let reader = BufReader::new(file);
-            let all_lines: Vec<String> = reader.lines().filter_map(|line| line.ok()).collect();
-            let total_lines = all_lines.len();
-
-            // if file is too large (> 200 lines), don't merge hits
-            let line_content = if total_lines <= 200 {
-                all_lines
-            } else {
-                result.extend(file_hits);
-                continue;
-            };
-
-            if !line_content.is_empty() {
+            if !all_lines.is_empty() {
                 let mut insert_hit = file_hits[0].clone();
-
                 insert_hit.scores =
                     file_hits
                         .iter()
@@ -567,22 +558,48 @@ pub async fn merge_code_snippets(
                             acc.rrf += hit.scores.rrf;
                             acc
                         });
-
                 // average the scores
                 let len = file_hits.len() as f32;
                 insert_hit.scores.bm25 /= len;
                 insert_hit.scores.embedding /= len;
                 insert_hit.scores.rrf /= len;
-
-                insert_hit.doc.body = line_content.join("\n");
+                insert_hit.doc.body = all_lines.join("\n");
                 result.push(insert_hit);
             }
         } else {
             result.extend(file_hits);
         }
     }
-
     result
+}
+
+#[derive(Debug)]
+// Error for when the file is too large
+struct FileTooLargeError;
+
+impl fmt::Display for FileTooLargeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "File is too large (more than 200 lines)")
+    }
+}
+
+impl Error for FileTooLargeError {}
+
+//directly read the file content
+pub fn read_file_content(path: &PathBuf) -> Result<Vec<String>, Box<dyn Error>> {
+    let file = File::open(path).map_err(|e| {
+        warn!("Error opening file {}: {}", path.display(), e);
+        e
+    })?;
+
+    let reader = BufReader::new(file);
+    let all_lines: Vec<String> = reader.lines().collect::<Result<_, _>>()?;
+
+    if all_lines.len() > 200 {
+        Err(Box::new(FileTooLargeError))
+    } else {
+        Ok(all_lines)
+    }
 }
 
 #[cfg(test)]
