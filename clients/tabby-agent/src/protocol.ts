@@ -527,28 +527,24 @@ export type ChatEditResolveCommand = LspCommand & {
 };
 
 /**
- * [Tabby] Opened File Tracking Request(➡️)
+ * [Tabby] Did Change Active Editor Notification(➡️)
  *
- * This method is sent from the client to server with specific action to track opened file.
+ * This method is sent from the client to server when the active editor changed.
  *
  *
- * - method: `tabby/agent/openedFileOperation`
+ * - method: `tabby/editors/didChangeActiveEditor`
  * - params: {@link OpenedFileParams}
  * - result: void
  */
-export namespace OpenedFileRequest {
-  export const method = "tabby/agent/openedFileOperation";
+export namespace DidChangeActiveEditorNotification {
+  export const method = "tabby/editors/didChangeActiveEditor";
   export const messageDirection = MessageDirection.clientToServer;
   export const type = new ProtocolNotificationType<OpenedFileParams, void>(method);
 }
-export interface EditorParams {
-  uri: string;
-  visibleRange: Range;
-}
 export type OpenedFileParams = {
   action: "change" | "test";
-  activeEditor: EditorParams;
-  visibleEditors?: EditorParams[];
+  activeEditor: Location;
+  visibleEditors?: Location[];
 };
 
 /**

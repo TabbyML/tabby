@@ -1,9 +1,10 @@
 import { Connection, Range } from "vscode-languageserver";
 import { Feature } from "../feature";
-import { OpenedFileParams, OpenedFileRequest, ServerCapabilities } from "../protocol";
+import { DidChangeActiveEditorNotification, OpenedFileParams, ServerCapabilities } from "../protocol";
 import { getLogger } from "../logger";
 import { Configurations } from "../config";
 import { LRUCache } from "lru-cache";
+import { isRangeEqual } from "../utils/range";
 
 interface OpenedFile {
   uri: string;
@@ -21,7 +22,7 @@ export class FileTracker implements Feature {
 
   constructor(private readonly configurations: Configurations) {}
   initialize(connection: Connection): ServerCapabilities | Promise<ServerCapabilities> {
-    connection.onNotification(OpenedFileRequest.type, (param: OpenedFileParams) => {
+    connection.onNotification(DidChangeActiveEditorNotification.type, (param: OpenedFileParams) => {
       console.log("Received opened file request:" + param.action);
       this.resolveOpenedFileRequest(param);
     });
@@ -59,26 +60,25 @@ export class FileTracker implements Feature {
       });
 
       visibleEditors.forEach((editor) => {
-        this.logger.info("visible editor name with range:" + editor.uri + editor.visibleRange);
         let visibleFile = this.fileList.get(editor.uri);
         if (!visibleFile) {
           visibleFile = {
             uri: editor.uri,
-            lastVisibleRange: [editor.visibleRange],
+            lastVisibleRange: [editor.range],
             invisible: false,
             isActive: false,
           };
           this.fileList.set(editor.uri, visibleFile);
         } else {
           if (visitedPaths.has(visibleFile.uri)) {
-            const idx = visibleFile.lastVisibleRange.findIndex((range) => this.rangesEqual(range, editor.visibleRange));
+            const idx = visibleFile.lastVisibleRange.findIndex((range) => isRangeEqual(range, editor.range));
             if (idx === -1) {
-              visibleFile.lastVisibleRange = [editor.visibleRange, ...visibleFile.lastVisibleRange];
+              visibleFile.lastVisibleRange = [editor.range, ...visibleFile.lastVisibleRange];
             }
             visibleFile.invisible = false;
           } else {
             visibleFile.invisible = false;
-            visibleFile.lastVisibleRange = [editor.visibleRange];
+            visibleFile.lastVisibleRange = [editor.range];
           }
         }
         visitedPaths.add(visibleFile.uri);
@@ -90,19 +90,19 @@ export class FileTracker implements Feature {
     if (!file) {
       file = {
         uri: activeEditor.uri,
-        lastVisibleRange: [activeEditor.visibleRange],
+        lastVisibleRange: [activeEditor.range],
         invisible: false,
         isActive: true,
       };
       this.fileList.set(activeEditor.uri, file);
     } else {
       if (visitedPaths.has(file.uri)) {
-        const idx = file.lastVisibleRange.findIndex((range) => this.rangesEqual(range, activeEditor.visibleRange));
+        const idx = file.lastVisibleRange.findIndex((range) => isRangeEqual(range, activeEditor.range));
         if (idx === -1) {
-          file.lastVisibleRange = [activeEditor.visibleRange, ...file.lastVisibleRange];
+          file.lastVisibleRange = [activeEditor.range, ...file.lastVisibleRange];
         }
       } else {
-        file.lastVisibleRange = [activeEditor.visibleRange];
+        file.lastVisibleRange = [activeEditor.range];
       }
       file.invisible = false;
       file.isActive = true;
@@ -133,14 +133,5 @@ export class FileTracker implements Feature {
     return Array.from(this.fileList.values())
       .filter(this.isOpenedFile)
       .filter((f) => !f.isActive);
-  }
-
-  private rangesEqual(range1: Range, range2: Range): boolean {
-    return (
-      range1.start.line === range2.start.line &&
-      range1.start.character === range2.start.character &&
-      range1.end.line === range2.end.line &&
-      range1.end.character === range2.end.character
-    );
   }
 }

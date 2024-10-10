@@ -1,4 +1,4 @@
-import { OpenedFileParams, OpenedFileRequest } from "tabby-agent";
+import { OpenedFileParams, DidChangeActiveEditorNotification } from "tabby-agent";
 import { getLogger } from "../logger";
 import { Client } from "./Client";
 import { ExtensionContext, TextEditor, window } from "vscode";
@@ -10,10 +10,9 @@ import {
   StaticFeature,
 } from "vscode-languageclient";
 import EventEmitter from "events";
-import { FileTrackerProvider } from "../FileTrackProvider";
+import { collectVisibleEditors } from "../windowUtils";
 
 export class FileTrackerFeature extends EventEmitter implements StaticFeature {
-  private readonly fileTrackProvider: FileTrackerProvider = new FileTrackerProvider();
   constructor(
     private readonly client: Client,
     private readonly context: ExtensionContext,
@@ -50,14 +49,14 @@ export class FileTrackerFeature extends EventEmitter implements StaticFeature {
         action: "change",
         activeEditor: {
           uri: editor.document.uri.toString(),
-          visibleRange: {
+          range: {
             start: { line: editorRange.start.line, character: editorRange.start.character },
             end: { line: editorRange.end.line, character: editorRange.end.character },
           },
         },
-        visibleEditors: this.fileTrackProvider.collectVisibleEditors(true, editor),
+        visibleEditors: collectVisibleEditors(true, editor),
       };
-      await this.client.languageClient.sendNotification(OpenedFileRequest.method, params);
+      await this.client.languageClient.sendNotification(DidChangeActiveEditorNotification.method, params);
     }
   }
 }
