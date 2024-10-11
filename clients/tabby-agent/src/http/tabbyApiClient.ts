@@ -247,19 +247,18 @@ export class TabbyApiClient extends EventEmitter {
         this.createTimeOutAbortSignal(),
       ]),
     };
+    this.updateIsConnecting(true);
     try {
       if (!this.api) {
         throw new Error("http client not initialized");
       }
       this.logger.debug(`Health check request: ${requestDescription}. [${requestId}]`);
-      this.updateIsConnecting(true);
       let response;
       if (method === "POST") {
         response = await this.api.POST(requestPath, requestOptions);
       } else {
         response = await this.api.GET(requestPath, requestOptions);
       }
-      this.updateIsConnecting(false);
       this.logger.debug(`Health check response status: ${response.response.status}. [${requestId}]`);
       if (response.error || !response.response.ok) {
         throw new HttpError(response.response);
@@ -269,7 +268,6 @@ export class TabbyApiClient extends EventEmitter {
       this.serverHealth = response.data;
       this.updateStatus("ready");
     } catch (error) {
-      this.updateIsConnecting(false);
       this.serverHealth = undefined;
       if (error instanceof HttpError && error.status == 405 && method !== "POST") {
         return await this.healthCheck(signal, "POST");
@@ -290,6 +288,7 @@ export class TabbyApiClient extends EventEmitter {
         this.updateStatus("noConnection");
       }
     }
+    this.updateIsConnecting(false);
   }
 
   private async updateServerProvidedConfig(): Promise<void> {
