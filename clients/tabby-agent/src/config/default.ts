@@ -41,6 +41,7 @@ export const defaultConfigData: ConfigData = {
       collectSnippetsFromRecentOpenedFiles: {
         enabled: true,
         maxOpenedFiles: 5,
+        maxCharsPerOpenedFiles: 500,
       },
       clipboard: {
         minChars: 3,

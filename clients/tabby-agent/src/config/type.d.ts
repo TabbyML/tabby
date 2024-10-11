@@ -46,7 +46,10 @@ export type ConfigData = {
       };
       collectSnippetsFromRecentOpenedFiles: {
         enabled: boolean;
+        //max number of opened files
         maxOpenedFiles: number;
+        //chars size per each opened file
+        maxCharsPerOpenedFiles: number;
       };
       clipboard: {
         minChars: number;
