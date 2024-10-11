@@ -851,23 +851,67 @@ export class CompletionProvider implements Feature {
     this.logger.debug("Starting collecting snippets from opened files.");
     const recentlyOpenedFiles = this.fileTracker.getAllFilesWithoutActive();
     const codeSnippets: { filepath: string; offset: number; text: string; score: number }[] = [];
+    const chunkSize = config.completion.prompt.collectSnippetsFromRecentOpenedFiles.maxCharsPerOpenedFiles;
     recentlyOpenedFiles.forEach((file) => {
       const doc = this.documents.get(file.uri);
       if (doc) {
-        file.lastVisibleRange.forEach((range) => {
-          const startOffset = doc.offsetAt(range.start);
-          const text = doc.getText(range);
+        file.lastVisibleRange.forEach((range: Range) => {
+          this.logger.info(
+            `Original range: start(${range.start.line},${range.start.character}), end(${range.end.line},${range.end.character})`,
+          );
 
-          //TODO(Sma1lboy): need to dynamic cal scores
+          const startOffset = doc.offsetAt(range.start);
+          const endOffset = doc.offsetAt(range.end);
+          const middleOffset = Math.floor((startOffset + endOffset) / 2);
+          const halfChunkSize = Math.floor(chunkSize / 2);
+
+          const upwardChunkSize = Math.min(halfChunkSize, middleOffset);
+          const newStartOffset = middleOffset - upwardChunkSize;
+
+          const downwardChunkSize = Math.min(chunkSize - upwardChunkSize, doc.getText().length - middleOffset);
+          let newEndOffset = middleOffset + downwardChunkSize;
+
+          if (newEndOffset - newStartOffset > chunkSize) {
+            const excess = newEndOffset - newStartOffset - chunkSize;
+            newEndOffset -= excess;
+          }
+
+          let newStart = doc.positionAt(newStartOffset);
+          let newEnd = doc.positionAt(newEndOffset);
+
+          newStart = { line: newStart.line, character: 0 };
+          newEnd = {
+            line: newEnd.line,
+            character: doc.getText({
+              start: { line: newEnd.line, character: 0 },
+              end: { line: newEnd.line + 1, character: 0 },
+            }).length,
+          };
+
+          this.logger.info(
+            `New range: start(${newStart.line},${newStart.character}), end(${newEnd.line},${newEnd.character})`,
+          );
+
+          const newRange = { start: newStart, end: newEnd };
+          let text = doc.getText(newRange);
+
+          if (text.length > chunkSize) {
+            text = text.substring(0, chunkSize);
+          }
+
+          this.logger.info(`Text length: ${text.length}`);
+          this.logger.info(`Upward chunk size: ${upwardChunkSize}, Downward chunk size: ${downwardChunkSize}`);
+
           codeSnippets.push({
             filepath: file.uri,
-            offset: startOffset,
+            offset: newStartOffset,
             text: text,
             score: file.invisible ? 0.98 : 1,
           });
         });
       }
     });
+
     this.logger.debug("Completed collecting snippets from opened files.");
     return codeSnippets;
   }
