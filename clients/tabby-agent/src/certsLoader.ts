@@ -56,26 +56,34 @@ async function loadFromFiles(files: string) {
 }
 
 async function loadTlsCaCerts(config: ConfigData["tls"]) {
-  if (config.caCerts === "bundled") {
-    return;
-  } else if (config.caCerts === "system") {
-    if (process.platform === "win32") {
-      logger.debug(`Loading extra certs from win-ca.`);
-      winCa.exe(path.join("win-ca", "roots.exe"));
-      winCa({
-        fallback: true,
-        inject: "+",
-      });
-    } else if (process.platform === "darwin") {
-      logger.debug(`Loading extra certs from mac-ca.`);
-      const certs = macCa.get();
-      appendCaCerts(certs);
-    } else {
-      // linux: load from openssl cert
-      await loadFromFiles(path.join("/etc/ssl/certs/ca-certificates.crt"));
+  try {
+    if (config.caCerts === "bundled") {
+      return;
+    } else if (config.caCerts === "system") {
+      if (process.platform === "win32") {
+        logger.debug(`Loading extra certs from win-ca.`);
+        winCa.exe(path.join("win-ca", "roots.exe"));
+        winCa({
+          fallback: true,
+          inject: "+",
+        });
+      } else if (process.platform === "darwin") {
+        logger.debug(`Loading extra certs from mac-ca.`);
+        const certs = macCa.get();
+        appendCaCerts(certs);
+      } else {
+        // linux: load from openssl cert
+        await loadFromFiles(path.join("/etc/ssl/certs/ca-certificates.crt"));
+      }
+    } else if (config.caCerts) {
+      await loadFromFiles(config.caCerts);
     }
-  } else if (config.caCerts) {
-    await loadFromFiles(config.caCerts);
+  } catch (err) {
+    if (err instanceof Error) {
+      logger.warn(`Error loading TLS CA certificates: ${err.message}`);
+    } else {
+      logger.warn(`Unexpected error loading TLS CA certificates: ${String(err)}`);
+    }
   }
 }
 
