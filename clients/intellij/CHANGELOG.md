@@ -1,3 +1,9 @@
+## 1.8.3
+
+### Fixes & Improvements
+
+- Fixed a bug that caused the Tabby plugin to not initialize when TLS certificates failed to load. (https://github.com/TabbyML/tabby/issues/3248)
+
 ## 1.8.2
 
 ### Fixes & Improvements
