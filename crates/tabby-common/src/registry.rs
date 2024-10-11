@@ -4,10 +4,7 @@ use anyhow::{Context, Result};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    env::get_download_host, env::get_huggingface_mirror_host, env::use_local_model_json,
-    path::models_dir,
-};
+use crate::path::models_dir;
 
 #[derive(Serialize, Deserialize)]
 pub struct ModelInfo {
@@ -31,48 +28,6 @@ pub struct ModelInfo {
 pub struct ModelAddress {
     pub urls: Vec<String>,
     pub sha256: String,
-}
-
-impl ModelInfo {
-    pub fn filter_download_address(&self) -> Vec<(String, String)> {
-        let download_host = get_download_host();
-        if let Some(urls) = &self.urls {
-            if !urls.is_empty() {
-                let url = self
-                    .urls
-                    .iter()
-                    .flatten()
-                    .find(|f| f.contains(&download_host));
-                if let Some(url) = url {
-                    if let Some(mirror_host) = get_huggingface_mirror_host() {
-                        return vec![(
-                            url.replace("huggingface.co", &mirror_host),
-                            self.sha256.clone(),
-                        )];
-                    }
-                    return vec![(url.to_owned(), self.sha256.clone())];
-                }
-            }
-        };
-
-        self.partitioned_urls
-            .iter()
-            .flatten()
-            .map(|x| -> (String, String) {
-                let url = x.urls.iter().find(|f| f.contains(&download_host));
-                if let Some(url) = url {
-                    if let Some(mirror_host) = get_huggingface_mirror_host() {
-                        return (
-                            url.replace("huggingface.co", &mirror_host),
-                            x.sha256.clone(),
-                        );
-                    }
-                    return (url.to_owned(), x.sha256.clone());
-                }
-                panic!("No download URLs available for <{}>", self.name);
-            })
-            .collect()
-    }
 }
 
 fn models_json_file(registry: &str) -> PathBuf {
@@ -112,11 +67,9 @@ pub struct ModelRegistry {
 }
 
 lazy_static! {
-    pub static ref LEGACY_GGML_MODEL_RELATIVE_PATH: String =
-        format!("ggml{}q8_0.v2.gguf", std::path::MAIN_SEPARATOR_STR);
     pub static ref GGML_MODEL_RELATIVE_PATH: String =
         format!("ggml{}model.gguf", std::path::MAIN_SEPARATOR_STR);
-    pub static ref GGML_MODEL_PARTITIONED_PREFIX: String = "00001-of-".into();
+    pub static ref GGML_MODEL_PARTITIONED_PREFIX: String = "model-00001-of-".into();
 }
 
 // model registry tree structure
@@ -125,33 +78,18 @@ lazy_static! {
 // fn get_model_root_dir(model_name) -> {root}/{model_name}
 //
 // fn get_model_dir(model_name) -> {root}/{model_name}/ggml
-//
-// fn get_model_path(model_name)
-//   for single model file
-//     -> {root}/{model_name}/ggml/model.gguf
-//   for multiple model files
-//     -> {root}/{model_name}/ggml/{entrypoint}
 impl ModelRegistry {
     pub async fn new(registry: &str) -> Self {
-        if use_local_model_json() {
-            Self {
-                name: registry.to_owned(),
-                models: load_local_registry(registry).unwrap_or_else(|e| {
-                    panic!("Failed to fetch model organization <{}>: {}", registry, e)
-                }),
-            }
-        } else {
-            Self {
-                name: registry.to_owned(),
-                models: load_remote_registry(registry).await.unwrap_or_else(|err| {
-                    load_local_registry(registry).unwrap_or_else(|_| {
-                        panic!(
-                            "Failed to fetch model organization <{}>: {:?}",
-                            registry, err
-                        )
-                    })
-                }),
-            }
+        Self {
+            name: registry.to_owned(),
+            models: load_remote_registry(registry).await.unwrap_or_else(|err| {
+                load_local_registry(registry).unwrap_or_else(|_| {
+                    panic!(
+                        "Failed to fetch model organization <{}>: {:?}",
+                        registry, err
+                    )
+                })
+            }),
         }
     }
 
@@ -182,19 +120,6 @@ impl ModelRegistry {
         None
     }
 
-    pub fn migrate_q80_model_path(&self, name: &str) -> Result<(), std::io::Error> {
-        let model_path = self.get_model_entry_path(name);
-        let old_model_path = self
-            .get_model_dir(name)
-            .join(LEGACY_GGML_MODEL_RELATIVE_PATH.as_str());
-
-        if model_path.is_none() && old_model_path.exists() {
-            return self.migrate_model_path(name, &old_model_path);
-        }
-
-        Ok(())
-    }
-
     pub fn migrate_relative_model_path(&self, name: &str) -> Result<(), std::io::Error> {
         let model_path = self.get_model_entry_path(name);
         let old_model_path = self
@@ -219,7 +144,9 @@ impl ModelRegistry {
         old_model_path: &PathBuf,
     ) -> Result<(), std::io::Error> {
         // legacy model always has a single file
-        let model_path = self.get_model_store_dir(name).join("00001-of-00001.gguf");
+        let model_path = self
+            .get_model_store_dir(name)
+            .join("model-00001-of-00001.gguf");
         std::fs::rename(&old_model_path, &model_path)?;
         #[cfg(target_family = "unix")]
         std::os::unix::fs::symlink(&model_path, &old_model_path)?;

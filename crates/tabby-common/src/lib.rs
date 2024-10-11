@@ -4,7 +4,6 @@ pub mod api;
 pub mod axum;
 pub mod config;
 pub mod constants;
-pub mod env;
 pub mod index;
 pub mod languages;
 pub mod path;

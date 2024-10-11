@@ -13,12 +13,61 @@ use aim_downloader::{
 use anyhow::{anyhow, bail, Result};
 use futures::future::join_all;
 use regex::Regex;
-use tabby_common::registry::{parse_model_id, ModelRegistry};
+use tabby_common::registry::{parse_model_id, ModelInfo, ModelRegistry};
 use tokio_retry::{
     strategy::{jitter, ExponentialBackoff},
     Retry,
 };
 use tracing::{info, warn};
+
+pub fn get_download_host() -> String {
+    std::env::var("TABBY_DOWNLOAD_HOST").unwrap_or_else(|_| "huggingface.co".to_string())
+}
+
+pub fn get_huggingface_mirror_host() -> Option<String> {
+    std::env::var("TABBY_HUGGINGFACE_HOST_OVERRIDE").ok()
+}
+
+pub fn filter_download_address(model_info: &ModelInfo) -> Vec<(String, String)> {
+    let download_host = get_download_host();
+    if let Some(urls) = &model_info.urls {
+        if !urls.is_empty() {
+            let url = model_info
+                .urls
+                .iter()
+                .flatten()
+                .find(|f| f.contains(&download_host));
+            if let Some(url) = url {
+                if let Some(mirror_host) = get_huggingface_mirror_host() {
+                    return vec![(
+                        url.replace("huggingface.co", &mirror_host),
+                        model_info.sha256.clone(),
+                    )];
+                }
+                return vec![(url.to_owned(), model_info.sha256.clone())];
+            }
+        }
+    };
+
+    model_info
+        .partitioned_urls
+        .iter()
+        .flatten()
+        .map(|x| -> (String, String) {
+            let url = x.urls.iter().find(|f| f.contains(&download_host));
+            if let Some(url) = url {
+                if let Some(mirror_host) = get_huggingface_mirror_host() {
+                    return (
+                        url.replace("huggingface.co", &mirror_host),
+                        x.sha256.clone(),
+                    );
+                }
+                return (url.to_owned(), x.sha256.clone());
+            }
+            panic!("No download URLs available for <{}>", model_info.name);
+        })
+        .collect()
+}
 
 async fn download_model_impl(
     registry: &ModelRegistry,
@@ -28,7 +77,6 @@ async fn download_model_impl(
     let model_info = registry.get_model_info(name);
     registry.save_model_info(name);
 
-    registry.migrate_q80_model_path(name)?;
     registry.migrate_relative_model_path(name)?;
 
     let model_path = registry.get_model_entry_path(name);
@@ -49,7 +97,7 @@ async fn download_model_impl(
         }
     }
 
-    let urls = model_info.filter_download_address();
+    let urls = filter_download_address(model_info);
 
     if urls.is_empty() {
         bail!(
@@ -69,7 +117,7 @@ async fn download_model_impl(
             .get_model_store_dir(name)
             .to_string_lossy()
             .into_owned();
-        let filename = format!("{:05}-of-{:05}.gguf", index + 1, urls.len());
+        let filename = format!("model-{:05}-of-{:05}.gguf", index + 1, urls.len());
         let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
         download_tasks.push(Retry::spawn(strategy, move || {
             let dir = dir.clone();
@@ -94,34 +142,6 @@ async fn download_model_impl(
                 acc.context(err)
             });
         Err(combined_error)
-    }
-}
-
-async fn tryget_download_filename(url: &str) -> Result<String> {
-    //  try to get filename from Content-Disposition header
-    let response = HTTPSHandler::head(url).await?;
-    if let Some(content_disposition) = response.get(reqwest::header::CONTENT_DISPOSITION) {
-        if let Ok(disposition_str) = content_disposition.to_str() {
-            let re = Regex::new(r#"filename="(.+?)""#).unwrap();
-            let file_name = re
-                .captures(disposition_str)
-                .and_then(|cap| cap.get(1))
-                .map(|m| m.as_str().to_owned());
-            if let Some(file_name) = file_name {
-                return Ok(file_name);
-            }
-        }
-    }
-    // try to parse filename from URL
-    if let Some(parsed_name) = Path::new(url).file_name() {
-        let parsed_name = parsed_name.to_string_lossy().to_string();
-        if parsed_name.is_empty() {
-            Err(anyhow!("Failed to get filename from URL {}", url))
-        } else {
-            Ok(parsed_name)
-        }
-    } else {
-        Err(anyhow!("Failed to get filename from URL {}", url))
     }
 }
 
