@@ -24,6 +24,7 @@ export class StatusProvider extends EventEmitter implements Feature {
   private readonly logger = getLogger("StatusProvider");
 
   private lspConnection: Connection | undefined = undefined;
+  private clientCapabilities: ClientCapabilities | undefined = undefined;
 
   constructor(
     private readonly dataStore: DataStore,
@@ -35,6 +36,7 @@ export class StatusProvider extends EventEmitter implements Feature {
 
   initialize(connection: Connection, clientCapabilities: ClientCapabilities): ServerCapabilities {
     this.lspConnection = connection;
+    this.clientCapabilities = clientCapabilities;
 
     connection.onRequest(StatusRequest.type, async (params) => {
       if (params?.recheckConnection) {
@@ -77,6 +79,13 @@ export class StatusProvider extends EventEmitter implements Feature {
     );
 
     return {};
+  }
+
+  async initialized(connection: Connection): Promise<void> {
+    if (this.clientCapabilities?.tabby?.statusDidChangeListener) {
+      const statusInfo = await this.getStatusInfo();
+      connection.sendNotification(StatusDidChangeNotification.type, statusInfo);
+    }
   }
 
   private async notify() {
