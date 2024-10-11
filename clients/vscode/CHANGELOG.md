@@ -1,4 +1,10 @@
-## 1.12.0
+## 1.12.2
+
+### Fixes & Improvements
+
+- Fixed a bug that caused the Tabby extension to not initialize when TLS certificates failed to load. (https://github.com/TabbyML/tabby/issues/3248)
+
+## 1.12.1
 
 ### Fixes & Improvements
 
