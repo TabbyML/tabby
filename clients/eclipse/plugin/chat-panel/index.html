@@ -111,6 +111,15 @@
       );
     }
 
+    window.addEventListener("focus", (event) => {
+      const chat = getChatPanel();
+      if (chat.style.cssText == "display: block;") {
+        setTimeout(() => {
+          chat.contentWindow.focus();
+        }, 1);
+      }
+    });
+
     window.addEventListener("message", (event) => {
       const chat = getChatPanel();
 

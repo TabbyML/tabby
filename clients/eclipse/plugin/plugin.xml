@@ -56,6 +56,43 @@
 				</control>
 			</toolbar>
 		</menuContribution>
+		<menuContribution
+			locationURI="popup:org.eclipse.ui.popup.any">
+			<menu
+				id="com.tabbyml.tabby4eclipse.textEditorContextMenu"
+				label="Tabby">
+				<visibleWhen>
+					<with variable="activePart">
+						<instanceof value="org.eclipse.ui.IEditorPart" />
+					</with>
+				</visibleWhen>
+				<command
+					commandId="com.tabbyml.tabby4eclipse.commands.chat.addSelectionToChat"
+					label="Add Selection to Chat">
+				</command>
+				<command
+					commandId="com.tabbyml.tabby4eclipse.commands.chat.addFileToChat"
+					label="Add File to Chat">
+				</command>
+				<separator name="separator0" visible="true" />
+				<command
+					commandId="com.tabbyml.tabby4eclipse.commands.chat.explain"
+					label="Explain">
+				</command>
+				<command
+					commandId="com.tabbyml.tabby4eclipse.commands.chat.fix"
+					label="Fix">
+				</command>
+				<command
+					commandId="com.tabbyml.tabby4eclipse.commands.chat.generateDocs"
+					label="Generate Docs">
+				</command>
+				<command
+					commandId="com.tabbyml.tabby4eclipse.commands.chat.generateTests"
+					label="Generate Tests">
+				</command>
+			</menu>
+		</menuContribution>
 	</extension>
 
 	<extension point="org.eclipse.ui.commands">
@@ -65,12 +102,13 @@
 		</category>
 		<command
 			categoryId="com.tabbyml.tabby4eclipse.commands"
-			name="Open Tabby Chat"
-			id="com.tabbyml.tabby4eclipse.commands.openChatView">
+			name="Open Settings"
+			icon="image/settings.png"
+			id="com.tabbyml.tabby4eclipse.commands.openPreferences">
 		</command>
 		<category
 			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion"
-			name="Tabby">
+			name="Code Completion">
 		</category>
 		<command
 			categoryId="com.tabbyml.tabby4eclipse.commands.inlineCompletion"
@@ -82,12 +120,57 @@
 			name="Dismiss"
 			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion.dismiss">
 		</command>
+		<category
+			id="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Chat">
+		</category>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Open Tabby Chat"
+			icon="images/chat.png"
+			id="com.tabbyml.tabby4eclipse.commands.chat.openChatView">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Toggle Tabby Chat"
+			id="com.tabbyml.tabby4eclipse.commands.chat.toggleChatView">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Add Selection to Chat"
+			id="com.tabbyml.tabby4eclipse.commands.chat.addSelectionToChat">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Add File to Chat"
+			id="com.tabbyml.tabby4eclipse.commands.chat.addFileToChat">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Explain"
+			id="com.tabbyml.tabby4eclipse.commands.chat.explain">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Fix"
+			id="com.tabbyml.tabby4eclipse.commands.chat.fix">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Generate Docs"
+			id="com.tabbyml.tabby4eclipse.commands.chat.generateDocs">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.chat"
+			name="Generate Tests"
+			id="com.tabbyml.tabby4eclipse.commands.chat.generateTests">
+		</command>
 	</extension>
 
 	<extension point="org.eclipse.ui.handlers">
 		<handler
-			class="com.tabbyml.tabby4eclipse.commands.OpenChatView"
-			commandId="com.tabbyml.tabby4eclipse.commands.openChatView">
+			class="com.tabbyml.tabby4eclipse.commands.OpenPreferences"
+			commandId="com.tabbyml.tabby4eclipse.commands.openPreferences">
 		</handler>
 		<handler
 			class="com.tabbyml.tabby4eclipse.commands.inlineCompletion.Accept"
@@ -97,11 +180,43 @@
 			class="com.tabbyml.tabby4eclipse.commands.inlineCompletion.Dismiss"
 			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.dismiss">
 		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.chat.OpenChatView"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.openChatView">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.chat.ToggleChatView"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.toggleChatView">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.chat.AddSelectionToChat"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.addSelectionToChat">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.chat.AddFileToChat"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.addFileToChat">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.chat.Explain"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.explain">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.chat.Fix"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.fix">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.chat.GenerateDocs"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.generateDocs">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.chat.GenerateTests"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.generateTests">
+		</handler>
 	</extension>
 
 	<extension point="org.eclipse.ui.bindings">
 		<key
-			commandId="com.tabbyml.tabby4eclipse.commands.openChatView"
+			commandId="com.tabbyml.tabby4eclipse.commands.chat.toggleChatView"
 			contextId="org.eclipse.ui.contexts.window"
 			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
 			sequence="M1+M3+L">
