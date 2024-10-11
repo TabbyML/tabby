@@ -1,5 +1,4 @@
 import { DidChangeActiveEditorNotification, DidChangeActiveEditorParams } from "tabby-agent";
-import { getLogger } from "../logger";
 import { Client } from "./Client";
 import { ExtensionContext, TextEditor, window } from "vscode";
 import {
@@ -30,7 +29,6 @@ export class FileTrackerFeature extends EventEmitter implements StaticFeature {
     this.context.subscriptions.push(
       //when active text editor changes
       window.onDidChangeActiveTextEditor(async (editor) => {
-        getLogger().info("onDidChangeActiveTextEditor happend:");
         await this.addingChangeEditor(editor);
       }),
     );
