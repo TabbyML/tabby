@@ -3,7 +3,7 @@ use std::{
     error::Error,
     fmt,
     fs::File,
-    io::{BufRead, BufReader, Stderr},
+    io::{BufRead, BufReader},
     path::PathBuf,
     sync::Arc,
 };
@@ -18,7 +18,6 @@ use async_openai::{
 };
 use async_stream::stream;
 use futures::stream::BoxStream;
-use logkit::source;
 use tabby_common::{
     api::{
         code::{CodeSearch, CodeSearchHit, CodeSearchParams, CodeSearchQuery, CodeSearchScores},
