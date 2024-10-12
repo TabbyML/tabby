@@ -172,7 +172,7 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
           </div>
           {!!pageInfo?.hasPreviousPage && (
             <LoadMoreIndicator onLoad={loadMore} isFetching={fetching}>
-              <div className="flex justify-center mt-8">
+              <div className="mt-8 flex justify-center">
                 <IconSpinner className="h-8 w-8" />
               </div>
             </LoadMoreIndicator>
@@ -229,7 +229,7 @@ function ThreadItem({ data, isLast }: ThreadItemProps) {
       }}
     >
       <div className="flex items-start gap-2">
-        <div className="relative mt-2 h-8 w-8 rounded-full bg-[#AAA192] p-2 text-white dark:text-slate-700 dark:bg-[#E7E1D3]">
+        <div className="relative mt-2 h-8 w-8 rounded-full bg-[#AAA192] p-2 text-white dark:bg-[#E7E1D3] dark:text-slate-700">
           <IconMessageCircle />
           {!isLast && (
             <div className="absolute left-4 top-10 h-10 w-0.5 bg-border"></div>

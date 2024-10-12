@@ -182,7 +182,7 @@ export default function TextAreaSearch({
       </div>
       <div
         className={cn(
-          'hidden bg-[#F9F6EF] dark:bg-[#333333] pr-4 pl-2 py-2 border-t items-center gap-2 dark:border-muted-foreground/60',
+          'hidden items-center gap-2 border-t bg-[#F9F6EF] py-2 pl-2 pr-4 dark:border-muted-foreground/60 dark:bg-[#333333]',
           {
             flex: !isFollowup
           }
