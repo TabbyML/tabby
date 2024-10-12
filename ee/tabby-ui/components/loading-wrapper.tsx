@@ -11,13 +11,16 @@ interface LoadingWrapperProps {
   children?: React.ReactNode
   fallback?: React.ReactNode
   delay?: number
+  // todo remove
+  showFallback?: boolean
 }
 
 export const LoadingWrapper: React.FC<LoadingWrapperProps> = ({
   loading,
   fallback,
   delay,
-  children
+  children,
+  showFallback
 }) => {
   const [loaded, setLoaded] = React.useState(!loading)
   const [debouncedLoaded] = useDebounceValue(loaded, delay ?? 200)
@@ -31,7 +34,7 @@ export const LoadingWrapper: React.FC<LoadingWrapperProps> = ({
   if (!debouncedLoaded) {
     return fallback ? fallback : <ListSkeleton />
   } else {
-    return children
+    return showFallback ? fallback : children
   }
 }
 

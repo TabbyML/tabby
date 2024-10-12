@@ -129,7 +129,8 @@ const client = new Client({
         MessageAttachment: () => null,
         MessageAttachmentCode: () => null,
         MessageAttachmentDoc: () => null,
-        NetworkSetting: () => null
+        NetworkSetting: () => null,
+        ContextInfo: () => null
       },
       resolvers: {
         Query: {

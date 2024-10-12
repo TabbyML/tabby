@@ -38,17 +38,19 @@ function ActivityCalendar({
   const blockSize = width >= 968 ? 12 : 11
 
   return (
-    <ReactActivityCalendar
-      data={data}
-      colorScheme={theme === 'dark' ? 'dark' : 'light'}
-      theme={{
-        light: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
-        dark: ['rgb(45, 51, 59)', '#0e4429', '#006d32', '#26a641', '#39d353']
-      }}
-      blockSize={blockSize}
-      hideTotalCount
-      fontSize={11}
-    />
+    <div className="h-[152px]">
+      <ReactActivityCalendar
+        data={data}
+        colorScheme={theme === 'dark' ? 'dark' : 'light'}
+        theme={{
+          light: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
+          dark: ['rgb(45, 51, 59)', '#0e4429', '#006d32', '#26a641', '#39d353']
+        }}
+        blockSize={blockSize}
+        hideTotalCount
+        fontSize={12}
+      />
+    </div>
   )
 }
 
@@ -165,7 +167,7 @@ export default function Stats() {
   if (!data?.me?.id) return <></>
 
   return (
-    <div className="flex w-full flex-col gap-y-4">
+    <>
       <AnimationWrapper
         viewport={{
           margin: '-140px 0px 0px 0px'
@@ -173,11 +175,11 @@ export default function Stats() {
         style={{ width: '100%' }}
         delay={0.1}
       >
-        <div className="rounded-2xl border px-5 py-4">
-          <h3 className="mb-2 text-xs">
-            <b className="font-medium text-sm">{lastYearActivities}</b>{' '}
+        <div className="rounded-2xl border px-[1.125rem] py-4">
+          <div className="mb-3 text-base">
+            <span className="font-semibold">{lastYearActivities}</span>{' '}
             activities in the last year
-          </h3>
+          </div>
           <div className="flex items-end justify-center">
             <ActivityCalendar data={activities} />
           </div>
@@ -188,6 +190,6 @@ export default function Stats() {
         from={moment().subtract(DATE_RANGE, 'day').toDate()}
         to={moment().toDate()}
       />
-    </div>
+    </>
   )
 }

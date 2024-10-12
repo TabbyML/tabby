@@ -165,7 +165,7 @@ export function CompletionCharts({
       >
         <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
-            <CardTitle className="text-sm font-normal leading-none tracking-tight">
+            <CardTitle className="text-base font-semibold leading-none tracking-tight">
               Acceptance Rate
             </CardTitle>
           </CardHeader>
@@ -187,7 +187,7 @@ export function CompletionCharts({
             </LineChart>
           </ResponsiveContainer>
           <CardContent className="px-4 pt-2 pb-0">
-            <div className="font-bold">{averageAcceptance}%</div>
+            <div className="font-bold text-lg">{averageAcceptance}%</div>
           </CardContent>
         </Card>
       </AnimationWrapper>
@@ -201,7 +201,7 @@ export function CompletionCharts({
       >
         <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
-            <CardTitle className="text-sm font-normal leading-none tracking-tight">
+            <CardTitle className="text-base font-semibold leading-none tracking-tight">
               Completions
             </CardTitle>
           </CardHeader>
@@ -234,7 +234,9 @@ export function CompletionCharts({
             </BarChart>
           </ResponsiveContainer>
           <CardContent className="px-4 pt-2 pb-0">
-            <div className="font-bold">{numeral(totalViews).format('0,0')}</div>
+            <div className="font-bold text-lg">
+              {numeral(totalViews).format('0,0')}
+            </div>
           </CardContent>
         </Card>
       </AnimationWrapper>
@@ -248,7 +250,7 @@ export function CompletionCharts({
       >
         <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
-            <CardTitle className="text-sm font-normal leading-none tracking-tight">
+            <CardTitle className="text-base font-semibold leading-none tracking-tight">
               Acceptances
             </CardTitle>
           </CardHeader>
@@ -281,7 +283,7 @@ export function CompletionCharts({
             </BarChart>
           </ResponsiveContainer>
           <CardContent className="px-4 pt-2 pb-0">
-            <div className="font-bold">
+            <div className="font-bold text-lg">
               {numeral(totalAccepts).format('0,0')}
             </div>
           </CardContent>

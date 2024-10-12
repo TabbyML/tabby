@@ -87,3 +87,21 @@ export function getTitleFromMessages(
   }
   return title
 }
+
+export function checkSourcesAvailability(
+  sources: ContextInfo['sources'] | undefined
+) {
+  let hasCodebaseSource = false
+  let hasDocumentSource = false
+  if (sources) {
+    sources.forEach(source => {
+      if (isCodeSourceContext(source.sourceKind)) {
+        hasCodebaseSource = true
+      } else if (isDocSourceContext(source.sourceKind)) {
+        hasDocumentSource = true
+      }
+    })
+  }
+
+  return { hasCodebaseSource, hasDocumentSource }
+}

@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Editor } from '@tiptap/react'
 
 import { ContextInfo } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { ThreadRunContexts } from '@/lib/types'
 import {
+  checkSourcesAvailability,
   cn,
   getMentionsFromText,
   getThreadRunContextsFromMentions
@@ -88,7 +89,16 @@ export default function TextAreaSearch({
     }
   }
 
-  const hasSources = !!contextInfo?.sources?.length
+  const onInsertMention = (prefix: string) => {
+    const editor = editorRef.current?.editor
+    if (!editor) return
+
+    editor.chain().focus().insertContent(prefix).run()
+  }
+
+  const { hasCodebaseSource, hasDocumentSource } = useMemo(() => {
+    return checkSourcesAvailability(contextInfo?.sources)
+  }, [contextInfo?.sources])
 
   return (
     <div
@@ -181,29 +191,40 @@ export default function TextAreaSearch({
         )}
         onClick={e => e.stopPropagation()}
       >
-        <Button
-          variant="ghost"
-          className="gap-1 px-1.5 py-1 text-foreground/70"
-        >
-          <IconBox />
-          Mistral-7B
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              className="gap-2 px-1.5 py-1 text-foreground/70"
+              onClick={e => onInsertMention('#')}
+              disabled={!hasCodebaseSource}
+            >
+              <IconHash />
+              Codebase
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-md">
+            Select a codebase to chat with
+          </TooltipContent>
+        </Tooltip>
+
         <Separator orientation="vertical" className="h-5" />
-        <Button
-          variant="ghost"
-          className="gap-1 px-1.5 py-1 text-foreground/70"
-        >
-          <IconHash />
-          Codebase
-        </Button>
-        <Separator orientation="vertical" className="h-5" />
-        <Button
-          variant="ghost"
-          className="gap-1 px-1.5 py-1 text-foreground/70"
-        >
-          <IconAtSign />
-          Documents
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              className="gap-2 px-1.5 py-1 text-foreground/70"
+              onClick={e => onInsertMention('@')}
+              disabled={!hasDocumentSource}
+            >
+              <IconAtSign />
+              Documents
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-md">
+            Select a document to bring into context
+          </TooltipContent>
+        </Tooltip>
       </div>
     </div>
   )

@@ -22,6 +22,7 @@ import {
   Link,
   ListFilter,
   Mail,
+  MessageCircle,
   MessageCircleQuestion,
   Search,
   Share2,
@@ -1636,6 +1637,15 @@ function IconHash({ className, ...props }: React.ComponentProps<typeof Hash>) {
   return <Hash className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconMessageCircle({
+  className,
+  ...props
+}: React.ComponentProps<typeof MessageCircle>) {
+  return (
+    <MessageCircle className={cn('h-4 w-4 -rotate-90', className)} {...props} />
+  )
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1734,5 +1744,6 @@ export {
   IconAlignJustify,
   IconFileQuestion,
   IconMessageCircleQuestion,
-  IconHash
+  IconHash,
+  IconMessageCircle
 }

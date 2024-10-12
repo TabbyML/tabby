@@ -1,6 +1,14 @@
-import { createContext, useContext, useMemo, useState } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
+import { motion, Variants } from 'framer-motion'
 import moment from 'moment'
 import { useQuery } from 'urql'
 
@@ -10,10 +18,27 @@ import { ContextSource, ListThreadsQuery } from '@/lib/gql/generates/graphql'
 import { Member, useAllMembers } from '@/lib/hooks/use-all-members'
 import { contextInfoQuery, listThreadMessages } from '@/lib/tabby/query'
 import { cn, getTitleFromMessages } from '@/lib/utils'
+import { IconMessageCircle, IconSpinner } from '@/components/ui/icons'
+import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LoadMoreIndicator } from '@/components/load-more-indicator'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { UserAvatar } from '@/components/user-avatar'
+
+const threadItemVariants: Variants = {
+  initial: {
+    opacity: 0,
+    y: 60
+  },
+  onscreen: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: 'easeOut'
+    }
+  }
+}
 
 interface ThreadFeedsProps {
   className?: string
@@ -29,6 +54,8 @@ type ThreadFeedsContextValue = {
 export const ThreadFeedsContext = createContext<ThreadFeedsContextValue>(
   {} as ThreadFeedsContextValue
 )
+
+const PAGE_SIZE = 10
 
 const listThreads = graphql(/* GraphQL */ `
   query ListThreads(
@@ -72,7 +99,7 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
   const [{ data, fetching }] = useQuery({
     query: listThreads,
     variables: {
-      last: 10,
+      last: PAGE_SIZE,
       before: beforeCursor,
       isEphemeral: false
     }
@@ -97,6 +124,18 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
     }
   }
 
+  // const paginations = useMemo(() => {
+  //   if (!threads?.length) return []
+
+  //   const paginatedArray: Array<ListThreadsQuery['threads']['edges']> = []
+  //   for (let i = 0; i < threads.length; i += PAGE_SIZE) {
+  //     paginatedArray.push(threads.slice(i, i + PAGE_SIZE));
+  //   }
+  //   return paginatedArray
+  // }, [threads])
+
+  const threadLen = threads?.length ?? 0
+
   return (
     <ThreadFeedsContext.Provider
       value={{
@@ -106,37 +145,92 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
         fetchingSources
       }}
     >
-      <div className={cn('mb-4 mt-3', className)}>
+      <motion.div
+        initial="initial"
+        whileInView="onscreen"
+        viewport={{
+          margin: '0px 0px -140px 0px',
+          once: true
+        }}
+        transition={{
+          delay: 1,
+          delayChildren: 0.3,
+          staggerChildren: 0.05,
+          when: 'beforeChildren'
+        }}
+        style={{ width: '100%', paddingBottom: '1rem' }}
+      >
+        <div className="text-lg font-semibold mb-3">Threads</div>
+        <Separator className="mb-4" />
         <LoadingWrapper
           loading={fetching || fetchingUsers}
-          fallback={<TheadsSkeleton className="pt-3" />}
+          // showFallback
+          fallback={
+            <div className="flex justify-center">
+              <IconSpinner className="w-8 h-8" />
+            </div>
+          }
         >
-          <div className="text-sm">
+          <div className="text-sm space-y-3">
             {threads?.length ? (
               <>
-                {threads.map(thread => {
-                  return <ThreadItem data={thread} key={thread.node.id} />
+                {threads.map((t, idx) => {
+                  return (
+                    <ThreadItem
+                      data={t}
+                      key={t.node.id}
+                      isLast={idx === threadLen - 1}
+                    />
+                  )
                 })}
               </>
             ) : (
-              <div>No data</div>
+              <div className="text-center text-base">No shared threads</div>
             )}
           </div>
           {!!pageInfo?.hasPreviousPage && (
             <LoadMoreIndicator onLoad={loadMore} isFetching={fetching}>
-              <TheadsSkeleton className="mt-6" />
+              <div className="flex justify-center">
+                <IconSpinner className="w-8 h-8" />
+              </div>
             </LoadMoreIndicator>
           )}
         </LoadingWrapper>
-      </div>
+      </motion.div>
     </ThreadFeedsContext.Provider>
   )
 }
 
+// function ThreadPagination({ pagination }: { pagination: ListThreadsQuery['threads']['edges'] }) {
+//   const [scope, animate] = useAnimate()
+//   const isInView = useInView(scope)
+//   useEffect(() => {
+//     if (isInView) {
+//       animate(scope.current, { opacity: 1 })
+//     }
+//   }, [isInView])
+
+//   return (
+//     <motion.div
+//       transition={{
+//         staggerChildren: 0.1
+//       }}
+//       ref={scope}
+//     >
+//       {
+//         pagination.map(thread => {
+//           return <ThreadItem data={thread} key={thread.node.id} />
+//         })
+//       }
+//     </motion.div >
+//   )
+// }
+
 interface ThreadItemProps {
   data: ListThreadsQuery['threads']['edges'][0]
+  isLast?: boolean
 }
-function ThreadItem({ data }: ThreadItemProps) {
+function ThreadItem({ data, isLast }: ThreadItemProps) {
   const userId = data.node.userId
   const threadId = data.node.id
   const { sources, allUsers } = useContext(ThreadFeedsContext)
@@ -169,36 +263,56 @@ function ThreadItem({ data }: ThreadItemProps) {
   }, [allUsers, userId])
 
   return (
-    <>
-      <LoadingWrapper
-        loading={fetching}
-        fallback={<ThreadItemSkeleton className="py-3" />}
-      >
-        <Link href={`/search/${titleSlug}-${threadId}`} className="group">
-          <div className="mb-4 pt-3">
-            <div className="mb-1.5 flex items-center gap-2">
-              <div className="break-anywhere truncate text-base font-semibold group-hover:underline">
+    <motion.div
+      variants={threadItemVariants}
+      initial="initial"
+      whileInView="onscreen"
+      viewport={{
+        once: true
+      }}
+    >
+      <div className="flex gap-2 items-start">
+        <div className="w-8 h-8 rounded-full bg-[#AAA192] dark:bg-[#E7E1D3] p-2 mt-2 text-white relative">
+          <IconMessageCircle />
+          {!isLast && (
+            <div className="absolute w-0.5 h-10 top-10 left-4 bg-border"></div>
+          )}
+        </div>
+        <Link
+          href={title ? `/search/${titleSlug}-${threadId}` : 'javascript:void'}
+          className="group py-2 hover:bg-accent rounded-lg flex-1 overflow-hidden transform-bg px-2"
+        >
+          <div className="mb-1.5 flex items-center gap-2">
+            <LoadingWrapper
+              loading={fetching}
+              fallback={
+                <div className="py-1.5 w-full">
+                  <Skeleton className="w-[60%]" />
+                </div>
+              }
+            >
+              <div className="break-anywhere truncate text-lg font-semibold">
                 {title}
               </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <UserAvatar user={user} className="h-6 w-6 shrink-0 border" />
-              <div className="flex items-baseline gap-2.5">
-                <div className="text-sm">{user?.name || user?.email}</div>
-                <div className="text-xs text-muted-foreground">
-                  Asked{' '}
-                  {moment(data.node.createdAt).isBefore(
-                    moment().subtract(1, 'month')
-                  )
-                    ? moment(data.node.createdAt).format('YYYY-MM-DD HH:mm')
-                    : moment(data.node.createdAt).fromNow()}
-                </div>
+            </LoadingWrapper>
+          </div>
+          <div className="flex items-center gap-1">
+            <UserAvatar user={user} className="h-6 w-6 shrink-0 border" />
+            <div className="flex items-baseline gap-2.5">
+              <div className="text-sm">{user?.name || user?.email}</div>
+              <div className="text-xs text-muted-foreground">
+                Asked{' '}
+                {moment(data.node.createdAt).isBefore(
+                  moment().subtract(1, 'month')
+                )
+                  ? moment(data.node.createdAt).format('YYYY-MM-DD HH:mm')
+                  : moment(data.node.createdAt).fromNow()}
               </div>
             </div>
           </div>
         </Link>
-      </LoadingWrapper>
-    </>
+      </div>
+    </motion.div>
   )
 }
 
@@ -211,9 +325,9 @@ function TheadsSkeleton({ className }: { className?: string }) {
   )
 }
 
-function ThreadItemSkeleton({ className }: { className?: string }) {
+function ThreadItemSkeleton() {
   return (
-    <div className={cn('flex flex-col', className)}>
+    <div className="p-2">
       <Skeleton className="w-full" />
       <Skeleton className="mt-2.5 h-6 w-6 rounded-full" />
     </div>
