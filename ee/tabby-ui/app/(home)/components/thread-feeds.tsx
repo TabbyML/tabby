@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
+import { createContext, useContext, useMemo, useState } from 'react'
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
 import { motion, Variants } from 'framer-motion'
@@ -160,18 +153,18 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
         }}
         style={{ width: '100%', paddingBottom: '1rem' }}
       >
-        <div className="text-lg font-semibold mb-3">Threads</div>
+        <div className="mb-3 text-lg font-semibold">Threads</div>
         <Separator className="mb-4" />
         <LoadingWrapper
           loading={fetching || fetchingUsers}
           // showFallback
           fallback={
             <div className="flex justify-center">
-              <IconSpinner className="w-8 h-8" />
+              <IconSpinner className="h-8 w-8" />
             </div>
           }
         >
-          <div className="text-sm space-y-3">
+          <div className="space-y-3 text-sm">
             {threads?.length ? (
               <>
                 {threads.map((t, idx) => {
@@ -191,7 +184,7 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
           {!!pageInfo?.hasPreviousPage && (
             <LoadMoreIndicator onLoad={loadMore} isFetching={fetching}>
               <div className="flex justify-center">
-                <IconSpinner className="w-8 h-8" />
+                <IconSpinner className="h-8 w-8" />
               </div>
             </LoadMoreIndicator>
           )}
@@ -271,22 +264,22 @@ function ThreadItem({ data, isLast }: ThreadItemProps) {
         once: true
       }}
     >
-      <div className="flex gap-2 items-start">
-        <div className="w-8 h-8 rounded-full bg-[#AAA192] dark:bg-[#E7E1D3] p-2 mt-2 text-white relative">
+      <div className="flex items-start gap-2">
+        <div className="relative mt-2 h-8 w-8 rounded-full bg-[#AAA192] p-2 text-white dark:bg-[#E7E1D3]">
           <IconMessageCircle />
           {!isLast && (
-            <div className="absolute w-0.5 h-10 top-10 left-4 bg-border"></div>
+            <div className="absolute left-4 top-10 h-10 w-0.5 bg-border"></div>
           )}
         </div>
         <Link
           href={title ? `/search/${titleSlug}-${threadId}` : 'javascript:void'}
-          className="group py-2 hover:bg-accent rounded-lg flex-1 overflow-hidden transform-bg px-2"
+          className="transform-bg group flex-1 overflow-hidden rounded-lg p-2 hover:bg-accent"
         >
           <div className="mb-1.5 flex items-center gap-2">
             <LoadingWrapper
               loading={fetching}
               fallback={
-                <div className="py-1.5 w-full">
+                <div className="w-full py-1.5">
                   <Skeleton className="w-[60%]" />
                 </div>
               }

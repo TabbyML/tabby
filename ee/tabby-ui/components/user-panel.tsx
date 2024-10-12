@@ -40,7 +40,7 @@ import {
   IconLogout,
   IconSpinner
 } from './ui/icons'
-import { MyAvatar, UserAvatar } from './user-avatar'
+import { UserAvatar } from './user-avatar'
 
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
   mutation ResetUserAuthToken {
@@ -81,13 +81,13 @@ export default function UserPanel({
       <DropdownMenuContent
         side="bottom"
         align="end"
-        className="p-0 overflow-y-auto"
+        className="overflow-y-auto p-0"
       >
-        <div className="p-4 space-y-4">
-          <div className="flex gap-2 items-center">
+        <div className="space-y-4 p-4">
+          <div className="flex items-center gap-2">
             <UserAvatar
               user={user}
-              className="w-12 h-12 border-[2px] border-white shrink-0"
+              className="h-12 w-12 shrink-0 border-[2px] border-white"
             />
             <div className="space-y-1">
               {user.name && (
@@ -109,13 +109,13 @@ export default function UserPanel({
           <Configuration user={user} reexecuteQuery={reexecuteQuery} />
         </div>
 
-        <DropdownMenuSeparator className="mt-0 mb-1" />
+        <DropdownMenuSeparator className="mb-1 mt-0" />
 
         <div className="px-1.5">
           {showHome && (
             <DropdownMenuItem
               onClick={() => router.push('/')}
-              className="cursor-pointer pl-3 py-2"
+              className="cursor-pointer py-2 pl-3"
             >
               <IconHome />
               <span className="ml-2">Home</span>
@@ -124,7 +124,7 @@ export default function UserPanel({
           {showSetting && (
             <DropdownMenuItem
               onClick={() => router.push('/profile')}
-              className="cursor-pointer pl-3 py-2"
+              className="cursor-pointer py-2 pl-3"
             >
               <IconGear />
               <span className="ml-2">Settings</span>
@@ -132,14 +132,14 @@ export default function UserPanel({
           )}
           <DropdownMenuItem
             onClick={() => window.open('/files')}
-            className="cursor-pointer pl-3 py-2"
+            className="cursor-pointer py-2 pl-3"
           >
             <IconCode />
             <span className="ml-2">Code Browser</span>
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => window.open('/api')}
-            className="cursor-pointer pl-3 py-2"
+            className="cursor-pointer py-2 pl-3"
           >
             <IconBackpack />
             <span className="ml-2">API Docs</span>
@@ -150,7 +150,7 @@ export default function UserPanel({
         <DropdownMenuItem
           disabled={signOutLoading}
           onClick={handleSignOut}
-          className="cursor-pointer pl-3 py-2 mx-1.5 mb-1.5"
+          className="mx-1.5 mb-1.5 cursor-pointer py-2 pl-3"
         >
           <IconLogout />
           <span className="ml-2">Sign out</span>
@@ -180,7 +180,7 @@ function Configuration({
     <>
       <div
         className={cn(
-          'bg-[#FBF5ED] dark:bg-[#3D382F] p-4 w-[268px] rounded-xl',
+          'w-[268px] rounded-xl bg-[#FBF5ED] p-4 dark:bg-[#3D382F]',
           className
         )}
       >
@@ -193,26 +193,26 @@ function Configuration({
               <Input
                 value={externalUrl}
                 onChange={noop}
-                className="bg-[#FEFCF8] dark:bg-[#4F483B] border-none group-hover:pr-12 group-focus-within:pr-12"
+                className="border-none bg-[#FEFCF8] group-focus-within:pr-12 group-hover:pr-12 dark:bg-[#4F483B]"
               />
               <CopyButton
                 value={externalUrl}
                 className={cn(
-                  'absolute right-1 top-0.5 hidden group-hover:flex group-focus-within:flex'
+                  'absolute right-1 top-0.5 hidden group-focus-within:flex group-hover:flex'
                 )}
               />
             </span>
           </div>
 
-          <div className="flex flex-col gap-2 mt-4">
+          <div className="mt-4 flex flex-col gap-2">
             <Label className="text-xs text-muted-foreground">Token</Label>
             <span className="group relative">
               <Input
                 value={user.authToken}
                 onChange={noop}
-                className="bg-[#FEFCF8] dark:bg-[#4F483B] border-none group-hover:pr-20 group-focus-within:pr-20"
+                className="border-none bg-[#FEFCF8] group-focus-within:pr-20 group-hover:pr-20 dark:bg-[#4F483B]"
               />
-              <div className="absolute right-1 top-0.5 hidden group-hover:flex group-focus-within:flex items-center gap-1">
+              <div className="absolute right-1 top-0.5 hidden items-center gap-1 group-focus-within:flex group-hover:flex">
                 <CopyButton value={user.authToken} />
                 <Button
                   title="Rotate"
@@ -226,12 +226,12 @@ function Configuration({
             </span>
           </div>
         </CardContent>
-        <CardFooter className="p-0 mt-3 text-xs text-muted-foreground">
+        <CardFooter className="mt-3 p-0 text-xs text-muted-foreground">
           <span>
             Use information above for IDE extensions / plugins configuration,
             see{' '}
             <a
-              className="underline text-link"
+              className="text-link underline"
               target="_blank"
               href="https://tabby.tabbyml.com/docs/extensions/configurations#server"
             >
@@ -271,7 +271,7 @@ function IDELink({
       <TooltipTrigger>
         <Link
           href={href}
-          className="bg-[#FBF5ED] dark:bg-[#3D382F] w-8 h-8 flex items-center justify-center rounded-lg text-[#030302]"
+          className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FBF5ED] text-[#030302] dark:bg-[#3D382F]"
           target="_blank"
         >
           {icon}

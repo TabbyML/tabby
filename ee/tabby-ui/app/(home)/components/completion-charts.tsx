@@ -163,7 +163,7 @@ export function CompletionCharts({
         delay={0.15}
         style={{ flex: 1 }}
       >
-        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block rounded-2xl">
+        <Card className="flex flex-1 flex-col justify-between self-stretch rounded-2xl bg-transparent pb-3 md:block">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-base font-semibold leading-none tracking-tight">
               Acceptance Rate
@@ -186,8 +186,8 @@ export function CompletionCharts({
               />
             </LineChart>
           </ResponsiveContainer>
-          <CardContent className="px-4 pt-2 pb-0">
-            <div className="font-bold text-lg">{averageAcceptance}%</div>
+          <CardContent className="px-4 pb-0 pt-2">
+            <div className="text-lg font-bold">{averageAcceptance}%</div>
           </CardContent>
         </Card>
       </AnimationWrapper>
@@ -233,8 +233,8 @@ export function CompletionCharts({
               />
             </BarChart>
           </ResponsiveContainer>
-          <CardContent className="px-4 pt-2 pb-0">
-            <div className="font-bold text-lg">
+          <CardContent className="px-4 pb-0 pt-2">
+            <div className="text-lg font-bold">
               {numeral(totalViews).format('0,0')}
             </div>
           </CardContent>
@@ -282,8 +282,8 @@ export function CompletionCharts({
               />
             </BarChart>
           </ResponsiveContainer>
-          <CardContent className="px-4 pt-2 pb-0">
-            <div className="font-bold text-lg">
+          <CardContent className="px-4 pb-0 pt-2">
+            <div className="text-lg font-bold">
               {numeral(totalAccepts).format('0,0')}
             </div>
           </CardContent>

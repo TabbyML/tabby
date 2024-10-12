@@ -20,13 +20,7 @@ import {
 
 import { PromptEditor, PromptEditorRef } from './prompt-editor'
 import { Button } from './ui/button'
-import {
-  IconArrowRight,
-  IconAtSign,
-  IconBox,
-  IconHash,
-  IconSpinner
-} from './ui/icons'
+import { IconArrowRight, IconAtSign, IconHash, IconSpinner } from './ui/icons'
 import { Separator } from './ui/separator'
 
 export default function TextAreaSearch({
@@ -103,7 +97,7 @@ export default function TextAreaSearch({
   return (
     <div
       className={cn(
-        'relative overflow-hidden border bg-background transition-all rounded-xl hover:border-primary/80',
+        'relative overflow-hidden rounded-xl border bg-background transition-all hover:border-primary/80',
         {
           'border-primary/80': isFocus
         },
@@ -132,7 +126,7 @@ export default function TextAreaSearch({
           </TooltipContent>
         </Tooltip>
       )}
-      <div className="flex items-center px-4 min-h-[6rem]">
+      <div className="flex min-h-[6rem] items-center px-4">
         <PromptEditor
           editable
           contextInfo={contextInfo}
@@ -187,7 +181,7 @@ export default function TextAreaSearch({
       </div>
       <div
         className={cn(
-          'bg-popover/50 pr-4 pl-2 py-2 border-t flex items-center gap-2'
+          'flex items-center gap-2 border-t bg-popover/50 py-2 pl-2 pr-4'
         )}
         onClick={e => e.stopPropagation()}
       >

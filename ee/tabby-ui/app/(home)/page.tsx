@@ -62,7 +62,7 @@ function MainPanel() {
 
   return (
     <ScrollArea style={style}>
-      <header className="flex h-16 items-center justify-end px-4 backdrop-blur lg:px-10 sticky top-0 z-10">
+      <header className="sticky top-0 z-10 flex h-16 items-center justify-end px-4 backdrop-blur lg:px-10">
         <div className="flex items-center gap-x-6">
           <ClientOnly>
             <ThemeToggle />
@@ -77,7 +77,7 @@ function MainPanel() {
         className="flex-col items-center justify-center lg:flex"
         ref={elementRef}
       >
-        <div className="mx-auto flex w-full flex-col items-center px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0 gap-6">
+        <div className="mx-auto flex w-full flex-col items-center gap-6 px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
           <AnimationWrapper
             viewport={{
               margin: '-120px 0px 0px 0px'
