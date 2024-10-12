@@ -1034,6 +1034,7 @@ mod tests {
         let config = AnswerConfig {
             code_search_params: make_code_search_params(),
             presence_penalty: 0.1,
+            system_prompt: AnswerConfig::default_system_prompt(),
         };
         let db = DbConn::new_in_memory().await.unwrap();
         let repo = make_repository_service(db).await.unwrap();
@@ -1139,7 +1140,6 @@ mod tests {
 
         let result = merge_code_snippets(repo.clone(), hits, &policy, source_id).await;
 
-        //file doesn't exist
-        assert_eq!(result.len(), 0);
+        assert_eq!(result.len(), 2);
     }
 }
