@@ -9,7 +9,7 @@ use crate::{
     address::ParsedAddress,
     bar::WrappedBar,
     consts::*,
-    error::{DownloadError, HTTPHeaderError, ValidateError},
+    error::{DownloadError, ValidateError},
     hash::HashChecker,
     io,
 };

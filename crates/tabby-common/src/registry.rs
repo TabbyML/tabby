@@ -98,7 +98,7 @@ impl ModelRegistry {
         self.get_model_dir(name).join("ggml")
     }
 
-    // get_model_dir returns {root}/{name}, e.g. ~/.tabby/models/TABBYML/StarCoder-1B
+    // get_model_dir returns {root}/{name}, e.g. ~/.tabby/models/TabbyML/StarCoder-1B
     pub fn get_model_dir(&self, name: &str) -> PathBuf {
         models_dir().join(&self.name).join(name)
     }
@@ -181,7 +181,7 @@ pub fn parse_model_id(model_id: &str) -> (&str, &str) {
 mod tests {
     use temp_testdir::TempDir;
 
-    use super::ModelRegistry;
+    use super::{ModelRegistry, *};
     use crate::path::set_tabby_root;
 
     #[tokio::test]
@@ -190,9 +190,9 @@ mod tests {
         set_tabby_root(root.to_path_buf());
 
         let registry = ModelRegistry::new("TabbyML").await;
-        let name = "StarCoder-1B";
+        let dir = registry.get_model_dir("StarCoder-1B");
 
-        let old_model_path = registry.get_legacy_model_path(name);
+        let old_model_path = dir.join(GGML_MODEL_RELATIVE_PATH.as_str());
         tokio::fs::create_dir_all(old_model_path.parent().unwrap())
             .await
             .unwrap();
@@ -203,8 +203,13 @@ mod tests {
             .await
             .unwrap();
 
-        registry.migrate_model_path("StarCoder-1B").unwrap();
-        assert!(registry.get_model_entry_path("StarCoder-1B").exists());
-        assert!(old_model_path.exists());
+        registry
+            .migrate_relative_model_path("StarCoder-1B")
+            .unwrap();
+        assert!(registry
+            .get_model_entry_path("StarCoder-1B")
+            .unwrap()
+            .exists());
+        assert!(!old_model_path.exists());
     }
 }
