@@ -117,16 +117,6 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
     }
   }
 
-  // const paginations = useMemo(() => {
-  //   if (!threads?.length) return []
-
-  //   const paginatedArray: Array<ListThreadsQuery['threads']['edges']> = []
-  //   for (let i = 0; i < threads.length; i += PAGE_SIZE) {
-  //     paginatedArray.push(threads.slice(i, i + PAGE_SIZE));
-  //   }
-  //   return paginatedArray
-  // }, [threads])
-
   const threadLen = threads?.length ?? 0
 
   return (
@@ -153,11 +143,10 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
         }}
         style={{ width: '100%', paddingBottom: '1rem' }}
       >
-        <div className="mb-3 text-lg font-semibold">Threads</div>
+        <div className="text-lg font-semibold mb-2.5">Threads</div>
         <Separator className="mb-4" />
         <LoadingWrapper
           loading={fetching || fetchingUsers}
-          // showFallback
           fallback={
             <div className="flex justify-center">
               <IconSpinner className="h-8 w-8" />
@@ -193,31 +182,6 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
     </ThreadFeedsContext.Provider>
   )
 }
-
-// function ThreadPagination({ pagination }: { pagination: ListThreadsQuery['threads']['edges'] }) {
-//   const [scope, animate] = useAnimate()
-//   const isInView = useInView(scope)
-//   useEffect(() => {
-//     if (isInView) {
-//       animate(scope.current, { opacity: 1 })
-//     }
-//   }, [isInView])
-
-//   return (
-//     <motion.div
-//       transition={{
-//         staggerChildren: 0.1
-//       }}
-//       ref={scope}
-//     >
-//       {
-//         pagination.map(thread => {
-//           return <ThreadItem data={thread} key={thread.node.id} />
-//         })
-//       }
-//     </motion.div >
-//   )
-// }
 
 interface ThreadItemProps {
   data: ListThreadsQuery['threads']['edges'][0]

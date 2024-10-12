@@ -25,6 +25,7 @@ import {
   MessageCircle,
   MessageCircleQuestion,
   Search,
+  Send,
   Share2,
   Sparkles,
   Star,
@@ -1646,6 +1647,10 @@ function IconMessageCircle({
   )
 }
 
+function IconSend({ className, ...props }: React.ComponentProps<typeof Send>) {
+  return <Send className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1745,5 +1750,6 @@ export {
   IconFileQuestion,
   IconMessageCircleQuestion,
   IconHash,
-  IconMessageCircle
+  IconMessageCircle,
+  IconSend
 }

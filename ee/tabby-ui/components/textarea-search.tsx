@@ -20,7 +20,7 @@ import {
 
 import { PromptEditor, PromptEditorRef } from './prompt-editor'
 import { Button } from './ui/button'
-import { IconArrowRight, IconAtSign, IconHash, IconSpinner } from './ui/icons'
+import { IconAtSign, IconHash, IconSend, IconSpinner } from './ui/icons'
 import { Separator } from './ui/separator'
 
 export default function TextAreaSearch({
@@ -97,9 +97,9 @@ export default function TextAreaSearch({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-xl border bg-background transition-all hover:border-primary/80',
+        'relative overflow-hidden border bg-background transition-all rounded-xl hover:border-[#C89646] dark:hover:border-muted-foreground dark:border-muted-foreground/60 w-full',
         {
-          'border-primary/80': isFocus
+          'border-[#C89646] dark:border-muted-foreground': isFocus
         },
         className
       )}
@@ -126,18 +126,17 @@ export default function TextAreaSearch({
           </TooltipContent>
         </Tooltip>
       )}
-      <div className="flex min-h-[6rem] items-center px-4">
+      <div
+        className={cn('flex items-end px-4', {
+          'min-h-[5.5rem]': !isFollowup,
+          'min-h-[2.5rem]': isFollowup
+        })}
+      >
         <PromptEditor
           editable
           contextInfo={contextInfo}
           fetchingContextInfo={fetchingContextInfo}
           onSubmit={handleSubmit}
-          // placeholder={
-          //   placeholder ||
-          //   (contextInfo?.sources?.length
-          //     ? 'Ask anything...\n\nUse # to select a codebase to chat with, or @ to select a document to bring into context.'
-          //     : 'Ask anything...')
-          // }
           placeholder={placeholder || 'Ask anything...'}
           autoFocus={autoFocus}
           onFocus={() => setIsFocus(true)}
@@ -149,39 +148,44 @@ export default function TextAreaSearch({
             'text-area-autosize mr-1 flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
             {
               '!h-[48px]': !isShow,
-              'py-4': !showBetaBadge,
-              'py-5': showBetaBadge
+              'py-3': !showBetaBadge,
+              'py-4': showBetaBadge
             }
           )}
-          editorClassName={isFollowup ? 'min-h-[1.725rem]' : 'min-h-[3.5em]'}
+          // editorClassName={isFollowup ? 'min-h-[3.45rem]' : 'min-h-[3.5em]'}
+          editorClassName="min-h-[3.5em]"
         />
         <div className={cn('flex items-center justify-between gap-2')}>
           <div
             className={cn(
-              'flex items-center justify-center rounded-lg p-1 transition-all',
+              'flex items-center justify-center rounded-lg p-1 transition-all h-8 w-8 mb-3',
               {
                 'bg-primary text-primary-foreground cursor-pointer':
                   value.length > 0,
                 '!bg-muted !text-primary !cursor-default':
                   isLoading || value.length === 0,
-                'mr-1.5': !showBetaBadge,
-                'h-6 w-6': !isFollowup
+                'mr-1.5': !showBetaBadge
+                // 'mb-4': !showBetaBadge,
+                // 'mb-5': showBetaBadge
               }
             )}
             onClick={() => handleSubmit(editorRef.current?.editor)}
           >
             {loadingWithSpinning && isLoading && (
-              <IconSpinner className="h-3.5 w-3.5" />
+              <IconSpinner className="h-5 w-5" />
             )}
             {(!loadingWithSpinning || !isLoading) && (
-              <IconArrowRight className="h-3.5 w-3.5" />
+              <IconSend className="h-5 w-5" />
             )}
           </div>
         </div>
       </div>
       <div
         className={cn(
-          'flex items-center gap-2 border-t bg-popover/50 py-2 pl-2 pr-4'
+          'hidden bg-popover/50 pr-4 pl-2 py-2 border-t items-center gap-2',
+          {
+            flex: !isFollowup
+          }
         )}
         onClick={e => e.stopPropagation()}
       >
