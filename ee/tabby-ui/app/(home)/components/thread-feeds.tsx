@@ -143,7 +143,7 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
         }}
         style={{ width: '100%', paddingBottom: '1rem' }}
       >
-        <div className="text-lg font-semibold mb-2.5">Threads</div>
+        <div className="mb-2.5 text-lg font-semibold">Threads</div>
         <Separator className="mb-4" />
         <LoadingWrapper
           loading={fetching || fetchingUsers}

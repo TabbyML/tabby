@@ -97,7 +97,7 @@ export default function TextAreaSearch({
   return (
     <div
       className={cn(
-        'relative overflow-hidden border bg-background transition-all rounded-xl hover:border-[#C89646] dark:hover:border-muted-foreground dark:border-muted-foreground/60 w-full',
+        'relative w-full overflow-hidden rounded-xl border bg-background transition-all hover:border-[#C89646] dark:border-muted-foreground/60 dark:hover:border-muted-foreground',
         {
           'border-[#C89646] dark:border-muted-foreground': isFocus
         },
@@ -158,7 +158,7 @@ export default function TextAreaSearch({
         <div className={cn('flex items-center justify-between gap-2')}>
           <div
             className={cn(
-              'flex items-center justify-center rounded-lg p-1 transition-all h-8 w-8 mb-3',
+              'mb-3 flex h-8 w-8 items-center justify-center rounded-lg p-1 transition-all',
               {
                 'bg-primary text-primary-foreground cursor-pointer':
                   value.length > 0,
@@ -182,7 +182,7 @@ export default function TextAreaSearch({
       </div>
       <div
         className={cn(
-          'hidden bg-popover/50 pr-4 pl-2 py-2 border-t items-center gap-2',
+          'hidden items-center gap-2 border-t bg-popover/50 py-2 pl-2 pr-4',
           {
             flex: !isFollowup
           }
