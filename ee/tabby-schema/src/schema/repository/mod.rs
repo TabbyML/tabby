@@ -106,7 +106,7 @@ impl Clone for Repository {
             id: self.id.clone(),
             source_id: self.source_id.clone(),
             name: self.name.clone(),
-            kind: self.kind.clone(),
+            kind: self.kind,
             dir: self.dir.clone(),
             git_url: self.git_url.clone(),
             refs: self.refs.clone(),
