@@ -100,10 +100,33 @@ impl Repository {
     }
 }
 
+impl Clone for Repository {
+    fn clone(&self) -> Self {
+        Repository {
+            id: self.id.clone(),
+            source_id: self.source_id.clone(),
+            name: self.name.clone(),
+            kind: self.kind.clone(),
+            dir: self.dir.clone(),
+            git_url: self.git_url.clone(),
+            refs: self.refs.clone(),
+        }
+    }
+}
+
 #[derive(GraphQLObject, Debug)]
 pub struct GitReference {
     pub name: String,
     pub commit: String,
+}
+
+impl Clone for GitReference {
+    fn clone(&self) -> Self {
+        Self {
+            name: self.name.clone(),
+            commit: self.commit.clone(),
+        }
+    }
 }
 
 impl From<GitRepository> for Repository {

@@ -29,7 +29,7 @@ use tabby_inference::ChatCompletionStream;
 use tabby_schema::{
     context::{ContextInfoHelper, ContextService},
     policy::AccessPolicy,
-    repository::RepositoryService,
+    repository::{Repository, RepositoryService},
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
         ThreadAssistantMessageAttachmentsCode, ThreadAssistantMessageAttachmentsDoc,
@@ -37,6 +37,7 @@ use tabby_schema::{
         ThreadRunOptionsInput,
     },
 };
+use tokio::sync::OnceCell;
 use tracing::{debug, error, warn};
 
 use crate::bail;
@@ -504,6 +505,10 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
     )
 }
 
+use anyhow::Result;
+
+static GLOBAL_REPOS: OnceCell<HashMap<String, Repository>> = OnceCell::const_new();
+
 /// Combine code snippets from search results rather than utilizing multiple hits: Presently, there is only one rule: if the number of lines of code (LoC) is less than 200, and there are multiple hits (number of hits > 1), include the entire file.
 pub async fn merge_code_snippets(
     repository: Arc<dyn RepositoryService>,
@@ -518,21 +523,32 @@ pub async fn merge_code_snippets(
         file_hits.entry(key).or_default().push(hit);
     }
 
-    let repo = match repository
-        .resolve_repository_by_source_id(policy, source_id)
-        .await
-    {
-        Ok(repo) => repo,
-        Err(e) => {
-            warn!(
-                "Error resolving repository by source id {}: {}",
-                source_id, e
-            );
+    let repos = GLOBAL_REPOS
+        .get_or_init(|| async {
+            repository
+                .repository_list(Some(policy))
+                .await
+                .map(|repos| {
+                    repos
+                        .into_iter()
+                        .map(|repo| (repo.source_id.clone(), repo))
+                        .collect()
+                })
+                .unwrap_or_else(|e| {
+                    warn!("Failed to initialize global repos: {}", e);
+                    HashMap::new()
+                })
+        })
+        .await;
+
+    let mut result = Vec::with_capacity(file_hits.len());
+    let repo = match repos.get(source_id) {
+        Some(repo) => repo.clone(),
+        None => {
+            warn!("Repository not found for source id: {}", source_id);
             return file_hits.into_iter().flat_map(|(_, hits)| hits).collect();
         }
     };
-
-    let mut result = Vec::with_capacity(file_hits.len());
     for (_, file_hits) in file_hits {
         if file_hits.len() > 1 {
             // construct the full path to the file
