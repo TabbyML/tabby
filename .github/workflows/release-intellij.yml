@@ -144,7 +144,7 @@ jobs:
         with:
           allowUpdates: true
           prerelease: ${{ env.STABLE_RELEASE == 'false' }}
-          makeLatest: ${{ env.STABLE_RELEASE == 'true' }}
+          makeLatest: false
           tag: ${{ github.ref_name }}
           removeArtifacts: true
           artifacts: "clients/intellij/build/distributions/intellij-tabby-signed.zip"
