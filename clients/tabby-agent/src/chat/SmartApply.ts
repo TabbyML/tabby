@@ -24,8 +24,8 @@ import cryptoRandomString from "crypto-random-string";
 import { getLogger } from "../logger";
 import { ChatStatus } from "./chatStatus";
 import { applyWorkspaceEdit, readResponseStream } from "./utils";
-import { getSmartApplyRange } from "./fuzzyApplyRange";
 import { TextDocument } from "vscode-languageserver-textdocument";
+import { getSmartApplyRange } from "./SmartRange";
 export class SmartApplyFeature implements Feature {
   private logger = getLogger("ChatEditProvider");
   private lspConnection: Connection | undefined = undefined;
@@ -58,7 +58,7 @@ export class SmartApplyFeature implements Feature {
       return false;
     }
     if (!this.lspConnection) {
-      this.logger.info("LSP connection not found, returning false");
+      this.logger.info("LSP connection lost.");
       return false;
     }
 
@@ -70,10 +70,16 @@ export class SmartApplyFeature implements Feature {
       } as ChatEditMutexError;
     }
 
-    this.logger.info("Determining apply range");
-    const applyRange = getSmartApplyRange(document, params.applyCode);
+    let applyRange = getSmartApplyRange(document, params.applyCode);
+    //if cannot find range, lets use backend LLMs
     if (!applyRange) {
-      //
+      if (!this.tabbyApiClient.isChatApiAvailable) {
+        return false;
+      }
+      applyRange = await this.provideSmartApplyLineRange(document, params.applyCode);
+    }
+
+    if (!applyRange) {
       return false;
     }
 
@@ -130,11 +136,11 @@ export class SmartApplyFeature implements Feature {
   }
 
   //Provide Smart Apply Line Range from LLMs
-  async provideSmartApplyLineRange(
+  //return 0-based line range
+  private async provideSmartApplyLineRange(
     document: TextDocument,
     applyCodeBlock: string,
-    _action: "insert" | "replace",
-  ): Promise<Range | undefined> {
+  ): Promise<{ range: Range; action: "insert" | "replace" } | undefined> {
     if (!document) {
       return undefined;
     }
@@ -204,15 +210,23 @@ export class SmartApplyFeature implements Feature {
         return undefined;
       }
 
-      const startLine = parseInt(range[0] ? range[0] : "0");
-      const endLine = parseInt(range[1] ? range[1] : "0");
+      const startLine = parseInt(range[0] ?? "0", 10) - 1;
+      const endLine = parseInt(range[1] ?? "0", 10) - 1;
 
-      return { start: { line: startLine, character: 0 }, end: { line: endLine, character: Number.MAX_SAFE_INTEGER } };
+      return {
+        range: {
+          start: { line: startLine < 0 ? 0 : startLine, character: 0 },
+          end: { line: endLine < 0 ? 0 : endLine, character: Number.MAX_SAFE_INTEGER },
+        },
+        action: startLine == endLine ? "insert" : "replace",
+      };
     } catch (error) {
       return undefined;
     }
   }
 
+  //TODO: using chat/completion to insert or replace applyCode
+  //it will adding into apply method
   async provideSmartApplyEditLLM(location: Location, applyCode: string, indentInfo: string): Promise<boolean> {
     const document = this.documents.get(location.uri);
     if (!document) {
