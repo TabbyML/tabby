@@ -1,4 +1,12 @@
-import type { Range, Location, Connection, CancellationToken, WorkspaceEdit } from "vscode-languageserver";
+import type {
+  Range,
+  Location,
+  Connection,
+  CancellationToken,
+  WorkspaceEdit,
+  Position,
+  TextEdit,
+} from "vscode-languageserver";
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import type { TextDocuments } from "../lsp/textDocuments";
 import type { Feature } from "../feature";
@@ -19,9 +27,6 @@ import {
   ChatEditMutexError,
   ApplyWorkspaceEditRequest,
   ApplyWorkspaceEditParams,
-  ChatLineRangeSmartApplyRequest,
-  ChatLineRangeSmartApplyParams,
-  ChatLineRangeSmartApplyResult,
   SmartApplyCodeRequest,
   SmartApplyCodeParams,
   ServerCapabilities,
@@ -30,6 +35,8 @@ import cryptoRandomString from "crypto-random-string";
 import * as Diff from "diff";
 import { isEmptyRange } from "../utils/range";
 import { isBlank } from "../utils/string";
+import { fuzzyApplyRange } from "./fuzzyApplyRange";
+import { getLogger } from "../logger";
 
 export type Edit = {
   id: ChatEditToken;
@@ -47,6 +54,7 @@ export class ChatEditProvider implements Feature {
   private lspConnection: Connection | undefined = undefined;
   private currentEdit: Edit | undefined = undefined;
   private mutexAbortController: AbortController | undefined = undefined;
+  private logger = getLogger("ChatEditProvider");
 
   constructor(
     private readonly configurations: Configurations,
@@ -66,9 +74,6 @@ export class ChatEditProvider implements Feature {
       return this.resolveEdit(params);
     });
 
-    connection.onRequest(ChatLineRangeSmartApplyRequest.type, async (params, token) => {
-      return this.provideSmartApplyLineRange(params, token);
-    });
     connection.onRequest(SmartApplyCodeRequest.type, async (params, token) => {
       return this.provideSmartApplyEdit(params, token);
     });
@@ -512,227 +517,89 @@ export class ChatEditProvider implements Feature {
     }
   }
 
-  async provideSmartApplyLineRange(
-    params: ChatLineRangeSmartApplyParams,
-    token: CancellationToken,
-  ): Promise<ChatLineRangeSmartApplyResult | undefined> {
-    const document = this.documents.get(params.uri);
-    if (!document) {
-      return undefined;
-    }
-    if (!this.tabbyApiClient.isChatApiAvailable()) {
-      throw {
-        name: "ChatFeatureNotAvailableError",
-        message: "Chat feature not available",
-      } as ChatFeatureNotAvailableError;
-    }
-
-    const documentText = document
-      .getText()
-      .split("\n")
-      .map((line, idx) => `${idx + 1} | ${line}`)
-      .join("\n");
-
-    if (this.mutexAbortController && !this.mutexAbortController.signal.aborted) {
-      throw {
-        name: "ChatEditMutexError",
-        message: "Another edit is already in progress",
-      } as ChatEditMutexError;
-    }
-
-    this.mutexAbortController = new AbortController();
-    token.onCancellationRequested(() => this.mutexAbortController?.abort());
-
-    const config = this.configurations.getMergedConfig();
-    const promptTemplate = config.chat.provideSmartApplyLineRange.promptTemplate;
-
-    const messages: { role: "user"; content: string }[] = [
-      {
-        role: "user",
-        content: promptTemplate.replace(/{{document}}|{{applyCode}}/g, (pattern: string) => {
-          switch (pattern) {
-            case "{{document}}":
-              return documentText;
-            case "{{applyCode}}":
-              return params.applyCode;
-            default:
-              return "";
-          }
-        }),
-      },
-    ];
-
-    try {
-      const readableStream = await this.tabbyApiClient.fetchChatStream(
-        {
-          messages,
-          model: "",
-          stream: true,
-        },
-        this.mutexAbortController.signal,
-      );
-
-      if (!readableStream) {
-        return undefined;
-      }
-
-      let response = "";
-      for await (const chunk of readableStream) {
-        response += chunk;
-      }
-
-      const regex = /<GENERATEDCODE>(.*?)<\/GENERATEDCODE>/s;
-      const match = response.match(regex);
-      if (match && match[1]) {
-        response = match[1].trim();
-      }
-
-      const range = response.split("-");
-      if (range.length !== 2) {
-        return undefined;
-      }
-
-      const startLine = parseInt(range[0] ? range[0] : "0");
-      const endLine = parseInt(range[1] ? range[1] : "0");
-
-      return { start: startLine, end: endLine };
-    } catch (error) {
-      return undefined;
-    } finally {
-      this.mutexAbortController = undefined;
-    }
-  }
-
-  async provideSmartApplyEdit(params: SmartApplyCodeParams, token: CancellationToken): Promise<boolean> {
+  async provideSmartApplyEdit(params: SmartApplyCodeParams, _token: CancellationToken): Promise<boolean> {
     if (params.format !== "previewChanges") {
+      this.logger.info("Format is not previewChanges, returning false");
       return false;
     }
 
+    this.logger.info("Getting document");
     const document = this.documents.get(params.location.uri);
     if (!document) {
+      this.logger.info("Document not found, returning false");
       return false;
     }
 
-    if (!this.tabbyApiClient.isChatApiAvailable()) {
-      throw {
-        name: "ChatFeatureNotAvailableError",
-        message: "Chat feature not available",
-      } as ChatFeatureNotAvailableError;
+    this.logger.info("Determining apply range");
+    const applyRange = fuzzyApplyRange(document, params.applyCode);
+    if (!applyRange) {
+      this.logger.info("Apply range not found, returning false");
+      return false;
     }
 
-    const config = this.configurations.getMergedConfig();
-    const documentText = document.getText();
-    const selection = {
-      start: document.offsetAt(params.location.range.start),
-      end: document.offsetAt(params.location.range.end),
-    };
-    const selectedDocumentText = documentText.substring(selection.start, selection.end);
-
-    if (selection.end - selection.start > config.chat.edit.documentMaxChars) {
-      throw { name: "ChatEditDocumentTooLongError", message: "Document too long" } as ChatEditDocumentTooLongError;
+    if (applyRange.range.start.line === applyRange.range.end.line) {
+      //TODO: build here
     }
 
     if (this.mutexAbortController && !this.mutexAbortController.signal.aborted) {
+      this.logger.warn("Another smart edit is already in progress");
       throw {
         name: "ChatEditMutexError",
         message: "Another smart edit is already in progress",
       } as ChatEditMutexError;
     }
 
-    this.mutexAbortController = new AbortController();
-    token.onCancellationRequested(() => this.mutexAbortController?.abort());
-
-    const insertMode = params.location.range.start.line === params.location.range.end.line;
-
-    const presetConfig = config.chat.edit.presetCommands["/smartApply"];
-    if (!presetConfig) {
-      return false;
-    }
-    const promptTemplate = presetConfig.promptTemplate;
-
-    // Extract the selected text and the surrounding context
-    let documentPrefix = documentText.substring(0, selection.start);
-    let documentSuffix = documentText.substring(selection.end);
-    if (documentText.length > config.chat.edit.documentMaxChars) {
-      const charsRemain = config.chat.edit.documentMaxChars - selectedDocumentText.length;
-      if (documentPrefix.length < charsRemain / 2) {
-        documentSuffix = documentSuffix.substring(0, charsRemain - documentPrefix.length);
-      } else if (documentSuffix.length < charsRemain / 2) {
-        documentPrefix = documentPrefix.substring(documentPrefix.length - charsRemain + documentSuffix.length);
-      } else {
-        documentPrefix = documentPrefix.substring(documentPrefix.length - charsRemain / 2);
-        documentSuffix = documentSuffix.substring(0, charsRemain / 2);
-      }
-    }
-
-    const messages: { role: "user"; content: string }[] = [
-      {
-        role: "user",
-        content: promptTemplate.replace(
-          /{{document}}|{{code}}|{{lineRange}}|{{indentForTheFirstLine}}|{{indent}}/g,
-          (pattern: string) => {
-            switch (pattern) {
-              case "{{document}}":
-                return selectedDocumentText;
-              case "{{code}}":
-                return params.applyCode || "";
-              case "{{lineRange}}":
-                return `${params.location.range.start.line}-${params.location.range.end.line}`;
-              case "{{indentForTheFirstLine}}":
-                return params.indentInfo?.indentForTheFirstLine || "";
-              case "{{indent}}":
-                return params.indentInfo?.indent || "";
-              default:
-                return "";
-            }
-          },
-        ),
-      },
-    ];
-
     try {
-      const readableStream = await this.tabbyApiClient.fetchChatStream(
-        {
-          messages,
-          model: "",
-          stream: true,
+      const endPosition = applyRange.range.end;
+
+      const currentLineText = document.getText({
+        start: { line: endPosition.line, character: 0 },
+        end: endPosition,
+      });
+
+      const indentation = currentLineText.match(/^\s*/)![0];
+
+      const newText =
+        params.applyCode
+          .split("\n")
+          .map((line) => indentation + line)
+          .join("\n") + "\n";
+
+      const newLinePosition: Position = {
+        line: endPosition.line + 1,
+        character: 0,
+      };
+      const edit: TextEdit = {
+        range: {
+          start: newLinePosition,
+          end: newLinePosition,
         },
-        this.mutexAbortController.signal,
-      );
-
-      if (!readableStream) {
-        return false;
-      }
-
-      const editId = "tabby-" + cryptoRandomString({ length: 6, type: "alphanumeric" });
-      this.currentEdit = {
-        id: editId,
-        location: params.location,
-        languageId: document.languageId,
-        originalText: selectedDocumentText,
-        editedRange: insertMode
-          ? { start: params.location.range.start, end: params.location.range.start }
-          : { start: params.location.range.start, end: params.location.range.end },
-        editedText: "",
-        comments: "",
-        buffer: "",
-        state: "editing",
+        newText: newText,
       };
 
-      await this.readResponseStream(
-        readableStream,
-        config.chat.edit.responseDocumentTag,
-        config.chat.edit.responseCommentTag,
-      );
+      const workspaceEdit: WorkspaceEdit = {
+        changes: {
+          [document.uri]: [edit],
+        },
+      };
 
-      return true;
+      const applyWorkspaceEditParams: ApplyWorkspaceEditParams = {
+        label: "Smart Apply Edit",
+        edit: workspaceEdit,
+      };
+
+      const editResult = await this.applyWorkspaceEdit(applyWorkspaceEditParams);
+
+      this.logger.info(`Workspace edit applied: ${editResult}`);
+      return editResult;
     } catch (error) {
+      this.logger.error("Error applying smart edit:", error);
       return false;
     } finally {
+      this.logger.info("Resetting mutex abort controller");
       this.mutexAbortController = undefined;
     }
   }
-
   // header line
   // <<<<<<< Editing by Tabby <.#=+->
   // markers:
