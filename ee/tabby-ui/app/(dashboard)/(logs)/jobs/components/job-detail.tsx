@@ -8,17 +8,36 @@ import moment from 'moment'
 import { useQuery } from 'urql'
 
 import { listJobRuns } from '@/lib/tabby/query'
-import { cn } from '@/lib/utils'
 import {
   IconChevronLeft,
   IconClock,
   IconHistory,
-  IconSpinner,
   IconStopWatch
 } from '@/components/ui/icons'
 import { ListSkeleton } from '@/components/skeleton'
 
 import { getJobDisplayName, getLabelByJobRun } from '../utils'
+
+import "@patternfly/react-core/dist/styles/base.css";
+import { LogViewer, LogViewerSearch } from '@patternfly/react-log-viewer';
+import { Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
+
+const BasicSearchLogViewer = ({data}: {data?: string}) => {
+  return (
+    <LogViewer
+      data={data}
+      toolbar={
+        <Toolbar>
+          <ToolbarContent>
+            <ToolbarItem>
+              <LogViewerSearch placeholder="Search value" />
+            </ToolbarItem>
+          </ToolbarContent>
+        </Toolbar>
+      }
+    />
+  )
+};
 
 export default function JobRunDetail() {
   const router = useRouter()
@@ -52,8 +71,11 @@ export default function JobRunDetail() {
     }
   }, [currentNode])
 
+  console.log('currentNode', currentNode);
+
   return (
     <>
+
       {fetching ? (
         <ListSkeleton />
       ) : (
@@ -114,44 +136,12 @@ export default function JobRunDetail() {
                 )}
               </div>
               <div className="flex flex-1 flex-col">
-                <StdoutView value={currentNode?.stdout} pending={isPending} />
+                <BasicSearchLogViewer data={currentNode?.stdout} />
               </div>
             </>
           )}
         </div>
       )}
     </>
-  )
-}
-
-function StdoutView({
-  children,
-  className,
-  value,
-  pending,
-  ...rest
-}: React.HTMLAttributes<HTMLDivElement> & {
-  value?: string
-  pending?: boolean
-}) {
-  return (
-    <div
-      className={cn(
-        'relative mt-2 h-[72vh] w-full overflow-y-auto overflow-x-hidden rounded-lg border bg-gray-50 font-mono text-[0.9rem] dark:bg-gray-800',
-        className
-      )}
-      {...rest}
-    >
-      {pending && !value && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/60">
-          <IconSpinner className="h-8 w-8" />
-        </div>
-      )}
-      {value && (
-        <pre className="whitespace-pre-wrap p-4">
-          <Ansi>{value}</Ansi>
-        </pre>
-      )}
-    </div>
   )
 }
