@@ -17,21 +17,25 @@ import { Config } from "../Config";
 import { InlineCompletionProvider } from "../InlineCompletionProvider";
 import { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
+import { WorkSpaceFeature } from "./WorkspaceFeature";
 
 export class Client {
   private readonly logger = getLogger("");
   readonly agent: AgentFeature;
   readonly chat: ChatFeature;
   readonly telemetry: TelemetryFeature;
+  readonly workspace: WorkSpaceFeature;
   constructor(
     private readonly context: ExtensionContext,
     readonly languageClient: BaseLanguageClient,
   ) {
     this.agent = new AgentFeature(this.languageClient);
     this.chat = new ChatFeature(this.languageClient);
+    this.workspace = new WorkSpaceFeature(this.languageClient);
     this.telemetry = new TelemetryFeature(this.languageClient);
     this.languageClient.registerFeature(this.agent);
     this.languageClient.registerFeature(this.chat);
+    this.languageClient.registerFeature(this.workspace);
     this.languageClient.registerFeature(this.telemetry);
     this.languageClient.registerFeature(new DataStoreFeature(this.context, this.languageClient));
     this.languageClient.registerFeature(new EditorOptionsFeature(this.languageClient));
