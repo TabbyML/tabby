@@ -14,16 +14,18 @@ import {
   ChatEditDocumentTooLongError,
   ChatEditMutexError,
   ChatFeatureNotAvailableError,
+  RevealEditorRangeParams,
   ServerCapabilities,
   SmartApplyCodeParams,
   SmartApplyCodeRequest,
+  TextEditorRevealType,
 } from "../protocol";
 import { Configurations } from "../config";
 import { TabbyApiClient } from "../http/tabbyApiClient";
 import cryptoRandomString from "crypto-random-string";
 import { getLogger } from "../logger";
 import { ChatStatus } from "./chatStatus";
-import { applyWorkspaceEdit, readResponseStream } from "./utils";
+import { applyWorkspaceEdit, readResponseStream, revealEditorRange } from "./utils";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { getSmartApplyRange } from "./SmartRange";
 export class SmartApplyFeature implements Feature {
@@ -122,6 +124,12 @@ export class SmartApplyFeature implements Feature {
         edit: workspaceEdit,
       };
 
+      const revealEditorRangeParams : RevealEditorRangeParams = {
+        range: edit.range,
+        revealType: TextEditorRevealType.InCenterIfOutsideViewport,
+      };
+
+      await revealEditorRange(revealEditorRangeParams, this.lspConnection);
       const editResult = await applyWorkspaceEdit(applyWorkspaceEditParams, this.lspConnection);
 
       this.logger.info(`Workspace edit applied: ${editResult}`);

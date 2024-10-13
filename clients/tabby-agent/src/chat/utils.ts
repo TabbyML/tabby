@@ -6,7 +6,12 @@ import { WorkspaceEdit } from "vscode-languageserver-protocol";
 import * as Diff from "diff";
 import { isBlank } from "../utils/string";
 import { Connection } from "vscode-languageserver";
-import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest } from "../protocol";
+import {
+  ApplyWorkspaceEditParams,
+  ApplyWorkspaceEditRequest,
+  RevealEditorRangeParams,
+  RevealEditorRangeRequest,
+} from "../protocol";
 import { ChatStatus } from "./chatStatus";
 
 export async function readResponseStream(
@@ -186,6 +191,18 @@ export async function applyWorkspaceEdit(
     } catch (fallbackError) {
       return false;
     }
+  }
+}
+
+export async function revealEditorRange(params: RevealEditorRangeParams, lspConnection: Connection): Promise<boolean> {
+  if (!lspConnection) {
+    return false;
+  }
+  try {
+    const result = await lspConnection.sendRequest(RevealEditorRangeRequest.type, params);
+    return result;
+  } catch (error) {
+    return false;
   }
 }
 

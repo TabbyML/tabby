@@ -28,6 +28,8 @@ import {
   ApplyWorkspaceEditRequest,
   SmartApplyCodeParams,
   SmartApplyCodeRequest,
+  RevealEditorRangeRequest,
+  RevealEditorRangeParams,
 } from "tabby-agent";
 import { diffLines } from "diff";
 
@@ -65,6 +67,9 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
     this.disposables.push(
       this.client.onRequest(ApplyWorkspaceEditRequest.type, (params: ApplyWorkspaceEditParams) => {
         return this.handleApplyWorkspaceEdit(params);
+      }),
+      this.client.onRequest(RevealEditorRangeRequest.type, (params: RevealEditorRangeParams) => {
+        return this.handleRevealEditorRange(params);
       }),
     );
   }
@@ -175,6 +180,24 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
     } catch (error) {
       return false;
     }
+  }
+
+  handleRevealEditorRange(params: RevealEditorRangeParams): boolean {
+    const { range, revealType } = params;
+    const activeEditor = window.activeTextEditor;
+    if (!activeEditor) {
+      return false;
+    }
+
+    activeEditor.revealRange(
+      new Range(
+        new Position(range.start.line, range.start.character),
+        new Position(range.end.line, range.end.character),
+      ),
+      revealType,
+    );
+
+    return true;
   }
 
   async resolveEdit(params: ChatEditResolveParams): Promise<boolean> {
