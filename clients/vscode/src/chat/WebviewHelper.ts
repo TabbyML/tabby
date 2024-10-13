@@ -565,30 +565,13 @@ export class WebviewHelper {
             async (progress, token) => {
               progress.report({ increment: 0, message: "Analyzing code..." });
 
-              const lineRangeRes = await this.chat?.provideLineRange(
-                {
-                  uri: editor.document.uri.toString(),
-                  applyCode: content,
-                },
-                token,
-              );
-
-              getLogger().info("line range(one-based): ", lineRangeRes?.start, lineRangeRes?.end);
-
-              if (!lineRangeRes?.start || !lineRangeRes?.end) {
-                window.showInformationMessage("Failed to apply code.");
-                applyInEditor(editor);
-                return;
-              }
-
-              progress.report({ increment: 30, message: "Preparing edit..." });
-
               try {
                 getLogger().info("getting provide edit command", content);
 
                 const range = {
-                  start: { line: lineRangeRes.start - 1, character: 0 },
-                  end: { line: lineRangeRes.end - 1, character: 0 },
+                  start: { line: 1, character: 0 },
+
+                  end: { line: 1, character: 0 },
                 };
                 editor.revealRange(
                   new Range(
