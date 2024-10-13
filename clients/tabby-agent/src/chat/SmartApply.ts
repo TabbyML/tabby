@@ -24,13 +24,15 @@ import { Configurations } from "../config";
 import { TabbyApiClient } from "../http/tabbyApiClient";
 import cryptoRandomString from "crypto-random-string";
 import { getLogger } from "../logger";
-import { ChatStatus } from "./chatStatus";
 import { applyWorkspaceEdit, readResponseStream, revealEditorRange } from "./utils";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { getSmartApplyRange } from "./SmartRange";
+import { Edit } from "./inlineEdit";
 export class SmartApplyFeature implements Feature {
   private logger = getLogger("ChatEditProvider");
   private lspConnection: Connection | undefined = undefined;
+  private currentEdit: Edit | undefined = undefined;
+  private mutexAbortController: AbortController | undefined = undefined;
   constructor(
     private readonly configurations: Configurations,
     private readonly tabbyApiClient: TabbyApiClient,
@@ -52,7 +54,7 @@ export class SmartApplyFeature implements Feature {
     //nothing
   }
 
-  async provideSmartApplyEdit(params: SmartApplyCodeParams, _token: CancellationToken): Promise<boolean> {
+  async provideSmartApplyEdit(params: SmartApplyCodeParams, token: CancellationToken): Promise<boolean> {
     this.logger.info("Getting document");
     const document = this.documents.get(params.location.uri);
     if (!document) {
@@ -64,13 +66,15 @@ export class SmartApplyFeature implements Feature {
       return false;
     }
 
-    if (ChatStatus.mutexAbortController && !ChatStatus.mutexAbortController.signal.aborted) {
+    if (this.mutexAbortController && !this.mutexAbortController.signal.aborted) {
       this.logger.warn("Another smart edit is already in progress");
       throw {
         name: "ChatEditMutexError",
         message: "Another smart edit is already in progress",
       } as ChatEditMutexError;
     }
+    this.mutexAbortController = new AbortController();
+    token.onCancellationRequested(() => this.mutexAbortController?.abort());
 
     let applyRange = getSmartApplyRange(document, params.applyCode);
     //if cannot find range, lets use backend LLMs
@@ -124,7 +128,7 @@ export class SmartApplyFeature implements Feature {
         edit: workspaceEdit,
       };
 
-      const revealEditorRangeParams : RevealEditorRangeParams = {
+      const revealEditorRangeParams: RevealEditorRangeParams = {
         range: edit.range,
         revealType: TextEditorRevealType.InCenterIfOutsideViewport,
       };
@@ -139,7 +143,7 @@ export class SmartApplyFeature implements Feature {
       return false;
     } finally {
       this.logger.info("Resetting mutex abort controller");
-      ChatStatus.mutexAbortController = undefined;
+      this.mutexAbortController = undefined;
     }
   }
 
@@ -164,13 +168,6 @@ export class SmartApplyFeature implements Feature {
       .split("\n")
       .map((line, idx) => `${idx + 1} | ${line}`)
       .join("\n");
-
-    if (ChatStatus.mutexAbortController && !ChatStatus.mutexAbortController.signal.aborted) {
-      throw {
-        name: "ChatEditMutexError",
-        message: "Another edit is already in progress",
-      } as ChatEditMutexError;
-    }
 
     const config = this.configurations.getMergedConfig();
     const promptTemplate = config.chat.provideSmartApplyLineRange.promptTemplate;
@@ -265,6 +262,15 @@ export class SmartApplyFeature implements Feature {
       throw { name: "ChatEditDocumentTooLongError", message: "Document too long" } as ChatEditDocumentTooLongError;
     }
 
+    if (this.mutexAbortController && !this.mutexAbortController.signal.aborted) {
+      this.logger.warn("Another smart edit is already in progress");
+      throw {
+        name: "ChatEditMutexError",
+        message: "Another smart edit is already in progress",
+      } as ChatEditMutexError;
+    }
+    this.mutexAbortController = new AbortController();
+
     const insertMode = location.range.start.line === location.range.end.line;
 
     const presetConfig = config.chat.edit.presetCommands["/smartApply"];
@@ -323,7 +329,7 @@ export class SmartApplyFeature implements Feature {
       }
 
       const editId = "tabby-" + cryptoRandomString({ length: 6, type: "alphanumeric" });
-      ChatStatus.currentEdit = {
+      this.currentEdit = {
         id: editId,
         location: location,
         languageId: document.languageId,
@@ -340,6 +346,12 @@ export class SmartApplyFeature implements Feature {
       await readResponseStream(
         readableStream,
         this.lspConnection,
+        this.currentEdit,
+        this.mutexAbortController,
+        () => {
+          this.currentEdit = undefined;
+          this.mutexAbortController = undefined;
+        },
         config.chat.edit.responseDocumentTag,
         config.chat.edit.responseCommentTag,
       );
@@ -347,6 +359,8 @@ export class SmartApplyFeature implements Feature {
       return true;
     } catch (error) {
       return false;
+    } finally {
+      this.mutexAbortController = undefined;
     }
   }
 }

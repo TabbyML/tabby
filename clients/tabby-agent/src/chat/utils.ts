@@ -12,11 +12,13 @@ import {
   RevealEditorRangeParams,
   RevealEditorRangeRequest,
 } from "../protocol";
-import { ChatStatus } from "./chatStatus";
 
 export async function readResponseStream(
   stream: Readable,
   connection: Connection,
+  currentEdit: Edit | undefined,
+  mutexAbortController: AbortController | undefined,
+  resetEditAndMutexAbortController: () => void,
   responseDocumentTag: string[],
   responseCommentTag?: string[],
 ): Promise<void> {
@@ -120,21 +122,21 @@ export async function readResponseStream(
   };
 
   try {
-    if (!ChatStatus.currentEdit) {
+    if (!currentEdit) {
       throw new Error("No current edit");
     }
 
     let inTag: "document" | "comment" | false = false;
 
     // Insert the first line as early as possible so codelens can be shown
-    await applyEdit(ChatStatus.currentEdit, true, false);
+    await applyEdit(currentEdit, true, false);
 
     for await (const item of stream) {
-      if (!ChatStatus.mutexAbortController || ChatStatus.mutexAbortController.signal.aborted) {
+      if (!mutexAbortController || mutexAbortController.signal.aborted) {
         break;
       }
       const delta = typeof item === "string" ? item : "";
-      const edit = ChatStatus.currentEdit;
+      const edit = currentEdit;
       edit.buffer += delta;
 
       if (!inTag) {
@@ -152,21 +154,20 @@ export async function readResponseStream(
       }
     }
 
-    if (ChatStatus.currentEdit) {
-      ChatStatus.currentEdit.state = "completed";
-      await applyEdit(ChatStatus.currentEdit, false, true);
+    if (currentEdit) {
+      currentEdit.state = "completed";
+      await applyEdit(currentEdit, false, true);
     }
   } catch (error) {
-    if (ChatStatus.currentEdit) {
-      ChatStatus.currentEdit.state = "stopped";
-      await applyEdit(ChatStatus.currentEdit, false, true);
+    if (currentEdit) {
+      currentEdit.state = "stopped";
+      await applyEdit(currentEdit, false, true);
     }
     if (!(error instanceof TypeError && error.message.startsWith("terminated"))) {
       throw error;
     }
   } finally {
-    ChatStatus.currentEdit = undefined;
-    ChatStatus.mutexAbortController = undefined;
+    resetEditAndMutexAbortController();
   }
 }
 
@@ -198,6 +199,7 @@ export async function revealEditorRange(params: RevealEditorRangeParams, lspConn
   if (!lspConnection) {
     return false;
   }
+
   try {
     const result = await lspConnection.sendRequest(RevealEditorRangeRequest.type, params);
     return result;

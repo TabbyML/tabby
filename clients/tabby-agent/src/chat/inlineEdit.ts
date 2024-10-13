@@ -237,6 +237,12 @@ export class ChatEditProvider implements Feature {
     await readResponseStream(
       readableStream,
       this.lspConnection,
+      this.currentEdit,
+      this.mutexAbortController,
+      () => {
+        this.currentEdit = undefined;
+        this.mutexAbortController = undefined;
+      },
       config.chat.edit.responseDocumentTag,
       config.chat.edit.responseCommentTag,
     );
