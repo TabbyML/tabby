@@ -8,7 +8,7 @@ import com.tabbyml.tabby4eclipse.Logger;
 import com.tabbyml.tabby4eclipse.inlineCompletion.InlineCompletionService;
 
 public class Accept extends AbstractHandler {
-	private Logger logger = new Logger("commands.inlineCompletion.Accept");
+	private Logger logger = new Logger("Commands.InlineCompletion.Accept");
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {

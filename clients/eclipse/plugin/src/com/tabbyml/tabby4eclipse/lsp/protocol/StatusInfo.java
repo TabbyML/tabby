@@ -11,7 +11,7 @@ public class StatusInfo {
 	private Command command;
 
 	public StatusInfo() {
-		this.status = Status.NOT_INITIALIZED;
+		this.status = Status.DISCONNECTED;
 	}
 
 	public String getStatus() {
@@ -47,8 +47,6 @@ public class StatusInfo {
 	}
 
 	public static class Status {
-		public static final String NOT_INITIALIZED = "notInitialized";
-		public static final String FINALIZED = "finalized";
 		public static final String CONNECTING = "connecting";
 		public static final String UNAUTHORIZED = "unauthorized";
 		public static final String DISCONNECTED = "disconnected";

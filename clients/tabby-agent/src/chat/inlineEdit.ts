@@ -449,11 +449,11 @@ export class ChatEditProvider implements Feature {
       // Insert the first line as early as possible so codelens can be shown
       await applyEdit(this.currentEdit, true, false);
 
-      for await (const delta of stream) {
+      for await (const item of stream) {
         if (!this.mutexAbortController || this.mutexAbortController.signal.aborted) {
           break;
         }
-
+        const delta = typeof item === "string" ? item : "";
         const edit = this.currentEdit;
         edit.buffer += delta;
 

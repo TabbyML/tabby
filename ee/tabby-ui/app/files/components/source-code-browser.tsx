@@ -77,8 +77,13 @@ type TFileMap = Record<string, TFileMapItem>
 type RepositoryItem = RepositoryListQuery['repositoryList'][0]
 
 const repositoryGrepQuery = graphql(/* GraphQL */ `
-  query RepositoryGrep($id: ID!, $kind: RepositoryKind!, $query: String!) {
-    repositoryGrep(kind: $kind, id: $id, query: $query) {
+  query RepositoryGrep(
+    $id: ID!
+    $kind: RepositoryKind!
+    $rev: String
+    $query: String!
+  ) {
+    repositoryGrep(kind: $kind, id: $id, rev: $rev, query: $query) {
       files {
         path
         lines {
@@ -461,7 +466,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
       return fetchRepositoryGrep(
         searchQuery,
-        repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined
+        repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined,
+        activeEntryInfo.rev
       )
     },
     {
@@ -843,7 +849,8 @@ async function fetchEntriesFromPath(
 
 async function fetchRepositoryGrep(
   query: string,
-  repository: RepositoryListQuery['repositoryList'][0] | undefined
+  repository: RepositoryListQuery['repositoryList'][0] | undefined,
+  rev: string | undefined
 ) {
   if (!repository) {
     throw new Error(CodeBrowserError.REPOSITORY_NOT_FOUND)
@@ -853,6 +860,7 @@ async function fetchRepositoryGrep(
       id: repository.id,
       kind: repository.kind,
       query,
+      rev,
       pause: !repository
     })
     .toPromise()

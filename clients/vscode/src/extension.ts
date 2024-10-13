@@ -11,12 +11,11 @@ import { GitProvider } from "./git/GitProvider";
 import { ContextVariables } from "./ContextVariables";
 import { StatusBarItem } from "./StatusBarItem";
 import { ChatSideViewProvider } from "./chat/ChatSideViewProvider";
-import { ChatPanelViewProvider } from "./chat/ChatPanelViewProvider";
 import { Commands } from "./Commands";
 import { Status } from "tabby-agent";
 import { CodeActions } from "./CodeActions";
+import { isBrowser } from "./env";
 
-const isBrowser = !!process.env["IS_BROWSER"];
 const logger = getLogger();
 let client: Client | undefined = undefined;
 
@@ -105,7 +104,6 @@ export async function activate(context: ExtensionContext) {
     inlineCompletionProvider,
     chatViewProvider,
     gitProvider,
-    chatPanelViewProvider,
   );
   /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */ /* eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error */
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ // @ts-ignore noUnusedLocals

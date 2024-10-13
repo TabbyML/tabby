@@ -16,7 +16,6 @@ import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
-import com.intellij.util.messages.MessageBusConnection
 import com.intellij.util.messages.Topic
 import com.tabbyml.intellijtabby.events.CaretListener
 import com.tabbyml.intellijtabby.events.DocumentListener
@@ -263,6 +262,9 @@ class InlineCompletionService(private val project: Project) : Disposable {
   }
 
   private fun calcCycleIndex(index: Int, size: Int, direction: CycleDirection): Int {
+    if (size <= 1) {
+      return index
+    }
     return when (direction) {
       CycleDirection.NEXT -> (index + 1).mod(size)
       CycleDirection.PREVIOUS -> (index - 1).mod(size)

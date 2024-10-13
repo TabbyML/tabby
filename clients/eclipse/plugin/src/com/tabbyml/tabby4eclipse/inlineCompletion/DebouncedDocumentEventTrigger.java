@@ -92,7 +92,7 @@ public class DebouncedDocumentEventTrigger implements IInlineCompletionTrigger {
 		try {
 			EditorUtils.syncExec(() -> {
 				logger.debug("Trigger inline completion after debouncing.");
-				inlineCompletionService.trigger();
+				inlineCompletionService.trigger(false);
 			});
 		} catch (Exception e) {
 			logger.error("Failed to handle documentChangedRunnable after debouncing.", e);

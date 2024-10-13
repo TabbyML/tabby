@@ -1,12 +1,4 @@
-import {
-  ExtensionContext,
-  WebviewViewProvider,
-  WebviewView,
-  LogOutputChannel,
-  TextEditor,
-  window,
-  commands,
-} from "vscode";
+import { ExtensionContext, WebviewViewProvider, WebviewView, LogOutputChannel, TextEditor, window } from "vscode";
 import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import { WebviewHelper } from "./WebviewHelper";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
@@ -76,8 +68,6 @@ export class ChatSideViewProvider implements WebviewViewProvider {
       if (webviewView.visible) {
         this.webviewHelper.refreshChatPage();
       }
-
-      commands.executeCommand("setContext", "tabby.chatViewVisible", webviewView.visible);
     });
 
     webviewView.webview.onDidReceiveMessage((message) => {

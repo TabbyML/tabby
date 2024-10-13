@@ -4,7 +4,10 @@
 'use client'
 
 import { FC, memo, useState } from 'react'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import {
+  createElement,
+  Prism as SyntaxHighlighter
+} from 'react-syntax-highlighter'
 import { coldarkDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
@@ -188,6 +191,37 @@ const CodeBlock: FC<CodeBlockProps> = memo(
               fontSize: '0.9rem',
               fontFamily: 'var(--font-mono)'
             }
+          }}
+          renderer={({ rows, stylesheet, useInlineStyles }) => {
+            return rows.map((row, index) => {
+              const children = row.children
+              const lineNumberElement = children?.shift()
+
+              /**
+               * We will take current structure of the rows and rebuild it
+               * according to the suggestion here https://github.com/react-syntax-highlighter/react-syntax-highlighter/issues/376#issuecomment-1246115899
+               */
+              if (lineNumberElement) {
+                row.children = [
+                  lineNumberElement,
+                  {
+                    children,
+                    properties: {
+                      className: []
+                    },
+                    tagName: 'span',
+                    type: 'element'
+                  }
+                ]
+              }
+
+              return createElement({
+                node: row,
+                stylesheet,
+                useInlineStyles,
+                key: index
+              })
+            })
           }}
         >
           {value}

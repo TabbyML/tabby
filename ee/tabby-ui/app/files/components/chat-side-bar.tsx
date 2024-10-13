@@ -80,7 +80,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     onApplyInEditor(_content, _args) {},
     onLoaded() {},
     onCopy(_content) {},
-    focusOnEditor() {}
+    onKeyboardEvent() {}
   })
 
   const getPrompt = ({ action }: QuickActionEventPayload) => {

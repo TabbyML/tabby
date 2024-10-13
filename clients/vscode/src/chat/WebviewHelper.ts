@@ -13,23 +13,21 @@ import {
   ViewColumn,
   WorkspaceFolder,
   TextDocument,
-  commands,
   Webview,
   ColorThemeKind,
   ProgressLocation,
 } from "vscode";
-import type { ServerApi, ChatMessage, Context, NavigateOpts, FocusKeybinding, OnLoadedParams } from "tabby-chat-panel";
+import type { ServerApi, ChatMessage, Context, NavigateOpts, OnLoadedParams } from "tabby-chat-panel";
 import { TABBY_CHAT_PANEL_API_VERSION } from "tabby-chat-panel";
 import hashObject from "object-hash";
 import * as semver from "semver";
 import type { ServerInfo } from "tabby-agent";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
 import { GitProvider } from "../git/GitProvider";
-import { getLogger } from "../logger";
-import { contributes } from "../../package.json";
-import { parseKeybinding, readUserKeybindingsConfig } from "../util/KeybindingParser";
 import { createClient } from "./chatPanel";
 import { ChatFeature } from "../lsp/ChatFeature";
+import { isBrowser } from "../env";
+import { getLogger } from "../logger";
 
 export class WebviewHelper {
   webview?: Webview;
@@ -37,8 +35,6 @@ export class WebviewHelper {
   private pendingMessages: ChatMessage[] = [];
   private pendingRelevantContexts: Context[] = [];
   private isChatPageDisplayed = false;
-  // FIXME: this check is not compatible with the environment of a browser in macOS
-  private isMac: boolean = env.appHost === "desktop" && process.platform === "darwin";
 
   constructor(
     private readonly context: ExtensionContext,
@@ -286,15 +282,11 @@ export class WebviewHelper {
                 }
                 
                 window.addEventListener("message", (event) => {
-                  if (!chatIframe) return
                   if (event.data) {
-                    if (event.data.action === 'sync-theme') {
-                      syncTheme();
-                      return;
-                    }
-
-                    if (event.data.data) {
-                      chatIframe.contentWindow.postMessage(event.data.data[0], "${endpoint}");
+                    if (event.data.action === 'postMessageToChatPanel') {
+                      chatIframe.contentWindow.postMessage(event.data.message, "*");
+                    } else if (event.data.action === 'dispatchKeyboardEvent') {
+                      window.dispatchEvent(new KeyboardEvent(event.data.type, event.data.event));
                     } else {
                       vscode.postMessage(event.data);
                     }
@@ -319,19 +311,6 @@ export class WebviewHelper {
         </html>
       `;
     }
-  }
-
-  public async getFocusKeybinding(): Promise<FocusKeybinding | undefined> {
-    const focusCommand = "tabby.chatView.focus";
-    const defaultFocusKey = contributes.keybindings.find((cmd) => cmd.command === focusCommand);
-    const defaultKeybinding = defaultFocusKey
-      ? parseKeybinding(this.isMac && defaultFocusKey.mac ? defaultFocusKey.mac : defaultFocusKey.key)
-      : undefined;
-
-    const allKeybindings = await readUserKeybindingsConfig();
-    const userShortcut = allKeybindings?.find((keybinding) => keybinding.command === focusCommand);
-
-    return userShortcut ? parseKeybinding(userShortcut.key) : defaultKeybinding;
   }
 
   public displayDisconnectedPage() {
@@ -399,14 +378,14 @@ export class WebviewHelper {
     if (serverInfo.config.token) {
       this.client?.cleanError();
 
-      const focusKeybinding = await this.getFocusKeybinding();
-      getLogger().info("focus key binding: ", focusKeybinding);
-
+      const isMac = isBrowser
+        ? navigator.userAgent.toLowerCase().includes("mac")
+        : process.platform.toLowerCase().includes("darwin");
       this.client?.init({
         fetcherOptions: {
           authorization: serverInfo.config.token,
         },
-        focusKey: focusKeybinding,
+        useMacOSKeyboardEventHandler: isMac,
       });
     }
   }
@@ -679,12 +658,9 @@ export class WebviewHelper {
       onCopy: (content) => {
         env.clipboard.writeText(content);
       },
-      focusOnEditor: () => {
-        const editor = window.activeTextEditor;
-        if (editor) {
-          getLogger().info("Focus back to active editor");
-          commands.executeCommand("workbench.action.focusFirstEditorGroup");
-        }
+      onKeyboardEvent: (type: string, event: KeyboardEventInit) => {
+        this.logger.debug(`Dispatching keyboard event: ${type} ${JSON.stringify(event)}`);
+        this.webview?.postMessage({ action: "dispatchKeyboardEvent", type, event });
       },
     });
   }
