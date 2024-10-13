@@ -507,6 +507,7 @@
     "eslint-config-prettier": "^9.0.0",
     "get-installed-path": "^4.0.8",
     "object-hash": "^3.0.0",
+    "openai": "^4.52.7",
     "ovsx": "^0.9.5",
     "prettier": "^3.0.0",
     "semver": "^7.6.0",
