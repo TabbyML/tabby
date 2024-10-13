@@ -564,46 +564,24 @@ export class WebviewHelper {
             },
             async (progress, token) => {
               progress.report({ increment: 0, message: "Analyzing code..." });
-
+              const { indent } = getIndentInfo(editor.document, editor.selection);
               try {
                 getLogger().info("getting provide edit command", content);
-
-                const range = {
-                  start: { line: 1, character: 0 },
-
-                  end: { line: 1, character: 0 },
-                };
-                editor.revealRange(
-                  new Range(
-                    new Position(range.start.line, range.start.character),
-                    new Position(range.end.line, range.end.character),
-                  ),
-                  TextEditorRevealType.InCenterIfOutsideViewport,
-                );
-
-                const { indent, indentForTheFirstLine } = getIndentInfo(editor.document, editor.selection);
-
                 progress.report({ increment: 30, message: "Applying smart edit..." });
-
                 await this.chat?.provideSmartApplyEdit(
                   {
+                    applyCode: content,
                     location: {
                       uri: editor.document.uri.toString(),
-                      range,
+                      range: {
+                        start: { line: editor.selection.start.line, character: editor.selection.start.character },
+                        end: { line: editor.selection.end.line, character: editor.selection.end.character },
+                      },
                     },
-                    applyCode: content,
-                    format: "previewChanges",
-                    indentInfo: {
-                      indent,
-                      indentForTheFirstLine,
-                    },
+                    indentInfo: indent,
                   },
                   token,
                 );
-
-                progress.report({ increment: 40, message: "Finalizing..." });
-
-                getLogger().info("provide edit command done");
               } catch (error) {
                 if (error instanceof Error) {
                   window.showErrorMessage(error.message);

@@ -555,42 +555,7 @@ export namespace SmartApplyCodeRequest {
 export type SmartApplyCodeParams = {
   location: Location;
   applyCode: string;
-  format: "previewChanges";
-  indentInfo: {
-    indentForTheFirstLine: string;
-    indent: string;
-  };
-};
-
-/**
- * [Tabby] Provide Best fit line range for smart apply request(↩️)
- *
- * This method is sent from the client to server to smart apply from chat panel.
- * - method: `tabby/chat/smartApply`
- * - params: {@link ChatLineRangeSmartApplyParams}
- * - result: {@link ChatLineRangeSmartApplyResult} | null
- */
-export namespace ChatLineRangeSmartApplyRequest {
-  export const method = "tabby/chat/smartApply/lineRange";
-  export const messageDirection = MessageDirection.clientToServer;
-  export const type = new ProtocolRequestType<
-    ChatLineRangeSmartApplyParams,
-    ChatLineRangeSmartApplyResult | null,
-    void,
-    ChatFeatureNotAvailableError,
-    void
-  >(method);
-}
-
-export type ChatLineRangeSmartApplyParams = {
-  //the uri of the document
-  uri: string;
-  applyCode: string;
-};
-
-export type ChatLineRangeSmartApplyResult = {
-  start: number;
-  end: number;
+  indentInfo: string;
 };
 
 /**
