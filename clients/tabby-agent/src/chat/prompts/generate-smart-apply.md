@@ -12,7 +12,6 @@ You are an AI coding assistant. Insert the code provided by the user according t
 10. Use `<LINERANGE></LINERANGE>` to indicate the range of UserDocument, where the first line of code shown in USERDOCUMENT is StartLine and the last line is EndLine.
 11. startLine is close interval, and endLine is open interval.
 12. Apply indentation to the inserted code as follows:
-    - For the first line of the `<CODEBLOCK>`, use space in <INDENTSFORTHEFIRSTLINE></INDENTSFORTHEFIRSTLINE> at the beginning.
     - For all subsequent lines of the `<CODEBLOCK>`, use space in <INDENTS></INDENTS> at the beginning of each line.
 
 <LINERANGE>{{lineRange}}</LINERANGE>
@@ -25,5 +24,4 @@ You are an AI coding assistant. Insert the code provided by the user according t
 {{code}}
 </CODEBLOCK>
 
-<INDENTSFORTHEFIRSTLINE>{{indentForTheFirstLine}}</INDENTSFORTHEFIRSTLINE>
 <INDENTS>{{indent}}</INDENTS>
