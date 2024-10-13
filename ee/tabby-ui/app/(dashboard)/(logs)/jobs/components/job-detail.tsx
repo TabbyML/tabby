@@ -15,7 +15,6 @@ import {
   IconStopWatch
 } from '@/components/ui/icons'
 import { ListSkeleton } from '@/components/skeleton'
-
 import { getJobDisplayName, getLabelByJobRun } from '../utils'
 
 import "@patternfly/react-core/dist/styles/base.css";
@@ -70,8 +69,6 @@ export default function JobRunDetail() {
       }
     }
   }, [currentNode])
-
-  console.log('currentNode', currentNode);
 
   return (
     <>
