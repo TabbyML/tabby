@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:             - name: Setup Node.js environment
+  build: name: Setup Node.js environment
   uses: actions/setup-node@v4.0.4
   with:
     # Set always-auth in npmrc.
