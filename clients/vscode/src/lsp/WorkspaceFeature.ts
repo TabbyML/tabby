@@ -8,7 +8,6 @@ import {
 import { BaseLanguageClient, FeatureState, RegistrationData, StaticFeature, TextEdit } from "vscode-languageclient";
 import { Disposable, Position, Range, TextDocument, TextEditorEdit, window, workspace } from "vscode";
 import { diffLines } from "diff";
-import { getLogger } from "../logger";
 export class WorkSpaceFeature extends EventEmitter implements StaticFeature {
   private registration: string | undefined = undefined;
   private disposables: Disposable[] = [];
