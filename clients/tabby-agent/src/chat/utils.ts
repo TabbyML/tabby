@@ -3,7 +3,7 @@
 import { Readable } from "stream";
 import { Edit } from "./inlineEdit";
 import { WorkspaceEdit } from "vscode-languageserver-protocol";
-import Diff from "diff";
+import * as Diff from "diff";
 import { isBlank } from "../utils/string";
 import { Connection } from "vscode-languageserver";
 import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest } from "../protocol";

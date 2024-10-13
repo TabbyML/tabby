@@ -555,7 +555,6 @@ export namespace SmartApplyCodeRequest {
 export type SmartApplyCodeParams = {
   location: Location;
   applyCode: string;
-  indentInfo: string;
 };
 
 /**

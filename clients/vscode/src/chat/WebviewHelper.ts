@@ -564,7 +564,6 @@ export class WebviewHelper {
             },
             async (progress, token) => {
               progress.report({ increment: 0, message: "Analyzing code..." });
-              const { indent } = getIndentInfo(editor.document, editor.selection);
               try {
                 getLogger().info("getting provide edit command", content);
                 progress.report({ increment: 30, message: "Applying smart edit..." });
@@ -578,7 +577,6 @@ export class WebviewHelper {
                         end: { line: editor.selection.end.line, character: editor.selection.end.character },
                       },
                     },
-                    indentInfo: indent,
                   },
                   token,
                 );

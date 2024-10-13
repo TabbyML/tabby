@@ -2,6 +2,21 @@ import levenshtein from "js-levenshtein";
 import { Position, Range } from "vscode-languageserver-protocol";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
+export function getSmartApplyRange(
+  document: TextDocument,
+  snippet: string,
+): { range: Range; action: "insert" | "replace" } | undefined {
+  const applyRange = fuzzyApplyRange(document, snippet);
+  if (!applyRange) {
+    return undefined;
+  }
+  //insert mode
+  if (applyRange.range.start.line === applyRange.range.end.line || document.getText().trim() === "") {
+    return { range: applyRange.range, action: "insert" };
+  }
+  return { range: applyRange.range, action: "replace" };
+}
+
 export function fuzzyApplyRange(document: TextDocument, snippet: string): { range: Range; score: number } | null {
   const lines = document.getText().split("\n");
   const snippetLines = snippet.split("\n");
