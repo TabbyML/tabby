@@ -42,10 +42,12 @@ public class InlineCompletionService implements IInlineCompletionService {
 	public boolean isCompletionItemVisible() {
 		ITextEditor textEditor = EditorUtils.getActiveTextEditor();
 		ITextViewer textViewer = EditorUtils.getTextViewer(textEditor);
-		return current != null && current.request != null && current.request.textEditor == textEditor
+		boolean matched = current != null && current.request != null && current.request.textEditor == textEditor
 				&& current.response != null && textViewer != null && textViewer == renderer.getCurrentTextViewer()
 				&& renderer.getCurrentCompletionItem() != null
 				&& renderer.getCurrentCompletionItem() == current.response.getActiveCompletionItem();
+		logger.debug("isCompletionItemVisible: " + matched);
+		return matched;
 	}
 
 	@Override
@@ -111,6 +113,81 @@ public class InlineCompletionService implements IInlineCompletionService {
 		});
 		InlineCompletionContext context = new InlineCompletionContext(request, job, null);
 		current = context;
+	}
+
+	@Override
+	public void next() {
+		cycle(1);
+	}
+
+	@Override
+	public void previous() {
+		cycle(-1);
+	}
+
+	private void cycle(int step) {
+		ITextEditor textEditor = EditorUtils.getActiveTextEditor();
+		ITextViewer textViewer = EditorUtils.getTextViewer(textEditor);
+
+		logger.info("Cycle inline completion choices, step: " + step);
+		if (current == null || current.request == null || current.response == null) {
+			return;
+		}
+		if (current.response.completionList.isIncomplete()) {
+			int index = current.response.getItemIndex();
+			int offset = EditorUtils.getCurrentOffsetInDocument(textEditor);
+			long modificationStamp = EditorUtils.getDocumentModificationStamp(textEditor);
+			InlineCompletionContext.Request request = new InlineCompletionContext.Request(textEditor, offset,
+					modificationStamp, true);
+			InlineCompletionParams params = request.toInlineCompletionParams();
+			if (params == null) {
+				return;
+			}
+			CompletableFuture<com.tabbyml.tabby4eclipse.lsp.protocol.InlineCompletionList> job = LanguageServerService
+					.getInstance().getServer().execute((server) -> {
+						ITextDocumentServiceExt textDocumentService = ((ILanguageServer) server)
+								.getTextDocumentServiceExt();
+						return textDocumentService.inlineCompletion(params);
+					});
+			job.thenAccept((completionList) -> {
+				if (completionList == null || request != current.request) {
+					return;
+				}
+				try {
+					InlineCompletionList list = request.convertInlineCompletionList(completionList);
+					int cycleIndex = calcCycleIndex(index, list.getItems().size(), step);
+					current.response = new InlineCompletionContext.Response(list, cycleIndex);
+					renderer.show(textViewer, current.response.getActiveCompletionItem());
+					EventParams eventParams = buildTelemetryEventParams(EventParams.Type.VIEW);
+					postTelemetryEvent(eventParams);
+				} catch (BadLocationException e) {
+					logger.error("Failed to show inline completion.", e);
+				}
+			});
+			InlineCompletionContext context = new InlineCompletionContext(request, job, current.response);
+			current = context;
+		} else {
+			int cycleIndex = calcCycleIndex(current.response.getItemIndex(),
+					current.response.completionList.getItems().size(), step);
+			current.response.setItemIndex(cycleIndex);
+			renderer.show(textViewer, current.response.getActiveCompletionItem());
+			EventParams eventParams = buildTelemetryEventParams(EventParams.Type.VIEW);
+			postTelemetryEvent(eventParams);
+		}
+	}
+
+	private int calcCycleIndex(int index, int listSize, int step) {
+		if (listSize <= 1) {
+			return index;
+		}
+		int cycleIndex = index + step;
+		while (cycleIndex >= listSize) {
+			cycleIndex -= listSize;
+		}
+		if (cycleIndex < 0) {
+			cycleIndex += listSize;
+		}
+		return cycleIndex;
 	}
 
 	@Override
@@ -258,11 +335,24 @@ public class InlineCompletionService implements IInlineCompletionService {
 				this.itemIndex = 0;
 			}
 
+			public Response(InlineCompletionList completionList, int itemIndex) {
+				this.completionList = completionList;
+				this.itemIndex = itemIndex;
+			}
+
 			public InlineCompletionItem getActiveCompletionItem() {
 				if (itemIndex >= 0 && itemIndex < completionList.getItems().size()) {
 					return completionList.getItems().get(itemIndex);
 				}
 				return null;
+			}
+
+			public int getItemIndex() {
+				return itemIndex;
+			}
+
+			public void setItemIndex(int itemIndex) {
+				this.itemIndex = itemIndex;
 			}
 		}
 
