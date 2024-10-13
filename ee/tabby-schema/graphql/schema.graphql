@@ -681,7 +681,7 @@ type Query {
   contextInfo: ContextInfo!
   integrations(ids: [ID!], kind: IntegrationKind, after: String, before: String, first: Int, last: Int): IntegrationConnection!
   integratedRepositories(ids: [ID!], kind: IntegrationKind, active: Boolean, after: String, before: String, first: Int, last: Int): ProvidedRepositoryConnection!
-  threads(ids: [ID!], after: String, before: String, first: Int, last: Int): ThreadConnection!
+  threads(ids: [ID!], isEphemeral: Boolean, after: String, before: String, first: Int, last: Int): ThreadConnection!
   """
     Read thread messages by thread ID.
 

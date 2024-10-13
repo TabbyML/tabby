@@ -4,8 +4,10 @@ import os from "os";
 import fs from "fs-extra";
 import chokidar from "chokidar";
 import { isBrowser } from "../env";
+import { getLogger } from "../logger";
 
 export class FileDataStore extends EventEmitter {
+  private readonly logger = getLogger("DataStore");
   private watcher?: ReturnType<typeof chokidar.watch>;
 
   constructor(private readonly filepath: string) {
@@ -13,7 +15,13 @@ export class FileDataStore extends EventEmitter {
   }
 
   async read(): Promise<unknown> {
-    return (await fs.readJson(this.filepath, { throws: false })) || {};
+    try {
+      const json = await fs.readJson(this.filepath, { throws: false });
+      return json ?? {};
+    } catch (err) {
+      this.logger.warn(`Failed to read ${this.filepath}: ${err}`);
+      return {};
+    }
   }
 
   async write(data: unknown) {

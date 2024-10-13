@@ -11,13 +11,12 @@ import { GitProvider } from "./git/GitProvider";
 import { ContextVariables } from "./ContextVariables";
 import { StatusBarItem } from "./StatusBarItem";
 import { ChatSideViewProvider } from "./chat/ChatSideViewProvider";
-import { ChatPanelViewProvider } from "./chat/ChatPanelViewProvider";
 import { Commands } from "./Commands";
 import { Status } from "tabby-agent";
 import { OutlinesProvider } from "./outline/OutlinesProvider";
 import { CodeActions } from "./CodeActions";
+import { isBrowser } from "./env";
 
-const isBrowser = !!process.env["IS_BROWSER"];
 const logger = getLogger();
 let client: Client | undefined = undefined;
 
@@ -91,7 +90,6 @@ export async function activate(context: ExtensionContext) {
     }),
   );
   // Create chat panel view
-  const chatPanelViewProvider = new ChatPanelViewProvider(context, client.agent, logger, gitProvider);
   await gitProvider.init();
   await client.start();
 

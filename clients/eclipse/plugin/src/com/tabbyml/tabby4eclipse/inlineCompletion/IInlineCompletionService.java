@@ -20,9 +20,11 @@ public interface IInlineCompletionService {
 
 	/**
 	 * Trigger an inline completion request at the current caret position of the
-	 * active text editor.
+	  * active text editor.
+	  *
+	  * @param isManualTrigger whether to trigger manually or automatically
 	 */
-	public void trigger();
+	public void trigger(boolean isManualTrigger);
 
 	/**
 	 * Accept the current completion item ghost text.

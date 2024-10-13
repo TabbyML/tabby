@@ -4,6 +4,7 @@ use trie_rs::{Trie, TrieBuilder};
 
 pub struct StopConditionFactory {
     stop_trie_cache: DashMap<String, Trie<u8>>,
+    stop_words_from_model_config: Vec<String>,
 }
 
 fn reverse<T>(s: T) -> String
@@ -17,6 +18,7 @@ impl Default for StopConditionFactory {
     fn default() -> Self {
         Self {
             stop_trie_cache: DashMap::new(),
+            stop_words_from_model_config: vec![],
         }
     }
 }
@@ -24,6 +26,13 @@ impl Default for StopConditionFactory {
 type CachedTrie<'a> = dashmap::mapref::one::Ref<'a, String, Trie<u8>>;
 
 impl StopConditionFactory {
+    pub fn with_stop_words(stop_words: Vec<String>) -> Self {
+        Self {
+            stop_trie_cache: DashMap::new(),
+            stop_words_from_model_config: stop_words,
+        }
+    }
+
     pub fn create(&self, text: &str, language: Option<&'static Language>) -> StopCondition {
         if let Some(language) = language {
             StopCondition::new(self.get_trie(language), text)
@@ -33,7 +42,10 @@ impl StopConditionFactory {
     }
 
     fn get_trie<'a>(&'a self, language: &'static Language) -> Option<CachedTrie<'a>> {
-        let stop_words = language.get_stop_words();
+        let mut stop_words = language.get_stop_words();
+        // append model stop words
+        stop_words.extend(self.stop_words_from_model_config.iter().cloned());
+
         if stop_words.is_empty() {
             None
         } else {
@@ -92,6 +104,7 @@ impl<'a> StopCondition<'a> {
 
 #[cfg(test)]
 mod tests {
+
     use tabby_common::languages::UNKNOWN_LANGUAGE;
 
     use super::*;
@@ -107,8 +120,12 @@ mod tests {
             "\n\n".to_owned(),
             "\n\n  ".to_owned(),
             "\nvoid".to_owned(),
+            "<|file_sep|>".to_owned(), // qwen 2.5 coder style
         ]);
         assert!(!trie.common_prefix_search(&text).is_empty());
+
+        let qwen25coder = reverse("qwen25 style stop words;<|file_sep|>");
+        assert!(!trie.common_prefix_search(&qwen25coder).is_empty());
     }
 
     #[test]
@@ -123,5 +140,15 @@ mod tests {
         assert!(!should_stop);
         let (should_stop, _) = cond.should_stop("4");
         assert!(!should_stop)
+    }
+
+    #[test]
+    fn test_stop_condition_additional_stop_words() {
+        let factory = StopConditionFactory::with_stop_words(vec!["<|endoftext|>".to_owned()]);
+        let mut cond = factory.create("", Some(&UNKNOWN_LANGUAGE));
+        let (should_stop, _) = cond.should_stop("1");
+        assert!(!should_stop);
+        let (should_stop, _) = cond.should_stop("<|endoftext|>");
+        assert!(should_stop);
     }
 }

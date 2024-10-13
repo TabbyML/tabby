@@ -65,7 +65,7 @@ export class CompletionProvider implements Feature {
   private readonly completionDebounce = new CompletionDebounce();
   private readonly completionStats = new CompletionStats();
 
-  private readonly submitStatsTimer: ReturnType<typeof setInterval>;
+  private submitStatsTimer: ReturnType<typeof setInterval> | undefined = undefined;
 
   private lspConnection: Connection | undefined = undefined;
   private clientCapabilities: ClientCapabilities | undefined = undefined;
@@ -80,12 +80,7 @@ export class CompletionProvider implements Feature {
     private readonly anonymousUsageLogger: AnonymousUsageLogger,
     private readonly gitContextProvider: GitContextProvider,
     private readonly recentlyChangedCodeSearch: RecentlyChangedCodeSearch,
-  ) {
-    const submitStatsInterval = 1000 * 60 * 60 * 24; // 24h
-    this.submitStatsTimer = setInterval(async () => {
-      await this.submitStats();
-    }, submitStatsInterval);
-  }
+  ) {}
 
   initialize(connection: Connection, clientCapabilities: ClientCapabilities): ServerCapabilities {
     this.lspConnection = connection;
@@ -113,6 +108,12 @@ export class CompletionProvider implements Feature {
     connection.onNotification(TelemetryEventNotification.type, async (param) => {
       return this.postEvent(param);
     });
+
+    const submitStatsInterval = 1000 * 60 * 60 * 24; // 24h
+    this.submitStatsTimer = setInterval(async () => {
+      await this.submitStats();
+    }, submitStatsInterval);
+
     return serverCapabilities;
   }
 

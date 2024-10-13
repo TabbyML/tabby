@@ -1,103 +1,75 @@
 package com.tabbyml.intellijtabby.chat
 
 import com.google.gson.Gson
-import com.google.gson.JsonParser
-import com.intellij.openapi.components.serviceOrNull
+import com.google.gson.annotations.SerializedName
+import com.google.gson.reflect.TypeToken
+import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.editor.colors.EditorColors
+import com.intellij.openapi.editor.colors.EditorColorsListener
 import com.intellij.openapi.editor.colors.EditorColorsManager
-import com.intellij.openapi.editor.colors.EditorColorsScheme
+import com.intellij.openapi.editor.colors.EditorFontType
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.project.guessProjectDir
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
-import com.intellij.util.ui.UIUtil
-import com.tabbyml.intellijtabby.lsp.ConnectionService
-import com.tabbyml.intellijtabby.lsp.LanguageClient
+import com.tabbyml.intellijtabby.events.CombinedState
+import com.tabbyml.intellijtabby.git.GitProvider
+import com.tabbyml.intellijtabby.lsp.protocol.ServerInfo
 import com.tabbyml.intellijtabby.lsp.protocol.Status
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.future.await
-import kotlinx.coroutines.launch
+import io.github.z4kn4fein.semver.Version
+import io.github.z4kn4fein.semver.constraints.Constraint
+import io.github.z4kn4fein.semver.constraints.satisfiedBy
 import org.cef.browser.CefBrowser
 import org.cef.handler.CefLoadHandlerAdapter
 import java.awt.Color
-import java.util.*
+import java.awt.Toolkit
+import java.awt.datatransfer.StringSelection
+import java.io.File
+
 
 class ChatBrowser(private val project: Project) {
-  private var isChatPageDisplayed = false
+  private val logger = Logger.getInstance(ChatBrowser::class.java)
+  private val gson = Gson()
+  private val combinedState = project.service<CombinedState>()
+  private val gitProvider = project.service<GitProvider>()
   private val messageBusConnection = project.messageBus.connect()
-  private val scope = CoroutineScope(Dispatchers.IO)
-  private val browser: JBCefBrowser = JBCefBrowser.createBuilder()
-    .setOffScreenRendering(true) // On Mac, setting false will leave a white flash when opening the window
-    .build()
 
-  private suspend fun getServer() = project.serviceOrNull<ConnectionService>()?.getServerAsync()
+  private val browser = JBCefBrowser()
+  private val reloadHandler = JBCefJSQuery.create(browser as JBCefBrowserBase)
+  private val chatPanelRequestHandler = JBCefJSQuery.create(browser as JBCefBrowserBase)
 
-  data class DisplayChatPageOptions(val force: Boolean = false)
+  private var currentConfig: ServerInfo.ServerInfoConfig? = null
+
+  val browserComponent = browser.component
+
+  private data class ChatPanelRequest(
+    val method: String,
+    val params: List<Any>,
+  )
+
+  private data class FileContext(
+    val kind: String = "file",
+    val range: LineRange,
+    val filepath: String,
+    val content: String,
+    @SerializedName("git_url")
+    val gitUrl: String,
+  ) {
+    data class LineRange(
+      val start: Int,
+      val end: Int,
+    )
+  }
 
   init {
-    messageBusConnection.subscribe(LanguageClient.AgentListener.TOPIC, object : LanguageClient.AgentListener {
-      override fun agentStatusChanged(status: String) {
-        if (status == Status.DISCONNECTED) {
-          displayDisconnectedPage()
-        } else {
-          scope.launch {
-            val server = getServer() ?: return@launch
-            val serverInfo = server.agentFeature.serverInfo().await()
-            displayChatPage(serverInfo.config.endpoint)
-            refreshChatPage()
-          }
-        }
-      }
-    })
+    browserComponent.isVisible = false
 
-    // Listen to the message sent from the web page
-    val jsQuery = JBCefJSQuery.create(browser as JBCefBrowserBase)
-    jsQuery.addHandler { message: String ->
-      val jsonElement = JsonParser.parseString(message)
-      when {
-        jsonElement.isJsonObject -> {
-          val json = jsonElement.asJsonObject
-          val action = json.get("action")?.asString
-          if (action == "rendered") {
-            this.refreshChatPage()
-            return@addHandler JBCefJSQuery.Response("")
-          }
-        }
-
-        // FIXME: Refactor thread-receiving implementation
-        jsonElement.isJsonArray -> {
-          val jsonArray = jsonElement.asJsonArray // [commandNumber, [id, functionName, args]]
-          if (jsonArray.size() >= 2) {
-            try {
-              val command = jsonArray[0].asInt
-              if (command == 0 && jsonArray[1].isJsonArray) {
-                val commandArray = jsonArray[1].asJsonArray // [id, functionName, args]
-                if (commandArray.size() >= 3) {
-                  val functionName = commandArray[1].asString
-                  when (functionName) {
-                    "refresh" -> {
-                      scope.launch {
-                        val server = getServer() ?: return@launch
-                        val serverInfo = server.agentFeature.serverInfo().await()
-                        displayChatPage(serverInfo.config.endpoint, DisplayChatPageOptions(force = true))
-                      }
-                    }
-                  }
-                }
-              }
-            } catch (e: Exception) {
-              return@addHandler JBCefJSQuery.Response("Error: ${e.message}")
-            }
-          }
-        }
-      }
-
-      JBCefJSQuery.Response("")
-    }
-
-    // Inject window.onReceiveMessage into browser's JS context after HTML load
-    // Enables web page to send messages to IntelliJ plugin - window.onReceiveMessage(message)
     browser.jbCefClient.addLoadHandler(object : CefLoadHandlerAdapter() {
       override fun onLoadingStateChange(
         browser: CefBrowser?,
@@ -105,224 +77,561 @@ class ChatBrowser(private val project: Project) {
         canGoBack: Boolean,
         canGoForward: Boolean
       ) {
-        if (!isLoading) {
-          val script = """window.onReceiveMessage = function(message) {
-            ${jsQuery.inject("message")}
-          }""".trimIndent()
-          browser?.executeJavaScript(
-            script,
-            browser.url,
-            0
-          )
+        if (browser != null && !isLoading) {
+          handleLoaded()
         }
       }
     }, browser.cefBrowser)
 
-    // FIXME: Implement web server health detection to display the disconnected page if the server is down.
-    // Note: Currently, this.combinedState.state.agentStatus is always NOT_INITIALIZED at this point.
-    displayDisconnectedPage()
-    scope.launch {
-      val server = getServer() ?: return@launch
-      val serverInfo = server.agentFeature.serverInfo().await()
-      displayChatPage(serverInfo.config.endpoint)
+    reloadHandler.addHandler {
+      reloadContent(true)
+      return@addHandler JBCefJSQuery.Response("")
     }
 
-    Disposer.register(project, browser)
+    chatPanelRequestHandler.addHandler { message ->
+      val request = gson.fromJson(message, ChatPanelRequest::class.java)
+      handleChatPanelRequest(request)
+      return@addHandler JBCefJSQuery.Response("")
+    }
+
+    this.browser.loadHTML(HTML_CONTENT)
+
+    messageBusConnection.subscribe(CombinedState.Listener.TOPIC, object : CombinedState.Listener {
+      override fun stateChanged(state: CombinedState.State) {
+        reloadContent()
+      }
+    })
+
+    messageBusConnection.subscribe(EditorColorsManager.TOPIC, EditorColorsListener {
+      logger.debug("EditorColorsManager globalSchemeChange received, updating style.")
+      jsApplyStyle()
+      chatPanelUpdateTheme()
+    })
   }
 
-  // FIXME
-  // listen to edit theme change and send sync-theme message to the HTML
+  private fun handleLoaded() {
+    jsInjectHandlers()
+    jsApplyStyle()
+    reloadContent()
+    browserComponent.isVisible = true
+  }
 
-  fun refreshChatPage() {
-    scope.launch {
-      val server = getServer() ?: return@launch
-      val agentStatus = server.agentFeature.status().await()
-      val serverInfo = server.agentFeature.serverInfo().await()
+  private val isDarkTheme get() = EditorColorsManager.getInstance().isDarkEditor
 
-      if (agentStatus == Status.UNAUTHORIZED || agentStatus == Status.NOT_INITIALIZED) {
-        sendMessageToServer(
-          "showError",
-          listOf(mapOf("content" to "Before you can start chatting, please take a moment to set up your credentials to connect to the Tabby server."))
-        )
-        return@launch
+  private fun buildCss(): String {
+    val editorColorsScheme = EditorColorsManager.getInstance().schemeForCurrentUITheme
+    val bgColor = editorColorsScheme.defaultBackground
+    val bgActiveColor = editorColorsScheme.getColor(EditorColors.CARET_ROW_COLOR)
+      ?: if (isDarkTheme) editorColorsScheme.defaultBackground.brighter() else editorColorsScheme.defaultBackground.darker()
+    val fgColor = editorColorsScheme.defaultForeground
+    val borderColor = editorColorsScheme.getColor(EditorColors.BORDER_LINES_COLOR)
+      ?: if (isDarkTheme) editorColorsScheme.defaultForeground.brighter() else editorColorsScheme.defaultForeground.darker()
+    val primaryColor = editorColorsScheme.getAttributes(EditorColors.REFERENCE_HYPERLINK_COLOR).foregroundColor
+    val font = editorColorsScheme.getFont(EditorFontType.PLAIN).fontName
+    val fontSize = editorColorsScheme.editorFontSize
+    val css = String.format("background-color: hsl(%s);", bgActiveColor.toHsl()) +
+        String.format("--background: %s;", bgColor.toHsl()) +
+        String.format("--foreground: %s;", fgColor.toHsl()) +
+        String.format("--border: %s;", borderColor.toHsl()) +
+        String.format("--primary: %s;", primaryColor.toHsl()) +
+        String.format("font: %s;", font) +
+        String.format("font-size: %spx;", fontSize) +
+        // FIXME(@icycodes): remove these once the server no longer reads the '--intellij-editor' css vars
+        String.format("--intellij-editor-background: %s;", bgColor.toHsl()) +
+        String.format("--intellij-editor-foreground: %s;", fgColor.toHsl()) +
+        String.format("--intellij-editor-border: %s;", borderColor.toHsl())
+    logger.debug("CSS: $css")
+    return css
+  }
+
+  private fun reloadContent(force: Boolean = false) {
+    if (force) {
+      // FIXME(@icycodes): force reload requires await reconnection then get server health
+      reloadContentInternal(true)
+    } else {
+      reloadContentInternal(false)
+    }
+  }
+
+  private fun reloadContentInternal(force: Boolean = false) {
+    val status = combinedState.state.agentStatus
+    when (status) {
+      Status.NOT_INITIALIZED, Status.FINALIZED -> {
+        showContent("Initializing...")
       }
 
-      // FIXME
-      // Check for chat panel availability
-      // If the panel is not available, display an error message to the user
+      Status.DISCONNECTED -> {
+        showContent("Cannot connect to Tabby server, please check your settings.")
+      }
 
-      // FIXME: Refactor thread-sending implementation
-      sendMessageToServer("cleanError")
-      sendMessageToServer("init", listOf(mapOf("fetcherOptions" to mapOf("authorization" to serverInfo.config.token))))
+      Status.UNAUTHORIZED -> {
+        showContent("Authorization required, please set your token in settings.")
+      }
+
+      else -> {
+        val health = combinedState.state.agentServerInfo?.health
+        val error = checkServerHealth(health)
+        if (error != null) {
+          showContent(error)
+        } else {
+          val config = combinedState.state.agentServerInfo?.config
+          if (config != null && (force || currentConfig != config)) {
+            showContent("Loading Tabby chat panel...")
+            currentConfig = config
+            jsLoadChatPanel()
+          }
+        }
+      }
     }
   }
 
-  fun displayChatPage(endpoint: String, opts: DisplayChatPageOptions? = null) {
-    val cssContent = this::class.java.getResource("/styles/chat-panel.css")?.readText() ?: ""
+  private fun showContent(message: String? = null) {
+    if (message != null) {
+      jsShowMessage(message)
+      jsShowChatPanel(false)
+    } else {
+      jsShowMessage(null)
+      jsShowChatPanel(true)
+    }
+  }
 
-    val editorColorsManager = EditorColorsManager.getInstance()
-    val theme = if (editorColorsManager.isDarkEditor) "dark" else "light"
-    val editorColorsScheme = EditorColorsManager.getInstance().schemeForCurrentUITheme
-    val fontSize = editorColorsScheme.editorFontSize
-    val backgroundColor = editorColorsScheme.defaultBackground.toHex()
-    val foregroundColor = editorColorsScheme.defaultForeground.toHex()
-    val borderColor = if (theme == "dark") "444444" else "B9B9B9"
+  private fun handleChatPanelRequest(request: ChatPanelRequest) {
+    when (request.method) {
+      "navigate" -> {
+        logger.debug("navigate: request: ${request.params}")
+        // FIXME(@icycodes): not implemented yet
+      }
 
-    if (this.isChatPageDisplayed && opts?.force != true) return
+      "refresh" -> {
+        logger.debug("refresh: request: ${request.params}")
+        reloadContent(true)
+      }
 
-    this.isChatPageDisplayed = true
-    val htmlContent = """
+      "onSubmitMessage" -> {
+        logger.debug("onSubmitMessage: request: ${request.params}")
+        if (request.params.isNotEmpty()) {
+          val message = request.params[0] as String
+          val relevantContext: List<FileContext>? = request.params.getOrNull(1)?.let {
+            gson.fromJson(gson.toJson(it), object : TypeToken<List<FileContext?>?>() {}.type)
+          }
+          val activeContext = FileEditorManager.getInstance(project).selectedTextEditor?.let { editor ->
+            ReadAction.compute<Triple<String, Int, Int>?, Throwable> {
+              val selectionModel = editor.selectionModel
+              val document = editor.document
+              val text = selectionModel.selectedText
+              val startLine = document.getLineNumber(selectionModel.selectionStart) + 1
+              val endLine = document.getLineNumber(selectionModel.selectionEnd) + 1
+              if (!text.isNullOrBlank()) {
+                Triple(text, startLine, endLine)
+              } else {
+                null
+              }
+            }?.let { selection ->
+              val uri = editor.virtualFile?.url
+              val gitRepo = uri?.let { gitProvider.getRepository(it) }
+              val relativeBase = gitRepo?.root ?: project.guessProjectDir()?.url
+              val relativePath = uri?.let {
+                if (!relativeBase.isNullOrBlank() && it.startsWith(relativeBase)) {
+                  it.substringAfter(relativeBase).trimStart(File.separatorChar)
+                } else it
+              }
+              logger.debug("Active selection: selection: $selection, uri: $uri, gitRepo: $gitRepo, relativePath: $relativePath, relativeBase: $relativeBase")
+
+              FileContext(
+                range = FileContext.LineRange(
+                  start = selection.second,
+                  end = selection.third,
+                ),
+                filepath = relativePath ?: "",
+                content = selection.first,
+                gitUrl = gitRepo?.remotes?.firstOrNull()?.url ?: "",
+              )
+            }
+          }
+          sendMessage(message, null, relevantContext, activeContext)
+        }
+      }
+
+      "onApplyInEditor" -> {
+        logger.debug("onApplyInEditor: request: ${request.params}")
+        val content = request.params.getOrNull(0) as String? ?: return
+        val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return
+        invokeLater {
+          WriteCommandAction.runWriteCommandAction(project) {
+            val start = editor.selectionModel.selectionStart
+            val end = editor.selectionModel.selectionEnd
+            editor.document.replaceString(start, end, content)
+            editor.caretModel.moveToOffset(start + content.length)
+          }
+        }
+      }
+
+      "onLoaded" -> {
+        logger.debug("onLoaded: request: ${request.params}")
+        val params = request.params.getOrNull(0) as Map<*, *>?
+        val apiVersion = params?.get("apiVersion") as String?
+        if (apiVersion != null) {
+          val error = checkChatPanelApiVersion(apiVersion)
+          if (error != null) {
+            showContent(error)
+            return
+          }
+        }
+        chatPanelInit()
+        chatPanelUpdateTheme()
+        showContent()
+      }
+
+      "onCopy" -> {
+        logger.debug("onCopy: request: ${request.params}")
+        val content = request.params.getOrNull(0) as String? ?: return
+        val stringSelection = StringSelection(content)
+        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+        clipboard.setContents(stringSelection, null)
+      }
+
+      "onKeyboardEvent" -> {
+        // nothing to do
+      }
+    }
+  }
+
+  // chat panel api functions
+
+  private fun chatPanelInit() {
+    val request = ChatPanelRequest(
+      "init",
+      listOf(
+        mapOf(
+          "fetcherOptions" to mapOf(
+            "authorization" to currentConfig?.token,
+          )
+        )
+      )
+    )
+    logger.debug("chatPanelInit: $request")
+    jsSendRequestToChatPanel(request)
+  }
+
+  private fun sendMessage(
+    message: String,
+    selectContext: FileContext?,
+    relevantContext: List<FileContext>?,
+    activeContext: FileContext?
+  ) {
+    val request = ChatPanelRequest(
+      "sendMessage",
+      listOf(
+        mapOf(
+          "message" to message,
+          "selectContext" to selectContext,
+          "relevantContext" to relevantContext,
+          "activeContext" to activeContext,
+        )
+      )
+    )
+    logger.debug("sendMessage: $request")
+    jsSendRequestToChatPanel(request)
+  }
+
+  private fun chatPanelUpdateTheme() {
+    val request = ChatPanelRequest(
+      "updateTheme",
+      listOf(
+        buildCss(),
+        if (isDarkTheme) "dark" else "light",
+      )
+    )
+    logger.debug("chatPanelUpdateTheme: $request")
+    jsSendRequestToChatPanel(request)
+  }
+
+  // js functions
+
+  private fun jsInjectHandlers() {
+    val script = String.format(
+      """
+        window.handleReload = function() { %s }
+        window.handleChatPanelRequest = function(message) { %s }
+      """.trimIndent(),
+      reloadHandler.inject(""),
+      chatPanelRequestHandler.inject("message"),
+    )
+    browser.cefBrowser.executeJavaScript(script, browser.cefBrowser.url, 0)
+  }
+
+  private fun jsApplyStyle() {
+    val script = String.format(
+      "applyStyle('%s')",
+      gson.toJson(mapOf("theme" to if (isDarkTheme) "dark" else "light", "css" to buildCss()))
+    )
+    browser.cefBrowser.executeJavaScript(script, browser.cefBrowser.url, 0)
+  }
+
+  private fun jsShowMessage(message: String?) {
+    val script = if (message != null) "showMessage('${message}')" else "showMessage()"
+    browser.cefBrowser.executeJavaScript(script, browser.cefBrowser.url, 0)
+  }
+
+  private fun jsShowChatPanel(visible: Boolean) {
+    val script = String.format("showChatPanel(%s)", if (visible) "true" else "false")
+    browser.cefBrowser.executeJavaScript(script, browser.cefBrowser.url, 0)
+  }
+
+  private fun jsLoadChatPanel() {
+    val config = currentConfig ?: return
+    val chatUrl = String.format("%s/chat?client=intellij", config.endpoint)
+    val script = String.format("loadChatPanel('%s')", chatUrl)
+    browser.cefBrowser.executeJavaScript(script, browser.cefBrowser.url, 0)
+  }
+
+  private fun jsSendRequestToChatPanel(request: ChatPanelRequest) {
+    val json = gson.toJson(request)
+    val script = String.format("sendRequestToChatPanel('%s')", escapeCharacters(json))
+    browser.cefBrowser.executeJavaScript(script, browser.cefBrowser.url, 0)
+  }
+
+  companion object {
+    private fun parseVersion(versionString: String): Version? {
+      return try {
+        val version = versionString.removePrefix("v").substringBefore("-")
+        Version.parse(version)
+      } catch (e: Exception) {
+        null
+      }
+    }
+
+    private fun checkChatPanelApiVersion(versionString: String): String? {
+      val version = parseVersion(versionString)
+      val range = Constraint.parse(TABBY_CHAT_PANEL_API_VERSION_RANGE)
+      if (version != null && !range.satisfiedBy(version)) {
+        return "Please update your Tabby server and Tabby plugin for IntelliJ Platform to the latest version to use chat panel."
+      }
+      return null
+    }
+
+    private fun checkServerHealth(serverHealth: Map<String, Any>?): String? {
+      if (serverHealth == null) {
+        return "Connecting to Tabby server..."
+      }
+      if (serverHealth["webserver"] == null || serverHealth["chat_model"] == null) {
+        return "You need to launch the server with the chat model enabled; for example, use `--chat-model Qwen2-1.5B-Instruct`."
+      }
+
+      if (serverHealth.containsKey("version")) {
+        val versionObj = serverHealth["version"]
+        val version: Version? = if (versionObj is String) {
+          parseVersion(versionObj)
+        } else if (versionObj is Map<*, *> && versionObj.containsKey("git_describe")) {
+          val gitDescribe = versionObj["git_describe"]
+          if (gitDescribe is String) {
+            parseVersion(gitDescribe)
+          } else {
+            null
+          }
+        } else {
+          null
+        }
+        if (version != null && !Constraint.parse(TABBY_SERVER_VERSION_RANGE).satisfiedBy(version)) {
+          return String.format(
+            "Tabby Chat requires Tabby server version %s. Your server is running version %s.",
+            TABBY_SERVER_VERSION_RANGE, version.toString()
+          )
+        }
+      }
+      return null
+    }
+
+    private fun escapeCharacters(input: String): String {
+      return input.replace("\\", "\\\\")
+        .replace("'", "\\'")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+        .replace("\b", "\\b")
+    }
+
+    private fun Color.toHsl(): String {
+      val r = red / 255.0
+      val g = green / 255.0
+      val b = blue / 255.0
+      val max = maxOf(r, g, b)
+      val min = minOf(r, g, b)
+      var l = (max + min) / 2.0
+      var h: Double
+      var s: Double
+
+      if (max == min) {
+        h = 0.0
+        s = 0.0
+      } else {
+        val delta = max - min
+        s = if (l > 0.5) delta / (2.0 - max - min) else delta / (max + min)
+        h = when (max) {
+          r -> (g - b) / delta + if (g < b) 6 else 0
+          g -> (b - r) / delta + 2
+          else -> (r - g) / delta + 4
+        }
+        h /= 6.0
+      }
+
+      h *= 360
+      s *= 100
+      l *= 100
+
+      return String.format("%.0f, %.0f%%, %.0f%%", h, s, l)
+    }
+
+    private const val TABBY_CHAT_PANEL_API_VERSION_RANGE = "~0.2.0"
+    private const val TABBY_SERVER_VERSION_RANGE = ">=0.18.0"
+    private const val HTML_CONTENT = """
       <!DOCTYPE html>
       <html lang="en">
+      
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <style>
-          $cssContent
+          html,
+          body,
+          div,
+          p,
+          iframe {
+            background: transparent;
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+          }
+      
+          #message {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+          }
+      
+          #message div {
+            width: 100%;
+            max-width: 300px;
+            color: hsl(var(--foreground));
+          }
+      
+          #message a {
+            color: hsl(var(--primary));
+          }
+      
+          #message div {
+            margin: 16px;
+          }
+      
+          #message div p {
+            margin: 8px 0;
+          }
+      
+          iframe {
+            border-width: 0;
+            width: 100%;
+            height: 100vh;
+          }
         </style>
-        <script defer>
-          const syncTheme = (data = {}) => {
-            const chatIframe = document.getElementById("chat");
-            if (!chatIframe) return
-            
-            const backgroundColor = data.backgroundColor || "$backgroundColor"
-            const foregroundColor = data.foregroundColor || "$foregroundColor"
-            const fontSize = data.fontSize || "${fontSize}px"
-            const borderColor = data.borderColor || "#${borderColor}"
-            
-            const varBackgroundColor = "--intellij-editor-background:" + backgroundColor
-            const varForegroundColor = "--intellij-editor-foreground:" + foregroundColor
-            const varFontSize = "--intellij-font-size:" + fontSize
-            const varBorderColor = "--intellij-editor-border:" + borderColor
-  
-            const style = [varBackgroundColor, varForegroundColor, varFontSize, varBorderColor].join(";")
-            chatIframe.contentWindow.postMessage({ style }, "${endpoint}");
-            
-            const theme = data.theme || "${theme}"
-            const themeClass = "intellij " + theme
-            console.log('themeClass', themeClass)
-            chatIframe.contentWindow.postMessage({ themeClass }, "${endpoint}");
-          }
-        
-          window.onload = function () {
-            const chatIframe = document.getElementById("chat");
-            if (chatIframe) {
-              const clientQuery = "&client=intellij"
-              const themeQuery = "&theme=${theme}"
-              const fontSizeQuery = "&font-size=${fontSize}px"
-              const foregroundQuery = "&foreground=${foregroundColor}"
-              const backgroundQuery = "&background=${backgroundColor}"
-        
-              chatIframe.addEventListener('load', function() {
-								setTimeout(() => {
-									syncTheme()
-									setTimeout(() => {
-										window.onReceiveMessage(JSON.stringify({ action: 'rendered' }));
-									}, 800)
-								}, 300)
-							});
-							chatIframe.src=encodeURI("${endpoint}/chat?" + clientQuery + themeQuery + fontSizeQuery + foregroundQuery + backgroundQuery)
-          	}
-						
-						window.addEventListener("message", (event) => {
-							if (!chatIframe) return
-							if (event.data) {
-								if (event.data === "quilt.threads.pong") return // @quilted/threads message
-								if (event.data.fromClient) {
-									if (event.data.action === 'sync-theme') {
-										syncTheme(event.data.data);
-										return;
-									}
-									chatIframe.contentWindow.postMessage(event.data.fromClient, "${endpoint}");
-								} else {
-									window.onReceiveMessage(JSON.stringify(event.data));
-								}
-							}
-						});
-          }
-        </script>
       </head>
+      
       <body>
-        <iframe
-          id="chat"
-          allow="clipboard-read; clipboard-write" />
-      </body>
-      </html>
-      """.trimIndent()
-
-    this.browser.loadHTML(htmlContent)
-  }
-
-  fun displayDisconnectedPage() {
-    this.isChatPageDisplayed = false
-
-    val cssContent = this::class.java.getResource("/styles/chat-panel.css")?.readText() ?: ""
-    val logoContent = this::class.java.getResource("/META-INF/pluginIcon.svg")?.readText() ?: ""
-    val encodedLogo = Base64.getEncoder().encodeToString(logoContent.toByteArray())
-    val logoDataUrl = "data:image/svg+xml;base64,$encodedLogo"
-
-    val editorColorsScheme: EditorColorsScheme = EditorColorsManager.getInstance().globalScheme
-    val foregroundColor = editorColorsScheme.defaultForeground.toHex()
-    val htmlContent = """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <style>
-        $cssContent
-      </style>
-      <style>
-        * {
-          color: ${foregroundColor};
-        }
-      </style>
-     </head>
-    <body>
-      <main class='static-content'>
-        <div class='avatar'>
-        <img src="$logoDataUrl" alt="Tabby Logo" />
-        <p>Tabby</p>
+        <div id="message">
+          <div>
+            <h4>Welcome to Tabby Chat</h4>
+            <p id="messageContent"></p>
+            <a href="javascript:reload();">Reload</a>
+          </div>
         </div>
-        <h4 class='title'>Welcome to Tabby Chat!</h4>
-        <p>To start chatting, please set up your Tabby server. Ensure that your Tabby server is properly configured and connected.</p>
-      </main>
-    </body>
-    </html>
-    """.trimIndent()
-    this.browser.loadHTML(htmlContent)
-  }
-
-  fun getBrowserComponent() = browser.component
-
-  // FIXME: Refactor thread-sending implementation
-  // @reference: https://github.com/lemonmade/quilt/blob/main/packages/threads/source/targets/target.ts#L89
-  private fun sendMessageToServer(methodName: String, params: List<Any?>? = null) {
-    val uuid = UUID.randomUUID()
-    val threadMessage = listOf(
-      0, // 0 means CALL in @thread protocol
-      listOf(
-        uuid.toString(),
-        methodName,
-        params ?: emptyList<Any?>()
-      )
-    )
-    sendMessageToChat(threadMessage)
-  }
-
-  private fun sendMessageToChat(message: Any) {
-    val gson = Gson()
-    val jsonString = gson.toJson(message)
-    val jsCode = """
-      (function() {
-        var message = JSON.parse('$jsonString');
-        window.postMessage({ fromClient: message }, '*');
-      })();
-    """.trimIndent()
-    browser.cefBrowser.executeJavaScript(jsCode, null, 0)
-  }
-
-  private fun Color.toHex(): String {
-    return "#${Integer.toHexString(red).padStart(2, '0')}${Integer.toHexString(green).padStart(2, '0')}${Integer.toHexString(blue).padStart(2, '0')}"
+        <iframe id="chat" style="display: none;"></iframe>
+        <script>
+          function getChatPanel() {
+            return document.getElementById("chat");
+          }
+      
+          function reload() {
+            // handleReload is a function injected by the client
+            handleReload();
+          }
+      
+          function showMessage(message) {
+            const messageDiv = document.getElementById("message");
+            messageDiv.style.cssText = "display: " + (message ? "flex" : "none") + ";";
+            const messageContent = document.getElementById("messageContent");
+            messageContent.innerHTML = message;
+          }
+      
+          function showChatPanel(visible) {
+            const chat = getChatPanel();
+            chat.style.cssText = "display: " + (visible ? "block" : "none") + ";";
+          }
+      
+          function loadChatPanel(url) {
+            const chat = getChatPanel();
+            chat.src = url;
+          }
+      
+          function applyStyle(style) {
+            const { theme, css } = JSON.parse(style);
+            document.documentElement.className = theme;
+            document.documentElement.style.cssText = css;
+          }
+      
+          function sendRequestToChatPanel(request) {
+            const chat = getChatPanel();
+            // client to server requests
+            const { method, params } = JSON.parse(request);
+            if (method) {
+              // adapter for @quilted/threads requests
+              const data = [
+                0, // kind: Request
+                [uuid(), method, params],
+              ]
+              chat.contentWindow.postMessage(data, new URL(chat.src).origin);
+            }
+          }
+      
+          function uuid() {
+            return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+              (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+            );
+          }
+      
+          window.addEventListener("message", (event) => {
+            const chat = getChatPanel();
+      
+            // server to client requests
+            if (event.source === chat.contentWindow) {
+              // handle copy action
+              if (typeof event.data === "object" && "action" in event.data && event.data.action === "copy") {
+                if (navigator.clipboard?.writeText) {
+                  navigator.clipboard.writeText(event.data.data);
+                }
+              }
+      
+              // adapter for @quilted/threads requests
+              if (Array.isArray(event.data) && event.data.length >= 2) {
+                const [kind, data] = event.data;
+                if (kind === 0) {
+                  // 0: Request
+                  if (Array.isArray(data) && event.data.length >= 2) {
+                    const [_requestId, method, params] = data;
+                    // handleChatPanelRequest is a function injected by the client
+                    handleChatPanelRequest(JSON.stringify({ method, params }));
+                  }
+                } else {
+                  // 1: Response
+                  // ignored as current methods return void
+                }
+              }
+            }
+          });
+        </script>
+      </body>
+      
+      </html>
+    """
   }
 }

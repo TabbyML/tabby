@@ -28,7 +28,7 @@ public class WorkbenchPartListener implements IPartListener {
 		private static final WorkbenchPartListener INSTANCE = new WorkbenchPartListener();
 	}
 
-	private Logger logger = new Logger("EditorListener");
+	private Logger logger = new Logger("WorkbenchPartListener");
 	private List<ITextEditor> editors = new ArrayList<>();
 
 	public void init() {

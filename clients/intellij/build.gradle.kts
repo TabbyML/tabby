@@ -24,6 +24,7 @@ dependencies {
     instrumentationTools()
   }
   implementation("org.eclipse.lsp4j:org.eclipse.lsp4j:0.23.1")
+  implementation("io.github.z4kn4fein:semver:2.0.0")
 }
 
 tasks {
@@ -38,7 +39,7 @@ tasks {
 
   intellijPlatform {
     pluginConfiguration {
-      version.set("1.7.0-dev")
+      version.set("1.8.0-dev")
       changeNotes.set(provider {
         changelog.renderItem(
           changelog.getLatest(),
@@ -58,7 +59,6 @@ tasks {
     signing {
       certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
       privateKey.set(System.getenv("PRIVATE_KEY"))
-      password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
     }
     publishing {
       token.set(System.getenv("PUBLISH_TOKEN"))

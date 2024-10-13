@@ -276,7 +276,8 @@ import type { Readable } from "readable-stream";
 export async function parseChatResponse(readableStream: Readable): Promise<string> {
   let output = "";
   try {
-    for await (const delta of readableStream) {
+    for await (const item of readableStream) {
+      const delta = typeof item === "string" ? item : "";
       output += delta;
     }
   } catch (error) {

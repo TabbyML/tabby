@@ -1,0 +1,140 @@
+name: Release Tabby Plugin for IntelliJ Platform
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "intellij@*"
+
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }}
+
+  # If this is enabled it will cancel current running and start latest
+  cancel-in-progress: true
+
+jobs:
+  release-marketplace:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+
+      - name: Setup JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 17
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Determine Publish Channel
+        env:
+          VERSION_STRING:
+        run: |
+          if [[ ${{ github.ref_name }} =~ intellij@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "PUBLISH_CHANNEL=stable" >> $GITHUB_ENV
+          else
+            echo "PUBLISH_CHANNEL=alpha" >> $GITHUB_ENV
+          fi
+
+      - name: Check Publish Channel
+        run: echo "Publish Channel is ${{ env.PUBLISH_CHANNEL }}"
+
+      - name: Publish Plugin to Marketplace
+        env:
+          CERTIFICATE_CHAIN: ${{ secrets.INTELLIJ_PLUGIN_CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.INTELLIJ_PLUGIN_PRIVATE_KEY }}
+          PUBLISH_TOKEN: ${{ secrets.INTELLIJ_PLUGIN_PUBLISH_TOKEN }}
+          PUBLISH_CHANNEL: ${{ env.PUBLISH_CHANNEL }}
+        uses: gradle/gradle-build-action@v2.4.2
+        with:
+          arguments: publishPlugin
+          build-root-directory: clients/intellij
+
+  release-github:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+
+      - name: Setup JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 17
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build Signed Plugin
+        env:
+          CERTIFICATE_CHAIN: ${{ secrets.INTELLIJ_PLUGIN_CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.INTELLIJ_PLUGIN_PRIVATE_KEY }}
+        uses: gradle/gradle-build-action@v2.4.2
+        with:
+          arguments: signPlugin
+          build-root-directory: clients/intellij
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          prerelease: true
+          tag: ${{ github.ref_name }}
+          removeArtifacts: true
+          artifacts: "clients/intellij/build/distributions/intellij-tabby-signed.zip"

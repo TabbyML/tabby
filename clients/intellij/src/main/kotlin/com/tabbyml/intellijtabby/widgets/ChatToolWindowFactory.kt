@@ -9,8 +9,8 @@ import com.tabbyml.intellijtabby.chat.ChatBrowser
 
 class ChatToolWindowFactory : ToolWindowFactory, DumbAware {
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-    val browserComponent = ChatBrowser(project).getBrowserComponent()
-    val content = ContentFactory.getInstance().createContent(browserComponent, "", false)
+    val browser = ChatBrowser(project)
+    val content = ContentFactory.getInstance().createContent(browser.browserComponent, "", false)
     toolWindow.contentManager.addContent(content)
   }
 

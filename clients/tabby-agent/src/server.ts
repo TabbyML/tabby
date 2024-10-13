@@ -210,9 +210,11 @@ export class Server {
 
   private async initialized(): Promise<void> {
     this.logger.info("Received initialized notification.");
-    await [this.completionProvider, this.chatFeature].mapAsync((feature: Feature) => {
-      return feature.initialized?.(this.connection);
-    });
+    await [this.configurations, this.statusProvider, this.completionProvider, this.chatFeature].mapAsync(
+      (feature: Feature) => {
+        return feature.initialized?.(this.connection);
+      },
+    );
 
     // FIXME(@icycodes): remove deprecated methods
     if (this.clientCapabilities?.tabby?.agent) {

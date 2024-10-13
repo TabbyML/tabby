@@ -99,7 +99,7 @@ public class PairedDocumentEventTrigger implements IInlineCompletionTrigger {
 		if (pendingEvent != null && pendingEvent.textEditor == textEditor) {
 			if (pendingEvent.documentEvent != null && pendingEvent.modificationStamp == modificationStamp) {
 				logger.debug("Received caretEvent with paired documentEvent, trigger inline completion.");
-				inlineCompletionService.trigger();
+				inlineCompletionService.trigger(false);
 				pendingEvent = null;
 			} else {
 				logger.debug("Received caretEvent, waiting for paired documentEvent.");
@@ -130,7 +130,7 @@ public class PairedDocumentEventTrigger implements IInlineCompletionTrigger {
 		if (pendingEvent != null && pendingEvent.textEditor == textEditor) {
 			if (pendingEvent.caretEvent != null && pendingEvent.modificationStamp == modificationStamp) {
 				logger.debug("Received documentEvent with paired caretEvent, trigger inline completion.");
-				inlineCompletionService.trigger();
+				inlineCompletionService.trigger(false);
 				pendingEvent = null;
 			} else {
 				logger.debug("Received documentEvent, waiting for paired caretEvent.");
