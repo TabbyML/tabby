@@ -132,6 +132,16 @@
 		</command>
 		<command
 			categoryId="com.tabbyml.tabby4eclipse.commands.inlineCompletion"
+			name="Accept Next Line of Inline Completion"
+			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion.acceptNextLine">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.inlineCompletion"
+			name="Accept Next Word of Inline Completion"
+			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion.acceptNextWord">
+		</command>
+		<command
+			categoryId="com.tabbyml.tabby4eclipse.commands.inlineCompletion"
 			name="Dismiss Inline Completion"
 			id="com.tabbyml.tabby4eclipse.commands.inlineCompletion.dismiss">
 		</command>
@@ -204,6 +214,14 @@
 			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.accept">
 		</handler>
 		<handler
+			class="com.tabbyml.tabby4eclipse.commands.inlineCompletion.AcceptNextLine"
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.acceptNextLine">
+		</handler>
+		<handler
+			class="com.tabbyml.tabby4eclipse.commands.inlineCompletion.AcceptNextWord"
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.acceptNextWord">
+		</handler>
+		<handler
 			class="com.tabbyml.tabby4eclipse.commands.inlineCompletion.Dismiss"
 			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.dismiss">
 		</handler>
@@ -241,6 +259,15 @@
 		</handler>
 	</extension>
 
+	<extension point="org.eclipse.ui.contexts">
+		<context
+			id="com.tabbyml.tabby4eclipse.inlineCompletionVisible"
+			name="Inline Completion Visible"
+			description="Tabby inline completion is visible."
+			parentId="org.eclipse.ui.textEditorScope">
+		</context>
+	</extension>
+
 	<extension point="org.eclipse.ui.bindings">
 		<key
 			commandId="com.tabbyml.tabby4eclipse.commands.chat.toggleChatView"
@@ -256,25 +283,37 @@
 		</key>
 		<key
 			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.previous"
-			contextId="org.eclipse.ui.textEditorScope"
+			contextId="com.tabbyml.tabby4eclipse.inlineCompletionVisible"
 			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
 			sequence="M3+[">
 		</key>
 		<key
 			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.next"
-			contextId="org.eclipse.ui.textEditorScope"
+			contextId="com.tabbyml.tabby4eclipse.inlineCompletionVisible"
 			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
 			sequence="M3+]">
 		</key>
 		<key
 			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.accept"
-			contextId="org.eclipse.ui.textEditorScope"
+			contextId="com.tabbyml.tabby4eclipse.inlineCompletionVisible"
 			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
 			sequence="TAB">
 		</key>
 		<key
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.acceptNextLine"
+			contextId="com.tabbyml.tabby4eclipse.inlineCompletionVisible"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="M1+TAB">
+		</key>
+		<key
+			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.acceptNextWord"
+			contextId="com.tabbyml.tabby4eclipse.inlineCompletionVisible"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+			sequence="M1+ARROW_RIGHT">
+		</key>
+		<key
 			commandId="com.tabbyml.tabby4eclipse.commands.inlineCompletion.dismiss"
-			contextId="org.eclipse.ui.textEditorScope"
+			contextId="com.tabbyml.tabby4eclipse.inlineCompletionVisible"
 			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
 			sequence="ESC">
 		</key>

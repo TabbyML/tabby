@@ -3,6 +3,8 @@ package com.tabbyml.tabby4eclipse.inlineCompletion;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
@@ -12,6 +14,8 @@ import org.eclipse.jface.text.TextSelection;
 import org.eclipse.lsp4e.LSPEclipseUtils;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
+import org.eclipse.ui.contexts.IContextActivation;
+import org.eclipse.ui.contexts.IContextService;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.tabbyml.tabby4eclipse.Logger;
@@ -34,9 +38,12 @@ public class InlineCompletionService implements IInlineCompletionService {
 		private static final IInlineCompletionService INSTANCE = new InlineCompletionService();
 	}
 
+	private static final String INLINE_COMPLETION_VISIBLE_CONTEXT_ID = "com.tabbyml.tabby4eclipse.inlineCompletionVisible";
+
 	private Logger logger = new Logger("InlineCompletionService");
 	private InlineCompletionRenderer renderer = new InlineCompletionRenderer();
 	private InlineCompletionContext current;
+	private IContextActivation inlineCompletionVisibleContext;
 
 	@Override
 	public boolean isCompletionItemVisible() {
@@ -76,6 +83,7 @@ public class InlineCompletionService implements IInlineCompletionService {
 		logger.info("Provide inline completion for TextEditor " + textEditor.getTitle() + " at offset " + offset
 				+ " with modification stamp " + modificationStamp);
 		renderer.hide();
+		deactivateInlineCompletionVisibleContext(textEditor);
 		if (current != null) {
 			if (current.job != null && !current.job.isDone()) {
 				logger.info("Cancel the current job due to new request.");
@@ -105,6 +113,7 @@ public class InlineCompletionService implements IInlineCompletionService {
 				InlineCompletionList list = request.convertInlineCompletionList(completionList);
 				current.response = new InlineCompletionContext.Response(list);
 				renderer.show(textViewer, current.response.getActiveCompletionItem());
+				activateInlineCompletionVisibleContext(textEditor);
 				EventParams eventParams = buildTelemetryEventParams(EventParams.Type.VIEW);
 				postTelemetryEvent(eventParams);
 			} catch (BadLocationException e) {
@@ -191,7 +200,7 @@ public class InlineCompletionService implements IInlineCompletionService {
 	}
 
 	@Override
-	public void accept() {
+	public void accept(AcceptType acceptType) {
 		ITextEditor textEditor = EditorUtils.getActiveTextEditor();
 		logger.info("Accept inline completion in TextEditor " + textEditor.toString());
 		if (current == null || current.request == null || current.response == null) {
@@ -199,23 +208,47 @@ public class InlineCompletionService implements IInlineCompletionService {
 		}
 		int offset = current.request.offset;
 		InlineCompletionItem item = current.response.getActiveCompletionItem();
-		EventParams eventParams = buildTelemetryEventParams(EventParams.Type.SELECT);
+		EventParams eventParams = buildTelemetryEventParams(EventParams.Type.SELECT,
+				acceptType == AcceptType.FULL_COMPLETION ? null : "line");
 
 		renderer.hide();
+		deactivateInlineCompletionVisibleContext(textEditor);
 		current = null;
 
 		int prefixReplaceLength = item.getReplaceRange().getPrefixLength();
 		int suffixReplaceLength = item.getReplaceRange().getSuffixLength();
 		String text = item.getInsertText().substring(prefixReplaceLength);
-		if (text.isEmpty()) {
+		String textToInsert;
+
+		if (acceptType == AcceptType.NEXT_WORD) {
+			Pattern pattern = Pattern.compile("\\w+|\\W+");
+			Matcher matcher = pattern.matcher(text);
+			if (matcher.find()) {
+				textToInsert = matcher.group();
+			} else {
+				textToInsert = text;
+			}
+		} else if (acceptType == AcceptType.NEXT_LINE) {
+			List<String> lines = List.of(text.split("\n"));
+			String line = lines.get(0);
+			if (text.isEmpty() && lines.size() > 1) {
+				line += "\n";
+				line += lines.get(1);
+			}
+			textToInsert = line;
+		} else {
+			textToInsert = text;
+		}
+
+		if (textToInsert.isEmpty()) {
 			return;
 		}
 
 		IDocument document = EditorUtils.getDocument(textEditor);
 		EditorUtils.syncExec(textEditor, () -> {
 			try {
-				document.replace(offset, suffixReplaceLength, text);
-				ITextSelection selection = new TextSelection(offset + text.length(), 0);
+				document.replace(offset, suffixReplaceLength, textToInsert);
+				ITextSelection selection = new TextSelection(offset + textToInsert.length(), 0);
 				textEditor.getSelectionProvider().setSelection(selection);
 				postTelemetryEvent(eventParams);
 			} catch (BadLocationException e) {
@@ -230,6 +263,8 @@ public class InlineCompletionService implements IInlineCompletionService {
 			logger.info("Dismiss inline completion.");
 			EventParams eventParams = buildTelemetryEventParams(EventParams.Type.DISMISS);
 			renderer.hide();
+			ITextEditor textEditor = EditorUtils.getActiveTextEditor();
+			deactivateInlineCompletionVisibleContext(textEditor);
 			postTelemetryEvent(eventParams);
 		}
 		if (current != null) {
@@ -266,6 +301,22 @@ public class InlineCompletionService implements IInlineCompletionService {
 				telemetryService.event(params);
 				return null;
 			});
+		}
+	}
+
+	private void activateInlineCompletionVisibleContext(ITextEditor editor) {
+		IContextService contextService = EditorUtils.getContextService(editor);
+		if (contextService != null) {
+			logger.debug("Activating inline completion visible context.");
+			inlineCompletionVisibleContext = contextService.activateContext(INLINE_COMPLETION_VISIBLE_CONTEXT_ID);
+		}
+	}
+
+	private void deactivateInlineCompletionVisibleContext(ITextEditor editor) {
+		IContextService contextService = EditorUtils.getContextService(editor);
+		if (contextService != null && inlineCompletionVisibleContext != null) {
+			logger.debug("Deactivating inline completion visible context.");
+			contextService.deactivateContext(inlineCompletionVisibleContext);
 		}
 	}
 

@@ -8,13 +8,13 @@ import com.tabbyml.tabby4eclipse.Logger;
 import com.tabbyml.tabby4eclipse.inlineCompletion.IInlineCompletionService.AcceptType;
 import com.tabbyml.tabby4eclipse.inlineCompletion.InlineCompletionService;
 
-public class Accept extends AbstractHandler {
-	private Logger logger = new Logger("Commands.InlineCompletion.Accept");
+public class AcceptNextWord extends AbstractHandler {
+	private Logger logger = new Logger("Commands.InlineCompletion.AcceptNextLine");
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
-		logger.debug("Accept the current inline completion.");
-		InlineCompletionService.getInstance().accept(AcceptType.FULL_COMPLETION);
+		logger.debug("Accept next word of the current inline completion.");
+		InlineCompletionService.getInstance().accept(AcceptType.NEXT_WORD);
 		return null;
 	}
 

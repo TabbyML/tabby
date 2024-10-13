@@ -42,10 +42,16 @@ public interface IInlineCompletionService {
 	 */
 	public void previous();
 
+	enum AcceptType {
+		FULL_COMPLETION, NEXT_LINE, NEXT_WORD,
+	}
+
 	/**
 	 * Accept the current completion item ghost text.
+	 * 
+	 * @param type the type of completion to accept.
 	 */
-	public void accept();
+	public void accept(AcceptType type);
 
 	/**
 	 * Dismiss the current completion item ghost text.
