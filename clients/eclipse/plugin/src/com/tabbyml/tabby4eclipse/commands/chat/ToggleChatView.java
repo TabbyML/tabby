@@ -5,8 +5,6 @@ import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.IWorkbenchPart;
-import org.eclipse.ui.PartInitException;
 
 import com.tabbyml.tabby4eclipse.DebouncedRunnable;
 import com.tabbyml.tabby4eclipse.Logger;
@@ -26,6 +24,11 @@ public class ToggleChatView extends AbstractHandler {
 			if (page != null) {
 				boolean chatPanelFocused = page.getActivePart() == ChatViewUtils.findOpenedView();
 				if (chatPanelFocused) {
+					// FIXME: Toggle between chat view and editor using keyboard shortcut is tested
+					// on Linux only.
+					// For macOS and windows, the eclipse keyboard shortcuts in not available when
+					// chat view web browser is focused,
+					// so this action can only switch to chat panel but cannot switch back for now.
 					logger.debug("Switch to Editor.");
 					IEditorPart editorPart = page.getActiveEditor();
 					if (editorPart != null) {

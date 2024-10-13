@@ -433,6 +433,9 @@ public class ChatView extends ViewPart {
 			break;
 		}
 		case "onKeyboardEvent": {
+			// FIXME: For macOS and windows, the eclipse keyboard shortcuts are not
+			// available when browser is focused,
+			// we should handle keyboard events here.
 			break;
 		}
 		}
