@@ -14,7 +14,7 @@ jobs:
   uses: actions/setup-node@v4.0.4
   with:
     # Set always-auth in npmrc.
-    always-auth:  # optional, default is false
+    always-auth: true # optional, default is false
     # Version Spec of the version to use. Examples: 12.x, 10.15.1, >=10.15.0.
     node-version: # optional
     # File containing the version Spec of the version to use.  Examples: package.json, .nvmrc, .node-version, .tool-versions.
