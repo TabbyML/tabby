@@ -527,6 +527,26 @@ export type ChatEditResolveCommand = LspCommand & {
 };
 
 /**
+ * [Tabby] Did Change Active Editor Notification(➡️)
+ *
+ * This method is sent from the client to server when the active editor changed.
+ *
+ *
+ * - method: `tabby/editors/didChangeActiveEditor`
+ * - params: {@link OpenedFileParams}
+ * - result: void
+ */
+export namespace DidChangeActiveEditorNotification {
+  export const method = "tabby/editors/didChangeActiveEditor";
+  export const messageDirection = MessageDirection.clientToServer;
+  export const type = new ProtocolNotificationType<DidChangeActiveEditorParams, void>(method);
+}
+export type DidChangeActiveEditorParams = {
+  activeEditor: Location;
+  visibleEditors: Location[] | undefined;
+};
+
+/**
  * [Tabby] GenerateCommitMessage Request(↩️)
  *
  * This method is sent from the client to the server to generate a commit message for a git repository.
