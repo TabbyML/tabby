@@ -20,7 +20,13 @@ import {
 
 import { PromptEditor, PromptEditorRef } from './prompt-editor'
 import { Button } from './ui/button'
-import { IconAtSign, IconHash, IconSend, IconSpinner } from './ui/icons'
+import {
+  IconAtSign,
+  IconBox,
+  IconHash,
+  IconSend,
+  IconSpinner
+} from './ui/icons'
 import { Separator } from './ui/separator'
 
 export default function TextAreaSearch({
@@ -189,6 +195,16 @@ export default function TextAreaSearch({
         )}
         onClick={e => e.stopPropagation()}
       >
+        {/* llm select */}
+        {/* <Button
+          variant="ghost"
+          className="gap-2 px-1.5 py-1 text-foreground/70"
+        >
+          <IconBox />
+          Mistral-7B
+        </Button>
+        <Separator orientation="vertical" className="h-5" /> */}
+
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

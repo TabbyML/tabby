@@ -1,12 +1,5 @@
-import { CSSProperties, useEffect, useRef } from 'react'
-import {
-  motion,
-  Transition,
-  useAnimationControls,
-  useInView,
-  UseInViewOptions,
-  Variants
-} from 'framer-motion'
+import { CSSProperties } from 'react'
+import { motion, Transition, UseInViewOptions, Variants } from 'framer-motion'
 
 const cardTransition: Transition = {
   ease: 'easeOut',
@@ -16,15 +9,9 @@ const cardTransition: Transition = {
 function getCardVariants(delay?: number): Variants {
   return {
     initial: {
-      y: 24,
-      opacity: 0
-    },
-    offscreen: {
       opacity: 0,
-      transition: cardTransition,
-      transitionEnd: {
-        y: 24
-      }
+      y: 24,
+      transition: cardTransition
     },
     onscreen: {
       opacity: 1,
@@ -52,40 +39,11 @@ export function AnimationWrapper({
   style,
   delay
 }: AnimationWrapperProps) {
-  const controls = useAnimationControls()
-  const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, viewport)
-
-  const handleLeaveViewport = () => {
-    controls.start('offscreen')
-  }
-
-  const handleEnterViewport = () => {
-    controls.start('onscreen')
-  }
-
-  useEffect(() => {
-    // FIXME(jueliang) call to much times
-    if (inView) {
-      handleEnterViewport()
-    } else {
-      handleLeaveViewport()
-    }
-  }, [controls, inView])
-
-  useEffect(() => {
-    return () => {
-      controls.stop()
-    }
-  }, [])
-
   return (
     <motion.div
-      ref={ref}
-      animate={controls}
       initial="initial"
-      // whileInView='onscreen'
-      // viewport={viewport}
+      whileInView="onscreen"
+      viewport={viewport}
       // onViewportEnter={handleEnterViewport}
       // onViewportLeave={handleLeaveViewport}
       style={style}

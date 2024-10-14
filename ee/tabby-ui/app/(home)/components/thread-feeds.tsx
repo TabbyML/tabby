@@ -18,6 +18,8 @@ import { LoadMoreIndicator } from '@/components/load-more-indicator'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { UserAvatar } from '@/components/user-avatar'
 
+import { AnimationWrapper } from './animation-wrapper'
+
 const threadItemVariants: Variants = {
   initial: {
     opacity: 0,
@@ -128,57 +130,64 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
         fetchingSources
       }}
     >
-      <motion.div
-        initial="initial"
-        whileInView="onscreen"
-        viewport={{
-          margin: '0px 0px -140px 0px',
-          once: true
-        }}
-        transition={{
-          delay: 1,
-          delayChildren: 0.3,
-          staggerChildren: 0.05,
-          when: 'beforeChildren'
-        }}
-        style={{ width: '100%', paddingBottom: '1rem' }}
-      >
-        <div className="mb-2.5 text-lg font-semibold">Threads</div>
-        <Separator className="mb-4" />
-        <LoadingWrapper
-          loading={fetching || fetchingUsers}
-          fallback={
-            <div className="flex justify-center">
-              <IconSpinner className="h-8 w-8" />
-            </div>
-          }
+      <div className="w-full">
+        <AnimationWrapper delay={0.3} style={{ width: '100%' }}>
+          <div className="mb-2.5 text-lg font-semibold w-full">Threads</div>
+          <Separator className="mb-4 w-full" />
+        </AnimationWrapper>
+        <motion.div
+          initial="initial"
+          whileInView="onscreen"
+          viewport={{
+            margin: '0px 0px -140px 0px',
+            once: true
+          }}
+          transition={{
+            delay: 0.5,
+            delayChildren: 0.3,
+            staggerChildren: 0.2
+          }}
+          style={{ width: '100%', paddingBottom: '1rem' }}
         >
-          <div className="space-y-3 text-sm">
-            {threads?.length ? (
-              <>
-                {threads.map((t, idx) => {
-                  return (
-                    <ThreadItem
-                      data={t}
-                      key={t.node.id}
-                      isLast={idx === threadLen - 1}
-                    />
-                  )
-                })}
-              </>
-            ) : (
-              <div className="text-center text-base">No shared threads</div>
-            )}
-          </div>
-          {!!pageInfo?.hasPreviousPage && (
-            <LoadMoreIndicator onLoad={loadMore} isFetching={fetching}>
-              <div className="mt-8 flex justify-center">
+          <LoadingWrapper
+            loading={fetching || fetchingUsers}
+            fallback={
+              <div className="flex justify-center">
                 <IconSpinner className="h-8 w-8" />
               </div>
-            </LoadMoreIndicator>
-          )}
-        </LoadingWrapper>
-      </motion.div>
+            }
+          >
+            <div className="space-y-3 text-sm">
+              {threads?.length ? (
+                <>
+                  {threads.map((t, idx) => {
+                    return (
+                      <ThreadItem
+                        data={t}
+                        key={t.node.id}
+                        isLast={idx === threadLen - 1}
+                      />
+                    )
+                  })}
+                </>
+              ) : (
+                <div className="text-center text-base">No shared threads</div>
+              )}
+            </div>
+            {!!pageInfo?.hasPreviousPage && (
+              <LoadMoreIndicator
+                onLoad={loadMore}
+                isFetching={fetching}
+                intersectionOptions={{ rootMargin: '0px 0px 200px 0px' }}
+              >
+                <div className="mt-8 flex justify-center">
+                  <IconSpinner className="h-8 w-8" />
+                </div>
+              </LoadMoreIndicator>
+            )}
+          </LoadingWrapper>
+        </motion.div>
+      </div>
     </ThreadFeedsContext.Provider>
   )
 }
@@ -253,12 +262,13 @@ function ThreadItem({ data, isLast }: ThreadItemProps) {
               </div>
             </LoadingWrapper>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <UserAvatar user={user} className="h-6 w-6 shrink-0 border" />
-            <div className="flex items-baseline gap-2.5">
+            <div className="flex items-baseline gap-1">
               <div className="text-sm">{user?.name || user?.email}</div>
+              <span className="text-muted-foreground">{'·'}</span>
               <div className="text-xs text-muted-foreground">
-                Asked{' '}
+                {`Asked `}
                 {moment(data.node.createdAt).isBefore(
                   moment().subtract(1, 'month')
                 )
@@ -270,23 +280,5 @@ function ThreadItem({ data, isLast }: ThreadItemProps) {
         </Link>
       </div>
     </motion.div>
-  )
-}
-
-function TheadsSkeleton({ className }: { className?: string }) {
-  return (
-    <div className={cn('space-y-6', className)}>
-      <ThreadItemSkeleton />
-      <ThreadItemSkeleton />
-    </div>
-  )
-}
-
-function ThreadItemSkeleton() {
-  return (
-    <div className="p-2">
-      <Skeleton className="w-full" />
-      <Skeleton className="mt-2.5 h-6 w-6 rounded-full" />
-    </div>
   )
 }

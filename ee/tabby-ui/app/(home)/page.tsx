@@ -112,7 +112,7 @@ function MainPanel() {
             </AnimationWrapper>
           )}
           <Stats />
-          <ThreadFeeds className="w-full" />
+          <ThreadFeeds />
         </div>
       </main>
     </ScrollArea>
