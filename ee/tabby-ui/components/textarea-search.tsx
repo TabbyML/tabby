@@ -20,13 +20,7 @@ import {
 
 import { PromptEditor, PromptEditorRef } from './prompt-editor'
 import { Button } from './ui/button'
-import {
-  IconAtSign,
-  IconBox,
-  IconHash,
-  IconSend,
-  IconSpinner
-} from './ui/icons'
+import { IconAtSign, IconHash, IconSend, IconSpinner } from './ui/icons'
 import { Separator } from './ui/separator'
 
 export default function TextAreaSearch({
