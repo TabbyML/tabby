@@ -23,7 +23,7 @@ import { AnimationWrapper } from './animation-wrapper'
 const threadItemVariants: Variants = {
   initial: {
     opacity: 0,
-    y: 60
+    y: 40
   },
   onscreen: {
     opacity: 1,
@@ -134,59 +134,59 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
         <AnimationWrapper delay={0.3} style={{ width: '100%' }}>
           <div className="mb-2.5 w-full text-lg font-semibold">Threads</div>
           <Separator className="mb-4 w-full" />
-        </AnimationWrapper>
-        <motion.div
-          initial="initial"
-          whileInView="onscreen"
-          viewport={{
-            margin: '0px 0px -140px 0px',
-            once: true
-          }}
-          transition={{
-            delay: 0.5,
-            delayChildren: 0.3,
-            staggerChildren: 0.2
-          }}
-          style={{ width: '100%', paddingBottom: '1rem' }}
-        >
-          <LoadingWrapper
-            loading={fetching || fetchingUsers}
-            fallback={
-              <div className="flex justify-center">
-                <IconSpinner className="h-8 w-8" />
-              </div>
-            }
+          <motion.div
+            initial="initial"
+            whileInView="onscreen"
+            viewport={{
+              margin: '0px 0px -140px 0px',
+              once: true
+            }}
+            transition={{
+              delay: 0.5,
+              delayChildren: 0.3,
+              staggerChildren: 0.2
+            }}
+            style={{ width: '100%', paddingBottom: '1rem' }}
           >
-            <div className="space-y-3 text-sm">
-              {threads?.length ? (
-                <>
-                  {threads.map((t, idx) => {
-                    return (
-                      <ThreadItem
-                        data={t}
-                        key={t.node.id}
-                        isLast={idx === threadLen - 1}
-                      />
-                    )
-                  })}
-                </>
-              ) : (
-                <div className="text-center text-base">No shared threads</div>
-              )}
-            </div>
-            {!!pageInfo?.hasPreviousPage && (
-              <LoadMoreIndicator
-                onLoad={loadMore}
-                isFetching={fetching}
-                intersectionOptions={{ rootMargin: '0px 0px 200px 0px' }}
-              >
-                <div className="mt-8 flex justify-center">
+            <LoadingWrapper
+              loading={fetching || fetchingUsers}
+              fallback={
+                <div className="flex justify-center">
                   <IconSpinner className="h-8 w-8" />
                 </div>
-              </LoadMoreIndicator>
-            )}
-          </LoadingWrapper>
-        </motion.div>
+              }
+            >
+              <div className="space-y-3 text-sm">
+                {threads?.length ? (
+                  <>
+                    {threads.map((t, idx) => {
+                      return (
+                        <ThreadItem
+                          data={t}
+                          key={t.node.id}
+                          isLast={idx === threadLen - 1}
+                        />
+                      )
+                    })}
+                  </>
+                ) : (
+                  <div className="text-center text-base">No shared threads</div>
+                )}
+              </div>
+              {!!pageInfo?.hasPreviousPage && (
+                <LoadMoreIndicator
+                  onLoad={loadMore}
+                  isFetching={fetching}
+                  intersectionOptions={{ rootMargin: '0px 0px 200px 0px' }}
+                >
+                  <div className="mt-8 flex justify-center">
+                    <IconSpinner className="h-8 w-8" />
+                  </div>
+                </LoadMoreIndicator>
+              )}
+            </LoadingWrapper>
+          </motion.div>
+        </AnimationWrapper>
       </div>
     </ThreadFeedsContext.Provider>
   )
@@ -229,56 +229,56 @@ function ThreadItem({ data, isLast }: ThreadItemProps) {
   }, [allUsers, userId])
 
   return (
-    <motion.div
-      variants={threadItemVariants}
-      initial="initial"
-      whileInView="onscreen"
-      viewport={{
-        once: true
-      }}
-    >
-      <div className="flex items-start gap-2">
-        <div className="relative mt-2 h-8 w-8 rounded-full bg-[#AAA192] p-2 text-white dark:bg-[#E7E1D3] dark:text-slate-700">
-          <IconMessageCircle />
-          {!isLast && (
-            <div className="absolute left-4 top-10 h-10 w-0.5 bg-border"></div>
-          )}
+    // <motion.div
+    //   variants={threadItemVariants}
+    //   initial="initial"
+    //   whileInView="onscreen"
+    //   viewport={{
+    //     once: true
+    //   }}
+    // >
+    <div className="flex items-start gap-2">
+      <div className="relative mt-2 h-8 w-8 rounded-full bg-[#AAA192] p-2 text-white dark:bg-[#E7E1D3] dark:text-slate-700">
+        <IconMessageCircle />
+        {!isLast && (
+          <div className="absolute left-4 top-10 h-10 w-0.5 bg-border"></div>
+        )}
+      </div>
+      <Link
+        href={title ? `/search/${titleSlug}-${threadId}` : 'javascript:void'}
+        className="transform-bg group flex-1 overflow-hidden rounded-lg p-2 hover:bg-accent"
+      >
+        <div className="mb-1.5 flex items-center gap-2">
+          <LoadingWrapper
+            loading={fetching}
+            fallback={
+              <div className="w-full py-1.5">
+                <Skeleton className="w-[60%]" />
+              </div>
+            }
+          >
+            <div className="break-anywhere truncate text-lg font-semibold">
+              {title}
+            </div>
+          </LoadingWrapper>
         </div>
-        <Link
-          href={title ? `/search/${titleSlug}-${threadId}` : 'javascript:void'}
-          className="transform-bg group flex-1 overflow-hidden rounded-lg p-2 hover:bg-accent"
-        >
-          <div className="mb-1.5 flex items-center gap-2">
-            <LoadingWrapper
-              loading={fetching}
-              fallback={
-                <div className="w-full py-1.5">
-                  <Skeleton className="w-[60%]" />
-                </div>
-              }
-            >
-              <div className="break-anywhere truncate text-lg font-semibold">
-                {title}
-              </div>
-            </LoadingWrapper>
-          </div>
-          <div className="flex items-center gap-2">
-            <UserAvatar user={user} className="h-6 w-6 shrink-0 border" />
-            <div className="flex items-baseline gap-1">
-              <div className="text-sm">{user?.name || user?.email}</div>
-              <span className="text-muted-foreground">{'·'}</span>
-              <div className="text-xs text-muted-foreground">
-                {`Asked `}
-                {moment(data.node.createdAt).isBefore(
-                  moment().subtract(1, 'month')
-                )
-                  ? moment(data.node.createdAt).format('YYYY-MM-DD HH:mm')
-                  : moment(data.node.createdAt).fromNow()}
-              </div>
+        <div className="flex items-center gap-2">
+          <UserAvatar user={user} className="h-6 w-6 shrink-0 border" />
+          <div className="flex items-baseline gap-1">
+            <div className="text-sm">{user?.name || user?.email}</div>
+            <span className="text-muted-foreground">{'·'}</span>
+            <div className="text-xs text-muted-foreground">
+              {`Asked `}
+              {moment(data.node.createdAt).isBefore(
+                moment().subtract(1, 'month')
+              )
+                ? moment(data.node.createdAt).format('YYYY-MM-DD HH:mm')
+                : moment(data.node.createdAt).fromNow()}
             </div>
           </div>
-        </Link>
-      </div>
-    </motion.div>
+        </div>
+      </Link>
+    </div>
+    // </motion.div>
   )
 }
