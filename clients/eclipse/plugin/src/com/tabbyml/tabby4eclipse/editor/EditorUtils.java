@@ -17,7 +17,10 @@ import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.contexts.IContextService;
 import org.eclipse.ui.texteditor.ITextEditor;
+
+import com.tabbyml.tabby4eclipse.chat.ChatMessage.FileContext;
 
 public class EditorUtils {
 	public static IWorkbenchPage getActiveWorkbenchPage() {
@@ -63,6 +66,10 @@ public class EditorUtils {
 
 	public static Display getDisplay(ITextEditor textEditor) {
 		return getStyledTextWidget(textEditor).getDisplay();
+	}
+
+	public static IContextService getContextService(ITextEditor textEditor) {
+		return textEditor.getSite().getService(IContextService.class);
 	}
 
 	public static void asyncExec(Runnable runnable) {
@@ -124,5 +131,21 @@ public class EditorUtils {
 
 			throw new IllegalStateException("Failed to get current offset in document.");
 		});
+	}
+
+	public static String getSelectedText() {
+		ITextEditor editor = getActiveTextEditor();
+		if (editor != null) {
+			return getSelectedText(editor);
+		}
+		return null;
+	}
+
+	public static String getSelectedText(ITextEditor textEditor) {
+		ISelection selection = textEditor.getSelectionProvider().getSelection();
+		if (selection instanceof ITextSelection textSelection) {
+			return textSelection.getText();
+		}
+		return null;
 	}
 }

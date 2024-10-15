@@ -48,6 +48,7 @@ import { CommandProvider } from "./command";
 import { name as serverName, version as serverVersion } from "../package.json";
 import "./utils/array";
 import { SmartApplyFeature } from "./chat/SmartApply";
+import { FileTracker } from "./codeSearch/fileTracker";
 
 export class Server {
   private readonly logger = getLogger("TabbyLSP");
@@ -67,6 +68,7 @@ export class Server {
 
   private readonly gitContextProvider = new GitContextProvider();
   private readonly recentlyChangedCodeSearch = new RecentlyChangedCodeSearch(this.configurations, this.documents);
+  private readonly fileTracker = new FileTracker(this.configurations);
 
   private readonly codeLensProvider = new CodeLensProvider(this.documents);
   private readonly completionProvider = new CompletionProvider(
@@ -77,6 +79,7 @@ export class Server {
     this.anonymousUsageLogger,
     this.gitContextProvider,
     this.recentlyChangedCodeSearch,
+    this.fileTracker,
   );
   private readonly chatFeature = new ChatFeature(this.tabbyApiClient);
   private readonly chatEditProvider = new ChatEditProvider(this.configurations, this.tabbyApiClient, this.documents);
@@ -191,6 +194,7 @@ export class Server {
       this.smartApplyFeature,
       this.statusProvider,
       this.commandProvider,
+      this.fileTracker,
     ].mapAsync((feature: Feature) => {
       return feature.initialize(this.connection, clientCapabilities, clientProvidedConfig);
     });

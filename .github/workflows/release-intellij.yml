@@ -55,10 +55,8 @@ jobs:
         run: pnpm install
 
       - name: Determine Publish Channel
-        env:
-          VERSION_STRING:
         run: |
-          if [[ ${{ github.ref_name }} =~ intellij@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ ${{ github.ref_name }} =~ ^intellij@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "PUBLISH_CHANNEL=stable" >> $GITHUB_ENV
           else
             echo "PUBLISH_CHANNEL=alpha" >> $GITHUB_ENV
@@ -130,11 +128,23 @@ jobs:
           arguments: signPlugin
           build-root-directory: clients/intellij
 
+      - name: Determine is stable release
+        run: |
+          if [[ ${{ github.ref_name }} =~ ^intellij@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "STABLE_RELEASE=true" >> $GITHUB_ENV
+          else
+            echo "STABLE_RELEASE=false" >> $GITHUB_ENV
+          fi
+
+      - name: Check if stable release
+        run: echo "Stable Release is ${{ env.STABLE_RELEASE }}"
+
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
-          prerelease: true
+          prerelease: ${{ env.STABLE_RELEASE == 'false' }}
+          makeLatest: false
           tag: ${{ github.ref_name }}
           removeArtifacts: true
           artifacts: "clients/intellij/build/distributions/intellij-tabby-signed.zip"

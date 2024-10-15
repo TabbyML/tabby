@@ -20,16 +20,38 @@ public interface IInlineCompletionService {
 
 	/**
 	 * Trigger an inline completion request at the current caret position of the
-	  * active text editor.
-	  *
-	  * @param isManualTrigger whether to trigger manually or automatically
+	 * active text editor.
+	 *
+	 * @param isManualTrigger Whether to trigger manually or automatically.
+	 *                        Automatic trigger will only generate one choice, and
+	 *                        manual trigger will generate multiple choices.
 	 */
 	public void trigger(boolean isManualTrigger);
 
 	/**
-	 * Accept the current completion item ghost text.
+	 * Cycle to the next choice if it exists. If the current inline completion is
+	 * auto-triggered, a manual trigger will be called to attempt to generate
+	 * multiple choices.
 	 */
-	public void accept();
+	public void next();
+
+	/**
+	 * Cycle to the previous choice if it exists. If the current inline completion
+	 * is auto-triggered, a manual trigger will be called to attempt to generate
+	 * multiple choices.
+	 */
+	public void previous();
+
+	enum AcceptType {
+		FULL_COMPLETION, NEXT_LINE, NEXT_WORD,
+	}
+
+	/**
+	 * Accept the current completion item ghost text.
+	 * 
+	 * @param type the type of completion to accept.
+	 */
+	public void accept(AcceptType type);
 
 	/**
 	 * Dismiss the current completion item ghost text.

@@ -5,22 +5,22 @@ import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 
 import com.tabbyml.tabby4eclipse.Logger;
-import com.tabbyml.tabby4eclipse.inlineCompletion.IInlineCompletionService.AcceptType;
+import com.tabbyml.tabby4eclipse.editor.EditorUtils;
 import com.tabbyml.tabby4eclipse.inlineCompletion.InlineCompletionService;
 
-public class Accept extends AbstractHandler {
-	private Logger logger = new Logger("Commands.InlineCompletion.Accept");
-
+public class Trigger extends AbstractHandler {
+	private Logger logger = new Logger("Commands.InlineCompletion.Trigger");
+	
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
-		logger.debug("Accept the current inline completion.");
-		InlineCompletionService.getInstance().accept(AcceptType.FULL_COMPLETION);
+		logger.debug("Trigger inline completion manually.");
+		InlineCompletionService.getInstance().trigger(true);
 		return null;
 	}
 
 	@Override
 	public boolean isEnabled() {
-		return InlineCompletionService.getInstance().isCompletionItemVisible();
+		return EditorUtils.getActiveTextEditor().isEditable();
 	}
 
 }

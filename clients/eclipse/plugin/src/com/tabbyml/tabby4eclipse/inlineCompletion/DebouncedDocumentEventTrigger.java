@@ -15,6 +15,7 @@ import org.eclipse.swt.custom.CaretListener;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.ui.texteditor.ITextEditor;
 
+import com.tabbyml.tabby4eclipse.DebouncedRunnable;
 import com.tabbyml.tabby4eclipse.Logger;
 import com.tabbyml.tabby4eclipse.editor.EditorUtils;
 
@@ -128,29 +129,5 @@ public class DebouncedDocumentEventTrigger implements IInlineCompletionTrigger {
 		}
 		logger.debug("handleDocumentChanged: " + event.toString());
 		documentChangedRunnable.call();
-	}
-
-	private class DebouncedRunnable {
-		private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-		private ScheduledFuture<?> future;
-		private final long delay;
-		private final Runnable task;
-
-		public DebouncedRunnable(Runnable task, long delay) {
-			this.task = task;
-			this.delay = delay;
-		}
-
-		public synchronized void call() {
-			if (future != null && !future.isDone()) {
-				future.cancel(true);
-			}
-			future = scheduler.schedule(task, delay, TimeUnit.MILLISECONDS);
-		}
-
-		// FIXME: scheduler shutdown not called
-		public void shutdown() {
-			scheduler.shutdown();
-		}
 	}
 }
