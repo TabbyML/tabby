@@ -128,20 +128,6 @@ impl RepositoryService for RepositoryServiceImpl {
         }
     }
 
-    async fn resolve_repository_by_source_id(
-        &self,
-        policy: &AccessPolicy,
-        source_id: &str,
-    ) -> Result<Repository> {
-        let repos = self.repository_list(Some(policy)).await?;
-        let res = repos.into_iter().find(|r| r.source_id == source_id);
-
-        match res {
-            Some(repo) => Ok(repo),
-            None => Err(anyhow::anyhow!("Repository not found: {}", source_id).into()),
-        }
-    }
-
     async fn search_files(
         &self,
         policy: &AccessPolicy,

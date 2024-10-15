@@ -40,7 +40,7 @@ pub enum RepositoryKind {
     GitConfig,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Repository {
     pub id: ID,
 
@@ -100,33 +100,10 @@ impl Repository {
     }
 }
 
-impl Clone for Repository {
-    fn clone(&self) -> Self {
-        Repository {
-            id: self.id.clone(),
-            source_id: self.source_id.clone(),
-            name: self.name.clone(),
-            kind: self.kind,
-            dir: self.dir.clone(),
-            git_url: self.git_url.clone(),
-            refs: self.refs.clone(),
-        }
-    }
-}
-
-#[derive(GraphQLObject, Debug)]
+#[derive(GraphQLObject, Debug, Clone)]
 pub struct GitReference {
     pub name: String,
     pub commit: String,
-}
-
-impl Clone for GitReference {
-    fn clone(&self) -> Self {
-        Self {
-            name: self.name.clone(),
-            commit: self.commit.clone(),
-        }
-    }
 }
 
 impl From<GitRepository> for Repository {
@@ -276,12 +253,6 @@ pub trait RepositoryService: Send + Sync {
         policy: &AccessPolicy,
         kind: &RepositoryKind,
         id: &ID,
-    ) -> Result<Repository>;
-
-    async fn resolve_repository_by_source_id(
-        &self,
-        policy: &AccessPolicy,
-        source_id: &str,
     ) -> Result<Repository>;
 
     async fn search_files(
