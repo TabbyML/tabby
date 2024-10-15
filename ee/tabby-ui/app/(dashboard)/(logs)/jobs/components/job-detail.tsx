@@ -2,7 +2,6 @@
 
 import React from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Ansi from '@curvenote/ansi-to-react'
 import humanizerDuration from 'humanize-duration'
 import moment from 'moment'
 import { useQuery } from 'urql'
@@ -15,13 +14,15 @@ import {
   IconStopWatch
 } from '@/components/ui/icons'
 import { ListSkeleton } from '@/components/skeleton'
+
 import { getJobDisplayName, getLabelByJobRun } from '../utils'
 
-import "@patternfly/react-core/dist/styles/base.css";
-import { LogViewer, LogViewerSearch } from '@patternfly/react-log-viewer';
-import { Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
+import '@patternfly/react-core/dist/styles/base.css'
 
-const BasicSearchLogViewer = ({data}: {data?: string}) => {
+import { Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core'
+import { LogViewer, LogViewerSearch } from '@patternfly/react-log-viewer'
+
+const BasicSearchLogViewer = ({ data }: { data?: string }) => {
   return (
     <LogViewer
       data={data}
@@ -36,7 +37,7 @@ const BasicSearchLogViewer = ({data}: {data?: string}) => {
       }
     />
   )
-};
+}
 
 export default function JobRunDetail() {
   const router = useRouter()
@@ -72,7 +73,6 @@ export default function JobRunDetail() {
 
   return (
     <>
-
       {fetching ? (
         <ListSkeleton />
       ) : (
