@@ -30,7 +30,7 @@ const BasicSearchLogViewer = ({ data }: { data?: string }) => {
         <Toolbar>
           <ToolbarContent>
             <ToolbarItem>
-              <LogViewerSearch placeholder="Search value" />
+              <LogViewerSearch minSearchChars={1} placeholder="Search value" />
             </ToolbarItem>
           </ToolbarContent>
         </Toolbar>
