@@ -21,7 +21,7 @@ pub struct ModelInfo {
     // partitioned_urls is used for models with multiple files
     // must make sure the first address is the entrypoint
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub partitioned_urls: Option<Vec<ModelAddress>>,
+    pub addresses: Option<Vec<ModelAddress>>,
 }
 
 #[derive(Serialize, Deserialize)]

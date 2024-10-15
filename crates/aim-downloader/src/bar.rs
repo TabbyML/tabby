@@ -1,7 +1,7 @@
-use std::{collections::HashMap, env};
+use std::{collections::HashMap, env, slice};
 
 use dotenvy::dotenv;
-use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use strfmt::strfmt;
 
 const DEFAULT_AIM_PROGRESSBAR_DOWNLOADED_MESSAGE: &str = "🎯 Downloaded {input} to {output}";
@@ -12,14 +12,22 @@ const DEFAULT_AIM_PROGRESSBAR_UPLOADED_MESSAGE: &str = "🎯 Uploaded {input} to
 
 const THRESHOLD_IF_TOTALBYTES_BELOW_THEN_AUTO_SILENT_MODE: u64 = 1024 * 1024;
 
-fn construct_progress_bar(
-    total_size: u64,
-    url: &str,
-    message_format: &str,
-    progress_chars: &str,
-    template: &str,
-) -> indicatif::ProgressBar {
+fn construct_progress_bar(total_size: u64, url: &str) -> indicatif::ProgressBar {
     let pb = ProgressBar::new(total_size);
+    build_progress_bar(&pb, url);
+
+    pb
+}
+
+fn build_progress_bar(pb: &ProgressBar, url: &str) {
+    dotenv().ok();
+    let message_format = &env::var("AIM_PROGRESSBAR_MESSAGE_FORMAT")
+        .unwrap_or_else(|_| DEFAULT_AIM_PROGRESSBAR_MESSAGE_FORMAT.to_string());
+    let progress_chars = &env::var("AIM_PROGRESSBAR_PROGRESS_CHARS")
+        .unwrap_or_else(|_| DEFAULT_AIM_PROGRESSBAR_PROGRESS_CHARS.to_string());
+    let template = &env::var("AIM_PROGRESSBAR_TEMPLATE")
+        .unwrap_or_else(|_| DEFAULT_AIM_PROGRESSBAR_TEMPLATE.to_string());
+
     pb.set_draw_target(ProgressDrawTarget::hidden());
     let mut vars: HashMap<String, String> = HashMap::new();
 
@@ -34,9 +42,50 @@ fn construct_progress_bar(
             .unwrap()
             .progress_chars(progress_chars),
     );
-    pb
 }
 
+#[derive(Clone)]
+pub struct MultiBar {
+    pub silent: bool,
+    pub multi_progress: Option<indicatif::MultiProgress>,
+}
+
+impl MultiBar {
+    pub fn new_empty() -> Self {
+        MultiBar {
+            silent: true,
+            multi_progress: None,
+        }
+    }
+
+    pub fn new(silent: bool) -> Self {
+        dotenv().ok();
+        let multi_progress = match silent {
+            false => Some(MultiProgress::new()),
+            true => None,
+        };
+        MultiBar {
+            silent,
+            multi_progress,
+        }
+    }
+
+    pub fn create_bar(&self, total_size: u64, url: &str) -> Option<WrappedBar> {
+        if self.silent {
+            return None;
+        }
+
+        let pb = self
+            .multi_progress
+            .as_ref()
+            .unwrap()
+            .add(ProgressBar::new(total_size));
+        build_progress_bar(&pb, url);
+        Some(WrappedBar::new_with_bar(pb, self.silent))
+    }
+}
+
+#[derive(Clone)]
 pub struct WrappedBar {
     pub silent: bool,
     pub output: Option<indicatif::ProgressBar>,
@@ -62,25 +111,19 @@ impl WrappedBar {
         }
     }
     pub fn new(total_size: u64, url: &str, silent: bool) -> Self {
+        let pb = construct_progress_bar(total_size, url);
+
+        Self::new_with_bar(pb, silent)
+    }
+
+    pub fn new_with_bar(pb: ProgressBar, silent: bool) -> Self {
         dotenv().ok();
-        let message_format = &env::var("AIM_PROGRESSBAR_MESSAGE_FORMAT")
-            .unwrap_or_else(|_| DEFAULT_AIM_PROGRESSBAR_MESSAGE_FORMAT.to_string());
-        let progress_chars = &env::var("AIM_PROGRESSBAR_PROGRESS_CHARS")
-            .unwrap_or_else(|_| DEFAULT_AIM_PROGRESSBAR_PROGRESS_CHARS.to_string());
-        let template = &env::var("AIM_PROGRESSBAR_TEMPLATE")
-            .unwrap_or_else(|_| DEFAULT_AIM_PROGRESSBAR_TEMPLATE.to_string());
         let downloaded_message = &env::var("AIM_PROGRESSBAR_DOWNLOADED_MESSAGE")
             .unwrap_or_else(|_| DEFAULT_AIM_PROGRESSBAR_DOWNLOADED_MESSAGE.to_string());
         let uploaded_message = &env::var("AIM_PROGRESSBAR_UPLOADED_MESSAGE")
             .unwrap_or_else(|_| DEFAULT_AIM_PROGRESSBAR_UPLOADED_MESSAGE.to_string());
         let output = match silent {
-            false => Some(construct_progress_bar(
-                total_size,
-                url,
-                message_format,
-                progress_chars,
-                template,
-            )),
+            false => Some(pb),
             true => None,
         };
         WrappedBar {
