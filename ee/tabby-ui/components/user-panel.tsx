@@ -271,7 +271,7 @@ function IDELink({
       <TooltipTrigger>
         <Link
           href={href}
-          className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FBF5ED] text-[#030302] dark:bg-[#3D382F]"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-[#030302]"
           target="_blank"
         >
           {icon}

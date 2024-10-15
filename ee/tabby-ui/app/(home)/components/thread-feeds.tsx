@@ -240,9 +240,9 @@ function ThreadItem({ data, isLast }: ThreadItemProps) {
     <div className="flex items-start gap-2">
       <div className="relative mt-2 h-8 w-8 rounded-full bg-[#AAA192] p-2 text-white dark:bg-[#E7E1D3] dark:text-slate-700">
         <IconMessageCircle />
-        {!isLast && (
+        {/* {!isLast && (
           <div className="absolute left-4 top-10 h-10 w-0.5 bg-border"></div>
-        )}
+        )} */}
       </div>
       <Link
         href={title ? `/search/${titleSlug}-${threadId}` : 'javascript:void'}
@@ -268,12 +268,7 @@ function ThreadItem({ data, isLast }: ThreadItemProps) {
             <div className="text-sm">{user?.name || user?.email}</div>
             <span className="text-muted-foreground">{'·'}</span>
             <div className="text-xs text-muted-foreground">
-              {`Asked `}
-              {moment(data.node.createdAt).isBefore(
-                moment().subtract(1, 'month')
-              )
-                ? moment(data.node.createdAt).format('YYYY-MM-DD HH:mm')
-                : moment(data.node.createdAt).fromNow()}
+              {formatCreatedAt(data.node.createdAt, 'Asked')}
             </div>
           </div>
         </div>
@@ -281,4 +276,20 @@ function ThreadItem({ data, isLast }: ThreadItemProps) {
     </div>
     // </motion.div>
   )
+}
+
+function formatCreatedAt(time: string, prefix: string) {
+  const targetTime = moment(time)
+
+  if (targetTime.isBefore(moment().subtract(1, 'year'))) {
+    const timeText = targetTime.format('MMM D, YYYY')
+    return `${prefix} on ${timeText}`
+  }
+
+  if (targetTime.isBefore(moment().subtract(1, 'month'))) {
+    const timeText = targetTime.format('MMM D')
+    return `${prefix} on ${timeText}`
+  }
+
+  return `${prefix} ${targetTime.fromNow()}`
 }

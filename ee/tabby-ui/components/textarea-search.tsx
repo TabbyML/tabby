@@ -97,9 +97,9 @@ export default function TextAreaSearch({
   return (
     <div
       className={cn(
-        'relative w-full overflow-hidden rounded-xl border bg-background transition-all hover:border-[#C89646] dark:border-muted-foreground/60 dark:hover:border-muted-foreground',
+        'relative w-full overflow-hidden rounded-xl border bg-background transition-all hover:border-ring dark:border-muted-foreground/60 dark:hover:border-muted-foreground',
         {
-          'border-[#C89646] dark:border-muted-foreground': isFocus
+          'border-ring dark:border-muted-foreground': isFocus
         },
         className
       )}

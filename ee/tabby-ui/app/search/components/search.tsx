@@ -1306,7 +1306,7 @@ function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
         <Button
           variant="ghost"
           className="-ml-1 pl-0 text-sm text-muted-foreground"
-          onClick={() => router.replace('/')}
+          onClick={() => router.replace('/', { scroll: false })}
         >
           <IconChevronLeft className="mr-1 h-5 w-5" />
           Home

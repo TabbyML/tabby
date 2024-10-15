@@ -164,12 +164,16 @@ export function CompletionCharts({
         style={{ flex: 1 }}
       >
         <Card className="flex flex-1 flex-col justify-between self-stretch rounded-2xl bg-transparent pb-3 md:block">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-2 pt-4">
             <CardTitle className="text-base font-semibold leading-none tracking-tight">
               Acceptance Rate
             </CardTitle>
           </CardHeader>
-          <ResponsiveContainer width="100%" height={60}>
+          <ResponsiveContainer
+            width="100%"
+            height={68}
+            className="border-b pb-1"
+          >
             <LineChart
               data={acceptRateData}
               margin={{ top: 10, right: 20, left: 15, bottom: 5 }}
@@ -200,12 +204,12 @@ export function CompletionCharts({
         style={{ flex: 1 }}
       >
         <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-2 pt-4">
             <CardTitle className="text-base font-semibold leading-none tracking-tight">
               Completions
             </CardTitle>
           </CardHeader>
-          <ResponsiveContainer width="100%" height={60}>
+          <ResponsiveContainer width="100%" height={68} className="border-b">
             <BarChart
               data={viewData}
               margin={{
@@ -249,12 +253,12 @@ export function CompletionCharts({
         style={{ flex: 1 }}
       >
         <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-2 pt-4">
             <CardTitle className="text-base font-semibold leading-none tracking-tight">
               Acceptances
             </CardTitle>
           </CardHeader>
-          <ResponsiveContainer width="100%" height={60}>
+          <ResponsiveContainer width="100%" height={68} className="border-b">
             <BarChart
               data={viewData}
               margin={{
