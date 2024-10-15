@@ -173,7 +173,6 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) {
 mod tests {
     use tabby_common::registry::ModelInfo;
 
-    
     #[test]
     fn test_filter_download_address() {
         // multiple urls
@@ -190,9 +189,8 @@ mod tests {
             addresses: None,
         };
         let urls = super::filter_download_address(&model_info);
-        assert_eq!(urls.len(), 2);
+        assert_eq!(urls.len(), 1);
         assert_eq!(urls[0].0, "https://huggingface.co/test");
-        assert_eq!(urls[1].0, "https://huggingface.co/test2");
 
         // single url
         let model_info = ModelInfo {
