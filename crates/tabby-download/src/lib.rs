@@ -1,6 +1,5 @@
 //! Responsible for downloading ML models for use with tabby.
 use std::fs;
-use std::sync::{Arc, Mutex};
 
 use aim_downloader::{
     bar::{MultiBar, WrappedBar},
@@ -174,7 +173,7 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) {
 mod tests {
     use tabby_common::registry::ModelInfo;
 
-    use super::*;
+    
     #[test]
     fn test_filter_download_address() {
         // multiple urls

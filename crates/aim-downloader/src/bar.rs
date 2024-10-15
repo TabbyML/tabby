@@ -1,4 +1,4 @@
-use std::{collections::HashMap, env, slice};
+use std::{collections::HashMap, env};
 
 use dotenvy::dotenv;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};

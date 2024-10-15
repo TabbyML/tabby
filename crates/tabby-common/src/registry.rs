@@ -147,7 +147,7 @@ impl ModelRegistry {
         let model_path = self
             .get_model_store_dir(name)
             .join("model-00001-of-00001.gguf");
-        std::fs::rename(&old_model_path, &model_path)?;
+        std::fs::rename(old_model_path, &model_path)?;
         Ok(())
     }
 
