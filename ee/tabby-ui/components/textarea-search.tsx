@@ -175,7 +175,7 @@ export default function TextAreaSearch({
               <IconSpinner className="h-5 w-5" />
             )}
             {(!loadingWithSpinning || !isLoading) && (
-              <IconSend className="h-5 w-5" />
+              <IconSend className="h-6 w-6" />
             )}
           </div>
         </div>
