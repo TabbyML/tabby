@@ -62,7 +62,7 @@ function MainPanel() {
 
   return (
     <ScrollArea style={style}>
-      <header className="sticky top-0 z-10 flex h-16 items-center justify-end px-4 bg-background lg:px-10">
+      <header className="sticky top-0 z-10 flex h-16 items-center justify-end bg-background px-4 lg:px-10">
         <div className="flex items-center gap-x-6">
           <ClientOnly>
             <ThemeToggle />

@@ -25,7 +25,6 @@ import {
   MessageCircle,
   MessageCircleQuestion,
   Search,
-  Send,
   Share2,
   Sparkles,
   Star,
