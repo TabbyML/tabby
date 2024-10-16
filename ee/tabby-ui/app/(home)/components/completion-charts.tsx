@@ -161,7 +161,7 @@ export function CompletionCharts({
           margin: '-140px 0px 0px 0px'
         }}
         delay={0.15}
-        className="self-stretch flex-1"
+        className="flex-1 self-stretch"
       >
         <Card className="flex flex-col justify-between self-stretch rounded-2xl bg-transparent pb-4">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-0 pt-4">
@@ -202,7 +202,7 @@ export function CompletionCharts({
           margin: '-140px 0px 0px 0px'
         }}
         delay={0.2}
-        className="self-stretch flex-1"
+        className="flex-1 self-stretch"
       >
         <Card className="flex flex-col justify-between self-stretch bg-transparent pb-4">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-0 pt-4">
@@ -253,7 +253,7 @@ export function CompletionCharts({
           margin: '-140px 0px 0px 0px'
         }}
         delay={0.25}
-        className="self-stretch flex-1"
+        className="flex-1 self-stretch"
       >
         <Card className="flex flex-col justify-between self-stretch bg-transparent pb-4">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-0 pt-4">
