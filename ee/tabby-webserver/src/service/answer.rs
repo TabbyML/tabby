@@ -8,6 +8,7 @@ use std::{
     sync::Arc,
 };
 
+use crate::bail;
 use anyhow::anyhow;
 use async_openai::{
     error::OpenAIError,
@@ -39,8 +40,6 @@ use tabby_schema::{
 };
 use tokio::sync::OnceCell;
 use tracing::{debug, error, warn};
-
-use crate::bail;
 
 pub struct AnswerService {
     config: AnswerConfig,
@@ -220,6 +219,11 @@ impl AnswerService {
             return vec![];
         };
 
+        let repo = match self.repository.repository_list(Some(&policy)).await {
+            Ok(repos) => repos.into_iter().find(|x| x.source_id == source_id),
+            Err(_) => return vec![],
+        };
+
         let query = CodeSearchQuery::new(
             input.filepath.clone(),
             input.language.clone(),
@@ -233,9 +237,7 @@ impl AnswerService {
         }
 
         match self.code.search_in_language(query, params).await {
-            Ok(docs) => {
-                merge_code_snippets(self.repository.clone(), docs.hits, &policy, source_id).await
-            }
+            Ok(docs) => merge_code_snippets(repo, docs.hits).await,
             Err(e) => {
                 warn!("Error in code search: {:?}", e);
                 vec![]
@@ -505,54 +507,29 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
     )
 }
 
-use anyhow::Result;
-
-static GLOBAL_REPOS: OnceCell<HashMap<String, Repository>> = OnceCell::const_new();
-
 /// Combine code snippets from search results rather than utilizing multiple hits: Presently, there is only one rule: if the number of lines of code (LoC) is less than 200, and there are multiple hits (number of hits > 1), include the entire file.
 pub async fn merge_code_snippets(
-    repository: Arc<dyn RepositoryService>,
+    repository: Option<Repository>,
     hits: Vec<CodeSearchHit>,
-    policy: &AccessPolicy,
-    source_id: &str,
 ) -> Vec<CodeSearchHit> {
+    let repository = match repository {
+        Some(repo) => repo,
+        None => return hits,
+    };
+
     // group hits by filepath
     let mut file_hits: HashMap<String, Vec<CodeSearchHit>> = HashMap::new();
-    for hit in hits {
-        let key = format!("{}-{}", source_id, hit.doc.filepath);
+    for hit in hits.clone().into_iter() {
+        let key = format!("{}-{}", repository.source_id, hit.doc.filepath);
         file_hits.entry(key).or_default().push(hit);
     }
 
-    let repos = GLOBAL_REPOS
-        .get_or_init(|| async {
-            repository
-                .repository_list(Some(policy))
-                .await
-                .map(|repos| {
-                    repos
-                        .into_iter()
-                        .map(|repo| (repo.source_id.clone(), repo))
-                        .collect()
-                })
-                .unwrap_or_else(|e| {
-                    warn!("Failed to initialize global repos: {}", e);
-                    HashMap::new()
-                })
-        })
-        .await;
-
     let mut result = Vec::with_capacity(file_hits.len());
-    let repo = match repos.get(source_id) {
-        Some(repo) => repo.clone(),
-        None => {
-            warn!("Repository not found for source id: {}", source_id);
-            return file_hits.into_iter().flat_map(|(_, hits)| hits).collect();
-        }
-    };
+
     for (_, file_hits) in file_hits {
         if file_hits.len() > 1 {
             // construct the full path to the file
-            let path: PathBuf = repo.dir.join(&file_hits[0].doc.filepath);
+            let path: PathBuf = repository.dir.join(&file_hits[0].doc.filepath);
             let all_lines = match read_file_content(&path) {
                 Ok(lines) => lines,
                 Err(e) => {
@@ -1105,16 +1082,21 @@ mod tests {
     #[tokio::test]
     async fn test_merge_code_snippets() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let repo = make_repository_service(db).await.unwrap();
+        let repo_service = make_repository_service(db).await.unwrap();
+
         let git_url = "https://github.com/test/repo.git".to_string();
-        //
-        let id = repo
+        let id = repo_service
             .git()
             .create("repo".to_string(), git_url.clone())
             .await
             .unwrap();
 
-        let source_id: &str = id.as_ref();
+        let policy = make_policy().await;
+        let repo = repo_service
+            .repository_list(Some(&policy))
+            .await
+            .unwrap()
+            .pop();
 
         let hits = vec![
             CodeSearchHit {
@@ -1151,9 +1133,7 @@ mod tests {
             },
         ];
 
-        let policy = make_policy().await;
-
-        let result = merge_code_snippets(repo.clone(), hits, &policy, source_id).await;
+        let result = merge_code_snippets(repo, hits).await;
 
         assert_eq!(result.len(), 2);
     }
