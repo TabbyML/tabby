@@ -97,6 +97,7 @@ import {
   Role
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
+import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { ExtendedCombinedError, useThreadRun } from '@/lib/hooks/use-thread-run'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
@@ -690,8 +691,10 @@ export function Search() {
     }
   }, [threadData, fetchingThread, threadError, isReady, threadIdFromURL])
 
-  const isFetchingMessages =
-    fetchingMessages || threadMessages?.threadMessages?.pageInfo?.hasNextPage
+  const [isFetchingMessages] = useDebounceValue(
+    fetchingMessages || threadMessages?.threadMessages?.pageInfo?.hasNextPage,
+    200
+  )
 
   if (isReady && (threadMessagesError || hasThreadError)) {
     return <ThreadMessagesErrorView />
