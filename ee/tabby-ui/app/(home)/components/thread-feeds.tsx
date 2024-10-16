@@ -136,7 +136,7 @@ export function ThreadFeeds({
     >
       <div className="w-full">
         <AnimationWrapper delay={0.3} style={{ width: '100%' }}>
-          <div className="mb-2.5 w-full text-lg font-semibold">Threads</div>
+          <div className="mb-2.5 w-full text-lg font-semibold">Recent Activities</div>
           <Separator className="mb-4 w-full" />
           <motion.div
             initial="initial"
