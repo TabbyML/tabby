@@ -178,7 +178,7 @@ export default function Stats() {
         <div className="rounded-2xl border px-[1.125rem] py-4">
           <div className="mb-3 text-base">
             <span className="font-semibold">{lastYearActivities}</span>{' '}
-            activities in the last year
+            activities in the past year
           </div>
           <ActivityCalendar data={activities} />
         </div>
