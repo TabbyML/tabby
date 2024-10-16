@@ -246,7 +246,7 @@ function ThreadItem({ data }: ThreadItemProps) {
           </LoadingWrapper>
         </div>
         <div className="flex items-center gap-2">
-          <UserAvatar user={user} className="h-4 w-4 shrink-0 mr-0.5" />
+          <UserAvatar user={user} className="mr-0.5 h-4 w-4 shrink-0" />
           <div className="flex items-baseline gap-1">
             <div className="text-sm">{user?.name || user?.email}</div>
             <span className="text-muted-foreground">{'·'}</span>
