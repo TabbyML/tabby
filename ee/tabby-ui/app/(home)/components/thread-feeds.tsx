@@ -11,7 +11,7 @@ import { ContextSource, ListThreadsQuery } from '@/lib/gql/generates/graphql'
 import { Member, useAllMembers } from '@/lib/hooks/use-all-members'
 import { contextInfoQuery, listThreadMessages } from '@/lib/tabby/query'
 import { getTitleFromMessages } from '@/lib/utils'
-import { IconMessageCircle, IconSpinner } from '@/components/ui/icons'
+import { IconMessagesSquare, IconSpinner } from '@/components/ui/icons'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LoadMoreIndicator } from '@/components/load-more-indicator'
@@ -119,8 +119,6 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
     }
   }
 
-  const threadLen = threads?.length ?? 0
-
   return (
     <ThreadFeedsContext.Provider
       value={{
@@ -156,17 +154,11 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
                 </div>
               }
             >
-              <div className="space-y-3 text-sm">
+              <div className="flex flex-col gap-3 text-sm">
                 {threads?.length ? (
                   <>
                     {threads.map((t, idx) => {
-                      return (
-                        <ThreadItem
-                          data={t}
-                          key={t.node.id}
-                          isLast={idx === threadLen - 1}
-                        />
-                      )
+                      return <ThreadItem data={t} key={t.node.id} />
                     })}
                   </>
                 ) : (
@@ -194,9 +186,8 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
 
 interface ThreadItemProps {
   data: ListThreadsQuery['threads']['edges'][0]
-  isLast?: boolean
 }
-function ThreadItem({ data, isLast }: ThreadItemProps) {
+function ThreadItem({ data }: ThreadItemProps) {
   const userId = data.node.userId
   const threadId = data.node.id
   const { sources, allUsers } = useContext(ThreadFeedsContext)
@@ -237,18 +228,10 @@ function ThreadItem({ data, isLast }: ThreadItemProps) {
     //     once: true
     //   }}
     // >
-    <div className="flex items-start gap-2">
-      <div className="relative mt-2 h-8 w-8 rounded-full bg-[#AAA192] p-2 text-white dark:bg-[#E7E1D3] dark:text-slate-700">
-        <IconMessageCircle />
-        {/* {!isLast && (
-          <div className="absolute left-4 top-10 h-10 w-0.5 bg-border"></div>
-        )} */}
-      </div>
-      <Link
-        href={title ? `/search/${titleSlug}-${threadId}` : 'javascript:void'}
-        className="transform-bg group flex-1 overflow-hidden rounded-lg p-2 hover:bg-accent"
-      >
+    <Link href={title ? `/search/${titleSlug}-${threadId}` : 'javascript:void'}>
+      <div className="transform-bg group flex-1 overflow-hidden rounded-lg p-2 hover:bg-accent">
         <div className="mb-1.5 flex items-center gap-2">
+          <IconMessagesSquare className="h-5 w-5" />
           <LoadingWrapper
             loading={fetching}
             fallback={
@@ -263,7 +246,7 @@ function ThreadItem({ data, isLast }: ThreadItemProps) {
           </LoadingWrapper>
         </div>
         <div className="flex items-center gap-2">
-          <UserAvatar user={user} className="h-6 w-6 shrink-0 border" />
+          <UserAvatar user={user} className="h-4 w-4 shrink-0 mr-0.5" />
           <div className="flex items-baseline gap-1">
             <div className="text-sm">{user?.name || user?.email}</div>
             <span className="text-muted-foreground">{'·'}</span>
@@ -272,8 +255,8 @@ function ThreadItem({ data, isLast }: ThreadItemProps) {
             </div>
           </div>
         </div>
-      </Link>
-    </div>
+      </div>
+    </Link>
     // </motion.div>
   )
 }

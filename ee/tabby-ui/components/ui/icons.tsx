@@ -22,8 +22,7 @@ import {
   Link,
   ListFilter,
   Mail,
-  MessageCircle,
-  MessageCircleQuestion,
+  MessagesSquare,
   Search,
   Share2,
   Sparkles,
@@ -1624,26 +1623,15 @@ function IconFileQuestion({
   return <FileQuestion className={cn('h-4 w-4', className)} {...props} />
 }
 
-function IconMessageCircleQuestion({
-  className,
-  ...props
-}: React.ComponentProps<typeof MessageCircleQuestion>) {
-  return (
-    <MessageCircleQuestion className={cn('h-4 w-4', className)} {...props} />
-  )
-}
-
 function IconHash({ className, ...props }: React.ComponentProps<typeof Hash>) {
   return <Hash className={cn('h-4 w-4', className)} {...props} />
 }
 
-function IconMessageCircle({
+function IconMessagesSquare({
   className,
   ...props
-}: React.ComponentProps<typeof MessageCircle>) {
-  return (
-    <MessageCircle className={cn('h-4 w-4 -rotate-90', className)} {...props} />
-  )
+}: React.ComponentProps<typeof MessagesSquare>) {
+  return <MessagesSquare className={cn('h-4 w-4', className)} {...props} />
 }
 
 function IconSend({
@@ -1782,8 +1770,7 @@ export {
   IconWrapText,
   IconAlignJustify,
   IconFileQuestion,
-  IconMessageCircleQuestion,
   IconHash,
-  IconMessageCircle,
-  IconSend
+  IconSend,
+  IconMessagesSquare
 }
