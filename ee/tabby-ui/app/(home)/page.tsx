@@ -13,7 +13,6 @@ import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { contextInfoQuery } from '@/lib/tabby/query'
 import { ThreadRunContexts } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { ClientOnly } from '@/components/client-only'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import SlackDialog from '@/components/slack-dialog'
@@ -61,8 +60,8 @@ function MainPanel() {
     : { height: '100vh' }
 
   return (
-    <ScrollArea style={style}>
-      <header className="sticky top-0 z-10 flex h-16 items-center justify-end bg-background px-4 lg:px-10">
+    <div style={style} className="overflow-y-auto">
+      <header className="sticky top-0 z-10 flex h-16 items-center justify-end px-4 bg-background lg:px-10">
         <div className="flex items-center gap-x-6">
           <ClientOnly>
             <ThemeToggle />
@@ -115,7 +114,7 @@ function MainPanel() {
           <ThreadFeeds />
         </div>
       </main>
-    </ScrollArea>
+    </div>
   )
 }
 

@@ -180,9 +180,7 @@ export default function Stats() {
             <span className="font-semibold">{lastYearActivities}</span>{' '}
             activities in the last year
           </div>
-          <div className="flex items-end justify-center">
-            <ActivityCalendar data={activities} />
-          </div>
+          <ActivityCalendar data={activities} />
         </div>
       </AnimationWrapper>
       <CompletionCharts

@@ -161,19 +161,23 @@ export function CompletionCharts({
           margin: '-140px 0px 0px 0px'
         }}
         delay={0.15}
-        style={{ flex: 1 }}
+        className="self-stretch flex-1"
       >
-        <Card className="flex flex-1 flex-col justify-between self-stretch rounded-2xl bg-transparent pb-3 md:block">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-2 pt-4">
-            <CardTitle className="text-base font-semibold leading-none tracking-tight">
+        <Card className="flex flex-col justify-between self-stretch rounded-2xl bg-transparent pb-4">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-0 pt-4">
+            <CardTitle className="text-base font-medium tracking-normal">
               Acceptance Rate
             </CardTitle>
           </CardHeader>
-          <ResponsiveContainer
-            width="100%"
-            height={68}
-            className="border-b pb-1"
-          >
+          <CardContent className="px-4 py-0">
+            <div
+              className="text-lg font-semibold"
+              style={{ fontFamily: 'var(--font-montserrat)' }}
+            >
+              {averageAcceptance}%
+            </div>
+          </CardContent>
+          <ResponsiveContainer width="100%" height={68}>
             <LineChart
               data={acceptRateData}
               margin={{ top: 10, right: 20, left: 15, bottom: 5 }}
@@ -190,9 +194,6 @@ export function CompletionCharts({
               />
             </LineChart>
           </ResponsiveContainer>
-          <CardContent className="px-4 pb-0 pt-2">
-            <div className="text-lg font-bold">{averageAcceptance}%</div>
-          </CardContent>
         </Card>
       </AnimationWrapper>
 
@@ -201,15 +202,23 @@ export function CompletionCharts({
           margin: '-140px 0px 0px 0px'
         }}
         delay={0.2}
-        style={{ flex: 1 }}
+        className="self-stretch flex-1"
       >
-        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-2 pt-4">
-            <CardTitle className="text-base font-semibold leading-none tracking-tight">
+        <Card className="flex flex-col justify-between self-stretch bg-transparent pb-4">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-0 pt-4">
+            <CardTitle className="text-base font-medium tracking-normal">
               Completions
             </CardTitle>
           </CardHeader>
-          <ResponsiveContainer width="100%" height={68} className="border-b">
+          <CardContent className="px-4 py-0">
+            <div
+              className="text-lg font-semibold"
+              style={{ fontFamily: 'var(--font-montserrat)' }}
+            >
+              {numeral(totalViews).format('0,0')}
+            </div>
+          </CardContent>
+          <ResponsiveContainer width="100%" height={68}>
             <BarChart
               data={viewData}
               margin={{
@@ -237,28 +246,30 @@ export function CompletionCharts({
               />
             </BarChart>
           </ResponsiveContainer>
-          <CardContent className="px-4 pb-0 pt-2">
-            <div className="text-lg font-bold">
-              {numeral(totalViews).format('0,0')}
-            </div>
-          </CardContent>
         </Card>
       </AnimationWrapper>
-
       <AnimationWrapper
         viewport={{
           margin: '-140px 0px 0px 0px'
         }}
         delay={0.25}
-        style={{ flex: 1 }}
+        className="self-stretch flex-1"
       >
-        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-2 pt-4">
-            <CardTitle className="text-base font-semibold leading-none tracking-tight">
+        <Card className="flex flex-col justify-between self-stretch bg-transparent pb-4">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-0 pt-4">
+            <CardTitle className="text-base font-medium tracking-normal">
               Acceptances
             </CardTitle>
           </CardHeader>
-          <ResponsiveContainer width="100%" height={68} className="border-b">
+          <CardContent className="px-4 py-0">
+            <div
+              className="text-lg font-semibold"
+              style={{ fontFamily: 'var(--font-montserrat)' }}
+            >
+              {numeral(totalAccepts).format('0,0')}
+            </div>
+          </CardContent>
+          <ResponsiveContainer width="100%" height={68}>
             <BarChart
               data={viewData}
               margin={{
@@ -286,11 +297,6 @@ export function CompletionCharts({
               />
             </BarChart>
           </ResponsiveContainer>
-          <CardContent className="px-4 pb-0 pt-2">
-            <div className="text-lg font-bold">
-              {numeral(totalAccepts).format('0,0')}
-            </div>
-          </CardContent>
         </Card>
       </AnimationWrapper>
     </div>
