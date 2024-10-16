@@ -3,6 +3,9 @@ if exists('g:autoloaded_tabby_inline_completion_service')
 endif
 let g:autoloaded_tabby_inline_completion_service = 1
 
+let g:tabby_inline_completion_trigger = get(g:, 'tabby_inline_completion_trigger', 'auto')
+let g:tabby_inline_completion_insertion_leading_key = get(g:, 'tabby_inline_completion_insertion_leading_key', "\<C-R>\<C-O>=")
+
 let s:current_request_context = {}
 let s:current_request_id = 0
 
@@ -28,6 +31,9 @@ endfunction
 function! tabby#inline_completion#service#Trigger(is_manually)
   if s:current_request_id != 0
     call g:tabby_inline_completion_source.CancelRequest(s:current_request_id)
+  endif
+  if g:tabby_inline_completion_trigger != 'auto' && !a:is_manually
+    return
   endif
   let params = s:CreateInlineCompletionContext(a:is_manually)
   let s:current_request_context = params
@@ -79,8 +85,10 @@ function! s:HandleCompletionResponse(params, result)
 
     call g:tabby_inline_completion_source.NotifyEvent(#{
       \ type: "view",
-      \ completionId: cmpl_id,
-      \ choiceIndex: choice_index,
+      \ eventId: #{
+        \ completionId: cmpl_id,
+        \ choiceIndex: choice_index,
+      \ },
       \ viewId: s:current_completion_item_display_eventid,
       \ })
   else
@@ -120,7 +128,7 @@ function! tabby#inline_completion#service#Accept(...)
   let prefix_replace_chars = char_count_col - item.range.start.character
   let suffix_replace_chars = item.range.end.character - char_count_col
   let s:text_to_insert = strcharpart(item.insertText, prefix_replace_chars)
-  let insertion = repeat("\<Del>", suffix_replace_chars) . "\<C-R>\<C-O>=tabby#inline_completion#service#ConsumeInsertion()\<CR>"
+  let insertion = repeat("\<Del>", suffix_replace_chars) . g:tabby_inline_completion_insertion_leading_key . "tabby#inline_completion#service#ConsumeInsertion()\<CR>"
   
   if s:text_to_insert[-1:] == "\n"
     " Add a char and remove, workaround for insertion bug if ends with newline
@@ -134,8 +142,10 @@ function! tabby#inline_completion#service#Accept(...)
 
     call g:tabby_inline_completion_source.NotifyEvent(#{
       \ type: "select",
-      \ completionId: cmpl_id,
-      \ choiceIndex: choice_index,
+      \ eventId: #{
+        \ completionId: cmpl_id,
+        \ choiceIndex: choice_index,
+      \ },
       \ viewId: s:current_completion_item_display_eventid,
       \ elapsed: accept_at - s:current_completion_item_display_at,
       \ })
@@ -160,8 +170,10 @@ function! tabby#inline_completion#service#Dismiss()
 
     call g:tabby_inline_completion_source.NotifyEvent(#{
       \ type: "dismiss",
-      \ completionId: cmpl_id,
-      \ choiceIndex: choice_index,
+      \ eventId: #{
+        \ completionId: cmpl_id,
+        \ choiceIndex: choice_index,
+      \ },
       \ viewId: s:current_completion_item_display_eventid,
       \ elapsed: dismiss_at - s:current_completion_item_display_at,
       \ })

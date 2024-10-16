@@ -3,8 +3,6 @@ if exists('g:autoloaded_tabby_inline_completion_events')
 endif
 let g:autoloaded_tabby_inline_completion_events = 1
 
-let g:tabby_inline_completion_trigger = get(g:, 'tabby_inline_completion_trigger', 'auto')
-
 function! tabby#inline_completion#events#Install()
   augroup tabby_inline_completion_events
     autocmd!
@@ -21,10 +19,8 @@ function! tabby#inline_completion#events#Uninstall()
 endfunction
 
 function! tabby#inline_completion#events#OnTextChanged()
-  if g:tabby_inline_completion_trigger == 'auto'
-    call tabby#inline_completion#service#Clear()
-    call tabby#inline_completion#service#Trigger(v:false)
-  endif
+  call tabby#inline_completion#service#Clear()
+  call tabby#inline_completion#service#Trigger(v:false)
 endfunction
 
 function! tabby#inline_completion#events#OnCursorMoved()

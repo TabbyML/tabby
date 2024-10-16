@@ -12,8 +12,15 @@ function M.setup()
             default_config = {
                 name = "tabby",
                 filetypes = {"*"},
-                cmd = {"npx", "tabby-agent", "--stdio"},
+                cmd = vim.g.tabby_agent_start_command,
                 single_file_support = true,
+                init_options = {
+                    clientCapabilities = {
+                        textDocument = {
+                            inlineCompletion = true
+                        }
+                    }
+                },
                 root_dir = lspconfig.util.find_git_ancestor,
                 on_attach = function(client, buf)
                     vim.api.nvim_command("doautocmd <nomodeline> User tabby_lsp_on_buffer_attached")

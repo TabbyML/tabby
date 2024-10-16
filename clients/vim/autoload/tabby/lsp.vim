@@ -3,6 +3,7 @@ if exists('g:autoloaded_tabby_lsp')
 endif
 let g:autoloaded_tabby_lsp = 1
 
+let g:tabby_agent_start_command = get(g:, 'tabby_agent_start_command', ['npx', 'tabby-agent', '--stdio'])
 let g:tabby_lsp_client = get(g:, 'tabby_lsp_client', {})
 
 function! tabby#lsp#Setup()
