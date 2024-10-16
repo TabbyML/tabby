@@ -8,7 +8,6 @@ use std::{
     sync::Arc,
 };
 
-use crate::bail;
 use anyhow::anyhow;
 use async_openai::{
     error::OpenAIError,
@@ -38,8 +37,9 @@ use tabby_schema::{
         ThreadRunOptionsInput,
     },
 };
-use tokio::sync::OnceCell;
 use tracing::{debug, error, warn};
+
+use crate::bail;
 
 pub struct AnswerService {
     config: AnswerConfig,
