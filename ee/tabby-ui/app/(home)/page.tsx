@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
@@ -10,9 +10,16 @@ import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
+import { useStore } from '@/lib/hooks/use-store'
+import {
+  clearHomeScrollPosition,
+  setHomeScrollPosition,
+  useScrollStore
+} from '@/lib/stores/scroll-store'
 import { contextInfoQuery } from '@/lib/tabby/query'
 import { ThreadRunContexts } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { ClientOnly } from '@/components/client-only'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import SlackDialog from '@/components/slack-dialog'
@@ -26,6 +33,8 @@ import Stats from './components/stats'
 import { ThreadFeeds } from './components/thread-feeds'
 
 function MainPanel() {
+  const resettingScroller = useRef(false)
+  const scroller = useRef<HTMLDivElement>(null)
   const { data: healthInfo } = useHealth()
   const [{ data }] = useMe()
   const isChatEnabled = useIsChatEnabled()
@@ -36,13 +45,30 @@ function MainPanel() {
   const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
     query: contextInfoQuery
   })
+  const scrollY = useStore(useScrollStore, state => state.homePage)
 
   // Prefetch the search page
   useEffect(() => {
     router.prefetch('/search')
   }, [router])
 
-  // FIXME add loading skeleton
+  useLayoutEffect(() => {
+    const resetScroll = () => {
+      if (scrollY) {
+        setTimeout(() => {
+          scroller.current?.scrollTo({
+            top: Number(scrollY)
+          })
+          clearHomeScrollPosition()
+        })
+      }
+    }
+
+    if (resettingScroller.current) return
+    resetScroll()
+    resettingScroller.current = true
+  }, [])
+
   if (!healthInfo || !data?.me) return <></>
 
   const onSearch = (question: string, ctx?: ThreadRunContexts) => {
@@ -60,7 +86,7 @@ function MainPanel() {
     : { height: '100vh' }
 
   return (
-    <div style={style} className="overflow-y-auto">
+    <ScrollArea style={style} ref={scroller}>
       <header className="sticky top-0 z-10 flex h-16 items-center justify-end bg-background px-4 lg:px-10">
         <div className="flex items-center gap-x-6">
           <ClientOnly>
@@ -111,10 +137,15 @@ function MainPanel() {
             </AnimationWrapper>
           )}
           <Stats />
-          <ThreadFeeds />
+          <ThreadFeeds
+            onNavigateToThread={() => {
+              if (!scroller.current) return
+              setHomeScrollPosition(scroller.current.scrollTop)
+            }}
+          />
         </div>
       </main>
-    </div>
+    </ScrollArea>
   )
 }
 

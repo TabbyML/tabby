@@ -20,7 +20,7 @@ import {
 
 import { PromptEditor, PromptEditorRef } from './prompt-editor'
 import { Button } from './ui/button'
-import { IconAtSign, IconHash, IconSend, IconSpinner } from './ui/icons'
+import { IconArrowRight, IconAtSign, IconHash, IconSpinner } from './ui/icons'
 import { Separator } from './ui/separator'
 
 export default function TextAreaSearch({
@@ -158,7 +158,7 @@ export default function TextAreaSearch({
         <div className={cn('flex items-center justify-between gap-2')}>
           <div
             className={cn(
-              'mb-3 flex h-8 w-8 items-center justify-center rounded-lg p-1 transition-all',
+              'mb-3 flex items-center justify-center rounded-lg p-1 transition-all',
               {
                 'bg-primary text-primary-foreground cursor-pointer':
                   value.length > 0,
@@ -172,10 +172,10 @@ export default function TextAreaSearch({
             onClick={() => handleSubmit(editorRef.current?.editor)}
           >
             {loadingWithSpinning && isLoading && (
-              <IconSpinner className="h-5 w-5" />
+              <IconSpinner className="h-4 w-4" />
             )}
             {(!loadingWithSpinning || !isLoading) && (
-              <IconSend className="h-6 w-6" />
+              <IconArrowRight className="h-4 w-4" />
             )}
           </div>
         </div>

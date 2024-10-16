@@ -51,11 +51,13 @@ const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
 export default function UserPanel({
   children,
   showHome = true,
-  showSetting = false
+  showSetting = false,
+  beforeRouteChange
 }: {
   children?: React.ReactNode
   showHome?: boolean
   showSetting?: boolean
+  beforeRouteChange?: (nextPathname?: string) => void
 }) {
   const router = useRouter()
   const signOut = useSignOut()
@@ -69,6 +71,15 @@ export default function UserPanel({
     setSignOutLoading(true)
     await signOut()
     setSignOutLoading(false)
+  }
+
+  const onNavigate = (pathname: string, replace?: boolean) => {
+    beforeRouteChange?.(pathname)
+    if (replace) {
+      router.replace(pathname)
+    } else {
+      router.push(pathname)
+    }
   }
 
   if (!user) {
@@ -114,7 +125,7 @@ export default function UserPanel({
         <div className="px-1.5">
           {showHome && (
             <DropdownMenuItem
-              onClick={() => router.push('/')}
+              onClick={() => onNavigate('/')}
               className="cursor-pointer py-2 pl-3"
             >
               <IconHome />
@@ -123,7 +134,7 @@ export default function UserPanel({
           )}
           {showSetting && (
             <DropdownMenuItem
-              onClick={() => router.push('/profile')}
+              onClick={() => onNavigate('/profile')}
               className="cursor-pointer py-2 pl-3"
             >
               <IconGear />

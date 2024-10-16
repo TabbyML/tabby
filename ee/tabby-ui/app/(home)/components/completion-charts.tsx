@@ -164,14 +164,14 @@ export function CompletionCharts({
         className="flex-1 self-stretch"
       >
         <Card className="flex flex-col justify-between self-stretch rounded-2xl bg-transparent pb-4">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-0 pt-4">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-base font-medium tracking-normal">
               Acceptance Rate
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 py-0">
+          <CardContent className="px-4 py-0 mb-1">
             <div
-              className="text-lg font-semibold"
+              className="text-xl font-semibold"
               style={{ fontFamily: 'var(--font-montserrat)' }}
             >
               {averageAcceptance}%
@@ -205,14 +205,14 @@ export function CompletionCharts({
         className="flex-1 self-stretch"
       >
         <Card className="flex flex-col justify-between self-stretch bg-transparent pb-4">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-0 pt-4">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-base font-medium tracking-normal">
               Completions
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 py-0">
+          <CardContent className="px-4 py-0 mb-1">
             <div
-              className="text-lg font-semibold"
+              className="text-xl font-semibold"
               style={{ fontFamily: 'var(--font-montserrat)' }}
             >
               {numeral(totalViews).format('0,0')}
@@ -256,14 +256,14 @@ export function CompletionCharts({
         className="flex-1 self-stretch"
       >
         <Card className="flex flex-col justify-between self-stretch bg-transparent pb-4">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-0 pt-4">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-base font-medium tracking-normal">
               Acceptances
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 py-0">
+          <CardContent className="px-4 py-0 mb-1">
             <div
-              className="text-lg font-semibold"
+              className="text-xl font-semibold"
               style={{ fontFamily: 'var(--font-montserrat)' }}
             >
               {numeral(totalAccepts).format('0,0')}

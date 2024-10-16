@@ -99,6 +99,7 @@ import {
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { ExtendedCombinedError, useThreadRun } from '@/lib/hooks/use-thread-run'
+import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'
 import {
   contextInfoQuery,
@@ -368,6 +369,7 @@ export function Search() {
       }
 
       if (!threadId) {
+        clearHomeScrollPosition()
         router.replace('/')
       }
     }
@@ -490,7 +492,7 @@ export function Search() {
         setStopButtonVisible(true)
 
         // Scroll to the bottom
-        const container = contentContainerRef?.current?.children?.[1]
+        const container = contentContainerRef?.current
         if (container) {
           container.scrollTo({
             top: container.scrollHeight,
@@ -787,9 +789,7 @@ export function Search() {
                     hidden: devPanelOpen
                   }
                 )}
-                container={
-                  contentContainerRef.current?.children?.[1] as HTMLDivElement
-                }
+                container={contentContainerRef.current as HTMLDivElement}
                 offset={100}
                 // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
                 // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
@@ -1300,13 +1300,20 @@ type HeaderProps = {
 function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
   const router = useRouter()
 
+  const onNavigateToHomePage = (scroll?: boolean) => {
+    if (scroll) {
+      clearHomeScrollPosition()
+    }
+    router.push('/')
+  }
+
   return (
     <header className="flex h-16 items-center justify-between px-4 lg:px-10">
       <div className="flex items-center gap-x-6">
         <Button
           variant="ghost"
           className="-ml-1 pl-0 text-sm text-muted-foreground"
-          onClick={() => router.replace('/', { scroll: false })}
+          onClick={() => onNavigateToHomePage()}
         >
           <IconChevronLeft className="mr-1 h-5 w-5" />
           Home
@@ -1318,7 +1325,7 @@ function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
             <Button
               variant="ghost"
               className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
-              onClick={() => router.push('/')}
+              onClick={() => onNavigateToHomePage(true)}
             >
               <IconPlus />
             </Button>
@@ -1327,7 +1334,13 @@ function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
         <ClientOnly>
           <ThemeToggle className="mr-4" />
         </ClientOnly>
-        <UserPanel showHome={false} showSetting>
+        <UserPanel
+          showHome={false}
+          showSetting
+          beforeRouteChange={() => {
+            clearHomeScrollPosition()
+          }}
+        >
           <MyAvatar className="h-10 w-10 border" />
         </UserPanel>
       </div>
@@ -1349,7 +1362,11 @@ function ThreadMessagesErrorView() {
             Failed to fetch the thread, please refresh the page or start a new
             thread
           </div>
-          <Link href="/" className={cn(buttonVariants(), 'mt-4 gap-2')}>
+          <Link
+            href="/"
+            onClick={clearHomeScrollPosition}
+            className={cn(buttonVariants(), 'mt-4 gap-2')}
+          >
             <IconPlus />
             <span>New Thread</span>
           </Link>

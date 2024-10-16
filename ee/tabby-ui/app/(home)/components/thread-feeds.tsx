@@ -37,6 +37,7 @@ const threadItemVariants: Variants = {
 
 interface ThreadFeedsProps {
   className?: string
+  onNavigateToThread: () => void
 }
 
 type ThreadFeedsContextValue = {
@@ -44,6 +45,7 @@ type ThreadFeedsContextValue = {
   fetchingUsers: boolean
   sources: ContextSource[] | undefined
   fetchingSources: boolean
+  onNavigateToThread: () => void
 }
 
 export const ThreadFeedsContext = createContext<ThreadFeedsContextValue>(
@@ -88,7 +90,10 @@ const listThreads = graphql(/* GraphQL */ `
   }
 `)
 
-export function ThreadFeeds({ className }: ThreadFeedsProps) {
+export function ThreadFeeds({
+  className,
+  onNavigateToThread
+}: ThreadFeedsProps) {
   const [allUsers, fetchingUsers] = useAllMembers()
   const [beforeCursor, setBeforeCursor] = useState<string | undefined>()
   const [{ data, fetching }] = useQuery({
@@ -125,7 +130,8 @@ export function ThreadFeeds({ className }: ThreadFeedsProps) {
         allUsers,
         fetchingUsers,
         sources: contextInfoData?.contextInfo.sources,
-        fetchingSources
+        fetchingSources,
+        onNavigateToThread
       }}
     >
       <div className="w-full">
@@ -190,7 +196,8 @@ interface ThreadItemProps {
 function ThreadItem({ data }: ThreadItemProps) {
   const userId = data.node.userId
   const threadId = data.node.id
-  const { sources, allUsers } = useContext(ThreadFeedsContext)
+  const { sources, allUsers, onNavigateToThread } =
+    useContext(ThreadFeedsContext)
 
   const [{ data: threadMessagesData, fetching }] = useQuery({
     query: listThreadMessages,
@@ -220,18 +227,13 @@ function ThreadItem({ data }: ThreadItemProps) {
   }, [allUsers, userId])
 
   return (
-    // <motion.div
-    //   variants={threadItemVariants}
-    //   initial="initial"
-    //   whileInView="onscreen"
-    //   viewport={{
-    //     once: true
-    //   }}
-    // >
-    <Link href={title ? `/search/${titleSlug}-${threadId}` : 'javascript:void'}>
-      <div className="transform-bg group flex-1 overflow-hidden rounded-lg p-2 hover:bg-accent">
+    <Link
+      href={title ? `/search/${titleSlug}-${threadId}` : 'javascript:void'}
+      onClick={onNavigateToThread}
+    >
+      <div className="transform-bg group flex-1 overflow-hidden rounded-lg py-2 px-3 hover:bg-accent">
         <div className="mb-1.5 flex items-center gap-2">
-          <IconMessagesSquare className="h-5 w-5" />
+          <IconMessagesSquare className="shrink-0" />
           <LoadingWrapper
             loading={fetching}
             fallback={
@@ -240,14 +242,14 @@ function ThreadItem({ data }: ThreadItemProps) {
               </div>
             }
           >
-            <div className="break-anywhere truncate text-lg font-semibold">
+            <div className="break-anywhere truncate text-lg font-medium">
               {title}
             </div>
           </LoadingWrapper>
         </div>
         <div className="flex items-center gap-2">
           <UserAvatar user={user} className="mr-0.5 h-4 w-4 shrink-0" />
-          <div className="flex items-baseline gap-1">
+          <div className="flex items-baseline gap-0.5">
             <div className="text-sm">{user?.name || user?.email}</div>
             <span className="text-muted-foreground">{'·'}</span>
             <div className="text-xs text-muted-foreground">
@@ -257,7 +259,6 @@ function ThreadItem({ data }: ThreadItemProps) {
         </div>
       </div>
     </Link>
-    // </motion.div>
   )
 }
 

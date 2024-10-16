@@ -11,7 +11,6 @@ import {
   Bug,
   ChevronsDownUp,
   CirclePlay,
-  FileQuestion,
   FileText,
   Filter,
   GitFork,
@@ -1616,13 +1615,6 @@ function IconAlignJustify({
   return <AlignJustify className={cn('h-4 w-4', className)} {...props} />
 }
 
-function IconFileQuestion({
-  className,
-  ...props
-}: React.ComponentProps<typeof FileQuestion>) {
-  return <FileQuestion className={cn('h-4 w-4', className)} {...props} />
-}
-
 function IconHash({ className, ...props }: React.ComponentProps<typeof Hash>) {
   return <Hash className={cn('h-4 w-4', className)} {...props} />
 }
@@ -1632,45 +1624,6 @@ function IconMessagesSquare({
   ...props
 }: React.ComponentProps<typeof MessagesSquare>) {
   return <MessagesSquare className={cn('h-4 w-4', className)} {...props} />
-}
-
-function IconSend({
-  className,
-  ...props
-}: React.ComponentProps<typeof ChevronsDownUp>) {
-  return (
-    <svg
-      viewBox="0 0 24 25"
-      xmlns="http://www.w3.org/2000/svg"
-      {...props}
-      className={cn('h-4 w-4', className)}
-    >
-      <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-        <g
-          id="icon"
-          transform="translate(-1035, -371)"
-          stroke="currentColor"
-          stroke-width="1.5"
-        >
-          <g id="icon/publish_hover" transform="translate(1035, 372)">
-            <path
-              d="M19.2246451,9.78320012 L7.58406832,4.02202501 C6.58832722,3.52980052 5.55066997,4.61093645 6.01267894,5.65789012 L8.33017555,10.8994949 L6.01267894,16.1410998 C5.55066997,17.1880534 6.58832722,18.2691894 7.58406832,17.7769649 L19.2246451,12.0157898 C20.1244449,11.5704438 20.1244449,10.2285461 19.2246451,9.78320012 Z"
-              id="Stroke-3"
-              transform="translate(12.8995, 10.8995) rotate(-45) translate(-12.8995, -10.8995)"
-            ></path>
-            <line
-              x1="9.66836329"
-              y1="14.1304885"
-              x2="13.2020127"
-              y2="10.596839"
-              id="Stroke-7"
-              stroke-linecap="round"
-            ></line>
-          </g>
-        </g>
-      </g>
-    </svg>
-  )
 }
 
 export {
@@ -1769,8 +1722,6 @@ export {
   IconEmojiGlobe,
   IconWrapText,
   IconAlignJustify,
-  IconFileQuestion,
   IconHash,
-  IconSend,
   IconMessagesSquare
 }
