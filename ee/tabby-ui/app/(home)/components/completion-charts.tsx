@@ -169,7 +169,7 @@ export function CompletionCharts({
               Acceptance Rate
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 py-0 mb-1">
+          <CardContent className="mb-1 px-4 py-0">
             <div
               className="text-xl font-semibold"
               style={{ fontFamily: 'var(--font-montserrat)' }}
@@ -210,7 +210,7 @@ export function CompletionCharts({
               Completions
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 py-0 mb-1">
+          <CardContent className="mb-1 px-4 py-0">
             <div
               className="text-xl font-semibold"
               style={{ fontFamily: 'var(--font-montserrat)' }}
@@ -261,7 +261,7 @@ export function CompletionCharts({
               Acceptances
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 py-0 mb-1">
+          <CardContent className="mb-1 px-4 py-0">
             <div
               className="text-xl font-semibold"
               style={{ fontFamily: 'var(--font-montserrat)' }}
