@@ -6,6 +6,7 @@ import { getLogger } from "./logger";
 interface AdvancedSettings {
   "inlineCompletion.triggerMode"?: "automatic" | "manual";
   "chatEdit.history"?: number;
+  "chat.outline"?: boolean;
 }
 
 export interface PastServerConfig {
@@ -68,6 +69,20 @@ export class Config extends EventEmitter {
     if (value !== this.inlineCompletionTriggerMode) {
       const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
       const updatedValue = { ...advancedSettings, "inlineCompletion.triggerMode": value };
+      this.workspace.update("settings.advanced", updatedValue, ConfigurationTarget.Global);
+      this.emit("updated");
+    }
+  }
+
+  get chatOutline(): boolean {
+    const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
+    return advancedSettings["chat.outline"] || false;
+  }
+
+  set chatOutline(value: boolean) {
+    if (value !== this.chatOutline) {
+      const advancedSettings = this.workspace.get("settings.advanced", {}) as AdvancedSettings;
+      const updatedValue = { ...advancedSettings, "chat.outline": value };
       this.workspace.update("settings.advanced", updatedValue, ConfigurationTarget.Global);
       this.emit("updated");
     }
