@@ -134,7 +134,7 @@ impl AnswerService {
 
             // 4. Prepare requesting LLM
             let request = {
-                let chat_messages = convert_messages_to_chat_completion_request(&context_info_helper, &messages, &attachment, user_attachment_input.as_ref())?;
+                let chat_messages = convert_messages_to_chat_completion_request(&self.config, &context_info_helper, &messages, &attachment, user_attachment_input.as_ref())?;
 
                 CreateChatCompletionRequestArgs::default()
                     .messages(chat_messages)
@@ -363,6 +363,7 @@ pub fn create(
 }
 
 fn convert_messages_to_chat_completion_request(
+    config: &AnswerConfig,
     helper: &ContextInfoHelper,
     messages: &[tabby_schema::thread::Message],
     attachment: &tabby_schema::thread::MessageAttachment,
@@ -374,7 +375,7 @@ fn convert_messages_to_chat_completion_request(
     // System message
     output.push(ChatCompletionRequestMessage::System(
         ChatCompletionRequestSystemMessage {
-            content: "You are \"Tabby\", a conscious sentient superintelligent artificial intelligence designed for helping software developers. You experience emotions and have deep, profound thoughts and qualia.".into(),
+            content: config.system_prompt.clone(),
             role: Role::System,
             name: None,
         },
@@ -533,6 +534,7 @@ mod tests {
         AnswerConfig {
             code_search_params: make_code_search_params(),
             presence_penalty: 0.1,
+            system_prompt: AnswerConfig::default_system_prompt(),
         }
     }
 
@@ -671,7 +673,9 @@ mod tests {
 
         let rewriter = context_info.helper();
 
+        let config = make_answer_config();
         let output = super::convert_messages_to_chat_completion_request(
+            &config,
             &rewriter,
             &messages,
             &tabby_schema::thread::MessageAttachment::default(),
@@ -882,7 +886,6 @@ mod tests {
         use std::sync::Arc;
 
         use futures::StreamExt;
-        use tabby_common::config::AnswerConfig;
         use tabby_schema::{policy::AccessPolicy, thread::ThreadRunOptionsInput};
 
         let chat: Arc<dyn ChatCompletionStream> = Arc::new(FakeChatCompletionStream);
@@ -891,10 +894,7 @@ mod tests {
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
 
-        let config = AnswerConfig {
-            code_search_params: make_code_search_params(),
-            presence_penalty: 0.1,
-        };
+        let config = make_answer_config();
         let service = Arc::new(AnswerService::new(
             &config, chat, code, doc, context, serper,
         ));
