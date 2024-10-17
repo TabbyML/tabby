@@ -42,7 +42,7 @@ require("lazy").setup({
   -- Tabby plugin
   { 
     "TabbyML/vim-tabby",
-    event = "VimEnter",
+    lazy = false,
     dependencies = {
       "neovim/nvim-lspconfig",
     },
