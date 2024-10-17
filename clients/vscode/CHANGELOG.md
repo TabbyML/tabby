@@ -1,3 +1,10 @@
+## 1.12.3
+
+### Fixes & Improvements
+
+- Fixed an issue where the chat panel failed to display when the endpoint configuration ended with a trailing slash.
+- Improved the context of code completion by adding support for collecting code snippets from recently viewed editors.
+
 ## 1.12.2
 
 ### Fixes & Improvements
