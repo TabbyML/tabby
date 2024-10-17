@@ -60,12 +60,12 @@ function mergeConfig(
     serverProvidedConfig.anonymousUsageTracking = { disable: true };
   }
   const merged = mergeFunction(base, configFileConfig, clientProvidedConfig, serverProvidedConfig) as ConfigData;
-  
+
   // remove trailing slash from endpoint
   if (merged.server.endpoint && merged.server.endpoint.endsWith("/")) {
     merged.server.endpoint = merged.server.endpoint.slice(0, -1);
   }
-  
+
   return merged;
 }
 
