@@ -1,3 +1,9 @@
+## 1.8.4
+
+### Fixes & Improvements
+
+- Fixed an issue where the chat panel failed to display when the endpoint configuration ended with a trailing slash.
+
 ## 1.8.3
 
 ### Fixes & Improvements
