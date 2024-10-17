@@ -5,14 +5,16 @@ import {
   ChatEditMutexError,
   ChatFeatureNotAvailableError,
   ServerCapabilities,
-  SmartApplyCodeParams,
+  RevealEditorRangeParams,
   SmartApplyCodeRequest,
+  SmartApplyCodeParams,
+  TextEditorRevealType,
 } from "../protocol";
 import { Configurations } from "../config";
 import { TabbyApiClient } from "../http/tabbyApiClient";
 import cryptoRandomString from "crypto-random-string";
 import { getLogger } from "../logger";
-import { readResponseStream } from "./utils";
+import { readResponseStream, revealEditorRange } from "./utils";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { getSmartApplyRange } from "./SmartRange";
 import { Edit } from "./inlineEdit";
@@ -20,7 +22,6 @@ const logger = getLogger("ChatEditProvider");
 
 export class SmartApplyFeature implements Feature {
   private lspConnection: Connection | undefined = undefined;
-  private currentEdit: Edit | undefined = undefined;
   private mutexAbortController: AbortController | undefined = undefined;
   constructor(
     private readonly configurations: Configurations,
@@ -85,60 +86,28 @@ export class SmartApplyFeature implements Feature {
     }
 
     try {
-      // const endPosition = applyRange.range.end;
+      //reveal editor range
+      const revealEditorRangeParams: RevealEditorRangeParams = {
+        range: {
+          start: applyRange.range.start,
+          end: applyRange.range.end,
+        },
+        revealType: TextEditorRevealType.InCenterIfOutsideViewport,
+      };
+      await revealEditorRange(revealEditorRangeParams, this.lspConnection);
+    } catch (error) {
+      logger.warn("cline not support reveal range");
+    }
 
-      // const currentLineText = document.getText({
-      //   start: { line: endPosition.line, character: 0 },
-      //   end: endPosition,
-      // });
-
-      // const indentation = currentLineText.match(/^\s*/)![0];
-
-      // const newText =
-      //   params.applyCode
-      //     .split("\n")
-      //     .map((line) => indentation + line)
-      //     .join("\n") + "\n";
-
-      // const newLinePosition: Position = {
-      //   line: endPosition.line + 1,
-      //   character: 0,
-      // };
-      // const edit: TextEdit = {
-      //   range: {
-      //     start: newLinePosition,
-      //     end: newLinePosition,
-      //   },
-      //   newText: newText,
-      // };
-
-      // const workspaceEdit: WorkspaceEdit = {
-      //   changes: {
-      //     [document.uri]: [edit],
-      //   },
-      // };
-
-      // const applyWorkspaceEditParams: ApplyWorkspaceEditParams = {
-      //   label: "Smart Apply Edit",
-      //   edit: workspaceEdit,
-      // };
-
-      // const revealEditorRangeParams: RevealEditorRangeParams = {
-      //   range: edit.range,
-      //   revealType: TextEditorRevealType.InCenterIfOutsideViewport,
-      // };
-
-      // await revealEditorRange(revealEditorRangeParams, this.lspConnection);
-      // const editResult = await applyWorkspaceEdit(applyWorkspaceEditParams, this.lspConnection);
-
-      // this.logger.info(`Workspace edit applied: ${editResult}`);
-      // return editResult;
-
-      logger.info("insert start: " + applyRange.range.start.line);
-      logger.info("insert end: " + applyRange.range.end.line);
-
+    try {
       await provideSmartApplyEditLLM(
-        { uri: params.location.uri, range: applyRange.range },
+        {
+          uri: params.location.uri,
+          range: {
+            start: applyRange.range.start,
+            end: { line: applyRange.range.end.line + 1, character: 0 },
+          },
+        },
         params.applyCode,
         applyRange.action === "insert" ? true : false,
         document,
@@ -148,7 +117,6 @@ export class SmartApplyFeature implements Feature {
         this.mutexAbortController,
         () => {
           this.mutexAbortController = undefined;
-          this.currentEdit = undefined;
         },
       );
       return true;
@@ -310,21 +278,16 @@ export async function provideSmartApplyEditLLM(
   const messages: { role: "user"; content: string }[] = [
     {
       role: "user",
-      content: promptTemplate.replace(
-        /{{document}}|{{code}}|{{lineRange}}|{{indentForTheFirstLine}}|{{indent}}/g,
-        (pattern: string) => {
-          switch (pattern) {
-            case "{{document}}":
-              return selectedDocumentText;
-            case "{{code}}":
-              return applyCode || "";
-            case "{{lineRange}}":
-              return `${location.range.start.line + 1}-${location.range.end.line + 1}`;
-            default:
-              return "";
-          }
-        },
-      ),
+      content: promptTemplate.replace(/{{document}}|{{code}}/g, (pattern: string) => {
+        switch (pattern) {
+          case "{{document}}":
+            return selectedDocumentText;
+          case "{{code}}":
+            return applyCode || "";
+          default:
+            return "";
+        }
+      }),
     },
   ];
 
@@ -338,7 +301,6 @@ export async function provideSmartApplyEditLLM(
     if (!readableStream) {
       return false;
     }
-    logger.info("mutex status in provideSmartApplyEditLLM: " + (mutexAbortController === undefined));
     const editId = "tabby-" + cryptoRandomString({ length: 6, type: "alphanumeric" });
     const currentEdit: Edit = {
       id: editId,
