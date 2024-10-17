@@ -2,6 +2,7 @@ import levenshtein from "js-levenshtein";
 import { Position, Range } from "vscode-languageserver-protocol";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
+//return [start, end] close interval 0-based range
 export function getSmartApplyRange(
   document: TextDocument,
   snippet: string,
