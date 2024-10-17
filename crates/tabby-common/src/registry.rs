@@ -15,6 +15,18 @@ pub struct ModelInfo {
     pub chat_template: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub urls: Option<Vec<String>>,
+
+    #[serde(default)]
+    pub sha256: String,
+    // partitioned_urls is used for models with multiple files
+    // must make sure the first address is the entrypoint
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub addresses: Option<Vec<ModelAddress>>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ModelAddress {
+    pub urls: Vec<String>,
     pub sha256: String,
 }
 
@@ -54,6 +66,18 @@ pub struct ModelRegistry {
     pub models: Vec<ModelInfo>,
 }
 
+lazy_static! {
+    pub static ref GGML_MODEL_RELATIVE_PATH: String =
+        format!("ggml{}model.gguf", std::path::MAIN_SEPARATOR_STR);
+    pub static ref GGML_MODEL_PARTITIONED_PREFIX: String = "model-00001-of-".into();
+}
+
+// model registry tree structure
+// root: ~/.tabby/models/TabbyML
+//
+// fn get_model_root_dir(model_name) -> {root}/{model_name}
+//
+// fn get_model_dir(model_name) -> {root}/{model_name}/ggml
 impl ModelRegistry {
     pub async fn new(registry: &str) -> Self {
         Self {
@@ -69,29 +93,62 @@ impl ModelRegistry {
         }
     }
 
-    fn get_model_dir(&self, name: &str) -> PathBuf {
+    // get_model_store_dir returns {root}/{name}/ggml, e.g.. ~/.tabby/models/TabbyML/StarCoder-1B/ggml
+    pub fn get_model_store_dir(&self, name: &str) -> PathBuf {
+        self.get_model_dir(name).join("ggml")
+    }
+
+    // get_model_dir returns {root}/{name}, e.g. ~/.tabby/models/TabbyML/StarCoder-1B
+    pub fn get_model_dir(&self, name: &str) -> PathBuf {
         models_dir().join(&self.name).join(name)
     }
 
-    pub fn migrate_model_path(&self, name: &str) -> Result<(), std::io::Error> {
-        let model_path = self.get_model_path(name);
+    // get_model_path returns the entrypoint of the model,
+    // will look for the file with the prefix "00001-of-"
+    pub fn get_model_entry_path(&self, name: &str) -> Option<PathBuf> {
+        for entry in fs::read_dir(self.get_model_store_dir(name)).ok()? {
+            let entry = entry.expect("Error reading directory entry");
+            let file_name = entry.file_name();
+            let file_name_str = file_name.to_string_lossy();
+
+            // Check if the file name starts with the specified prefix
+            if file_name_str.starts_with(GGML_MODEL_PARTITIONED_PREFIX.as_str()) {
+                return Some(entry.path()); // Return the full path as PathBuf
+            }
+        }
+
+        None
+    }
+
+    pub fn migrate_relative_model_path(&self, name: &str) -> Result<(), std::io::Error> {
+        let model_path = self.get_model_entry_path(name);
         let old_model_path = self
             .get_model_dir(name)
-            .join(LEGACY_GGML_MODEL_RELATIVE_PATH.as_str());
+            .join(GGML_MODEL_RELATIVE_PATH.as_str());
 
-        if !model_path.exists() && old_model_path.exists() {
-            std::fs::rename(&old_model_path, &model_path)?;
-            #[cfg(target_family = "unix")]
-            std::os::unix::fs::symlink(&model_path, &old_model_path)?;
-            #[cfg(target_family = "windows")]
-            std::os::windows::fs::symlink_file(&model_path, &old_model_path)?;
+        if model_path.is_none() && old_model_path.exists() {
+            return self.migrate_model_path(name, &old_model_path);
         }
+
         Ok(())
     }
 
     pub fn get_model_path(&self, name: &str) -> PathBuf {
         self.get_model_dir(name)
             .join(GGML_MODEL_RELATIVE_PATH.as_str())
+    }
+
+    pub fn migrate_model_path(
+        &self,
+        name: &str,
+        old_model_path: &PathBuf,
+    ) -> Result<(), std::io::Error> {
+        // legacy model always has a single file
+        let model_path = self
+            .get_model_store_dir(name)
+            .join("model-00001-of-00001.gguf");
+        std::fs::rename(old_model_path, &model_path)?;
+        Ok(())
     }
 
     pub fn save_model_info(&self, name: &str) {
@@ -120,13 +177,6 @@ pub fn parse_model_id(model_id: &str) -> (&str, &str) {
     }
 }
 
-lazy_static! {
-    pub static ref LEGACY_GGML_MODEL_RELATIVE_PATH: String =
-        format!("ggml{}q8_0.v2.gguf", std::path::MAIN_SEPARATOR_STR);
-    pub static ref GGML_MODEL_RELATIVE_PATH: String =
-        format!("ggml{}model.gguf", std::path::MAIN_SEPARATOR_STR);
-}
-
 #[cfg(test)]
 mod tests {
     use temp_testdir::TempDir;
@@ -142,7 +192,7 @@ mod tests {
         let registry = ModelRegistry::new("TabbyML").await;
         let dir = registry.get_model_dir("StarCoder-1B");
 
-        let old_model_path = dir.join(LEGACY_GGML_MODEL_RELATIVE_PATH.as_str());
+        let old_model_path = dir.join(GGML_MODEL_RELATIVE_PATH.as_str());
         tokio::fs::create_dir_all(old_model_path.parent().unwrap())
             .await
             .unwrap();
@@ -153,8 +203,13 @@ mod tests {
             .await
             .unwrap();
 
-        registry.migrate_model_path("StarCoder-1B").unwrap();
-        assert!(registry.get_model_path("StarCoder-1B").exists());
-        assert!(old_model_path.exists());
+        registry
+            .migrate_relative_model_path("StarCoder-1B")
+            .unwrap();
+        assert!(registry
+            .get_model_entry_path("StarCoder-1B")
+            .unwrap()
+            .exists());
+        assert!(!old_model_path.exists());
     }
 }
