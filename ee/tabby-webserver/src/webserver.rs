@@ -95,6 +95,7 @@ impl Webserver {
                 docsearch.clone(),
                 context.clone(),
                 serper,
+                repository.clone(),
             ))
         });
 
