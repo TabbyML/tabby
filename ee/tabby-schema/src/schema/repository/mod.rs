@@ -40,7 +40,7 @@ pub enum RepositoryKind {
     GitConfig,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Repository {
     pub id: ID,
 
@@ -100,7 +100,7 @@ impl Repository {
     }
 }
 
-#[derive(GraphQLObject, Debug, Clone)]
+#[derive(GraphQLObject, Debug)]
 pub struct GitReference {
     pub name: String,
     pub commit: String,
