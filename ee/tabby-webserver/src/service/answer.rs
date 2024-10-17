@@ -1,7 +1,5 @@
 use std::{
     collections::HashMap,
-    error::Error,
-    fmt,
     fs::File,
     io::{BufRead, BufReader},
     path::{Path, PathBuf},
