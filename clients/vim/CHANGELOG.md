@@ -1,3 +1,9 @@
+## 2.0.1
+
+### Fixes & Improvements
+
+- Corrected the example setup script in the README.
+
 ## 2.0.0
 
 Since version 2.0, the vim-tabby plugin is designed as two parts:
