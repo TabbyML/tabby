@@ -1,6 +1,7 @@
 'use client'
 
 import { eachDayOfInterval } from 'date-fns'
+import { motion } from 'framer-motion'
 import { sum } from 'lodash-es'
 import moment from 'moment'
 import numeral from 'numeral'
@@ -16,6 +17,8 @@ import {
 import { DailyStatsQuery } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
+import { cardVariants } from './constants'
 
 function LineTooltip({
   active,
@@ -153,23 +156,23 @@ export function CompletionCharts({
   })
 
   return (
-    <div>
-      <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-4 md:space-y-0 xl:justify-start">
-        <Card
-          className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block"
-          data-aos="fade-up"
-          data-aos-delay="200"
-        >
+    <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-4 md:space-y-0 xl:justify-start">
+      <motion.div className="flex-1 self-stretch" variants={cardVariants}>
+        <Card className="flex flex-col justify-between self-stretch rounded-2xl bg-transparent pb-4">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
-            <CardTitle className="text-sm font-normal leading-none tracking-tight">
+            <CardTitle className="text-base font-medium tracking-normal">
               Acceptance Rate
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 pb-2">
-            <div className="font-bold">{averageAcceptance}%</div>
+          <CardContent className="mb-1 px-4 py-0">
+            <div
+              className="text-xl font-semibold"
+              style={{ fontFamily: 'var(--font-montserrat)' }}
+            >
+              {averageAcceptance}%
+            </div>
           </CardContent>
-
-          <ResponsiveContainer width="100%" height={40}>
+          <ResponsiveContainer width="100%" height={68}>
             <LineChart
               data={acceptRateData}
               margin={{ top: 10, right: 20, left: 15, bottom: 5 }}
@@ -187,22 +190,24 @@ export function CompletionCharts({
             </LineChart>
           </ResponsiveContainer>
         </Card>
+      </motion.div>
 
-        <Card
-          className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block"
-          data-aos="fade-up"
-          data-aos-delay="250"
-        >
+      <motion.div className="flex-1 self-stretch" variants={cardVariants}>
+        <Card className="flex flex-col justify-between self-stretch bg-transparent pb-4">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
-            <CardTitle className="text-sm font-normal leading-none tracking-tight">
+            <CardTitle className="text-base font-medium tracking-normal">
               Completions
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 pb-2">
-            <div className="font-bold">{numeral(totalViews).format('0,0')}</div>
+          <CardContent className="mb-1 px-4 py-0">
+            <div
+              className="text-xl font-semibold"
+              style={{ fontFamily: 'var(--font-montserrat)' }}
+            >
+              {numeral(totalViews).format('0,0')}
+            </div>
           </CardContent>
-
-          <ResponsiveContainer width="100%" height={40}>
+          <ResponsiveContainer width="100%" height={68}>
             <BarChart
               data={viewData}
               margin={{
@@ -231,24 +236,23 @@ export function CompletionCharts({
             </BarChart>
           </ResponsiveContainer>
         </Card>
-
-        <Card
-          className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-3 md:block"
-          data-aos="fade-up"
-          data-aos-delay="300"
-        >
+      </motion.div>
+      <motion.div className="flex-1 self-stretch" variants={cardVariants}>
+        <Card className="flex flex-col justify-between self-stretch bg-transparent pb-4">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
-            <CardTitle className="text-sm font-normal leading-none tracking-tight">
+            <CardTitle className="text-base font-medium tracking-normal">
               Acceptances
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 pb-2">
-            <div className="font-bold">
+          <CardContent className="mb-1 px-4 py-0">
+            <div
+              className="text-xl font-semibold"
+              style={{ fontFamily: 'var(--font-montserrat)' }}
+            >
               {numeral(totalAccepts).format('0,0')}
             </div>
           </CardContent>
-
-          <ResponsiveContainer width="100%" height={40}>
+          <ResponsiveContainer width="100%" height={68}>
             <BarChart
               data={viewData}
               margin={{
@@ -277,7 +281,7 @@ export function CompletionCharts({
             </BarChart>
           </ResponsiveContainer>
         </Card>
-      </div>
+      </motion.div>
     </div>
   )
 }

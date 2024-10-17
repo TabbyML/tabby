@@ -3,6 +3,7 @@
 import { useSearchParams } from 'next/navigation'
 import { useWindowSize } from '@uidotdev/usehooks'
 import { eachDayOfInterval } from 'date-fns'
+import { motion } from 'framer-motion'
 import moment from 'moment'
 import ReactActivityCalendar from 'react-activity-calendar'
 import seedrandom from 'seedrandom'
@@ -19,6 +20,7 @@ import { useIsDemoMode } from '@/lib/hooks/use-server-info'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 
 import { CompletionCharts } from './completion-charts'
+import { cardVariants } from './constants'
 
 const DATE_RANGE = 6
 
@@ -34,21 +36,22 @@ function ActivityCalendar({
   const { theme } = useCurrentTheme()
   const size = useWindowSize()
   const width = size.width || 0
-  const blockSize = width >= 800 ? 7 : 9
+  const blockSize = width >= 968 ? 12 : 11
 
   return (
-    <ReactActivityCalendar
-      data={data}
-      colorScheme={theme === 'dark' ? 'dark' : 'light'}
-      theme={{
-        light: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
-        dark: ['rgb(45, 51, 59)', '#0e4429', '#006d32', '#26a641', '#39d353']
-      }}
-      blockSize={blockSize}
-      hideTotalCount
-      showWeekdayLabels
-      fontSize={11}
-    />
+    <div className="h-[152px]">
+      <ReactActivityCalendar
+        data={data}
+        colorScheme={theme === 'dark' ? 'dark' : 'light'}
+        theme={{
+          light: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
+          dark: ['rgb(45, 51, 59)', '#0e4429', '#006d32', '#26a641', '#39d353']
+        }}
+        blockSize={blockSize}
+        hideTotalCount
+        fontSize={12}
+      />
+    </div>
   )
 }
 
@@ -163,21 +166,24 @@ export default function Stats() {
     .reverse()
 
   if (!data?.me?.id) return <></>
+
   return (
-    <div className="flex w-full flex-col gap-y-4">
-      <div data-aos="fade-up" data-aos-delay="150">
-        <h3 className="mb-2 text-xs font-medium tracking-tight">
-          <b>{lastYearActivities}</b> activities in the last year
-        </h3>
-        <div className="flex items-end justify-center rounded-xl border px-5 py-4">
-          <ActivityCalendar data={activities} />
+    <>
+      <motion.div
+        className="w-full rounded-2xl border px-[1.125rem] py-4"
+        variants={cardVariants}
+      >
+        <div className="mb-3 text-base">
+          <span className="font-semibold">{lastYearActivities}</span> activities
+          in the past year
         </div>
-      </div>
+        <ActivityCalendar data={activities} />
+      </motion.div>
       <CompletionCharts
         dailyStats={dailyStats}
         from={moment().subtract(DATE_RANGE, 'day').toDate()}
         to={moment().toDate()}
       />
-    </div>
+    </>
   )
 }
