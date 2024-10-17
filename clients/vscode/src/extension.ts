@@ -15,6 +15,7 @@ import { Commands } from "./Commands";
 import { Status } from "tabby-agent";
 import { CodeActions } from "./CodeActions";
 import { isBrowser } from "./env";
+import { ChatPanelViewProvider } from "./chat/ChatPanelViewProvider";
 
 const logger = getLogger();
 let client: Client | undefined = undefined;
@@ -78,13 +79,14 @@ export async function activate(context: ExtensionContext) {
   });
 
   // Register chat panel
-  const chatViewProvider = new ChatSideViewProvider(context, client.agent, logger, gitProvider);
+  const chatViewProvider = new ChatSideViewProvider(context, client.agent, logger, gitProvider, client.chat);
   context.subscriptions.push(
     window.registerWebviewViewProvider("tabby.chatView", chatViewProvider, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
   );
   // Create chat panel view
+  new ChatPanelViewProvider(context, client.agent, gitProvider, client.chat);
   await gitProvider.init();
   await client.start();
 

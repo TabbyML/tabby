@@ -3,6 +3,7 @@ import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import { WebviewHelper } from "./WebviewHelper";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
 import { GitProvider } from "../git/GitProvider";
+import { ChatFeature } from "../lsp/ChatFeature";
 import { getLogger } from "../logger";
 
 export class ChatPanelViewProvider {
@@ -14,9 +15,10 @@ export class ChatPanelViewProvider {
     private readonly context: ExtensionContext,
     agent: Agent,
     gitProvider: GitProvider,
+    chat: ChatFeature,
   ) {
     const logger = getLogger();
-    this.webviewHelper = new WebviewHelper(context, agent, logger, gitProvider);
+    this.webviewHelper = new WebviewHelper(context, agent, logger, gitProvider, chat);
   }
 
   static getFileContextFromSelection({

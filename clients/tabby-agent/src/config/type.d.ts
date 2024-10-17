@@ -99,6 +99,9 @@ export type ConfigData = {
       promptTemplate: string;
       responseMatcher: string;
     };
+    provideSmartApplyLineRange: {
+      promptTemplate: string;
+    };
   };
   logs: {
     // Controls the level of the logger written to the `~/.tabby-client/agent/logs/`

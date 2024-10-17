@@ -519,11 +519,81 @@ export interface ApplyWorkspaceEditParams {
   };
 }
 
+/**
+ * [Tabby] Reveal editor range request(↩️)
+ *
+ * This method is sent from the server to client to reveal a specific range in the editor.
+ * - method: `tabby/workspace/editor/RevealRange`
+ * - params: {@link RevealEditorRangeParams}
+ * - result: boolean
+ */
+export namespace RevealEditorRangeRequest {
+  export const method = "tabby/workspace/editor/RevealRange";
+  export const messageDirection = MessageDirection.serverToClient;
+  export const type = new ProtocolRequestType<RevealEditorRangeParams, boolean, never, void, void>(method);
+}
+
+export interface RevealEditorRangeParams {
+  range: Range;
+  revealType?: TextEditorRevealType;
+}
+
+export enum TextEditorRevealType {
+  /**
+   * The range will be revealed with as little scrolling as possible.
+   */
+  Default = 0,
+  /**
+   * The range will always be revealed in the center of the viewport.
+   */
+  InCenter = 1,
+  /**
+   * If the range is outside the viewport, it will be revealed in the center of the viewport.
+   * Otherwise, it will be revealed with as little scrolling as possible.
+   */
+  InCenterIfOutsideViewport = 2,
+  /**
+   * The range will always be revealed at the top of the viewport.
+   */
+  AtTop = 3,
+}
+
 export type ChatEditResolveCommand = LspCommand & {
   title: string;
   tooltip?: string;
   command: "tabby/chat/edit/resolve";
   arguments: [ChatEditResolveParams];
+};
+
+/**
+ * [Tabby] Chat Edit Request(↩️)
+ *
+ * This method is sent from the client to the server to edit the document content by user's command.
+ * The server will edit the document content using ApplyEdit(`workspace/applyEdit`) request,
+ * which requires the client to have this capability.
+ * - method: `tabby/chat/edit`
+ * - params: {@link SmartApplyCodeParams}
+ * - result: boolean
+ * - error: {@link ChatFeatureNotAvailableError}
+ *        | {@link ChatEditDocumentTooLongError}
+ *        | {@link ChatEditCommandTooLongError}
+ *        | {@link ChatEditMutexError}
+ */
+export namespace SmartApplyCodeRequest {
+  export const method = "tabby/chat/smartApply/apply";
+  export const messageDirection = MessageDirection.clientToServer;
+  export const type = new ProtocolRequestType<
+    SmartApplyCodeParams,
+    boolean,
+    void,
+    ChatFeatureNotAvailableError | ChatEditDocumentTooLongError | ChatEditCommandTooLongError | ChatEditMutexError,
+    void
+  >(method);
+}
+
+export type SmartApplyCodeParams = {
+  location: Location;
+  applyCode: string;
 };
 
 /**
