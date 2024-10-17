@@ -56,7 +56,7 @@ export type SearchReponse = {
   num_hits?: number
 }
 
-export type MessageActionType = 'delete' | 'regenerate'
+export type MessageActionType = 'delete' | 'regenerate' | 'edit'
 
 type Keys<T> = T extends any ? keyof T : never
 type Pick<T, K extends Keys<T>> = T extends { [k in K]?: any }
