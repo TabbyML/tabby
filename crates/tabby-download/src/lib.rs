@@ -79,7 +79,7 @@ async fn download_model_impl(
     prefer_local_file: bool,
 ) -> Result<()> {
     let model_info = registry.get_model_info(name);
-    registry.migrate_relative_model_path(name)?;
+    registry.migrate_legacy_model_path(name)?;
 
     let urls = filter_download_address(model_info);
     if urls.is_empty() {
@@ -312,6 +312,8 @@ mod tests {
         assert_eq!(urls.len(), 1);
         assert_eq!(urls[0].0, "https://modelscope.co/test");
         assert_eq!(urls[0].1, "test_sha256");
+        // must reset the env, or it will affect other tests
+        std::env::remove_var("TABBY_HUGGINGFACE_HOST_OVERRIDE");
     }
 
     #[test]
@@ -340,6 +342,8 @@ mod tests {
         assert_eq!(urls[0].1, "test_sha256_1");
         assert_eq!(urls[1].0, "https://modelscope.co/part2");
         assert_eq!(urls[1].1, "test_sha256_2");
+        // must reset the env, or it will affect other tests
+        std::env::remove_var("TABBY_HUGGINGFACE_HOST_OVERRIDE");
     }
 
     #[test]
@@ -374,5 +378,7 @@ mod tests {
         assert_eq!(urls[0].1, "test_sha256_1");
         assert_eq!(urls[1].0, "https://modelscope.co/part2");
         assert_eq!(urls[1].1, "test_sha256_2");
+        // must reset the env, or it will affect other tests
+        std::env::remove_var("TABBY_DOWNLOAD_HOST");
     }
 }

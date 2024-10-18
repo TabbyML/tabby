@@ -72,7 +72,7 @@ pub struct ModelRegistry {
 }
 
 lazy_static! {
-    pub static ref GGML_MODEL_RELATIVE_PATH: String =
+    pub static ref LEGACY_GGML_MODEL_PATH: String =
         format!("ggml{}model.gguf", std::path::MAIN_SEPARATOR_STR);
     pub static ref GGML_MODEL_PARTITIONED_PREFIX: String = "model-00001-of-".into();
 }
@@ -125,10 +125,10 @@ impl ModelRegistry {
         None
     }
 
-    pub fn migrate_relative_model_path(&self, name: &str) -> Result<(), std::io::Error> {
+    pub fn migrate_legacy_model_path(&self, name: &str) -> Result<(), std::io::Error> {
         let old_model_path = self
             .get_model_dir(name)
-            .join(GGML_MODEL_RELATIVE_PATH.as_str());
+            .join(LEGACY_GGML_MODEL_PATH.as_str());
 
         if old_model_path.exists() {
             return self.migrate_model_path(name, &old_model_path);
@@ -139,7 +139,7 @@ impl ModelRegistry {
 
     pub fn get_model_path(&self, name: &str) -> PathBuf {
         self.get_model_dir(name)
-            .join(GGML_MODEL_RELATIVE_PATH.as_str())
+            .join(LEGACY_GGML_MODEL_PATH.as_str())
     }
 
     pub fn migrate_model_path(
@@ -196,7 +196,7 @@ mod tests {
         let registry = ModelRegistry::new("TabbyML").await;
         let dir = registry.get_model_dir("StarCoder-1B");
 
-        let old_model_path = dir.join(GGML_MODEL_RELATIVE_PATH.as_str());
+        let old_model_path = dir.join(LEGACY_GGML_MODEL_PATH.as_str());
         tokio::fs::create_dir_all(old_model_path.parent().unwrap())
             .await
             .unwrap();
@@ -207,9 +207,7 @@ mod tests {
             .await
             .unwrap();
 
-        registry
-            .migrate_relative_model_path("StarCoder-1B")
-            .unwrap();
+        registry.migrate_legacy_model_path("StarCoder-1B").unwrap();
         assert!(registry
             .get_model_entry_path("StarCoder-1B")
             .unwrap()
