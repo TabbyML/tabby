@@ -55,7 +55,8 @@ export default function ChatPage() {
   const [pendingRelevantContexts, setPendingRelevantContexts] = useState<
     Context[]
   >([])
-  const [pendingActiveSelection, setPendingActiveSelection] = useState<Context | null>(null)
+  const [pendingActiveSelection, setPendingActiveSelection] =
+    useState<Context | null>(null)
   const [errorMessage, setErrorMessage] = useState<ErrorMessage | null>(null)
   const [isRefreshLoading, setIsRefreshLoading] = useState(false)
 
@@ -145,9 +146,9 @@ export default function ChatPage() {
       document.documentElement.className =
         themeClass + ` client client-${client}`
     },
-    updateActiveSelection: (context) => {
+    updateActiveSelection: context => {
       return updateActiveSelection(context)
-    },
+    }
   })
 
   useEffect(() => {
@@ -250,11 +251,10 @@ export default function ChatPage() {
     setPendingMessages([])
     setPendingActiveSelection(null)
   }
-  
+
   const onChatLoaded = () => {
     pendingRelevantContexts.forEach(addRelevantContext)
     pendingMessages.forEach(sendMessage)
-    console.log('pendingActiveSelection', pendingActiveSelection)
     updateActiveSelection(pendingActiveSelection)
 
     clearPendingState()

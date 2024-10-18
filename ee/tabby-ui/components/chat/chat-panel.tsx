@@ -112,7 +112,9 @@ function ChatPanelRenderer(
                   key={`${activeSelection.filepath}_active_selection`}
                   className="inline-flex items-center gap-0.5 rounded text-sm font-semibold"
                 >
-                  <span className="text-foreground">{getContextLabel(activeSelection)}</span>
+                  <span className="text-foreground">
+                    {getContextLabel(activeSelection)}
+                  </span>
                 </Badge>
               ) : null}
               {relevantContext.map((item, idx) => {
@@ -122,7 +124,9 @@ function ChatPanelRenderer(
                     key={item.filepath + idx}
                     className="inline-flex items-center gap-0.5 rounded text-sm font-semibold"
                   >
-                    <span className="text-foreground">{getContextLabel(item)}</span>
+                    <span className="text-foreground">
+                      {getContextLabel(item)}
+                    </span>
                     <IconRemove
                       className="cursor-pointer text-muted-foreground transition-all hover:text-red-300"
                       onClick={removeRelevantContext.bind(null, idx)}

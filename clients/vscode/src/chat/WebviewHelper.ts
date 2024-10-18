@@ -374,7 +374,7 @@ export class WebviewHelper {
 
     this.pendingRelevantContexts.forEach((ctx) => this.addRelevantContext(ctx));
     this.pendingMessages.forEach((message) => this.sendMessageToChatPanel(message));
-    this.syncActiveSelection(window.activeTextEditor)
+    this.syncActiveSelection(window.activeTextEditor);
 
     if (serverInfo.config.token) {
       this.client?.cleanError();
@@ -418,8 +418,6 @@ export class WebviewHelper {
   }
 
   public syncActiveSelection(editor: TextEditor | undefined) {
-    this.logger.debug(`Call sync active selection: ${!!editor}`);
-
     if (!editor) {
       return;
     }

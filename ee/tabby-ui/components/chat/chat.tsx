@@ -106,7 +106,9 @@ function ChatRenderer(
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
   const [input, setInput] = React.useState<string>('')
   const [relevantContext, setRelevantContext] = React.useState<Context[]>([])
-  const [activeSelection, setActiveSelection] = React.useState<Context | null>(null)
+  const [activeSelection, setActiveSelection] = React.useState<Context | null>(
+    null
+  )
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
 
   const {
@@ -424,7 +426,7 @@ function ChatRenderer(
         isLoading,
         addRelevantContext,
         focus: () => chatPanelRef.current?.focus(),
-        updateActiveSelection,
+        updateActiveSelection
       }
     },
     []
