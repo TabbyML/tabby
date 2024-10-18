@@ -1,0 +1,19 @@
+version: '3'
+# docker-compose up -d
+#docker-compose build video
+services:
+
+  tabby_test:
+    image: rust:latest
+    init: true
+    ports:
+      - "3795:8080"
+    environment:
+       https_proxy: http://192.168.2.2:8889
+       http_proxy: http://192.168.2.2:8889
+    volumes:
+      - ./:/app/
+    restart: unless-stopped
+    tty: true
+
+    

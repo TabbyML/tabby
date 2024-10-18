@@ -43,8 +43,8 @@ impl PromptBuilder {
         segments: &Segments,
         allowed_code_repository: &AllowedCodeRepository,
     ) -> Vec<Snippet> {
-        let quota_threshold_for_snippets_from_code_search = 256;
-        let mut max_snippets_chars_in_prompt = 768;
+        let quota_threshold_for_snippets_from_code_search = 25600;
+        let mut max_snippets_chars_in_prompt = 76800;
         let mut snippets: Vec<Snippet> = vec![];
 
         if let Some((count_characters, snippets_from_segments)) =
@@ -98,6 +98,7 @@ fn get_default_suffix(suffix: Option<String>) -> String {
 }
 
 fn rewrite_with_snippets(language: &str, segments: Segments, snippets: &[Snippet]) -> Segments {
+
     if snippets.is_empty() {
         segments
     } else {
@@ -107,6 +108,7 @@ fn rewrite_with_snippets(language: &str, segments: Segments, snippets: &[Snippet
 }
 
 fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
+    //println!("{:?}", snippets);
     if snippets.is_empty() {
         return prefix.to_owned();
     }
@@ -118,6 +120,7 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
     let mut lines: Vec<String> = vec![];
 
     for (i, snippet) in snippets.iter().enumerate() {
+        
         lines.push(format!("Path: {}", snippet.filepath));
         for line in snippet.body.lines() {
             lines.push(line.to_owned());

@@ -22,8 +22,8 @@ export const defaultConfigData: ConfigData = {
       maxSuffixLines: 20,
       fillDeclarations: {
         enabled: true,
-        maxSnippets: 5,
-        maxCharsPerSnippet: 500,
+        maxSnippets: 500,
+        maxCharsPerSnippet: 50000,
       },
       collectSnippetsFromRecentChangedFiles: {
         enabled: true,

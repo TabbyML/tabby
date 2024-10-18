@@ -1,4 +1,4 @@
-import { commands, Uri, Position, Range } from "vscode";
+import { commands,workspace, Uri, Position, Range ,SymbolInformation} from "vscode";
 import { BaseLanguageClient, StaticFeature, FeatureState, Disposable } from "vscode-languageclient";
 import {
   ClientCapabilities,
@@ -6,7 +6,6 @@ import {
   LanguageSupportSemanticTokensRangeRequest,
 } from "tabby-agent";
 import { DeclarationParams, SemanticTokensRangeParams } from "vscode-languageclient";
-
 export class LanguageSupportFeature implements StaticFeature {
   private disposables: Disposable[] = [];
 
@@ -34,37 +33,43 @@ export class LanguageSupportFeature implements StaticFeature {
   initialize(): void {
     this.disposables.push(
       this.client.onRequest(LanguageSupportDeclarationRequest.type, async (params: DeclarationParams) => {
-        const result = await commands.executeCommand(
+        //console.log(params)
+        const result_name = await commands.executeCommand(
           "vscode.executeDefinitionProvider",
           Uri.parse(params.textDocument.uri),
           new Position(params.position.line, params.position.character),
         );
+        const result_items = Array.isArray(result_name) ? result_name : [result_name];
+        const result : SymbolInformation [] = []
+
+        for (const item of result_items) {
+          const document = await workspace.openTextDocument(Uri.parse(item.uri.path));
+          const text = document.getText(item.range);
+          const symbols = await commands.executeCommand<SymbolInformation[]>(
+            'vscode.executeDocumentSymbolProvider',
+            Uri.parse(item.uri.path)
+          );
+          const functionSymbol = symbols.find(symbol => symbol.name === text);
+          if (functionSymbol) {
+            result.push(functionSymbol);
+            
+          }
+          
+        }
         const items = Array.isArray(result) ? result : [result];
         const locations = items.map((item) => {
           return {
-            uri: "targetUri" in item ? item.targetUri.toString() : item.uri.toString(),
-            range:
-              "targetRange" in item
-                ? {
-                    start: {
-                      line: item.targetRange.start.line,
-                      character: item.targetRange.start.character,
-                    },
-                    end: {
-                      line: item.targetRange.end.line,
-                      character: item.targetRange.end.character,
-                    },
-                  }
-                : {
-                    start: {
-                      line: item.range.start.line,
-                      character: item.range.start.character,
-                    },
-                    end: {
-                      line: item.range.end.line,
-                      character: item.range.end.character,
-                    },
-                  },
+            uri: item.location.uri.path,
+            range:{
+              start: {
+                line: item.location.range.start.line,
+                character: item.location.range.start.character,
+              },
+              end: {
+                line: item.location.range.end.line,
+                character: item.location.range.end.character,
+              },
+            },
           };
         });
         return locations;
