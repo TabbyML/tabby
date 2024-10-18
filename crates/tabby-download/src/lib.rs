@@ -31,12 +31,12 @@ pub fn filter_download_address(model_info: &ModelInfo) -> Vec<(String, String)> 
                 if let Some(mirror_host) = get_huggingface_mirror_host() {
                     return vec![(
                         url.replace("huggingface.co", &mirror_host),
-                        model_info.sha256.clone().unwrap_or_else(|| "".to_string()),
+                        model_info.sha256.clone().unwrap_or_default(),
                     )];
                 }
                 return vec![(
                     url.to_owned(),
-                    model_info.sha256.clone().unwrap_or_else(|| "".to_string()),
+                    model_info.sha256.clone().unwrap_or_default(),
                 )];
             }
         }
@@ -90,11 +90,10 @@ async fn download_model_impl(
 
         let mut sha256_matched = true;
         for (index, url) in urls.iter().enumerate() {
-            if !HashChecker::check(
+            if HashChecker::check(
                 partitioned_file_name!(index + 1, urls.len()).as_str(),
                 &url.1,
-            )
-            .is_ok()
+            ).is_err()
             {
                 sha256_matched = false;
                 break;
