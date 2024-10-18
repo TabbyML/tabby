@@ -25,7 +25,13 @@ import {
 import { CopyButton } from '../copy-button'
 import { ErrorMessageBlock, MessageMarkdown } from '../message-markdown'
 import { Button } from '../ui/button'
-import { IconFile, IconRefresh, IconTrash, IconUser } from '../ui/icons'
+import {
+  IconEdit,
+  IconFile,
+  IconRefresh,
+  IconTrash,
+  IconUser
+} from '../ui/icons'
 import { Separator } from '../ui/separator'
 import { Skeleton } from '../ui/skeleton'
 import { MyAvatar } from '../user-avatar'
@@ -202,7 +208,17 @@ function UserMessageCardActions(props: { message: UserMessage }) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={e => handleMessageAction?.(message.id, 'delete')}
+          onClick={e => handleMessageAction(message.id, 'edit')}
+        >
+          <IconEdit />
+          <span className="sr-only">Edit message</span>
+        </Button>
+      )}
+      {!isLoading && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={e => handleMessageAction(message.id, 'delete')}
         >
           <IconTrash />
           <span className="sr-only">Delete message</span>
