@@ -447,10 +447,10 @@ export class WebviewHelper {
   public addTextEditorEventListeners() {
     window.onDidChangeTextEditorSelection((e) => {
       if (e.textEditor !== window.activeTextEditor) {
-        return
+        return;
       }
-      this.syncActiveSelection(e.textEditor)
-    })
+      this.syncActiveSelection(e.textEditor);
+    });
   }
 
   public async displayPageBasedOnServerStatus() {
