@@ -16,16 +16,21 @@ pub struct ModelInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub urls: Option<Vec<String>>,
 
-    #[serde(default)]
-    pub sha256: String,
-    // partitioned_urls is used for models with multiple files
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sha256: Option<String>,
+    // partition_urls is used for model download address
+    // if the model is partitioned, the addresses of each partition will be listed here,
+    // if there is only one partition, it will be the same as `urls`.
+    //
+    // will first try to the `urls`, if not found, will try this `partition_urls`.
+    //
     // must make sure the first address is the entrypoint
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub addresses: Option<Vec<ModelAddress>>,
+    pub partition_urls: Option<Vec<PartitionModelUrl>>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ModelAddress {
+pub struct PartitionModelUrl {
     pub urls: Vec<String>,
     pub sha256: String,
 }
@@ -121,12 +126,11 @@ impl ModelRegistry {
     }
 
     pub fn migrate_relative_model_path(&self, name: &str) -> Result<(), std::io::Error> {
-        let model_path = self.get_model_entry_path(name);
         let old_model_path = self
             .get_model_dir(name)
             .join(GGML_MODEL_RELATIVE_PATH.as_str());
 
-        if model_path.is_none() && old_model_path.exists() {
+        if old_model_path.exists() {
             return self.migrate_model_path(name, &old_model_path);
         }
 

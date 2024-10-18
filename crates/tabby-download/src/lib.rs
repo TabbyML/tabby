@@ -36,16 +36,19 @@ pub fn filter_download_address(model_info: &ModelInfo) -> Vec<(String, String)> 
                 if let Some(mirror_host) = get_huggingface_mirror_host() {
                     return vec![(
                         url.replace("huggingface.co", &mirror_host),
-                        model_info.sha256.clone(),
+                        model_info.sha256.clone().unwrap_or_else(|| "".to_string()),
                     )];
                 }
-                return vec![(url.to_owned(), model_info.sha256.clone())];
+                return vec![(
+                    url.to_owned(),
+                    model_info.sha256.clone().unwrap_or_else(|| "".to_string()),
+                )];
             }
         }
     };
 
     model_info
-        .addresses
+        .partition_urls
         .iter()
         .flatten()
         .map(|x| -> (String, String) {
@@ -64,36 +67,21 @@ pub fn filter_download_address(model_info: &ModelInfo) -> Vec<(String, String)> 
         .collect()
 }
 
+macro_rules! partitioned_file_name {
+    ($index:expr, $total:expr) => {
+        format!("model-{:05}-of-{:05}.gguf", $index + 1, $total)
+    };
+}
+
 async fn download_model_impl(
     registry: &ModelRegistry,
     name: &str,
     prefer_local_file: bool,
 ) -> Result<()> {
     let model_info = registry.get_model_info(name);
-    registry.save_model_info(name);
-
     registry.migrate_relative_model_path(name)?;
 
-    let model_path = registry.get_model_entry_path(name);
-    if let Some(model_path) = model_path {
-        if !prefer_local_file {
-            info!("Checking model integrity..");
-            if HashChecker::check(&model_path.display().to_string(), &model_info.sha256).is_ok() {
-                return Ok(());
-            }
-            warn!(
-                "Checksum doesn't match for <{}/{}>, re-downloading...",
-                registry.name, name
-            );
-
-            fs::remove_dir_all(registry.get_model_store_dir(name))?;
-        } else {
-            return Ok(());
-        }
-    }
-
     let urls = filter_download_address(model_info);
-
     if urls.is_empty() {
         bail!(
             "No download URLs available for <{}/{}>",
@@ -102,9 +90,38 @@ async fn download_model_impl(
         );
     }
 
+    if !prefer_local_file {
+        info!("Checking model integrity..");
+
+        let mut sha256_matched = true;
+        for (index, url) in urls.iter().enumerate() {
+            if !HashChecker::check(
+                partitioned_file_name!(index + 1, urls.len()).as_str(),
+                &url.1,
+            )
+            .is_ok()
+            {
+                sha256_matched = false;
+                break;
+            }
+        }
+
+        if sha256_matched {
+            return Ok(());
+        }
+
+        warn!(
+            "Checksum doesn't match for <{}/{}>, re-downloading...",
+            registry.name, name
+        );
+
+        fs::remove_dir_all(registry.get_model_dir(name))?;
+    }
+
     // prepare for download
     let dir = registry.get_model_store_dir(name);
     fs::create_dir_all(dir)?;
+    registry.save_model_info(name);
 
     // let progressbars = MultiBar::new(false);
     let progressbars = MultiBar::new(false);
@@ -114,7 +131,7 @@ async fn download_model_impl(
             .get_model_store_dir(name)
             .to_string_lossy()
             .into_owned();
-        let filename = format!("model-{:05}-of-{:05}.gguf", index + 1, urls.len());
+        let filename: String = partitioned_file_name!(index + 1, urls.len());
         let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
         let progressbars = progressbars.clone();
 
@@ -171,7 +188,7 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) {
 
 #[cfg(test)]
 mod tests {
-    use tabby_common::registry::ModelInfo;
+    use tabby_common::registry::{ModelInfo, PartitionModelUrl};
 
     #[test]
     fn test_filter_download_address() {
@@ -183,10 +200,10 @@ mod tests {
                 "https://huggingface.co/test2".to_string(),
                 "https://modelscope.co/test2".to_string(),
             ]),
-            sha256: "test_sha256".to_string(),
+            sha256: Some("test_sha256".to_string()),
             prompt_template: None,
             chat_template: None,
-            addresses: None,
+            partition_urls: None,
         };
         let urls = super::filter_download_address(&model_info);
         assert_eq!(urls.len(), 1);
@@ -199,13 +216,163 @@ mod tests {
                 "https://huggingface.co/test".to_string(),
                 "https://modelscope.co/test2".to_string(),
             ]),
-            sha256: "test_sha256".to_string(),
+            sha256: Some("test_sha256".to_string()),
             prompt_template: None,
             chat_template: None,
-            addresses: None,
+            partition_urls: None,
         };
         let urls = super::filter_download_address(&model_info);
         assert_eq!(urls.len(), 1);
         assert_eq!(urls[0].0, "https://huggingface.co/test");
+    }
+
+    #[test]
+    fn test_filter_download_address_multiple_partitions() {
+        let model_info = ModelInfo {
+            name: "test".to_string(),
+            urls: None,
+            sha256: Some("test_sha256".to_string()),
+            prompt_template: None,
+            chat_template: None,
+            partition_urls: Some(vec![
+                PartitionModelUrl {
+                    urls: vec![
+                        "https://huggingface.co/part1".to_string(),
+                        "https://modelscope.co/part1".to_string(),
+                    ],
+                    sha256: "test_sha256_1".to_string(),
+                },
+                PartitionModelUrl {
+                    urls: vec![
+                        "https://huggingface.co/part2".to_string(),
+                        "https://modelscope.co/part2".to_string(),
+                    ],
+                    sha256: "test_sha256_2".to_string(),
+                },
+            ]),
+        };
+        let urls = super::filter_download_address(&model_info);
+        assert_eq!(urls.len(), 2);
+        assert_eq!(urls[0].0, "https://huggingface.co/part1");
+        assert_eq!(urls[0].1, "test_sha256_1");
+        assert_eq!(urls[1].0, "https://huggingface.co/part2");
+        assert_eq!(urls[1].1, "test_sha256_2");
+    }
+
+    #[test]
+    fn test_filter_download_address_single_partition() {
+        let model_info = ModelInfo {
+            name: "test".to_string(),
+            urls: None,
+            sha256: Some("test_sha256".to_string()),
+            prompt_template: None,
+            chat_template: None,
+            partition_urls: Some(vec![PartitionModelUrl {
+                urls: vec!["https://huggingface.co/part1".to_string()],
+                sha256: "test_sha256_1".to_string(),
+            }]),
+        };
+        let urls = super::filter_download_address(&model_info);
+        assert_eq!(urls.len(), 1);
+        assert_eq!(urls[0].0, "https://huggingface.co/part1");
+        assert_eq!(urls[0].1, "test_sha256_1");
+    }
+
+    #[test]
+    fn test_filter_download_address_prefer_urls() {
+        let model_info = ModelInfo {
+            name: "test".to_string(),
+            urls: Some(vec!["https://huggingface.co/test".to_string()]),
+            sha256: Some("test_sha256".to_string()),
+            prompt_template: None,
+            chat_template: None,
+            partition_urls: Some(vec![PartitionModelUrl {
+                urls: vec!["https://modelscope.co/test".to_string()],
+                sha256: "test_sha256".to_string(),
+            }]),
+        };
+        let urls = super::filter_download_address(&model_info);
+        assert_eq!(urls.len(), 1);
+        assert_eq!(urls[0].0, "https://huggingface.co/test");
+        assert_eq!(urls[0].1, "test_sha256");
+    }
+
+    #[test]
+    fn test_filter_download_address_huggingface_override_urls() {
+        std::env::set_var("TABBY_HUGGINGFACE_HOST_OVERRIDE", "modelscope.co");
+        let model_info = ModelInfo {
+            name: "test".to_string(),
+            urls: Some(vec!["https://huggingface.co/test".to_string()]),
+            sha256: Some("test_sha256".to_string()),
+            prompt_template: None,
+            chat_template: None,
+            partition_urls: None,
+        };
+        let urls = super::filter_download_address(&model_info);
+        assert_eq!(urls.len(), 1);
+        assert_eq!(urls[0].0, "https://modelscope.co/test");
+        assert_eq!(urls[0].1, "test_sha256");
+    }
+
+    #[test]
+    fn test_filter_download_address_huggingface_override_partitioned() {
+        std::env::set_var("TABBY_HUGGINGFACE_HOST_OVERRIDE", "modelscope.co");
+        let model_info = ModelInfo {
+            name: "test".to_string(),
+            urls: None,
+            sha256: Some("test_sha256".to_string()),
+            prompt_template: None,
+            chat_template: None,
+            partition_urls: Some(vec![
+                PartitionModelUrl {
+                    urls: vec!["https://huggingface.co/part1".to_string()],
+                    sha256: "test_sha256_1".to_string(),
+                },
+                PartitionModelUrl {
+                    urls: vec!["https://huggingface.co/part2".to_string()],
+                    sha256: "test_sha256_2".to_string(),
+                },
+            ]),
+        };
+        let urls = super::filter_download_address(&model_info);
+        assert_eq!(urls.len(), 2);
+        assert_eq!(urls[0].0, "https://modelscope.co/part1");
+        assert_eq!(urls[0].1, "test_sha256_1");
+        assert_eq!(urls[1].0, "https://modelscope.co/part2");
+        assert_eq!(urls[1].1, "test_sha256_2");
+    }
+
+    #[test]
+    fn test_filter_download_address_download_host() {
+        std::env::set_var("TABBY_DOWNLOAD_HOST", "modelscope.co");
+        let model_info = ModelInfo {
+            name: "test".to_string(),
+            urls: None,
+            sha256: Some("test_sha256".to_string()),
+            prompt_template: None,
+            chat_template: None,
+            partition_urls: Some(vec![
+                PartitionModelUrl {
+                    urls: vec![
+                        "https://huggingface.co/part1".to_string(),
+                        "https://modelscope.co/part1".to_string(),
+                    ],
+                    sha256: "test_sha256_1".to_string(),
+                },
+                PartitionModelUrl {
+                    urls: vec![
+                        "https://huggingface.co/part2".to_string(),
+                        "https://modelscope.co/part2".to_string(),
+                    ],
+                    sha256: "test_sha256_2".to_string(),
+                },
+            ]),
+        };
+        let urls = super::filter_download_address(&model_info);
+        assert_eq!(urls.len(), 2);
+        assert_eq!(urls[0].0, "https://modelscope.co/part1");
+        assert_eq!(urls[0].1, "test_sha256_1");
+        assert_eq!(urls[1].0, "https://modelscope.co/part2");
+        assert_eq!(urls[1].1, "test_sha256_2");
     }
 }
