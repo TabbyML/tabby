@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Editor } from '@tiptap/react'
 
 import { ContextInfo } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { ThreadRunContexts } from '@/lib/types'
 import {
+  checkSourcesAvailability,
   cn,
   getMentionsFromText,
   getThreadRunContextsFromMentions
@@ -18,7 +19,9 @@ import {
 } from '@/components/ui/tooltip'
 
 import { PromptEditor, PromptEditorRef } from './prompt-editor'
-import { IconArrowRight, IconSpinner } from './ui/icons'
+import { Button } from './ui/button'
+import { IconArrowRight, IconAtSign, IconHash, IconSpinner } from './ui/icons'
+import { Separator } from './ui/separator'
 
 export default function TextAreaSearch({
   onSearch,
@@ -57,9 +60,7 @@ export default function TextAreaSearch({
   }, [])
 
   const onWrapperClick = () => {
-    if (isFollowup) {
-      editorRef.current?.editor?.commands.focus()
-    }
+    editorRef.current?.editor?.commands.focus()
   }
 
   const handleSubmit = (editor: Editor | undefined | null) => {
@@ -82,16 +83,23 @@ export default function TextAreaSearch({
     }
   }
 
+  const onInsertMention = (prefix: string) => {
+    const editor = editorRef.current?.editor
+    if (!editor) return
+
+    editor.chain().focus().insertContent(prefix).run()
+  }
+
+  const { hasCodebaseSource, hasDocumentSource } = useMemo(() => {
+    return checkSourcesAvailability(contextInfo?.sources)
+  }, [contextInfo?.sources])
+
   return (
     <div
       className={cn(
-        'relative flex w-full items-center overflow-hidden rounded-lg border border-muted-foreground bg-background px-4 transition-all hover:border-muted-foreground/60',
+        'relative w-full overflow-hidden rounded-xl border bg-background transition-all hover:border-ring dark:border-muted-foreground/60 dark:hover:border-muted-foreground',
         {
-          '!border-zinc-400': isFocus && isFollowup && theme !== 'dark',
-          '!border-primary': isFocus && (!isFollowup || theme === 'dark'),
-          'py-0': showBetaBadge,
-          'border-2 dark:border border-zinc-400 hover:border-zinc-400/60 dark:border-muted-foreground dark:hover:border-muted-foreground/60':
-            isFollowup
+          'border-ring dark:border-muted-foreground': isFocus
         },
         className
       )}
@@ -118,55 +126,113 @@ export default function TextAreaSearch({
           </TooltipContent>
         </Tooltip>
       )}
-      <PromptEditor
-        editable
-        contextInfo={contextInfo}
-        fetchingContextInfo={fetchingContextInfo}
-        onSubmit={handleSubmit}
-        placeholder={
-          placeholder ||
-          (contextInfo?.sources?.length
-            ? 'Ask anything...\n\nUse # to select a codebase to chat with, or @ to select a document to bring into context.'
-            : 'Ask anything...')
-        }
-        autoFocus={autoFocus}
-        onFocus={() => setIsFocus(true)}
-        onBlur={() => setIsFocus(false)}
-        onUpdate={({ editor }) => setValue(editor.getText().trim())}
-        ref={editorRef}
-        placement={isFollowup ? 'bottom' : 'top'}
-        className={cn(
-          'text-area-autosize mr-1 flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
-          {
-            '!h-[48px]': !isShow,
-            'py-4': !showBetaBadge,
-            'py-5': showBetaBadge
-          }
-        )}
-        editorClassName={isFollowup ? 'min-h-[3.5rem]' : 'min-h-[4.5rem]'}
-      />
-      <div className={cn('flex items-center justify-between gap-2')}>
-        <div
+      <div
+        className={cn('flex items-end px-4', {
+          'min-h-[5.5rem]': !isFollowup,
+          'min-h-[2.5rem]': isFollowup
+        })}
+      >
+        <PromptEditor
+          editable
+          contextInfo={contextInfo}
+          fetchingContextInfo={fetchingContextInfo}
+          onSubmit={handleSubmit}
+          placeholder={placeholder || 'Ask anything...'}
+          autoFocus={autoFocus}
+          onFocus={() => setIsFocus(true)}
+          onBlur={() => setIsFocus(false)}
+          onUpdate={({ editor }) => setValue(editor.getText().trim())}
+          ref={editorRef}
+          placement={isFollowup ? 'bottom' : 'top'}
           className={cn(
-            'flex items-center justify-center rounded-lg p-1 transition-all',
+            'text-area-autosize mr-1 flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0',
             {
-              'bg-primary text-primary-foreground cursor-pointer':
-                value.length > 0,
-              '!bg-muted !text-primary !cursor-default':
-                isLoading || value.length === 0,
-              'mr-1.5': !showBetaBadge,
-              'h-6 w-6': !isFollowup
+              '!h-[48px]': !isShow,
+              'py-3': !showBetaBadge,
+              'py-4': showBetaBadge
             }
           )}
-          onClick={() => handleSubmit(editorRef.current?.editor)}
-        >
-          {loadingWithSpinning && isLoading && (
-            <IconSpinner className="h-3.5 w-3.5" />
-          )}
-          {(!loadingWithSpinning || !isLoading) && (
-            <IconArrowRight className="h-3.5 w-3.5" />
-          )}
+          // editorClassName={isFollowup ? 'min-h-[3.45rem]' : 'min-h-[3.5em]'}
+          editorClassName="min-h-[3.5em]"
+        />
+        <div className={cn('flex items-center justify-between gap-2')}>
+          <div
+            className={cn(
+              'mb-3 flex items-center justify-center rounded-lg p-1 transition-all',
+              {
+                'bg-primary text-primary-foreground cursor-pointer':
+                  value.length > 0,
+                '!bg-muted !text-primary !cursor-default':
+                  isLoading || value.length === 0,
+                'mr-1.5': !showBetaBadge
+                // 'mb-4': !showBetaBadge,
+                // 'mb-5': showBetaBadge
+              }
+            )}
+            onClick={() => handleSubmit(editorRef.current?.editor)}
+          >
+            {loadingWithSpinning && isLoading && (
+              <IconSpinner className="h-4 w-4" />
+            )}
+            {(!loadingWithSpinning || !isLoading) && (
+              <IconArrowRight className="h-4 w-4" />
+            )}
+          </div>
         </div>
+      </div>
+      <div
+        className={cn(
+          'hidden items-center gap-2 border-t bg-[#F9F6EF] py-2 pl-2 pr-4 dark:border-muted-foreground/60 dark:bg-[#333333]',
+          {
+            flex: !isFollowup
+          }
+        )}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* llm select */}
+        {/* <Button
+          variant="ghost"
+          className="gap-2 px-1.5 py-1 text-foreground/70"
+        >
+          <IconBox />
+          Mistral-7B
+        </Button>
+        <Separator orientation="vertical" className="h-5" /> */}
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              className="gap-2 px-1.5 py-1 text-foreground/70"
+              onClick={e => onInsertMention('#')}
+              disabled={!hasCodebaseSource}
+            >
+              <IconHash />
+              Codebase
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-md">
+            Select a codebase to chat with
+          </TooltipContent>
+        </Tooltip>
+
+        <Separator orientation="vertical" className="h-5" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              className="gap-2 px-1.5 py-1 text-foreground/70"
+              onClick={e => onInsertMention('@')}
+              disabled={!hasDocumentSource}
+            >
+              <IconAtSign />
+              Documents
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-md">
+            Select a document to bring into context
+          </TooltipContent>
+        </Tooltip>
       </div>
     </div>
   )

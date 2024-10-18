@@ -15,11 +15,13 @@ import {
   Filter,
   GitFork,
   Globe,
+  Hash,
   IndentIncrease,
   Layers2,
   Link,
   ListFilter,
   Mail,
+  MessagesSquare,
   Search,
   Share2,
   Sparkles,
@@ -1613,6 +1615,17 @@ function IconAlignJustify({
   return <AlignJustify className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconHash({ className, ...props }: React.ComponentProps<typeof Hash>) {
+  return <Hash className={cn('h-4 w-4', className)} {...props} />
+}
+
+function IconMessagesSquare({
+  className,
+  ...props
+}: React.ComponentProps<typeof MessagesSquare>) {
+  return <MessagesSquare className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1708,5 +1721,7 @@ export {
   IconEmojiBook,
   IconEmojiGlobe,
   IconWrapText,
-  IconAlignJustify
+  IconAlignJustify,
+  IconHash,
+  IconMessagesSquare
 }
