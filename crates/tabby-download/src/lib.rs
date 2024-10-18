@@ -93,7 +93,8 @@ async fn download_model_impl(
             if HashChecker::check(
                 partitioned_file_name!(index + 1, urls.len()).as_str(),
                 &url.1,
-            ).is_err()
+            )
+            .is_err()
             {
                 sha256_matched = false;
                 break;
