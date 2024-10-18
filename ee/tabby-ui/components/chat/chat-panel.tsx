@@ -1,5 +1,6 @@
 import React, { RefObject } from 'react'
 import type { UseChatHelpers } from 'ai/react'
+import type { Context } from 'tabby-chat-panel'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -49,7 +50,8 @@ function ChatPanelRenderer(
     qaPairs,
     isLoading,
     relevantContext,
-    removeRelevantContext
+    removeRelevantContext,
+    activeSelection
   } = React.useContext(ChatContext)
 
   React.useImperativeHandle(
@@ -102,21 +104,25 @@ function ChatPanelRenderer(
           )}
         </div>
         <div className="border-t bg-background px-4 py-2 shadow-lg sm:space-y-4 sm:rounded-t-xl sm:border md:py-4">
-          {relevantContext.length > 0 && (
+          {(!!activeSelection || relevantContext.length > 0) && (
             <div className="flex flex-wrap gap-2">
+              {activeSelection ? (
+                <Badge
+                  variant="outline"
+                  key={`${activeSelection.filepath}_active_selection`}
+                  className="inline-flex items-center gap-0.5 rounded text-sm font-semibold"
+                >
+                  <span className="text-foreground">{getContextLabel(activeSelection)}</span>
+                </Badge>
+              ) : null}
               {relevantContext.map((item, idx) => {
-                const [fileName] = item.filepath.split('/').slice(-1)
-                const line =
-                  item.range.start === item.range.end
-                    ? `${item.range.start}`
-                    : `${item.range.start}-${item.range.end}`
                 return (
                   <Badge
                     variant="outline"
                     key={item.filepath + idx}
                     className="inline-flex items-center gap-0.5 rounded text-sm font-semibold"
                   >
-                    <span className="text-foreground">{`${fileName}: ${line}`}</span>
+                    <span className="text-foreground">{getContextLabel(item)}</span>
                     <IconRemove
                       className="cursor-pointer text-muted-foreground transition-all hover:text-red-300"
                       onClick={removeRelevantContext.bind(null, idx)}
@@ -144,3 +150,13 @@ function ChatPanelRenderer(
 export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
   ChatPanelRenderer
 )
+
+function getContextLabel(context: Context) {
+  const [fileName] = context.filepath.split('/').slice(-1)
+  const line =
+    context.range.start === context.range.end
+      ? `${context.range.start}`
+      : `${context.range.start}-${context.range.end}`
+
+  return `${fileName}: ${line}`
+}

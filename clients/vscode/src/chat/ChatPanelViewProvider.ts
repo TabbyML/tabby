@@ -74,4 +74,5 @@ export class ChatPanelViewProvider {
   public addRelevantContext(context: Context) {
     this.webviewHelper.addRelevantContext(context);
   }
+
 }

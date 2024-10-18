@@ -51,6 +51,7 @@ export interface ServerApi {
   cleanError: () => void
   addRelevantContext: (context: Context) => void
   updateTheme: (style: string, themeClass: string) => void
+  updateActiveSelection: (context: Context | null) => void
 }
 
 export interface ClientApi {
@@ -106,6 +107,7 @@ export function createServer(api: ServerApi): ClientApi {
       cleanError: api.cleanError,
       addRelevantContext: api.addRelevantContext,
       updateTheme: api.updateTheme,
+      updateActiveSelection: api.updateActiveSelection,
     },
   })
 }

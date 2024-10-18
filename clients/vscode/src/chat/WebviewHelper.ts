@@ -343,6 +343,10 @@ export class WebviewHelper {
     this.client?.sendMessage(message);
   }
 
+  public syncActiveSelectionToChatPanel(context: Context | null) {
+    this.client?.updateActiveSelection(context);
+  }
+
   public addRelevantContext(context: Context) {
     if (!this.client) {
       this.pendingRelevantContexts.push(context);
@@ -370,6 +374,7 @@ export class WebviewHelper {
 
     this.pendingRelevantContexts.forEach((ctx) => this.addRelevantContext(ctx));
     this.pendingMessages.forEach((message) => this.sendMessageToChatPanel(message));
+    this.syncActiveSelection(window.activeTextEditor)
 
     if (serverInfo.config.token) {
       this.client?.cleanError();
@@ -412,6 +417,17 @@ export class WebviewHelper {
     }
   }
 
+  public syncActiveSelection(editor: TextEditor | undefined) {
+    this.logger.debug(`Call sync active selection: ${!!editor}`);
+
+    if (!editor) {
+      return;
+    }
+
+    const fileContext = WebviewHelper.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+    this.syncActiveSelectionToChatPanel(fileContext);
+  }
+
   public addAgentEventListeners() {
     this.agent.on("didChangeStatus", async (status) => {
       if (status !== "disconnected") {
@@ -428,6 +444,15 @@ export class WebviewHelper {
       this.displayChatPage(serverInfo.config.endpoint, { force: true });
       this.refreshChatPage();
     });
+  }
+
+  public addTextEditorEventListeners() {
+    window.onDidChangeTextEditorSelection((e) => {
+      if (e.textEditor !== window.activeTextEditor) {
+        return
+      }
+      this.syncActiveSelection(e.textEditor)
+    })
   }
 
   public async displayPageBasedOnServerStatus() {
@@ -499,6 +524,7 @@ export class WebviewHelper {
           message: msg,
           relevantContext: [],
         };
+        // FIXME: after synchronizing the activeSelection, perhaps there's no need to include activeSelection in the message.
         if (editor) {
           const fileContext = WebviewHelper.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
           if (fileContext)

@@ -42,6 +42,7 @@ type ChatContextValue = {
   onCopyContent?: (value: string) => void
   onApplyInEditor?: (value: string) => void
   relevantContext: Context[]
+  activeSelection: Context | null
   removeRelevantContext: (index: number) => void
   chatInputRef: RefObject<HTMLTextAreaElement>
 }
@@ -56,6 +57,7 @@ export interface ChatRef {
   isLoading: boolean
   addRelevantContext: (context: Context) => void
   focus: () => void
+  updateActiveSelection: (context: Context | null) => void
 }
 
 interface ChatProps extends React.ComponentProps<'div'> {
@@ -104,6 +106,7 @@ function ChatRenderer(
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
   const [input, setInput] = React.useState<string>('')
   const [relevantContext, setRelevantContext] = React.useState<Context[]>([])
+  const [activeSelection, setActiveSelection] = React.useState<Context | null>(null)
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
 
   const {
@@ -348,6 +351,8 @@ function ChatRenderer(
       const newUserMessage = {
         ...userMessage,
         message: userMessage.message + selectCodeSnippet,
+        // For forward compatibility
+        activeSelection: activeSelection || userMessage.activeContext,
         // If no id is provided, set a fallback id.
         id: userMessage.id ?? nanoid()
       }
@@ -406,6 +411,10 @@ function ChatRenderer(
     onThreadUpdates?.(qaPairs)
   }, [qaPairs])
 
+  const updateActiveSelection = (ctx: Context | null) => {
+    setActiveSelection(ctx)
+  }
+
   React.useImperativeHandle(
     ref,
     () => {
@@ -414,7 +423,8 @@ function ChatRenderer(
         stop,
         isLoading,
         addRelevantContext,
-        focus: () => chatPanelRef.current?.focus()
+        focus: () => chatPanelRef.current?.focus(),
+        updateActiveSelection,
       }
     },
     []
@@ -448,7 +458,8 @@ function ChatRenderer(
         onApplyInEditor,
         relevantContext,
         removeRelevantContext,
-        chatInputRef
+        chatInputRef,
+        activeSelection
       }}
     >
       <div className="flex justify-center overflow-x-hidden">

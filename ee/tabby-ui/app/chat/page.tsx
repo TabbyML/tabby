@@ -55,6 +55,7 @@ export default function ChatPage() {
   const [pendingRelevantContexts, setPendingRelevantContexts] = useState<
     Context[]
   >([])
+  const [pendingActiveSelection, setPendingActiveSelection] = useState<Context | null>(null)
   const [errorMessage, setErrorMessage] = useState<ErrorMessage | null>(null)
   const [isRefreshLoading, setIsRefreshLoading] = useState(false)
 
@@ -86,6 +87,14 @@ export default function ChatPage() {
       const newPendingRelevantContexts = [...pendingRelevantContexts]
       newPendingRelevantContexts.push(ctx)
       setPendingRelevantContexts(newPendingRelevantContexts)
+    }
+  }
+
+  const updateActiveSelection = (ctx: Context | null) => {
+    if (chatRef.current) {
+      chatRef.current.updateActiveSelection(ctx)
+    } else {
+      setPendingActiveSelection(ctx)
     }
   }
 
@@ -135,7 +144,10 @@ export default function ChatPage() {
       // Sync with edit theme
       document.documentElement.className =
         themeClass + ` client client-${client}`
-    }
+    },
+    updateActiveSelection: (context) => {
+      return updateActiveSelection(context)
+    },
   })
 
   useEffect(() => {
@@ -233,11 +245,19 @@ export default function ChatPage() {
     prevWidthRef.current = width
   }, [width, chatLoaded])
 
+  const clearPendingState = () => {
+    setPendingRelevantContexts([])
+    setPendingMessages([])
+    setPendingActiveSelection(null)
+  }
+  
   const onChatLoaded = () => {
     pendingRelevantContexts.forEach(addRelevantContext)
     pendingMessages.forEach(sendMessage)
-    setPendingRelevantContexts([])
-    setPendingMessages([])
+    console.log('pendingActiveSelection', pendingActiveSelection)
+    updateActiveSelection(pendingActiveSelection)
+
+    clearPendingState()
     setChatLoaded(true)
   }
 
