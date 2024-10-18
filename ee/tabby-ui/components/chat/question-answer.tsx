@@ -208,7 +208,17 @@ function UserMessageCardActions(props: { message: UserMessage }) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={e => handleMessageAction?.(message.id, 'delete')}
+          onClick={e => handleMessageAction(message.id, 'edit')}
+        >
+          <IconEdit />
+          <span className="sr-only">Edit message</span>
+        </Button>
+      )}
+      {!isLoading && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={e => handleMessageAction(message.id, 'delete')}
         >
           <IconTrash />
           <span className="sr-only">Delete message</span>
@@ -442,16 +452,6 @@ function AssistantMessageCardActions(props: AssistantMessageActionProps) {
         >
           <IconRefresh />
           <span className="sr-only">Regenerate message</span>
-        </Button>
-      )}
-      {!isGenerating && (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={e => handleMessageAction(userMessageId, 'edit')}
-        >
-          <IconEdit />
-          <span className="sr-only">Edit message</span>
         </Button>
       )}
       <CopyButton value={copyContent} onCopyContent={onCopyContent} />

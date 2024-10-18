@@ -203,6 +203,11 @@ function ChatRenderer(
     const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
     setQaPairs(nextQaPairs)
     setInput(userMessage.message)
+    if (userMessage.activeContext) {
+      onNavigateToContext(userMessage.activeContext, {
+        openInEditor: true
+      })
+    }
 
     deleteThreadMessagePair(threadId, qaPair?.user.id, qaPair?.assistant?.id)
   }
