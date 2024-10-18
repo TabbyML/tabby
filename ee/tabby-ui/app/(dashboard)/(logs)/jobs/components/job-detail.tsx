@@ -2,7 +2,6 @@
 
 import React from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Ansi from '@curvenote/ansi-to-react'
 import humanizerDuration from 'humanize-duration'
 import moment from 'moment'
 import { useQuery } from 'urql'
@@ -19,6 +18,15 @@ import {
 import { ListSkeleton } from '@/components/skeleton'
 
 import { getJobDisplayName, getLabelByJobRun } from '../utils'
+
+import '@patternfly/react-core/dist/styles/base.css'
+import './styles.css'
+
+import { LogViewer } from '@patternfly/react-log-viewer'
+
+const BasicSearchLogViewer = ({ data }: { data?: string }) => {
+  return <LogViewer data={data} hasLineNumbers={false} height={'72vh'} />
+}
 
 export default function JobRunDetail() {
   const router = useRouter()
@@ -147,11 +155,7 @@ function StdoutView({
           <IconSpinner className="h-8 w-8" />
         </div>
       )}
-      {value && (
-        <pre className="whitespace-pre-wrap p-4">
-          <Ansi>{value}</Ansi>
-        </pre>
-      )}
+      {value && <BasicSearchLogViewer data={value} />}
     </div>
   )
 }
