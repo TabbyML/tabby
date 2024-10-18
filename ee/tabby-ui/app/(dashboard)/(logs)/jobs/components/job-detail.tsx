@@ -18,20 +18,14 @@ import {
 import { ListSkeleton } from '@/components/skeleton'
 
 import { getJobDisplayName, getLabelByJobRun } from '../utils'
+
 import '@patternfly/react-core/dist/styles/base.css'
 import './styles.css'
 
 import { LogViewer } from '@patternfly/react-log-viewer'
 
 const BasicSearchLogViewer = ({ data }: { data?: string }) => {
-
-  return (
-    <LogViewer
-      data={data}
-      hasLineNumbers={false}
-      height={'72vh'}
-    />
-  )
+  return <LogViewer data={data} hasLineNumbers={false} height={'72vh'} />
 }
 
 export default function JobRunDetail() {
@@ -147,7 +141,7 @@ function StdoutView({
 }: React.HTMLAttributes<HTMLDivElement> & {
   value?: string
   pending?: boolean
-}) {  
+}) {
   return (
     <div
       className={cn(
@@ -161,9 +155,7 @@ function StdoutView({
           <IconSpinner className="h-8 w-8" />
         </div>
       )}
-      {value && (
-        <BasicSearchLogViewer data={value} />
-      )}
+      {value && <BasicSearchLogViewer data={value} />}
     </div>
   )
 }
