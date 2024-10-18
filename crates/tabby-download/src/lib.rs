@@ -1,12 +1,7 @@
 //! Responsible for downloading ML models for use with tabby.
 use std::fs;
 
-use aim_downloader::{
-    bar::{MultiBar, WrappedBar},
-    error::DownloadError,
-    hash::HashChecker,
-    https,
-};
+use aim_downloader::{bar::WrappedBar, error::DownloadError, hash::HashChecker, https};
 use anyhow::{bail, Result};
 use tabby_common::registry::{parse_model_id, ModelInfo, ModelRegistry};
 use tokio_retry::{
@@ -123,9 +118,6 @@ async fn download_model_impl(
     fs::create_dir_all(dir)?;
     registry.save_model_info(name);
 
-    // let progressbars = MultiBar::new(false);
-    let progressbars = MultiBar::new(false);
-
     for (index, url) in urls.iter().enumerate() {
         let dir = registry
             .get_model_store_dir(name)
@@ -133,14 +125,12 @@ async fn download_model_impl(
             .into_owned();
         let filename: String = partitioned_file_name!(index + 1, urls.len());
         let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
-        let progressbars = progressbars.clone();
 
         Retry::spawn(strategy, move || {
             let dir = dir.clone();
             let filename = filename.clone();
-            let bar = progressbars.create_bar(0, &url.0).unwrap();
 
-            download_file(&url.0, dir, filename, &url.1, bar)
+            download_file(&url.0, dir, filename, &url.1)
         })
         .await?;
     }
@@ -153,11 +143,10 @@ async fn download_file(
     dir: String,
     filename: String,
     expected_sha256: &str,
-    bar: WrappedBar,
 ) -> Result<()> {
     let fullpath = format! {"{}{}{}", dir, std::path::MAIN_SEPARATOR, filename};
     let intermediate_filename = fullpath.clone() + ".tmp";
-    let mut bar = bar.clone();
+    let mut bar = WrappedBar::new(0, url, false);
     if let Err(e) =
         https::HTTPSHandler::get(url, &intermediate_filename, &mut bar, expected_sha256).await
     {
