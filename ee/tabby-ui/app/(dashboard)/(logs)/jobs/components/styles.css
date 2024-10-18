@@ -1,0 +1,12 @@
+/* Job Log Viewer */
+.pf-v5-c-log-viewer__main {
+    /* font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace; */
+    /* font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace; */
+    --tw-bg-opacity: 1;
+    background-color: rgb(249 250 251/var(--tw-bg-opacity));
+}
+
+.pf-v5-c-log-viewer__scroll-container {
+    --tw-bg-opacity: 1 !important;
+    background-color: rgb(249 250 251/var(--tw-bg-opacity)) !important;
+}
