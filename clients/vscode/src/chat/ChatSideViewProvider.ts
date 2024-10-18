@@ -61,6 +61,9 @@ export class ChatSideViewProvider implements WebviewViewProvider {
     await this.webviewHelper.displayPageBasedOnServerStatus();
     this.webviewHelper.addAgentEventListeners();
 
+    this.webviewHelper.syncActiveSelection(window.activeTextEditor);
+    this.webviewHelper.addTextEditorEventListeners();
+
     // The event will not be triggered during the initial rendering.
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
