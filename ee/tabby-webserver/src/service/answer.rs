@@ -38,7 +38,7 @@ use tabby_schema::{
         ThreadRunOptionsInput,
     },
 };
-use tracing::{debug, error, field::debug, warn};
+use tracing::{debug, error, warn};
 
 use crate::bail;
 
@@ -622,7 +622,7 @@ pub mod testutils;
 mod tests {
 
     use std::{
-        path::{Path, PathBuf},
+        path::PathBuf,
         sync::Arc,
     };
 
@@ -635,7 +635,6 @@ mod tests {
             doc::DocSearch,
         },
         config::AnswerConfig,
-        path::tabby_root,
     };
     use tabby_db::DbConn;
     use tabby_inference::ChatCompletionStream;
@@ -646,10 +645,10 @@ mod tests {
         web_documents::PresetWebDocument,
         AsID,
     };
-    use tracing::field::debug;
+    
 
     use crate::answer::{
-        merge_code_snippets, read_file_content,
+        merge_code_snippets,
         testutils::{
             make_policy, make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
             FakeCodeSearchFail, FakeCodeSearchFailNotReady, FakeContextService, FakeDocSearch,
