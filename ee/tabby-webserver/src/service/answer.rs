@@ -621,10 +621,7 @@ pub mod testutils;
 #[cfg(test)]
 mod tests {
 
-    use std::{
-        path::PathBuf,
-        sync::Arc,
-    };
+    use std::{path::PathBuf, sync::Arc};
 
     use juniper::ID;
     use tabby_common::{
@@ -645,7 +642,6 @@ mod tests {
         web_documents::PresetWebDocument,
         AsID,
     };
-    
 
     use crate::answer::{
         merge_code_snippets,
