@@ -177,9 +177,12 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) {
 
 #[cfg(test)]
 mod tests {
+    // filter_download_address tests should be serial because they rely on environment variables
+    use serial_test::serial;
     use tabby_common::registry::{ModelInfo, PartitionModelUrl};
 
     #[test]
+    #[serial(filter_download_address)]
     fn test_filter_download_address() {
         // multiple urls
         let model_info = ModelInfo {
@@ -216,6 +219,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(filter_download_address)]
     fn test_filter_download_address_multiple_partitions() {
         let model_info = ModelInfo {
             name: "test".to_string(),
@@ -249,6 +253,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(filter_download_address)]
     fn test_filter_download_address_single_partition() {
         let model_info = ModelInfo {
             name: "test".to_string(),
@@ -268,6 +273,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(filter_download_address)]
     fn test_filter_download_address_prefer_urls() {
         let model_info = ModelInfo {
             name: "test".to_string(),
@@ -287,6 +293,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(filter_download_address)]
     fn test_filter_download_address_huggingface_override_urls() {
         std::env::set_var("TABBY_HUGGINGFACE_HOST_OVERRIDE", "modelscope.co");
         let model_info = ModelInfo {
@@ -306,6 +313,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(filter_download_address)]
     fn test_filter_download_address_huggingface_override_partitioned() {
         std::env::set_var("TABBY_HUGGINGFACE_HOST_OVERRIDE", "modelscope.co");
         let model_info = ModelInfo {
@@ -336,6 +344,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(filter_download_address)]
     fn test_filter_download_address_download_host() {
         std::env::set_var("TABBY_DOWNLOAD_HOST", "modelscope.co");
         let model_info = ModelInfo {

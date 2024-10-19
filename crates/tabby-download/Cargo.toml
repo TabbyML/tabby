@@ -9,3 +9,6 @@ tabby-common = { path = "../tabby-common" }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 tokio-retry = "0.3.0"
+
+[dev-dependencies]
+serial_test = "3"
