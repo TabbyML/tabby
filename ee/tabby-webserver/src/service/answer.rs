@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Read, Seek, SeekFrom},
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -38,7 +38,7 @@ use tabby_schema::{
         ThreadRunOptionsInput,
     },
 };
-use tracing::{debug, error, warn};
+use tracing::{debug, error, field::debug, warn};
 
 use crate::bail;
 
@@ -578,26 +578,53 @@ pub fn read_file_content(path: &Path) -> Option<String> {
             return None;
         }
     };
+    let mut reader = BufReader::new(file);
 
-    let reader = BufReader::new(file);
-    let all_lines: Vec<String> = match reader.lines().collect::<Result<_, _>>() {
-        Ok(lines) => lines,
-        Err(_) => return None,
-    };
+    // count the lines without move reader
+    let mut line_count = 0;
+    let mut buffer = Vec::new();
+    loop {
+        buffer.clear();
+        match reader.read_until(b'\n', &mut buffer) {
+            Ok(0) => break, // EOF
+            Ok(_) => {
+                if line_count > 200 {
+                    return None;
+                }
+                line_count += 1
+            }
+            Err(e) => {
+                warn!("Error reading line from file {}: {}", path.display(), e);
+                return None;
+            }
+        }
+    }
 
-    if all_lines.len() > 200 {
-        None
-    } else {
-        Some(all_lines.join("\n"))
+    if let Err(e) = reader.seek(SeekFrom::Start(0)) {
+        warn!("Error rewinding file {}: {}", path.display(), e);
+        return None;
+    }
+
+    let mut content = String::new();
+    match reader.read_to_string(&mut content) {
+        Ok(_) => Some(content),
+        Err(e) => {
+            warn!("Error reading file {}: {}", path.display(), e);
+            None
+        }
     }
 }
+
 #[cfg(test)]
 pub mod testutils;
 
 #[cfg(test)]
 mod tests {
 
-    use std::{path::PathBuf, sync::Arc};
+    use std::{
+        path::{Path, PathBuf},
+        sync::Arc,
+    };
 
     use juniper::ID;
     use tabby_common::{
@@ -608,6 +635,7 @@ mod tests {
             doc::DocSearch,
         },
         config::AnswerConfig,
+        path::tabby_root,
     };
     use tabby_db::DbConn;
     use tabby_inference::ChatCompletionStream;
@@ -618,9 +646,10 @@ mod tests {
         web_documents::PresetWebDocument,
         AsID,
     };
+    use tracing::field::debug;
 
     use crate::answer::{
-        merge_code_snippets,
+        merge_code_snippets, read_file_content,
         testutils::{
             make_policy, make_repository_service, FakeChatCompletionStream, FakeCodeSearch,
             FakeCodeSearchFail, FakeCodeSearchFailNotReady, FakeContextService, FakeDocSearch,
