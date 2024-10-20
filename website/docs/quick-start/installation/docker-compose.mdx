@@ -37,7 +37,7 @@ services:
 ```
 
   </TabItem>
-  {false && <TabItem value="cpu" label="CPU">
+  <TabItem value="cpu" label="CPU">
 
 ```yaml title="docker-compose.yml"
 version: '3.5'
@@ -48,12 +48,14 @@ services:
     image: registry.tabbyml.com/tabbyml/tabby
     entrypoint: /opt/tabby/bin/tabby-cpu
     command: serve --model StarCoder-1B --chat-model Qwen2-1.5B-Instruct
+    environment:
+     - LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/compat:$LD_LIBRARY_PATH #Workaround to run in cpu mode, see see https://github.com/TabbyML/tabby/issues/2634#issuecomment-2244530283
     volumes:
       - "$HOME/.tabby:/data"
     ports:
       - 8080:8080
 ```
 
-  </TabItem>}
+  </TabItem>
 </Tabs>
 
