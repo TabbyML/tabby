@@ -4,6 +4,8 @@ Thank you for your interest in contributing to Tabby! We appreciate all contribu
 
 ## Local Setup
 
+### Tabby
+
 To begin contributing to Tabby, first clone the repository locally:
 
 ```
@@ -46,6 +48,16 @@ Optionally, to use a GPU make sure you have the correct drivers and libraries in
 > **CUDA for Nvidia** - [Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html), [Windows](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html)
 > **ROCm for AMD** - [Linux](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/tutorial/quick-start.html), [Windows](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/)
 
+### Website
+
+To begin contributing to Tabby's website, make sure you installed [nvm](https://github.com/nvm-sh/nvm?tab=readme-ov-file#install--update-script), node lts and yarn:
+
+```
+nvm install --lts
+cd website
+yarn install
+yarn start
+```
 ## Building and Running
 
 Tabby can be run through `cargo` in much the same manner as docker:
