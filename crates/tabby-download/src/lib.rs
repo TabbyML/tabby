@@ -1,5 +1,5 @@
 //! Responsible for downloading ML models for use with tabby.
-use std::fs;
+use std::{fs, io};
 
 use aim_downloader::{bar::WrappedBar, error::DownloadError, hash::HashChecker, https};
 use anyhow::{bail, Result};
@@ -122,7 +122,12 @@ async fn download_model_impl(
         registry.name, name
     );
 
-    fs::remove_dir_all(registry.get_model_dir(name))?;
+    match fs::remove_dir_all(registry.get_model_dir(name)) {
+        Ok(_) => Ok(()),
+        // Ignore "Not Found" error, when newly download, the model directory may not exist
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e),
+    }?;
 
     // prepare for download
     let dir = registry.get_model_store_dir(name);
