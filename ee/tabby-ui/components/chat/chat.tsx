@@ -392,7 +392,7 @@ function ChatRenderer(
 
       const newUserMessage: UserMessage = {
         ...userMessage,
-        message: userMessage.message + selectCodeSnippet,        
+        message: userMessage.message + selectCodeSnippet,
         // If no id is provided, set a fallback id.
         id: userMessage.id ?? nanoid(),
         selectContext: userMessage.selectContext,
