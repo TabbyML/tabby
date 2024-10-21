@@ -85,33 +85,44 @@ async fn download_model_impl(
         );
     }
 
-    if !prefer_local_file {
-        info!("Checking model integrity..");
-
-        let mut sha256_matched = true;
-        for (index, url) in urls.iter().enumerate() {
-            if HashChecker::check(
-                partitioned_file_name!(index + 1, urls.len()).as_str(),
-                &url.1,
-            )
-            .is_err()
-            {
-                sha256_matched = false;
-                break;
-            }
+    let mut model_existed = true;
+    for (index, _) in urls.iter().enumerate() {
+        if fs::metadata(
+            registry
+                .get_model_store_dir(name)
+                .join(partitioned_file_name!(index, urls.len())),
+        )
+        .is_err()
+        {
+            model_existed = false;
+            break;
         }
-
-        if sha256_matched {
-            return Ok(());
-        }
-
-        warn!(
-            "Checksum doesn't match for <{}/{}>, re-downloading...",
-            registry.name, name
-        );
-
-        fs::remove_dir_all(registry.get_model_dir(name))?;
     }
+
+    if model_existed && prefer_local_file {
+        return Ok(());
+    }
+
+    info!("Checking model integrity..");
+
+    let mut sha256_matched = true;
+    for (index, url) in urls.iter().enumerate() {
+        if HashChecker::check(partitioned_file_name!(index, urls.len()).as_str(), &url.1).is_err() {
+            sha256_matched = false;
+            break;
+        }
+    }
+
+    if sha256_matched {
+        return Ok(());
+    }
+
+    warn!(
+        "Checksum doesn't match for <{}/{}>, re-downloading...",
+        registry.name, name
+    );
+
+    fs::remove_dir_all(registry.get_model_dir(name))?;
 
     // prepare for download
     let dir = registry.get_model_store_dir(name);
@@ -123,7 +134,7 @@ async fn download_model_impl(
             .get_model_store_dir(name)
             .to_string_lossy()
             .into_owned();
-        let filename: String = partitioned_file_name!(index + 1, urls.len());
+        let filename: String = partitioned_file_name!(index, urls.len());
         let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
 
         Retry::spawn(strategy, move || {
