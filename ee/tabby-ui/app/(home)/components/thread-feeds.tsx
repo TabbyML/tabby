@@ -135,43 +135,37 @@ export function ThreadFeeds({
       }}
     >
       <div className="w-full">
-        <AnimationWrapper delay={0.3} style={{ width: '100%' }}>
-          <div className="mb-2.5 w-full text-lg font-semibold">
-            Recent Activities
-          </div>
-          <Separator className="mb-4 w-full" />
-          <motion.div
-            initial="initial"
-            whileInView="onscreen"
-            viewport={{
-              margin: '0px 0px -140px 0px',
-              once: true
-            }}
-            transition={{
-              delay: 0.5,
-              delayChildren: 0.3,
-              staggerChildren: 0.2
-            }}
-            style={{ width: '100%', paddingBottom: '1rem' }}
+        <AnimationWrapper delay={0.4} style={{ width: '100%' }}>
+          <LoadingWrapper
+            loading={fetching || fetchingUsers}
+            fallback={
+              <div className="flex justify-center">
+                <IconSpinner className="h-8 w-8" />
+              </div>
+            }
           >
-            <LoadingWrapper
-              loading={fetching || fetchingUsers}
-              fallback={
-                <div className="flex justify-center">
-                  <IconSpinner className="h-8 w-8" />
-                </div>
-              }
+            <div className="mb-2.5 w-full text-lg font-semibold">
+              Recent Activities
+            </div>
+            <Separator className="mb-4 w-full" />
+            <motion.div
+              initial="initial"
+              whileInView="onscreen"
+              viewport={{
+                margin: '0px 0px -140px 0px',
+                once: true
+              }}
+              transition={{
+                delay: 0.5,
+                delayChildren: 0.3,
+                staggerChildren: 0.2
+              }}
+              style={{ width: '100%', paddingBottom: '1rem' }}
             >
               <div className="flex flex-col gap-3 text-sm">
-                {threads?.length ? (
-                  <>
-                    {threads.map((t, idx) => {
-                      return <ThreadItem data={t} key={t.node.id} />
-                    })}
-                  </>
-                ) : (
-                  <div className="text-center text-base">No shared threads</div>
-                )}
+                {threads.map(t => {
+                  return <ThreadItem data={t} key={t.node.id} />
+                })}
               </div>
               {!!pageInfo?.hasPreviousPage && (
                 <LoadMoreIndicator
@@ -184,8 +178,8 @@ export function ThreadFeeds({
                   </div>
                 </LoadMoreIndicator>
               )}
-            </LoadingWrapper>
-          </motion.div>
+            </motion.div>
+          </LoadingWrapper>
         </AnimationWrapper>
       </div>
     </ThreadFeedsContext.Provider>
