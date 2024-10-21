@@ -347,7 +347,7 @@ export class WebviewHelper {
     try {
       await this.client?.updateActiveSelection(context);
     } catch {
-      this.logger.warn('Active selection sync failed. Please update your Tabby server to the latest version.')
+      this.logger.warn("Active selection sync failed. Please update your Tabby server to the latest version.");
     }
   }
 
