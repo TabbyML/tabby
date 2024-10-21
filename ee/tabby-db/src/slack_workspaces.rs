@@ -6,7 +6,7 @@ use serde_json::Value;
 use sqlx::{prelude::FromRow, query, query_as};
 use tabby_db_macros::query_paged_as;
 
-#[derive(Debug, FromRow, Serialize, Deserialize)]
+#[derive(Debug, FromRow, Serialize, Deserialize, Clone)]
 pub struct SlackWorkspaceIntegrationDAO {
     pub id: i64,
     pub workspace_name: String,
@@ -68,7 +68,8 @@ impl DbConn {
         bot_token: String,
         channels: Option<Vec<String>>,
     ) -> Result<i64> {
-        let channels_json = channels.map(Json).unwrap_or_else(|| Json(vec![]));
+        let channels_json = serde_json::to_value(channels.unwrap_or_default())?;
+
         let res = query!(
             "INSERT INTO slack_workspaces(workspace_name, workspace_id, bot_token, channels) VALUES (?, ?, ?, ?);",
             workspace_name,

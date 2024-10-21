@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
+    integration,
     job::{JobInfo, JobService},
     slack_workspaces::{
         to_slack_workspace_integration, CreateSlackWorkspaceIntegrationInput,
@@ -58,7 +59,7 @@ impl SlackWorkspaceIntegrationService for SlackWorkspaceIntegrationServiceImpl {
                 integration.id.to_string(),
                 integration.workspace_id.clone(),
                 integration.bot_token.clone(),
-                integration.get_channels(),
+                Some(integration.get_channels().unwrap_or_default()),
             ));
 
             let job_info = self.job_service.get_job_info(event.to_command()).await?;
@@ -71,26 +72,31 @@ impl SlackWorkspaceIntegrationService for SlackWorkspaceIntegrationServiceImpl {
         &self,
         input: CreateSlackWorkspaceIntegrationInput,
     ) -> Result<ID> {
+        let workspace_id = input.workspace_id.clone();
+        let bot_token = input.bot_token.clone();
+        let channels = input.channels.clone();
         //create in db
         let id = self
             .db
             .create_slack_workspace_integration(
                 input.workspace_name,
-                input.workspace_id,
-                input.bot_token,
-                input.channels,
+                workspace_id,
+                bot_token,
+                channels,
             )
             .await?;
-
+        let workspace_id = input.workspace_id.clone();
+        let bot_token = input.bot_token.clone();
+        let channels = input.channels.clone();
         //trigger in background job
         let _ = self
             .job_service
             .trigger(
                 BackgroundJobEvent::SlackIntegration(SlackIntegrationJob::new(
                     id.to_string(),
-                    input.workspace_id,
-                    input.bot_token,
-                    input.channels,
+                    workspace_id,
+                    bot_token,
+                    channels,
                 ))
                 .to_command(),
             )
@@ -98,36 +104,43 @@ impl SlackWorkspaceIntegrationService for SlackWorkspaceIntegrationServiceImpl {
 
         Ok(id.as_id())
     }
-
     async fn delete_slack_workspace_integration(&self, id: ID) -> Result<bool> {
-        let rowid = id.as_rowid()?;
+        let row_id = id.as_rowid()?;
+
         let integration = {
             let mut x = self
                 .db
-                .list_slack_workspace_integrations(Some(vec![rowid]), None, None, false)
+                .list_slack_workspace_integrations(Some(vec![row_id]), None, None, false)
                 .await?;
-
             x.pop()
                 .context("Slack workspace integration doesn't exist")?
         };
-        self.db.delete_slack_workspace_integration(rowid).await?;
+
+        self.db.delete_slack_workspace_integration(row_id).await?;
+
+        // Clone the necessary fields
+        let workspace_id = integration.workspace_id.clone();
+        let bot_token = integration.bot_token.clone();
+        let channels = integration.get_channels().unwrap_or_default();
+
         self.job_service
             .clear(
                 BackgroundJobEvent::SlackIntegration(SlackIntegrationJob::new(
-                    rowid.to_string(),
-                    integration.workspace_id,
-                    integration.bot_token,
-                    integration.get_channels(),
+                    row_id.to_string(),
+                    workspace_id,
+                    bot_token,
+                    Some(channels),
                 ))
                 .to_command(),
             )
             .await?;
+
         self.job_service
             .trigger(BackgroundJobEvent::IndexGarbageCollection.to_command())
             .await?;
+
         Ok(true)
     }
-
     // async fn trigger_slack_integration_job(&self, id: ID) -> Result<JobInfo> {
     //     let integration = self.db.get_slack_workspace_integration(id).await;
 
@@ -153,7 +166,7 @@ mod tests {
             workspace_name: "Test Workspace".to_string(),
             workspace_id: "W12345".to_string(),
             bot_token: "xoxb-test-token".to_string(),
-            channels: vec![],
+            channels: Some(vec![]),
         };
         let id = service
             .create_slack_workspace_integration(input)
@@ -167,13 +180,6 @@ mod tests {
             .unwrap();
         assert_eq!(1, integrations.len());
         assert_eq!(id, integrations[0].id);
-
-        // Test trigger job
-        let job_info = service
-            .trigger_slack_integration_job(id.clone())
-            .await
-            .unwrap();
-        assert!(job_info.last_job_run.is_some());
 
         // Test delete
         let result = service

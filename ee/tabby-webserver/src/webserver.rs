@@ -19,9 +19,8 @@ use crate::{
     routes,
     service::{
         create_service_locator, event_logger::create_event_logger, integration, job, repository,
-        web_documents,
+        slack_workspaces, web_documents,
     },
-    slack_workspaces,
 };
 
 pub struct Webserver {
@@ -82,7 +81,8 @@ impl Webserver {
 
         let web_documents = Arc::new(web_documents::create(db.clone(), job.clone()));
 
-        let slack = Arc::new(slack_workspaces::create(db, job_service));
+        let slack = Arc::new(slack_workspaces::create(db, job.clone()));
+
         let context = Arc::new(crate::service::context::create(
             repository.clone(),
             web_documents.clone(),
