@@ -569,50 +569,36 @@ pub async fn merge_code_snippets(
     result
 }
 
-//Read file content and return raw file content string, it will return nothing if the file is over 200 lines
+/// Read file content and return raw file content string, it will return nothing if the file is over 200 lines
 pub fn read_file_content(path: &Path) -> Option<String> {
-    let file = match File::open(path) {
+    if count_lines(path).ok()? > 200 {
+        return None
+    }
+
+    let mut file = match File::open(path) {
         Ok(file) => file,
         Err(e) => {
             warn!("Error opening file {}: {}", path.display(), e);
             return None;
         }
     };
-    let mut reader = BufReader::new(file);
-
-    // count the lines without move reader
-    let mut line_count = 0;
-    let mut buffer = Vec::new();
-    loop {
-        buffer.clear();
-        match reader.read_until(b'\n', &mut buffer) {
-            Ok(0) => break, // EOF
-            Ok(_) => {
-                if line_count > 200 {
-                    return None;
-                }
-                line_count += 1
-            }
-            Err(e) => {
-                warn!("Error reading line from file {}: {}", path.display(), e);
-                return None;
-            }
-        }
-    }
-
-    if let Err(e) = reader.seek(SeekFrom::Start(0)) {
-        warn!("Error rewinding file {}: {}", path.display(), e);
-        return None;
-    }
-
     let mut content = String::new();
-    match reader.read_to_string(&mut content) {
+    match file.read_to_string(&mut content) {
         Ok(_) => Some(content),
         Err(e) => {
             warn!("Error reading file {}: {}", path.display(), e);
             None
         }
     }
+}
+
+fn count_lines(path: &Path) -> std::io::Result<usize> {
+    let mut count = 0;
+    for line in BufReader::new(File::open(path)?).lines() {
+        line?;
+        count += 1;
+    }
+    Ok(count)
 }
 
 #[cfg(test)]
