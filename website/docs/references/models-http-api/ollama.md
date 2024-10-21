@@ -14,7 +14,7 @@ prompt_template = "<PRE> {prefix} <SUF>{suffix} <MID>"  # Example prompt templat
 
 # Chat model
 [model.chat.http]
-kind = "openai/chat"
+kind = "ollama/chat"
 model_name = "mistral:7b"
 api_endpoint = "http://localhost:11434/v1"
 
