@@ -2,6 +2,7 @@ mod db;
 mod git;
 mod helper;
 mod index_garbage_collection;
+pub mod slack_integration;
 mod third_party_integration;
 mod web_crawler;
 
@@ -14,6 +15,7 @@ use helper::{CronStream, Job, JobLogger};
 use index_garbage_collection::IndexGarbageCollection;
 use juniper::ID;
 use serde::{Deserialize, Serialize};
+use slack_integration::SlackIntegrationJob;
 use tabby_common::config::CodeRepository;
 use tabby_db::DbConn;
 use tabby_inference::Embedding;
@@ -36,6 +38,7 @@ pub enum BackgroundJobEvent {
     SyncThirdPartyRepositories(ID),
     WebCrawler(WebCrawlerJob),
     IndexGarbageCollection,
+    SlackIntegration(SlackIntegrationJob),
 }
 
 impl BackgroundJobEvent {
@@ -48,6 +51,7 @@ impl BackgroundJobEvent {
             BackgroundJobEvent::SyncThirdPartyRepositories(_) => SyncIntegrationJob::NAME,
             BackgroundJobEvent::WebCrawler(_) => WebCrawlerJob::NAME,
             BackgroundJobEvent::IndexGarbageCollection => IndexGarbageCollection::NAME,
+            BackgroundJobEvent::SlackIntegration(_) => slack_integration::SlackIntegrationJob::NAME,
         }
     }
 
@@ -110,6 +114,10 @@ pub async fn start(
                         BackgroundJobEvent::IndexGarbageCollection => {
                             let job = IndexGarbageCollection;
                             job.run(repository_service.clone(), context_service.clone()).await
+                        }
+                        BackgroundJobEvent::SlackIntegration(job) => {
+                            //TODO: Implement slack integration job
+                            job.run(embedding.clone()).await
                         }
                     } {
                         logkit::info!(exit_code = 1; "Job failed {}", err);
