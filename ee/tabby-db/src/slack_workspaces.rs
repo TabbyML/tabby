@@ -1,10 +1,11 @@
-use crate::DbConn;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{prelude::FromRow, query, query_as};
 use tabby_db_macros::query_paged_as;
+
+use crate::DbConn;
 
 #[derive(Debug, FromRow, Serialize, Deserialize, Clone)]
 pub struct SlackWorkspaceIntegrationDAO {

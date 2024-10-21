@@ -1,11 +1,13 @@
-use super::helper::Job;
+use std::sync::Arc;
+
 use chrono::{DateTime, Utc};
 use logkit::debug;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use tabby_index::public::{DocIndexer, WebDocument};
 use tabby_inference::Embedding;
 use tabby_schema::CoreError;
+
+use super::helper::Job;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SlackMessage {

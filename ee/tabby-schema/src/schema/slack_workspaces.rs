@@ -1,11 +1,12 @@
-use super::{job, Context};
-use crate::{job::JobInfo, juniper::relay, Result};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use juniper::{graphql_object, GraphQLInputObject, GraphQLObject, ID};
+use juniper::{GraphQLInputObject, GraphQLObject, ID};
 use serde::{Deserialize, Serialize};
 use tabby_db::slack_workspaces::SlackWorkspaceIntegrationDAO;
 use validator::Validate;
+
+use super::Context;
+use crate::{job::JobInfo, juniper::relay, Result};
 
 #[derive(GraphQLObject)]
 #[graphql(context = Context)]

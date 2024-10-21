@@ -5,13 +5,12 @@ use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 use tabby_schema::{
-    integration,
-    job::{JobInfo, JobService},
+    job::JobService,
     slack_workspaces::{
         to_slack_workspace_integration, CreateSlackWorkspaceIntegrationInput,
         SlackWorkspaceIntegration, SlackWorkspaceIntegrationService,
     },
-    AsID, AsRowid, CoreError, Result,
+    AsID, AsRowid, Result,
 };
 
 use super::{
@@ -152,8 +151,9 @@ impl SlackWorkspaceIntegrationService for SlackWorkspaceIntegrationServiceImpl {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use tabby_db::DbConn;
+
+    use super::*;
 
     #[tokio::test]
     async fn test_slack_workspace_integration_service() {
