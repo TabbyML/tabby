@@ -12,6 +12,7 @@ import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.LocationLink;
 import org.eclipse.lsp4j.SemanticTokensLegend;
 import org.eclipse.lsp4j.SemanticTokensRangeParams;
+import org.eclipse.lsp4j.SemanticTokensWithRegistrationOptions;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 import com.tabbyml.tabby4eclipse.Logger;
@@ -60,7 +61,10 @@ public class LanguageSupportProvider {
 
 			CompletableFuture<SemanticTokensRangeResult> future = LanguageServers.forDocument(document)
 					.withFilter((serverCapabilities) -> {
-						return serverCapabilities.getSelectionRangeProvider() != null;
+						final SemanticTokensWithRegistrationOptions semanticTokensProvider = serverCapabilities
+								.getSemanticTokensProvider();
+						return semanticTokensProvider != null
+								&& Boolean.TRUE.equals(semanticTokensProvider.getRange().get());
 					}).computeFirst((wrapper, server) -> {
 						return server.getTextDocumentService().semanticTokensRange(params).thenApply((tokens) -> {
 							SemanticTokensRangeResult result = new SemanticTokensRangeResult();
