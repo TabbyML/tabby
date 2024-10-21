@@ -127,14 +127,16 @@ const client = new Client({
         MessageAttachment: () => null,
         MessageAttachmentCode: () => null,
         MessageAttachmentDoc: () => null,
-        NetworkSetting: () => null
+        NetworkSetting: () => null,
+        ContextInfo: () => null
       },
       resolvers: {
         Query: {
           invitations: relayPagination(),
           gitRepositories: relayPagination(),
           webCrawlerUrls: relayPagination(),
-          integrations: relayPagination()
+          integrations: relayPagination(),
+          threads: relayPagination()
         }
       },
       updates: {

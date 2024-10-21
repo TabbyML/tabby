@@ -16,7 +16,11 @@ import he from 'he'
 import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 
-import { ERROR_CODE_NOT_FOUND, SESSION_STORAGE_KEY } from '@/lib/constants'
+import {
+  ERROR_CODE_NOT_FOUND,
+  SESSION_STORAGE_KEY,
+  SLUG_TITLE_MAX_LENGTH
+} from '@/lib/constants'
 import { useEnableDeveloperMode } from '@/lib/experiment-flags'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { useLatest } from '@/lib/hooks/use-latest'
@@ -33,7 +37,8 @@ import {
   getMentionsFromText,
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode,
-  getThreadRunContextsFromMentions
+  getThreadRunContextsFromMentions,
+  getTitleFromMessages
 } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
@@ -79,15 +84,11 @@ import { toast } from 'sonner'
 import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
-import {
-  MARKDOWN_CITATION_REGEX,
-  MARKDOWN_SOURCE_REGEX
-} from '@/lib/constants/regex'
+import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import { graphql } from '@/lib/gql/generates'
 import {
   CodeQueryInput,
   ContextInfo,
-  ContextSource,
   DocQueryInput,
   InputMaybe,
   Maybe,
@@ -96,10 +97,16 @@ import {
   Role
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
+import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { ExtendedCombinedError, useThreadRun } from '@/lib/hooks/use-thread-run'
+import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'
-import { contextInfoQuery, listThreads } from '@/lib/tabby/query'
+import {
+  contextInfoQuery,
+  listThreadMessages,
+  listThreads
+} from '@/lib/tabby/query'
 import {
   Tooltip,
   TooltipContent,
@@ -150,59 +157,6 @@ const SOURCE_CARD_STYLE = {
   compress: 5.3,
   expand: 6.3
 }
-
-const listThreadMessages = graphql(/* GraphQL */ `
-  query ListThreadMessages(
-    $threadId: ID!
-    $after: String
-    $before: String
-    $first: Int
-    $last: Int
-  ) {
-    threadMessages(
-      threadId: $threadId
-      after: $after
-      before: $before
-      first: $first
-      last: $last
-    ) {
-      edges {
-        node {
-          id
-          threadId
-          role
-          content
-          attachment {
-            code {
-              gitUrl
-              filepath
-              language
-              content
-              startLine
-            }
-            clientCode {
-              filepath
-              content
-              startLine
-            }
-            doc {
-              title
-              link
-              content
-            }
-          }
-        }
-        cursor
-      }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-    }
-  }
-`)
 
 const PAGE_SIZE = 30
 
@@ -301,7 +255,9 @@ export function Search() {
   const content = messages?.[0]?.content
   const title = useMemo(() => {
     if (sources && content) {
-      return getTitleFromMessages(sources, content)
+      return getTitleFromMessages(sources, content, {
+        maxLength: SLUG_TITLE_MAX_LENGTH
+      })
     } else {
       return ''
     }
@@ -414,6 +370,7 @@ export function Search() {
       }
 
       if (!threadId) {
+        clearHomeScrollPosition()
         router.replace('/')
       }
     }
@@ -536,7 +493,7 @@ export function Search() {
         setStopButtonVisible(true)
 
         // Scroll to the bottom
-        const container = contentContainerRef?.current?.children?.[1]
+        const container = contentContainerRef?.current
         if (container) {
           container.scrollTo({
             top: container.scrollHeight,
@@ -734,8 +691,10 @@ export function Search() {
     }
   }, [threadData, fetchingThread, threadError, isReady, threadIdFromURL])
 
-  const isFetchingMessages =
-    fetchingMessages || threadMessages?.threadMessages?.pageInfo?.hasNextPage
+  const [isFetchingMessages] = useDebounceValue(
+    fetchingMessages || threadMessages?.threadMessages?.pageInfo?.hasNextPage,
+    200
+  )
 
   if (isReady && (threadMessagesError || hasThreadError)) {
     return <ThreadMessagesErrorView />
@@ -833,9 +792,7 @@ export function Search() {
                     hidden: devPanelOpen
                   }
                 )}
-                container={
-                  contentContainerRef.current?.children?.[1] as HTMLDivElement
-                }
+                container={contentContainerRef.current as HTMLDivElement}
                 offset={100}
                 // On mobile browsers(Chrome & Safari) in dark mode, using `background: hsl(var(--background))`
                 // result in `rgba(0, 0, 0, 0)`. To prevent this, explicitly set --background
@@ -895,7 +852,7 @@ export function Search() {
                 >
                   <TextAreaSearch
                     onSearch={onSubmitSearch}
-                    className="min-h-[5.5rem] lg:max-w-4xl"
+                    className="min-h-[5rem] lg:max-w-4xl"
                     placeholder="Ask a follow up question"
                     isLoading={isLoading}
                     isFollowup
@@ -1346,13 +1303,20 @@ type HeaderProps = {
 function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
   const router = useRouter()
 
+  const onNavigateToHomePage = (scroll?: boolean) => {
+    if (scroll) {
+      clearHomeScrollPosition()
+    }
+    router.push('/')
+  }
+
   return (
     <header className="flex h-16 items-center justify-between px-4 lg:px-10">
       <div className="flex items-center gap-x-6">
         <Button
           variant="ghost"
           className="-ml-1 pl-0 text-sm text-muted-foreground"
-          onClick={() => router.replace('/')}
+          onClick={() => onNavigateToHomePage()}
         >
           <IconChevronLeft className="mr-1 h-5 w-5" />
           Home
@@ -1364,7 +1328,7 @@ function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
             <Button
               variant="ghost"
               className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
-              onClick={() => router.push('/')}
+              onClick={() => onNavigateToHomePage(true)}
             >
               <IconPlus />
             </Button>
@@ -1373,7 +1337,13 @@ function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
         <ClientOnly>
           <ThemeToggle className="mr-4" />
         </ClientOnly>
-        <UserPanel showHome={false} showSetting>
+        <UserPanel
+          showHome={false}
+          showSetting
+          beforeRouteChange={() => {
+            clearHomeScrollPosition()
+          }}
+        >
           <MyAvatar className="h-10 w-10 border" />
         </UserPanel>
       </div>
@@ -1395,7 +1365,11 @@ function ThreadMessagesErrorView() {
             Failed to fetch the thread, please refresh the page or start a new
             thread
           </div>
-          <Link href="/" className={cn(buttonVariants(), 'mt-4 gap-2')}>
+          <Link
+            href="/"
+            onClick={clearHomeScrollPosition}
+            className={cn(buttonVariants(), 'mt-4 gap-2')}
+          >
             <IconPlus />
             <span>New Thread</span>
           </Link>
@@ -1403,21 +1377,6 @@ function ThreadMessagesErrorView() {
       </div>
     </div>
   )
-}
-
-function getTitleFromMessages(sources: ContextSource[], content: string) {
-  const firstLine = content.split('\n')[0] ?? ''
-  const cleanedLine = firstLine
-    .replace(MARKDOWN_SOURCE_REGEX, value => {
-      const sourceId = value.slice(9, -2)
-      const source = sources.find(s => s.sourceId === sourceId)
-      return source?.sourceName ?? ''
-    })
-    .trim()
-
-  // Cap max length at 48 characters
-  const title = cleanedLine.slice(0, 48)
-  return title
 }
 
 function getSourceInputs(ctx: ThreadRunContexts | undefined) {

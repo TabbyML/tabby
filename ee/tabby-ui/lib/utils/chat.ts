@@ -1,6 +1,10 @@
 import { uniq } from 'lodash-es'
 
-import { ContextInfo, ContextSourceKind } from '@/lib/gql/generates/graphql'
+import {
+  ContextInfo,
+  ContextSource,
+  ContextSourceKind
+} from '@/lib/gql/generates/graphql'
 import { MentionAttributes } from '@/lib/types'
 
 import { MARKDOWN_SOURCE_REGEX } from '../constants/regex'
@@ -61,4 +65,43 @@ export const getThreadRunContextsFromMentions = (
     docSourceIds: uniq(docSourceIds),
     codeSourceIds: uniq(codeSourceIds)
   }
+}
+
+export function getTitleFromMessages(
+  sources: ContextSource[],
+  content: string,
+  options?: { maxLength?: number }
+) {
+  const firstLine = content.split('\n')[0] ?? ''
+  const cleanedLine = firstLine
+    .replace(MARKDOWN_SOURCE_REGEX, value => {
+      const sourceId = value.slice(9, -2)
+      const source = sources.find(s => s.sourceId === sourceId)
+      return source?.sourceName ?? ''
+    })
+    .trim()
+
+  let title = cleanedLine
+  if (options?.maxLength) {
+    title = title.slice(0, options?.maxLength)
+  }
+  return title
+}
+
+export function checkSourcesAvailability(
+  sources: ContextInfo['sources'] | undefined
+) {
+  let hasCodebaseSource = false
+  let hasDocumentSource = false
+  if (sources) {
+    sources.forEach(source => {
+      if (isCodeSourceContext(source.sourceKind)) {
+        hasCodebaseSource = true
+      } else if (isDocSourceContext(source.sourceKind)) {
+        hasDocumentSource = true
+      }
+    })
+  }
+
+  return { hasCodebaseSource, hasDocumentSource }
 }
