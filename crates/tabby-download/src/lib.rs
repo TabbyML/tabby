@@ -91,7 +91,8 @@ async fn download_model_impl(
             registry
                 .get_model_store_dir(name)
                 .join(partitioned_file_name!(index, urls.len())),
-        ).is_err()
+        )
+        .is_err()
         {
             model_existed = false;
             break;
