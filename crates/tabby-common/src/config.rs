@@ -6,6 +6,7 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
+use crate::config;
 
 use crate::{
     api::code::CodeSearchParams,
@@ -48,7 +49,26 @@ impl Config {
         let mut cfg: Self = serdeconv::from_toml_file(cfg_path.as_path())
             .context(format!("Config file '{}' is not valid", cfg_path.display()))?;
 
+        println!("cfg: {:?}", cfg);
+
         if let Err(e) = cfg.validate_dirs() {
+            cfg = Default::default();
+            InfoMessage::new(
+                "Parsing config failed",
+                HeaderFormat::BoldRed,
+                &[
+                    &format!(
+                        "Warning: Could not parse the Tabby configuration at {}",
+                        crate::path::config_file().as_path().to_string_lossy()
+                    ),
+                    &format!("Reason: {e}"),
+                    "Falling back to default config, please resolve the errors and restart Tabby",
+                ],
+            )
+            .print();
+        }
+
+        if let Err(e) = cfg.validate_models() {
             cfg = Default::default();
             InfoMessage::new(
                 "Parsing config failed",
@@ -82,6 +102,28 @@ impl Config {
                 return Err(anyhow!("Duplicate directory in `repositories`: {}", dir));
             }
         }
+        Ok(())
+    }
+
+    fn validate_models(&self) -> Result<()> {
+        Self::validate_model_config(&self.model.completion)?;
+        Self::validate_model_config(&self.model.chat)?;
+
+        Ok(())
+    }
+
+    fn validate_model_config(model_config: &Option<ModelConfig>) -> Result<()> {
+        if let Some(config::ModelConfig::Http(completion_http_config)) = &model_config
+        {
+            if let Some(models) = &completion_http_config.supported_models {
+                if let Some(model_name) = &completion_http_config.model_name {
+                    if !models.contains(model_name) {
+                        return Err(anyhow!("Suppported model list does not contain model: {}", model_name));
+                    }
+                }                 
+            }
+        }
+
         Ok(())
     }
 }
