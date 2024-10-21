@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs::File,
-    io::{BufRead, BufReader, Read, Seek, SeekFrom},
+    io::{BufRead, BufReader, Read},
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -572,7 +572,7 @@ pub async fn merge_code_snippets(
 /// Read file content and return raw file content string, it will return nothing if the file is over 200 lines
 pub fn read_file_content(path: &Path) -> Option<String> {
     if count_lines(path).ok()? > 200 {
-        return None
+        return None;
     }
 
     let mut file = match File::open(path) {
