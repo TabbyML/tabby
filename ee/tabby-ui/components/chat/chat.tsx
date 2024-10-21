@@ -1,4 +1,4 @@
-import React, { RefObject, useRef } from 'react'
+import React, { RefObject } from 'react'
 import { compact, findIndex, isEqual, some, uniqWith } from 'lodash-es'
 import type { Context, FileContext, NavigateOpts } from 'tabby-chat-panel'
 
@@ -109,12 +109,7 @@ function ChatRenderer(
   const [activeSelection, setActiveSelection] = React.useState<Context | null>(
     null
   )
-  // hold a temporary copy of the user message being edited
-  const userMessageForEditTemp = useRef<UserMessage | undefined>()
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
-  const clearEditingUserMessage = () => {
-    userMessageForEditTemp.current = undefined
-  }
 
   const {
     sendUserMessage,
@@ -196,7 +191,6 @@ function ChatRenderer(
       nextClientContext = nextClientContext.concat(userMessage.relevantContext)
     }
 
-    userMessageForEditTemp.current = userMessage
     setRelevantContext(uniqWith(nextClientContext, isEqual))
 
     // delete message pair
@@ -416,9 +410,6 @@ function ChatRenderer(
       setQaPairs(nextQaPairs)
 
       sendUserMessage(...generateRequestPayload(newUserMessage))
-
-      // clear the temporary user message draft after it has been sent
-      clearEditingUserMessage()
     }
   )
 
