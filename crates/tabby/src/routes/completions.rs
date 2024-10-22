@@ -1,11 +1,9 @@
 use std::sync::Arc;
 
-use async_openai::types::Choice;
-use axum::{extract::State, http::request, Extension, Json};
+use axum::{extract::State, Extension, Json};
 use axum_extra::{headers, TypedHeader};
 use hyper::StatusCode;
 use tabby_common::axum::{AllowedCodeRepository, MaybeUser};
-use tantivy::Segment;
 use tracing::{instrument, warn};
 
 use crate::services::completion::{CompletionRequest, CompletionResponse, CompletionService};
