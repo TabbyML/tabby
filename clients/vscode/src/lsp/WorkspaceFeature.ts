@@ -3,7 +3,6 @@ import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest } from "tabby-agent
 import {
   BaseLanguageClient,
   FeatureState,
-  RegistrationData,
   ShowDocumentParams,
   ShowDocumentRequest,
   ShowDocumentResult,
@@ -44,18 +43,6 @@ export class WorkSpaceFeature extends EventEmitter implements StaticFeature {
         return this.handleRevealEditorRange(params);
       }),
     );
-  }
-
-  register(data: RegistrationData<unknown>): void {
-    this.registration = data.id;
-    this.emit("didChangeAvailability", true);
-  }
-
-  unregister(id: string): void {
-    if (this.registration === id) {
-      this.registration = undefined;
-      this.emit("didChangeAvailability", false);
-    }
   }
 
   clear(): void {
