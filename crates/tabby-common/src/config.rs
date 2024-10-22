@@ -50,8 +50,6 @@ impl Config {
         let mut cfg: Self = serdeconv::from_toml_file(cfg_path.as_path())
             .context(format!("Config file '{}' is not valid", cfg_path.display()))?;
 
-        println!("cfg: {:?}", cfg);
-
         if let Err(e) = cfg.validate_dirs() {
             cfg = Default::default();
             InfoMessage::new(
