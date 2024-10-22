@@ -1,4 +1,4 @@
-use std::{collections::HashSet, path::PathBuf};
+use std::{collections::HashSet, path::PathBuf, process};
 
 use anyhow::{anyhow, Context, Result};
 use derive_builder::Builder;
@@ -6,11 +6,10 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
-use crate::config;
-use std::process;
 
 use crate::{
     api::code::CodeSearchParams,
+    config,
     languages,
     path::repositories_dir,
     terminal::{HeaderFormat, InfoMessage},
@@ -66,7 +65,7 @@ impl Config {
             )
             .print();
         }
-        
+
         if let Err(e) = cfg.validate_config() {
             cfg = Default::default();
             InfoMessage::new(
@@ -105,7 +104,7 @@ impl Config {
         Ok(())
     }
 
-    fn validate_config(&self) -> Result<()> {        
+    fn validate_config(&self) -> Result<()> {
         Self::validate_model_config(&self.model.completion)?;
         Self::validate_model_config(&self.model.chat)?;
 
@@ -113,14 +112,16 @@ impl Config {
     }
 
     fn validate_model_config(model_config: &Option<ModelConfig>) -> Result<()> {
-        if let Some(config::ModelConfig::Http(completion_http_config)) = &model_config
-        {
+        if let Some(config::ModelConfig::Http(completion_http_config)) = &model_config {
             if let Some(models) = &completion_http_config.supported_models {
                 if let Some(model_name) = &completion_http_config.model_name {
                     if !models.contains(model_name) {
-                        return Err(anyhow!("Suppported model list does not contain model: {}", model_name));
+                        return Err(anyhow!(
+                            "Suppported model list does not contain model: {}",
+                            model_name
+                        ));
                     }
-                }                 
+                }
             }
         }
 
