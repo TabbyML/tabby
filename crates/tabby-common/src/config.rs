@@ -7,6 +7,7 @@ use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 use crate::config;
+use std::process;
 
 use crate::{
     api::code::CodeSearchParams,
@@ -67,8 +68,8 @@ impl Config {
             )
             .print();
         }
-
-        if let Err(e) = cfg.validate_models() {
+        
+        if let Err(e) = cfg.validate_config() {
             cfg = Default::default();
             InfoMessage::new(
                 "Parsing config failed",
@@ -83,6 +84,7 @@ impl Config {
                 ],
             )
             .print();
+            process::exit(1);
         }
 
         Ok(cfg)
@@ -105,7 +107,7 @@ impl Config {
         Ok(())
     }
 
-    fn validate_models(&self) -> Result<()> {
+    fn validate_config(&self) -> Result<()> {        
         Self::validate_model_config(&self.model.completion)?;
         Self::validate_model_config(&self.model.chat)?;
 
