@@ -87,12 +87,6 @@ export const defaultConfigData: ConfigData = {
           kind: "replace",
           promptTemplate: fixSpellingAndGrammarPrompt,
         },
-        "/smartApply": {
-          label: "Generate Smart Apply",
-          filters: { languageIdNotIn: "plaintext,markdown" },
-          kind: "replace",
-          promptTemplate: generateSmartApplyPrompt,
-        },
       },
     },
     generateCommitMessage: {
@@ -103,6 +97,9 @@ export const defaultConfigData: ConfigData = {
     },
     provideSmartApplyLineRange: {
       promptTemplate: provideSmartApplyLineRangePrompt,
+    },
+    provideSmartApply: {
+      promptTemplate: generateSmartApplyPrompt,
     },
   },
   logs: {

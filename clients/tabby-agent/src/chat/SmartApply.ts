@@ -12,10 +12,8 @@ import {
   ChatEditMutexError,
   ChatFeatureNotAvailableError,
   ServerCapabilities,
-  RevealEditorRangeParams,
   SmartApplyCodeRequest,
   SmartApplyCodeParams,
-  TextEditorRevealType,
 } from "../protocol";
 import { Configurations } from "../config";
 import { TabbyApiClient } from "../http/tabbyApiClient";
@@ -262,11 +260,7 @@ export async function provideSmartApplyEditLLM(
     throw { name: "ChatEditDocumentTooLongError", message: "Document too long" } as ChatEditDocumentTooLongError;
   }
 
-  const presetConfig = config.chat.edit.presetCommands["/smartApply"];
-  if (!presetConfig) {
-    return false;
-  }
-  const promptTemplate = presetConfig.promptTemplate;
+  const promptTemplate = config.chat.provideSmartApply.promptTemplate;
 
   // Extract the selected text and the surrounding context
   let documentPrefix = documentText.substring(0, selection.start);
