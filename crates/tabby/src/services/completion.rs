@@ -42,7 +42,7 @@ pub struct CompletionRequest {
     language: Option<String>,
 
     /// When segments are set, the `prompt` is ignored during the inference.
-    segments: Option<Segments>,
+    pub segments: Option<Segments>,
 
     /// A unique identifier representing your end-user, which can help Tabby to monitor & generating
     /// reports.
@@ -105,10 +105,10 @@ fn default_false() -> bool {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct Segments {
     /// Content that appears before the cursor in the editor window.
-    prefix: String,
+    pub prefix: String,
 
     /// Content that appears after the cursor in the editor window.
-    suffix: Option<String>,
+    pub suffix: Option<String>,
 
     /// The relative path of the file that is being edited.
     /// - When [Segments::git_url] is set, this is the path of the file in the git repository.
@@ -191,7 +191,7 @@ impl From<Declaration> for api::event::Declaration {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct Choice {
     index: u32,
-    text: String,
+    pub text: String,
 }
 
 impl Choice {
@@ -214,7 +214,7 @@ pub struct Snippet {
 }))]
 pub struct CompletionResponse {
     id: String,
-    choices: Vec<Choice>,
+    pub choices: Vec<Choice>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     debug_data: Option<DebugData>,
