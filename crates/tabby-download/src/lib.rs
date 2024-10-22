@@ -103,24 +103,28 @@ async fn download_model_impl(
         return Ok(());
     }
 
-    info!("Checking model integrity..");
+    if model_existed {
+        info!("Checking model integrity..");
 
-    let mut sha256_matched = true;
-    for (index, url) in urls.iter().enumerate() {
-        if HashChecker::check(partitioned_file_name!(index, urls.len()).as_str(), &url.1).is_err() {
-            sha256_matched = false;
-            break;
+        let mut sha256_matched = true;
+        for (index, url) in urls.iter().enumerate() {
+            if HashChecker::check(partitioned_file_name!(index, urls.len()).as_str(), &url.1)
+                .is_err()
+            {
+                sha256_matched = false;
+                break;
+            }
         }
-    }
 
-    if sha256_matched {
-        return Ok(());
-    }
+        if sha256_matched {
+            return Ok(());
+        }
 
-    warn!(
-        "Checksum doesn't match for <{}/{}>, re-downloading...",
-        registry.name, name
-    );
+        warn!(
+            "Checksum doesn't match for <{}/{}>, re-downloading...",
+            registry.name, name
+        );
+    }
 
     match fs::remove_dir_all(registry.get_model_dir(name)) {
         Ok(_) => Ok(()),
