@@ -519,25 +519,6 @@ export interface ApplyWorkspaceEditParams {
   };
 }
 
-/**
- * [Tabby] Reveal editor range request(↩️)
- *
- * This method is sent from the server to client to reveal a specific range in the editor.
- * - method: `tabby/workspace/editor/RevealRange`
- * - params: {@link RevealEditorRangeParams}
- * - result: boolean
- */
-export namespace RevealEditorRangeRequest {
-  export const method = "tabby/workspace/editor/RevealRange";
-  export const messageDirection = MessageDirection.serverToClient;
-  export const type = new ProtocolRequestType<RevealEditorRangeParams, boolean, never, void, void>(method);
-}
-
-export interface RevealEditorRangeParams {
-  range: Range;
-  revealType?: TextEditorRevealType;
-}
-
 export enum TextEditorRevealType {
   /**
    * The range will be revealed with as little scrolling as possible.

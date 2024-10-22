@@ -1,11 +1,15 @@
 import EventEmitter from "events";
+import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest } from "tabby-agent";
 import {
-  ApplyWorkspaceEditParams,
-  ApplyWorkspaceEditRequest,
-  RevealEditorRangeParams,
-  RevealEditorRangeRequest,
-} from "tabby-agent";
-import { BaseLanguageClient, FeatureState, RegistrationData, StaticFeature, TextEdit } from "vscode-languageclient";
+  BaseLanguageClient,
+  FeatureState,
+  RegistrationData,
+  ShowDocumentParams,
+  ShowDocumentRequest,
+  ShowDocumentResult,
+  StaticFeature,
+  TextEdit,
+} from "vscode-languageclient";
 import { Disposable, Position, Range, TextDocument, TextEditorEdit, window, workspace } from "vscode";
 import { diffLines } from "diff";
 export class WorkSpaceFeature extends EventEmitter implements StaticFeature {
@@ -36,7 +40,7 @@ export class WorkSpaceFeature extends EventEmitter implements StaticFeature {
       this.client.onRequest(ApplyWorkspaceEditRequest.type, (params: ApplyWorkspaceEditParams) => {
         return this.handleApplyWorkspaceEdit(params);
       }),
-      this.client.onRequest(RevealEditorRangeRequest.type, (params: RevealEditorRangeParams) => {
+      this.client.onRequest(ShowDocumentRequest.type, (params: ShowDocumentParams) => {
         return this.handleRevealEditorRange(params);
       }),
     );
@@ -103,22 +107,21 @@ export class WorkSpaceFeature extends EventEmitter implements StaticFeature {
     }
   }
 
-  handleRevealEditorRange(params: RevealEditorRangeParams): boolean {
-    const { range, revealType } = params;
+  handleRevealEditorRange(params: ShowDocumentParams): ShowDocumentResult {
+    const { takeFocus, selection } = params;
     const activeEditor = window.activeTextEditor;
-    if (!activeEditor) {
-      return false;
+    if (!activeEditor || !selection) {
+      return { success: false };
     }
-
-    activeEditor.revealRange(
-      new Range(
-        new Position(range.start.line, range.start.character),
-        new Position(range.end.line, range.end.character),
-      ),
-      revealType,
-    );
-
-    return true;
+    if (takeFocus) {
+      activeEditor.revealRange(
+        new Range(
+          new Position(selection.start.line, selection.start.character),
+          new Position(selection.end.line, selection.end.character),
+        ),
+      );
+    }
+    return { success: true };
   }
 }
 

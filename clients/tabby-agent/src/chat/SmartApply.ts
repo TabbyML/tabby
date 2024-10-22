@@ -1,4 +1,11 @@
-import { CancellationToken, Connection, Location, Range, TextDocuments } from "vscode-languageserver";
+import {
+  CancellationToken,
+  Connection,
+  Location,
+  Range,
+  ShowDocumentParams,
+  TextDocuments,
+} from "vscode-languageserver";
 import type { Feature } from "../feature";
 import {
   ChatEditDocumentTooLongError,
@@ -14,7 +21,7 @@ import { Configurations } from "../config";
 import { TabbyApiClient } from "../http/tabbyApiClient";
 import cryptoRandomString from "crypto-random-string";
 import { getLogger } from "../logger";
-import { readResponseStream, revealEditorRange } from "./utils";
+import { readResponseStream, showDocument } from "./utils";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { getSmartApplyRange } from "./SmartRange";
 import { Edit } from "./inlineEdit";
@@ -87,14 +94,15 @@ export class SmartApplyFeature implements Feature {
 
     try {
       //reveal editor range
-      const revealEditorRangeParams: RevealEditorRangeParams = {
-        range: {
+      const revealEditorRangeParams: ShowDocumentParams = {
+        uri: params.location.uri,
+        selection: {
           start: applyRange.range.start,
           end: applyRange.range.end,
         },
-        revealType: TextEditorRevealType.InCenterIfOutsideViewport,
+        takeFocus: true,
       };
-      await revealEditorRange(revealEditorRangeParams, this.lspConnection);
+      await showDocument(revealEditorRangeParams, this.lspConnection);
     } catch (error) {
       logger.warn("cline not support reveal range");
     }

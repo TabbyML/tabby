@@ -2,16 +2,11 @@
 
 import { Readable } from "stream";
 import { Edit } from "./inlineEdit";
-import { WorkspaceEdit } from "vscode-languageserver-protocol";
+import { ShowDocumentParams, ShowDocumentRequest, WorkspaceEdit } from "vscode-languageserver-protocol";
 import * as Diff from "diff";
 import { isBlank } from "../utils/string";
 import { Connection } from "vscode-languageserver";
-import {
-  ApplyWorkspaceEditParams,
-  ApplyWorkspaceEditRequest,
-  RevealEditorRangeParams,
-  RevealEditorRangeRequest,
-} from "../protocol";
+import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest } from "../protocol";
 
 export async function readResponseStream(
   stream: Readable,
@@ -195,14 +190,14 @@ export async function applyWorkspaceEdit(
   }
 }
 
-export async function revealEditorRange(params: RevealEditorRangeParams, lspConnection: Connection): Promise<boolean> {
+export async function showDocument(params: ShowDocumentParams, lspConnection: Connection): Promise<boolean> {
   if (!lspConnection) {
     return false;
   }
 
   try {
-    const result = await lspConnection.sendRequest(RevealEditorRangeRequest.type, params);
-    return result;
+    const result = await lspConnection.sendRequest(ShowDocumentRequest.type, params);
+    return result.success;
   } catch (error) {
     return false;
   }
