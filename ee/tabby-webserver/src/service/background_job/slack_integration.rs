@@ -151,3 +151,6 @@ async fn fetch_message_replies(
     debug!("unimplemented: fetch_message_replies");
     Ok(vec![])
 }
+
+//TODO implement slack basic client
+struct SlackClient {}
