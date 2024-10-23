@@ -1,3 +1,9 @@
+## 1.12.4
+
+### Fixes & Improvements
+
+- Fixed a bug causing the Tabby web extension to not initialize in browsers. (https://github.com/TabbyML/tabby/issues/3302)
+
 ## 1.12.3
 
 ### Fixes & Improvements
