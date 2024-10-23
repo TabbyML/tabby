@@ -53,7 +53,6 @@ Optionally, to use a GPU make sure you have the correct drivers and libraries in
 To begin contributing to Tabby's website, make sure you installed [nvm](https://github.com/nvm-sh/nvm?tab=readme-ov-file#install--update-script), node lts and yarn:
 
 ```
-nvm install --lts
 cd website
 yarn install
 yarn start
