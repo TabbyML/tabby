@@ -19,8 +19,8 @@ use futures::stream::BoxStream;
 use tabby_common::{
     api::{
         code::{
-            CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams,
-            CodeSearchQuery, CodeSearchScores,
+            CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
+            CodeSearchScores,
         },
         doc::{DocSearch, DocSearchError, DocSearchHit},
     },
