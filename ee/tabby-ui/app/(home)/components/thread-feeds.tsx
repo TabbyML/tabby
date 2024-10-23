@@ -134,7 +134,7 @@ export function ThreadFeeds({
         onNavigateToThread
       }}
     >
-      <div className={cn("w-full", className)}>
+      <div className={cn('w-full', className)}>
         <AnimationWrapper delay={0.4} style={{ width: '100%' }}>
           <LoadingWrapper
             loading={fetching || fetchingUsers}

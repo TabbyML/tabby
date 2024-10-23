@@ -11,6 +11,7 @@ import {
   Bug,
   ChevronsDownUp,
   CirclePlay,
+  Files,
   FileText,
   Filter,
   GitFork,
@@ -22,7 +23,6 @@ import {
   ListFilter,
   Mail,
   MessagesSquare,
-  Files,
   Search,
   Share2,
   Sparkles,
@@ -1724,5 +1724,5 @@ export {
   IconWrapText,
   IconAlignJustify,
   IconHash,
-  IconFiles,
+  IconFiles
 }
