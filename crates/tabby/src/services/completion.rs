@@ -43,7 +43,7 @@ pub struct CompletionRequest {
     language: Option<String>,
 
     /// When segments are set, the `prompt` is ignored during the inference.
-    pub segments: Option<Segments>,
+    segments: Option<Segments>,
 
     /// A unique identifier representing your end-user, which can help Tabby to monitor & generating
     /// reports.
@@ -106,10 +106,10 @@ fn default_false() -> bool {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct Segments {
     /// Content that appears before the cursor in the editor window.
-    pub prefix: String,
+    prefix: String,
 
     /// Content that appears after the cursor in the editor window.
-    pub suffix: Option<String>,
+    suffix: Option<String>,
 
     /// The relative path of the file that is being edited.
     /// - When [Segments::git_url] is set, this is the path of the file in the git repository.
@@ -192,7 +192,7 @@ impl From<Declaration> for api::event::Declaration {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct Choice {
     index: u32,
-    pub text: String,
+    text: String,
 }
 
 impl Choice {
@@ -215,7 +215,7 @@ pub struct Snippet {
 }))]
 pub struct CompletionResponse {
     id: String,
-    pub choices: Vec<Choice>,
+    choices: Vec<Choice>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     debug_data: Option<DebugData>,
@@ -326,30 +326,31 @@ impl CompletionService {
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
             (prompt, None, vec![])
         } else if let Some(segments) = request.segments.as_ref() {
-            let mut new_segments = segments.clone();
             if segments.prefix.contains("\r\n") {
                 use_crlf = true;
-                new_segments.prefix = segments.prefix.replace("\r\n", "\n");
             }
             if let Some(suffix) = &segments.suffix {
                 if suffix.contains("\r\n") {
                     use_crlf = true;
-                    new_segments.suffix = Some(suffix.replace("\r\n", "\n"));
                 }
             }
 
             let snippets = self
                 .build_snippets(
                     &language,
-                    &new_segments,
+                    &segments,
                     allowed_code_repository,
                     request.disable_retrieval_augmented_code_completion(),
                 )
                 .await;
             let prompt = self
                 .prompt_builder
-                .build(&language, new_segments.clone(), &snippets);
-            (prompt, Some(segments), snippets)
+                .build(&language, segments.clone(), &snippets);
+            if use_crlf {
+                (prompt.replace("\r\n", "\n"), Some(segments), snippets)
+            } else {
+                (prompt, Some(segments), snippets)
+            }
         } else {
             return Err(CompletionError::EmptyPrompt);
         };
