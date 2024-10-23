@@ -20,8 +20,16 @@ import {
 
 import { PromptEditor, PromptEditorRef } from './prompt-editor'
 import { Button } from './ui/button'
-import { IconArrowRight, IconAtSign, IconHash, IconSpinner } from './ui/icons'
+import { IconArrowRight, IconAtSign, IconHash, IconSpinner, IconBox } from './ui/icons'
 import { Separator } from './ui/separator'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
 
 export default function TextAreaSearch({
   onSearch,
@@ -207,14 +215,33 @@ export default function TextAreaSearch({
         onClick={e => e.stopPropagation()}
       >
         {/* llm select */}
-        {/* <Button
-          variant="ghost"
-          className="gap-2 px-1.5 py-1 text-foreground/70"
-        >
-          <IconBox />
-          Mistral-7B
-        </Button>
-        <Separator orientation="vertical" className="h-5" /> */}
+        <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Button
+                variant="ghost"
+                className="gap-2 px-1.5 py-1 text-foreground/70"
+              >
+                <IconBox />
+                Mistral-7B
+
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="bottom"
+              align="end"
+              className="overflow-y-auto p-0"
+            >
+              <DropdownMenuItem
+                onClick={() => window.open('/files')}
+                className="cursor-pointer py-2 pl-3"
+              >
+                {/* <IconCode /> */}
+                <span className="ml-2">Code Browser</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+       
+        <Separator orientation="vertical" className="h-5" />
 
         <Tooltip>
           <TooltipTrigger asChild>
@@ -225,7 +252,7 @@ export default function TextAreaSearch({
               disabled={!hasCodebaseSource}
             >
               <IconHash />
-              Codebase
+              Codebase!!!!!
             </Button>
           </TooltipTrigger>
           <TooltipContent className="max-w-md">
@@ -243,7 +270,7 @@ export default function TextAreaSearch({
               disabled={!hasDocumentSource}
             >
               <IconAtSign />
-              Documents
+              Documents???
             </Button>
           </TooltipTrigger>
           <TooltipContent className="max-w-md">
