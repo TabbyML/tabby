@@ -1,47 +1,26 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use chrono::{DateTime, TimeZone, Utc};
-use hyper::header;
-use logkit::debug;
-use reqwest::Client;
+use chrono::{DateTime, Utc};
+use logkit::{debug, info};
 use serde::{Deserialize, Serialize};
 use tabby_index::public::{DocIndexer, WebDocument};
 use tabby_inference::Embedding;
 use tabby_schema::CoreError;
 
-use super::helper::Job;
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SlackMessage {
-    pub id: String,
-    //unique id for the message
-    pub ts: String,
-    pub channel_id: String,
-    pub user: String,
-    pub text: String,
-    pub timestamp: DateTime<Utc>,
-    pub thread_ts: Option<String>,
-    pub reply_users_count: Option<i32>,
-    pub reply_count: Option<i32>,
-    pub replies: Vec<SlackReply>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SlackReply {
-    pub id: String,
-    pub user: String,
-    pub text: String,
-    pub timestamp: DateTime<Utc>,
-}
+use super::{
+    helper::Job,
+    slack_utils::{SlackChannel, SlackClient, SlackMessage, SlackReply},
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SlackIntegrationJob {
     pub source_id: String,
     pub workspace_id: String,
     pub bot_token: String,
-    //if none, index all channels, else index only the specified channels
     pub channels: Option<Vec<String>>,
+    #[serde(skip)]
+    client: SlackClient,
 }
 
 impl Job for SlackIntegrationJob {
@@ -49,50 +28,108 @@ impl Job for SlackIntegrationJob {
 }
 
 impl SlackIntegrationJob {
-    pub fn new(
+    pub async fn new(
         source_id: String,
         workspace_id: String,
         bot_token: String,
         channels: Option<Vec<String>>,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, CoreError> {
+        // Initialize the Slack client first
+        let client = SlackClient::new(&bot_token).await.map_err(|e| {
+            debug!(
+                "Failed to initialize Slack client for workspace '{}': {:?}",
+                workspace_id, e
+            );
+            CoreError::Unauthorized("Slack client initialization failed")
+        })?;
+
+        Ok(Self {
             source_id,
             workspace_id,
             bot_token,
             channels,
-        }
+            client,
+        })
     }
 
-    pub async fn run(self, embedding: Arc<dyn Embedding>) -> tabby_schema::Result<()> {
-        logkit::info!(
+    pub async fn run(self, embedding: Arc<dyn Embedding>) -> Result<(), CoreError> {
+        info!(
             "Starting Slack integration for workspace {}",
             self.workspace_id
         );
-        let embedding = embedding.clone();
+
         let mut num_indexed_messages = 0;
         let indexer = DocIndexer::new(embedding);
 
-        let channels = fetch_all_channels(&self.bot_token, &self.workspace_id).await?;
-
-        for channel in channels {
-            let messages =
-                fetch_channel_messages(&self.bot_token, &self.workspace_id, &channel.id).await?;
-
-            for message in messages {
-                if should_index_message(&message) {
-                    let web_doc = self.create_web_document(&channel, &message);
-
-                    num_indexed_messages += 1;
-                    logkit::debug!("Indexing message: {}", &web_doc.title);
-                    indexer.add(message.timestamp, web_doc).await;
-                }
-            }
+        // If specific channels are specified, join them first
+        if let Some(channel_ids) = &self.channels {
+            self.client
+                .join_channels(channel_ids.iter().map(|s| s.as_str()).collect())
+                .await
+                .map_err(|e| {
+                    debug!("Failed to join channels: {:?}", e);
+                    e
+                })?;
         }
 
-        logkit::info!(
+        // Fetch and filter channels
+        let channels = fetch_all_channels(&self.client, &self.workspace_id)
+            .await
+            .map_err(|e| {
+                debug!("Failed to fetch channels: {:?}", e);
+                e
+            })?;
+
+        let channels = if let Some(channel_ids) = &self.channels {
+            channels
+                .into_iter()
+                .filter(|c| channel_ids.contains(&c.id))
+                .collect::<Vec<_>>()
+        } else {
+            channels
+        };
+
+        debug!("Processing {} channels", channels.len());
+
+        // Process each channel
+        for channel in channels {
+            debug!("Processing channel: {}", channel.name);
+            let messages = fetch_channel_messages(&self.client, &channel.id)
+                .await
+                .map_err(|e| {
+                    debug!(
+                        "Failed to fetch messages for channel {}: {:?}",
+                        channel.name, e
+                    );
+                    e
+                })?;
+
+            // for mut message in messages {
+            //     // Fetch replies if thread exists
+            //     if let Some(thread_ts) = &message.thread_ts {
+            //         message.replies = fetch_message_replies(&self.client, &channel.id, thread_ts)
+            //             .await
+            //             .map_err(|e| {
+            //                 debug!(
+            //                     "Failed to fetch replies for message in channel {}: {:?}",
+            //                     channel.name, e
+            //                 );
+            //                 e
+            //             })?;
+            //     }
+
+            //     if should_index_message(&message) {
+            //         let web_doc = self.create_web_document(&channel, &message);
+            //         num_indexed_messages += 1;
+            //         debug!("Indexing message: {}", &web_doc.title);
+            //         indexer.add(message.timestamp, web_doc).await;
+            //     }
+            // }
+        }
+
+        info!(
             "Indexed {} messages from Slack workspace '{}'",
-            num_indexed_messages,
-            self.workspace_id
+            num_indexed_messages, self.workspace_id
         );
         indexer.commit();
         Ok(())
@@ -126,261 +163,70 @@ fn should_index_message(message: &SlackMessage) -> bool {
     message.text.len() > 80 || !message.replies.is_empty()
 }
 
-#[derive(Debug, Clone)]
-struct SlackChannel {
-    id: String,
-    name: String,
-}
-
-//TODO: Implement these functions
 async fn fetch_all_channels(
-    bot_token: &str,
+    client: &SlackClient,
     workspace_id: &str,
 ) -> Result<Vec<SlackChannel>, CoreError> {
-    debug!("unimplemented: fetch_all_channels");
-    Ok(vec![])
+    client
+        .get_channels(workspace_id)
+        .await
+        .map_err(|e| CoreError::Other(e))
 }
 
 async fn fetch_channel_messages(
-    bot_token: &str,
-    workspace_id: &str,
+    client: &SlackClient,
     channel_id: &str,
 ) -> Result<Vec<SlackMessage>, CoreError> {
-    debug!("unimplemented: fetch_channel_messages");
-    Ok(vec![])
+    client.get_messages(channel_id).await
 }
 
-async fn fetch_message_replies(
-    bot_token: &str,
-    channel_id: &str,
-    thread_ts: &str,
-) -> Result<Vec<SlackReply>, CoreError> {
-    debug!("unimplemented: fetch_message_replies");
-    Ok(vec![])
-}
+// async fn fetch_message_replies(
+//     client: &SlackClient,
+//     channel_id: &str,
+//     thread_ts: &str,
+// ) -> Result<Vec<SlackReply>, CoreError> {
+//     client.get_message_replies(channel_id, thread_ts).await
+// }
 
-// Now it is utils for slack client
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[derive(Debug, Deserialize)]
-struct Topic {
-    value: String,
-}
+    #[tokio::test]
+    async fn test_should_index_message() {
+        let message = SlackMessage {
+            id: "1".to_string(),
+            ts: "1234567890.123456".to_string(),
+            channel_id: "C1234567890".to_string(),
+            user: "U1234567890".to_string(),
+            text: "A".repeat(81),
+            timestamp: Utc::now(),
+            thread_ts: None,
+            reply_users_count: None,
+            reply_count: None,
+            replies: vec![],
+        };
 
-#[derive(Debug, Deserialize)]
-struct Purpose {
-    value: String,
-}
+        assert!(should_index_message(&message));
 
-#[derive(Debug, Deserialize)]
-struct SlackChannelResponse {
-    id: String,
-    name: String,
-    is_channel: bool,
-    created: i64,
-    is_archived: bool,
-    is_general: bool,
-    is_member: bool,
-    is_private: bool,
-    topic: Topic,
-    purpose: Purpose,
-    num_members: i32,
-}
+        let short_message = SlackMessage {
+            text: "Short message".to_string(),
+            ..message.clone()
+        };
 
-#[derive(Debug, Deserialize)]
-struct ResponseMetadata {
-    next_cursor: String,
-}
+        assert!(!should_index_message(&short_message));
 
-#[derive(Debug, Deserialize)]
-struct SlackResponse {
-    ok: bool,
-    channels: Option<Vec<SlackChannelResponse>>,
-    error: Option<String>,
-    response_metadata: Option<ResponseMetadata>,
-}
+        let message_with_replies = SlackMessage {
+            text: "Short message".to_string(),
+            replies: vec![SlackReply {
+                id: "1".to_string(),
+                user: "U1234567890".to_string(),
+                text: "Reply".to_string(),
+                timestamp: Utc::now(),
+            }],
+            ..message
+        };
 
-/// Messages structs
-#[derive(Debug, Deserialize)]
-struct SlackMessageResponse {
-    ok: bool,
-    messages: Option<Vec<SlackMessageItemResponse>>,
-    error: Option<String>,
-    has_more: bool,
-}
-
-#[derive(Debug, Deserialize)]
-struct SlackMessageItemResponse {
-    #[serde(default)]
-    subtype: Option<String>,
-    user: String,
-    text: String,
-    r#type: String,
-    ts: String,
-    #[serde(default)]
-    client_msg_id: Option<String>,
-    #[serde(default)]
-    team: Option<String>,
-    //only exists in thread messages
-    thread_ts: Option<String>,
-    reply_users_count: Option<i32>,
-    reply_count: Option<i32>,
-}
-
-// TODO implement slack basic client
-struct SlackClient {
-    bot_token: String,
-    client: Client,
-}
-impl SlackClient {
-    fn new(bot_token: &str) -> Result<Self, CoreError> {
-        let mut headers = header::HeaderMap::new();
-        headers.insert(
-            header::CONTENT_TYPE,
-            header::HeaderValue::from_static("application/x-www-form-urlencoded"),
-        );
-
-        let client: Client = Client::builder()
-            .default_headers(headers)
-            .build()
-            .map_err(|e| CoreError::Other(anyhow::Error::new(e)))?;
-        Ok(Self {
-            bot_token: bot_token.to_string(),
-            client,
-        })
-    }
-
-    pub async fn get_channels(&self, _workspace_id: &str) -> Result<Vec<SlackChannel>> {
-        let response = self
-            .client
-            .get("https://slack.com/api/conversations.list")
-            .header(header::AUTHORIZATION, format!("Bearer {}", self.bot_token))
-            .query(&[
-                ("types", "public_channel"),
-                ("exclude_archived", "true"),
-                ("limit", "1000"),
-            ])
-            .send()
-            .await?;
-
-        let slack_response: SlackResponse = response.json().await?;
-
-        match (
-            slack_response.ok,
-            slack_response.channels,
-            slack_response.error,
-        ) {
-            (true, Some(channels), _) => {
-                debug!("Successfully fetched {} channels", channels.len());
-                Ok(channels
-                    .into_iter()
-                    .map(|s| SlackChannel {
-                        id: s.id,
-                        name: s.name,
-                    })
-                    .collect())
-            }
-            (false, _, Some(error)) => Err(anyhow::anyhow!("Slack API error: {}", error)),
-            _ => Err(anyhow::anyhow!("Unexpected response from Slack API")),
-        }
-    }
-
-    pub async fn get_messages(&self, channel_id: &str) -> Result<Vec<SlackMessage>, CoreError> {
-        let response: reqwest::Response = self
-            .client
-            .get("https://slack.com/api/conversations.history")
-            .header(header::AUTHORIZATION, format!("Bearer {}", self.bot_token))
-            .query(&[
-                ("channel", channel_id),
-                ("limit", "100"),
-                ("inclusive", "true"),
-            ])
-            .send()
-            .await
-            .map_err(|e| CoreError::Other(anyhow::Error::new(e)))?;
-
-        let slack_response: SlackMessageResponse = response
-            .json()
-            .await
-            .map_err(|e| CoreError::Other(anyhow::Error::new(e)))?;
-
-        match (
-            slack_response.ok,
-            slack_response.messages,
-            slack_response.error,
-        ) {
-            (true, Some(messages), _) => {
-                debug!("Successfully fetched {} messages", messages.len());
-                Ok(messages
-                    .into_iter()
-                    .filter(|msg| msg.subtype.is_none())
-                    .map(|msg| {
-                        let timestamp = msg
-                            .ts
-                            .split('.')
-                            .next()
-                            .and_then(|ts| ts.parse::<i64>().ok())
-                            .map(|ts| Utc.timestamp_opt(ts, 0).unwrap())
-                            .unwrap_or_default();
-
-                        SlackMessage {
-                            id: msg.ts.clone(),
-                            ts: msg.ts.clone(),
-                            channel_id: channel_id.to_string(),
-                            user: msg.user,
-                            text: msg.text,
-                            thread_ts: msg.thread_ts,
-                            reply_count: msg.reply_count,
-                            reply_users_count: msg.reply_users_count,
-                            replies: vec![],
-                            timestamp,
-                        }
-                    })
-                    .collect())
-            }
-            (false, _, Some(error)) => Err(CoreError::Other(anyhow::anyhow!(
-                "Slack API error: {}",
-                error
-            ))),
-            _ => Err(CoreError::Other(anyhow::anyhow!(
-                "Unexpected response from Slack API"
-            ))),
-        }
-    }
-    pub async fn join_channels(&self, channel_ids: Vec<&str>) -> Result<bool, CoreError> {
-        for channel_id in channel_ids {
-            let response = self
-                .client
-                .post("https://slack.com/api/conversations.join")
-                .header(header::AUTHORIZATION, format!("Bearer {}", self.bot_token))
-                .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
-                .form(&[("channel", channel_id)])
-                .send()
-                .await
-                .map_err(|e| CoreError::Other(anyhow::Error::new(e)))?;
-
-            let slack_response: SlackResponse = response
-                .json()
-                .await
-                .map_err(|e| CoreError::Other(anyhow::Error::new(e)))?;
-
-            match (slack_response.ok, slack_response.error) {
-                (false, Some(error)) => {
-                    return Err(CoreError::Other(anyhow::anyhow!(
-                        "Failed to join channel {}: {}",
-                        channel_id,
-                        error
-                    )))
-                }
-                (false, None) => {
-                    return Err(CoreError::Other(anyhow::anyhow!(
-                        "Unexpected response from Slack API when joining channel {}",
-                        channel_id
-                    )))
-                }
-                _ => continue,
-            }
-        }
-
-        Ok(true)
+        assert!(should_index_message(&message_with_replies));
     }
 }
