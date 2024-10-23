@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { filename2prism } from '@/lib/language-utils'
@@ -44,6 +44,8 @@ const BlobModeViewRenderer: React.FC<BlobViewProps> = ({
   const language = detectedLanguage ?? 'plain'
   const isMarkdown = !!textValue && language === 'markdown'
   const isPlain = searchParams.get('plain')?.toString() === '1'
+  const [isSticky, setIsSticky] = useState(false)
+  // const [debouncedIsSticky] = useDebounceValue(isSticky, 100)
 
   const onToggleMarkdownView = (value: string) => {
     if (value === '1') {
@@ -65,7 +67,12 @@ const BlobModeViewRenderer: React.FC<BlobViewProps> = ({
 
   return (
     <div className={cn(className)}>
-      <BlobHeader blob={blob} contentLength={contentLength} canCopy={!isRaw}>
+      <BlobHeader
+        blob={blob}
+        contentLength={contentLength}
+        canCopy={!isRaw}
+        onStickyChange={setIsSticky}
+      >
         {isMarkdown && (
           <Tabs
             value={isPlain ? '1' : '0'}
@@ -78,12 +85,13 @@ const BlobModeViewRenderer: React.FC<BlobViewProps> = ({
           </Tabs>
         )}
       </BlobHeader>
+
       {loading && !blob ? (
         <ListSkeleton className="p-2" />
       ) : isRaw ? (
         <RawFileView blob={blob} isImage={fileDisplayType === 'image'} />
       ) : (
-        <TextFileView />
+        <TextFileView isSticky={isSticky} />
       )}
     </div>
   )

@@ -23,6 +23,8 @@ import { basicSetup } from '@/components/codemirror/basic-setup'
 
 import './style.css'
 
+import { cn } from '@/lib/utils'
+
 interface CodeMirrorEditorProps {
   value?: string
   language: LanguageName | string
@@ -32,6 +34,7 @@ interface CodeMirrorEditorProps {
   width?: string
   extensions?: Extension[]
   viewDidUpdate?: (view: EditorView | null) => void
+  className?: string
 }
 
 export interface CodeMirrorEditorRef {
@@ -52,7 +55,8 @@ const CodeMirrorEditor = React.forwardRef<
     extensions: propsExtensions,
     height = null,
     width = null,
-    viewDidUpdate
+    viewDidUpdate,
+    className
   } = props
 
   const initialized = React.useRef(false)
@@ -196,7 +200,12 @@ const CodeMirrorEditor = React.forwardRef<
     [editorView]
   )
 
-  return <div className="codemirror-editor h-full" ref={containerRef}></div>
+  return (
+    <div
+      className={cn('codemirror-editor h-full', className)}
+      ref={containerRef}
+    ></div>
+  )
 })
 
 CodeMirrorEditor.displayName = 'CodeMirrorEditor'

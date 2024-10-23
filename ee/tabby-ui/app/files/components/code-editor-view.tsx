@@ -1,5 +1,6 @@
 import React from 'react'
 import { foldGutter } from '@codemirror/language'
+import { openSearchPanel } from '@codemirror/search'
 import { Extension, Line } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
 import { isNil } from 'lodash-es'
@@ -30,14 +31,23 @@ import {
 
 import './line-menu-extension/line-menu.css'
 
+import { useLatest } from '@/lib/hooks/use-latest'
 import { filename2prism } from '@/lib/language-utils'
+
+import { search } from './editor-search-extension/search'
+import { SearchPanel } from './editor-search-extension/search-panel'
 
 interface CodeEditorViewProps {
   value: string
   language: string
+  className?: string
 }
 
-const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
+const CodeEditorView: React.FC<CodeEditorViewProps> = ({
+  value,
+  language,
+  className
+}) => {
   const { theme } = useTheme()
   const tags: TCodeTag[] = React.useMemo(() => {
     return []
@@ -89,7 +99,10 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
           return dom
         }
       }),
-      drawSelection()
+      drawSelection(),
+      search({
+        createPanel: config => new SearchPanel(config)
+      })
     ]
     if (isChatEnabled && activePath && basename) {
       result.push(
@@ -199,6 +212,32 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
       }
     }
   }, [value, lineNumber, editorView])
+
+  const openSearch = useLatest(() => {
+    if (editorView) {
+      openSearchPanel(editorView)
+    }
+  })
+
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!editorView) return
+
+      const isMac = navigator.userAgent.toUpperCase().indexOf('MAC') >= 0
+      const isFindInPageShortcut =
+        (isMac ? event.metaKey : event.ctrlKey) && event.key === 'f'
+      if (isFindInPageShortcut) {
+        event.preventDefault()
+        openSearch.current()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [editorView])
 
   return (
     <CodeEditor

@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
 import prettyBytes from 'pretty-bytes'
@@ -28,6 +28,7 @@ interface BlobHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   hideBlobActions?: boolean
   contentLength?: number
   lines?: number
+  onStickyChange?: (isSticky: boolean) => void
 }
 
 export const BlobHeader: React.FC<BlobHeaderProps> = ({
@@ -37,6 +38,7 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
   hideBlobActions,
   contentLength,
   children,
+  onStickyChange,
   ...props
 }) => {
   const { chatSideBarVisible, setChatSideBarVisible, isChatEnabled } =
@@ -59,6 +61,10 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
       toast.error('Something went wrong. Please try again.')
     }
   }
+
+  useEffect(() => {
+    onStickyChange?.(isSticky)
+  }, [isSticky])
 
   return (
     <div

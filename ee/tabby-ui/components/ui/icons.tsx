@@ -9,6 +9,7 @@ import {
   BookOpenText,
   Box,
   Bug,
+  CaseSensitive,
   ChevronsDownUp,
   CirclePlay,
   Files,
@@ -23,6 +24,7 @@ import {
   ListFilter,
   Mail,
   MessagesSquare,
+  Regex,
   Search,
   Share2,
   Sparkles,
@@ -1627,6 +1629,20 @@ function IconFiles({
   return <Files className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconCaseSensitive({
+  className,
+  ...props
+}: React.ComponentProps<typeof CaseSensitive>) {
+  return <CaseSensitive className={cn('h-4 w-4', className)} {...props} />
+}
+
+function IconRegex({
+  className,
+  ...props
+}: React.ComponentProps<typeof Regex>) {
+  return <Regex className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1724,5 +1740,7 @@ export {
   IconWrapText,
   IconAlignJustify,
   IconHash,
-  IconFiles
+  IconFiles,
+  IconCaseSensitive,
+  IconRegex
 }
