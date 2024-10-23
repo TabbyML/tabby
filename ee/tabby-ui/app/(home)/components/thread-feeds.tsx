@@ -11,7 +11,7 @@ import { ContextSource, ListThreadsQuery } from '@/lib/gql/generates/graphql'
 import { Member, useAllMembers } from '@/lib/hooks/use-all-members'
 import { contextInfoQuery, listThreadMessages } from '@/lib/tabby/query'
 import { cn, getTitleFromMessages } from '@/lib/utils'
-import { IconMessagesSquare, IconSpinner } from '@/components/ui/icons'
+import { IconFiles, IconSpinner } from '@/components/ui/icons'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LoadMoreIndicator } from '@/components/load-more-indicator'
@@ -229,7 +229,7 @@ function ThreadItem({ data }: ThreadItemProps) {
     >
       <div className="transform-bg group flex-1 overflow-hidden rounded-lg px-3 py-2 hover:bg-accent">
         <div className="mb-1.5 flex items-center gap-2">
-          <IconMessagesSquare className="shrink-0" />
+          <IconFiles className="shrink-0" />
           <LoadingWrapper
             loading={fetching}
             fallback={
