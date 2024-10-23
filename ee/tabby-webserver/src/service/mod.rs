@@ -35,7 +35,7 @@ use tabby_common::{
     constants::USER_HEADER_FIELD_NAME,
 };
 use tabby_db::{DbConn, UserDAO, UserGroupDAO};
-use tabby_inference::Embedding;
+use tabby_inference::{ChatCompletionStream, Embedding};
 use tabby_schema::{
     access_policy::AccessPolicyService,
     analytic::AnalyticService,
@@ -64,6 +64,7 @@ use self::{
 struct ServerContext {
     db_conn: DbConn,
     mail: Arc<dyn EmailService>,
+    chat: Option<Arc<dyn ChatCompletionStream>>,
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
     repository: Arc<dyn RepositoryService>,
@@ -80,13 +81,12 @@ struct ServerContext {
     code: Arc<dyn CodeSearch>,
 
     setting: Arc<dyn SettingService>,
-
-    is_chat_enabled_locally: bool,
 }
 
 impl ServerContext {
     pub async fn new(
         logger: Arc<dyn EventLogger>,
+        chat: Option<Arc<dyn ChatCompletionStream>>,
         code: Arc<dyn CodeSearch>,
         repository: Arc<dyn RepositoryService>,
         integration: Arc<dyn IntegrationService>,
@@ -96,7 +96,6 @@ impl ServerContext {
         web_documents: Arc<dyn WebDocumentService>,
         db_conn: DbConn,
         embedding: Arc<dyn Embedding>,
-        is_chat_enabled_locally: bool,
     ) -> Self {
         let mail = Arc::new(
             new_email_service(db_conn.clone())
@@ -128,6 +127,7 @@ impl ServerContext {
 
         Self {
             mail: mail.clone(),
+            chat,
             auth: Arc::new(auth::create(
                 db_conn.clone(),
                 mail,
@@ -148,7 +148,6 @@ impl ServerContext {
             user_group,
             access_policy,
             db_conn,
-            is_chat_enabled_locally,
         }
     }
 
@@ -241,7 +240,7 @@ impl WorkerService for ServerContext {
     }
 
     async fn is_chat_enabled(&self) -> Result<bool> {
-        Ok(self.is_chat_enabled_locally)
+        Ok(self.chat.is_some())
     }
 }
 
@@ -256,6 +255,10 @@ impl ArcServerContext {
 impl ServiceLocator for ArcServerContext {
     fn auth(&self) -> Arc<dyn AuthenticationService> {
         self.0.auth.clone()
+    }
+
+    fn chat(&self) -> Option<Arc<dyn ChatCompletionStream>> {
+        self.0.chat.clone()
     }
 
     fn worker(&self) -> Arc<dyn WorkerService> {
@@ -325,6 +328,7 @@ impl ServiceLocator for ArcServerContext {
 
 pub async fn create_service_locator(
     logger: Arc<dyn EventLogger>,
+    chat: Option<Arc<dyn ChatCompletionStream>>,
     code: Arc<dyn CodeSearch>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
@@ -334,11 +338,11 @@ pub async fn create_service_locator(
     web_documents: Arc<dyn WebDocumentService>,
     db: DbConn,
     embedding: Arc<dyn Embedding>,
-    is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(ArcServerContext::new(
         ServerContext::new(
             logger,
+            chat,
             code,
             repository,
             integration,
@@ -348,7 +352,6 @@ pub async fn create_service_locator(
             web_documents,
             db,
             embedding,
-            is_chat_enabled,
         )
         .await,
     ))
