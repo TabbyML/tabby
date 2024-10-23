@@ -19,7 +19,7 @@ use futures::stream::BoxStream;
 use tabby_common::{
     api::{
         code::{
-            CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchParams,
+            CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams,
             CodeSearchQuery, CodeSearchScores,
         },
         doc::{DocSearch, DocSearchError, DocSearchHit},
@@ -38,7 +38,7 @@ use tabby_schema::{
         ThreadRunOptionsInput,
     },
 };
-use tracing::{debug, error, field::debug, warn};
+use tracing::{debug, error, warn};
 
 use crate::bail;
 
