@@ -48,12 +48,19 @@ export class DataStore extends EventEmitter implements Feature {
     if (clientCapabilities.tabby?.dataStore) {
       this.lspConnection = connection;
 
-      const params: DataStoreGetParams = { key: "data" };
-      const data = await connection.sendRequest(DataStoreGetRequest.type, params);
-      if (!deepEqual(data, this.data)) {
-        const old = this.data;
-        this.data = data;
-        this.emit("updated", data, old);
+      try {
+        // FIXME(@icycodes): This try-catch block avoids the initialization error in current version.
+        // As the lsp client has not be initialized, the request will always throws errors,
+        // the dataStore data should be initialized by initializationOptions, and be synced by notifications.
+        const params: DataStoreGetParams = { key: "data" };
+        const data = await connection.sendRequest(DataStoreGetRequest.type, params);
+        if (!deepEqual(data, this.data)) {
+          const old = this.data;
+          this.data = data;
+          this.emit("updated", data, old);
+        }
+      } catch (error) {
+        // ignore
       }
     }
     return {};
