@@ -102,7 +102,7 @@ export class InlineEditController {
       this.quickFileAttachController.clear();
     }
 
-    this.updateQuickPickList()
+    this.updateQuickPickList();
   }
 
   private async provideEditWithCommand(command: string) {

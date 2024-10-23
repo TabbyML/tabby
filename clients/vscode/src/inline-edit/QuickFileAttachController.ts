@@ -1,6 +1,6 @@
-import fuzzysort from 'fuzzysort';
+import fuzzysort from "fuzzysort";
 import fs from "fs/promises";
-import throttle from 'lodash/throttle';
+import throttle from "lodash/throttle";
 import path from "path";
 import {
   CancellationToken,
@@ -18,7 +18,7 @@ import type { Context } from "tabby-chat-panel";
 import { WebviewHelper } from "../chat/WebviewHelper";
 import type { GitProvider } from "../git/GitProvider";
 
-const activeSeparator  =  {
+const activeSeparator = {
   label: "Active",
   kind: QuickPickItemKind.Separator,
   value: "",
@@ -103,7 +103,7 @@ export class QuickFileAttachController {
         this.quickPick.value = "";
         this.quickPick.hide();
 
-        if (typeof this.selectCallback === 'function') {
+        if (typeof this.selectCallback === "function") {
           this.selectCallback(path.basename(selected));
         }
       } else {
@@ -142,21 +142,21 @@ export class QuickFileAttachController {
 
   private async listFiles(p?: string) {
     const root = p || this.root;
-    const ignorePatterns = this.getExcludedConfig().split(',');
+    const ignorePatterns = this.getExcludedConfig().split(",");
     const currentDir = await fs.readdir(root);
     const files: FilePickItem[] = [];
     const dirs: FilePickItem[] = [];
     const activeFiles = this.getFilesFromOpenTabs();
     const result = [];
 
-    if (activeFiles.length && typeof p === 'undefined') {
+    if (activeFiles.length && typeof p === "undefined") {
       result.push(activeSeparator);
       result.push(
-        ...activeFiles.map((file) => ({
+        ...(activeFiles.map((file) => ({
           value: file,
           label: this.handleQuickPickItemLabel(file),
           iconPath: new ThemeIcon("file"),
-        })) as FilePickItem[],
+        })) as FilePickItem[]),
       );
     }
 
@@ -228,7 +228,7 @@ export class QuickFileAttachController {
             workspaceFolder ? new RelativePattern(workspaceFolder, "**") : "",
             this.getExcludedConfig(),
             undefined,
-            cancellationToken
+            cancellationToken,
           ),
         ),
       )
@@ -237,13 +237,11 @@ export class QuickFileAttachController {
 
   private getFilesFromOpenTabs(): string[] {
     const tabGroups = window.tabGroups.all;
-    const openTabs = tabGroups.flatMap(
-      (group) => group.tabs.map((tab) => tab.input)
-    ) as TabInputText[];
+    const openTabs = tabGroups.flatMap((group) => group.tabs.map((tab) => tab.input)) as TabInputText[];
 
     return openTabs
       .map((tab) => {
-        if (!tab.uri || tab.uri.scheme !== 'file' || !workspace.getWorkspaceFolder(tab.uri)) {
+        if (!tab.uri || tab.uri.scheme !== "file" || !workspace.getWorkspaceFolder(tab.uri)) {
           return undefined;
         }
 
@@ -253,17 +251,15 @@ export class QuickFileAttachController {
   }
 
   private handleQuickPickItemLabel(path: string) {
-    return path.replace(`${this.root}/`, '');
+    return path.replace(`${this.root}/`, "");
   }
 
   private async search(query: string) {
     const files = await this.findWorkspaceFiles();
-    const ranges = files.map((file) => ({ file, key: this.handleQuickPickItemLabel(file.path) }))
-    const results = fuzzysort.go(query, ranges, { key: 'key', limit: 20 });
+    const ranges = files.map((file) => ({ file, key: this.handleQuickPickItemLabel(file.path) }));
+    const results = fuzzysort.go(query, ranges, { key: "key", limit: 20 });
 
-    return results
-      .map((item) => ({ ...item, score: item.score }))
-      .sort((a, b) => b.score - a.score);
+    return results.map((item) => ({ ...item, score: item.score })).sort((a, b) => b.score - a.score);
   }
 }
 
