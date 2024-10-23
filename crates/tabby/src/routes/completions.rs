@@ -36,38 +36,11 @@ pub async fn completions(
 
     let user_agent = user_agent.map(|x| x.0.to_string());
 
-    let mut use_crlf = false;
-    if let Some(segments) = request.segments {
-        let mut new_segments = segments.clone();
-        if segments.prefix.contains("\r\n") {
-            use_crlf = true;
-            new_segments.prefix = segments.prefix.replace("\r\n", "\n");
-        }
-        if let Some(suffix) = segments.suffix {
-            if suffix.contains("\r\n") {
-                use_crlf = true;
-                new_segments.suffix = Some(suffix.replace("\r\n", "\n"));
-            }
-        }
-        request.segments = Some(new_segments);
-    }
-
     match state
         .generate(&request, &allowed_code_repository, user_agent.as_deref())
         .await
     {
-        Ok(resp) => {
-            if use_crlf {
-                let mut response_crlf = resp.clone();
-                for (index, choice) in resp.choices.iter().enumerate() {
-                    response_crlf.choices[index].text = choice.text.replace("\n", "\r\n");
-                }
-
-                return Ok(Json(response_crlf));
-            }
-
-            Ok(Json(resp))
-        }
+        Ok(resp) => Ok(Json(resp)),
         Err(err) => {
             warn!("{}", err);
             Err(StatusCode::BAD_REQUEST)

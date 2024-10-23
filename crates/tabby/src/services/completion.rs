@@ -1,5 +1,6 @@
 mod completion_prompt;
 
+use regex::Regex;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -321,27 +322,43 @@ impl CompletionService {
             self.config.max_decoding_tokens,
         );
 
+        let mut use_crlf = false;
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
             (prompt, None, vec![])
         } else if let Some(segments) = request.segments.as_ref() {
+            let mut new_segments = segments.clone();
+            if segments.prefix.contains("\r\n") {
+                use_crlf = true;
+                new_segments.prefix = segments.prefix.replace("\r\n", "\n");
+            }
+            if let Some(suffix) = &segments.suffix {
+                if suffix.contains("\r\n") {
+                    use_crlf = true;
+                    new_segments.suffix = Some(suffix.replace("\r\n", "\n"));
+                }
+            }
+
             let snippets = self
                 .build_snippets(
                     &language,
-                    segments,
+                    &new_segments,
                     allowed_code_repository,
                     request.disable_retrieval_augmented_code_completion(),
                 )
                 .await;
             let prompt = self
                 .prompt_builder
-                .build(&language, segments.clone(), &snippets);
+                .build(&language, new_segments.clone(), &snippets);
             (prompt, Some(segments), snippets)
         } else {
             return Err(CompletionError::EmptyPrompt);
         };
 
-        let text = self.engine.generate(&prompt, options).await;
-        let segments = segments.cloned().map(|s| s.into());
+        let mut text = self.engine.generate(&prompt, options).await;
+        if use_crlf {
+            let re = Regex::new(r"([^\r])\n").unwrap(); // Match \n that is preceded by anything except \r
+            text = re.replace_all(&text, "$1\r\n").to_string() // Replace with captured character and \r\n
+        }
 
         self.logger.log(
             request.user.clone(),
@@ -349,7 +366,7 @@ impl CompletionService {
                 completion_id: completion_id.clone(),
                 language,
                 prompt: prompt.clone(),
-                segments,
+                segments: segments.cloned().map(|x| x.into()),
                 choices: vec![api::event::Choice {
                     index: 0,
                     text: text.clone(),
