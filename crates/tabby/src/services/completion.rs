@@ -1,8 +1,8 @@
 mod completion_prompt;
 
-use regex::Regex;
 use std::sync::Arc;
 
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use tabby_common::{
     api::{
