@@ -10,7 +10,7 @@ import { graphql } from '@/lib/gql/generates'
 import { ContextSource, ListThreadsQuery } from '@/lib/gql/generates/graphql'
 import { Member, useAllMembers } from '@/lib/hooks/use-all-members'
 import { contextInfoQuery, listThreadMessages } from '@/lib/tabby/query'
-import { getTitleFromMessages } from '@/lib/utils'
+import { cn, getTitleFromMessages } from '@/lib/utils'
 import { IconMessagesSquare, IconSpinner } from '@/components/ui/icons'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -134,7 +134,7 @@ export function ThreadFeeds({
         onNavigateToThread
       }}
     >
-      <div className="w-full">
+      <div className={cn("w-full", className)}>
         <AnimationWrapper delay={0.4} style={{ width: '100%' }}>
           <LoadingWrapper
             loading={fetching || fetchingUsers}
