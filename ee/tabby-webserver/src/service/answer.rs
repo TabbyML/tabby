@@ -19,8 +19,8 @@ use futures::stream::BoxStream;
 use tabby_common::{
     api::{
         code::{
-            CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
-            CodeSearchScores,
+            CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchParams,
+            CodeSearchQuery, CodeSearchScores,
         },
         doc::{DocSearch, DocSearchError, DocSearchHit},
     },
@@ -38,7 +38,7 @@ use tabby_schema::{
         ThreadRunOptionsInput,
     },
 };
-use tracing::{debug, error, warn};
+use tracing::{debug, error, field::debug, warn};
 
 use crate::bail;
 
@@ -544,6 +544,10 @@ pub async fn merge_code_snippets(
             };
 
             if !file_content.is_empty() {
+                debug!(
+                    "file {} less than 200, it will be included whole file content",
+                    file_hits[0].doc.filepath
+                );
                 let mut insert_hit = file_hits[0].clone();
                 insert_hit.scores =
                     file_hits
@@ -560,6 +564,7 @@ pub async fn merge_code_snippets(
                 insert_hit.scores.embedding /= num_files;
                 insert_hit.scores.rrf /= num_files;
                 insert_hit.doc.body = file_content;
+                insert_hit.doc.start_line = 1;
                 result.push(insert_hit);
             }
         } else {
