@@ -9,8 +9,7 @@ use tracing::debug;
 
 use crate::{
     api::code::CodeSearchParams,
-    config,
-    languages,
+    config, languages,
     path::repositories_dir,
     terminal::{HeaderFormat, InfoMessage},
 };
