@@ -8,6 +8,7 @@ on:
       - 'nightly'
       - "!*-dev.*"
       - '!vscode@*'
+      - '!vim@*'
   pull_request:
     branches: [ "main" ]
     paths:
@@ -329,11 +330,23 @@ jobs:
       - name: Display structure of created files
         run: ls -R dist
 
+      - name: Determine is stable release
+        run: |
+          if [[ ${{ github.ref_name }} =~ ^v@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "STABLE_RELEASE=true" >> $GITHUB_ENV
+          else
+            echo "STABLE_RELEASE=false" >> $GITHUB_ENV
+          fi
+
+      - name: Check if stable release
+        run: echo "Stable Release is ${{ env.STABLE_RELEASE }}"
+  
       - uses: ncipollo/release-action@v1
         if: github.event_name == 'push'
         with:
-          allowUpdates: true          
-          prerelease: true
+          allowUpdates: true
+          prerelease: ${{ env.STABLE_RELEASE == 'false' }}
+          makeLatest: ${{ env.STABLE_RELEASE == 'true' }}
           artifacts: "dist/tabby_*.zip"
           tag: ${{ github.ref_name }}
           removeArtifacts: true

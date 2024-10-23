@@ -2,6 +2,9 @@ name: Release Vim Plugin
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - 'vim@*'
 
 jobs:
   release:
@@ -21,13 +24,13 @@ jobs:
         path: vim-tabby
     - name: Copy files
       run: |
+        find vim-tabby/ -mindepth 1 ! -regex '^vim-tabby/\.git\(/.*\)?' -delete
+        cp -r tabby/clients/vim/.gitignore vim-tabby/
         cp -r tabby/clients/vim/* vim-tabby/
-        rm vim-tabby/package.json
     - name: Get version
       id: get_version
       run: |
-        cd vim-tabby/autoload/tabby/
-        version=$(cat globals.vim | grep "let g:tabby_version" | sed -e 's/.*"\(.*\)".*/\1/')
+        version=$(cat vim-tabby/autoload/tabby.vim | grep "let g:tabby_version" | sed -e 's/.*"\(.*\)".*/\1/')
         echo "::set-output name=version::$version"
     - name: Commit files
       run: |

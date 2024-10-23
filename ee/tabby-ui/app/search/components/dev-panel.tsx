@@ -29,7 +29,7 @@ export const DevPanel: React.FC<DevPanelProps> = ({
 
   useEffect(() => {
     if (value) {
-      scrollAreaRef.current?.children?.[1]?.scrollTo({
+      scrollAreaRef.current?.scrollTo({
         top: 0,
         behavior: 'smooth'
       })

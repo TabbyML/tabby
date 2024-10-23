@@ -42,6 +42,7 @@ type ChatContextValue = {
   onCopyContent?: (value: string) => void
   onApplyInEditor?: (value: string) => void
   relevantContext: Context[]
+  activeSelection: Context | null
   removeRelevantContext: (index: number) => void
   chatInputRef: RefObject<HTMLTextAreaElement>
 }
@@ -56,6 +57,7 @@ export interface ChatRef {
   isLoading: boolean
   addRelevantContext: (context: Context) => void
   focus: () => void
+  updateActiveSelection: (context: Context | null) => void
 }
 
 interface ChatProps extends React.ComponentProps<'div'> {
@@ -104,6 +106,9 @@ function ChatRenderer(
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
   const [input, setInput] = React.useState<string>('')
   const [relevantContext, setRelevantContext] = React.useState<Context[]>([])
+  const [activeSelection, setActiveSelection] = React.useState<Context | null>(
+    null
+  )
   const chatPanelRef = React.useRef<ChatPanelRef>(null)
 
   const {
@@ -161,6 +166,7 @@ function ChatRenderer(
       const [userMessage, threadRunOptions] = generateRequestPayload(
         qaPair.user
       )
+
       return regenerate({
         threadId,
         userMessageId: qaPair.user.id,
@@ -169,6 +175,35 @@ function ChatRenderer(
         threadRunOptions
       })
     }
+  }
+
+  const onEditMessage = async (userMessageId: string) => {
+    if (!threadId) return
+
+    const qaPair = qaPairs.find(o => o.user.id === userMessageId)
+    if (!qaPair?.user || !qaPair.assistant) return
+
+    const userMessage = qaPair.user
+    let nextClientContext: Context[] = []
+
+    // restore client context
+    if (userMessage.relevantContext?.length) {
+      nextClientContext = nextClientContext.concat(userMessage.relevantContext)
+    }
+
+    setRelevantContext(uniqWith(nextClientContext, isEqual))
+
+    // delete message pair
+    const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
+    setQaPairs(nextQaPairs)
+    setInput(userMessage.message)
+    if (userMessage.activeContext) {
+      onNavigateToContext(userMessage.activeContext, {
+        openInEditor: true
+      })
+    }
+
+    deleteThreadMessagePair(threadId, qaPair?.user.id, qaPair?.assistant?.id)
   }
 
   // Reload the last AI chat response
@@ -190,7 +225,7 @@ function ChatRenderer(
 
   const handleMessageAction = (
     userMessageId: string,
-    actionType: 'delete' | 'regenerate'
+    actionType: MessageActionType
   ) => {
     switch (actionType) {
       case 'delete':
@@ -198,6 +233,9 @@ function ChatRenderer(
         break
       case 'regenerate':
         onRegenerateResponse(userMessageId)
+        break
+      case 'edit':
+        onEditMessage(userMessageId)
         break
       default:
         break
@@ -286,8 +324,9 @@ function ChatRenderer(
     userMessage: UserMessage
   ): [CreateMessageInput, ThreadRunOptionsInput] => {
     // use selectContext or activeContext for code query
-    const contextForCodeQuery =
-      userMessage?.selectContext || userMessage?.activeContext
+    const contextForCodeQuery: FileContext | undefined =
+      userMessage.selectContext || userMessage.activeContext
+
     const codeQuery: InputMaybe<CodeQueryInput> = contextForCodeQuery
       ? {
           content: contextForCodeQuery.content ?? '',
@@ -345,11 +384,14 @@ function ChatRenderer(
         }\n${'```'}\n`
       }
 
-      const newUserMessage = {
+      const newUserMessage: UserMessage = {
         ...userMessage,
         message: userMessage.message + selectCodeSnippet,
         // If no id is provided, set a fallback id.
-        id: userMessage.id ?? nanoid()
+        id: userMessage.id ?? nanoid(),
+        selectContext: userMessage.selectContext,
+        // For forward compatibility
+        activeContext: activeSelection || userMessage.activeContext
       }
 
       const nextQaPairs = [
@@ -367,7 +409,7 @@ function ChatRenderer(
 
       setQaPairs(nextQaPairs)
 
-      return sendUserMessage(...generateRequestPayload(newUserMessage))
+      sendUserMessage(...generateRequestPayload(newUserMessage))
     }
   )
 
@@ -406,6 +448,10 @@ function ChatRenderer(
     onThreadUpdates?.(qaPairs)
   }, [qaPairs])
 
+  const updateActiveSelection = (ctx: Context | null) => {
+    setActiveSelection(ctx)
+  }
+
   React.useImperativeHandle(
     ref,
     () => {
@@ -414,7 +460,8 @@ function ChatRenderer(
         stop,
         isLoading,
         addRelevantContext,
-        focus: () => chatPanelRef.current?.focus()
+        focus: () => chatPanelRef.current?.focus(),
+        updateActiveSelection
       }
     },
     []
@@ -448,7 +495,8 @@ function ChatRenderer(
         onApplyInEditor,
         relevantContext,
         removeRelevantContext,
-        chatInputRef
+        chatInputRef,
+        activeSelection
       }}
     >
       <div className="flex justify-center overflow-x-hidden">

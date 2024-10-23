@@ -5,6 +5,7 @@ import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 
 import com.tabbyml.tabby4eclipse.Logger;
+import com.tabbyml.tabby4eclipse.inlineCompletion.IInlineCompletionService.AcceptType;
 import com.tabbyml.tabby4eclipse.inlineCompletion.InlineCompletionService;
 
 public class Accept extends AbstractHandler {
@@ -13,7 +14,7 @@ public class Accept extends AbstractHandler {
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		logger.debug("Accept the current inline completion.");
-		InlineCompletionService.getInstance().accept();
+		InlineCompletionService.getInstance().accept(AcceptType.FULL_COMPLETION);
 		return null;
 	}
 
