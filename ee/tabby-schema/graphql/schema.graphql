@@ -275,6 +275,11 @@ interface User {
 """
 scalar DateTime
 
+type AnswerHealth {
+  completion: Boolean!
+  code: Boolean!
+}
+
 type CompletionStats {
   start: DateTime!
   end: DateTime!
@@ -693,6 +698,7 @@ type Query {
   "List user groups."
   userGroups: [UserGroup!]!
   sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
+  testModelConnection: AnswerHealth!
 }
 
 type RefreshTokenResponse {

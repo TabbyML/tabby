@@ -99,9 +99,9 @@ impl Webserver {
             ))
         });
 
-        let is_chat_enabled = chat.is_some();
         let ctx = create_service_locator(
             self.logger(),
+            chat.clone(),
             code.clone(),
             repository.clone(),
             integration.clone(),
@@ -111,7 +111,6 @@ impl Webserver {
             web_documents.clone(),
             self.db.clone(),
             self.embedding.clone(),
-            is_chat_enabled,
         )
         .await;
 
