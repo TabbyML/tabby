@@ -4,8 +4,6 @@ Thank you for your interest in contributing to Tabby! We appreciate all contribu
 
 ## Local Setup
 
-### Tabby
-
 To begin contributing to Tabby, first clone the repository locally:
 
 ```
@@ -48,15 +46,6 @@ Optionally, to use a GPU make sure you have the correct drivers and libraries in
 > **CUDA for Nvidia** - [Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html), [Windows](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html)
 > **ROCm for AMD** - [Linux](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/tutorial/quick-start.html), [Windows](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/)
 
-### Website
-
-To begin contributing to Tabby's website, make sure you installed node lts and yarn:
-
-```
-cd website
-yarn install
-yarn start
-```
 ## Building and Running
 
 Tabby can be run through `cargo` in much the same manner as docker:
@@ -129,3 +118,13 @@ Once your PR is ready, please request review from one of the [Tabby team members
 # Changelog
 
 Tabby used [changie](changie.dev) to track unreleased features, it's preferred the changelog is added as part of implementation pr. To create an unreleased feature, use `change new` command.
+
+# Contributing to Docs
+
+To begin contributing to Tabby's docs website, make sure you installed node lts and yarn:
+
+```
+cd website
+yarn install
+yarn start
+```
