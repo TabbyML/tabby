@@ -338,7 +338,7 @@ impl CompletionService {
             let snippets = self
                 .build_snippets(
                     &language,
-                    &segments,
+                    segments,
                     allowed_code_repository,
                     request.disable_retrieval_augmented_code_completion(),
                 )
