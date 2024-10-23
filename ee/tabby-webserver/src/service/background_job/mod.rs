@@ -3,6 +3,7 @@ mod git;
 mod helper;
 mod index_garbage_collection;
 pub mod slack_integration;
+pub mod slack_utils;
 mod third_party_integration;
 mod web_crawler;
 
