@@ -50,19 +50,19 @@ export class SearchPanel implements SearchPanelView {
           this.input?.focus()
         }}
       >
-        <div className="flex items-center justify-between py-2 pl-3 bg-secondary text-secondary-foreground ">
-          <div className="flex-1 flex items-center gap-2">
+        <div className="flex items-center justify-between bg-secondary py-2 pl-3 text-secondary-foreground ">
+          <div className="flex flex-1 items-center gap-2">
             <div className={cn('cm-text-editor-search-input relative')}>
               <Input
                 ref={element => (this.input = element)}
-                className="max-w-[300px] pr-24 bg-input/40"
+                className="max-w-[300px] bg-input/40 pr-24"
                 placeholder="Find..."
                 autoComplete="off"
                 value={inputValue}
                 onChange={event => this.options.onSearch(event.target.value)}
               />
               <div
-                className="absolute top-0 right-2 flex items-center gap-1"
+                className="absolute right-2 top-0 flex items-center gap-1"
                 onClick={e => {
                   this.input?.focus()
                 }}
