@@ -290,6 +290,7 @@ export class Commands {
     "chat.edit.start": async (userCommand?: string) => {
       const editor = window.activeTextEditor;
       if (!editor) {
+        window.showInformationMessage("No active editor");
         return;
       }
 

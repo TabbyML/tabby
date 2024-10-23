@@ -24,7 +24,14 @@ export class InlineEditController {
   private recentlyCommand: string[] = [];
   private suggestedCommand: ChatEditCommand[] = [];
 
-  private quickFileAttachController: QuickFileAttachController = new QuickFileAttachController(this.gitProvider);
+  private quickFileAttachController: QuickFileAttachController = new QuickFileAttachController(
+    this.gitProvider,
+    (filename: string) => {
+      this.restart();
+      this.quickPick.value = `@${filename} `;
+    },
+    () => this.restart(),
+  );
 
   constructor(
     private client: Client,
@@ -46,8 +53,9 @@ export class InlineEditController {
 
     const quickPick = window.createQuickPick<EditCommand>();
     quickPick.placeholder = "Enter the command for editing";
+    quickPick.title = "Edit with the command";
     quickPick.matchOnDescription = true;
-    quickPick.onDidChangeValue(() => this.updateQuickPickList());
+    quickPick.onDidChangeValue(this.onDidChangeValue, this);
     quickPick.onDidHide(() => {
       fetchingSuggestedCommandCancellationTokenSource.cancel();
     });
@@ -87,6 +95,14 @@ export class InlineEditController {
     }
 
     await this.provideEditWithCommand(command);
+  }
+
+  private onDidChangeValue(value: string) {
+    if (value.trim().length === 0) {
+      this.quickFileAttachController.clear();
+    }
+
+    this.updateQuickPickList()
   }
 
   private async provideEditWithCommand(command: string) {
@@ -141,9 +157,11 @@ export class InlineEditController {
 
   private updateQuickPickList() {
     const input = this.quickPick.value;
+    const hasUserSelectFile = this.quickFileAttachController.selectedFileContext !== undefined;
     const list: (QuickPickItem & { value: string })[] = [];
     list.push(
       ...this.suggestedCommand.map((item) => ({
+        alwaysShow: hasUserSelectFile,
         label: item.label,
         value: item.command,
         iconPath: item.source === "preset" ? new ThemeIcon("run") : new ThemeIcon("spark"),
@@ -161,6 +179,7 @@ export class InlineEditController {
     const recentlyCommandToAdd = this.recentlyCommand.filter((item) => !list.find((i) => i.value === item));
     list.push(
       ...recentlyCommandToAdd.map((item) => ({
+        alwaysShow: hasUserSelectFile,
         label: item,
         value: item,
         iconPath: new ThemeIcon("history"),
@@ -175,7 +194,7 @@ export class InlineEditController {
         ],
       })),
     );
-    if (input.length > 0 && !list.find((i) => i.value === input)) {
+    if (!hasUserSelectFile && input.length > 0 && !list.find((i) => i.label === input)) {
       list.unshift({
         label: input,
         value: input,
