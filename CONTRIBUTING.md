@@ -50,7 +50,7 @@ Optionally, to use a GPU make sure you have the correct drivers and libraries in
 
 ### Website
 
-To begin contributing to Tabby's website, make sure you installed [nvm](https://github.com/nvm-sh/nvm?tab=readme-ov-file#install--update-script), node lts and yarn:
+To begin contributing to Tabby's website, make sure you installed node lts and yarn:
 
 ```
 cd website
