@@ -1,3 +1,5 @@
+use core::num;
+
 use anyhow::Result;
 use chrono::{DateTime, TimeZone, Utc};
 use hyper::header;
@@ -27,8 +29,14 @@ pub struct SlackReply {
     pub user: String,
     pub text: String,
     pub timestamp: DateTime<Utc>,
+    pub thread_ts: Option<String>,
+    pub reply_count: Option<i32>,
+    pub subscribed: Option<bool>,
+    pub last_read: Option<String>,
+    pub unread_count: Option<i32>,
+    pub parent_user_id: Option<String>,
+    pub r#type: String,
 }
-
 #[derive(Debug, Clone)]
 pub struct SlackChannel {
     pub id: String,
@@ -117,6 +125,29 @@ pub(crate) struct SlackAuthTestResponse {
     pub error: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub(crate) struct SlackMessageRepliesResponse {
+    pub ok: bool,
+    pub messages: Option<Vec<SlackThreadMessageResponse>>,
+    pub has_more: bool,
+    pub response_metadata: Option<SlackResponseMetadata>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct SlackThreadMessageResponse {
+    pub r#type: String,
+    pub user: String,
+    pub text: String,
+    pub thread_ts: Option<String>,
+    pub ts: String,
+    pub reply_count: Option<i32>,
+    pub subscribed: Option<bool>,
+    pub last_read: Option<String>,
+    pub unread_count: Option<i32>,
+    pub parent_user_id: Option<String>,
+}
+
 /// Slack API client for making requests to Slack's Web API
 #[derive(Debug, Clone)]
 pub struct SlackClient {
@@ -161,7 +192,7 @@ impl SlackClient {
     }
 
     /// Fetches all channels from a Slack workspace
-    pub async fn get_channels(&self, _workspace_id: &str) -> Result<Vec<SlackChannel>> {
+    pub async fn get_channels(&self) -> Result<Vec<SlackChannel>> {
         let response = self
             .client
             .get("https://slack.com/api/conversations.list")
@@ -270,6 +301,54 @@ impl SlackClient {
         Ok(true)
     }
 
+    /// Fetches all replies in a thread without parent message
+    pub async fn get_message_replies(
+        &self,
+        channel_id: &str,
+        thread_ts: &str,
+    ) -> Result<Vec<SlackReply>, CoreError> {
+        let response = self
+            .client
+            .get("https://slack.com/api/conversations.replies")
+            .header(header::AUTHORIZATION, format!("Bearer {}", self.bot_token))
+            .query(&[
+                ("channel", channel_id),
+                ("ts", thread_ts),
+                ("limit", "1000"),
+                ("inclusive", "true"),
+            ])
+            .send()
+            .await
+            .map_err(|e| CoreError::Other(anyhow::Error::new(e)))?;
+
+        let api_response: SlackMessageRepliesResponse = response
+            .json()
+            .await
+            .map_err(|e| CoreError::Other(anyhow::Error::new(e)))?;
+
+        match (api_response.ok, api_response.messages, api_response.error) {
+            (true, Some(messages), _) => {
+                debug!("Successfully fetched {} replies", messages.len());
+
+                // Convert messages to SlackReply format, skipping the parent message
+                let replies: Vec<SlackReply> = messages
+                    .into_iter()
+                    .skip(1) // Skip first parent message due to Slack API design
+                    .map(|msg| convert_to_slack_reply(msg))
+                    .collect();
+
+                Ok(replies)
+            }
+            (false, _, Some(error)) => Err(CoreError::Other(anyhow::anyhow!(
+                "Slack API error: {}",
+                error
+            ))),
+            _ => Err(CoreError::Other(anyhow::anyhow!(
+                "Unexpected response from Slack API"
+            ))),
+        }
+    }
+
     async fn validate_token(&self) -> Result<bool, CoreError> {
         let response = self
             .client
@@ -322,6 +401,30 @@ fn convert_to_slack_message(msg: SlackMessageApiResponse, channel_id: &str) -> S
     }
 }
 
+fn convert_to_slack_reply(msg: SlackThreadMessageResponse) -> SlackReply {
+    let timestamp = msg
+        .ts
+        .split('.')
+        .next()
+        .and_then(|ts| ts.parse::<i64>().ok())
+        .map(|ts| Utc.timestamp_opt(ts, 0).unwrap())
+        .unwrap_or_default();
+
+    SlackReply {
+        id: msg.ts,
+        user: msg.user,
+        text: msg.text,
+        timestamp,
+        thread_ts: msg.thread_ts,
+        reply_count: msg.reply_count,
+        subscribed: msg.subscribed,
+        last_read: msg.last_read,
+        unread_count: msg.unread_count,
+        parent_user_id: msg.parent_user_id,
+        r#type: msg.r#type,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -333,7 +436,7 @@ mod tests {
             return;
         };
 
-        let channels = client.get_channels("workspace-id").await.unwrap();
+        let channels = client.get_channels().await.unwrap();
         debug!("{:?}", channels);
     }
 
@@ -345,6 +448,19 @@ mod tests {
         };
         let messages = client.get_messages("channel-id").await.unwrap();
         debug!("{:?}", messages);
+    }
+    #[tokio::test]
+    async fn test_get_replies() {
+        let Ok(client) = SlackClient::new("your-bot-token").await else {
+            // test
+            return;
+        };
+        //1729751729.608689
+        let result = client
+            .get_message_replies("channel-id", "ts")
+            .await
+            .unwrap();
+        debug!("{:?}", result);
     }
 
     #[tokio::test]
