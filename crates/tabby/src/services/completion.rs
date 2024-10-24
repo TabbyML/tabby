@@ -347,7 +347,8 @@ impl CompletionService {
             return Err(CompletionError::EmptyPrompt);
         };
 
-        let generated = override_generated(self.engine.generate(&prompt, options).await, use_crlf);
+        let generated_text =
+            override_generated_text(self.engine.generate(&prompt, options).await, use_crlf);
 
         self.logger.log(
             request.user.clone(),
@@ -358,7 +359,7 @@ impl CompletionService {
                 segments: segments.cloned().map(|x| x.into()),
                 choices: vec![api::event::Choice {
                     index: 0,
-                    text: generated.clone(),
+                    text: generated_text.clone(),
                 }],
                 user_agent: user_agent.map(|x| x.to_owned()),
             },
@@ -374,7 +375,7 @@ impl CompletionService {
 
         Ok(CompletionResponse::new(
             completion_id,
-            vec![Choice::new(generated)],
+            vec![Choice::new(generated_text)],
             debug_data,
         ))
     }
@@ -401,12 +402,12 @@ fn override_prompt(prompt: String, use_crlf: bool) -> String {
     }
 }
 
-/// override_generated replaces \n with \r\n in the generated text if use_crlf is true.
+/// override_generated_text replaces \n with \r\n in the generated text if use_crlf is true.
 /// This is used to ensure that the generated text has the same line endings as the prompt.
 ///
 /// Because there might be \r\n in the text, which also has a `\n` and should not be replaced,
 /// we can not simply replace \n with \r\n.
-fn override_generated(generated: String, use_crlf: bool) -> String {
+fn override_generated_text(generated: String, use_crlf: bool) -> String {
     if use_crlf {
         let re = Regex::new(r"([^\r])\n").unwrap(); // Match \n that is preceded by anything except \r
         re.replace_all(&generated, "$1\r\n").to_string() // Replace with captured character and \r\n
@@ -620,7 +621,7 @@ mod tests {
         ];
 
         for (generated, expected) in cases {
-            assert_eq!(override_generated(generated, true), expected);
+            assert_eq!(override_generated_text(generated, true), expected);
         }
     }
 }
