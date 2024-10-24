@@ -2,6 +2,7 @@ mod completion_prompt;
 
 use std::sync::Arc;
 
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use tabby_common::{
     api::{
@@ -321,9 +322,14 @@ impl CompletionService {
             self.config.max_decoding_tokens,
         );
 
+        let mut use_crlf = false;
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
             (prompt, None, vec![])
         } else if let Some(segments) = request.segments.as_ref() {
+            if contains_crlf(segments) {
+                use_crlf = true;
+            }
+
             let snippets = self
                 .build_snippets(
                     &language,
@@ -335,13 +341,14 @@ impl CompletionService {
             let prompt = self
                 .prompt_builder
                 .build(&language, segments.clone(), &snippets);
-            (prompt, Some(segments), snippets)
+
+            (override_prompt(prompt, use_crlf), Some(segments), snippets)
         } else {
             return Err(CompletionError::EmptyPrompt);
         };
 
-        let text = self.engine.generate(&prompt, options).await;
-        let segments = segments.cloned().map(|s| s.into());
+        let generated_text =
+            override_generated_text(self.engine.generate(&prompt, options).await, use_crlf);
 
         self.logger.log(
             request.user.clone(),
@@ -349,10 +356,10 @@ impl CompletionService {
                 completion_id: completion_id.clone(),
                 language,
                 prompt: prompt.clone(),
-                segments,
+                segments: segments.cloned().map(|x| x.into()),
                 choices: vec![api::event::Choice {
                     index: 0,
-                    text: text.clone(),
+                    text: generated_text.clone(),
                 }],
                 user_agent: user_agent.map(|x| x.to_owned()),
             },
@@ -368,9 +375,44 @@ impl CompletionService {
 
         Ok(CompletionResponse::new(
             completion_id,
-            vec![Choice::new(text)],
+            vec![Choice::new(generated_text)],
             debug_data,
         ))
+    }
+}
+
+fn contains_crlf(segments: &Segments) -> bool {
+    if segments.prefix.contains("\r\n") {
+        return true;
+    }
+    if let Some(suffix) = &segments.suffix {
+        if suffix.contains("\r\n") {
+            return true;
+        }
+    }
+
+    false
+}
+
+fn override_prompt(prompt: String, use_crlf: bool) -> String {
+    if use_crlf {
+        prompt.replace("\r\n", "\n")
+    } else {
+        prompt
+    }
+}
+
+/// override_generated_text replaces \n with \r\n in the generated text if use_crlf is true.
+/// This is used to ensure that the generated text has the same line endings as the prompt.
+///
+/// Because there might be \r\n in the text, which also has a `\n` and should not be replaced,
+/// we can not simply replace \n with \r\n.
+fn override_generated_text(generated: String, use_crlf: bool) -> String {
+    if use_crlf {
+        let re = Regex::new(r"([^\r])\n").unwrap(); // Match \n that is preceded by anything except \r
+        re.replace_all(&generated, "$1\r\n").to_string() // Replace with captured character and \r\n
+    } else {
+        generated
     }
 }
 
@@ -489,5 +531,97 @@ mod tests {
             .prompt_builder
             .build("rust", segment.clone(), &[]);
         assert_eq!(prompt, "<pre>fn hello_world() -> &'static str {<mid>}<end>");
+    }
+
+    #[test]
+    fn test_contains_crlf() {
+        let contained_crlf = vec![
+            Segments {
+                prefix: "fn hello_world() -> &'static str {\r\n".into(),
+                suffix: Some("}".into()),
+                filepath: None,
+                git_url: None,
+                declarations: None,
+                relevant_snippets_from_changed_files: None,
+                relevant_snippets_from_recently_opened_files: None,
+                clipboard: None,
+            },
+            Segments {
+                prefix: "fn hello_world() -> &'static str {".into(),
+                suffix: Some("}\r\n".into()),
+                filepath: None,
+                git_url: None,
+                declarations: None,
+                relevant_snippets_from_changed_files: None,
+                relevant_snippets_from_recently_opened_files: None,
+                clipboard: None,
+            },
+            Segments {
+                prefix: "fn hello_world() -> &'static str {\r\n".into(),
+                suffix: Some("}\r\n".into()),
+                filepath: None,
+                git_url: None,
+                declarations: None,
+                relevant_snippets_from_changed_files: None,
+                relevant_snippets_from_recently_opened_files: None,
+                clipboard: None,
+            },
+        ];
+        for segments in contained_crlf {
+            assert!(contains_crlf(&segments));
+        }
+
+        let not_contained_crlf = vec![Segments {
+            prefix: "fn hello_world() -> &'static str {\r".into(),
+            suffix: Some("}\n".into()),
+            filepath: None,
+            git_url: None,
+            declarations: None,
+            relevant_snippets_from_changed_files: None,
+            relevant_snippets_from_recently_opened_files: None,
+            clipboard: None,
+        }];
+        for segments in not_contained_crlf {
+            assert!(!contains_crlf(&segments));
+        }
+    }
+
+    #[test]
+    fn test_override_prompt() {
+        let prompt = "fn hello_world() -> &'static str {\r\n".to_string();
+        let use_crlf = true;
+        assert_eq!(
+            override_prompt(prompt.clone(), use_crlf),
+            "fn hello_world() -> &'static str {\n"
+        );
+
+        let use_crlf = false;
+        assert_eq!(override_prompt(prompt.clone(), use_crlf), prompt);
+    }
+
+    #[test]
+    fn test_override_generated() {
+        let cases = vec![
+            (
+                "fn hello_world() -> &'static str {\r\n".to_string(),
+                "fn hello_world() -> &'static str {\r\n".to_string(),
+            ),
+            (
+                "fn hello_world() -> &'static str {\n".to_string(),
+                "fn hello_world() -> &'static str {\r\n".to_string(),
+            ),
+            (
+                "fn hello_world() -> &'static str {\r".to_string(),
+                "fn hello_world() -> &'static str {\r".to_string(),
+            ),
+            (
+                "fn hello_world() -> &'static str {".to_string(),
+                "fn hello_world() -> &'static str {".to_string(),
+            ),
+        ];
+
+        for (generated, expected) in cases {
+            assert_eq!(override_generated_text(generated, true), expected);
+        }
     }
 }

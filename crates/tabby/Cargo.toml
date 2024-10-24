@@ -56,6 +56,7 @@ color-eyre = { version = "0.6.3" }
 reqwest.workspace = true
 async-openai.workspace = true
 spinners = "4.1.1"
+regex.workspace = true
 
 [dependencies.openssl]
 optional = true

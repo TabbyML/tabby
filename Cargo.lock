@@ -5001,6 +5001,7 @@ dependencies = [
  "llama-cpp-server",
  "nvml-wrapper",
  "openssl",
+ "regex",
  "reqwest",
  "reqwest-eventsource",
  "serde",
