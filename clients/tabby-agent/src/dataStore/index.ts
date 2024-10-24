@@ -95,7 +95,7 @@ export class DataStore extends EventEmitter implements Feature {
       if (this.lspInitialized) {
         await sendUpdateRequest();
       } else {
-        this.on("initialized", async () => {
+        this.once("initialized", async () => {
           await sendUpdateRequest();
         });
       }
