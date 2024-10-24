@@ -147,45 +147,39 @@ export class StatusProvider extends EventEmitter implements Feature {
     const issues = Array.isArray(params.issues) ? params.issues : [params.issues];
     const dataStore = this.dataStore;
     switch (params.operation) {
-      case "add":
-        if (dataStore) {
-          const current = dataStore.data.statusIgnoredIssues ?? [];
-          dataStore.data.statusIgnoredIssues = current.concat(issues).distinct();
-          this.logger.debug(
-            "Adding ignored issues: [" +
-              current.join(",") +
-              "] -> [" +
-              dataStore.data.statusIgnoredIssues.join(",") +
-              "].",
-          );
-          await dataStore.save();
-          return true;
-        }
-        break;
-      case "remove":
-        if (dataStore) {
-          const current = dataStore.data.statusIgnoredIssues ?? [];
-          dataStore.data.statusIgnoredIssues = current.filter((item) => !issues.includes(item));
-          this.logger.debug(
-            "Removing ignored issues: [" +
-              current.join(",") +
-              "] -> [" +
-              dataStore.data.statusIgnoredIssues.join(",") +
-              "].",
-          );
+      case "add": {
+        const current = dataStore.data.statusIgnoredIssues ?? [];
+        dataStore.data.statusIgnoredIssues = current.concat(issues).distinct();
+        this.logger.debug(
+          "Adding ignored issues: [" +
+            current.join(",") +
+            "] -> [" +
+            dataStore.data.statusIgnoredIssues.join(",") +
+            "].",
+        );
+        await dataStore.save();
+        return true;
+      }
+      case "remove": {
+        const current = dataStore.data.statusIgnoredIssues ?? [];
+        dataStore.data.statusIgnoredIssues = current.filter((item) => !issues.includes(item));
+        this.logger.debug(
+          "Removing ignored issues: [" +
+            current.join(",") +
+            "] -> [" +
+            dataStore.data.statusIgnoredIssues.join(",") +
+            "].",
+        );
 
-          await dataStore.save();
-          return true;
-        }
-        break;
-      case "removeAll":
-        if (dataStore) {
-          dataStore.data.statusIgnoredIssues = [];
-          this.logger.debug("Removing all ignored issues.");
-          await dataStore.save();
-          return true;
-        }
-        break;
+        await dataStore.save();
+        return true;
+      }
+      case "removeAll": {
+        dataStore.data.statusIgnoredIssues = [];
+        this.logger.debug("Removing all ignored issues.");
+        await dataStore.save();
+        return true;
+      }
       default:
         break;
     }
