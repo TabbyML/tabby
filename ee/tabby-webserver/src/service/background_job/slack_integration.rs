@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use logkit::{debug, info};
 use serde::{Deserialize, Serialize};
 use tabby_index::public::{DocIndexer, WebDocument};
@@ -163,11 +163,11 @@ impl SlackIntegrationJob {
 
 /// the index message should be long enough and have replies
 fn should_index_message(message: &SlackMessage) -> bool {
-    message.text.len() > 80 && !message.reply_count.is_none()
+    message.text.len() > 80 && message.reply_count.is_some()
 }
 
 async fn fetch_all_channels(client: &SlackClient) -> Result<Vec<SlackChannel>, CoreError> {
-    client.get_channels().await.map_err(|e| CoreError::Other(e))
+    client.get_channels().await.map_err(CoreError::Other)
 }
 
 async fn fetch_channel_messages(

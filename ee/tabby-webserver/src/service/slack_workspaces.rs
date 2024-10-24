@@ -158,9 +158,9 @@ impl SlackWorkspaceIntegrationService for SlackWorkspaceIntegrationServiceImpl {
 
 #[cfg(test)]
 mod tests {
-    use tabby_db::DbConn;
+    
 
-    use super::*;
+    
 
     // #[tokio::test]
     // async fn test_slack_workspace_integration_service() {

@@ -1,4 +1,3 @@
-use core::num;
 
 use anyhow::Result;
 use chrono::{DateTime, TimeZone, Utc};
@@ -334,7 +333,7 @@ impl SlackClient {
                 let replies: Vec<SlackReply> = messages
                     .into_iter()
                     .skip(1) // Skip first parent message due to Slack API design
-                    .map(|msg| convert_to_slack_reply(msg))
+                    .map(convert_to_slack_reply)
                     .collect();
 
                 Ok(replies)
