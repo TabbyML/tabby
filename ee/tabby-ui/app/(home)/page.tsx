@@ -138,6 +138,7 @@ function MainPanel() {
           )}
           <Stats />
           <ThreadFeeds
+            className="lg:mt-8"
             onNavigateToThread={() => {
               if (!scroller.current) return
               setHomeScrollPosition(scroller.current.scrollTop)

@@ -11,6 +11,7 @@ import {
   Bug,
   ChevronsDownUp,
   CirclePlay,
+  Files,
   FileText,
   Filter,
   GitFork,
@@ -1619,11 +1620,11 @@ function IconHash({ className, ...props }: React.ComponentProps<typeof Hash>) {
   return <Hash className={cn('h-4 w-4', className)} {...props} />
 }
 
-function IconMessagesSquare({
+function IconFiles({
   className,
   ...props
 }: React.ComponentProps<typeof MessagesSquare>) {
-  return <MessagesSquare className={cn('h-4 w-4', className)} {...props} />
+  return <Files className={cn('h-4 w-4', className)} {...props} />
 }
 
 export {
@@ -1723,5 +1724,5 @@ export {
   IconWrapText,
   IconAlignJustify,
   IconHash,
-  IconMessagesSquare
+  IconFiles
 }
