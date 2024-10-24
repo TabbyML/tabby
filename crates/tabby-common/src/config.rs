@@ -459,14 +459,16 @@ mod tests {
             model_name = "Qwen2-1.5B-Instruct"
             "#;
 
-        let config: Config = serdeconv::from_toml_str::<Config>(toml_config)
-            .expect("Failed to parse config");
+        let config: Config =
+            serdeconv::from_toml_str::<Config>(toml_config).expect("Failed to parse config");
 
         if let Err(e) = Config::validate_model_config(&config.model.completion) {
-            println!("Final result: {}", e.to_string());
+            println!("Final result: {}", e);
         }
-        
-        assert!(matches!(Config::validate_model_config(&config.model.completion), Err(ref e) if true));
+
+        assert!(
+            matches!(Config::validate_model_config(&config.model.completion), Err(ref e) if true)
+        );
         assert!(Config::validate_model_config(&config.model.chat).is_ok());
     }
 
