@@ -19,6 +19,7 @@ pub mod worker;
 use std::sync::Arc;
 
 use access_policy::{AccessPolicyService, SourceIdAccessPolicy};
+use async_openai::types::CreateChatCompletionRequest;
 use auth::{
     AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
     UserSecured,
@@ -34,6 +35,7 @@ use juniper::{
 };
 use repository::RepositoryGrepOutput;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
+use tabby_inference::ChatCompletionStream;
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
 use tracing::{error, warn};
 use user_group::{
@@ -72,6 +74,7 @@ pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> Arc<dyn AuthenticationService>;
     fn worker(&self) -> Arc<dyn WorkerService>;
     fn code(&self) -> Arc<dyn CodeSearch>;
+    fn chat(&self) -> Option<Arc<dyn ChatCompletionStream>>;
     fn logger(&self) -> Arc<dyn EventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
     fn repository(&self) -> Arc<dyn RepositoryService>;
@@ -186,6 +189,13 @@ async fn check_license(ctx: &Context, license_type: &[LicenseType]) -> Result<()
     }
 
     license.ensure_valid_license()
+}
+
+#[derive(GraphQLObject, Debug, Clone)]
+pub struct ModelHealth {
+    pub completion: bool,
+    pub chat: bool,
+    pub embeddings: bool,
 }
 
 #[derive(Default)]
@@ -657,6 +667,25 @@ impl Query {
             .await?;
 
         Ok(SourceIdAccessPolicy { source_id, read })
+    }
+
+    async fn test_model_connection(ctx: &Context) -> Result<ModelHealth> {
+        check_user_allow_auth_token(ctx).await?;
+
+        let mut health = ModelHealth {
+            completion: false,
+            chat: false,
+            embeddings: false,
+        };
+
+        if let Some(chat) = ctx.locator.chat() {
+            let request = CreateChatCompletionRequest::default();
+            if let Ok(_) = chat.chat(request).await {
+                health.chat = true;
+            }
+        }
+
+        Ok(health)
     }
 }
 
