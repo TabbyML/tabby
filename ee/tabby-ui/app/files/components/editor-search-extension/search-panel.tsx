@@ -69,7 +69,9 @@ export class SearchPanel implements SearchPanelView {
               >
                 <Toggle
                   pressed={searchQuery.caseSensitive}
-                  onPressedChange={v => this.options.setCaseSensitive(v)}
+                  onPressedChange={(v: boolean) =>
+                    this.options.setCaseSensitive(v)
+                  }
                   size="sm"
                   className="h-8 data-[state=on]:bg-primary/80 data-[state=on]:text-primary-foreground"
                 >
@@ -77,7 +79,7 @@ export class SearchPanel implements SearchPanelView {
                 </Toggle>
                 <Toggle
                   pressed={searchQuery.regexp}
-                  onPressedChange={v => this.options.setRegexp(v)}
+                  onPressedChange={(v: boolean) => this.options.setRegexp(v)}
                   size="sm"
                   className="h-8 data-[state=on]:bg-primary/80 data-[state=on]:text-primary-foreground"
                 >
