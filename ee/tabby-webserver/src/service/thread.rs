@@ -287,7 +287,8 @@ mod tests {
 
     use super::*;
     use crate::answer::testutils::{
-        FakeChatCompletionStream, FakeCodeSearch, FakeContextService, FakeDocSearch,
+        make_repository_service, FakeChatCompletionStream, FakeCodeSearch, FakeContextService,
+        FakeDocSearch,
     };
 
     #[tokio::test]
@@ -510,6 +511,7 @@ mod tests {
         let context: Arc<dyn ContextService> = Arc::new(FakeContextService);
         let serper = Some(Box::new(FakeDocSearch) as Box<dyn DocSearch>);
         let config = make_answer_config();
+        let repo = make_repository_service(db.clone()).await.unwrap();
         let answer_service = Arc::new(crate::answer::create(
             &config,
             chat.clone(),
@@ -517,6 +519,7 @@ mod tests {
             doc.clone(),
             context.clone(),
             serper,
+            repo,
         ));
         let service = create(db.clone(), Some(answer_service));
 

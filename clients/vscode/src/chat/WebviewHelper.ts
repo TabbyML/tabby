@@ -347,6 +347,14 @@ export class WebviewHelper {
     this.client?.sendMessage(message);
   }
 
+  public async syncActiveSelectionToChatPanel(context: Context | null) {
+    try {
+      await this.client?.updateActiveSelection(context);
+    } catch {
+      this.logger.warn("Active selection sync failed. Please update your Tabby server to the latest version.");
+    }
+  }
+
   public addRelevantContext(context: Context) {
     if (!this.client) {
       this.pendingRelevantContexts.push(context);
@@ -374,6 +382,7 @@ export class WebviewHelper {
 
     this.pendingRelevantContexts.forEach((ctx) => this.addRelevantContext(ctx));
     this.pendingMessages.forEach((message) => this.sendMessageToChatPanel(message));
+    this.syncActiveSelection(window.activeTextEditor);
 
     if (serverInfo.config.token) {
       this.client?.cleanError();
@@ -416,6 +425,15 @@ export class WebviewHelper {
     }
   }
 
+  public syncActiveSelection(editor: TextEditor | undefined) {
+    if (!editor) {
+      return;
+    }
+
+    const fileContext = WebviewHelper.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+    this.syncActiveSelectionToChatPanel(fileContext);
+  }
+
   public addAgentEventListeners() {
     this.agent.on("didChangeStatus", async (status) => {
       if (status !== "disconnected") {
@@ -431,6 +449,15 @@ export class WebviewHelper {
       const serverInfo = await this.agent.fetchServerInfo();
       this.displayChatPage(serverInfo.config.endpoint, { force: true });
       this.refreshChatPage();
+    });
+  }
+
+  public addTextEditorEventListeners() {
+    window.onDidChangeTextEditorSelection((e) => {
+      if (e.textEditor !== window.activeTextEditor) {
+        return;
+      }
+      this.syncActiveSelection(e.textEditor);
     });
   }
 
@@ -503,6 +530,7 @@ export class WebviewHelper {
           message: msg,
           relevantContext: [],
         };
+        // FIXME: after synchronizing the activeSelection, perhaps there's no need to include activeSelection in the message.
         if (editor) {
           const fileContext = WebviewHelper.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
           if (fileContext)

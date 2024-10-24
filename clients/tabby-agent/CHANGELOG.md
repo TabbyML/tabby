@@ -1,3 +1,21 @@
+## 1.8.0
+
+### Breaking Changes
+
+- Removed the deprecated `TabbyAgent` interface and related types.
+
+### Features
+
+- Added support for HTTP proxy configuration, defaulting to using HTTP proxy settings in environment variables.
+- Included a default git context provider based on the system git command for collecting git repo context.
+- Introduced `tabby/status` and `tabby/config` methods, deprecating `tabby/agent` methods.
+- Added a method to sync all visible editor ranges for collecting code snippet context to enhance code completion generation.
+
+### Fixes & Improvements
+
+- Added more controls in the initialization options for better compatibility.
+- Added a configurable minimal text length threshold to display the completion item.
+
 ## 1.7.0
 
 ### Breaking Changes

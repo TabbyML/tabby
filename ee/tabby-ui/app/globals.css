@@ -39,6 +39,8 @@
     --radius: 0.5rem;
 
     --selection: 200, 100%, 90%;
+
+    --link: 38, 44%, 41%;
   }
 
   .dark {
@@ -75,6 +77,8 @@
     --ring: 39 32% 87%;
 
     --selection: 221, 13%, 28%;
+
+    --link: 37, 34%, 57%;
   }
 }
 
@@ -98,12 +102,4 @@
 
 .dialog-without-close-btn > button {
   display: none;
-}
-
-[data-aos][data-aos=fade-down] {
-  transform: translate3d(0, -20px, 0);
-}
-
-[data-aos][data-aos=fade-up] {
-  transform: translate3d(0, 20px, 0);
 }
