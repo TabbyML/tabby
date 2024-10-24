@@ -66,6 +66,8 @@ pub struct IndexSchema {
     pub field_chunk_attributes: Field,
     /// Matching tokens for the chunk, it's indexed but not stored..
     pub field_chunk_tokens: Field,
+    /// The origin values of matching tokens for the chunk, it's only stored origin value before binary embedding.
+    pub field_token_values: Field,
     // =========================
 }
 
@@ -109,6 +111,7 @@ impl IndexSchema {
 
         // Chunks are only indexed for search; their size is usually large, so we don't store them.
         let field_chunk_tokens = builder.add_text_field("chunk_tokens", STRING);
+        let field_token_values = builder.add_text_field("token_values", STORED);
         let schema = builder.build();
 
         Self {
@@ -122,6 +125,7 @@ impl IndexSchema {
             field_chunk_id,
             field_chunk_attributes,
             field_chunk_tokens,
+            field_token_values,
         }
     }
 
@@ -242,6 +246,35 @@ pub fn binarize_embedding<'a>(
             format!("embedding_one_{}", i)
         }
     })
+}
+
+pub fn approximate_embedding(
+    embedding: f32,
+) -> u8 {
+    let v: i32 = (embedding * 128.0).round() as i32;
+    std::cmp::max(std::cmp::min(v, 127), -128) as u8
+}
+
+pub fn convert_to_embedding(
+    v: u8,
+) -> f32 {
+    (v as f32) / 128.0
+}
+
+pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
+    let mut s1 = 0.0;
+    let mut s2 = 0.0;
+    let mut s3 = 0.0;
+    let l = std::cmp::min(a.len(), b.len());
+    for i in 0..l {
+        s1 += a[i] * b[i];
+        s2 += a[i] * a[i];
+        s3 += b[i] * b[i];
+    }
+    if s2 < 0.000001 || s3 < 0.000001 {
+        return 0.0;
+    }
+    s1 / (s2 * s3).sqrt()
 }
 
 pub fn embedding_tokens_query<'a>(
