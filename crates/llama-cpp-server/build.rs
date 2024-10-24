@@ -57,7 +57,7 @@ fn main() {
         config.define("AMDGPU_TARGETS", amd_gpu_targets.join(";"));
     }
     if cfg!(feature = "vulkan") {
-        config.define("LLAMA_VULKAN", "ON");
+        config.define("GGML_VULKAN", "ON");
     }
 
     let out = config.build();
