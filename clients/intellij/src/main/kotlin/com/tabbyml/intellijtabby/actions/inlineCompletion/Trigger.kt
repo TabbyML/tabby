@@ -1,4 +1,4 @@
-package com.tabbyml.intellijtabby.actions
+package com.tabbyml.intellijtabby.actions.inlineCompletion
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
@@ -8,8 +8,7 @@ import com.intellij.openapi.components.serviceOrNull
 import com.tabbyml.intellijtabby.actionPromoter.HasPriority
 import com.tabbyml.intellijtabby.completion.InlineCompletionService
 
-
-class TriggerInlineCompletion : AnAction(), HasPriority {
+class Trigger : AnAction(), HasPriority {
   override fun actionPerformed(e: AnActionEvent) {
     val inlineCompletionService =
       e.getRequiredData(CommonDataKeys.PROJECT).serviceOrNull<InlineCompletionService>() ?: return
