@@ -436,6 +436,42 @@ mod tests {
     }
 
     #[test]
+    fn it_parses_invalid_model_name_config() {
+        let toml_config = r#"
+            # Completion model
+            [model.completion.http]
+            kind = "llama.cpp/completion"
+            api_endpoint = "http://localhost:8888"
+            prompt_template = "<PRE> {prefix} <SUF>{suffix} <MID>"  # Example prompt template for the CodeLlama model series.
+            supported_models = ["test"]
+            model_name = "wsxiaoys/StarCoder-1B"
+
+            # Chat model
+            [model.chat.http]
+            kind = "openai/chat"
+            api_endpoint = "http://localhost:8888"
+            supported_models = ["Qwen2-1.5B-Instruct"]
+            model_name = "Qwen2-1.5B-Instruct"
+
+            # Embedding model
+            [model.embedding.http]
+            kind = "llama.cpp/embedding"
+            api_endpoint = "http://localhost:8888"
+            model_name = "Qwen2-1.5B-Instruct"
+            "#;
+
+        let config: Config = serdeconv::from_toml_str::<Config>(toml_config)
+            .expect("Failed to parse config");
+
+        if let Err(e) = Config::validate_model_config(&config.model.completion) {
+            println!("Final result: {}", e.to_string());
+        }
+        
+        assert!(matches!(Config::validate_model_config(&config.model.completion), Err(ref e) if true));
+        assert!(Config::validate_model_config(&config.model.chat).is_ok());
+    }
+
+    #[test]
     fn it_parses_local_dir() {
         let repo = RepositoryConfig {
             git_url: "file:///home/user".to_owned(),
