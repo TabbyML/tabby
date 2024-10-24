@@ -44,6 +44,7 @@
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-switch": "^1.0.3",
     "@radix-ui/react-tabs": "^1.0.4",
+    "@radix-ui/react-toggle": "^1.1.0",
     "@radix-ui/react-tooltip": "^1.0.6",
     "@sindresorhus/slugify": "^2.2.1",
     "@tiptap/extension-document": "^2.6.6",
@@ -120,6 +121,7 @@
     "tippy.js": "^6.3.7",
     "urql": "^4.0.6",
     "use-local-storage": "^3.0.0",
+    "wonka": "^6.3.4",
     "zod": "^3.22.4",
     "zustand": "^4.4.6"
   },

@@ -214,6 +214,7 @@ export const CodeSearchBar: React.FC<CodeSearchBarProps> = ({ className }) => {
         event.preventDefault()
         inputRef.current?.focus()
         openMenu()
+        return
       }
     }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { LetterCaseCapitalizeIcon } from '@radix-ui/react-icons'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
 import {
   AlignJustify,
@@ -9,8 +10,10 @@ import {
   BookOpenText,
   Box,
   Bug,
+  CaseSensitive,
   ChevronsDownUp,
   CirclePlay,
+  Files,
   FileText,
   Filter,
   GitFork,
@@ -22,6 +25,7 @@ import {
   ListFilter,
   Mail,
   MessagesSquare,
+  Regex,
   Search,
   Share2,
   Sparkles,
@@ -1619,11 +1623,34 @@ function IconHash({ className, ...props }: React.ComponentProps<typeof Hash>) {
   return <Hash className={cn('h-4 w-4', className)} {...props} />
 }
 
-function IconMessagesSquare({
+function IconFiles({
   className,
   ...props
 }: React.ComponentProps<typeof MessagesSquare>) {
-  return <MessagesSquare className={cn('h-4 w-4', className)} {...props} />
+  return <Files className={cn('h-4 w-4', className)} {...props} />
+}
+
+function IconRegex({
+  className,
+  ...props
+}: React.ComponentProps<typeof Regex>) {
+  return <Regex className={cn('h-4 w-4', className)} {...props} />
+}
+
+function IconLetterCaseCapitalize({
+  className,
+  ...props
+}: React.ComponentProps<typeof LetterCaseCapitalizeIcon>) {
+  return (
+    <LetterCaseCapitalizeIcon className={cn('h-4 w-4', className)} {...props} />
+  )
+}
+
+function IconCaseSensitive({
+  className,
+  ...props
+}: React.ComponentProps<typeof CaseSensitive>) {
+  return <CaseSensitive className={cn('h-4 w-4', className)} {...props} />
 }
 
 export {
@@ -1723,5 +1750,8 @@ export {
   IconWrapText,
   IconAlignJustify,
   IconHash,
-  IconMessagesSquare
+  IconFiles,
+  IconLetterCaseCapitalize,
+  IconCaseSensitive,
+  IconRegex
 }

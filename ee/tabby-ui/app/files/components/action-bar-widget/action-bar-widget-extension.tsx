@@ -83,7 +83,11 @@ function createActionBarWidget(state: EditorState, options: Options): Tooltip {
 function shouldShowActionBarWidget(transaction: Transaction): boolean {
   const isTextSelected =
     !!transaction.selection && !transaction.selection.main.empty
-  return isTextSelected && transaction.isUserEvent('select')
+  return (
+    isTextSelected &&
+    transaction.isUserEvent('select') &&
+    !transaction.isUserEvent('select.search')
+  )
 }
 
 export { ActionBarWidgetExtension }

@@ -7,18 +7,15 @@ import prettyBytes from 'pretty-bytes'
 import { toast } from 'sonner'
 
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
-import { useIsSticky } from '@/lib/hooks/use-is-sticky'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { IconCheck, IconCopy, IconDownload } from '@/components/ui/icons'
-import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
 
-import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { resolveFileNameFromPath } from './utils'
 
@@ -44,7 +41,6 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
   const containerRef = React.useRef<HTMLDivElement>(null)
   const { activePath } = React.useContext(SourceCodeBrowserContext)
   const { isCopied, copyToClipboard } = useCopyToClipboard({ timeout: 2000 })
-  const isSticky = useIsSticky(containerRef)
 
   const showChatPanelTrigger = isChatEnabled && !chatSideBarVisible
 
@@ -62,27 +58,14 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
 
   return (
     <div
-      className={cn(
-        'sticky -top-1 z-10 border',
-        !isSticky && 'rounded-t-lg',
-        className
-      )}
+      className={cn('sticky top-0 z-10 border', className)}
       ref={containerRef}
       {...props}
     >
-      {isSticky && (
-        <>
-          <div className="bg-secondary pl-4">
-            <FileDirectoryBreadcrumb className="py-2" />
-          </div>
-          {isSticky && <Separator />}
-        </>
-      )}
       {!hideBlobActions && (
         <div
           className={cn(
-            'flex items-center justify-between bg-secondary p-2 text-secondary-foreground',
-            !isSticky && 'rounded-t-lg'
+            'flex items-center justify-between rounded-t-lg bg-secondary p-2 text-secondary-foreground'
           )}
         >
           <div className="flex h-8 items-center gap-4 leading-8">

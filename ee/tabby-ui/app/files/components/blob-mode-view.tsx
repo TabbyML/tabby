@@ -78,6 +78,7 @@ const BlobModeViewRenderer: React.FC<BlobViewProps> = ({
           </Tabs>
         )}
       </BlobHeader>
+
       {loading && !blob ? (
         <ListSkeleton className="p-2" />
       ) : isRaw ? (
