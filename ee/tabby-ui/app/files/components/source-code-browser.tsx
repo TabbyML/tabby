@@ -663,14 +663,14 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
               !!activeEntryInfo?.repositorySpecifier ? 'block' : 'hidden'
             )}
           />
+          {(isTreeMode || isBlobMode) && (
+            <FileDirectoryBreadcrumb
+              className={cn('px-4 pb-4', {
+                'pt-4': !activeEntryInfo?.repositorySpecifier
+              })}
+            />
+          )}
           <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
-            {(isTreeMode || isBlobMode) && (
-              <FileDirectoryBreadcrumb
-                className={cn('pb-4', {
-                  'pt-4': !activeEntryInfo?.repositorySpecifier
-                })}
-              />
-            )}
             {!initialized ? (
               <ListSkeleton className="rounded-lg border p-4" />
             ) : showErrorView ? (

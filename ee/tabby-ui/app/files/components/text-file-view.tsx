@@ -28,7 +28,7 @@ export const TextFileView: React.FC<TextFileViewProps> = ({ className }) => {
 
   return (
     <div className={cn(className)}>
-      <div className="rounded-b-lg border border-t-0 py-2">
+      <div className="rounded-b-lg border border-t-0">
         <Suspense fallback={<ListSkeleton className="p-2" />}>
           {showMarkdown ? (
             <MarkdownView value={textValue} />
