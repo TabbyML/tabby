@@ -38,6 +38,7 @@ mod provided_repositories;
 mod refresh_tokens;
 mod repositories;
 mod server_setting;
+pub mod slack_workspaces;
 mod threads;
 mod user_completions;
 mod user_events;
