@@ -1531,6 +1531,13 @@ function IconApplyInEditor({
   return <IndentIncrease className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconSmartApplyInEditor({
+  className,
+  ...props
+}: React.ComponentProps<typeof Sparkles>) {
+  return <Sparkles className={cn('h-4 w-4', className)} {...props} />
+}
+
 function IconBug({ className, ...props }: React.ComponentProps<typeof Bug>) {
   return <Bug className={cn('h-4 w-4', className)} {...props} />
 }
@@ -1738,6 +1745,7 @@ export {
   IconTag,
   IconFileText,
   IconApplyInEditor,
+  IconSmartApplyInEditor,
   IconBug,
   IconFilter,
   IconRemove,
