@@ -665,7 +665,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           />
           {(isTreeMode || isBlobMode) && (
             <FileDirectoryBreadcrumb
-              className={cn('pb-4 px-4', {
+              className={cn('px-4 pb-4', {
                 'pt-4': !activeEntryInfo?.repositorySpecifier
               })}
             />

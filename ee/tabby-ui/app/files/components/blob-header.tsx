@@ -65,7 +65,7 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
       {!hideBlobActions && (
         <div
           className={cn(
-            'flex items-center justify-between bg-secondary p-2 text-secondary-foreground rounded-t-lg'
+            'flex items-center justify-between rounded-t-lg bg-secondary p-2 text-secondary-foreground'
           )}
         >
           <div className="flex h-8 items-center gap-4 leading-8">
