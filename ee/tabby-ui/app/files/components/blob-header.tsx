@@ -1,24 +1,21 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
 import prettyBytes from 'pretty-bytes'
 import { toast } from 'sonner'
 
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
-import { useIsSticky } from '@/lib/hooks/use-is-sticky'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { IconCheck, IconCopy, IconDownload } from '@/components/ui/icons'
-// import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
 
-// import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { resolveFileNameFromPath } from './utils'
 
@@ -28,7 +25,6 @@ interface BlobHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   hideBlobActions?: boolean
   contentLength?: number
   lines?: number
-  onStickyChange?: (isSticky: boolean) => void
 }
 
 export const BlobHeader: React.FC<BlobHeaderProps> = ({
@@ -38,7 +34,6 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
   hideBlobActions,
   contentLength,
   children,
-  onStickyChange,
   ...props
 }) => {
   const { chatSideBarVisible, setChatSideBarVisible, isChatEnabled } =
@@ -46,7 +41,6 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
   const containerRef = React.useRef<HTMLDivElement>(null)
   const { activePath } = React.useContext(SourceCodeBrowserContext)
   const { isCopied, copyToClipboard } = useCopyToClipboard({ timeout: 2000 })
-  const isSticky = useIsSticky(containerRef)
 
   const showChatPanelTrigger = isChatEnabled && !chatSideBarVisible
 
@@ -62,37 +56,16 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
     }
   }
 
-  useEffect(() => {
-    onStickyChange?.(isSticky)
-  }, [isSticky])
-
   return (
     <div
-      className={cn(
-        'sticky top-0 z-10 border',
-        !isSticky && 'rounded-t-lg',
-        className
-      )}
-      // className={cn(
-      //   'border rounded-t-lg',
-      //   className
-      // )}
+      className={cn('sticky top-0 z-10 border', className)}
       ref={containerRef}
       {...props}
     >
-      {/* {isSticky && (
-        <>
-          <div className="bg-secondary pl-4">
-            <FileDirectoryBreadcrumb className="py-2" />
-          </div>
-          {isSticky && <Separator />}
-        </>
-      )} */}
       {!hideBlobActions && (
         <div
           className={cn(
-            'flex items-center justify-between bg-secondary p-2 text-secondary-foreground',
-            !isSticky && 'rounded-t-lg'
+            'flex items-center justify-between bg-secondary p-2 text-secondary-foreground rounded-t-lg'
           )}
         >
           <div className="flex h-8 items-center gap-4 leading-8">

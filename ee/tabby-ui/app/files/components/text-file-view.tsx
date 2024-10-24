@@ -11,14 +11,9 @@ import { SourceCodeBrowserContext } from './source-code-browser'
 const CodeEditorView = React.lazy(() => import('./code-editor-view'))
 const MarkdownView = React.lazy(() => import('./markdown-view'))
 
-interface TextFileViewProps extends React.HTMLProps<HTMLDivElement> {
-  isSticky: boolean
-}
+interface TextFileViewProps extends React.HTMLProps<HTMLDivElement> {}
 
-export const TextFileView: React.FC<TextFileViewProps> = ({
-  className,
-  isSticky
-}) => {
+export const TextFileView: React.FC<TextFileViewProps> = ({ className }) => {
   const { searchParams } = useRouterStuff()
   const { activePath } = useContext(SourceCodeBrowserContext)
   const { textValue } = useContext(BlobModeViewContext)
@@ -38,13 +33,7 @@ export const TextFileView: React.FC<TextFileViewProps> = ({
           {showMarkdown ? (
             <MarkdownView value={textValue} />
           ) : (
-            <CodeEditorView
-              className={cn({
-                'pt-12': isSticky
-              })}
-              value={textValue ?? ''}
-              language={language}
-            />
+            <CodeEditorView value={textValue ?? ''} language={language} />
           )}
         </Suspense>
       </div>

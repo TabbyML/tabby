@@ -44,8 +44,6 @@ const BlobModeViewRenderer: React.FC<BlobViewProps> = ({
   const language = detectedLanguage ?? 'plain'
   const isMarkdown = !!textValue && language === 'markdown'
   const isPlain = searchParams.get('plain')?.toString() === '1'
-  const [isSticky, setIsSticky] = useState(false)
-  // const [debouncedIsSticky] = useDebounceValue(isSticky, 100)
 
   const onToggleMarkdownView = (value: string) => {
     if (value === '1') {
@@ -67,12 +65,7 @@ const BlobModeViewRenderer: React.FC<BlobViewProps> = ({
 
   return (
     <div className={cn(className)}>
-      <BlobHeader
-        blob={blob}
-        contentLength={contentLength}
-        canCopy={!isRaw}
-        onStickyChange={setIsSticky}
-      >
+      <BlobHeader blob={blob} contentLength={contentLength} canCopy={!isRaw}>
         {isMarkdown && (
           <Tabs
             value={isPlain ? '1' : '0'}
@@ -91,7 +84,7 @@ const BlobModeViewRenderer: React.FC<BlobViewProps> = ({
       ) : isRaw ? (
         <RawFileView blob={blob} isImage={fileDisplayType === 'image'} />
       ) : (
-        <TextFileView isSticky={isSticky} />
+        <TextFileView />
       )}
     </div>
   )
