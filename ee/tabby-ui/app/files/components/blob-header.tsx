@@ -11,14 +11,14 @@ import { useIsSticky } from '@/lib/hooks/use-is-sticky'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { IconCheck, IconCopy, IconDownload } from '@/components/ui/icons'
-import { Separator } from '@/components/ui/separator'
+// import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
 
-import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
+// import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { resolveFileNameFromPath } from './utils'
 
@@ -69,21 +69,25 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
   return (
     <div
       className={cn(
-        'sticky -top-1 z-10 border',
+        'sticky top-0 z-10 border',
         !isSticky && 'rounded-t-lg',
         className
       )}
+      // className={cn(
+      //   'border rounded-t-lg',
+      //   className
+      // )}
       ref={containerRef}
       {...props}
     >
-      {isSticky && (
+      {/* {isSticky && (
         <>
           <div className="bg-secondary pl-4">
             <FileDirectoryBreadcrumb className="py-2" />
           </div>
           {isSticky && <Separator />}
         </>
-      )}
+      )} */}
       {!hideBlobActions && (
         <div
           className={cn(

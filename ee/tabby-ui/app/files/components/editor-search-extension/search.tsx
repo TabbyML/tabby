@@ -153,7 +153,7 @@ const focusSearchInput = StateEffect.define<boolean>()
 
 class SearchPanel implements Panel {
   public dom: HTMLElement
-  public top = false
+  public top = true
 
   private state: SearchPanelState
   private panel: SearchPanelView | null = null
@@ -428,7 +428,10 @@ export const search = (config: SearchConfig) => {
         backgroundColor: 'hsl(var(--secondary))',
         color: 'hsl(var(--secondary-foreground))',
         borderBottom: '1px solid hsl(var(--border))',
-        borderTop: '1px solid hsl(var(--border))'
+        borderTop: '1px solid hsl(var(--border))',
+        position: 'sticky',
+        top: '50px !important',
+        zIndex: 20
       }
     })
   ]

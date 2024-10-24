@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { LetterCaseCapitalizeIcon } from '@radix-ui/react-icons'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
 import {
   AlignJustify,
@@ -1629,18 +1630,27 @@ function IconFiles({
   return <Files className={cn('h-4 w-4', className)} {...props} />
 }
 
-function IconCaseSensitive({
-  className,
-  ...props
-}: React.ComponentProps<typeof CaseSensitive>) {
-  return <CaseSensitive className={cn('h-4 w-4', className)} {...props} />
-}
-
 function IconRegex({
   className,
   ...props
 }: React.ComponentProps<typeof Regex>) {
   return <Regex className={cn('h-4 w-4', className)} {...props} />
+}
+
+function IconLetterCaseCapitalize({
+  className,
+  ...props
+}: React.ComponentProps<typeof LetterCaseCapitalizeIcon>) {
+  return (
+    <LetterCaseCapitalizeIcon className={cn('h-4 w-4', className)} {...props} />
+  )
+}
+
+function IconCaseSensitive({
+  className,
+  ...props
+}: React.ComponentProps<typeof CaseSensitive>) {
+  return <CaseSensitive className={cn('h-4 w-4', className)} {...props} />
 }
 
 export {
@@ -1741,6 +1751,7 @@ export {
   IconAlignJustify,
   IconHash,
   IconFiles,
+  IconLetterCaseCapitalize,
   IconCaseSensitive,
   IconRegex
 }

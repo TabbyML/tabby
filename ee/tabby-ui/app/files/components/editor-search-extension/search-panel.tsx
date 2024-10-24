@@ -4,10 +4,10 @@ import { createRoot, Root } from 'react-dom/client'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
-  IconCaseSensitive,
   IconChevronLeft,
   IconChevronRight,
   IconClose,
+  IconLetterCaseCapitalize,
   IconRegex
 } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
@@ -62,7 +62,7 @@ export class SearchPanel implements SearchPanelView {
                 onChange={event => this.options.onSearch(event.target.value)}
               />
               <div
-                className="absolute right-2 top-0 flex items-center gap-1"
+                className="absolute right-2 top-0.5 flex items-center gap-1"
                 onClick={e => {
                   this.input?.focus()
                 }}
@@ -71,13 +71,15 @@ export class SearchPanel implements SearchPanelView {
                   pressed={searchQuery.caseSensitive}
                   onPressedChange={v => this.options.setCaseSensitive(v)}
                   size="sm"
+                  className="h-8 data-[state=on]:bg-primary/80 data-[state=on]:text-primary-foreground"
                 >
-                  <IconCaseSensitive />
+                  <IconLetterCaseCapitalize strokeWidth={2} />
                 </Toggle>
                 <Toggle
                   pressed={searchQuery.regexp}
                   onPressedChange={v => this.options.setRegexp(v)}
                   size="sm"
+                  className="h-8 data-[state=on]:bg-primary/80 data-[state=on]:text-primary-foreground"
                 >
                   <IconRegex />
                 </Toggle>
