@@ -1,14 +1,6 @@
 import EventEmitter from "events";
 import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest } from "tabby-agent";
-import {
-  BaseLanguageClient,
-  FeatureState,
-  ShowDocumentParams,
-  ShowDocumentRequest,
-  ShowDocumentResult,
-  StaticFeature,
-  TextEdit,
-} from "vscode-languageclient";
+import { BaseLanguageClient, FeatureState, StaticFeature, TextEdit } from "vscode-languageclient";
 import { Disposable, Position, Range, TextDocument, TextEditorEdit, window, workspace } from "vscode";
 import { diffLines } from "diff";
 export class WorkSpaceFeature extends EventEmitter implements StaticFeature {
@@ -38,9 +30,6 @@ export class WorkSpaceFeature extends EventEmitter implements StaticFeature {
     this.disposables.push(
       this.client.onRequest(ApplyWorkspaceEditRequest.type, (params: ApplyWorkspaceEditParams) => {
         return this.handleApplyWorkspaceEdit(params);
-      }),
-      this.client.onRequest(ShowDocumentRequest.type, (params: ShowDocumentParams) => {
-        return this.handleRevealEditorRange(params);
       }),
     );
   }
@@ -92,23 +81,6 @@ export class WorkSpaceFeature extends EventEmitter implements StaticFeature {
     } catch (error) {
       return false;
     }
-  }
-
-  handleRevealEditorRange(params: ShowDocumentParams): ShowDocumentResult {
-    const { takeFocus, selection } = params;
-    const activeEditor = window.activeTextEditor;
-    if (!activeEditor || !selection) {
-      return { success: false };
-    }
-    if (takeFocus) {
-      activeEditor.revealRange(
-        new Range(
-          new Position(selection.start.line, selection.start.character),
-          new Position(selection.end.line, selection.end.character),
-        ),
-      );
-    }
-    return { success: true };
   }
 }
 
