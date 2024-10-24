@@ -1,3 +1,27 @@
+## 1.8.4
+
+### Fixes & Improvements
+
+- Fixed an issue where the chat panel failed to display when the endpoint configuration ended with a trailing slash.
+
+## 1.8.3
+
+### Fixes & Improvements
+
+- Fixed a bug that caused the Tabby plugin to not initialize when TLS certificates failed to load. (https://github.com/TabbyML/tabby/issues/3248)
+
+## 1.8.2
+
+### Fixes & Improvements
+
+- Fix DataStore initialization that prevented Tabby from starting on a fresh installation. (https://github.com/TabbyML/tabby/issues/3234)
+
+## 1.8.1
+
+### Features
+
+- Updated the chat panel to compatible with Tabby server v0.18.0 or later.
+
 ## 1.7.1
 
 ### Features
