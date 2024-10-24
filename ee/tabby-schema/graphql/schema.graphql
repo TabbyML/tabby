@@ -275,11 +275,6 @@ interface User {
 """
 scalar DateTime
 
-type AnswerHealth {
-  completion: Boolean!
-  code: Boolean!
-}
-
 type CompletionStats {
   start: DateTime!
   end: DateTime!
@@ -527,6 +522,12 @@ type MessageEdge {
   cursor: String!
 }
 
+type ModelHealth {
+  completion: Boolean!
+  chat: Boolean!
+  embeddings: Boolean!
+}
+
 type Mutation {
   resetRegistrationToken: String!
   requestInvitationEmail(input: RequestInvitationInput!): Invitation!
@@ -698,7 +699,7 @@ type Query {
   "List user groups."
   userGroups: [UserGroup!]!
   sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
-  testModelConnection: AnswerHealth!
+  testModelConnection: ModelHealth!
 }
 
 type RefreshTokenResponse {
