@@ -1,10 +1,10 @@
 use anyhow::Result;
 use chrono::{DateTime, TimeZone, Utc};
 use hyper::header;
-use logkit::debug;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tabby_schema::{slack_workspaces::SlackChannel, CoreError};
+use tracing::debug;
 
 // TODO: move types into slack mod
 #[derive(Debug, Serialize, Deserialize, Clone)]
