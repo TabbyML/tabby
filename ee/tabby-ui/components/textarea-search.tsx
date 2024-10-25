@@ -17,6 +17,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
+import { useModel } from '@/lib/hooks/use-models'
 
 import { PromptEditor, PromptEditorRef } from './prompt-editor'
 import { Button } from './ui/button'
@@ -62,6 +63,23 @@ export default function TextAreaSearch({
   const [value, setValue] = useState('')
   const { theme } = useCurrentTheme()
   const editorRef = useRef<PromptEditorRef>(null)
+  const { data: modelInfo } = useModel()
+  const [selectedModel, setSelectedModel] = useState('')
+
+  console.log("supportedModels", modelInfo)
+  // FIXME(Zack): check whether modelInfo get correct data
+  const modelInfoArray = modelInfo ? Object.keys(modelInfo).map(key => modelInfo[key as keyof typeof modelInfo]).flat() : [];
+  console.log('modelInfoArray', modelInfoArray)
+  
+  const dropdownMenuItems = modelInfoArray.map(model => (
+    <DropdownMenuItem
+      onClick={() => setSelectedModel(model)}
+      className="cursor-pointer py-2 pl-3"
+    >
+      {/* <IconCode /> */}
+      <span className="ml-2">{ model }</span>
+    </DropdownMenuItem>
+  ))
 
   useEffect(() => {
     // Ensure the textarea height remains consistent during rendering
@@ -113,6 +131,11 @@ export default function TextAreaSearch({
         return true
       })
       .run()
+  }
+
+  const onModelSwitch = (open: boolean) => {
+    console.log("onModelSwitch", open);
+    console.log("supportedModels", modelInfo);
   }
 
   const { hasCodebaseSource, hasDocumentSource } = useMemo(() => {
@@ -215,14 +238,14 @@ export default function TextAreaSearch({
         onClick={e => e.stopPropagation()}
       >
         {/* llm select */}
-        <DropdownMenu>
+        <DropdownMenu onOpenChange={onModelSwitch}>
             <DropdownMenuTrigger>
               <Button
                 variant="ghost"
                 className="gap-2 px-1.5 py-1 text-foreground/70"
               >
                 <IconBox />
-                Mistral-7B
+                { selectedModel }
 
               </Button>
             </DropdownMenuTrigger>
@@ -231,13 +254,7 @@ export default function TextAreaSearch({
               align="end"
               className="overflow-y-auto p-0"
             >
-              <DropdownMenuItem
-                onClick={() => window.open('/files')}
-                className="cursor-pointer py-2 pl-3"
-              >
-                {/* <IconCode /> */}
-                <span className="ml-2">Code Browser</span>
-              </DropdownMenuItem>
+              { dropdownMenuItems }
             </DropdownMenuContent>
         </DropdownMenu>
        
