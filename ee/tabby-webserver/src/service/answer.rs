@@ -183,7 +183,8 @@ impl AnswerService {
                     }
                 };
 
-                if let Some(content) = chunk.choices[0].delta.content.as_deref() {
+                let content = chunk.choices.first().map(|x| x.delta.content.as_deref()).flatten();
+                if let Some(content) = content {
                     yield Ok(ThreadRunItem::ThreadAssistantMessageContentDelta(ThreadAssistantMessageContentDelta {
                         delta: content.to_owned()
                     }));
