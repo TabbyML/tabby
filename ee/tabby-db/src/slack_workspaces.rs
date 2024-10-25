@@ -11,7 +11,6 @@ use crate::DbConn;
 pub struct SlackWorkspaceDAO {
     pub id: i64,
     pub workspace_name: String,
-    pub workspace_id: String,
     pub bot_token: String,
     pub channels: serde_json::Value,
     pub created_at: DateTime<Utc>,
@@ -25,7 +24,7 @@ impl SlackWorkspaceDAO {
 }
 
 impl DbConn {
-    pub async fn list_slack_workspace_integrations(
+    pub async fn list_slack_workspace(
         &self,
         ids: Option<Vec<i64>>,
         limit: Option<usize>,
@@ -45,7 +44,6 @@ impl DbConn {
             [
                 "id",
                 "workspace_name",
-                "workspace_id",
                 "bot_token",
                 "channels",
                 "created_at" as "created_at: DateTime<Utc>",
@@ -62,19 +60,17 @@ impl DbConn {
         Ok(integrations)
     }
 
-    pub async fn create_slack_workspace_integration(
+    pub async fn create_slack_workspace(
         &self,
         workspace_name: String,
-        workspace_id: String,
         bot_token: String,
         channels: Option<Vec<String>>,
     ) -> Result<i64> {
         let channels_json = serde_json::to_value(channels.unwrap_or_default())?;
 
         let res = query!(
-            "INSERT INTO slack_workspaces(workspace_name, workspace_id, bot_token, channels) VALUES (?, ?, ?, ?);",
+            "INSERT INTO slack_workspaces(workspace_name, bot_token, channels) VALUES (?, ?, ?);",
             workspace_name,
-            workspace_id,
             bot_token,
             channels_json
         )
@@ -84,22 +80,18 @@ impl DbConn {
         Ok(res.last_insert_rowid())
     }
 
-    pub async fn delete_slack_workspace_integration(&self, id: i64) -> Result<bool> {
+    pub async fn delete_slack_workspace(&self, id: i64) -> Result<bool> {
         query!("DELETE FROM slack_workspaces WHERE id = ?;", id)
             .execute(&self.pool)
             .await?;
         Ok(true)
     }
-    pub async fn get_slack_workspace_integration(
-        &self,
-        id: i64,
-    ) -> Result<Option<SlackWorkspaceDAO>> {
+    pub async fn get_slack_workspace(&self, id: i64) -> Result<Option<SlackWorkspaceDAO>> {
         let integration = query_as!(
             SlackWorkspaceDAO,
             r#"SELECT 
                 id, 
                 workspace_name, 
-                workspace_id, 
                 bot_token, 
                 channels as "channels: Value",
                 created_at as "created_at!: DateTime<Utc>",
@@ -114,21 +106,19 @@ impl DbConn {
         Ok(integration)
     }
 
-    pub async fn update_slack_workspace_integration(
+    pub async fn update_slack_workspace(
         &self,
         id: i64,
         workspace_name: String,
-        workspace_id: String,
         bot_token: String,
         channels: Option<Vec<String>>,
     ) -> Result<()> {
         let channels_json = serde_json::to_value(channels.unwrap_or_default())?;
         let rows = query!(
             "UPDATE slack_workspaces 
-             SET workspace_name = ?, workspace_id = ?, bot_token = ?, channels = ? 
+             SET workspace_name = ?, bot_token = ?, channels = ? 
              WHERE id = ?",
             workspace_name,
-            workspace_id,
             bot_token,
             channels_json,
             id
@@ -155,41 +145,25 @@ mod tests {
 
         let channels = Some(vec!["channel1".to_string(), "channel2".to_string()]);
         let id = conn
-            .create_slack_workspace_integration(
-                "test_workspace".into(),
-                "W123456".into(),
-                "xoxb-test-token".into(),
-                channels,
-            )
+            .create_slack_workspace("test_workspace".into(), "xoxb-test-token".into(), channels)
             .await
             .unwrap();
 
-        let workspace = conn
-            .get_slack_workspace_integration(id)
-            .await
-            .unwrap()
-            .unwrap();
+        let workspace = conn.get_slack_workspace(id).await.unwrap().unwrap();
         assert_eq!(workspace.workspace_name, "test_workspace");
-        assert_eq!(workspace.workspace_id, "W123456");
 
         let new_channels = Some(vec!["new_channel1".to_string(), "new_channel2".to_string()]);
-        conn.update_slack_workspace_integration(
+        conn.update_slack_workspace(
             id,
             "updated_workspace".into(),
-            "W789012".into(),
             "xoxb-new-token".into(),
             new_channels,
         )
         .await
         .unwrap();
 
-        let updated_workspace = conn
-            .get_slack_workspace_integration(id)
-            .await
-            .unwrap()
-            .unwrap();
+        let updated_workspace = conn.get_slack_workspace(id).await.unwrap().unwrap();
         assert_eq!(updated_workspace.workspace_name, "updated_workspace");
-        assert_eq!(updated_workspace.workspace_id, "W789012");
         assert_eq!(updated_workspace.bot_token, "xoxb-new-token");
     }
 }

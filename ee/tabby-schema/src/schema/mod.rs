@@ -33,7 +33,7 @@ use juniper::{
     Object, RootNode, ScalarValue, Value, ID,
 };
 use repository::RepositoryGrepOutput;
-use slack_workspaces::{CreateSlackWorkspaceIntegrationInput, SlackWorkspaceIntegrationService};
+use slack_workspaces::{CreateSlackWorkspaceIntegrationInput, SlackWorkspaceService};
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
 use tracing::{error, warn};
@@ -87,7 +87,7 @@ pub trait ServiceLocator: Send + Sync {
     fn context(&self) -> Arc<dyn ContextService>;
     fn user_group(&self) -> Arc<dyn UserGroupService>;
     fn access_policy(&self) -> Arc<dyn AccessPolicyService>;
-    fn slack(&self) -> Arc<dyn SlackWorkspaceIntegrationService>;
+    fn slack(&self) -> Arc<dyn SlackWorkspaceService>;
 }
 
 pub struct Context {

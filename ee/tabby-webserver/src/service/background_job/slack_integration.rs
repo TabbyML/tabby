@@ -16,8 +16,8 @@ use super::{
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SlackIntegrationJob {
     pub source_id: String,
-    pub workspace_id: String,
     pub bot_token: String,
+    pub workspace_name: String,
     pub channels: Option<Vec<String>>,
     #[serde(skip)]
     client: SlackClient,
@@ -30,7 +30,7 @@ impl Job for SlackIntegrationJob {
 impl SlackIntegrationJob {
     pub async fn new(
         source_id: String,
-        workspace_id: String,
+        workspace_name: String,
         bot_token: String,
         channels: Option<Vec<String>>,
     ) -> Self {
@@ -41,7 +41,7 @@ impl SlackIntegrationJob {
             .map_err(|e| {
                 debug!(
                     "Failed to initialize Slack client for workspace '{}': {:?}",
-                    workspace_id, e
+                    workspace_name, e
                 );
                 CoreError::Unauthorized("Slack client initialization failed")
             })
@@ -49,8 +49,8 @@ impl SlackIntegrationJob {
 
         Self {
             source_id,
-            workspace_id,
             bot_token,
+            workspace_name,
             channels,
             client,
         }
@@ -59,7 +59,7 @@ impl SlackIntegrationJob {
     pub async fn run(self, embedding: Arc<dyn Embedding>) -> Result<(), CoreError> {
         info!(
             "Starting Slack integration for workspace {}",
-            self.workspace_id
+            self.workspace_name
         );
 
         let mut num_indexed_messages = 0;
@@ -133,7 +133,7 @@ impl SlackIntegrationJob {
 
         info!(
             "Indexed {} messages from Slack workspace '{}'",
-            num_indexed_messages, self.workspace_id
+            num_indexed_messages, self.workspace_name
         );
         indexer.commit();
         Ok(())

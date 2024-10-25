@@ -12,7 +12,6 @@ use crate::{job::JobInfo, juniper::relay, Result};
 pub struct CreateSlackWorkspaceIntegrationInput {
     #[validate(length(min = 1, max = 100))]
     pub workspace_name: String,
-    pub workspace_id: String,
     pub bot_token: String,
     pub channels: Option<Vec<String>>,
 }
@@ -54,7 +53,7 @@ impl SlackWorkspace {
 }
 
 #[async_trait]
-pub trait SlackWorkspaceIntegrationService: Send + Sync {
+pub trait SlackWorkspaceService: Send + Sync {
     async fn list(
         &self,
         ids: Option<Vec<ID>>,
@@ -67,22 +66,4 @@ pub trait SlackWorkspaceIntegrationService: Send + Sync {
     async fn create(&self, input: CreateSlackWorkspaceIntegrationInput) -> Result<ID>;
 
     async fn delete(&self, id: ID) -> Result<bool>;
-
-    //TODO: test code, remove later
-    // async fn trigger_slack_integration_job(&self, id: ID) -> Result<JobInfo>;
-}
-
-pub fn to_slack_workspace(dao: SlackWorkspaceDAO, job_info: JobInfo) -> SlackWorkspace {
-    SlackWorkspace {
-        id: ID::from(dao.id.to_string()),
-        bot_token: dao.bot_token,
-        workspace_name: dao.workspace_name,
-        created_at: dao.created_at,
-        updated_at: dao.updated_at,
-        job_info: JobInfo {
-            last_job_run: job_info.last_job_run,
-            command: job_info.command,
-        },
-        channels: Some(dao.get_channels().unwrap_or_default()),
-    }
 }

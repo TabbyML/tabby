@@ -51,7 +51,7 @@ use tabby_schema::{
     policy,
     repository::RepositoryService,
     setting::SettingService,
-    slack_workspaces::SlackWorkspaceIntegrationService,
+    slack_workspaces::SlackWorkspaceService,
     thread::ThreadService,
     user_event::UserEventService,
     user_group::{UserGroup, UserGroupMembership, UserGroupService},
@@ -77,7 +77,7 @@ struct ServerContext {
     context: Arc<dyn ContextService>,
     user_group: Arc<dyn UserGroupService>,
     access_policy: Arc<dyn AccessPolicyService>,
-    slack: Arc<dyn SlackWorkspaceIntegrationService>,
+    slack: Arc<dyn SlackWorkspaceService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -100,7 +100,7 @@ impl ServerContext {
         db_conn: DbConn,
         embedding: Arc<dyn Embedding>,
         is_chat_enabled_locally: bool,
-        slack: Arc<dyn SlackWorkspaceIntegrationService>,
+        slack: Arc<dyn SlackWorkspaceService>,
     ) -> Self {
         let mail = Arc::new(
             new_email_service(db_conn.clone())
@@ -326,7 +326,7 @@ impl ServiceLocator for ArcServerContext {
         self.0.access_policy.clone()
     }
 
-    fn slack(&self) -> Arc<dyn SlackWorkspaceIntegrationService> {
+    fn slack(&self) -> Arc<dyn SlackWorkspaceService> {
         self.0.slack.clone()
     }
 }
@@ -343,7 +343,7 @@ pub async fn create_service_locator(
     db: DbConn,
     embedding: Arc<dyn Embedding>,
     is_chat_enabled: bool,
-    slack: Arc<dyn SlackWorkspaceIntegrationService>,
+    slack: Arc<dyn SlackWorkspaceService>,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(ArcServerContext::new(
         ServerContext::new(

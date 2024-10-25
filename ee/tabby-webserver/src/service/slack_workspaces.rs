@@ -3,12 +3,11 @@ use std::sync::Arc;
 use anyhow::Context;
 use async_trait::async_trait;
 use juniper::ID;
-use tabby_db::DbConn;
+use tabby_db::{slack_workspaces::SlackWorkspaceDAO, DbConn};
 use tabby_schema::{
-    job::JobService,
+    job::{JobInfo, JobService},
     slack_workspaces::{
-        to_slack_workspace_integration, CreateSlackWorkspaceIntegrationInput,
-        SlackWorkspaceIntegration, SlackWorkspaceIntegrationService,
+        CreateSlackWorkspaceIntegrationInput, SlackWorkspace, SlackWorkspaceService,
     },
     AsID, AsRowid, Result,
 };
@@ -18,28 +17,25 @@ use super::{
     graphql_pagination_to_filter,
 };
 
-pub fn create(
-    db: DbConn,
-    job_service: Arc<dyn JobService>,
-) -> impl SlackWorkspaceIntegrationService {
-    SlackWorkspaceIntegrationServiceImpl { db, job_service }
+pub fn create(db: DbConn, job_service: Arc<dyn JobService>) -> impl SlackWorkspaceService {
+    SlackWorkspaceServiceImpl { db, job_service }
 }
 
-struct SlackWorkspaceIntegrationServiceImpl {
+struct SlackWorkspaceServiceImpl {
     db: DbConn,
     job_service: Arc<dyn JobService>,
 }
 
 #[async_trait]
-impl SlackWorkspaceIntegrationService for SlackWorkspaceIntegrationServiceImpl {
-    async fn list_slack_workspace_integrations(
+impl SlackWorkspaceService for SlackWorkspaceServiceImpl {
+    async fn list(
         &self,
         ids: Option<Vec<ID>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<SlackWorkspaceIntegration>> {
+    ) -> Result<Vec<SlackWorkspace>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let ids = ids.map(|x| {
             x.iter()
@@ -48,7 +44,7 @@ impl SlackWorkspaceIntegrationService for SlackWorkspaceIntegrationServiceImpl {
         });
         let integrations = self
             .db
-            .list_slack_workspace_integrations(ids, limit, skip_id, backwards)
+            .list_slack_workspace(ids, limit, skip_id, backwards)
             .await?;
 
         let mut converted_integrations = vec![];
@@ -57,38 +53,29 @@ impl SlackWorkspaceIntegrationService for SlackWorkspaceIntegrationServiceImpl {
             let event = BackgroundJobEvent::SlackIntegration(
                 SlackIntegrationJob::new(
                     integration.id.to_string(),
-                    integration.workspace_id.clone(),
+                    integration.workspace_name.clone(),
                     integration.bot_token.clone(),
                     Some(integration.get_channels().unwrap_or_default()),
                 )
-                .await
-                .unwrap(),
+                .await,
             );
 
             let job_info = self.job_service.get_job_info(event.to_command()).await?;
-            converted_integrations.push(to_slack_workspace_integration(integration, job_info));
+            converted_integrations.push(to_slack_workspace(integration, job_info));
         }
         Ok(converted_integrations)
     }
 
-    async fn create_slack_workspace_integration(
-        &self,
-        input: CreateSlackWorkspaceIntegrationInput,
-    ) -> Result<ID> {
-        let workspace_id = input.workspace_id.clone();
+    async fn create(&self, input: CreateSlackWorkspaceIntegrationInput) -> Result<ID> {
         let bot_token = input.bot_token.clone();
         let channels = input.channels.clone();
         //create in db
+        let workspace_name = input.workspace_name.clone();
+
         let id = self
             .db
-            .create_slack_workspace_integration(
-                input.workspace_name,
-                workspace_id,
-                bot_token,
-                channels,
-            )
+            .create_slack_workspace(workspace_name.clone(), bot_token, channels)
             .await?;
-        let workspace_id = input.workspace_id.clone();
         let bot_token = input.bot_token.clone();
         let channels = input.channels.clone();
         //trigger in background job
@@ -96,9 +83,8 @@ impl SlackWorkspaceIntegrationService for SlackWorkspaceIntegrationServiceImpl {
             .job_service
             .trigger(
                 BackgroundJobEvent::SlackIntegration(
-                    SlackIntegrationJob::new(id.to_string(), workspace_id, bot_token, channels)
-                        .await
-                        .unwrap(),
+                    SlackIntegrationJob::new(id.to_string(), workspace_name, bot_token, channels)
+                        .await,
                 )
                 .to_command(),
             )
@@ -106,54 +92,64 @@ impl SlackWorkspaceIntegrationService for SlackWorkspaceIntegrationServiceImpl {
 
         Ok(id.as_id())
     }
-    async fn delete_slack_workspace_integration(&self, id: ID) -> Result<bool> {
+    async fn delete(&self, id: ID) -> Result<bool> {
         let row_id = id.as_rowid()?;
 
         let integration = {
             let mut x = self
                 .db
-                .list_slack_workspace_integrations(Some(vec![row_id]), None, None, false)
+                .list_slack_workspace(Some(vec![row_id]), None, None, false)
                 .await?;
             x.pop()
                 .context("Slack workspace integration doesn't exist")?
         };
 
-        self.db.delete_slack_workspace_integration(row_id).await?;
+        let success = self.db.delete_slack_workspace(row_id).await?;
 
-        // Clone the necessary fields
-        let workspace_id = integration.workspace_id.clone();
-        let bot_token = integration.bot_token.clone();
-        let channels = integration.get_channels().unwrap_or_default();
+        if success {
+            // Clone the necessary fields
+            let workspace_name = integration.workspace_name.clone();
+            let bot_token = integration.bot_token.clone();
+            let channels = integration.get_channels().unwrap_or_default();
 
-        self.job_service
-            .clear(
-                BackgroundJobEvent::SlackIntegration(
-                    SlackIntegrationJob::new(
-                        row_id.to_string(),
-                        workspace_id,
-                        bot_token,
-                        Some(channels),
+            self.job_service
+                .clear(
+                    BackgroundJobEvent::SlackIntegration(
+                        SlackIntegrationJob::new(
+                            row_id.to_string(),
+                            workspace_name,
+                            bot_token,
+                            Some(channels),
+                        )
+                        .await,
                     )
-                    .await
-                    .unwrap(),
+                    .to_command(),
                 )
-                .to_command(),
-            )
-            .await?;
+                .await?;
 
-        self.job_service
-            .trigger(BackgroundJobEvent::IndexGarbageCollection.to_command())
-            .await?;
+            self.job_service
+                .trigger(BackgroundJobEvent::IndexGarbageCollection.to_command())
+                .await?;
+        }
 
-        Ok(true)
+        Ok(success)
     }
-    // async fn trigger_slack_integration_job(&self, id: ID) -> Result<JobInfo> {
-    //     let integration = self.db.get_slack_workspace_integration(id).await;
+}
 
-    //     let event = BackgroundJobEvent::SlackIntegration(SlackIntegrationJob::new(id,));
-    //     let job_id = self.job_service.trigger(event.to_command()).await?;
-    //     self.job_service.get_job_info(job_id).await
-    // }
+pub fn to_slack_workspace(dao: SlackWorkspaceDAO, job_info: JobInfo) -> SlackWorkspace {
+    let channels = dao.clone().get_channels().unwrap_or_default();
+    SlackWorkspace {
+        id: ID::from(dao.id.to_string()),
+        bot_token: dao.bot_token,
+        workspace_name: dao.workspace_name,
+        created_at: dao.created_at,
+        updated_at: dao.updated_at,
+        job_info: JobInfo {
+            last_job_run: job_info.last_job_run,
+            command: job_info.command,
+        },
+        channels: Some(channels),
+    }
 }
 
 #[cfg(test)]
