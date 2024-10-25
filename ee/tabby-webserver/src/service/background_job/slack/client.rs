@@ -158,7 +158,7 @@ impl Default for SlackClient {
 }
 
 impl SlackClient {
-    pub async fn new(bot_token: &str) -> Result<Self, CoreError> {
+    pub async fn new(bot_token: String) -> Result<Self, CoreError> {
         let mut headers = header::HeaderMap::new();
         headers.insert(
             header::CONTENT_TYPE,
@@ -171,7 +171,7 @@ impl SlackClient {
             .map_err(|e| CoreError::Other(anyhow::Error::new(e)))?;
 
         let slack_client = Self {
-            bot_token: bot_token.to_string(),
+            bot_token: bot_token.clone(),
             client,
         };
 
@@ -184,7 +184,6 @@ impl SlackClient {
         Ok(slack_client)
     }
 
-    /// Fetches all channels from a Slack workspace
     pub async fn get_channels(&self) -> Result<Vec<SlackChannel>> {
         let response = self
             .client
@@ -202,7 +201,7 @@ impl SlackClient {
 
         match (api_response.ok, api_response.channels, api_response.error) {
             (true, Some(channels), _) => {
-                debug!("Successfully fetched {} channels", channels.len());
+                println!("Successfully fetched {} channels", channels.len());
                 Ok(channels
                     .into_iter()
                     .map(|channel| SlackChannel {
@@ -211,7 +210,10 @@ impl SlackClient {
                     })
                     .collect())
             }
-            (false, _, Some(error)) => Err(anyhow::anyhow!("Slack API error: {}", error)),
+            (false, _, Some(error)) => {
+                println!("Slack API error: {}", error);
+                Err(anyhow::anyhow!("Slack API error: {}", error))
+            }
             _ => Err(anyhow::anyhow!("Unexpected response from Slack API")),
         }
     }
@@ -346,7 +348,10 @@ impl SlackClient {
         let response = self
             .client
             .post("https://slack.com/api/auth.test")
-            .header(header::AUTHORIZATION, format!("Bearer {}", self.bot_token))
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", self.bot_token.clone()),
+            )
             .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
             .send()
             .await
@@ -424,7 +429,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_channel_ids() {
-        let Ok(client) = SlackClient::new("your-bot-token").await else {
+        let Ok(client) = SlackClient::new("your-bot-token".to_string()).await else {
             // test
             return;
         };
@@ -435,7 +440,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_messages() {
-        let Ok(client) = SlackClient::new("your-bot-token").await else {
+        let Ok(client) = SlackClient::new("your-bot-token".to_string()).await else {
             // test
             return;
         };
@@ -444,7 +449,7 @@ mod tests {
     }
     #[tokio::test]
     async fn test_get_replies() {
-        let Ok(client) = SlackClient::new("your-bot-token").await else {
+        let Ok(client) = SlackClient::new("your-bot-token".to_string()).await else {
             // test
             return;
         };
@@ -458,7 +463,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_join_channels() {
-        let Ok(client) = SlackClient::new("your-bot-token").await else {
+        let Ok(client) = SlackClient::new("your-bot-token".to_string()).await else {
             // test
             return;
         };

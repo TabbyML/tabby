@@ -35,7 +35,7 @@ impl SlackIntegrationJob {
         channels: Option<Vec<String>>,
     ) -> Self {
         // Initialize the Slack client first
-        let client = SlackClient::new(&bot_token)
+        let client = SlackClient::new(bot_token.clone())
             .await
             .map_err(|e| {
                 debug!(
@@ -54,6 +54,12 @@ impl SlackIntegrationJob {
             client,
         }
     }
+
+    async fn ensure_client(&mut self) -> Result<(), CoreError> {
+        debug!("Ensuring client with token: {}", self.bot_token);
+        self.client = SlackClient::new(self.bot_token.clone()).await?;
+        Ok(())
+    }
 }
 
 impl Job for SlackIntegrationJob {
@@ -61,11 +67,12 @@ impl Job for SlackIntegrationJob {
 }
 
 impl SlackIntegrationJob {
-    pub async fn run(self, embedding: Arc<dyn Embedding>) -> Result<(), CoreError> {
+    pub async fn run(mut self, embedding: Arc<dyn Embedding>) -> Result<(), CoreError> {
         info!(
-            "Starting Slack integration for workspace {}",
+            "Starting Slack integration for workspace: {}",
             self.workspace_name
         );
+        self.ensure_client().await?;
 
         let mut num_indexed_messages = 0;
         let indexer = DocIndexer::new(embedding);

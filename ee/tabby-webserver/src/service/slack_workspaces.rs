@@ -9,6 +9,7 @@ use tabby_schema::{
     slack_workspaces::{SlackChannel, SlackWorkspace, SlackWorkspaceService},
     AsID, AsRowid, Result,
 };
+use tracing::debug;
 
 use super::{
     background_job::{
@@ -64,6 +65,7 @@ impl SlackWorkspaceService for SlackWorkspaceServiceImpl {
             let job_info = self.job_service.get_job_info(event.to_command()).await?;
             converted_integrations.push(to_slack_workspace(integration, job_info));
         }
+
         Ok(converted_integrations)
     }
 
@@ -87,8 +89,13 @@ impl SlackWorkspaceService for SlackWorkspaceServiceImpl {
             .job_service
             .trigger(
                 BackgroundJobEvent::SlackIntegration(
-                    SlackIntegrationJob::new(id.to_string(), workspace_name, bot_token, channels)
-                        .await,
+                    SlackIntegrationJob::new(
+                        id.to_string(),
+                        workspace_name,
+                        bot_token.clone(),
+                        channels,
+                    )
+                    .await,
                 )
                 .to_command(),
             )
@@ -144,7 +151,7 @@ impl SlackWorkspaceService for SlackWorkspaceServiceImpl {
     }
 
     async fn list_visible_channels(&self, bot_token: String) -> Result<Vec<SlackChannel>> {
-        let client = SlackClient::new(bot_token.as_str()).await.unwrap();
+        let client = SlackClient::new(bot_token.clone()).await.unwrap();
 
         Ok(client
             .get_channels()
@@ -169,46 +176,185 @@ pub fn to_slack_workspace(dao: SlackWorkspaceDAO, job_info: JobInfo) -> SlackWor
     }
 }
 
-#[cfg(test)]
-mod tests {
+// #[cfg(test)]
+// mod tests {
 
-    // #[tokio::test]
-    // async fn test_slack_workspace_integration_service() {
-    //     let db = DbConn::new_in_memory().await.unwrap();
-    //     let job = Arc::new(crate::service::job::create(db.clone()).await);
-    //     let service = create(db.clone(), job.clone());
+//     use tabby_db::DbConn;
 
-    //     // Test create
-    //     let input = CreateSlackWorkspaceIntegrationInput {
-    //         workspace_name: "Test Workspace".to_string(),
-    //         workspace_id: "W12345".to_string(),
-    //         bot_token: "xoxb-test-token".to_string(),
-    //         channels: Some(vec![]),
-    //     };
-    //     let id = service
-    //         .create_slack_workspace_integration(input)
-    //         .await
-    //         .unwrap();
+//     use super::*;
 
-    //     // Test list
-    //     let integrations = service
-    //         .list_slack_workspace_integrations(None, None, None, None, None)
-    //         .await
-    //         .unwrap();
-    //     assert_eq!(1, integrations.len());
-    //     assert_eq!(id, integrations[0].id);
+//     #[tokio::test]
+//     async fn test_duplicate_slack_workspace_error() {
+//         let db = DbConn::new_in_memory().await.unwrap();
+//         let svc = create(
+//             db.clone(),
+//             Arc::new(crate::service::job::create(db.clone()).await),
+//         );
 
-    //     // Test delete
-    //     let result = service
-    //         .delete_slack_workspace_integration(id)
-    //         .await
-    //         .unwrap();
-    //     assert!(result);
+//         // Create first workspace
+//         SlackWorkspaceService::create(
+//             &svc,
+//             "example".into(),
+//             "xoxb-test-token-1".into(),
+//             Some(vec!["C1".into()]),
+//         )
+//         .await
+//         .unwrap();
 
-    //     let integrations = service
-    //         .list_slack_workspace_integrations(None, None, None, None, None)
-    //         .await
-    //         .unwrap();
-    //     assert_eq!(0, integrations.len());
-    // }
-}
+//         // Try to create duplicate workspace
+//         let err = SlackWorkspaceService::create(
+//             &svc,
+//             "example".into(),
+//             "xoxb-test-token-1".into(),
+//             Some(vec!["C1".into()]),
+//         )
+//         .await
+//         .unwrap_err();
+
+//         assert_eq!(
+//             err.to_string(),
+//             "A slack workspace with the same name already exists"
+//         );
+//     }
+
+//     #[tokio::test]
+//     async fn test_slack_workspace_mutations() {
+//         let db = DbConn::new_in_memory().await.unwrap();
+//         let job = Arc::new(crate::service::job::create(db.clone()).await);
+//         let service = create(db.clone(), job);
+
+//         // Create first workspace
+//         let id_1 = service
+//             .create(
+//                 "workspace1".into(),
+//                 "xoxb-test-token-1".into(),
+//                 Some(vec!["C1".into()]),
+//             )
+//             .await
+//             .unwrap();
+
+//         // Create second workspace
+//         let id_2 = service
+//             .create(
+//                 "workspace2".into(),
+//                 "xoxb-test-token-2".into(),
+//                 Some(vec!["C2".into()]),
+//             )
+//             .await
+//             .unwrap();
+
+//         // Create third workspace
+//         service
+//             .create(
+//                 "workspace3".into(),
+//                 "xoxb-test-token-3".into(),
+//                 Some(vec!["C3".into()]),
+//             )
+//             .await
+//             .unwrap();
+
+//         // Verify list returns all workspaces
+//         assert_eq!(
+//             service
+//                 .list(None, None, None, None, None)
+//                 .await
+//                 .unwrap()
+//                 .len(),
+//             3
+//         );
+
+//         // Test delete
+//         service.delete(id_1).await.unwrap();
+//         assert_eq!(
+//             service
+//                 .list(None, None, None, None, None)
+//                 .await
+//                 .unwrap()
+//                 .len(),
+//             2
+//         );
+
+//         // Verify remaining workspaces
+//         let workspaces = service.list(None, None, None, None, None).await.unwrap();
+//         assert_eq!(workspaces.len(), 2);
+
+//         // Check first workspace in list
+//         let first_workspace = workspaces.first().unwrap();
+//         assert_eq!(first_workspace.id, id_2);
+//         assert_eq!(first_workspace.workspace_name, "workspace2");
+//         assert_eq!(first_workspace.bot_token, "xoxb-test-token-2");
+//         assert_eq!(first_workspace.channels, Some(vec!["C2".to_string()]));
+//     }
+
+//     #[tokio::test]
+//     async fn test_list_with_ids_filter() {
+//         let db = DbConn::new_in_memory().await.unwrap();
+//         let job = Arc::new(crate::service::job::create(db.clone()).await);
+//         let service = create(db.clone(), job);
+
+//         // Create multiple workspaces
+//         let id_1 = service
+//             .create(
+//                 "workspace1".into(),
+//                 "xoxb-test-token-1".into(),
+//                 Some(vec!["C1".into()]),
+//             )
+//             .await
+//             .unwrap();
+
+//         let id_2 = service
+//             .create(
+//                 "workspace2".into(),
+//                 "xoxb-test-token-2".into(),
+//                 Some(vec!["C2".into()]),
+//             )
+//             .await
+//             .unwrap();
+
+//         // Test filtering by specific IDs
+//         let filtered = service
+//             .list(Some(vec![id_1.clone()]), None, None, None, None)
+//             .await
+//             .unwrap();
+//         assert_eq!(filtered.len(), 1);
+//         assert_eq!(filtered[0].id, id_1);
+
+//         // Test filtering by multiple IDs
+//         let filtered = service
+//             .list(Some(vec![id_1, id_2]), None, None, None, None)
+//             .await
+//             .unwrap();
+//         assert_eq!(filtered.len(), 2);
+//     }
+
+//     #[tokio::test]
+//     async fn test_list_workspaces() {
+//         let db = DbConn::new_in_memory().await.unwrap();
+//         let job = Arc::new(crate::service::job::create(db.clone()).await);
+//         let service = create(db.clone(), job);
+
+//         // Create a few workspaces
+//         service
+//             .create(
+//                 "workspace1".into(),
+//                 "xoxb-test-token-1".into(),
+//                 Some(vec!["C1".into()]),
+//             )
+//             .await
+//             .unwrap();
+
+//         service
+//             .create(
+//                 "workspace2".into(),
+//                 "xoxb-test-token-2".into(),
+//                 Some(vec!["C2".into()]),
+//             )
+//             .await
+//             .unwrap();
+
+//         // Test list_workspaces method
+//         let workspaces = service.list_workspaces().await.unwrap();
+//         assert_eq!(workspaces.len(), 2);
+//         assert_eq!(workspaces[0].workspace_name, "workspace1");
+//     }
+// }
