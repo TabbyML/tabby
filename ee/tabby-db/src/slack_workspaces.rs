@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -8,17 +8,17 @@ use tabby_db_macros::query_paged_as;
 use crate::DbConn;
 
 #[derive(Debug, FromRow, Serialize, Deserialize, Clone)]
-pub struct SlackWorkspaceIntegrationDAO {
+pub struct SlackWorkspaceDAO {
     pub id: i64,
     pub workspace_name: String,
     pub workspace_id: String,
     pub bot_token: String,
-    pub channels: Value,
+    pub channels: serde_json::Value,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-impl SlackWorkspaceIntegrationDAO {
+impl SlackWorkspaceDAO {
     pub fn get_channels(&self) -> Result<Vec<String>, serde_json::Error> {
         serde_json::from_value(self.channels.clone())
     }
@@ -31,7 +31,7 @@ impl DbConn {
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
-    ) -> Result<Vec<SlackWorkspaceIntegrationDAO>> {
+    ) -> Result<Vec<SlackWorkspaceDAO>> {
         let mut conditions = vec![];
         if let Some(ids) = ids {
             let ids: Vec<String> = ids.iter().map(i64::to_string).collect();
@@ -40,7 +40,7 @@ impl DbConn {
         }
         let condition = (!conditions.is_empty()).then_some(conditions.join(" AND "));
         let integrations = query_paged_as!(
-            SlackWorkspaceIntegrationDAO,
+            SlackWorkspaceDAO,
             "slack_workspaces",
             [
                 "id",
@@ -93,9 +93,9 @@ impl DbConn {
     pub async fn get_slack_workspace_integration(
         &self,
         id: i64,
-    ) -> Result<Option<SlackWorkspaceIntegrationDAO>> {
+    ) -> Result<Option<SlackWorkspaceDAO>> {
         let integration = query_as!(
-            SlackWorkspaceIntegrationDAO,
+            SlackWorkspaceDAO,
             r#"SELECT 
                 id, 
                 workspace_name, 
@@ -112,5 +112,84 @@ impl DbConn {
         .await?;
 
         Ok(integration)
+    }
+
+    pub async fn update_slack_workspace_integration(
+        &self,
+        id: i64,
+        workspace_name: String,
+        workspace_id: String,
+        bot_token: String,
+        channels: Option<Vec<String>>,
+    ) -> Result<()> {
+        let channels_json = serde_json::to_value(channels.unwrap_or_default())?;
+        let rows = query!(
+            "UPDATE slack_workspaces 
+             SET workspace_name = ?, workspace_id = ?, bot_token = ?, channels = ? 
+             WHERE id = ?",
+            workspace_name,
+            workspace_id,
+            bot_token,
+            channels_json,
+            id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        if rows.rows_affected() == 1 {
+            Ok(())
+        } else {
+            Err(anyhow!("failed to update: slack workspace not found"))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::DbConn;
+
+    #[tokio::test]
+    async fn test_update_slack_workspace() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+
+        let channels = Some(vec!["channel1".to_string(), "channel2".to_string()]);
+        let id = conn
+            .create_slack_workspace_integration(
+                "test_workspace".into(),
+                "W123456".into(),
+                "xoxb-test-token".into(),
+                channels,
+            )
+            .await
+            .unwrap();
+
+        let workspace = conn
+            .get_slack_workspace_integration(id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(workspace.workspace_name, "test_workspace");
+        assert_eq!(workspace.workspace_id, "W123456");
+
+        let new_channels = Some(vec!["new_channel1".to_string(), "new_channel2".to_string()]);
+        conn.update_slack_workspace_integration(
+            id,
+            "updated_workspace".into(),
+            "W789012".into(),
+            "xoxb-new-token".into(),
+            new_channels,
+        )
+        .await
+        .unwrap();
+
+        let updated_workspace = conn
+            .get_slack_workspace_integration(id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(updated_workspace.workspace_name, "updated_workspace");
+        assert_eq!(updated_workspace.workspace_id, "W789012");
+        assert_eq!(updated_workspace.bot_token, "xoxb-new-token");
     }
 }
