@@ -16,6 +16,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.progress.util.BackgroundTaskUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.util.SystemInfo
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
@@ -34,7 +35,18 @@ import java.awt.datatransfer.StringSelection
 import java.io.File
 
 
-class ChatBrowser(private val project: Project) : JBCefBrowser() {
+class ChatBrowser(private val project: Project) : JBCefBrowser(
+  createBuilder()
+    .setOffScreenRendering(
+      when {
+        SystemInfo.isWindows -> false
+        SystemInfo.isMac -> false
+        SystemInfo.isLinux -> true
+        else -> false
+      }
+    )
+    .setEnableOpenDevToolsMenuItem(true)
+) {
   private val logger = Logger.getInstance(ChatBrowser::class.java)
   private val gson = Gson()
   private val combinedState = project.service<CombinedState>()
@@ -69,6 +81,11 @@ class ChatBrowser(private val project: Project) : JBCefBrowser() {
 
   init {
     component.isVisible = false
+    val bgColor = calcComponentBgColor()
+    component.background = bgColor
+    setPageBackgroundColor("hsl(${bgColor.toHsl()})")
+
+    loadHTML(HTML_CONTENT)
 
     jbCefClient.addLoadHandler(object : CefLoadHandlerAdapter() {
       override fun onLoadingStateChange(
@@ -94,8 +111,6 @@ class ChatBrowser(private val project: Project) : JBCefBrowser() {
       return@addHandler JBCefJSQuery.Response("")
     }
 
-    loadHTML(HTML_CONTENT)
-
     messageBusConnection.subscribe(CombinedState.Listener.TOPIC, object : CombinedState.Listener {
       override fun stateChanged(state: CombinedState.State) {
         reloadContent()
@@ -103,9 +118,12 @@ class ChatBrowser(private val project: Project) : JBCefBrowser() {
     })
 
     messageBusConnection.subscribe(EditorColorsManager.TOPIC, EditorColorsListener {
-      logger.debug("EditorColorsManager globalSchemeChange received, updating style.")
-      jsApplyStyle()
-      chatPanelUpdateTheme()
+      BackgroundTaskUtil.executeOnPooledThread(this) {
+        logger.debug("EditorColorsManager globalSchemeChange received, updating style.")
+        Thread.sleep(100)
+        jsApplyStyle()
+        chatPanelUpdateTheme()
+      }
     })
   }
 
@@ -198,11 +216,16 @@ class ChatBrowser(private val project: Project) : JBCefBrowser() {
 
   private val isDarkTheme get() = EditorColorsManager.getInstance().isDarkEditor
 
+  private fun calcComponentBgColor(): Color {
+    val editorColorsScheme = EditorColorsManager.getInstance().schemeForCurrentUITheme
+    return editorColorsScheme.getColor(EditorColors.CARET_ROW_COLOR)
+      ?: if (isDarkTheme) editorColorsScheme.defaultBackground.brighter() else editorColorsScheme.defaultBackground.darker()
+  }
+
   private fun buildCss(): String {
     val editorColorsScheme = EditorColorsManager.getInstance().schemeForCurrentUITheme
     val bgColor = editorColorsScheme.defaultBackground
-    val bgActiveColor = editorColorsScheme.getColor(EditorColors.CARET_ROW_COLOR)
-      ?: if (isDarkTheme) editorColorsScheme.defaultBackground.brighter() else editorColorsScheme.defaultBackground.darker()
+    val bgActiveColor = calcComponentBgColor()
     val fgColor = editorColorsScheme.defaultForeground
     val borderColor = editorColorsScheme.getColor(EditorColors.BORDER_LINES_COLOR)
       ?: if (isDarkTheme) editorColorsScheme.defaultForeground.brighter() else editorColorsScheme.defaultForeground.darker()
