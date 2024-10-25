@@ -14,7 +14,6 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 
-import { BlobHeader } from './blob-header'
 import { TFileTreeNode } from './file-tree'
 import { RepositoryKindIcon } from './repository-kind-icon'
 import { SourceCodeBrowserContext } from './source-code-browser'
@@ -76,7 +75,6 @@ const TreeModeView: React.FC<TreeModeViewProps> = ({
 
   return (
     <div className={cn('text-base', className)}>
-      <BlobHeader blob={undefined} hideBlobActions className="border-0" />
       {(loading && !files?.length) || !initialized ? (
         <FileTreeSkeleton />
       ) : files?.length ? (
