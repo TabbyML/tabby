@@ -27,7 +27,6 @@ import { GitProvider } from "../git/GitProvider";
 import { createClient } from "./chatPanel";
 import { ChatFeature } from "../lsp/ChatFeature";
 import { isBrowser } from "../env";
-import { getLogger } from "../logger";
 
 export class WebviewHelper {
   webview?: Webview;
@@ -576,13 +575,14 @@ export class WebviewHelper {
         };
         const smartApplyInEditor = async (editor: TextEditor, opts: { languageId: string; smart: boolean }) => {
           if (editor.document.languageId !== opts.languageId) {
-            getLogger().info("editor:", editor.document.languageId, "opts:", opts.languageId);
+            this.logger.debug("Editor's languageId:", editor.document.languageId, "opts.languageId:", opts.languageId);
             window.showInformationMessage("The active editor is not in the correct language. Did normal apply.");
             applyInEditor(editor);
             return;
           }
 
-          getLogger("Tabby").info("Smart apply in editor started.", content);
+          this.logger.info("Smart apply in editor started.");
+          this.logger.trace("Smart apply in editor with content:", { content });
 
           await window.withProgress(
             {
@@ -591,10 +591,8 @@ export class WebviewHelper {
               cancellable: true,
             },
             async (progress, token) => {
-              progress.report({ increment: 0, message: "Analyzing code..." });
+              progress.report({ increment: 0, message: "Applying smart edit..." });
               try {
-                getLogger().info("getting provide edit command", content);
-                progress.report({ increment: 30, message: "Applying smart edit..." });
                 await this.chat?.provideSmartApplyEdit(
                   {
                     applyCode: content,

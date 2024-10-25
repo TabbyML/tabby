@@ -115,8 +115,7 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
     if (!this.isAvailable) {
       return null;
     }
-    const res = await this.client.sendRequest(SmartApplyCodeRequest.type, params, token);
-    return res;
+    return this.client.sendRequest(SmartApplyCodeRequest.method, params, token);
   }
 
   async resolveEdit(params: ChatEditResolveParams): Promise<boolean> {

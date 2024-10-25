@@ -18,7 +18,7 @@ export function getSmartApplyRange(
   return { range: applyRange.range, action: "replace" };
 }
 
-export function fuzzyApplyRange(document: TextDocument, snippet: string): { range: Range; score: number } | null {
+function fuzzyApplyRange(document: TextDocument, snippet: string): { range: Range; score: number } | null {
   const lines = document.getText().split("\n");
   const snippetLines = snippet.split("\n");
 

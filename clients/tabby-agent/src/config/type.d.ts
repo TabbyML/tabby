@@ -99,10 +99,10 @@ export type ConfigData = {
       promptTemplate: string;
       responseMatcher: string;
     };
-    provideSmartApplyLineRange: {
+    smartApplyLineRange: {
       promptTemplate: string;
     };
-    provideSmartApply: {
+    smartApply: {
       promptTemplate: string;
     };
   };
