@@ -65,19 +65,21 @@ const BlobModeViewRenderer: React.FC<BlobViewProps> = ({
 
   return (
     <div className={cn(className)}>
-      <BlobHeader blob={blob} contentLength={contentLength} canCopy={!isRaw}>
-        {isMarkdown && (
-          <Tabs
-            value={isPlain ? '1' : '0'}
-            onValueChange={onToggleMarkdownView}
-          >
-            <TabsList>
-              <TabsTrigger value="0">Preview</TabsTrigger>
-              <TabsTrigger value="1">Code</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        )}
-      </BlobHeader>
+      <div className="bg-background overflow-hidden sticky top-0 z-10">
+        <BlobHeader blob={blob} contentLength={contentLength} canCopy={!isRaw}>
+          {isMarkdown && (
+            <Tabs
+              value={isPlain ? '1' : '0'}
+              onValueChange={onToggleMarkdownView}
+            >
+              <TabsList>
+                <TabsTrigger value="0">Preview</TabsTrigger>
+                <TabsTrigger value="1">Code</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+        </BlobHeader>
+      </div>
 
       {loading && !blob ? (
         <ListSkeleton className="p-2" />

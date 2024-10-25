@@ -38,7 +38,6 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
 }) => {
   const { chatSideBarVisible, setChatSideBarVisible, isChatEnabled } =
     React.useContext(SourceCodeBrowserContext)
-  const containerRef = React.useRef<HTMLDivElement>(null)
   const { activePath } = React.useContext(SourceCodeBrowserContext)
   const { isCopied, copyToClipboard } = useCopyToClipboard({ timeout: 2000 })
 
@@ -57,14 +56,7 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
   }
 
   return (
-    <div
-      className={cn(
-        'sticky top-0 z-10 overflow-hidden rounded-t-lg border bg-background',
-        className
-      )}
-      ref={containerRef}
-      {...props}
-    >
+    <div className={cn('border rounded-t-lg', className)} {...props}>
       {!hideBlobActions && (
         <div
           className={cn(
