@@ -97,10 +97,8 @@ input CodeQueryInput {
   filepath: String
   language: String
   content: String!
-  "git_url to be included in the code search."
-  gitUrl: String
-  "source_ids to be included in the code search."
-  sourceId: String
+  "git_url to be included in the code search." gitUrl: String
+  "source_ids to be included in the code search." sourceId: String
 }
 
 input CodeSearchParamsOverrideInput {
@@ -136,12 +134,7 @@ input CreateSlackWorkspaceInput {
 
 input CreateThreadAndRunInput {
   thread: CreateThreadInput!
-  options: ThreadRunOptionsInput! = {
-    codeQuery: null
-    debugOptions: null
-    docQuery: null
-    generateRelevantQuestions: false
-  }
+  options: ThreadRunOptionsInput! = {codeQuery: null, debugOptions: null, docQuery: null, generateRelevantQuestions: false}
 }
 
 input CreateThreadInput {
@@ -151,25 +144,17 @@ input CreateThreadInput {
 input CreateThreadRunInput {
   threadId: ID!
   additionalUserMessage: CreateMessageInput!
-  options: ThreadRunOptionsInput! = {
-    codeQuery: null
-    debugOptions: null
-    docQuery: null
-    generateRelevantQuestions: false
-  }
+  options: ThreadRunOptionsInput! = {codeQuery: null, debugOptions: null, docQuery: null, generateRelevantQuestions: false}
 }
 
 input CreateUserGroupInput {
-  "User group name, can only start with a lowercase letter, and contain characters, numbers, and `-` or `_`"
-  name: String!
+  "User group name, can only start with a lowercase letter, and contain characters, numbers, and `-` or `_`" name: String!
 }
 
 input DocQueryInput {
   content: String!
-  "Whether to collect documents from public web."
-  searchPublic: Boolean!
-  "source_ids to be included in the doc search."
-  sourceIds: [String!]
+  "Whether to collect documents from public web." searchPublic: Boolean!
+  "source_ids to be included in the doc search." sourceIds: [String!]
 }
 
 input EmailSettingInput {
@@ -281,18 +266,18 @@ interface User {
 }
 
 """
-Combined date and time (with time zone) in [RFC 3339][0] format.
+  Combined date and time (with time zone) in [RFC 3339][0] format.
 
-Represents a description of an exact instant on the time-line (such as the
-instant that a user account was created).
+  Represents a description of an exact instant on the time-line (such as the
+  instant that a user account was created).
 
-[`DateTime` scalar][1] compliant.
+  [`DateTime` scalar][1] compliant.
 
-See also [`chrono::DateTime`][2] for details.
+  See also [`chrono::DateTime`][2] for details.
 
-[0]: https://datatracker.ietf.org/doc/html/rfc3339#section-5
-[1]: https://graphql-scalars.dev/docs/scalars/date-time
-[2]: https://docs.rs/chrono/latest/chrono/struct.DateTime.html
+  [0]: https://datatracker.ietf.org/doc/html/rfc3339#section-5
+  [1]: https://graphql-scalars.dev/docs/scalars/date-time
+  [2]: https://docs.rs/chrono/latest/chrono/struct.DateTime.html
 """
 scalar DateTime
 
@@ -556,13 +541,7 @@ type Mutation {
   updateUserRole(id: ID!, isAdmin: Boolean!): Boolean!
   uploadUserAvatarBase64(id: ID!, avatarBase64: String): Boolean!
   updateUserName(id: ID!, name: String!): Boolean!
-  register(
-    email: String!
-    password1: String!
-    password2: String!
-    invitationCode: String
-    name: String!
-  ): RegisterResponse!
+  register(email: String!, password1: String!, password2: String!, invitationCode: String, name: String!): RegisterResponse!
   tokenAuth(email: String!, password: String!): TokenAuthResponse!
   verifyToken(token: String!): Boolean!
   refreshToken(refreshToken: String!): RefreshTokenResponse!
@@ -587,11 +566,7 @@ type Mutation {
   "Trigger a job run given its param string."
   triggerJobRun(command: String!): ID!
   "Delete pair of user message and bot response in a thread."
-  deleteThreadMessagePair(
-    threadId: ID!
-    userMessageId: ID!
-    assistantMessageId: ID!
-  ): Boolean!
+  deleteThreadMessagePair(threadId: ID!, userMessageId: ID!, assistantMessageId: ID!): Boolean!
   "Turn on persisted status for a thread."
   setThreadPersisted(threadId: ID!): Boolean!
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
@@ -677,143 +652,56 @@ type Query {
   me: UserSecured!
   "List users, accessible for all login users."
   users(after: String, before: String, first: Int, last: Int): UserConnection!
-  invitations(
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): InvitationConnection!
-  jobRuns(
-    ids: [ID!]
-    jobs: [String!]
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): JobRunConnection!
+  invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
+  jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
   emailSetting: EmailSetting
   networkSetting: NetworkSetting!
   securitySetting: SecuritySetting!
-  gitRepositories(
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): RepositoryConnection!
+  gitRepositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
   "Search files that matches the pattern in the repository."
-  repositorySearch(
-    kind: RepositoryKind!
-    id: ID!
-    rev: String
-    pattern: String!
-  ): [FileEntrySearchResult!]!
+  repositorySearch(kind: RepositoryKind!, id: ID!, rev: String, pattern: String!): [FileEntrySearchResult!]!
   """
-  File content search with a grep-like experience.
+    File content search with a grep-like experience.
 
-  Syntax:
+    Syntax:
 
-  1. Unprefixed text will be treated as a regex pattern for file content search.
-  2. 'f:' to search by file name with a regex pattern.
-  3. 'lang:' to search by file language.
-  4. All tokens can be negated by prefixing them with '-'.
+    1. Unprefixed text will be treated as a regex pattern for file content search.
+    2. 'f:' to search by file name with a regex pattern.
+    3. 'lang:' to search by file language.
+    4. All tokens can be negated by prefixing them with '-'.
 
-  Examples:
-  * `f:schema -lang:rust fn`
-  * `func_name lang:go`
+    Examples:
+    * `f:schema -lang:rust fn`
+    * `func_name lang:go`
   """
-  repositoryGrep(
-    kind: RepositoryKind!
-    id: ID!
-    rev: String
-    query: String!
-  ): RepositoryGrepOutput!
+  repositoryGrep(kind: RepositoryKind!, id: ID!, rev: String, query: String!): RepositoryGrepOutput!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
   serverInfo: ServerInfo!
   license: LicenseInfo!
   jobs: [String!]!
   dailyStatsInPastYear(users: [ID!]): [CompletionStats!]!
-  dailyStats(
-    start: DateTime!
-    end: DateTime!
-    users: [ID!]
-    languages: [Language!]
-  ): [CompletionStats!]!
-  userEvents(
-    after: String
-    before: String
-    first: Int
-    last: Int
-    users: [ID!]
-    start: DateTime!
-    end: DateTime!
-  ): UserEventConnection!
+  dailyStats(start: DateTime!, end: DateTime!, users: [ID!], languages: [Language!]): [CompletionStats!]!
+  userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTime!, end: DateTime!): UserEventConnection!
   diskUsageStats: DiskUsageStats!
   repositoryList: [Repository!]!
   contextInfo: ContextInfo!
-  integrations(
-    ids: [ID!]
-    kind: IntegrationKind
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): IntegrationConnection!
-  integratedRepositories(
-    ids: [ID!]
-    kind: IntegrationKind
-    active: Boolean
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): ProvidedRepositoryConnection!
-  threads(
-    ids: [ID!]
-    isEphemeral: Boolean
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): ThreadConnection!
+  integrations(ids: [ID!], kind: IntegrationKind, after: String, before: String, first: Int, last: Int): IntegrationConnection!
+  integratedRepositories(ids: [ID!], kind: IntegrationKind, active: Boolean, after: String, before: String, first: Int, last: Int): ProvidedRepositoryConnection!
+  threads(ids: [ID!], isEphemeral: Boolean, after: String, before: String, first: Int, last: Int): ThreadConnection!
   """
-  Read thread messages by thread ID.
+    Read thread messages by thread ID.
 
-  Thread is public within an instance, so no need to check for ownership.
+    Thread is public within an instance, so no need to check for ownership.
   """
-  threadMessages(
-    threadId: ID!
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): MessageConnection!
-  customWebDocuments(
-    ids: [ID!]
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): CustomDocumentConnection!
-  presetWebDocuments(
-    ids: [ID!]
-    after: String
-    before: String
-    first: Int
-    last: Int
-    isActive: Boolean
-  ): PresetDocumentConnection!
+  threadMessages(threadId: ID!, after: String, before: String, first: Int, last: Int): MessageConnection!
+  customWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int): CustomDocumentConnection!
+  presetWebDocuments(ids: [ID!], after: String, before: String, first: Int, last: Int, isActive: Boolean): PresetDocumentConnection!
   "List user groups."
   userGroups: [UserGroup!]!
   sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
-  slackWorkspaces(
-    ids: [ID!]
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): SlackWorkspaceConnection!
+  slackWorkspaces(ids: [ID!], after: String, before: String, first: Int, last: Int): SlackWorkspaceConnection!
   slackChannels(botToken: String!): [SlackChannel!]!
 }
 
@@ -1020,16 +908,8 @@ type WebContextSource implements ContextSourceId & ContextSource {
 }
 
 """
-Schema of thread run stream.
+  Schema of thread run stream.
 
-Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
+  Apart from `thread_message_content_delta`, all other items will only appear once in the stream.
 """
-union ThreadRunItem =
-  | ThreadCreated
-  | ThreadRelevantQuestions
-  | ThreadUserMessageCreated
-  | ThreadAssistantMessageCreated
-  | ThreadAssistantMessageAttachmentsCode
-  | ThreadAssistantMessageAttachmentsDoc
-  | ThreadAssistantMessageContentDelta
-  | ThreadAssistantMessageCompleted
+union ThreadRunItem = ThreadCreated | ThreadRelevantQuestions | ThreadUserMessageCreated | ThreadAssistantMessageCreated | ThreadAssistantMessageAttachmentsCode | ThreadAssistantMessageAttachmentsDoc | ThreadAssistantMessageContentDelta | ThreadAssistantMessageCompleted
