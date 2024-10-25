@@ -190,7 +190,6 @@ async fn fetch_message_replies(
 
 #[cfg(test)]
 mod tests {
-    
 
     use super::*;
 

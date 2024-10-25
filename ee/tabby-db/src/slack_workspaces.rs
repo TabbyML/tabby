@@ -136,7 +136,7 @@ impl DbConn {
 
 #[cfg(test)]
 mod tests {
-    
+
     use crate::DbConn;
 
     #[tokio::test]
