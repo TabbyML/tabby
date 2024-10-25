@@ -33,24 +33,27 @@ impl SlackIntegrationJob {
         workspace_id: String,
         bot_token: String,
         channels: Option<Vec<String>>,
-    ) -> Result<Self, CoreError> {
+    ) -> Self {
         // TODO(Sma1lboy): remove workspace_id
         // Initialize the Slack client first
-        let client = SlackClient::new(&bot_token).await.map_err(|e| {
-            debug!(
-                "Failed to initialize Slack client for workspace '{}': {:?}",
-                workspace_id, e
-            );
-            CoreError::Unauthorized("Slack client initialization failed")
-        })?;
+        let client = SlackClient::new(&bot_token)
+            .await
+            .map_err(|e| {
+                debug!(
+                    "Failed to initialize Slack client for workspace '{}': {:?}",
+                    workspace_id, e
+                );
+                CoreError::Unauthorized("Slack client initialization failed")
+            })
+            .unwrap();
 
-        Ok(Self {
+        Self {
             source_id,
             workspace_id,
             bot_token,
             channels,
             client,
-        })
+        }
     }
 
     pub async fn run(self, embedding: Arc<dyn Embedding>) -> Result<(), CoreError> {
@@ -187,6 +190,8 @@ async fn fetch_message_replies(
 
 #[cfg(test)]
 mod tests {
+    use tabby_common::config;
+
     use super::*;
 
     #[tokio::test]

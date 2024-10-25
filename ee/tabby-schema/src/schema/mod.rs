@@ -669,7 +669,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<relay::Connection<slack_workspaces::SlackWorkspaceIntegration>> {
+    ) -> Result<relay::Connection<slack_workspaces::SlackWorkspace>> {
         relay::query_async(
             after,
             before,
@@ -678,7 +678,7 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .slack()
-                    .list_slack_workspace_integrations(ids, after, before, first, last)
+                    .list(ids, after, before, first, last)
                     .await
             },
         )
@@ -1180,19 +1180,13 @@ impl Mutation {
     ) -> Result<bool> {
         check_admin(ctx).await?;
         input.validate()?;
-        ctx.locator
-            .slack()
-            .create_slack_workspace_integration(input)
-            .await?;
+        ctx.locator.slack().create(input).await?;
         Ok(true)
     }
 
     async fn delete_slack_workspace_integration(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator
-            .slack()
-            .delete_slack_workspace_integration(id)
-            .await?;
+        ctx.locator.slack().delete(id).await?;
         Ok(true)
     }
 }
