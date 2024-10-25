@@ -595,7 +595,7 @@ export class WebviewHelper {
               try {
                 await this.chat?.provideSmartApplyEdit(
                   {
-                    applyCode: content,
+                    text: content,
                     location: {
                       uri: editor.document.uri.toString(),
                       range: {

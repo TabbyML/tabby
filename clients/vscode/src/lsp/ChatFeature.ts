@@ -15,8 +15,8 @@ import {
   ChatEditToken,
   ChatEditResolveRequest,
   ChatEditResolveParams,
-  SmartApplyCodeParams,
-  SmartApplyCodeRequest,
+  SmartApplyParams,
+  SmartApplyRequest,
 } from "tabby-agent";
 
 export class ChatFeature extends EventEmitter implements DynamicFeature<unknown> {
@@ -111,11 +111,11 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
     return this.client.sendRequest(ChatEditRequest.method, params, token);
   }
 
-  async provideSmartApplyEdit(params: SmartApplyCodeParams, token?: CancellationToken): Promise<boolean | null> {
+  async provideSmartApplyEdit(params: SmartApplyParams, token?: CancellationToken): Promise<boolean | null> {
     if (!this.isAvailable) {
       return null;
     }
-    return this.client.sendRequest(SmartApplyCodeRequest.method, params, token);
+    return this.client.sendRequest(SmartApplyRequest.method, params, token);
   }
 
   async resolveEdit(params: ChatEditResolveParams): Promise<boolean> {
