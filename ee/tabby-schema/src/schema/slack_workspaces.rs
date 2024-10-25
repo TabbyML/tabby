@@ -8,11 +8,11 @@ use super::Context;
 use crate::{job::JobInfo, juniper::relay, Result};
 
 #[derive(Serialize, Deserialize, Validate, GraphQLInputObject)]
-pub struct CreateSlackWorkspaceIntegrationInput {
+pub struct CreateSlackWorkspaceInput {
     #[validate(length(min = 1, max = 100))]
     pub workspace_name: String,
     pub bot_token: String,
-    pub channels: Option<Vec<String>>,
+    pub channel_ids: Option<Vec<String>>,
 }
 
 #[derive(GraphQLObject)]
@@ -27,6 +27,12 @@ pub struct SlackWorkspace {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub job_info: JobInfo,
+}
+
+#[derive(Debug, Clone, GraphQLObject)]
+pub struct SlackChannel {
+    pub id: String,
+    pub name: String,
 }
 
 impl relay::NodeType for SlackWorkspace {
@@ -62,7 +68,9 @@ pub trait SlackWorkspaceService: Send + Sync {
         last: Option<usize>,
     ) -> Result<Vec<SlackWorkspace>>;
 
-    async fn create(&self, input: CreateSlackWorkspaceIntegrationInput) -> Result<ID>;
+    async fn create(&self, input: CreateSlackWorkspaceInput) -> Result<ID>;
 
     async fn delete(&self, id: ID) -> Result<bool>;
+
+    async fn list_visible_channels(&self, bot_token: String) -> Result<Vec<SlackChannel>>;
 }

@@ -33,7 +33,7 @@ use juniper::{
     Object, RootNode, ScalarValue, Value, ID,
 };
 use repository::RepositoryGrepOutput;
-use slack_workspaces::{CreateSlackWorkspaceIntegrationInput, SlackWorkspaceService};
+use slack_workspaces::{CreateSlackWorkspaceInput, SlackChannel, SlackWorkspaceService};
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
 use tracing::{error, warn};
@@ -684,6 +684,12 @@ impl Query {
         )
         .await
     }
+
+    pub async fn slack_channels(ctx: &Context, bot_token: String) -> Result<Vec<SlackChannel>> {
+        check_admin(ctx).await?;
+        let res = ctx.locator.slack().list_visible_channels(bot_token).await?;
+        Ok(res)
+    }
 }
 
 #[derive(GraphQLObject)]
@@ -1174,9 +1180,9 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn create_slack_workspace_integration(
+    async fn create_slack_workspace(
         ctx: &Context,
-        input: CreateSlackWorkspaceIntegrationInput,
+        input: CreateSlackWorkspaceInput,
     ) -> Result<bool> {
         check_admin(ctx).await?;
         input.validate()?;

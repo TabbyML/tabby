@@ -4,7 +4,7 @@ use hyper::header;
 use logkit::debug;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use tabby_schema::CoreError;
+use tabby_schema::{slack_workspaces::SlackChannel, CoreError};
 
 // TODO: move types into slack mod
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -34,11 +34,6 @@ pub struct SlackReply {
     pub unread_count: Option<i32>,
     pub parent_user_id: Option<String>,
     pub r#type: String,
-}
-#[derive(Debug, Clone)]
-pub struct SlackChannel {
-    pub id: String,
-    pub name: String,
 }
 
 // API Response Types

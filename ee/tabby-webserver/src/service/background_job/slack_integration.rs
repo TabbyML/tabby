@@ -6,11 +6,11 @@ use logkit::{debug, info};
 use serde::{Deserialize, Serialize};
 use tabby_index::public::{DocIndexer, WebDocument};
 use tabby_inference::Embedding;
-use tabby_schema::CoreError;
+use tabby_schema::{slack_workspaces::SlackChannel, CoreError};
 
 use super::{
     helper::Job,
-    slack_utils::{SlackChannel, SlackClient, SlackMessage, SlackReply},
+    slack_utils::{SlackClient, SlackMessage, SlackReply},
 };
 
 #[derive(Debug, Serialize, Deserialize)]

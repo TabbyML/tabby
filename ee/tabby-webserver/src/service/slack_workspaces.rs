@@ -7,13 +7,15 @@ use tabby_db::{slack_workspaces::SlackWorkspaceDAO, DbConn};
 use tabby_schema::{
     job::{JobInfo, JobService},
     slack_workspaces::{
-        CreateSlackWorkspaceIntegrationInput, SlackWorkspace, SlackWorkspaceService,
+        CreateSlackWorkspaceInput, SlackChannel, SlackWorkspace, SlackWorkspaceService,
     },
     AsID, AsRowid, Result,
 };
 
 use super::{
-    background_job::{slack_integration::SlackIntegrationJob, BackgroundJobEvent},
+    background_job::{
+        slack_integration::SlackIntegrationJob, slack_utils::SlackClient, BackgroundJobEvent,
+    },
     graphql_pagination_to_filter,
 };
 
@@ -66,9 +68,9 @@ impl SlackWorkspaceService for SlackWorkspaceServiceImpl {
         Ok(converted_integrations)
     }
 
-    async fn create(&self, input: CreateSlackWorkspaceIntegrationInput) -> Result<ID> {
+    async fn create(&self, input: CreateSlackWorkspaceInput) -> Result<ID> {
         let bot_token = input.bot_token.clone();
-        let channels = input.channels.clone();
+        let channels = input.channel_ids.clone();
         //create in db
         let workspace_name = input.workspace_name.clone();
 
@@ -77,7 +79,7 @@ impl SlackWorkspaceService for SlackWorkspaceServiceImpl {
             .create_slack_workspace(workspace_name.clone(), bot_token, channels)
             .await?;
         let bot_token = input.bot_token.clone();
-        let channels = input.channels.clone();
+        let channels = input.channel_ids.clone();
         //trigger in background job
         let _ = self
             .job_service
@@ -133,6 +135,15 @@ impl SlackWorkspaceService for SlackWorkspaceServiceImpl {
         }
 
         Ok(success)
+    }
+
+    async fn list_visible_channels(&self, bot_token: String) -> Result<Vec<SlackChannel>> {
+        let client = SlackClient::new(bot_token.as_str()).await.unwrap();
+
+        Ok(client
+            .get_channels()
+            .await
+            .context("Failed to list slack channels")?)
     }
 }
 
