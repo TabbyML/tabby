@@ -24,6 +24,7 @@ use tabby_schema::{
     integration::IntegrationService,
     job::JobService,
     repository::{GitRepositoryService, RepositoryService, ThirdPartyRepositoryService},
+    slack_workspaces::SlackWorkspaceService,
 };
 use third_party_integration::SchedulerGithubGitlabJob;
 use tracing::{debug, warn};
@@ -69,6 +70,7 @@ pub async fn start(
     repository_service: Arc<dyn RepositoryService>,
     context_service: Arc<dyn ContextService>,
     embedding: Arc<dyn Embedding>,
+    slack: Arc<dyn SlackWorkspaceService>,
 ) {
     let mut hourly =
         CronStream::new(Schedule::from_str("@hourly").expect("Invalid cron expression"))
@@ -147,7 +149,7 @@ pub async fn start(
                         warn!("Index garbage collection job failed: {err:?}");
                     }
 
-                    if let Err(err) = SlackIntegrationJob::cron(integration_service.clone(), job_service.clone()).await {
+                    if let Err(err) = SlackIntegrationJob::cron(slack.clone(), job_service.clone()).await {
                         warn!("Slack integration job failed: {err:?}");
                     }
 

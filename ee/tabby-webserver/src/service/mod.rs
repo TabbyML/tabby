@@ -126,6 +126,7 @@ impl ServerContext {
             repository.clone(),
             context.clone(),
             embedding,
+            slack.clone(),
         )
         .await;
 

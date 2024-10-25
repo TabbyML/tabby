@@ -1186,7 +1186,10 @@ impl Mutation {
     ) -> Result<bool> {
         check_admin(ctx).await?;
         input.validate()?;
-        ctx.locator.slack().create(input).await?;
+        ctx.locator
+            .slack()
+            .create(input.workspace_name, input.bot_token, input.channel_ids)
+            .await?;
         Ok(true)
     }
 

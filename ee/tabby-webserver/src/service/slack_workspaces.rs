@@ -69,18 +69,21 @@ impl SlackWorkspaceService for SlackWorkspaceServiceImpl {
         Ok(converted_integrations)
     }
 
-    async fn create(&self, input: CreateSlackWorkspaceInput) -> Result<ID> {
-        let bot_token = input.bot_token.clone();
-        let channels = input.channel_ids.clone();
+    async fn create(
+        &self,
+        workspace_name: String,
+        bot_token: String,
+        channel_ids: Option<Vec<String>>,
+    ) -> Result<ID> {
+        let bot_token = bot_token.clone();
+        let channels = channel_ids.clone();
         //create in db
-        let workspace_name = input.workspace_name.clone();
+        let workspace_name = workspace_name.clone();
 
         let id = self
             .db
-            .create_slack_workspace(workspace_name.clone(), bot_token, channels)
+            .create_slack_workspace(workspace_name.clone(), bot_token.clone(), channels.clone())
             .await?;
-        let bot_token = input.bot_token.clone();
-        let channels = input.channel_ids.clone();
         //trigger in background job
         let _ = self
             .job_service
@@ -139,10 +142,10 @@ impl SlackWorkspaceService for SlackWorkspaceServiceImpl {
     }
 
     async fn list_workspaces(&self) -> Result<Vec<SlackWorkspace>> {
-        Ok(self.list(None, None, None, None, None))
+        Ok(self.list(None, None, None, None, None).await?)
     }
 
-    async fn list_visible_channels(bot_token: String) -> Result<Vec<SlackChannel>> {
+    async fn list_visible_channels(&self, bot_token: String) -> Result<Vec<SlackChannel>> {
         let client = SlackClient::new(bot_token.as_str()).await.unwrap();
 
         Ok(client

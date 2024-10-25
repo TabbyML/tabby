@@ -5,7 +5,6 @@ use std::sync::Arc;
 use anyhow::{Context, Result};
 use chrono::Utc;
 use client::{SlackClient, SlackMessage, SlackReply};
-use logkit::{debug, info};
 use serde::{Deserialize, Serialize};
 use tabby_index::public::{DocIndexer, WebDocument};
 use tabby_inference::Embedding;
@@ -14,8 +13,9 @@ use tabby_schema::{
     slack_workspaces::{SlackChannel, SlackWorkspaceService},
     CoreError,
 };
+use tracing::{debug, info};
 
-use super::helper::Job;
+use super::{helper::Job, BackgroundJobEvent};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SlackIntegrationJob {
@@ -162,7 +162,7 @@ impl SlackIntegrationJob {
                             workspace.id.to_string(),
                             workspace.workspace_name.clone(),
                             workspace.bot_token.clone(),
-                            Some(workspace.get_channels().unwrap_or_default()),
+                            workspace.channels.clone(),
                         )
                         .await,
                     )
@@ -170,6 +170,7 @@ impl SlackIntegrationJob {
                 )
                 .await;
         }
+        Ok(())
     }
 
     /// Create a WebDocument for a Slack message with replies

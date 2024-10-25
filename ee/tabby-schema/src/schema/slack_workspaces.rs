@@ -68,12 +68,17 @@ pub trait SlackWorkspaceService: Send + Sync {
         last: Option<usize>,
     ) -> Result<Vec<SlackWorkspace>>;
 
-    async fn create(&self, input: CreateSlackWorkspaceInput) -> Result<ID>;
+    async fn create(
+        &self,
+        workspace_name: String,
+        bot_token: String,
+        channel_ids: Option<Vec<String>>,
+    ) -> Result<ID>;
 
     async fn delete(&self, id: ID) -> Result<bool>;
 
     /// List all workspaces
     async fn list_workspaces(&self) -> Result<Vec<SlackWorkspace>>;
 
-    async fn list_visible_channels(bot_token: String) -> Result<Vec<SlackChannel>>;
+    async fn list_visible_channels(&self, bot_token: String) -> Result<Vec<SlackChannel>>;
 }
