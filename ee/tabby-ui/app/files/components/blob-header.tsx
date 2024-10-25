@@ -59,7 +59,7 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
   return (
     <div
       className={cn(
-        'sticky top-0 z-10 border rounded-t-lg overflow-hidden bg-background',
+        'sticky top-0 z-10 overflow-hidden rounded-t-lg border bg-background',
         className
       )}
       ref={containerRef}
