@@ -7,7 +7,7 @@ use tabby_db::{slack_workspaces::SlackWorkspaceDAO, DbConn};
 use tabby_schema::{
     job::{JobInfo, JobService},
     slack_workspaces::{
-        CreateSlackWorkspaceInput, SlackChannel, SlackWorkspace, SlackWorkspaceService,
+        SlackChannel, SlackWorkspace, SlackWorkspaceService,
     },
     AsID, AsRowid, Result,
 };
