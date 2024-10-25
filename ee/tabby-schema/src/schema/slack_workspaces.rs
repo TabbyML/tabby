@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLInputObject, GraphQLObject, ID};
 use serde::{Deserialize, Serialize};
-use tabby_db::slack_workspaces::SlackWorkspaceDAO;
 use validator::Validate;
 
 use super::Context;

@@ -128,7 +128,6 @@ input CreateMessageInput {
 
 input CreateSlackWorkspaceIntegrationInput {
   workspaceName: String!
-  workspaceId: String!
   botToken: String!
   channels: [String!]
 }
@@ -702,7 +701,7 @@ type Query {
   "List user groups."
   userGroups: [UserGroup!]!
   sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
-  slackWorkspaces(ids: [ID!], after: String, before: String, first: Int, last: Int): SlackWorkspaceIntegrationConnection!
+  slackWorkspaces(ids: [ID!], after: String, before: String, first: Int, last: Int): SlackWorkspaceConnection!
 }
 
 type RefreshTokenResponse {
@@ -756,23 +755,23 @@ type ServerInfo {
   isDemoMode: Boolean!
 }
 
-type SlackWorkspaceIntegration {
+type SlackWorkspace {
   id: ID!
-  workspaceId: String!
   botToken: String!
   workspaceName: String!
+  channels: [String!]
   createdAt: DateTime!
   updatedAt: DateTime!
   jobInfo: JobInfo!
 }
 
-type SlackWorkspaceIntegrationConnection {
-  edges: [SlackWorkspaceIntegrationEdge!]!
+type SlackWorkspaceConnection {
+  edges: [SlackWorkspaceEdge!]!
   pageInfo: PageInfo!
 }
 
-type SlackWorkspaceIntegrationEdge {
-  node: SlackWorkspaceIntegration!
+type SlackWorkspaceEdge {
+  node: SlackWorkspace!
   cursor: String!
 }
 
