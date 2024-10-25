@@ -1,4 +1,4 @@
-import type { Range, Location, Connection, CancellationToken } from "vscode-languageserver";
+import type { Connection, CancellationToken } from "vscode-languageserver";
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import type { TextDocuments } from "../lsp/textDocuments";
 import type { Feature } from "../feature";
@@ -20,19 +20,7 @@ import {
 } from "../protocol";
 import cryptoRandomString from "crypto-random-string";
 import { isEmptyRange } from "../utils/range";
-import { applyWorkspaceEdit, readResponseStream } from "./utils";
-
-export type Edit = {
-  id: ChatEditToken;
-  location: Location;
-  languageId: string;
-  originalText: string;
-  editedRange: Range;
-  editedText: string;
-  comments: string;
-  buffer: string;
-  state: "editing" | "stopped" | "completed";
-};
+import { applyWorkspaceEdit, readResponseStream, Edit } from "./utils";
 
 export class ChatEditProvider implements Feature {
   private lspConnection: Connection | undefined = undefined;

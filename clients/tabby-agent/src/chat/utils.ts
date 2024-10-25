@@ -1,12 +1,29 @@
 //chat related utils functions
 
 import { Readable } from "stream";
-import { Edit } from "./inlineEdit";
-import { ShowDocumentParams, ShowDocumentRequest, WorkspaceEdit } from "vscode-languageserver-protocol";
-import * as Diff from "diff";
-import { isBlank } from "../utils/string";
+import {
+  Range,
+  Location,
+  ShowDocumentParams,
+  ShowDocumentRequest,
+  WorkspaceEdit,
+} from "vscode-languageserver-protocol";
 import { Connection } from "vscode-languageserver";
+import * as Diff from "diff";
 import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest } from "../protocol";
+import { isBlank } from "../utils/string";
+
+export type Edit = {
+  id: string;
+  location: Location;
+  languageId: string;
+  originalText: string;
+  editedRange: Range;
+  editedText: string;
+  comments: string;
+  buffer: string;
+  state: "editing" | "stopped" | "completed";
+};
 
 export async function readResponseStream(
   stream: Readable,

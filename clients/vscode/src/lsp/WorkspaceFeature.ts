@@ -3,8 +3,8 @@ import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest } from "tabby-agent
 import { BaseLanguageClient, FeatureState, StaticFeature, TextEdit } from "vscode-languageclient";
 import { Disposable, Position, Range, TextDocument, TextEditorEdit, window, workspace } from "vscode";
 import { diffLines } from "diff";
+
 export class WorkSpaceFeature extends EventEmitter implements StaticFeature {
-  private registration: string | undefined = undefined;
   private disposables: Disposable[] = [];
 
   constructor(private readonly client: BaseLanguageClient) {
@@ -37,10 +37,6 @@ export class WorkSpaceFeature extends EventEmitter implements StaticFeature {
   clear(): void {
     this.disposables.forEach((disposable) => disposable.dispose());
     this.disposables = [];
-  }
-
-  get isAvailable(): boolean {
-    return !!this.registration;
   }
 
   private async handleApplyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<boolean> {

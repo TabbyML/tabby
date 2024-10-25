@@ -47,7 +47,7 @@ import { StatusProvider } from "./status";
 import { CommandProvider } from "./command";
 import { name as serverName, version as serverVersion } from "../package.json";
 import "./utils/array";
-import { SmartApplyFeature } from "./chat/SmartApply";
+import { SmartApplyFeature } from "./chat/smartApply";
 import { FileTracker } from "./codeSearch/fileTracker";
 
 export class Server {

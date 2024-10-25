@@ -1,3 +1,4 @@
+import { TextDocument } from "vscode-languageserver-textdocument";
 import {
   CancellationToken,
   Connection,
@@ -12,18 +13,17 @@ import {
   ChatEditMutexError,
   ChatFeatureNotAvailableError,
   ServerCapabilities,
-  SmartApplyCodeRequest,
-  SmartApplyCodeParams,
+  SmartApplyRequest,
+  SmartApplyParams,
 } from "../protocol";
 import { Configurations } from "../config";
 import { TabbyApiClient } from "../http/tabbyApiClient";
 import cryptoRandomString from "crypto-random-string";
 import { getLogger } from "../logger";
-import { readResponseStream, showDocument } from "./utils";
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { getSmartApplyRange } from "./SmartRange";
-import { Edit } from "./inlineEdit";
-const logger = getLogger("ChatEditProvider");
+import { readResponseStream, showDocument, Edit } from "./utils";
+import { getSmartApplyRange } from "./smartRange";
+
+const logger = getLogger("SmartApplyFeature");
 
 export class SmartApplyFeature implements Feature {
   private lspConnection: Connection | undefined = undefined;
@@ -36,7 +36,7 @@ export class SmartApplyFeature implements Feature {
 
   initialize(connection: Connection): ServerCapabilities | Promise<ServerCapabilities> {
     this.lspConnection = connection;
-    connection.onRequest(SmartApplyCodeRequest.type, async (params, token) => {
+    connection.onRequest(SmartApplyRequest.type, async (params, token) => {
       return this.provideSmartApplyEdit(params, token);
     });
 
@@ -49,15 +49,15 @@ export class SmartApplyFeature implements Feature {
     //nothing
   }
 
-  async provideSmartApplyEdit(params: SmartApplyCodeParams, token: CancellationToken): Promise<boolean> {
-    logger.info("Getting document");
+  async provideSmartApplyEdit(params: SmartApplyParams, token: CancellationToken): Promise<boolean> {
+    logger.debug("Getting document");
     const document = this.documents.get(params.location.uri);
     if (!document) {
-      logger.info("Document not found, returning false");
+      logger.debug("Document not found, returning false");
       return false;
     }
     if (!this.lspConnection) {
-      logger.info("LSP connection lost.");
+      logger.debug("LSP connection lost.");
       return false;
     }
 
@@ -69,21 +69,16 @@ export class SmartApplyFeature implements Feature {
       } as ChatEditMutexError;
     }
     this.mutexAbortController = new AbortController();
-    logger.info("mutex abort status: " + (this.mutexAbortController === undefined));
+    logger.debug("mutex abort status: " + (this.mutexAbortController === undefined));
     token.onCancellationRequested(() => this.mutexAbortController?.abort());
 
-    let applyRange = getSmartApplyRange(document, params.applyCode);
+    let applyRange = getSmartApplyRange(document, params.text);
     //if cannot find range, lets use backend LLMs
     if (!applyRange) {
       if (!this.tabbyApiClient.isChatApiAvailable) {
         return false;
       }
-      applyRange = await provideSmartApplyLineRange(
-        document,
-        params.applyCode,
-        this.tabbyApiClient,
-        this.configurations,
-      );
+      applyRange = await provideSmartApplyLineRange(document, params.text, this.tabbyApiClient, this.configurations);
     }
 
     if (!applyRange) {
@@ -114,7 +109,7 @@ export class SmartApplyFeature implements Feature {
             end: { line: applyRange.range.end.line + 1, character: 0 },
           },
         },
-        params.applyCode,
+        params.text,
         applyRange.action === "insert" ? true : false,
         document,
         this.lspConnection,
@@ -130,13 +125,13 @@ export class SmartApplyFeature implements Feature {
       logger.error("Error applying smart edit:", error);
       return false;
     } finally {
-      logger.info("Resetting mutex abort controller");
+      logger.debug("Resetting mutex abort controller");
       this.mutexAbortController = undefined;
     }
   }
 }
 
-export async function provideSmartApplyLineRange(
+async function provideSmartApplyLineRange(
   document: TextDocument,
   applyCodeBlock: string,
   tabbyApiClient: TabbyApiClient,
@@ -159,7 +154,7 @@ export async function provideSmartApplyLineRange(
     .join("\n");
 
   const config = configurations.getMergedConfig();
-  const promptTemplate = config.chat.provideSmartApplyLineRange.promptTemplate;
+  const promptTemplate = config.chat.smartApplyLineRange.promptTemplate;
 
   const messages: { role: "user"; content: string }[] = [
     {
@@ -219,7 +214,7 @@ export async function provideSmartApplyLineRange(
   }
 }
 
-export async function provideSmartApplyEditLLM(
+async function provideSmartApplyEditLLM(
   location: Location,
   applyCode: string,
   insertMode: boolean,
@@ -254,13 +249,13 @@ export async function provideSmartApplyEditLLM(
   };
   const selectedDocumentText = documentText.substring(selection.start, selection.end);
 
-  logger.info("current selectedDoc: " + selectedDocumentText);
+  logger.debug("current selectedDoc: " + selectedDocumentText);
 
   if (selection.end - selection.start > config.chat.edit.documentMaxChars) {
     throw { name: "ChatEditDocumentTooLongError", message: "Document too long" } as ChatEditDocumentTooLongError;
   }
 
-  const promptTemplate = config.chat.provideSmartApply.promptTemplate;
+  const promptTemplate = config.chat.smartApply.promptTemplate;
 
   // Extract the selected text and the surrounding context
   let documentPrefix = documentText.substring(0, selection.start);

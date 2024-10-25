@@ -95,10 +95,10 @@ export const defaultConfigData: ConfigData = {
       responseMatcher:
         /(?<=(["'`]+)?\s*)(feat|fix|docs|refactor|style|test|build|ci|chore)(\(\S+\))?:.+(?=\s*\1)/gis.toString(),
     },
-    provideSmartApplyLineRange: {
+    smartApplyLineRange: {
       promptTemplate: provideSmartApplyLineRangePrompt,
     },
-    provideSmartApply: {
+    smartApply: {
       promptTemplate: generateSmartApplyPrompt,
     },
   },
