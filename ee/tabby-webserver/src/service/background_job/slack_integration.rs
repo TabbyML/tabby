@@ -195,7 +195,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_should_index_message() {
-        // not index because no replies and message is too short
+        // not index because no replies
         let message = SlackMessage {
             id: "1".to_string(),
             ts: "1234567890.123456".to_string(),
@@ -221,7 +221,6 @@ mod tests {
 
         // good message should be index
         let message_with_replies = SlackMessage {
-            text: "this is looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong enough message".to_string(),
             replies: vec![SlackReply {
                 id: "1".to_string(),
                 user: "U1234567890".to_string(),
@@ -235,6 +234,7 @@ mod tests {
                 parent_user_id: Some("1".to_string()),
                 r#type: "message".to_string(),
             }],
+            reply_count: Some(2),
             ..message
         };
 
