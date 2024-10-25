@@ -6,9 +6,7 @@ use juniper::ID;
 use tabby_db::{slack_workspaces::SlackWorkspaceDAO, DbConn};
 use tabby_schema::{
     job::{JobInfo, JobService},
-    slack_workspaces::{
-        SlackChannel, SlackWorkspace, SlackWorkspaceService,
-    },
+    slack_workspaces::{SlackChannel, SlackWorkspace, SlackWorkspaceService},
     AsID, AsRowid, Result,
 };
 
