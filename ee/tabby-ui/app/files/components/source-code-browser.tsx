@@ -657,7 +657,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       </ResizablePanel>
       <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
       <ResizablePanel defaultSize={80} minSize={30}>
-        <div className="flex h-full flex-col mb-4">
+        <div className="mb-4 flex h-full flex-col">
           <CodeSearchBar
             className={cn(
               'z-40',

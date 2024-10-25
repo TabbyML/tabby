@@ -65,7 +65,7 @@ const BlobModeViewRenderer: React.FC<BlobViewProps> = ({
 
   return (
     <div className={cn(className)}>
-      <div className="bg-background overflow-hidden sticky top-0 z-10">
+      <div className="sticky top-0 z-10 overflow-hidden bg-background">
         <BlobHeader blob={blob} contentLength={contentLength} canCopy={!isRaw}>
           {isMarkdown && (
             <Tabs

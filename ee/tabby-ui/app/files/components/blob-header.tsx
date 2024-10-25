@@ -56,7 +56,7 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
   }
 
   return (
-    <div className={cn('border rounded-t-lg', className)} {...props}>
+    <div className={cn('rounded-t-lg border', className)} {...props}>
       {!hideBlobActions && (
         <div
           className={cn(
