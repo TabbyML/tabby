@@ -2,8 +2,7 @@ mod db;
 mod git;
 mod helper;
 mod index_garbage_collection;
-pub mod slack_integration;
-pub mod slack_utils;
+pub mod slack;
 mod third_party_integration;
 mod web_crawler;
 
@@ -16,7 +15,7 @@ use helper::{CronStream, Job, JobLogger};
 use index_garbage_collection::IndexGarbageCollection;
 use juniper::ID;
 use serde::{Deserialize, Serialize};
-use slack_integration::SlackIntegrationJob;
+use slack::SlackIntegrationJob;
 use tabby_common::config::CodeRepository;
 use tabby_db::DbConn;
 use tabby_inference::Embedding;
@@ -52,7 +51,7 @@ impl BackgroundJobEvent {
             BackgroundJobEvent::SyncThirdPartyRepositories(_) => SyncIntegrationJob::NAME,
             BackgroundJobEvent::WebCrawler(_) => WebCrawlerJob::NAME,
             BackgroundJobEvent::IndexGarbageCollection => IndexGarbageCollection::NAME,
-            BackgroundJobEvent::SlackIntegration(_) => slack_integration::SlackIntegrationJob::NAME,
+            BackgroundJobEvent::SlackIntegration(_) => slack::SlackIntegrationJob::NAME,
         }
     }
 
@@ -117,7 +116,6 @@ pub async fn start(
                             job.run(repository_service.clone(), context_service.clone()).await
                         }
                         BackgroundJobEvent::SlackIntegration(job) => {
-                            //TODO: Implement slack integration job
                             job.run(embedding.clone()).await
                         }
                     } {
@@ -147,6 +145,10 @@ pub async fn start(
 
                     if let Err(err) = IndexGarbageCollection.run(repository_service.clone(), context_service.clone()).await {
                         warn!("Index garbage collection job failed: {err:?}");
+                    }
+
+                    if let Err(err) = SlackIntegrationJob::cron(integration_service.clone(), job_service.clone()).await {
+                        warn!("Slack integration job failed: {err:?}");
                     }
 
                 },

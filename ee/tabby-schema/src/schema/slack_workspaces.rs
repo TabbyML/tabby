@@ -72,5 +72,8 @@ pub trait SlackWorkspaceService: Send + Sync {
 
     async fn delete(&self, id: ID) -> Result<bool>;
 
-    async fn list_visible_channels(&self, bot_token: String) -> Result<Vec<SlackChannel>>;
+    /// List all workspaces
+    async fn list_workspaces(&self) -> Result<Vec<SlackWorkspace>>;
+
+    async fn list_visible_channels(bot_token: String) -> Result<Vec<SlackChannel>>;
 }

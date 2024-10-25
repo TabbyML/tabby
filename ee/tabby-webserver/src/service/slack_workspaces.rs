@@ -14,7 +14,8 @@ use tabby_schema::{
 
 use super::{
     background_job::{
-        slack_integration::SlackIntegrationJob, slack_utils::SlackClient, BackgroundJobEvent,
+        slack::{client::SlackClient, SlackIntegrationJob},
+        BackgroundJobEvent,
     },
     graphql_pagination_to_filter,
 };
@@ -137,7 +138,11 @@ impl SlackWorkspaceService for SlackWorkspaceServiceImpl {
         Ok(success)
     }
 
-    async fn list_visible_channels(&self, bot_token: String) -> Result<Vec<SlackChannel>> {
+    async fn list_workspaces(&self) -> Result<Vec<SlackWorkspace>> {
+        Ok(self.list(None, None, None, None, None))
+    }
+
+    async fn list_visible_channels(bot_token: String) -> Result<Vec<SlackChannel>> {
         let client = SlackClient::new(bot_token.as_str()).await.unwrap();
 
         Ok(client

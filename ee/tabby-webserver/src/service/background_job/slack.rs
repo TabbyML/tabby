@@ -1,17 +1,21 @@
+pub mod client;
+
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use chrono::Utc;
+use client::{SlackClient, SlackMessage, SlackReply};
 use logkit::{debug, info};
 use serde::{Deserialize, Serialize};
 use tabby_index::public::{DocIndexer, WebDocument};
 use tabby_inference::Embedding;
-use tabby_schema::{slack_workspaces::SlackChannel, CoreError};
-
-use super::{
-    helper::Job,
-    slack_utils::{SlackClient, SlackMessage, SlackReply},
+use tabby_schema::{
+    job::JobService,
+    slack_workspaces::{SlackChannel, SlackWorkspaceService},
+    CoreError,
 };
+
+use super::helper::Job;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SlackIntegrationJob {
@@ -23,10 +27,6 @@ pub struct SlackIntegrationJob {
     client: SlackClient,
 }
 
-impl Job for SlackIntegrationJob {
-    const NAME: &'static str = "slack_integration";
-}
-
 impl SlackIntegrationJob {
     pub async fn new(
         source_id: String,
@@ -34,7 +34,6 @@ impl SlackIntegrationJob {
         bot_token: String,
         channels: Option<Vec<String>>,
     ) -> Self {
-        // TODO(Sma1lboy): remove workspace_id
         // Initialize the Slack client first
         let client = SlackClient::new(&bot_token)
             .await
@@ -55,7 +54,13 @@ impl SlackIntegrationJob {
             client,
         }
     }
+}
 
+impl Job for SlackIntegrationJob {
+    const NAME: &'static str = "slack_integration";
+}
+
+impl SlackIntegrationJob {
     pub async fn run(self, embedding: Arc<dyn Embedding>) -> Result<(), CoreError> {
         info!(
             "Starting Slack integration for workspace {}",
@@ -137,6 +142,34 @@ impl SlackIntegrationJob {
         );
         indexer.commit();
         Ok(())
+    }
+
+    /// cron job to sync slack messages
+    pub async fn cron(
+        slack_workspace: Arc<dyn SlackWorkspaceService>,
+        job: Arc<dyn JobService>,
+    ) -> tabby_schema::Result<()> {
+        let workspaces = slack_workspace
+            .list_workspaces()
+            .await
+            .context("Must be able to retrieve slack workspace for sync")?;
+
+        for workspace in workspaces {
+            let _ = job
+                .trigger(
+                    BackgroundJobEvent::SlackIntegration(
+                        SlackIntegrationJob::new(
+                            workspace.id.to_string(),
+                            workspace.workspace_name.clone(),
+                            workspace.bot_token.clone(),
+                            Some(workspace.get_channels().unwrap_or_default()),
+                        )
+                        .await,
+                    )
+                    .to_command(),
+                )
+                .await;
+        }
     }
 
     /// Create a WebDocument for a Slack message with replies
