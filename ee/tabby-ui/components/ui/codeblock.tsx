@@ -17,6 +17,7 @@ import {
   IconApplyInEditor,
   IconCheck,
   IconCopy,
+  IconSmartApplyInEditor,
   IconWrapText
 } from '@/components/ui/icons'
 import {
@@ -29,8 +30,11 @@ export interface CodeBlockProps {
   language: string
   value: string
   onCopyContent?: (value: string) => void
-  onApplyInEditor?: (value: string) => void
-  canWrapLongLines?: boolean
+  onApplyInEditor?: (
+    value: string,
+    opts?: { languageId: string; smart: boolean }
+  ) => void
+  canWrapLongLines: boolean | undefined
 }
 
 interface languageMap {
@@ -118,7 +122,30 @@ const CodeBlock: FC<CodeBlockProps> = memo(
                     variant="ghost"
                     size="icon"
                     className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
-                    onClick={() => onApplyInEditor(value)}
+                    onClick={() =>
+                      onApplyInEditor(value, {
+                        languageId: language,
+                        smart: true
+                      })
+                    }
+                  >
+                    <IconSmartApplyInEditor />
+                    <span className="sr-only">Smart Apply in Editor</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="m-0">Smart Apply in Editor</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {onApplyInEditor && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-xs hover:bg-[#3C382F] hover:text-[#F4F4F5] focus-visible:ring-1 focus-visible:ring-slate-700 focus-visible:ring-offset-0"
+                    onClick={() => onApplyInEditor(value, undefined)}
                   >
                     <IconApplyInEditor />
                     <span className="sr-only">Apply in Editor</span>

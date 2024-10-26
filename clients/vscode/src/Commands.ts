@@ -283,7 +283,12 @@ export class Commands {
         retainContextWhenHidden: true,
       });
 
-      const chatPanelViewProvider = new ChatPanelViewProvider(this.context, this.client.agent, this.gitProvider);
+      const chatPanelViewProvider = new ChatPanelViewProvider(
+        this.context,
+        this.client.agent,
+        this.gitProvider,
+        this.client.chat,
+      );
 
       chatPanelViewProvider.resolveWebviewView(panel);
     },
