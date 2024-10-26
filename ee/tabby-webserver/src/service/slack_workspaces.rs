@@ -9,7 +9,6 @@ use tabby_schema::{
     slack_workspaces::{SlackChannel, SlackWorkspace, SlackWorkspaceService},
     AsID, AsRowid, Result,
 };
-use tracing::debug;
 
 use super::{
     background_job::{
