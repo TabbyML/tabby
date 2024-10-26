@@ -29,7 +29,10 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuIndicator,
+  DropdownMenuRadioItem
 } from '@/components/ui/dropdown-menu'
 
 export default function TextAreaSearch({
@@ -64,21 +67,21 @@ export default function TextAreaSearch({
   const { theme } = useCurrentTheme()
   const editorRef = useRef<PromptEditorRef>(null)
   const { data: modelInfo } = useModel()
-  const [selectedModel, setSelectedModel] = useState('')
-
-  console.log("supportedModels", modelInfo)
-  // FIXME(Zack): check whether modelInfo get correct data
+  // FIXME: handle effect from useModel to set model properly
   const modelInfoArray = modelInfo ? Object.keys(modelInfo).map(key => modelInfo[key as keyof typeof modelInfo]).flat() : [];
-  console.log('modelInfoArray', modelInfoArray)
-  
+  const [selectedModel, setSelectedModel] = useState(modelInfoArray.length > 0 ? modelInfoArray[0] : '');
+  // FIXME: set padding like select codebase
   const dropdownMenuItems = modelInfoArray.map(model => (
-    <DropdownMenuItem
+    <DropdownMenuRadioItem
       onClick={() => setSelectedModel(model)}
+      value={model}
       className="cursor-pointer py-2 pl-3"
     >
-      {/* <IconCode /> */}
+      <DropdownMenuIndicator className="DropdownMenuItemIndicator">
+        <IconArrowRight />
+      </DropdownMenuIndicator>
       <span className="ml-2">{ model }</span>
-    </DropdownMenuItem>
+    </DropdownMenuRadioItem>
   ))
 
   useEffect(() => {
@@ -131,11 +134,6 @@ export default function TextAreaSearch({
         return true
       })
       .run()
-  }
-
-  const onModelSwitch = (open: boolean) => {
-    console.log("onModelSwitch", open);
-    console.log("supportedModels", modelInfo);
   }
 
   const { hasCodebaseSource, hasDocumentSource } = useMemo(() => {
@@ -238,7 +236,7 @@ export default function TextAreaSearch({
         onClick={e => e.stopPropagation()}
       >
         {/* llm select */}
-        <DropdownMenu onOpenChange={onModelSwitch}>
+        <DropdownMenu>
             <DropdownMenuTrigger>
               <Button
                 variant="ghost"
@@ -254,7 +252,9 @@ export default function TextAreaSearch({
               align="end"
               className="overflow-y-auto p-0"
             >
-              { dropdownMenuItems }
+              <DropdownMenuRadioGroup value={selectedModel} onValueChange={setSelectedModel}>
+                { dropdownMenuItems }
+              </DropdownMenuRadioGroup>
             </DropdownMenuContent>
         </DropdownMenu>
        
@@ -269,7 +269,7 @@ export default function TextAreaSearch({
               disabled={!hasCodebaseSource}
             >
               <IconHash />
-              Codebase!!!!!
+              Codebase
             </Button>
           </TooltipTrigger>
           <TooltipContent className="max-w-md">
@@ -287,7 +287,7 @@ export default function TextAreaSearch({
               disabled={!hasDocumentSource}
             >
               <IconAtSign />
-              Documents???
+              Documents
             </Button>
           </TooltipTrigger>
           <TooltipContent className="max-w-md">
