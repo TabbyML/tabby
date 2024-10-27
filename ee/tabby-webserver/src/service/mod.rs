@@ -35,7 +35,7 @@ use tabby_common::{
     constants::USER_HEADER_FIELD_NAME,
 };
 use tabby_db::{DbConn, UserDAO, UserGroupDAO};
-use tabby_inference::{ChatCompletionStream, CodeGeneration, Embedding};
+use tabby_inference::{ChatCompletionStream, CodeGeneration, Embedding as EmbeddingService};
 use tabby_schema::{
     access_policy::AccessPolicyService,
     analytic::AnalyticService,
@@ -64,6 +64,7 @@ use self::{
 struct ServerContext {
     db_conn: DbConn,
     mail: Arc<dyn EmailService>,
+    embedding: Arc<dyn EmbeddingService>,
     chat: Option<Arc<dyn ChatCompletionStream>>,
     completion: Option<Arc<CodeGeneration>>,
     auth: Arc<dyn AuthenticationService>,
@@ -97,7 +98,7 @@ impl ServerContext {
         context: Arc<dyn ContextService>,
         web_documents: Arc<dyn WebDocumentService>,
         db_conn: DbConn,
-        embedding: Arc<dyn Embedding>,
+        embedding: Arc<dyn EmbeddingService>,
     ) -> Self {
         let mail = Arc::new(
             new_email_service(db_conn.clone())
@@ -123,12 +124,13 @@ impl ServerContext {
             integration.clone(),
             repository.clone(),
             context.clone(),
-            embedding,
+            embedding.clone(),
         )
         .await;
 
         Self {
             mail: mail.clone(),
+            embedding,
             chat,
             completion,
             auth: Arc::new(auth::create(
@@ -292,6 +294,10 @@ impl ServiceLocator for ArcServerContext {
         self.0.mail.clone()
     }
 
+    fn embedding(&self) -> Arc<dyn EmbeddingService> {
+        self.0.embedding.clone()
+    }
+
     fn setting(&self) -> Arc<dyn SettingService> {
         self.0.setting.clone()
     }
@@ -345,7 +351,7 @@ pub async fn create_service_locator(
     context: Arc<dyn ContextService>,
     web_documents: Arc<dyn WebDocumentService>,
     db: DbConn,
-    embedding: Arc<dyn Embedding>,
+    embedding: Arc<dyn EmbeddingService>,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(ArcServerContext::new(
         ServerContext::new(

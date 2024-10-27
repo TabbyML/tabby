@@ -36,7 +36,10 @@ use juniper::{
 };
 use repository::RepositoryGrepOutput;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
-use tabby_inference::{ChatCompletionStream, CodeGeneration, CodeGenerationOptionsBuilder};
+use tabby_inference::{
+    ChatCompletionStream, CodeGeneration, CodeGenerationOptionsBuilder,
+    Embedding as EmbeddingService,
+};
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
 use tracing::{error, warn};
 use user_group::{
@@ -77,6 +80,7 @@ pub trait ServiceLocator: Send + Sync {
     fn code(&self) -> Arc<dyn CodeSearch>;
     fn chat(&self) -> Option<Arc<dyn ChatCompletionStream>>;
     fn completion(&self) -> Option<Arc<CodeGeneration>>;
+    fn embedding(&self) -> Arc<dyn EmbeddingService>;
     fn logger(&self) -> Arc<dyn EventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
     fn repository(&self) -> Arc<dyn RepositoryService>;
@@ -709,18 +713,13 @@ impl Query {
                 }
             }
             ModelHealthBackend::Embedding => {
-                if let Some(chat) = ctx.locator.chat() {
-                    let request = CreateChatCompletionRequest::default();
-                    if let Ok(_) = chat.chat(request).await {
-                        return Ok(start.elapsed().as_millis() as i32);
-                    }
-                }
+                let embedding = ctx.locator.embedding();
+                return match embedding.embed("hello Tabby".into()).await {
+                    Ok(_) => Ok(start.elapsed().as_millis() as i32),
+                    Err(e) => Err(CoreError::Other(e.into())),
+                };
             }
         }
-
-        Err(CoreError::Other(anyhow::anyhow!(
-            "Failed to connect to the model"
-        )))
     }
 }
 
