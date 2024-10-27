@@ -16,8 +16,7 @@ pub mod user_group;
 pub mod web_documents;
 pub mod worker;
 
-use std::sync::Arc;
-use std::time::Instant;
+use std::{sync::Arc, time::Instant};
 
 use access_policy::{AccessPolicyService, SourceIdAccessPolicy};
 use async_openai::types::CreateChatCompletionRequest;
@@ -687,37 +686,37 @@ impl Query {
                         .expect("Failed to build completion options");
 
                     if !completion
-                        .generate("hello Tabby".into(), options)
+                        .generate("hello Tabby", options)
                         .await
                         .is_empty()
                     {
                         return Ok(start.elapsed().as_millis() as i32);
                     }
 
-                    return Err(CoreError::Other(anyhow::anyhow!(
+                    Err(CoreError::Other(anyhow::anyhow!(
                         "Failed to connect to the completion model"
-                    )));
+                    )))
                 } else {
-                    return Err(CoreError::NotFound("Completion model is not enabled"));
+                    Err(CoreError::NotFound("Completion model is not enabled"))
                 }
             }
             ModelHealthBackend::Chat => {
                 if let Some(chat) = ctx.locator.chat() {
                     let request = CreateChatCompletionRequest::default();
                     match chat.chat(request).await {
-                        Ok(_) => return Ok(start.elapsed().as_millis() as i32),
-                        Err(e) => return Err(CoreError::Other(e.into())),
+                        Ok(_) => Ok(start.elapsed().as_millis() as i32),
+                        Err(e) => Err(CoreError::Other(e.into())),
                     }
                 } else {
-                    return Err(CoreError::NotFound("Chat model is not enabled"));
+                    Err(CoreError::NotFound("Chat model is not enabled"))
                 }
             }
             ModelHealthBackend::Embedding => {
                 let embedding = ctx.locator.embedding();
-                return match embedding.embed("hello Tabby".into()).await {
+                match embedding.embed("hello Tabby").await {
                     Ok(_) => Ok(start.elapsed().as_millis() as i32),
-                    Err(e) => Err(CoreError::Other(e.into())),
-                };
+                    Err(e) => Err(CoreError::Other(e)),
+                }
             }
         }
     }
