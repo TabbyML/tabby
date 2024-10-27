@@ -527,6 +527,36 @@ export type ChatEditResolveCommand = LspCommand & {
 };
 
 /**
+ * [Tabby] Smart Apply Request(↩️)
+ *
+ * This method is sent from the client to the server to smart apply the text to the target location.
+ * The server will edit the document content using ApplyEdit(`workspace/applyEdit`) request,
+ * which requires the client to have this capability.
+ * - method: `tabby/chat/smartApply`
+ * - params: {@link SmartApplyParams}
+ * - result: boolean
+ * - error: {@link ChatFeatureNotAvailableError}
+ *        | {@link ChatEditDocumentTooLongError}
+ *        | {@link ChatEditMutexError}
+ */
+export namespace SmartApplyRequest {
+  export const method = "tabby/chat/smartApply";
+  export const messageDirection = MessageDirection.clientToServer;
+  export const type = new ProtocolRequestType<
+    SmartApplyParams,
+    boolean,
+    void,
+    ChatFeatureNotAvailableError | ChatEditDocumentTooLongError | ChatEditMutexError,
+    void
+  >(method);
+}
+
+export type SmartApplyParams = {
+  location: Location;
+  text: string;
+};
+
+/**
  * [Tabby] Did Change Active Editor Notification(➡️)
  *
  * This method is sent from the client to server when the active editor changed.

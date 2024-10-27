@@ -58,14 +58,14 @@
                 id="Tabby"
                 anchor="right"
                 icon="com.tabbyml.intellijtabby.Icons.Chat"
-                factoryClass="com.tabbyml.intellijtabby.widgets.ChatToolWindowFactory" />
+                factoryClass="com.tabbyml.intellijtabby.widgets.ChatToolWindowFactory"/>
     </extensions>
 
     <actions>
         <group id="Tabby.ToolsMenu" popup="true" text="Tabby" description="Tabby AI code assistant">
             <add-to-group group-id="CodeMenu" anchor="after" relative-to-action="CodeCompletionGroup"/>
-            <action id="Tabby.TriggerInlineCompletion"
-                    class="com.tabbyml.intellijtabby.actions.TriggerInlineCompletion"
+            <action id="Tabby.InlineCompletion.Trigger"
+                    class="com.tabbyml.intellijtabby.actions.inlineCompletion.Trigger"
                     text="Show Inline Completion"
                     description="Show inline completion suggestions at the caret's position.">
                 <keyboard-shortcut first-keystroke="ctrl BACK_SLASH" keymap="$default"/>
@@ -78,12 +78,6 @@
                         text="Accept Completion"
                         description="Accept the shown suggestions and insert the text.">
                 </action>
-                <action id="Tabby.InlineCompletion.TabAccept"
-                        class="com.tabbyml.intellijtabby.actions.inlineCompletion.TabAccept"
-                        text="Accept Completion with Tab"
-                        description="Accept the shown suggestions if the insert text does not start with indentation.">
-                    <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
-                </action>
                 <action id="Tabby.InlineCompletion.AcceptNextLine"
                         class="com.tabbyml.intellijtabby.actions.inlineCompletion.AcceptNextLine"
                         text="Accept Next Line"
@@ -94,7 +88,7 @@
                         class="com.tabbyml.intellijtabby.actions.inlineCompletion.AcceptNextWord"
                         text="Accept Next Word"
                         description="Accept the next word of shown suggestions.">
-                    <keyboard-shortcut first-keystroke="control RIGHT" keymap="$default"/>
+                    <keyboard-shortcut first-keystroke="ctrl RIGHT" keymap="$default"/>
                 </action>
                 <action id="Tabby.InlineCompletion.CycleNext"
                         class="com.tabbyml.intellijtabby.actions.inlineCompletion.CycleNext"
@@ -117,13 +111,15 @@
             </group>
             <separator/>
             <action id="Tabby.OpenChatToolWindow"
-                    class="com.tabbyml.intellijtabby.actions.OpenChatToolWindow"
+                    class="com.tabbyml.intellijtabby.actions.chat.OpenChatToolWindow"
                     text="Open Tabby Chat..."
                     description="Open a tool window to chat with Tabby.">
             </action>
             <separator/>
             <action id="Tabby.ToggleInlineCompletionTriggerMode"
-                    class="com.tabbyml.intellijtabby.actions.ToggleInlineCompletionTriggerMode">
+                    class="com.tabbyml.intellijtabby.actions.ToggleInlineCompletionTriggerMode"
+                    text="Toggle Auto Inline Completion"
+                    description="Enable or disable the automatic inline completion.">
             </action>
             <action id="Tabby.OpenSettings"
                     class="com.tabbyml.intellijtabby.actions.OpenSettings"
@@ -163,11 +159,64 @@
             </action>
         </group>
 
+        <group id="Tabby.EditorContext" popup="true" text="Tabby">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <action id="Tabby.Chat.AddSelectionToChat"
+                    class="com.tabbyml.intellijtabby.actions.chat.AddSelectionToChat"
+                    text="Add Selection to Chat"
+                    description="Add the selected text to Tabby chat panel for reference.">
+            </action>
+            <action id="Tabby.Chat.AddFileToChat"
+                    class="com.tabbyml.intellijtabby.actions.chat.AddFileToChat"
+                    text="Add File to Chat"
+                    description="Add the current file to Tabby chat panel for reference.">
+            </action>
+            <separator/>
+            <action id="Tabby.Chat.Explain"
+                    class="com.tabbyml.intellijtabby.actions.chat.Explain"
+                    text="Explain"
+                    description="Explain the selected code using Tabby chat.">
+            </action>
+            <action id="Tabby.Chat.Fix"
+                    class="com.tabbyml.intellijtabby.actions.chat.Fix"
+                    text="Fix"
+                    description="Fix the selected code using Tabby chat.">
+            </action>
+            <action id="Tabby.Chat.GenerateDocs"
+                    class="com.tabbyml.intellijtabby.actions.chat.GenerateDocs"
+                    text="Generate Docs"
+                    description="Generate documentation for the selected code using Tabby chat.">
+            </action>
+            <action id="Tabby.Chat.GenerateTests"
+                    class="com.tabbyml.intellijtabby.actions.chat.GenerateTests"
+                    text="Generate Tests"
+                    description="Generate tests for the selected code using Tabby chat.">
+            </action>
+        </group>
+
         <group id="Tabby.StatusBarPopupMenu">
             <reference id="Tabby.CheckIssueDetail"/>
+            <separator/>
+            <reference id="Tabby.ToggleInlineCompletionTriggerMode"/>
+            <separator/>
             <reference id="Tabby.OpenChatToolWindow"/>
+            <separator/>
             <reference id="Tabby.OpenSettings"/>
             <reference id="Tabby.OpenOnlineHelp"/>
         </group>
+
+        <action id="Tabby.InlineCompletion.TabAccept"
+                class="com.tabbyml.intellijtabby.actions.inlineCompletion.TabAccept"
+                text="Accept Completion (Tab)"
+                description="Accept the shown suggestions if the insert text does not start with indentation.">
+            <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
+        </action>
+
+        <action id="Tabby.Chat.ToggleChatToolWindow"
+                class="com.tabbyml.intellijtabby.actions.chat.ToggleChatToolWindow"
+                text="Switch Focus Between Editor and Chat"
+                description="Switch focus between editor and chat, add selected text to chat if any.">
+            <keyboard-shortcut first-keystroke="ctrl L" keymap="$default"/>
+        </action>
     </actions>
 </idea-plugin>

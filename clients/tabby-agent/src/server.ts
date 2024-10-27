@@ -47,6 +47,7 @@ import { StatusProvider } from "./status";
 import { CommandProvider } from "./command";
 import { name as serverName, version as serverVersion } from "../package.json";
 import "./utils/array";
+import { SmartApplyFeature } from "./chat/smartApply";
 import { FileTracker } from "./codeSearch/fileTracker";
 
 export class Server {
@@ -87,6 +88,7 @@ export class Server {
     this.tabbyApiClient,
     this.gitContextProvider,
   );
+  private readonly smartApplyFeature = new SmartApplyFeature(this.configurations, this.tabbyApiClient, this.documents);
 
   private readonly statusProvider = new StatusProvider(this.dataStore, this.configurations, this.tabbyApiClient);
   private readonly commandProvider = new CommandProvider(this.chatEditProvider, this.statusProvider);
@@ -189,6 +191,7 @@ export class Server {
       this.chatFeature,
       this.chatEditProvider,
       this.commitMessageGenerator,
+      this.smartApplyFeature,
       this.statusProvider,
       this.commandProvider,
       this.fileTracker,

@@ -13,8 +13,10 @@ import com.intellij.openapi.editor.colors.EditorColorsListener
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.progress.util.BackgroundTaskUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.util.SystemInfo
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
@@ -33,24 +35,34 @@ import java.awt.datatransfer.StringSelection
 import java.io.File
 
 
-class ChatBrowser(private val project: Project) {
+class ChatBrowser(private val project: Project) : JBCefBrowser(
+  createBuilder()
+    .setOffScreenRendering(
+      when {
+        SystemInfo.isWindows -> false
+        SystemInfo.isMac -> false
+        SystemInfo.isLinux -> true
+        else -> false
+      }
+    )
+    .setEnableOpenDevToolsMenuItem(true)
+) {
   private val logger = Logger.getInstance(ChatBrowser::class.java)
   private val gson = Gson()
   private val combinedState = project.service<CombinedState>()
   private val gitProvider = project.service<GitProvider>()
   private val messageBusConnection = project.messageBus.connect()
 
-  private val browser = JBCefBrowser()
-  private val reloadHandler = JBCefJSQuery.create(browser as JBCefBrowserBase)
-  private val chatPanelRequestHandler = JBCefJSQuery.create(browser as JBCefBrowserBase)
+  private val reloadHandler = JBCefJSQuery.create(this as JBCefBrowserBase)
+  private val chatPanelRequestHandler = JBCefJSQuery.create(this as JBCefBrowserBase)
 
   private var currentConfig: ServerInfo.ServerInfoConfig? = null
-
-  val browserComponent = browser.component
+  private var isChatPanelLoaded = false
+  private val pendingScripts: MutableList<String> = mutableListOf()
 
   private data class ChatPanelRequest(
     val method: String,
-    val params: List<Any>,
+    val params: List<Any?>,
   )
 
   private data class FileContext(
@@ -68,9 +80,14 @@ class ChatBrowser(private val project: Project) {
   }
 
   init {
-    browserComponent.isVisible = false
+    component.isVisible = false
+    val bgColor = calcComponentBgColor()
+    component.background = bgColor
+    setPageBackgroundColor("hsl(${bgColor.toHsl()})")
 
-    browser.jbCefClient.addLoadHandler(object : CefLoadHandlerAdapter() {
+    loadHTML(HTML_CONTENT)
+
+    jbCefClient.addLoadHandler(object : CefLoadHandlerAdapter() {
       override fun onLoadingStateChange(
         browser: CefBrowser?,
         isLoading: Boolean,
@@ -81,7 +98,7 @@ class ChatBrowser(private val project: Project) {
           handleLoaded()
         }
       }
-    }, browser.cefBrowser)
+    }, cefBrowser)
 
     reloadHandler.addHandler {
       reloadContent(true)
@@ -94,8 +111,6 @@ class ChatBrowser(private val project: Project) {
       return@addHandler JBCefJSQuery.Response("")
     }
 
-    this.browser.loadHTML(HTML_CONTENT)
-
     messageBusConnection.subscribe(CombinedState.Listener.TOPIC, object : CombinedState.Listener {
       override fun stateChanged(state: CombinedState.State) {
         reloadContent()
@@ -103,26 +118,114 @@ class ChatBrowser(private val project: Project) {
     })
 
     messageBusConnection.subscribe(EditorColorsManager.TOPIC, EditorColorsListener {
-      logger.debug("EditorColorsManager globalSchemeChange received, updating style.")
-      jsApplyStyle()
-      chatPanelUpdateTheme()
+      BackgroundTaskUtil.executeOnPooledThread(this) {
+        logger.debug("EditorColorsManager globalSchemeChange received, updating style.")
+        Thread.sleep(100)
+        jsApplyStyle()
+        chatPanelUpdateTheme()
+      }
     })
+  }
+
+  fun explainSelectedText() {
+    BackgroundTaskUtil.executeOnPooledThread(this) {
+      val context = getActiveFileContext()
+      chatPanelSendMessage(PROMPT_EXPLAIN, context)
+    }
+  }
+
+  fun fixSelectedText() {
+    BackgroundTaskUtil.executeOnPooledThread(this) {
+      // FIXME(@icycodes): collect the diagnostic message provided by IDE
+      val context = getActiveFileContext()
+      chatPanelSendMessage(PROMPT_FIX, context)
+    }
+  }
+
+  fun generateDocsForSelectedText() {
+    BackgroundTaskUtil.executeOnPooledThread(this) {
+      val context = getActiveFileContext()
+      chatPanelSendMessage(PROMPT_GENERATE_DOCS, context)
+    }
+  }
+
+  fun generateTestsForSelectedText() {
+    BackgroundTaskUtil.executeOnPooledThread(this) {
+      val context = getActiveFileContext()
+      chatPanelSendMessage(PROMPT_GENERATE_TESTS, context)
+    }
+  }
+
+  fun addActiveEditorAsContext(useSelectedText: Boolean) {
+    BackgroundTaskUtil.executeOnPooledThread(this) {
+      val context = getActiveFileContext(useSelectedText) ?: return@executeOnPooledThread
+      chatPanelAddRelevantContext(context)
+    }
+  }
+
+  private fun getActiveFileContext(useSelectedText: Boolean = true): FileContext? {
+    return FileEditorManager.getInstance(project).selectedTextEditor?.let { editor ->
+      ReadAction.compute<Triple<String, Int, Int>?, Throwable> {
+        val document = editor.document
+        if (useSelectedText) {
+          val selectionModel = editor.selectionModel
+          val text = selectionModel.selectedText.takeUnless { it.isNullOrBlank() } ?: return@compute null
+          Triple(
+            text,
+            document.getLineNumber(selectionModel.selectionStart) + 1,
+            document.getLineNumber(selectionModel.selectionEnd) + 1,
+          )
+        } else {
+          val text = document.text.takeUnless { it.isBlank() } ?: return@compute null
+          Triple(
+            text,
+            1,
+            document.lineCount,
+          )
+        }
+      }?.let { context ->
+        val uri = editor.virtualFile?.url
+        val gitRepo = uri?.let { gitProvider.getRepository(it) }
+        val relativeBase = gitRepo?.root ?: project.guessProjectDir()?.url
+        val relativePath = uri?.let {
+          if (!relativeBase.isNullOrBlank() && it.startsWith(relativeBase)) {
+            it.substringAfter(relativeBase).trimStart(File.separatorChar)
+          } else it
+        }
+        logger.debug("Active context: context: $context, uri: $uri, gitRepo: $gitRepo, relativePath: $relativePath, relativeBase: $relativeBase")
+
+        FileContext(
+          range = FileContext.LineRange(
+            start = context.second,
+            end = context.third,
+          ),
+          filepath = relativePath ?: "",
+          content = context.first,
+          gitUrl = gitRepo?.remotes?.firstOrNull()?.url ?: "",
+        )
+      }
+    }
   }
 
   private fun handleLoaded() {
     jsInjectHandlers()
     jsApplyStyle()
     reloadContent()
-    browserComponent.isVisible = true
+    component.isVisible = true
   }
 
   private val isDarkTheme get() = EditorColorsManager.getInstance().isDarkEditor
 
+  private fun calcComponentBgColor(): Color {
+    val editorColorsScheme = EditorColorsManager.getInstance().schemeForCurrentUITheme
+    return editorColorsScheme.getColor(EditorColors.CARET_ROW_COLOR)
+      ?: if (isDarkTheme) editorColorsScheme.defaultBackground.brighter() else editorColorsScheme.defaultBackground.darker()
+  }
+
   private fun buildCss(): String {
     val editorColorsScheme = EditorColorsManager.getInstance().schemeForCurrentUITheme
     val bgColor = editorColorsScheme.defaultBackground
-    val bgActiveColor = editorColorsScheme.getColor(EditorColors.CARET_ROW_COLOR)
-      ?: if (isDarkTheme) editorColorsScheme.defaultBackground.brighter() else editorColorsScheme.defaultBackground.darker()
+    val bgActiveColor = calcComponentBgColor()
     val fgColor = editorColorsScheme.defaultForeground
     val borderColor = editorColorsScheme.getColor(EditorColors.BORDER_LINES_COLOR)
       ?: if (isDarkTheme) editorColorsScheme.defaultForeground.brighter() else editorColorsScheme.defaultForeground.darker()
@@ -175,8 +278,11 @@ class ChatBrowser(private val project: Project) {
           showContent(error)
         } else {
           val config = combinedState.state.agentServerInfo?.config
-          if (config != null && (force || currentConfig != config)) {
-            showContent("Loading Tabby chat panel...")
+          if (config == null) {
+            showContent("Initializing...")
+          } else if (force || currentConfig != config) {
+            showContent("Loading chat panel...")
+            isChatPanelLoaded = false
             currentConfig = config
             jsLoadChatPanel()
           }
@@ -214,41 +320,8 @@ class ChatBrowser(private val project: Project) {
           val relevantContext: List<FileContext>? = request.params.getOrNull(1)?.let {
             gson.fromJson(gson.toJson(it), object : TypeToken<List<FileContext?>?>() {}.type)
           }
-          val activeContext = FileEditorManager.getInstance(project).selectedTextEditor?.let { editor ->
-            ReadAction.compute<Triple<String, Int, Int>?, Throwable> {
-              val selectionModel = editor.selectionModel
-              val document = editor.document
-              val text = selectionModel.selectedText
-              val startLine = document.getLineNumber(selectionModel.selectionStart) + 1
-              val endLine = document.getLineNumber(selectionModel.selectionEnd) + 1
-              if (!text.isNullOrBlank()) {
-                Triple(text, startLine, endLine)
-              } else {
-                null
-              }
-            }?.let { selection ->
-              val uri = editor.virtualFile?.url
-              val gitRepo = uri?.let { gitProvider.getRepository(it) }
-              val relativeBase = gitRepo?.root ?: project.guessProjectDir()?.url
-              val relativePath = uri?.let {
-                if (!relativeBase.isNullOrBlank() && it.startsWith(relativeBase)) {
-                  it.substringAfter(relativeBase).trimStart(File.separatorChar)
-                } else it
-              }
-              logger.debug("Active selection: selection: $selection, uri: $uri, gitRepo: $gitRepo, relativePath: $relativePath, relativeBase: $relativeBase")
-
-              FileContext(
-                range = FileContext.LineRange(
-                  start = selection.second,
-                  end = selection.third,
-                ),
-                filepath = relativePath ?: "",
-                content = selection.first,
-                gitUrl = gitRepo?.remotes?.firstOrNull()?.url ?: "",
-              )
-            }
-          }
-          sendMessage(message, null, relevantContext, activeContext)
+          val activeContext = getActiveFileContext()
+          chatPanelSendMessage(message, null, relevantContext, activeContext)
         }
       }
 
@@ -277,9 +350,12 @@ class ChatBrowser(private val project: Project) {
             return
           }
         }
+        isChatPanelLoaded = true
         chatPanelInit()
         chatPanelUpdateTheme()
         showContent()
+        pendingScripts.forEach { executeJs(it) }
+        pendingScripts.clear()
       }
 
       "onCopy" -> {
@@ -313,11 +389,11 @@ class ChatBrowser(private val project: Project) {
     jsSendRequestToChatPanel(request)
   }
 
-  private fun sendMessage(
+  private fun chatPanelSendMessage(
     message: String,
-    selectContext: FileContext?,
-    relevantContext: List<FileContext>?,
-    activeContext: FileContext?
+    selectContext: FileContext? = null,
+    relevantContext: List<FileContext>? = null,
+    activeContext: FileContext? = null,
   ) {
     val request = ChatPanelRequest(
       "sendMessage",
@@ -330,7 +406,16 @@ class ChatBrowser(private val project: Project) {
         )
       )
     )
-    logger.debug("sendMessage: $request")
+    logger.debug("chatPanelSendMessage: $request")
+    jsSendRequestToChatPanel(request)
+  }
+
+  private fun chatPanelAddRelevantContext(context: FileContext) {
+    val request = ChatPanelRequest(
+      "addRelevantContext",
+      listOf(context)
+    )
+    logger.debug("chatPanelAddRelevantContext: $request")
     jsSendRequestToChatPanel(request)
   }
 
@@ -346,6 +431,15 @@ class ChatBrowser(private val project: Project) {
     jsSendRequestToChatPanel(request)
   }
 
+  private fun chatPanelUpdateActiveSelection(context: FileContext?) {
+    val request = ChatPanelRequest(
+      "updateActiveSelection",
+      listOf(context)
+    )
+    logger.debug("chatPanelUpdateActiveSelection: $request")
+    jsSendRequestToChatPanel(request)
+  }
+
   // js functions
 
   private fun jsInjectHandlers() {
@@ -357,7 +451,7 @@ class ChatBrowser(private val project: Project) {
       reloadHandler.inject(""),
       chatPanelRequestHandler.inject("message"),
     )
-    browser.cefBrowser.executeJavaScript(script, browser.cefBrowser.url, 0)
+    executeJs(script)
   }
 
   private fun jsApplyStyle() {
@@ -365,30 +459,38 @@ class ChatBrowser(private val project: Project) {
       "applyStyle('%s')",
       gson.toJson(mapOf("theme" to if (isDarkTheme) "dark" else "light", "css" to buildCss()))
     )
-    browser.cefBrowser.executeJavaScript(script, browser.cefBrowser.url, 0)
+    executeJs(script)
   }
 
   private fun jsShowMessage(message: String?) {
     val script = if (message != null) "showMessage('${message}')" else "showMessage()"
-    browser.cefBrowser.executeJavaScript(script, browser.cefBrowser.url, 0)
+    executeJs(script)
   }
 
   private fun jsShowChatPanel(visible: Boolean) {
     val script = String.format("showChatPanel(%s)", if (visible) "true" else "false")
-    browser.cefBrowser.executeJavaScript(script, browser.cefBrowser.url, 0)
+    executeJs(script)
   }
 
   private fun jsLoadChatPanel() {
     val config = currentConfig ?: return
     val chatUrl = String.format("%s/chat?client=intellij", config.endpoint)
     val script = String.format("loadChatPanel('%s')", chatUrl)
-    browser.cefBrowser.executeJavaScript(script, browser.cefBrowser.url, 0)
+    executeJs(script)
   }
 
   private fun jsSendRequestToChatPanel(request: ChatPanelRequest) {
     val json = gson.toJson(request)
     val script = String.format("sendRequestToChatPanel('%s')", escapeCharacters(json))
-    browser.cefBrowser.executeJavaScript(script, browser.cefBrowser.url, 0)
+    if (isChatPanelLoaded) {
+      executeJs(script)
+    } else {
+      pendingScripts.add(script)
+    }
+  }
+
+  private fun executeJs(script: String) {
+    cefBrowser.executeJavaScript(script, cefBrowser.url, 0)
   }
 
   companion object {
@@ -485,6 +587,12 @@ class ChatBrowser(private val project: Project) {
 
     private const val TABBY_CHAT_PANEL_API_VERSION_RANGE = "~0.2.0"
     private const val TABBY_SERVER_VERSION_RANGE = ">=0.18.0"
+
+    private const val PROMPT_EXPLAIN: String = "Explain the selected code:"
+    private const val PROMPT_FIX: String = "Identify and fix potential bugs in the selected code:"
+    private const val PROMPT_GENERATE_DOCS: String = "Generate documentation for the selected code:"
+    private const val PROMPT_GENERATE_TESTS: String = "Generate a unit test for the selected code:"
+
     private const val HTML_CONTENT = """
       <!DOCTYPE html>
       <html lang="en">
@@ -599,18 +707,20 @@ class ChatBrowser(private val project: Project) {
             );
           }
       
+          window.addEventListener("focus", (event) => {
+            const chat = getChatPanel();
+            if (chat.style.cssText == "display: block;") {
+              setTimeout(() => {
+                chat.contentWindow.focus();
+              }, 1);
+            }
+          });
+
           window.addEventListener("message", (event) => {
             const chat = getChatPanel();
       
             // server to client requests
-            if (event.source === chat.contentWindow) {
-              // handle copy action
-              if (typeof event.data === "object" && "action" in event.data && event.data.action === "copy") {
-                if (navigator.clipboard?.writeText) {
-                  navigator.clipboard.writeText(event.data.data);
-                }
-              }
-      
+            if (event.source === chat.contentWindow) {      
               // adapter for @quilted/threads requests
               if (Array.isArray(event.data) && event.data.length >= 2) {
                 const [kind, data] = event.data;

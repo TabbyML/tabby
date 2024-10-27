@@ -4,7 +4,8 @@ import generateCommitMessagePrompt from "../chat/prompts/generate-commit-message
 import generateDocsPrompt from "../chat/prompts/generate-docs.md";
 import editCommandReplacePrompt from "../chat/prompts/edit-command-replace.md";
 import editCommandInsertPrompt from "../chat/prompts/edit-command-insert.md";
-
+import generateSmartApplyPrompt from "../chat/prompts/generate-smart-apply.md";
+import provideSmartApplyLineRangePrompt from "../chat/prompts/provide-smart-apply-line-range.md";
 export const defaultConfigData: ConfigData = {
   server: {
     endpoint: "http://localhost:8080",
@@ -93,6 +94,12 @@ export const defaultConfigData: ConfigData = {
       promptTemplate: generateCommitMessagePrompt,
       responseMatcher:
         /(?<=(["'`]+)?\s*)(feat|fix|docs|refactor|style|test|build|ci|chore)(\(\S+\))?:.+(?=\s*\1)/gis.toString(),
+    },
+    smartApplyLineRange: {
+      promptTemplate: provideSmartApplyLineRangePrompt,
+    },
+    smartApply: {
+      promptTemplate: generateSmartApplyPrompt,
     },
   },
   logs: {

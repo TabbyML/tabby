@@ -17,6 +17,7 @@ import { Config } from "../Config";
 import { InlineCompletionProvider } from "../InlineCompletionProvider";
 import { GitProvider } from "../git/GitProvider";
 import { getLogger } from "../logger";
+import { WorkSpaceFeature } from "./WorkspaceFeature";
 import { FileTrackerFeature } from "./FileTrackFeature";
 
 export class Client {
@@ -24,6 +25,7 @@ export class Client {
   readonly agent: AgentFeature;
   readonly chat: ChatFeature;
   readonly telemetry: TelemetryFeature;
+  readonly workspace: WorkSpaceFeature;
   readonly fileTrack: FileTrackerFeature;
   constructor(
     private readonly context: ExtensionContext,
@@ -31,10 +33,12 @@ export class Client {
   ) {
     this.agent = new AgentFeature(this.languageClient);
     this.chat = new ChatFeature(this.languageClient);
+    this.workspace = new WorkSpaceFeature(this.languageClient);
     this.telemetry = new TelemetryFeature(this.languageClient);
     this.fileTrack = new FileTrackerFeature(this, this.context);
     this.languageClient.registerFeature(this.agent);
     this.languageClient.registerFeature(this.chat);
+    this.languageClient.registerFeature(this.workspace);
     this.languageClient.registerFeature(this.telemetry);
     this.languageClient.registerFeature(this.fileTrack);
     this.languageClient.registerFeature(new DataStoreFeature(this.context, this.languageClient));
