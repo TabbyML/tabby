@@ -689,6 +689,7 @@ impl Query {
                         return Ok(start.elapsed().as_millis() as i32);
                     }
 
+                    // ast-grep-ignore: use-schema-result
                     Err(CoreError::Other(anyhow::anyhow!(
                         "Failed to connect to the completion model"
                     )))
