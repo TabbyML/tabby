@@ -685,11 +685,7 @@ impl Query {
                         .build()
                         .expect("Failed to build completion options");
 
-                    if !completion
-                        .generate("hello Tabby", options)
-                        .await
-                        .is_empty()
-                    {
+                    if !completion.generate("hello Tabby", options).await.is_empty() {
                         return Ok(start.elapsed().as_millis() as i32);
                     }
 
