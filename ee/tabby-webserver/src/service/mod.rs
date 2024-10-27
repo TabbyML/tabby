@@ -35,7 +35,7 @@ use tabby_common::{
     constants::USER_HEADER_FIELD_NAME,
 };
 use tabby_db::{DbConn, UserDAO, UserGroupDAO};
-use tabby_inference::{ChatCompletionStream, Embedding};
+use tabby_inference::{ChatCompletionStream, CodeGeneration, Embedding};
 use tabby_schema::{
     access_policy::AccessPolicyService,
     analytic::AnalyticService,
@@ -65,6 +65,7 @@ struct ServerContext {
     db_conn: DbConn,
     mail: Arc<dyn EmailService>,
     chat: Option<Arc<dyn ChatCompletionStream>>,
+    completion: Option<Arc<CodeGeneration>>,
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
     repository: Arc<dyn RepositoryService>,
@@ -87,6 +88,7 @@ impl ServerContext {
     pub async fn new(
         logger: Arc<dyn EventLogger>,
         chat: Option<Arc<dyn ChatCompletionStream>>,
+        completion: Option<Arc<CodeGeneration>>,
         code: Arc<dyn CodeSearch>,
         repository: Arc<dyn RepositoryService>,
         integration: Arc<dyn IntegrationService>,
@@ -128,6 +130,7 @@ impl ServerContext {
         Self {
             mail: mail.clone(),
             chat,
+            completion,
             auth: Arc::new(auth::create(
                 db_conn.clone(),
                 mail,
@@ -269,6 +272,10 @@ impl ServiceLocator for ArcServerContext {
         self.0.code.clone()
     }
 
+    fn completion(&self) -> Option<Arc<CodeGeneration>> {
+        self.0.completion.clone()
+    }
+
     fn logger(&self) -> Arc<dyn EventLogger> {
         self.0.logger.clone()
     }
@@ -329,6 +336,7 @@ impl ServiceLocator for ArcServerContext {
 pub async fn create_service_locator(
     logger: Arc<dyn EventLogger>,
     chat: Option<Arc<dyn ChatCompletionStream>>,
+    completion: Option<Arc<CodeGeneration>>,
     code: Arc<dyn CodeSearch>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
@@ -343,6 +351,7 @@ pub async fn create_service_locator(
         ServerContext::new(
             logger,
             chat,
+            completion,
             code,
             repository,
             integration,

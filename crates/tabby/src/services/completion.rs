@@ -424,12 +424,13 @@ pub async fn create_completion_service_and_chat(
     chat: Option<ModelConfig>,
 ) -> (
     Option<CompletionService>,
+    Option<Arc<CodeGeneration>>,
     Option<Arc<dyn ChatCompletionStream>>,
 ) {
     let (code_generation, prompt, chat) =
         model::load_code_generation_and_chat(completion, chat).await;
 
-    let completion = code_generation.map(|code_generation| {
+    let completion = code_generation.clone().map(|code_generation| {
         CompletionService::new(
             config.to_owned(),
             code_generation.clone(),
@@ -441,7 +442,7 @@ pub async fn create_completion_service_and_chat(
         )
     });
 
-    (completion, chat)
+    (completion, code_generation, chat)
 }
 
 #[cfg(test)]

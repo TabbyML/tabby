@@ -10,7 +10,7 @@ use tabby_common::{
     config::Config,
 };
 use tabby_db::DbConn;
-use tabby_inference::{ChatCompletionStream, Embedding};
+use tabby_inference::{ChatCompletionStream, CodeGeneration, Embedding};
 use tabby_schema::job::JobService;
 use tracing::debug;
 
@@ -62,6 +62,7 @@ impl Webserver {
         ui: Router,
         code: Arc<dyn CodeSearch>,
         chat: Option<Arc<dyn ChatCompletionStream>>,
+        completion: Option<Arc<CodeGeneration>>,
         docsearch: Arc<dyn DocSearch>,
         serper_factory_fn: impl Fn(&str) -> Box<dyn DocSearch>,
     ) -> (Router, Router) {
@@ -102,6 +103,7 @@ impl Webserver {
         let ctx = create_service_locator(
             self.logger(),
             chat.clone(),
+            completion.clone(),
             code.clone(),
             repository.clone(),
             integration.clone(),

@@ -17,6 +17,7 @@ pub mod web_documents;
 pub mod worker;
 
 use std::sync::Arc;
+use std::time::Instant;
 
 use access_policy::{AccessPolicyService, SourceIdAccessPolicy};
 use async_openai::types::CreateChatCompletionRequest;
@@ -30,12 +31,12 @@ use context::{ContextInfo, ContextService};
 use interface::UserValue;
 use job::{JobRun, JobService};
 use juniper::{
-    graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLObject, IntoFieldError,
-    Object, RootNode, ScalarValue, Value, ID,
+    graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLEnum, GraphQLObject,
+    IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
 };
 use repository::RepositoryGrepOutput;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
-use tabby_inference::ChatCompletionStream;
+use tabby_inference::{ChatCompletionStream, CodeGeneration, CodeGenerationOptionsBuilder};
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
 use tracing::{error, warn};
 use user_group::{
@@ -75,6 +76,7 @@ pub trait ServiceLocator: Send + Sync {
     fn worker(&self) -> Arc<dyn WorkerService>;
     fn code(&self) -> Arc<dyn CodeSearch>;
     fn chat(&self) -> Option<Arc<dyn ChatCompletionStream>>;
+    fn completion(&self) -> Option<Arc<CodeGeneration>>;
     fn logger(&self) -> Arc<dyn EventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
     fn repository(&self) -> Arc<dyn RepositoryService>;
@@ -191,11 +193,11 @@ async fn check_license(ctx: &Context, license_type: &[LicenseType]) -> Result<()
     license.ensure_valid_license()
 }
 
-#[derive(GraphQLObject, Debug, Clone)]
-pub struct ModelHealth {
-    pub completion: bool,
-    pub chat: bool,
-    pub embeddings: bool,
+#[derive(GraphQLEnum)]
+enum ModelHealthBackend {
+    Chat,
+    Completion,
+    Embedding,
 }
 
 #[derive(Default)]
@@ -669,23 +671,56 @@ impl Query {
         Ok(SourceIdAccessPolicy { source_id, read })
     }
 
-    async fn test_model_connection(ctx: &Context) -> Result<ModelHealth> {
+    async fn test_model_connection(ctx: &Context, backend: ModelHealthBackend) -> Result<i32> {
         check_user_allow_auth_token(ctx).await?;
+        // count request time in milliseconds
+        let start = Instant::now();
+        match backend {
+            ModelHealthBackend::Completion => {
+                if let Some(completion) = ctx.locator.completion() {
+                    let options = CodeGenerationOptionsBuilder::default()
+                        .build()
+                        .expect("Failed to build completion options");
 
-        let mut health = ModelHealth {
-            completion: false,
-            chat: false,
-            embeddings: false,
-        };
+                    if !completion
+                        .generate("hello Tabby".into(), options)
+                        .await
+                        .is_empty()
+                    {
+                        return Ok(start.elapsed().as_millis() as i32);
+                    }
 
-        if let Some(chat) = ctx.locator.chat() {
-            let request = CreateChatCompletionRequest::default();
-            if let Ok(_) = chat.chat(request).await {
-                health.chat = true;
+                    return Err(CoreError::Other(anyhow::anyhow!(
+                        "Failed to connect to the completion model"
+                    )));
+                } else {
+                    return Err(CoreError::NotFound("Completion model is not enabled"));
+                }
+            }
+            ModelHealthBackend::Chat => {
+                if let Some(chat) = ctx.locator.chat() {
+                    let request = CreateChatCompletionRequest::default();
+                    match chat.chat(request).await {
+                        Ok(_) => return Ok(start.elapsed().as_millis() as i32),
+                        Err(e) => return Err(CoreError::Other(e.into())),
+                    }
+                } else {
+                    return Err(CoreError::NotFound("Chat model is not enabled"));
+                }
+            }
+            ModelHealthBackend::Embedding => {
+                if let Some(chat) = ctx.locator.chat() {
+                    let request = CreateChatCompletionRequest::default();
+                    if let Ok(_) = chat.chat(request).await {
+                        return Ok(start.elapsed().as_millis() as i32);
+                    }
+                }
             }
         }
 
-        Ok(health)
+        Err(CoreError::Other(anyhow::anyhow!(
+            "Failed to connect to the model"
+        )))
     }
 }
 

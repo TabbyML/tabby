@@ -167,7 +167,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     ));
 
     let model = &config.model;
-    let (completion, chat) = create_completion_service_and_chat(
+    let (completion, code_generate, chat) = create_completion_service_and_chat(
         &config.completion,
         code.clone(),
         logger.clone(),
@@ -193,9 +193,16 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     #[cfg(feature = "ee")]
     if let Some(ws) = &ws {
         let (new_api, new_ui) = ws
-            .attach(&config, api, ui, code, chat, docsearch, |x| {
-                Box::new(services::doc::create_serper(x))
-            })
+            .attach(
+                &config,
+                api,
+                ui,
+                code,
+                chat,
+                code_generate,
+                docsearch,
+                |x| Box::new(services::doc::create_serper(x)),
+            )
             .await;
         api = new_api;
         ui = new_ui;
