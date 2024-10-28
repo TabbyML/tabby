@@ -260,9 +260,8 @@ async fn refresh_repositories_for_provider(
 ) -> Result<()> {
     let start = Utc::now();
 
+    debug!("importing {} repositories", repos.len());
     for repo in repos {
-        debug!("importing: {}", repo.name);
-
         let id = repo.vendor_id;
 
         repository
