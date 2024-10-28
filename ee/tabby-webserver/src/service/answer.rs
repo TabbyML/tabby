@@ -571,6 +571,8 @@ pub async fn merge_code_snippets(
             result.extend(file_hits);
         }
     }
+
+    result.sort_by(|a, b| b.scores.rrf.total_cmp(&a.scores.rrf));
     result
 }
 
