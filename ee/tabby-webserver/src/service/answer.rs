@@ -556,7 +556,7 @@ pub async fn merge_code_snippets(
                         .fold(CodeSearchScores::default(), |mut acc, hit| {
                             acc.bm25 += hit.scores.bm25;
                             acc.embedding += hit.scores.embedding;
-                            acc.rrf += hit.scores.rrf;
+                            acc.rrf = hit.scores.rrf;
                             acc
                         });
                 // average the scores
@@ -572,6 +572,8 @@ pub async fn merge_code_snippets(
             result.extend(file_hits);
         }
     }
+
+    result.sort_by(|a, b| b.scores.rrf.total_cmp(&a.scores.rrf));
     result
 }
 
