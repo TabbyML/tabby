@@ -528,6 +528,10 @@ type MessageEdge {
   cursor: String!
 }
 
+type ModelHealthResponse {
+  latency: Int!
+}
+
 type Mutation {
   resetRegistrationToken: String!
   requestInvitationEmail(input: RequestInvitationInput!): Invitation!
@@ -699,7 +703,7 @@ type Query {
   "List user groups."
   userGroups: [UserGroup!]!
   sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
-  testModelConnection(backend: ModelHealthBackend!): Int!
+  testModelConnection(backend: ModelHealthBackend!): ModelHealthResponse!
 }
 
 type RefreshTokenResponse {

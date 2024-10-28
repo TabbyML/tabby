@@ -130,6 +130,9 @@ pub enum CoreError {
     InvalidLicense(&'static str),
 
     #[error("{0}")]
+    ModelConnectionFailed(String),
+
+    #[error("{0}")]
     Other(#[from] anyhow::Error),
 }
 
@@ -201,6 +204,11 @@ enum ModelHealthBackend {
     Chat,
     Completion,
     Embedding,
+}
+
+#[derive(GraphQLObject, Debug, Clone)]
+struct ModelHealthResponse {
+    latency: i32,
 }
 
 #[derive(Default)]
@@ -674,7 +682,10 @@ impl Query {
         Ok(SourceIdAccessPolicy { source_id, read })
     }
 
-    async fn test_model_connection(ctx: &Context, backend: ModelHealthBackend) -> Result<i32> {
+    async fn test_model_connection(
+        ctx: &Context,
+        backend: ModelHealthBackend,
+    ) -> Result<ModelHealthResponse> {
         check_user_allow_auth_token(ctx).await?;
         // count request time in milliseconds
         let start = Instant::now();
@@ -686,13 +697,14 @@ impl Query {
                         .expect("Failed to build completion options");
 
                     if !completion.generate("hello Tabby", options).await.is_empty() {
-                        return Ok(start.elapsed().as_millis() as i32);
+                        return Ok(ModelHealthResponse {
+                            latency: start.elapsed().as_millis() as i32,
+                        });
                     }
 
-                    // ast-grep-ignore: use-schema-result
-                    Err(CoreError::Other(anyhow::anyhow!(
-                        "Failed to connect to the completion model"
-                    )))
+                    Err(CoreError::ModelConnectionFailed(
+                        "Failed to connect to the completion model".into(),
+                    ))
                 } else {
                     Err(CoreError::NotFound("Completion model is not enabled"))
                 }
@@ -701,8 +713,10 @@ impl Query {
                 if let Some(chat) = ctx.locator.chat() {
                     let request = CreateChatCompletionRequest::default();
                     match chat.chat(request).await {
-                        Ok(_) => Ok(start.elapsed().as_millis() as i32),
-                        Err(e) => Err(CoreError::Other(e.into())),
+                        Ok(_) => Ok(ModelHealthResponse {
+                            latency: start.elapsed().as_millis() as i32,
+                        }),
+                        Err(e) => Err(CoreError::ModelConnectionFailed(e.to_string())),
                     }
                 } else {
                     Err(CoreError::NotFound("Chat model is not enabled"))
@@ -711,8 +725,10 @@ impl Query {
             ModelHealthBackend::Embedding => {
                 let embedding = ctx.locator.embedding();
                 match embedding.embed("hello Tabby").await {
-                    Ok(_) => Ok(start.elapsed().as_millis() as i32),
-                    Err(e) => Err(CoreError::Other(e)),
+                    Ok(_) => Ok(ModelHealthResponse {
+                        latency: start.elapsed().as_millis() as i32,
+                    }),
+                    Err(e) => Err(CoreError::ModelConnectionFailed(e.to_string())),
                 }
             }
         }
