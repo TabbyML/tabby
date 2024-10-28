@@ -83,7 +83,7 @@ export default function TextAreaSearch({
   const [selectedModel, setSelectedModel] = useState(
     modelInfoArray.length > 0 ? modelInfoArray[0] : ''
   )
-  const isSelecteEnabled = false
+  const isSelectModelEnabled = true
 
   const DropdownMenuItems = modelInfoArray.map(model => (
     <DropdownMenuRadioItem
@@ -257,7 +257,7 @@ export default function TextAreaSearch({
         {/* llm select */}
         <DropdownMenu>
           <DropdownMenuTrigger>
-            {isSelecteEnabled && modelInfoArray.length > 0 && (
+            {isSelectModelEnabled && modelInfoArray.length > 0 && (
               <Button
                 variant="ghost"
                 className="gap-2 px-1.5 py-1 text-foreground/70"
@@ -281,7 +281,7 @@ export default function TextAreaSearch({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {isSelecteEnabled && modelInfoArray.length > 0 && (
+        {isSelectModelEnabled && modelInfoArray.length > 0 && (
           <Separator orientation="vertical" className="h-5" />
         )}
 
