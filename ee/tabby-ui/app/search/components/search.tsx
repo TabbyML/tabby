@@ -219,7 +219,8 @@ export function Search() {
     {
       data: threadMessages,
       error: threadMessagesError,
-      fetching: fetchingMessages
+      fetching: fetchingMessages,
+      stale: threadMessagesStale
     }
   ] = useQuery({
     query: listThreadMessages,
@@ -232,6 +233,8 @@ export function Search() {
   })
 
   useEffect(() => {
+    if (threadMessagesStale) return
+
     if (threadMessages?.threadMessages?.edges?.length) {
       const messages = threadMessages.threadMessages.edges
         .map(o => o.node)
@@ -700,7 +703,7 @@ export function Search() {
     return <ThreadMessagesErrorView />
   }
 
-  if (!isReady && isFetchingMessages) {
+  if (!isReady && (isFetchingMessages || threadMessagesStale)) {
     return (
       <div>
         <Header />
