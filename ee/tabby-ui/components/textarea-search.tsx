@@ -67,10 +67,10 @@ export default function TextAreaSearch({
   const { theme } = useCurrentTheme()
   const editorRef = useRef<PromptEditorRef>(null)
   const { data: modelInfo } = useModel()
-  // FIXME: handle effect from useModel to set model properly
-  const modelInfoArray = modelInfo ? Object.keys(modelInfo).map(key => modelInfo[key as keyof typeof modelInfo]).flat() : [];
+  const modelInfoArray = useMemo(() => modelInfo ? Object.keys(modelInfo).map(key => modelInfo[key as keyof typeof modelInfo]).flat().filter(val => val) : [], [modelInfo]);
   const [selectedModel, setSelectedModel] = useState(modelInfoArray.length > 0 ? modelInfoArray[0] : '');
-  // FIXME: set padding like select codebase
+  const isSelecteEnabled = false
+  
   const dropdownMenuItems = modelInfoArray.map(model => (
     <DropdownMenuRadioItem
       onClick={() => setSelectedModel(model)}
@@ -88,6 +88,10 @@ export default function TextAreaSearch({
     // Ensure the textarea height remains consistent during rendering
     setIsShow(true)
   }, [])
+
+  useEffect(() => {
+    setSelectedModel(modelInfoArray.length > 0 ? modelInfoArray[0] : '');
+  }, [modelInfoArray])
 
   const onWrapperClick = () => {
     editorRef.current?.editor?.commands.focus()
@@ -238,27 +242,34 @@ export default function TextAreaSearch({
         {/* llm select */}
         <DropdownMenu>
             <DropdownMenuTrigger>
-              <Button
-                variant="ghost"
-                className="gap-2 px-1.5 py-1 text-foreground/70"
-              >
-                <IconBox />
-                { selectedModel }
+              {
+                isSelecteEnabled && modelInfoArray.length > 0 &&
+                <Button
+                  variant="ghost"
+                  className="gap-2 px-1.5 py-1 text-foreground/70"
+                >
+                  <IconBox />
+                  { selectedModel }
 
-              </Button>
+                </Button>
+              }
             </DropdownMenuTrigger>
             <DropdownMenuContent
               side="bottom"
               align="end"
-              className="overflow-y-auto p-0"
+              className="overflow-y-auto p-0 dropdown-menu max-h-[30vh] min-w-[20rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in"
             >
               <DropdownMenuRadioGroup value={selectedModel} onValueChange={setSelectedModel}>
                 { dropdownMenuItems }
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
         </DropdownMenu>
-       
-        <Separator orientation="vertical" className="h-5" />
+
+        {
+          isSelecteEnabled && modelInfoArray.length > 0 &&
+          <Separator orientation="vertical" className="h-5" />
+
+        }
 
         <Tooltip>
           <TooltipTrigger asChild>
