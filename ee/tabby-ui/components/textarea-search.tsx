@@ -85,7 +85,7 @@ export default function TextAreaSearch({
   )
   const isSelecteEnabled = false
 
-  const dropdownMenuItems = modelInfoArray.map(model => (
+  const DropdownMenuItems = modelInfoArray.map(model => (
     <DropdownMenuRadioItem
       onClick={() => setSelectedModel(model)}
       value={model}
@@ -276,7 +276,7 @@ export default function TextAreaSearch({
               value={selectedModel}
               onValueChange={setSelectedModel}
             >
-              {dropdownMenuItems}
+              {DropdownMenuItems}
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>
         </DropdownMenu>
