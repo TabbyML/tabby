@@ -22,6 +22,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup
 } from '@/components/ui/resizable'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import { ListSkeleton } from '@/components/skeleton'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
@@ -656,7 +657,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       </ResizablePanel>
       <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
       <ResizablePanel defaultSize={80} minSize={30}>
-        <div className="flex h-full flex-col">
+        <div className="mb-4 flex h-full flex-col">
           <CodeSearchBar
             className={cn(
               'z-40',
@@ -670,41 +671,43 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
               })}
             />
           )}
-          <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
-            {!initialized ? (
-              <ListSkeleton className="rounded-lg border p-4" />
-            ) : showErrorView ? (
-              <ErrorView
-                className={`rounded-lg border p-4`}
-                error={viewAffectingError}
-              />
-            ) : (
-              <>
-                {isTreeMode && (
-                  <TreeModeView
-                    loading={fetchingTreeEntries}
-                    initialized={initialized}
-                    className={`rounded-lg border`}
-                  />
-                )}
-                {isBlobMode && (
-                  <BlobModeView
-                    blob={fileBlob}
-                    contentLength={contentLength}
-                    fileDisplayType={fileDisplayType}
-                    loading={fetchingRawFile || fetchingTreeEntries}
-                  />
-                )}
-                {isSearchMode && (
-                  <CodeSearchResultView
-                    results={repositoryGreps?.files}
-                    requestDuration={repositoryGreps?.elapsedMs}
-                    loading={fetchingRepositoryGrep}
-                  />
-                )}
-              </>
-            )}
-          </div>
+          <ScrollArea>
+            <div className="flex h-full flex-col px-4 pb-4">
+              {!initialized ? (
+                <ListSkeleton className="rounded-lg border p-4" />
+              ) : showErrorView ? (
+                <ErrorView
+                  className={`rounded-lg border p-4`}
+                  error={viewAffectingError}
+                />
+              ) : (
+                <>
+                  {isTreeMode && (
+                    <TreeModeView
+                      loading={fetchingTreeEntries}
+                      initialized={initialized}
+                      className={`rounded-lg border`}
+                    />
+                  )}
+                  {isBlobMode && (
+                    <BlobModeView
+                      blob={fileBlob}
+                      contentLength={contentLength}
+                      fileDisplayType={fileDisplayType}
+                      loading={fetchingRawFile || fetchingTreeEntries}
+                    />
+                  )}
+                  {isSearchMode && (
+                    <CodeSearchResultView
+                      results={repositoryGreps?.files}
+                      requestDuration={repositoryGreps?.elapsedMs}
+                      loading={fetchingRepositoryGrep}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+          </ScrollArea>
         </div>
       </ResizablePanel>
       <>
