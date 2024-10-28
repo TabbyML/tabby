@@ -7,7 +7,7 @@ use tabby_schema::{
     AsID, AsRowid, Result,
 };
 
-use super::{UserGroupExt, UserSecuredExt};
+use super::UserGroupExt;
 
 struct UserGroupServiceImpl {
     db: DbConn,
