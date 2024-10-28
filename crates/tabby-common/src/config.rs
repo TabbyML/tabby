@@ -350,7 +350,7 @@ impl Default for AnswerConfig {
         Self {
             code_search_params: default_answer_code_search_params(),
             presence_penalty: default_presence_penalty(),
-            system_prompt: Self::default_system_prompt()
+            system_prompt: Self::default_system_prompt(),
         }
     }
 }
