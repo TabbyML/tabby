@@ -87,7 +87,23 @@ export default function TextAreaSearch({
     const editor = editorRef.current?.editor
     if (!editor) return
 
-    editor.chain().focus().insertContent(prefix).run()
+    editor
+      .chain()
+      .focus()
+      .command(({ tr, state }) => {
+        const { $from } = state.selection
+        const isAtLineStart = $from.parentOffset === 0
+        const isPrecededBySpace = $from.nodeBefore?.text?.endsWith(' ') ?? false
+
+        if (isAtLineStart || isPrecededBySpace) {
+          tr.insertText(prefix)
+        } else {
+          tr.insertText(' ' + prefix)
+        }
+
+        return true
+      })
+      .run()
   }
 
   const { hasCodebaseSource, hasDocumentSource } = useMemo(() => {
