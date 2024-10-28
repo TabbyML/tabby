@@ -241,6 +241,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
 
   return (
     <CodeEditor
+      className="pb-2"
       value={value}
       theme={theme}
       language={language}
