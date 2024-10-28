@@ -5,6 +5,7 @@ import { Editor } from '@tiptap/react'
 
 import { ContextInfo } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
+import { useModel } from '@/lib/hooks/use-models'
 import { ThreadRunContexts } from '@/lib/types'
 import {
   checkSourcesAvailability,
@@ -13,27 +14,29 @@ import {
   getThreadRunContextsFromMentions
 } from '@/lib/utils'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuIndicator,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
-import { useModel } from '@/lib/hooks/use-models'
 
 import { PromptEditor, PromptEditorRef } from './prompt-editor'
 import { Button } from './ui/button'
-import { IconArrowRight, IconAtSign, IconHash, IconSpinner, IconBox } from './ui/icons'
-import { Separator } from './ui/separator'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuIndicator,
-  DropdownMenuRadioItem
-} from '@/components/ui/dropdown-menu'
+  IconArrowRight,
+  IconAtSign,
+  IconBox,
+  IconHash,
+  IconSpinner
+} from './ui/icons'
+import { Separator } from './ui/separator'
 
 export default function TextAreaSearch({
   onSearch,
@@ -67,20 +70,32 @@ export default function TextAreaSearch({
   const { theme } = useCurrentTheme()
   const editorRef = useRef<PromptEditorRef>(null)
   const { data: modelInfo } = useModel()
-  const modelInfoArray = useMemo(() => modelInfo ? Object.keys(modelInfo).map(key => modelInfo[key as keyof typeof modelInfo]).flat().filter(val => val) : [], [modelInfo]);
-  const [selectedModel, setSelectedModel] = useState(modelInfoArray.length > 0 ? modelInfoArray[0] : '');
+  const modelInfoArray = useMemo(
+    () =>
+      modelInfo
+        ? Object.keys(modelInfo)
+            .map(key => modelInfo[key as keyof typeof modelInfo])
+            .flat()
+            .filter(val => val)
+        : [],
+    [modelInfo]
+  )
+  const [selectedModel, setSelectedModel] = useState(
+    modelInfoArray.length > 0 ? modelInfoArray[0] : ''
+  )
   const isSelecteEnabled = false
-  
+
   const dropdownMenuItems = modelInfoArray.map(model => (
     <DropdownMenuRadioItem
       onClick={() => setSelectedModel(model)}
       value={model}
+      key={model}
       className="cursor-pointer py-2 pl-3"
     >
       <DropdownMenuIndicator className="DropdownMenuItemIndicator">
         <IconArrowRight />
       </DropdownMenuIndicator>
-      <span className="ml-2">{ model }</span>
+      <span className="ml-2">{model}</span>
     </DropdownMenuRadioItem>
   ))
 
@@ -90,7 +105,7 @@ export default function TextAreaSearch({
   }, [])
 
   useEffect(() => {
-    setSelectedModel(modelInfoArray.length > 0 ? modelInfoArray[0] : '');
+    setSelectedModel(modelInfoArray.length > 0 ? modelInfoArray[0] : '')
   }, [modelInfoArray])
 
   const onWrapperClick = () => {
@@ -241,35 +256,34 @@ export default function TextAreaSearch({
       >
         {/* llm select */}
         <DropdownMenu>
-            <DropdownMenuTrigger>
-              {
-                isSelecteEnabled && modelInfoArray.length > 0 &&
-                <Button
-                  variant="ghost"
-                  className="gap-2 px-1.5 py-1 text-foreground/70"
-                >
-                  <IconBox />
-                  { selectedModel }
-
-                </Button>
-              }
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              side="bottom"
-              align="end"
-              className="overflow-y-auto p-0 dropdown-menu max-h-[30vh] min-w-[20rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in"
+          <DropdownMenuTrigger>
+            {isSelecteEnabled && modelInfoArray.length > 0 && (
+              <Button
+                variant="ghost"
+                className="gap-2 px-1.5 py-1 text-foreground/70"
+              >
+                <IconBox />
+                {selectedModel}
+              </Button>
+            )}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            side="bottom"
+            align="end"
+            className="dropdown-menu max-h-[30vh] min-w-[20rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in"
+          >
+            <DropdownMenuRadioGroup
+              value={selectedModel}
+              onValueChange={setSelectedModel}
             >
-              <DropdownMenuRadioGroup value={selectedModel} onValueChange={setSelectedModel}>
-                { dropdownMenuItems }
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
+              {dropdownMenuItems}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
         </DropdownMenu>
 
-        {
-          isSelecteEnabled && modelInfoArray.length > 0 &&
+        {isSelecteEnabled && modelInfoArray.length > 0 && (
           <Separator orientation="vertical" className="h-5" />
-
-        }
+        )}
 
         <Tooltip>
           <TooltipTrigger asChild>

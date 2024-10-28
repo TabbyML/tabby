@@ -86,8 +86,6 @@ export default function UserPanel({
     return
   }
 
-  console.log('children', children)
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger>{children}</DropdownMenuTrigger>
