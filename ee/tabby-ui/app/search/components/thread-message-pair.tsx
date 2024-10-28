@@ -111,7 +111,7 @@ export function ThreadMessagePair({
       </div>
       {/* </div> */}
       {isEditing && (
-        <div className="flex justify-end items-center gap-2 -mt-2 mb-4 px-2">
+        <div className="-mt-2 mb-4 flex items-center justify-end gap-2 px-2">
           <Button
             variant="outline"
             onClick={e => {

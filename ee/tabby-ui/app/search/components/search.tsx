@@ -814,7 +814,7 @@ export function Search() {
 
               <ButtonScrollToBottom
                 className={cn(
-                  'border-muted-foreground !fixed !bottom-[5.4rem] !right-4 !top-auto z-40 lg:!bottom-[2.85rem]',
+                  '!fixed !bottom-[5.4rem] !right-4 !top-auto z-40 border-muted-foreground lg:!bottom-[2.85rem]',
                   {
                     hidden: devPanelOpen
                   }
@@ -892,7 +892,7 @@ export function Search() {
           </ResizablePanel>
           <ResizableHandle
             className={cn(
-              'bg-background hidden !h-[4px] border-none shadow-[0px_-4px_4px_rgba(0,0,0,0.2)] hover:bg-blue-500 active:bg-blue-500 dark:shadow-[0px_-4px_4px_rgba(255,255,255,0.2)]',
+              'hidden !h-[4px] border-none bg-background shadow-[0px_-4px_4px_rgba(0,0,0,0.2)] hover:bg-blue-500 active:bg-blue-500 dark:shadow-[0px_-4px_4px_rgba(255,255,255,0.2)]',
               devPanelOpen && 'block'
             )}
           />
@@ -943,7 +943,7 @@ function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
       <div className="flex items-center gap-x-6">
         <Button
           variant="ghost"
-          className="text-muted-foreground -ml-1 pl-0 text-sm"
+          className="-ml-1 pl-0 text-sm text-muted-foreground"
           onClick={() => onNavigateToHomePage()}
         >
           <IconChevronLeft className="mr-1 h-5 w-5" />
@@ -955,7 +955,7 @@ function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
           <>
             <Button
               variant="ghost"
-              className="text-muted-foreground flex items-center gap-1 px-2 font-normal"
+              className="flex items-center gap-1 px-2 font-normal text-muted-foreground"
               onClick={() => onNavigateToHomePage(true)}
             >
               <IconPlus />

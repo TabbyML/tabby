@@ -238,7 +238,7 @@ export function AssistantMessageSection({
             <p className="text-sm font-bold leading-normal">Sources</p>
           </div>
           <div
-            className="gap-sm grid grid-cols-3 gap-2 overflow-y-hidden md:grid-cols-4 px-2 -mx-2 pt-2"
+            className="gap-sm -mx-2 grid grid-cols-3 gap-2 overflow-y-hidden px-2 pt-2 md:grid-cols-4"
             style={{
               transition: 'height 0.25s ease-out',
               height: showMoreSource
@@ -329,7 +329,7 @@ export function AssistantMessageSection({
             }
             minRows={2}
             maxRows={20}
-            className="w-full p-4 border rounded-lg bg-background outline-ring hover:outline"
+            className="w-full rounded-lg border bg-background p-4 outline-ring hover:outline"
           />
         ) : (
           <MessageMarkdown
@@ -473,7 +473,7 @@ function SourceCard({
           onClick={() => window.open(source.link)}
         >
           {isDeletable && (
-            <div className="absolute -top-2 -right-1.5">
+            <div className="absolute -right-1.5 -top-2">
               <Button
                 size="icon"
                 variant="secondary"

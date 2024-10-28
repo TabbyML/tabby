@@ -39,7 +39,7 @@ export function UserMessageSection({ message, isEditing }: QuestionBlockProps) {
           editorRef.current?.editor?.commands.focus()
         }}
       >
-        <div className={cn('flex items-end px-4 min-h-[5.5rem]')}>
+        <div className={cn('flex min-h-[5.5rem] items-end px-4')}>
           <PromptEditor
             editable
             contextInfo={contextInfo}
@@ -51,7 +51,7 @@ export function UserMessageSection({ message, isEditing }: QuestionBlockProps) {
             ref={editorRef}
             content={JsonContent}
             className={cn(
-              'text-area-autosize mr-1 flex-1 resize-none rounded-lg !border-none bg-transparent !shadow-none !outline-none !ring-0 !ring-offset-0 py-3'
+              'text-area-autosize mr-1 flex-1 resize-none rounded-lg !border-none bg-transparent py-3 !shadow-none !outline-none !ring-0 !ring-offset-0'
             )}
             editorClassName="min-h-[3.5em]"
             onUpdate={({ editor }) => {
