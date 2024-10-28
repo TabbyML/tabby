@@ -333,7 +333,7 @@ impl Default for CompletionConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AnswerConfig {
     #[serde(default = "default_answer_code_search_params")]
     pub code_search_params: CodeSearchParams,
@@ -343,6 +343,16 @@ pub struct AnswerConfig {
 
     #[serde(default = "AnswerConfig::default_system_prompt")]
     pub system_prompt: String,
+}
+
+impl Default for AnswerConfig {
+    fn default() -> Self {
+        Self {
+            code_search_params: default_answer_code_search_params(),
+            presence_penalty: default_presence_penalty(),
+            system_prompt: Self::default_system_prompt()
+        }
+    }
 }
 
 fn default_answer_code_search_params() -> CodeSearchParams {
