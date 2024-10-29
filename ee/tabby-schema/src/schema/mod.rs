@@ -46,6 +46,7 @@ use tabby_inference::{
     ChatCompletionStream, CompletionOptionsBuilder, CompletionStream, Embedding as EmbeddingService,
 };
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
+use tokio::sync::broadcast::error;
 use tracing::{error, warn};
 use user_group::{
     CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupService,
@@ -136,9 +137,6 @@ pub enum CoreError {
     InvalidLicense(&'static str),
 
     #[error("{0}")]
-    ModelConnectionFailed(String),
-
-    #[error("{0}")]
     Other(#[from] anyhow::Error),
 }
 
@@ -153,6 +151,24 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
             Self::InvalidInput(errors) => from_validation_errors(errors),
             _ => self.into(),
         }
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum TestModelConnectionError {
+    #[error("{0}")]
+    CoreError(#[from] CoreError),
+
+    #[error("{0}")]
+    ModelConnectionFailed(String),
+
+    #[error("Model backend is not enabled")]
+    NotEnabled,
+}
+
+impl<S: ScalarValue> IntoFieldError<S> for TestModelConnectionError {
+    fn into_field_error(self) -> FieldError<S> {
+        self.into()
     }
 }
 
@@ -691,7 +707,7 @@ impl Query {
     async fn test_model_connection(
         ctx: &Context,
         backend: ModelHealthBackend,
-    ) -> Result<ModelHealthResponse> {
+    ) -> std::result::Result<ModelHealthResponse, TestModelConnectionError> {
         check_user_allow_auth_token(ctx).await?;
         // count request time in milliseconds
         let start = Instant::now();
@@ -720,11 +736,11 @@ impl Query {
                         }
                     }
 
-                    Err(CoreError::ModelConnectionFailed(
+                    Err(TestModelConnectionError::ModelConnectionFailed(
                         "Failed to connect to the completion model".into(),
                     ))
                 } else {
-                    Err(CoreError::NotFound("Completion model is not enabled"))
+                    Err(TestModelConnectionError::NotEnabled)
                 }
             }
             ModelHealthBackend::Chat => {
@@ -742,10 +758,12 @@ impl Query {
                         Ok(_) => Ok(ModelHealthResponse {
                             latency: start.elapsed().as_millis() as i32,
                         }),
-                        Err(e) => Err(CoreError::ModelConnectionFailed(e.to_string())),
+                        Err(e) => Err(TestModelConnectionError::ModelConnectionFailed(
+                            e.to_string(),
+                        )),
                     }
                 } else {
-                    Err(CoreError::NotFound("Chat model is not enabled"))
+                    Err(TestModelConnectionError::NotEnabled)
                 }
             }
             ModelHealthBackend::Embedding => {
@@ -754,7 +772,9 @@ impl Query {
                     Ok(_) => Ok(ModelHealthResponse {
                         latency: start.elapsed().as_millis() as i32,
                     }),
-                    Err(e) => Err(CoreError::ModelConnectionFailed(e.to_string())),
+                    Err(e) => Err(TestModelConnectionError::ModelConnectionFailed(
+                        e.to_string(),
+                    )),
                 }
             }
         }
