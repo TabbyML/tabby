@@ -35,7 +35,7 @@ use tabby_common::{
     constants::USER_HEADER_FIELD_NAME,
 };
 use tabby_db::{DbConn, UserDAO, UserGroupDAO};
-use tabby_inference::Embedding;
+use tabby_inference::{ChatCompletionStream, CompletionStream, Embedding as EmbeddingService};
 use tabby_schema::{
     access_policy::AccessPolicyService,
     analytic::AnalyticService,
@@ -64,6 +64,9 @@ use self::{
 struct ServerContext {
     db_conn: DbConn,
     mail: Arc<dyn EmailService>,
+    embedding: Arc<dyn EmbeddingService>,
+    chat: Option<Arc<dyn ChatCompletionStream>>,
+    completion: Option<Arc<dyn CompletionStream>>,
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
     repository: Arc<dyn RepositoryService>,
@@ -80,13 +83,13 @@ struct ServerContext {
     code: Arc<dyn CodeSearch>,
 
     setting: Arc<dyn SettingService>,
-
-    is_chat_enabled_locally: bool,
 }
 
 impl ServerContext {
     pub async fn new(
         logger: Arc<dyn EventLogger>,
+        chat: Option<Arc<dyn ChatCompletionStream>>,
+        completion: Option<Arc<dyn CompletionStream>>,
         code: Arc<dyn CodeSearch>,
         repository: Arc<dyn RepositoryService>,
         integration: Arc<dyn IntegrationService>,
@@ -95,8 +98,7 @@ impl ServerContext {
         context: Arc<dyn ContextService>,
         web_documents: Arc<dyn WebDocumentService>,
         db_conn: DbConn,
-        embedding: Arc<dyn Embedding>,
-        is_chat_enabled_locally: bool,
+        embedding: Arc<dyn EmbeddingService>,
     ) -> Self {
         let mail = Arc::new(
             new_email_service(db_conn.clone())
@@ -122,12 +124,15 @@ impl ServerContext {
             integration.clone(),
             repository.clone(),
             context.clone(),
-            embedding,
+            embedding.clone(),
         )
         .await;
 
         Self {
             mail: mail.clone(),
+            embedding,
+            chat,
+            completion,
             auth: Arc::new(auth::create(
                 db_conn.clone(),
                 mail,
@@ -148,7 +153,6 @@ impl ServerContext {
             user_group,
             access_policy,
             db_conn,
-            is_chat_enabled_locally,
         }
     }
 
@@ -241,7 +245,7 @@ impl WorkerService for ServerContext {
     }
 
     async fn is_chat_enabled(&self) -> Result<bool> {
-        Ok(self.is_chat_enabled_locally)
+        Ok(self.chat.is_some())
     }
 }
 
@@ -258,12 +262,20 @@ impl ServiceLocator for ArcServerContext {
         self.0.auth.clone()
     }
 
+    fn chat(&self) -> Option<Arc<dyn ChatCompletionStream>> {
+        self.0.chat.clone()
+    }
+
     fn worker(&self) -> Arc<dyn WorkerService> {
         self.0.clone()
     }
 
     fn code(&self) -> Arc<dyn CodeSearch> {
         self.0.code.clone()
+    }
+
+    fn completion(&self) -> Option<Arc<dyn CompletionStream>> {
+        self.0.completion.clone()
     }
 
     fn logger(&self) -> Arc<dyn EventLogger> {
@@ -280,6 +292,10 @@ impl ServiceLocator for ArcServerContext {
 
     fn email(&self) -> Arc<dyn EmailService> {
         self.0.mail.clone()
+    }
+
+    fn embedding(&self) -> Arc<dyn EmbeddingService> {
+        self.0.embedding.clone()
     }
 
     fn setting(&self) -> Arc<dyn SettingService> {
@@ -325,6 +341,8 @@ impl ServiceLocator for ArcServerContext {
 
 pub async fn create_service_locator(
     logger: Arc<dyn EventLogger>,
+    chat: Option<Arc<dyn ChatCompletionStream>>,
+    completion: Option<Arc<dyn CompletionStream>>,
     code: Arc<dyn CodeSearch>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,
@@ -333,12 +351,13 @@ pub async fn create_service_locator(
     context: Arc<dyn ContextService>,
     web_documents: Arc<dyn WebDocumentService>,
     db: DbConn,
-    embedding: Arc<dyn Embedding>,
-    is_chat_enabled: bool,
+    embedding: Arc<dyn EmbeddingService>,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(ArcServerContext::new(
         ServerContext::new(
             logger,
+            chat,
+            completion,
             code,
             repository,
             integration,
@@ -348,7 +367,6 @@ pub async fn create_service_locator(
             web_documents,
             db,
             embedding,
-            is_chat_enabled,
         )
         .await,
     ))

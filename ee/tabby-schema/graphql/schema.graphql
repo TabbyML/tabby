@@ -73,6 +73,12 @@ enum LicenseType {
   ENTERPRISE
 }
 
+enum ModelHealthBackend {
+  CHAT
+  COMPLETION
+  EMBEDDING
+}
+
 enum OAuthProvider {
   GITHUB
   GOOGLE
@@ -522,6 +528,11 @@ type MessageEdge {
   cursor: String!
 }
 
+type ModelBackendHealthInfo {
+  "Latency in milliseconds."
+  latencyMs: Int!
+}
+
 type Mutation {
   resetRegistrationToken: String!
   requestInvitationEmail(input: RequestInvitationInput!): Invitation!
@@ -693,6 +704,7 @@ type Query {
   "List user groups."
   userGroups: [UserGroup!]!
   sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
+  testModelConnection(backend: ModelHealthBackend!): ModelBackendHealthInfo!
 }
 
 type RefreshTokenResponse {

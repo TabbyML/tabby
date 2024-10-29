@@ -10,6 +10,7 @@ schema-language = ["juniper/schema-language"]
 
 [dependencies]
 anyhow.workspace = true
+async-openai.workspace = true
 async-trait.workspace = true
 axum = { workspace = true }
 base64 = "0.22.0"
@@ -21,6 +22,7 @@ serde.workspace = true
 strum.workspace = true
 tabby-db = { path = "../../ee/tabby-db" }
 tabby-common = { path = "../../crates/tabby-common" }
+tabby-inference = { path = "../../crates/tabby-inference" }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["fs", "process"] }
 tracing.workspace = true

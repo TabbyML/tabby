@@ -15,13 +15,16 @@ pub async fn load_code_generation_and_chat(
     chat_model: Option<ModelConfig>,
 ) -> (
     Option<Arc<CodeGeneration>>,
-    Option<PromptInfo>,
+    Option<Arc<dyn CompletionStream>>,
     Option<Arc<dyn ChatCompletionStream>>,
+    Option<PromptInfo>,
 ) {
     let (engine, prompt_info, chat) =
         load_completion_and_chat(completion_model.clone(), chat_model).await;
-    let code = engine.map(|engine| Arc::new(CodeGeneration::new(engine, completion_model)));
-    (code, prompt_info, chat)
+    let code = engine
+        .clone()
+        .map(|engine| Arc::new(CodeGeneration::new(engine, completion_model)));
+    (code, engine, chat, prompt_info)
 }
 
 async fn load_completion_and_chat(

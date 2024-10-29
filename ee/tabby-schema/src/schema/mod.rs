@@ -16,9 +16,13 @@ pub mod user_group;
 pub mod web_documents;
 pub mod worker;
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
 use access_policy::{AccessPolicyService, SourceIdAccessPolicy};
+use async_openai::types::{
+    ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
+    CreateChatCompletionRequestArgs,
+};
 use auth::{
     AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
     UserSecured,
@@ -26,14 +30,21 @@ use auth::{
 use base64::Engine;
 use chrono::{DateTime, Utc};
 use context::{ContextInfo, ContextService};
+use futures::StreamExt;
 use interface::UserValue;
 use job::{JobRun, JobService};
 use juniper::{
-    graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLObject, IntoFieldError,
-    Object, RootNode, ScalarValue, Value, ID,
+    graphql_object, graphql_subscription, graphql_value, FieldError, GraphQLEnum, GraphQLObject,
+    IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
 };
 use repository::RepositoryGrepOutput;
-use tabby_common::api::{code::CodeSearch, event::EventLogger};
+use tabby_common::{
+    api::{code::CodeSearch, event::EventLogger},
+    config::CompletionConfig,
+};
+use tabby_inference::{
+    ChatCompletionStream, CompletionOptionsBuilder, CompletionStream, Embedding as EmbeddingService,
+};
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
 use tracing::{error, warn};
 use user_group::{
@@ -72,6 +83,9 @@ pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> Arc<dyn AuthenticationService>;
     fn worker(&self) -> Arc<dyn WorkerService>;
     fn code(&self) -> Arc<dyn CodeSearch>;
+    fn chat(&self) -> Option<Arc<dyn ChatCompletionStream>>;
+    fn completion(&self) -> Option<Arc<dyn CompletionStream>>;
+    fn embedding(&self) -> Arc<dyn EmbeddingService>;
     fn logger(&self) -> Arc<dyn EventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
     fn repository(&self) -> Arc<dyn RepositoryService>;
@@ -139,6 +153,27 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
     }
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum TestModelConnectionError {
+    #[error("{0}")]
+    FailedToConnect(String),
+
+    #[error("Model backend is not enabled")]
+    NotEnabled,
+
+    #[error("{0}")]
+    Other(#[from] CoreError),
+}
+
+impl<S: ScalarValue> IntoFieldError<S> for TestModelConnectionError {
+    fn into_field_error(self) -> FieldError<S> {
+        match self {
+            TestModelConnectionError::Other(err) => err.into_field_error(),
+            _ => self.into(),
+        }
+    }
+}
+
 fn check_claims(ctx: &Context) -> Result<&JWTPayload, CoreError> {
     ctx.claims
         .as_ref()
@@ -186,6 +221,19 @@ async fn check_license(ctx: &Context, license_type: &[LicenseType]) -> Result<()
     }
 
     license.ensure_valid_license()
+}
+
+#[derive(GraphQLEnum)]
+enum ModelHealthBackend {
+    Chat,
+    Completion,
+    Embedding,
+}
+
+#[derive(GraphQLObject, Debug, Clone)]
+struct ModelBackendHealthInfo {
+    /// Latency in milliseconds.
+    latency_ms: i32,
 }
 
 #[derive(Default)]
@@ -657,6 +705,80 @@ impl Query {
             .await?;
 
         Ok(SourceIdAccessPolicy { source_id, read })
+    }
+
+    async fn test_model_connection(
+        ctx: &Context,
+        backend: ModelHealthBackend,
+    ) -> Result<ModelBackendHealthInfo, TestModelConnectionError> {
+        check_user_allow_auth_token(ctx).await?;
+
+        // count request time in milliseconds
+        let start = Instant::now();
+
+        match backend {
+            ModelHealthBackend::Completion => {
+                if let Some(completion) = ctx.locator.completion() {
+                    let config = CompletionConfig::default();
+                    let options = CompletionOptionsBuilder::default()
+                        .max_decoding_tokens(config.max_decoding_tokens as i32)
+                        .max_input_length(config.max_input_length)
+                        .sampling_temperature(0.1)
+                        .seed(0)
+                        .build()
+                        .expect("Failed to build completion options");
+
+                    let (first, _) = completion
+                        .generate("hello Tabby", options)
+                        .await
+                        .into_future()
+                        .await;
+                    if let Some(first) = first {
+                        if !first.is_empty() {
+                            return Ok(ModelBackendHealthInfo {
+                                latency_ms: start.elapsed().as_millis() as i32,
+                            });
+                        }
+                    }
+
+                    Err(TestModelConnectionError::FailedToConnect(
+                        "Failed to connect to the completion model".into(),
+                    ))
+                } else {
+                    Err(TestModelConnectionError::NotEnabled)
+                }
+            }
+            ModelHealthBackend::Chat => {
+                if let Some(chat) = ctx.locator.chat() {
+                    let request = CreateChatCompletionRequestArgs::default()
+                        .messages(vec![ChatCompletionRequestMessage::User(
+                            ChatCompletionRequestUserMessageArgs::default()
+                                .content("Hello, please reply in short")
+                                .build()
+                                .expect("Failed to build chat completion message"),
+                        )])
+                        .build()
+                        .expect("Failed to build chat completion request");
+                    match chat.chat(request).await {
+                        Ok(_) => Ok(ModelBackendHealthInfo {
+                            latency_ms: start.elapsed().as_millis() as i32,
+                        }),
+                        Err(e) => Err(TestModelConnectionError::FailedToConnect(e.to_string())),
+                    }
+                } else {
+                    Err(TestModelConnectionError::NotEnabled)
+                }
+            }
+            ModelHealthBackend::Embedding => {
+                let embedding = ctx.locator.embedding();
+                match embedding.embed("hello Tabby").await {
+                    Ok(_) => Ok(ModelBackendHealthInfo {
+                        latency_ms: start.elapsed().as_millis() as i32,
+                    }),
+                    Err(e) => Err(TestModelConnectionError::FailedToConnect(e.to_string())),
+                }
+            }
+        }
     }
 }
 
