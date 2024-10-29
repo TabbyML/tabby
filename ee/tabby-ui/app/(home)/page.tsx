@@ -87,7 +87,12 @@ function MainPanel() {
 
   return (
     <ScrollArea style={style} ref={scroller}>
-      <header className="fixed right-0 top-0 z-10 flex h-16 items-center justify-end px-4 lg:px-10">
+      <header
+        className="fixed right-0 z-10 flex h-16 items-center justify-end px-4 transition-all lg:px-10"
+        style={{
+          top: isShowDemoBanner ? BANNER_HEIGHT : 0
+        }}
+      >
         <div className="flex items-center gap-x-6">
           <ClientOnly>
             <ThemeToggle />
