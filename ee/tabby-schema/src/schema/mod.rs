@@ -167,7 +167,10 @@ pub enum TestModelConnectionError {
 
 impl<S: ScalarValue> IntoFieldError<S> for TestModelConnectionError {
     fn into_field_error(self) -> FieldError<S> {
-        self.into()
+        match self {
+            TestModelConnectionError::Other(err) => err.into_field_error(),
+            _ => self.into(),
+        }
     }
 }
 
