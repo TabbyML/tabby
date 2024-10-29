@@ -19,7 +19,10 @@ pub mod worker;
 use std::{sync::Arc, time::Instant};
 
 use access_policy::{AccessPolicyService, SourceIdAccessPolicy};
-use async_openai::types::CreateChatCompletionRequest;
+use async_openai::types::{
+    ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
+    CreateChatCompletionRequestArgs,
+};
 use auth::{
     AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
     UserSecured,
@@ -695,10 +698,10 @@ impl Query {
         match backend {
             ModelHealthBackend::Completion => {
                 if let Some(completion) = ctx.locator.completion() {
-                    let cfg = CompletionConfig::default();
+                    let config = CompletionConfig::default();
                     let options = CompletionOptionsBuilder::default()
-                        .max_decoding_tokens(cfg.max_decoding_tokens as i32)
-                        .max_input_length(cfg.max_input_length)
+                        .max_decoding_tokens(config.max_decoding_tokens as i32)
+                        .max_input_length(config.max_input_length)
                         .sampling_temperature(0.1)
                         .seed(0)
                         .build()
@@ -726,7 +729,15 @@ impl Query {
             }
             ModelHealthBackend::Chat => {
                 if let Some(chat) = ctx.locator.chat() {
-                    let request = CreateChatCompletionRequest::default();
+                    let request = CreateChatCompletionRequestArgs::default()
+                        .messages(vec![ChatCompletionRequestMessage::User(
+                            ChatCompletionRequestUserMessageArgs::default()
+                                .content("Hello, please reply in short")
+                                .build()
+                                .expect("Failed to build chat completion message"),
+                        )])
+                        .build()
+                        .expect("Failed to build chat completion request");
                     match chat.chat(request).await {
                         Ok(_) => Ok(ModelHealthResponse {
                             latency: start.elapsed().as_millis() as i32,
