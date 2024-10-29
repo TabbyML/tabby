@@ -528,7 +528,7 @@ type MessageEdge {
   cursor: String!
 }
 
-type ModelHealthResponse {
+type ModelBackendHealthInfo {
   latency: Int!
 }
 
@@ -703,7 +703,7 @@ type Query {
   "List user groups."
   userGroups: [UserGroup!]!
   sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
-  testModelConnection(backend: ModelHealthBackend!): ModelHealthResponse!
+  testModelConnection(backend: ModelHealthBackend!): ModelBackendHealthInfo!
 }
 
 type RefreshTokenResponse {
