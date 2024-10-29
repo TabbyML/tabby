@@ -1099,7 +1099,7 @@ mod tests {
         let repo_service = make_repository_service(db).await.unwrap();
 
         let git_url = "https://github.com/test/repo.git".to_string();
-        let id = repo_service
+        let _id = repo_service
             .git()
             .create("repo".to_string(), git_url.clone())
             .await
