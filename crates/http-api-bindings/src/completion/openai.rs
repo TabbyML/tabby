@@ -5,17 +5,27 @@ use reqwest_eventsource::{Event, EventSource};
 use serde::{Deserialize, Serialize};
 use tabby_inference::{CompletionOptions, CompletionStream};
 
-use super::FIM_TOKEN;
+use super::split_fim_prompt;
 
 pub struct OpenAICompletionEngine {
     client: reqwest::Client,
     model_name: String,
     api_endpoint: String,
     api_key: Option<String>,
+
+    /// OpenAI Completion API use suffix field in request when FIM is not supported,
+    /// support_fim is used to mark if FIM is supported,
+    /// provide a `openai/legacy_completion_no_fim` backend to use suffix field.
+    support_fim: bool,
 }
 
 impl OpenAICompletionEngine {
-    pub fn create(model_name: Option<String>, api_endpoint: &str, api_key: Option<String>) -> Self {
+    pub fn create(
+        model_name: Option<String>,
+        api_endpoint: &str,
+        api_key: Option<String>,
+        support_fim: bool,
+    ) -> Self {
         let model_name = model_name.expect("model_name is required for openai/completion");
         let client = reqwest::Client::new();
 
@@ -24,6 +34,7 @@ impl OpenAICompletionEngine {
             model_name,
             api_endpoint: format!("{}/completions", api_endpoint),
             api_key,
+            support_fim,
         }
     }
 }
@@ -53,14 +64,11 @@ struct CompletionResponseChoice {
 #[async_trait]
 impl CompletionStream for OpenAICompletionEngine {
     async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
-        let parts = prompt.splitn(2, FIM_TOKEN).collect::<Vec<_>>();
+        let (prompt, suffix) = split_fim_prompt(prompt, self.support_fim);
         let request = CompletionRequest {
             model: self.model_name.clone(),
-            prompt: parts[0].to_owned(),
-            suffix: parts
-                .get(1)
-                .map(|x| x.to_string())
-                .filter(|x| !x.is_empty()),
+            prompt: prompt.to_owned(),
+            suffix: suffix.map(|x| x.to_owned()),
             max_tokens: options.max_decoding_tokens,
             temperature: options.sampling_temperature,
             stream: true,

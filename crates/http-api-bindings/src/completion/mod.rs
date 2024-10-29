@@ -31,7 +31,7 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
             );
             Arc::new(engine)
         }
-        "openai/completion" => {
+        "openai/completion" | "openai/legacy_completion" => {
             let engine = OpenAICompletionEngine::create(
                 model.model_name.clone(),
                 model
@@ -39,6 +39,19 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
                     .as_deref()
                     .expect("api_endpoint is required"),
                 model.api_key.clone(),
+                true,
+            );
+            Arc::new(engine)
+        }
+        "openai/legacy_completion_no_fim" => {
+            let engine = OpenAICompletionEngine::create(
+                model.model_name.clone(),
+                model
+                    .api_endpoint
+                    .as_deref()
+                    .expect("api_endpoint is required"),
+                model.api_key.clone(),
+                false,
             );
             Arc::new(engine)
         }
@@ -57,5 +70,51 @@ pub fn build_completion_prompt(model: &HttpModelConfig) -> (Option<String>, Opti
         (Some(FIM_TEMPLATE.to_owned()), None)
     } else {
         (model.prompt_template.clone(), model.chat_template.clone())
+    }
+}
+
+fn split_fim_prompt<'a>(prompt: &'a str, support_fim: bool) -> (&'a str, Option<&'a str>) {
+    if support_fim {
+        return (prompt, None);
+    }
+
+    let parts = prompt.splitn(2, FIM_TOKEN).collect::<Vec<_>>();
+    (parts[0], parts.get(1).copied())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::vec;
+
+    use super::*;
+
+    #[test]
+    fn test_split_fim_prompt() {
+        let support_fim = vec![
+            "prefix<|FIM|>suffix",
+            "prefix<|FIM|>",
+            "<|FIM|>suffix",
+            "<|FIM|>",
+            "prefix",
+        ];
+        for input in support_fim {
+            let (prompt, suffix) = split_fim_prompt(input, true);
+            assert_eq!(prompt, input);
+            assert!(suffix.is_none());
+        }
+    }
+
+    #[test]
+    fn test_split_fim_prompt_no_fim() {
+        let no_fim = vec![
+            ("prefix<|FIM|>suffix", ("prefix", Some("suffix"))),
+            ("prefix<|FIM|>", ("prefix", Some(""))),
+            ("<|FIM|>suffix", ("", Some("suffix"))),
+            ("<|FIM|>", ("", Some(""))),
+            ("prefix", ("prefix", None)),
+        ];
+        for (input, expected) in no_fim {
+            assert_eq!(split_fim_prompt(input, false), expected);
+        }
     }
 }
