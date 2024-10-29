@@ -73,7 +73,7 @@ pub fn build_completion_prompt(model: &HttpModelConfig) -> (Option<String>, Opti
     }
 }
 
-fn split_fim_prompt<'a>(prompt: &'a str, support_fim: bool) -> (&'a str, Option<&'a str>) {
+fn split_fim_prompt(prompt: &str, support_fim: bool) -> (&str, Option<&str>) {
     if support_fim {
         return (prompt, None);
     }
