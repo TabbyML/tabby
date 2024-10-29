@@ -27,6 +27,7 @@ use auth::{
 use base64::Engine;
 use chrono::{DateTime, Utc};
 use context::{ContextInfo, ContextService};
+use futures::StreamExt;
 use interface::UserValue;
 use job::{JobRun, JobService};
 use juniper::{
@@ -34,10 +35,12 @@ use juniper::{
     IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
 };
 use repository::RepositoryGrepOutput;
-use tabby_common::api::{code::CodeSearch, event::EventLogger};
+use tabby_common::{
+    api::{code::CodeSearch, event::EventLogger},
+    config::CompletionConfig,
+};
 use tabby_inference::{
-    ChatCompletionStream, CodeGeneration, CodeGenerationOptionsBuilder,
-    Embedding as EmbeddingService,
+    ChatCompletionStream, CompletionOptionsBuilder, CompletionStream, Embedding as EmbeddingService,
 };
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
 use tracing::{error, warn};
@@ -78,7 +81,7 @@ pub trait ServiceLocator: Send + Sync {
     fn worker(&self) -> Arc<dyn WorkerService>;
     fn code(&self) -> Arc<dyn CodeSearch>;
     fn chat(&self) -> Option<Arc<dyn ChatCompletionStream>>;
-    fn completion(&self) -> Option<Arc<CodeGeneration>>;
+    fn completion(&self) -> Option<Arc<dyn CompletionStream>>;
     fn embedding(&self) -> Arc<dyn EmbeddingService>;
     fn logger(&self) -> Arc<dyn EventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
@@ -692,14 +695,26 @@ impl Query {
         match backend {
             ModelHealthBackend::Completion => {
                 if let Some(completion) = ctx.locator.completion() {
-                    let options = CodeGenerationOptionsBuilder::default()
+                    let cfg = CompletionConfig::default();
+                    let options = CompletionOptionsBuilder::default()
+                        .max_decoding_tokens(cfg.max_decoding_tokens as i32)
+                        .max_input_length(cfg.max_input_length)
+                        .sampling_temperature(0.1)
+                        .seed(0)
                         .build()
                         .expect("Failed to build completion options");
 
-                    if !completion.generate("hello Tabby", options).await.is_empty() {
-                        return Ok(ModelHealthResponse {
-                            latency: start.elapsed().as_millis() as i32,
-                        });
+                    let (first, _) = completion
+                        .generate("hello Tabby", options)
+                        .await
+                        .into_future()
+                        .await;
+                    if let Some(first) = first {
+                        if !first.is_empty() {
+                            return Ok(ModelHealthResponse {
+                                latency: start.elapsed().as_millis() as i32,
+                            });
+                        }
                     }
 
                     Err(CoreError::ModelConnectionFailed(

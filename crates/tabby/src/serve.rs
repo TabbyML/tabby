@@ -167,7 +167,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     ));
 
     let model = &config.model;
-    let (completion, code_generate, chat) = create_completion_service_and_chat(
+    let (completion, completion_stream, chat) = create_completion_service_and_chat(
         &config.completion,
         code.clone(),
         logger.clone(),
@@ -199,7 +199,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
                 ui,
                 code,
                 chat,
-                code_generate,
+                completion_stream,
                 docsearch,
                 |x| Box::new(services::doc::create_serper(x)),
             )

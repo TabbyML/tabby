@@ -35,7 +35,7 @@ use tabby_common::{
     constants::USER_HEADER_FIELD_NAME,
 };
 use tabby_db::{DbConn, UserDAO, UserGroupDAO};
-use tabby_inference::{ChatCompletionStream, CodeGeneration, Embedding as EmbeddingService};
+use tabby_inference::{ChatCompletionStream, CompletionStream, Embedding as EmbeddingService};
 use tabby_schema::{
     access_policy::AccessPolicyService,
     analytic::AnalyticService,
@@ -66,7 +66,7 @@ struct ServerContext {
     mail: Arc<dyn EmailService>,
     embedding: Arc<dyn EmbeddingService>,
     chat: Option<Arc<dyn ChatCompletionStream>>,
-    completion: Option<Arc<CodeGeneration>>,
+    completion: Option<Arc<dyn CompletionStream>>,
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
     repository: Arc<dyn RepositoryService>,
@@ -89,7 +89,7 @@ impl ServerContext {
     pub async fn new(
         logger: Arc<dyn EventLogger>,
         chat: Option<Arc<dyn ChatCompletionStream>>,
-        completion: Option<Arc<CodeGeneration>>,
+        completion: Option<Arc<dyn CompletionStream>>,
         code: Arc<dyn CodeSearch>,
         repository: Arc<dyn RepositoryService>,
         integration: Arc<dyn IntegrationService>,
@@ -274,7 +274,7 @@ impl ServiceLocator for ArcServerContext {
         self.0.code.clone()
     }
 
-    fn completion(&self) -> Option<Arc<CodeGeneration>> {
+    fn completion(&self) -> Option<Arc<dyn CompletionStream>> {
         self.0.completion.clone()
     }
 
@@ -342,7 +342,7 @@ impl ServiceLocator for ArcServerContext {
 pub async fn create_service_locator(
     logger: Arc<dyn EventLogger>,
     chat: Option<Arc<dyn ChatCompletionStream>>,
-    completion: Option<Arc<CodeGeneration>>,
+    completion: Option<Arc<dyn CompletionStream>>,
     code: Arc<dyn CodeSearch>,
     repository: Arc<dyn RepositoryService>,
     integration: Arc<dyn IntegrationService>,

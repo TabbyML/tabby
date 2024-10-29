@@ -16,6 +16,7 @@ use tabby_common::{
 };
 use tabby_inference::{
     ChatCompletionStream, CodeGeneration, CodeGenerationOptions, CodeGenerationOptionsBuilder,
+    CompletionStream,
 };
 use thiserror::Error;
 use utoipa::ToSchema;
@@ -424,10 +425,10 @@ pub async fn create_completion_service_and_chat(
     chat: Option<ModelConfig>,
 ) -> (
     Option<CompletionService>,
-    Option<Arc<CodeGeneration>>,
+    Option<Arc<dyn CompletionStream>>,
     Option<Arc<dyn ChatCompletionStream>>,
 ) {
-    let (code_generation, prompt, chat) =
+    let (code_generation, completion_stream, chat, prompt) =
         model::load_code_generation_and_chat(completion, chat).await;
 
     let completion = code_generation.clone().map(|code_generation| {
@@ -442,7 +443,7 @@ pub async fn create_completion_service_and_chat(
         )
     });
 
-    (completion, code_generation, chat)
+    (completion, completion_stream, chat)
 }
 
 #[cfg(test)]
