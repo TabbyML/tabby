@@ -529,7 +529,8 @@ type MessageEdge {
 }
 
 type ModelBackendHealthInfo {
-  latency: Int!
+  "Latency in milliseconds."
+  latencyMs: Int!
 }
 
 type Mutation {

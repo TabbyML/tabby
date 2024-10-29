@@ -739,7 +739,7 @@ impl Query {
                     }
 
                     Err(TestModelConnectionError::FailedToConnect(
-                        "Failed to connect to the completion model".into()
+                        "Failed to connect to the completion model".into(),
                     ))
                 } else {
                     Err(TestModelConnectionError::NotEnabled)
