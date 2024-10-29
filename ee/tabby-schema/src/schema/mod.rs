@@ -46,7 +46,6 @@ use tabby_inference::{
     ChatCompletionStream, CompletionOptionsBuilder, CompletionStream, Embedding as EmbeddingService,
 };
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
-use tokio::sync::broadcast::error;
 use tracing::{error, warn};
 use user_group::{
     CreateUserGroupInput, UpsertUserGroupMembershipInput, UserGroup, UserGroupService,
