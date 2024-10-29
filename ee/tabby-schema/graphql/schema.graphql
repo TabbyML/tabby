@@ -126,6 +126,12 @@ input CreateMessageInput {
   attachments: MessageAttachmentInput
 }
 
+input CreateSlackWorkspaceInput {
+  workspaceName: String!
+  botToken: String!
+  channelIds: [String!]
+}
+
 input CreateThreadAndRunInput {
   thread: CreateThreadInput!
   options: ThreadRunOptionsInput! = {codeQuery: null, debugOptions: null, docQuery: null, generateRelevantQuestions: false}
@@ -572,6 +578,8 @@ type Mutation {
   deleteUserGroupMembership(userGroupId: ID!, userId: ID!): Boolean!
   grantSourceIdReadAccess(sourceId: String!, userGroupId: ID!): Boolean!
   revokeSourceIdReadAccess(sourceId: String!, userGroupId: ID!): Boolean!
+  createSlackWorkspace(input: CreateSlackWorkspaceInput!): Boolean!
+  deleteSlackWorkspaceIntegration(id: ID!): Boolean!
 }
 
 type NetworkSetting {
@@ -693,6 +701,8 @@ type Query {
   "List user groups."
   userGroups: [UserGroup!]!
   sourceIdAccessPolicies(sourceId: String!): SourceIdAccessPolicy!
+  slackWorkspaces(ids: [ID!], after: String, before: String, first: Int, last: Int): SlackWorkspaceConnection!
+  slackChannels(botToken: String!): [SlackChannel!]!
 }
 
 type RefreshTokenResponse {
@@ -744,6 +754,31 @@ type ServerInfo {
   isEmailConfigured: Boolean!
   allowSelfSignup: Boolean!
   isDemoMode: Boolean!
+}
+
+type SlackChannel {
+  id: String!
+  name: String!
+}
+
+type SlackWorkspace {
+  id: ID!
+  botToken: String!
+  workspaceName: String!
+  channels: [String!]
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  jobInfo: JobInfo!
+}
+
+type SlackWorkspaceConnection {
+  edges: [SlackWorkspaceEdge!]!
+  pageInfo: PageInfo!
+}
+
+type SlackWorkspaceEdge {
+  node: SlackWorkspace!
+  cursor: String!
 }
 
 type SourceIdAccessPolicy {

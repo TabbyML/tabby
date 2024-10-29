@@ -10,12 +10,12 @@ pub mod job;
 pub mod license;
 pub mod repository;
 pub mod setting;
+pub mod slack_workspaces;
 pub mod thread;
 pub mod user_event;
 pub mod user_group;
 pub mod web_documents;
 pub mod worker;
-
 use std::sync::Arc;
 
 use access_policy::{AccessPolicyService, SourceIdAccessPolicy};
@@ -33,6 +33,7 @@ use juniper::{
     Object, RootNode, ScalarValue, Value, ID,
 };
 use repository::RepositoryGrepOutput;
+use slack_workspaces::{CreateSlackWorkspaceInput, SlackChannel, SlackWorkspaceService};
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use thread::{CreateThreadAndRunInput, CreateThreadRunInput, ThreadRunStream, ThreadService};
 use tracing::{error, warn};
@@ -86,6 +87,7 @@ pub trait ServiceLocator: Send + Sync {
     fn context(&self) -> Arc<dyn ContextService>;
     fn user_group(&self) -> Arc<dyn UserGroupService>;
     fn access_policy(&self) -> Arc<dyn AccessPolicyService>;
+    fn slack(&self) -> Arc<dyn SlackWorkspaceService>;
 }
 
 pub struct Context {
@@ -658,6 +660,36 @@ impl Query {
 
         Ok(SourceIdAccessPolicy { source_id, read })
     }
+
+    //list all slack workspace with selected channel
+    pub async fn slack_workspaces(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<relay::Connection<slack_workspaces::SlackWorkspace>> {
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .slack()
+                    .list(ids, after, before, first, last)
+                    .await
+            },
+        )
+        .await
+    }
+
+    pub async fn slack_channels(ctx: &Context, bot_token: String) -> Result<Vec<SlackChannel>> {
+        check_admin(ctx).await?;
+        let res = ctx.locator.slack().list_visible_channels(bot_token).await?;
+        Ok(res)
+    }
 }
 
 #[derive(GraphQLObject)]
@@ -1145,6 +1177,25 @@ impl Mutation {
             .access_policy()
             .revoke_source_id_read_access(&source_id, &user_group_id)
             .await?;
+        Ok(true)
+    }
+
+    async fn create_slack_workspace(
+        ctx: &Context,
+        input: CreateSlackWorkspaceInput,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        ctx.locator
+            .slack()
+            .create(input.workspace_name, input.bot_token, input.channel_ids)
+            .await?;
+        Ok(true)
+    }
+
+    async fn delete_slack_workspace_integration(ctx: &Context, id: ID) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator.slack().delete(id).await?;
         Ok(true)
     }
 }

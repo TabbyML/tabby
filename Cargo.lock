@@ -5087,6 +5087,7 @@ dependencies = [
  "hash-ids",
  "lazy_static",
  "serde",
+ "serde_json",
  "sql_query_builder",
  "sqlx",
  "tabby-db-macros",

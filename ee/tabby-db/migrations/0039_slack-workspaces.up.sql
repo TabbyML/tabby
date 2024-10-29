@@ -1,0 +1,8 @@
+CREATE TABLE slack_workspaces(
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  workspace_name VARCHAR(255) NOT NULL,
+  bot_token TEXT NOT NULL,
+  channels TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now'))
+);

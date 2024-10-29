@@ -12,6 +12,7 @@ mod license;
 mod preset_web_documents_data;
 pub mod repository;
 mod setting;
+pub mod slack_workspaces;
 mod thread;
 mod user_event;
 mod user_group;
@@ -50,6 +51,7 @@ use tabby_schema::{
     policy,
     repository::RepositoryService,
     setting::SettingService,
+    slack_workspaces::SlackWorkspaceService,
     thread::ThreadService,
     user_event::UserEventService,
     user_group::{UserGroup, UserGroupMembership, UserGroupService},
@@ -75,6 +77,7 @@ struct ServerContext {
     context: Arc<dyn ContextService>,
     user_group: Arc<dyn UserGroupService>,
     access_policy: Arc<dyn AccessPolicyService>,
+    slack: Arc<dyn SlackWorkspaceService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -97,6 +100,7 @@ impl ServerContext {
         db_conn: DbConn,
         embedding: Arc<dyn Embedding>,
         is_chat_enabled_locally: bool,
+        slack: Arc<dyn SlackWorkspaceService>,
     ) -> Self {
         let mail = Arc::new(
             new_email_service(db_conn.clone())
@@ -113,7 +117,6 @@ impl ServerContext {
         let thread = Arc::new(thread::create(db_conn.clone(), answer.clone()));
         let user_group = Arc::new(user_group::create(db_conn.clone()));
         let access_policy = Arc::new(access_policy::create(db_conn.clone(), context.clone()));
-
         background_job::start(
             db_conn.clone(),
             job.clone(),
@@ -123,6 +126,7 @@ impl ServerContext {
             repository.clone(),
             context.clone(),
             embedding,
+            slack.clone(),
         )
         .await;
 
@@ -149,6 +153,7 @@ impl ServerContext {
             access_policy,
             db_conn,
             is_chat_enabled_locally,
+            slack,
         }
     }
 
@@ -321,6 +326,10 @@ impl ServiceLocator for ArcServerContext {
     fn access_policy(&self) -> Arc<dyn AccessPolicyService> {
         self.0.access_policy.clone()
     }
+
+    fn slack(&self) -> Arc<dyn SlackWorkspaceService> {
+        self.0.slack.clone()
+    }
 }
 
 pub async fn create_service_locator(
@@ -335,6 +344,7 @@ pub async fn create_service_locator(
     db: DbConn,
     embedding: Arc<dyn Embedding>,
     is_chat_enabled: bool,
+    slack: Arc<dyn SlackWorkspaceService>,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(ArcServerContext::new(
         ServerContext::new(
@@ -349,6 +359,7 @@ pub async fn create_service_locator(
             db,
             embedding,
             is_chat_enabled,
+            slack,
         )
         .await,
     ))
