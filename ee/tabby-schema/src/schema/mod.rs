@@ -156,13 +156,13 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
 #[derive(thiserror::Error, Debug)]
 pub enum TestModelConnectionError {
     #[error("{0}")]
-    CoreError(#[from] CoreError),
-
-    #[error("{0}")]
-    ModelConnectionFailed(String),
+    FailedToConnect(String),
 
     #[error("Model backend is not enabled")]
     NotEnabled,
+
+    #[error("{0}")]
+    Other(String),
 }
 
 impl<S: ScalarValue> IntoFieldError<S> for TestModelConnectionError {
@@ -228,7 +228,7 @@ enum ModelHealthBackend {
 }
 
 #[derive(GraphQLObject, Debug, Clone)]
-struct ModelHealthResponse {
+struct ModelBackendHealthInfo {
     latency: i32,
 }
 
@@ -706,10 +706,14 @@ impl Query {
     async fn test_model_connection(
         ctx: &Context,
         backend: ModelHealthBackend,
-    ) -> std::result::Result<ModelHealthResponse, TestModelConnectionError> {
-        check_user_allow_auth_token(ctx).await?;
+    ) -> std::result::Result<ModelBackendHealthInfo, TestModelConnectionError> {
+        check_user_allow_auth_token(ctx)
+            .await
+            .map_err(|e| TestModelConnectionError::Other(e.to_string()))?;
+
         // count request time in milliseconds
         let start = Instant::now();
+
         match backend {
             ModelHealthBackend::Completion => {
                 if let Some(completion) = ctx.locator.completion() {
@@ -729,13 +733,13 @@ impl Query {
                         .await;
                     if let Some(first) = first {
                         if !first.is_empty() {
-                            return Ok(ModelHealthResponse {
+                            return Ok(ModelBackendHealthInfo {
                                 latency: start.elapsed().as_millis() as i32,
                             });
                         }
                     }
 
-                    Err(TestModelConnectionError::ModelConnectionFailed(
+                    Err(TestModelConnectionError::FailedToConnect(
                         "Failed to connect to the completion model".into(),
                     ))
                 } else {
@@ -754,12 +758,10 @@ impl Query {
                         .build()
                         .expect("Failed to build chat completion request");
                     match chat.chat(request).await {
-                        Ok(_) => Ok(ModelHealthResponse {
+                        Ok(_) => Ok(ModelBackendHealthInfo {
                             latency: start.elapsed().as_millis() as i32,
                         }),
-                        Err(e) => Err(TestModelConnectionError::ModelConnectionFailed(
-                            e.to_string(),
-                        )),
+                        Err(e) => Err(TestModelConnectionError::FailedToConnect(e.to_string())),
                     }
                 } else {
                     Err(TestModelConnectionError::NotEnabled)
@@ -768,12 +770,10 @@ impl Query {
             ModelHealthBackend::Embedding => {
                 let embedding = ctx.locator.embedding();
                 match embedding.embed("hello Tabby").await {
-                    Ok(_) => Ok(ModelHealthResponse {
+                    Ok(_) => Ok(ModelBackendHealthInfo {
                         latency: start.elapsed().as_millis() as i32,
                     }),
-                    Err(e) => Err(TestModelConnectionError::ModelConnectionFailed(
-                        e.to_string(),
-                    )),
+                    Err(e) => Err(TestModelConnectionError::FailedToConnect(e.to_string())),
                 }
             }
         }
