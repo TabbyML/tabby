@@ -70,22 +70,13 @@ export default function TextAreaSearch({
   const { theme } = useCurrentTheme()
   const editorRef = useRef<PromptEditorRef>(null)
   const { data: modelInfo } = useModel()
-  const modelInfoArray = useMemo(
-    () =>
-      modelInfo
-        ? Object.keys(modelInfo)
-            .map(key => modelInfo[key as keyof typeof modelInfo])
-            .flat()
-            .filter(val => val)
-        : [],
-    [modelInfo]
-  )
+
   const [selectedModel, setSelectedModel] = useState(
-    modelInfoArray.length > 0 ? modelInfoArray[0] : ''
+    modelInfo?.chat?.length ? modelInfo?.chat[0] : ''
   )
   const isSelectModelEnabled = true
 
-  const DropdownMenuItems = modelInfoArray.map(model => (
+  const DropdownMenuItems = modelInfo?.chat.map(model => (
     <DropdownMenuRadioItem
       onClick={() => setSelectedModel(model)}
       value={model}
@@ -105,8 +96,8 @@ export default function TextAreaSearch({
   }, [])
 
   useEffect(() => {
-    setSelectedModel(modelInfoArray.length > 0 ? modelInfoArray[0] : '')
-  }, [modelInfoArray])
+    setSelectedModel(modelInfo?.chat?.length ? modelInfo?.chat[0] : '')
+  }, [modelInfo])
 
   const onWrapperClick = () => {
     editorRef.current?.editor?.commands.focus()
@@ -256,37 +247,6 @@ export default function TextAreaSearch({
         )}
         onClick={e => e.stopPropagation()}
       >
-        {/* llm select */}
-        <DropdownMenu>
-          <DropdownMenuTrigger>
-            {isSelectModelEnabled && modelInfoArray.length > 0 && (
-              <Button
-                variant="ghost"
-                className="gap-2 px-1.5 py-1 text-foreground/70"
-              >
-                <IconBox />
-                {selectedModel}
-              </Button>
-            )}
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            side="bottom"
-            align="end"
-            className="dropdown-menu max-h-[30vh] min-w-[20rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in"
-          >
-            <DropdownMenuRadioGroup
-              value={selectedModel}
-              onValueChange={setSelectedModel}
-            >
-              {DropdownMenuItems}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {isSelectModelEnabled && modelInfoArray.length > 0 && (
-          <Separator orientation="vertical" className="h-5" />
-        )}
-
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -321,6 +281,39 @@ export default function TextAreaSearch({
             Select a document to bring into context
           </TooltipContent>
         </Tooltip>
+
+        {isSelectModelEnabled && modelInfo?.chat?.length && (
+          <Separator orientation="vertical" className="h-5" />
+        )}
+
+        {/* llm select */}
+        <DropdownMenu>
+          <DropdownMenuTrigger>
+            {isSelectModelEnabled && modelInfo?.chat?.length && (
+              <Button
+                variant="ghost"
+                className="gap-2 px-1.5 py-1 text-foreground/70"
+              >
+                <IconBox />
+                {selectedModel}
+              </Button>
+            )}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            side="bottom"
+            align="end"
+            className="dropdown-menu max-h-[30vh] min-w-[20rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in"
+          >
+            <DropdownMenuRadioGroup
+              value={selectedModel}
+              onValueChange={setSelectedModel}
+            >
+              {DropdownMenuItems}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+
       </div>
     </div>
   )
