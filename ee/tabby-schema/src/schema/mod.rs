@@ -1184,12 +1184,12 @@ impl Mutation {
             .list_thread_messages(&message.thread_id, None, None, None, None)
             .await?;
 
-        Ok(messages
+        messages
             .iter()
             .peekable()
             .find(|m| m.id == message.id)
             .cloned()
-            .ok_or_else(|| CoreError::NotFound("Message not found"))?)
+            .ok_or_else(|| CoreError::NotFound("Message not found"))
     }
 
     async fn create_custom_document(ctx: &Context, input: CreateCustomDocumentInput) -> Result<ID> {
