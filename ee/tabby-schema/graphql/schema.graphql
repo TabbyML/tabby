@@ -230,6 +230,13 @@ input UpdateIntegrationInput {
   kind: IntegrationKind!
 }
 
+input UpdateMessageRequest {
+  id: ID!
+  threadId: ID!
+  role: Role!
+  content: String!
+}
+
 input UpdateOAuthCredentialInput {
   provider: OAuthProvider!
   clientId: String!
@@ -574,6 +581,7 @@ type Mutation {
   deleteThreadMessagePair(threadId: ID!, userMessageId: ID!, assistantMessageId: ID!): Boolean!
   "Turn on persisted status for a thread."
   setThreadPersisted(threadId: ID!): Boolean!
+  updateThreadMessage(message: UpdateMessageRequest!): Message!
   createCustomDocument(input: CreateCustomDocumentInput!): ID!
   deleteCustomDocument(id: ID!): Boolean!
   setPresetDocumentActive(input: SetPresetDocumentActiveInput!): Boolean!
