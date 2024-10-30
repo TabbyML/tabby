@@ -372,7 +372,9 @@ export function Search() {
       const initialThreadRunContext = initialThreadRunContextStr
         ? JSON.parse(initialThreadRunContextStr)
         : undefined
-
+      
+      console.log('initialThreadRunContext', initialThreadRunContext)
+  
       if (initialMessage) {
         sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
         sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS)
@@ -571,7 +573,8 @@ export function Search() {
       {
         generateRelevantQuestions: true,
         codeQuery,
-        docQuery
+        docQuery,
+        selectedModelName: ctx?.selectedModelName
       }
     )
   }
