@@ -31,7 +31,7 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
             );
             Arc::new(engine)
         }
-        "openai/completion" | "openai/legacy_completion" => {
+        "openai/legacy_completion" | "openai/completion" | "deepseek/completion" => {
             let engine = OpenAICompletionEngine::create(
                 model.model_name.clone(),
                 model
@@ -43,7 +43,7 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
             );
             Arc::new(engine)
         }
-        "openai/legacy_completion_no_fim" => {
+        "openai/legacy_completion_no_fim" | "vllm/completion" => {
             let engine = OpenAICompletionEngine::create(
                 model.model_name.clone(),
                 model
@@ -73,11 +73,7 @@ pub fn build_completion_prompt(model: &HttpModelConfig) -> (Option<String>, Opti
     }
 }
 
-fn split_fim_prompt(prompt: &str, support_fim: bool) -> (&str, Option<&str>) {
-    if support_fim {
-        return (prompt, None);
-    }
-
+fn split_fim_prompt(prompt: &str) -> (&str, Option<&str>) {
     let parts = prompt.splitn(2, FIM_TOKEN).collect::<Vec<_>>();
     (parts[0], parts.get(1).copied())
 }
@@ -89,22 +85,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_split_fim_prompt() {
-        let support_fim = vec![
-            "prefix<|FIM|>suffix",
-            "prefix<|FIM|>",
-            "<|FIM|>suffix",
-            "<|FIM|>",
-            "prefix",
-        ];
-        for input in support_fim {
-            let (prompt, suffix) = split_fim_prompt(input, true);
-            assert_eq!(prompt, input);
-            assert!(suffix.is_none());
-        }
-    }
-
-    #[test]
     fn test_split_fim_prompt_no_fim() {
         let no_fim = vec![
             ("prefix<|FIM|>suffix", ("prefix", Some("suffix"))),
@@ -114,7 +94,7 @@ mod tests {
             ("prefix", ("prefix", None)),
         ];
         for (input, expected) in no_fim {
-            assert_eq!(split_fim_prompt(input, false), expected);
+            assert_eq!(split_fim_prompt(input), expected);
         }
     }
 }
