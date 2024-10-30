@@ -574,7 +574,7 @@ export function Search() {
         generateRelevantQuestions: true,
         codeQuery,
         docQuery,
-        selectedModelName: ctx?.selectedModelName
+        modelName: ctx?.modelName
       }
     )
   }

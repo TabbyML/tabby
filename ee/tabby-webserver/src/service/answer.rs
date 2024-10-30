@@ -148,7 +148,7 @@ impl AnswerService {
                 }));
             }
 
-            println!("selected_model_name: {:?}", options.selected_model_name);
+            println!("selected_model_name: {:?}", options.model_name);
 
             // 4. Prepare requesting LLM
             let request = {
@@ -156,7 +156,7 @@ impl AnswerService {
 
                 CreateChatCompletionRequestArgs::default()
                     .messages(chat_messages)
-                    .model(options.selected_model_name.as_deref().unwrap_or(""))
+                    .model(options.model_name.as_deref().unwrap_or(""))
                     .presence_penalty(self.config.presence_penalty)
                     .build()
                     .expect("Failed to build chat completion request")
@@ -1071,7 +1071,7 @@ mod tests {
             ),
         ];
         let options = ThreadRunOptionsInput {
-            selected_model_name: None,
+            model_name: None,
             code_query: Some(make_code_query_input(
                 Some(TEST_SOURCE_ID),
                 Some(TEST_GIT_URL),

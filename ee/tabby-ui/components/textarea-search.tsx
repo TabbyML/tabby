@@ -114,7 +114,7 @@ export default function TextAreaSearch({
     if (!text) return
 
     const mentions = getMentionsFromText(text, contextInfo?.sources)
-    const ctx: ThreadRunContexts = { ...getThreadRunContextsFromMentions(mentions), selectedModelName: selectedModel }
+    const ctx: ThreadRunContexts = { ...getThreadRunContextsFromMentions(mentions), modelName: selectedModel }
 
     // do submit
     onSearch(text, ctx)
