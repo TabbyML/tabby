@@ -1169,27 +1169,23 @@ impl Mutation {
 
     async fn update_thread_message(
         ctx: &Context,
-        message: thread::UpdateMessageRequest,
-    ) -> Result<thread::Message> {
+        input: thread::UpdateMessageInput,
+    ) -> Result<bool> {
         let user = check_user(ctx).await?;
         let svc = ctx.locator.thread();
-        let Some(thread) = svc.get(&message.thread_id).await? else {
+        let Some(thread) = svc.get(&input.thread_id).await? else {
             return Err(CoreError::NotFound("Thread not found"));
         };
 
-        user.policy
-            .check_update_thread_persistence(&thread.user_id)?;
+        user.policy.check_update_thread_message(&thread.user_id)?;
 
-        let messages = svc
-            .list_thread_messages(&message.thread_id, None, None, None, None)
-            .await?;
+        let message = svc.get_thread_message(&input.id).await?;
+        if input.content == message.content {
+            return Ok(true);
+        }
 
-        messages
-            .iter()
-            .peekable()
-            .find(|m| m.id == message.id)
-            .cloned()
-            .ok_or_else(|| CoreError::NotFound("Message not found"))
+        svc.update_thread_message(&input).await?;
+        Ok(true)
     }
 
     async fn create_custom_document(ctx: &Context, input: CreateCustomDocumentInput) -> Result<ID> {

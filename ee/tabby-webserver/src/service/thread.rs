@@ -8,10 +8,10 @@ use tabby_schema::{
     bail,
     policy::AccessPolicy,
     thread::{
-        self, CreateMessageInput, CreateThreadInput, MessageAttachmentInput, ThreadRunItem,
-        ThreadRunOptionsInput, ThreadRunStream, ThreadService,
+        self, CreateMessageInput, CreateThreadInput, Message, MessageAttachmentInput,
+        ThreadRunItem, ThreadRunOptionsInput, ThreadRunStream, ThreadService, UpdateMessageInput,
     },
-    AsID, AsRowid, DbEnum, Result,
+    AsID, AsRowid, CoreError, DbEnum, Result,
 };
 
 use super::{answer::AnswerService, graphql_pagination_to_filter};
@@ -52,9 +52,25 @@ impl ThreadService for ThreadServiceImpl {
             .next())
     }
 
+    async fn get_thread_message(&self, id: &ID) -> Result<Message> {
+        Ok(self
+            .db
+            .get_thread_message(id.as_rowid()?)
+            .await?
+            .ok_or_else(|| CoreError::NotFound("Message not found"))?
+            .try_into()?)
+    }
+
     async fn set_persisted(&self, id: &ID) -> Result<()> {
         self.db
             .update_thread_ephemeral(id.as_rowid()?, false)
+            .await?;
+        Ok(())
+    }
+
+    async fn update_thread_message(&self, input: &UpdateMessageInput) -> Result<()> {
+        self.db
+            .append_thread_message_content(input.id.as_rowid()?, &input.content)
             .await?;
         Ok(())
     }

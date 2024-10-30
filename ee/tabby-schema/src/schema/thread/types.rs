@@ -46,10 +46,9 @@ impl NodeType for Message {
 
 #[derive(GraphQLInputObject, Clone)]
 #[graphql(context = Context)]
-pub struct UpdateMessageRequest {
+pub struct UpdateMessageInput {
     pub id: ID,
     pub thread_id: ID,
-    pub role: Role,
     pub content: String,
 }
 
