@@ -54,7 +54,9 @@ impl ExtendedOpenAIConfig {
         &self,
         mut request: CreateChatCompletionRequest,
     ) -> CreateChatCompletionRequest {
-        request.model = self.model_name.clone();
+        if request.model.is_empty() {
+            request.model = self.model_name.clone();
+        }
 
         for field in &self.fields_to_remove {
             match field {
