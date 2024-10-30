@@ -6,6 +6,7 @@ import moment from 'moment'
 import { useQuery } from 'urql'
 
 import { SLUG_TITLE_MAX_LENGTH } from '@/lib/constants'
+import { MARKDOWN_SOURCE_REGEX } from '@/lib/constants/regex'
 import { graphql } from '@/lib/gql/generates'
 import { ContextSource, ListThreadsQuery } from '@/lib/gql/generates/graphql'
 import { Member, useAllMembers } from '@/lib/hooks/use-all-members'
@@ -16,6 +17,7 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LoadMoreIndicator } from '@/components/load-more-indicator'
 import LoadingWrapper from '@/components/loading-wrapper'
+import { Mention } from '@/components/mention-tag'
 import { UserAvatar } from '@/components/user-avatar'
 
 import { AnimationWrapper } from './animation-wrapper'
@@ -192,7 +194,7 @@ interface ThreadItemProps {
 function ThreadItem({ data }: ThreadItemProps) {
   const userId = data.node.userId
   const threadId = data.node.id
-  const { sources, allUsers, onNavigateToThread } =
+  const { sources, allUsers, onNavigateToThread, fetchingSources } =
     useContext(ThreadFeedsContext)
 
   const [{ data: threadMessagesData, fetching }] = useQuery({
@@ -231,16 +233,18 @@ function ThreadItem({ data }: ThreadItemProps) {
         <div className="mb-1.5 flex items-center gap-2">
           <IconFiles className="shrink-0" />
           <LoadingWrapper
-            loading={fetching}
+            loading={fetching || fetchingSources}
             fallback={
               <div className="w-full py-1.5">
                 <Skeleton className="w-[60%]" />
               </div>
             }
           >
-            <div className="break-anywhere truncate text-lg font-medium">
-              {title}
-            </div>
+            <ThreadTitleWithMentions
+              className="break-anywhere truncate text-lg font-medium"
+              sources={sources}
+              message={threadMessages?.[0]['node']['content']}
+            />
           </LoadingWrapper>
         </div>
         <div className="flex items-center gap-2">
@@ -248,7 +252,7 @@ function ThreadItem({ data }: ThreadItemProps) {
           <div className="flex items-baseline gap-0.5">
             <div className="text-sm">{user?.name || user?.email}</div>
             <span className="text-muted-foreground">{'·'}</span>
-            <div className="text-xs text-muted-foreground">
+            <div className="whitespace-nowrap text-xs text-muted-foreground">
               {formatCreatedAt(data.node.createdAt, 'Asked')}
             </div>
           </div>
@@ -256,6 +260,44 @@ function ThreadItem({ data }: ThreadItemProps) {
       </div>
     </Link>
   )
+}
+
+function ThreadTitleWithMentions({
+  message,
+  sources,
+  className
+}: {
+  sources: ContextSource[] | undefined
+  message: string | undefined
+  className?: string
+}) {
+  const contentWithTags = useMemo(() => {
+    if (!message) return null
+
+    const firstLine = message.split('\n')[0] ?? ''
+    return firstLine.split(MARKDOWN_SOURCE_REGEX).map((part, index) => {
+      if (index % 2 === 1) {
+        const sourceId = part
+        const source = sources?.find(s => s.sourceId === sourceId)
+        if (source) {
+          return (
+            <Mention
+              key={index}
+              id={source.sourceId}
+              kind={source.sourceKind}
+              label={source.sourceName}
+              className="rounded-md border border-[#b3ada0] border-opacity-30 bg-[#e8e1d3] py-[1px] text-sm dark:bg-[#333333]"
+            />
+          )
+        } else {
+          return null
+        }
+      }
+      return part
+    })
+  }, [sources, message])
+
+  return <div className={cn(className)}>{contentWithTags}</div>
 }
 
 function formatCreatedAt(time: string, prefix: string) {
