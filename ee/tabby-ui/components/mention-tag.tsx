@@ -23,7 +23,7 @@ export function Mention({
       className={cn('source-mention rounded-sm px-1', className)}
     >
       <SourceIcon kind={kind} className="self-center" />
-      <span>{label}</span>
+      <span className="whitespace-nowrap">{label}</span>
     </NodeViewWrapper>
   )
 }

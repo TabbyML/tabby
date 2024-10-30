@@ -1586,7 +1586,7 @@ function Emoji({
   return (
     <span
       className={cn(
-        'flex h-full w-full items-center justify-center text-lg',
+        'flex h-full w-full items-center justify-center text-lg leading-none',
         className
       )}
       {...props}
@@ -1598,7 +1598,7 @@ function Emoji({
 
 function IconEmojiBook({ className, ...props }: React.ComponentProps<'span'>) {
   return (
-    <span className={cn('h-4 w-4', className)} {...props}>
+    <span className={cn('h-4 w-4 pt-0.5', className)} {...props}>
       <Emoji emoji="📚" />
     </span>
   )
