@@ -252,7 +252,7 @@ function ThreadItem({ data }: ThreadItemProps) {
           <div className="flex items-baseline gap-0.5">
             <div className="text-sm">{user?.name || user?.email}</div>
             <span className="text-muted-foreground">{'·'}</span>
-            <div className="text-xs text-muted-foreground whitespace-nowrap">
+            <div className="whitespace-nowrap text-xs text-muted-foreground">
               {formatCreatedAt(data.node.createdAt, 'Asked')}
             </div>
           </div>
@@ -286,7 +286,7 @@ function ThreadTitleWithMentions({
               id={source.sourceId}
               kind={source.sourceKind}
               label={source.sourceName}
-              className="bg-[#e8e1d3] dark:bg-[#333333] rounded-md border border-opacity-30 border-[#b3ada0] text-sm py-[1px]"
+              className="rounded-md border border-[#b3ada0] border-opacity-30 bg-[#e8e1d3] py-[1px] text-sm dark:bg-[#333333]"
             />
           )
         } else {
