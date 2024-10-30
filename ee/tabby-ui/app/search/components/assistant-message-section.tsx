@@ -521,7 +521,7 @@ function MessageContentForm({
   onSubmit: (newMessage: ConversationMessage) => Promise<string | void>
 }) {
   const formSchema = z.object({
-    content: z.string()
+    content: z.string().trim()
   })
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -532,11 +532,8 @@ function MessageContentForm({
   const isEmptyContent = !content || isEmpty(content.trim())
   const [draftMessage] = useState<ConversationMessage>(message)
   const { formRef, onKeyDown } = useEnterSubmit()
-  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!values.content || isEmpty(values.content.trim())) {
-      return
-    }
 
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     const errorMessage = await onSubmit({
       ...draftMessage,
       content: values.content
@@ -564,6 +561,7 @@ function MessageContentForm({
                   {...field}
                 />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
