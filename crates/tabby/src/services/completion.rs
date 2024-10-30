@@ -241,6 +241,9 @@ pub struct DebugData {
     prompt: Option<String>,
 }
 
+/// CompletionService enhances the CodeGeneration feature by adding Retrieval Augmented Code Completion capability.
+/// It enables the retrieval of pertinent code snippets from the code repository,
+/// which are then utilized as prompts for the code generation model.
 pub struct CompletionService {
     config: CompletionConfig,
     engine: Arc<CodeGeneration>,

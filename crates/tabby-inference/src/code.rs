@@ -25,6 +25,9 @@ pub struct CodeGenerationOptions {
     pub language: Option<&'static Language>,
 }
 
+/// CodeGeneration utilizes the CompletionStream to generate code completions.
+/// It employs the StopConditionFactory to maintain a list of stop conditions by language, then
+/// reads and decodes the stream, ceasing code generation when a stop condition is met.
 pub struct CodeGeneration {
     imp: Arc<dyn CompletionStream>,
     stop_condition_factory: StopConditionFactory,
