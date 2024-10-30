@@ -567,7 +567,7 @@ function MessageContentForm({
             </FormItem>
           )}
         />
-        <div className="my-4 px-2 flex items-center justify-between gap-2">
+        <div className="my-4 flex items-center justify-between gap-2 px-2">
           <div>
             <FormMessage />
           </div>
