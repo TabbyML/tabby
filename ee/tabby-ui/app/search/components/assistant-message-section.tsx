@@ -1,13 +1,21 @@
 'use client'
 
+import './search.css'
+
 import { MouseEventHandler, useContext, useMemo, useState } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
 import DOMPurify from 'dompurify'
 import he from 'he'
 import { compact, isEmpty } from 'lodash-es'
 import { marked } from 'marked'
+import { useForm } from 'react-hook-form'
 import Textarea from 'react-textarea-autosize'
 import { Context } from 'tabby-chat-panel/index'
+import * as z from 'zod'
 
+import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
+import { MessageAttachmentCode } from '@/lib/gql/generates/graphql'
+import { useEnterSubmit } from '@/lib/hooks/use-enter-submit'
 import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
 import {
   cn,
@@ -16,6 +24,13 @@ import {
   getRangeTextFromAttachmentCode
 } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage
+} from '@/components/ui/form'
 import {
   IconBlocks,
   IconBug,
@@ -30,18 +45,13 @@ import {
   IconTrash
 } from '@/components/ui/icons'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CopyButton } from '@/components/copy-button'
-
-import './search.css'
-
-import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
-import { MessageAttachmentCode } from '@/lib/gql/generates/graphql'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
 import { CodeReferences } from '@/components/chat/code-references'
+import { CopyButton } from '@/components/copy-button'
 import {
   ErrorMessageBlock,
   MessageMarkdown,
@@ -49,21 +59,21 @@ import {
 } from '@/components/message-markdown'
 
 import { ConversationMessage, SearchContext, SOURCE_CARD_STYLE } from './search'
-import { ThreadMessagePairContext } from './thread-message-pair'
 
-// FIXME seprate view and form
 export function AssistantMessageSection({
-  answer,
+  message,
   showRelatedQuestion,
   isLoading,
   isLastAssistantMessage,
-  isDeletable
+  isDeletable,
+  className
 }: {
-  answer: ConversationMessage
+  message: ConversationMessage
   showRelatedQuestion: boolean
   isLoading?: boolean
   isLastAssistantMessage?: boolean
   isDeletable?: boolean
+  className?: string
 }) {
   const {
     onRegenerateResponse,
@@ -74,15 +84,11 @@ export function AssistantMessageSection({
     contextInfo,
     fetchingContextInfo,
     onDeleteMessage,
-    isThreadOwner
+    isThreadOwner,
+    onUpdateMessage
   } = useContext(SearchContext)
 
-  const {
-    onToggleEditMode,
-    isEditing,
-    draftAssistantMessage,
-    setDraftAssistantMessage
-  } = useContext(ThreadMessagePairContext)
+  const [isEditing, setIsEditing] = useState(false)
 
   const [showMoreSource, setShowMoreSource] = useState(false)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] = useState<
@@ -119,13 +125,8 @@ export function AssistantMessageSection({
 
   const IconAnswer = isLoading ? IconSpinner : IconSparkles
 
-  // FIXME
-  const messageAttachmentDocs = isEditing
-    ? draftAssistantMessage.attachment?.doc
-    : answer?.attachment?.doc
-  const messageAttachmentCode = isEditing
-    ? draftAssistantMessage.attachment?.code
-    : answer?.attachment?.code
+  const messageAttachmentDocs = message?.attachment?.doc
+  const messageAttachmentCode = message?.attachment?.code
 
   const totalHeightInRem = messageAttachmentDocs?.length
     ? Math.ceil(messageAttachmentDocs.length / 4) * SOURCE_CARD_STYLE.expand +
@@ -135,7 +136,7 @@ export function AssistantMessageSection({
 
   const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
     return (
-      answer?.attachment?.code?.map(code => {
+      message?.attachment?.code?.map(code => {
         const { startLine, endLine } = getRangeFromAttachmentCode(code)
 
         return {
@@ -153,7 +154,7 @@ export function AssistantMessageSection({
         }
       }) ?? []
     )
-  }, [answer?.attachment?.code])
+  }, [message?.attachment?.code])
 
   const onCodeContextClick = (ctx: Context) => {
     if (!ctx.filepath) return
@@ -176,7 +177,7 @@ export function AssistantMessageSection({
 
   const onCodeCitationMouseEnter = (index: number) => {
     setRelevantCodeHighlightIndex(
-      index - 1 - (answer?.attachment?.doc?.length || 0)
+      index - 1 - (message?.attachment?.doc?.length || 0)
     )
   }
 
@@ -209,27 +210,18 @@ export function AssistantMessageSection({
     openCodeBrowserTab(code)
   }
 
-  const handleDeleteRelevantDoc = (source: AttachmentDocItem) => {
-    setDraftAssistantMessage(prev => {
-      const docs = prev?.attachment?.doc
-      if (!docs) {
-        return prev
-      }
-
-      const newDocs = docs?.filter(d => d.link !== source.link)
-      return {
-        ...prev,
-        attachment: {
-          ...prev.attachment,
-          doc: newDocs,
-          code: prev.attachment?.code || null
-        }
-      }
-    })
+  const handleUpdateAssistantMessage = async (message: ConversationMessage) => {
+    const errorMessage = await onUpdateMessage(message)
+    if (errorMessage) {
+      // todo error handling
+      return errorMessage
+    } else {
+      setIsEditing(false)
+    }
   }
 
   return (
-    <div className="flex flex-col gap-y-5">
+    <div className={cn('flex flex-col gap-y-5', className)}>
       {/* document search hits */}
       {messageAttachmentDocs && messageAttachmentDocs.length > 0 && (
         <div>
@@ -249,14 +241,10 @@ export function AssistantMessageSection({
             {messageAttachmentDocs.map((source, index) => (
               <SourceCard
                 key={source.link + index}
-                conversationId={answer.id}
+                conversationId={message.id}
                 source={source}
                 showMore={showMoreSource}
                 showDevTooltip={enableDeveloperMode}
-                isDeletable={isEditing}
-                onDelete={() => {
-                  handleDeleteRelevantDoc(source)
-                }}
               />
             ))}
           </div>
@@ -290,7 +278,7 @@ export function AssistantMessageSection({
               variant="ghost"
               size="icon"
               onClick={() => {
-                setConversationIdForDev(answer.id)
+                setConversationIdForDev(message.id)
                 setDevPanelOpen(true)
               }}
             >
@@ -308,87 +296,84 @@ export function AssistantMessageSection({
             enableTooltip={enableDeveloperMode}
             showExternalLink={false}
             onTooltipClick={() => {
-              setConversationIdForDev(answer.id)
+              setConversationIdForDev(message.id)
               setDevPanelOpen(true)
             }}
             highlightIndex={relevantCodeHighlightIndex}
           />
         )}
 
-        {isLoading && !answer.content && (
+        {isLoading && !message.content && (
           <Skeleton className="mt-1 h-40 w-full" />
         )}
         {isEditing ? (
-          <Textarea
-            value={draftAssistantMessage.content}
-            onChange={e =>
-              setDraftAssistantMessage(prev => ({
-                ...prev,
-                content: e.target.value
-              }))
-            }
-            minRows={2}
-            maxRows={20}
-            className="w-full rounded-lg border bg-background p-4 outline-ring hover:outline"
+          <MessageContentForm
+            message={message}
+            onCancel={() => setIsEditing(false)}
+            onSubmit={handleUpdateAssistantMessage}
           />
         ) : (
-          <MessageMarkdown
-            message={answer.content}
-            attachmentDocs={messageAttachmentDocs}
-            attachmentCode={messageAttachmentCode}
-            onCodeCitationClick={onCodeCitationClick}
-            onCodeCitationMouseEnter={onCodeCitationMouseEnter}
-            onCodeCitationMouseLeave={onCodeCitationMouseLeave}
-            contextInfo={contextInfo}
-            fetchingContextInfo={fetchingContextInfo}
-            canWrapLongLines={!isLoading}
-          />
-        )}
-        {/* if isEditing, do not display error message block */}
-        {answer.error && <ErrorMessageBlock error={answer.error} />}
+          <>
+            <MessageMarkdown
+              message={message.content}
+              attachmentDocs={messageAttachmentDocs}
+              attachmentCode={messageAttachmentCode}
+              onCodeCitationClick={onCodeCitationClick}
+              onCodeCitationMouseEnter={onCodeCitationMouseEnter}
+              onCodeCitationMouseLeave={onCodeCitationMouseLeave}
+              contextInfo={contextInfo}
+              fetchingContextInfo={fetchingContextInfo}
+              canWrapLongLines={!isLoading}
+            />
+            {/* if isEditing, do not display error message block */}
+            {message.error && <ErrorMessageBlock error={message.error} />}
 
-        {!isLoading && !isEditing && (
-          <div className="mt-3 flex items-center justify-between text-sm">
-            <div className="flex items-center gap-x-3">
-              {!isLoading && !fetchingContextInfo && isLastAssistantMessage && (
-                <Button
-                  className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
-                  variant="ghost"
-                  onClick={() => onRegenerateResponse(answer.id)}
-                >
-                  <IconRefresh />
-                  <p>Regenerate</p>
-                </Button>
-              )}
-              {isDeletable && (
-                <Button
-                  className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
-                  variant="ghost"
-                  onClick={() => onDeleteMessage(answer.id)}
-                >
-                  <IconTrash />
-                  <p>Delete</p>
-                </Button>
-              )}
-            </div>
-            <div className="flex items-center gap-x-3">
-              <CopyButton
-                className="-ml-1.5 gap-x-1 px-1 font-normal text-muted-foreground"
-                value={getCopyContent(answer)}
-                text="Copy"
-              />
-              {isThreadOwner && (
-                <Button
-                  className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
-                  variant="ghost"
-                  onClick={e => onToggleEditMode(true)}
-                >
-                  <IconEdit />
-                  <p>Edit</p>
-                </Button>
-              )}
-            </div>
-          </div>
+            {!isLoading && !isEditing && (
+              <div className="mt-3 flex items-center justify-between text-sm">
+                <div className="flex items-center gap-x-3">
+                  {!isLoading &&
+                    !fetchingContextInfo &&
+                    isLastAssistantMessage && (
+                      <Button
+                        className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
+                        variant="ghost"
+                        onClick={() => onRegenerateResponse(message.id)}
+                      >
+                        <IconRefresh />
+                        <p>Regenerate</p>
+                      </Button>
+                    )}
+                  {isDeletable && (
+                    <Button
+                      className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
+                      variant="ghost"
+                      onClick={() => onDeleteMessage(message.id)}
+                    >
+                      <IconTrash />
+                      <p>Delete</p>
+                    </Button>
+                  )}
+                </div>
+                <div className="flex items-center gap-x-3">
+                  <CopyButton
+                    className="-ml-1.5 gap-x-1 px-1 font-normal text-muted-foreground"
+                    value={getCopyContent(message)}
+                    text="Copy"
+                  />
+                  {isThreadOwner && (
+                    <Button
+                      className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
+                      variant="ghost"
+                      onClick={e => setIsEditing(true)}
+                    >
+                      <IconEdit />
+                      <p>Edit</p>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -396,15 +381,15 @@ export function AssistantMessageSection({
       {showRelatedQuestion &&
         !isEditing &&
         !isLoading &&
-        answer.threadRelevantQuestions &&
-        answer.threadRelevantQuestions.length > 0 && (
+        message.threadRelevantQuestions &&
+        message.threadRelevantQuestions.length > 0 && (
           <div>
             <div className="flex items-center gap-x-1.5">
               <IconLayers />
               <p className="text-sm font-bold leading-none">Suggestions</p>
             </div>
             <div className="mt-2 flex flex-col gap-y-3">
-              {answer.threadRelevantQuestions?.map(
+              {message.threadRelevantQuestions?.map(
                 (relevantQuestion, index) => (
                   <div
                     key={index}
@@ -523,6 +508,88 @@ function SourceCard({
         <p>Score: {source?.extra?.score ?? '-'}</p>
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+function MessageContentForm({
+  message,
+  onCancel,
+  onSubmit
+}: {
+  message: ConversationMessage
+  onCancel: () => void
+  onSubmit: (newMessage: ConversationMessage) => Promise<string | void>
+}) {
+  const formSchema = z.object({
+    content: z.string()
+  })
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { content: message.content }
+  })
+  const { isSubmitting } = form.formState
+  const { content } = form.watch()
+  const isEmptyContent = !content || isEmpty(content.trim())
+  const [draftMessage] = useState<ConversationMessage>(message)
+  const { formRef, onKeyDown } = useEnterSubmit()
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!values.content || isEmpty(values.content.trim())) {
+      return
+    }
+
+    const errorMessage = await onSubmit({
+      ...draftMessage,
+      content: values.content
+    })
+    if (errorMessage) {
+      form.setError('root', { message: errorMessage })
+    }
+  }
+
+  return (
+    <Form {...form}>
+      <form ref={formRef} onSubmit={form.handleSubmit(handleSubmit)}>
+        <FormField
+          control={form.control}
+          name="content"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <Textarea
+                  autoFocus
+                  minRows={2}
+                  maxRows={20}
+                  className="w-full rounded-lg border bg-background p-4 outline-ring"
+                  onKeyDown={onKeyDown}
+                  {...field}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+        <div className="my-4 px-2 flex items-center justify-between gap-2">
+          <div>
+            <FormMessage />
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              className="min-w-[2rem]"
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isEmptyContent || isSubmitting}>
+              {isSubmitting && (
+                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Save
+            </Button>
+          </div>
+        </div>
+      </form>
+    </Form>
   )
 }
 

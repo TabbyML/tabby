@@ -85,10 +85,12 @@ import {
   listThreadMessages,
   listThreads
 } from '@/lib/tabby/query'
+import { Separator } from '@/components/ui/separator'
 
+import { AssistantMessageSection } from './assistant-message-section'
 import { DevPanel } from './dev-panel'
 import { MessagesSkeleton } from './messages-skeleton'
-import { ThreadMessagePair } from './thread-message-pair'
+import { UserMessageSection } from './user-message-section'
 
 export type ConversationMessage = Omit<
   Message,
@@ -101,11 +103,6 @@ export type ConversationMessage = Omit<
     code: Maybe<Array<AttachmentCodeItem>> | undefined
     doc: Maybe<Array<AttachmentDocItem>> | undefined
   }
-}
-
-export type ThreadMessagePair = {
-  userMessage: ConversationMessage
-  assistantMessage: ConversationMessage
 }
 
 type SearchContextValue = {
@@ -121,7 +118,7 @@ type SearchContextValue = {
   fetchingContextInfo: boolean
   onDeleteMessage: (id: string) => void
   isThreadOwner: boolean
-  onUpdateMessagePair: (pair: ThreadMessagePair) => Promise<string | undefined>
+  onUpdateMessage: (message: ConversationMessage) => Promise<string | undefined>
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -170,22 +167,19 @@ export function Search() {
     return activePathname.match(regex)?.[1]?.split('-').pop()
   }, [activePathname])
 
-  const onUpdateMessagePair = async (pair: ThreadMessagePair) => {
-    const { userMessage, assistantMessage } = pair
-    const userMessageIndex = messages.findIndex(o => o.id === userMessage.id)
-    const assistantMessageIndex = messages.findIndex(
-      o => o.id === assistantMessage.id
-    )
-    if (userMessageIndex !== -1 && assistantMessageIndex !== -1) {
+  const onUpdateMessage = async (message: ConversationMessage) => {
+    const messageIndex = messages.findIndex(o => o.id === message.id)
+    if (messageIndex > -1) {
+      // todo 1. call API
+      // 2. set messages
       await setMessages(prev => {
         const newMessages = [...prev]
-        newMessages[userMessageIndex] = assistantMessage
-        newMessages[assistantMessageIndex] = userMessage
+        newMessages[messageIndex] = message
         return newMessages
       })
     } else {
-      // fixme error handling
-      return 'Failed to update'
+      // FIXME error handling
+      return 'Failed to save'
     }
   }
 
@@ -701,45 +695,6 @@ export function Search() {
     200
   )
 
-  const threadMessagePairs = useMemo(() => {
-    if (!messages?.length) return []
-
-    const pairs: ThreadMessagePair[] = []
-    let lastUserMessage: ConversationMessage | null = null
-    let lastAssistantMessage: ConversationMessage | null = null
-
-    messages.forEach(message => {
-      if (message.role === Role.User) {
-        lastUserMessage = message
-      } else if (message.role === Role.Assistant) {
-        lastAssistantMessage = message
-      }
-
-      if (lastUserMessage && lastAssistantMessage) {
-        pairs.push({
-          userMessage: lastUserMessage,
-          assistantMessage: lastAssistantMessage
-        })
-        lastUserMessage = null
-        lastAssistantMessage = null
-      }
-    })
-
-    // If the last userMessage does not have a corresponding assistantMessage, insert an empty assistantMessage
-    if (lastUserMessage) {
-      pairs.push({
-        userMessage: lastUserMessage,
-        assistantMessage: {
-          id: nanoid(),
-          role: Role.Assistant,
-          content: ''
-        }
-      })
-    }
-
-    return pairs
-  }, [messages])
-
   if (isReady && (threadMessagesError || hasThreadError)) {
     return <ThreadMessagesErrorView />
   }
@@ -778,7 +733,7 @@ export function Search() {
         fetchingContextInfo,
         onDeleteMessage,
         isThreadOwner,
-        onUpdateMessagePair
+        onUpdateMessage
       }}
     >
       <div className="transition-all" style={style}>
@@ -792,21 +747,34 @@ export function Search() {
               <ScrollArea className="h-full" ref={contentContainerRef}>
                 <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
                   <div className="flex flex-col">
-                    {threadMessagePairs.map((pair, index) => {
-                      const isLastMessagePair =
-                        index === threadMessagePairs.length - 1
-                      return (
-                        <ThreadMessagePair
-                          key={pair.userMessage.id}
-                          userMessage={pair.userMessage}
-                          assistantMessage={pair.assistantMessage}
-                          isGenerating={isLoading && isLastMessagePair}
-                          isLastMessagePair={isLastMessagePair}
-                          isDeletable={
-                            !isLoading && threadMessagePairs.length > 1
-                          }
-                        />
-                      )
+                    {/* messages */}
+                    {messages.map((message, index) => {
+                      const isLastMessage = index === messages.length - 1
+                      if (message.role === Role.User) {
+                        return (
+                          <UserMessageSection
+                            className="pb-2 pt-8"
+                            key={message.id}
+                            message={message}
+                          />
+                        )
+                      } else if (message.role === Role.Assistant) {
+                        return (
+                          <>
+                            <AssistantMessageSection
+                              key={message.id}
+                              className="pb-8 pt-2"
+                              message={message}
+                              isLastAssistantMessage={isLastMessage}
+                              showRelatedQuestion={isLastMessage}
+                              isDeletable={!isLoading && messages.length > 2}
+                            />
+                            {!isLastMessage && <Separator />}
+                          </>
+                        )
+                      } else {
+                        return null
+                      }
                     })}
                   </div>
                 </div>
