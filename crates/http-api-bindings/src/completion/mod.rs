@@ -31,7 +31,7 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
             );
             Arc::new(engine)
         }
-        x if OPENAI_FIM_SUPPORT_KINDS.contains(&x) => {
+        x if OPENAI_LEGACY_COMPLETION_FIM_ALIASES.contains(&x) => {
             let engine = OpenAICompletionEngine::create(
                 model.model_name.clone(),
                 model
@@ -64,7 +64,7 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn CompletionStream> {
 
 const FIM_TOKEN: &str = "<|FIM|>";
 const FIM_TEMPLATE: &str = "{prefix}<|FIM|>{suffix}";
-const OPENAI_FIM_SUPPORT_KINDS: [&str; 3] = [
+const OPENAI_LEGACY_COMPLETION_FIM_ALIASES: [&str; 3] = [
     "openai/legacy_completion",
     "openai/completion",
     "deepseek/completion",
@@ -72,7 +72,7 @@ const OPENAI_FIM_SUPPORT_KINDS: [&str; 3] = [
 
 pub fn build_completion_prompt(model: &HttpModelConfig) -> (Option<String>, Option<String>) {
     match model.kind.as_str() {
-        x if x == "mistral/completion" || OPENAI_FIM_SUPPORT_KINDS.contains(&x) => {
+        x if x == "mistral/completion" || OPENAI_LEGACY_COMPLETION_FIM_ALIASES.contains(&x) => {
             (Some(FIM_TEMPLATE.to_owned()), None)
         }
         _ => (model.prompt_template.clone(), model.chat_template.clone()),
