@@ -70,7 +70,11 @@ impl ThreadService for ThreadServiceImpl {
 
     async fn update_thread_message(&self, input: &UpdateMessageInput) -> Result<()> {
         self.db
-            .append_thread_message_content(input.id.as_rowid()?, &input.content)
+            .update_thread_message_content(
+                input.thread_id.as_rowid()?,
+                input.id.as_rowid()?,
+                &input.content,
+            )
             .await?;
         Ok(())
     }

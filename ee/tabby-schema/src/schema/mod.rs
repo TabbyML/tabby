@@ -1179,11 +1179,6 @@ impl Mutation {
 
         user.policy.check_update_thread_message(&thread.user_id)?;
 
-        let message = svc.get_thread_message(&input.id).await?;
-        if input.content == message.content {
-            return Ok(true);
-        }
-
         svc.update_thread_message(&input).await?;
         Ok(true)
     }

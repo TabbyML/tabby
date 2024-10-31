@@ -220,6 +220,24 @@ impl DbConn {
         Ok(())
     }
 
+    pub async fn update_thread_message_content(
+        &self,
+        thread_id: i64,
+        message_id: i64,
+        content: &str,
+    ) -> Result<()> {
+        query!(
+            "UPDATE thread_messages SET content = ?, updated_at = DATETIME('now') WHERE thread_id = ? AND id = ?",
+            content,
+            thread_id,
+            message_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn append_thread_message_content(
         &self,
         message_id: i64,
