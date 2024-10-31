@@ -8,8 +8,8 @@ use tabby_schema::{
     bail,
     policy::AccessPolicy,
     thread::{
-        self, CreateMessageInput, CreateThreadInput, MessageAttachmentInput,
-        ThreadRunItem, ThreadRunOptionsInput, ThreadRunStream, ThreadService, UpdateMessageInput,
+        self, CreateMessageInput, CreateThreadInput, MessageAttachmentInput, ThreadRunItem,
+        ThreadRunOptionsInput, ThreadRunStream, ThreadService, UpdateMessageInput,
     },
     AsID, AsRowid, DbEnum, Result,
 };
