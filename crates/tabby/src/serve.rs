@@ -54,12 +54,6 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     ),
     paths(routes::log_event, routes::completions, routes::chat_completions_utoipa, routes::health, routes::setting),
     components(schemas(
-        api::code::CodeSearchHit,
-        api::code::CodeSearchQuery,
-        api::code::CodeSearchScores,
-        api::code::CodeSearchDocument,
-        api::doc::DocSearchHit,
-        api::doc::DocSearchDocument,
         api::event::LogEventRequest,
         completion::CompletionRequest,
         completion::CompletionResponse,
