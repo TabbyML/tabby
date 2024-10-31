@@ -4,14 +4,10 @@ import { useQuery } from 'urql'
 import { graphql } from '@/lib/gql/generates'
 import { ModelHealthBackend } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  IconCheck,
-  IconCheckCircled,
   IconCircleAlert,
-  IconInfoCircled,
   IconRefresh,
   IconSpinner,
   IconSquareActivity
