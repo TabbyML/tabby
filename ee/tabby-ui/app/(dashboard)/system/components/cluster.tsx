@@ -83,6 +83,7 @@ export default function Workers() {
       </span>
       <Separator />
       <Usage />
+      <div className="mt-6 font-semibold">Workers</div>
       <Separator />
       <LoadingWrapper
         loading={fetching}
@@ -136,14 +137,12 @@ export default function Workers() {
           </div>
         </>
       </LoadingWrapper>
-      <Separator className="mt-4 mb-2" />
-      <div>
-        <div className="mb-2 font-semibold">Model connection</div>
-        <div className="gap-sm grid grid-cols-3 gap-2 overflow-hidden md:grid-cols-4">
-          <ModelConnection backend={ModelHealthBackend.Completion} />
-          <ModelConnection backend={ModelHealthBackend.Chat} />
-          <ModelConnection backend={ModelHealthBackend.Embedding} />
-        </div>
+      <div className="mt-6 font-semibold">Model connection</div>
+      <Separator />
+      <div className="gap-sm grid grid-cols-3 gap-2 overflow-hidden md:grid-cols-4">
+        <ModelConnection backend={ModelHealthBackend.Completion} />
+        <ModelConnection backend={ModelHealthBackend.Chat} />
+        <ModelConnection backend={ModelHealthBackend.Embedding} />
       </div>
     </div>
   )
