@@ -8,10 +8,10 @@ use tabby_schema::{
     bail,
     policy::AccessPolicy,
     thread::{
-        self, CreateMessageInput, CreateThreadInput, Message, MessageAttachmentInput,
+        self, CreateMessageInput, CreateThreadInput, MessageAttachmentInput,
         ThreadRunItem, ThreadRunOptionsInput, ThreadRunStream, ThreadService, UpdateMessageInput,
     },
-    AsID, AsRowid, CoreError, DbEnum, Result,
+    AsID, AsRowid, DbEnum, Result,
 };
 
 use super::{answer::AnswerService, graphql_pagination_to_filter};
