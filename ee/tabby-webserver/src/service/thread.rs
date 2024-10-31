@@ -52,15 +52,6 @@ impl ThreadService for ThreadServiceImpl {
             .next())
     }
 
-    async fn get_thread_message(&self, id: &ID) -> Result<Message> {
-        Ok(self
-            .db
-            .get_thread_message(id.as_rowid()?)
-            .await?
-            .ok_or_else(|| CoreError::NotFound("Message not found"))?
-            .try_into()?)
-    }
-
     async fn set_persisted(&self, id: &ID) -> Result<()> {
         self.db
             .update_thread_ephemeral(id.as_rowid()?, false)

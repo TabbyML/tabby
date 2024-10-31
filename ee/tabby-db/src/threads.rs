@@ -254,30 +254,6 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn get_thread_message(&self, id: i64) -> Result<Option<ThreadMessageDAO>> {
-        let message = query_as!(
-            ThreadMessageDAO,
-            r#"SELECT
-                id,
-                thread_id,
-                role,
-                content,
-                code_attachments as "code_attachments: Json<Vec<ThreadMessageAttachmentCode>>",
-                client_code_attachments as "client_code_attachments: Json<Vec<ThreadMessageAttachmentClientCode>>",
-                doc_attachments as "doc_attachments: Json<Vec<ThreadMessageAttachmentDoc>>",
-                created_at as "created_at: DateTime<Utc>",
-                updated_at as "updated_at: DateTime<Utc>"
-            FROM thread_messages
-            WHERE id = ?
-            LIMIT 1"#,
-            id
-        )
-        .fetch_optional(&self.pool)
-        .await?;
-
-        Ok(message)
-    }
-
     async fn get_last_thread_message(&self, thread_id: i64) -> Result<Option<ThreadMessageDAO>> {
         let message = query_as!(
             ThreadMessageDAO,
