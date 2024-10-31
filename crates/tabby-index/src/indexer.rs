@@ -36,7 +36,10 @@ pub trait ToIndexId {
 
 #[async_trait::async_trait]
 pub trait IndexAttributeBuilder<T>: Send + Sync {
+    /// Build document level attributes, these attributes are only stored but not indexed.
     async fn build_attributes(&self, document: &T) -> serde_json::Value;
+
+    /// Build chunk level attributes, these attributes are stored and indexed.
     async fn build_chunk_attributes(
         &self,
         document: &T,
