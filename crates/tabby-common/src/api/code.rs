@@ -2,20 +2,18 @@ use async_trait::async_trait;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use utoipa::ToSchema;
 
-#[derive(Default, Serialize, Deserialize, Debug)]
 pub struct CodeSearchResponse {
     pub hits: Vec<CodeSearchHit>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default, ToSchema)]
+#[derive(Default, Clone)]
 pub struct CodeSearchHit {
     pub scores: CodeSearchScores,
     pub doc: CodeSearchDocument,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default, ToSchema)]
+#[derive(Default, Clone)]
 pub struct CodeSearchScores {
     /// Reciprocal rank fusion score: https://www.elastic.co/guide/en/elasticsearch/reference/current/rrf.html
     pub rrf: f32,
@@ -23,15 +21,10 @@ pub struct CodeSearchScores {
     pub embedding: f32,
 }
 
-#[derive(Serialize, Deserialize, Debug, Builder, Clone, Default, ToSchema)]
+#[derive(Builder, Default, Clone)]
 pub struct CodeSearchDocument {
     /// Unique identifier for the file in the repository, stringified SourceFileKey.
-    ///
-    /// Skipped in API responses.
-    #[serde(skip_serializing)]
     pub file_id: String,
-
-    #[serde(skip_serializing)]
     pub chunk_id: String,
 
     pub body: String,
@@ -56,13 +49,10 @@ pub enum CodeSearchError {
     Other(#[from] anyhow::Error),
 }
 
-#[derive(Deserialize, ToSchema)]
 pub struct CodeSearchQuery {
     pub filepath: Option<String>,
     pub language: Option<String>,
     pub content: String,
-
-    #[serde(skip)]
     pub source_id: String,
 }
 
