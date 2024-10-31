@@ -1,8 +1,32 @@
+import { isNil } from 'lodash-es'
+import { useQuery } from 'urql'
+
+import { graphql } from '@/lib/gql/generates'
+import { ModelHealthBackend } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  IconCheck,
+  IconCheckCircled,
+  IconCircleAlert,
+  IconInfoCircled,
+  IconRefresh,
+  IconSpinner,
+  IconSquareActivity
+} from '@/components/ui/icons'
+
+const testModelConnectionQuery = graphql(/* GraphQL */ `
+  query TestModelConnection($backend: ModelHealthBackend!) {
+    testModelConnection(backend: $backend) {
+      latencyMs
+    }
+  }
+`)
 
 interface RunnerCardProps {
-  kind: string
+  kind: ModelHealthBackend
   device: string
   addr: string
   arch: string
@@ -121,6 +145,10 @@ export default function RunnerCard({
               </p>
             </Info>
           ))}
+        <Info>
+          <IconSquareActivity className="h-5 w-5" />
+          <HealthInfoView backend={kind} className={textClass} />
+        </Info>
       </CardContent>
     </Card>
   )
@@ -178,7 +206,7 @@ function ModelIcon({ type }: { type: string }) {
         <path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1" />
       </svg>
     )
-  } else if (type == 'INDEX') {
+  } else if (type == 'EMBEDDING') {
     return (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -199,4 +227,59 @@ function ModelIcon({ type }: { type: string }) {
       </svg>
     )
   }
+}
+
+function HealthInfoView({
+  backend,
+  className
+}: {
+  backend: ModelHealthBackend
+  errorMessage?: string
+  className?: string
+}) {
+  const [{ data, fetching, stale, error }, reexecuteQuery] = useQuery({
+    query: testModelConnectionQuery,
+    variables: {
+      backend
+    }
+  })
+
+  const connected = !isNil(data?.testModelConnection?.latencyMs)
+  // const connected = false
+
+  console.log(fetching, stale)
+
+  if (fetching || stale) {
+    return (
+      <div className={cn(className)}>
+        <IconSpinner />
+      </div>
+    )
+  }
+
+  return (
+    <div className={cn('flex items-center gap-3', className)}>
+      {connected ? (
+        <p className="flex items-center gap-0.5 font-semibold text-green-600 dark:text-green-500">
+          {/* <IconCheck className='h-3.5 w-3.5' /> */}
+          Available
+        </p>
+      ) : (
+        <div className="flex items-center gap-0.5 font-semibold text-red-600 dark:text-red-500">
+          <IconCircleAlert className="h-3.5 w-3.5" />
+          Unavailable
+        </div>
+      )}
+
+      <Button
+        className="h-5 w-5"
+        size="icon"
+        variant="ghost"
+        disabled={fetching}
+        onClick={reexecuteQuery}
+      >
+        <IconRefresh className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  )
 }

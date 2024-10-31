@@ -1,11 +1,12 @@
 import React from 'react'
 import { groupBy } from 'lodash-es'
 
+import { ModelHealthBackend } from '../gql/generates/graphql'
 import { useHealth, type HealthInfo } from './use-health'
 
 function transformHealthInfoToCompletionWorker(healthInfo: HealthInfo) {
   return {
-    kind: 'COMPLETION',
+    kind: ModelHealthBackend.Completion,
     device: healthInfo.device,
     addr: 'localhost',
     arch: '',
@@ -18,7 +19,7 @@ function transformHealthInfoToCompletionWorker(healthInfo: HealthInfo) {
 
 function transformHealthInfoToChatWorker(healthInfo: HealthInfo) {
   return {
-    kind: 'CHAT',
+    kind: ModelHealthBackend.Chat,
     device: healthInfo.chat_device!,
     addr: 'localhost',
     arch: '',
