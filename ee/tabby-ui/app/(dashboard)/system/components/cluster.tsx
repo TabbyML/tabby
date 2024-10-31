@@ -314,12 +314,12 @@ function ModelConnection({ backend }: { backend: ModelHealthBackend }) {
         className="my-4"
         color={color}
       >
-        <div className="flex-1 flex flex-col items-center pt-3">
+        <div className="flex flex-1 flex-col items-center pt-3">
           <ModelConnectionTitle backend={backend} />
-          <div className="text-sm text-muted-foreground mt-2 mb-4 flex items-center gap-0.5">
+          <div className="mb-4 mt-2 flex items-center gap-0.5 text-sm text-muted-foreground">
             <span>Latency:</span>
             {isLoading ? (
-              <Skeleton className="w-10 h-3 rounded-sm" />
+              <Skeleton className="h-3 w-10 rounded-sm" />
             ) : (
               `${data?.testModelConnection?.latencyMs}ms`
             )}
