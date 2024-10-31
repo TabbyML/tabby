@@ -245,9 +245,6 @@ function HealthInfoView({
   })
 
   const connected = !isNil(data?.testModelConnection?.latencyMs)
-  // const connected = false
-
-  console.log(fetching, stale)
 
   if (fetching || stale) {
     return (
