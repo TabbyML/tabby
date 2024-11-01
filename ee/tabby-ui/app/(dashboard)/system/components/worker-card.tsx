@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  IconCircleAlert,
   IconRotate,
   IconSpinner,
   IconSquareActivity
@@ -253,10 +252,9 @@ function HealthInfoView({
   return (
     <div className={cn('flex items-center gap-3', className)}>
       {connected ? (
-        <p className="flex items-center gap-0.5 font-semibold">Connected</p>
+        <p className="flex items-center gap-0.5">Connected</p>
       ) : (
-        <div className="flex items-center gap-0.5 font-semibold">
-          <IconCircleAlert className="h-3.5 w-3.5" />
+        <div className="flex items-center gap-0.5 text-destructive">
           Unreachable
         </div>
       )}
