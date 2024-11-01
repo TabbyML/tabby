@@ -373,7 +373,7 @@ export function Search() {
       const initialThreadRunContext = initialThreadRunContextStr
         ? JSON.parse(initialThreadRunContextStr)
         : undefined
-        
+
       if (initialMessage) {
         sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
         sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS)
@@ -874,7 +874,7 @@ export function Search() {
                     className="min-h-[5rem] lg:max-w-4xl"
                     placeholder="Ask a follow up question"
                     isLoading={isLoading}
-                    // isFollowup
+                    isFollowup
                     contextInfo={contextInfoData?.contextInfo}
                     fetchingContextInfo={fetchingContextInfo}
                   />
