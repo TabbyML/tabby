@@ -47,6 +47,7 @@ export default function TextAreaSearch({
   isFollowup?: boolean
   contextInfo?: ContextInfo
   fetchingContextInfo: boolean
+  onValueChange?: (value: string | undefined) => void
 }) {
   const [isShow, setIsShow] = useState(false)
   const [isFocus, setIsFocus] = useState(false)

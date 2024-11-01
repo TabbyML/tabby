@@ -20,6 +20,7 @@ import {
   Extension,
   useEditor
 } from '@tiptap/react'
+import type { Content as TiptapContent } from '@tiptap/react'
 
 import { ContextInfo, ContextSource } from '@/lib/gql/generates/graphql'
 import { useLatest } from '@/lib/hooks/use-latest'
@@ -53,7 +54,7 @@ const CustomKeyboardShortcuts = (onSubmit: (editor: Editor) => void) =>
 
 interface PromptEditorProps {
   editable: boolean
-  content?: string
+  content?: TiptapContent
   contextInfo?: ContextInfo
   fetchingContextInfo?: boolean
   submitting?: boolean

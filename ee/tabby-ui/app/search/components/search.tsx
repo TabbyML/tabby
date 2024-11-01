@@ -3,17 +3,12 @@
 import {
   createContext,
   CSSProperties,
-  MouseEventHandler,
-  useContext,
   useEffect,
   useMemo,
   useRef,
   useState
 } from 'react'
 import { useRouter } from 'next/navigation'
-import DOMPurify from 'dompurify'
-import he from 'he'
-import { marked } from 'marked'
 import { nanoid } from 'nanoid'
 
 import {
@@ -28,34 +23,22 @@ import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import {
   AttachmentCodeItem,
   AttachmentDocItem,
-  RelevantCodeContext,
   ThreadRunContexts
 } from '@/lib/types'
 import {
   cn,
-  formatLineHashForCodeBrowser,
   getMentionsFromText,
-  getRangeFromAttachmentCode,
-  getRangeTextFromAttachmentCode,
   getThreadRunContextsFromMentions,
   getTitleFromMessages
 } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
-  IconBlocks,
-  IconBug,
   IconCheck,
   IconChevronLeft,
-  IconChevronRight,
   IconFileSearch,
-  IconLayers,
   IconPlus,
-  IconRefresh,
   IconShare,
-  IconSparkles,
-  IconSpinner,
-  IconStop,
-  IconTrash
+  IconStop
 } from '@/components/ui/icons'
 import {
   ResizableHandle,
@@ -63,11 +46,8 @@ import {
   ResizablePanelGroup
 } from '@/components/ui/resizable'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
-import { Skeleton } from '@/components/ui/skeleton'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { ClientOnly } from '@/components/client-only'
-import { CopyButton } from '@/components/copy-button'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import TextAreaSearch from '@/components/textarea-search'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -78,13 +58,11 @@ import './search.css'
 
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
-import { compact, isEmpty, pick, some, uniq, uniqBy } from 'lodash-es'
+import { compact, pick, some, uniq, uniqBy } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import { toast } from 'sonner'
-import { Context } from 'tabby-chat-panel/index'
 import { useQuery } from 'urql'
 
-import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import { graphql } from '@/lib/gql/generates'
 import {
   CodeQueryInput,
@@ -93,11 +71,11 @@ import {
   InputMaybe,
   Maybe,
   Message,
-  MessageAttachmentCode,
   Role
 } from '@/lib/gql/generates/graphql'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
+import { useMe } from '@/lib/hooks/use-me'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { ExtendedCombinedError, useThreadRun } from '@/lib/hooks/use-thread-run'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
@@ -107,22 +85,14 @@ import {
   listThreadMessages,
   listThreads
 } from '@/lib/tabby/query'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@/components/ui/tooltip'
-import { CodeReferences } from '@/components/chat/code-references'
-import {
-  ErrorMessageBlock,
-  MessageMarkdown,
-  SiteFavicon
-} from '@/components/message-markdown'
+import { Separator } from '@/components/ui/separator'
 
+import { AssistantMessageSection } from './assistant-message-section'
 import { DevPanel } from './dev-panel'
 import { MessagesSkeleton } from './messages-skeleton'
+import { UserMessageSection } from './user-message-section'
 
-type ConversationMessage = Omit<
+export type ConversationMessage = Omit<
   Message,
   '__typename' | 'updatedAt' | 'createdAt' | 'attachment' | 'threadId'
 > & {
@@ -130,8 +100,8 @@ type ConversationMessage = Omit<
   threadRelevantQuestions?: Maybe<string[]>
   error?: string
   attachment?: {
-    code: Maybe<Array<AttachmentCodeItem>>
-    doc: Maybe<Array<AttachmentDocItem>>
+    code: Maybe<Array<AttachmentCodeItem>> | undefined
+    doc: Maybe<Array<AttachmentDocItem>> | undefined
   }
 }
 
@@ -147,13 +117,15 @@ type SearchContextValue = {
   contextInfo: ContextInfo | undefined
   fetchingContextInfo: boolean
   onDeleteMessage: (id: string) => void
+  isThreadOwner: boolean
+  onUpdateMessage: (message: ConversationMessage) => Promise<string | undefined>
 }
 
 export const SearchContext = createContext<SearchContextValue>(
   {} as SearchContextValue
 )
 
-const SOURCE_CARD_STYLE = {
+export const SOURCE_CARD_STYLE = {
   compress: 5.3,
   expand: 6.3
 }
@@ -164,6 +136,7 @@ const TEMP_MSG_ID_PREFIX = '_temp_msg_'
 const tempNanoId = () => `${TEMP_MSG_ID_PREFIX}${nanoid()}`
 
 export function Search() {
+  const [{ data: meData }] = useMe()
   const { updateUrlComponents, pathname } = useRouterStuff()
   const [activePathname, setActivePathname] = useState<string | undefined>()
   const [isPathnameInitialized, setIsPathnameInitialized] = useState(false)
@@ -193,6 +166,35 @@ export function Search() {
 
     return activePathname.match(regex)?.[1]?.split('-').pop()
   }, [activePathname])
+
+  const updateThreadMessage = useMutation(updateThreadMessageMutation)
+
+  const onUpdateMessage = async (message: ConversationMessage) => {
+    const messageIndex = messages.findIndex(o => o.id === message.id)
+    if (messageIndex > -1 && threadId) {
+      // 1. call api
+      const result = await updateThreadMessage({
+        input: {
+          threadId,
+          id: message.id,
+          content: message.content
+        }
+      })
+      if (result?.data?.updateThreadMessage) {
+        // 2. set messages
+        await setMessages(prev => {
+          const newMessages = [...prev]
+          newMessages[messageIndex] = message
+          return newMessages
+        })
+      } else {
+        // FIXME error handling
+        return result?.error?.message || 'Failed to save'
+      }
+    } else {
+      return 'Failed to save'
+    }
+  }
 
   useEffect(() => {
     if (threadIdFromURL) {
@@ -252,6 +254,13 @@ export function Search() {
       }
     }
   }, [threadMessages])
+
+  const isThreadOwner = useMemo(() => {
+    if (!threadId) return true
+
+    if (!meData || !threadData?.threads?.edges?.length) return false
+    return meData.me.id === threadData.threads.edges[0].node.userId
+  }, [meData, threadData, threadId])
 
   // Compute title
   const sources = contextInfoData?.contextInfo.sources
@@ -735,7 +744,9 @@ export function Search() {
         enableDeveloperMode: enableDeveloperMode.value,
         contextInfo: contextInfoData?.contextInfo,
         fetchingContextInfo,
-        onDeleteMessage
+        onDeleteMessage,
+        isThreadOwner,
+        onUpdateMessage
       }}
     >
       <div className="transition-all" style={style}>
@@ -749,40 +760,34 @@ export function Search() {
               <ScrollArea className="h-full" ref={contentContainerRef}>
                 <div className="mx-auto px-4 pb-32 lg:max-w-4xl lg:px-0">
                   <div className="flex flex-col">
-                    {messages.map((item, idx) => {
-                      if (item.role === Role.User) {
+                    {/* messages */}
+                    {messages.map((message, index) => {
+                      const isLastMessage = index === messages.length - 1
+                      if (message.role === Role.User) {
                         return (
-                          <div key={item.id}>
-                            {idx !== 0 && <Separator />}
-                            <div className="pb-2 pt-8 font-semibold">
-                              <MessageMarkdown
-                                message={item.content}
-                                contextInfo={contextInfoData?.contextInfo}
-                                fetchingContextInfo={fetchingContextInfo}
-                                className="text-xl prose-p:mb-2 prose-p:mt-0"
-                                headline
-                                canWrapLongLines
-                              />
-                            </div>
-                          </div>
+                          <UserMessageSection
+                            className="pb-2 pt-8"
+                            key={message.id}
+                            message={message}
+                          />
                         )
-                      }
-                      if (item.role === Role.Assistant) {
-                        const isLastAssistantMessage =
-                          idx === messages.length - 1
+                      } else if (message.role === Role.Assistant) {
                         return (
-                          <div key={item.id} className="pb-8 pt-2">
-                            <AnswerBlock
-                              answer={item}
-                              isLastAssistantMessage={isLastAssistantMessage}
-                              showRelatedQuestion={isLastAssistantMessage}
-                              isLoading={isLoading && isLastAssistantMessage}
-                              deletable={!isLoading && messages.length > 2}
+                          <>
+                            <AssistantMessageSection
+                              key={message.id}
+                              className="pb-8 pt-2"
+                              message={message}
+                              isLastAssistantMessage={isLastMessage}
+                              showRelatedQuestion={isLastMessage}
+                              isDeletable={!isLoading && messages.length > 2}
                             />
-                          </div>
+                            {!isLastMessage && <Separator />}
+                          </>
                         )
+                      } else {
+                        return null
                       }
-                      return <></>
                     })}
                   </div>
                 </div>
@@ -893,408 +898,15 @@ export function Search() {
   )
 }
 
-function AnswerBlock({
-  answer,
-  showRelatedQuestion,
-  isLoading,
-  isLastAssistantMessage,
-  deletable
-}: {
-  answer: ConversationMessage
-  showRelatedQuestion: boolean
-  isLoading?: boolean
-  isLastAssistantMessage?: boolean
-  deletable?: boolean
-}) {
-  const {
-    onRegenerateResponse,
-    onSubmitSearch,
-    setDevPanelOpen,
-    setConversationIdForDev,
-    enableDeveloperMode,
-    contextInfo,
-    fetchingContextInfo,
-    onDeleteMessage
-  } = useContext(SearchContext)
-
-  const [showMoreSource, setShowMoreSource] = useState(false)
-  const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] = useState<
-    number | undefined
-  >(undefined)
-  const getCopyContent = (answer: ConversationMessage) => {
-    if (isEmpty(answer?.attachment?.doc) && isEmpty(answer?.attachment?.code)) {
-      return answer.content
-    }
-
-    const content = answer.content
-      .replace(MARKDOWN_CITATION_REGEX, match => {
-        const citationNumberMatch = match?.match(/\d+/)
-        return `[${citationNumberMatch}]`
-      })
-      .trim()
-    const docCitations =
-      answer.attachment?.doc
-        ?.map((doc, idx) => `[${idx + 1}] ${doc.link}`)
-        .join('\n') ?? ''
-    const docCitationLen = answer.attachment?.doc?.length ?? 0
-    const codeCitations =
-      answer.attachment?.code
-        ?.map((code, idx) => {
-          const lineRangeText = getRangeTextFromAttachmentCode(code)
-          const filenameText = compact([code.filepath, lineRangeText]).join(':')
-          return `[${idx + docCitationLen + 1}] ${filenameText}`
-        })
-        .join('\n') ?? ''
-    const citations = docCitations + codeCitations
-
-    return `${content}\n\nCitations:\n${citations}`
-  }
-
-  const IconAnswer = isLoading ? IconSpinner : IconSparkles
-
-  const totalHeightInRem = answer.attachment?.doc?.length
-    ? Math.ceil(answer.attachment.doc.length / 4) * SOURCE_CARD_STYLE.expand +
-      0.5 * Math.floor(answer.attachment.doc.length / 4)
-    : 0
-
-  const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
-    return (
-      answer?.attachment?.code?.map(code => {
-        const { startLine, endLine } = getRangeFromAttachmentCode(code)
-
-        return {
-          kind: 'file',
-          range: {
-            start: startLine,
-            end: endLine
-          },
-          filepath: code.filepath,
-          content: code.content,
-          git_url: code.gitUrl,
-          extra: {
-            scores: code?.extra?.scores
-          }
-        }
-      }) ?? []
-    )
-  }, [answer?.attachment?.code])
-
-  const onCodeContextClick = (ctx: Context) => {
-    if (!ctx.filepath) return
-    const url = new URL(`${window.location.origin}/files`)
-    const searchParams = new URLSearchParams()
-    searchParams.append('redirect_filepath', ctx.filepath)
-    searchParams.append('redirect_git_url', ctx.git_url)
-    url.search = searchParams.toString()
-
-    const lineHash = formatLineHashForCodeBrowser({
-      start: ctx.range.start,
-      end: ctx.range.end
-    })
-    if (lineHash) {
-      url.hash = lineHash
-    }
-
-    window.open(url.toString())
-  }
-
-  const onCodeCitationMouseEnter = (index: number) => {
-    setRelevantCodeHighlightIndex(
-      index - 1 - (answer?.attachment?.doc?.length || 0)
-    )
-  }
-
-  const onCodeCitationMouseLeave = (index: number) => {
-    setRelevantCodeHighlightIndex(undefined)
-  }
-
-  const openCodeBrowserTab = (code: MessageAttachmentCode) => {
-    const { startLine, endLine } = getRangeFromAttachmentCode(code)
-
-    if (!code.filepath) return
-    const url = new URL(`${window.location.origin}/files`)
-    const searchParams = new URLSearchParams()
-    searchParams.append('redirect_filepath', code.filepath)
-    searchParams.append('redirect_git_url', code.gitUrl)
-    url.search = searchParams.toString()
-
-    const lineHash = formatLineHashForCodeBrowser({
-      start: startLine,
-      end: endLine
-    })
-    if (lineHash) {
-      url.hash = lineHash
-    }
-
-    window.open(url.toString())
-  }
-
-  const onCodeCitationClick = (code: MessageAttachmentCode) => {
-    openCodeBrowserTab(code)
-  }
-
-  const messageAttachmentDocs = answer?.attachment?.doc
-  const messageAttachmentCode = answer?.attachment?.code
-
-  return (
-    <div className="flex flex-col gap-y-5">
-      {/* document search hits */}
-      {messageAttachmentDocs && messageAttachmentDocs.length > 0 && (
-        <div>
-          <div className="mb-1 flex items-center gap-x-2">
-            <IconBlocks className="relative" style={{ top: '-0.04rem' }} />
-            <p className="text-sm font-bold leading-normal">Sources</p>
-          </div>
-          <div
-            className="gap-sm grid grid-cols-3 gap-2 overflow-hidden md:grid-cols-4"
-            style={{
-              transition: 'height 0.25s ease-out',
-              height: showMoreSource
-                ? `${totalHeightInRem}rem`
-                : `${SOURCE_CARD_STYLE.compress}rem`
-            }}
-          >
-            {messageAttachmentDocs.map((source, index) => (
-              <SourceCard
-                key={source.link + index}
-                conversationId={answer.id}
-                source={source}
-                showMore={showMoreSource}
-                showDevTooltip={enableDeveloperMode}
-              />
-            ))}
-          </div>
-          <Button
-            variant="ghost"
-            className="-ml-1.5 mt-1 flex items-center gap-x-1 px-1 py-2 text-sm font-normal text-muted-foreground"
-            onClick={() => setShowMoreSource(!showMoreSource)}
-          >
-            <IconChevronRight
-              className={cn({
-                '-rotate-90': showMoreSource,
-                'rotate-90': !showMoreSource
-              })}
-            />
-            <p>{showMoreSource ? 'Show less' : 'Show more'}</p>
-          </Button>
-        </div>
-      )}
-
-      {/* Answer content */}
-      <div>
-        <div className="mb-1 flex h-8 items-center gap-x-1.5">
-          <IconAnswer
-            className={cn({
-              'animate-spinner': isLoading
-            })}
-          />
-          <p className="text-sm font-bold leading-none">Answer</p>
-          {enableDeveloperMode && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                setConversationIdForDev(answer.id)
-                setDevPanelOpen(true)
-              }}
-            >
-              <IconBug />
-            </Button>
-          )}
-        </div>
-
-        {/* code search hits */}
-        {messageAttachmentCode && messageAttachmentCode.length > 0 && (
-          <CodeReferences
-            contexts={relevantCodeContexts}
-            className="mt-1 text-sm"
-            onContextClick={onCodeContextClick}
-            enableTooltip={enableDeveloperMode}
-            showExternalLink={false}
-            onTooltipClick={() => {
-              setConversationIdForDev(answer.id)
-              setDevPanelOpen(true)
-            }}
-            highlightIndex={relevantCodeHighlightIndex}
-          />
-        )}
-
-        {isLoading && !answer.content && (
-          <Skeleton className="mt-1 h-40 w-full" />
-        )}
-        <MessageMarkdown
-          message={answer.content}
-          attachmentDocs={messageAttachmentDocs}
-          attachmentCode={messageAttachmentCode}
-          onCodeCitationClick={onCodeCitationClick}
-          onCodeCitationMouseEnter={onCodeCitationMouseEnter}
-          onCodeCitationMouseLeave={onCodeCitationMouseLeave}
-          contextInfo={contextInfo}
-          fetchingContextInfo={fetchingContextInfo}
-          canWrapLongLines={!isLoading}
-        />
-        {answer.error && <ErrorMessageBlock error={answer.error} />}
-
-        {!isLoading && (
-          <div className="mt-3 flex items-center gap-x-3 text-sm">
-            <CopyButton
-              className="-ml-1.5 gap-x-1 px-1 font-normal text-muted-foreground"
-              value={getCopyContent(answer)}
-              text="Copy"
-            />
-            {!isLoading && !fetchingContextInfo && isLastAssistantMessage && (
-              <Button
-                className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
-                variant="ghost"
-                onClick={() => onRegenerateResponse(answer.id)}
-              >
-                <IconRefresh />
-                <p>Regenerate</p>
-              </Button>
-            )}
-            {deletable && (
-              <Button
-                className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
-                variant="ghost"
-                onClick={() => onDeleteMessage(answer.id)}
-              >
-                <IconTrash />
-                <p>Delete</p>
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Related questions */}
-      {showRelatedQuestion &&
-        !isLoading &&
-        answer.threadRelevantQuestions &&
-        answer.threadRelevantQuestions.length > 0 && (
-          <div>
-            <div className="flex items-center gap-x-1.5">
-              <IconLayers />
-              <p className="text-sm font-bold leading-none">Suggestions</p>
-            </div>
-            <div className="mt-2 flex flex-col gap-y-3">
-              {answer.threadRelevantQuestions?.map(
-                (relevantQuestion, index) => (
-                  <div
-                    key={index}
-                    className="flex cursor-pointer items-center justify-between rounded-lg border p-4 py-3 transition-opacity hover:opacity-70"
-                    onClick={onSubmitSearch.bind(null, relevantQuestion)}
-                  >
-                    <p className="w-full overflow-hidden text-ellipsis text-sm">
-                      {relevantQuestion}
-                    </p>
-                    <IconPlus />
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-        )}
-    </div>
-  )
-}
-
-// Remove HTML and Markdown format
-const normalizedText = (input: string) => {
-  const sanitizedHtml = DOMPurify.sanitize(input, {
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: []
-  })
-  const parsed = marked.parse(sanitizedHtml) as string
-  const decoded = he.decode(parsed)
-  const plainText = decoded.replace(/<\/?[^>]+(>|$)/g, '')
-  return plainText
-}
-
-function SourceCard({
-  conversationId,
-  source,
-  showMore,
-  showDevTooltip
-}: {
-  conversationId: string
-  source: AttachmentDocItem
-  showMore: boolean
-  showDevTooltip?: boolean
-}) {
-  const { setDevPanelOpen, setConversationIdForDev } = useContext(SearchContext)
-  const { hostname } = new URL(source.link)
-  const [devTooltipOpen, setDevTooltipOpen] = useState(false)
-
-  const onOpenChange = (v: boolean) => {
-    if (!showDevTooltip) return
-    setDevTooltipOpen(v)
-  }
-
-  const onTootipClick: MouseEventHandler<HTMLDivElement> = e => {
-    e.stopPropagation()
-    setConversationIdForDev(conversationId)
-    setDevPanelOpen(true)
-  }
-
-  return (
-    <Tooltip
-      open={devTooltipOpen}
-      onOpenChange={onOpenChange}
-      delayDuration={0}
-    >
-      <TooltipTrigger asChild>
-        <div
-          className="flex cursor-pointer flex-col justify-between rounded-lg border bg-card p-3 hover:bg-card/60"
-          style={{
-            height: showMore
-              ? `${SOURCE_CARD_STYLE.expand}rem`
-              : `${SOURCE_CARD_STYLE.compress}rem`,
-            transition: 'all 0.25s ease-out'
-          }}
-          onClick={() => window.open(source.link)}
-        >
-          <div className="flex flex-1 flex-col justify-between gap-y-1">
-            <div className="flex flex-col gap-y-0.5">
-              <p className="line-clamp-1 w-full overflow-hidden text-ellipsis break-all text-xs font-semibold">
-                {source.title}
-              </p>
-              <p
-                className={cn(
-                  ' w-full overflow-hidden text-ellipsis break-all text-xs text-muted-foreground',
-                  {
-                    'line-clamp-2': showMore,
-                    'line-clamp-1': !showMore
-                  }
-                )}
-              >
-                {normalizedText(source.content)}
-              </p>
-            </div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <div className="flex w-full flex-1 items-center">
-                <SiteFavicon hostname={hostname} />
-                <p className="ml-1 overflow-hidden text-ellipsis">
-                  {hostname.replace('www.', '').split('/')[0]}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent
-        align="start"
-        className="cursor-pointer p-2"
-        onClick={onTootipClick}
-      >
-        <p>Score: {source?.extra?.score ?? '-'}</p>
-      </TooltipContent>
-    </Tooltip>
-  )
-}
-
 const setThreadPersistedMutation = graphql(/* GraphQL */ `
   mutation SetThreadPersisted($threadId: ID!) {
     setThreadPersisted(threadId: $threadId)
+  }
+`)
+
+const updateThreadMessageMutation = graphql(/* GraphQL */ `
+  mutation UpdateThreadMessage($input: UpdateMessageInput!) {
+    updateThreadMessage(input: $input)
   }
 `)
 
