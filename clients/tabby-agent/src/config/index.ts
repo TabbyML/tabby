@@ -82,7 +82,7 @@ export class Configurations extends EventEmitter implements Feature {
 
   private clientCapabilities: ClientCapabilities | undefined = undefined;
 
-  constructor(private readonly dataStore?: DataStore) {
+  constructor(private readonly dataStore: DataStore) {
     super();
   }
 
@@ -115,24 +115,20 @@ export class Configurations extends EventEmitter implements Feature {
       const configFile = this.configFile;
       await configFile.load();
       configFile.on("updated", async () => {
-        if (this.dataStore) {
-          this.serverProvided = this.pickStoredServerProvidedConfig(this.dataStore.data);
-        }
+        this.serverProvided = this.pickStoredServerProvidedConfig(this.dataStore.data);
         this.update();
       });
       configFile.watch();
     }
 
-    if (this.dataStore) {
-      this.serverProvided = this.pickStoredServerProvidedConfig(this.dataStore.data);
-      this.dataStore.on("updated", async (data: Partial<StoredData>) => {
-        const serverProvidedConfig = this.pickStoredServerProvidedConfig(data);
-        if (!deepEqual(serverProvidedConfig, this.serverProvided)) {
-          this.serverProvided = serverProvidedConfig;
-          this.update();
-        }
-      });
-    }
+    this.serverProvided = this.pickStoredServerProvidedConfig(this.dataStore.data);
+    this.dataStore.on("updated", async (data: Partial<StoredData>) => {
+      const serverProvidedConfig = this.pickStoredServerProvidedConfig(data);
+      if (!deepEqual(serverProvidedConfig, this.serverProvided)) {
+        this.serverProvided = serverProvidedConfig;
+        this.update();
+      }
+    });
 
     this.update();
   }
@@ -185,9 +181,7 @@ export class Configurations extends EventEmitter implements Feature {
       const old = this.clientProvided;
       this.clientProvided = config;
       this.emit("clientProvidedConfigUpdated", config, old);
-      if (this.dataStore) {
-        this.serverProvided = this.pickStoredServerProvidedConfig(this.dataStore.data);
-      }
+      this.serverProvided = this.pickStoredServerProvidedConfig(this.dataStore.data);
       this.update();
     }
   }
@@ -197,7 +191,7 @@ export class Configurations extends EventEmitter implements Feature {
       this.serverProvided = config;
       this.update();
     }
-    if (save && this.dataStore) {
+    if (save) {
       const mergedLocalConfig = mergeConfig(this.defaultConfig, this.configFile, this.clientProvided);
       const serverEndpoint = mergedLocalConfig.server.endpoint;
       if (!this.dataStore.data.serverConfig) {

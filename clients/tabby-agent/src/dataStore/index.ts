@@ -1,16 +1,16 @@
 import type { Connection } from "vscode-languageserver";
 import type {
   ClientCapabilities,
+  ClientProvidedConfig,
+  DataStoreRecords,
   ServerCapabilities,
   StatusIssuesName,
-  DataStoreGetParams,
-  DataStoreSetParams,
 } from "../protocol";
 import type { TabbyServerProvidedConfig } from "../http/tabbyApiClient";
 import type { Feature } from "../feature";
 import type { FileDataStore } from "./dataFile";
 import { EventEmitter } from "events";
-import { DataStoreGetRequest, DataStoreSetRequest } from "../protocol";
+import { DataStoreDidUpdateNotification, DataStoreUpdateRequest } from "../protocol";
 import { getFileDataStore } from "./dataFile";
 import deepEqual from "deep-equal";
 
@@ -24,6 +24,8 @@ export class DataStore extends EventEmitter implements Feature {
   public data: Partial<StoredData> = {};
 
   private lspConnection: Connection | undefined = undefined;
+  private lspInitialized = false;
+
   private fileDataStore: FileDataStore | undefined = undefined;
 
   async preInitialize(): Promise<void> {
@@ -37,48 +39,67 @@ export class DataStore extends EventEmitter implements Feature {
         if (!deepEqual(data, this.data)) {
           const old = this.data;
           this.data = data;
-          this.emit("updated", data, old);
+          this.emit("updated", this.data, old);
         }
       });
       dataStore.watch();
     }
   }
 
-  async initialize(connection: Connection, clientCapabilities: ClientCapabilities): Promise<ServerCapabilities> {
+  async initialize(
+    connection: Connection,
+    clientCapabilities: ClientCapabilities,
+    _clientProvidedConfig: ClientProvidedConfig,
+    dataStoreRecords: DataStoreRecords | undefined,
+  ): Promise<ServerCapabilities> {
     if (clientCapabilities.tabby?.dataStore) {
       this.lspConnection = connection;
 
-      try {
-        // FIXME(@icycodes): This try-catch block avoids the initialization error in current version.
-        // As the lsp client has not be initialized, the request will always throws errors,
-        // the dataStore data should be initialized by initializationOptions, and be synced by notifications.
-        const params: DataStoreGetParams = { key: "data" };
-        const data = await connection.sendRequest(DataStoreGetRequest.type, params);
-        if (!deepEqual(data, this.data)) {
-          const old = this.data;
-          this.data = data;
-          this.emit("updated", data, old);
-        }
-      } catch (error) {
-        // ignore
+      // When dataStore is provided by the LSP connection, do not use the file data store anymore.
+      const dataStore = this.fileDataStore;
+      if (dataStore) {
+        dataStore.stopWatch();
+        this.fileDataStore = undefined;
+        const old = this.data;
+        this.data = dataStoreRecords ?? {};
+        this.emit("updated", this.data, old);
+      } else {
+        this.data = dataStoreRecords ?? {};
       }
+
+      connection.onNotification(DataStoreDidUpdateNotification.type, async (params) => {
+        const records = params ?? {};
+        if (!deepEqual(records, this.data)) {
+          const old = this.data;
+          this.data = records;
+          this.emit("updated", this.data, old);
+        }
+      });
     }
     return {};
   }
 
+  async initialized() {
+    if (this.lspConnection) {
+      this.lspInitialized = true;
+      this.emit("initialized");
+    }
+  }
+
   async save() {
     if (this.lspConnection) {
-      const params: DataStoreGetParams = { key: "data" };
-      const old = await this.lspConnection.sendRequest(DataStoreGetRequest.type, params);
-
-      if (!deepEqual(old, this.data)) {
-        const params: DataStoreSetParams = { key: "data", value: this.data };
-        await this.lspConnection.sendRequest(DataStoreSetRequest.type, params);
-        this.emit("updated", this.data, old);
+      const connection = this.lspConnection;
+      const sendUpdateRequest = async () => {
+        await connection.sendRequest(DataStoreUpdateRequest.type, this.data);
+      };
+      if (this.lspInitialized) {
+        await sendUpdateRequest();
+      } else {
+        this.once("initialized", async () => {
+          await sendUpdateRequest();
+        });
       }
-    }
-
-    if (this.fileDataStore) {
+    } else if (this.fileDataStore) {
       await this.fileDataStore.write(this.data);
     }
   }

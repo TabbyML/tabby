@@ -59,19 +59,26 @@ export namespace InitializeRequest {
 export type InitializeParams = LspInitializeParams & {
   clientInfo?: ClientInfo;
   capabilities: ClientCapabilities;
-  initializationOptions?: {
-    config?: ClientProvidedConfig;
-    /**
-     * ClientInfo also can be provided in InitializationOptions, will be merged with the one in InitializeParams.
-     * This is useful for the clients that don't support changing the ClientInfo in InitializeParams.
-     */
-    clientInfo?: ClientInfo;
-    /**
-     * ClientCapabilities also can be provided in InitializationOptions, will be merged with the one in InitializeParams.
-     * This is useful for the clients that don't support changing the ClientCapabilities in InitializeParams.
-     */
-    clientCapabilities?: ClientCapabilities;
-  };
+  initializationOptions?: InitializationOptions;
+};
+
+export type InitializationOptions = {
+  config?: ClientProvidedConfig;
+  /**
+   * ClientInfo also can be provided in InitializationOptions, will be merged with the one in InitializeParams.
+   * This is useful for the clients that don't support changing the ClientInfo in InitializeParams.
+   */
+  clientInfo?: ClientInfo;
+  /**
+   * ClientCapabilities also can be provided in InitializationOptions, will be merged with the one in InitializeParams.
+   * This is useful for the clients that don't support changing the ClientCapabilities in InitializeParams.
+   */
+  clientCapabilities?: ClientCapabilities;
+  /**
+   * The data store records that should be initialized when the server starts. This is useful for the clients that
+   * provides the dataStore capability.
+   */
+  dataStoreRecords?: DataStoreRecords;
 };
 
 export type InitializeResult = LspInitializeResult & {
@@ -126,9 +133,9 @@ export type ClientCapabilities = LspClientCapabilities & {
      */
     workspaceFileSystem?: boolean;
     /**
-     * The client supports:
-     * - `tabby/dataStore/get`
-     * - `tabby/dataStore/set`
+     * The client provides a initial data store records for initialization and supports methods:
+     * - `tabby/dataStore/didUpdate`
+     * - `tabby/dataStore/update`
      * When not provided, the server will try to fallback to the default data store,
      *  a file-based data store (~/.tabby-client/agent/data.json), which is not available in the browser.
      */
@@ -939,6 +946,7 @@ export type ReadFileResult = {
 };
 
 /**
+ * @deprecated see {@link InitializationOptions} and {@link DataStoreDidUpdateNotification}
  * [Tabby] DataStore Get Request(↪️)
  *
  * This method is sent from the server to the client to get the value of the given key.
@@ -952,11 +960,13 @@ export namespace DataStoreGetRequest {
   export const type = new ProtocolRequestType<DataStoreGetParams, any, never, void, void>(method);
 }
 
+/** @deprecated */
 export type DataStoreGetParams = {
   key: string;
 };
 
 /**
+ * @deprecated see {@link DataStoreUpdateRequest}
  * [Tabby] DataStore Set Request(↪️)
  *
  * This method is sent from the server to the client to set the value of the given key.
@@ -970,10 +980,40 @@ export namespace DataStoreSetRequest {
   export const type = new ProtocolRequestType<DataStoreSetParams, boolean, never, void, void>(method);
 }
 
+/** @deprecated */
 export type DataStoreSetParams = {
   key: string;
   value: any;
 };
+
+/**
+ * [Tabby] DataStore DidUpdate Notification(➡️)
+ *
+ * This method is sent from the client to the server to notify that the data store records has been updated.
+ * - method: `tabby/dataStore/didUpdate`
+ * - params: {@link DataStoreDidChangeParams}
+ */
+export namespace DataStoreDidUpdateNotification {
+  export const method = "tabby/dataStore/didUpdate";
+  export const messageDirection = MessageDirection.clientToServer;
+  export const type = new ProtocolNotificationType<DataStoreRecords, void>(method);
+}
+
+/**
+ * [Tabby] DataStore Update Request(↪️)
+ *
+ * This method is sent from the server to the client to update the data store records.
+ * - method: `tabby/dataStore/update`
+ * - params: {@link DataStoreUpdateParams}
+ * - result: boolean
+ */
+export namespace DataStoreUpdateRequest {
+  export const method = "tabby/dataStore/update";
+  export const messageDirection = MessageDirection.serverToClient;
+  export const type = new ProtocolRequestType<DataStoreRecords, boolean, never, void, void>(method);
+}
+
+export type DataStoreRecords = Record<string, any>;
 
 /**
  * [Tabby] Language Support Declaration Request(↪️)

@@ -13,6 +13,7 @@ import {
   ClientCapabilities,
   ServerCapabilities,
   ClientProvidedConfig,
+  DataStoreRecords,
   AgentServerInfoRequest,
   AgentServerInfoSync,
   ServerInfo,
@@ -154,6 +155,7 @@ export class Server {
     this.clientCapabilities = clientCapabilities;
 
     const clientProvidedConfig: ClientProvidedConfig = params.initializationOptions?.config ?? {};
+    const dataStoreRecords: DataStoreRecords | undefined = params.initializationOptions?.dataStoreRecords;
 
     const baseCapabilities: ServerCapabilities = {
       textDocumentSync: {
@@ -176,7 +178,7 @@ export class Server {
     };
 
     this.logger.debug("Initializing internal components...");
-    await this.dataStore.initialize(this.connection, clientCapabilities);
+    await this.dataStore.initialize(this.connection, clientCapabilities, clientProvidedConfig, dataStoreRecords);
     await this.configurations.initialize(this.connection, clientCapabilities, clientProvidedConfig);
     await this.anonymousUsageLogger.initialize(clientInfo);
     await this.tabbyApiClient.initialize(clientInfo);
@@ -196,7 +198,7 @@ export class Server {
       this.commandProvider,
       this.fileTracker,
     ].mapAsync((feature: Feature) => {
-      return feature.initialize(this.connection, clientCapabilities, clientProvidedConfig);
+      return feature.initialize(this.connection, clientCapabilities, clientProvidedConfig, dataStoreRecords);
     });
     this.logger.debug("Feature components initialized.");
 
@@ -217,11 +219,15 @@ export class Server {
 
   private async initialized(): Promise<void> {
     this.logger.info("Received initialized notification.");
-    await [this.configurations, this.statusProvider, this.completionProvider, this.chatFeature].mapAsync(
-      (feature: Feature) => {
-        return feature.initialized?.(this.connection);
-      },
-    );
+    await [
+      this.dataStore,
+      this.configurations,
+      this.statusProvider,
+      this.completionProvider,
+      this.chatFeature,
+    ].mapAsync((feature: Feature) => {
+      return feature.initialized?.(this.connection);
+    });
 
     // FIXME(@icycodes): remove deprecated methods
     if (this.clientCapabilities?.tabby?.agent) {

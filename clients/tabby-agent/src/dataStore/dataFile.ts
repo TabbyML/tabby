@@ -38,6 +38,10 @@ export class FileDataStore extends EventEmitter {
     this.watcher.on("add", onUpdated);
     this.watcher.on("change", onUpdated);
   }
+
+  stopWatch() {
+    this.watcher?.close();
+  }
 }
 
 export function getFileDataStore(): FileDataStore | undefined {
