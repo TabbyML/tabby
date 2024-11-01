@@ -2,35 +2,39 @@ import { window, LogOutputChannel } from "vscode";
 
 const outputChannel = window.createOutputChannel("Tabby", { log: true });
 
+function tagMessage(message: string, tag: string): string {
+  return `[${tag}] ${message}`;
+}
+
 export function getLogger(tag = "Tabby"): LogOutputChannel {
-  const tagMessage = (message: string) => {
-    return `[${tag}] ${message}`;
-  };
   return new Proxy(outputChannel, {
     get(target, method) {
-      if (method === "trace") {
+      if (typeof method == "string" && ["trace", "debug", "info", "warn", "error"].includes(method)) {
         return (message: string, ...args: unknown[]) => {
-          target.trace(tagMessage(message), ...args);
+          /* @ts-expect-error no-implicit-any */
+          target[method]?.(tagMessage(message, tag), ...args);
         };
       }
-      if (method === "debug") {
-        return (message: string, ...args: unknown[]) => {
-          target.debug(tagMessage(message), ...args);
-        };
+      if (method in target) {
+        /* @ts-expect-error no-implicit-any */
+        return target[method];
       }
-      if (method === "info") {
+      return undefined;
+    },
+  });
+}
+
+export function getLoggerEveryN(n: number, tag = "Tabby"): LogOutputChannel {
+  let count = 0;
+  return new Proxy(outputChannel, {
+    get(target, method) {
+      if (typeof method == "string" && ["trace", "debug", "info", "warn", "error"].includes(method)) {
         return (message: string, ...args: unknown[]) => {
-          target.info(tagMessage(message), ...args);
-        };
-      }
-      if (method === "warn") {
-        return (message: string, ...args: unknown[]) => {
-          target.warn(tagMessage(message), ...args);
-        };
-      }
-      if (method === "error") {
-        return (message: string, ...args: unknown[]) => {
-          target.error(tagMessage(message), ...args);
+          if (count % n === 0) {
+            /* @ts-expect-error no-implicit-any */
+            target[method]?.(tagMessage(message, tag), ...args);
+          }
+          count++;
         };
       }
       if (method in target) {
