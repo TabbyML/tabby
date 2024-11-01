@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   IconCircleAlert,
-  IconReload,
+  IconRotate,
   IconSpinner,
   IconSquareActivity
 } from '@/components/ui/icons'
@@ -268,7 +268,7 @@ function HealthInfoView({
         disabled={fetching}
         onClick={reexecuteQuery}
       >
-        <IconReload className="h-3.5 w-3.5" />
+        <IconRotate className="h-3.5 w-3.5" />
       </Button>
     </div>
   )
