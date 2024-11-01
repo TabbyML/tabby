@@ -28,5 +28,5 @@ kind = "vllm/completion"
 model_name = "your_model"
 api_endpoint = "https://url_to_your_backend_or_service"
 api_key = "secret-api-key"
-prompt_template = "<|fim_prefix|>{prefix}<|fim_suffix|>{suffix}<|fim_middle|>"
+prompt_template = "<PRE> {prefix} <SUF>{suffix} <MID>"  # Example prompt template for the CodeLlama model series.
 ```
