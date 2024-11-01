@@ -827,12 +827,11 @@ export function Search() {
                     : {}
                 )}
               >
-                <div className={cn(
-                  'flex items-center gap-4 absolute ',
-                  {
+                <div
+                  className={cn('absolute flex items-center gap-4 ', {
                     '-top-10': isThreadOwner
-                  }
-                )}>
+                  })}
+                >
                   {stopButtonVisible && (
                     <Button
                       className="bg-background"
