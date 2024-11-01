@@ -8,6 +8,7 @@ mod tantivy_utils;
 use indexer::{IndexAttributeBuilder, Indexer};
 
 mod doc;
+mod structured_doc;
 
 pub mod public {
     use indexer::IndexGarbageCollector;
@@ -16,6 +17,7 @@ pub mod public {
     pub use super::{
         code::CodeIndexer,
         doc::public::{DocIndexer, WebDocument},
+        structured_doc::public::{StructuredDoc, StructuredDocIndexer},
     };
 
     pub fn run_index_garbage_collection(active_sources: Vec<String>) -> anyhow::Result<()> {

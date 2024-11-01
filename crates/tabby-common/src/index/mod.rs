@@ -1,5 +1,6 @@
 pub mod code;
 pub mod doc;
+pub mod structured_doc;
 
 use std::borrow::Cow;
 
@@ -76,6 +77,7 @@ pub const FIELD_SOURCE_ID: &str = "source_id";
 pub mod corpus {
     pub const CODE: &str = "code";
     pub const WEB: &str = "web";
+    pub const STRUCTURED_DOC: &str = "structured_doc";
 }
 
 impl IndexSchema {

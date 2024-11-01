@@ -40,10 +40,10 @@ pub trait IndexAttributeBuilder<T>: Send + Sync {
     async fn build_attributes(&self, document: &T) -> serde_json::Value;
 
     /// Build chunk level attributes, these attributes are stored and indexed.
-    async fn build_chunk_attributes(
+    async fn build_chunk_attributes<'a>(
         &self,
-        document: &T,
-    ) -> BoxStream<JoinHandle<(Vec<String>, serde_json::Value)>>;
+        document: &'a T,
+    ) -> BoxStream<'a, JoinHandle<(Vec<String>, serde_json::Value)>>;
 }
 
 pub struct TantivyDocBuilder<T> {

@@ -65,10 +65,10 @@ impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
         json!({})
     }
 
-    async fn build_chunk_attributes(
+    async fn build_chunk_attributes<'a>(
         &self,
-        source_code: &SourceCode,
-    ) -> BoxStream<JoinHandle<(Vec<String>, serde_json::Value)>> {
+        source_code: &'a SourceCode,
+    ) -> BoxStream<'a, JoinHandle<(Vec<String>, serde_json::Value)>> {
         let text = match source_code.read_content() {
             Ok(content) => content,
             Err(e) => {

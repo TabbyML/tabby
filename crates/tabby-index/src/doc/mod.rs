@@ -39,10 +39,10 @@ impl IndexAttributeBuilder<WebDocument> for DocBuilder {
 
     /// This function splits the document into chunks and computes the embedding for each chunk. It then converts the embeddings
     /// into binarized tokens by thresholding on zero.
-    async fn build_chunk_attributes(
+    async fn build_chunk_attributes<'a>(
         &self,
-        document: &WebDocument,
-    ) -> BoxStream<JoinHandle<(Vec<String>, serde_json::Value)>> {
+        document: &'a WebDocument,
+    ) -> BoxStream<'a, JoinHandle<(Vec<String>, serde_json::Value)>> {
         let embedding = self.embedding.clone();
         let chunks: Vec<_> = TextSplitter::new(CHUNK_SIZE)
             .chunks(&document.body)
