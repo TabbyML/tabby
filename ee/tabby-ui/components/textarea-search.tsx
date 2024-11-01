@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Dispatch, SetStateAction, useEffect, useMemo, useRef, useState } from 'react'
 import { Editor } from '@tiptap/react'
 
 import { ContextInfo } from '@/lib/gql/generates/graphql'
@@ -40,6 +40,8 @@ import { Separator } from './ui/separator'
 
 export default function TextAreaSearch({
   onSearch,
+  onModelSelect,
+  modelName,
   className,
   placeholder,
   showBetaBadge,
@@ -52,6 +54,8 @@ export default function TextAreaSearch({
   fetchingContextInfo
 }: {
   onSearch: (value: string, ctx: ThreadRunContexts) => void
+  onModelSelect: Dispatch<SetStateAction<string>>
+  modelName: string
   className?: string
   placeholder?: string
   showBetaBadge?: boolean
@@ -70,15 +74,11 @@ export default function TextAreaSearch({
   const { theme } = useCurrentTheme()
   const editorRef = useRef<PromptEditorRef>(null)
   const { data: modelInfo } = useModel()
-
-  const [selectedModel, setSelectedModel] = useState(
-    modelInfo?.chat?.length ? modelInfo?.chat[0] : ''
-  )
   const isSelectModelEnabled = true
 
   const DropdownMenuItems = modelInfo?.chat.map(model => (
     <DropdownMenuRadioItem
-      onClick={() => setSelectedModel(model)}
+      onClick={() => onModelSelect(model)}
       value={model}
       key={model}
       className="cursor-pointer py-2 pl-3"
@@ -96,7 +96,7 @@ export default function TextAreaSearch({
   }, [])
 
   useEffect(() => {
-    setSelectedModel(modelInfo?.chat?.length ? modelInfo?.chat[0] : '')
+    if (!modelName) onModelSelect(modelInfo?.chat?.length ? modelInfo?.chat[0] : '')
   }, [modelInfo])
 
   const onWrapperClick = () => {
@@ -108,13 +108,11 @@ export default function TextAreaSearch({
       return
     }
 
-    console.log('selectedModel', selectedModel)
-
     const text = editor.getText().trim()
     if (!text) return
 
     const mentions = getMentionsFromText(text, contextInfo?.sources)
-    const ctx: ThreadRunContexts = { ...getThreadRunContextsFromMentions(mentions), modelName: selectedModel }
+    const ctx: ThreadRunContexts = { ...getThreadRunContextsFromMentions(mentions), modelName }
 
     // do submit
     onSearch(text, ctx)
@@ -295,7 +293,7 @@ export default function TextAreaSearch({
                 className="gap-2 px-1.5 py-1 text-foreground/70"
               >
                 <IconBox />
-                {selectedModel}
+                {modelName}
               </Button>
             )}
           </DropdownMenuTrigger>
@@ -305,8 +303,8 @@ export default function TextAreaSearch({
             className="dropdown-menu max-h-[30vh] min-w-[20rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in"
           >
             <DropdownMenuRadioGroup
-              value={selectedModel}
-              onValueChange={setSelectedModel}
+              value={modelName}
+              onValueChange={onModelSelect}
             >
               {DropdownMenuItems}
             </DropdownMenuRadioGroup>

@@ -166,6 +166,7 @@ export function Search() {
 
     return activePathname.match(regex)?.[1]?.split('-').pop()
   }, [activePathname])
+  const [selectedModel, setSelectedModel] = useState('')
 
   const updateThreadMessage = useMutation(updateThreadMessageMutation)
 
@@ -378,6 +379,8 @@ export function Search() {
       if (initialMessage) {
         sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
         sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS)
+        
+        setSelectedModel(initialThreadRunContext.modelName)
         setIsReady(true)
         onSubmitSearch(initialMessage, initialThreadRunContext)
         return
@@ -860,23 +863,25 @@ export function Search() {
                     </Button>
                   )}
                 </div>
-                {isThreadOwner && (
-                  <div
-                    className={cn(
-                      'relative z-20 flex justify-center self-stretch px-4'
-                    )}
-                  >
-                    <TextAreaSearch
-                      onSearch={onSubmitSearch}
-                      className="min-h-[5rem] lg:max-w-4xl"
-                      placeholder="Ask a follow up question"
-                      isLoading={isLoading}
-                      isFollowup
-                      contextInfo={contextInfoData?.contextInfo}
-                      fetchingContextInfo={fetchingContextInfo}
-                    />
-                  </div>
-                )}
+              {isThreadOwner && (
+                <div
+                  className={cn(
+                    'relative z-20 flex justify-center self-stretch px-4'
+                  )}
+                >
+                  <TextAreaSearch
+                    modelName={selectedModel}
+                    onModelSelect={setSelectedModel}
+                    onSearch={onSubmitSearch}
+                    className="min-h-[5rem] lg:max-w-4xl"
+                    placeholder="Ask a follow up question"
+                    isLoading={isLoading}
+                    // isFollowup
+                    contextInfo={contextInfoData?.contextInfo}
+                    fetchingContextInfo={fetchingContextInfo}
+                  />
+                </div>
+              )}
               </div>
             </main>
           </ResizablePanel>

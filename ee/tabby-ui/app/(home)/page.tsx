@@ -46,6 +46,7 @@ function MainPanel() {
     query: contextInfoQuery
   })
   const scrollY = useStore(useScrollStore, state => state.homePage)
+  const [selectedModel, setSelectedModel] = useState('')
 
   // Prefetch the search page
   useEffect(() => {
@@ -132,6 +133,8 @@ function MainPanel() {
             >
               <TextAreaSearch
                 onSearch={onSearch}
+                modelName={selectedModel}
+                onModelSelect={setSelectedModel}
                 showBetaBadge
                 autoFocus
                 loadingWithSpinning
