@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { LetterCaseCapitalizeIcon } from '@radix-ui/react-icons'
+import { LetterCaseCapitalizeIcon, ReloadIcon } from '@radix-ui/react-icons'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
 import {
   AlignJustify,
@@ -1676,6 +1676,13 @@ function IconCircleAlert({
   return <CircleAlert className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconReload({
+  className,
+  ...props
+}: React.ComponentProps<typeof ReloadIcon>) {
+  return <ReloadIcon className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1779,5 +1786,6 @@ export {
   IconCaseSensitive,
   IconRegex,
   IconSquareActivity,
-  IconCircleAlert
+  IconCircleAlert,
+  IconReload
 }

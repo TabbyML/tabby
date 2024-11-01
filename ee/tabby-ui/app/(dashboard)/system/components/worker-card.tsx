@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   IconCircleAlert,
-  IconRefresh,
+  IconReload,
   IconSpinner,
   IconSquareActivity
 } from '@/components/ui/icons'
@@ -233,7 +233,7 @@ function HealthInfoView({
   errorMessage?: string
   className?: string
 }) {
-  const [{ data, fetching, stale, error }, reexecuteQuery] = useQuery({
+  const [{ data, fetching, stale }, reexecuteQuery] = useQuery({
     query: testModelConnectionQuery,
     variables: {
       backend
@@ -253,10 +253,7 @@ function HealthInfoView({
   return (
     <div className={cn('flex items-center gap-3', className)}>
       {connected ? (
-        <p className="flex items-center gap-0.5 font-semibold">
-          {/* <IconCheck className='h-3.5 w-3.5' /> */}
-          Connected
-        </p>
+        <p className="flex items-center gap-0.5 font-semibold">Connected</p>
       ) : (
         <div className="flex items-center gap-0.5 font-semibold">
           <IconCircleAlert className="h-3.5 w-3.5" />
@@ -265,13 +262,13 @@ function HealthInfoView({
       )}
 
       <Button
-        className="h-5 w-5"
+        className="h-5 w-5 rounded-sm"
         size="icon"
         variant="ghost"
         disabled={fetching}
         onClick={reexecuteQuery}
       >
-        <IconRefresh className="h-3.5 w-3.5" />
+        <IconReload className="h-3.5 w-3.5" />
       </Button>
     </div>
   )
