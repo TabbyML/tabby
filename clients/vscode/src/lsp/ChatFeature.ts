@@ -2,8 +2,7 @@ import { EventEmitter } from "events";
 import { Disposable, CancellationToken } from "vscode";
 import { BaseLanguageClient, DynamicFeature, FeatureState, RegistrationData } from "vscode-languageclient";
 import {
-  ServerCapabilities,
-  ChatFeatureRegistration,
+  ChatFeatures,
   GenerateCommitMessageRequest,
   GenerateCommitMessageParams,
   GenerateCommitMessageResult,
@@ -27,7 +26,7 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
     super();
   }
 
-  readonly registrationType = ChatFeatureRegistration.type;
+  readonly registrationType = ChatFeatures.type;
 
   getState(): FeatureState {
     return { kind: "workspace", id: this.registrationType.method, registrations: this.isAvailable };
@@ -45,10 +44,8 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
     // nothing
   }
 
-  initialize(capabilities: ServerCapabilities): void {
-    if (capabilities.tabby?.chat) {
-      this.register({ id: this.registrationType.method, registerOptions: {} });
-    }
+  initialize(): void {
+    // nothing
   }
 
   register(data: RegistrationData<unknown>): void {
