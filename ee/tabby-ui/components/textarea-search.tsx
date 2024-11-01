@@ -103,8 +103,9 @@ export default function TextAreaSearch({
   }, [])
 
   useEffect(() => {
-    if (!modelName)
+    if (!modelName) {
       onModelSelect(modelInfo?.chat?.length ? modelInfo?.chat[0] : '')
+    }
   }, [modelInfo])
 
   const onWrapperClick = () => {
