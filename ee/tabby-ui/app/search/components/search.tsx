@@ -874,7 +874,6 @@ export function Search() {
                       className="min-h-[5rem] lg:max-w-4xl"
                       placeholder="Ask a follow up question"
                       isLoading={isLoading}
-                      isFollowup
                       contextInfo={contextInfoData?.contextInfo}
                       fetchingContextInfo={fetchingContextInfo}
                     />
