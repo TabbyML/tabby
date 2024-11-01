@@ -347,13 +347,12 @@ export class WebviewHelper {
     this.client?.sendMessage(message);
   }
 
-  private warnActiveSelectionSyncFailedLogger = getLoggerEveryN(100, "ActiveSelectionSync");
+  private warnActiveSelectionSyncFailedLogger = getLoggerEveryN(100, "warn", "ActiveSelectionSync");
   public async syncActiveSelectionToChatPanel(context: Context | null) {
     try {
       await this.client?.updateActiveSelection(context);
-      throw Error("testing");
     } catch {
-      this.warnActiveSelectionSyncFailedLogger.warn(
+      this.warnActiveSelectionSyncFailedLogger(
         "Active selection sync failed. Please update your Tabby server to the latest version.",
       );
     }

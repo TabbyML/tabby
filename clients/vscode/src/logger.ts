@@ -24,26 +24,19 @@ export function getLogger(tag = "Tabby"): LogOutputChannel {
   });
 }
 
-export function getLoggerEveryN(n: number, tag = "Tabby"): LogOutputChannel {
+export function getLoggerEveryN(
+  n: number,
+  level: "trace" | "debug" | "info" | "warn" | "error",
+  tag = "Tabby",
+): (message: string, ...args: unknown[]) => void {
+  const doLog = getLogger(tag)[level];
   let count = 0;
-  return new Proxy(outputChannel, {
-    get(target, method) {
-      if (typeof method == "string" && ["trace", "debug", "info", "warn", "error"].includes(method)) {
-        return (message: string, ...args: unknown[]) => {
-          if (count % n === 0) {
-            /* @ts-expect-error no-implicit-any */
-            target[method]?.(tagMessage(message, tag), ...args);
-          }
-          count++;
-        };
-      }
-      if (method in target) {
-        /* @ts-expect-error no-implicit-any */
-        return target[method];
-      }
-      return undefined;
-    },
-  });
+  return (message: string, ...args: unknown[]) => {
+    if (count % n === 0) {
+      doLog(message, ...args);
+    }
+    count++;
+  };
 }
 
 export function showOutputPanel(): void {
