@@ -4,11 +4,10 @@ use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use serde_json::json;
-use tabby_common::index::{structured_doc::fields};
+use tabby_common::index::structured_doc::fields;
 use tabby_inference::Embedding;
 use text_splitter::TextSplitter;
 use tokio::task::JoinHandle;
-
 
 use super::{build_tokens, BuildStructuredDoc};
 

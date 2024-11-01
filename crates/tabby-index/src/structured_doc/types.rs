@@ -18,7 +18,7 @@ pub struct StructuredDoc {
 
 impl StructuredDoc {
     pub fn id(&self) -> &str {
-         match &self.fields {
+        match &self.fields {
             StructuredDocFields::Web(web) => &web.link,
             StructuredDocFields::Issue(issue) => &issue.link,
         }
