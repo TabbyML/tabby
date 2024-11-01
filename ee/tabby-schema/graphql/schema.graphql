@@ -134,7 +134,7 @@ input CreateMessageInput {
 
 input CreateThreadAndRunInput {
   thread: CreateThreadInput!
-  options: ThreadRunOptionsInput! = {codeQuery: null, debugOptions: null, docQuery: null, generateRelevantQuestions: false, selectedModelName: null}
+  options: ThreadRunOptionsInput! = {codeQuery: null, debugOptions: null, docQuery: null, generateRelevantQuestions: false, modelName: null}
 }
 
 input CreateThreadInput {
@@ -144,7 +144,7 @@ input CreateThreadInput {
 input CreateThreadRunInput {
   threadId: ID!
   additionalUserMessage: CreateMessageInput!
-  options: ThreadRunOptionsInput! = {codeQuery: null, debugOptions: null, docQuery: null, generateRelevantQuestions: false, selectedModelName: null}
+  options: ThreadRunOptionsInput! = {codeQuery: null, debugOptions: null, docQuery: null, generateRelevantQuestions: false, modelName: null}
 }
 
 input CreateUserGroupInput {
@@ -216,7 +216,7 @@ input ThreadRunDebugOptionsInput {
 }
 
 input ThreadRunOptionsInput {
-  selectedModelName: String = null
+  modelName: String = null
   docQuery: DocQueryInput = null
   codeQuery: CodeQueryInput = null
   generateRelevantQuestions: Boolean! = false
