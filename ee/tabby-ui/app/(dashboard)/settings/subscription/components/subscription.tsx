@@ -66,7 +66,7 @@ function License({ license }: { license: LicenseInfo }) {
     <div className="grid font-bold lg:grid-cols-3">
       <div>
         <div className="mb-1 text-muted-foreground">Expires at</div>
-        <div className="text-3xl flex items-center gap-2">
+        <div className="flex items-center gap-2 text-3xl">
           {expiresAt}
           {license.status === LicenseStatus.Expired && (
             <Badge variant="destructive" className="flex items-center gap-1">
@@ -78,7 +78,7 @@ function License({ license }: { license: LicenseInfo }) {
       </div>
       <div>
         <div className="mb-1 text-muted-foreground">Assigned / Total Seats</div>
-        <div className="text-3xl flex items-center gap-2">
+        <div className="flex items-center gap-2 text-3xl">
           {seatsText}
           {license.status === LicenseStatus.Expired && (
             <Badge variant="destructive" className="flex items-center gap-1">

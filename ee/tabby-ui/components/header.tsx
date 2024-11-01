@@ -71,7 +71,7 @@ function LicenseAlert() {
 
   if (license.status === LicenseStatus.Expired) {
     return (
-      <div className="flex items-center gap-1 text-destructive text-sm font-semibold">
+      <div className="flex items-center gap-1 text-sm font-semibold text-destructive">
         <IconInfoCircled />
         Your license has expired.
       </div>
@@ -80,7 +80,7 @@ function LicenseAlert() {
 
   if (license.status === LicenseStatus.SeatsExceeded) {
     return (
-      <div className="flex items-center gap-1 text-destructive text-sm font-semibold">
+      <div className="flex items-center gap-1 text-sm font-semibold text-destructive">
         <IconInfoCircled />
         Your seat count has exceeded the limit.
       </div>
