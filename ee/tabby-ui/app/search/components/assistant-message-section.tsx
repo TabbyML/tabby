@@ -329,27 +329,32 @@ export function AssistantMessageSection({
             {!isLoading && !isEditing && (
               <div className="mt-3 flex items-center justify-between text-sm">
                 <div className="flex items-center gap-x-3">
-                  {!isLoading &&
-                    !fetchingContextInfo &&
-                    isLastAssistantMessage && (
-                      <Button
-                        className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
-                        variant="ghost"
-                        onClick={() => onRegenerateResponse(message.id)}
-                      >
-                        <IconRefresh />
-                        <p>Regenerate</p>
-                      </Button>
-                    )}
-                  {isDeletable && (
-                    <Button
-                      className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
-                      variant="ghost"
-                      onClick={() => onDeleteMessage(message.id)}
-                    >
-                      <IconTrash />
-                      <p>Delete</p>
-                    </Button>
+                  {isThreadOwner && (
+                    <>
+                      {!isLoading &&
+                        !fetchingContextInfo &&
+                        isLastAssistantMessage && (
+                          <Button
+                            className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
+                            variant="ghost"
+                            onClick={() => onRegenerateResponse(message.id)}
+                          >
+                            <IconRefresh />
+                            <p>Regenerate</p>
+                          </Button>
+                        )}
+
+                      {isDeletable && (
+                        <Button
+                          className="flex items-center gap-x-1 px-1 font-normal text-muted-foreground"
+                          variant="ghost"
+                          onClick={() => onDeleteMessage(message.id)}
+                        >
+                          <IconTrash />
+                          <p>Delete</p>
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
                 <div className="flex items-center gap-x-3">

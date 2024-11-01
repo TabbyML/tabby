@@ -827,7 +827,12 @@ export function Search() {
                     : {}
                 )}
               >
-                <div className="flex items-center gap-4">
+                <div className={cn(
+                  'flex items-center gap-4 absolute ',
+                  {
+                    '-top-10': isThreadOwner
+                  }
+                )}>
                   {stopButtonVisible && (
                     <Button
                       className="bg-background"
@@ -853,21 +858,23 @@ export function Search() {
                     </Button>
                   )}
                 </div>
-                <div
-                  className={cn(
-                    'relative z-20 flex justify-center self-stretch px-4'
-                  )}
-                >
-                  <TextAreaSearch
-                    onSearch={onSubmitSearch}
-                    className="min-h-[5rem] lg:max-w-4xl"
-                    placeholder="Ask a follow up question"
-                    isLoading={isLoading}
-                    isFollowup
-                    contextInfo={contextInfoData?.contextInfo}
-                    fetchingContextInfo={fetchingContextInfo}
-                  />
-                </div>
+                {isThreadOwner && (
+                  <div
+                    className={cn(
+                      'relative z-20 flex justify-center self-stretch px-4'
+                    )}
+                  >
+                    <TextAreaSearch
+                      onSearch={onSubmitSearch}
+                      className="min-h-[5rem] lg:max-w-4xl"
+                      placeholder="Ask a follow up question"
+                      isLoading={isLoading}
+                      isFollowup
+                      contextInfo={contextInfoData?.contextInfo}
+                      fetchingContextInfo={fetchingContextInfo}
+                    />
+                  </div>
+                )}
               </div>
             </main>
           </ResizablePanel>
