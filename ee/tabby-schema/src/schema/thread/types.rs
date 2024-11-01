@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use juniper::{GraphQLEnum, GraphQLObject, GraphQLUnion, ID};
+use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, GraphQLUnion, ID};
 use serde::Serialize;
 use tabby_common::api::{
     code::{CodeSearchDocument, CodeSearchHit, CodeSearchScores},
@@ -42,6 +42,14 @@ impl NodeType for Message {
     fn edge_type_name() -> &'static str {
         "MessageEdge"
     }
+}
+
+#[derive(GraphQLInputObject, Clone)]
+#[graphql(context = Context)]
+pub struct UpdateMessageInput {
+    pub id: ID,
+    pub thread_id: ID,
+    pub content: String,
 }
 
 #[derive(GraphQLObject, Clone, Default)]

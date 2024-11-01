@@ -9,7 +9,7 @@ use tabby_schema::{
     policy::AccessPolicy,
     thread::{
         self, CreateMessageInput, CreateThreadInput, MessageAttachmentInput, ThreadRunItem,
-        ThreadRunOptionsInput, ThreadRunStream, ThreadService,
+        ThreadRunOptionsInput, ThreadRunStream, ThreadService, UpdateMessageInput,
     },
     AsID, AsRowid, DbEnum, Result,
 };
@@ -55,6 +55,17 @@ impl ThreadService for ThreadServiceImpl {
     async fn set_persisted(&self, id: &ID) -> Result<()> {
         self.db
             .update_thread_ephemeral(id.as_rowid()?, false)
+            .await?;
+        Ok(())
+    }
+
+    async fn update_thread_message(&self, input: &UpdateMessageInput) -> Result<()> {
+        self.db
+            .update_thread_message_content(
+                input.thread_id.as_rowid()?,
+                input.id.as_rowid()?,
+                &input.content,
+            )
             .await?;
         Ok(())
     }

@@ -1167,6 +1167,22 @@ impl Mutation {
         Ok(true)
     }
 
+    async fn update_thread_message(
+        ctx: &Context,
+        input: thread::UpdateMessageInput,
+    ) -> Result<bool> {
+        let user = check_user(ctx).await?;
+        let svc = ctx.locator.thread();
+        let Some(thread) = svc.get(&input.thread_id).await? else {
+            return Err(CoreError::NotFound("Thread not found"));
+        };
+
+        user.policy.check_update_thread_message(&thread.user_id)?;
+
+        svc.update_thread_message(&input).await?;
+        Ok(true)
+    }
+
     async fn create_custom_document(ctx: &Context, input: CreateCustomDocumentInput) -> Result<ID> {
         check_admin(ctx).await?;
         input.validate()?;

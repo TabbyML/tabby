@@ -48,6 +48,9 @@ pub trait ThreadService: Send + Sync {
     /// Append message to an existing thread
     async fn append_user_message(&self, id: &ID, message: &CreateMessageInput) -> Result<()>;
 
+    /// Update a message
+    async fn update_thread_message(&self, message: &UpdateMessageInput) -> Result<()>;
+
     // /// Delete a thread by ID
     // async fn delete(&self, id: ID) -> Result<()>;
 

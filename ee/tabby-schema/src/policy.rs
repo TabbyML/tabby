@@ -48,6 +48,16 @@ impl AccessPolicy {
         Ok(())
     }
 
+    pub fn check_update_thread_message(&self, user_id: &ID) -> Result<()> {
+        if self.user_id != *user_id {
+            return Err(CoreError::Forbidden(
+                "You cannot update the message of a thread that you do not own.",
+            ));
+        }
+
+        Ok(())
+    }
+
     pub fn check_read_analytic(&self, users: &[ID]) -> Result<()> {
         const ERROR: Result<()> = Err(CoreError::Forbidden(
             "You must be admin to read other users' analytic data",
