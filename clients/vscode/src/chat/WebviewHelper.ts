@@ -349,7 +349,6 @@ export class WebviewHelper {
   public async syncActiveSelectionToChatPanel(context: Context | null) {
     try {
       await this.client?.updateActiveSelection(context);
-      throw Error("testing");
     } catch {
       this.logger.logEveryN(
         "sync-active-selection-failed",
