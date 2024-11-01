@@ -9,7 +9,7 @@ Tabby supports the llama.cpp HTTP API for completion, chat, and embedding models
 [model.completion.http]
 kind = "llama.cpp/completion"
 api_endpoint = "http://localhost:8888"
-prompt_template = "<PRE> {prefix} <SUF>{suffix} <MID>"  # Example prompt template for the CodeLlama model series.
+prompt_template = "<PRE>{prefix}<SUF>{suffix}<MID>"  # Example prompt template for the CodeLlama model series.
 
 # Chat model
 [model.chat.http]

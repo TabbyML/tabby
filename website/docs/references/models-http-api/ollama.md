@@ -10,7 +10,7 @@ Tabby supports the ollama HTTP API for completion, chat, and embedding models.
 kind = "ollama/completion"
 model_name = "codellama:7b"
 api_endpoint = "http://localhost:11434"
-prompt_template = "<PRE> {prefix} <SUF>{suffix} <MID>"  # Example prompt template for the CodeLlama model series.
+prompt_template = "<PRE>{prefix}<SUF>{suffix}<MID>"  # Example prompt template for the CodeLlama model series.
 
 # Chat model
 [model.chat.http]
