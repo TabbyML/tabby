@@ -260,7 +260,7 @@ function HealthInfoView({
       ) : (
         <div className="flex items-center gap-0.5 font-semibold text-red-600 dark:text-red-500">
           <IconCircleAlert className="h-3.5 w-3.5" />
-          Unavailable
+          Unreachable
         </div>
       )}
 
