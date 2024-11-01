@@ -91,7 +91,7 @@ function LicenseTips({
   const hasSufficientLicense = !!license && licenses.includes(license.type)
   const isLicenseExpired =
     hasSufficientLicense && license?.status === LicenseStatus.Expired
-  const isSearCountRelated =
+  const isSeatsExceeded =
     hasSufficientLicense && license?.status === LicenseStatus.SeatsExceeded
 
   const licenseString = capitalize(licenses[0])
@@ -102,7 +102,7 @@ function LicenseTips({
     )}`
   }
 
-  if (isSearCountRelated && isSeatCountRelated) {
+  if (isSeatsExceeded && isSeatCountRelated) {
     return (
       <>
         <div>
