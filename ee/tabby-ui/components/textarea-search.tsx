@@ -1,6 +1,13 @@
 'use client'
 
-import { Dispatch, SetStateAction, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import { Editor } from '@tiptap/react'
 
 import { ContextInfo } from '@/lib/gql/generates/graphql'
@@ -96,7 +103,8 @@ export default function TextAreaSearch({
   }, [])
 
   useEffect(() => {
-    if (!modelName) onModelSelect(modelInfo?.chat?.length ? modelInfo?.chat[0] : '')
+    if (!modelName)
+      onModelSelect(modelInfo?.chat?.length ? modelInfo?.chat[0] : '')
   }, [modelInfo])
 
   const onWrapperClick = () => {
@@ -112,7 +120,10 @@ export default function TextAreaSearch({
     if (!text) return
 
     const mentions = getMentionsFromText(text, contextInfo?.sources)
-    const ctx: ThreadRunContexts = { ...getThreadRunContextsFromMentions(mentions), modelName }
+    const ctx: ThreadRunContexts = {
+      ...getThreadRunContextsFromMentions(mentions),
+      modelName
+    }
 
     // do submit
     onSearch(text, ctx)
@@ -310,8 +321,6 @@ export default function TextAreaSearch({
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>
         </DropdownMenu>
-
-
       </div>
     </div>
   )

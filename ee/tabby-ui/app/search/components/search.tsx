@@ -377,7 +377,7 @@ export function Search() {
       if (initialMessage) {
         sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
         sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS)
-        
+
         setSelectedModel(initialThreadRunContext.modelName)
         setIsReady(true)
         onSubmitSearch(initialMessage, initialThreadRunContext)
