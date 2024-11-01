@@ -1,4 +1,4 @@
-use std::{collections::HashSet, path::PathBuf};
+use std::{collections::HashSet, path::PathBuf, process};
 
 use anyhow::{anyhow, Context, Result};
 use derive_builder::Builder;
@@ -9,7 +9,7 @@ use tracing::debug;
 
 use crate::{
     api::code::CodeSearchParams,
-    languages,
+    config, languages,
     path::repositories_dir,
     terminal::{HeaderFormat, InfoMessage},
 };
@@ -65,6 +65,24 @@ impl Config {
             .print();
         }
 
+        if let Err(e) = cfg.validate_config() {
+            cfg = Default::default();
+            InfoMessage::new(
+                "Parsing config failed",
+                HeaderFormat::BoldRed,
+                &[
+                    &format!(
+                        "Warning: Could not parse the Tabby configuration at {}",
+                        crate::path::config_file().as_path().to_string_lossy()
+                    ),
+                    &format!("Reason: {e}"),
+                    "Falling back to default config, please resolve the errors and restart Tabby",
+                ],
+            )
+            .print();
+            process::exit(1);
+        }
+
         Ok(cfg)
     }
 
@@ -82,6 +100,30 @@ impl Config {
                 return Err(anyhow!("Duplicate directory in `repositories`: {}", dir));
             }
         }
+        Ok(())
+    }
+
+    fn validate_config(&self) -> Result<()> {
+        Self::validate_model_config(&self.model.completion)?;
+        Self::validate_model_config(&self.model.chat)?;
+
+        Ok(())
+    }
+
+    fn validate_model_config(model_config: &Option<ModelConfig>) -> Result<()> {
+        if let Some(config::ModelConfig::Http(completion_http_config)) = &model_config {
+            if let Some(models) = &completion_http_config.supported_models {
+                if let Some(model_name) = &completion_http_config.model_name {
+                    if !models.contains(model_name) {
+                        return Err(anyhow!(
+                            "Suppported model list does not contain model: {}",
+                            model_name
+                        ));
+                    }
+                }
+            }
+        }
+
         Ok(())
     }
 }
@@ -410,6 +452,44 @@ mod tests {
     fn it_parses_empty_config() {
         let config = serdeconv::from_toml_str::<Config>("");
         debug_assert!(config.is_ok(), "{}", config.err().unwrap());
+    }
+
+    #[test]
+    fn it_parses_invalid_model_name_config() {
+        let toml_config = r#"
+            # Completion model
+            [model.completion.http]
+            kind = "llama.cpp/completion"
+            api_endpoint = "http://localhost:8888"
+            prompt_template = "<PRE> {prefix} <SUF>{suffix} <MID>"  # Example prompt template for the CodeLlama model series.
+            supported_models = ["test"]
+            model_name = "wsxiaoys/StarCoder-1B"
+
+            # Chat model
+            [model.chat.http]
+            kind = "openai/chat"
+            api_endpoint = "http://localhost:8888"
+            supported_models = ["Qwen2-1.5B-Instruct"]
+            model_name = "Qwen2-1.5B-Instruct"
+
+            # Embedding model
+            [model.embedding.http]
+            kind = "llama.cpp/embedding"
+            api_endpoint = "http://localhost:8888"
+            model_name = "Qwen2-1.5B-Instruct"
+            "#;
+
+        let config: Config =
+            serdeconv::from_toml_str::<Config>(toml_config).expect("Failed to parse config");
+
+        if let Err(e) = Config::validate_model_config(&config.model.completion) {
+            println!("Final result: {}", e);
+        }
+
+        assert!(
+            matches!(Config::validate_model_config(&config.model.completion), Err(ref e) if true)
+        );
+        assert!(Config::validate_model_config(&config.model.chat).is_ok());
     }
 
     #[test]
