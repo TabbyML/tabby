@@ -258,7 +258,7 @@ export class Commands {
     "chat.addRelevantContext": async () => {
       this.addRelevantContext();
     },
-    "chat.addFileContext": () => {
+    "chat.addFileContext": async () => {
       const editor = window.activeTextEditor;
       if (editor) {
         commands.executeCommand("tabby.chatView.focus").then(() => {
@@ -295,6 +295,7 @@ export class Commands {
     "chat.edit.start": async (userCommand?: string) => {
       const editor = window.activeTextEditor;
       if (!editor) {
+        window.showInformationMessage("No active editor");
         return;
       }
 
@@ -313,6 +314,7 @@ export class Commands {
         this.client,
         this.config,
         this.contextVariables,
+        this.gitProvider,
         editor,
         editLocation,
         userCommand,

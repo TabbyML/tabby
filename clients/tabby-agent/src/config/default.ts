@@ -81,6 +81,12 @@ export const defaultConfigData: ConfigData = {
           kind: "replace",
           promptTemplate: generateDocsPrompt,
         },
+        "/file": {
+          label: "Select a file to attach",
+          filters: {},
+          kind: "replace",
+          promptTemplate: "",
+        },
         "/fix": {
           label: "Fix spelling and grammar errors",
           filters: { languageIdIn: "plaintext,markdown" },

@@ -288,6 +288,9 @@ importers:
       '@types/diff':
         specifier: ^5.2.1
         version: 5.2.1
+      '@types/lodash':
+        specifier: ^4.17.12
+        version: 4.17.12
       '@types/mocha':
         specifier: ^10.0.1
         version: 10.0.6
@@ -342,9 +345,15 @@ importers:
       eslint-config-prettier:
         specifier: ^9.0.0
         version: 9.1.0(eslint@8.57.0)
+      fuzzysort:
+        specifier: ^3.0.2
+        version: 3.0.2
       get-installed-path:
         specifier: ^4.0.8
         version: 4.0.8
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
       object-hash:
         specifier: ^3.0.0
         version: 3.0.0
@@ -3833,8 +3842,8 @@ packages:
   '@types/lodash-es@4.17.10':
     resolution: {integrity: sha512-YJP+w/2khSBwbUSFdGsSqmDvmnN3cCKoPOL7Zjle6s30ZtemkkqhjVfFqGwPN7ASil5VyjE2GtyU/yqYY6mC0A==}
 
-  '@types/lodash@4.14.200':
-    resolution: {integrity: sha512-YI/M/4HRImtNf3pJgbF+W6FrXovqj+T+/HpENLTooK9PnkacBsDpeP3IpHab40CClUfhNmdM2WTNP2sa2dni5Q==}
+  '@types/lodash@4.17.12':
+    resolution: {integrity: sha512-sviUmCE8AYdaF/KIHLDJBQgeYzPBI0vf/17NaYehBJfYD1j6/L95Slh07NlyK2iNyBNaEkb3En2jRt+a8y3xZQ==}
 
   '@types/mdast@3.0.13':
     resolution: {integrity: sha512-HjiGiWedR0DVFkeNljpa6Lv4/IZU1+30VY5d747K7lBudFc3R0Ibr6yJ9lN3BE28VnZyDfLF/VB1Ql1ZIbKrmg==}
@@ -14109,9 +14118,9 @@ snapshots:
 
   '@types/lodash-es@4.17.10':
     dependencies:
-      '@types/lodash': 4.14.200
+      '@types/lodash': 4.17.12
 
-  '@types/lodash@4.14.200': {}
+  '@types/lodash@4.17.12': {}
 
   '@types/mdast@3.0.13':
     dependencies:

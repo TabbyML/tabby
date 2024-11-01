@@ -12,8 +12,10 @@ import {
   QuickPick,
   QuickPickItemButtonEvent,
 } from "vscode";
+import { GitProvider } from "../git/GitProvider";
 import { Client } from "../lsp/Client";
 import { ContextVariables } from "../ContextVariables";
+import { QuickFileAttachController } from "./QuickFileAttachController";
 
 export class InlineEditController {
   private chatEditCancellationTokenSource: CancellationTokenSource | null = null;
@@ -22,10 +24,20 @@ export class InlineEditController {
   private recentlyCommand: string[] = [];
   private suggestedCommand: ChatEditCommand[] = [];
 
+  private quickFileAttachController: QuickFileAttachController = new QuickFileAttachController(
+    this.gitProvider,
+    (filename: string) => {
+      this.restart();
+      this.quickPick.value = `@${filename} `;
+    },
+    () => this.restart(),
+  );
+
   constructor(
     private client: Client,
     private config: Config,
     private contextVariables: ContextVariables,
+    private gitProvider: GitProvider,
     private editor: TextEditor,
     private editLocation: EditLocation,
     private userCommand?: string,
@@ -41,8 +53,9 @@ export class InlineEditController {
 
     const quickPick = window.createQuickPick<EditCommand>();
     quickPick.placeholder = "Enter the command for editing";
+    quickPick.title = "Edit with the command";
     quickPick.matchOnDescription = true;
-    quickPick.onDidChangeValue(() => this.updateQuickPickList());
+    quickPick.onDidChangeValue(this.onDidChangeValue, this);
     quickPick.onDidHide(() => {
       fetchingSuggestedCommandCancellationTokenSource.cancel();
     });
@@ -56,6 +69,15 @@ export class InlineEditController {
     this.userCommand ? await this.provideEditWithCommand(this.userCommand) : this.quickPick.show();
   }
 
+  async restart() {
+    if (this.userCommand) {
+      await this.provideEditWithCommand(this.userCommand);
+    } else {
+      this.updateQuickPickList();
+      this.quickPick.show();
+    }
+  }
+
   private async onDidAccept() {
     const command = this.quickPick.selectedItems[0]?.value;
     this.quickPick.hide();
@@ -66,7 +88,21 @@ export class InlineEditController {
       window.showErrorMessage("Command is too long.");
       return;
     }
+
+    if (command === "/file") {
+      this.quickFileAttachController.start();
+      return;
+    }
+
     await this.provideEditWithCommand(command);
+  }
+
+  private onDidChangeValue(value: string) {
+    if (value.trim().length === 0) {
+      this.quickFileAttachController.clear();
+    }
+
+    this.updateQuickPickList();
   }
 
   private async provideEditWithCommand(command: string) {
@@ -121,9 +157,11 @@ export class InlineEditController {
 
   private updateQuickPickList() {
     const input = this.quickPick.value;
+    const hasUserSelectFile = this.quickFileAttachController.selectedFileContext !== undefined;
     const list: (QuickPickItem & { value: string })[] = [];
     list.push(
       ...this.suggestedCommand.map((item) => ({
+        alwaysShow: hasUserSelectFile,
         label: item.label,
         value: item.command,
         iconPath: item.source === "preset" ? new ThemeIcon("run") : new ThemeIcon("spark"),
@@ -141,6 +179,7 @@ export class InlineEditController {
     const recentlyCommandToAdd = this.recentlyCommand.filter((item) => !list.find((i) => i.value === item));
     list.push(
       ...recentlyCommandToAdd.map((item) => ({
+        alwaysShow: hasUserSelectFile,
         label: item,
         value: item,
         iconPath: new ThemeIcon("history"),
@@ -155,7 +194,7 @@ export class InlineEditController {
         ],
       })),
     );
-    if (input.length > 0 && !list.find((i) => i.value === input)) {
+    if (!hasUserSelectFile && input.length > 0 && !list.find((i) => i.label === input)) {
       list.unshift({
         label: input,
         value: input,
