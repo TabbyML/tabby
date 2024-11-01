@@ -3,7 +3,6 @@ import {
   workspace,
   Uri,
   env,
-  LogOutputChannel,
   TextEditor,
   window,
   Position,
@@ -23,6 +22,7 @@ import hashObject from "object-hash";
 import * as semver from "semver";
 import type { ServerInfo } from "tabby-agent";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
+import type { LogOutputChannel } from "../logger";
 import { GitProvider } from "../git/GitProvider";
 import { createClient } from "./chatPanel";
 import { ChatFeature } from "../lsp/ChatFeature";
@@ -350,7 +350,13 @@ export class WebviewHelper {
     try {
       await this.client?.updateActiveSelection(context);
     } catch {
-      this.logger.warn("Active selection sync failed. Please update your Tabby server to the latest version.");
+      this.logger.log(
+        {
+          every: 100,
+          level: "warn",
+        },
+        "Active selection sync failed. Please update your Tabby server to the latest version.",
+      );
     }
   }
 
