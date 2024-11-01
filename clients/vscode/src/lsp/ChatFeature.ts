@@ -11,8 +11,7 @@ import {
 } from "vscode";
 import { BaseLanguageClient, DynamicFeature, FeatureState, RegistrationData, TextEdit } from "vscode-languageclient";
 import {
-  ServerCapabilities,
-  ChatFeatureRegistration,
+  ChatFeatures,
   GenerateCommitMessageRequest,
   GenerateCommitMessageParams,
   GenerateCommitMessageResult,
@@ -37,7 +36,7 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
     super();
   }
 
-  readonly registrationType = ChatFeatureRegistration.type;
+  readonly registrationType = ChatFeatures.type;
 
   getState(): FeatureState {
     return { kind: "workspace", id: this.registrationType.method, registrations: this.isAvailable };
@@ -55,11 +54,7 @@ export class ChatFeature extends EventEmitter implements DynamicFeature<unknown>
     // nothing
   }
 
-  initialize(capabilities: ServerCapabilities): void {
-    if (capabilities.tabby?.chat) {
-      this.register({ id: this.registrationType.method, registerOptions: {} });
-    }
-
+  initialize(): void {
     this.disposables.push(
       this.client.onRequest(ApplyWorkspaceEditRequest.type, (params: ApplyWorkspaceEditParams) => {
         return this.handleApplyWorkspaceEdit(params);

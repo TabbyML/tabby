@@ -174,16 +174,8 @@ export type ServerCapabilities = LspServerCapabilities & {
   };
 };
 
-export namespace TextDocumentCompletionFeatureRegistration {
-  export const type = new RegistrationType("textDocument/completion");
-}
-
-export namespace TextDocumentInlineCompletionFeatureRegistration {
-  export const type = new RegistrationType("textDocument/inlineCompletion");
-}
-
-export namespace ChatFeatureRegistration {
-  export const type = new RegistrationType("tabby/chat");
+export namespace ChatFeatures {
+  export const type = new RegistrationType<void>("tabby/chat");
 }
 
 /**

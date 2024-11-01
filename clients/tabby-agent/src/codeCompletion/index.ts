@@ -1,6 +1,7 @@
 import type {
   Connection,
   CancellationToken,
+  Disposable,
   Position,
   Range,
   Location,
@@ -8,6 +9,7 @@ import type {
   NotebookDocument,
   NotebookCell,
   CompletionParams,
+  CompletionOptions,
   InlineCompletionParams,
   TextDocumentPositionParams,
 } from "vscode-languageserver";
@@ -20,8 +22,7 @@ import type { TabbyApiClient } from "../http/tabbyApiClient";
 import type { GitContextProvider } from "../git";
 import type { RecentlyChangedCodeSearch } from "../codeSearch/recentlyChanged";
 import {
-  RegistrationRequest,
-  UnregistrationRequest,
+  CompletionRequest as LspCompletionRequest,
   CompletionTriggerKind,
   InlineCompletionTriggerKind,
   CompletionItemKind,
@@ -29,8 +30,6 @@ import {
 import {
   ClientCapabilities,
   ServerCapabilities,
-  TextDocumentCompletionFeatureRegistration,
-  TextDocumentInlineCompletionFeatureRegistration,
   CompletionList,
   CompletionItem as LspCompletionItem,
   InlineCompletionRequest,
@@ -71,6 +70,10 @@ export class CompletionProvider implements Feature {
   private lspConnection: Connection | undefined = undefined;
   private clientCapabilities: ClientCapabilities | undefined = undefined;
 
+  private completionFeatureOptions: CompletionOptions | undefined = undefined;
+  private completionFeatureRegistration: Disposable | undefined = undefined;
+  private inlineCompletionFeatureRegistration: Disposable | undefined = undefined;
+
   private mutexAbortController: AbortController | undefined = undefined;
 
   constructor(
@@ -93,19 +96,29 @@ export class CompletionProvider implements Feature {
       connection.onCompletion(async (params, token) => {
         return this.provideCompletion(params, token);
       });
-      serverCapabilities = {
-        ...serverCapabilities,
-        completionProvider: {},
+      this.completionFeatureOptions = {
+        resolveProvider: false,
+        completionItem: {
+          labelDetailsSupport: true,
+        },
       };
+      if (!clientCapabilities.textDocument?.completion.dynamicRegistration) {
+        serverCapabilities = {
+          ...serverCapabilities,
+          completionProvider: this.completionFeatureOptions,
+        };
+      }
     }
     if (clientCapabilities.textDocument?.inlineCompletion) {
       connection.onRequest(InlineCompletionRequest.type, async (params, token) => {
         return this.provideInlineCompletion(params, token);
       });
-      serverCapabilities = {
-        ...serverCapabilities,
-        inlineCompletionProvider: true,
-      };
+      if (!clientCapabilities.textDocument?.inlineCompletion.dynamicRegistration) {
+        serverCapabilities = {
+          ...serverCapabilities,
+          inlineCompletionProvider: true,
+        };
+      }
     }
     connection.onNotification(TelemetryEventNotification.type, async (param) => {
       return this.postEvent(param);
@@ -128,47 +141,26 @@ export class CompletionProvider implements Feature {
 
   private async syncFeatureRegistration(connection: Connection) {
     if (this.tabbyApiClient.isCodeCompletionApiAvailable()) {
-      if (this.clientCapabilities?.textDocument?.completion) {
-        connection.sendRequest(RegistrationRequest.type, {
-          registrations: [
-            {
-              id: TextDocumentCompletionFeatureRegistration.type.method,
-              method: TextDocumentCompletionFeatureRegistration.type.method,
-            },
-          ],
-        });
+      if (
+        this.clientCapabilities?.textDocument?.completion?.dynamicRegistration &&
+        !this.completionFeatureRegistration
+      ) {
+        this.completionFeatureRegistration = await connection.client.register(
+          LspCompletionRequest.type,
+          this.completionFeatureOptions,
+        );
       }
-      if (this.clientCapabilities?.textDocument?.inlineCompletion) {
-        connection.sendRequest(RegistrationRequest.type, {
-          registrations: [
-            {
-              id: TextDocumentInlineCompletionFeatureRegistration.type.method,
-              method: TextDocumentInlineCompletionFeatureRegistration.type.method,
-            },
-          ],
-        });
+      if (
+        this.clientCapabilities?.textDocument?.inlineCompletion?.dynamicRegistration &&
+        !this.inlineCompletionFeatureRegistration
+      ) {
+        this.inlineCompletionFeatureRegistration = await connection.client.register(InlineCompletionRequest.type);
       }
     } else {
-      if (this.clientCapabilities?.textDocument?.completion) {
-        connection.sendRequest(UnregistrationRequest.type, {
-          unregisterations: [
-            {
-              id: TextDocumentCompletionFeatureRegistration.type.method,
-              method: TextDocumentCompletionFeatureRegistration.type.method,
-            },
-          ],
-        });
-      }
-      if (this.clientCapabilities?.textDocument?.inlineCompletion) {
-        connection.sendRequest(UnregistrationRequest.type, {
-          unregisterations: [
-            {
-              id: TextDocumentInlineCompletionFeatureRegistration.type.method,
-              method: TextDocumentInlineCompletionFeatureRegistration.type.method,
-            },
-          ],
-        });
-      }
+      this.completionFeatureRegistration?.dispose();
+      this.completionFeatureRegistration = undefined;
+      this.inlineCompletionFeatureRegistration?.dispose();
+      this.inlineCompletionFeatureRegistration = undefined;
     }
   }
 
