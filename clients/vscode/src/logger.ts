@@ -1,14 +1,29 @@
-import { window, LogOutputChannel } from "vscode";
+import { window, LogOutputChannel as VSCodeLogOutputChannel } from "vscode";
 
 const outputChannel = window.createOutputChannel("Tabby", { log: true });
+
+export type LogLevel = "trace" | "debug" | "info" | "warn" | "error";
+export interface LogOutputChannel extends VSCodeLogOutputChannel {
+  logEveryN(identifier: string, n: number, level: LogLevel, message: string, ...args: unknown[]): void;
+}
 
 function tagMessage(message: string, tag: string): string {
   return `[${tag}] ${message}`;
 }
 
 export function getLogger(tag = "Tabby"): LogOutputChannel {
+  const logEveryNCounts = new Map<string, number>();
   return new Proxy(outputChannel, {
     get(target, method) {
+      if (method === "logEveryN") {
+        return (identifier: string, n: number, level: LogLevel, message: string, ...args: unknown[]) => {
+          const count = logEveryNCounts.get(identifier) ?? 0;
+          logEveryNCounts.set(identifier, count + 1);
+          if (count % n === 0) {
+            target[level](tagMessage(message, tag), ...args);
+          }
+        };
+      }
       if (typeof method == "string" && ["trace", "debug", "info", "warn", "error"].includes(method)) {
         return (message: string, ...args: unknown[]) => {
           /* @ts-expect-error no-implicit-any */
@@ -21,22 +36,7 @@ export function getLogger(tag = "Tabby"): LogOutputChannel {
       }
       return undefined;
     },
-  });
-}
-
-export function getLoggerEveryN(
-  n: number,
-  level: "trace" | "debug" | "info" | "warn" | "error",
-  tag = "Tabby",
-): (message: string, ...args: unknown[]) => void {
-  const doLog = getLogger(tag)[level];
-  let count = 0;
-  return (message: string, ...args: unknown[]) => {
-    if (count % n === 0) {
-      doLog(message, ...args);
-    }
-    count++;
-  };
+  }) as LogOutputChannel;
 }
 
 export function showOutputPanel(): void {

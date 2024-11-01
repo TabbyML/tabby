@@ -1,9 +1,11 @@
-import { ExtensionContext, WebviewViewProvider, WebviewView, LogOutputChannel, TextEditor, window } from "vscode";
+import { ExtensionContext, WebviewViewProvider, WebviewView, TextEditor, window } from "vscode";
 import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import { WebviewHelper } from "./WebviewHelper";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
+import type { LogOutputChannel } from "../logger";
 import { GitProvider } from "../git/GitProvider";
 import { ChatFeature } from "../lsp/ChatFeature";
+
 export class ChatSideViewProvider implements WebviewViewProvider {
   webview?: WebviewView;
   client?: ServerApi;
