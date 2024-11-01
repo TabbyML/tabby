@@ -253,7 +253,7 @@ function HealthInfoView({
   return (
     <div className={cn('flex items-center gap-3', className)}>
       {connected ? (
-        <p className="flex items-center gap-0.5 font-semibold text-green-600 dark:text-green-500">
+        <p className="flex items-center gap-0.5 font-semibold">
           {/* <IconCheck className='h-3.5 w-3.5' /> */}
           Connected
         </p>
