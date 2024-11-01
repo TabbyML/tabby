@@ -172,6 +172,7 @@ export function Search() {
   const onUpdateMessage = async (message: ConversationMessage) => {
     const messageIndex = messages.findIndex(o => o.id === message.id)
     if (messageIndex > -1 && threadId) {
+      // 1. call api
       const result = await updateThreadMessage({
         input: {
           threadId,
@@ -179,8 +180,6 @@ export function Search() {
           content: message.content
         }
       })
-      console.log(result)
-      console.log(result?.data?.updateThreadMessage)
       if (result?.data?.updateThreadMessage) {
         // 2. set messages
         await setMessages(prev => {
