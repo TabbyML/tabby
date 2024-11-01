@@ -167,18 +167,32 @@ export function Search() {
     return activePathname.match(regex)?.[1]?.split('-').pop()
   }, [activePathname])
 
+  const updateThreadMessage = useMutation(updateThreadMessageMutation)
+
   const onUpdateMessage = async (message: ConversationMessage) => {
     const messageIndex = messages.findIndex(o => o.id === message.id)
-    if (messageIndex > -1) {
-      // todo 1. call API
-      // 2. set messages
-      await setMessages(prev => {
-        const newMessages = [...prev]
-        newMessages[messageIndex] = message
-        return newMessages
+    if (messageIndex > -1 && threadId) {
+      const result = await updateThreadMessage({
+        input: {
+          threadId,
+          id: message.id,
+          content: message.content
+        }
       })
+      console.log(result)
+      console.log(result?.data?.updateThreadMessage)
+      if (result?.data?.updateThreadMessage) {
+        // 2. set messages
+        await setMessages(prev => {
+          const newMessages = [...prev]
+          newMessages[messageIndex] = message
+          return newMessages
+        })
+      } else {
+        // FIXME error handling
+        return result?.error?.message || 'Failed to save'
+      }
     } else {
-      // FIXME error handling
       return 'Failed to save'
     }
   }
@@ -888,6 +902,12 @@ export function Search() {
 const setThreadPersistedMutation = graphql(/* GraphQL */ `
   mutation SetThreadPersisted($threadId: ID!) {
     setThreadPersisted(threadId: $threadId)
+  }
+`)
+
+const updateThreadMessageMutation = graphql(/* GraphQL */ `
+  mutation UpdateThreadMessage($input: UpdateMessageInput!) {
+    updateThreadMessage(input: $input)
   }
 `)
 

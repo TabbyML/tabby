@@ -89,7 +89,6 @@ export function AssistantMessageSection({
   } = useContext(SearchContext)
 
   const [isEditing, setIsEditing] = useState(false)
-
   const [showMoreSource, setShowMoreSource] = useState(false)
   const [relevantCodeHighlightIndex, setRelevantCodeHighlightIndex] = useState<
     number | undefined
@@ -213,7 +212,6 @@ export function AssistantMessageSection({
   const handleUpdateAssistantMessage = async (message: ConversationMessage) => {
     const errorMessage = await onUpdateMessage(message)
     if (errorMessage) {
-      // todo error handling
       return errorMessage
     } else {
       setIsEditing(false)
