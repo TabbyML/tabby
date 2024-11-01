@@ -12,6 +12,7 @@ import {
   Bug,
   CaseSensitive,
   ChevronsDownUp,
+  CircleAlert,
   CirclePlay,
   Files,
   FileText,
@@ -29,6 +30,7 @@ import {
   Search,
   Share2,
   Sparkles,
+  SquareActivity,
   Star,
   Tag,
   WrapText,
@@ -1660,6 +1662,20 @@ function IconCaseSensitive({
   return <CaseSensitive className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconSquareActivity({
+  className,
+  ...props
+}: React.ComponentProps<typeof SquareActivity>) {
+  return <SquareActivity className={cn('h-4 w-4', className)} {...props} />
+}
+
+function IconCircleAlert({
+  className,
+  ...props
+}: React.ComponentProps<typeof CircleAlert>) {
+  return <CircleAlert className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1761,5 +1777,7 @@ export {
   IconFiles,
   IconLetterCaseCapitalize,
   IconCaseSensitive,
-  IconRegex
+  IconRegex,
+  IconSquareActivity,
+  IconCircleAlert
 }
