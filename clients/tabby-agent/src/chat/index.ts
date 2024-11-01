@@ -1,11 +1,12 @@
-import type { Connection } from "vscode-languageserver";
+import type { Connection, Disposable } from "vscode-languageserver";
 import type { ServerCapabilities } from "../protocol";
 import type { Feature } from "../feature";
 import type { TabbyApiClient } from "../http/tabbyApiClient";
-import { RegistrationRequest, UnregistrationRequest } from "vscode-languageserver";
-import { ChatFeatureRegistration } from "../protocol";
+import { ChatFeatures } from "../protocol";
 
 export class ChatFeature implements Feature {
+  private featureRegistration: Disposable | undefined = undefined;
+
   constructor(private readonly tabbyApiClient: TabbyApiClient) {}
 
   initialize(): ServerCapabilities {
@@ -20,24 +21,11 @@ export class ChatFeature implements Feature {
   }
 
   private async syncFeatureRegistration(connection: Connection) {
-    if (this.tabbyApiClient.isChatApiAvailable()) {
-      connection.sendRequest(RegistrationRequest.type, {
-        registrations: [
-          {
-            id: ChatFeatureRegistration.type.method,
-            method: ChatFeatureRegistration.type.method,
-          },
-        ],
-      });
+    if (this.tabbyApiClient.isChatApiAvailable() && !this.featureRegistration) {
+      this.featureRegistration = await connection.client.register(ChatFeatures.type);
     } else {
-      connection.sendRequest(UnregistrationRequest.type, {
-        unregisterations: [
-          {
-            id: ChatFeatureRegistration.type.method,
-            method: ChatFeatureRegistration.type.method,
-          },
-        ],
-      });
+      this.featureRegistration?.dispose();
+      this.featureRegistration = undefined;
     }
   }
 }
