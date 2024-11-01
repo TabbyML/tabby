@@ -258,7 +258,7 @@ function HealthInfoView({
           Connected
         </p>
       ) : (
-        <div className="flex items-center gap-0.5 font-semibold text-red-600 dark:text-red-500">
+        <div className="flex items-center gap-0.5 font-semibold">
           <IconCircleAlert className="h-3.5 w-3.5" />
           Unreachable
         </div>
