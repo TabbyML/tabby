@@ -347,9 +347,6 @@ export function useThreadRun({
   ) => {
     if (isLoading) return
 
-    console.log('userMessage', userMessage)
-    console.log('options', options)
-
     setIsLoading(true)
     setError(undefined)
     setAnswerStream(defaultAnswerStream())

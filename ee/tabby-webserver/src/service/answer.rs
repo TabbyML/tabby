@@ -148,8 +148,6 @@ impl AnswerService {
                 }));
             }
 
-            println!("selected_model_name: {:?}", options.model_name);
-
             // 4. Prepare requesting LLM
             let request = {
                 let chat_messages = convert_messages_to_chat_completion_request(&self.config, &context_info_helper, &messages, &attachment, user_attachment_input.as_ref())?;
@@ -161,9 +159,6 @@ impl AnswerService {
                     .build()
                     .expect("Failed to build chat completion request")
             };
-
-            println!("request: {:?}", request);
-
 
             let s = match self.chat.chat_stream(request).await {
                 Ok(s) => s,

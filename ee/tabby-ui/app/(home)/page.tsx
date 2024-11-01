@@ -75,7 +75,6 @@ function MainPanel() {
   const onSearch = (question: string, ctx?: ThreadRunContexts) => {
     setIsLoading(true)
     sessionStorage.setItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG, question)
-    console.log('onSearch', ctx)
     sessionStorage.setItem(
       SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS,
       JSON.stringify(ctx)
