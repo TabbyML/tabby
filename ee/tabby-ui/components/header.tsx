@@ -3,11 +3,13 @@
 import * as React from 'react'
 import { compare } from 'compare-versions'
 
+import { LicenseStatus } from '@/lib/gql/generates/graphql'
 import { useHealth } from '@/lib/hooks/use-health'
 import { ReleaseInfo, useLatestRelease } from '@/lib/hooks/use-latest-release'
+import { useLicenseInfo } from '@/lib/hooks/use-license'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
-import { IconNotice } from '@/components/ui/icons'
+import { IconInfoCircled, IconNotice } from '@/components/ui/icons'
 
 import { ClientOnly } from './client-only'
 import { ThemeToggle } from './theme-toggle'
@@ -22,7 +24,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b px-4 backdrop-blur-xl lg:px-10">
-      <div className="flex items-center">
+      <div className="flex items-center gap-4">
         {newVersionAvailable && (
           <a
             target="_blank"
@@ -36,6 +38,7 @@ export function Header() {
             </span>
           </a>
         )}
+        <LicenseAlert />
       </div>
       <div className="flex items-center justify-center gap-6">
         <ClientOnly>
@@ -58,5 +61,29 @@ function isNewVersionAvailable(version?: string, latestRelease?: ReleaseInfo) {
 
     // Handle invalid semver
     return true
+  }
+}
+
+function LicenseAlert() {
+  const license = useLicenseInfo()
+
+  if (!license) return null
+
+  if (license.status === LicenseStatus.Expired) {
+    return (
+      <div className="flex items-center gap-1 text-destructive text-sm font-semibold">
+        <IconInfoCircled />
+        Your license has expired.
+      </div>
+    )
+  }
+
+  if (license.status === LicenseStatus.SeatsExceeded) {
+    return (
+      <div className="flex items-center gap-1 text-destructive text-sm font-semibold">
+        <IconInfoCircled />
+        Your seat count has exceeded the limit.
+      </div>
+    )
   }
 }
