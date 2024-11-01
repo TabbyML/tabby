@@ -350,10 +350,11 @@ export class WebviewHelper {
     try {
       await this.client?.updateActiveSelection(context);
     } catch {
-      this.logger.logEveryN(
-        "sync-active-selection-failed",
-        100,
-        "warn",
+      this.logger.log(
+        {
+          every: 100,
+          level: "warn",
+        },
         "Active selection sync failed. Please update your Tabby server to the latest version.",
       );
     }
