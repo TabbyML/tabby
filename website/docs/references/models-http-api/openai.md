@@ -1,19 +1,17 @@
 # OpenAI
 
-OpenAI is a leading AI company that has developed a range of language models. Tabby supports OpenAI's models for chat and embedding tasks.
+OpenAI is a leading AI company that has developed an extensive range of language models.
+Tabby supports OpenAI's API specifications for chat, completion, and embedding tasks.
 
-Tabby also supports its legacy `/v1/completions` API for code completion, although **OpenAI itself no longer supports it**; it is still the API offered by some other vendors, such as (vLLM, Nvidia NIM, LocalAI, ...).
+The OpenAI API is widely used and is also provided by other vendors,
+such as vLLM, Nvidia NIM, and LocalAI.
 
-Below is an example configuration:
+OpenAI has designated its `/v1/completions` API for code completion as legacy,
+and **OpenAI itself no longer supports it**.
+
+Tabby continues to support the OpenAI Completion API specifications due to its widespread usage.
 
 ```toml title="~/.tabby/config.toml"
-# Completion model
-[model.completion.http]
-kind = "openai/completion"
-model_name = "your_model"
-api_endpoint = "https://url_to_your_backend_or_service"
-api_key = "secret-api-key"
-
 # Chat model
 [model.chat.http]
 kind = "openai/chat"
@@ -26,5 +24,12 @@ api_key = "secret-api-key"
 kind = "openai/embedding"
 model_name = "text-embedding-3-small"
 api_endpoint = "https://api.openai.com/v1"
+api_key = "secret-api-key"
+
+# Completion model
+[model.completion.http]
+kind = "openai/completion"
+model_name = "your_model"
+api_endpoint = "https://url_to_your_backend_or_service"
 api_key = "secret-api-key"
 ```
