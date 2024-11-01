@@ -14,7 +14,7 @@
       "preLaunchTask": "watch"
     },
     {
-      "name": "Run Web Extension ",
+      "name": "Run Web Extension",
       "type": "extensionHost",
       "debugWebWorkerHost": true,
       "request": "launch",
