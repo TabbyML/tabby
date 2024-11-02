@@ -262,6 +262,7 @@ export class CompletionProvider implements Feature {
       return null;
     }
     result.request.manually = params.context?.triggerKind === InlineCompletionTriggerKind.Invoked;
+    result.request.autoCompleteWidgetItem = params.context.selectedCompletionInfo?.text;
     return result;
   }
 

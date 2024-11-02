@@ -3,6 +3,7 @@ import type { ConfigData } from "../config/type";
 import path from "path";
 import hashObject from "object-hash";
 import { splitLines, isBlank, regOnlyAutoClosingCloseChars } from "../utils/string";
+import { getLogger } from "../logger";
 
 export type CompletionRequest = {
   filepath: string;
@@ -23,6 +24,7 @@ export type CompletionRequest = {
   declarations?: Declaration[];
   relevantSnippetsFromChangedFiles?: CodeSnippet[];
   relevantSnippetsFromOpenedFiles?: CodeSnippet[];
+  autoCompleteWidgetItem?: string;
 };
 
 export type Declaration = {
@@ -76,25 +78,48 @@ export class CompletionContext {
   mode: "default" | "fill-in-line";
   hash: string;
 
+  autoCompleteWidgetItem?: string;
+
   constructor(request: CompletionRequest) {
+    let modifiedText = request.text;
+    let modifiedPosition = request.position;
+
+    if (request.autoCompleteWidgetItem) {
+      const preText = request.text.slice(0, request.position);
+      const lastWordMatch = preText.match(/\w+$/);
+
+      if (lastWordMatch) {
+        const lastWord = lastWordMatch[0];
+        if (request.autoCompleteWidgetItem.startsWith(lastWord)) {
+          modifiedText =
+            preText.slice(0, -lastWord.length) + request.autoCompleteWidgetItem + request.text.slice(request.position);
+          modifiedPosition = request.position - lastWord.length + request.autoCompleteWidgetItem.length;
+        } else if (lastWord.length >= request.autoCompleteWidgetItem.length) {
+          modifiedText = preText + " " + request.autoCompleteWidgetItem + request.text.slice(request.position);
+          modifiedPosition = request.position + 1 + request.autoCompleteWidgetItem.length;
+        }
+      } else {
+        modifiedText = preText + request.autoCompleteWidgetItem + request.text.slice(request.position);
+        modifiedPosition = request.position + request.autoCompleteWidgetItem.length;
+      }
+    }
+
     this.filepath = request.filepath;
     this.language = request.language;
-    this.text = request.text;
-    this.position = request.position;
+    this.text = modifiedText;
+    this.position = modifiedPosition;
     this.indentation = request.indentation;
 
-    this.prefix = request.text.slice(0, request.position);
-    this.suffix = request.text.slice(request.position);
+    this.prefix = this.text.slice(0, this.position);
+    this.suffix = this.text.slice(this.position);
+
     this.prefixLines = splitLines(this.prefix);
     this.suffixLines = splitLines(this.suffix);
     this.currentLinePrefix = this.prefixLines[this.prefixLines.length - 1] ?? "";
     this.currentLineSuffix = this.suffixLines[0] ?? "";
-
     this.clipboard = request.clipboard?.trim() ?? "";
-
     this.workspace = request.workspace;
     this.git = request.git;
-
     this.declarations = request.declarations;
     this.relevantSnippetsFromChangedFiles = request.relevantSnippetsFromChangedFiles;
     this.snippetsFromOpenedFiles = request.relevantSnippetsFromOpenedFiles;
@@ -113,7 +138,6 @@ export class CompletionContext {
       relevantSnippetsFromChangedFiles: this.relevantSnippetsFromChangedFiles,
     });
   }
-
   // is valid for completion.
   isValid() {
     return !isBlank(this.prefix);
