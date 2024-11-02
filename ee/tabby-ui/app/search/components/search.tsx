@@ -13,6 +13,7 @@ import { nanoid } from 'nanoid'
 
 import {
   ERROR_CODE_NOT_FOUND,
+  MODEL_NAME_KEY,
   SESSION_STORAGE_KEY,
   SLUG_TITLE_MAX_LENGTH
 } from '@/lib/constants'
@@ -62,6 +63,7 @@ import { compact, pick, some, uniq, uniqBy } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
+import useLocalStorage from 'use-local-storage'
 
 import { graphql } from '@/lib/gql/generates'
 import {
@@ -166,7 +168,10 @@ export function Search() {
 
     return activePathname.match(regex)?.[1]?.split('-').pop()
   }, [activePathname])
-  const [selectedModel, setSelectedModel] = useState('')
+  const [selectedModel, setSelectedModel] = useLocalStorage<string>(
+    MODEL_NAME_KEY,
+    ''
+  )
 
   const updateThreadMessage = useMutation(updateThreadMessageMutation)
 
@@ -378,7 +383,6 @@ export function Search() {
         sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_MSG)
         sessionStorage.removeItem(SESSION_STORAGE_KEY.SEARCH_INITIAL_CONTEXTS)
 
-        setSelectedModel(initialThreadRunContext.modelName)
         setIsReady(true)
         onSubmitSearch(initialMessage, initialThreadRunContext)
         return
@@ -873,6 +877,7 @@ export function Search() {
                       onSearch={onSubmitSearch}
                       className="min-h-[5rem] lg:max-w-4xl"
                       placeholder="Ask a follow up question"
+                      isFollowup
                       isLoading={isLoading}
                       contextInfo={contextInfoData?.contextInfo}
                       fetchingContextInfo={fetchingContextInfo}

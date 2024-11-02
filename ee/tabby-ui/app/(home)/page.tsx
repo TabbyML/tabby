@@ -5,8 +5,9 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
 import { useQuery } from 'urql'
+import useLocalStorage from 'use-local-storage'
 
-import { SESSION_STORAGE_KEY } from '@/lib/constants'
+import { MODEL_NAME_KEY, SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
@@ -46,7 +47,10 @@ function MainPanel() {
     query: contextInfoQuery
   })
   const scrollY = useStore(useScrollStore, state => state.homePage)
-  const [selectedModel, setSelectedModel] = useState('')
+  const [selectedModel, setSelectedModel] = useLocalStorage<string>(
+    MODEL_NAME_KEY,
+    ''
+  )
 
   // Prefetch the search page
   useEffect(() => {

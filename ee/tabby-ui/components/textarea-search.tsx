@@ -61,7 +61,7 @@ export default function TextAreaSearch({
   fetchingContextInfo
 }: {
   onSearch: (value: string, ctx: ThreadRunContexts) => void
-  onModelSelect: Dispatch<SetStateAction<string>>
+  onModelSelect: Dispatch<SetStateAction<string | undefined>>
   modelName: string
   className?: string
   placeholder?: string
@@ -250,49 +250,50 @@ export default function TextAreaSearch({
       </div>
       <div
         className={cn(
-          'hidden items-center gap-2 border-t bg-[#F9F6EF] py-2 pl-2 pr-4 dark:border-muted-foreground/60 dark:bg-[#333333]',
-          {
-            flex: !isFollowup
-          }
+          'flex items-center gap-2 border-t bg-[#F9F6EF] py-2 pl-2 pr-4 dark:border-muted-foreground/60 dark:bg-[#333333]'
         )}
         onClick={e => e.stopPropagation()}
       >
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              className="gap-2 px-1.5 py-1 text-foreground/70"
-              onClick={e => onInsertMention('#')}
-              disabled={!hasCodebaseSource}
-            >
-              <IconHash />
-              Codebase
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent className="max-w-md">
-            Select a codebase to chat with
-          </TooltipContent>
-        </Tooltip>
+        {!isFollowup && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                className="gap-2 px-1.5 py-1 text-foreground/70"
+                onClick={e => onInsertMention('#')}
+                disabled={!hasCodebaseSource}
+              >
+                <IconHash />
+                Codebase
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-md">
+              Select a codebase to chat with
+            </TooltipContent>
+          </Tooltip>
+        )}
 
-        <Separator orientation="vertical" className="h-5" />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              className="gap-2 px-1.5 py-1 text-foreground/70"
-              onClick={e => onInsertMention('@')}
-              disabled={!hasDocumentSource}
-            >
-              <IconAtSign />
-              Documents
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent className="max-w-md">
-            Select a document to bring into context
-          </TooltipContent>
-        </Tooltip>
+        {!isFollowup && <Separator orientation="vertical" className="h-5" />}
+        {!isFollowup && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                className="gap-2 px-1.5 py-1 text-foreground/70"
+                onClick={e => onInsertMention('@')}
+                disabled={!hasDocumentSource}
+              >
+                <IconAtSign />
+                Documents
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-md">
+              Select a document to bring into context
+            </TooltipContent>
+          </Tooltip>
+        )}
 
-        {isSelectModelEnabled && modelInfo?.chat?.length && (
+        {!isFollowup && isSelectModelEnabled && modelInfo?.chat?.length && (
           <Separator orientation="vertical" className="h-5" />
         )}
 
