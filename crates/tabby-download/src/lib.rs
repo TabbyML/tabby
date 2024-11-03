@@ -27,11 +27,11 @@ pub fn filter_download_address(model_info: &ModelInfo) -> Vec<(Option<String>, S
                 .iter()
                 .flatten()
                 .find(|f| f.contains(&download_host))
-                .and_then(|url| {
+                .map(|url| {
                     if let Some(mirror_host) = get_huggingface_mirror_host() {
-                        Some(url.replace("huggingface.co", &mirror_host))
+                        url.replace("huggingface.co", &mirror_host)
                     } else {
-                        Some(url.to_owned())
+                        url.to_owned()
                     }
                 });
 
@@ -48,11 +48,11 @@ pub fn filter_download_address(model_info: &ModelInfo) -> Vec<(Option<String>, S
                 .urls
                 .iter()
                 .find(|f| f.contains(&download_host))
-                .and_then(|url| {
+                .map(|url| {
                     if let Some(mirror_host) = get_huggingface_mirror_host() {
-                        Some(url.replace("huggingface.co", &mirror_host))
+                        url.replace("huggingface.co", &mirror_host)
                     } else {
-                        Some(url.to_owned())
+                        url.to_owned()
                     }
                 });
 
