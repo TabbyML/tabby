@@ -18,7 +18,7 @@ pub fn get_huggingface_mirror_host() -> Option<String> {
     std::env::var("TABBY_HUGGINGFACE_HOST_OVERRIDE").ok()
 }
 
-pub fn filter_download_address(model_info: &ModelInfo) -> Vec<(String, String)> {
+pub fn filter_download_address(model_info: &ModelInfo) -> Vec<(Option<String>, String)> {
     let download_host = get_download_host();
     if let Some(urls) = &model_info.urls {
         if !urls.is_empty() {
@@ -26,38 +26,37 @@ pub fn filter_download_address(model_info: &ModelInfo) -> Vec<(String, String)> 
                 .urls
                 .iter()
                 .flatten()
-                .find(|f| f.contains(&download_host));
-            if let Some(url) = url {
-                if let Some(mirror_host) = get_huggingface_mirror_host() {
-                    return vec![(
-                        url.replace("huggingface.co", &mirror_host),
-                        model_info.sha256.clone().unwrap_or_default(),
-                    )];
-                }
-                return vec![(
-                    url.to_owned(),
-                    model_info.sha256.clone().unwrap_or_default(),
-                )];
-            }
-        }
+                .find(|f| f.contains(&download_host))
+                .and_then(|url| {
+                    if let Some(mirror_host) = get_huggingface_mirror_host() {
+                        Some(url.replace("huggingface.co", &mirror_host))
+                    } else {
+                        Some(url.to_owned())
+                    }
+                });
+
+            return vec![(url, model_info.sha256.clone().unwrap_or_default())];
+        };
     };
 
     model_info
         .partition_urls
         .iter()
         .flatten()
-        .map(|x| -> (String, String) {
-            let url = x.urls.iter().find(|f| f.contains(&download_host));
-            if let Some(url) = url {
-                if let Some(mirror_host) = get_huggingface_mirror_host() {
-                    return (
-                        url.replace("huggingface.co", &mirror_host),
-                        x.sha256.clone(),
-                    );
-                }
-                return (url.to_owned(), x.sha256.clone());
-            }
-            panic!("No download URLs available for <{}>", model_info.name);
+        .map(|x| -> (Option<String>, String) {
+            let url = x
+                .urls
+                .iter()
+                .find(|f| f.contains(&download_host))
+                .and_then(|url| {
+                    if let Some(mirror_host) = get_huggingface_mirror_host() {
+                        Some(url.replace("huggingface.co", &mirror_host))
+                    } else {
+                        Some(url.to_owned())
+                    }
+                });
+
+            (url, x.sha256.clone())
         })
         .collect()
 }
@@ -77,13 +76,6 @@ async fn download_model_impl(
     registry.migrate_legacy_model_path(name)?;
 
     let urls = filter_download_address(model_info);
-    if urls.is_empty() {
-        bail!(
-            "No download URLs available for <{}/{}>",
-            registry.name,
-            model_info.name
-        );
-    }
 
     let mut model_existed = true;
     for (index, _) in urls.iter().enumerate() {
@@ -126,6 +118,14 @@ async fn download_model_impl(
         );
     }
 
+    if urls.iter().any(|url| url.0.is_none()) {
+        bail!(
+            "No download URLs available for <{}/{}>",
+            registry.name,
+            model_info.name
+        );
+    }
+
     match fs::remove_dir_all(registry.get_model_dir(name)) {
         Ok(_) => Ok(()),
         // Ignore "Not Found" error, when newly download, the model directory may not exist
@@ -145,12 +145,15 @@ async fn download_model_impl(
             .into_owned();
         let filename: String = partitioned_file_name!(index, urls.len());
         let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
+        let address = url.clone().0.unwrap();
 
         Retry::spawn(strategy, move || {
             let dir = dir.clone();
             let filename = filename.clone();
+            let address = address.clone();
 
-            download_file(&url.0, dir, filename, &url.1)
+            // it's ok to use unwrap here, because we've checked the availability of URLs
+            download_file(address, dir, filename, &url.1)
         })
         .await?;
     }
@@ -159,16 +162,16 @@ async fn download_model_impl(
 }
 
 async fn download_file(
-    url: &str,
+    url: String,
     dir: String,
     filename: String,
     expected_sha256: &str,
 ) -> Result<()> {
     let fullpath = format! {"{}{}{}", dir, std::path::MAIN_SEPARATOR, filename};
     let intermediate_filename = fullpath.clone() + ".tmp";
-    let mut bar = WrappedBar::new(0, url, false);
+    let mut bar = WrappedBar::new(0, &url, false);
     if let Err(e) =
-        https::HTTPSHandler::get(url, &intermediate_filename, &mut bar, expected_sha256).await
+        https::HTTPSHandler::get(&url, &intermediate_filename, &mut bar, expected_sha256).await
     {
         match e {
             DownloadError::HttpError { name, code } => {
@@ -219,7 +222,7 @@ mod tests {
         };
         let urls = super::filter_download_address(&model_info);
         assert_eq!(urls.len(), 1);
-        assert_eq!(urls[0].0, "https://huggingface.co/test");
+        assert_eq!(urls[0].0, Some("https://huggingface.co/test".into()));
 
         // single url
         let model_info = ModelInfo {
@@ -235,7 +238,47 @@ mod tests {
         };
         let urls = super::filter_download_address(&model_info);
         assert_eq!(urls.len(), 1);
-        assert_eq!(urls[0].0, "https://huggingface.co/test");
+        assert_eq!(urls[0].0, Some("https://huggingface.co/test".into()));
+    }
+
+    #[test]
+    #[serial(filter_download_address)]
+    fn test_filter_download_address_no_host() {
+        std::env::set_var("TABBY_DOWNLOAD_HOST", "not-existed.com");
+        // multiple urls
+        let model_info = ModelInfo {
+            name: "test".to_string(),
+            urls: Some(vec![
+                "https://huggingface.co/test".to_string(),
+                "https://huggingface.co/test2".to_string(),
+                "https://modelscope.co/test2".to_string(),
+            ]),
+            sha256: Some("test_sha256".to_string()),
+            prompt_template: None,
+            chat_template: None,
+            partition_urls: None,
+        };
+        let urls = super::filter_download_address(&model_info);
+        assert_eq!(urls.len(), 1);
+        assert_eq!(urls[0].0, None);
+
+        // single url
+        let model_info = ModelInfo {
+            name: "test".to_string(),
+            urls: Some(vec![
+                "https://huggingface.co/test".to_string(),
+                "https://modelscope.co/test2".to_string(),
+            ]),
+            sha256: Some("test_sha256".to_string()),
+            prompt_template: None,
+            chat_template: None,
+            partition_urls: None,
+        };
+        let urls = super::filter_download_address(&model_info);
+        assert_eq!(urls.len(), 1);
+        assert_eq!(urls[0].0, None);
+
+        std::env::remove_var("TABBY_DOWNLOAD_HOST");
     }
 
     #[test]
@@ -266,9 +309,9 @@ mod tests {
         };
         let urls = super::filter_download_address(&model_info);
         assert_eq!(urls.len(), 2);
-        assert_eq!(urls[0].0, "https://huggingface.co/part1");
+        assert_eq!(urls[0].0, Some("https://huggingface.co/part1".into()));
         assert_eq!(urls[0].1, "test_sha256_1");
-        assert_eq!(urls[1].0, "https://huggingface.co/part2");
+        assert_eq!(urls[1].0, Some("https://huggingface.co/part2".into()));
         assert_eq!(urls[1].1, "test_sha256_2");
     }
 
@@ -288,7 +331,7 @@ mod tests {
         };
         let urls = super::filter_download_address(&model_info);
         assert_eq!(urls.len(), 1);
-        assert_eq!(urls[0].0, "https://huggingface.co/part1");
+        assert_eq!(urls[0].0, Some("https://huggingface.co/part1".into()));
         assert_eq!(urls[0].1, "test_sha256_1");
     }
 
@@ -308,7 +351,7 @@ mod tests {
         };
         let urls = super::filter_download_address(&model_info);
         assert_eq!(urls.len(), 1);
-        assert_eq!(urls[0].0, "https://huggingface.co/test");
+        assert_eq!(urls[0].0, Some("https://huggingface.co/test".into()));
         assert_eq!(urls[0].1, "test_sha256");
     }
 
@@ -326,7 +369,7 @@ mod tests {
         };
         let urls = super::filter_download_address(&model_info);
         assert_eq!(urls.len(), 1);
-        assert_eq!(urls[0].0, "https://modelscope.co/test");
+        assert_eq!(urls[0].0, Some("https://modelscope.co/test".into()));
         assert_eq!(urls[0].1, "test_sha256");
         // must reset the env, or it will affect other tests
         std::env::remove_var("TABBY_HUGGINGFACE_HOST_OVERRIDE");
@@ -355,9 +398,9 @@ mod tests {
         };
         let urls = super::filter_download_address(&model_info);
         assert_eq!(urls.len(), 2);
-        assert_eq!(urls[0].0, "https://modelscope.co/part1");
+        assert_eq!(urls[0].0, Some("https://modelscope.co/part1".into()));
         assert_eq!(urls[0].1, "test_sha256_1");
-        assert_eq!(urls[1].0, "https://modelscope.co/part2");
+        assert_eq!(urls[1].0, Some("https://modelscope.co/part2".into()));
         assert_eq!(urls[1].1, "test_sha256_2");
         // must reset the env, or it will affect other tests
         std::env::remove_var("TABBY_HUGGINGFACE_HOST_OVERRIDE");
@@ -392,9 +435,9 @@ mod tests {
         };
         let urls = super::filter_download_address(&model_info);
         assert_eq!(urls.len(), 2);
-        assert_eq!(urls[0].0, "https://modelscope.co/part1");
+        assert_eq!(urls[0].0, Some("https://modelscope.co/part1".into()));
         assert_eq!(urls[0].1, "test_sha256_1");
-        assert_eq!(urls[1].0, "https://modelscope.co/part2");
+        assert_eq!(urls[1].0, Some("https://modelscope.co/part2".into()));
         assert_eq!(urls[1].1, "test_sha256_2");
         // must reset the env, or it will affect other tests
         std::env::remove_var("TABBY_DOWNLOAD_HOST");
