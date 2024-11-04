@@ -80,7 +80,7 @@ function License({ license }: { license: LicenseInfo }) {
         <div className="mb-1 text-muted-foreground">Assigned / Total Seats</div>
         <div className="flex items-center gap-2 text-3xl">
           {seatsText}
-          {license.status === LicenseStatus.Expired && (
+          {license.status === LicenseStatus.SeatsExceeded && (
             <Badge variant="destructive" className="flex items-center gap-1">
               <IconAlertTriangle className="h-3 w-3" />
               Seats exceeded
