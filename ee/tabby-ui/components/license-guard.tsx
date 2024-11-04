@@ -2,13 +2,12 @@ import * as React from 'react'
 import Link from 'next/link'
 import { capitalize } from 'lodash-es'
 
+import { GetLicenseInfoQuery, LicenseType } from '@/lib/gql/generates/graphql'
 import {
-  GetLicenseInfoQuery,
-  LicenseInfo,
-  LicenseStatus,
-  LicenseType
-} from '@/lib/gql/generates/graphql'
-import { useLicenseInfo } from '@/lib/hooks/use-license'
+  useLicenseInfo,
+  useLicenseValidity,
+  UseLicenseValidityResponse
+} from '@/lib/hooks/use-license'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import {
@@ -18,46 +17,34 @@ import {
 } from '@/components/ui/hover-card'
 
 interface LicenseGuardProps {
+  /**
+   * requiredLicenses
+   */
   licenses: LicenseType[]
-  isSeatCountRelated?: boolean
   children: (params: {
     hasValidLicense: boolean
     license: GetLicenseInfoQuery['license'] | undefined | null
   }) => React.ReactNode
 }
 
-const LicenseGuard: React.FC<LicenseGuardProps> = ({
-  licenses,
-  isSeatCountRelated,
-  children
-}) => {
+const LicenseGuard: React.FC<LicenseGuardProps> = ({ licenses, children }) => {
   const [open, setOpen] = React.useState(false)
   const license = useLicenseInfo()
 
-  const hasValidLicense =
-    !!license &&
-    licenses.includes(license.type) &&
-    license.status === LicenseStatus.Ok
+  const licenseValidity = useLicenseValidity({ licenses })
+  const { isLicenseOK, hasSufficientLicense } = licenseValidity
+
+  const hasValidLicense = hasSufficientLicense && isLicenseOK
 
   const onOpenChange = (v: boolean) => {
     if (hasValidLicense) return
     setOpen(v)
   }
 
-  let licenseString = capitalize(licenses[0])
-  let licenseText = licenseString
-  if (licenses.length == 2) {
-    licenseText = `${capitalize(licenses[0])} or ${capitalize(licenses[1])}`
-  }
-
   return (
     <HoverCard open={open} onOpenChange={onOpenChange} openDelay={100}>
       <HoverCardContent side="top" collisionPadding={16} className="w-[400px]">
-        <LicenseTips
-          licenses={licenses}
-          license={license}
-          isSeatCountRelated={!!isSeatCountRelated}
-        />
+        <LicenseTips licenses={licenses} {...licenseValidity} />
       </HoverCardContent>
       <HoverCardTrigger
         asChild
@@ -80,20 +67,13 @@ LicenseGuard.displayName = 'LicenseGuard'
 export { LicenseGuard }
 
 function LicenseTips({
-  licenses,
-  license,
-  isSeatCountRelated
-}: {
+  hasSufficientLicense,
+  isExpired,
+  isSeatsExceeded,
+  licenses
+}: UseLicenseValidityResponse & {
   licenses: LicenseType[]
-  license: LicenseInfo | undefined
-  isSeatCountRelated: boolean
 }) {
-  const hasSufficientLicense = !!license && licenses.includes(license.type)
-  const isLicenseExpired =
-    hasSufficientLicense && license?.status === LicenseStatus.Expired
-  const isSeatsExceeded =
-    hasSufficientLicense && license?.status === LicenseStatus.SeatsExceeded
-
   const licenseString = capitalize(licenses[0])
   let insufficientLicenseText = licenseString
   if (licenses.length == 2) {
@@ -102,24 +82,8 @@ function LicenseTips({
     )}`
   }
 
-  if (isSeatsExceeded && isSeatCountRelated) {
-    return (
-      <>
-        <div>
-          Your seat count has exceeded the limit. Please upgrade your license to
-          continue using this feature.
-        </div>
-        <div className="mt-4 text-center">
-          <Link className={buttonVariants()} href="/settings/subscription">
-            Upgrade license
-          </Link>
-        </div>
-        ``
-      </>
-    )
-  }
-
-  if (isLicenseExpired) {
+  // for expired sufficient license
+  if (hasSufficientLicense && isExpired) {
     return (
       <>
         <div>
@@ -129,6 +93,23 @@ function LicenseTips({
         <div className="mt-4 text-center">
           <Link className={buttonVariants()} href="/settings/subscription">
             Update license
+          </Link>
+        </div>
+      </>
+    )
+  }
+
+  // for seatsExceeded sufficient license
+  if (hasSufficientLicense && isSeatsExceeded) {
+    return (
+      <>
+        <div>
+          Your seat count has exceeded the limit. Please upgrade your license to
+          continue using this feature.
+        </div>
+        <div className="mt-4 text-center">
+          <Link className={buttonVariants()} href="/settings/subscription">
+            Upgrade license
           </Link>
         </div>
       </>

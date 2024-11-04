@@ -3,12 +3,9 @@
 import { capitalize } from 'lodash-es'
 import moment from 'moment'
 
-import {
-  LicenseInfo,
-  LicenseStatus,
-  LicenseType
-} from '@/lib/gql/generates/graphql'
-import { useLicense } from '@/lib/hooks/use-license'
+import { LicenseInfo, LicenseType } from '@/lib/gql/generates/graphql'
+import { useLicense, useLicenseValidity } from '@/lib/hooks/use-license'
+import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { Badge } from '@/components/ui/badge'
 import { IconAlertTriangle } from '@/components/ui/icons'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -19,9 +16,17 @@ import { LicenseForm } from './license-form'
 import { LicenseTable } from './license-table'
 
 export default function Subscription() {
+  const { updateUrlComponents } = useRouterStuff()
   const [{ data, fetching }, reexecuteQuery] = useLicense()
   const license = data?.license
   const onUploadLicenseSuccess = () => {
+    // FIXME for testing
+    updateUrlComponents({
+      searchParams: {
+        del: ['licenseExpired', 'seatsExceeded']
+      }
+    })
+
     reexecuteQuery()
   }
   const canReset = !!license?.type && license.type !== LicenseType.Community
@@ -56,6 +61,7 @@ export default function Subscription() {
 }
 
 function License({ license }: { license: LicenseInfo }) {
+  const { isExpired, isSeatsExceeded } = useLicenseValidity()
   const expiresAt = license.expiresAt
     ? moment(license.expiresAt).format('MM/DD/YYYY')
     : '–'
@@ -68,7 +74,7 @@ function License({ license }: { license: LicenseInfo }) {
         <div className="mb-1 text-muted-foreground">Expires at</div>
         <div className="flex items-center gap-2 text-3xl">
           {expiresAt}
-          {license.status === LicenseStatus.Expired && (
+          {isExpired && (
             <Badge variant="destructive" className="flex items-center gap-1">
               <IconAlertTriangle className="h-3 w-3" />
               Expired
@@ -80,7 +86,7 @@ function License({ license }: { license: LicenseInfo }) {
         <div className="mb-1 text-muted-foreground">Assigned / Total Seats</div>
         <div className="flex items-center gap-2 text-3xl">
           {seatsText}
-          {license.status === LicenseStatus.SeatsExceeded && (
+          {isSeatsExceeded && (
             <Badge variant="destructive" className="flex items-center gap-1">
               <IconAlertTriangle className="h-3 w-3" />
               Seats exceeded
