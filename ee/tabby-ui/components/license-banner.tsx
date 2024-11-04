@@ -82,7 +82,7 @@ export function LicenseBanner() {
   return (
     <div
       className={cn(
-        'flex items-center justify-between bg-secondary border-b px-4 text-secondary-foreground transition-all md:px-5',
+        'flex items-center justify-between border-b bg-secondary px-4 text-secondary-foreground transition-all md:px-5',
         {
           'opacity-100 pointer-events-auto': isShowLicenseBanner,
           'opacity-0 pointer-events-none': !isShowLicenseBanner
@@ -90,7 +90,7 @@ export function LicenseBanner() {
       )}
       style={style}
     >
-      <div className="text-destructive font-semibold flex items-center gap-1">
+      <div className="flex items-center gap-1 font-semibold text-destructive">
         <IconNotice />
         {tips}
       </div>
