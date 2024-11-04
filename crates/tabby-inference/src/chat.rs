@@ -7,6 +7,7 @@ use async_openai::{
 };
 use async_trait::async_trait;
 use derive_builder::Builder;
+use tabby_common::terminal::{HeaderFormat, InfoMessage};
 
 #[async_trait]
 pub trait ChatCompletionStream: Sync + Send {
@@ -34,6 +35,9 @@ pub struct ExtendedOpenAIConfig {
     #[builder(setter(into))]
     model_name: String,
 
+    #[builder(setter(into))]
+    supported_models: Option<Vec<String>>,
+
     #[builder(default)]
     fields_to_remove: Vec<OpenAIRequestFieldEnum>,
 }
@@ -56,6 +60,22 @@ impl ExtendedOpenAIConfig {
     ) -> CreateChatCompletionRequest {
         if request.model.is_empty() {
             request.model = self.model_name.clone();
+        } else if let Some(supported_models) = &self.supported_models {
+            if !supported_models.contains(&request.model) {
+                InfoMessage::new(
+                    "Invalid model to quest",
+                    HeaderFormat::BoldRed,
+                    &[
+                        &format!(
+                            "Warning: {} Model is not supported, falling back to {}",
+                            request.model,
+                            self.model_name
+                        )
+                    ],
+                )
+                .print();
+                request.model = self.model_name.clone();
+            }
         }
 
         for field in &self.fields_to_remove {
