@@ -6,6 +6,7 @@ import { getLogger } from "../logger";
 export class GitProvider {
   private readonly logger = getLogger();
   private api: API | undefined = undefined;
+  private remoteUrlToLocalRoot = new Map<string, Uri | undefined>();
 
   private async initGitExtensionApi(tries = 0): Promise<void> {
     try {
@@ -72,5 +73,22 @@ export class GitProvider {
       repository.state.remotes.find((remote) => remote.name === "upstream") ||
       repository.state.remotes[0];
     return remote?.fetchUrl ?? remote?.pushUrl;
+  }
+
+  updateRemoteUrlToLocalRoot(remoteUrl: string, localRootUri: Uri): void {
+    this.remoteUrlToLocalRoot.set(remoteUrl, localRootUri);
+  }
+
+  findLocalRootUriByRemoteUrl(remoteUrl: string): Uri | undefined {
+    if (this.remoteUrlToLocalRoot.has(remoteUrl)) {
+      return this.remoteUrlToLocalRoot.get(remoteUrl);
+    }
+    const allRepos = this.getRepositories();
+    const repo = allRepos?.find((repo) =>
+      repo.state.remotes.find((remote) => remote.fetchUrl === remoteUrl || remote.pushUrl === remoteUrl),
+    );
+    const localRootUri = repo?.rootUri;
+    this.remoteUrlToLocalRoot.set(remoteUrl, localRootUri);
+    return localRootUri;
   }
 }
