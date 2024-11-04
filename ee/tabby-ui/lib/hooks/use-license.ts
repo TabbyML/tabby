@@ -67,8 +67,8 @@ export const useLicenseValidity = (options?: UseLicenseValidityOptions) => {
   const isSeatsExceeded = licenseInfo?.status === LicenseStatus?.SeatsExceeded
 
   // Testing parameters from searchParams
-  const isTestExpired = searchParams.get('licenseExpired') === '1'
-  const isTestSeatsExceeded = searchParams.get('seatsExceeded') === '1'
+  const isTestExpired = searchParams.get('licenseError') === 'expired'
+  const isTestSeatsExceeded = searchParams.get('licenseError') === 'seatsExceed'
 
   return {
     hasLicense,
