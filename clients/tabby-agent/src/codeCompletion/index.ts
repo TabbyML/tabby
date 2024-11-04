@@ -185,6 +185,7 @@ export class CompletionProvider implements Feature {
     token.onCancellationRequested(() => abortController.abort());
     try {
       const request = await this.completionParamsToCompletionRequest(params, token);
+      this.logger.info("Completion request: hjaha");
       if (!request) {
         return null;
       }
@@ -262,7 +263,30 @@ export class CompletionProvider implements Feature {
       return null;
     }
     result.request.manually = params.context?.triggerKind === InlineCompletionTriggerKind.Invoked;
-    result.request.autoCompleteWidgetItem = params.context.selectedCompletionInfo?.text;
+
+    if (params.context.selectedCompletionInfo) {
+      const customContext = params.context as {
+        triggerKind: InlineCompletionTriggerKind;
+        selectedCompletionInfo?: {
+          range: [{ line: number; character: number }, { line: number; character: number }];
+          text: string;
+        };
+      };
+      if (!customContext.selectedCompletionInfo) {
+        return result;
+      }
+      const info = customContext.selectedCompletionInfo;
+
+      const rangeLength = info.range[1].character - info.range[0].character;
+      const currentText = info.text.substring(0, rangeLength);
+
+      result.request.autoComplete = {
+        completionItem: info.text,
+        insertSeg: info.text.slice(currentText.length),
+        currSeg: currentText,
+      };
+      this.logger.debug("received AutoCompleteWidgetItem: " + JSON.stringify(params.context.selectedCompletionInfo));
+    }
     return result;
   }
 
@@ -408,8 +432,8 @@ export class CompletionProvider implements Feature {
           },
           signals,
         );
-
         solution = new CompletionSolution(context);
+
         // Fetch the completion
         this.logger.info(`Fetching completion...`);
         try {
@@ -490,7 +514,7 @@ export class CompletionProvider implements Feature {
     if (solution) {
       this.completionStats.addProviderStatsEntry({ triggerMode: request.manually ? "manual" : "auto" });
       this.logger.info(`Completed processing completions, choices returned: ${solution.items.length}.`);
-      this.logger.trace("Completion solution:", { solution: solution.toInlineCompletionList() });
+      this.logger.trace("Completion solution:" + JSON.stringify({ solution: solution.toInlineCompletionList() }));
     }
     return solution ?? null;
   }

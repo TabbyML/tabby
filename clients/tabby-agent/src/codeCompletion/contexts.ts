@@ -3,7 +3,6 @@ import type { ConfigData } from "../config/type";
 import path from "path";
 import hashObject from "object-hash";
 import { splitLines, isBlank, regOnlyAutoClosingCloseChars } from "../utils/string";
-import { getLogger } from "../logger";
 
 export type CompletionRequest = {
   filepath: string;
@@ -24,7 +23,13 @@ export type CompletionRequest = {
   declarations?: Declaration[];
   relevantSnippetsFromChangedFiles?: CodeSnippet[];
   relevantSnippetsFromOpenedFiles?: CodeSnippet[];
-  autoCompleteWidgetItem?: string;
+  //auto complete part
+  autoComplete?: {
+    completionItem?: string;
+    insertPosition?: number;
+    insertSeg?: string;
+    currSeg?: string;
+  };
 };
 
 export type Declaration = {
@@ -78,40 +83,30 @@ export class CompletionContext {
   mode: "default" | "fill-in-line";
   hash: string;
 
-  autoCompleteWidgetItem?: string;
+  // example of auto complete part
+  // cons| -> console
+  // completionItem: console
+  // insertPosition: 4
+  // insertSeg: ole
+  // currSeg: cons
+  completionItem: string = "";
+  insertPosition: number = 0;
+  insertSeg: string = "";
+  currSeg: string = "";
+  withCorrectCompletionItem: boolean = false; // weather we are using completionItem or not
 
   constructor(request: CompletionRequest) {
-    let modifiedText = request.text;
-    let modifiedPosition = request.position;
-
-    if (request.autoCompleteWidgetItem) {
-      const preText = request.text.slice(0, request.position);
-      const lastWordMatch = preText.match(/\w+$/);
-
-      if (lastWordMatch) {
-        const lastWord = lastWordMatch[0];
-        if (request.autoCompleteWidgetItem.startsWith(lastWord)) {
-          modifiedText =
-            preText.slice(0, -lastWord.length) + request.autoCompleteWidgetItem + request.text.slice(request.position);
-          modifiedPosition = request.position - lastWord.length + request.autoCompleteWidgetItem.length;
-        } else if (lastWord.length >= request.autoCompleteWidgetItem.length) {
-          modifiedText = preText + " " + request.autoCompleteWidgetItem + request.text.slice(request.position);
-          modifiedPosition = request.position + 1 + request.autoCompleteWidgetItem.length;
-        }
-      } else {
-        modifiedText = preText + request.autoCompleteWidgetItem + request.text.slice(request.position);
-        modifiedPosition = request.position + request.autoCompleteWidgetItem.length;
-      }
-    }
-
     this.filepath = request.filepath;
     this.language = request.language;
-    this.text = modifiedText;
-    this.position = modifiedPosition;
     this.indentation = request.indentation;
-
+    this.position = request.position;
+    this.text = request.text;
     this.prefix = this.text.slice(0, this.position);
     this.suffix = this.text.slice(this.position);
+
+    if (request.autoComplete?.completionItem) {
+      this.handleAutoComplete(request);
+    }
 
     this.prefixLines = splitLines(this.prefix);
     this.suffixLines = splitLines(this.suffix);
@@ -136,8 +131,13 @@ export class CompletionContext {
       clipboard: this.clipboard,
       declarations: this.declarations,
       relevantSnippetsFromChangedFiles: this.relevantSnippetsFromChangedFiles,
+      completionItem: this.completionItem,
+      insertPosition: this.insertPosition,
+      insertSeg: this.insertSeg,
+      currSeg: this.currSeg,
     });
   }
+
   // is valid for completion.
   isValid() {
     return !isBlank(this.prefix);
@@ -156,7 +156,48 @@ export class CompletionContext {
       git: this.git,
       declarations: this.declarations,
       relevantSnippetsFromChangedFiles: this.relevantSnippetsFromChangedFiles,
+      relevantSnippetsFromOpenedFiles: this.snippetsFromOpenedFiles,
+      autoComplete: {
+        completionItem: this.completionItem,
+        insertPosition: this.insertPosition,
+        insertSeg: this.insertSeg,
+        currSeg: this.currSeg,
+      },
     });
+  }
+
+  /**
+   * The method handles the auto complete part of the completion request.
+   * @param request completion request
+   * @returns void
+   */
+  private handleAutoComplete(request: CompletionRequest): void {
+    if (!request.autoComplete?.completionItem) return;
+    this.completionItem = request.autoComplete.completionItem;
+    this.currSeg = request.autoComplete.currSeg ?? "";
+    this.insertSeg = request.autoComplete.insertSeg ?? "";
+
+    const prefixText = request.text.slice(0, request.position);
+    const lastIndex = prefixText.lastIndexOf(this.currSeg);
+
+    if (lastIndex !== -1) {
+      this.insertPosition = lastIndex + this.currSeg.length;
+
+      this.text = request.text.slice(0, lastIndex) + this.completionItem + request.text.slice(this.insertPosition);
+
+      this.position = lastIndex + this.completionItem.length;
+
+      this.prefix = this.text.slice(0, this.position);
+      this.suffix = this.text.slice(this.position);
+      this.withCorrectCompletionItem = true;
+    }
+  }
+  isWithCorrectAutoComplete(): boolean {
+    return this.withCorrectCompletionItem;
+  }
+
+  getFullCompletionItem(): string | null {
+    return this.isWithCorrectAutoComplete() ? this.completionItem : null;
   }
 
   // Build segments for TabbyApi

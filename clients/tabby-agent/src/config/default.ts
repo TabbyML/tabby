@@ -62,7 +62,7 @@ export const defaultConfigData: ConfigData = {
   postprocess: {
     limitScope: {},
     calculateReplaceRange: {},
-    minCompletionChars: 4,
+    minCompletionChars: 2,
   },
   chat: {
     edit: {
