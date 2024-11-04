@@ -1,4 +1,4 @@
-import { ExtensionContext, TextEditor, window, WebviewPanel } from "vscode";
+import { ExtensionContext, window, WebviewPanel } from "vscode";
 import type { ServerApi, ChatMessage, Context } from "tabby-chat-panel";
 import { WebviewHelper } from "./WebviewHelper";
 import type { AgentFeature as Agent } from "../lsp/AgentFeature";
@@ -19,16 +19,6 @@ export class ChatPanelViewProvider {
   ) {
     const logger = getLogger();
     this.webviewHelper = new WebviewHelper(context, agent, logger, gitProvider, chat);
-  }
-
-  static getFileContextFromSelection({
-    editor,
-    gitProvider,
-  }: {
-    editor: TextEditor;
-    gitProvider: GitProvider;
-  }): Context | null {
-    return WebviewHelper.getFileContextFromSelection({ editor, gitProvider });
   }
 
   // The method is called when the chat panel first opened

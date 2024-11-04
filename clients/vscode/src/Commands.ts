@@ -22,6 +22,7 @@ import { ContextVariables } from "./ContextVariables";
 import { InlineCompletionProvider } from "./InlineCompletionProvider";
 import { ChatSideViewProvider } from "./chat/ChatSideViewProvider";
 import { ChatPanelViewProvider } from "./chat/ChatPanelViewProvider";
+import { getFileContextFromSelection, getFileContext } from "./chat/fileContext";
 import { GitProvider, Repository } from "./git/GitProvider";
 import CommandPalette from "./CommandPalette";
 import { showOutputPanel } from "./logger";
@@ -53,11 +54,11 @@ export class Commands {
     this.context.subscriptions.push(...notNullRegistrations);
   }
 
-  private sendMessageToChatPanel(msg: string) {
+  private async sendMessageToChatPanel(msg: string) {
     const editor = window.activeTextEditor;
     if (editor) {
       commands.executeCommand("tabby.chatView.focus");
-      const fileContext = ChatSideViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+      const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
       if (!fileContext) {
         window.showInformationMessage("No selected codes");
         return;
@@ -79,8 +80,8 @@ export class Commands {
       return;
     }
 
-    const addContext = () => {
-      const fileContext = ChatSideViewProvider.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+    const addContext = async () => {
+      const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
       if (fileContext) {
         this.chatViewProvider.addRelevantContext(fileContext);
       }
@@ -258,13 +259,15 @@ export class Commands {
     "chat.addRelevantContext": async () => {
       this.addRelevantContext();
     },
-    "chat.addFileContext": () => {
+    "chat.addFileContext": async () => {
       const editor = window.activeTextEditor;
       if (editor) {
-        commands.executeCommand("tabby.chatView.focus").then(() => {
-          const fileContext = ChatSideViewProvider.getFileContextFromEditor({ editor, gitProvider: this.gitProvider });
-          this.chatViewProvider.addRelevantContext(fileContext);
-        });
+        const fileContext = await getFileContext(editor, this.gitProvider);
+        if (fileContext) {
+          commands.executeCommand("tabby.chatView.focus").then(async () => {
+            this.chatViewProvider.addRelevantContext(fileContext);
+          });
+        }
       } else {
         window.showInformationMessage("No active editor");
       }

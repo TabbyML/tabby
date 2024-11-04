@@ -5,12 +5,7 @@ import {
   env,
   TextEditor,
   window,
-  Position,
-  Range,
   Selection,
-  TextEditorRevealType,
-  ViewColumn,
-  WorkspaceFolder,
   TextDocument,
   Webview,
   ColorThemeKind,
@@ -27,6 +22,7 @@ import { GitProvider } from "../git/GitProvider";
 import { createClient } from "./chatPanel";
 import { ChatFeature } from "../lsp/ChatFeature";
 import { isBrowser } from "../env";
+import { getFileContextFromSelection, showFileContext } from "./fileContext";
 
 export class WebviewHelper {
   webview?: Webview;
@@ -52,98 +48,6 @@ export class WebviewHelper {
       case ColorThemeKind.HighContrast:
         return "dark";
     }
-  }
-
-  static async resolveDocument(
-    logger: LogOutputChannel,
-    folders: readonly WorkspaceFolder[] | undefined,
-    filepath: string,
-  ): Promise<TextDocument | null> {
-    if (filepath.startsWith("file://")) {
-      const absoluteFilepath = Uri.parse(filepath, true);
-      return workspace.openTextDocument(absoluteFilepath);
-    }
-
-    if (!folders) {
-      return null;
-    }
-
-    for (const root of folders) {
-      const absoluteFilepath = Uri.joinPath(root.uri, filepath);
-      try {
-        return await workspace.openTextDocument(absoluteFilepath);
-      } catch (err) {
-        // Do nothing, file doesn't exists.
-      }
-    }
-
-    logger.info("File not found in workspace folders, trying with findFiles...");
-
-    const files = await workspace.findFiles(filepath, undefined, 1);
-    if (files[0]) {
-      return workspace.openTextDocument(files[0]);
-    }
-
-    return null;
-  }
-
-  static getFileContextFromSelection({
-    editor,
-    gitProvider,
-  }: {
-    editor: TextEditor;
-    gitProvider: GitProvider;
-  }): Context | null {
-    const alignIndent = (text: string) => {
-      const lines = text.split("\n");
-      const subsequentLines = lines.slice(1);
-
-      // Determine the minimum indent for subsequent lines
-      const minIndent = subsequentLines.reduce((min, line) => {
-        const match = line.match(/^(\s*)/);
-        const indent = match ? match[0].length : 0;
-        return line.trim() ? Math.min(min, indent) : min;
-      }, Infinity);
-
-      // Remove the minimum indent
-      const adjustedLines = lines.slice(1).map((line) => line.slice(minIndent));
-
-      return [lines[0]?.trim(), ...adjustedLines].join("\n");
-    };
-
-    const uri = editor.document.uri;
-    const text = editor.document.getText(editor.selection);
-    if (!text) return null;
-
-    const { filepath, git_url } = WebviewHelper.resolveFilePathAndGitUrl(uri, gitProvider);
-
-    return {
-      kind: "file",
-      content: alignIndent(text),
-      range: {
-        start: editor.selection.start.line + 1,
-        end: editor.selection.end.line + 1,
-      },
-      filepath,
-      git_url,
-    };
-  }
-
-  static resolveFilePathAndGitUrl(uri: Uri, gitProvider: GitProvider): { filepath: string; git_url: string } {
-    const workspaceFolder = workspace.getWorkspaceFolder(uri);
-    const repo = gitProvider.getRepository(uri);
-    const remoteUrl = repo ? gitProvider.getDefaultRemoteUrl(repo) : undefined;
-    let filePath = uri.toString(true);
-    if (repo) {
-      filePath = filePath.replace(repo.rootUri.toString(true), "");
-    } else if (workspaceFolder) {
-      filePath = filePath.replace(workspaceFolder.uri.toString(true), "");
-    }
-
-    return {
-      filepath: filePath.startsWith("/") ? filePath.substring(1) : filePath,
-      git_url: remoteUrl ?? "",
-    };
   }
 
   public setWebview(webview: Webview) {
@@ -430,12 +334,12 @@ export class WebviewHelper {
     }
   }
 
-  public syncActiveSelection(editor: TextEditor | undefined) {
+  public async syncActiveSelection(editor: TextEditor | undefined) {
     if (!editor) {
       return;
     }
 
-    const fileContext = WebviewHelper.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+    const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
     this.syncActiveSelectionToChatPanel(fileContext);
   }
 
@@ -482,27 +386,7 @@ export class WebviewHelper {
     return createClient(webview, {
       navigate: async (context: Context, opts?: NavigateOpts) => {
         if (opts?.openInEditor) {
-          const document = await WebviewHelper.resolveDocument(
-            this.logger,
-            workspace.workspaceFolders,
-            context.filepath,
-          );
-          if (!document) {
-            throw new Error(`File not found: ${context.filepath}`);
-          }
-
-          const newEditor = await window.showTextDocument(document, {
-            viewColumn: ViewColumn.Active,
-            preview: false,
-            preserveFocus: true,
-          });
-
-          // Move the cursor to the specified line
-          const start = new Position(Math.max(0, context.range.start - 1), 0);
-          const end = new Position(context.range.end, 0);
-          newEditor.selection = new Selection(start, end);
-          newEditor.revealRange(new Range(start, end), TextEditorRevealType.InCenter);
-
+          showFileContext(context, this.gitProvider);
           return;
         }
 
@@ -537,7 +421,7 @@ export class WebviewHelper {
         };
         // FIXME: after synchronizing the activeSelection, perhaps there's no need to include activeSelection in the message.
         if (editor) {
-          const fileContext = WebviewHelper.getFileContextFromSelection({ editor, gitProvider: this.gitProvider });
+          const fileContext = await getFileContextFromSelection(editor, this.gitProvider);
           if (fileContext)
             // active selection
             chatMessage.activeContext = fileContext;
