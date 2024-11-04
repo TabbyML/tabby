@@ -69,11 +69,11 @@ export function LicenseBanner() {
 
   const tips = useMemo(() => {
     if (isExpired) {
-      return 'Your license is expired.'
+      return 'Your subscription is expired.'
     }
 
     if (isSeatsExceeded) {
-      return 'You have more active users than seats included in your license.'
+      return 'You have more active users than seats included in your subscription.'
     }
 
     return 'No valid license configured'
