@@ -778,6 +778,7 @@ export function Search() {
                               key={message.id}
                               className="pb-8 pt-2"
                               message={message}
+                              isLoading={isLoading && isLastMessage}
                               isLastAssistantMessage={isLastMessage}
                               showRelatedQuestion={isLastMessage}
                               isDeletable={!isLoading && messages.length > 2}
@@ -828,9 +829,8 @@ export function Search() {
                 )}
               >
                 <div
-                  className={cn('absolute flex items-center gap-4 ', {
-                    '-top-10': isThreadOwner
-                  })}
+                  className={cn('absolute flex items-center gap-4')}
+                  style={isThreadOwner ? { top: '-2.5rem' } : undefined}
                 >
                   {stopButtonVisible && (
                     <Button
