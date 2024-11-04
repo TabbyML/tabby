@@ -1,3 +1,9 @@
+## 1.12.5
+
+### Fixes & Improvements
+
+- Fixed a bug where the inline completion provider was incorrectly registered twice, causing the status bar loading indicator to not correctly show ongoing completion requests.
+
 ## 1.12.4
 
 ### Fixes & Improvements
