@@ -12,6 +12,7 @@ import { client } from '@/lib/tabby/gql'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ShowDemoBannerProvider } from '@/components/demo-banner'
 
+import { ShowLicenseBannerProvider } from './license-banner'
 import { TopbarProgressProvider } from './topbar-progress-indicator'
 
 const publicPaths = ['/chat']
@@ -35,10 +36,12 @@ export function Providers({ children, ...props }: ThemeProviderProps) {
           <AuthProvider>
             <TopbarProgressProvider>
               <ShowDemoBannerProvider>
-                <PostHogProvider>
-                  {!isPublicPath && <EnsureSignin />}
-                  {children}
-                </PostHogProvider>
+                <ShowLicenseBannerProvider>
+                  <PostHogProvider>
+                    {!isPublicPath && <EnsureSignin />}
+                    {children}
+                  </PostHogProvider>
+                </ShowLicenseBannerProvider>
               </ShowDemoBannerProvider>
             </TopbarProgressProvider>
           </AuthProvider>

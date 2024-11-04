@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/icons'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
+import { useShowLicenseBanner } from '@/components/license-banner'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 export interface SidebarProps {
@@ -124,10 +125,16 @@ const menus: Menu[] = [
 
 export default function Sidebar({ children, className }: SidebarProps) {
   const [{ data, fetching: fetchingMe }] = useMe()
-  const [isShowDemoBanner] = useShowDemoBanner()
   const isAdmin = data?.me.isAdmin
-  const style = isShowDemoBanner
-    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
+  const [isShowDemoBanner] = useShowDemoBanner()
+  const [isShowLicenseBanner] = useShowLicenseBanner()
+  const showBanner = isShowDemoBanner || isShowLicenseBanner
+  const style = showBanner
+    ? {
+        height: `calc(100vh - ${isShowDemoBanner ? BANNER_HEIGHT : '0rem'} - ${
+          isShowLicenseBanner ? BANNER_HEIGHT : '0rem'
+        })`
+      }
     : { height: '100vh' }
 
   return (
