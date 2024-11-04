@@ -103,7 +103,8 @@ export default function TextAreaSearch({
   }, [])
 
   useEffect(() => {
-    if (!modelName) {
+    const isInvalidModel = modelInfo?.chat && !modelInfo?.chat?.includes(modelName)
+    if (!modelName || isInvalidModel) {
       onModelSelect(modelInfo?.chat?.length ? modelInfo?.chat[0] : '')
     }
   }, [modelInfo])
