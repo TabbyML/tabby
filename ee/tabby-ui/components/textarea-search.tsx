@@ -83,7 +83,7 @@ export default function TextAreaSearch({
   const { data: modelInfo } = useModel()
   const isSelectModelEnabled = true
 
-  const DropdownMenuItems = modelInfo?.chat.map(model => (
+  const DropdownMenuItems = modelInfo?.chat?.map(model => (
     <DropdownMenuRadioItem
       onClick={() => onModelSelect(model)}
       value={model}
@@ -251,7 +251,10 @@ export default function TextAreaSearch({
       </div>
       <div
         className={cn(
-          'flex items-center gap-2 border-t bg-[#F9F6EF] py-2 pl-2 pr-4 dark:border-muted-foreground/60 dark:bg-[#333333]'
+          'flex items-center gap-2 border-t bg-[#F9F6EF] py-2 pl-2 pr-4 dark:border-muted-foreground/60 dark:bg-[#333333]',
+          {
+            hidden: !modelInfo?.chat?.length
+          }
         )}
         onClick={e => e.stopPropagation()}
       >
@@ -299,31 +302,33 @@ export default function TextAreaSearch({
         )}
 
         {/* llm select */}
-        <DropdownMenu>
-          <DropdownMenuTrigger>
-            {isSelectModelEnabled && modelInfo?.chat?.length && (
-              <Button
-                variant="ghost"
-                className="gap-2 px-1.5 py-1 text-foreground/70"
-              >
-                <IconBox />
-                {modelName}
-              </Button>
-            )}
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            side="bottom"
-            align="end"
-            className="dropdown-menu max-h-[30vh] min-w-[20rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in"
-          >
-            <DropdownMenuRadioGroup
-              value={modelName}
-              onValueChange={onModelSelect}
+        {isSelectModelEnabled && modelInfo?.chat?.length && (
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              {isSelectModelEnabled && modelInfo?.chat?.length && (
+                <Button
+                  variant="ghost"
+                  className="gap-2 px-1.5 py-1 text-foreground/70"
+                >
+                  <IconBox />
+                  {modelName}
+                </Button>
+              )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="bottom"
+              align="end"
+              className="dropdown-menu max-h-[30vh] min-w-[20rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-2 text-popover-foreground shadow animate-in"
             >
-              {DropdownMenuItems}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuRadioGroup
+                value={modelName}
+                onValueChange={onModelSelect}
+              >
+                {DropdownMenuItems}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </div>
   )

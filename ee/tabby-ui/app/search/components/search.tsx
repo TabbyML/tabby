@@ -646,7 +646,8 @@ export function Search() {
       threadRunOptions: {
         generateRelevantQuestions: true,
         codeQuery,
-        docQuery
+        docQuery,
+        modelName: selectedModel
       }
     })
   }
