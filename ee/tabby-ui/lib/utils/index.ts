@@ -130,5 +130,5 @@ export function getContent(item: AttachmentDocItem) {
       return item.body
   }
 
-  return ""
+  return ''
 }
