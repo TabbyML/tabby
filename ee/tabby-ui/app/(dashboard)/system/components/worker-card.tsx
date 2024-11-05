@@ -262,7 +262,7 @@ function HealthInfoView({
       ) : (
         <HoverCard openDelay={0}>
           <HoverCardTrigger asChild>
-            <div className="flex items-center gap-0.5 text-destructive hover:underline hover:text-destructive/20 cursor-pointer">
+            <div className="flex cursor-pointer items-center gap-0.5 text-destructive hover:text-destructive/20 hover:underline">
               <IconCircleHelp />
               Unreachable
             </div>
