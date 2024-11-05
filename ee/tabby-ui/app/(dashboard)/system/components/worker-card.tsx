@@ -7,6 +7,12 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger
+} from '@/components/ui/hover-card'
+import {
+  IconCircleHelp,
   IconRotate,
   IconSpinner,
   IconSquareActivity
@@ -232,7 +238,7 @@ function HealthInfoView({
   errorMessage?: string
   className?: string
 }) {
-  const [{ data, fetching, stale }, reexecuteQuery] = useQuery({
+  const [{ data, fetching, stale, error }, reexecuteQuery] = useQuery({
     query: testModelConnectionQuery,
     variables: {
       backend
@@ -254,9 +260,19 @@ function HealthInfoView({
       {connected ? (
         <p className="flex items-center gap-0.5">Connected</p>
       ) : (
-        <div className="flex items-center gap-0.5 text-destructive">
-          Unreachable
-        </div>
+        <HoverCard openDelay={0}>
+          <HoverCardTrigger asChild>
+            <div className="flex cursor-pointer items-center gap-0.5 text-destructive hover:text-destructive/20 hover:underline">
+              <IconCircleHelp />
+              Unreachable
+            </div>
+          </HoverCardTrigger>
+          <HoverCardContent className="w-96 bg-secondary" align="start">
+            <div className="whitespace-pre-wrap break-all">
+              {error?.message || 'Failed to connect model'}
+            </div>
+          </HoverCardContent>
+        </HoverCard>
       )}
 
       <Button
