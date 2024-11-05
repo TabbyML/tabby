@@ -18,6 +18,7 @@ import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
 import {
   cn,
   formatLineHashForCodeBrowser,
+  getContent,
   getRangeFromAttachmentCode,
   getRangeTextFromAttachmentCode
 } from '@/lib/utils'
@@ -127,8 +128,8 @@ export function AssistantMessageSection({
 
   const totalHeightInRem = messageAttachmentDocs?.length
     ? Math.ceil(messageAttachmentDocs.length / 4) * SOURCE_CARD_STYLE.expand +
-      0.5 * Math.floor(messageAttachmentDocs.length / 4) +
-      0.5
+    0.5 * Math.floor(messageAttachmentDocs.length / 4) +
+    0.5
     : 0
 
   const relevantCodeContexts: RelevantCodeContext[] = useMemo(() => {
@@ -487,7 +488,7 @@ function SourceCard({
                   }
                 )}
               >
-                {normalizedText(source.content)}
+                {normalizedText(getContent(source))}
               </p>
             </div>
             <div className="flex items-center text-xs text-muted-foreground">

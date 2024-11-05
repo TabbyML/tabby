@@ -60,9 +60,18 @@ const CreateThreadAndRunSubscription = graphql(/* GraphQL */ `
       ... on ThreadAssistantMessageAttachmentsDoc {
         hits {
           doc {
-            title
-            link
-            content
+            __typename
+            ... on MessageAttachmentWebDoc {
+              title
+              link
+              content
+            }
+            ... on MessageAttachmentIssueDoc {
+              title
+              link
+              body
+              closed
+            }
           }
           score
         }
@@ -112,9 +121,18 @@ const CreateThreadRunSubscription = graphql(/* GraphQL */ `
       ... on ThreadAssistantMessageAttachmentsDoc {
         hits {
           doc {
-            title
-            link
-            content
+            __typename
+            ... on MessageAttachmentWebDoc {
+              title
+              link
+              content
+            }
+            ... on MessageAttachmentIssueDoc {
+              title
+              link
+              body
+              closed
+            }
           }
           score
         }
