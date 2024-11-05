@@ -717,7 +717,7 @@ mod tests {
         }
     }
 
-    fn get_title<'a>(doc: &'a DocSearchDocument) -> &'a str {
+    fn get_title(doc: &DocSearchDocument) -> &str {
         match doc {
             DocSearchDocument::Web(web_doc) => &web_doc.title,
             DocSearchDocument::Issue(issue_doc) => &issue_doc.title,
