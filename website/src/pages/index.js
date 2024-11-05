@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
@@ -42,6 +42,11 @@ function HomepageHeader() {
 
 export default function Home() {
   const { siteConfig } = useDocusaurusContext();
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") {
+      location.href = "https://www.tabbyml.com"
+    }
+  }, []);
   return (
     <Layout
       description="Tabby is a self-hosted AI coding assistant, offering an open-source and on-premises alternative to GitHub Copilot">
