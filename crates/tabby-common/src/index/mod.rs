@@ -1,5 +1,4 @@
 pub mod code;
-pub mod doc;
 pub mod structured_doc;
 
 use std::borrow::Cow;

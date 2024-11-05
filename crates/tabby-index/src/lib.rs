@@ -7,7 +7,6 @@ mod tantivy_utils;
 
 use indexer::{IndexAttributeBuilder, Indexer};
 
-mod doc;
 mod structured_doc;
 
 pub mod public {
@@ -16,8 +15,6 @@ pub mod public {
     use super::*;
     pub use super::{
         code::CodeIndexer,
-        // Switch to StructuredDocIndexer
-        // doc::public::{DocIndexer, WebDocument},
         structured_doc::public::{
             StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocIssueFields,
             StructuredDocWebFields,
