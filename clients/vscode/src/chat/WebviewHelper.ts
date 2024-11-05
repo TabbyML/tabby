@@ -474,7 +474,7 @@ export class WebviewHelper {
           this.logger.info("Smart apply in editor started.");
           this.logger.trace("Smart apply in editor with content:", { content });
 
-          await window.withProgress(
+          window.withProgress(
             {
               location: ProgressLocation.Notification,
               title: "Smart Apply in Progress",
