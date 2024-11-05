@@ -630,8 +630,7 @@ mod tests {
             code::{
                 CodeSearch, CodeSearchDocument, CodeSearchHit, CodeSearchParams, CodeSearchScores,
             },
-            structured_doc::DocSearch,
-            structured_doc::DocSearchDocument,
+            structured_doc::{DocSearch, DocSearchDocument},
         },
         config::AnswerConfig,
     };
