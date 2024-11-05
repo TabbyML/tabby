@@ -19,3 +19,4 @@ trie-rs = "0.1.1"
 async-openai.workspace = true
 secrecy = "0.8"
 reqwest.workspace = true
+tracing.workspace = true

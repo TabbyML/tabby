@@ -11,12 +11,14 @@ export interface ChatState {
   activeChatId: string | undefined
   _hasHydrated: boolean
   setHasHydrated: (state: boolean) => void
+  selectedModel: string | undefined
 }
 
 const initialState: Omit<ChatState, 'setHasHydrated' | 'deleteChat'> = {
   _hasHydrated: false,
   chats: undefined,
-  activeChatId: nanoid()
+  activeChatId: nanoid(),
+  selectedModel: undefined
 }
 
 export const useChatStore = create<ChatState>()(

@@ -18,6 +18,7 @@ pub async fn create(model: &HttpModelConfig) -> Arc<dyn ChatCompletionStream> {
     let mut builder = ExtendedOpenAIConfig::builder();
     builder
         .base(config)
+        .supported_models(model.supported_models.clone())
         .model_name(model.model_name.as_deref().expect("Model name is required"));
 
     if model.kind == "openai/chat" {

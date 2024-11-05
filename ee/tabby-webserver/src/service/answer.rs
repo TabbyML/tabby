@@ -154,11 +154,11 @@ impl AnswerService {
 
                 CreateChatCompletionRequestArgs::default()
                     .messages(chat_messages)
+                    .model(options.model_name.as_deref().unwrap_or(""))
                     .presence_penalty(self.config.presence_penalty)
                     .build()
                     .expect("Failed to build chat completion request")
             };
-
 
             let s = match self.chat.chat_stream(request).await {
                 Ok(s) => s,
@@ -1066,6 +1066,7 @@ mod tests {
             ),
         ];
         let options = ThreadRunOptionsInput {
+            model_name: None,
             code_query: Some(make_code_query_input(
                 Some(TEST_SOURCE_ID),
                 Some(TEST_GIT_URL),
