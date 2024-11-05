@@ -8,10 +8,10 @@ use tabby_inference::Embedding;
 
 use super::tantivy::IndexReaderProvider;
 
-pub fn create(embedding: Arc<dyn Embedding>, provider: Arc<IndexReaderProvider>) -> impl DocSearch {
+fn create(embedding: Arc<dyn Embedding>, provider: Arc<IndexReaderProvider>) -> impl DocSearch {
     tantivy::DocSearchService::new(embedding, provider)
 }
 
-pub fn create_serper(api_key: &str) -> impl DocSearch {
+fn create_serper(api_key: &str) -> impl DocSearch {
     serper::SerperService::new(api_key)
 }

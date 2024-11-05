@@ -32,10 +32,25 @@ pub struct ThreadMessageDAO {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ThreadMessageAttachmentDoc {
+#[serde(untagged)] // Mark the serde serialization format as untagged for backward compatibility: https://serde.rs/enum-representations.html#untagged
+pub enum ThreadMessageAttachmentDoc {
+    Web(ThreadMessageAttachmentWebDoc),
+    Issue(ThreadMessageAttachmentIssueDoc),
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ThreadMessageAttachmentWebDoc {
     pub title: String,
     pub link: String,
     pub content: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ThreadMessageAttachmentIssueDoc {
+    pub title: String,
+    pub link: String,
+    pub body: String,
+    pub closed: bool,
 }
 
 #[derive(Serialize, Deserialize)]

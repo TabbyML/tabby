@@ -22,7 +22,7 @@ use tabby_common::{
             CodeSearch, CodeSearchError, CodeSearchHit, CodeSearchParams, CodeSearchQuery,
             CodeSearchScores,
         },
-        doc::{DocSearch, DocSearchError, DocSearchHit},
+        structured_doc::{DocSearch, DocSearchError, DocSearchHit},
     },
     config::AnswerConfig,
 };
@@ -33,9 +33,9 @@ use tabby_schema::{
     repository::{Repository, RepositoryService},
     thread::{
         self, CodeQueryInput, CodeSearchParamsOverrideInput, DocQueryInput, MessageAttachment,
-        ThreadAssistantMessageAttachmentsCode, ThreadAssistantMessageAttachmentsDoc,
-        ThreadAssistantMessageContentDelta, ThreadRelevantQuestions, ThreadRunItem,
-        ThreadRunOptionsInput,
+        MessageAttachmentDoc, ThreadAssistantMessageAttachmentsCode,
+        ThreadAssistantMessageAttachmentsDoc, ThreadAssistantMessageContentDelta,
+        ThreadRelevantQuestions, ThreadRunItem, ThreadRunOptionsInput,
     },
 };
 use tracing::{debug, error, warn};
@@ -317,7 +317,7 @@ impl AnswerService {
                 attachment
                     .doc
                     .iter()
-                    .map(|doc| format!("```\n{}\n```", doc.content)),
+                    .map(|doc| format!("```\n{}\n```", get_content(doc))),
             )
             .collect();
 
@@ -465,7 +465,7 @@ fn build_user_prompt(
     let snippets: Vec<String> = assistant_attachment
         .doc
         .iter()
-        .map(|doc| format!("```\n{}\n```", doc.content))
+        .map(|doc| format!("```\n{}\n```", get_content(doc)))
         .chain(
             user_attachment_input
                 .map(|x| &x.code)
@@ -609,6 +609,13 @@ fn count_lines(path: &Path) -> std::io::Result<usize> {
     Ok(count)
 }
 
+fn get_content(doc: &MessageAttachmentDoc) -> &str {
+    match doc {
+        MessageAttachmentDoc::Web(web) => &web.content,
+        MessageAttachmentDoc::Issue(issue) => &issue.body,
+    }
+}
+
 #[cfg(test)]
 pub mod testutils;
 
@@ -623,7 +630,8 @@ mod tests {
             code::{
                 CodeSearch, CodeSearchDocument, CodeSearchHit, CodeSearchParams, CodeSearchScores,
             },
-            doc::DocSearch,
+            structured_doc::DocSearch,
+            structured_doc::DocSearchDocument,
         },
         config::AnswerConfig,
     };
@@ -710,15 +718,22 @@ mod tests {
         }
     }
 
+    fn get_title<'a>(doc: &'a DocSearchDocument) -> &'a str {
+        match doc {
+            DocSearchDocument::Web(web_doc) => &web_doc.title,
+            DocSearchDocument::Issue(issue_doc) => &issue_doc.title,
+        }
+    }
+
     #[test]
     fn test_build_user_prompt() {
         let user_input = "What is the purpose of this code?";
         let assistant_attachment = tabby_schema::thread::MessageAttachment {
-            doc: vec![tabby_schema::thread::MessageAttachmentDoc {
+            doc: vec![tabby_schema::thread::MessageAttachmentDoc::Web(tabby_schema::thread::MessageAttachmentWebDoc {
                 title: "Documentation".to_owned(),
                 content: "This code implements a basic web server.".to_owned(),
                 link: "https://example.com/docs".to_owned(),
-            }],
+            })],
             code: vec![tabby_schema::thread::MessageAttachmentCode {
                 git_url: "https://github.com/".to_owned(),
                 filepath: "server.py".to_owned(),
@@ -745,11 +760,13 @@ mod tests {
     fn test_convert_messages_to_chat_completion_request() {
         // Fake assistant attachment
         let attachment = tabby_schema::thread::MessageAttachment {
-            doc: vec![tabby_schema::thread::MessageAttachmentDoc {
-                title: "1. Example Document".to_owned(),
-                content: "This is an example".to_owned(),
-                link: "https://example.com".to_owned(),
-            }],
+            doc: vec![tabby_schema::thread::MessageAttachmentDoc::Web(
+                tabby_schema::thread::MessageAttachmentWebDoc {
+                    title: "1. Example Document".to_owned(),
+                    content: "This is an example".to_owned(),
+                    link: "https://example.com".to_owned(),
+                },
+            )],
             code: vec![tabby_schema::thread::MessageAttachmentCode {
                 git_url: "https://github.com".to_owned(),
                 filepath: "server.py".to_owned(),
@@ -929,11 +946,13 @@ mod tests {
         );
 
         let attachment = MessageAttachment {
-            doc: vec![tabby_schema::thread::MessageAttachmentDoc {
-                title: "1. Example Document".to_owned(),
-                content: "This is an example".to_owned(),
-                link: "https://example.com".to_owned(),
-            }],
+            doc: vec![tabby_schema::thread::MessageAttachmentDoc::Web(
+                tabby_schema::thread::MessageAttachmentWebDoc {
+                    title: "1. Example Document".to_owned(),
+                    content: "This is an example".to_owned(),
+                    link: "https://example.com".to_owned(),
+                },
+            )],
             code: vec![tabby_schema::thread::MessageAttachmentCode {
                 git_url: "https://github.com".to_owned(),
                 filepath: "server.py".to_owned(),
@@ -997,7 +1016,7 @@ mod tests {
         assert_eq!(hits.len(), 10, "Expected 10 hits from the doc search");
 
         assert!(
-            hits.iter().any(|hit| hit.doc.title == "Document 1"),
+            hits.iter().any(|hit| get_title(&hit.doc) == "Document 1"),
             "Expected to find a hit with title 'Document 1'"
         );
     }

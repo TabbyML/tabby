@@ -150,7 +150,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     }
 
     let index_reader_provider = Arc::new(IndexReaderProvider::default());
-    let docsearch = Arc::new(services::doc::create(
+    let docsearch = Arc::new(services::structured_doc::create(
         embedding.clone(),
         index_reader_provider.clone(),
     ));
@@ -195,7 +195,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
                 chat,
                 completion_stream,
                 docsearch,
-                |x| Box::new(services::doc::create_serper(x)),
+                |x| Box::new(services::structured_doc::create_serper(x)),
             )
             .await;
         api = new_api;

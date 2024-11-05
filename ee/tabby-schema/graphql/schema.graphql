@@ -509,7 +509,14 @@ type MessageAttachmentCodeScores {
   embedding: Float!
 }
 
-type MessageAttachmentDoc {
+type MessageAttachmentIssueDoc {
+  title: String!
+  link: String!
+  body: String!
+  closed: Boolean!
+}
+
+type MessageAttachmentWebDoc {
   title: String!
   link: String!
   content: String!
@@ -891,6 +898,8 @@ type WebContextSource implements ContextSourceId & ContextSource {
   sourceId: String!
   sourceName: String!
 }
+
+union MessageAttachmentDoc = MessageAttachmentWebDoc | MessageAttachmentIssueDoc
 
 """
   Schema of thread run stream.
