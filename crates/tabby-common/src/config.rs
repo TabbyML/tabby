@@ -487,7 +487,7 @@ mod tests {
         }
 
         assert!(
-            matches!(Config::validate_model_config(&config.model.completion), Err(ref e) if true)
+            matches!(Config::validate_model_config(&config.model.completion), Err(ref _e) if true)
         );
         assert!(Config::validate_model_config(&config.model.chat).is_ok());
     }

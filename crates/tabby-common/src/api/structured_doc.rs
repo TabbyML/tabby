@@ -160,7 +160,7 @@ fn get_json_field<'a>(
         .1
 }
 
-fn get_json_bool_field<'a>(doc: &'a TantivyDocument, field: schema::Field, name: &str) -> bool {
+fn get_json_bool_field(doc: &TantivyDocument, field: schema::Field, name: &str) -> bool {
     get_json_field(doc, field, name).as_bool().unwrap()
 }
 

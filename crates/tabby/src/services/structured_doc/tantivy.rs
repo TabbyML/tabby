@@ -107,7 +107,7 @@ impl DocSearchImpl {
                     };
                     let (_, doc_address) = top_docs.first()?;
                     let doc: TantivyDocument = searcher.doc(*doc_address).ok()?;
-                    DocSearchDocument::from_tantivy_document(&doc, &chunk)
+                    DocSearchDocument::from_tantivy_document(&doc, chunk)
                         .map(|doc| DocSearchHit { score: *score, doc })
                 },
             )

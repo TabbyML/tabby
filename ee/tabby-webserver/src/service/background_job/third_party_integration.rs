@@ -7,7 +7,7 @@ use issues::{list_github_issues, list_gitlab_issues};
 use juniper::ID;
 use serde::{Deserialize, Serialize};
 use tabby_common::config::CodeRepository;
-use tabby_index::public::{CodeIndexer, DocIndexer, WebDocument};
+use tabby_index::public::{CodeIndexer, StructuredDoc, StructuredDocIndexer};
 use tabby_inference::Embedding;
 use tabby_schema::{
     integration::{Integration, IntegrationKind, IntegrationService},
@@ -112,7 +112,7 @@ impl SchedulerGithubGitlabJob {
             "Indexing documents for repository {}",
             repository.display_name
         );
-        let index = DocIndexer::new(embedding);
+        let index = StructuredDocIndexer::new(embedding);
         let s = match fetch_all_issues(&integration, &repository).await {
             Ok(s) => s,
             Err(e) => {
@@ -169,8 +169,8 @@ impl SchedulerGithubGitlabJob {
 async fn fetch_all_issues(
     integration: &Integration,
     repository: &ProvidedRepository,
-) -> tabby_schema::Result<BoxStream<'static, (DateTime<Utc>, WebDocument)>> {
-    let s: BoxStream<(DateTime<Utc>, WebDocument)> = match &integration.kind {
+) -> tabby_schema::Result<BoxStream<'static, (DateTime<Utc>, StructuredDoc)>> {
+    let s: BoxStream<(DateTime<Utc>, StructuredDoc)> = match &integration.kind {
         IntegrationKind::Github | IntegrationKind::GithubSelfHosted => list_github_issues(
             &repository.source_id(),
             integration.api_base(),

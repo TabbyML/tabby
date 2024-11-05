@@ -1,5 +1,5 @@
-mod issue;
-mod web;
+pub mod issue;
+pub mod web;
 
 use std::sync::Arc;
 

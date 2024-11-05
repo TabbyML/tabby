@@ -1,5 +1,5 @@
-mod tantivy;
 mod serper;
+mod tantivy;
 
 use std::sync::Arc;
 

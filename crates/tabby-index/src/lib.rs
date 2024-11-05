@@ -16,8 +16,12 @@ pub mod public {
     use super::*;
     pub use super::{
         code::CodeIndexer,
-        doc::public::{DocIndexer, WebDocument},
-        structured_doc::public::{StructuredDoc, StructuredDocIndexer},
+        // Switch to StructuredDocIndexer
+        // doc::public::{DocIndexer, WebDocument},
+        structured_doc::public::{
+            StructuredDoc, StructuredDocFields, StructuredDocIndexer, StructuredDocIssueFields,
+            StructuredDocWebFields,
+        },
     };
 
     pub fn run_index_garbage_collection(active_sources: Vec<String>) -> anyhow::Result<()> {
