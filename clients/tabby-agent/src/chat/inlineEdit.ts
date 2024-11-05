@@ -9,7 +9,6 @@ import {
   ChatEditRequest,
   ChatEditParams,
   ChatEditResolveRequest,
-  ChatEditResolveParams,
   ChatEditCommandRequest,
   ChatEditCommandParams,
   ChatEditCommand,
@@ -17,15 +16,16 @@ import {
   ChatEditDocumentTooLongError,
   ChatEditMutexError,
   ServerCapabilities,
+  ChatEditResolveParams,
 } from "../protocol";
 import cryptoRandomString from "crypto-random-string";
 import { isEmptyRange } from "../utils/range";
-import { applyWorkspaceEdit, readResponseStream, Edit } from "./utils";
+import { readResponseStream, Edit, applyWorkspaceEdit } from "./utils";
+import { initMutexAbortController, mutexAbortController, resetMutexAbortController } from "./global";
 
 export class ChatEditProvider implements Feature {
   private lspConnection: Connection | undefined = undefined;
   private currentEdit: Edit | undefined = undefined;
-  private mutexAbortController: AbortController | undefined = undefined;
 
   constructor(
     private readonly configurations: Configurations,
@@ -127,15 +127,15 @@ export class ChatEditProvider implements Feature {
       throw { name: "ChatEditDocumentTooLongError", message: "Document too long" } as ChatEditDocumentTooLongError;
     }
 
-    if (this.mutexAbortController && !this.mutexAbortController.signal.aborted) {
+    if (mutexAbortController && !mutexAbortController.signal.aborted) {
       throw {
         name: "ChatEditMutexError",
         message: "Another smart edit is already in progress",
       } as ChatEditMutexError;
     }
 
-    this.mutexAbortController = new AbortController();
-    token.onCancellationRequested(() => this.mutexAbortController?.abort());
+    initMutexAbortController();
+    token.onCancellationRequested(() => mutexAbortController?.abort());
 
     let insertMode: boolean = isEmptyRange(params.location.range);
     const presetCommand = /^\/\w+\b/g.exec(params.command)?.[0];
@@ -202,7 +202,7 @@ export class ChatEditProvider implements Feature {
         model: "",
         stream: true,
       },
-      this.mutexAbortController.signal,
+      mutexAbortController?.signal,
     );
 
     const editId = "tabby-" + cryptoRandomString({ length: 6, type: "alphanumeric" });
@@ -226,10 +226,10 @@ export class ChatEditProvider implements Feature {
       readableStream,
       this.lspConnection,
       this.currentEdit,
-      this.mutexAbortController,
+      mutexAbortController,
       () => {
         this.currentEdit = undefined;
-        this.mutexAbortController = undefined;
+        resetMutexAbortController();
       },
       config.chat.edit.responseDocumentTag,
       config.chat.edit.responseCommentTag,
@@ -239,13 +239,13 @@ export class ChatEditProvider implements Feature {
 
   async stopEdit(id: ChatEditToken): Promise<void> {
     if (this.isCurrentEdit(id)) {
-      this.mutexAbortController?.abort();
+      mutexAbortController?.abort();
     }
   }
 
   async resolveEdit(params: ChatEditResolveParams): Promise<boolean> {
     if (params.action === "cancel") {
-      this.mutexAbortController?.abort();
+      mutexAbortController?.abort();
       return false;
     }
 

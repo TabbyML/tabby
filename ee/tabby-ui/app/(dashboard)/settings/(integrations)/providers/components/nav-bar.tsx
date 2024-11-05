@@ -7,7 +7,8 @@ import { cva } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
-import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
+import { useShowDemoBanner } from '@/components/demo-banner'
+import { useShowLicenseBanner } from '@/components/license-banner'
 
 import { PROVIDER_KIND_METAS } from '../constants'
 
@@ -33,9 +34,12 @@ interface SidebarButtonProps {
 
 export default function NavBar({ className }: { className?: string }) {
   const [isShowDemoBanner] = useShowDemoBanner()
-
-  const style = isShowDemoBanner
-    ? { height: `calc(100vh - ${BANNER_HEIGHT} - 4rem)` }
+  const [isShowLicenseBanner] = useShowLicenseBanner()
+  const showBanner = isShowDemoBanner || isShowLicenseBanner
+  const bannerHeight =
+    isShowDemoBanner && isShowLicenseBanner ? '7rem' : '3.5rem'
+  const style = showBanner
+    ? { height: `calc(100vh - ${bannerHeight} - 4rem)` }
     : { height: 'calc(100vh - 4rem)' }
 
   return (
