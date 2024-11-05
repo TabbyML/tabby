@@ -75,8 +75,10 @@ pub const FIELD_SOURCE_ID: &str = "source_id";
 
 pub mod corpus {
     pub const CODE: &str = "code";
-    pub const WEB: &str = "web";
     pub const STRUCTURED_DOC: &str = "structured_doc";
+
+    #[deprecated(since = "0.20.0", note = "The web corpus is deprecated and will be removed during the version upgrade.")]
+    pub const WEB: &str = "web";
 }
 
 impl IndexSchema {
