@@ -8,8 +8,6 @@ export const SESSION_STORAGE_KEY = {
   SEARCH_INITIAL_CONTEXTS: '_tabby_search_initial_contexts'
 }
 
-export const MODEL_NAME_KEY = '_model_name_key'
-
 export const SLUG_TITLE_MAX_LENGTH = 48
 
 export * as regex from './regex'

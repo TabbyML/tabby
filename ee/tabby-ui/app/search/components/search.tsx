@@ -8,19 +8,48 @@ import {
   useRef,
   useState
 } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import slugify from '@sindresorhus/slugify'
+import { compact, pick, some, uniq, uniqBy } from 'lodash-es'
 import { nanoid } from 'nanoid'
+import { ImperativePanelHandle } from 'react-resizable-panels'
+import { toast } from 'sonner'
+import { useQuery } from 'urql'
 
 import {
   ERROR_CODE_NOT_FOUND,
-  MODEL_NAME_KEY,
   SESSION_STORAGE_KEY,
   SLUG_TITLE_MAX_LENGTH
 } from '@/lib/constants'
 import { useEnableDeveloperMode } from '@/lib/experiment-flags'
+import { graphql } from '@/lib/gql/generates'
+import {
+  CodeQueryInput,
+  ContextInfo,
+  DocQueryInput,
+  InputMaybe,
+  Maybe,
+  Message,
+  Role
+} from '@/lib/gql/generates/graphql'
+import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
+import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
+import { useMe } from '@/lib/hooks/use-me'
+import { useSelectedModel } from '@/lib/hooks/use-models'
+import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
+import { ExtendedCombinedError, useThreadRun } from '@/lib/hooks/use-thread-run'
+import { updateSelectedModel } from '@/lib/stores/chat-actions'
+import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
+import { useMutation } from '@/lib/tabby/gql'
+import {
+  contextInfoQuery,
+  listThreadMessages,
+  listThreads
+} from '@/lib/tabby/query'
 import {
   AttachmentCodeItem,
   AttachmentDocItem,
@@ -47,6 +76,7 @@ import {
   ResizablePanelGroup
 } from '@/components/ui/resizable'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { ClientOnly } from '@/components/client-only'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
@@ -54,40 +84,6 @@ import TextAreaSearch from '@/components/textarea-search'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { MyAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
-
-import './search.css'
-
-import Link from 'next/link'
-import slugify from '@sindresorhus/slugify'
-import { compact, pick, some, uniq, uniqBy } from 'lodash-es'
-import { ImperativePanelHandle } from 'react-resizable-panels'
-import { toast } from 'sonner'
-import { useQuery } from 'urql'
-import useLocalStorage from 'use-local-storage'
-
-import { graphql } from '@/lib/gql/generates'
-import {
-  CodeQueryInput,
-  ContextInfo,
-  DocQueryInput,
-  InputMaybe,
-  Maybe,
-  Message,
-  Role
-} from '@/lib/gql/generates/graphql'
-import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
-import { useDebounceValue } from '@/lib/hooks/use-debounce'
-import { useMe } from '@/lib/hooks/use-me'
-import useRouterStuff from '@/lib/hooks/use-router-stuff'
-import { ExtendedCombinedError, useThreadRun } from '@/lib/hooks/use-thread-run'
-import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
-import { useMutation } from '@/lib/tabby/gql'
-import {
-  contextInfoQuery,
-  listThreadMessages,
-  listThreads
-} from '@/lib/tabby/query'
-import { Separator } from '@/components/ui/separator'
 
 import { AssistantMessageSection } from './assistant-message-section'
 import { DevPanel } from './dev-panel'
@@ -168,10 +164,6 @@ export function Search() {
 
     return activePathname.match(regex)?.[1]?.split('-').pop()
   }, [activePathname])
-  const [selectedModel, setSelectedModel] = useLocalStorage<string>(
-    MODEL_NAME_KEY,
-    ''
-  )
 
   const updateThreadMessage = useMutation(updateThreadMessageMutation)
 
@@ -324,6 +316,8 @@ export function Search() {
   })
 
   const isLoadingRef = useLatest(isLoading)
+
+  const { selectedModel, isModelLoading, models } = useSelectedModel()
 
   const currentMessageForDev = useMemo(() => {
     return messages.find(item => item.id === messageIdForDev)
@@ -705,6 +699,10 @@ export function Search() {
     )
   }
 
+  const onModelSelect = (model: string) => {
+    updateSelectedModel(model)
+  }
+
   const hasThreadError = useMemo(() => {
     if (!isReady || fetchingThread || !threadIdFromURL) return undefined
     if (threadError || !threadData?.threads?.edges?.length) {
@@ -873,8 +871,6 @@ export function Search() {
                     )}
                   >
                     <TextAreaSearch
-                      modelName={selectedModel}
-                      onModelSelect={setSelectedModel}
                       onSearch={onSubmitSearch}
                       className="min-h-[5rem] lg:max-w-4xl"
                       placeholder="Ask a follow up question"
@@ -882,6 +878,10 @@ export function Search() {
                       isLoading={isLoading}
                       contextInfo={contextInfoData?.contextInfo}
                       fetchingContextInfo={fetchingContextInfo}
+                      modelName={selectedModel}
+                      onModelSelect={onModelSelect}
+                      isModelLoading={isModelLoading}
+                      models={models}
                     />
                   </div>
                 )}
