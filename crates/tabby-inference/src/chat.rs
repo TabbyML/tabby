@@ -8,6 +8,7 @@ use async_openai::{
 use async_trait::async_trait;
 use derive_builder::Builder;
 use tabby_common::terminal::{HeaderFormat, InfoMessage};
+use tracing::warn;
 
 #[async_trait]
 pub trait ChatCompletionStream: Sync + Send {
@@ -62,18 +63,7 @@ impl ExtendedOpenAIConfig {
             request.model = self.model_name.clone();
         } else if let Some(supported_models) = &self.supported_models {
             if !supported_models.contains(&request.model) {
-                InfoMessage::new(
-                    "Invalid model to quest",
-                    HeaderFormat::BoldRed,
-                    &[
-                        &format!(
-                            "Warning: {} Model is not supported, falling back to {}",
-                            request.model,
-                            self.model_name
-                        )
-                    ],
-                )
-                .print();
+                warn!("Warning: {} model is not supported, falling back to {}", request.model, self.model_name);
                 request.model = self.model_name.clone();
             }
         }
