@@ -171,7 +171,7 @@ export default function TextAreaSearch({
           'min-h-[2.5rem]': isFollowup
         })}
       >
-        <div className="flex-1 mr-1">
+        <div className="mr-1 flex-1">
           <PromptEditor
             editable
             contextInfo={contextInfo}
@@ -210,7 +210,7 @@ export default function TextAreaSearch({
             </div>
           )}
         </div>
-        <div className={cn('flex items-center justify-between gap-2 mb-3')}>
+        <div className={cn('mb-3 flex items-center justify-between gap-2')}>
           <div
             className={cn(
               'flex items-center justify-center rounded-lg p-1 transition-all',
@@ -246,7 +246,7 @@ export default function TextAreaSearch({
             loading={isModelLoading || fetchingContextInfo}
             delay={0}
             fallback={
-              <div className="w-[40%] h-8 flex items-center">
+              <div className="flex h-8 w-[40%] items-center">
                 <Skeleton className="h-5 w-full" />
               </div>
             }
@@ -328,7 +328,7 @@ function ModelSelect({
       loading={isInitializing}
       fallback={
         <div className="w-full pl-2">
-          <Skeleton className="w-[20%] h-3" />
+          <Skeleton className="h-3 w-[20%]" />
         </div>
       }
     >
