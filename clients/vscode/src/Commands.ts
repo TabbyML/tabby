@@ -12,6 +12,7 @@ import {
   ThemeIcon,
   QuickPickItem,
   ViewColumn,
+  Range,
 } from "vscode";
 import os from "os";
 import path from "path";
@@ -295,13 +296,13 @@ export class Commands {
 
       chatPanelViewProvider.resolveWebviewView(panel);
     },
-    "chat.edit.start": async (userCommand?: string) => {
+    "chat.edit.start": async (userCommand?: string, range?: Range) => {
       const editor = window.activeTextEditor;
       if (!editor) {
         return;
       }
 
-      const editLocation = {
+      let editLocation = {
         uri: editor.document.uri.toString(),
         range: {
           start: { line: editor.selection.start.line, character: 0 },
@@ -311,6 +312,19 @@ export class Commands {
           },
         },
       };
+      if (range) {
+        const FIXME_OFFSET = 10;
+        editLocation = {
+          uri: editor.document.uri.toString(),
+          range: {
+            start: { line: range.start.line - FIXME_OFFSET, character: 0 },
+            end: {
+              line: range.end.line + 1 + FIXME_OFFSET,
+              character: Number.MAX_SAFE_INTEGER,
+            },
+          },
+        };
+      }
 
       const inlineEditController = new InlineEditController(
         this.client,
