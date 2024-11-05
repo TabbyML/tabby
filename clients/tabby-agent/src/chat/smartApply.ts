@@ -22,12 +22,12 @@ import cryptoRandomString from "crypto-random-string";
 import { getLogger } from "../logger";
 import { readResponseStream, showDocument, Edit } from "./utils";
 import { getSmartApplyRange } from "./smartRange";
+import { initMutexAbortController, mutexAbortController, resetMutexAbortController } from "./global";
 
 const logger = getLogger("SmartApplyFeature");
 
 export class SmartApplyFeature implements Feature {
   private lspConnection: Connection | undefined = undefined;
-  private mutexAbortController: AbortController | undefined = undefined;
   constructor(
     private readonly configurations: Configurations,
     private readonly tabbyApiClient: TabbyApiClient,
@@ -61,16 +61,16 @@ export class SmartApplyFeature implements Feature {
       return false;
     }
 
-    if (this.mutexAbortController && !this.mutexAbortController.signal.aborted) {
+    if (mutexAbortController && !mutexAbortController.signal.aborted) {
       logger.warn("Another smart edit is already in progress");
       throw {
         name: "ChatEditMutexError",
         message: "Another smart edit is already in progress",
       } as ChatEditMutexError;
     }
-    this.mutexAbortController = new AbortController();
-    logger.debug("mutex abort status: " + (this.mutexAbortController === undefined));
-    token.onCancellationRequested(() => this.mutexAbortController?.abort());
+    initMutexAbortController();
+    logger.debug("mutex abort status: " + (mutexAbortController === undefined));
+    token.onCancellationRequested(() => mutexAbortController?.abort());
 
     let applyRange = getSmartApplyRange(document, params.text);
     //if cannot find range, lets use backend LLMs
@@ -115,9 +115,9 @@ export class SmartApplyFeature implements Feature {
         this.lspConnection,
         this.tabbyApiClient,
         this.configurations,
-        this.mutexAbortController,
+        mutexAbortController,
         () => {
-          this.mutexAbortController = undefined;
+          resetMutexAbortController();
         },
       );
       return true;
@@ -126,7 +126,7 @@ export class SmartApplyFeature implements Feature {
       return false;
     } finally {
       logger.debug("Resetting mutex abort controller");
-      this.mutexAbortController = undefined;
+      resetMutexAbortController();
     }
   }
 }
@@ -222,7 +222,7 @@ async function provideSmartApplyEditLLM(
   lspConnection: Connection,
   tabbyApiClient: TabbyApiClient,
   configurations: Configurations,
-  mutexAbortController: AbortController,
+  mutexAbortController: AbortController | undefined,
   onResetMutex: () => void,
 ): Promise<boolean> {
   if (!document) {
