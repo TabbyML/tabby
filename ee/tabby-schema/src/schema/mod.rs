@@ -740,7 +740,7 @@ impl Query {
                         .build()
                         .expect("Failed to build completion options");
 
-                    let (first, stream) = completion
+                    let (first, _) = completion
                         .generate("def fib(n):\n", options)
                         .await
                         .into_future()
