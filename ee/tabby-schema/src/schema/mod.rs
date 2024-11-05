@@ -746,7 +746,7 @@ impl Query {
                         .into_future()
                         .await;
 
-                    if let Some(_) = first {
+                    if first.is_some() {
                         return Ok(ModelBackendHealthInfo {
                             latency_ms: start.elapsed().as_millis() as i32,
                         });
