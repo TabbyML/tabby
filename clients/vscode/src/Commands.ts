@@ -313,14 +313,13 @@ export class Commands {
         },
       };
       if (range) {
-        const FIXME_OFFSET = 10;
         editLocation = {
           uri: editor.document.uri.toString(),
           range: {
-            start: { line: range.start.line - FIXME_OFFSET, character: 0 },
+            start: { line: range.start.line, character: 0 },
             end: {
-              line: range.end.line + 1 + FIXME_OFFSET,
-              character: Number.MAX_SAFE_INTEGER,
+              line: range.end.line === 0 ? range.end.line : range.end.line + 1,
+              character: range.end.line === 0 ? Number.MAX_SAFE_INTEGER : 0,
             },
           },
         };
