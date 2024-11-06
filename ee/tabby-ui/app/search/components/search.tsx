@@ -84,6 +84,7 @@ import TextAreaSearch from '@/components/textarea-search'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { MyAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
+import { AgentSteps } from '@/components/agent-steps/agent-steps'
 
 import { AssistantMessageSection } from './assistant-message-section'
 import { DevPanel } from './dev-panel'
@@ -781,6 +782,9 @@ export function Search() {
                       } else if (message.role === Role.Assistant) {
                         return (
                           <>
+                            <div className="flex justify-center flex flex-col gap-y-5 pb-8 pt-2">
+                              <AgentSteps />
+                            </div>
                             <AssistantMessageSection
                               key={message.id}
                               className="pb-8 pt-2"
