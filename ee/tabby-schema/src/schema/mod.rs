@@ -723,7 +723,7 @@ impl Query {
         ctx: &Context,
         backend: ModelHealthBackend,
     ) -> Result<ModelBackendHealthInfo, TestModelConnectionError> {
-        check_user_allow_auth_token(ctx).await?;
+        check_admin(ctx).await?;
 
         // count request time in milliseconds
         let start = Instant::now();
@@ -741,16 +741,15 @@ impl Query {
                         .expect("Failed to build completion options");
 
                     let (first, _) = completion
-                        .generate("hello Tabby", options)
+                        .generate("def fib(n):\n", options)
                         .await
                         .into_future()
                         .await;
-                    if let Some(first) = first {
-                        if !first.is_empty() {
-                            return Ok(ModelBackendHealthInfo {
-                                latency_ms: start.elapsed().as_millis() as i32,
-                            });
-                        }
+
+                    if first.is_some() {
+                        return Ok(ModelBackendHealthInfo {
+                            latency_ms: start.elapsed().as_millis() as i32,
+                        });
                     }
 
                     Err(TestModelConnectionError::FailedToConnect(
