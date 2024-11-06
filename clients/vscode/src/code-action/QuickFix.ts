@@ -4,7 +4,6 @@ import {
   CodeActionContext,
   CodeActionKind,
   CodeActionProvider as CodeActionProviderInterface,
-  Position,
   Range,
   Selection,
   TextDocument,
@@ -38,12 +37,7 @@ export class QuickFixCodeActionProvider implements CodeActionProviderInterface {
           if (!mergedRange) {
             return diagnostic.range;
           }
-          const startLine = Math.min(mergedRange.start.line, diagnostic.range.start.line);
-          const startChar = Math.min(mergedRange.start.character, diagnostic.range.start.character);
-          const endLine = Math.max(mergedRange.end.line, diagnostic.range.end.line);
-          const endChar = Math.max(mergedRange.end.character, diagnostic.range.end.character);
-
-          return new Range(new Position(startLine, startChar), new Position(endLine, endChar));
+          return mergedRange.union(diagnostic.range);
         },
         null as Range | null,
       );

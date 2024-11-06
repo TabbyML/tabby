@@ -302,28 +302,18 @@ export class Commands {
         return;
       }
 
-      let editLocation = {
+      const editRange = range || editor.selection;
+
+      const editLocation = {
         uri: editor.document.uri.toString(),
         range: {
-          start: { line: editor.selection.start.line, character: 0 },
+          start: { line: editRange.start.line, character: 0 },
           end: {
-            line: editor.selection.end.character === 0 ? editor.selection.end.line : editor.selection.end.line + 1,
+            line: editRange.end.character === 0 ? editRange.end.line : editRange.end.line + 1,
             character: 0,
           },
         },
       };
-      if (range) {
-        editLocation = {
-          uri: editor.document.uri.toString(),
-          range: {
-            start: { line: range.start.line, character: 0 },
-            end: {
-              line: range.end.line === 0 ? range.end.line : range.end.line + 1,
-              character: range.end.line === 0 ? Number.MAX_SAFE_INTEGER : 0,
-            },
-          },
-        };
-      }
 
       const inlineEditController = new InlineEditController(
         this.client,
