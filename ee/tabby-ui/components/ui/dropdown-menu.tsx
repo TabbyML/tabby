@@ -17,6 +17,8 @@ const DropdownMenuSub = DropdownMenuPrimitive.Sub
 
 const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup
 
+const DropdownMenuIndicator = DropdownMenuPrimitive.ItemIndicator
+
 const DropdownMenuSubContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.SubContent>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
@@ -68,6 +70,24 @@ const DropdownMenuItem = React.forwardRef<
   />
 ))
 DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName
+
+const DropdownMenuRadioItem = React.forwardRef<
+  React.ElementRef<typeof DropdownMenuPrimitive.RadioItem>,
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.RadioItem> & {
+    inset?: boolean
+  }
+>(({ className, inset, ...props }, ref) => (
+  <DropdownMenuPrimitive.RadioItem
+    ref={ref}
+    className={cn(
+      'relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+      inset && 'pl-8',
+      className
+    )}
+    {...props}
+  />
+))
+DropdownMenuRadioItem.displayName = DropdownMenuPrimitive.RadioItem.displayName
 
 const DropdownMenuLabel = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Label>,
@@ -124,5 +144,7 @@ export {
   DropdownMenuPortal,
   DropdownMenuSub,
   DropdownMenuSubContent,
-  DropdownMenuRadioGroup
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuIndicator
 }

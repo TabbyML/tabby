@@ -74,3 +74,10 @@ export const updateChat = (id: string, chat: Partial<Chat>) => {
     })
   }))
 }
+
+export const updateSelectedModel = (model: string | undefined) => {
+  set(state => ({
+    ...state,
+    selectedModel: model
+  }))
+}

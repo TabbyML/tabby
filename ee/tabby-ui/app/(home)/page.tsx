@@ -9,8 +9,10 @@ import { useQuery } from 'urql'
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
+import { useSelectedModel } from '@/lib/hooks/use-models'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useStore } from '@/lib/hooks/use-store'
+import { updateSelectedModel } from '@/lib/stores/chat-actions'
 import {
   clearHomeScrollPosition,
   setHomeScrollPosition,
@@ -47,6 +49,8 @@ function MainPanel() {
   })
   const scrollY = useStore(useScrollStore, state => state.homePage)
 
+  const { selectedModel, isModelLoading, models } = useSelectedModel()
+
   // Prefetch the search page
   useEffect(() => {
     router.prefetch('/search')
@@ -68,6 +72,10 @@ function MainPanel() {
     resetScroll()
     resettingScroller.current = true
   }, [])
+
+  const handleSelectModel = (model: string) => {
+    updateSelectedModel(model)
+  }
 
   if (!healthInfo || !data?.me) return <></>
 
@@ -138,6 +146,10 @@ function MainPanel() {
                 cleanAfterSearch={false}
                 contextInfo={contextInfoData?.contextInfo}
                 fetchingContextInfo={fetchingContextInfo}
+                modelName={selectedModel}
+                onModelSelect={handleSelectModel}
+                isModelLoading={isModelLoading}
+                models={models}
               />
             </AnimationWrapper>
           )}

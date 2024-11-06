@@ -13,6 +13,7 @@ import {
   CaseSensitive,
   ChevronsDownUp,
   CircleAlert,
+  CircleHelp,
   CirclePlay,
   Files,
   FileText,
@@ -1676,6 +1677,13 @@ function IconCircleAlert({
   return <CircleAlert className={cn('h-4 w-4', className)} {...props} />
 }
 
+function IconCircleHelp({
+  className,
+  ...props
+}: React.ComponentProps<typeof CircleHelp>) {
+  return <CircleHelp className={cn('h-4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1779,5 +1787,6 @@ export {
   IconCaseSensitive,
   IconRegex,
   IconSquareActivity,
-  IconCircleAlert
+  IconCircleAlert,
+  IconCircleHelp
 }

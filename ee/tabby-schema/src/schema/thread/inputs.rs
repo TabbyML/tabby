@@ -70,6 +70,9 @@ fn validate_code_query_input(input: &CodeQueryInput) -> Result<(), ValidationErr
 
 #[derive(GraphQLInputObject, Validate, Default, Clone)]
 pub struct ThreadRunOptionsInput {
+    #[graphql(default)]
+    pub model_name: Option<String>,
+
     #[validate(nested)]
     #[graphql(default)]
     pub doc_query: Option<DocQueryInput>,

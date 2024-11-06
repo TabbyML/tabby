@@ -67,6 +67,7 @@ type MergeUnionType<T> = {
 }
 
 export type ThreadRunContexts = {
+  modelName?: string
   searchPublic?: boolean
   docSourceIds?: string[]
   codeSourceIds?: string[]

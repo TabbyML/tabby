@@ -1,4 +1,4 @@
-use std::{env::var, net::TcpListener, process::Stdio};
+use std::{env::var, net::TcpListener, process::Stdio, time::Duration};
 
 use tokio::{io::AsyncBufReadExt, task::JoinHandle};
 use tracing::{debug, warn};
@@ -126,7 +126,14 @@ impl LlamaCppSupervisor {
         debug!("Waiting for llama-server <{}> to start...", self.name);
         let client = reqwest::Client::builder().no_proxy().build().unwrap();
         loop {
-            let Ok(resp) = client.get(api_endpoint(self.port) + "/health").send().await else {
+            let Ok(resp) = client
+                .get(api_endpoint(self.port) + "/health")
+                .timeout(Duration::from_secs(1))
+                .send()
+                .await
+            else {
+                debug!("llama-server <{}> not ready yet, retrying...", self.name);
+                tokio::time::sleep(Duration::from_secs(1)).await;
                 continue;
             };
 

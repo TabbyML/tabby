@@ -1,5 +1,7 @@
 import { Metadata } from 'next'
 
+import { LicenseBanner } from '@/components/license-banner'
+
 import MainContent from './components/main-content'
 import Sidebar from './components/sidebar'
 
@@ -16,9 +18,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <main className="flex flex-1">
-      <Sidebar />
-      <MainContent>{children}</MainContent>
-    </main>
+    <>
+      <LicenseBanner />
+      <main className="flex flex-1">
+        <Sidebar />
+        <MainContent>{children}</MainContent>
+      </main>
+    </>
   )
 }

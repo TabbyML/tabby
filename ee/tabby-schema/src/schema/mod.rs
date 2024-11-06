@@ -19,9 +19,12 @@ pub mod worker;
 use std::{sync::Arc, time::Instant};
 
 use access_policy::{AccessPolicyService, SourceIdAccessPolicy};
-use async_openai::types::{
-    ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
-    CreateChatCompletionRequestArgs,
+use async_openai::{
+    error::OpenAIError,
+    types::{
+        ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
+        CreateChatCompletionRequestArgs,
+    },
 };
 use auth::{
     AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
@@ -163,6 +166,15 @@ pub enum TestModelConnectionError {
 
     #[error("{0}")]
     Other(#[from] CoreError),
+}
+
+impl From<OpenAIError> for TestModelConnectionError {
+    fn from(err: OpenAIError) -> Self {
+        match err {
+            OpenAIError::ApiError(e) => Self::FailedToConnect(e.message),
+            _ => Self::FailedToConnect(err.to_string()),
+        }
+    }
 }
 
 impl<S: ScalarValue> IntoFieldError<S> for TestModelConnectionError {
@@ -763,7 +775,7 @@ impl Query {
                         Ok(_) => Ok(ModelBackendHealthInfo {
                             latency_ms: start.elapsed().as_millis() as i32,
                         }),
-                        Err(e) => Err(TestModelConnectionError::FailedToConnect(e.to_string())),
+                        Err(e) => Err(e.into()),
                     }
                 } else {
                     Err(TestModelConnectionError::NotEnabled)

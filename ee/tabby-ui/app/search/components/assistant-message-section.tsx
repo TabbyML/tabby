@@ -1,7 +1,5 @@
 'use client'
 
-import './search.css'
-
 import { MouseEventHandler, useContext, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import DOMPurify from 'dompurify'

@@ -24,6 +24,7 @@ export async function activate(context: ExtensionContext) {
   const clientOptions: LanguageClientOptions = {
     documentSelector: [
       { scheme: "file" },
+      { scheme: "vscode-vfs" },
       { scheme: "untitled" },
       { scheme: "vscode-notebook-cell" },
       { scheme: "vscode-userdata" },
