@@ -8,7 +8,6 @@ import { graphql } from '@/lib/gql/generates'
 import { MeQueryQuery } from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
 import { useExternalURL } from '@/lib/hooks/use-network-setting'
-import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useSignOut } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
@@ -63,7 +62,6 @@ export default function UserPanel({
   const signOut = useSignOut()
   const [{ data }, reexecuteQuery] = useMe()
   const user = data?.me
-  const isChatEnabled = useIsChatEnabled()
   const [signOutLoading, setSignOutLoading] = React.useState(false)
   const handleSignOut: React.MouseEventHandler<HTMLDivElement> = async e => {
     e.preventDefault()
@@ -92,10 +90,11 @@ export default function UserPanel({
       <DropdownMenuContent
         side="bottom"
         align="end"
-        className="overflow-y-auto p-0"
+        className="relative overflow-y-auto p-0"
+        style={{ maxHeight: 'calc(100vh - 6rem)' }}
       >
-        <div className="space-y-4 p-4">
-          <div className="flex items-center gap-2">
+        <div className="p-4 pt-0">
+          <div className="sticky top-0 z-10 flex items-center gap-2 bg-popover pb-2 pt-4">
             <UserAvatar
               user={user}
               className="h-12 w-12 shrink-0 border-[2px] border-white"
@@ -117,7 +116,11 @@ export default function UserPanel({
             </div>
           </div>
 
-          <Configuration user={user} reexecuteQuery={reexecuteQuery} />
+          <Configuration
+            className="mt-2"
+            user={user}
+            reexecuteQuery={reexecuteQuery}
+          />
         </div>
 
         <DropdownMenuSeparator className="mb-1 mt-0" />
