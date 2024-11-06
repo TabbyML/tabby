@@ -90,11 +90,11 @@ export default function UserPanel({
       <DropdownMenuContent
         side="bottom"
         align="end"
-        className="overflow-y-auto p-0"
+        className="relative overflow-y-auto p-0"
         style={{ maxHeight: 'calc(100vh - 6rem)' }}
       >
-        <div className="space-y-4 p-4">
-          <div className="flex items-center gap-2">
+        <div className="p-4 pt-0">
+          <div className="bg-popover sticky top-0 z-10 flex items-center gap-2 pt-4 pb-2">
             <UserAvatar
               user={user}
               className="h-12 w-12 shrink-0 border-[2px] border-white"
@@ -105,7 +105,7 @@ export default function UserPanel({
                   <DropdownMenuLabel className="p-0">
                     {user.name}
                   </DropdownMenuLabel>
-                  <DropdownMenuLabel className="p-0 text-sm font-normal text-muted-foreground">
+                  <DropdownMenuLabel className="text-muted-foreground p-0 text-sm font-normal">
                     {user.email}
                   </DropdownMenuLabel>
                 </>
@@ -116,7 +116,11 @@ export default function UserPanel({
             </div>
           </div>
 
-          <Configuration user={user} reexecuteQuery={reexecuteQuery} />
+          <Configuration
+            className="mt-2"
+            user={user}
+            reexecuteQuery={reexecuteQuery}
+          />
         </div>
 
         <DropdownMenuSeparator className="mb-1 mt-0" />
@@ -196,7 +200,7 @@ function Configuration({
       >
         <CardContent className="p-0">
           <div className="flex flex-col gap-2">
-            <Label className="text-xs text-muted-foreground">
+            <Label className="text-muted-foreground text-xs">
               Endpoint URL
             </Label>
             <span className="group relative">
@@ -215,7 +219,7 @@ function Configuration({
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
-            <Label className="text-xs text-muted-foreground">Token</Label>
+            <Label className="text-muted-foreground text-xs">Token</Label>
             <span className="group relative">
               <Input
                 value={user.authToken}
@@ -236,7 +240,7 @@ function Configuration({
             </span>
           </div>
         </CardContent>
-        <CardFooter className="mt-3 p-0 text-xs text-muted-foreground">
+        <CardFooter className="text-muted-foreground mt-3 p-0 text-xs">
           <span>
             Use information above for IDE extensions / plugins configuration,
             see{' '}
