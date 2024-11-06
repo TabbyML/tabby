@@ -8,7 +8,6 @@ import { graphql } from '@/lib/gql/generates'
 import { MeQueryQuery } from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
 import { useExternalURL } from '@/lib/hooks/use-network-setting'
-import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useSignOut } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
@@ -63,7 +62,6 @@ export default function UserPanel({
   const signOut = useSignOut()
   const [{ data }, reexecuteQuery] = useMe()
   const user = data?.me
-  const isChatEnabled = useIsChatEnabled()
   const [signOutLoading, setSignOutLoading] = React.useState(false)
   const handleSignOut: React.MouseEventHandler<HTMLDivElement> = async e => {
     e.preventDefault()
@@ -93,6 +91,7 @@ export default function UserPanel({
         side="bottom"
         align="end"
         className="overflow-y-auto p-0"
+        style={{ maxHeight: 'calc(100vh - 6rem)' }}
       >
         <div className="space-y-4 p-4">
           <div className="flex items-center gap-2">
