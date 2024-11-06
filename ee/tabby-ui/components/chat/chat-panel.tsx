@@ -111,13 +111,13 @@ function ChatPanelRenderer(
                 <Badge
                   variant="outline"
                   key={`${activeSelection.filepath}_active_selection`}
-                  className="inline-flex items-center gap-1.5 rounded text-sm font-semibold flex-nowrap overflow-hidden"
+                  className="inline-flex flex-nowrap items-center gap-1.5 overflow-hidden rounded text-sm font-semibold"
                 >
                   <ContextLabel
                     context={activeSelection}
                     className="flex-1 truncate"
                   />
-                  <span className="text-muted-foreground shrink-0">
+                  <span className="shrink-0 text-muted-foreground">
                     Current file
                   </span>
                 </Badge>
@@ -127,11 +127,11 @@ function ChatPanelRenderer(
                   <Badge
                     variant="outline"
                     key={item.filepath + idx}
-                    className="inline-flex items-center gap-0.5 rounded text-sm font-semibold flex-nowrap overflow-hidden"
+                    className="inline-flex flex-nowrap items-center gap-0.5 overflow-hidden rounded text-sm font-semibold"
                   >
                     <ContextLabel context={item} />
                     <IconRemove
-                      className="cursor-pointer text-muted-foreground transition-all hover:text-red-300 shrink-0"
+                      className="shrink-0 cursor-pointer text-muted-foreground transition-all hover:text-red-300"
                       onClick={removeRelevantContext.bind(null, idx)}
                     />
                   </Badge>
@@ -172,7 +172,7 @@ function ContextLabel({
       : `${context.range.start}-${context.range.end}`
 
   return (
-    <span className={cn('text-foreground truncate', className)}>
+    <span className={cn('truncate text-foreground', className)}>
       {fileName}
       <span className="text-muted-foreground">{`:${line}`}</span>
     </span>
