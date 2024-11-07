@@ -3,12 +3,12 @@
 import { useEffect } from 'react'
 import { Maybe } from 'graphql/jsutils/Maybe'
 import useSWR, { SWRResponse } from 'swr'
+import { useStore } from 'zustand'
 
 import fetcher from '@/lib/tabby/fetcher'
 
 import { updateSelectedModel } from '../stores/chat-actions'
 import { useChatStore } from '../stores/chat-store'
-import { useStore } from './use-store'
 
 export interface ModelInfo {
   completion: Maybe<Array<string>>
@@ -33,24 +33,20 @@ export function useModels(): SWRResponse<ModelInfo> {
 
 export function useSelectedModel() {
   const { data: modelData, isLoading: isFetchingModel } = useModels()
-  const isModelHydrated = useStore(useChatStore, state => state._hasHydrated)
 
   const selectedModel = useStore(useChatStore, state => state.selectedModel)
 
-  // once model hydrated, try to init model
   useEffect(() => {
-    if (isModelHydrated && !isFetchingModel) {
-      // check if current model is valid
+    if (!isFetchingModel) {
+      // init model
       const validModel = getModelFromModelInfo(selectedModel, modelData?.chat)
-      if (selectedModel !== validModel) {
-        updateSelectedModel(validModel)
-      }
+      updateSelectedModel(validModel)
     }
-  }, [isModelHydrated, isFetchingModel])
+  }, [isFetchingModel])
 
   return {
     // fetching model data or trying to get selected model from localstorage
-    isModelLoading: isFetchingModel || !isModelHydrated,
+    isModelLoading: isFetchingModel,
     selectedModel,
     models: modelData?.chat
   }
