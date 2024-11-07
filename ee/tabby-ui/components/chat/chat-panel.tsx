@@ -2,6 +2,7 @@ import React, { RefObject } from 'react'
 import type { UseChatHelpers } from 'ai/react'
 import type { Context } from 'tabby-chat-panel'
 
+import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -110,10 +111,14 @@ function ChatPanelRenderer(
                 <Badge
                   variant="outline"
                   key={`${activeSelection.filepath}_active_selection`}
-                  className="inline-flex items-center gap-0.5 rounded text-sm font-semibold"
+                  className="inline-flex flex-nowrap items-center gap-1.5 overflow-hidden rounded text-sm font-semibold"
                 >
-                  <span className="text-foreground">
-                    {getContextLabel(activeSelection)}
+                  <ContextLabel
+                    context={activeSelection}
+                    className="flex-1 truncate"
+                  />
+                  <span className="shrink-0 text-muted-foreground">
+                    Current file
                   </span>
                 </Badge>
               ) : null}
@@ -122,13 +127,11 @@ function ChatPanelRenderer(
                   <Badge
                     variant="outline"
                     key={item.filepath + idx}
-                    className="inline-flex items-center gap-0.5 rounded text-sm font-semibold"
+                    className="inline-flex flex-nowrap items-center gap-0.5 overflow-hidden rounded text-sm font-semibold"
                   >
-                    <span className="text-foreground">
-                      {getContextLabel(item)}
-                    </span>
+                    <ContextLabel context={item} />
                     <IconRemove
-                      className="cursor-pointer text-muted-foreground transition-all hover:text-red-300"
+                      className="shrink-0 cursor-pointer text-muted-foreground transition-all hover:text-red-300"
                       onClick={removeRelevantContext.bind(null, idx)}
                     />
                   </Badge>
@@ -155,12 +158,23 @@ export const ChatPanel = React.forwardRef<ChatPanelRef, ChatPanelProps>(
   ChatPanelRenderer
 )
 
-function getContextLabel(context: Context) {
+function ContextLabel({
+  context,
+  className
+}: {
+  context: Context
+  className?: string
+}) {
   const [fileName] = context.filepath.split('/').slice(-1)
   const line =
     context.range.start === context.range.end
       ? `${context.range.start}`
       : `${context.range.start}-${context.range.end}`
 
-  return `${fileName}: ${line}`
+  return (
+    <span className={cn('truncate text-foreground', className)}>
+      {fileName}
+      <span className="text-muted-foreground">{`:${line}`}</span>
+    </span>
+  )
 }
