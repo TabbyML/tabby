@@ -13,6 +13,7 @@ import { ClientOnly } from './client-only'
 import { ThemeToggle } from './theme-toggle'
 import { MyAvatar } from './user-avatar'
 import UserPanel from './user-panel'
+import { SidebarTrigger } from './ui/sidebar'
 
 export function Header() {
   const { data } = useHealth()
@@ -23,6 +24,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b px-4 backdrop-blur-xl lg:px-10">
       <div className="flex items-center gap-4">
+        <SidebarTrigger />
         {newVersionAvailable && (
           <a
             target="_blank"

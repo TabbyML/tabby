@@ -36,7 +36,8 @@ const useAllowSelfSignup = () => {
 }
 
 const useIsDemoMode = () => {
-  return useServerInfo()?.isDemoMode
+  return true
+  // return useServerInfo()?.isDemoMode
 }
 
 export {

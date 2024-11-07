@@ -10,7 +10,6 @@ import { cva } from 'class-variance-authority'
 import { escapeRegExp } from 'lodash-es'
 
 import { useMe } from '@/lib/hooks/use-me'
-import { cn } from '@/lib/utils'
 import {
   Collapsible,
   CollapsibleContent,
@@ -23,10 +22,10 @@ import {
   IconLightingBolt,
   IconUser
 } from '@/components/ui/icons'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import { useShowLicenseBanner } from '@/components/license-banner'
 import LoadingWrapper from '@/components/loading-wrapper'
+import { Sidebar, SidebarContent, SidebarHeader } from '@/components/ui/sidebar'
 
 export interface SidebarProps {
   children?: React.ReactNode
@@ -41,18 +40,18 @@ type MenuLeaf = {
 
 type Menu =
   | {
-      title: string
-      icon: React.ReactNode
-      allowUser?: boolean
-      children: MenuLeaf[]
-    }
+    title: string
+    icon: React.ReactNode
+    allowUser?: boolean
+    children: MenuLeaf[]
+  }
   | {
-      title: string
-      href: string
-      icon: React.ReactNode
-      allowUser?: boolean
-      children?: never
-    }
+    title: string
+    href: string
+    icon: React.ReactNode
+    allowUser?: boolean
+    children?: never
+  }
 
 const menus: Menu[] = [
   {
@@ -123,7 +122,7 @@ const menus: Menu[] = [
   }
 ]
 
-export default function Sidebar({ children, className }: SidebarProps) {
+export default function AppSidebar({ children, className }: SidebarProps) {
   const [{ data, fetching: fetchingMe }] = useMe()
   const isAdmin = data?.me.isAdmin
   const [isShowDemoBanner] = useShowDemoBanner()
@@ -131,81 +130,76 @@ export default function Sidebar({ children, className }: SidebarProps) {
   const showBanner = isShowDemoBanner || isShowLicenseBanner
   const style = showBanner
     ? {
-        height: `calc(100vh - ${isShowDemoBanner ? BANNER_HEIGHT : '0rem'} - ${
-          isShowLicenseBanner ? BANNER_HEIGHT : '0rem'
-        })`
-      }
+      height: `calc(100vh - ${isShowDemoBanner ? BANNER_HEIGHT : '0rem'} - ${isShowLicenseBanner ? BANNER_HEIGHT : '0rem'
+        })`,
+      top: isShowDemoBanner ? BANNER_HEIGHT : 0
+    }
     : { height: '100vh' }
 
   return (
-    <ScrollArea
-      className={cn('grid overflow-hidden md:grid-cols-[280px_1fr]', className)}
-    >
-      <div
-        className="hidden w-[280px] border-r pt-4 transition-all md:block"
-        style={style}
-      >
-        <nav className="flex h-full flex-col overflow-hidden text-sm font-medium">
-          <Link href="/" className="flex justify-center pb-4">
-            <Image
-              src={logoUrl}
-              alt="logo"
-              width={128}
-              className="dark:hidden"
-            />
-            <Image
-              src={logoDarkUrl}
-              alt="logo"
-              width={96}
-              className="hidden dark:block"
-            />
-          </Link>
-          <div className="flex-1 overflow-y-auto">
-            <div className="flex flex-col gap-2 px-4 pb-4">
-              <LoadingWrapper loading={fetchingMe}>
-                {menus.map((menu, index) => {
-                  if (menu.allowUser || isAdmin) {
-                    if (menu.children) {
-                      return (
-                        <SidebarCollapsible
-                          key={index}
-                          title={
-                            <>
-                              {menu.icon} {menu.title}
-                            </>
+    <Sidebar style={style} collapsible="icon">
+      <SidebarHeader>
+        <Link href="/" className="flex justify-center py-4">
+          <Image
+            src={logoUrl}
+            alt="logo"
+            width={128}
+            className="dark:hidden"
+          />
+          <Image
+            src={logoDarkUrl}
+            alt="logo"
+            width={96}
+            className="hidden dark:block"
+          />
+        </Link>
+      </SidebarHeader>
+      <SidebarContent>
+        <div className='text-sm font-medium'>
+          <div className="flex flex-col gap-2 px-4 pb-4">
+            <LoadingWrapper loading={fetchingMe}>
+              {menus.map((menu, index) => {
+                if (menu.allowUser || isAdmin) {
+                  if (menu.children) {
+                    return (
+                      <SidebarCollapsible
+                        key={index}
+                        title={
+                          <>
+                            {menu.icon} {menu.title}
+                          </>
+                        }
+                      >
+                        {menu.children.map((child, childIndex) => {
+                          if (child.allowUser || isAdmin) {
+                            return (
+                              <SidebarButton
+                                key={childIndex}
+                                href={child.href}
+                              >
+                                {child.title}
+                              </SidebarButton>
+                            )
                           }
-                        >
-                          {menu.children.map((child, childIndex) => {
-                            if (child.allowUser || isAdmin) {
-                              return (
-                                <SidebarButton
-                                  key={childIndex}
-                                  href={child.href}
-                                >
-                                  {child.title}
-                                </SidebarButton>
-                              )
-                            }
-                            return null
-                          })}
-                        </SidebarCollapsible>
-                      )
-                    } else {
-                      return (
-                        <SidebarButton key={index} href={menu.href}>
-                          {menu.icon} {menu.title}
-                        </SidebarButton>
-                      )
-                    }
+                          return null
+                        })}
+                      </SidebarCollapsible>
+                    )
+                  } else {
+                    return (
+                      <SidebarButton key={index} href={menu.href}>
+                        {menu.icon} {menu.title}
+                      </SidebarButton>
+                    )
                   }
-                  return null
-                })}
-              </LoadingWrapper>
-            </div>
+                }
+                return null
+              })}
+            </LoadingWrapper>
           </div>
-        </nav>
-      </div>
-    </ScrollArea>
+        </div>
+      </SidebarContent>
+    </Sidebar>
   )
 }
 
