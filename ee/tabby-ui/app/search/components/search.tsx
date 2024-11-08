@@ -41,7 +41,7 @@ import { useMe } from '@/lib/hooks/use-me'
 import { useSelectedModel } from '@/lib/hooks/use-models'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
-import { ExtendedCombinedError, useThreadRun } from '@/lib/hooks/use-thread-run'
+import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { updateSelectedModel } from '@/lib/stores/chat-actions'
 import { clearHomeScrollPosition } from '@/lib/stores/scroll-store'
 import { useMutation } from '@/lib/tabby/gql'
@@ -53,6 +53,7 @@ import {
 import {
   AttachmentCodeItem,
   AttachmentDocItem,
+  ExtendedCombinedError,
   ThreadRunContexts
 } from '@/lib/types'
 import {
@@ -116,7 +117,9 @@ type SearchContextValue = {
   fetchingContextInfo: boolean
   onDeleteMessage: (id: string) => void
   isThreadOwner: boolean
-  onUpdateMessage: (message: ConversationMessage) => Promise<string | undefined>
+  onUpdateMessage: (
+    message: ConversationMessage
+  ) => Promise<ExtendedCombinedError | undefined>
 }
 
 export const SearchContext = createContext<SearchContextValue>(
@@ -167,7 +170,9 @@ export function Search() {
 
   const updateThreadMessage = useMutation(updateThreadMessageMutation)
 
-  const onUpdateMessage = async (message: ConversationMessage) => {
+  const onUpdateMessage = async (
+    message: ConversationMessage
+  ): Promise<ExtendedCombinedError | undefined> => {
     const messageIndex = messages.findIndex(o => o.id === message.id)
     if (messageIndex > -1 && threadId) {
       // 1. call api
@@ -186,11 +191,10 @@ export function Search() {
           return newMessages
         })
       } else {
-        // FIXME error handling
-        return result?.error?.message || 'Failed to save'
+        return result?.error || new Error('Failed to save')
       }
     } else {
-      return 'Failed to save'
+      return new Error('Failed to save')
     }
   }
 

@@ -26,6 +26,7 @@ import {
   SourceIdAccessPoliciesQueryVariables,
   UpsertUserGroupMembershipInput
 } from '../gql/generates/graphql'
+import { ExtendedCombinedError } from '../types'
 import { refreshTokenMutation } from './auth'
 import {
   listIntegrations,
@@ -88,8 +89,10 @@ function useMutation<TResult, TVariables extends AnyVariables>(
   return fn
 }
 
-function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
-  return (err: CombinedError) => {
+export function makeFormErrorHandler<T extends FieldValues>(
+  form: UseFormReturn<T>
+) {
+  return (err: ExtendedCombinedError) => {
     const { graphQLErrors = [] } = err
     for (const error of graphQLErrors) {
       if (error.extensions && error.extensions['validation-errors']) {
