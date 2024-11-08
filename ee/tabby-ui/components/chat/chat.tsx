@@ -12,8 +12,9 @@ import {
 } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useLatest } from '@/lib/hooks/use-latest'
-import { ExtendedCombinedError, useThreadRun } from '@/lib/hooks/use-thread-run'
+import { useThreadRun } from '@/lib/hooks/use-thread-run'
 import { filename2prism } from '@/lib/language-utils'
+import { ExtendedCombinedError } from '@/lib/types'
 import {
   AssistantMessage,
   MessageActionType,
