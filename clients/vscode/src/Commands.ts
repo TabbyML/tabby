@@ -87,8 +87,11 @@ export class Commands {
         this.chatViewProvider.addRelevantContext(fileContext);
       }
     };
+    commands.executeCommand("tabby.chatView.focus");
 
-    commands.executeCommand("tabby.chatView.focus").then(addContext);
+    if (this.chatViewProvider.webview?.visible) {
+      addContext();
+    }
   }
 
   commands: Record<string, (...args: never[]) => void> = {
