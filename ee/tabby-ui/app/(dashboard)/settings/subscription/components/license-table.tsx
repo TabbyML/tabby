@@ -88,7 +88,7 @@ const PLANS: Plan[] = [
   {
     name: 'Team',
     pricing: '$19 per user/month',
-    limit: 'Up to 200 users'
+    limit: 'Up to 50 users'
   },
   {
     name: 'Enterprise',
@@ -145,7 +145,7 @@ const FEATURES: FeatureGroup[] = [
       {
         name: 'User count',
         community: 'Up to 5',
-        team: 'Up to 200',
+        team: 'Up to 50',
         enterprise: 'Unlimited'
       },
       {
