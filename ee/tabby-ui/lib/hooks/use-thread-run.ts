@@ -1,6 +1,4 @@
 import React from 'react'
-import { GraphQLError } from 'graphql'
-import { CombinedError } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 
@@ -12,12 +10,8 @@ import {
   ThreadRunOptionsInput
 } from '../gql/generates/graphql'
 import { client, useMutation } from '../tabby/gql'
+import { ExtendedCombinedError } from '../types'
 import { useLatest } from './use-latest'
-
-export interface ExtendedCombinedError
-  extends Omit<CombinedError, 'graphQLErrors'> {
-  graphQLErrors?: GraphQLError[]
-}
 
 interface UseThreadRunOptions {
   onError?: (err: Error) => void
