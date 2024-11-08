@@ -1183,6 +1183,8 @@ impl Mutation {
         input: thread::UpdateMessageInput,
     ) -> Result<bool> {
         let user = check_user(ctx).await?;
+        input.validate()?;
+
         let svc = ctx.locator.thread();
         let Some(thread) = svc.get(&input.thread_id).await? else {
             return Err(CoreError::NotFound("Thread not found"));

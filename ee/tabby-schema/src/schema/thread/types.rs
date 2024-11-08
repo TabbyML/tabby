@@ -5,6 +5,7 @@ use tabby_common::api::{
     code::{CodeSearchDocument, CodeSearchHit, CodeSearchScores},
     doc::{DocSearchDocument, DocSearchHit},
 };
+use validator::Validate;
 
 use crate::{juniper::relay::NodeType, Context};
 
@@ -44,11 +45,12 @@ impl NodeType for Message {
     }
 }
 
-#[derive(GraphQLInputObject, Clone)]
+#[derive(GraphQLInputObject, Clone, Validate)]
 #[graphql(context = Context)]
 pub struct UpdateMessageInput {
     pub id: ID,
     pub thread_id: ID,
+    #[validate(length(min = 1, code = "content", message = "content can not be empty"))]
     pub content: String,
 }
 
