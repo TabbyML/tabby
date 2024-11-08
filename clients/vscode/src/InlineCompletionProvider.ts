@@ -211,4 +211,28 @@ export class InlineCompletionProvider extends EventEmitter implements InlineComp
     // await not required
     this.client.telemetry.postEvent(params);
   }
+
+  /**
+   * Get current display range with the current completion item
+   * @return {Range | undefined} - The range with the current completion item
+   */
+  public getCurrentDisplayRange(): Range | undefined {
+    const item = this.displayedCompletion?.completions.items[this.displayedCompletion.index];
+    const range = item?.range;
+    if (!range) {
+      return undefined;
+    }
+    if (!item) {
+      return undefined;
+    }
+    const length = (item.insertText as string).split("\n").length - 1; //remove current line count;
+    const completionEnd = range.end.line + length;
+    const completionRange = new Range(
+      new Position(range.start.line, range.start.character),
+      new Position(completionEnd == 0 ? completionEnd : completionEnd + 1, 0),
+    );
+    this.logger.info("current range with displayed completion item:", completionRange);
+
+    return completionRange;
+  }
 }
