@@ -2,6 +2,7 @@ package com.tabbyml.intellijtabby.languageSupport
 
 import com.intellij.codeInsight.TargetElementUtil
 import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiRecursiveElementWalkingVisitor
@@ -16,6 +17,7 @@ import org.eclipse.lsp4j.SemanticTokenTypes
  * This implementation may not work effectively for all languages.
  */
 open class DefaultLanguageSupportProvider : LanguageSupportProvider {
+  private val logger = logger<DefaultLanguageSupportProvider>()
   private val targetElementUtil = TargetElementUtil.getInstance()
 
   override fun provideSemanticTokensRange(project: Project, fileRange: FileRange): List<SemanticToken>? {
@@ -40,12 +42,16 @@ open class DefaultLanguageSupportProvider : LanguageSupportProvider {
       })
 
       leafElements.mapNotNull {
-        val target =
+        val target = try {
           targetElementUtil.findTargetElement(
             editor.editor,
             TargetElementUtil.ELEMENT_NAME_ACCEPTED or TargetElementUtil.REFERENCED_ELEMENT_ACCEPTED,
             it.textRange.startOffset
           )
+        } catch (e: Exception) {
+          logger.debug("Failed to find target element when providing semantic tokens", e)
+          null
+        }
         if (target == it || target == null || target.text == null) {
           null
         } else {
@@ -64,11 +70,16 @@ open class DefaultLanguageSupportProvider : LanguageSupportProvider {
     val editor = project.findEditor(psiFile.virtualFile) ?: return null
 
     return runReadAction {
-      val target = targetElementUtil.findTargetElement(
-        editor.editor,
-        TargetElementUtil.ELEMENT_NAME_ACCEPTED or TargetElementUtil.REFERENCED_ELEMENT_ACCEPTED,
-        filePosition.offset
-      )
+      val target = try {
+        targetElementUtil.findTargetElement(
+          editor.editor,
+          TargetElementUtil.ELEMENT_NAME_ACCEPTED or TargetElementUtil.REFERENCED_ELEMENT_ACCEPTED,
+          filePosition.offset
+        )
+      } catch (e: Exception) {
+        logger.debug("Failed to find target element at ${psiFile.virtualFile.url}:${filePosition.offset}", e)
+        null
+      }
       val file = target?.containingFile ?: return@runReadAction listOf()
       val range = target.textRange
       listOf(FileRange(file, range))
