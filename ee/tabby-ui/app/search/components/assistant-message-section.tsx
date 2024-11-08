@@ -13,7 +13,6 @@ import * as z from 'zod'
 
 import { MARKDOWN_CITATION_REGEX } from '@/lib/constants/regex'
 import { MessageAttachmentCode } from '@/lib/gql/generates/graphql'
-import { useEnterSubmit } from '@/lib/hooks/use-enter-submit'
 import { AttachmentDocItem, RelevantCodeContext } from '@/lib/types'
 import {
   cn,
@@ -532,7 +531,6 @@ function MessageContentForm({
   const { content } = form.watch()
   const isEmptyContent = !content || isEmpty(content.trim())
   const [draftMessage] = useState<ConversationMessage>(message)
-  const { formRef, onKeyDown } = useEnterSubmit()
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     const errorMessage = await onSubmit({
@@ -546,7 +544,7 @@ function MessageContentForm({
 
   return (
     <Form {...form}>
-      <form ref={formRef} onSubmit={form.handleSubmit(handleSubmit)}>
+      <form onSubmit={form.handleSubmit(handleSubmit)}>
         <FormField
           control={form.control}
           name="content"
@@ -558,7 +556,6 @@ function MessageContentForm({
                   minRows={2}
                   maxRows={20}
                   className="w-full rounded-lg border bg-background p-4 outline-ring"
-                  onKeyDown={onKeyDown}
                   {...field}
                 />
               </FormControl>
