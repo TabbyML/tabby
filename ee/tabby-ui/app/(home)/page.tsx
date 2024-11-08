@@ -5,13 +5,13 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
 import { useQuery } from 'urql'
+import { useStore } from 'zustand'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
 import { useSelectedModel } from '@/lib/hooks/use-models'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
-import { useStore } from '@/lib/hooks/use-store'
 import { updateSelectedModel } from '@/lib/stores/chat-actions'
 import {
   clearHomeScrollPosition,
