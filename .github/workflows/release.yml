@@ -15,8 +15,8 @@ on:
       - '.github/workflows/release.yml'
 
 concurrency:
-  group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
-  
+  group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }}
+
   # If this is enabled it will cancel current running and start latest
   cancel-in-progress: true
 
@@ -246,7 +246,7 @@ jobs:
           retention-days: 3
           name: tabby_${{ matrix.binary }}${{ matrix.ext }}
           path: tabby_${{ matrix.binary }}${{ matrix.ext }}
-  
+
   package-win-cuda:
     runs-on: ubuntu-latest
     env:
@@ -260,17 +260,23 @@ jobs:
 
       - name: Download all artifacts
         uses: actions/download-artifact@v3
-      
+
       - name: Display structure of downloaded files
         run: ls -R
-      
+
       - name: Package CUDA 11.7
         run: >
-          LLAMA_CPP_PLATFORM=cuda-cu11.7.1-x64 OUTPUT_NAME=tabby_x86_64-windows-msvc-cuda117 ./ci/package-win.sh
+          # Get the current release version, prefer the tag name, fallback to commit sha
+          version="${{ github.ref_name }}"
+          [ -z "$version" ] && version="${GITHUB_SHA::8}"
+          LLAMA_CPP_PLATFORM=cuda-cu11.7.1-x64 OUTPUT_NAME=tabby_${version}_x86_64-windows-msvc-cuda117 ./ci/package-win.sh
 
       - name: Package CUDA 12.2
         run: >
-          LLAMA_CPP_PLATFORM=cuda-cu12.2.0-x64 OUTPUT_NAME=tabby_x86_64-windows-msvc-cuda122 ./ci/package-win.sh
+          # Get the current release version, prefer the tag name, fallback to commit sha
+          version="${{ github.ref_name }}"
+          [ -z "$version" ] && version="${GITHUB_SHA::8}"
+          LLAMA_CPP_PLATFORM=cuda-cu12.2.0-x64 OUTPUT_NAME=tabby_${version}_x86_64-windows-msvc-cuda122 ./ci/package-win.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -295,14 +301,16 @@ jobs:
       - name: Creating distribution bundles
         run: >
           get_file_extension() {
-              local filename="$1"
-              # Check if the file has an extension
-              if [[ "$filename" == *.* && ! "$filename" == .* ]]; then
-                echo ".${filename##*.}"
-              else
-                echo ""
-              fi
+            local filename="$1"
+            # Check if the file has an extension
+            if [[ "$filename" == *.* && ! "$filename" == .* ]]; then
+              echo ".${filename##*.}"
+            else
+              echo ""
+            fi
           }
+
+          mkdir -p dist
 
           for llama_server in llama-server_*/llama-server_*; do
             for tabby in tabby_*/tabby_*; do
@@ -315,18 +323,33 @@ jobs:
 
               llamav=${llaman#llama-server_}
               tabbyv=${tabbyn#tabby_}
+
+              # Get the current release version, prefer the tag name, fallback to commit sha
+              version="${{ github.ref_name }}"
+              [ -z "$version" ] && version="${GITHUB_SHA::8}"
+
               if [[ $llamav == *"$tabbyv"* ]]; then
                 echo "Creating bundle for $llamav"
-                distdir=dist/tabby_$llamav
-                mkdir -p $distdir
-                cp $llama_server $distdir/llama-server${extname}
-                cp $tabby $distdir/tabby${extname}
-                zip -r $distdir.zip $distdir
-                rm -rf $distdir
+                release_dir=tabby_${version}_${llamav}
+                mkdir -p $release_dir
+                cp $llama_server $release_dir/llama-server${extname}
+                cp $tabby $release_dir/tabby${extname}
+
+                # Release zip for Windows, tar.gz for macOS and Linux
+                # use `extname` to determine the platform
+                if [[ "$extname" == ".exe" ]]; then
+                  zip -r $release_dir.zip $release_dir
+                  mv $release_dir.zip dist/
+                else
+                  chmod +x $release_dir/llama-server${extname} $release_dir/tabby${extname}
+                  tar zcvf $release_dir.tar.gz $release_dir
+                  mv $release_dir.tar.gz dist/
+                fi
+                rm -rf "$release_dir"
               fi
             done
           done
-      
+
       - name: Display structure of created files
         run: ls -R dist
 
@@ -340,13 +363,13 @@ jobs:
 
       - name: Check if stable release
         run: echo "Stable Release is ${{ env.STABLE_RELEASE }}"
-  
+
       - uses: ncipollo/release-action@v1
         if: github.event_name == 'push'
         with:
           allowUpdates: true
           prerelease: ${{ env.STABLE_RELEASE == 'false' }}
           makeLatest: ${{ env.STABLE_RELEASE == 'true' }}
-          artifacts: "dist/tabby_*.zip"
+          artifacts: "dist/tabby_*.zip,dist/tabby_*.tar.gz"
           tag: ${{ github.ref_name }}
           removeArtifacts: true
