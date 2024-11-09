@@ -1,8 +1,8 @@
 package com.tabbyml.tabby4eclipse.lsp;
 
+import java.net.URI;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.net.URI;
 
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.lsp4e.LSPEclipseUtils;

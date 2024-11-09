@@ -4,14 +4,13 @@ import java.net.URI;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import org.eclipse.jface.text.IDocument;
+import org.eclipse.lsp4e.LSPEclipseUtils;
+import org.eclipse.lsp4j.DeclarationParams;
+import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.LocationLink;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.SemanticTokensRangeParams;
-import org.eclipse.jface.text.IDocument;
-import org.eclipse.lsp4e.LSPEclipseUtils;
-import org.eclipse.lsp4e.LanguageServers;
-import org.eclipse.lsp4j.DeclarationParams;
-import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;

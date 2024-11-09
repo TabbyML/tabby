@@ -5,7 +5,6 @@ import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 
 import com.tabbyml.tabby4eclipse.Logger;
-import com.tabbyml.tabby4eclipse.chat.ChatView;
 import com.tabbyml.tabby4eclipse.chat.ChatViewUtils;
 
 public class OpenChatView extends AbstractHandler {
