@@ -13,6 +13,7 @@ import { trimMultiLineInSingleLineMode } from "./trimMultiLineInSingleLineMode";
 import { dropDuplicated } from "./dropDuplicated";
 import { dropMinimum } from "./dropMinimum";
 import { calculateReplaceRange } from "./calculateReplaceRange";
+import { removeDuplicateSuffixLines } from "./removeDuplicateSuffixLines";
 
 type ItemListFilter = (items: CompletionItem[]) => Promise<CompletionItem[]>;
 
@@ -54,5 +55,6 @@ export async function postCacheProcess(
     .then(applyFilter(dropDuplicated))
     .then(applyFilter(trimSpace))
     .then(applyFilter(dropMinimum))
-    .then(applyFilter(calculateReplaceRange));
+    .then(applyFilter(calculateReplaceRange))
+    .then(applyFilter(removeDuplicateSuffixLines));
 }
