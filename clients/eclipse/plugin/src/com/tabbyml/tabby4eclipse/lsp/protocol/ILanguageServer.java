@@ -9,7 +9,7 @@ public interface ILanguageServer extends LanguageServer {
 
 	@JsonDelegate
 	IStatusService getStatusService();
-	
+
 	@JsonDelegate
 	ITelemetryService getTelemetryService();
 }

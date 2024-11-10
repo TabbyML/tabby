@@ -12,10 +12,11 @@ public interface IGitProvider {
 	default public boolean isAvailable() throws NoClassDefFoundError {
 		return false;
 	}
-	
+
 	default public GitRepository getRepository(GitRepositoryParams params) {
 		return null;
 	}
+
 	default public GitDiffResult getDiff(GitDiffParams params) {
 		return null;
 	}

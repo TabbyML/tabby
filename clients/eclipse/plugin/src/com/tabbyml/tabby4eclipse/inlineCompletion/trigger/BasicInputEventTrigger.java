@@ -1,4 +1,4 @@
-package com.tabbyml.tabby4eclipse.inlineCompletion;
+package com.tabbyml.tabby4eclipse.inlineCompletion.trigger;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,6 +12,8 @@ import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.tabbyml.tabby4eclipse.Logger;
 import com.tabbyml.tabby4eclipse.editor.EditorUtils;
+import com.tabbyml.tabby4eclipse.inlineCompletion.IInlineCompletionService;
+import com.tabbyml.tabby4eclipse.inlineCompletion.InlineCompletionService;
 
 /**
  * This DocumentBasedTrigger listens to keyboard and mouse events to determine

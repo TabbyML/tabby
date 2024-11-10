@@ -10,7 +10,7 @@ import com.tabbyml.tabby4eclipse.inlineCompletion.InlineCompletionService;
 
 public class Trigger extends AbstractHandler {
 	private Logger logger = new Logger("Commands.InlineCompletion.Trigger");
-	
+
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		logger.debug("Trigger inline completion manually.");

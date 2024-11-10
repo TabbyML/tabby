@@ -7,7 +7,7 @@ public class ClientInfo {
 
 	public ClientInfo() {
 	}
-	
+
 	public String getName() {
 		return name;
 	}

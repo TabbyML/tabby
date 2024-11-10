@@ -9,7 +9,7 @@ import com.tabbyml.tabby4eclipse.preferences.PreferencesService;
 public class Startup implements IStartup {
 
 	private Logger logger = new Logger("Startup");
-	
+
 	@Override
 	public void earlyStartup() {
 		logger.info("Running startup actions.");

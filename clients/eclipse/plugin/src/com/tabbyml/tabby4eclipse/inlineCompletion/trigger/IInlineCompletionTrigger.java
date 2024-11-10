@@ -1,4 +1,4 @@
-package com.tabbyml.tabby4eclipse.inlineCompletion;
+package com.tabbyml.tabby4eclipse.inlineCompletion.trigger;
 
 import org.eclipse.ui.texteditor.ITextEditor;
 

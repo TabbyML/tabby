@@ -1,4 +1,4 @@
-package com.tabbyml.tabby4eclipse.inlineCompletion;
+package com.tabbyml.tabby4eclipse.inlineCompletion.trigger;
 
 public class InlineCompletionTrigger {
 	public static IInlineCompletionTrigger getInstance() {
