@@ -172,14 +172,14 @@ impl AnswerService {
                 let chunk = match chunk {
                     Ok(chunk) => chunk,
                     Err(err) => {
-                        if let OpenAIError::StreamError(content) = err {
+                        if let OpenAIError::StreamError(content) = &err {
                             if content == "Stream ended" {
                                 break;
                             }
-                        } else {
-                            error!("Failed to get chat completion chunk: {:?}", err);
                         }
-                        break;
+                        error!("Failed to get chat completion chunk: {:?}", err);
+                        yield Err(anyhow!("Failed to get chat completion chunk: {:?}", err).into());
+                        return;
                     }
                 };
 
