@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.eclipse.jface.text.IPaintPositionManager;
 import org.eclipse.jface.text.IPainter;
@@ -27,6 +25,8 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Display;
 
 import com.tabbyml.tabby4eclipse.Logger;
+import com.tabbyml.tabby4eclipse.StringUtils;
+import com.tabbyml.tabby4eclipse.StringUtils.TextWithTabs;
 import com.tabbyml.tabby4eclipse.inlineCompletion.InlineCompletionItem;
 
 public class InlineCompletionItemTextPainter implements IInlineCompletionItemRenderer {
@@ -255,15 +255,15 @@ public class InlineCompletionItemTextPainter implements IInlineCompletionItemRen
 		private void drawOverwriteText(int offset, String text) {
 			logger.debug("drawCurrentLineText:" + offset + ":" + text);
 			StyledText widget = getWidget();
-			TextWithTabs textWithTabs = splitLeadingTabs(text);
+			TextWithTabs textWithTabs = StringUtils.splitLeadingTabs(text);
 
 			paintFunctions.add((gc) -> {
 				// Draw ghost text
 				setStyleToGhostText(gc);
 				int spaceWidth = gc.textExtent(" ").x;
-				int tabWidth = textWithTabs.tabs * widget.getTabs() * spaceWidth;
+				int tabWidth = textWithTabs.getTabs() * widget.getTabs() * spaceWidth;
 				Point location = widget.getLocationAtOffset(offset);
-				gc.drawString(textWithTabs.text, location.x + tabWidth, location.y);
+				gc.drawString(textWithTabs.getText(), location.x + tabWidth, location.y);
 			});
 		}
 
@@ -274,7 +274,7 @@ public class InlineCompletionItemTextPainter implements IInlineCompletionItemRen
 		private void drawReplacePartText(int offset, String text, String replacedText) {
 			logger.debug("drawReplacePartText:" + offset + ":" + text + ":" + replacedText);
 			StyledText widget = getWidget();
-			TextWithTabs textWithTabs = splitLeadingTabs(text);
+			TextWithTabs textWithTabs = StringUtils.splitLeadingTabs(text);
 
 			int targetOffset = offset + replacedText.length();
 			if (targetOffset >= widget.getCharCount()) {
@@ -283,9 +283,9 @@ public class InlineCompletionItemTextPainter implements IInlineCompletionItemRen
 					// Draw ghost text
 					setStyleToGhostText(gc);
 					int spaceWidth = gc.textExtent(" ").x;
-					int tabWidth = textWithTabs.tabs * widget.getTabs() * spaceWidth;
+					int tabWidth = textWithTabs.getTabs() * widget.getTabs() * spaceWidth;
 					Point location = widget.getLocationAtOffset(offset);
-					gc.drawString(textWithTabs.text, location.x + tabWidth, location.y);
+					gc.drawString(textWithTabs.getText(), location.x + tabWidth, location.y);
 				});
 
 			} else {
@@ -307,10 +307,10 @@ public class InlineCompletionItemTextPainter implements IInlineCompletionItemRen
 					// Draw ghost text
 					setStyleToGhostText(gc);
 					int spaceWidth = gc.textExtent(" ").x;
-					int tabWidth = textWithTabs.tabs * widget.getTabs() * spaceWidth;
-					int ghostTextWidth = tabWidth + gc.stringExtent(textWithTabs.text).x;
+					int tabWidth = textWithTabs.getTabs() * widget.getTabs() * spaceWidth;
+					int ghostTextWidth = tabWidth + gc.stringExtent(textWithTabs.getText()).x;
 					Point location = widget.getLocationAtOffset(offset);
-					gc.drawString(textWithTabs.text, location.x + tabWidth, location.y);
+					gc.drawString(textWithTabs.getText(), location.x + tabWidth, location.y);
 
 					// Leave the space for the ghost text
 					setStyle(gc, originStyleRange);
@@ -363,7 +363,7 @@ public class InlineCompletionItemTextPainter implements IInlineCompletionItemRen
 
 			List<TextWithTabs> linesTextWithTab = new ArrayList<>();
 			for (String line : lines) {
-				linesTextWithTab.add(splitLeadingTabs(line));
+				linesTextWithTab.add(StringUtils.splitLeadingTabs(line));
 			}
 
 			paintFunctions.add((gc) -> {
@@ -373,9 +373,9 @@ public class InlineCompletionItemTextPainter implements IInlineCompletionItemRen
 				Point location = widget.getLocationAtOffset(offset);
 				int y = location.y;
 				for (TextWithTabs textWithTabs : linesTextWithTab) {
-					int x = widget.getLeftMargin() + textWithTabs.tabs * widget.getTabs() * spaceWidth;
+					int x = widget.getLeftMargin() + textWithTabs.getTabs() * widget.getTabs() * spaceWidth;
 					y += lineHeight;
-					gc.drawString(textWithTabs.text, x, y, true);
+					gc.drawString(textWithTabs.getText(), x, y, true);
 				}
 			});
 		}
@@ -405,17 +405,6 @@ public class InlineCompletionItemTextPainter implements IInlineCompletionItemRen
 			gc.setFont(font);
 		}
 
-		static final Pattern PATTERN_LEADING_TABS = Pattern.compile("^(\\t*)(.*)$");
-
-		private static TextWithTabs splitLeadingTabs(String text) {
-			Matcher matcher = PATTERN_LEADING_TABS.matcher(text);
-			if (matcher.matches()) {
-				return new TextWithTabs(matcher.group(1).length(), matcher.group(2));
-			} else {
-				return new TextWithTabs(0, text);
-			}
-		}
-
 		private static class ModifiedLineVerticalIndent {
 			private Position position;
 			private int indent;
@@ -425,16 +414,6 @@ public class InlineCompletionItemTextPainter implements IInlineCompletionItemRen
 				this.position = position;
 				this.indent = indent;
 				this.modifiedIndent = modifiedIndent;
-			}
-		}
-
-		private static class TextWithTabs {
-			private int tabs;
-			private String text;
-
-			public TextWithTabs(int tabs, String text) {
-				this.tabs = tabs;
-				this.text = text;
 			}
 		}
 	}
