@@ -1,3 +1,41 @@
+## 1.14.0
+
+### Features
+
+- Introduced a "Smart Apply" button in the chat panel's generated code block. This feature suggests edits directly in the current editor, enabling users to apply generated code quickly without manual intervention. Note: Requires the latest version of the Tabby server.
+- Added a dynamic indicator in the chat panel's input box to show the currently selected text, which will be used as context for the chat conversation. Note: Requires the latest version of the Tabby server.
+
+### Fixes & Improvements
+
+- Resolved an issue where the chat panel's file context navigation failed when the VSCode workspace was not at the root of the git repository containing the target file.
+- Fixed a bug where inline completion did not function in the web extension for browsers when opening remote repositories, such as those from GitHub.
+- Corrected the storage of user data in the web extension for browsers.
+
+## 1.12.5
+
+### Fixes & Improvements
+
+- Fixed a bug where the inline completion provider was incorrectly registered twice, causing the status bar loading indicator to not correctly show ongoing completion requests.
+
+## 1.12.4
+
+### Fixes & Improvements
+
+- Fixed a bug causing the Tabby web extension to not initialize in browsers. (https://github.com/TabbyML/tabby/issues/3302)
+
+## 1.12.3
+
+### Fixes & Improvements
+
+- Fixed an issue where the chat panel failed to display when the endpoint configuration ended with a trailing slash.
+- Improved the context of code completion by adding support for collecting code snippets from recently viewed editors.
+
+## 1.12.2
+
+### Fixes & Improvements
+
+- Fixed a bug that caused the Tabby extension to not initialize when TLS certificates failed to load. (https://github.com/TabbyML/tabby/issues/3248)
+
 ## 1.12.1
 
 ### Fixes & Improvements
