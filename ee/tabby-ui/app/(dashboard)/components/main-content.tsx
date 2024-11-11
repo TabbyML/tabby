@@ -1,9 +1,10 @@
 'use client'
 
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { SidebarInset } from '@/components/ui/sidebar'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import { Header } from '@/components/header'
 import { useShowLicenseBanner } from '@/components/license-banner'
-import { SidebarInset } from '@/components/ui/sidebar'
 
 export default function MainContent({
   children
@@ -24,12 +25,11 @@ export default function MainContent({
   return (
     <>
       {/* Wraps right hand side into ScrollArea, making scroll bar consistent across all browsers */}
-      <SidebarInset
-        className={'flex flex-1 flex-col transition-all overflow-y-auto'}
-        style={style}
-      >
-        <Header />
-        <div className="flex-1 p-4 lg:p-10">{children}</div>
+      <SidebarInset style={style}>
+        <ScrollArea>
+          <Header />
+          <div className="p-4 lg:p-10">{children}</div>
+        </ScrollArea>
       </SidebarInset>
     </>
   )

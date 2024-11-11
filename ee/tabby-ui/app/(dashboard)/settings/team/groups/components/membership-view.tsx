@@ -346,7 +346,7 @@ function MemberSelect({
         align="start"
         side="bottom"
       >
-        <Command className="transition-all">
+        <Command>
           <CommandInput
             placeholder="Search member..."
             onValueChange={onSearchChange}

@@ -11,9 +11,9 @@ import { IconNotice } from '@/components/ui/icons'
 
 import { ClientOnly } from './client-only'
 import { ThemeToggle } from './theme-toggle'
+import { SidebarTrigger } from './ui/sidebar'
 import { MyAvatar } from './user-avatar'
 import UserPanel from './user-panel'
-import { SidebarTrigger } from './ui/sidebar'
 
 export function Header() {
   const { data } = useHealth()
@@ -24,13 +24,13 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b px-4 backdrop-blur-xl lg:px-10">
       <div className="flex items-center gap-4">
-        <SidebarTrigger />
+        <SidebarTrigger className="-ml-1" />
         {newVersionAvailable && (
           <a
             target="_blank"
             href="https://github.com/TabbyML/tabby/releases/latest"
             rel="noopener noreferrer"
-            className={cn('!pl-0', buttonVariants({ variant: 'ghost' }))}
+            className={cn(buttonVariants({ variant: 'ghost' }))}
           >
             <IconNotice className="text-yellow-600 dark:text-yellow-400" />
             <span className="ml-2 hidden md:flex">

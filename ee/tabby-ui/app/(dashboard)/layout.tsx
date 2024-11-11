@@ -1,10 +1,10 @@
 import { Metadata } from 'next'
 
+import { SidebarProvider } from '@/components/ui/sidebar'
 import { LicenseBanner } from '@/components/license-banner'
 
 import MainContent from './components/main-content'
 import AppSidebar from './components/sidebar'
-import { SidebarProvider } from '@/components/ui/sidebar'
 
 export const metadata: Metadata = {
   title: {
@@ -21,7 +21,7 @@ export default function RootLayout({
   return (
     <>
       <LicenseBanner />
-      <SidebarProvider className='flex-1'>
+      <SidebarProvider className="relative">
         <AppSidebar />
         <MainContent>{children}</MainContent>
       </SidebarProvider>

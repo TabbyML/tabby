@@ -168,7 +168,7 @@ export function AccessPolicyView({
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" side="top">
-              <Command className="transition-all">
+              <Command>
                 <CommandInput placeholder="Search groups..." />
                 <CommandList className="max-h-[30vh]">
                   <CommandEmpty>

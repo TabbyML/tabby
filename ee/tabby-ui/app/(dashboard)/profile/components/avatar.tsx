@@ -77,7 +77,7 @@ export const Avatar = () => {
       <div className="relative">
         <label
           htmlFor="avatar-file"
-          className="absolute left-0 top-0 z-20 flex h-16 w-16 cursor-pointer items-center justify-center rounded-full bg-background/90 opacity-0 transition-all hover:opacity-100"
+          className="absolute left-0 top-0 z-20 flex h-16 w-16 cursor-pointer items-center justify-center rounded-full bg-background/90 opacity-0 transition-opacity hover:opacity-100"
         >
           <IconCloudUpload />
         </label>

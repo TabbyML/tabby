@@ -27,6 +27,7 @@ import {
   ListFilter,
   Mail,
   MessagesSquare,
+  PanelLeft,
   Regex,
   Search,
   Share2,
@@ -35,8 +36,7 @@ import {
   Star,
   Tag,
   WrapText,
-  X,
-  PanelLeft
+  X
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
