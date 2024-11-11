@@ -146,7 +146,7 @@ export default function AppSidebar() {
       <SidebarHeader>
         <Link
           href="/"
-          className="flex justify-center items-center py-2 h-[3.375rem]"
+          className="flex h-[3.375rem] items-center justify-center py-2"
         >
           <>
             <Image
@@ -173,7 +173,7 @@ export default function AppSidebar() {
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup className="text-sm font-medium leading-normal list-none space-y-2">
+        <SidebarGroup className="list-none space-y-2 text-sm font-medium leading-normal">
           <LoadingWrapper loading={fetchingMe}>
             {menus.map(menu => {
               if (isAdmin || menu.allowUser) {
@@ -195,7 +195,7 @@ export default function AppSidebar() {
                                   className="w-[theme(space.48)]"
                                   key={menu.title}
                                 >
-                                  <div className="mt-1 mb-2 text-sm ml-2 text-muted-foreground font-medium">
+                                  <div className="mb-2 ml-2 mt-1 text-sm font-medium text-muted-foreground">
                                     {menu.title}
                                   </div>
                                   <div className="space-y-1">
