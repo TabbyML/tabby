@@ -12,7 +12,7 @@ Below is an example
 [model.chat.http]
 kind = "openai/chat"
 model_name = "your_model"
-api_endpoint = "https://api.deepseek.com/chat"
+api_endpoint = "https://api.deepseek.com/v1"
 api_key = "secret-api-key"
 
 # Completion model
