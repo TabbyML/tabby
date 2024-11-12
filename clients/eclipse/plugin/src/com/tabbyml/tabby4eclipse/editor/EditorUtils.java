@@ -20,8 +20,6 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.contexts.IContextService;
 import org.eclipse.ui.texteditor.ITextEditor;
 
-import com.tabbyml.tabby4eclipse.chat.ChatMessage.FileContext;
-
 public class EditorUtils {
 	public static IWorkbenchPage getActiveWorkbenchPage() {
 		IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();

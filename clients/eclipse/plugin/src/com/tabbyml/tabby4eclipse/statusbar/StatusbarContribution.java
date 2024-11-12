@@ -148,7 +148,6 @@ public class StatusbarContribution extends WorkbenchWindowControlContribution {
 		default:
 			break;
 		}
-		
 
 		MenuItem openChatViewItem = new MenuItem(menu, SWT.NONE);
 		openChatViewItem.setImage(Images.getIcon(Images.ICON_CHAT));
@@ -159,7 +158,7 @@ public class StatusbarContribution extends WorkbenchWindowControlContribution {
 				ChatViewUtils.openChatView();
 			}
 		});
-		
+
 		MenuItem openPreferencesItem = new MenuItem(menu, SWT.NONE);
 		openPreferencesItem.setImage(Images.getIcon(Images.ICON_SETTINGS));
 		openPreferencesItem.setText("Open Settings");
@@ -169,7 +168,7 @@ public class StatusbarContribution extends WorkbenchWindowControlContribution {
 				MainPreferencesPage.openPreferences();
 			}
 		});
-		
+
 		return menu;
 	}
 }

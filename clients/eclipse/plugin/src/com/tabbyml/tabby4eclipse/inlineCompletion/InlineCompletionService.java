@@ -20,6 +20,7 @@ import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.tabbyml.tabby4eclipse.Logger;
 import com.tabbyml.tabby4eclipse.editor.EditorUtils;
+import com.tabbyml.tabby4eclipse.inlineCompletion.renderer.InlineCompletionRendererSupport;
 import com.tabbyml.tabby4eclipse.lsp.LanguageServerService;
 import com.tabbyml.tabby4eclipse.lsp.protocol.CompletionEventId;
 import com.tabbyml.tabby4eclipse.lsp.protocol.EventParams;
@@ -41,7 +42,7 @@ public class InlineCompletionService implements IInlineCompletionService {
 	private static final String INLINE_COMPLETION_VISIBLE_CONTEXT_ID = "com.tabbyml.tabby4eclipse.inlineCompletionVisible";
 
 	private Logger logger = new Logger("InlineCompletionService");
-	private InlineCompletionRenderer renderer = new InlineCompletionRenderer();
+	private InlineCompletionRendererSupport renderer = new InlineCompletionRendererSupport();
 	private InlineCompletionContext current;
 	private IContextActivation inlineCompletionVisibleContext;
 

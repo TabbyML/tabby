@@ -8,7 +8,7 @@ public class ClientProvidedConfig {
 
 	public ClientProvidedConfig() {
 	}
-	
+
 	public ServerConfig getServer() {
 		return server;
 	}

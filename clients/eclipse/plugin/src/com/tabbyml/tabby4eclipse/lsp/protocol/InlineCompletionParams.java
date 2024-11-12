@@ -1,8 +1,8 @@
 package com.tabbyml.tabby4eclipse.lsp.protocol;
 
-import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.TextDocumentIdentifier;
 
 public class InlineCompletionParams {
 	private InlineCompletionContext context;

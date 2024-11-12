@@ -1,12 +1,10 @@
-package com.tabbyml.tabby4eclipse.inlineCompletion;
+package com.tabbyml.tabby4eclipse.inlineCompletion.renderer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.eclipse.jface.text.IPaintPositionManager;
 import org.eclipse.jface.text.IPainter;
@@ -27,71 +25,29 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Display;
 
 import com.tabbyml.tabby4eclipse.Logger;
+import com.tabbyml.tabby4eclipse.StringUtils;
+import com.tabbyml.tabby4eclipse.StringUtils.TextWithTabs;
+import com.tabbyml.tabby4eclipse.inlineCompletion.InlineCompletionItem;
 
-public class InlineCompletionRenderer {
-	private Logger logger = new Logger("InlineCompletionRenderer");
-	private Map<ITextViewer, InlineCompletionItemPainter> painters = new HashMap<>();
-	private ITextViewer currentTextViewer = null;
-	private InlineCompletionItem currentCompletionItem = null;
-	private String currentViewId = null;
-	private Long currentDisplayAt = null;
+public class InlineCompletionItemTextPainter implements IInlineCompletionItemRenderer {
+	private Logger logger = new Logger("InlineCompletionRenderer.InlineCompletionItemTextPainter");
+	private Map<ITextViewer, GhostTextPainter> painters = new HashMap<>();
 
-	public void show(ITextViewer viewer, InlineCompletionItem item) {
-		if (currentTextViewer != null) {
-			getPainter(currentTextViewer).update(null);
-		}
-		currentTextViewer = viewer;
-		currentCompletionItem = item;
-		getPainter(viewer).update(item);
-		
-		currentDisplayAt = System.currentTimeMillis();
-		
-		String completionId = "no-cmpl-id";
-		if (item.getEventId() != null && item.getEventId().getCompletionId()!= null) {
-			completionId = item.getEventId().getCompletionId().replace("cmpl-", "");
-		}
-		currentViewId = String.format("view-%s-at-%d", completionId, currentDisplayAt);
+	@Override
+	public void updateInlineCompletionItem(ITextViewer textViewer, InlineCompletionItem item) {
+		getPainter(textViewer).update(item);
 	}
 
-	public void hide() {
-		if (currentTextViewer != null) {
-			getPainter(currentTextViewer).update(null);
-			currentTextViewer = null;
-		}
-		currentCompletionItem = null;
-		currentViewId = null;
-		currentDisplayAt = null;
-	}
-
-	public ITextViewer getCurrentTextViewer() {
-		return currentTextViewer;
-	}
-
-	public InlineCompletionItem getCurrentCompletionItem() {
-		return currentCompletionItem;
-	}
-	
-	public String getCurrentViewId() {
-		return currentViewId;
-	}
-	
-	public Long getCurrentDisplayedTime() {
-		if (currentDisplayAt != null) {
-			return System.currentTimeMillis() - currentDisplayAt;
-		}
-		return null;
-	}
-
-	private InlineCompletionItemPainter getPainter(ITextViewer viewer) {
-		InlineCompletionItemPainter painter = painters.get(viewer);
+	private GhostTextPainter getPainter(ITextViewer viewer) {
+		GhostTextPainter painter = painters.get(viewer);
 		if (painter == null) {
-			painter = new InlineCompletionItemPainter(viewer);
+			painter = new GhostTextPainter(viewer);
 			painters.put(viewer, painter);
 		}
 		return painter;
 	}
 
-	private class InlineCompletionItemPainter implements IPainter, PaintListener {
+	private class GhostTextPainter implements IPainter, PaintListener {
 		private ITextViewer viewer;
 
 		private InlineCompletionItem item;
@@ -103,7 +59,7 @@ public class InlineCompletionRenderer {
 		private List<GlyphMetrics> modifiedGlyphMetrics = new ArrayList<>();
 		private List<Consumer<GC>> paintFunctions = new ArrayList<>();
 
-		public InlineCompletionItemPainter(ITextViewer viewer) {
+		public GhostTextPainter(ITextViewer viewer) {
 			this.viewer = viewer;
 			getDisplay().syncExec(() -> {
 				((ITextViewerExtension2) this.viewer).addPainter(this);
@@ -299,15 +255,15 @@ public class InlineCompletionRenderer {
 		private void drawOverwriteText(int offset, String text) {
 			logger.debug("drawCurrentLineText:" + offset + ":" + text);
 			StyledText widget = getWidget();
-			TextWithTabs textWithTabs = splitLeadingTabs(text);
+			TextWithTabs textWithTabs = StringUtils.splitLeadingTabs(text);
 
 			paintFunctions.add((gc) -> {
 				// Draw ghost text
 				setStyleToGhostText(gc);
 				int spaceWidth = gc.textExtent(" ").x;
-				int tabWidth = textWithTabs.tabs * widget.getTabs() * spaceWidth;
+				int tabWidth = textWithTabs.getTabs() * widget.getTabs() * spaceWidth;
 				Point location = widget.getLocationAtOffset(offset);
-				gc.drawString(textWithTabs.text, location.x + tabWidth, location.y);
+				gc.drawString(textWithTabs.getText(), location.x + tabWidth, location.y);
 			});
 		}
 
@@ -318,7 +274,7 @@ public class InlineCompletionRenderer {
 		private void drawReplacePartText(int offset, String text, String replacedText) {
 			logger.debug("drawReplacePartText:" + offset + ":" + text + ":" + replacedText);
 			StyledText widget = getWidget();
-			TextWithTabs textWithTabs = splitLeadingTabs(text);
+			TextWithTabs textWithTabs = StringUtils.splitLeadingTabs(text);
 
 			int targetOffset = offset + replacedText.length();
 			if (targetOffset >= widget.getCharCount()) {
@@ -327,18 +283,19 @@ public class InlineCompletionRenderer {
 					// Draw ghost text
 					setStyleToGhostText(gc);
 					int spaceWidth = gc.textExtent(" ").x;
-					int tabWidth = textWithTabs.tabs * widget.getTabs() * spaceWidth;
+					int tabWidth = textWithTabs.getTabs() * widget.getTabs() * spaceWidth;
 					Point location = widget.getLocationAtOffset(offset);
-					gc.drawString(textWithTabs.text, location.x + tabWidth, location.y);
+					gc.drawString(textWithTabs.getText(), location.x + tabWidth, location.y);
 				});
-				
+
 			} else {
 				// otherwise, draw the ghost text, and move target char after the ghost text
 				String targetChar = widget.getText(targetOffset, targetOffset);
 				StyleRange originStyleRange;
 				if (widget.getStyleRangeAtOffset(targetOffset) != null) {
 					originStyleRange = widget.getStyleRangeAtOffset(targetOffset);
-					logger.debug("Find origin StyleRange:" + originStyleRange.start + " -> " + originStyleRange.metrics);
+					logger.debug(
+							"Find origin StyleRange:" + originStyleRange.start + " -> " + originStyleRange.metrics);
 				} else {
 					originStyleRange = new StyleRange();
 					originStyleRange.start = targetOffset;
@@ -350,10 +307,10 @@ public class InlineCompletionRenderer {
 					// Draw ghost text
 					setStyleToGhostText(gc);
 					int spaceWidth = gc.textExtent(" ").x;
-					int tabWidth = textWithTabs.tabs * widget.getTabs() * spaceWidth;
-					int ghostTextWidth = tabWidth + gc.stringExtent(textWithTabs.text).x;
+					int tabWidth = textWithTabs.getTabs() * widget.getTabs() * spaceWidth;
+					int ghostTextWidth = tabWidth + gc.stringExtent(textWithTabs.getText()).x;
 					Point location = widget.getLocationAtOffset(offset);
-					gc.drawString(textWithTabs.text, location.x + tabWidth, location.y);
+					gc.drawString(textWithTabs.getText(), location.x + tabWidth, location.y);
 
 					// Leave the space for the ghost text
 					setStyle(gc, originStyleRange);
@@ -406,7 +363,7 @@ public class InlineCompletionRenderer {
 
 			List<TextWithTabs> linesTextWithTab = new ArrayList<>();
 			for (String line : lines) {
-				linesTextWithTab.add(splitLeadingTabs(line));
+				linesTextWithTab.add(StringUtils.splitLeadingTabs(line));
 			}
 
 			paintFunctions.add((gc) -> {
@@ -416,9 +373,9 @@ public class InlineCompletionRenderer {
 				Point location = widget.getLocationAtOffset(offset);
 				int y = location.y;
 				for (TextWithTabs textWithTabs : linesTextWithTab) {
-					int x = widget.getLeftMargin() + textWithTabs.tabs * widget.getTabs() * spaceWidth;
+					int x = widget.getLeftMargin() + textWithTabs.getTabs() * widget.getTabs() * spaceWidth;
 					y += lineHeight;
-					gc.drawString(textWithTabs.text, x, y, true);
+					gc.drawString(textWithTabs.getText(), x, y, true);
 				}
 			});
 		}
@@ -448,17 +405,6 @@ public class InlineCompletionRenderer {
 			gc.setFont(font);
 		}
 
-		static final Pattern PATTERN_LEADING_TABS = Pattern.compile("^(\\t*)(.*)$");
-
-		private static TextWithTabs splitLeadingTabs(String text) {
-			Matcher matcher = PATTERN_LEADING_TABS.matcher(text);
-			if (matcher.matches()) {
-				return new TextWithTabs(matcher.group(1).length(), matcher.group(2));
-			} else {
-				return new TextWithTabs(0, text);
-			}
-		}
-
 		private static class ModifiedLineVerticalIndent {
 			private Position position;
 			private int indent;
@@ -468,16 +414,6 @@ public class InlineCompletionRenderer {
 				this.position = position;
 				this.indent = indent;
 				this.modifiedIndent = modifiedIndent;
-			}
-		}
-
-		private static class TextWithTabs {
-			private int tabs;
-			private String text;
-
-			public TextWithTabs(int tabs, String text) {
-				this.tabs = tabs;
-				this.text = text;
 			}
 		}
 	}

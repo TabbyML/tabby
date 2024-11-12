@@ -12,13 +12,13 @@ public class Activator extends AbstractUIPlugin {
 
 	// The shared instance
 	private static Activator plugin;
-	
+
 	public static Activator getDefault() {
 		return plugin;
 	}
-	
+
 	private Logger logger = new Logger("Activator");
-	
+
 	public Activator() {
 	}
 

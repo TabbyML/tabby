@@ -9,7 +9,7 @@ import com.tabbyml.tabby4eclipse.inlineCompletion.InlineCompletionService;
 
 public class Dismiss extends AbstractHandler {
 	private Logger logger = new Logger("Commands.InlineCompletion.Dismiss");
-	
+
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		logger.debug("Dismiss the current inline completion.");

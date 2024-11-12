@@ -1,11 +1,7 @@
-package com.tabbyml.tabby4eclipse.inlineCompletion;
+package com.tabbyml.tabby4eclipse.inlineCompletion.trigger;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocument;
@@ -15,27 +11,33 @@ import org.eclipse.swt.custom.CaretListener;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.ui.texteditor.ITextEditor;
 
-import com.tabbyml.tabby4eclipse.DebouncedRunnable;
 import com.tabbyml.tabby4eclipse.Logger;
 import com.tabbyml.tabby4eclipse.editor.EditorUtils;
+import com.tabbyml.tabby4eclipse.inlineCompletion.IInlineCompletionService;
+import com.tabbyml.tabby4eclipse.inlineCompletion.InlineCompletionService;
 
 /**
  * This DocumentBasedTrigger listens to document and caret events to determine
- * when to trigger inline completion. When a document changed event is received,
- * it waits for a debouncing interval, then triggers inline completion. When a
- * caret event is received, it waits for a debouncing interval, then checks if
- * the current completion context is valid, and dismisses completion if not
- * valid.
+ * when to trigger inline completion. When a pair of document and caret events
+ * are received, which means user is typing, it triggers inline completion. When
+ * a single event is received, which means user is moving cursor, it dismisses
+ * the current inline completion.
  */
-public class DebouncedDocumentEventTrigger implements IInlineCompletionTrigger {
-	private final static int DEBOUNCE_INTERVAL = 20; // ms
-
-	private Logger logger = new Logger("InlineCompletionTrigger.DebouncedDocumentEventTrigger");
+public class PairedDocumentEventTrigger implements IInlineCompletionTrigger {
+	private Logger logger = new Logger("InlineCompletionTrigger.PairedDocumentEventTrigger");
 
 	private IInlineCompletionService inlineCompletionService = InlineCompletionService.getInstance();
 
 	private Map<ITextEditor, CaretListener> caretListeners = new HashMap<>();
 	private Map<ITextEditor, IDocumentListener> documentListeners = new HashMap<>();
+	private TriggerEvent pendingEvent;
+
+	private class TriggerEvent {
+		private ITextEditor textEditor;
+		private long modificationStamp;
+		private DocumentEvent documentEvent;
+		private CaretEvent caretEvent;
+	}
 
 	@Override
 	public void register(ITextEditor textEditor) {
@@ -56,6 +58,7 @@ public class DebouncedDocumentEventTrigger implements IInlineCompletionTrigger {
 		IDocumentListener documentListener = new IDocumentListener() {
 			@Override
 			public void documentAboutToBeChanged(DocumentEvent event) {
+				handleDocumentAboutToBeChanged(textEditor, event);
 			}
 
 			@Override
@@ -89,38 +92,35 @@ public class DebouncedDocumentEventTrigger implements IInlineCompletionTrigger {
 		}
 	}
 
-	private DebouncedRunnable documentChangedRunnable = new DebouncedRunnable(() -> {
-		try {
-			EditorUtils.syncExec(() -> {
-				logger.debug("Trigger inline completion after debouncing.");
-				inlineCompletionService.trigger(false);
-			});
-		} catch (Exception e) {
-			logger.error("Failed to handle documentChangedRunnable after debouncing.", e);
-		}
-	}, DEBOUNCE_INTERVAL);
-
-	private DebouncedRunnable caretMovedRunnable = new DebouncedRunnable(() -> {
-		try {
-			EditorUtils.syncExec(() -> {
-				if (!inlineCompletionService.isValid()) {
-					logger.debug("Dismiss invalid inline completion after debouncing.");
-					inlineCompletionService.dismiss();
-				} else {
-					logger.debug("Keep still valid inline completion after debouncing.");
-				}
-			});
-		} catch (Exception e) {
-			logger.error("Failed to handle caretMovedRunnable after debouncing.", e);
-		}
-	}, DEBOUNCE_INTERVAL);
-
 	private void handleCaretMoved(ITextEditor textEditor, CaretEvent event) {
 		if (!EditorUtils.isActiveEditor(textEditor)) {
 			return;
 		}
 		logger.debug("handleCaretMoved: " + event.toString() + " offset: " + event.caretOffset);
-		caretMovedRunnable.call();
+		long modificationStamp = EditorUtils.getDocumentModificationStamp(textEditor);
+		if (pendingEvent != null && pendingEvent.textEditor == textEditor) {
+			if (pendingEvent.documentEvent != null && pendingEvent.modificationStamp == modificationStamp) {
+				logger.debug("Received caretEvent with paired documentEvent, trigger inline completion.");
+				inlineCompletionService.trigger(false);
+				pendingEvent = null;
+			} else {
+				logger.debug("Received caretEvent, waiting for paired documentEvent.");
+				pendingEvent.caretEvent = event;
+				pendingEvent.modificationStamp = modificationStamp;
+			}
+		} else {
+			logger.debug("Received caretEvent without document changes, dismiss inline completion.");
+			inlineCompletionService.dismiss();
+		}
+	}
+
+	private void handleDocumentAboutToBeChanged(ITextEditor textEditor, DocumentEvent event) {
+		if (!EditorUtils.isActiveEditor(textEditor)) {
+			return;
+		}
+		logger.debug("handleDocumentAboutToBeChanged: " + event.toString());
+		pendingEvent = new TriggerEvent();
+		pendingEvent.textEditor = textEditor;
 	}
 
 	private void handleDocumentChanged(ITextEditor textEditor, DocumentEvent event) {
@@ -128,6 +128,18 @@ public class DebouncedDocumentEventTrigger implements IInlineCompletionTrigger {
 			return;
 		}
 		logger.debug("handleDocumentChanged: " + event.toString());
-		documentChangedRunnable.call();
+		long modificationStamp = EditorUtils.getDocumentModificationStamp(textEditor);
+		if (pendingEvent != null && pendingEvent.textEditor == textEditor) {
+			if (pendingEvent.caretEvent != null && pendingEvent.modificationStamp == modificationStamp) {
+				logger.debug("Received documentEvent with paired caretEvent, trigger inline completion.");
+				inlineCompletionService.trigger(false);
+				pendingEvent = null;
+			} else {
+				logger.debug("Received documentEvent, waiting for paired caretEvent.");
+				pendingEvent.documentEvent = event;
+				pendingEvent.modificationStamp = modificationStamp;
+			}
+		}
 	}
+
 }
