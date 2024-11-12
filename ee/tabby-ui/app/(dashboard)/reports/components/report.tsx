@@ -218,7 +218,7 @@ export function Report() {
 
         <LoadingWrapper
           loading={fetchingDailyState}
-          fallback={<Skeleton className="h-8 w-32" />}
+          fallback={<Skeleton className="h-6 w-32" />}
         >
           <Select
             defaultValue={KEY_SELECT_ALL}
