@@ -31,7 +31,8 @@ export default function NotFoundPage() {
           404
         </h2>
         <p className="mt-4 text-lg text-muted-foreground">
-          Oops, it looks like the page you're looking for doesn't exist.
+          Oops, it looks like the page you&apos;re looking for doesn&apos;t
+          exist.
         </p>
         <Link className={cn('mt-6', buttonVariants())} href="/">
           Home
