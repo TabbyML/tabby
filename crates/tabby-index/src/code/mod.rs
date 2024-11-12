@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use async_stream::stream;
 use async_trait::async_trait;
@@ -88,6 +88,9 @@ impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
 
         let source_code = source_code.clone();
         let s = stream! {
+            let filepath_embedding_tokens =
+                build_binarize_embedding_tokens(embedding.clone(), &source_code.filepath).await;
+
             for await (start_line, body) in CodeIntelligence::chunks(&text, &source_code.language) {
                 let attributes = json!({
                     code::fields::CHUNK_FILEPATH: source_code.filepath,
@@ -98,8 +101,10 @@ impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
                 });
 
                 let embedding = embedding.clone();
+                let filepath_embedding_tokens = filepath_embedding_tokens.clone();
                 yield tokio::spawn(async move {
                     let tokens = build_binarize_embedding_tokens(embedding.clone(), &body).await;
+                    let tokens= merge_tokens(vec![filepath_embedding_tokens, tokens]);
                     (tokens, attributes)
                 });
             }
@@ -125,6 +130,12 @@ async fn build_binarize_embedding_tokens(embedding: Arc<dyn Embedding>, body: &s
 
     tokens
 }
+
+pub fn merge_tokens(tokens: Vec<Vec<String>>) -> Vec<String> {
+    let tokens = tokens.into_iter().flatten().collect::<HashSet<_>>();
+    tokens.into_iter().collect()
+}
+
 
 fn create_code_builder(embedding: Option<Arc<dyn Embedding>>) -> TantivyDocBuilder<SourceCode> {
     let builder = CodeBuilder::new(embedding);
