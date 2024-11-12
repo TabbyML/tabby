@@ -1,6 +1,6 @@
-use anyhow::Result;
 use std::{cell::Cell, env, path::PathBuf, sync::Mutex};
 
+use anyhow::Result;
 use lazy_static::lazy_static;
 
 lazy_static! {
