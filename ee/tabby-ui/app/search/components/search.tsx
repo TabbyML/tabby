@@ -3,6 +3,7 @@
 import {
   createContext,
   CSSProperties,
+  MouseEvent,
   useEffect,
   useMemo,
   useRef,
@@ -62,6 +63,17 @@ import {
   getThreadRunContextsFromMentions,
   getTitleFromMessages
 } from '@/lib/utils'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   IconCheck,
@@ -69,7 +81,9 @@ import {
   IconFileSearch,
   IconPlus,
   IconShare,
-  IconStop
+  IconSpinner,
+  IconStop,
+  IconTrash
 } from '@/components/ui/icons'
 import {
   ResizableHandle,
@@ -81,6 +95,7 @@ import { Separator } from '@/components/ui/separator'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { ClientOnly } from '@/components/client-only'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
+import NotFoundPage from '@/components/not-found-page'
 import TextAreaSearch from '@/components/textarea-search'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { MyAvatar } from '@/components/user-avatar'
@@ -707,7 +722,7 @@ export function Search() {
     updateSelectedModel(model)
   }
 
-  const hasThreadError = useMemo(() => {
+  const formatedThreadError: ExtendedCombinedError | undefined = useMemo(() => {
     if (!isReady || fetchingThread || !threadIdFromURL) return undefined
     if (threadError || !threadData?.threads?.edges?.length) {
       return threadError || new Error(ERROR_CODE_NOT_FOUND)
@@ -719,8 +734,14 @@ export function Search() {
     200
   )
 
-  if (isReady && (threadMessagesError || hasThreadError)) {
-    return <ThreadMessagesErrorView />
+  if (isReady && (formatedThreadError || threadMessagesError)) {
+    return (
+      <ThreadMessagesErrorView
+        error={
+          (formatedThreadError || threadMessagesError) as ExtendedCombinedError
+        }
+      />
+    )
   }
 
   if (!isReady && (isFetchingMessages || threadMessagesStale)) {
@@ -938,12 +959,22 @@ type HeaderProps = {
 
 function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
   const router = useRouter()
-
+  const [deleteAlertVisible, setDeleteAlertVisible] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const onNavigateToHomePage = (scroll?: boolean) => {
     if (scroll) {
       clearHomeScrollPosition()
     }
     router.push('/')
+  }
+
+  const handleDeleteThread = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    setIsDeleting(true)
+    // todo call api and deal with graphcache
+    setTimeout(() => {
+      router.replace('/')
+    }, 2000)
   }
 
   return (
@@ -968,6 +999,37 @@ function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
             >
               <IconPlus />
             </Button>
+            <AlertDialog
+              open={deleteAlertVisible}
+              onOpenChange={setDeleteAlertVisible}
+            >
+              <AlertDialogTrigger asChild>
+                <Button size="icon" variant="hover-destructive">
+                  <IconTrash />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this thread</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this thread? This operation
+                    is not revertible.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className={buttonVariants({ variant: 'destructive' })}
+                    onClick={handleDeleteThread}
+                  >
+                    {isDeleting && (
+                      <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Yes, delete it
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </>
         )}
         <ClientOnly>
@@ -987,7 +1049,19 @@ function Header({ threadIdFromURL, streamingDone }: HeaderProps) {
   )
 }
 
-function ThreadMessagesErrorView() {
+interface ThreadMessagesErrorViewProps {
+  error: ExtendedCombinedError
+}
+function ThreadMessagesErrorView({ error }: ThreadMessagesErrorViewProps) {
+  // FIXME show different error messages
+  let title = 'Something went wrong'
+  let description =
+    'Failed to fetch the thread, please refresh the page or start a new thread'
+
+  if (error.message === ERROR_CODE_NOT_FOUND) {
+    return <NotFoundPage />
+  }
+
   return (
     <div className="flex h-screen flex-col">
       <Header />
@@ -995,12 +1069,9 @@ function ThreadMessagesErrorView() {
         <div className="flex h-full flex-col items-center justify-center gap-2">
           <div className="flex items-center gap-2">
             <IconFileSearch className="h-6 w-6" />
-            <div className="text-xl font-semibold">Something went wrong</div>
+            <div className="text-xl font-semibold">{title}</div>
           </div>
-          <div>
-            Failed to fetch the thread, please refresh the page or start a new
-            thread
-          </div>
+          <div>{description}</div>
           <Link
             href="/"
             onClick={clearHomeScrollPosition}
