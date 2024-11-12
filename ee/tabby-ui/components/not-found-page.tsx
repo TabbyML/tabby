@@ -26,7 +26,7 @@ export default function NotFoundPage() {
   return (
     <div style={style} className="flex flex-col">
       <Header />
-      <div className="flex-1 flex flex-col items-center justify-center">
+      <div className="flex flex-1 flex-col items-center justify-center">
         <h2 className="mt-4 text-6xl font-bold tracking-tight text-foreground sm:text-7xl">
           404
         </h2>
@@ -44,7 +44,7 @@ export default function NotFoundPage() {
 
 function Header() {
   return (
-    <header className="flex h-16 items-center justify-between px-4 lg:px-10 border-b">
+    <header className="flex h-16 items-center justify-between border-b px-4 lg:px-10">
       <div className="flex items-center">
         <Link href="/">
           <Image src={logoUrl} alt="logo" width={128} className="dark:hidden" />
