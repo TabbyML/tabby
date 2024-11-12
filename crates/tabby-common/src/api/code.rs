@@ -1,7 +1,11 @@
+use std::path::PathBuf;
+
 use async_trait::async_trait;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+
+use crate::path::normalize_path;
 
 pub struct CodeSearchResponse {
     pub hits: Vec<CodeSearchHit>,
@@ -64,7 +68,7 @@ impl CodeSearchQuery {
         source_id: String,
     ) -> Self {
         Self {
-            filepath,
+            filepath: normalize_path(filepath).unwrap_or(None),
             language,
             content,
             source_id,

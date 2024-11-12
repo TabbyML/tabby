@@ -1,3 +1,4 @@
+use anyhow::Result;
 use std::{cell::Cell, env, path::PathBuf, sync::Mutex};
 
 use lazy_static::lazy_static;
@@ -51,6 +52,22 @@ pub fn models_dir() -> PathBuf {
 
 pub fn events_dir() -> PathBuf {
     tabby_root().join("events")
+}
+
+pub fn normalize_path(filepath: Option<String>) -> Result<Option<String>> {
+    Ok(filepath.map(|path| {
+        let path_buf = PathBuf::from(path);
+
+        #[cfg(target_os = "windows")]
+        {
+            path_buf.to_string_lossy().replace('/', "\\")
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            path_buf.to_string_lossy().replace('\\', "/")
+        }
+    }))
 }
 
 mod registry {}

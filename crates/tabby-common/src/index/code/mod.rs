@@ -7,7 +7,7 @@ use tantivy::{
 pub use tokenizer::tokenize_code;
 
 use super::{corpus, IndexSchema};
-use crate::api::code::CodeSearchQuery;
+use crate::{api::code::CodeSearchQuery, path::normalize_path};
 
 pub mod fields {
     pub const CHUNK_GIT_URL: &str = "chunk_git_url";
@@ -52,7 +52,14 @@ fn filepath_query(filepath: &str) -> Box<TermQuery> {
     let schema = IndexSchema::instance();
     let mut term =
         Term::from_field_json_path(schema.field_chunk_attributes, fields::CHUNK_FILEPATH, false);
-    term.append_type_and_str(filepath);
+
+    // normalize the path base on the platform.
+    let filepath = normalize_path(Some(filepath.to_string()))
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| filepath.to_string());
+
+    term.append_type_and_str(&filepath);
     Box::new(TermQuery::new(term, IndexRecordOption::Basic))
 }
 
@@ -84,10 +91,12 @@ pub fn code_search_query(
 
     // When filepath presents, we exclude the file from the search.
     if let Some(filepath) = &query.filepath {
-        subqueries.push((
-            Occur::MustNot,
-            Box::new(ConstScoreQuery::new(filepath_query(filepath), 0.0)),
-        ))
+        if let Ok(Some(normalized_path)) = normalize_path(Some(filepath.clone())) {
+            subqueries.push((
+                Occur::MustNot,
+                Box::new(ConstScoreQuery::new(filepath_query(&normalized_path), 0.0)),
+            ));
+        }
     }
 
     BooleanQuery::new(subqueries)
