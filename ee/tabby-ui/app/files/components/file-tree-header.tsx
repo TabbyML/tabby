@@ -209,7 +209,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                 side="bottom"
                 sideOffset={-8}
               >
-                <Command className="transition-all">
+                <Command>
                   <CommandInput
                     placeholder={
                       activeRefKind === 'tag' ? 'Find a tag' : 'Find a branch'

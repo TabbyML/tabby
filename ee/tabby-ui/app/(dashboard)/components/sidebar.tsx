@@ -1,16 +1,14 @@
 'use client'
 
-import React from 'react'
+import React, { FunctionComponent } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import logoDarkUrl from '@/assets/logo-dark.png'
 import logoUrl from '@/assets/logo.png'
-import { cva } from 'class-variance-authority'
-import { escapeRegExp } from 'lodash-es'
+import tabbyLogo from '@/assets/tabby.png'
 
 import { useMe } from '@/lib/hooks/use-me'
-import { cn } from '@/lib/utils'
 import {
   Collapsible,
   CollapsibleContent,
@@ -23,9 +21,17 @@ import {
   IconLightingBolt,
   IconUser
 } from '@/components/ui/icons'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
-import { useShowLicenseBanner } from '@/components/license-banner'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarHeader,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem
+} from '@/components/ui/sidebar'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 export interface SidebarProps {
@@ -33,7 +39,7 @@ export interface SidebarProps {
   className?: string
 }
 
-type MenuLeaf = {
+type SubMenu = {
   title: string
   href: string
   allowUser?: boolean
@@ -42,29 +48,29 @@ type MenuLeaf = {
 type Menu =
   | {
       title: string
-      icon: React.ReactNode
+      icon: FunctionComponent
       allowUser?: boolean
-      children: MenuLeaf[]
+      items: SubMenu[]
     }
   | {
       title: string
       href: string
-      icon: React.ReactNode
+      icon: FunctionComponent
       allowUser?: boolean
-      children?: never
+      items?: never
     }
 
 const menus: Menu[] = [
   {
     title: 'Profile',
-    icon: <IconUser />,
+    icon: IconUser,
     href: '/profile',
     allowUser: true
   },
   {
     title: 'Information',
-    icon: <IconBookOpenText />,
-    children: [
+    icon: IconBookOpenText,
+    items: [
       {
         title: 'System',
         href: '/system'
@@ -85,9 +91,9 @@ const menus: Menu[] = [
   },
   {
     title: 'Settings',
-    icon: <IconGear />,
+    icon: IconGear,
     allowUser: true,
-    children: [
+    items: [
       {
         title: 'General',
         href: '/settings/general'
@@ -105,8 +111,8 @@ const menus: Menu[] = [
   },
   {
     title: 'Integrations',
-    icon: <IconLightingBolt />,
-    children: [
+    icon: IconLightingBolt,
+    items: [
       {
         title: 'Context Providers',
         href: '/settings/providers/git'
@@ -123,160 +129,152 @@ const menus: Menu[] = [
   }
 ]
 
-export default function Sidebar({ children, className }: SidebarProps) {
+export default function AppSidebar() {
+  const pathname = usePathname()
   const [{ data, fetching: fetchingMe }] = useMe()
   const isAdmin = data?.me.isAdmin
-  const [isShowDemoBanner] = useShowDemoBanner()
-  const [isShowLicenseBanner] = useShowLicenseBanner()
-  const showBanner = isShowDemoBanner || isShowLicenseBanner
-  const style = showBanner
-    ? {
-        height: `calc(100vh - ${isShowDemoBanner ? BANNER_HEIGHT : '0rem'} - ${
-          isShowLicenseBanner ? BANNER_HEIGHT : '0rem'
-        })`
-      }
-    : { height: '100vh' }
 
   return (
-    <ScrollArea
-      className={cn('grid overflow-hidden md:grid-cols-[280px_1fr]', className)}
+    <Sidebar
+      style={{
+        position: 'absolute',
+        top: 0,
+        bottom: 0
+      }}
+      collapsible="icon"
     >
-      <div
-        className="hidden w-[280px] border-r pt-4 transition-all md:block"
-        style={style}
-      >
-        <nav className="flex h-full flex-col overflow-hidden text-sm font-medium">
-          <Link href="/" className="flex justify-center pb-4">
+      <SidebarHeader>
+        <Link
+          href="/"
+          className="flex h-[3.375rem] items-center justify-center py-2"
+        >
+          <>
             <Image
-              src={logoUrl}
+              src={tabbyLogo}
+              width={32}
               alt="logo"
-              width={128}
-              className="dark:hidden"
+              className="hidden group-data-[collapsible=icon]:block"
             />
-            <Image
-              src={logoDarkUrl}
-              alt="logo"
-              width={96}
-              className="hidden dark:block"
-            />
-          </Link>
-          <div className="flex-1 overflow-y-auto">
-            <div className="flex flex-col gap-2 px-4 pb-4">
-              <LoadingWrapper loading={fetchingMe}>
-                {menus.map((menu, index) => {
-                  if (menu.allowUser || isAdmin) {
-                    if (menu.children) {
-                      return (
-                        <SidebarCollapsible
-                          key={index}
-                          title={
-                            <>
-                              {menu.icon} {menu.title}
-                            </>
-                          }
-                        >
-                          {menu.children.map((child, childIndex) => {
-                            if (child.allowUser || isAdmin) {
-                              return (
-                                <SidebarButton
-                                  key={childIndex}
-                                  href={child.href}
-                                >
-                                  {child.title}
-                                </SidebarButton>
-                              )
-                            }
-                            return null
-                          })}
-                        </SidebarCollapsible>
-                      )
-                    } else {
-                      return (
-                        <SidebarButton key={index} href={menu.href}>
-                          {menu.icon} {menu.title}
-                        </SidebarButton>
-                      )
-                    }
-                  }
-                  return null
-                })}
-              </LoadingWrapper>
+            <div className="w-[128px] group-data-[collapsible=icon]:hidden">
+              <Image
+                src={logoUrl}
+                alt="logo"
+                className="dark:hidden"
+                width={128}
+              />
+              <Image
+                src={logoDarkUrl}
+                alt="logo"
+                width={96}
+                className="hidden dark:block"
+              />
             </div>
-          </div>
-        </nav>
-      </div>
-    </ScrollArea>
-  )
-}
-
-interface SidebarButtonProps {
-  href: string
-  children: React.ReactNode
-}
-
-const linkVariants = cva(
-  'flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-accent',
-  {
-    variants: {
-      state: {
-        selected: 'bg-accent',
-        'not-selected': ''
-      }
-    },
-    defaultVariants: {
-      state: 'not-selected'
-    }
-  }
-)
-
-function SidebarButton({ href, children }: SidebarButtonProps) {
-  const pathname = usePathname()
-  const isSelected = React.useMemo(() => {
-    if (href === '/') return href === pathname
-    if (href.startsWith('/settings/providers')) {
-      return pathname.startsWith('/settings/providers/')
-    }
-
-    return shouldPathnameHighlight(pathname, href)
-  }, [pathname, href])
-
-  const state = isSelected ? 'selected' : 'not-selected'
-  return (
-    <Link className={linkVariants({ state })} href={href}>
-      {children}
-    </Link>
-  )
-}
-
-function shouldPathnameHighlight(
-  currentPathname: string,
-  pathToHighlight: string
-) {
-  const regex = new RegExp(`^${escapeRegExp(pathToHighlight)}(/|\\?|$)`)
-  return regex.test(currentPathname)
-}
-
-interface SidebarCollapsibleProps {
-  title: React.ReactNode
-  children: React.ReactNode
-  defaultOpen?: boolean
-}
-
-function SidebarCollapsible({ title, children }: SidebarCollapsibleProps) {
-  return (
-    <Collapsible
-      defaultOpen={true}
-      className="[&_svg.ml-auto]:data-[state=open]:rotate-90"
-    >
-      <CollapsibleTrigger className="w-full">
-        <span className={linkVariants()}>
-          {title}
-          <IconChevronRight className="ml-auto" />
-        </span>
-      </CollapsibleTrigger>
-      <CollapsibleContent className="ml-7 flex flex-col gap-1 data-[state=open]:py-1">
-        {children}
-      </CollapsibleContent>
-    </Collapsible>
+          </>
+        </Link>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup className="list-none space-y-2 text-sm font-medium leading-normal">
+          <LoadingWrapper loading={fetchingMe}>
+            {menus.map(menu => {
+              if (isAdmin || menu.allowUser) {
+                if (menu.items) {
+                  return (
+                    <Collapsible
+                      defaultOpen
+                      asChild
+                      className="group/collapsible"
+                      key={`collapsible_${menu.title}`}
+                    >
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton
+                            key={menu.title}
+                            tooltip={{
+                              children: (
+                                <div
+                                  className="w-[theme(space.48)]"
+                                  key={menu.title}
+                                >
+                                  <div className="mb-2 ml-2 mt-1 text-sm font-medium text-muted-foreground">
+                                    {menu.title}
+                                  </div>
+                                  <div className="space-y-1">
+                                    {menu.items.map(item => {
+                                      if (isAdmin || item.allowUser) {
+                                        return (
+                                          <SidebarMenuButton
+                                            key={item.title}
+                                            asChild
+                                            isActive={pathname.startsWith(
+                                              item.href
+                                            )}
+                                          >
+                                            <Link href={item.href}>
+                                              <span>{item.title}</span>
+                                            </Link>
+                                          </SidebarMenuButton>
+                                        )
+                                      } else {
+                                        return null
+                                      }
+                                    })}
+                                  </div>
+                                </div>
+                              ),
+                              align: 'start',
+                              side: 'right'
+                            }}
+                          >
+                            {!!menu.icon && <menu.icon />}
+                            <span>{menu.title}</span>
+                            <IconChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {menu.items.map(item => {
+                              if (isAdmin || item.allowUser) {
+                                return (
+                                  <SidebarMenuSubItem key={item.title}>
+                                    <SidebarMenuSubButton
+                                      asChild
+                                      isActive={pathname.startsWith(item.href)}
+                                    >
+                                      <Link href={item.href}>
+                                        <span>{item.title}</span>
+                                      </Link>
+                                    </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
+                                )
+                              }
+                            })}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  )
+                } else {
+                  return (
+                    <SidebarMenuItem key={menu.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname.startsWith(menu.href)}
+                        tooltip={menu.title}
+                      >
+                        <Link href={menu.href}>
+                          {!!menu.icon && <menu.icon />}
+                          <span>{menu.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                }
+              }
+              return null
+            })}
+          </LoadingWrapper>
+        </SidebarGroup>
+      </SidebarContent>
+    </Sidebar>
   )
 }
