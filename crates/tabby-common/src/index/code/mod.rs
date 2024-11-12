@@ -5,10 +5,9 @@ use tantivy::{
     Term,
 };
 pub use tokenizer::tokenize_code;
-use tracing::debug;
 
 use super::{corpus, IndexSchema};
-use crate::{api::code::CodeSearchQuery, path::normalize_path};
+use crate::api::code::CodeSearchQuery;
 
 pub mod fields {
     pub const CHUNK_GIT_URL: &str = "chunk_git_url";
@@ -53,7 +52,7 @@ fn filepath_query(filepath: &str) -> Box<TermQuery> {
     let schema = IndexSchema::instance();
     let mut term =
         Term::from_field_json_path(schema.field_chunk_attributes, fields::CHUNK_FILEPATH, false);
-    term.append_type_and_str(&filepath);
+    term.append_type_and_str(filepath);
     Box::new(TermQuery::new(term, IndexRecordOption::Basic))
 }
 
@@ -88,7 +87,7 @@ pub fn code_search_query(
         subqueries.push((
             Occur::MustNot,
             Box::new(ConstScoreQuery::new(filepath_query(filepath), 0.0)),
-        ));
+        ))
     }
 
     BooleanQuery::new(subqueries)
