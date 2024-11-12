@@ -28,6 +28,16 @@ impl AccessPolicy {
         }
     }
 
+    pub fn check_delete_thread(&self, user_id: &ID) -> Result<()> {
+        if self.user_id != *user_id {
+            return Err(CoreError::Forbidden(
+                "You cannot delete a thread that you do not own.",
+            ));
+        }
+
+        Ok(())
+    }
+
     pub fn check_delete_thread_messages(&self, user_id: &ID) -> Result<()> {
         if self.user_id != *user_id {
             return Err(CoreError::Forbidden(

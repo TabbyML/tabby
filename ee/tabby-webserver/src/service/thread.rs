@@ -261,6 +261,11 @@ impl ThreadService for ThreadServiceImpl {
             .await?;
         Ok(())
     }
+
+    async fn delete(&self, id: &ID) -> Result<()> {
+        self.db.delete_thread(id.as_rowid()?).await?;
+        Ok(())
+    }
 }
 
 fn to_vec_messages(messages: Vec<ThreadMessageDAO>) -> Result<Vec<thread::Message>> {
@@ -475,6 +480,26 @@ mod tests {
         let non_existent_id = ID::from("non_existent".to_string());
         let non_existent_thread = service.get(&non_existent_id).await.unwrap();
         assert!(non_existent_thread.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_delete_thread() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let user_id = create_user(&db).await.as_id();
+        let service = create(db.clone(), None);
+
+        let input = CreateThreadInput {
+            user_message: CreateMessageInput {
+                content: "ping".to_string(),
+                attachments: None,
+            },
+        };
+
+        let thread_id = service.create(&user_id, &input).await.unwrap();
+        service.delete(&thread_id).await.unwrap();
+
+        let deleted_thread = service.get(&thread_id).await.unwrap();
+        assert!(deleted_thread.is_none());
     }
 
     #[tokio::test]

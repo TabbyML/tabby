@@ -579,6 +579,7 @@ type Mutation {
   triggerJobRun(command: String!): ID!
   "Delete pair of user message and bot response in a thread."
   deleteThreadMessagePair(threadId: ID!, userMessageId: ID!, assistantMessageId: ID!): Boolean!
+  deleteThread(threadId: ID!): Boolean!
   "Turn on persisted status for a thread."
   setThreadPersisted(threadId: ID!): Boolean!
   updateThreadMessage(input: UpdateMessageInput!): Boolean!
