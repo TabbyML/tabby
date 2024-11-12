@@ -55,16 +55,16 @@ module.exports = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
         },
-				sidebar: {
-					DEFAULT: 'hsl(var(--background))',
-					foreground: 'hsl(var(--foreground))',
-					primary: 'hsl(var(--primary))',
-					'primary-foreground': 'hsl(var(--primary-foreground))',
-					accent: 'hsl(var(--accent))',
-					'accent-foreground': 'hsl(var(--accent-foreground))',
-					border: 'hsl(var(--border))',
-					ring: 'hsl(var(--ring))'
-				},
+        sidebar: {
+          DEFAULT: 'hsl(var(--background))',
+          foreground: 'hsl(var(--foreground))',
+          primary: 'hsl(var(--primary))',
+          'primary-foreground': 'hsl(var(--primary-foreground))',
+          accent: 'hsl(var(--accent))',
+          'accent-foreground': 'hsl(var(--accent-foreground))',
+          border: 'hsl(var(--border))',
+          ring: 'hsl(var(--ring))'
+        }
       },
       borderRadius: {
         lg: `var(--radius)`,
