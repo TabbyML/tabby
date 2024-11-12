@@ -34,14 +34,12 @@ export default function MainContent({
   }, [pathname])
 
   return (
-    <>
-      <SidebarInset>
-        {/* Wraps right hand side into ScrollArea, making scroll bar consistent across all browsers */}
-        <ScrollArea ref={scroller} style={style}>
-          <Header />
-          <div className="p-4 lg:p-10">{children}</div>
-        </ScrollArea>
-      </SidebarInset>
-    </>
+    <SidebarInset>
+      {/* Wraps right hand side into ScrollArea, making scroll bar consistent across all browsers */}
+      <ScrollArea ref={scroller} style={style}>
+        <Header />
+        <div className="p-4 lg:p-10">{children}</div>
+      </ScrollArea>
+    </SidebarInset>
   )
 }
