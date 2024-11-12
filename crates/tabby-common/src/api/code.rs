@@ -55,6 +55,7 @@ pub enum CodeSearchError {
 }
 
 pub struct CodeSearchQuery {
+    // filepath in code search query always normalize to unix style.
     pub filepath: Option<String>,
     pub language: Option<String>,
     pub content: String,
@@ -68,15 +69,8 @@ impl CodeSearchQuery {
         content: String,
         source_id: String,
     ) -> Self {
-        debug!("CodeSearchQuery::new - Original filepath: {:?}", filepath);
-        let normalized = normalize_path(filepath).unwrap_or(None);
-        debug!(
-            "CodeSearchQuery::new - Normalized filepath: {:?}",
-            normalized
-        );
-
         Self {
-            filepath: normalized,
+            filepath: normalize_path(filepath).unwrap_or(None),
             language,
             content,
             source_id,
