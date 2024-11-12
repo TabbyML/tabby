@@ -34,6 +34,6 @@ public class InlineCompletionTrigger {
 		if (EXPERIMENTAL_TRIGGER_PAIREDDOCUMENT) {
 			return new PairedDocumentEventTrigger();
 		}
-		return new BasicInputEventTrigger();
+		return new DebouncedDocumentEventTrigger();
 	}
 }

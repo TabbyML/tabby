@@ -26,7 +26,8 @@ import com.tabbyml.tabby4eclipse.inlineCompletion.InlineCompletionService;
  * valid.
  */
 public class DebouncedDocumentEventTrigger implements IInlineCompletionTrigger {
-	private final static int DEBOUNCE_INTERVAL = 20; // ms
+	private final static int DOCUMENT_CHANGED_DEBOUNCE_INTERVAL = 3; // ms
+	private final static int CARET_MOVED_DEBOUNCE_INTERVAL = 16; // ms
 
 	private Logger logger = new Logger("InlineCompletionTrigger.DebouncedDocumentEventTrigger");
 
@@ -96,7 +97,7 @@ public class DebouncedDocumentEventTrigger implements IInlineCompletionTrigger {
 		} catch (Exception e) {
 			logger.error("Failed to handle documentChangedRunnable after debouncing.", e);
 		}
-	}, DEBOUNCE_INTERVAL);
+	}, DOCUMENT_CHANGED_DEBOUNCE_INTERVAL);
 
 	private DebouncedRunnable caretMovedRunnable = new DebouncedRunnable(() -> {
 		try {
@@ -111,7 +112,7 @@ public class DebouncedDocumentEventTrigger implements IInlineCompletionTrigger {
 		} catch (Exception e) {
 			logger.error("Failed to handle caretMovedRunnable after debouncing.", e);
 		}
-	}, DEBOUNCE_INTERVAL);
+	}, CARET_MOVED_DEBOUNCE_INTERVAL);
 
 	private void handleCaretMoved(ITextEditor textEditor, CaretEvent event) {
 		if (!EditorUtils.isActiveEditor(textEditor)) {
