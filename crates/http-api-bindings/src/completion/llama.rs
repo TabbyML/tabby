@@ -19,7 +19,7 @@ impl LlamaCppEngine {
 
         Self {
             client,
-            api_endpoint: format!("{}/completions", api_endpoint),
+            api_endpoint: format!("{}/completion", api_endpoint),
             api_key,
         }
     }
