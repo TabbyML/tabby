@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use tracing::debug;
 
 use crate::path::normalize_path;
 
@@ -67,8 +68,15 @@ impl CodeSearchQuery {
         content: String,
         source_id: String,
     ) -> Self {
+        debug!("CodeSearchQuery::new - Original filepath: {:?}", filepath);
+        let normalized = normalize_path(filepath).unwrap_or(None);
+        debug!(
+            "CodeSearchQuery::new - Normalized filepath: {:?}",
+            normalized
+        );
+
         Self {
-            filepath: normalize_path(filepath).unwrap_or(None),
+            filepath: normalized,
             language,
             content,
             source_id,

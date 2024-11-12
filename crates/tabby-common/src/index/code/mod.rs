@@ -5,6 +5,7 @@ use tantivy::{
     Term,
 };
 pub use tokenizer::tokenize_code;
+use tracing::debug;
 
 use super::{corpus, IndexSchema};
 use crate::{api::code::CodeSearchQuery, path::normalize_path};
@@ -49,15 +50,16 @@ pub fn body_query(tokens: &[String]) -> Box<dyn Query> {
 }
 
 fn filepath_query(filepath: &str) -> Box<TermQuery> {
+    debug!("filepath_query - Input filepath: {}", filepath);
     let schema = IndexSchema::instance();
     let mut term =
         Term::from_field_json_path(schema.field_chunk_attributes, fields::CHUNK_FILEPATH, false);
-
     // normalize the path base on the platform.
     let filepath = normalize_path(Some(filepath.to_string()))
         .ok()
         .flatten()
         .unwrap_or_else(|| filepath.to_string());
+    debug!("filepath_query - Normalized filepath: {}", filepath);
 
     term.append_type_and_str(&filepath);
     Box::new(TermQuery::new(term, IndexRecordOption::Basic))
@@ -91,7 +93,12 @@ pub fn code_search_query(
 
     // When filepath presents, we exclude the file from the search.
     if let Some(filepath) = &query.filepath {
+        debug!("code_search_query - Original filepath: {}", filepath);
         if let Ok(Some(normalized_path)) = normalize_path(Some(filepath.clone())) {
+            debug!(
+                "code_search_query - Normalized filepath: {}",
+                normalized_path
+            );
             subqueries.push((
                 Occur::MustNot,
                 Box::new(ConstScoreQuery::new(filepath_query(&normalized_path), 0.0)),
