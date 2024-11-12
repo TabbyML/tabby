@@ -3,15 +3,16 @@
 [llamafile](https://github.com/Mozilla-Ocho/llamafile)
 is a Mozilla Builders project that allows you to distribute and run LLMs with a single file.
 
-llamafile provides an OpenAI API-compatible chat-completions and embedding endpoint,
-enabling us to use the OpenAI kinds for chat and embeddings.
+llamafile embeds a llama.cpp server and provides an OpenAI API-compatible chat-completions endpoint,
+allowing us to use the `openai/chat`, `llama.cpp/completion`, and `llama.cpp/embedding` types.
 
-However, for completion, there are certain differences in the implementation, and we are still working on it.
-
-llamafile uses port `8080` by default, which is also the port used by Tabby.
+By default, llamafile uses port `8080`, which is also used by Tabby.
 Therefore, it is recommended to run llamafile with the `--port` option to serve on a different port, such as `8081`.
 
-Below is an example for chat:
+For embeddings, the embedding endpoint is no longer supported in the standard llamafile server,
+so you need to run llamafile with the `--embedding` and `--port` options.
+
+Below is an example configuration:
 
 ```toml title="~/.tabby/config.toml"
 # Chat model
@@ -20,16 +21,19 @@ kind = "openai/chat"
 model_name = "your_model"
 api_endpoint = "http://localhost:8081/v1"
 api_key = ""
-```
 
-For embeddings, the embedding endpoint is no longer supported in the standard llamafile server,
-so you have to run llamafile with the `--embedding` option and set the Tabby config to:
+# Completion model
+[model.completion.http]
+kind = "llama.cpp/completion"
+model_name = "your_model"
+api_endpoint = "http://localhost:8081"
+api_key = "secret-api-key"
+prompt_template = "<|fim_prefix|>{prefix}<|fim_suffix|>{suffix}<|fim_middle|>" # Example prompt template for the Qwen2.5 Coder model series.
 
-```toml title="~/.tabby/config.toml"
 # Embedding model
 [model.embedding.http]
-kind = "openai/embedding"
+kind = "llama.cpp/embedding"
 model_name = "your_model"
-api_endpoint = "http://localhost:8082/v1"
+api_endpoint = "http://localhost:8082"
 api_key = ""
 ```
