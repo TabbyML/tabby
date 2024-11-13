@@ -403,7 +403,7 @@ fn default_answer_code_search_params() -> CodeSearchParams {
         min_bm25_score: -1.0,
         min_rrf_score: -1.0,
         num_to_return: 10,
-        num_to_score: 20,
+        num_to_score: 100,
     }
 }
 

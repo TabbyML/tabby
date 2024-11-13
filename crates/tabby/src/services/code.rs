@@ -123,6 +123,8 @@ fn merge_code_responses_by_rank(
         .map(|(scores, doc)| create_hit(scores, doc))
         .collect();
     scored_hits.sort_by(|a, b| b.scores.rrf.total_cmp(&a.scores.rrf));
+    retain_at_most_two_hits_per_file(&mut scored_hits);
+
     CodeSearchResponse {
         hits: scored_hits
             .into_iter()
@@ -134,6 +136,18 @@ fn merge_code_responses_by_rank(
             .take(params.num_to_return)
             .collect(),
     }
+}
+
+fn retain_at_most_two_hits_per_file(scored_hits: &mut Vec<CodeSearchHit>) {
+    let mut scored_hits_by_fileid: HashMap<String, usize> = HashMap::default();
+    scored_hits.retain(|x| {
+        let count: usize = scored_hits_by_fileid
+            .get(&x.doc.file_id)
+            .map(|x| *x)
+            .unwrap_or_default();
+        scored_hits_by_fileid.insert(x.doc.file_id.clone(), count + 1);
+        count < 2
+    });
 }
 
 fn compute_rank_score(resp: Vec<(f32, TantivyDocument)>) -> Vec<(f32, f32, TantivyDocument)> {

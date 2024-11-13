@@ -513,7 +513,7 @@ Remember, don't blindly repeat the contexts verbatim. When possible, give code s
     )
 }
 
-/// Combine code snippets from search results rather than utilizing multiple hits: Presently, there is only one rule: if the number of lines of code (LoC) is less than 200, and there are multiple hits (number of hits > 1), include the entire file.
+/// Combine code snippets from search results rather than utilizing multiple hits: Presently, there is only one rule: if the number of lines of code (LoC) is less than 300, and there are multiple hits (number of hits > 1), include the entire file.
 pub async fn merge_code_snippets(
     repository: Option<Repository>,
     hits: Vec<CodeSearchHit>,
@@ -535,7 +535,7 @@ pub async fn merge_code_snippets(
         // construct the full path to the file
         let path: PathBuf = repository.dir.join(&file_hits[0].doc.filepath);
 
-        if file_hits.len() > 1 && count_lines(&path).is_ok_and(|x| x < 200) {
+        if file_hits.len() > 1 && count_lines(&path).is_ok_and(|x| x < 300) {
             let file_content = read_file_content(&path);
 
             if let Some(file_content) = file_content {
@@ -563,10 +563,7 @@ pub async fn merge_code_snippets(
                 result.push(insert_hit);
             }
         } else {
-            // Take at most 2 hits from each file.
-            let num_hits = std::cmp::min(2, file_hits.len());
-            let file_hits_slice = &file_hits[..num_hits];
-            result.extend(file_hits_slice);
+            result.extend(file_hits);
         }
     }
 
