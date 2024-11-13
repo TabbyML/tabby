@@ -54,20 +54,70 @@ pub fn events_dir() -> PathBuf {
     tabby_root().join("events")
 }
 
-pub fn normalize_path(filepath: Option<String>) -> Result<Option<String>> {
-    Ok(filepath.map(|path| {
+fn normalize_path_for_platform(
+    filepath: Option<String>,
+    is_windows: bool,
+) -> Result<Option<String>> {
+    Ok(filepath.clone().map(|path| {
         let path_buf = PathBuf::from(path);
-
-        #[cfg(target_os = "windows")]
-        {
+        if is_windows {
             path_buf.to_string_lossy().replace('/', "\\")
-        }
-
-        #[cfg(not(target_os = "windows"))]
-        {
+        } else {
             path_buf.to_string_lossy().replace('\\', "/")
         }
     }))
 }
 
+/// Normalize the path to unix style path
+pub fn normalize_path(filepath: Option<String>) -> Result<Option<String>> {
+    #[cfg(target_os = "windows")]
+    return normalize_path_for_platform(filepath, true);
+
+    #[cfg(not(target_os = "windows"))]
+    return normalize_path_for_platform(filepath, false);
+}
+
 mod registry {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_relative_path_normalization() {
+        // the most common use, converting relative path to unix style
+        assert_eq!(
+            normalize_path_for_platform(Some("./src/main.rs".to_string()), false).unwrap(),
+            Some("./src/main.rs".to_string())
+        );
+        assert_eq!(
+            normalize_path_for_platform(Some(".\\src\\main.rs".to_string()), false).unwrap(),
+            Some("./src/main.rs".to_string())
+        );
+        assert_eq!(
+            normalize_path_for_platform(Some("../test/data.json".to_string()), false).unwrap(),
+            Some("../test/data.json".to_string())
+        );
+        assert_eq!(
+            normalize_path_for_platform(Some("..\\test\\data.json".to_string()), false).unwrap(),
+            Some("../test/data.json".to_string())
+        );
+
+        assert_eq!(
+            normalize_path_for_platform(Some("./src/main.rs".to_string()), true).unwrap(),
+            Some(".\\src\\main.rs".to_string())
+        );
+        assert_eq!(
+            normalize_path_for_platform(Some(".\\src\\main.rs".to_string()), true).unwrap(),
+            Some(".\\src\\main.rs".to_string())
+        );
+        assert_eq!(
+            normalize_path_for_platform(Some("../test/data.json".to_string()), true).unwrap(),
+            Some("..\\test\\data.json".to_string())
+        );
+        assert_eq!(
+            normalize_path_for_platform(Some("..\\test\\data.json".to_string()), true).unwrap(),
+            Some("..\\test\\data.json".to_string())
+        );
+    }
+}
