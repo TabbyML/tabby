@@ -88,23 +88,19 @@ impl IndexAttributeBuilder<SourceCode> for CodeBuilder {
 
         let source_code = source_code.clone();
         let s = stream! {
-            let filepath_embedding_tokens =
-                build_binarize_embedding_tokens(embedding.clone(), &source_code.filepath).await;
-
             for await (start_line, body) in CodeIntelligence::chunks(&text, &source_code.language) {
                 let attributes = json!({
                     code::fields::CHUNK_FILEPATH: source_code.filepath,
                     code::fields::CHUNK_GIT_URL: source_code.git_url,
                     code::fields::CHUNK_LANGUAGE: source_code.language,
-                    code::fields::CHUNK_BODY:  body,
+                    code::fields::CHUNK_BODY: body,
                     code::fields::CHUNK_START_LINE: start_line,
                 });
 
                 let embedding = embedding.clone();
-                let filepath_embedding_tokens = filepath_embedding_tokens.clone();
+                let rewritten_body = format!("```{}\n{}\n```", source_code.filepath, body);
                 yield tokio::spawn(async move {
-                    let tokens = build_binarize_embedding_tokens(embedding.clone(), &body).await;
-                    let tokens= merge_tokens(vec![filepath_embedding_tokens, tokens]);
+                    let tokens = build_binarize_embedding_tokens(embedding.clone(), &rewritten_body).await;
                     (tokens, attributes)
                 });
             }
@@ -129,11 +125,6 @@ async fn build_binarize_embedding_tokens(embedding: Arc<dyn Embedding>, body: &s
     }
 
     tokens
-}
-
-pub fn merge_tokens(tokens: Vec<Vec<String>>) -> Vec<String> {
-    let tokens = tokens.into_iter().flatten().collect::<HashSet<_>>();
-    tokens.into_iter().collect()
 }
 
 fn create_code_builder(embedding: Option<Arc<dyn Embedding>>) -> TantivyDocBuilder<SourceCode> {
