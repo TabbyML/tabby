@@ -263,3 +263,94 @@ impl CodeSearch for CodeSearchService {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_retain_at_most_two_hits_per_file() {
+        let new_hit = |file: &str, body: &str| CodeSearchHit {
+            scores: Default::default(),
+            doc: CodeSearchDocument {
+                file_id: file.to_string(),
+                chunk_id: "chunk1".to_owned(),
+                body: body.to_string(),
+                filepath: "".to_owned(),
+                git_url: "".to_owned(),
+                language: "".to_owned(),
+                start_line: 0,
+            },
+        };
+
+        let cases = vec![
+            (vec![], vec![]),
+            (
+                vec![new_hit("file1", "body1")],
+                vec![new_hit("file1", "body1")],
+            ),
+            (
+                vec![new_hit("file1", "body1"), new_hit("file1", "body2")],
+                vec![new_hit("file1", "body1"), new_hit("file1", "body2")],
+            ),
+            (
+                vec![
+                    new_hit("file1", "body1"),
+                    new_hit("file1", "body2"),
+                    new_hit("file1", "body3"),
+                ],
+                vec![new_hit("file1", "body1"), new_hit("file1", "body2")],
+            ),
+            (
+                vec![
+                    new_hit("file1", "body1"),
+                    new_hit("file1", "body2"),
+                    new_hit("file1", "body3"),
+                    new_hit("file2", "body4"),
+                ],
+                vec![
+                    new_hit("file1", "body1"),
+                    new_hit("file1", "body2"),
+                    new_hit("file2", "body4"),
+                ],
+            ),
+            (
+                vec![
+                    new_hit("file1", "body1"),
+                    new_hit("file1", "body2"),
+                    new_hit("file1", "body3"),
+                    new_hit("file2", "body4"),
+                    new_hit("file2", "body5"),
+                ],
+                vec![
+                    new_hit("file1", "body1"),
+                    new_hit("file1", "body2"),
+                    new_hit("file2", "body4"),
+                    new_hit("file2", "body5"),
+                ],
+            ),
+            (
+                vec![
+                    new_hit("file1", "body1"),
+                    new_hit("file1", "body2"),
+                    new_hit("file1", "body3"),
+                    new_hit("file2", "body4"),
+                    new_hit("file2", "body5"),
+                    new_hit("file2", "body6"),
+                ],
+                vec![
+                    new_hit("file1", "body1"),
+                    new_hit("file1", "body2"),
+                    new_hit("file2", "body4"),
+                    new_hit("file2", "body5"),
+                ],
+            ),
+        ];
+
+        for (input, expected) in cases {
+            let mut input = input;
+            retain_at_most_two_hits_per_file(&mut input);
+            assert_eq!(input, expected);
+        }
+    }
+}
