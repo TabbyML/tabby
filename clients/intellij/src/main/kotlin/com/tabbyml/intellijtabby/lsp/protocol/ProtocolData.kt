@@ -339,7 +339,7 @@ data class SemanticTokensRangeResult(
   )
 
   data class SemanticTokens(
-    val resultId: String,
+    val resultId: String? = null,
     val data: List<Int>,
   )
 }

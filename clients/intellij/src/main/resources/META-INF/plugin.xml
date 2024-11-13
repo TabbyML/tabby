@@ -33,6 +33,12 @@
 
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <extensionPoints>
+        <extensionPoint name="languageSupportProvider"
+                        interface="com.tabbyml.intellijtabby.languageSupport.LanguageSupportProvider"
+                        dynamic="true"/>
+    </extensionPoints>
+
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.tabbyml.intellijtabby.events.StartupActivity"/>
         <editorFactoryListener implementation="com.tabbyml.intellijtabby.events.EditorFactoryListener"/>

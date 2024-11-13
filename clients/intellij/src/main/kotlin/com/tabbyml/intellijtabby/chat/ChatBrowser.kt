@@ -3,8 +3,8 @@ package com.tabbyml.intellijtabby.chat
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
-import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
@@ -165,18 +165,18 @@ class ChatBrowser(private val project: Project) : JBCefBrowser(
 
   private fun getActiveFileContext(useSelectedText: Boolean = true): FileContext? {
     return FileEditorManager.getInstance(project).selectedTextEditor?.let { editor ->
-      ReadAction.compute<Triple<String, Int, Int>?, Throwable> {
+      runReadAction {
         val document = editor.document
         if (useSelectedText) {
           val selectionModel = editor.selectionModel
-          val text = selectionModel.selectedText.takeUnless { it.isNullOrBlank() } ?: return@compute null
+          val text = selectionModel.selectedText.takeUnless { it.isNullOrBlank() } ?: return@runReadAction null
           Triple(
             text,
             document.getLineNumber(selectionModel.selectionStart) + 1,
             document.getLineNumber(selectionModel.selectionEnd) + 1,
           )
         } else {
-          val text = document.text.takeUnless { it.isBlank() } ?: return@compute null
+          val text = document.text.takeUnless { it.isBlank() } ?: return@runReadAction null
           Triple(
             text,
             1,
