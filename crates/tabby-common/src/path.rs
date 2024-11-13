@@ -54,27 +54,9 @@ pub fn events_dir() -> PathBuf {
     tabby_root().join("events")
 }
 
-fn normalize_path_for_platform(
-    filepath: Option<String>,
-    is_windows: bool,
-) -> Result<Option<String>> {
-    Ok(filepath.clone().map(|path| {
-        let path_buf = PathBuf::from(path);
-        if is_windows {
-            path_buf.to_string_lossy().replace('/', "\\")
-        } else {
-            path_buf.to_string_lossy().replace('\\', "/")
-        }
-    }))
-}
-
-/// Normalize the path to unix style path
-pub fn normalize_path(filepath: Option<String>) -> Result<Option<String>> {
-    #[cfg(target_os = "windows")]
-    return normalize_path_for_platform(filepath, true);
-
-    #[cfg(not(target_os = "windows"))]
-    return normalize_path_for_platform(filepath, false);
+/// Normalize the path form different platform to unix style path
+pub fn normalize_to_unix_path(filepath: Option<String>) -> Result<Option<String>> {
+    Ok(filepath.map(|path| path.replace('\\', "/")))
 }
 
 mod registry {}
@@ -85,39 +67,22 @@ mod tests {
 
     #[test]
     fn test_relative_path_normalization() {
-        // the most common use, converting relative path to unix style
-        assert_eq!(
-            normalize_path_for_platform(Some("./src/main.rs".to_string()), false).unwrap(),
-            Some("./src/main.rs".to_string())
-        );
-        assert_eq!(
-            normalize_path_for_platform(Some(".\\src\\main.rs".to_string()), false).unwrap(),
-            Some("./src/main.rs".to_string())
-        );
-        assert_eq!(
-            normalize_path_for_platform(Some("../test/data.json".to_string()), false).unwrap(),
-            Some("../test/data.json".to_string())
-        );
-        assert_eq!(
-            normalize_path_for_platform(Some("..\\test\\data.json".to_string()), false).unwrap(),
-            Some("../test/data.json".to_string())
-        );
+        let unix_test_cases = [
+            ("./src/main.rs", "./src/main.rs"),
+            (".\\src\\main.rs", "./src/main.rs"),
+            ("../test/data.json", "../test/data.json"),
+            ("..\\test\\data.json", "../test/data.json"),
+            ("src/test/file.txt", "src/test/file.txt"),
+            ("src\\test\\file.txt", "src/test/file.txt"),
+        ];
 
-        assert_eq!(
-            normalize_path_for_platform(Some("./src/main.rs".to_string()), true).unwrap(),
-            Some(".\\src\\main.rs".to_string())
-        );
-        assert_eq!(
-            normalize_path_for_platform(Some(".\\src\\main.rs".to_string()), true).unwrap(),
-            Some(".\\src\\main.rs".to_string())
-        );
-        assert_eq!(
-            normalize_path_for_platform(Some("../test/data.json".to_string()), true).unwrap(),
-            Some("..\\test\\data.json".to_string())
-        );
-        assert_eq!(
-            normalize_path_for_platform(Some("..\\test\\data.json".to_string()), true).unwrap(),
-            Some("..\\test\\data.json".to_string())
-        );
+        for (input, expected) in unix_test_cases {
+            assert_eq!(
+                normalize_to_unix_path(Some(input.to_string())).unwrap(),
+                Some(expected.to_string()),
+                "Failed to normalize path: {}",
+                input
+            );
+        }
     }
 }

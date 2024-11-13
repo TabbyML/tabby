@@ -3,7 +3,7 @@ use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::path::normalize_path;
+use crate::path::normalize_to_unix_path;
 
 pub struct CodeSearchResponse {
     pub hits: Vec<CodeSearchHit>,
@@ -67,7 +67,7 @@ impl CodeSearchQuery {
         source_id: String,
     ) -> Self {
         Self {
-            filepath: normalize_path(filepath).unwrap_or(None),
+            filepath: normalize_to_unix_path(filepath).unwrap_or(None),
             language,
             content,
             source_id,
