@@ -136,7 +136,6 @@ pub fn merge_tokens(tokens: Vec<Vec<String>>) -> Vec<String> {
     tokens.into_iter().collect()
 }
 
-
 fn create_code_builder(embedding: Option<Arc<dyn Embedding>>) -> TantivyDocBuilder<SourceCode> {
     let builder = CodeBuilder::new(embedding);
     TantivyDocBuilder::new(corpus::CODE, builder)
