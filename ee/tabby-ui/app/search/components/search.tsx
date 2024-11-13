@@ -938,7 +938,6 @@ interface ThreadMessagesErrorViewProps {
   error: ExtendedCombinedError
 }
 function ThreadMessagesErrorView({ error }: ThreadMessagesErrorViewProps) {
-  // FIXME show different error messages
   let title = 'Something went wrong'
   let description =
     'Failed to fetch the thread, please refresh the page or start a new thread'
