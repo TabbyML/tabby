@@ -1163,6 +1163,19 @@ impl Mutation {
         Ok(true)
     }
 
+    async fn delete_thread(ctx: &Context, id: ID) -> Result<bool> {
+        let user = check_user_allow_auth_token(ctx).await?;
+        let svc = ctx.locator.thread();
+        let Some(thread) = svc.get(&id).await? else {
+            return Err(CoreError::NotFound("Thread not found"));
+        };
+
+        user.policy.check_delete_thread(&thread.user_id)?;
+
+        ctx.locator.thread().delete(&id).await?;
+        Ok(true)
+    }
+
     /// Turn on persisted status for a thread.
     async fn set_thread_persisted(ctx: &Context, thread_id: ID) -> Result<bool> {
         let user = check_user(ctx).await?;

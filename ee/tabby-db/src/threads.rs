@@ -357,6 +357,14 @@ impl DbConn {
         Ok(())
     }
 
+    pub async fn delete_thread(&self, id: i64) -> Result<()> {
+        query!("DELETE FROM threads WHERE id = ?", id,)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn delete_expired_ephemeral_threads(&self) -> Result<usize> {
         let time = (Utc::now() - Duration::days(7)).as_sqlite_datetime();
 
