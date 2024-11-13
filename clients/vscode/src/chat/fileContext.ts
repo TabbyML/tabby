@@ -25,11 +25,11 @@ export async function getFileContext(
   editor: TextEditor,
   gitProvider: GitProvider,
   useSelection = false,
-  alwaysReturnContext = false
+  alwaysReturnContext = false,
 ): Promise<FileContext | null> {
   const uri = editor.document.uri;
   const text = editor.document.getText(useSelection ? editor.selection : undefined);
-  const isEmptyText = !text || text.trim().length < 1
+  const isEmptyText = !text || text.trim().length < 1;
   if (isEmptyText && !alwaysReturnContext) {
     return null;
   }
@@ -44,7 +44,7 @@ export async function getFileContext(
         start: 1,
         end: editor.document.lineCount,
       };
-  
+
   if (alwaysReturnContext && isEmptyText) {
     range.start = 0;
     range.end = 0;

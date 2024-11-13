@@ -145,7 +145,7 @@ function ChatPanelRenderer(
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="shrink-0 h-7 w-7 rounded-l-none"
+                      className="h-7 w-7 shrink-0 rounded-l-none"
                       onClick={e => {
                         updateEnableActiveSelection(!enableActiveSelection)
                       }}
@@ -171,13 +171,13 @@ function ChatPanelRenderer(
                   >
                     <Badge
                       variant="outline"
-                      className="inline-flex h-7 pr-0 flex-nowrap items-center gap-1 overflow-hidden rounded-md text-sm font-semibold"
+                      className="inline-flex h-7 flex-nowrap items-center gap-1 overflow-hidden rounded-md pr-0 text-sm font-semibold"
                     >
                       <ContextLabel context={item} />
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="shrink-0 h-7 w-7 rounded-l-none"
+                        className="h-7 w-7 shrink-0 rounded-l-none"
                         onClick={removeRelevantContext.bind(null, idx)}
                       >
                         <IconRemove />
