@@ -1,0 +1,6 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.tabbyml.intellij-tabby">
+        <languageSupportProvider
+                implementation="com.tabbyml.intellijtabby.languageSupport.KotlinLanguageSupportProvider"/>
+    </extensions>
+</idea-plugin>
